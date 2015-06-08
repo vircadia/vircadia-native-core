@@ -626,7 +626,8 @@ void Avatar::renderBillboard(RenderArgs* renderArgs) {
     glm::vec2 texCoordTopLeft(0.0f, 0.0f);
     glm::vec2 texCoordBottomRight(1.0f, 1.0f);
 
-    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true);
+    DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
                                                         glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     batch._glBindTexture(GL_TEXTURE_2D, 0);
     batch._glDisable(GL_TEXTURE_2D);
