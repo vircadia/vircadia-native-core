@@ -554,10 +554,6 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
     oldFrameIndex = _frameIndex;
 #endif
     
-    if (_outputWindow->visibility() != QWindow::FullScreen) {
-    //    _outputWindow->showFullScreen();
-    }
-    
 #ifndef Q_OS_WIN
     // FIXME:  we need a better way of responding to the HSW.  In particular
     // we need to ensure that it's only displayed once per session, rather than

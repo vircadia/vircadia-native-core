@@ -2106,13 +2106,6 @@ void Application::init() {
 
     _mirrorCamera.setMode(CAMERA_MODE_MIRROR);
 
-    //OculusManager::connect();
-    //if (OculusManager::isConnected()) {
-    //    QMetaObject::invokeMethod(Menu::getInstance()->getActionForOption(MenuOption::Fullscreen),
-    //                              "trigger",
-    //                              Qt::QueuedConnection);
-    //}
-
     TV3DManager::connect();
     if (TV3DManager::isConnected()) {
         QMetaObject::invokeMethod(Menu::getInstance()->getActionForOption(MenuOption::Fullscreen),
