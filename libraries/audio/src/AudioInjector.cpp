@@ -68,6 +68,7 @@ void AudioInjector::setIsFinished(bool isFinished) {
 
 void AudioInjector::injectAudio() {
     if (!_isStarted) {
+        _isStarted = true;
         // check if we need to offset the sound by some number of seconds
         if (_options.secondOffset > 0.0f) {
             
@@ -92,7 +93,15 @@ void AudioInjector::injectAudio() {
 
 void AudioInjector::restart() {
     qCDebug(audio) << "Restarting an AudioInjector by stopping and starting over.";
-    stop();
+    connect(this, &AudioInjector::finished, this, &AudioInjector::restartPortionAfterFinished);
+    if (!_isStarted || _isFinished) {
+        emit finished();
+    } else {
+        stop();
+    }
+}
+void AudioInjector::restartPortionAfterFinished() {
+    disconnect(this, &AudioInjector::finished, this, &AudioInjector::restartPortionAfterFinished);
     setIsFinished(false);
     QMetaObject::invokeMethod(this, "injectAudio", Qt::QueuedConnection);
 }
@@ -272,14 +281,6 @@ void AudioInjector::stop() {
     if (_options.localOnly) {
         // we're only a local injector, so we can say we are finished right away too
         setIsFinished(true);
-    } else {
-        // Wait for actual stop (because synchronous callers such as restart might immediately change state before
-        // the asynchronous injector has a chance to see that it should stop). This prevents issues where, e.g.,
-        // two stop()s are required after two restart()s.
-        while (!_isFinished) {
-            //qCDebug(audio) << AudioConstants::NETWORK_FRAME_USECS << AudioConstants::NETWORK_FRAME_MSECS;
-            usleep(AudioConstants::NETWORK_FRAME_USECS);
-        }
     }
 }
 
