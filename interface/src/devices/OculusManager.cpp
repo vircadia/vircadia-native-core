@@ -177,6 +177,7 @@ ovrLayerEyeFov OculusManager::_sceneLayer;
 
 #else
 
+BasicFramebufferWrapper* _transferFbo;
 ovrTexture OculusManager::_eyeTextures[ovrEye_Count];
 GlWindow* OculusManager::_outputWindow{ nullptr };
 
@@ -296,11 +297,24 @@ void OculusManager::connect(QOpenGLContext* shareContext) {
 #else
     _outputWindow = new GlWindow(shareContext);
     _outputWindow->show();
-    _outputWindow->setFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
-    _outputWindow->resize(_ovrHmd->Resolution.w, _ovrHmd->Resolution.h);
-    //    _outputWindow->setPosition(_ovrHmd->Position.x, _ovrHmd->Position.y);
+//    _outputWindow->setFlags(Qt::FramelessWindowHint );
+//    _outputWindow->resize(_ovrHmd->Resolution.w, _ovrHmd->Resolution.h);
+//    _outputWindow->setPosition(_ovrHmd->WindowsPos.x, _ovrHmd->WindowsPos.y);
+    ivec2 desiredPosition = toGlm(_ovrHmd->WindowsPos);
+    foreach(QScreen* screen, qGuiApp->screens()) {
+        ivec2 screenPosition = toGlm(screen->geometry().topLeft());
+        if (screenPosition == desiredPosition) {
+            _outputWindow->setScreen(screen);
+            break;
+        }
+    }
+    _outputWindow->showFullScreen();
     _outputWindow->makeCurrent();
-
+    _transferFbo = new BasicFramebufferWrapper();
+    _transferFbo->Init(toGlm(_renderTargetSize));
+    
+    
+    
     ovrGLConfig cfg;
     memset(&cfg, 0, sizeof(cfg));
     cfg.OGL.Header.API = ovrRenderAPI_OpenGL;
@@ -315,7 +329,7 @@ void OculusManager::connect(QOpenGLContext* shareContext) {
     int configResult = ovrHmd_ConfigureRendering(_ovrHmd, &cfg.Config,
         distortionCaps, _eyeFov, _eyeRenderDesc);
     assert(configResult);
-
+    _outputWindow->doneCurrent();
 
     for_each_eye([&](ovrEyeType eye) {
         //Get texture size
@@ -358,6 +372,10 @@ void OculusManager::disconnect() {
             delete _mirrorFbo;
             _mirrorFbo = nullptr;
         }
+#else
+        _outputWindow->showNormal();
+        _outputWindow->deleteLater();
+        _outputWindow = nullptr;
 #endif
 
         if (_ovrHmd) {
@@ -535,27 +553,10 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
     assert(oldFrameIndex == -1 || (unsigned int)oldFrameIndex == _frameIndex - 1);
     oldFrameIndex = _frameIndex;
 #endif
-
-    // Every so often do some additional timing calculations and debug output
-    bool debugFrame = 0 == _frameIndex % 400;
     
-#if 0
-    // Try to measure the amount of time taken to do the distortion
-    // (does not seem to work on OSX with SDK based distortion)
-    // FIXME can't use a static object here, because it will cause a crash when the
-    // query attempts deconstruct after the GL context is gone.
-    static bool timerActive = false;
-    static QOpenGLTimerQuery timerQuery;
-    if (!timerQuery.isCreated()) {
-        timerQuery.create();
+    if (_outputWindow->visibility() != QWindow::FullScreen) {
+    //    _outputWindow->showFullScreen();
     }
-    
-    if (timerActive && timerQuery.isResultAvailable()) {
-        auto result = timerQuery.waitForResult();
-        if (result) { qCDebug(interfaceapp) << "Distortion took "  << result << "ns"; };
-        timerActive = false;
-    }
-#endif
     
 #ifndef Q_OS_WIN
     // FIXME:  we need a better way of responding to the HSW.  In particular
@@ -573,7 +574,6 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
         }
     }
 #endif
-    
 
     //beginFrameTiming must be called before display
     if (!_frameTimingActive) {
@@ -718,26 +718,16 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
     Q_ASSERT(OVR_SUCCESS(res));
     _swapFbo->Increment();
 #else 
+    glFinish();
     GLuint textureId = gpu::GLBackend::getTextureID(finalFbo->getRenderBuffer(0));
+    _outputWindow->makeCurrent();
     for_each_eye([&](ovrEyeType eye) {
         ovrGLTexture & glEyeTexture = reinterpret_cast<ovrGLTexture&>(_eyeTextures[eye]);
         glEyeTexture.OGL.TexId = textureId;
     });
-
-    _outputWindow->makeCurrent();
     // restore our normal viewport
     ovrHmd_EndFrame(_ovrHmd, eyeRenderPose, _eyeTextures);
-
-    //auto outputSize = _outputWindow->size();
-    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    //auto srcFboSize = finalFbo->getSize();
-    //glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
-    //glBlitFramebuffer(
-    //                  0, 0, srcFboSize.x, srcFboSize.y,
-    //                  0, 0, outputSize.width(), outputSize.height(),
-    //                  GL_COLOR_BUFFER_BIT, GL_NEAREST);
-    //glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-    //glCanvas->swapBuffers();
+    glCanvas->makeCurrent();
 #endif
     
 

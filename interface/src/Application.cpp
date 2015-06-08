@@ -1861,6 +1861,9 @@ void Application::setEnableVRMode(bool enableVRMode) {
             // for the sixense crash
             OculusManager::disconnect();
             OculusManager::connect(_glWidget->context()->contextHandle());
+            _glWidget->setFocus();
+            _glWidget->makeCurrent();
+            glClear(GL_COLOR_BUFFER_BIT);
         }
         OculusManager::recalibrate();
     } else {

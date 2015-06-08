@@ -349,7 +349,7 @@ void ApplicationOverlay::displayOverlayTextureHmd(Camera& whichCamera) {
             textureAspectRatio = _textureAspectRatio;
             
             _overlays.buildVBO(_textureFov, _textureAspectRatio, 80, 80);
-        }
+        }	
 
         with_each_texture(_overlays.getTexture(), _newUiTexture, [&] {
             _overlays.render();

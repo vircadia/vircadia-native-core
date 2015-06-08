@@ -5,7 +5,6 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#ifdef Q_OS_WIN
 #pragma once
 
 #include "GLMHelpers.h"
@@ -165,4 +164,3 @@ protected:
 };
 
 using BasicFramebufferWrapperPtr = std::shared_ptr<BasicFramebufferWrapper>;
-#endif

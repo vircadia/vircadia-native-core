@@ -250,7 +250,7 @@ void HMDToolsDialog::aboutToQuit() {
 
 void HMDToolsDialog::screenCountChanged(int newCount) {
     if (!OculusManager::isConnected()) {
-        OculusManager::connect();
+        //OculusManager::connect();
     }
     int hmdScreenNumber = OculusManager::getHMDScreen();
 

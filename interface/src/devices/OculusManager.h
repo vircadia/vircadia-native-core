@@ -136,6 +136,10 @@ inline glm::vec2 toGlm(const ovrVector2f & ov) {
     return glm::make_vec2(&ov.x);
 }
 
+inline glm::ivec2 toGlm(const ovrVector2i & ov) {
+    return glm::ivec2(ov.x, ov.y);
+}
+
 inline glm::uvec2 toGlm(const ovrSizei & ov) {
     return glm::uvec2(ov.w, ov.h);
 }

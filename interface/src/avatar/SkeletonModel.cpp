@@ -258,6 +258,10 @@ void SkeletonModel::updateJointState(int index) {
     JointState& state = _jointStates[index];
     const FBXJoint& joint = state.getFBXJoint();
     if (joint.parentIndex != -1) {
+        if (joint.parentIndex < 0 || joint.parentIndex >= _jointStates.size()) {
+            qDebug() << "Bad parent index";
+            return;
+        }
         const JointState& parentState = _jointStates.at(joint.parentIndex);
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         if (index == geometry.leanJointIndex) {
