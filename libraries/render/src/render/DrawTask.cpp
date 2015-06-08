@@ -58,7 +58,7 @@ void DrawSceneTask::run(const SceneContextPointer& sceneContext, const RenderCon
 Job::~Job() {
 }
 
-void render::cullItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDs& inItems, ItemIDs& outItems) {
+void render::cullItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
     PerformanceTimer perfTimer("cullItems");
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
@@ -70,8 +70,8 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
     renderDetails->_considered += inItems.size();
     
     // Culling / LOD
-    for (auto id : inItems) {
-        auto item = scene->getItem(id);
+    for (auto itemDetails : inItems) {
+        auto item = scene->getItem(itemDetails.id);
         AABox bound;
         {
             PerformanceTimer perfTimer("getBound");
@@ -80,7 +80,7 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
         }
 
         if (bound.isNull()) {
-            outItems.push_back(id); // One more Item to render
+            outItems.push_back(ItemIDAndBounds(itemDetails.id)); // One more Item to render
             continue;
         }
 
@@ -98,7 +98,7 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
                 bigEnoughToRender = (args->_shouldRender) ? args->_shouldRender(args, bound) : true;
             }
             if (bigEnoughToRender) {
-                outItems.push_back(id); // One more Item to render
+                outItems.push_back(ItemIDAndBounds(itemDetails.id, bound)); // One more Item to render
             } else {
                 renderDetails->_tooSmall++;
             }
@@ -131,7 +131,7 @@ struct BackToFrontSort {
     }
 };
 
-void render::depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemIDs& inItems, ItemIDs& outItems) {
+void render::depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
     PerformanceTimer perfTimer("depthSortItems");
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
@@ -144,95 +144,47 @@ void render::depthSortItems(const SceneContextPointer& sceneContext, const Rende
     outItems.reserve(inItems.size());
 
     
-    #if 0 /// NEW WAY
-    {
-        PerformanceTimer perfTimer("newWay");
-        
-        // TODO: use a QMap<depth,item> which would give us automatic sorting.
-        QMap<float, ItemID> depths;
-        QList<ItemID> sortedItems;
-        
-        {
-            PerformanceTimer perfTimer("part1");
+    // Make a local dataset of the center distance and closest point distance
+    std::vector<ItemBound> itemBounds;
+    itemBounds.reserve(outItems.size());
 
-            for (auto id : inItems) {
-                auto item = scene->getItem(id);
-                auto bound = item.getBound();
-                float distance = args->_viewFrustum->distanceToCamera(bound.calcCenter());
-                float key = frontToBack ? -distance : distance;
-        
-                depths.insertMulti(key, id);
-            }
-        }
-        {
-            PerformanceTimer perfTimer("part2");
-             sortedItems = depths.values();
-        }
+    for (auto itemDetails : inItems) {
+        auto item = scene->getItem(itemDetails.id);
+        auto bound = itemDetails.bounds; // item.getBound();
+        float distance = args->_viewFrustum->distanceToCamera(bound.calcCenter());
 
-        {
-            PerformanceTimer perfTimer("part3");
-            for ( auto sortedID : sortedItems) {
-                outItems.emplace_back(sortedID);
-            }
-        }
-
+        itemBounds.emplace_back(ItemBound(distance, distance, distance, itemDetails.id));
     }
-    #else /// OLD WAY
-    {
-        PerformanceTimer perfTimer("oldWay");
 
-        // Make a local dataset of the center distance and closest point distance
-        std::vector<ItemBound> itemBounds;
-        {
-            PerformanceTimer perfTimer("part1");
-            itemBounds.reserve(outItems.size());
-
-            for (auto id : inItems) {
-                auto item = scene->getItem(id);
-                auto bound = item.getBound();
-                float distance = args->_viewFrustum->distanceToCamera(bound.calcCenter());
-    
-                itemBounds.emplace_back(ItemBound(distance, distance, distance, id));
-            }
-        }
-
-        {
-            PerformanceTimer perfTimer("part2");
-            // sort against Z
-            if (frontToBack) {
-                FrontToBackSort frontToBackSort;
-                std::sort (itemBounds.begin(), itemBounds.end(), frontToBackSort); 
-            } else {
-                BackToFrontSort  backToFrontSort;
-                std::sort (itemBounds.begin(), itemBounds.end(), backToFrontSort); 
-            }
-        }
-
-        {
-            PerformanceTimer perfTimer("part3");
-            // FInally once sorted result to a list of itemID
-            for (auto& itemBound : itemBounds) {
-                outItems.emplace_back(itemBound._id);
-            }
-        }
+    // sort against Z
+    if (frontToBack) {
+        FrontToBackSort frontToBackSort;
+        std::sort (itemBounds.begin(), itemBounds.end(), frontToBackSort); 
+    } else {
+        BackToFrontSort  backToFrontSort;
+        std::sort (itemBounds.begin(), itemBounds.end(), backToFrontSort); 
     }
-    #endif
+
+    // FInally once sorted result to a list of itemID
+    for (auto& itemBound : itemBounds) {
+        outItems.emplace_back(itemBound._id);
+    }
 }
 
-void render::renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDs& inItems, int maxDrawnItems) {
+void render::renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, int maxDrawnItems) {
     PerformanceTimer perfTimer("renderItems");
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->args;
     // render
     if ((maxDrawnItems < 0) || (maxDrawnItems > inItems.size())) {
-        for (auto id : inItems) {
-            auto item = scene->getItem(id);
+        for (auto itemDetails : inItems) {
+            auto item = scene->getItem(itemDetails.id);
             item.render(args);
         }
     } else {
         int numItems = 0;
-        for (auto id : inItems) {
-            auto item = scene->getItem(id);
+        for (auto itemDetails : inItems) {
+            auto item = scene->getItem(itemDetails.id);
             item.render(args);
             numItems++;
             if (numItems >= maxDrawnItems) {
@@ -294,16 +246,16 @@ template <> void render::jobRun(const DrawOpaque& job, const SceneContextPointer
     auto& items = scene->getMasterBucket().at(ItemFilter::Builder::opaqueShape());
     auto& renderDetails = renderContext->args->_details;
 
-    ItemIDs inItems;
+    ItemIDsBounds inItems;
     inItems.reserve(items.size());
     for (auto id : items) {
-        inItems.push_back(id);
+        inItems.push_back(ItemIDAndBounds(id));
     }
-    ItemIDs& renderedItems = inItems;
+    ItemIDsBounds& renderedItems = inItems;
 
     renderContext->_numFeedOpaqueItems = renderedItems.size();
 
-    ItemIDs culledItems;
+    ItemIDsBounds culledItems;
     if (renderContext->_cullOpaque) {
         renderDetails.pointTo(RenderDetails::OPAQUE_ITEM);
         cullItems(sceneContext, renderContext, renderedItems, culledItems);
@@ -314,7 +266,7 @@ template <> void render::jobRun(const DrawOpaque& job, const SceneContextPointer
     renderContext->_numDrawnOpaqueItems = renderedItems.size();
 
 
-    ItemIDs sortedItems;
+    ItemIDsBounds sortedItems;
     if (renderContext->_sortOpaque) {
         depthSortItems(sceneContext, renderContext, true, renderedItems, sortedItems); // Sort Front to back opaque items!
         renderedItems = sortedItems;
@@ -360,16 +312,16 @@ template <> void render::jobRun(const DrawTransparent& job, const SceneContextPo
     auto& items = scene->getMasterBucket().at(ItemFilter::Builder::transparentShape());
     auto& renderDetails = renderContext->args->_details;
 
-    ItemIDs inItems;
+    ItemIDsBounds inItems;
     inItems.reserve(items.size());
     for (auto id : items) {
         inItems.push_back(id);
     }
-    ItemIDs& renderedItems = inItems;
+    ItemIDsBounds& renderedItems = inItems;
 
     renderContext->_numFeedTransparentItems = renderedItems.size();
 
-    ItemIDs culledItems;
+    ItemIDsBounds culledItems;
     if (renderContext->_cullTransparent) {
         renderDetails.pointTo(RenderDetails::TRANSLUCENT_ITEM);
         cullItems(sceneContext, renderContext, inItems, culledItems);
@@ -379,7 +331,7 @@ template <> void render::jobRun(const DrawTransparent& job, const SceneContextPo
 
     renderContext->_numDrawnTransparentItems = renderedItems.size();
 
-    ItemIDs sortedItems;
+    ItemIDsBounds sortedItems;
     if (renderContext->_sortTransparent) {
         depthSortItems(sceneContext, renderContext, false, renderedItems, sortedItems); // Sort Back to front transparent items!
         renderedItems = sortedItems;
@@ -440,13 +392,13 @@ template <> void render::jobRun(const DrawLight& job, const SceneContextPointer&
     auto& items = scene->getMasterBucket().at(ItemFilter::Builder::light());
 
 
-     ItemIDs inItems;
+    ItemIDsBounds inItems;
     inItems.reserve(items.size());
     for (auto id : items) {
         inItems.push_back(id);
     }
 
-    ItemIDs culledItems;
+    ItemIDsBounds culledItems;
     cullItems(sceneContext, renderContext, inItems, culledItems);
 
     RenderArgs* args = renderContext->args;
@@ -467,7 +419,7 @@ template <> void render::jobRun(const DrawBackground& job, const SceneContextPoi
     auto& items = scene->getMasterBucket().at(ItemFilter::Builder::background());
 
 
-    ItemIDs inItems;
+    ItemIDsBounds inItems;
     inItems.reserve(items.size());
     for (auto id : items) {
         inItems.push_back(id);
