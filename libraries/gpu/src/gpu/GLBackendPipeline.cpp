@@ -73,7 +73,7 @@ void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
 
 #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
 #else
-        _pipeline._program_transformCamera_viewInverse = -1
+        _pipeline._program_transformCamera_viewInverse = -1;
 #endif
 
         _pipeline._state = nullptr;
