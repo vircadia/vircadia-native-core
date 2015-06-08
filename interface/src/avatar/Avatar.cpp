@@ -723,7 +723,7 @@ void Avatar::renderDisplayName(RenderArgs* renderArgs) {
 
     // TODO: Fix scaling - at some point this or the text rendering changed in scale.
     float scaleFactor = calculateDisplayNameScaleFactor(textPosition, inHMD);
-    scaleFactor /= 3.0f;
+    scaleFactor /= 3.5f;
 
     Transform textTransform;
     textTransform.setTranslation(textPosition);
@@ -738,31 +738,24 @@ void Avatar::renderDisplayName(RenderArgs* renderArgs) {
         float kilobitsPerSecond = getAverageBytesReceivedPerSecond() / (float) BYTES_PER_KILOBIT;
 
         QString statsFormat = QString("(%1 Kbps, %2 Hz)");
-
         if (!renderedDisplayName.isEmpty()) {
             statsFormat.prepend(" - ");
         }
 
         QString statsText = statsFormat.arg(QString::number(kilobitsPerSecond, 'f', 2)).arg(getReceiveRate());
-        glm::vec2 extent = textRenderer(DISPLAYNAME)->computeExtent(statsText);
-
-        // add the extent required for the stats to whatever was calculated for the display name
-        nameDynamicRect.setWidth(nameDynamicRect.width() + extent.x);
-
-        if (extent.y > nameDynamicRect.height()) {
-            nameDynamicRect.setHeight(extent.y);
-        }
-
         renderedDisplayName += statsText;
+        
+        glm::vec2 extent = textRenderer(DISPLAYNAME)->computeExtent(renderedDisplayName);
+        nameDynamicRect = QRect(0, 0, (int)extent.x, (int)extent.y);
     }
 
     int text_x = -nameDynamicRect.width() / 2;
     int text_y = -nameDynamicRect.height() / 2;
 
     // draw a gray background
-    int left = text_x + nameDynamicRect.x();
+    int left = text_x;
     int right = left + nameDynamicRect.width();
-    int bottom = text_y + nameDynamicRect.y();
+    int bottom = text_y;
     int top = bottom + nameDynamicRect.height();
     const int border = 8;
     bottom -= border;
@@ -777,13 +770,13 @@ void Avatar::renderDisplayName(RenderArgs* renderArgs) {
     auto backgroundTransform = textTransform;
     backgroundTransform.postTranslate(glm::vec3(0.0f, 0.0f, -0.001f));
     batch->setModelTransform(backgroundTransform);
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(*batch);
     DependencyManager::get<GeometryCache>()->renderBevelCornersRect(*batch, left, bottom, right - left, top - bottom, 3,
                                                                     backgroundColor);
     QByteArray nameUTF8 = renderedDisplayName.toLocal8Bit();
 
-    //qDebug() << left << right << bottom << top;
     batch->setModelTransform(textTransform);
-    textRenderer(DISPLAYNAME)->draw(*batch, text_x, text_y, nameUTF8.data(), textColor);
+    textRenderer(DISPLAYNAME)->draw(*batch, text_x, -text_y, nameUTF8.data(), textColor);
 }
 
 bool Avatar::findRayIntersection(RayIntersectionInfo& intersection) const {
