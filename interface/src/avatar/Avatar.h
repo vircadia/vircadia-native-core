@@ -248,7 +248,7 @@ private:
     bool _shouldRenderBillboard;
     bool _isLookAtTarget;
 
-    void renderBillboard();
+    void renderBillboard(RenderArgs* renderArgs);
     
     float getBillboardSize() const;
     

@@ -537,7 +537,7 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool
         if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
             if (postLighting || renderArgs->_renderMode == RenderArgs::SHADOW_RENDER_MODE) {
                 // render the billboard until both models are loaded
-                renderBillboard();
+                renderBillboard(renderArgs);
             }
             return;
         }
@@ -591,7 +591,7 @@ void Avatar::updateJointMappings() {
     // no-op; joint mappings come from skeleton model
 }
 
-void Avatar::renderBillboard() {
+void Avatar::renderBillboard(RenderArgs* renderArgs) {
     if (_billboard.isEmpty()) {
         return;
     }
@@ -604,28 +604,21 @@ void Avatar::renderBillboard() {
     if (!_billboardTexture->isLoaded()) {
         return;
     }
-
-    glEnable(GL_ALPHA_TEST);
-    glAlphaFunc(GL_GREATER, 0.5f);
-
-    glEnable(GL_TEXTURE_2D);
-    glDisable(GL_LIGHTING);
-
-    glBindTexture(GL_TEXTURE_2D, _billboardTexture->getID());
-
-    glPushMatrix();
-    glTranslatef(_position.x, _position.y, _position.z);
-
     // rotate about vertical to face the camera
     glm::quat rotation = getOrientation();
     glm::vec3 cameraVector = glm::inverse(rotation) * (Application::getInstance()->getCamera()->getPosition() - _position);
     rotation = rotation * glm::angleAxis(atan2f(-cameraVector.x, -cameraVector.z), glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::vec3 axis = glm::axis(rotation);
-    glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-
+    
     // compute the size from the billboard camera parameters and scale
     float size = getBillboardSize();
-    glScalef(size, size, size);
+
+    gpu::Batch& batch = *renderArgs->_batch;
+    batch._glBindTexture(GL_TEXTURE_2D, _billboardTexture->getID());
+
+    Transform transform;
+    transform.setTranslation(_position);
+    transform.setRotation(rotation);
+    transform.setScale(size);
 
     glm::vec2 topLeft(-1.0f, -1.0f);
     glm::vec2 bottomRight(1.0f, 1.0f);
@@ -634,14 +627,7 @@ void Avatar::renderBillboard() {
 
     DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
                                                         glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-
-    glPopMatrix();
-
-    glDisable(GL_TEXTURE_2D);
-    glEnable(GL_LIGHTING);
-    glDisable(GL_ALPHA_TEST);
-
-    glBindTexture(GL_TEXTURE_2D, 0);
+    batch._glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 float Avatar::getBillboardSize() const {
