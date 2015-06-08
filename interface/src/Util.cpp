@@ -37,10 +37,10 @@ void renderWorldBox(gpu::Batch& batch) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
     //  Show edge of world
-    glm::vec3 red(1.0f, 0.0f, 0.0f);
-    glm::vec3 green(0.0f, 1.0f, 0.0f);
-    glm::vec3 blue(0.0f, 0.0f, 1.0f);
-    glm::vec3 grey(0.5f, 0.5f, 0.5f);
+    static const glm::vec3 red(1.0f, 0.0f, 0.0f);
+    static const glm::vec3 green(0.0f, 1.0f, 0.0f);
+    static const glm::vec3 blue(0.0f, 0.0f, 1.0f);
+    static const glm::vec3 grey(0.5f, 0.5f, 0.5f);
     
     auto transform = Transform{};
     batch.setModelTransform(transform);

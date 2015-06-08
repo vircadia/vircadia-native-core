@@ -16,7 +16,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <QSettings>
 
-#include "RenderArgs.h"
+#include <gpu/Batch.h>
 
 float randFloat();
 const glm::vec3 randVector();
