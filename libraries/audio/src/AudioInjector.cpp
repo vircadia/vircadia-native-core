@@ -44,6 +44,8 @@ AudioInjector::AudioInjector(const QByteArray& audioData, const AudioInjectorOpt
 
 void AudioInjector::setIsFinished(bool isFinished) {
     _isFinished = isFinished;
+    // In all paths, regardless of isFinished argument. restart() passes false to prepare for new play, and injectToMixer() needs _shouldStop reset.
+    _shouldStop = false;
 
     if (_isFinished) {
         emit finished();
@@ -55,7 +57,6 @@ void AudioInjector::setIsFinished(bool isFinished) {
         }
 
         _isStarted = false;
-        _shouldStop = false;
 
         if (_shouldDeleteAfterFinish) {
             // we've been asked to delete after finishing, trigger a queued deleteLater here
@@ -67,6 +68,7 @@ void AudioInjector::setIsFinished(bool isFinished) {
 
 void AudioInjector::injectAudio() {
     if (!_isStarted) {
+        _isStarted = true;
         // check if we need to offset the sound by some number of seconds
         if (_options.secondOffset > 0.0f) {
 
@@ -91,7 +93,15 @@ void AudioInjector::injectAudio() {
 
 void AudioInjector::restart() {
     qCDebug(audio) << "Restarting an AudioInjector by stopping and starting over.";
-    stop();
+    connect(this, &AudioInjector::finished, this, &AudioInjector::restartPortionAfterFinished);
+    if (!_isStarted || _isFinished) {
+        emit finished();
+    } else {
+        stop();
+    }
+}
+void AudioInjector::restartPortionAfterFinished() {
+    disconnect(this, &AudioInjector::finished, this, &AudioInjector::restartPortionAfterFinished);
     setIsFinished(false);
     QMetaObject::invokeMethod(this, "injectAudio", Qt::QueuedConnection);
 }
