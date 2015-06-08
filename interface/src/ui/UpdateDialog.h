@@ -27,15 +27,14 @@ public:
     QString updateAvailableDetails() const;
     QString releaseNotes() const;
     
-protected:
-    void hide();
-    
 private:
     QString _updateAvailableDetails;
     QString _releaseNotes;
 
 protected:
-    Q_INVOKABLE void triggerBuildDownload(const int& buildNumber);
+    void hide();
+    Q_INVOKABLE void triggerUpgrade();
+    Q_INVOKABLE void closeUpdateDialog();
 
 };
 

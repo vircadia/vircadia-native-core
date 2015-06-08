@@ -1,6 +1,7 @@
 import Hifi 1.0
 import QtQuick 2.3
 import QtQuick.Controls.Styles 1.3
+import QtGraphicalEffects 1.0
 import "controls"
 import "styles"
 
@@ -24,6 +25,12 @@ DialogContainer {
         readonly property int borderWidth: 30
         readonly property int closeMargin: 16
         readonly property int inputSpacing: 16
+        readonly property int buttonWidth: 150
+        readonly property int buttonHeight: 50
+        readonly property int buttonRadius: 15
+        
+        signal triggerBuildDownload
+        signal closeUpdateDialog
         
         Column {
             id: mainContent
@@ -84,9 +91,9 @@ DialogContainer {
                         top: dialogTitle.bottom
                     }
                     contentWidth: updateDialog.inputWidth
-                    contentHeight: backgroundRectangle.height - (dialogTitle.height * 2)
+                    contentHeight: backgroundRectangle.height - (dialogTitle.height * 2.5)
                     width: updateDialog.inputWidth
-                    height: backgroundRectangle.height - (dialogTitle.height * 2)
+                    height: backgroundRectangle.height - (dialogTitle.height * 2.5)
                     flickableDirection: Flickable.VerticalFlick
                     clip: true
                     
@@ -104,6 +111,96 @@ DialogContainer {
                         }
                     }
                     
+                }
+                
+                Rectangle {
+                    id: downloadButton
+                    width: updateDialog.buttonWidth
+                    height: updateDialog.buttonHeight
+                    radius: updateDialog.buttonRadius
+                    color: "green"
+                    anchors {
+                        top: scrollArea.bottom
+                        topMargin: 10
+                        right: backgroundRectangle.right
+                        rightMargin: 15
+                    }
+                    Accessible.name: "Upgrade"
+                    Accessible.description: "Download and update to latest version"
+                    Accessible.role: Accessible.Button
+                    Accessible.onPressAction: {
+                        updateDialog.triggerBuildDownload()
+                    }
+                    
+                    
+                    Text {
+                        text: "Upgrade"
+                        anchors {
+                            verticalCenter: parent.verticalCenter
+                            horizontalCenter: parent.horizontalCenter
+                        }
+
+                    }
+                }
+                
+                DropShadow {
+                    anchors.fill: downloadButton
+                    horizontalOffset: 2
+                    verticalOffset: 2
+                    radius: updateDialog.buttonRadius
+                    samples: 16
+                    color: "#80000000"
+                    source: downloadButton
+                }
+                
+                MouseArea {
+                    id: downloadButtonAction
+                    anchors.fill: downloadButton
+                    onClicked: updateDialog.triggerBuildDownload()
+                }
+                
+                Rectangle {
+                    id: cancelButton
+                    width: updateDialog.buttonWidth
+                    height: updateDialog.buttonHeight
+                    radius: updateDialog.buttonRadius
+                    color: "red"
+                    anchors {
+                        top: scrollArea.bottom
+                        topMargin: 10
+                        right: downloadButton.left
+                        rightMargin: 15
+                    }
+                    Accessible.name: "Cancel"
+                    Accessible.description: "Do not upgrade your current version"
+                    Accessible.role: Accessible.Button
+                    Accessible.onPressAction: {
+                        updateDialog.closeUpdateDialog()
+                    }
+                    
+                    Text {
+                        text: "Cancel"
+                        anchors {
+                            verticalCenter: parent.verticalCenter
+                            horizontalCenter: parent.horizontalCenter
+                        }
+                    }
+                }
+                
+                DropShadow {
+                    anchors.fill: cancelButton
+                    horizontalOffset: 2
+                    verticalOffset: 2
+                    radius: updateDialog.buttonRadius
+                    samples: 16
+                    color: "#80000000"
+                    source: cancelButton
+                }
+                
+                MouseArea {
+                    id: cancelButtonAction
+                    anchors.fill: cancelButton
+                    onClicked: updateDialog.closeUpdateDialog()
                 }
             }
         }

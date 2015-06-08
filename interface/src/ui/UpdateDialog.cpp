@@ -18,11 +18,9 @@ UpdateDialog::UpdateDialog(QQuickItem* parent) : OffscreenQmlDialog(parent) {
     int currentVersion = QCoreApplication::applicationVersion().toInt();
     int latestVersion = applicationUpdater.data()->getBuildData().lastKey();
     int versionsBehind = latestVersion - currentVersion;
-    _updateAvailableDetails = "v." + QString::number(latestVersion) + " released on " + applicationUpdater.data()->getBuildData()[latestVersion]["releaseTime"];
+    _updateAvailableDetails = "v" + QString::number(latestVersion) + " released on " + applicationUpdater.data()->getBuildData()[latestVersion]["releaseTime"];
     _updateAvailableDetails += "\nYou are " + QString::number(versionsBehind) + " versions behind";
     _releaseNotes = applicationUpdater.data()->getBuildData()[latestVersion]["releaseNotes"];
-    qDebug() << "[LEOTEST] Release time " << applicationUpdater.data()->getBuildData()[latestVersion]["releaseTime"];
-    qDebug() << "[LEOTEST] Release notes: " << applicationUpdater.data()->getBuildData()[latestVersion]["releaseNotes"];
 }
 
 UpdateDialog::~UpdateDialog() {
@@ -37,10 +35,15 @@ QString UpdateDialog::releaseNotes() const {
     return _releaseNotes;
 }
 
+void UpdateDialog::closeUpdateDialog() {
+    qDebug() << "[LEOTEST] Closing update dialog";
+    hide();
+}
+
 void UpdateDialog::hide() {
     ((QQuickItem*)parent())->setEnabled(false);
 }
 
-void UpdateDialog::triggerBuildDownload(const int &buildNumber) {
-    qDebug() << "[LEOTEST] Triggering download of build number: " << QString::number(buildNumber);
+void UpdateDialog::triggerUpgrade() {
+    qDebug() << "[LEOTEST] Triggering download of build number";
 }
