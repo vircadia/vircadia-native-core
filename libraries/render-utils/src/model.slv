@@ -40,6 +40,6 @@ void main(void) {
     TransformObject obj = getTransformObject();
     <$transformModelToEyeAndClipPos(cam, obj, gl_Vertex, interpolatedPosition, gl_Position)$>
     <$transformModelToEyeDir(cam, obj, gl_Normal, interpolatedNormal.xyz)$>
- //   interpolatedPosition = (gl_Vertex);
+
     interpolatedNormal = vec4(normalize(interpolatedNormal.xyz), 0.0);
 }
