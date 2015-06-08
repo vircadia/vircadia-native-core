@@ -28,19 +28,19 @@ AudioScriptingInterface& AudioScriptingInterface::getInstance() {
 AudioScriptingInterface::AudioScriptingInterface() :
     _localAudioInterface(NULL)
 {
-    
+
 }
 
 ScriptAudioInjector* AudioScriptingInterface::playSound(Sound* sound, const AudioInjectorOptions& injectorOptions) {
     if (QThread::currentThread() != thread()) {
         ScriptAudioInjector* injector = NULL;
-        
+
         QMetaObject::invokeMethod(this, "playSound", Qt::BlockingQueuedConnection,
                                   Q_RETURN_ARG(ScriptAudioInjector*, injector),
                                   Q_ARG(Sound*, sound), Q_ARG(const AudioInjectorOptions&, injectorOptions));
         return injector;
     }
-                           
+
     if (sound) {
         // stereo option isn't set from script, this comes from sound metadata or filename
         AudioInjectorOptions optionsCopy = injectorOptions;
