@@ -62,6 +62,10 @@ void depthSortItems(const SceneContextPointer& sceneContext, const RenderContext
 void renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, int maxDrawnItems = -1);
 
 
+
+void materialSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
+
+
 class DrawOpaque {
 public:
 };
@@ -99,6 +103,20 @@ public:
 
     virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
 
+};
+
+
+// A map of ItemIDs allowing to create bucket lists of SHAPE type items which are filtered by their
+// Material 
+class ItemMaterialBucketMap : public std::map<model::MaterialFilter, ItemIDs, model::MaterialFilter::Less> {
+public:
+
+    ItemMaterialBucketMap() {}
+
+    void insert(const ItemID& id, const model::MaterialKey& key);
+
+    // standard builders allocating the main buckets
+    void allocateStandardMaterialBuckets();
 };
 
 }
