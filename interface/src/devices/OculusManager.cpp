@@ -199,12 +199,12 @@ float OculusManager::CALIBRATION_DELTA_MINIMUM_LENGTH = 0.02f;
 float OculusManager::CALIBRATION_DELTA_MINIMUM_ANGLE = 5.0f * RADIANS_PER_DEGREE;
 float OculusManager::CALIBRATION_ZERO_MAXIMUM_LENGTH = 0.01f;
 float OculusManager::CALIBRATION_ZERO_MAXIMUM_ANGLE = 2.0f * RADIANS_PER_DEGREE;
-uint64_t OculusManager::CALIBRATION_ZERO_HOLD_TIME = 3000000; // usec
+quint64 OculusManager::CALIBRATION_ZERO_HOLD_TIME = 3000000; // usec
 float OculusManager::CALIBRATION_MESSAGE_DISTANCE = 2.5f;
 OculusManager::CalibrationState OculusManager::_calibrationState;
 glm::vec3 OculusManager::_calibrationPosition;
 glm::quat OculusManager::_calibrationOrientation;
-uint64_t OculusManager::_calibrationStartTime;
+quint64 OculusManager::_calibrationStartTime;
 int OculusManager::_calibrationMessage = 0;
 glm::vec3 OculusManager::_eyePositions[ovrEye_Count];
 // TODO expose this as a developer toggle
