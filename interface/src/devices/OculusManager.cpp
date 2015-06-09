@@ -710,13 +710,21 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
     Q_ASSERT(OVR_SUCCESS(res));
     _swapFbo->Increment();
 #else 
-    glFinish();
-    GLuint textureId = gpu::GLBackend::getTextureID(finalFbo->getRenderBuffer(0));
+    GLsync syncObject = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    glFlush();
+
     _outputWindow->makeCurrent();
+    // force the compositing context to wait for the texture 
+    // rendering to complete before it starts the distortion rendering,
+    // but without triggering a CPU/GPU synchronization
+    glWaitSync(syncObject, 0, GL_TIMEOUT_IGNORED);
+
+    GLuint textureId = gpu::GLBackend::getTextureID(finalFbo->getRenderBuffer(0));
     for_each_eye([&](ovrEyeType eye) {
         ovrGLTexture & glEyeTexture = reinterpret_cast<ovrGLTexture&>(_eyeTextures[eye]);
         glEyeTexture.OGL.TexId = textureId;
     });
+
     // restore our normal viewport
     ovrHmd_EndFrame(_ovrHmd, eyeRenderPose, _eyeTextures);
     glCanvas->makeCurrent();
