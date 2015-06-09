@@ -350,8 +350,6 @@ private:
 
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
     
-    QVector<Model*> _attachments;
-
     QSet<WeakAnimationHandlePointer> _animationHandles;
 
     QList<AnimationHandlePointer> _runningAnimations;

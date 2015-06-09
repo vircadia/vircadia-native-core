@@ -405,9 +405,6 @@ void Model::reset() {
     if (_jointStates.isEmpty()) {
         return;
     }
-    foreach (Model* attachment, _attachments) {
-        attachment->reset();
-    }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     for (int i = 0; i < _jointStates.size(); i++) {
         _jointStates[i].setRotationInConstrainedFrame(geometry.joints.at(i).rotation, 0.0f);
@@ -419,14 +416,7 @@ void Model::reset() {
 }
 
 bool Model::updateGeometry() {
-    // NOTE: this is a recursive call that walks all attachments, and their attachments
     bool needFullUpdate = false;
-    for (int i = 0; i < _attachments.size(); i++) {
-        Model* model = _attachments.at(i);
-        if (model->updateGeometry()) {
-            needFullUpdate = true;
-        }
-    }
 
     bool needToRebuild = false;
     if (_nextGeometry) {
@@ -498,12 +488,6 @@ bool Model::updateGeometry() {
                     mesh.normals.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.normals.constData());
             }
             _blendedVertexBuffers.push_back(buffer);
-        }
-        foreach (const FBXAttachment& attachment, fbxGeometry.attachments) {
-            Model* model = new Model(this);
-            model->init();
-            model->setURL(attachment.url);
-            _attachments.append(model);
         }
         needFullUpdate = true;
     }
@@ -913,12 +897,6 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
 
     bool somethingAdded = false;
 
-    // allow the attachments to add to scene
-    foreach (Model* attachment, _attachments) {
-        bool attachementSomethingAdded = attachment->addToScene(scene, pendingChanges);
-        somethingAdded = somethingAdded || attachementSomethingAdded;
-    }
-    
     foreach (auto renderItem, _transparentRenderItems) {
         auto item = scene->allocateID();
         auto renderData = TransparentMeshPart::Pointer(renderItem);
@@ -942,11 +920,6 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
 }
 
 void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
-    // allow the attachments to remove to scene
-    foreach (Model* attachment, _attachments) {
-        attachment->removeFromScene(scene, pendingChanges);
-    }
-
     foreach (auto item, _renderItems.keys()) {
         pendingChanges.removeItem(item);
     }
@@ -958,10 +931,6 @@ bool Model::render(RenderArgs* renderArgs, float alpha) {
     return true; //
     PROFILE_RANGE(__FUNCTION__);
 
-    // render the attachments
-    foreach (Model* attachment, _attachments) {
-        attachment->render(renderArgs, alpha);
-    }
     if (_meshStates.isEmpty()) {
         return false;
     }
@@ -1623,7 +1592,6 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
 }
 
 void Model::simulateInternal(float deltaTime) {
-    // NOTE: this is a recursive call that walks all attachments, and their attachments
     // update the world space transforms for all joints
     
     // update animations
@@ -1640,31 +1608,7 @@ void Model::simulateInternal(float deltaTime) {
 
     _shapesAreDirty = !_shapes.isEmpty();
     
-    // update the attachment transforms and simulate them
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    for (int i = 0; i < _attachments.size(); i++) {
-        const FBXAttachment& attachment = geometry.attachments.at(i);
-        Model* model = _attachments.at(i);
-        
-        glm::vec3 jointTranslation = _translation;
-        glm::quat jointRotation = _rotation;
-        if (_showTrueJointTransforms) {
-            getJointPositionInWorldFrame(attachment.jointIndex, jointTranslation);
-            getJointRotationInWorldFrame(attachment.jointIndex, jointRotation);
-        } else {
-            getVisibleJointPositionInWorldFrame(attachment.jointIndex, jointTranslation);
-            getVisibleJointRotationInWorldFrame(attachment.jointIndex, jointRotation);
-        }
-        
-        model->setTranslation(jointTranslation + jointRotation * attachment.translation * _scale);
-        model->setRotation(jointRotation * attachment.rotation);
-        model->setScale(_scale * attachment.scale);
-        
-        if (model->isActive()) {
-            model->simulateInternal(deltaTime);
-        }
-    }
-    
     glm::mat4 modelToWorld = glm::mat4_cast(_rotation);
     for (int i = 0; i < _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
@@ -2002,10 +1946,6 @@ void Model::applyNextGeometry() {
 }
 
 void Model::deleteGeometry() {
-    foreach (Model* attachment, _attachments) {
-        delete attachment;
-    }
-    _attachments.clear();
     _blendedVertexBuffers.clear();
     _jointStates.clear();
     _meshStates.clear();

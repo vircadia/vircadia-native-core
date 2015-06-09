@@ -544,7 +544,6 @@ void fbxDebugDump(const FBXGeometry& fbxgeo) {
     qCDebug(modelformat) << "---------------- fbxGeometry ----------------";
     qCDebug(modelformat) << "  hasSkeletonJoints =" << fbxgeo.hasSkeletonJoints;
     qCDebug(modelformat) << "  offset =" << fbxgeo.offset;
-    qCDebug(modelformat) << "  attachments.count() = " << fbxgeo.attachments.count();
     qCDebug(modelformat) << "  meshes.count() =" << fbxgeo.meshes.count();
     foreach (FBXMesh mesh, fbxgeo.meshes) {
         qCDebug(modelformat) << "    vertices.count() =" << mesh.vertices.count();
