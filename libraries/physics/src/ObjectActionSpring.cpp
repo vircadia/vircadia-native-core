@@ -28,6 +28,10 @@ ObjectActionSpring::~ObjectActionSpring() {
 }
 
 void ObjectActionSpring::updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep) {
+    if (!_ownerEntity) {
+        qDebug() << "ObjectActionSpring::updateAction no owner entity";
+        return;
+    }
     if (!tryLockForRead()) {
         // don't risk hanging the thread running the physics simulation
         return;
@@ -111,6 +115,7 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
 
     if (rtOk) {
         _rotationalTarget = rotationalTarget;
+        _rotationalTargetSet = true;
 
         if (rscOk) {
             _angularTimeScale = angularTimeScale;

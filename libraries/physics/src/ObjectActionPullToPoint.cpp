@@ -28,6 +28,10 @@ ObjectActionPullToPoint::~ObjectActionPullToPoint() {
 }
 
 void ObjectActionPullToPoint::updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep) {
+    if (!_ownerEntity) {
+        qDebug() << "ObjectActionPullToPoint::updateAction no owner entity";
+        return;
+    }
     if (!tryLockForRead()) {
         // don't risk hanging the thread running the physics simulation
         return;
