@@ -21,12 +21,13 @@ var directory = (function () {
         BUTTON_ALPHA = 0.9,
         BUTTON_MARGIN = 8,
         directoryButton,
+        EDIT_TOOLBAR_BUTTONS = 10,  // Number of buttons in edit.js toolbar
         viewport;
 
     function updateButtonPosition() {
         Overlays.editOverlay(directoryButton, {
             x: viewport.x - BUTTON_WIDTH - BUTTON_MARGIN,
-            y: BUTTON_MARGIN
+            y: (viewport.y - (EDIT_TOOLBAR_BUTTONS + 1) * (BUTTON_HEIGHT + BUTTON_MARGIN) - BUTTON_MARGIN) / 2 - 1
         });
     }
 
