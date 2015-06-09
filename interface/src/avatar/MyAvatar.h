@@ -37,9 +37,9 @@ public:
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
 
-    void render(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode = RenderArgs::NORMAL_RENDER_MODE, bool postLighting = false);
-    void renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode renderMode, bool postLighting, float glowLevel = 0.0f);
-    bool shouldRenderHead(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode) const;
+    virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting = false) override;
+    virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel = 0.0f) override;
+    virtual bool shouldRenderHead(const RenderArgs* renderArgs, const glm::vec3& cameraPosition) const override;
     void renderDebugBodyPoints();
 
     // setters
@@ -108,7 +108,7 @@ public:
     Q_INVOKABLE glm::vec3 getEyePosition() const { return getHead()->getEyePosition(); }
     
     Q_INVOKABLE glm::vec3 getTargetAvatarPosition() const { return _targetAvatarPosition; }
-    QWeakPointer<AvatarData> getLookAtTargetAvatar() const { return _lookAtTargetAvatar; }
+    AvatarWeakPointer getLookAtTargetAvatar() const { return _lookAtTargetAvatar; }
     void updateLookAtTargetAvatar();
     void clearLookAtTargetAvatar();
     
@@ -198,7 +198,7 @@ signals:
     void transformChanged();
 
 protected:
-    virtual void renderAttachments(RenderArgs::RenderMode renderMode, RenderArgs* args);
+    virtual void renderAttachments(RenderArgs* args);
     
 private:
 
@@ -226,7 +226,7 @@ private:
 
     DynamicCharacterController _characterController;
 
-    QWeakPointer<AvatarData> _lookAtTargetAvatar;
+    AvatarWeakPointer _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
     bool _shouldRender;
     bool _billboardValid;

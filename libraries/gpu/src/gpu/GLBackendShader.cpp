@@ -106,6 +106,11 @@ void makeBindings(GLBackend::GLShader* shader) {
         glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_CAMERA_SLOT);
         shader->_transformCameraSlot = gpu::TRANSFORM_CAMERA_SLOT;
     }
+#else
+    loc = glGetUniformLocation(glprogram, "transformCamera_viewInverse");
+    if (loc >= 0) {
+        shader->_transformCamera_viewInverse = loc;
+    }
 #endif
 }
 
