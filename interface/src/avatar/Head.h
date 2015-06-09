@@ -40,7 +40,7 @@ public:
     void init();
     void reset();
     void simulate(float deltaTime, bool isMine, bool billboard = false);
-    void render(float alpha, ViewFrustum* renderFrustum, Model::RenderMode mode, bool postLighting);
+    void render(RenderArgs* renderArgs, float alpha, ViewFrustum* renderFrustum, bool postLighting);
     void setScale(float scale);
     void setPosition(glm::vec3 position) { _position = position; }
     void setAverageLoudness(float averageLoudness) { _averageLoudness = averageLoudness; }
@@ -153,7 +153,7 @@ private:
     int _rightEyeLookAtID;
     
     // private methods
-    void renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
+    void renderLookatVectors(RenderArgs* renderArgs, glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
     void calculateMouthShapes();
     void applyEyelidOffset(glm::quat headOrientation);
 

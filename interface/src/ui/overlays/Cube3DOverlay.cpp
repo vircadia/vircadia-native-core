@@ -126,7 +126,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
 
                 } else {
                     glScalef(dimensions.x, dimensions.y, dimensions.z);
-                    DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f, cubeColor);
+                    DependencyManager::get<GeometryCache>()->renderWireCube(1.0f, cubeColor);
                 }
             }
         glPopMatrix();

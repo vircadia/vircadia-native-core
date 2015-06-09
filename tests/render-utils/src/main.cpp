@@ -9,7 +9,6 @@
 //
 
 #include "TextRenderer.h"
-#include "MatrixStack.h"
 
 #include <QWindow>
 #include <QFile>

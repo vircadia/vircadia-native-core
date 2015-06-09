@@ -15,9 +15,27 @@
 
 using namespace gpu;
 
+Context::Context(Backend* backend) :
+    _backend(backend) {
+}
+
+Context::Context(const Context& context) {
+}
+
+Context::~Context() {
+}
+
 bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
     if (shader.isProgram()) {
         return GLBackend::makeProgram(shader, bindings);
     }
     return false;
+}
+
+void Context::render(Batch& batch) {
+    _backend->render(batch);
+}
+
+void Context::syncCache() {
+    _backend->syncCache();
 }

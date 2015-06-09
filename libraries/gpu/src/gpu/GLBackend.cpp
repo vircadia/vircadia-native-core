@@ -54,6 +54,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
 
     (&::gpu::GLBackend::do_glBindTexture),
     (&::gpu::GLBackend::do_glActiveTexture),
+    (&::gpu::GLBackend::do_glTexParameteri),
 
     (&::gpu::GLBackend::do_glDrawBuffers),
 
@@ -65,8 +66,9 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
 
     (&::gpu::GLBackend::do_glEnableVertexAttribArray),
     (&::gpu::GLBackend::do_glDisableVertexAttribArray),
-
+    
     (&::gpu::GLBackend::do_glColor4f),
+    (&::gpu::GLBackend::do_glLineWidth),
 };
 
 GLBackend::GLBackend() :
@@ -96,8 +98,11 @@ void GLBackend::render(Batch& batch) {
     }
 }
 
-void GLBackend::renderBatch(Batch& batch) {
+void GLBackend::renderBatch(Batch& batch, bool syncCache) {
     GLBackend backend;
+    if (syncCache) {
+        backend.syncCache();
+    }
     backend.render(batch);
 }
 
@@ -132,6 +137,13 @@ bool GLBackend::checkGLError(const char* name) {
         }
         return true;
     }
+}
+
+
+void GLBackend::syncCache() {
+    syncTransformStateCache();
+    syncPipelineStateCache();
+    syncInputStateCache();
 }
 
 void GLBackend::do_draw(Batch& batch, uint32 paramOffset) {
@@ -371,6 +383,22 @@ void GLBackend::do_glActiveTexture(Batch& batch, uint32 paramOffset) {
     (void) CHECK_GL_ERROR();
 }
 
+void Batch::_glTexParameteri(GLenum target, GLenum pname, GLint param) {
+    ADD_COMMAND_GL(glTexParameteri);
+    
+    _params.push_back(param);
+    _params.push_back(pname);
+    _params.push_back(target);
+    
+    DO_IT_NOW(glTexParameteri, 3);
+}
+void GLBackend::do_glTexParameteri(Batch& batch, uint32 paramOffset) {
+    glTexParameteri(batch._params[paramOffset + 2]._uint,
+                    batch._params[paramOffset + 1]._uint,
+                    batch._params[paramOffset + 0]._int);
+    (void) CHECK_GL_ERROR();
+}
+
 void Batch::_glDrawBuffers(GLsizei n, const GLenum* bufs) {
     ADD_COMMAND_GL(glDrawBuffers);
 
@@ -415,6 +443,8 @@ void Batch::_glUniform1f(GLint location, GLfloat v0) {
 }
 void GLBackend::do_glUniform1f(Batch& batch, uint32 paramOffset) {
     if (_pipeline._program == 0) {
+        // We should call updatePipeline() to bind the program but we are not doing that
+        // because these uniform setters are deprecated and we don;t want to create side effect
         return;
     }
     glUniform1f(
@@ -433,6 +463,11 @@ void Batch::_glUniform2f(GLint location, GLfloat v0, GLfloat v1) {
     DO_IT_NOW(_glUniform2f, 1);
 }
 void GLBackend::do_glUniform2f(Batch& batch, uint32 paramOffset) {
+    if (_pipeline._program == 0) {
+        // We should call updatePipeline() to bind the program but we are not doing that
+        // because these uniform setters are deprecated and we don;t want to create side effect
+        return;
+    }
     glUniform2f(
         batch._params[paramOffset + 2]._int,
         batch._params[paramOffset + 1]._float,
@@ -451,6 +486,11 @@ void Batch::_glUniform4fv(GLint location, GLsizei count, const GLfloat* value) {
     DO_IT_NOW(_glUniform4fv, 3);
 }
 void GLBackend::do_glUniform4fv(Batch& batch, uint32 paramOffset) {
+    if (_pipeline._program == 0) {
+        // We should call updatePipeline() to bind the program but we are not doing that
+        // because these uniform setters are deprecated and we don;t want to create side effect
+        return;
+    }
     glUniform4fv(
         batch._params[paramOffset + 2]._int,
         batch._params[paramOffset + 1]._uint,
@@ -471,6 +511,11 @@ void Batch::_glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpo
     DO_IT_NOW(_glUniformMatrix4fv, 4);
 }
 void GLBackend::do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset) {
+    if (_pipeline._program == 0) {
+        // We should call updatePipeline() to bind the program but we are not doing that
+        // because these uniform setters are deprecated and we don;t want to create side effect
+        return;
+    }
     glUniformMatrix4fv(
         batch._params[paramOffset + 3]._int,
         batch._params[paramOffset + 2]._uint,
@@ -522,6 +567,18 @@ void GLBackend::do_glColor4f(Batch& batch, uint32 paramOffset) {
     (void) CHECK_GL_ERROR();
 }
 
+void Batch::_glLineWidth(GLfloat width) {
+    ADD_COMMAND_GL(glLineWidth);
+    
+    _params.push_back(width);
+    
+    DO_IT_NOW(_glLineWidth, 1);
+}
+void GLBackend::do_glLineWidth(Batch& batch, uint32 paramOffset) {
+    glLineWidth(batch._params[paramOffset]._float);
+    (void) CHECK_GL_ERROR();
+}
+
 void GLBackend::loadMatrix(GLenum target, const glm::mat4 & m) {
     glMatrixMode(target);
     glLoadMatrixf(glm::value_ptr(m));
@@ -545,6 +602,5 @@ void GLBackend::fetchMatrix(GLenum target, glm::mat4 & m) {
     }
     glGetFloatv(target, glm::value_ptr(m));
 }
-
 
 

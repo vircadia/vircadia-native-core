@@ -24,7 +24,7 @@ class RearMirrorTools : public QObject {
     Q_OBJECT
 public:
     RearMirrorTools(QRect& bounds);
-    void render(bool fullScreen, const QPoint & mousePos);
+    void render(RenderArgs* renderArgs, bool fullScreen, const QPoint & mousePos);
     bool mousePressEvent(int x, int y);
     
     static Setting::Handle<int> rearViewZoomLevel;

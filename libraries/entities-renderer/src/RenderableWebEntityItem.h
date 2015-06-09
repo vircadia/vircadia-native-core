@@ -13,6 +13,8 @@
 
 #include <WebEntityItem.h>
 
+#include "RenderableEntityItem.h"
+
 class OffscreenQmlSurface;
 
 class RenderableWebEntityItem : public WebEntityItem  {
@@ -24,6 +26,8 @@ public:
 
     virtual void render(RenderArgs* args);
     virtual void setSourceUrl(const QString& value);
+
+    SIMPLE_RENDERABLE();
 
 private:
     OffscreenQmlSurface* _webSurface{ nullptr };

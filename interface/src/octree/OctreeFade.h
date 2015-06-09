@@ -39,7 +39,7 @@ public:
     OctreeFade(FadeDirection direction = FADE_OUT, float red = DEFAULT_RED, 
               float green = DEFAULT_GREEN, float blue = DEFAULT_BLUE);
     
-    void render();
+    void render(RenderArgs* renderArgs);
     bool isDone() const;
 };
 

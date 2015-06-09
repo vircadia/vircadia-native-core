@@ -14,7 +14,7 @@
 
 #include <QObject>
 
-#include <NodeList.h>
+#include <RenderArgs.h>
 
 class Stats: public QObject {
     Q_OBJECT
@@ -35,6 +35,8 @@ public:
                  int inKbitsPerSecond, int outKbitsPerSecond, int voxelPacketsToProcess);
     bool includeTimingRecord(const QString& name);
     
+    void setRenderDetails(const RenderDetails& details) { _renderDetails = details; }
+    
 private:
     static Stats* _sharedInstance;
 
@@ -51,6 +53,7 @@ private:
 
     int _lastHorizontalOffset;
     
+    RenderDetails _renderDetails;
 };
 
 #endif // hifi_Stats_h

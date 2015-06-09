@@ -58,9 +58,7 @@ public:
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
 
     virtual void init();
-    virtual void render(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE, 
-                        RenderArgs::RenderSide renderSide = RenderArgs::MONO,
-                        RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE);
+    virtual void render(RenderArgs* renderArgs) override;
 
     virtual const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem);
     virtual const Model* getModelForEntityItem(EntityItemPointer entityItem);
@@ -125,7 +123,10 @@ protected:
     virtual Octree* createTree() { return new EntityTree(true); }
 
 private:
-    void renderElementProxy(EntityTreeElement* entityTreeElement);
+    void addEntityToScene(EntityItemPointer entity);
+
+    void applyZonePropertiesToScene(std::shared_ptr<ZoneEntityItem> zone);
+    void renderElementProxy(EntityTreeElement* entityTreeElement, RenderArgs* args);
     void checkAndCallPreload(const EntityItemID& entityID);
     void checkAndCallUnload(const EntityItemID& entityID);
 
@@ -187,6 +188,8 @@ private:
     float _previousStageHour;
     int _previousStageDay;
     
+    QHash<EntityItemID, EntityItemPointer> _entitiesInScene;
 };
+
 
 #endif // hifi_EntityTreeRenderer_h
