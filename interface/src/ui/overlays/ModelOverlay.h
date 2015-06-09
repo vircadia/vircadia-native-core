@@ -32,6 +32,9 @@ public:
 
     virtual ModelOverlay* createClone() const;
 
+    virtual bool addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+    virtual void removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+
 private:
 
     Model _model;

@@ -23,4 +23,4 @@ find_package(Soxr REQUIRED)
 target_link_libraries(${TARGET_NAME} ${SOXR_LIBRARIES})
 target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${SOXR_INCLUDE_DIRS})
 
-link_hifi_libraries(shared gpu script-engine render-utils)
+link_hifi_libraries(shared gpu script-engine render render-utils)
