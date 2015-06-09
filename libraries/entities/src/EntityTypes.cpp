@@ -28,7 +28,6 @@
 #include "ZoneEntityItem.h"
 #include "LineEntityItem.h"
 #include "PolyVoxEntityItem.h"
-#include "HyperlinkEntityItem.h"
 
 QMap<EntityTypes::EntityType, QString> EntityTypes::_typeToNameMap;
 QMap<QString, EntityTypes::EntityType> EntityTypes::_nameToTypeMap;
