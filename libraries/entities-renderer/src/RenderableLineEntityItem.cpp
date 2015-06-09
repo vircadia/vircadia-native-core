@@ -12,6 +12,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <gpu/GPUConfig.h>
+#include <gpu/Batch.h>
 #include <GeometryCache.h>
 
 #include <DeferredLightingEffect.h>
@@ -23,32 +24,34 @@ EntityItemPointer RenderableLineEntityItem::factory(const EntityItemID& entityID
     return EntityItemPointer(new RenderableLineEntityItem(entityID, properties));
 }
 
+void RenderableLineEntityItem::updateGeometry() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (_lineVerticesID == GeometryCache::UNKNOWN_ID) {
+        _lineVerticesID = geometryCache ->allocateID();
+    }
+    if (_pointsChanged) {
+        glm::vec4 lineColor(toGlm(getXColor()), getLocalRenderAlpha());
+        geometryCache->updateVertices(_lineVerticesID, getLinePoints(), lineColor);
+        _pointsChanged = false;
+    }
+}
+
 void RenderableLineEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableLineEntityItem::render");
-    assert(getType() == EntityTypes::Line);
-    // glm::vec3 position = getPosition();
-    // glm::vec3 dimensions = getDimensions();
-    glm::quat rotation = getRotation();
-    glm::vec4 lineColor(toGlm(getXColor()), getLocalRenderAlpha());
-    glPushMatrix();
-        glLineWidth(getLineWidth());
-        auto geometryCache = DependencyManager::get<GeometryCache>();
-        if (_lineVerticesID == GeometryCache::UNKNOWN_ID) {
-            _lineVerticesID = geometryCache ->allocateID();
-        }
-         //TODO: Figure out clean , efficient way to do relative line positioning. For now we'll just use absolute positioning.
-        //glTranslatef(position.x, position.y, position.z);
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-        if (_pointsChanged) {
-          geometryCache->updateVertices(_lineVerticesID, getLinePoints(), lineColor);
-            _pointsChanged = false;
-        }
-        if (getLinePoints().size() > 1) {
-          geometryCache->renderVertices(gpu::LINE_STRIP, _lineVerticesID);
-        }
-
-    glPopMatrix();
-
+    Q_ASSERT(getType() == EntityTypes::Line);
+    updateGeometry();
+    
+    Q_ASSERT(args->_batch);
+    gpu::Batch& batch = *args->_batch;
+    // TODO: Figure out clean , efficient way to do relative line positioning. For now we'll just use absolute positioning.
+    //batch.setModelTransform(getTransformToCenter());
+    batch.setModelTransform(Transform());
+    
+    batch._glLineWidth(getLineWidth());
+    if (getLinePoints().size() > 1) {
+        DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::LINE_STRIP, _lineVerticesID);
+    }
+    batch._glLineWidth(1.0f);
+    
     RenderableDebugableEntityItem::render(this, args);
 };

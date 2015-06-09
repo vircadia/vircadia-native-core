@@ -20,11 +20,19 @@
 #include <AvatarData.h>
 #include <ShapeInfo.h>
 
+#include <render/Scene.h>
+
 #include "Hand.h"
 #include "Head.h"
 #include "InterfaceConfig.h"
 #include "SkeletonModel.h"
 #include "world.h"
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar);
+    template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar);
+    template <> void payloadRender(const AvatarSharedPointer& avatar, RenderArgs* args);
+}
 
 static const float SCALING_RATIO = .05f;
 static const float SMOOTHING_RATIO = .05f; // 0 < ratio < 1
@@ -66,11 +74,20 @@ public:
     Avatar();
     ~Avatar();
 
+    typedef render::Payload<AvatarData> Payload;
+    typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
+
     void init();
     void simulate(float deltaTime);
 
-    virtual void render(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode = RenderArgs::NORMAL_RENDER_MODE,
+    virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition,
         bool postLighting = false);
+
+    bool addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, 
+                            render::PendingChanges& pendingChanges);
+
+    void removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, 
+                                render::PendingChanges& pendingChanges);
 
     //setters
     void setDisplayingLookatVectors(bool displayingLookatVectors) { getHead()->setRenderLookatVectors(displayingLookatVectors); }
@@ -86,6 +103,8 @@ public:
     Head* getHead() { return static_cast<Head*>(_headData); }
     Hand* getHand() { return static_cast<Hand*>(_handData); }
     glm::quat getWorldAlignedOrientation() const;
+
+    AABox getBounds() const;
 
     /// Returns the distance to use as a LOD parameter.
     float getLODDistance() const;
@@ -212,23 +231,24 @@ protected:
     glm::vec3 getDisplayNamePosition();
 
     float calculateDisplayNameScaleFactor(const glm::vec3& textPosition, bool inHMD);
-    void renderDisplayName();
-    virtual void renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode renderMode, bool postLighting, float glowLevel = 0.0f);
-    virtual bool shouldRenderHead(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode) const;
+    void renderDisplayName(RenderArgs* renderArgs);
+    virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel = 0.0f);
+    virtual bool shouldRenderHead(const RenderArgs* renderArgs, const glm::vec3& cameraPosition) const;
 
     void simulateAttachments(float deltaTime);
-    virtual void renderAttachments(RenderArgs::RenderMode renderMode, RenderArgs* args);
+    virtual void renderAttachments(RenderArgs* args);
 
     virtual void updateJointMappings();
+
+    render::ItemID _renderItemID;
     
 private:
-
     bool _initialized;
     NetworkTexturePointer _billboardTexture;
     bool _shouldRenderBillboard;
     bool _isLookAtTarget;
 
-    void renderBillboard();
+    void renderBillboard(RenderArgs* renderArgs);
     
     float getBillboardSize() const;
     

@@ -49,6 +49,11 @@ Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
 Base3DOverlay::~Base3DOverlay() {
 }
 
+// TODO: Implement accurate getBounds() implementations
+AABox Base3DOverlay::getBounds() const {
+    return AABox(_position, glm::vec3(1.0f));
+}
+
 void Base3DOverlay::setProperties(const QScriptValue& properties) {
     Overlay::setProperties(properties);
 

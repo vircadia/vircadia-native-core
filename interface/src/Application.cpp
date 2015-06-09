@@ -117,7 +117,10 @@
 #include "devices/TV3DManager.h"
 
 #include "gpu/Batch.h"
+#include "gpu/Context.h"
 #include "gpu/GLBackend.h"
+
+#include "RenderDeferredTask.h"
 
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
@@ -142,6 +145,7 @@
 #include "ui/StandAloneJSConsole.h"
 #include "ui/Stats.h"
 #include "ui/AddressBarDialog.h"
+
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 #if defined(Q_OS_WIN)
@@ -370,7 +374,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _bookmarks = new Bookmarks();  // Before setting up the menu
 
     _runningScriptsWidget = new RunningScriptsWidget(_window);
-
+    _renderEngine->addTask(render::TaskPointer(new RenderDeferredTask()));
+    _renderEngine->registerScene(_main3DScene);
+      
     // start the nodeThread so its event loop is running
     QThread* nodeThread = new QThread(this);
     nodeThread->setObjectName("Datagram Processor Thread");
@@ -393,7 +399,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // emit checkBackgroundDownloads to cause the GeometryCache to check it's queue for requested background
     // downloads.
     QSharedPointer<GeometryCache> geometryCacheP = DependencyManager::get<GeometryCache>();
-    ResourceCache *geometryCache = geometryCacheP.data();
+    ResourceCache* geometryCache = geometryCacheP.data();
     connect(this, &Application::checkBackgroundDownloads, geometryCache, &ResourceCache::checkAsynchronousGets);
 
     // connect the DataProcessor processDatagrams slot to the QUDPSocket readyRead() signal
@@ -839,6 +845,13 @@ void Application::initializeUi() {
 void Application::paintGL() {
     PROFILE_RANGE(__FUNCTION__);
     _glWidget->makeCurrent();
+
+    auto lodManager = DependencyManager::get<LODManager>();
+    gpu::Context context(new gpu::GLBackend());
+    RenderArgs renderArgs(&context, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
+                          lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
+                          RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
+
     PerformanceTimer perfTimer("paintGL");
     //Need accurate frame timing for the oculus rift
     if (OculusManager::isConnected()) {
@@ -852,7 +865,7 @@ void Application::paintGL() {
 
     {
         PerformanceTimer perfTimer("renderOverlay");
-        _applicationOverlay.renderOverlay();
+        _applicationOverlay.renderOverlay(&renderArgs);
     }
 
     glEnable(GL_LINE_SMOOTH);
@@ -901,22 +914,23 @@ void Application::paintGL() {
     loadViewFrustum(_myCamera, _viewFrustum);
 
     if (getShadowsEnabled()) {
-        updateShadowMap();
+        renderArgs._renderMode = RenderArgs::SHADOW_RENDER_MODE;
+        updateShadowMap(&renderArgs);
     }
+
+    renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
 
     if (OculusManager::isConnected()) {
         //When in mirror mode, use camera rotation. Otherwise, use body rotation
         if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-            OculusManager::display(_glWidget, _myCamera.getRotation(), _myCamera.getPosition(), _myCamera);
+            OculusManager::display(_glWidget, &renderArgs, _myCamera.getRotation(), _myCamera.getPosition(), _myCamera);
         } else {
-            OculusManager::display(_glWidget, _myAvatar->getWorldAlignedOrientation(), _myAvatar->getDefaultEyePosition(), _myCamera);
+            OculusManager::display(_glWidget, &renderArgs, _myAvatar->getWorldAlignedOrientation(), _myAvatar->getDefaultEyePosition(), _myCamera);
         }
     } else if (TV3DManager::isConnected()) {
-
-        TV3DManager::display(_myCamera);
-
+        TV3DManager::display(&renderArgs, _myCamera);
     } else {
-        DependencyManager::get<GlowEffect>()->prepare();
+        DependencyManager::get<GlowEffect>()->prepare(&renderArgs);
 
         // Viewport is assigned to the size of the framebuffer
         QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
@@ -925,16 +939,16 @@ void Application::paintGL() {
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
         glLoadIdentity();
-        displaySide(_myCamera);
+        displaySide(&renderArgs, _myCamera);
         glPopMatrix();
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
-            _rearMirrorTools->render(true, _glWidget->mapFromGlobal(QCursor::pos()));
+            _rearMirrorTools->render(&renderArgs, true, _glWidget->mapFromGlobal(QCursor::pos()));
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            renderRearViewMirror(_mirrorViewRect);
+            renderRearViewMirror(&renderArgs, _mirrorViewRect);       
         }
 
-        auto finalFbo = DependencyManager::get<GlowEffect>()->render();
+        auto finalFbo = DependencyManager::get<GlowEffect>()->render(&renderArgs);
 
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
@@ -954,6 +968,7 @@ void Application::paintGL() {
         OculusManager::endFrameTiming();
     }
     _frameCount++;
+    Stats::getInstance()->setRenderDetails(renderArgs._details);
 }
 
 void Application::runTests() {
@@ -2275,26 +2290,25 @@ void Application::updateMyAvatarLookAtPosition() {
         }
 
     } else {
-        AvatarSharedPointer lookingAt = _myAvatar->getLookAtTargetAvatar().toStrongRef();
-        if (lookingAt && _myAvatar != lookingAt.data()) {
-
+        AvatarSharedPointer lookingAt = _myAvatar->getLookAtTargetAvatar().lock();
+        if (lookingAt && _myAvatar != lookingAt.get()) {
             isLookingAtSomeone = true;
             //  If I am looking at someone else, look directly at one of their eyes
             if (tracker && !tracker->isMuted()) {
                 //  If a face tracker is active, look at the eye for the side my gaze is biased toward
                 if (tracker->getEstimatedEyeYaw() > _myAvatar->getHead()->getFinalYaw()) {
                     // Look at their right eye
-                    lookAtSpot = static_cast<Avatar*>(lookingAt.data())->getHead()->getRightEyePosition();
+                    lookAtSpot = static_cast<Avatar*>(lookingAt.get())->getHead()->getRightEyePosition();
                 } else {
                     // Look at their left eye
-                    lookAtSpot = static_cast<Avatar*>(lookingAt.data())->getHead()->getLeftEyePosition();
+                    lookAtSpot = static_cast<Avatar*>(lookingAt.get())->getHead()->getLeftEyePosition();
                 }
             } else {
                 //  Need to add randomly looking back and forth between left and right eye for case with no tracker
                 if (_myAvatar->isLookingAtLeftEye()) {
-                    lookAtSpot = static_cast<Avatar*>(lookingAt.data())->getHead()->getLeftEyePosition();
+                    lookAtSpot = static_cast<Avatar*>(lookingAt.get())->getHead()->getLeftEyePosition();
                 } else {
-                    lookAtSpot = static_cast<Avatar*>(lookingAt.data())->getHead()->getRightEyePosition();
+                    lookAtSpot = static_cast<Avatar*>(lookingAt.get())->getHead()->getRightEyePosition();
                 }
             }
         } else {
@@ -2901,7 +2915,7 @@ glm::vec3 Application::getSunDirection() {
 // FIXME, preprocessor guard this check to occur only in DEBUG builds
 static QThread * activeRenderingThread = nullptr;
 
-void Application::updateShadowMap() {
+void Application::updateShadowMap(RenderArgs* renderArgs) {
     activeRenderingThread = QThread::currentThread();
 
     PerformanceTimer perfTimer("shadowMap");
@@ -3021,24 +3035,8 @@ void Application::updateShadowMap() {
         glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
 
         {
-            PerformanceTimer perfTimer("avatarManager");
-            DependencyManager::get<AvatarManager>()->renderAvatars(RenderArgs::SHADOW_RENDER_MODE);
-        }
-
-        {
             PerformanceTimer perfTimer("entities");
-            _entities.render(RenderArgs::SHADOW_RENDER_MODE);
-        }
-
-        // render JS/scriptable overlays
-        {
-            PerformanceTimer perfTimer("3dOverlays");
-            _overlays.renderWorld(false, RenderArgs::SHADOW_RENDER_MODE);
-        }
-
-        {
-            PerformanceTimer perfTimer("3dOverlaysFront");
-            _overlays.renderWorld(true, RenderArgs::SHADOW_RENDER_MODE);
+            _entities.render(renderArgs);
         }
 
         glDisable(GL_POLYGON_OFFSET_FILL);
@@ -3109,7 +3107,7 @@ PickRay Application::computePickRay(float x, float y) const {
     return result;
 }
 
-QImage Application::renderAvatarBillboard() {
+QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
     auto primaryFramebuffer = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
     glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFramebuffer));
 
@@ -3120,10 +3118,11 @@ QImage Application::renderAvatarBillboard() {
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
 
     // the "glow" here causes an alpha of one
-    Glower glower;
+    Glower glower(renderArgs);
 
     const int BILLBOARD_SIZE = 64;
-    renderRearViewMirror(QRect(0, _glWidget->getDeviceHeight() - BILLBOARD_SIZE,
+    // TODO: Pass a RenderArgs to renderAvatarBillboard
+    renderRearViewMirror(renderArgs, QRect(0, _glWidget->getDeviceHeight() - BILLBOARD_SIZE,
                                BILLBOARD_SIZE, BILLBOARD_SIZE),
                          true);
 
@@ -3176,7 +3175,143 @@ const ViewFrustum* Application::getDisplayViewFrustum() const {
     return &_displayViewFrustum;
 }
 
-void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, bool billboard, RenderArgs::RenderSide renderSide) {
+// WorldBox Render Data & rendering functions
+
+class WorldBoxRenderData {
+public:
+    typedef render::Payload<WorldBoxRenderData> Payload;
+    typedef Payload::DataPointer Pointer;
+
+    int _val = 0;
+    static render::ItemID _item; // unique WorldBoxRenderData
+};
+
+render::ItemID WorldBoxRenderData::_item = 0;
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const WorldBoxRenderData::Pointer& stuff) { return ItemKey::Builder::opaqueShape(); }
+    template <> const Item::Bound payloadGetBound(const WorldBoxRenderData::Pointer& stuff) { return Item::Bound(); }
+    template <> void payloadRender(const WorldBoxRenderData::Pointer& stuff, RenderArgs* args) {
+        if (args->_renderMode != RenderArgs::MIRROR_RENDER_MODE && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+            PerformanceTimer perfTimer("worldBox");
+
+            auto& batch = *args->_batch;
+            DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
+            renderWorldBox(batch);
+        }
+    }
+}
+
+// Background Render Data & rendering functions
+class BackgroundRenderData {
+public:
+    typedef render::Payload<BackgroundRenderData> Payload;
+    typedef Payload::DataPointer Pointer;
+
+    Stars _stars;
+    Environment* _environment;
+
+    BackgroundRenderData(Environment* environment) : _environment(environment) {
+    }
+
+    static render::ItemID _item; // unique WorldBoxRenderData
+};
+
+render::ItemID BackgroundRenderData::_item = 0;
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const BackgroundRenderData::Pointer& stuff) { return ItemKey::Builder::background(); }
+    template <> const Item::Bound payloadGetBound(const BackgroundRenderData::Pointer& stuff) { return Item::Bound(); }
+    template <> void payloadRender(const BackgroundRenderData::Pointer& background, RenderArgs* args) {
+
+        // Background rendering decision
+        auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+        auto skybox = model::SkyboxPointer();
+        if (skyStage->getBackgroundMode() == model::SunSkyStage::NO_BACKGROUND) {
+        } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_DOME) {
+           if (/*!selfAvatarOnly &&*/ Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
+                PerformanceTimer perfTimer("stars");
+                PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                    "Application::payloadRender<BackgroundRenderData>() ... stars...");
+                if (!background->_stars.isStarsLoaded()) {
+                    background->_stars.generate(STARFIELD_NUM_STARS, STARFIELD_SEED);
+                }
+                // should be the first rendering pass - w/o depth buffer / lighting
+
+                // compute starfield alpha based on distance from atmosphere
+                float alpha = 1.0f;
+                bool hasStars = true;
+
+                if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
+                    // TODO: handle this correctly for zones
+                    const EnvironmentData& closestData = background->_environment->getClosestData(args->_viewFrustum->getPosition()); // was theCamera instead of  _viewFrustum
+
+                    if (closestData.getHasStars()) {
+                        const float APPROXIMATE_DISTANCE_FROM_HORIZON = 0.1f;
+                        const float DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON = 0.2f;
+
+                        glm::vec3 sunDirection = (args->_viewFrustum->getPosition()/*getAvatarPosition()*/ - closestData.getSunLocation()) 
+                                                        / closestData.getAtmosphereOuterRadius();
+                        float height = glm::distance(args->_viewFrustum->getPosition()/*theCamera.getPosition()*/, closestData.getAtmosphereCenter());
+                        if (height < closestData.getAtmosphereInnerRadius()) {
+                            // If we're inside the atmosphere, then determine if our keyLight is below the horizon
+                            alpha = 0.0f;
+
+                            if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
+                                float directionY = glm::clamp(sunDirection.y, 
+                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
+                                                    + APPROXIMATE_DISTANCE_FROM_HORIZON;
+                                alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
+                            }
+                        
+
+                        } else if (height < closestData.getAtmosphereOuterRadius()) {
+                            alpha = (height - closestData.getAtmosphereInnerRadius()) /
+                                (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
+
+                            if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
+                                float directionY = glm::clamp(sunDirection.y, 
+                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
+                                                    + APPROXIMATE_DISTANCE_FROM_HORIZON;
+                                alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
+                            }
+                        }
+                    } else {
+                        hasStars = false;
+                    }
+                }
+
+                // finally render the starfield
+                if (hasStars) {
+                    background->_stars.render(args->_viewFrustum->getFieldOfView(), args->_viewFrustum->getAspectRatio(), args->_viewFrustum->getNearClip(), alpha);
+                }
+
+                // draw the sky dome
+                if (/*!selfAvatarOnly &&*/ Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
+                    PerformanceTimer perfTimer("atmosphere");
+                    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                        "Application::displaySide() ... atmosphere...");
+                    background->_environment->renderAtmospheres(*(args->_viewFrustum));
+                }
+
+            }
+        } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
+            PerformanceTimer perfTimer("skybox");
+            
+            skybox = skyStage->getSkybox();
+            if (skybox) {
+                gpu::Batch batch;
+                model::Skybox::render(batch, *(Application::getInstance()->getDisplayViewFrustum()), *skybox);
+
+                gpu::GLBackend::renderBatch(batch, true);
+                glUseProgram(0);
+            }
+        }
+    }
+}
+
+
+void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool selfAvatarOnly, bool billboard) {
     activeRenderingThread = QThread::currentThread();
     PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("display");
@@ -3215,7 +3350,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, bool billb
     if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
          viewTransform.setScale(Transform::Vec3(-1.0f, 1.0f, 1.0f));
     }
-    if (renderSide != RenderArgs::MONO) {
+    if (renderArgs->_renderSide != RenderArgs::MONO) {
         glm::mat4 invView = glm::inverse(_untranslatedViewMatrix);
 
         viewTransform.evalFromRawMatrix(invView);
@@ -3246,86 +3381,17 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, bool billb
         glTexGenfv(GL_R, GL_EYE_PLANE, (const GLfloat*)&_shadowMatrices[i][2]);
     }
 
+    // The pending changes collecting the changes here
+    render::PendingChanges pendingChanges;
+
     // Background rendering decision
-    auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-    auto skybox = model::SkyboxPointer();
-    if (skyStage->getBackgroundMode() == model::SunSkyStage::NO_BACKGROUND) {
-    } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_DOME) {
-       if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
-            PerformanceTimer perfTimer("stars");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... stars...");
-            if (!_stars.isStarsLoaded()) {
-                _stars.generate(STARFIELD_NUM_STARS, STARFIELD_SEED);
-            }
-            // should be the first rendering pass - w/o depth buffer / lighting
+    if (BackgroundRenderData::_item == 0) {
+        auto backgroundRenderData = BackgroundRenderData::Pointer(new BackgroundRenderData(&_environment));
+        auto backgroundRenderPayload = render::PayloadPointer(new BackgroundRenderData::Payload(backgroundRenderData));
+        BackgroundRenderData::_item = _main3DScene->allocateID();
+        pendingChanges.resetItem(WorldBoxRenderData::_item, backgroundRenderPayload);
+    } else {
 
-            // compute starfield alpha based on distance from atmosphere
-            float alpha = 1.0f;
-            bool hasStars = true;
-
-            if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
-                // TODO: handle this correctly for zones
-                const EnvironmentData& closestData = _environment.getClosestData(theCamera.getPosition());
-
-                if (closestData.getHasStars()) {
-                    const float APPROXIMATE_DISTANCE_FROM_HORIZON = 0.1f;
-                    const float DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON = 0.2f;
-
-                    glm::vec3 sunDirection = (getAvatarPosition() - closestData.getSunLocation())
-                                                    / closestData.getAtmosphereOuterRadius();
-                    float height = glm::distance(theCamera.getPosition(), closestData.getAtmosphereCenter());
-                    if (height < closestData.getAtmosphereInnerRadius()) {
-                        // If we're inside the atmosphere, then determine if our keyLight is below the horizon
-                        alpha = 0.0f;
-
-                        if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
-                            float directionY = glm::clamp(sunDirection.y,
-                                                -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
-                                                + APPROXIMATE_DISTANCE_FROM_HORIZON;
-                            alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
-                        }
-
-
-                    } else if (height < closestData.getAtmosphereOuterRadius()) {
-                        alpha = (height - closestData.getAtmosphereInnerRadius()) /
-                            (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
-
-                        if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
-                            float directionY = glm::clamp(sunDirection.y,
-                                                -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
-                                                + APPROXIMATE_DISTANCE_FROM_HORIZON;
-                            alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
-                        }
-                    }
-                } else {
-                    hasStars = false;
-                }
-            }
-
-            // finally render the starfield
-            if (hasStars) {
-                _stars.render(_displayViewFrustum.getFieldOfView(), _displayViewFrustum.getAspectRatio(), _displayViewFrustum.getNearClip(), alpha);
-            }
-
-            // draw the sky dome
-            if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
-                PerformanceTimer perfTimer("atmosphere");
-                PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                    "Application::displaySide() ... atmosphere...");
-                _environment.renderAtmospheres(theCamera);
-            }
-
-        }
-    } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
-        skybox = skyStage->getSkybox();
-        if (skybox) {
-            gpu::Batch batch;
-            model::Skybox::render(batch, _displayViewFrustum, *skybox);
-
-            gpu::GLBackend::renderBatch(batch);
-            glUseProgram(0);
-        }
     }
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
@@ -3334,13 +3400,10 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, bool billb
 
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
-
-    DependencyManager::get<DeferredLightingEffect>()->prepare();
+    
+   // Assuming nothing get's rendered through that
 
     if (!selfAvatarOnly) {
-        // draw a red sphere
-        float originSphereRadius = 0.05f;
-        DependencyManager::get<GeometryCache>()->renderSphere(originSphereRadius, 15, 15, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
 
         // render models...
         if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
@@ -3361,18 +3424,9 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, bool billb
             if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
                 renderMode = RenderArgs::MIRROR_RENDER_MODE;
             }
-            _entities.render(renderMode, renderSide, renderDebugFlags);
-
-            if (!Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
-                // Restaure polygon mode
-                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            }
-        }
-
-        // render JS/scriptable overlays
-        {
-            PerformanceTimer perfTimer("3dOverlays");
-            _overlays.renderWorld(false);
+            renderArgs->_renderMode = renderMode;
+            renderArgs->_debugFlags = renderDebugFlags;
+            _entities.render(renderArgs);
         }
 
         // render the ambient occlusion effect if enabled
@@ -3384,12 +3438,20 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, bool billb
         }
     }
 
-    bool mirrorMode = (theCamera.getMode() == CAMERA_MODE_MIRROR);
+    // Make sure the WorldBox is in the scene
+    if (WorldBoxRenderData::_item == 0) {
+        auto worldBoxRenderData = WorldBoxRenderData::Pointer(new WorldBoxRenderData());
+        auto worldBoxRenderPayload = render::PayloadPointer(new WorldBoxRenderData::Payload(worldBoxRenderData));
 
-    {
-        PerformanceTimer perfTimer("avatars");
-        DependencyManager::get<AvatarManager>()->renderAvatars(mirrorMode ? RenderArgs::MIRROR_RENDER_MODE : RenderArgs::NORMAL_RENDER_MODE,
-            false, selfAvatarOnly);
+        WorldBoxRenderData::_item = _main3DScene->allocateID();
+
+        pendingChanges.resetItem(WorldBoxRenderData::_item, worldBoxRenderPayload);
+    } else {
+
+        pendingChanges.updateItem<WorldBoxRenderData>(WorldBoxRenderData::_item,  
+                [](WorldBoxRenderData& payload) { 
+                    payload._val++;
+                });
     }
 
     if (!billboard) {
@@ -3397,19 +3459,55 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, bool billb
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
         DependencyManager::get<DeferredLightingEffect>()->setGlobalAtmosphere(skyStage->getAtmosphere());
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalSkybox(skybox);
 
-        PROFILE_RANGE("DeferredLighting");
-        PerformanceTimer perfTimer("lighting");
-        DependencyManager::get<DeferredLightingEffect>()->render();
+        auto skybox = model::SkyboxPointer();
+        if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
+            skybox = skyStage->getSkybox();
+        }
+        DependencyManager::get<DeferredLightingEffect>()->setGlobalSkybox(skybox);
     }
 
     {
-        PerformanceTimer perfTimer("avatarsPostLighting");
-        DependencyManager::get<AvatarManager>()->renderAvatars(mirrorMode ? RenderArgs::MIRROR_RENDER_MODE : RenderArgs::NORMAL_RENDER_MODE,
-            true, selfAvatarOnly);
+        PerformanceTimer perfTimer("SceneProcessPendingChanges"); 
+        _main3DScene->enqueuePendingChanges(pendingChanges);
+
+        _main3DScene->processPendingChangesQueue();
     }
 
+    // For now every frame pass the renderContext
+    {
+        PerformanceTimer perfTimer("EngineRun");
+        render::RenderContext renderContext;
+
+        auto sceneInterface = DependencyManager::get<SceneScriptingInterface>();
+
+        renderContext._cullOpaque = sceneInterface->doEngineCullOpaque();
+        renderContext._sortOpaque = sceneInterface->doEngineSortOpaque();
+        renderContext._renderOpaque = sceneInterface->doEngineRenderOpaque();
+        renderContext._cullTransparent = sceneInterface->doEngineCullTransparent();
+        renderContext._sortTransparent = sceneInterface->doEngineSortTransparent();
+        renderContext._renderTransparent = sceneInterface->doEngineRenderTransparent();
+
+        renderContext._maxDrawnOpaqueItems = sceneInterface->getEngineMaxDrawnOpaqueItems();
+        renderContext._maxDrawnTransparentItems = sceneInterface->getEngineMaxDrawnTransparentItems();
+
+        renderArgs->_shouldRender = LODManager::shouldRender;
+
+        renderContext.args = renderArgs;
+        renderArgs->_viewFrustum = getDisplayViewFrustum();
+        _renderEngine->setRenderContext(renderContext);
+
+        // Before the deferred pass, let's try to use the render engine
+        _renderEngine->run();
+        
+        auto engineRC = _renderEngine->getRenderContext();
+        sceneInterface->setEngineFeedOpaqueItems(engineRC->_numFeedOpaqueItems);
+        sceneInterface->setEngineDrawnOpaqueItems(engineRC->_numDrawnOpaqueItems);
+
+        sceneInterface->setEngineFeedTransparentItems(engineRC->_numFeedTransparentItems);
+        sceneInterface->setEngineDrawnTransparentItems(engineRC->_numDrawnTransparentItems);
+        
+    }
     //Render the sixense lasers
     if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
         _myAvatar->renderLaserPointers();
@@ -3418,12 +3516,6 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, bool billb
     if (!selfAvatarOnly) {
         _nodeBoundsDisplay.draw();
 
-        //  Render the world box
-        if (theCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
-            PerformanceTimer perfTimer("worldBox");
-            renderWorldBox();
-        }
-
         // render octree fades if they exist
         if (_octreeFades.size() > 0) {
             PerformanceTimer perfTimer("octreeFades");
@@ -3431,7 +3523,7 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, bool billb
                 "Application::displaySide() ... octree fades...");
             _octreeFadesLock.lockForWrite();
             for(std::vector<OctreeFade>::iterator fade = _octreeFades.begin(); fade != _octreeFades.end();) {
-                fade->render();
+                fade->render(renderArgs);
                 if(fade->isDone()) {
                     fade = _octreeFades.erase(fade);
                 } else {
@@ -3450,14 +3542,6 @@ void Application::displaySide(Camera& theCamera, bool selfAvatarOnly, bool billb
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    }
-
-    // Render 3D overlays that should be drawn in front
-    {
-        PerformanceTimer perfTimer("3dOverlaysFront");
-        glClear(GL_DEPTH_BUFFER_BIT);
-        Glower glower;  // Sets alpha to 1.0
-        _overlays.renderWorld(true);
     }
 
     activeRenderingThread = nullptr;
@@ -3536,7 +3620,7 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
     return screenPoint;
 }
 
-void Application::renderRearViewMirror(const QRect& region, bool billboard) {
+void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard) {
     // Grab current viewport to reset it at the end
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
@@ -3596,11 +3680,11 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
 
     // render rear mirror view
     glPushMatrix();
-    displaySide(_mirrorCamera, true, billboard);
+    displaySide(renderArgs, _mirrorCamera, true, billboard);
     glPopMatrix();
 
     if (!billboard) {
-        _rearMirrorTools->render(false, _glWidget->mapFromGlobal(QCursor::pos()));
+        _rearMirrorTools->render(renderArgs, false, _glWidget->mapFromGlobal(QCursor::pos()));
     }
 
     // reset Viewport and projection matrix
@@ -3672,7 +3756,6 @@ void Application::updateWindowTitle(){
 void Application::clearDomainOctreeDetails() {
     qCDebug(interfaceapp) << "Clearing domain octree details...";
     // reset the environment so that we don't erroneously end up with multiple
-    _environment.resetToDefault();
 
     // reset our node to stats and node to jurisdiction maps... since these must be changing...
     _entityServerJurisdictions.lockForWrite();
