@@ -48,7 +48,6 @@ REGISTER_ENTITY_TYPE(ParticleEffect)
 REGISTER_ENTITY_TYPE(Zone)
 REGISTER_ENTITY_TYPE(Line)
 REGISTER_ENTITY_TYPE(PolyVox)
-REGISTER_ENTITY_TYPE(Hyperlink)
 
 const QString& EntityTypes::getEntityTypeName(EntityType entityType) {
     QMap<EntityType, QString>::iterator matchedTypeName = _typeToNameMap.find(entityType);

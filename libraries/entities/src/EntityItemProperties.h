@@ -36,6 +36,7 @@
 #include "EntityPropertyFlags.h"
 #include "SkyboxPropertyGroup.h"
 #include "StagePropertyGroup.h"
+#include "HyperlinkPropertyGroup.h"
 
 const quint64 UNKNOWN_CREATED_TIME = 0;
 
@@ -149,8 +150,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString);
     DEFINE_PROPERTY(PROP_LINE_WIDTH, LineWidth, lineWidth, float);
     DEFINE_PROPERTY_REF(LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>);
-    DEFINE_PROPERTY_REF(PROP_HREF, Href, href, QString);
-    DEFINE_PROPERTY_REF(PROP_DESCRIPTION, Description, description, QString);
+    DEFINE_PROPERTY_GROUP(Hyperlink, hyperlink, HyperlinkPropertyGroup)
 
 
     static QString getBackgroundModeString(BackgroundMode mode);
@@ -299,8 +299,6 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelVolumeSize, voxelVolumeSize, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelData, voxelData, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelSurfaceStyle, voxelSurfaceStyle, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Href, href, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Description, description, "");
     
     properties.getStage().debugDump();
     properties.getAtmosphere().debugDump();

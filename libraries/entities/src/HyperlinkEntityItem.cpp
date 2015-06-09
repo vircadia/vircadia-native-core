@@ -37,7 +37,7 @@ EntityItemPointer HyperlinkEntityItem::factory(const EntityItemID& entityID, con
 HyperlinkEntityItem::HyperlinkEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
 EntityItem(entityItemID)
 {
-    _type = EntityTypes::Text;
+    _type = EntityTypes::Hyperlink;
     _created = properties.getCreated();
     setProperties(properties);
 }
