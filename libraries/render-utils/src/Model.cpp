@@ -78,8 +78,8 @@ Model::Model(QObject* parent) :
     _showTrueJointTransforms(true),
     _lodDistance(0.0f),
     _pupilDilation(0.0f),
-    _isVisible(true),
     _url("http://invalid.com"),
+    _isVisible(true),
     _blendNumber(0),
     _appliedBlendNumber(0),
     _calculatedMeshPartBoxesValid(false),
@@ -2118,8 +2118,8 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
 
     Locations* locations = nullptr;
-    pickPrograms(batch, mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
-                                args, locations);
+    pickPrograms(batch, mode, translucentMesh, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
+                 args, locations);
 
     updateVisibleJointStates();
 
