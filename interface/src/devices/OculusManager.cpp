@@ -740,21 +740,6 @@ void OculusManager::reset() {
     }
 }
 
-//Gets the current predicted angles from the oculus sensors
-void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
-    ovrTrackingState ts = ovrHmd_GetTrackingState(_ovrHmd, ovr_GetTimeInSeconds());
-    if (ts.StatusFlags & (ovrStatus_OrientationTracked | ovrStatus_PositionTracked)) {
-        glm::vec3 euler = glm::eulerAngles(toGlm(ts.HeadPose.ThePose.Orientation));
-        yaw = euler.y;
-        pitch = euler.x;
-        roll = euler.z;
-    } else {
-        yaw = 0.0f;
-        pitch = 0.0f;
-        roll = 0.0f;
-    }
-}
-
 glm::vec3 OculusManager::getRelativePosition() {
     ovrTrackingState trackingState = ovrHmd_GetTrackingState(_ovrHmd, ovr_GetTimeInSeconds());
     return toGlm(trackingState.HeadPose.ThePose.Position);
