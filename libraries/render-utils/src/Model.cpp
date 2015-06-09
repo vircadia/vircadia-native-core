@@ -2106,20 +2106,20 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     const FBXMesh& mesh = geometry.meshes.at(meshIndex);
     const MeshState& state = _meshStates.at(meshIndex);
     
-    // bool translucentMesh = translucent; // networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
+    bool translucentMesh = translucent; // networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
     bool hasTangents = !mesh.tangents.isEmpty();
     bool hasSpecular = mesh.hasSpecularTexture();
     bool hasLightmap = mesh.hasEmissiveTexture();
     bool isSkinned = state.clusterMatrices.size() > 1;
     bool wireframe = isWireframe();
     
-    // if (wireframe) {
-    //     translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
-    // }
+    if (wireframe) {
+        translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
+    }
 
     Locations* locations = nullptr;
-    pickPrograms(batch, mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
-                                args, locations);
+    pickPrograms(batch, mode, translucentMesh, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
+                 args, locations);
 
     updateVisibleJointStates();
 
