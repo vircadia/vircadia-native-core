@@ -131,7 +131,7 @@ glm::quat EntityActionInterface::extractQuatArgument(QString objectName, QVarian
         return glm::quat();
     }
 
-    return glm::quat(x, y, z, w);
+    return glm::quat(w, x, y, z);
 }
 
 

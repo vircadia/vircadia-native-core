@@ -60,7 +60,7 @@ var gMouseAtRotateStart = { x: 0, y: 0 };
 
 var gBeaconHeight = 0.10;
 
-var gAngularVelocity = ZERO_VEC3;
+// var gAngularVelocity = ZERO_VEC3;
 
 // TODO: play sounds again when we aren't leaking AudioInjector threads
 // var grabSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/eric/sounds/CloseClamp.wav");
@@ -194,7 +194,6 @@ function mousePressEvent(event) {
     var cameraPosition = Camera.getPosition();
 
     gBeaconHeight = Vec3.length(entityProperties.dimensions);
-    print("gBeaconHeight = " + gBeaconHeight);
     gMaxGrabDistance = gBeaconHeight / MAX_SOLID_ANGLE;
     if (Vec3.distance(objectPosition, cameraPosition) > gMaxGrabDistance) {
         // don't allow grabs of things far away
@@ -254,7 +253,7 @@ function mouseMoveEvent(event) {
         gOriginalGravity = entityProperties.gravity;
     }
 
-    var actionArgs;
+    var actionArgs = {};
 
     if (gGrabMode === "rotate") {
         var deltaMouse = { x: 0, y: 0 };
@@ -265,12 +264,13 @@ function mouseMoveEvent(event) {
         var dragOffset = Vec3.multiply(dx, Quat.getRight(orientation));
         dragOffset = Vec3.sum(dragOffset, Vec3.multiply(-dy, Quat.getUp(orientation)));
         var axis = Vec3.cross(dragOffset, Quat.getFront(orientation));
-        // var axis = Vec3.normalize(axis);
-        // var ROTATE_STRENGTH = 8.0; // magic number tuned by hand
-        // gAngularVelocity = Vec3.multiply(ROTATE_STRENGTH, axis);
-
-        var targetRotation = Quat.angleAxis(Vec3.length(axis), Vec3.normalize(axis));
-        actionArgs = {targetRotation: targetRotation, angularTimeScale: 1.0};
+        axis = Vec3.normalize(axis);
+        var ROTATE_STRENGTH = 8.0; // magic number tuned by hand
+        var angle = ROTATE_STRENGTH * Math.sqrt((dx * dx) + (dy * dy));
+        var deltaQ = Quat.angleAxis(angle, axis);
+        var qZero = entityProperties.rotation;
+        var qOne = Quat.multiply(deltaQ, qZero);
+        actionArgs = {targetRotation: qOne, angularTimeScale: 0.1};
     } else {
         var newTargetPosition;
         if (gGrabMode === "verticalCylinder") {

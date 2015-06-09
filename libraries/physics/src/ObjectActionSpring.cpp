@@ -64,8 +64,9 @@ void ObjectActionSpring::updateAction(btCollisionWorld* collisionWorld, btScalar
                 glm::quat deltaQ = _rotationalTarget * qZeroInverse;
                 glm::vec3 axis = glm::axis(deltaQ);
                 float angle = glm::angle(deltaQ);
-                glm::vec3 newAngularVelocity = (-angle / _angularTimeScale) * glm::normalize(axis);
+                glm::vec3 newAngularVelocity = (angle / _angularTimeScale) * glm::normalize(axis);
                 rigidBody->setAngularVelocity(glmToBullet(newAngularVelocity));
+                rigidBody->activate();
             }
         }
     }

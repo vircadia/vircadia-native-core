@@ -236,9 +236,9 @@ void PhysicalEntitySimulation::handleCollisionEvents(CollisionEvents& collisionE
 }
 
 EntityActionPointer PhysicalEntitySimulation::actionFactory(EntityActionType type,
-                                                               QUuid id,
-                                                               EntityItemPointer ownerEntity,
-                                                               QVariantMap arguments) {
+                                                            QUuid id,
+                                                            EntityItemPointer ownerEntity,
+                                                            QVariantMap arguments) {
     EntityActionPointer action = nullptr;
     switch (type) {
         case ACTION_TYPE_NONE:
