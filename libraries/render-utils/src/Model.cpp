@@ -913,8 +913,6 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
 
     bool somethingAdded = false;
 
-    qDebug() << "Model::addToScene : " << this->getURL().toString();
-
     // allow the attachments to add to scene
     foreach (Model* attachment, _attachments) {
         bool attachementSomethingAdded = attachment->addToScene(scene, pendingChanges);
@@ -954,7 +952,6 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
     }
     _renderItems.clear();
     _readyWhenAdded = false;
-    qDebug() << "Model::removeFromScene : " << this->getURL().toString();
 }
 
 bool Model::render(RenderArgs* renderArgs, float alpha) {

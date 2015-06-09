@@ -312,8 +312,7 @@ protected:
     float getLimbLength(int jointIndex) const;
     
     /// Allow sub classes to force invalidating the bboxes
-    void invalidCalculatedMeshBoxes() { 
-        qDebug() << "invalidCalculatedMeshBoxes()";
+    void invalidCalculatedMeshBoxes() {
         _calculatedMeshBoxesValid = false;
         _calculatedMeshPartBoxesValid = false;
         _calculatedMeshTrianglesValid = false;
