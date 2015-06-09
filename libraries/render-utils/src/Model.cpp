@@ -78,8 +78,8 @@ Model::Model(QObject* parent) :
     _showTrueJointTransforms(true),
     _lodDistance(0.0f),
     _pupilDilation(0.0f),
-    _isVisible(true),
     _url("http://invalid.com"),
+    _isVisible(true),
     _blendNumber(0),
     _appliedBlendNumber(0),
     _calculatedMeshPartBoxesValid(false),
@@ -2106,16 +2106,16 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     const FBXMesh& mesh = geometry.meshes.at(meshIndex);
     const MeshState& state = _meshStates.at(meshIndex);
     
-    bool translucentMesh = translucent; // networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
+    // bool translucentMesh = translucent; // networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
     bool hasTangents = !mesh.tangents.isEmpty();
     bool hasSpecular = mesh.hasSpecularTexture();
     bool hasLightmap = mesh.hasEmissiveTexture();
     bool isSkinned = state.clusterMatrices.size() > 1;
     bool wireframe = isWireframe();
     
-    if (wireframe) {
-        translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
-    }
+    // if (wireframe) {
+    //     translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
+    // }
 
     Locations* locations = nullptr;
     pickPrograms(batch, mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
