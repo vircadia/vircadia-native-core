@@ -21,7 +21,6 @@ var ANGULAR_DAMPING_RATE = 0.40;
 var gIsGrabbing = false;
 var gGrabbedEntity = null;
 var gActionID = null;
-var gPrevMouse = {x: 0, y: 0};
 var gEntityProperties;
 var gStartPosition;
 var gStartRotation;
@@ -259,13 +258,12 @@ function mouseMoveEvent(event) {
         var deltaMouse = { x: 0, y: 0 };
         var dx = event.x - gPreviousMouse.x;
         var dy = event.y - gPreviousMouse.y;
-
         var orientation = Camera.getOrientation();
         var dragOffset = Vec3.multiply(dx, Quat.getRight(orientation));
         dragOffset = Vec3.sum(dragOffset, Vec3.multiply(-dy, Quat.getUp(orientation)));
         var axis = Vec3.cross(dragOffset, Quat.getFront(orientation));
         axis = Vec3.normalize(axis);
-        var ROTATE_STRENGTH = 8.0; // magic number tuned by hand
+        var ROTATE_STRENGTH = 16.0; // magic number tuned by hand
         var angle = ROTATE_STRENGTH * Math.sqrt((dx * dx) + (dy * dy));
         var deltaQ = Quat.angleAxis(angle, axis);
         var qZero = entityProperties.rotation;
@@ -327,37 +325,8 @@ function keyPressEvent(event) {
     computeNewGrabPlane();
 }
 
-// function update(deltaTime) {
-//     if (!gIsGrabbing) {
-//         return;
-//     }
-
-//     var entityProperties = Entities.getEntityProperties(gGrabbedEntity);
-//     gCurrentPosition = entityProperties.position;
-//     if (gGrabMode === "rotate") {
-//         gAngularVelocity = Vec3.subtract(gAngularVelocity, Vec3.multiply(gAngularVelocity, ANGULAR_DAMPING_RATE));
-//         Entities.editEntity(gGrabbedEntity, { angularVelocity: gAngularVelocity, });
-//     }
-
-//     // always push toward linear grab position, even when rotating
-//     var newVelocity = ZERO_VEC3;
-//     var dPosition = Vec3.subtract(gTargetPosition, gCurrentPosition);
-//     var delta = Vec3.length(dPosition);
-//     if (delta > CLOSE_ENOUGH) {
-//         var MAX_POSITION_DELTA = 4.0;
-//         if (delta > MAX_POSITION_DELTA) {
-//             dPosition = Vec3.multiply(dPosition, MAX_POSITION_DELTA / delta);
-//         }
-//         // desired speed is proportional to displacement by the inverse of timescale
-//         // (for critically damped motion)
-//         newVelocity = Vec3.multiply(dPosition, INV_MOVE_TIMESCALE);
-//     }
-//     Entities.editEntity(gGrabbedEntity, { velocity: newVelocity, });
-// }
-
 Controller.mouseMoveEvent.connect(mouseMoveEvent);
 Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
-// Script.update.connect(update);

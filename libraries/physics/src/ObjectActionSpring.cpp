@@ -60,13 +60,32 @@ void ObjectActionSpring::updateAction(btCollisionWorld* collisionWorld, btScalar
 
             // handle rotation
             if (_rotationalTargetSet) {
-                glm::quat qZeroInverse = glm::inverse(bulletToGLM(rigidBody->getOrientation()));
-                glm::quat deltaQ = _rotationalTarget * qZeroInverse;
-                glm::vec3 axis = glm::axis(deltaQ);
-                float angle = glm::angle(deltaQ);
-                glm::vec3 newAngularVelocity = (angle / _angularTimeScale) * glm::normalize(axis);
-                rigidBody->setAngularVelocity(glmToBullet(newAngularVelocity));
-                rigidBody->activate();
+                glm::quat bodyRotation = bulletToGLM(rigidBody->getOrientation());
+                // if qZero and qOne are too close to each other, we can get NaN for angle.
+                auto alignmentDot = glm::dot(bodyRotation, _rotationalTarget);
+                const float almostOne = 0.99999;
+                if (glm::abs(alignmentDot) < almostOne) {
+                    glm::quat target = _rotationalTarget;
+                    if (alignmentDot < 0) {
+                        target = -target;
+                    }
+                    glm::quat qZeroInverse = glm::inverse(bodyRotation);
+                    glm::quat deltaQ = target * qZeroInverse;
+                    glm::vec3 axis = glm::axis(deltaQ);
+                    float angle = glm::angle(deltaQ);
+                    if (isNaN(angle)) {
+                        qDebug() << "ObjectActionSpring::updateAction angle =" << angle
+                                 << "body-rotation =" << bodyRotation.x << bodyRotation.y << bodyRotation.z << bodyRotation.w
+                                 << "target-rotation ="
+                                 << target.x << target.y << target.z<< target.w;
+                    }
+                    assert(!isNaN(angle));
+                    glm::vec3 newAngularVelocity = (angle / _angularTimeScale) * glm::normalize(axis);
+                    rigidBody->setAngularVelocity(glmToBullet(newAngularVelocity));
+                    rigidBody->activate();
+                } else {
+                    rigidBody->setAngularVelocity(glmToBullet(glm::vec3(0.0f)));
+                }
             }
         }
     }
