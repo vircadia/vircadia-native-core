@@ -1,5 +1,6 @@
 //
 //  LoginDialog.h
+//  interface/src/ui
 //
 //  Created by Bradley Austin Davis on 2015/04/14
 //  Copyright 2015 High Fidelity, Inc.
@@ -9,6 +10,7 @@
 //
 
 #pragma once
+
 #ifndef hifi_LoginDialog_h
 #define hifi_LoginDialog_h
 

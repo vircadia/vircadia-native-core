@@ -12,12 +12,17 @@
 #ifndef hifi_PathUtils_h
 #define hifi_PathUtils_h
 
+#include <QtCore/QObject>
 
-#include <QString>
+#include "DependencyManager.h"
 
-namespace PathUtils {
-    QString& resourcesPath();
-}
+class PathUtils : public QObject, public Dependency {
+    Q_OBJECT
+    SINGLETON_DEPENDENCY
+    Q_PROPERTY(QString resources READ resourcesPath)
+public:
+    static const QString& resourcesPath();
+};
 
 QString fileNameWithoutExtension(const QString& fileName, const QVector<QString> possibleExtensions);
 QString findMostRecentFileExtension(const QString& originalFileName, QVector<QString> possibleExtensions);
