@@ -86,6 +86,7 @@ bool LineEntityItem::setProperties(const EntityItemProperties& properties) {
 
 void LineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
     QVector<glm::vec3> sanitizedPoints;
+    int invalidPoints = 0;
     for (int i = 0; i < points.size(); i++) {
         glm::vec3 point = points.at(i);
         // Make sure all of our points are valid numbers.
@@ -93,8 +94,11 @@ void LineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
         if (point.x > 0 && point.y > 0 && point.z > 0){
             sanitizedPoints << point;
         } else {
-            qDebug() << "INVALID POINT";
+            ++invalidPoints;
         }
+    }
+    if (invalidPoints > 0) {
+        qDebug() << "Line with" << invalidPoints << "INVALID POINTS";
     }
     _points = sanitizedPoints;
     _pointsChanged = true;
