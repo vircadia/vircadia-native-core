@@ -177,7 +177,6 @@ ovrLayerEyeFov OculusManager::_sceneLayer;
 
 #else
 
-BasicFramebufferWrapper* _transferFbo;
 ovrTexture OculusManager::_eyeTextures[ovrEye_Count];
 GlWindow* OculusManager::_outputWindow{ nullptr };
 
@@ -310,10 +309,6 @@ void OculusManager::connect(QOpenGLContext* shareContext) {
     }
     _outputWindow->showFullScreen();
     _outputWindow->makeCurrent();
-    _transferFbo = new BasicFramebufferWrapper();
-    _transferFbo->Init(toGlm(_renderTargetSize));
-    
-    
     
     ovrGLConfig cfg;
     memset(&cfg, 0, sizeof(cfg));

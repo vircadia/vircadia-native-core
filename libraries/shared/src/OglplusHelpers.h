@@ -7,6 +7,12 @@
 //
 #pragma once
 
+// FIXME support oglplus on all platforms
+// For now it's a convenient helper for Windows
+
+#include <QtGlobal>
+
+#ifdef Q_OS_WIN
 #include "GLMHelpers.h"
 
 #define OGLPLUS_USE_GLCOREARB_H 0
@@ -164,3 +170,4 @@ protected:
 };
 
 using BasicFramebufferWrapperPtr = std::shared_ptr<BasicFramebufferWrapper>;
+#endif
