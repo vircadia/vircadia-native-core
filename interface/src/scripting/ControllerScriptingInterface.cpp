@@ -46,32 +46,36 @@ QScriptValue inputToScriptValue(QScriptEngine* engine, const UserInputMapper::In
     QScriptValue obj = engine->newObject();
     obj.setProperty("device", input.getDevice());
     obj.setProperty("channel", input.getChannel());
-    obj.setProperty("type", input._type);
+    obj.setProperty("type", (unsigned short) input.getType());
     obj.setProperty("id", input.getID());
     return obj;
 }
 
 void inputFromScriptValue(const QScriptValue& object, UserInputMapper::Input& input) {
-    input._device = object.property("device").toUInt16();
-    input._channel = object.property("channel").toUInt16();
-    input._type = object.property("type").toUInt16();
-    input._id = object.property("id").toInt32();
+    input.setDevice(object.property("device").toUInt16());
+    input.setChannel(object.property("channel").toUInt16());
+    input.setType(object.property("type").toUInt16());
+    input.setID(object.property("id").toInt32());
 }
 
 QScriptValue inputChannelToScriptValue(QScriptEngine* engine, const UserInputMapper::InputChannel& inputChannel) {
     QScriptValue obj = engine->newObject();
-    obj.setProperty("input", inputToScriptValue(engine, inputChannel._input));
-    obj.setProperty("modifier", inputToScriptValue(engine, inputChannel._modifier));
-    obj.setProperty("action", inputChannel._action);
-    obj.setProperty("scale", inputChannel._scale);
+    obj.setProperty("input", inputToScriptValue(engine, inputChannel.getInput()));
+    obj.setProperty("modifier", inputToScriptValue(engine, inputChannel.getModifier()));
+    obj.setProperty("action", inputChannel.getAction());
+    obj.setProperty("scale", inputChannel.getScale());
     return obj;
 }
 
 void inputChannelFromScriptValue(const QScriptValue& object, UserInputMapper::InputChannel& inputChannel) {
-    inputFromScriptValue(object.property("input"), inputChannel._input);
-    inputFromScriptValue(object.property("modifier"), inputChannel._modifier);
-    inputChannel._action = UserInputMapper::Action(object.property("action").toVariant().toInt());
-    inputChannel._scale = object.property("scale").toVariant().toFloat();
+    UserInputMapper::Input input;
+    UserInputMapper::Input modifier;
+    inputFromScriptValue(object.property("input"), input);
+    inputChannel.setInput(input);
+    inputFromScriptValue(object.property("modifier"), modifier);
+    inputChannel.setModifier(modifier);
+    inputChannel.setAction(UserInputMapper::Action(object.property("action").toVariant().toInt()));
+    inputChannel.setScale(object.property("scale").toVariant().toFloat());
 }
 
 QScriptValue actionToScriptValue(QScriptEngine* engine, const UserInputMapper::Action& action) {

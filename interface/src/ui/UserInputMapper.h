@@ -52,8 +52,13 @@ public:
         uint16 getDevice() const { return _device; }
         uint16 getChannel() const { return _channel; }
         uint32 getID() const { return _id; }
-
         ChannelType getType() const { return (ChannelType) _type; }
+        
+        void setDevice(uint16 device) { _device = device; }
+        void setChannel(uint16 channel) { _channel = channel; }
+        void setType(uint16 type) { _type = type; }
+        void setID(uint32 ID) { _id = ID; }
+
         bool isButton() const { return getType() == ChannelType::BUTTON; }
         bool isAxis() const { return getType() == ChannelType::AXIS; }
         bool isJoint() const { return getType() == ChannelType::JOINT; }
@@ -157,6 +162,16 @@ public:
         Input _modifier = Input(); // make it invalid by default, meaning no modifier
         Action _action = LONGITUDINAL_BACKWARD;
         float _scale = 0.0f;
+        
+        Input getInput() const { return _input; }
+        Input getModifier() const { return _modifier; }
+        Action getAction() const { return _action; }
+        float getScale() const { return _scale; }
+        
+        void setInput(Input input) { _input = input; }
+        void setModifier(Input modifier) { _modifier = modifier; }
+        void setAction(Action action) { _action = action; }
+        void setScale(float scale) { _scale = scale; }
 
         InputChannel() {}
         InputChannel(const Input& input, const Input& modifier, Action action, float scale = 1.0f) :
