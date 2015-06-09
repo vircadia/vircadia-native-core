@@ -30,6 +30,7 @@
 #include <gpu/Batch.h>
 #include <gpu/Pipeline.h>
 #include "PhysicsEntity.h"
+#include <render/Scene.h>
 #include <Transform.h>
 
 #include "AnimationHandle.h"
@@ -44,6 +45,22 @@ class QScriptEngine;
 class Shape;
 #include "RenderArgs.h"
 class ViewFrustum;
+
+namespace render {
+    class Scene;
+    class PendingChanges;
+    typedef unsigned int ItemID;
+}
+class OpaqueMeshPart;
+class TransparentMeshPart;
+
+inline uint qHash(const std::shared_ptr<TransparentMeshPart>& a, uint seed) {
+    return qHash(a.get(), seed);
+}
+inline uint qHash(const std::shared_ptr<OpaqueMeshPart>& a, uint seed) {
+    return qHash(a.get(), seed);
+}
+
 
 
 /// A generic 3D model displaying geometry loaded from a URL.
@@ -91,6 +108,9 @@ public:
     bool isActive() const { return _geometry && _geometry->isLoaded(); }
     
     bool isRenderable() const { return !_meshStates.isEmpty() || (isActive() && _geometry->getMeshes().isEmpty()); }
+
+    void setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene);
+    bool isVisible() const { return _isVisible; }
     
     bool isLoadedWithTextures() const { return _geometry && _geometry->isLoadedWithTextures(); }
     
@@ -98,12 +118,13 @@ public:
     void reset();
     virtual void simulate(float deltaTime, bool fullUpdate = true);
 
-    bool render(float alpha = 1.0f, RenderArgs::RenderMode mode = RenderArgs::DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
+    void renderSetup(RenderArgs* args);
     
-    // Scene rendering support
-    static void startScene(RenderArgs::RenderSide renderSide);
-    bool renderInScene(float alpha = 1.0f, RenderArgs* args = NULL);
-    static void endScene(RenderArgs::RenderMode mode = RenderArgs::DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
+    // new Scene/Engine rendering support
+    bool needsFixupInScene() { return !_readyWhenAdded && readyToAddToScene(); }
+    bool readyToAddToScene(RenderArgs* renderArgs = nullptr) { return !_needsReload && isRenderable() && isActive() && isLoadedWithTextures(); }
+    bool addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+    void removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
 
     /// Sets the URL of the model to render.
     /// \param fallback the URL of a fallback model to render if the requested model fails to load
@@ -134,6 +155,9 @@ public:
 
     /// Returns the scaled equivalent of some extents in model space.
     Extents calculateScaledOffsetExtents(const Extents& extents) const;
+
+    /// Returns the world space equivalent of some box in model space.
+    AABox calculateScaledOffsetAABox(const AABox& box) const;
 
     /// Returns the scaled equivalent of a point in model space.
     glm::vec3 calculateScaledOffsetPoint(const glm::vec3& point) const;
@@ -219,6 +243,9 @@ public:
                                                 BoxFace& face, QString& extraInfo, bool pickAgainstTriangles = false);
     bool convexHullContains(glm::vec3 point);
 
+    AABox getPartBounds(int meshIndex, int partIndex);
+    void renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent);
+
 protected:
     QSharedPointer<NetworkGeometry> _geometry;
     
@@ -233,7 +260,7 @@ protected:
 
     bool _snapModelToRegistrationPoint; /// is the model's offset automatically adjusted to a registration point in model space
     bool _snappedToRegistrationPoint; /// are we currently snapped to a registration point
-    glm::vec3 _registrationPoint; /// the point in model space our center is snapped to
+    glm::vec3 _registrationPoint = glm::vec3(0.5f); /// the point in model space our center is snapped to
     
     bool _showTrueJointTransforms;
     
@@ -285,7 +312,12 @@ protected:
     float getLimbLength(int jointIndex) const;
     
     /// Allow sub classes to force invalidating the bboxes
-    void invalidCalculatedMeshBoxes() { _calculatedMeshBoxesValid = false; }
+    void invalidCalculatedMeshBoxes() { 
+        qDebug() << "invalidCalculatedMeshBoxes()";
+        _calculatedMeshBoxesValid = false;
+        _calculatedMeshPartBoxesValid = false;
+        _calculatedMeshTrianglesValid = false;
+    }
 
 private:
     
@@ -311,6 +343,7 @@ private:
     
     QUrl _url;
     QUrl _collisionUrl;
+    bool _isVisible;
 
     gpu::Buffers _blendedVertexBuffers;
     std::vector<Transform> _transforms;
@@ -341,8 +374,14 @@ private:
         int clusterMatrices;
         int clusterIndices;
         int clusterWeights;
+        int lightBufferUnit;
     };
 
+    QHash<QPair<int,int>, AABox> _calculatedMeshPartBoxes; // world coordinate AABoxes for all sub mesh part boxes
+    QHash<QPair<int,int>, qint64> _calculatedMeshPartOffet;
+   
+    
+    bool _calculatedMeshPartBoxesValid;
     QVector<AABox> _calculatedMeshBoxes; // world coordinate AABoxes for all sub mesh boxes
     bool _calculatedMeshBoxesValid;
     
@@ -362,16 +401,8 @@ private:
     void renderDebugMeshBoxes();
     int _debugMeshBoxesID = GeometryCache::UNKNOWN_ID;
 
-    // Scene rendering support
-    static QVector<Model*> _modelsInScene;
-    static gpu::Batch _sceneRenderBatch;
-
-    static void endSceneSimple(RenderArgs::RenderMode mode = RenderArgs::DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
-    static void endSceneSplitPass(RenderArgs::RenderMode mode = RenderArgs::DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
-
     // helper functions used by render() or renderInScene()
-    void renderSetup(RenderArgs* args);
-    bool renderCore(float alpha, RenderArgs::RenderMode mode, RenderArgs* args);
+    bool renderCore(RenderArgs* args, float alpha);
     int renderMeshes(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
                         bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args = NULL,
                         bool forceRenderMeshes = false);
@@ -386,10 +417,6 @@ private:
     static void pickPrograms(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args,
                             Locations*& locations);
-
-    static int renderMeshesForModelsInScene(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args);
-
 
     static AbstractViewStateInterface* _viewState;
 
@@ -511,6 +538,21 @@ private:
     RenderBucketMap _renderBuckets;
 
     bool _renderCollisionHull;
+    
+    
+    QSet<std::shared_ptr<TransparentMeshPart>> _transparentRenderItems;
+    QSet<std::shared_ptr<OpaqueMeshPart>> _opaqueRenderItems;
+    QMap<render::ItemID, render::PayloadPointer> _renderItems;
+    bool _readyWhenAdded = false;
+    bool _needsReload = true;
+    
+    
+private:
+    // FIX ME - We want to get rid of this interface for rendering...
+    // right now the only remaining user are Avatar attachments.
+    // that usage has been temporarily disabled... 
+    bool render(RenderArgs* renderArgs, float alpha = 1.0f);
+    
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)

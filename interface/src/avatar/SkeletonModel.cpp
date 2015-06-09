@@ -255,13 +255,12 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
 }
 
 void SkeletonModel::updateJointState(int index) {
+    if (index > _jointStates.size()) {
+        return; // bail
+    }
     JointState& state = _jointStates[index];
     const FBXJoint& joint = state.getFBXJoint();
-    if (joint.parentIndex != -1) {
-        if (joint.parentIndex < 0 || joint.parentIndex >= _jointStates.size()) {
-            qDebug() << "Bad parent index";
-            return;
-        }
+    if (joint.parentIndex != -1 && joint.parentIndex <= _jointStates.size()) {
         const JointState& parentState = _jointStates.at(joint.parentIndex);
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         if (index == geometry.leanJointIndex) {

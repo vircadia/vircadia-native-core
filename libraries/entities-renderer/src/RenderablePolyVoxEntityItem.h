@@ -16,6 +16,7 @@
 
 #include "PolyVoxEntityItem.h"
 #include "RenderableDebugableEntityItem.h"
+#include "RenderableEntityItem.h"
 
 class RenderablePolyVoxEntityItem : public PolyVoxEntityItem {
 public:
@@ -70,6 +71,8 @@ public:
     virtual void setAll(uint8_t toValue);
 
     virtual void setVoxelInVolume(glm::vec3 position, uint8_t toValue);
+
+    SIMPLE_RENDERABLE();
     
 private:
     // The PolyVoxEntityItem class has _voxelData which contains dimensions and compressed voxel data.  The dimensions

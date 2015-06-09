@@ -55,6 +55,25 @@ void GLBackend::killTransform() {
 #else
 #endif
 }
+
+void GLBackend::syncTransformStateCache() {
+    _transform._invalidProj = true;
+    _transform._invalidView = true;
+    _transform._invalidModel = true;
+
+    GLint currentMode;
+    glGetIntegerv(GL_MATRIX_MODE, &currentMode);
+    _transform._lastMode = currentMode;
+
+    glGetFloatv(GL_PROJECTION_MATRIX, (float*) &_transform._projection);
+
+    Mat4 modelView;
+    glGetFloatv(GL_MODELVIEW_MATRIX, (float*) &modelView);
+    auto modelViewInv = glm::inverse(modelView);
+    _transform._view.evalFromRawMatrix(modelViewInv);
+    _transform._model.setIdentity();
+}
+
 void GLBackend::updateTransform() {
     // Check all the dirty flags and update the state accordingly
     if (_transform._invalidProj) {

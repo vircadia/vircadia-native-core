@@ -20,7 +20,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "RenderArgs.h"
+
 class QOpenGLContext;
+
 class Camera;
 class GlWindow;
 class PalmData;
@@ -46,7 +49,7 @@ public:
     static void endFrameTiming();
     static bool allowSwap();
     static void configureCamera(Camera& camera);
-    static void display(QGLWidget * glCanvas, const glm::quat &bodyOrientation, const glm::vec3 &position, Camera& whichCamera);
+    static void display(QGLWidget * glCanvas, RenderArgs* renderArgs, const glm::quat &bodyOrientation, const glm::vec3 &position, Camera& whichCamera);
     static void reset();
     
     /// param \yaw[out] yaw in radians

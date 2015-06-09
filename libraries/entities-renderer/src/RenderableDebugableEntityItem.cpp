@@ -12,7 +12,10 @@
 
 
 #include <glm/gtx/quaternion.hpp>
+
 #include <gpu/GPUConfig.h>
+#include <gpu/Batch.h>
+
 #include <DeferredLightingEffect.h>
 #include <PhysicsEngine.h>
 
@@ -21,48 +24,24 @@
 
 void RenderableDebugableEntityItem::renderBoundingBox(EntityItem* entity, RenderArgs* args,
                                                       float puffedOut, glm::vec4& color) {
-    glm::vec3 position = entity->getPosition();
-    glm::vec3 center = entity->getCenter();
-    glm::vec3 dimensions = entity->getDimensions();
-    glm::quat rotation = entity->getRotation();
-
-    glPushMatrix();
-        glTranslatef(position.x, position.y, position.z);
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-        glPushMatrix();
-            glm::vec3 positionToCenter = center - position;
-            glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-            glScalef(dimensions.x, dimensions.y, dimensions.z);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCube(1.0f + puffedOut, color);
-        glPopMatrix();
-    glPopMatrix();
+    Q_ASSERT(args->_batch);
+    gpu::Batch& batch = *args->_batch;
+    batch.setModelTransform(entity->getTransformToCenter());
+    DependencyManager::get<DeferredLightingEffect>()->renderWireCube(batch, 1.0f + puffedOut, color);
 }
 
 void RenderableDebugableEntityItem::renderHoverDot(EntityItem* entity, RenderArgs* args) {
-    glm::vec3 position = entity->getPosition();
-    glm::vec3 center = entity->getCenter();
-    glm::vec3 dimensions = entity->getDimensions();
-    glm::quat rotation = entity->getRotation();
-    glm::vec4 blueColor(0.0f, 0.0f, 1.0f, 1.0f);
+    const int SLICES = 8, STACKS = 8;
     float radius = 0.05f;
-
-    glPushMatrix();
-        glTranslatef(position.x, position.y + dimensions.y + radius, position.z);
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-
-        glPushMatrix();
-            glm::vec3 positionToCenter = center - position;
-            glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-
-            glScalef(radius, radius, radius);
-
-            const int SLICES = 8;
-            const int STACKS = 8;
-            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(0.5f, SLICES, STACKS, blueColor);
-        glPopMatrix();
-    glPopMatrix();
+    glm::vec4 blueColor(0.0f, 0.0f, 1.0f, 1.0f);
+    
+    Q_ASSERT(args->_batch);
+    gpu::Batch& batch = *args->_batch;
+    Transform transform = entity->getTransformToCenter();
+    // Cancel true dimensions and set scale to 2 * radius (diameter)
+    transform.postScale(2.0f * glm::vec3(radius, radius, radius) / entity->getDimensions());
+    batch.setModelTransform(transform);
+    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, 0.5f, SLICES, STACKS, blueColor);
 }
 
 void RenderableDebugableEntityItem::render(EntityItem* entity, RenderArgs* args) {

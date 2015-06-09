@@ -17,7 +17,11 @@
 #include <QString>
 
 #include <RenderArgs.h>
+#include <TextRenderer.h>
+
 #include "Planar3DOverlay.h"
+
+const int FIXED_FONT_POINT_SIZE = 40;
 
 class Text3DOverlay : public Planar3DOverlay {
     Q_OBJECT
@@ -58,6 +62,8 @@ public:
 private:
     void enableClipPlane(GLenum plane, float x, float y, float z, float w);
 
+    TextRenderer* _textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
+    
     QString _text;
     xColor _backgroundColor;
     float _backgroundAlpha;

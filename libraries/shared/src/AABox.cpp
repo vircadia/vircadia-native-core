@@ -42,12 +42,6 @@ glm::vec3 AABox::calcCenter() const {
     return center; 
 }
 
-glm::vec3 AABox::calcTopFarLeft() const { 
-    glm::vec3 topFarLeft(_corner);
-    topFarLeft += _scale;
-    return topFarLeft; 
-};
-
 void AABox::scale(float scale) {
     _corner = _corner * scale;
     _scale = _scale * scale;

@@ -545,7 +545,7 @@ void OculusManager::configureCamera(Camera& camera) {
 }
 
 //Displays everything for the oculus, frame timing must be active
-void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientation, const glm::vec3 &position, Camera& whichCamera) {
+void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const glm::quat &bodyOrientation, const glm::vec3 &position, Camera& whichCamera) {
 
 #ifdef DEBUG
     // Ensure the frame counter always increments by exactly 1
@@ -579,7 +579,7 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
 
     //Bind our framebuffer object. If we are rendering the glow effect, we let the glow effect shader take care of it
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect)) {
-        DependencyManager::get<GlowEffect>()->prepare();
+        DependencyManager::get<GlowEffect>()->prepare(renderArgs);
     } else {
         auto primaryFBO = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
         glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFBO));
@@ -661,7 +661,8 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
         vp.Size.w = _recommendedTexSize.w * _offscreenRenderScale;
         glViewport(vp.Pos.x, vp.Pos.y, vp.Size.w, vp.Size.h);
 
-        qApp->displaySide(*_camera, false, RenderArgs::MONO);
+        renderArgs->_renderSide = RenderArgs::MONO;
+        qApp->displaySide(renderArgs, *_camera, false);
         qApp->getApplicationOverlay().displayOverlayTextureHmd(*_camera);
     });
     _activeEye = ovrEye_Count;
@@ -673,7 +674,7 @@ void OculusManager::display(QGLWidget * glCanvas, const glm::quat &bodyOrientati
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect)) {
         //Full texture viewport for glow effect
         glViewport(0, 0, _renderTargetSize.w, _renderTargetSize.h);
-        finalFbo = DependencyManager::get<GlowEffect>()->render();
+        finalFbo = DependencyManager::get<GlowEffect>()->render(renderArgs);
     } else {
         finalFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer(); 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);

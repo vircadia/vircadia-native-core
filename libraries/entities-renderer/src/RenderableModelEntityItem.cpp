@@ -15,9 +15,11 @@
 
 #include <QJsonDocument>
 
+#include <AbstractViewStateInterface.h>
 #include <DeferredLightingEffect.h>
 #include <Model.h>
 #include <PerfStat.h>
+#include <render/Scene.h>
 
 #include "EntityTreeRenderer.h"
 #include "EntitiesRendererLogging.h"
@@ -108,6 +110,90 @@ void RenderableModelEntityItem::remapTextures() {
     _currentTextures = _textures;
 }
 
+// TODO: we need a solution for changes to the postion/rotation/etc of a model...
+// this current code path only addresses that in this setup case... not the changing/moving case
+bool RenderableModelEntityItem::readyToAddToScene(RenderArgs* renderArgs) {
+    if (!_model && renderArgs) {
+        // TODO: this getModel() appears to be about 3% of model render time. We should optimize
+        PerformanceTimer perfTimer("getModel");
+        EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(renderArgs->_renderer);
+        getModel(renderer);
+    }
+    if (renderArgs && _model && _needsInitialSimulation && _model->isActive() && _model->isLoadedWithTextures()) {
+        _model->setScaleToFit(true, getDimensions());
+        _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
+        _model->setRotation(getRotation());
+        _model->setTranslation(getPosition());
+    
+        // make sure to simulate so everything gets set up correctly for rendering
+        {
+            PerformanceTimer perfTimer("_model->simulate");
+            _model->simulate(0.0f);
+        }
+        _needsInitialSimulation = false;
+
+        _model->renderSetup(renderArgs);
+    }
+    bool ready = !_needsInitialSimulation && _model && _model->readyToAddToScene(renderArgs);
+    return ready; 
+}
+
+class RenderableModelEntityItemMeta {
+public:
+    RenderableModelEntityItemMeta(EntityItemPointer entity) : entity(entity){ }
+    typedef render::Payload<RenderableModelEntityItemMeta> Payload;
+    typedef Payload::DataPointer Pointer;
+   
+    EntityItemPointer entity;
+};
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const RenderableModelEntityItemMeta::Pointer& payload) { 
+        return ItemKey::Builder::opaqueShape();
+    }
+    
+    template <> const Item::Bound payloadGetBound(const RenderableModelEntityItemMeta::Pointer& payload) { 
+        if (payload && payload->entity) {
+            return payload->entity->getAABox();
+        }
+        return render::Item::Bound();
+    }
+    template <> void payloadRender(const RenderableModelEntityItemMeta::Pointer& payload, RenderArgs* args) {
+        if (args) {
+            if (payload && payload->entity) {
+                payload->entity->render(args);
+            }
+        }
+    }
+}
+
+bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
+                                            render::PendingChanges& pendingChanges) {
+    _myMetaItem = scene->allocateID();
+    
+    auto renderData = RenderableModelEntityItemMeta::Pointer(new RenderableModelEntityItemMeta(self));
+    auto renderPayload = render::PayloadPointer(new RenderableModelEntityItemMeta::Payload(renderData));
+    
+    pendingChanges.resetItem(_myMetaItem, renderPayload);
+    
+    if (_model) {
+        return _model->addToScene(scene, pendingChanges);
+    }
+
+    return true;
+}
+    
+void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
+                                                render::PendingChanges& pendingChanges) {
+    pendingChanges.removeItem(_myMetaItem);
+    if (_model) {
+        _model->removeFromScene(scene, pendingChanges);
+    }
+}
+
+
+// NOTE: this only renders the "meta" portion of the Model, namely it renders debugging items, and it handles
+// the per frame simulation/update that might be required if the models properties changed.
 void RenderableModelEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RMEIrender");
     assert(getType() == EntityTypes::Model);
@@ -124,8 +210,27 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     }
 
     if (hasModel()) {
+        if (_model) {
+            if (QUrl(getModelURL()) != _model->getURL()) {
+                qDebug() << "Updating model URL: " << getModelURL();
+                _model->setURL(getModelURL());
+            }
+
+            // check to see if when we added our models to the scene they were ready, if they were not ready, then
+            // fix them up in the scene
+            render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+            render::PendingChanges pendingChanges;
+            if (_model->needsFixupInScene()) {
+                _model->removeFromScene(scene, pendingChanges);
+                _model->addToScene(scene, pendingChanges);
+            }
+            scene->enqueuePendingChanges(pendingChanges);
+
+            _model->setVisibleInScene(getVisible(), scene);
+        }
+
+
         remapTextures();
-        glPushMatrix();
         {
             float alpha = getLocalRenderAlpha();
 
@@ -167,23 +272,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     }
                     _needsInitialSimulation = false;
                 }
-
-                if (_model->isActive()) {
-                    // TODO: this is the majority of model render time. And rendering of a cube model vs the basic Box render
-                    // is significantly more expensive. Is there a way to call this that doesn't cost us as much? 
-                    PerformanceTimer perfTimer("model->render");
-                    // filter out if not needed to render
-                    if (args && (args->_renderMode == RenderArgs::SHADOW_RENDER_MODE)) {
-                        if (movingOrAnimating) {
-                            _model->renderInScene(alpha, args);
-                        }
-                    } else {
-                        _model->renderInScene(alpha, args);
-                    }
-                }
             }
         }
-        glPopMatrix();
 
         if (highlightSimulationOwnership) {
             glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
@@ -199,6 +289,10 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
 Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
     Model* result = NULL;
+    
+    if (!renderer) {
+        return result;
+    }
 
     // make sure our renderer is setup
     if (!_myRenderer) {
@@ -206,7 +300,7 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
     }
     assert(_myRenderer == renderer); // you should only ever render on one renderer
     
-    if (QThread::currentThread() != _myRenderer->thread()) {
+    if (!_myRenderer || QThread::currentThread() != _myRenderer->thread()) {
         return _model;
     }
     
@@ -394,7 +488,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         // to the visual model and apply them to the collision model (without regard for the
         // collision model's extents).
 
-        glm::vec3 scale = _dimensions / renderGeometry.getUnscaledMeshExtents().size();
+        glm::vec3 scale = getDimensions() / renderGeometry.getUnscaledMeshExtents().size();
         // multiply each point by scale before handing the point-set off to the physics engine.
         // also determine the extents of the collision model.
         AABox box;
