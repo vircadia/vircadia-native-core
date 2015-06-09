@@ -1188,6 +1188,12 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bo
         getHead()->getFaceModel().removeFromScene(scene, pendingChanges);
         getHead()->getFaceModel().addToScene(scene, pendingChanges);
     }
+    for (auto attachmentModel : _attachmentModels) {
+        if (attachmentModel->needsFixupInScene()) {
+            attachmentModel->removeFromScene(scene, pendingChanges);
+            attachmentModel->addToScene(scene, pendingChanges);
+        }
+    }
     scene->enqueuePendingChanges(pendingChanges);
 
     Camera *camera = Application::getInstance()->getCamera();
@@ -1208,14 +1214,6 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bo
         }
     }*/
 
-    //  Render the body's voxels and head
-    if (!postLighting) {
-    
-        // NOTE: we no longer call this here, because we've added all the model parts as renderable items in the scene
-        //_skeletonModel.render(renderArgs, 1.0f);
-        renderAttachments(renderArgs);
-    }
-    
     //  Render head so long as the camera isn't inside it
     if (shouldRenderHead(renderArgs, cameraPos)) {
         getHead()->render(renderArgs, 1.0f, renderFrustum, postLighting);
@@ -1569,27 +1567,6 @@ void MyAvatar::updateMotionBehavior() {
     }
     _characterController.setEnabled(menu->isOptionChecked(MenuOption::EnableCharacterController));
     _feetTouchFloor = menu->isOptionChecked(MenuOption::ShiftHipsForIdleAnimations);
-}
-
-void MyAvatar::renderAttachments(RenderArgs* args) {
-    if (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON || args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-        Avatar::renderAttachments(args);
-        return;
-    }
-    const FBXGeometry& geometry = _skeletonModel.getGeometry()->getFBXGeometry();
-    QString headJointName = (geometry.headJointIndex == -1) ? QString() : geometry.joints.at(geometry.headJointIndex).name;
- //   RenderArgs::RenderMode modelRenderMode = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
-  //      RenderArgs::SHADOW_RENDER_MODE : RenderArgs::DEFAULT_RENDER_MODE;
-    
-    // FIX ME - attachments need to be added to scene too...
-    /*
-    for (int i = 0; i < _attachmentData.size(); i++) {
-        const QString& jointName = _attachmentData.at(i).jointName;
-        if (jointName != headJointName && jointName != "Head") {
-            _attachmentModels.at(i)->render(args, 1.0f);
-        }
-    }
-    */
 }
 
 //Renders sixense laser pointers for UI selection with controllers

@@ -236,7 +236,6 @@ protected:
     virtual bool shouldRenderHead(const RenderArgs* renderArgs, const glm::vec3& cameraPosition) const;
 
     void simulateAttachments(float deltaTime);
-    virtual void renderAttachments(RenderArgs* args);
 
     virtual void updateJointMappings();
 

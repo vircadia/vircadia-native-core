@@ -298,12 +298,22 @@ bool Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene>
     pendingChanges.resetItem(_renderItemID, avatarPayloadPointer);
     _skeletonModel.addToScene(scene, pendingChanges);
     getHead()->getFaceModel().addToScene(scene, pendingChanges);
+
+    for (auto attachmentModel : _attachmentModels) {
+        attachmentModel->addToScene(scene, pendingChanges);
+    }
+
     return true;
 }
 
 void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
     pendingChanges.removeItem(_renderItemID);
     _skeletonModel.removeFromScene(scene, pendingChanges);
+    getHead()->getFaceModel().removeFromScene(scene, pendingChanges);
+    for (auto attachmentModel : _attachmentModels) {
+        attachmentModel->removeFromScene(scene, pendingChanges);
+    }
+
 }
 
 void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting) {
@@ -529,6 +539,12 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool
         getHead()->getFaceModel().removeFromScene(scene, pendingChanges);
         getHead()->getFaceModel().addToScene(scene, pendingChanges);
     }
+    for (auto attachmentModel : _attachmentModels) {
+        if (attachmentModel->needsFixupInScene()) {
+            attachmentModel->removeFromScene(scene, pendingChanges);
+            attachmentModel->addToScene(scene, pendingChanges);
+        }
+    }
     scene->enqueuePendingChanges(pendingChanges);
 
     {
@@ -544,10 +560,6 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool
 
         if (postLighting) {
             getHand()->render(renderArgs, false);
-        } else {
-            // NOTE: we no longer call this here, because we've added all the model parts as renderable items in the scene
-            //_skeletonModel.render(renderArgs, 1.0f);
-            renderAttachments(renderArgs);
         }
     }
     getHead()->render(renderArgs, 1.0f, renderFrustum, postLighting);
@@ -575,16 +587,6 @@ void Avatar::simulateAttachments(float deltaTime) {
             model->simulate(deltaTime);
         }
     }
-}
-
-void Avatar::renderAttachments(RenderArgs* args) {
- //   RenderArgs::RenderMode modelRenderMode = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
-  //      RenderArgs::SHADOW_RENDER_MODE : RenderArgs::DEFAULT_RENDER_MODE;
-    /*
-    foreach (Model* model, _attachmentModels) {
-        model->render(args, 1.0f);
-    }
-    */
 }
 
 void Avatar::updateJointMappings() {
@@ -949,6 +951,7 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
         _attachmentModels.append(model);
     }
     while (_attachmentModels.size() > attachmentData.size()) {
+        // NOTE: what's really going to happen here? This seems dangerous... has the model been removed from the scene?
         delete _attachmentModels.takeLast();
     }
 
