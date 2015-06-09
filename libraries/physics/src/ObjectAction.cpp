@@ -24,7 +24,27 @@ ObjectAction::~ObjectAction() {
 }
 
 void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep) {
-    qDebug() << "ObjectAction::updateAction called";
+    if (!_active) {
+        return;
+    }
+    if (!_ownerEntity) {
+        qDebug() << "ObjectActionPullToPoint::updateAction no owner entity";
+        return;
+    }
+    if (!tryLockForRead()) {
+        // don't risk hanging the thread running the physics simulation
+        return;
+    }
+    void* physicsInfo = _ownerEntity->getPhysicsInfo();
+
+    if (physicsInfo) {
+        ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
+        btRigidBody* rigidBody = motionState->getRigidBody();
+        if (rigidBody) {
+            updateActionWorker(collisionWorld, deltaTimeStep, motionState, rigidBody);
+        }
+    }
+    unlock();
 }
 
 void ObjectAction::debugDraw(btIDebugDraw* debugDrawer) {

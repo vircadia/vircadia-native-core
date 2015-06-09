@@ -13,11 +13,14 @@
 #ifndef hifi_ObjectAction_h
 #define hifi_ObjectAction_h
 
-#include <btBulletDynamicsCommon.h>
-
 #include <QUuid>
 
+#include <btBulletDynamicsCommon.h>
+
 #include <EntityItem.h>
+#include "ObjectMotionState.h"
+#include "BulletUtil.h"
+
 
 class ObjectAction : public btActionInterface, public EntityActionInterface {
 public:
@@ -29,6 +32,10 @@ public:
     virtual const EntityItemPointer& getOwnerEntity() const { return _ownerEntity; }
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) { _ownerEntity = ownerEntity; }
     virtual bool updateArguments(QVariantMap arguments) { return false; }
+
+    // this is called from updateAction and should be overridden by subclasses
+    virtual void updateActionWorker(btCollisionWorld* collisionWorld, btScalar deltaTimeStep,
+                                    ObjectMotionState* motionState, btRigidBody* rigidBody) {}
 
     // these are from btActionInterface
     virtual void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep);

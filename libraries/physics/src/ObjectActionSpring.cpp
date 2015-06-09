@@ -9,9 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "ObjectMotionState.h"
-#include "BulletUtil.h"
-
 #include "ObjectActionSpring.h"
 
 ObjectActionSpring::ObjectActionSpring(QUuid id, EntityItemPointer ownerEntity) :
@@ -27,69 +24,52 @@ ObjectActionSpring::~ObjectActionSpring() {
     #endif
 }
 
-void ObjectActionSpring::updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep) {
-    if (!_ownerEntity) {
-        qDebug() << "ObjectActionSpring::updateAction no owner entity";
-        return;
-    }
-    if (!tryLockForRead()) {
-        // don't risk hanging the thread running the physics simulation
-        return;
-    }
-    void* physicsInfo = _ownerEntity->getPhysicsInfo();
+void ObjectActionSpring::updateActionWorker(btCollisionWorld* collisionWorld, btScalar deltaTimeStep,
+                                            ObjectMotionState* motionState, btRigidBody* rigidBody) {
+    // handle the linear part
+    if (_positionalTargetSet) {
+        glm::vec3 offset = _positionalTarget - bulletToGLM(rigidBody->getCenterOfMassPosition());
+        float offsetLength = glm::length(offset);
+        float speed = offsetLength / _linearTimeScale;
 
-    if (_active && physicsInfo) {
-        ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
-        btRigidBody* rigidBody = motionState->getRigidBody();
-        if (rigidBody) {
-            // handle the linear part
-            if (_positionalTargetSet) {
-                glm::vec3 offset = _positionalTarget - bulletToGLM(rigidBody->getCenterOfMassPosition());
-                float offsetLength = glm::length(offset);
-                float speed = offsetLength / _linearTimeScale;
-
-                if (offsetLength > IGNORE_POSITION_DELTA) {
-                    glm::vec3 newVelocity = glm::normalize(offset) * speed;
-                    rigidBody->setLinearVelocity(glmToBullet(newVelocity));
-                    // void setAngularVelocity (const btVector3 &ang_vel);
-                    rigidBody->activate();
-                } else {
-                    rigidBody->setLinearVelocity(glmToBullet(glm::vec3()));
-                }
-            }
-
-            // handle rotation
-            if (_rotationalTargetSet) {
-                glm::quat bodyRotation = bulletToGLM(rigidBody->getOrientation());
-                // if qZero and qOne are too close to each other, we can get NaN for angle.
-                auto alignmentDot = glm::dot(bodyRotation, _rotationalTarget);
-                const float almostOne = 0.99999;
-                if (glm::abs(alignmentDot) < almostOne) {
-                    glm::quat target = _rotationalTarget;
-                    if (alignmentDot < 0) {
-                        target = -target;
-                    }
-                    glm::quat qZeroInverse = glm::inverse(bodyRotation);
-                    glm::quat deltaQ = target * qZeroInverse;
-                    glm::vec3 axis = glm::axis(deltaQ);
-                    float angle = glm::angle(deltaQ);
-                    if (isNaN(angle)) {
-                        qDebug() << "ObjectActionSpring::updateAction angle =" << angle
-                                 << "body-rotation =" << bodyRotation.x << bodyRotation.y << bodyRotation.z << bodyRotation.w
-                                 << "target-rotation ="
-                                 << target.x << target.y << target.z<< target.w;
-                    }
-                    assert(!isNaN(angle));
-                    glm::vec3 newAngularVelocity = (angle / _angularTimeScale) * glm::normalize(axis);
-                    rigidBody->setAngularVelocity(glmToBullet(newAngularVelocity));
-                    rigidBody->activate();
-                } else {
-                    rigidBody->setAngularVelocity(glmToBullet(glm::vec3(0.0f)));
-                }
-            }
+        if (offsetLength > IGNORE_POSITION_DELTA) {
+            glm::vec3 newVelocity = glm::normalize(offset) * speed;
+            rigidBody->setLinearVelocity(glmToBullet(newVelocity));
+            rigidBody->activate();
+        } else {
+            rigidBody->setLinearVelocity(glmToBullet(glm::vec3(0.0f)));
         }
     }
-    unlock();
+
+    // handle rotation
+    if (_rotationalTargetSet) {
+        glm::quat bodyRotation = bulletToGLM(rigidBody->getOrientation());
+        // if qZero and qOne are too close to each other, we can get NaN for angle.
+        auto alignmentDot = glm::dot(bodyRotation, _rotationalTarget);
+        const float almostOne = 0.99999;
+        if (glm::abs(alignmentDot) < almostOne) {
+            glm::quat target = _rotationalTarget;
+            if (alignmentDot < 0) {
+                target = -target;
+            }
+            glm::quat qZeroInverse = glm::inverse(bodyRotation);
+            glm::quat deltaQ = target * qZeroInverse;
+            glm::vec3 axis = glm::axis(deltaQ);
+            float angle = glm::angle(deltaQ);
+            if (isNaN(angle)) {
+                qDebug() << "ObjectActionSpring::updateAction angle =" << angle
+                         << "body-rotation =" << bodyRotation.x << bodyRotation.y << bodyRotation.z << bodyRotation.w
+                         << "target-rotation ="
+                         << target.x << target.y << target.z<< target.w;
+            }
+            assert(!isNaN(angle));
+            glm::vec3 newAngularVelocity = (angle / _angularTimeScale) * glm::normalize(axis);
+            rigidBody->setAngularVelocity(glmToBullet(newAngularVelocity));
+            rigidBody->activate();
+        } else {
+            rigidBody->setAngularVelocity(glmToBullet(glm::vec3(0.0f)));
+        }
+    }
 }
 
 
