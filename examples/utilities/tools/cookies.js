@@ -134,7 +134,7 @@ Slider = function(x,y,width,thumbSize) {
 }
 
 // The Checkbox class
-Checkbox = function(x,y,width,thumbSize) {
+Checkbox = function(x,y,thumbSize) {
 
     this.thumb = Overlays.addOverlay("text", {
                     backgroundColor: { red: 255, green: 255, blue: 255 },
@@ -150,7 +150,7 @@ Checkbox = function(x,y,width,thumbSize) {
                     backgroundColor: { red: 125, green: 125, blue: 255 },
                     x: x,
                     y: y,
-                    width: width,
+                    width: thumbSize * 2,
                     height: thumbSize,
                     alpha: 1.0,
                     backgroundAlpha: 0.5,
@@ -161,7 +161,7 @@ Checkbox = function(x,y,width,thumbSize) {
     this.thumbHalfSize = 0.5 * thumbSize;
 
     this.minThumbX = x + this.thumbHalfSize;
-    this.maxThumbX = x + width - this.thumbHalfSize;
+    this.maxThumbX = x + thumbSize * 2 - this.thumbHalfSize;
     this.thumbX = this.minThumbX;
 
     this.minValue = 0.0;
@@ -553,7 +553,7 @@ Panel = function(x, y) {
 
         var item = new PanelItem(name, setValue, getValue, displayValue, this.x, this.nextY, textWidth, valueWidth, rawHeight);
 
-        var checkbox = new Checkbox(this.widgetX, this.nextY, widgetWidth, rawHeight);
+        var checkbox = new Checkbox(this.widgetX, this.nextY, rawHeight);
  
         item.widget = checkbox;
         item.widget.onValueChanged = function(value) { item.setterFromWidget(value); };

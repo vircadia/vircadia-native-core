@@ -142,10 +142,10 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
                 glm::vec3 point = intersection.intersection;
                 point -= getPosition();
                 point = glm::inverse(getRotation()) * point;
-                point /= _dimensions;
+                point /= getDimensions();
                 point += 0.5f;
                 point.y = 1.0f - point.y;
-                point *= _dimensions * METERS_TO_INCHES * DPI;
+                point *= getDimensions() * METERS_TO_INCHES * DPI;
                 // Forward the mouse event.  
                 QMouseEvent mappedEvent(event->type(),
                     QPoint((int)point.x, (int)point.y),
@@ -161,7 +161,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
         QObject::connect(renderer, &EntityTreeRenderer::mouseMoveOnEntity, forwardMouseEvent);
     }
 
-    glm::vec2 dims = glm::vec2(_dimensions);
+    glm::vec2 dims = glm::vec2(getDimensions());
     dims *= METERS_TO_INCHES * DPI;
     // The offscreen surface is idempotent for resizes (bails early
     // if it's a no-op), so it's safe to just call resize every frame 
@@ -169,38 +169,25 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     _webSurface->resize(QSize(dims.x, dims.y));
     currentContext->makeCurrent(currentSurface);
 
-    Glower glow(0);
+    Glower glow(0.0f);
     PerformanceTimer perfTimer("RenderableWebEntityItem::render");
-    assert(getType() == EntityTypes::Web);
-    glm::vec3 position = getPosition();
-    glm::vec3 dimensions = getDimensions();
-    glm::vec3 halfDimensions = dimensions / 2.0f;
-    glm::quat rotation = getRotation();
+    Q_ASSERT(getType() == EntityTypes::Web);
+    static const glm::vec2 texMin(0.0f);
+    static const glm::vec2 texMax(1.0f);
+    glm::vec2 topLeft(-0.5f -0.5f);
+    glm::vec2 bottomRight(0.5f, 0.5f);
 
-    glPushMatrix(); 
-    {
-        glTranslatef(position.x, position.y, position.z);
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-
-        static const glm::vec2 texMin(0);
-        static const glm::vec2 texMax(1);
-        glm::vec2 topLeft(-halfDimensions.x, -halfDimensions.y);
-        glm::vec2 bottomRight(halfDimensions.x, halfDimensions.y);
-        if (_texture) {
-            glEnable(GL_TEXTURE_2D);
-            glBindTexture(GL_TEXTURE_2D, _texture);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        }
-        DependencyManager::get<GeometryCache>()->renderQuad(
-            topLeft, bottomRight,  texMin, texMax, glm::vec4(1));
-        if (_texture) {
-            glBindTexture(GL_TEXTURE_2D, 0);
-            glEnable(GL_TEXTURE_2D);
-        }
+    Q_ASSERT(args->_batch);
+    gpu::Batch& batch = *args->_batch;
+    batch.setModelTransform(getTransformToCenter());
+    if (_texture) {
+        batch._glBindTexture(GL_TEXTURE_2D, _texture);
+        batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     }
-    glPopMatrix();
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true);
+    DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f));
+    DependencyManager::get<DeferredLightingEffect>()->releaseSimpleProgram(batch);
 }
 
 void RenderableWebEntityItem::setSourceUrl(const QString& value) {

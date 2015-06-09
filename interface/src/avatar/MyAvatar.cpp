@@ -45,6 +45,9 @@
 #include "Util.h"
 #include "InterfaceLogging.h"
 
+#include "gpu/GLBackend.h"
+
+
 using namespace std;
 
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
@@ -105,7 +108,7 @@ MyAvatar::MyAvatar() :
 }
 
 MyAvatar::~MyAvatar() {
-    _lookAtTargetAvatar.clear();
+    _lookAtTargetAvatar.reset();
 }
 
 QByteArray MyAvatar::toByteArray() {
@@ -328,14 +331,14 @@ void MyAvatar::renderDebugBodyPoints() {
 }
 
 // virtual
-void MyAvatar::render(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode, bool postLighting) {
+void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting) {
     // don't render if we've been asked to disable local rendering
     if (!_shouldRender) {
         return; // exit early
     }
 
-    Avatar::render(cameraPosition, renderMode, postLighting);
-    
+    Avatar::render(renderArgs, cameraPosition, postLighting);
+
     // don't display IK constraints in shadow mode
     if (Menu::getInstance()->isOptionChecked(MenuOption::ShowIKConstraints) && postLighting) {
         _skeletonModel.renderIKConstraints();
@@ -856,7 +859,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     //
     //  Look at the avatar whose eyes are closest to the ray in direction of my avatar's head
     //
-    _lookAtTargetAvatar.clear();
+    _lookAtTargetAvatar.reset();
     _targetAvatarPosition = glm::vec3(0.0f);
     
     glm::vec3 lookForward = getHead()->getFinalOrientationInWorldFrame() * IDENTITY_FRONT;
@@ -868,7 +871,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     
     int howManyLookingAtMe = 0;
     foreach (const AvatarSharedPointer& avatarPointer, DependencyManager::get<AvatarManager>()->getAvatarHash()) {
-        Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
+        Avatar* avatar = static_cast<Avatar*>(avatarPointer.get());
         bool isCurrentTarget = avatar->getIsLookAtTarget();
         float distanceTo = glm::length(avatar->getHead()->getEyePosition() - cameraPosition);
         avatar->setIsLookAtTarget(false);
@@ -896,13 +899,14 @@ void MyAvatar::updateLookAtTargetAvatar() {
             }
         }
     }
-    if (_lookAtTargetAvatar) {
-        static_cast<Avatar*>(_lookAtTargetAvatar.data())->setIsLookAtTarget(true);
+    auto avatarPointer = _lookAtTargetAvatar.lock();
+    if (avatarPointer) {
+        static_cast<Avatar*>(avatarPointer.get())->setIsLookAtTarget(true);
     }
 }
 
 void MyAvatar::clearLookAtTargetAvatar() {
-    _lookAtTargetAvatar.clear();
+    _lookAtTargetAvatar.reset();
 }
 
 bool MyAvatar::isLookingAtLeftEye() {
@@ -1166,10 +1170,25 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName, const g
     Avatar::attach(modelURL, jointName, translation, rotation, scale, allowDuplicates, useSaved);
 }
 
-void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode renderMode, bool postLighting, float glowLevel) {
+void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel) {
+
     if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         return; // wait until both models are loaded
     }
+
+    // check to see if when we added our models to the scene they were ready, if they were not ready, then
+    // fix them up in the scene
+    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    render::PendingChanges pendingChanges;
+    if (_skeletonModel.needsFixupInScene()) {
+        _skeletonModel.removeFromScene(scene, pendingChanges);
+        _skeletonModel.addToScene(scene, pendingChanges);
+    }
+    if (getHead()->getFaceModel().needsFixupInScene()) {
+        getHead()->getFaceModel().removeFromScene(scene, pendingChanges);
+        getHead()->getFaceModel().addToScene(scene, pendingChanges);
+    }
+    scene->enqueuePendingChanges(pendingChanges);
 
     Camera *camera = Application::getInstance()->getCamera();
     const glm::vec3 cameraPos = camera->getPosition();
@@ -1190,28 +1209,27 @@ void MyAvatar::renderBody(ViewFrustum* renderFrustum, RenderArgs::RenderMode ren
     }*/
 
     //  Render the body's voxels and head
-    RenderArgs::RenderMode modelRenderMode = renderMode;
     if (!postLighting) {
-        RenderArgs args;
-        args._viewFrustum = renderFrustum;
-        _skeletonModel.render(1.0f, modelRenderMode, &args);
-        renderAttachments(renderMode, &args);
+    
+        // NOTE: we no longer call this here, because we've added all the model parts as renderable items in the scene
+        //_skeletonModel.render(renderArgs, 1.0f);
+        renderAttachments(renderArgs);
     }
     
     //  Render head so long as the camera isn't inside it
-    if (shouldRenderHead(cameraPos, renderMode)) {
-        getHead()->render(1.0f, renderFrustum, modelRenderMode, postLighting);
+    if (shouldRenderHead(renderArgs, cameraPos)) {
+        getHead()->render(renderArgs, 1.0f, renderFrustum, postLighting);
     }
     if (postLighting) {
-        getHand()->render(true, modelRenderMode);
+        getHand()->render(renderArgs, true);
     }
 }
 
 const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
 
-bool MyAvatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode) const {
+bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs, const glm::vec3& cameraPosition) const {
     const Head* head = getHead();
-    return (renderMode != RenderArgs::NORMAL_RENDER_MODE) || (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON) || 
+    return (renderArgs->_renderMode != RenderArgs::NORMAL_RENDER_MODE) || (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON) || 
         (glm::length(cameraPosition - head->getEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE * _scale);
 }
 
@@ -1474,7 +1492,9 @@ void MyAvatar::maybeUpdateBillboard() {
             return;
         }
     }
-    QImage image = Application::getInstance()->renderAvatarBillboard();
+    gpu::Context context(new gpu::GLBackend());
+    RenderArgs renderArgs(&context);
+    QImage image = Application::getInstance()->renderAvatarBillboard(&renderArgs);
     _billboard.clear();
     QBuffer buffer(&_billboard);
     buffer.open(QIODevice::WriteOnly);
@@ -1551,21 +1571,25 @@ void MyAvatar::updateMotionBehavior() {
     _feetTouchFloor = menu->isOptionChecked(MenuOption::ShiftHipsForIdleAnimations);
 }
 
-void MyAvatar::renderAttachments(RenderArgs::RenderMode renderMode, RenderArgs* args) {
-    if (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON || renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-        Avatar::renderAttachments(renderMode, args);
+void MyAvatar::renderAttachments(RenderArgs* args) {
+    if (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON || args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+        Avatar::renderAttachments(args);
         return;
     }
     const FBXGeometry& geometry = _skeletonModel.getGeometry()->getFBXGeometry();
     QString headJointName = (geometry.headJointIndex == -1) ? QString() : geometry.joints.at(geometry.headJointIndex).name;
  //   RenderArgs::RenderMode modelRenderMode = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
   //      RenderArgs::SHADOW_RENDER_MODE : RenderArgs::DEFAULT_RENDER_MODE;
+    
+    // FIX ME - attachments need to be added to scene too...
+    /*
     for (int i = 0; i < _attachmentData.size(); i++) {
         const QString& jointName = _attachmentData.at(i).jointName;
         if (jointName != headJointName && jointName != "Head") {
-            _attachmentModels.at(i)->render(1.0f, renderMode, args);        
+            _attachmentModels.at(i)->render(args, 1.0f);
         }
     }
+    */
 }
 
 //Renders sixense laser pointers for UI selection with controllers

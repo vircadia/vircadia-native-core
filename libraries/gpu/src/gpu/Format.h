@@ -16,7 +16,11 @@
 
 namespace gpu {
 
-class GPUObject;
+class GPUObject {
+public:
+    GPUObject() {}
+    virtual ~GPUObject() {}
+};
 
 typedef int  Stamp;
 

@@ -53,10 +53,7 @@ public:
     ~Overlays();
     void init();
     void update(float deltatime);
-    void renderWorld(bool drawFront, RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE,
-                     RenderArgs::RenderSide renderSide = RenderArgs::MONO,
-                     RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE);
-    void renderHUD();
+    void renderHUD(RenderArgs* renderArgs);
 
 public slots:
     /// adds an overlay with the specific properties
@@ -92,9 +89,10 @@ public slots:
     QSizeF textSize(unsigned int id, const QString& text) const;
 
 private:
-    QMap<unsigned int, Overlay*> _overlaysHUD;
-    QMap<unsigned int, Overlay*> _overlaysWorld;
-    QList<Overlay*> _overlaysToDelete;
+    void cleanupOverlaysToDelete();
+    QMap<unsigned int, Overlay::Pointer> _overlaysHUD;
+    QMap<unsigned int, Overlay::Pointer> _overlaysWorld;
+    QList<Overlay::Pointer> _overlaysToDelete;
     unsigned int _nextOverlayID;
     QReadWriteLock _lock;
     QReadWriteLock _deleteLock;

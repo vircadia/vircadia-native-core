@@ -164,33 +164,13 @@ bool OctreeRenderer::renderOperation(OctreeElement* element, void* extraData) {
     return false;
 }
 
-void OctreeRenderer::render(RenderArgs::RenderMode renderMode,
-                            RenderArgs::RenderSide renderSide,
-                            RenderArgs::DebugFlags renderDebugFlags) {
-    RenderArgs args(this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust(),
-                    renderMode, renderSide, renderDebugFlags);
+void OctreeRenderer::render(RenderArgs* renderArgs) {
     if (_tree) {
+        renderArgs->_renderer = this;
         _tree->lockForRead();
-        _tree->recurseTreeWithOperation(renderOperation, &args);
+        _tree->recurseTreeWithOperation(renderOperation, renderArgs);
         _tree->unlock();
     }
-    _meshesConsidered = args._meshesConsidered;
-    _meshesRendered = args._meshesRendered;
-    _meshesOutOfView = args._meshesOutOfView;
-    _meshesTooSmall = args._meshesTooSmall;
-
-    _elementsTouched = args._elementsTouched;
-    _itemsRendered = args._itemsRendered;
-    _itemsOutOfView = args._itemsOutOfView;
-    _itemsTooSmall = args._itemsTooSmall;
-
-    _materialSwitches = args._materialSwitches;
-    _trianglesRendered = args._trianglesRendered;
-    _quadsRendered = args._quadsRendered;
-
-    _translucentMeshPartsRendered = args._translucentMeshPartsRendered;
-    _opaqueMeshPartsRendered = args._opaqueMeshPartsRendered;
-
 }
 
 void OctreeRenderer::clear() { 
