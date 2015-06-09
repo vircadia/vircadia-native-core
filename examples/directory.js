@@ -45,6 +45,10 @@ var directory = (function () {
         }
     }
 
+    function onDomainChanged() {
+        directoryWindow.setVisible(false);
+    }
+
     function onScriptUpdate() {
         var oldViewport = viewport;
 
@@ -74,6 +78,7 @@ var directory = (function () {
         updateButtonPosition();
 
         Controller.mousePressEvent.connect(onMousePressEvent);
+        Window.domainChanged.connect(onDomainChanged);
 
         Script.update.connect(onScriptUpdate);
     }
