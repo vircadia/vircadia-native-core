@@ -38,27 +38,30 @@ void ObjectActionSpring::updateAction(btCollisionWorld* collisionWorld, btScalar
         ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
         btRigidBody* rigidBody = motionState->getRigidBody();
         if (rigidBody) {
-            glm::vec3 offset = _positionalTarget - bulletToGLM(rigidBody->getCenterOfMassPosition());
+            // handle the linear part
+            if (_positionalTargetSet) {
+                glm::vec3 offset = _positionalTarget - bulletToGLM(rigidBody->getCenterOfMassPosition());
+                float offsetLength = glm::length(offset);
+                float speed = offsetLength / _linearTimeScale;
 
+                if (offsetLength > IGNORE_POSITION_DELTA) {
+                    glm::vec3 newVelocity = glm::normalize(offset) * speed;
+                    rigidBody->setLinearVelocity(glmToBullet(newVelocity));
+                    // void setAngularVelocity (const btVector3 &ang_vel);
+                    rigidBody->activate();
+                } else {
+                    rigidBody->setLinearVelocity(glmToBullet(glm::vec3()));
+                }
+            }
 
-            // btQuaternion getOrientation() const;
-            // const btTransform& getCenterOfMassTransform() const;
-
-            float offsetLength = glm::length(offset);
-            float speed = offsetLength; // XXX use _positionalSpringConstant
-
-            float interpolation_value = 0.5; // XXX
-            const glm::quat slerped_quat = glm::slerp(bulletToGLM(rigidBody->getOrientation()),
-                                                      _rotationalTarget,
-                                                      interpolation_value);
-
-            if (offsetLength > IGNORE_POSITION_DELTA) {
-                glm::vec3 newVelocity = glm::normalize(offset) * speed;
-                rigidBody->setLinearVelocity(glmToBullet(newVelocity));
-                // void setAngularVelocity (const btVector3 &ang_vel);
-                rigidBody->activate();
-            } else {
-                rigidBody->setLinearVelocity(glmToBullet(glm::vec3()));
+            // handle rotation
+            if (_rotationalTargetSet) {
+                glm::quat qZeroInverse = glm::inverse(bulletToGLM(rigidBody->getOrientation()));
+                glm::quat deltaQ = _rotationalTarget * qZeroInverse;
+                glm::vec3 axis = glm::axis(deltaQ);
+                float angle = glm::angle(deltaQ);
+                glm::vec3 newAngularVelocity = (-angle / _angularTimeScale) * glm::normalize(axis);
+                rigidBody->setAngularVelocity(glmToBullet(newAngularVelocity));
             }
         }
     }
@@ -68,37 +71,52 @@ void ObjectActionSpring::updateAction(btCollisionWorld* collisionWorld, btScalar
 
 bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
     // targets are required, spring-constants are optional
-    bool ok = true;
+    bool ptOk = true;
     glm::vec3 positionalTarget =
-        EntityActionInterface::extractVec3Argument("spring action", arguments, "positionalTarget", ok);
-    bool pscOK = true;
-    float positionalSpringConstant =
-        EntityActionInterface::extractFloatArgument("spring action", arguments, "positionalSpringConstant", pscOK);
+        EntityActionInterface::extractVec3Argument("spring action", arguments, "targetPosition", ptOk, false);
+    bool pscOk = true;
+    float linearTimeScale =
+        EntityActionInterface::extractFloatArgument("spring action", arguments, "linearTimeScale", pscOk, false);
+    if (ptOk && pscOk && linearTimeScale <= 0.0f) {
+        qDebug() << "spring action -- linearTimeScale must be greater than zero.";
+        return false;
+    }
 
+    bool rtOk = true;
     glm::quat rotationalTarget =
-        EntityActionInterface::extractQuatArgument("spring action", arguments, "rotationalTarget", ok);
-    bool rscOK = true;
-    float rotationalSpringConstant =
-        EntityActionInterface::extractFloatArgument("spring action", arguments, "rotationalSpringConstant", rscOK);
+        EntityActionInterface::extractQuatArgument("spring action", arguments, "targetRotation", rtOk, false);
+    bool rscOk = true;
+    float angularTimeScale =
+        EntityActionInterface::extractFloatArgument("spring action", arguments, "angularTimeScale", rscOk, false);
 
-    if (!ok) {
+    if (!ptOk && !rtOk) {
+        qDebug() << "spring action requires either targetPosition or targetRotation argument";
         return false;
     }
 
     lockForWrite();
 
-    _positionalTarget = positionalTarget;
-    if (pscOK) {
-        _positionalSpringConstant = positionalSpringConstant;
-    } else {
-        _positionalSpringConstant = 0.5; // XXX pick a good default;
+    _positionalTargetSet = _rotationalTargetSet = false;
+
+    if (ptOk) {
+        _positionalTarget = positionalTarget;
+        _positionalTargetSet = true;
+
+        if (pscOk) {
+            _linearTimeScale = linearTimeScale;
+        } else {
+            _linearTimeScale = 0.1;
+        }
     }
 
-    _rotationalTarget = rotationalTarget;
-    if (rscOK) {
-        _rotationalSpringConstant = rotationalSpringConstant;
-    } else {
-        _rotationalSpringConstant = 0.5; // XXX pick a good default;
+    if (rtOk) {
+        _rotationalTarget = rotationalTarget;
+
+        if (rscOk) {
+            _angularTimeScale = angularTimeScale;
+        } else {
+            _angularTimeScale = 0.1;
+        }
     }
 
     _active = true;

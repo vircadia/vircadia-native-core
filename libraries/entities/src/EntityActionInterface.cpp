@@ -44,9 +44,11 @@ QString EntityActionInterface::actionTypeToString(EntityActionType actionType) {
 }
 
 glm::vec3 EntityActionInterface::extractVec3Argument(QString objectName, QVariantMap arguments,
-                                                     QString argumentName, bool& ok) {
+                                                     QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {
-        qDebug() << objectName << "requires argument:" << argumentName;
+        if (required) {
+            qDebug() << objectName << "requires argument:" << argumentName;
+        }
         ok = false;
         return glm::vec3();
     }
@@ -86,16 +88,18 @@ glm::vec3 EntityActionInterface::extractVec3Argument(QString objectName, QVarian
 
 
 glm::quat EntityActionInterface::extractQuatArgument(QString objectName, QVariantMap arguments,
-                                                     QString argumentName, bool& ok) {
+                                                     QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {
-        qDebug() << objectName << "requires argument:" << argumentName;
+        if (required) {
+            qDebug() << objectName << "requires argument:" << argumentName;
+        }
         ok = false;
         return glm::quat();
     }
 
     QVariant resultV = arguments[argumentName];
     if (resultV.type() != (QVariant::Type) QMetaType::QVariantMap) {
-        qDebug() << objectName << "argument" << argumentName << "must be a map";
+        qDebug() << objectName << "argument" << argumentName << "must be a map, not" << resultV.typeName();
         ok = false;
         return glm::quat();
     }
@@ -133,9 +137,11 @@ glm::quat EntityActionInterface::extractQuatArgument(QString objectName, QVarian
 
 
 float EntityActionInterface::extractFloatArgument(QString objectName, QVariantMap arguments,
-                                                  QString argumentName, bool& ok) {
+                                                  QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {
-        qDebug() << objectName << "requires argument:" << argumentName;
+        if (required) {
+            qDebug() << objectName << "requires argument:" << argumentName;
+        }
         ok = false;
         return 0.0f;
     }

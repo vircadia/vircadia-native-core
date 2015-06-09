@@ -28,10 +28,12 @@ public:
 private:
 
     glm::vec3 _positionalTarget;
-    float _positionalSpringConstant;
+    float _linearTimeScale;
+    bool _positionalTargetSet;
 
     glm::quat _rotationalTarget;
-    float _rotationalSpringConstant;
+    float _angularTimeScale;
+    bool _rotationalTargetSet;
 };
 
 #endif // hifi_ObjectActionSpring_h

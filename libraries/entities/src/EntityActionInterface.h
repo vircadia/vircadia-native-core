@@ -41,9 +41,12 @@ public:
 
 protected:
 
-    static glm::vec3 extractVec3Argument(QString objectName, QVariantMap arguments, QString argumentName, bool& ok);
-    static glm::quat extractQuatArgument(QString objectName, QVariantMap arguments, QString argumentName, bool& ok);
-    static float extractFloatArgument(QString objectName, QVariantMap arguments, QString argumentName, bool& ok);
+    static glm::vec3 extractVec3Argument (QString objectName, QVariantMap arguments,
+                                          QString argumentName, bool& ok, bool required = true);
+    static glm::quat extractQuatArgument (QString objectName, QVariantMap arguments,
+                                          QString argumentName, bool& ok, bool required = true);
+    static float extractFloatArgument(QString objectName, QVariantMap arguments,
+                                      QString argumentName, bool& ok, bool required = true);
 };
 
 typedef std::shared_ptr<EntityActionInterface> EntityActionPointer;
