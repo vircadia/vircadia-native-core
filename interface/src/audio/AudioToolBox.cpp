@@ -40,13 +40,13 @@ void AudioToolBox::render(int x, int y, int padding, bool boxed) {
     glEnable(GL_TEXTURE_2D);
     
     if (!_micTexture) {
-        _micTexture = DependencyManager::get<TextureCache>()->getImageTexture(PathUtils::resourcesPath() + "images/mic.svg");
+        _micTexture = TextureCache::getImageTexture(PathUtils::resourcesPath() + "images/mic.svg");
     }
     if (!_muteTexture) {
-        _muteTexture = DependencyManager::get<TextureCache>()->getImageTexture(PathUtils::resourcesPath() + "images/mic-mute.svg");
+        _muteTexture = TextureCache::getImageTexture(PathUtils::resourcesPath() + "images/mic-mute.svg");
     }
     if (_boxTexture) {
-        _boxTexture = DependencyManager::get<TextureCache>()->getImageTexture(PathUtils::resourcesPath() + "images/audio-box.svg");
+        _boxTexture = TextureCache::getImageTexture(PathUtils::resourcesPath() + "images/audio-box.svg");
     }
     
     auto audioIO = DependencyManager::get<AudioClient>();

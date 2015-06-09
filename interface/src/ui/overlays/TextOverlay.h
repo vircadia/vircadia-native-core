@@ -19,6 +19,7 @@
 #include <QString>
 
 #include <SharedUtil.h>
+#include <TextRenderer.h>
 
 #include "Overlay.h"
 #include "Overlay2D.h"
@@ -58,6 +59,9 @@ public:
     QSizeF textSize(const QString& text) const;  // Pixels
 
 private:
+    
+    TextRenderer* _textRenderer = nullptr;
+    
     QString _text;
     xColor _backgroundColor;
     float _backgroundAlpha;

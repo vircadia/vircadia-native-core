@@ -16,6 +16,7 @@
 #include <NumericalConstants.h>
 
 Overlay::Overlay() :
+    _renderItemID(render::Item::INVALID_ITEM_ID),
     _isLoaded(true),
     _alpha(DEFAULT_ALPHA),
     _glowLevel(0.0f),
@@ -35,6 +36,7 @@ Overlay::Overlay() :
 }
 
 Overlay::Overlay(const Overlay* overlay) :
+    _renderItemID(render::Item::INVALID_ITEM_ID),
     _isLoaded(overlay->_isLoaded),
     _alpha(overlay->_alpha),
     _glowLevel(overlay->_glowLevel),
@@ -225,3 +227,16 @@ float Overlay::updatePulse() {
     
     return _pulse;
 }
+
+bool Overlay::addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
+    auto overlayPayload = new Overlay::Payload(overlay);
+    auto overlayPayloadPointer = Overlay::PayloadPointer(overlayPayload);
+    _renderItemID = scene->allocateID();
+    pendingChanges.resetItem(_renderItemID, overlayPayloadPointer);
+    return true;
+}
+
+void Overlay::removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
+    pendingChanges.removeItem(_renderItemID);
+}
+

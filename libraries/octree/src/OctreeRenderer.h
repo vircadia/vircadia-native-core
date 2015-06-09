@@ -51,9 +51,7 @@ public:
     virtual void init();
 
     /// render the content of the octree
-    virtual void render(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE, 
-                        RenderArgs::RenderSide renderSide = RenderArgs::MONO,
-                        RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE);
+    virtual void render(RenderArgs* renderArgs);
 
     ViewFrustum* getViewFrustum() const { return _viewFrustum; }
     void setViewFrustum(ViewFrustum* viewFrustum) { _viewFrustum = viewFrustum; }
@@ -62,23 +60,6 @@ public:
 
     /// clears the tree
     virtual void clear();
-    
-    int getElementsTouched() const { return _elementsTouched; }
-    int getItemsRendered() const { return _itemsRendered; }
-    int getItemsOutOfView() const { return _itemsOutOfView; }
-    int getItemsTooSmall() const { return _itemsTooSmall; }
-
-    int getMeshesConsidered() const { return _meshesConsidered; }
-    int getMeshesRendered() const { return _meshesRendered; }
-    int getMeshesOutOfView() const { return _meshesOutOfView; }
-    int getMeshesTooSmall() const { return _meshesTooSmall; }
-
-    int getMaterialSwitches() const { return _materialSwitches; }
-    int getTrianglesRendered() const { return _trianglesRendered; }
-    int getQuadsRendered() const { return _quadsRendered; }
-
-    int getTranslucentMeshPartsRendered() const { return _translucentMeshPartsRendered; }
-    int getOpaqueMeshPartsRendered() const { return _opaqueMeshPartsRendered; }
 
 protected:
     virtual Octree* createTree() = 0;
@@ -86,23 +67,6 @@ protected:
     Octree* _tree;
     bool _managedTree;
     ViewFrustum* _viewFrustum;
-
-    int _elementsTouched;
-    int _itemsRendered;
-    int _itemsOutOfView;
-    int _itemsTooSmall;
-
-    int _meshesConsidered;
-    int _meshesRendered;
-    int _meshesOutOfView;
-    int _meshesTooSmall;
-
-    int _materialSwitches;
-    int _trianglesRendered;
-    int _quadsRendered;
-
-    int _translucentMeshPartsRendered;
-    int _opaqueMeshPartsRendered;
 };
 
 #endif // hifi_OctreeRenderer_h

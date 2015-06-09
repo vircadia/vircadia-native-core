@@ -37,8 +37,8 @@ OctreeFade::OctreeFade(FadeDirection direction, float red, float green, float bl
     opacity = (direction == FADE_OUT) ? FADE_OUT_START : FADE_IN_START;
 }
 
-void OctreeFade::render() {
-    DependencyManager::get<GlowEffect>()->begin();
+void OctreeFade::render(RenderArgs* renderArgs) {
+    DependencyManager::get<GlowEffect>()->begin(renderArgs);
 
     glDisable(GL_LIGHTING);
     glPushMatrix();
@@ -53,7 +53,7 @@ void OctreeFade::render() {
     glEnable(GL_LIGHTING);
     
     
-    DependencyManager::get<GlowEffect>()->end();
+    DependencyManager::get<GlowEffect>()->end(renderArgs);
     
     opacity *= (direction == FADE_OUT) ? FADE_OUT_STEP : FADE_IN_STEP;
 }

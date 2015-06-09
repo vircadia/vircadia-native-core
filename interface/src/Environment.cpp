@@ -68,7 +68,7 @@ void Environment::resetToDefault() {
     _data[HifiSockAddr()][0];
 }
 
-void Environment::renderAtmospheres(Camera& camera) {    
+void Environment::renderAtmospheres(ViewFrustum& camera) {    
     // get the lock for the duration of the call
     QMutexLocker locker(&_mutex);
 
@@ -228,7 +228,7 @@ ProgramObject* Environment::createSkyProgram(const char* from, int* locations) {
     return program;
 }
 
-void Environment::renderAtmosphere(Camera& camera, const EnvironmentData& data) {
+void Environment::renderAtmosphere(ViewFrustum& camera, const EnvironmentData& data) {
     glm::vec3 center = data.getAtmosphereCenter();
     
     glPushMatrix();

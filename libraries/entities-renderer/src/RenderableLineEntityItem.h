@@ -14,6 +14,7 @@
 
 #include <LineEntityItem.h>
 #include "RenderableDebugableEntityItem.h"
+#include "RenderableEntityItem.h"
 #include <GeometryCache.h>
 
 class RenderableLineEntityItem : public LineEntityItem {
@@ -27,7 +28,11 @@ public:
 
     virtual void render(RenderArgs* args);
 
+    SIMPLE_RENDERABLE();
+
 protected:
+    void updateGeometry();
+    
     int _lineVerticesID;
 };
 

@@ -35,11 +35,10 @@ public:
 
     void init();
 
-    MyAvatar* getMyAvatar() { return _myAvatar.data(); }
+    MyAvatar* getMyAvatar() { return _myAvatar.get(); }
     
     void updateMyAvatar(float deltaTime);
     void updateOtherAvatars(float deltaTime);
-    void renderAvatars(RenderArgs::RenderMode renderMode, bool postLighting = false, bool selfAvatarOnly = false);
     
     void clearOtherAvatars();
    
@@ -70,7 +69,6 @@ private:
     AvatarManager(const AvatarManager& other);
 
     void simulateAvatarFades(float deltaTime);
-    void renderAvatarFades(const glm::vec3& cameraPosition, RenderArgs::RenderMode renderMode);
     
     // virtual overrides
     virtual AvatarSharedPointer newSharedAvatar();
@@ -79,7 +77,7 @@ private:
     virtual void removeAvatar(const QUuid& sessionUUID);
     
     QVector<AvatarSharedPointer> _avatarFades;
-    QSharedPointer<MyAvatar> _myAvatar;
+    std::shared_ptr<MyAvatar> _myAvatar;
     quint64 _lastSendAvatarDataTime = 0; // Controls MyAvatar send data rate.
     
     QVector<AvatarManager::LocalLight> _localLights;
