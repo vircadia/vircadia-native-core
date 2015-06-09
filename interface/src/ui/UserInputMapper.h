@@ -142,7 +142,6 @@ public:
     QVector<Action> getAllActions();
     QString getActionName(Action action) { return UserInputMapper::_actionNames[(int) action]; }
     float getActionState(Action action) const { return _actionStates[action]; }
-//    QVector<InputChannel>
     void assignDefaulActionScales();
 
     // Add input channel to the mapper and check that all the used channels are registered.
