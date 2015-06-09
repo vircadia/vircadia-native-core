@@ -4,8 +4,8 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 include(ExternalProject)
 ExternalProject_Add(
     ${EXTERNAL_NAME}
-    GIT_REPOSITORY https://github.com/matus-chochlik/oglplus.git
-    GIT_TAG 1aab48f45b40b4ea06a15975fa033b66b237078f
+    GIT_REPOSITORY https://github.com/jherico/oglplus.git
+    GIT_TAG e67b24a6e3397c2dc16523bcd5d4c229abd20b81
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
