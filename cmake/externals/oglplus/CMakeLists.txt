@@ -5,7 +5,7 @@ include(ExternalProject)
 ExternalProject_Add(
     ${EXTERNAL_NAME}
     GIT_REPOSITORY https://github.com/jherico/oglplus.git
-    GIT_TAG e67b24a6e3397c2dc16523bcd5d4c229abd20b81
+    GIT_TAG 470d8e56fd6bf3913ceec03d82f42d3bafab2cbe
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
