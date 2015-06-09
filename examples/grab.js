@@ -233,7 +233,7 @@ function mouseReleaseEvent() {
         }
 
         gIsGrabbing = false
-        Entities.deleteAction(grabbedEntity, gActionID);
+        Entities.deleteAction(gGrabbedEntity, gActionID);
         gActionID = null;
 
         Overlays.editOverlay(gBeacon, { visible: false });
