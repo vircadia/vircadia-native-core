@@ -399,18 +399,8 @@ private:
     int _debugMeshBoxesID = GeometryCache::UNKNOWN_ID;
 
     // helper functions used by render() or renderInScene()
-    bool renderCore(RenderArgs* args, float alpha);
-    int renderMeshes(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
-                        bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args = NULL,
-                        bool forceRenderMeshes = false);
-                        
+
     void setupBatchTransform(gpu::Batch& batch, RenderArgs* args);
-    QVector<int>* pickMeshList(bool translucent, float alphaThreshold, bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe);
-
-    int renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
-                                        RenderArgs* args, Locations* locations, 
-                                        bool forceRenderSomeMeshes = false);
-
     static void pickPrograms(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args,
                             Locations*& locations);
@@ -542,13 +532,6 @@ private:
     QMap<render::ItemID, render::PayloadPointer> _renderItems;
     bool _readyWhenAdded = false;
     bool _needsReload = true;
-    
-    
-private:
-    // FIX ME - We want to get rid of this interface for rendering...
-    // right now the only remaining user are Avatar attachments.
-    // that usage has been temporarily disabled... 
-    bool render(RenderArgs* renderArgs, float alpha = 1.0f);
     
 };
 
