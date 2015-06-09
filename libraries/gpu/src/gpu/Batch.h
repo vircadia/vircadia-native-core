@@ -143,7 +143,8 @@ public:
 
     void _glBindTexture(GLenum target, GLuint texture);
     void _glActiveTexture(GLenum texture);
-
+    void _glTexParameteri(GLenum target, GLenum pname, GLint param);
+    
     void _glDrawBuffers(GLsizei n, const GLenum* bufs);
 
     void _glUseProgram(GLuint program);
@@ -156,6 +157,7 @@ public:
     void _glDisableVertexAttribArray(GLint location);
 
     void _glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
+    void _glLineWidth(GLfloat width);
 
     enum Command {
         COMMAND_draw = 0,
@@ -201,6 +203,7 @@ public:
 
         COMMAND_glBindTexture,
         COMMAND_glActiveTexture,
+        COMMAND_glTexParameteri,
 
         COMMAND_glDrawBuffers,
 
@@ -214,6 +217,7 @@ public:
         COMMAND_glDisableVertexAttribArray,
 
         COMMAND_glColor4f,
+        COMMAND_glLineWidth,
 
         NUM_COMMANDS,
     };

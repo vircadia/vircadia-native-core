@@ -14,6 +14,8 @@
 
 #include <SphereEntityItem.h>
 
+#include "RenderableEntityItem.h"
+
 class RenderableSphereEntityItem : public SphereEntityItem  {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
@@ -23,6 +25,8 @@ public:
         { }
 
     virtual void render(RenderArgs* args);
+
+    SIMPLE_RENDERABLE();
 };
 
 

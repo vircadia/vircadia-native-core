@@ -46,6 +46,12 @@ static const GLenum attributeSlotToClassicAttribName[NUM_CLASSIC_ATTRIBS] = {
 };
 #endif
 
+void GLBackend::syncInputStateCache() {
+    for (int i = 0; i < NUM_CLASSIC_ATTRIBS; i++) {
+        _input._attributeActivation[i] = glIsEnabled(attributeSlotToClassicAttribName[i]);
+    }
+}
+
 void GLBackend::updateInput() {
     if (_input._invalidFormat || _input._buffersState.any()) {
 
@@ -60,23 +66,23 @@ void GLBackend::updateInput() {
                     newActivation.set(attrib._slot);
                 }
             }
-
+            
             // Manage Activation what was and what is expected now
             for (unsigned int i = 0; i < newActivation.size(); i++) {
                 bool newState = newActivation[i];
                 if (newState != _input._attributeActivation[i]) {
 #if defined(SUPPORT_LEGACY_OPENGL)
-                    if (i < NUM_CLASSIC_ATTRIBS) {
+                    const bool useClientState = i < NUM_CLASSIC_ATTRIBS;
+#else
+                    const bool useClientState = false;
+#endif
+                    if (useClientState) {
                         if (newState) {
                             glEnableClientState(attributeSlotToClassicAttribName[i]);
-                        }
-                        else {
+                        } else {
                             glDisableClientState(attributeSlotToClassicAttribName[i]);
                         }
                     } else {
-#else 
-                    {
-#endif
                         if (newState) {
                             glEnableVertexAttribArray(i);
                         } else {
@@ -84,7 +90,7 @@ void GLBackend::updateInput() {
                         }
                     }
                     (void) CHECK_GL_ERROR();
-
+                    
                     _input._attributeActivation.flip(i);
                 }
             }
@@ -118,29 +124,30 @@ void GLBackend::updateInput() {
                             GLenum type = _elementTypeToGLType[attrib._element.getType()];
                             GLuint stride = strides[bufferNum];
                             GLuint pointer = attrib._offset + offsets[bufferNum];
-                            #if defined(SUPPORT_LEGACY_OPENGL)
-                            if (slot < NUM_CLASSIC_ATTRIBS) {
+#if defined(SUPPORT_LEGACY_OPENGL)
+                            const bool useClientState = slot < NUM_CLASSIC_ATTRIBS;
+#else
+                            const bool useClientState = false;
+#endif
+                            if (useClientState) {
                                 switch (slot) {
-                                case Stream::POSITION:
-                                    glVertexPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer));
-                                    break;
-                                case Stream::NORMAL:
-                                    glNormalPointer(type, stride, reinterpret_cast<GLvoid*>(pointer));
-                                    break;
-                                case Stream::COLOR:
-                                    glColorPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer));
-                                    break;
-                                case Stream::TEXCOORD:
-                                    glTexCoordPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer)); 
-                                    break;
+                                    case Stream::POSITION:
+                                        glVertexPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer));
+                                        break;
+                                    case Stream::NORMAL:
+                                        glNormalPointer(type, stride, reinterpret_cast<GLvoid*>(pointer));
+                                        break;
+                                    case Stream::COLOR:
+                                        glColorPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer));
+                                        break;
+                                    case Stream::TEXCOORD:
+                                        glTexCoordPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer));
+                                        break;
                                 };
                             } else {
-                            #else 
-                            {
-                            #endif
                                 GLboolean isNormalized = attrib._element.isNormalized();
                                 glVertexAttribPointer(slot, count, type, isNormalized, stride,
-                                    reinterpret_cast<GLvoid*>(pointer));
+                                                      reinterpret_cast<GLvoid*>(pointer));
                             }
                             (void) CHECK_GL_ERROR();
                         }

@@ -185,7 +185,7 @@ ApplicationOverlay::~ApplicationOverlay() {
 }
 
 // Renders the overlays either to a texture or to the screen
-void ApplicationOverlay::renderOverlay() {
+void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
     Overlays& overlays = qApp->getOverlays();
     
@@ -222,7 +222,7 @@ void ApplicationOverlay::renderOverlay() {
         // give external parties a change to hook in
         emit qApp->renderingOverlay();
 
-        overlays.renderHUD();
+        overlays.renderHUD(renderArgs);
 
         renderPointers();
 
@@ -423,8 +423,8 @@ void ApplicationOverlay::displayOverlayTextureStereo(Camera& whichCamera, float 
     });
     
     if (!_crosshairTexture) {
-        _crosshairTexture = DependencyManager::get<TextureCache>()->
-            getImageTexture(PathUtils::resourcesPath() + "images/sixense-reticle.png");
+        _crosshairTexture = TextureCache::getImageTexture(PathUtils::resourcesPath() +
+                                                          "images/sixense-reticle.png");
     }
     
     //draw the mouse pointer
@@ -554,8 +554,7 @@ bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position,
 void ApplicationOverlay::renderPointers() {
     //lazily load crosshair texture
     if (_crosshairTexture == 0) {
-        _crosshairTexture = DependencyManager::get<TextureCache>()->
-            getImageTexture(PathUtils::resourcesPath() + "images/sixense-reticle.png");
+        _crosshairTexture = TextureCache::getImageTexture(PathUtils::resourcesPath() + "images/sixense-reticle.png");
     }
     glEnable(GL_TEXTURE_2D);
     

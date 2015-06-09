@@ -76,6 +76,7 @@
 #include "octree/OctreePacketProcessor.h"
 #include "UndoStackScriptingInterface.h"
 
+#include "render/Engine.h"
 
 class QGLWidget;
 class QKeyEvent;
@@ -208,7 +209,6 @@ public:
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     EntityTreeRenderer* getEntities() { return &_entities; }
-    Environment* getEnvironment() { return &_environment; }
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() { return _window; }
     OctreeQuery& getOctreeQuery() { return _octreeQuery; }
@@ -267,9 +267,9 @@ public:
     virtual void setupWorldLight();
     virtual bool shouldRenderMesh(float largestDimension, float distanceToCamera);
 
-    QImage renderAvatarBillboard();
+    QImage renderAvatarBillboard(RenderArgs* renderArgs);
 
-    void displaySide(Camera& whichCamera, bool selfAvatarOnly = false, bool billboard = false, RenderArgs::RenderSide renderSide = RenderArgs::MONO);
+    void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false, bool billboard = false);
 
     /// Stores the current modelview matrix as the untranslated view matrix to use for transforms and the supplied vector as
     /// the view matrix translation.
@@ -344,6 +344,11 @@ public:
 
     void setMaxOctreePacketsPerSecond(int maxOctreePPS);
     int getMaxOctreePacketsPerSecond();
+    
+    render::ScenePointer getMain3DScene() { return _main3DScene; }
+    render::EnginePointer getRenderEngine() { return _renderEngine; }
+
+    render::ScenePointer getMain3DScene() const { return _main3DScene; }
 
 signals:
 
@@ -494,8 +499,8 @@ private:
 
     glm::vec3 getSunDirection();
 
-    void updateShadowMap();
-    void renderRearViewMirror(const QRect& region, bool billboard = false);
+    void updateShadowMap(RenderArgs* renderArgs);
+    void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard = false);
     void setMenuShortcutsEnabled(bool enabled);
 
     static void attachNewHeadToNode(Node *newNode);
@@ -524,7 +529,6 @@ private:
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
     bool _justStarted;
-    Stars _stars;
 
     ShapeManager _shapeManager;
     PhysicalEntitySimulation _entitySimulation;
@@ -623,9 +627,6 @@ private:
 
     TouchEvent _lastTouchEvent;
 
-    Overlays _overlays;
-    ApplicationOverlay _applicationOverlay;
-
     RunningScriptsWidget* _runningScriptsWidget;
     QHash<QString, ScriptEngine*> _scriptEnginesHash;
     bool _runningScriptsWidgetWasVisible;
@@ -662,6 +663,12 @@ private:
     int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;
 
     quint64 _lastFaceTrackerUpdate;
+
+    render::ScenePointer _main3DScene{ new render::Scene() };
+    render::EnginePointer _renderEngine{ new render::Engine() };
+
+    Overlays _overlays;
+    ApplicationOverlay _applicationOverlay;
 };
 
 #endif // hifi_Application_h

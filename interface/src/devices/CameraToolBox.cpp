@@ -76,10 +76,10 @@ void CameraToolBox::render(int x, int y, bool boxed) {
     glEnable(GL_TEXTURE_2D);
     
     if (!_enabledTexture) {
-        _enabledTexture = DependencyManager::get<TextureCache>()->getImageTexture(PathUtils::resourcesPath() + "images/face.svg");
+        _enabledTexture = TextureCache::getImageTexture(PathUtils::resourcesPath() + "images/face.svg");
     }
     if (!_mutedTexture) {
-        _mutedTexture = DependencyManager::get<TextureCache>()->getImageTexture(PathUtils::resourcesPath() + "images/face-mute.svg");
+        _mutedTexture = TextureCache::getImageTexture(PathUtils::resourcesPath() + "images/face-mute.svg");
     }
     
     const int MUTE_ICON_SIZE = 24;

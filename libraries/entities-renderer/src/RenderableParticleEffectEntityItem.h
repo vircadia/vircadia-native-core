@@ -13,6 +13,7 @@
 
 #include <ParticleEffectEntityItem.h>
 #include <TextureCache.h>
+#include "RenderableEntityItem.h"
 
 class RenderableParticleEffectEntityItem : public ParticleEffectEntityItem  {
 public:
@@ -20,8 +21,9 @@ public:
     RenderableParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     virtual void render(RenderArgs* args);
 
-    void renderUntexturedQuads(RenderArgs* args);
-    void renderTexturedQuads(RenderArgs* args);
+    void updateQuads(RenderArgs* args, bool textured);
+
+    SIMPLE_RENDERABLE();
 
 protected:
 
