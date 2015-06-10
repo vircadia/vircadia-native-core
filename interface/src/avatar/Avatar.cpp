@@ -582,7 +582,9 @@ void Avatar::simulateAttachments(float deltaTime) {
                 _skeletonModel.getJointCombinedRotation(jointIndex, jointRotation)) {
             model->setTranslation(jointPosition + jointRotation * attachment.translation * _scale);
             model->setRotation(jointRotation * attachment.rotation);
-            model->setScaleToFit(true, _scale * attachment.scale);
+            model->setScaleToFit(true, _scale * attachment.scale, true); // hack to force rescale
+            model->setSnapModelToCenter(false); // hack to force resnap
+            model->setSnapModelToCenter(true);
             model->simulate(deltaTime);
         }
     }

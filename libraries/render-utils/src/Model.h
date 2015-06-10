@@ -51,17 +51,11 @@ namespace render {
     class PendingChanges;
     typedef unsigned int ItemID;
 }
-class OpaqueMeshPart;
-class TransparentMeshPart;
+class MeshPartPayload;
 
-inline uint qHash(const std::shared_ptr<TransparentMeshPart>& a, uint seed) {
+inline uint qHash(const std::shared_ptr<MeshPartPayload>& a, uint seed) {
     return qHash(a.get(), seed);
 }
-inline uint qHash(const std::shared_ptr<OpaqueMeshPart>& a, uint seed) {
-    return qHash(a.get(), seed);
-}
-
-
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject, public PhysicsEntity {
@@ -77,7 +71,7 @@ public:
     virtual ~Model();
     
     /// enables/disables scale to fit behavior, the model will be automatically scaled to the specified largest dimension
-    void setScaleToFit(bool scaleToFit, float largestDimension = 0.0f);
+    void setScaleToFit(bool scaleToFit, float largestDimension = 0.0f, bool forceRescale = false);
     bool getScaleToFit() const { return _scaleToFit; } /// is scale to fit enabled
     bool getIsScaledToFit() const { return _scaledToFit; } /// is model scaled to fit
     const glm::vec3& getScaleToFitDimensions() const { return _scaleToFitDimensions; } /// the dimensions model is scaled to
@@ -511,24 +505,11 @@ private:
     };
     static RenderPipelineLib _renderPipelineLib;
 
-   
-    class RenderBucket {
-    public:
-        QVector<int> _meshes;
-        QMap<QString, int> _unsortedMeshes;
-    };
-    typedef std::unordered_map<int, RenderBucket> BaseRenderBucketMap;
-    class RenderBucketMap : public BaseRenderBucketMap {
-    public:
-        typedef RenderKey Key;
-    };
-    RenderBucketMap _renderBuckets;
-
     bool _renderCollisionHull;
     
     
-    QSet<std::shared_ptr<TransparentMeshPart>> _transparentRenderItems;
-    QSet<std::shared_ptr<OpaqueMeshPart>> _opaqueRenderItems;
+    QSet<std::shared_ptr<MeshPartPayload>> _transparentRenderItems;
+    QSet<std::shared_ptr<MeshPartPayload>> _opaqueRenderItems;
     QMap<render::ItemID, render::PayloadPointer> _renderItems;
     bool _readyWhenAdded = false;
     bool _needsReload = true;

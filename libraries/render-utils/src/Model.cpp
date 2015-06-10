@@ -435,6 +435,7 @@ bool Model::updateGeometry() {
 
     QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(_lodDistance, _lodHysteresis);
     if (_geometry != geometry) {
+
         // NOTE: it is theoretically impossible to reach here after passing through the applyNextGeometry() call above.
         // Which means we don't need to worry about calling deleteGeometry() below immediately after creating new geometry.
 
@@ -811,71 +812,41 @@ void Model::renderSetup(RenderArgs* args) {
 }
 
 
-class TransparentMeshPart {
+class MeshPartPayload {
 public:
-    TransparentMeshPart(Model* model, int meshIndex, int partIndex) : model(model), meshIndex(meshIndex), partIndex(partIndex) { }
-    typedef render::Payload<TransparentMeshPart> Payload;
+    MeshPartPayload(bool transparent, Model* model, int meshIndex, int partIndex) :
+        transparent(transparent), model(model), url(model->getURL()), meshIndex(meshIndex), partIndex(partIndex) { }
+    typedef render::Payload<MeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
    
-    Model* model;   
+    bool transparent;
+    Model* model;
+    QUrl url;
     int meshIndex;
     int partIndex;
 };
 
 namespace render {
-    template <> const ItemKey payloadGetKey(const TransparentMeshPart::Pointer& payload) { 
+    template <> const ItemKey payloadGetKey(const MeshPartPayload::Pointer& payload) { 
         if (!payload->model->isVisible()) {
             return ItemKey::Builder().withInvisible().build();
         }
-        return ItemKey::Builder::transparentShape();
+        return payload->transparent ? ItemKey::Builder::transparentShape() : ItemKey::Builder::opaqueShape();
     }
     
-    template <> const Item::Bound payloadGetBound(const TransparentMeshPart::Pointer& payload) { 
+    template <> const Item::Bound payloadGetBound(const MeshPartPayload::Pointer& payload) { 
         if (payload) {
             return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
         }
         return render::Item::Bound();
     }
-    template <> void payloadRender(const TransparentMeshPart::Pointer& payload, RenderArgs* args) {
+    template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderArgs* args) {
         if (args) {
-            return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, true);
+            return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, payload->transparent);
         }
     }
-}
 
-class OpaqueMeshPart {
-public:
-    OpaqueMeshPart(Model* model, int meshIndex, int partIndex) : model(model), meshIndex(meshIndex), partIndex(partIndex) { }
-    typedef render::Payload<OpaqueMeshPart> Payload;
-    typedef Payload::DataPointer Pointer;
-
-    Model* model;   
-    int meshIndex;
-    int partIndex;
-};
-
-namespace render {
-    template <> const ItemKey payloadGetKey(const OpaqueMeshPart::Pointer& payload) { 
-        if (!payload->model->isVisible()) {
-            return ItemKey::Builder().withInvisible().build();
-        }
-        return ItemKey::Builder::opaqueShape();
-    }
-    
-    template <> const Item::Bound payloadGetBound(const OpaqueMeshPart::Pointer& payload) { 
-        if (payload) {
-            Item::Bound result = payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
-            //qDebug() << "payloadGetBound(OpaqueMeshPart) " << result;
-            return result;
-        }
-        return render::Item::Bound();
-    }
-    template <> void payloadRender(const OpaqueMeshPart::Pointer& payload, RenderArgs* args) {
-        if (args) {
-            return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, false);
-        }
-    }
-   /* template <> const model::MaterialKey& shapeGetMaterialKey(const OpaqueMeshPart::Pointer& payload) {
+   /* template <> const model::MaterialKey& shapeGetMaterialKey(const MeshPartPayload::Pointer& payload) {
         return payload->model->getPartMaterial(payload->meshIndex, payload->partIndex);
     }*/
 }
@@ -902,16 +873,17 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
 
     foreach (auto renderItem, _transparentRenderItems) {
         auto item = scene->allocateID();
-        auto renderData = TransparentMeshPart::Pointer(renderItem);
-        auto renderPayload = render::PayloadPointer(new TransparentMeshPart::Payload(renderData));
+        auto renderData = MeshPartPayload::Pointer(renderItem);
+        auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
         pendingChanges.resetItem(item, renderPayload);
         _renderItems.insert(item, renderPayload);
         somethingAdded = true;
     }
+
     foreach (auto renderItem, _opaqueRenderItems) {
         auto item = scene->allocateID();
-        auto renderData = OpaqueMeshPart::Pointer(renderItem);
-        auto renderPayload = render::PayloadPointer(new OpaqueMeshPart::Payload(renderData));
+        auto renderData = MeshPartPayload::Pointer(renderItem);
+        auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
         pendingChanges.resetItem(item, renderPayload);
         _renderItems.insert(item, renderPayload);
         somethingAdded = true;
@@ -1036,12 +1008,12 @@ Extents Model::calculateScaledOffsetExtents(const Extents& extents) const {
 
     Extents translatedExtents = { rotatedExtents.minimum + _translation, 
                                   rotatedExtents.maximum + _translation };
+
     return translatedExtents;
 }
 
 /// Returns the world space equivalent of some box in model space.
 AABox Model::calculateScaledOffsetAABox(const AABox& box) const {
-    
     return AABox(calculateScaledOffsetExtents(Extents(box)));
 }
 
@@ -1110,9 +1082,10 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     if (_url == url && _geometry && _geometry->getURL() == url) {
         return;
     }
-    
+
     _readyWhenAdded = false; // reset out render items.
     _needsReload = true;
+    invalidCalculatedMeshBoxes();
     
     _url = url;
 
@@ -1301,7 +1274,7 @@ void Model::setScaleToFit(bool scaleToFit, const glm::vec3& dimensions) {
     }
 }
 
-void Model::setScaleToFit(bool scaleToFit, float largestDimension) {
+void Model::setScaleToFit(bool scaleToFit, float largestDimension, bool forceRescale) {
     // NOTE: if the model is not active, then it means we don't actually know the true/natural dimensions of the
     // mesh, and so we can't do the needed calculations for scaling to fit to a single largest dimension. In this
     // case we will record that we do want to do this, but we will stick our desired single dimension into the
@@ -1314,7 +1287,7 @@ void Model::setScaleToFit(bool scaleToFit, float largestDimension) {
         return;
     }
     
-    if (_scaleToFit != scaleToFit || glm::length(_scaleToFitDimensions) != largestDimension) {
+    if (forceRescale || _scaleToFit != scaleToFit || glm::length(_scaleToFitDimensions) != largestDimension) {
         _scaleToFit = scaleToFit;
         
         // we only need to do this work if we're "turning on" scale to fit.
@@ -1324,7 +1297,7 @@ void Model::setScaleToFit(bool scaleToFit, float largestDimension) {
             float maxScale = largestDimension / maxDimension;
             glm::vec3 modelMeshDimensions = modelMeshExtents.maximum - modelMeshExtents.minimum;
             glm::vec3 dimensions = modelMeshDimensions * maxScale;
-        
+
             _scaleToFitDimensions = dimensions;
             _scaledToFit = false; // force rescaling
         }
@@ -1822,7 +1795,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         glm::mat4 scale = glm::scale(partBounds.getDimensions());
         glm::mat4 modelToWorldMatrix = translation * scale;
         batch.setModelTransform(modelToWorldMatrix);
-        //qDebug() << "partBounds:" << partBounds;
         DependencyManager::get<DeferredLightingEffect>()->renderWireCube(batch, 1.0f, cubeColor);
     }
     #endif //def DEBUG_BOUNDING_PARTS
@@ -1912,16 +1884,18 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
 
     // guard against partially loaded meshes
     if (partIndex >= networkMesh.parts.size() || partIndex >= mesh.parts.size()) {
-        return; 
+        return;
     }
 
     const NetworkMeshPart& networkPart = networkMesh.parts.at(partIndex);
     const FBXMeshPart& part = mesh.parts.at(partIndex);
     model::MaterialPointer material = part._material;
 
+    #ifdef WANT_DEBUG
     if (material == nullptr) {
-    //    qCDebug(renderutils) << "WARNING: material == nullptr!!!";
+        qCDebug(renderutils) << "WARNING: material == nullptr!!!";
     }
+    #endif
     
     if (material != nullptr) {
 
@@ -2023,8 +1997,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
 }
 
 void Model::segregateMeshGroups() {
-    _renderBuckets.clear();
-
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
 
@@ -2034,6 +2006,9 @@ void Model::segregateMeshGroups() {
         qDebug() << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
         return;
     }
+    
+    _transparentRenderItems.clear();
+    _opaqueRenderItems.clear();
 
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
     for (int i = 0; i < networkMeshes.size(); i++) {
@@ -2058,43 +2033,12 @@ void Model::segregateMeshGroups() {
         for (int partIndex = 0; partIndex < totalParts; partIndex++) {
             // this is a good place to create our renderPayloads
             if (translucentMesh) {
-                _transparentRenderItems << std::shared_ptr<TransparentMeshPart>(new TransparentMeshPart(this, i, partIndex));
+                _transparentRenderItems << std::shared_ptr<MeshPartPayload>(new MeshPartPayload(true, this, i, partIndex));
             } else {
-                _opaqueRenderItems << std::shared_ptr<OpaqueMeshPart>(new OpaqueMeshPart(this, i, partIndex));
+                _opaqueRenderItems << std::shared_ptr<MeshPartPayload>(new MeshPartPayload(false, this, i, partIndex));
             }
         }
-
-        
-        QString materialID;
-
-        // create a material name from all the parts. If there's one part, this will be a single material and its
-        // true name. If however the mesh has multiple parts the name will be all the part's materials mashed together
-        // which will result in those parts being sorted away from single material parts.
-        QString lastPartMaterialID;
-        foreach(FBXMeshPart part, mesh.parts) {
-            if (part.materialID != lastPartMaterialID) {
-                materialID += part.materialID;
-            }
-            lastPartMaterialID = part.materialID;
-        }
-        const bool wantDebug = false;
-        if (wantDebug) {
-            qCDebug(renderutils) << "materialID:" << materialID << "parts:" << mesh.parts.size();
-        }
-        
-        RenderKey key(translucentMesh, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe);
-
-        // reuse or create the bucket corresponding to that key and insert the mesh as unsorted
-        _renderBuckets[key.getRaw()]._unsortedMeshes.insertMulti(materialID, i);
     }
-    
-    for(auto& b : _renderBuckets) {
-        foreach(auto i, b.second._unsortedMeshes) {
-            b.second._meshes.append(i);
-        }
-        b.second._unsortedMeshes.clear();
-    }
-
     _meshGroupsKnown = true;
 } 
 
