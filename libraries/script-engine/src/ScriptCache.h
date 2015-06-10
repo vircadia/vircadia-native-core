@@ -27,6 +27,7 @@ class ScriptCache : public QObject, public Dependency {
 
 public:
     QString getScript(const QUrl& url, ScriptUser* scriptUser, bool& isPending);
+    void deleteScript(const QUrl& url);
     void addScriptToBadScriptList(const QUrl& url) { _badScripts.insert(url); }
     bool isInBadScriptList(const QUrl& url) { return _badScripts.contains(url); }
     

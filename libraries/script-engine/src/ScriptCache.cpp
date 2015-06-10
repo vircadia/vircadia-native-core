@@ -44,12 +44,19 @@ QString ScriptCache::getScript(const QUrl& url, ScriptUser* scriptUser, bool& is
             QNetworkRequest networkRequest = QNetworkRequest(url);
             networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
 
-            qCDebug(scriptengine) << "Downloading script at" << url.toString();
+            qCDebug(scriptengine) << "Downloading script at:" << url.toString();
             QNetworkReply* reply = networkAccessManager.get(networkRequest);
             connect(reply, &QNetworkReply::finished, this, &ScriptCache::scriptDownloaded);
         }
     }
     return scriptContents;
+}
+
+void ScriptCache::deleteScript(const QUrl& url) {
+    if (_scriptCache.contains(url)) {
+        qCDebug(scriptengine) << "Delete script from cache:" << url.toString();
+        _scriptCache.remove(url);
+    }
 }
 
 void ScriptCache::scriptDownloaded() {

@@ -4344,6 +4344,8 @@ void Application::scriptFinished(const QString& scriptName) {
 }
 
 void Application::stopAllScripts(bool restart) {
+    auto scriptCache = DependencyManager::get<ScriptCache>();
+
     // stops all current running scripts
     for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
             it != _scriptEnginesHash.constEnd(); it++) {
@@ -4351,6 +4353,7 @@ void Application::stopAllScripts(bool restart) {
             continue;
         }
         if (restart && it.value()->isUserLoaded()) {
+            scriptCache->deleteScript(it.key());
             connect(it.value(), SIGNAL(finished(const QString&)), SLOT(loadScript(const QString&)));
         }
         it.value()->stop();
