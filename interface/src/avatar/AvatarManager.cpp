@@ -121,17 +121,21 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     
     const float SHRINK_RATE = 0.9f;
     const float MIN_FADE_SCALE = 0.001f;
-
+    
+    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    render::PendingChanges pendingChanges;
     while (fadingIterator != _avatarFades.end()) {
         Avatar* avatar = static_cast<Avatar*>(fadingIterator->get());
         avatar->setTargetScale(avatar->getScale() * SHRINK_RATE, true);
         if (avatar->getTargetScale() < MIN_FADE_SCALE) {
+            avatar->removeFromScene(*fadingIterator, scene, pendingChanges);
             fadingIterator = _avatarFades.erase(fadingIterator);
         } else {
             avatar->simulate(deltaTime);
             ++fadingIterator;
         }
     }
+    scene->enqueuePendingChanges(pendingChanges);
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
@@ -171,10 +175,6 @@ void AvatarManager::removeAvatar(const QUuid& sessionUUID) {
             _avatarFades.push_back(avatarIterator.value());
             _avatarHash.erase(avatarIterator);
         }
-        render::ScenePointer scene = Application::getInstance()->getMain3DScene();
-        render::PendingChanges pendingChanges;
-        avatar->removeFromScene(avatar, scene, pendingChanges);
-        scene->enqueuePendingChanges(pendingChanges);
     }
 }
 
