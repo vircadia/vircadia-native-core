@@ -1,18 +1,25 @@
 //
 //  UpdateDialog.cpp
-//  hifi
+//  interface/src/ui
 //
 //  Created by Leonardo Murillo on 6/3/15.
+//  Copyright 2015 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include "UpdateDialog.h"
-#include "DependencyManager.h"
+
 #include <AutoUpdate.h>
+
+#include "DependencyManager.h"
 
 HIFI_QML_DEF(UpdateDialog)
 
-UpdateDialog::UpdateDialog(QQuickItem* parent) : OffscreenQmlDialog(parent) {
+UpdateDialog::UpdateDialog(QQuickItem* parent) :
+    OffscreenQmlDialog(parent)
+{
     auto applicationUpdater = DependencyManager::get<AutoUpdate>();
     int currentVersion = QCoreApplication::applicationVersion().toInt();
     int latestVersion = applicationUpdater.data()->getBuildData().lastKey();
@@ -22,11 +29,11 @@ UpdateDialog::UpdateDialog(QQuickItem* parent) : OffscreenQmlDialog(parent) {
     _releaseNotes = applicationUpdater.data()->getBuildData()[latestVersion]["releaseNotes"];
 }
 
-QString UpdateDialog::updateAvailableDetails() const {
+const QString& UpdateDialog::updateAvailableDetails() const {
     return _updateAvailableDetails;
 }
 
-QString UpdateDialog::releaseNotes() const {
+const QString& UpdateDialog::releaseNotes() const {
     return _releaseNotes;
 }
 

@@ -5,33 +5,29 @@
 //  Created by Leonardo Murillo on 6/1/2015.
 //  Copyright 2015 High Fidelity, Inc.
 //
-//
-//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <NetworkAccessManager.h>
-#include <SharedUtil.h>
 #include "AutoUpdate.h"
 
+#include <NetworkAccessManager.h>
+#include <SharedUtil.h>
+
 AutoUpdate::AutoUpdate() {
-#ifdef Q_OS_WIN32
+#if defined Q_OS_WIN32
     _operatingSystem = "windows";
-#endif
-#ifdef Q_OS_MAC
+#elif defined Q_OS_MAC
     _operatingSystem = "mac";
-#endif
-#ifdef Q_OS_LINUX
+#elif defined Q_OS_LINUX
     _operatingSystem = "ubuntu";
 #endif
+    
     connect(this, SIGNAL(latestVersionDataParsed()), this, SLOT(checkVersionAndNotify()));
-    _builds = new QMap<int, QMap<QString, QString>>;
 }
 
 void AutoUpdate::checkForUpdate() {
     this->getLatestVersionData();
-    
 }
 
 void AutoUpdate::getLatestVersionData() {
@@ -39,9 +35,8 @@ void AutoUpdate::getLatestVersionData() {
     QNetworkRequest latestVersionRequest(BUILDS_XML_URL);
     latestVersionRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     QNetworkReply* reply = networkAccessManager.get(latestVersionRequest);
-    connect(reply, SIGNAL(finished()), this, SLOT(parseLatestVersionData()));
+    connect(reply, &QNetworkReply::finished, this, &AutoUpdate::parseLatestVersionData);
 }
-
 
 void AutoUpdate::parseLatestVersionData() {
     QNetworkReply* sender = qobject_cast<QNetworkReply*>(QObject::sender());
@@ -54,7 +49,6 @@ void AutoUpdate::parseLatestVersionData() {
     QString releaseNotes;
     QString commitSha;
     QString pullRequestNumber;
-    
     
     while (!xml.atEnd() && !xml.hasError()) {
         if (xml.name().toString() == "project" &&
@@ -110,7 +104,7 @@ void AutoUpdate::parseLatestVersionData() {
 }
 
 void AutoUpdate::checkVersionAndNotify() {
-    int latestVersionAvailable = _builds->lastKey();
+    int latestVersionAvailable = _builds.lastKey();
     if (QCoreApplication::applicationVersion() != "dev" &&
         QCoreApplication::applicationVersion().toInt() < latestVersionAvailable) {
         emit newVersionIsAvailable();
@@ -120,8 +114,8 @@ void AutoUpdate::checkVersionAndNotify() {
 void AutoUpdate::performAutoUpdate(int version) {
     // NOTE: This is not yet auto updating - however this is a checkpoint towards that end
     // Next PR will handle the automatic download, upgrading and application restart
-    QMap<QString, QString> chosenVersion = _builds->value(version);
-    QUrl downloadUrl = chosenVersion.value("downloadUrl");
+    const QMap<QString, QString>& chosenVersion = _builds.value(version);
+    const QUrl& downloadUrl = chosenVersion.value("downloadUrl");
     QDesktopServices::openUrl(downloadUrl);
     QCoreApplication::quit();
 }
@@ -131,16 +125,16 @@ void AutoUpdate::downloadUpdateVersion(int version) {
 }
 
 void AutoUpdate::appendBuildData(int versionNumber,
-                                 QString downloadURL,
-                                 QString releaseTime,
-                                 QString releaseNotes,
-                                 QString pullRequestNumber) {
+                                 const QString& downloadURL,
+                                 const QString& releaseTime,
+                                 const QString& releaseNotes,
+                                 const QString& pullRequestNumber) {
     
     QMap<QString, QString> thisBuildDetails;
     thisBuildDetails.insert("downloadUrl", downloadURL);
     thisBuildDetails.insert("releaseTime", releaseTime);
     thisBuildDetails.insert("releaseNotes", releaseNotes);
     thisBuildDetails.insert("pullRequestNumber", pullRequestNumber);
-    _builds->insert(versionNumber, thisBuildDetails);
+    _builds.insert(versionNumber, thisBuildDetails);
     
 }

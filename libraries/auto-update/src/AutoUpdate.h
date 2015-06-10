@@ -5,32 +5,29 @@
 //  Created by Leonardo Murillo on 6/1/2015.
 //  Copyright 2015 High Fidelity, Inc.
 //
-//
-//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef __hifi__AutoUpdate__
-#define __hifi__AutoUpdate__
+#ifndef hifi_AutoUpdate_h
+#define hifi_AutoUpdate_h
 
-#include <QtCore/QObject>
+
 #include <QtCore/QSettings>
 #include <QtCore/QCoreApplication>
-#include <QDesktopServices>
-#include <QDebug>
-#include <QString>
-#include <QUrl>
-#include <QMap>
-#include <QNetworkRequest>
-#include <QNetworkReply>
-#include <QNetworkConfiguration>
-#include <QNetworkAccessManager>
-#include <QXmlStreamReader>
-#include <QXmlStreamAttributes>
-
+#include <QtCore/QDebug>
+#include <QtCore/QMap>
+#include <QtCore/QObject>
+#include <QtCore/QString>
+#include <QtCore/QUrl>
+#include <QtCore/QXmlStreamAttributes>
+#include <QtCore/QXmlStreamReader>
+#include <QtGui/QDesktopServices>
+#include <QtNetwork/QNetworkAccessManager>
+#include <QtNetwork/QNetworkConfiguration>
+#include <QtNetwork/QNetworkReply>
+#include <QtNetwork/QNetworkRequest>
 #include <DependencyManager.h>
-
 
 const QUrl BUILDS_XML_URL("https://highfidelity.com/builds.xml");
 
@@ -39,38 +36,33 @@ class AutoUpdate : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
-    // Methods
     AutoUpdate();
     
     void checkForUpdate();
-    QMap<int, QMap<QString, QString>> &getBuildData() { return *_builds; }
+    const QMap<int, QMap<QString, QString>> &getBuildData() { return _builds; }
     void performAutoUpdate(int version);
     
-public slots:
-    
 private:
-    // Members
-    QMap<int, QMap<QString, QString>> *_builds;
+    QMap<int, QMap<QString, QString>> _builds;
     QString _operatingSystem;
     
-    // Methods
     void getLatestVersionData();
     void downloadUpdateVersion(int version);
     void appendBuildData(int versionNumber,
-                         QString downloadURL,
-                         QString releaseTime,
-                         QString releaseNotes,
-                         QString pullRequestNumber);
-    
-private slots:
-    void parseLatestVersionData();
-    void checkVersionAndNotify();
+                         const QString& downloadURL,
+                         const QString& releaseTime,
+                         const QString& releaseNotes,
+                         const QString& pullRequestNumber);
 
 signals:
     void latestVersionDataParsed();
     void newVersionIsAvailable();
     void newVersionIsDownloaded();
-    
+
+private slots:
+    void parseLatestVersionData();
+    void checkVersionAndNotify();
+ 
 };
 
-#endif /* defined(__hifi__AutoUpdate__) */
+#endif // _hifi_AutoUpdate_h

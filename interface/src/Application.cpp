@@ -625,10 +625,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 #endif
     
     auto applicationUpdater = DependencyManager::get<AutoUpdate>();
-    connect(applicationUpdater.data(), SIGNAL(newVersionIsAvailable()), dialogsManager.data(), SLOT(showUpdateDialog()));
+    connect(applicationUpdater.data(), &AutoUpdate::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
     applicationUpdater->checkForUpdate();
 }
-
 
 void Application::aboutToQuit() {
     emit beforeAboutToQuit();
