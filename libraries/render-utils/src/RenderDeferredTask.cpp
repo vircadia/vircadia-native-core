@@ -117,14 +117,14 @@ template <> void render::jobRun(const DrawOpaqueDeferred& job, const SceneContex
     }
 
    // ItemIDsBounds sortedItems;
-    ItemMaterialBucketMap stateSortedItems;
+ /*   ItemMaterialBucketMap stateSortedItems;
     stateSortedItems.allocateStandardMaterialBuckets();
     if (true) {
         for (auto& itemIDAndBound : renderedItems) {
             stateSortedItems.insert(itemIDAndBound.id, scene->getItem(itemIDAndBound.id).getMaterialKey());
         }
     }
-
+*/
 
     if (renderContext->_renderOpaque) {
         RenderArgs* args = renderContext->args;
