@@ -8,25 +8,85 @@
 
 #include "CursorManager.h"
 
+#include <QCursor>
+#include <QWidget>
+#include <QUrl>
+
+#include <PathUtils.h>
+
 namespace Cursor {
-    enum class Source {
-        MOUSE,
-        LEFT_HAND,
-        RIGHT_HAND,
-        UNKNOWN,
+
+    void Instance::setIcon(uint16_t icon) {
+        _icon = icon;
+    }
+
+    uint16_t Instance::getIcon() const {
+        return _icon;
+    }
+
+
+    class MouseInstance : public Instance {
+        Source getType() const {
+            return Source::MOUSE;
+        }
+
+        ivec2 getScreenPosition() const {
+            return toGlm(QCursor::pos());
+        }
+
+        ivec2 getWindowPosition(QWidget* widget) const {
+            return toGlm(widget->mapFromGlobal(QCursor::pos()));
+        }
+
+        vec2 getRelativePosition(QWidget* widget) const {
+            vec2 pos = getWindowPosition(widget);
+            pos /= vec2(toGlm(widget->size()));
+            return pos;
+        }
     };
 
-    class Instance {
-        Source type;
-    };
+    static QMap<uint16_t, QString> ICONS;
+    static uint16_t _customIconId = Icon::USER_BASE;
 
-    class Manager {
-    public:
-        static Manager& instance();
+    Manager::Manager() {
+        ICONS[Icon::DEFAULT] = PathUtils::resourcesPath() + "images/sixense-reticle.png";
+        ICONS[Icon::LINK] = PathUtils::resourcesPath() + "images/reticleLink.png";
+    }
 
-        uint8_t getCount();
-        Instance
-    };
+    Manager& Manager::instance() {
+        static Manager instance;
+        return instance;
+    }
+
+    uint8_t Manager::getCount() {
+        return 1;
+    }
+
+    Instance* Manager::getCursor(uint8_t index) {
+        Q_ASSERT(index < getCount());
+        static MouseInstance mouseInstance;
+        if (index == 0) {
+            return &mouseInstance;
+        }
+        return nullptr;
+    }
+
+    uint16_t Manager::registerIcon(const QString& path) {
+        ICONS[_customIconId] = path;
+        return _customIconId++;
+    }
+
+    const QString& Manager::getIconImage(uint16_t icon) {
+        Q_ASSERT(ICONS.count(icon));
+        return ICONS[icon];
+    }
+
+    float Manager::getScale() {
+        return _scale;
+    }
+
+    void Manager::setScale(float scale) {
+        _scale = scale;
+    }
+
 }
-
-

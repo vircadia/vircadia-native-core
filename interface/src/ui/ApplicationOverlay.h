@@ -108,6 +108,7 @@ private:
     void renderCameraToggle();
     void renderStatsAndLogs();
     void renderDomainConnectionStatusBorder();
+    void bindCursorTexture(uint8_t cursorId = 0);
 
     TexturedHemisphere _overlays;
     
@@ -127,7 +128,8 @@ private:
     float _trailingAudioLoudness;
 
 
-    gpu::TexturePointer _crosshairTexture;
+    QMap<uint16_t, gpu::TexturePointer> _cursors;
+
     GLuint _newUiTexture{ 0 };
     
     int _reticleQuad;

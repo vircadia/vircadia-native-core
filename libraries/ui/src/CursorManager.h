@@ -7,6 +7,9 @@
 //
 
 #pragma once
+#include <stdint.h>
+
+#include <GLMHelpers.h>
 
 namespace Cursor {
     enum class Source {
@@ -16,16 +19,42 @@ namespace Cursor {
         UNKNOWN,
     };
 
+    enum Icon {
+        DEFAULT,
+        LINK,
+        GRAB,
+
+        // Add new system cursors here
+
+        // User cursors will have ids over this value
+        USER_BASE = 0xFF,
+    };
+
     class Instance {
-        Source type;
+    public:
+        virtual Source getType() const = 0;
+        virtual ivec2 getWindowPosition(QWidget* widget) const = 0;
+        virtual vec2 getRelativePosition(QWidget* widget) const = 0;
+        virtual ivec2 getScreenPosition() const = 0;
+        virtual void setIcon(uint16_t icon);
+        virtual uint16_t getIcon() const;
+    private:
+        uint16_t _icon;
     };
 
     class Manager {
+        Manager();
+        Manager(const Manager& other) = delete;
     public:
         static Manager& instance();
-
         uint8_t getCount();
-        Instance
+        float getScale();
+        void setScale(float scale);
+        Instance* getCursor(uint8_t index = 0);
+        uint16_t registerIcon(const QString& path);
+        const QString& getIconImage(uint16_t icon);
+    private:
+        float _scale{ 1.0f };
     };
 }
 

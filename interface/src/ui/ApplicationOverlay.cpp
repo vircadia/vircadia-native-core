@@ -21,6 +21,7 @@
 #include <GLMHelpers.h>
 #include <PerfStat.h>
 #include <OffscreenUi.h>
+#include <CursorManager.h>
 
 #include "AudioClient.h"
 #include "audio/AudioIOStatsRenderer.h"
@@ -143,7 +144,6 @@ ApplicationOverlay::ApplicationOverlay() :
     _alpha(1.0f),
     _oculusUIRadius(1.0f),
     _trailingAudioLoudness(0.0f),
-    _crosshairTexture(0),
     _previousBorderWidth(-1),
     _previousBorderHeight(-1),
     _previousMagnifierBottomLeft(),
@@ -257,6 +257,18 @@ void with_each_texture(GLuint firstPassTexture, GLuint secondPassTexture, F f) {
     glDisable(GL_TEXTURE_2D);
 }
 
+void ApplicationOverlay::bindCursorTexture(uint8_t cursorIndex) {
+    auto& cursorManager = Cursor::Manager::instance();
+    auto cursor = cursorManager.getCursor(cursorIndex);
+    auto iconId = cursor->getIcon();
+    if (!_cursors.count(iconId)) {
+        auto iconPath = cursorManager.getIconImage(cursor->getIcon());
+        _cursors[iconId] = DependencyManager::get<TextureCache>()->
+            getImageTexture(iconPath);
+    }
+    glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(_cursors[iconId]));
+}
+
 // Draws the FBO texture for the screen
 void ApplicationOverlay::displayOverlayTexture() {
     if (_alpha == 0.0f) {
@@ -282,14 +294,10 @@ void ApplicationOverlay::displayOverlayTexture() {
                 glm::vec4(1.0f, 1.0f, 1.0f, _alpha));
         });
 
-        if (!_crosshairTexture) {
-            _crosshairTexture = DependencyManager::get<TextureCache>()->
-                getImageTexture(PathUtils::resourcesPath() + "images/sixense-reticle.png");
-        }
-
+        
         //draw the mouse pointer
         glm::vec2 canvasSize = qApp->getCanvasSize();
-        glm::vec2 mouseSize = 32.0f / canvasSize;
+        glm::vec2 mouseSize = 32.0f / canvasSize * Cursor::Manager::instance().getScale();
         auto mouseTopLeft = topLeft * mouseSize;
         auto mouseBottomRight = bottomRight * mouseSize;
         vec2 mousePosition = vec2(qApp->getMouseX(), qApp->getMouseY());
@@ -300,7 +308,7 @@ void ApplicationOverlay::displayOverlayTexture() {
 
         glEnable(GL_TEXTURE_2D);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(_crosshairTexture));
+        bindCursorTexture();
         glm::vec4 reticleColor = { RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], 1.0f };
         DependencyManager::get<GeometryCache>()->renderQuad(
             mouseTopLeft + mousePosition, mouseBottomRight + mousePosition, 
@@ -450,18 +458,14 @@ void ApplicationOverlay::displayOverlayTextureStereo(Camera& whichCamera, float 
                                                 overlayColor);
     });
     
-    if (!_crosshairTexture) {
-        _crosshairTexture = TextureCache::getImageTexture(PathUtils::resourcesPath() +
-                                                          "images/sixense-reticle.png");
-    }
-    
     //draw the mouse pointer
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(_crosshairTexture));
+    bindCursorTexture();
     glm::vec2 canvasSize = qApp->getCanvasSize();
-    const float reticleSize = 40.0f / canvasSize.x * quadWidth;
+    const float reticleSize = 40.0f / canvasSize.x * quadWidth *
+        Cursor::Manager::instance().getScale();
     x -= reticleSize / 2.0f;
     y += reticleSize / 2.0f;
     const float mouseX = (qApp->getMouseX() / (float)canvasSize.x) * quadWidth;
@@ -583,16 +587,12 @@ bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position,
 
 //Renders optional pointers
 void ApplicationOverlay::renderPointers() {
-    //lazily load crosshair texture
-    if (_crosshairTexture == 0) {
-        _crosshairTexture = TextureCache::getImageTexture(PathUtils::resourcesPath() + "images/sixense-reticle.png");
-    }
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(_crosshairTexture));
+    bindCursorTexture();
 
     if (qApp->isHMDMode() && !qApp->getLastMouseMoveWasSimulated() && !qApp->isMouseHidden()) {
         //If we are in oculus, render reticle later
@@ -757,7 +757,7 @@ void ApplicationOverlay::renderPointersOculus() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_TEXTURE_2D);
 
-    glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(_crosshairTexture));
+    bindCursorTexture();
     glDisable(GL_DEPTH_TEST);
 
     glMatrixMode(GL_MODELVIEW);
