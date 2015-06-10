@@ -70,7 +70,9 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _dirtyFlags(0),
     _element(nullptr),
     _physicsInfo(nullptr),
-    _simulated(false)
+    _simulated(false),
+    _href(""),
+    _description("")
 {
     quint64 now = usecTimestampNow();
     _lastSimulated = now;
@@ -117,6 +119,8 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_MARKETPLACE_ID;
     requestedProperties += PROP_NAME;
     requestedProperties += PROP_SIMULATOR_ID;
+    requestedProperties += PROP_HREF;
+    requestedProperties += PROP_DESCRIPTION;
     
     return requestedProperties;
 }
@@ -246,6 +250,9 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, getMarketplaceID());
         APPEND_ENTITY_PROPERTY(PROP_NAME, getName());
         APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, getCollisionSoundURL());
+        APPEND_ENTITY_PROPERTY(PROP_HREF, getHref());
+        APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, getDescription());
+
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -573,6 +580,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
     READ_ENTITY_PROPERTY(PROP_NAME, QString, setName);
     READ_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
+    READ_ENTITY_PROPERTY(PROP_HREF, QString, setHref);
+    READ_ENTITY_PROPERTY(PROP_DESCRIPTION, QString, setDescription);
+
     bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
 
     ////////////////////////////////////
@@ -905,6 +915,8 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(simulatorID, getSimulatorID);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(marketplaceID, getMarketplaceID);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(name, getName);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(href, getHref);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(description, getDescription);
 
     properties._defaultSettings = false;
     
@@ -963,6 +975,8 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(marketplaceID, setMarketplaceID);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(name, setName);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(href, setHref);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(description, setDescription);
 
     if (somethingChanged) {
         uint64_t now = usecTimestampNow();

@@ -471,6 +471,9 @@
                             elScriptURL.value = properties.script;
                             elUserData.value = properties.userData;
 
+                            elHyperlinkHref.value = properties.href;
+                            elHyperlinkDescription.value = properties.description;
+
                             for (var i = 0; i < allSections.length; i++) {
                                 for (var j = 0; j < allSections[i].length; j++) {
                                     allSections[i][j].style.display = 'none';
@@ -616,6 +619,8 @@
 
             elLocked.addEventListener('change', createEmitCheckedPropertyUpdateFunction('locked'));
             elName.addEventListener('change', createEmitTextPropertyUpdateFunction('name'));
+            elHyperlinkHref.addEventListener('change', createEmitTextPropertyUpdateFunction('href'));
+            elHyperlinkDescription.addEventListener('change', createEmitTextPropertyUpdateFunction('description'));
             elVisible.addEventListener('change', createEmitCheckedPropertyUpdateFunction('visible'));
 
             var positionChangeFunction = createEmitVec3PropertyUpdateFunction(
