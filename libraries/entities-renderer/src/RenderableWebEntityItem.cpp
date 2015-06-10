@@ -191,8 +191,8 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
 }
 
 void RenderableWebEntityItem::setSourceUrl(const QString& value) {
-    qDebug() << "Setting web entity source URL to " << value;
     if (_sourceUrl != value) {
+        qDebug() << "Setting web entity source URL to " << value;
         _sourceUrl = value;
         if (_webSurface) {
             AbstractViewStateInterface::instance()->postLambdaEvent([this] {

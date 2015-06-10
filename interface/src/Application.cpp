@@ -336,7 +336,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _enableProcessOctreeThread(true),
         _octreeProcessor(),
         _nodeBoundsDisplay(this),
-        _applicationOverlay(),
         _runningScriptsWidget(NULL),
         _runningScriptsWidgetWasVisible(false),
         _trayIcon(new QSystemTrayIcon(_window)),
@@ -347,7 +346,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _notifiedPacketVersionMismatchThisDomain(false),
         _domainConnectionRefusals(QList<QString>()),
         _maxOctreePPS(maxOctreePacketsPerSecond.get()),
-        _lastFaceTrackerUpdate(0)
+        _lastFaceTrackerUpdate(0),
+        _applicationOverlay()
 {
     setInstance(this);
 #ifdef Q_OS_WIN

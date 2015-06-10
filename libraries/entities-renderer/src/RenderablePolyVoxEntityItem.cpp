@@ -213,7 +213,7 @@ uint8_t RenderablePolyVoxEntityItem::getVoxel(int x, int y, int z) {
     // if _voxelSurfaceStyle is SURFACE_EDGED_CUBIC, we maintain an extra layer of
     // voxels all around the requested voxel space.  Having the empty voxels around
     // the edges changes how the surface extractor behaves.
-    
+
     if (_voxelSurfaceStyle == SURFACE_EDGED_CUBIC) {
         return _volData->getVoxelAt(x + 1, y + 1, z + 1);
     }
@@ -239,7 +239,7 @@ void RenderablePolyVoxEntityItem::updateOnCount(int x, int y, int z, uint8_t toV
     if (!inUserBounds(_volData, _voxelSurfaceStyle, x, y, z)) {
         return;
     }
-    
+
     uint8_t uVoxelValue = getVoxel(x, y, z);
     if (toValue != 0) {
         if (uVoxelValue == 0) {
@@ -347,8 +347,8 @@ void RenderablePolyVoxEntityItem::getModel() {
                                        sizeof(PolyVox::PositionMaterialNormal),
                                        gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
 
-    
-    
+
+
     // auto normalAttrib = mesh->getAttributeBuffer(gpu::Stream::NORMAL);
     // for (auto normal = normalAttrib.begin<glm::vec3>(); normal != normalAttrib.end<glm::vec3>(); normal++) {
     //     (*normal) = -(*normal);
@@ -363,7 +363,7 @@ void RenderablePolyVoxEntityItem::getModel() {
     //                                    gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::RAW)));
 
 
-    
+
     #ifdef WANT_DEBUG
     qDebug() << "---- vecIndices.size() =" << vecIndices.size();
     qDebug() << "---- vecVertices.size() =" << vecVertices.size();
@@ -379,7 +379,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     if (_needsModelReload) {
         getModel();
     }
-    
+
     Transform transform;
     transform.setTranslation(getPosition() - getRegistrationPoint() * getDimensions());
     transform.setRotation(getRotation());
@@ -398,7 +398,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
                          mesh->getVertexBuffer()._stride);
     batch.setIndexBuffer(gpu::UINT32, mesh->getIndexBuffer()._buffer, 0);
     batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
-    
+
     RenderableDebugableEntityItem::render(this, args);
 }
 
@@ -448,14 +448,13 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
     glm::vec3 normDirection = glm::normalize(direction);
 
     // the PolyVox ray intersection code requires a near and far point.
-    glm::vec3 scale = getDimensions() / _voxelVolumeSize; // meters / voxel-units
-    // set ray cast length to long enough to cover all of the voxel space    
+    // set ray cast length to long enough to cover all of the voxel space
     float distanceToEntity = glm::distance(origin, getPosition());
     float largestDimension = glm::max(getDimensions().x, getDimensions().y, getDimensions().z) * 2.0f;
     glm::vec3 farPoint = origin + normDirection * (distanceToEntity + largestDimension);
     glm::vec4 originInVoxel = wtvMatrix * glm::vec4(origin, 1.0f);
     glm::vec4 farInVoxel = wtvMatrix * glm::vec4(farPoint, 1.0f);
-    
+
     PolyVox::Vector3DFloat startPoint(originInVoxel.x, originInVoxel.y, originInVoxel.z);
     PolyVox::Vector3DFloat endPoint(farInVoxel.x, farInVoxel.y, farInVoxel.z);
 
@@ -479,7 +478,7 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
     }
 
     result -= glm::vec4(0.5f, 0.5f, 0.5f, 0.0f);
-    
+
     glm::vec4 intersectedWorldPosition = voxelToWorldMatrix() * result;
 
     distance = glm::distance(glm::vec3(intersectedWorldPosition), origin);
@@ -556,9 +555,9 @@ void RenderablePolyVoxEntityItem::decompressVolumeData() {
                  << voxelXSize << voxelYSize << voxelZSize;
         return;
     }
-    
+
     int rawSize = voxelXSize * voxelYSize * voxelZSize;
-    
+
     QByteArray compressedData;
     reader >> compressedData;
     QByteArray uncompressedData = qUncompress(compressedData);
@@ -635,9 +634,6 @@ void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
                     float offL = -0.5f;
                     float offH = 0.5f;
 
-                    // float offL = 0.0f;
-                    // float offH = 1.0f;
-                    
                     glm::vec3 p000 = glm::vec3(wToM * glm::vec4(x + offL, y + offL, z + offL, 1.0f));
                     glm::vec3 p001 = glm::vec3(wToM * glm::vec4(x + offL, y + offL, z + offH, 1.0f));
                     glm::vec3 p010 = glm::vec3(wToM * glm::vec4(x + offL, y + offH, z + offL, 1.0f));
