@@ -135,31 +135,53 @@ public:
 
     void renderCone(float base, float height, int slices, int stacks);
 
-    void renderSphere(float radius, int slices, int stacks, const glm::vec3& color, bool solid = true, int id = UNKNOWN_ID) 
+    void renderSphere(float radius, int slices, int stacks, const glm::vec3& color, bool solid = true, int id = UNKNOWN_ID)
                 { renderSphere(radius, slices, stacks, glm::vec4(color, 1.0f), solid, id); }
+    void renderSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec3& color, bool solid = true, int id = UNKNOWN_ID) 
+                { renderSphere(batch, radius, slices, stacks, glm::vec4(color, 1.0f), solid, id); }
                 
     void renderSphere(float radius, int slices, int stacks, const glm::vec4& color, bool solid = true, int id = UNKNOWN_ID);
+    void renderSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color, bool solid = true, int id = UNKNOWN_ID);
+
     void renderGrid(int xDivisions, int yDivisions, const glm::vec4& color);
+    void renderGrid(gpu::Batch& batch, int xDivisions, int yDivisions, const glm::vec4& color);
     void renderGrid(int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id = UNKNOWN_ID);
+    void renderGrid(gpu::Batch& batch, int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id = UNKNOWN_ID);
+
     void renderSolidCube(float size, const glm::vec4& color);
+    void renderSolidCube(gpu::Batch& batch, float size, const glm::vec4& color);
     void renderWireCube(float size, const glm::vec4& color);
+    void renderWireCube(gpu::Batch& batch, float size, const glm::vec4& color);
     void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id = UNKNOWN_ID);
+    void renderBevelCornersRect(gpu::Batch& batch, int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id = UNKNOWN_ID);
 
     void renderQuad(int x, int y, int width, int height, const glm::vec4& color, int id = UNKNOWN_ID)
             { renderQuad(glm::vec2(x,y), glm::vec2(x + width, y + height), color, id); }
+    void renderQuad(gpu::Batch& batch, int x, int y, int width, int height, const glm::vec4& color, int id = UNKNOWN_ID)
+            { renderQuad(batch, glm::vec2(x,y), glm::vec2(x + width, y + height), color, id); }
             
     // TODO: I think there's a bug in this version of the renderQuad() that's not correctly rebuilding the vbos
     // if the color changes by the corners are the same, as evidenced by the audio meter which should turn white
     // when it's clipping
     void renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner, const glm::vec4& color, int id = UNKNOWN_ID);
+    void renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner, const glm::vec4& color, int id = UNKNOWN_ID);
 
     void renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner,
                     const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner, 
                     const glm::vec4& color, int id = UNKNOWN_ID);
+    void renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
+                    const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner, 
+                    const glm::vec4& color, int id = UNKNOWN_ID);
 
     void renderQuad(const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color, int id = UNKNOWN_ID);
+    void renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color, int id = UNKNOWN_ID);
 
     void renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomLeft, 
+                    const glm::vec3& bottomRight, const glm::vec3& topRight,
+                    const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomLeft,
+                    const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight, 
+                    const glm::vec4& color, int id = UNKNOWN_ID);
+    void renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, const glm::vec3& bottomLeft, 
                     const glm::vec3& bottomRight, const glm::vec3& topRight,
                     const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomLeft,
                     const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight, 
@@ -168,36 +190,58 @@ public:
 
     void renderLine(const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& color, int id = UNKNOWN_ID) 
                     { renderLine(p1, p2, color, color, id); }
+    void renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& color, int id = UNKNOWN_ID) 
+                    { renderLine(batch, p1, p2, color, color, id); }
     
     void renderLine(const glm::vec3& p1, const glm::vec3& p2, 
                     const glm::vec3& color1, const glm::vec3& color2, int id = UNKNOWN_ID)
                     { renderLine(p1, p2, glm::vec4(color1, 1.0f), glm::vec4(color2, 1.0f), id); }
+    void renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, 
+                    const glm::vec3& color1, const glm::vec3& color2, int id = UNKNOWN_ID)
+                    { renderLine(batch, p1, p2, glm::vec4(color1, 1.0f), glm::vec4(color2, 1.0f), id); }
 
     void renderLine(const glm::vec3& p1, const glm::vec3& p2, 
                     const glm::vec4& color, int id = UNKNOWN_ID)
                     { renderLine(p1, p2, color, color, id); }
+    void renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, 
+                    const glm::vec4& color, int id = UNKNOWN_ID)
+                    { renderLine(batch, p1, p2, color, color, id); }
 
     void renderLine(const glm::vec3& p1, const glm::vec3& p2, 
                     const glm::vec4& color1, const glm::vec4& color2, int id = UNKNOWN_ID);
+    void renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, 
+                    const glm::vec4& color1, const glm::vec4& color2, int id = UNKNOWN_ID);
                     
     void renderDashedLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id = UNKNOWN_ID);
+    void renderDashedLine(gpu::Batch& batch, const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id = UNKNOWN_ID);
 
     void renderLine(const glm::vec2& p1, const glm::vec2& p2, const glm::vec3& color, int id = UNKNOWN_ID)
                     { renderLine(p1, p2, glm::vec4(color, 1.0f), id); }
+    void renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2, const glm::vec3& color, int id = UNKNOWN_ID)
+                    { renderLine(batch, p1, p2, glm::vec4(color, 1.0f), id); }
 
     void renderLine(const glm::vec2& p1, const glm::vec2& p2, const glm::vec4& color, int id = UNKNOWN_ID)
                     { renderLine(p1, p2, color, color, id); }
+    void renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2, const glm::vec4& color, int id = UNKNOWN_ID)
+                    { renderLine(batch, p1, p2, color, color, id); }
 
 
     void renderLine(const glm::vec2& p1, const glm::vec2& p2,                                
                                     const glm::vec3& color1, const glm::vec3& color2, int id = UNKNOWN_ID)
                     { renderLine(p1, p2, glm::vec4(color1, 1.0f), glm::vec4(color2, 1.0f), id); }
+    void renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2,                                
+                                    const glm::vec3& color1, const glm::vec3& color2, int id = UNKNOWN_ID)
+                    { renderLine(batch, p1, p2, glm::vec4(color1, 1.0f), glm::vec4(color2, 1.0f), id); }
                 
     void renderLine(const glm::vec2& p1, const glm::vec2& p2,                                
+                                    const glm::vec4& color1, const glm::vec4& color2, int id = UNKNOWN_ID);
+    void renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2,                                
                                     const glm::vec4& color1, const glm::vec4& color2, int id = UNKNOWN_ID);
 
     void updateVertices(int id, const QVector<glm::vec2>& points, const glm::vec4& color);
     void updateVertices(int id, const QVector<glm::vec3>& points, const glm::vec4& color);
+    void updateVertices(int id, const QVector<glm::vec3>& points, const QVector<glm::vec2>& texCoords, const glm::vec4& color);
+    void renderVertices(gpu::Batch& batch, gpu::Primitive primitiveType, int id);
     void renderVertices(gpu::Primitive primitiveType, int id);
 
     /// Loads geometry from the specified URL.
@@ -226,7 +270,7 @@ private:
     QHash<Vec2Pair, gpu::BufferPointer> _cubeColors;
     gpu::BufferPointer _wireCubeIndexBuffer;
 
-    QHash<float, gpu::BufferPointer> _solidCubeVerticies;
+    QHash<float, gpu::BufferPointer> _solidCubeVertices;
     QHash<Vec2Pair, gpu::BufferPointer> _solidCubeColors;
     gpu::BufferPointer _solidCubeIndexBuffer;
     

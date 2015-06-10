@@ -12,7 +12,6 @@
 // include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
 #include <gpu/GPUConfig.h>
 
-
 #include <GLMHelpers.h>
 #include <PathUtils.h>
 #include <ViewFrustum.h>
@@ -29,6 +28,7 @@
 
 #include "simple_vert.h"
 #include "simple_frag.h"
+#include "simple_textured_frag.h"
 
 #include "deferred_light_vert.h"
 #include "deferred_light_limited_vert.h"
@@ -41,19 +41,37 @@
 #include "directional_ambient_light_shadow_map_frag.h"
 #include "directional_ambient_light_cascaded_shadow_map_frag.h"
 
+#include "directional_skybox_light_frag.h"
+#include "directional_skybox_light_shadow_map_frag.h"
+#include "directional_skybox_light_cascaded_shadow_map_frag.h"
+
 #include "point_light_frag.h"
 #include "spot_light_frag.h"
 
+static const std::string glowIntensityShaderHandle = "glowIntensity";
+
 void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
+    auto VS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(simple_vert)));
+    auto PS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(simple_frag)));
+    auto PSTextured = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(simple_textured_frag)));
+    
+    gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PS));
+    gpu::ShaderPointer programTextured = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PSTextured));
+    
+    gpu::Shader::BindingSet slotBindings;
+    gpu::Shader::makeProgram(*program, slotBindings);
+    gpu::Shader::makeProgram(*programTextured, slotBindings);
+
+    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    state->setCullMode(gpu::State::CULL_BACK);
+    state->setDepthTest(true, true, gpu::LESS_EQUAL);
+    state->setBlendFunction(false,
+                            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+    _simpleProgram = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+    _simpleProgramTextured = gpu::PipelinePointer(gpu::Pipeline::create(programTextured, state));
+
     _viewState = viewState;
-    _simpleProgram.addShaderFromSourceCode(QGLShader::Vertex, simple_vert);
-    _simpleProgram.addShaderFromSourceCode(QGLShader::Fragment, simple_frag);
-    _simpleProgram.link();
-    
-    _simpleProgram.bind();
-    _glowIntensityLocation = _simpleProgram.uniformLocation("glowIntensity");
-    _simpleProgram.release();
-    
     loadLightProgram(directional_light_frag, false, _directionalLight, _directionalLightLocations);
     loadLightProgram(directional_light_shadow_map_frag, false, _directionalLightShadowMap,
         _directionalLightShadowMapLocations);
@@ -65,6 +83,12 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
         _directionalAmbientSphereLightShadowMapLocations);
     loadLightProgram(directional_ambient_light_cascaded_shadow_map_frag, false, _directionalAmbientSphereLightCascadedShadowMap,
         _directionalAmbientSphereLightCascadedShadowMapLocations);
+
+    loadLightProgram(directional_skybox_light_frag, false, _directionalSkyboxLight, _directionalSkyboxLightLocations);
+    loadLightProgram(directional_skybox_light_shadow_map_frag, false, _directionalSkyboxLightShadowMap,
+        _directionalSkyboxLightShadowMapLocations);
+    loadLightProgram(directional_skybox_light_cascaded_shadow_map_frag, false, _directionalSkyboxLightCascadedShadowMap,
+        _directionalSkyboxLightCascadedShadowMapLocations);
 
     loadLightProgram(point_light_frag, true, _pointLight, _pointLightLocations);
     loadLightProgram(spot_light_frag, true, _spotLight, _spotLightLocations);
@@ -79,50 +103,59 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     lp->setColor(glm::vec3(1.0f));
     lp->setIntensity(1.0f);
     lp->setType(model::Light::SUN);
-    lp->setAmbientSpherePreset(model::SphericalHarmonics::Preset(_ambientLightMode % model::SphericalHarmonics::NUM_PRESET));
+    lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset(_ambientLightMode % gpu::SphericalHarmonics::NUM_PRESET));
 }
 
-void DeferredLightingEffect::bindSimpleProgram() {
-    DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, true, true);
-    _simpleProgram.bind();
-    _simpleProgram.setUniformValue(_glowIntensityLocation, DependencyManager::get<GlowEffect>()->getIntensity());
-    glDisable(GL_BLEND);
+void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured) {
+  // DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(batch, true, true, true);
+    
+    if (textured) {
+        batch.setPipeline(_simpleProgramTextured);
+    } else {
+        batch.setPipeline(_simpleProgram);
+    }
 }
 
-void DeferredLightingEffect::releaseSimpleProgram() {
-    glEnable(GL_BLEND);
-    _simpleProgram.release();
-    DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(true, false, false);
+void DeferredLightingEffect::releaseSimpleProgram(gpu::Batch& batch) {
+  //  DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(batch, true, false, false);
 }
 
-void DeferredLightingEffect::renderSolidSphere(float radius, int slices, int stacks, const glm::vec4& color) {
-    bindSimpleProgram();
-    DependencyManager::get<GeometryCache>()->renderSphere(radius, slices, stacks, color);
-    releaseSimpleProgram();
+void DeferredLightingEffect::renderSolidSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color) {
+    bindSimpleProgram(batch);
+    DependencyManager::get<GeometryCache>()->renderSphere(batch, radius, slices, stacks, color);
+    releaseSimpleProgram(batch);
 }
 
-void DeferredLightingEffect::renderWireSphere(float radius, int slices, int stacks, const glm::vec4& color) {
-    bindSimpleProgram();
-    DependencyManager::get<GeometryCache>()->renderSphere(radius, slices, stacks, color, false);
-    releaseSimpleProgram();
+void DeferredLightingEffect::renderWireSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color) {
+    bindSimpleProgram(batch);
+    DependencyManager::get<GeometryCache>()->renderSphere(batch, radius, slices, stacks, color, false);
+    releaseSimpleProgram(batch);
 }
 
-void DeferredLightingEffect::renderSolidCube(float size, const glm::vec4& color) {
-    bindSimpleProgram();
-    DependencyManager::get<GeometryCache>()->renderSolidCube(size, color);
-    releaseSimpleProgram();
+void DeferredLightingEffect::renderSolidCube(gpu::Batch& batch, float size, const glm::vec4& color) {
+    bindSimpleProgram(batch);
+    DependencyManager::get<GeometryCache>()->renderSolidCube(batch, size, color);
+    releaseSimpleProgram(batch);
 }
 
-void DeferredLightingEffect::renderWireCube(float size, const glm::vec4& color) {
-    bindSimpleProgram();
-    DependencyManager::get<GeometryCache>()->renderWireCube(size, color);
-    releaseSimpleProgram();
+void DeferredLightingEffect::renderWireCube(gpu::Batch& batch, float size, const glm::vec4& color) {
+    bindSimpleProgram(batch);
+    DependencyManager::get<GeometryCache>()->renderWireCube(batch, size, color);
+    releaseSimpleProgram(batch);
 }
 
-void DeferredLightingEffect::renderSolidCone(float base, float height, int slices, int stacks) {
-    bindSimpleProgram();
-    DependencyManager::get<GeometryCache>()->renderCone(base, height, slices, stacks);
-    releaseSimpleProgram();
+void DeferredLightingEffect::renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, const glm::vec3& maxCorner,
+                                        const glm::vec4& color) {
+    bindSimpleProgram(batch);
+    DependencyManager::get<GeometryCache>()->renderQuad(batch, minCorner, maxCorner, color);
+    releaseSimpleProgram(batch);
+}
+
+void DeferredLightingEffect::renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2,
+                                        const glm::vec4& color1, const glm::vec4& color2) {
+    bindSimpleProgram(batch);
+    DependencyManager::get<GeometryCache>()->renderLine(batch, p1, p2, color1, color2);
+    releaseSimpleProgram(batch);
 }
 
 void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radius, const glm::vec3& color,
@@ -186,6 +219,7 @@ void DeferredLightingEffect::render() {
 
     QSize framebufferSize = textureCache->getFrameBufferSize();
     
+    // binding the first framebuffer
     auto freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebuffer();
     glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(freeFBO));
  
@@ -217,6 +251,7 @@ void DeferredLightingEffect::render() {
     float tMin = viewport[VIEWPORT_Y_INDEX] / (float)framebufferSize.height();
     float tHeight = viewport[VIEWPORT_HEIGHT_INDEX] / (float)framebufferSize.height();
 
+    bool useSkyboxCubemap = (_skybox) && (_skybox->getCubemap());
 
     // Fetch the ViewMatrix;
     glm::mat4 invViewMat;
@@ -234,7 +269,10 @@ void DeferredLightingEffect::render() {
         if (_viewState->getCascadeShadowsEnabled()) {
             program = &_directionalLightCascadedShadowMap;
             locations = &_directionalLightCascadedShadowMapLocations;
-            if (_ambientLightMode > -1) {
+            if (useSkyboxCubemap) {
+                program = &_directionalSkyboxLightCascadedShadowMap;
+                locations = &_directionalSkyboxLightCascadedShadowMapLocations;
+            } else if (_ambientLightMode > -1) {
                 program = &_directionalAmbientSphereLightCascadedShadowMap;
                 locations = &_directionalAmbientSphereLightCascadedShadowMapLocations;
             }
@@ -242,7 +280,10 @@ void DeferredLightingEffect::render() {
             program->setUniform(locations->shadowDistances, _viewState->getShadowDistances());
         
         } else {
-            if (_ambientLightMode > -1) {
+            if (useSkyboxCubemap) {
+                program = &_directionalSkyboxLightShadowMap;
+                locations = &_directionalSkyboxLightShadowMapLocations;
+            } else if (_ambientLightMode > -1) {
                 program = &_directionalAmbientSphereLightShadowMap;
                 locations = &_directionalAmbientSphereLightShadowMapLocations;
             }
@@ -252,7 +293,10 @@ void DeferredLightingEffect::render() {
             1.0f / textureCache->getShadowFramebuffer()->getWidth());
         
     } else {
-        if (_ambientLightMode > -1) {
+        if (useSkyboxCubemap) {
+                program = &_directionalSkyboxLight;
+                locations = &_directionalSkyboxLightLocations;
+        } else if (_ambientLightMode > -1) {
             program = &_directionalAmbientSphereLight;
             locations = &_directionalAmbientSphereLightLocations;
         }
@@ -263,12 +307,20 @@ void DeferredLightingEffect::render() {
         auto globalLight = _allocatedLights[_globalLights.front()];
     
         if (locations->ambientSphere >= 0) {
-            auto sh = globalLight->getAmbientSphere();
-            for (int i =0; i <model::SphericalHarmonics::NUM_COEFFICIENTS; i++) {
+            gpu::SphericalHarmonics sh = globalLight->getAmbientSphere();
+            if (useSkyboxCubemap && _skybox->getCubemap()->getIrradiance()) {
+                sh = (*_skybox->getCubemap()->getIrradiance());
+            }
+            for (int i =0; i <gpu::SphericalHarmonics::NUM_COEFFICIENTS; i++) {
                 program->setUniformValue(locations->ambientSphere + i, *(((QVector4D*) &sh) + i)); 
             }
         }
     
+        if (useSkyboxCubemap) {
+            glActiveTexture(GL_TEXTURE5);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, gpu::GLBackend::getTextureID(_skybox->getCubemap()));
+        }
+
         if (locations->lightBufferUnit >= 0) {
             gpu::Batch batch;
             batch.setUniformBuffer(locations->lightBufferUnit, globalLight->getSchemaBuffer());
@@ -300,7 +352,14 @@ void DeferredLightingEffect::render() {
     renderFullscreenQuad(sMin, sMin + sWidth, tMin, tMin + tHeight);
     
     program->release();
-    
+
+    if (useSkyboxCubemap) {
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+        if (!shadowsEnabled) {
+            glActiveTexture(GL_TEXTURE3);
+        }
+    }
+
     if (shadowsEnabled) {
         glBindTexture(GL_TEXTURE_2D, 0);        
         glActiveTexture(GL_TEXTURE3);
@@ -431,11 +490,20 @@ void DeferredLightingEffect::render() {
     
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, 0);
+  //  glDisable(GL_FRAMEBUFFER_SRGB);
     
+    // End of the Lighting pass
+}
+
+void DeferredLightingEffect::copyBack(RenderArgs* args) {
+    auto textureCache = DependencyManager::get<TextureCache>();
+    QSize framebufferSize = textureCache->getFrameBufferSize();
+
+    auto freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebuffer();
+
     //freeFBO->release();
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-  //  glDisable(GL_FRAMEBUFFER_SRGB);
     
     glDisable(GL_CULL_FACE);
     
@@ -458,6 +526,18 @@ void DeferredLightingEffect::render() {
     glPushMatrix();
     glLoadIdentity();
     
+    int viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    const int VIEWPORT_X_INDEX = 0;
+    const int VIEWPORT_Y_INDEX = 1;
+    const int VIEWPORT_WIDTH_INDEX = 2;
+    const int VIEWPORT_HEIGHT_INDEX = 3;
+
+    float sMin = viewport[VIEWPORT_X_INDEX] / (float)framebufferSize.width();
+    float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)framebufferSize.width();
+    float tMin = viewport[VIEWPORT_Y_INDEX] / (float)framebufferSize.height();
+    float tHeight = viewport[VIEWPORT_HEIGHT_INDEX] / (float)framebufferSize.height();
+
     renderFullscreenQuad(sMin, sMin + sWidth, tMin, tMin + tHeight);
     
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -473,12 +553,11 @@ void DeferredLightingEffect::render() {
     
     glMatrixMode(GL_MODELVIEW);
     glPopMatrix();
-    
-    // now render the objects we held back until after deferred lighting
-    foreach (PostLightingRenderable* renderable, _postLightingRenderables) {
-        renderable->renderPostLighting();
-    }
-    _postLightingRenderables.clear();
+}
+
+void DeferredLightingEffect::setupTransparent(RenderArgs* args, int lightBufferUnit) {
+    auto globalLight = _allocatedLights[_globalLights.front()];
+    args->_batch->setUniformBuffer(lightBufferUnit, globalLight->getSchemaBuffer());
 }
 
 void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limited, ProgramObject& program, LightLocations& locations) {
@@ -492,6 +571,7 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limit
     program.setUniformValue("specularMap", 2);
     program.setUniformValue("depthMap", 3);
     program.setUniformValue("shadowMap", 4);
+    program.setUniformValue("skyboxMap", 5);
     locations.shadowDistances = program.uniformLocation("shadowDistances");
     locations.shadowScale = program.uniformLocation("shadowScale");
     locations.nearLocation = program.uniformLocation("near");
@@ -544,10 +624,10 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limit
 }
 
 void DeferredLightingEffect::setAmbientLightMode(int preset) {
-    if ((preset >= 0) && (preset < model::SphericalHarmonics::NUM_PRESET)) {
+    if ((preset >= 0) && (preset < gpu::SphericalHarmonics::NUM_PRESET)) {
         _ambientLightMode = preset;
         auto light = _allocatedLights.front();
-        light->setAmbientSpherePreset(model::SphericalHarmonics::Preset(preset % model::SphericalHarmonics::NUM_PRESET));
+        light->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset(preset % gpu::SphericalHarmonics::NUM_PRESET));
     } else {
         // force to preset 0
         setAmbientLightMode(0);

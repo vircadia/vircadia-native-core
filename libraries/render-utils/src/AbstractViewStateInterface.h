@@ -13,11 +13,18 @@
 #define hifi_AbstractViewStateInterface_h
 
 #include <glm/glm.hpp>
+#include <functional>
+
+#include <render/Scene.h>
+#include <render/Engine.h>
+
+#include <QtGlobal>
 
 class Transform;
 class QThread;
 class ViewFrustum;
 class PickRay;
+class EnvironmentData;
 
 /// Interface provided by Application to other objects that need access to the current view state details
 class AbstractViewStateInterface {
@@ -32,7 +39,11 @@ public:
 
     /// gets the current view frustum for rendering the view state
     virtual ViewFrustum* getCurrentViewFrustum() = 0;
-    
+
+    /// overrides environment data
+    virtual void overrideEnvironmentData(const EnvironmentData& newData) = 0;
+    virtual void endOverrideEnvironmentData() = 0;
+
     /// gets the shadow view frustum for rendering the view state
     virtual ViewFrustum* getShadowViewFrustum() = 0;
 
@@ -45,9 +56,19 @@ public:
     virtual bool shouldRenderMesh(float largestDimension, float distanceToCamera) = 0;
     virtual float getSizeScale() const = 0;
     virtual int getBoundaryLevelAdjust() const = 0;
-    virtual PickRay computePickRay(float x, float y) = 0;
+    virtual PickRay computePickRay(float x, float y) const = 0;
 
     virtual const glm::vec3& getAvatarPosition() const = 0;
+
+    virtual void postLambdaEvent(std::function<void()> f) = 0;
+    virtual qreal getDevicePixelRatio() = 0;
+
+    virtual render::ScenePointer getMain3DScene() = 0;
+    virtual render::EnginePointer getRenderEngine() = 0;
+
+    // FIXME - we shouldn't assume that there's a single instance of an AbstractViewStateInterface
+    static AbstractViewStateInterface* instance();
+    static void setInstance(AbstractViewStateInterface* instance);
 };
 
 

@@ -20,8 +20,8 @@
 #include "EntityTreeElement.h"
 
 
-EntityItem* BoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItem* result = new BoxEntityItem(entityID, properties);
+EntityItemPointer BoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    EntityItemPointer result { new BoxEntityItem(entityID, properties) };
     return result;
 }
 
@@ -71,7 +71,7 @@ int BoxEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, i
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY_COLOR(PROP_COLOR, _color);
+    READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
 
     return bytesRead;
 }
@@ -94,15 +94,15 @@ void BoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
+    APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
 }
 
 void BoxEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
     qCDebug(entities) << "   BOX EntityItem id:" << getEntityItemID() << "---------------------------------------------";
     qCDebug(entities) << "               color:" << _color[0] << "," << _color[1] << "," << _color[2];
-    qCDebug(entities) << "            position:" << debugTreeVector(_position);
-    qCDebug(entities) << "          dimensions:" << debugTreeVector(_dimensions);
+    qCDebug(entities) << "            position:" << debugTreeVector(getPosition());
+    qCDebug(entities) << "          dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
 

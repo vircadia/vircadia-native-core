@@ -1,4 +1,3 @@
-
 //  newEditEntities.js
 //  examples
 //
@@ -15,7 +14,7 @@ HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
 Script.include([
     "libraries/stringHelpers.js",
-    "libraries/dataviewHelpers.js",
+    "libraries/dataViewHelpers.js",
     "libraries/toolBars.js",
     "libraries/progressDialog.js",
 
@@ -28,7 +27,6 @@ Script.include([
     "libraries/gridTool.js",
     "libraries/entityList.js",
     "libraries/lightOverlayManager.js",
-    "libraries/zoneOverlayManager.js",
 ]);
 
 var selectionDisplay = SelectionDisplay;
@@ -36,7 +34,6 @@ var selectionManager = SelectionManager;
 var entityPropertyDialogBox = EntityPropertyDialogBox;
 
 var lightOverlayManager = new LightOverlayManager();
-var zoneOverlayManager = new ZoneOverlayManager();
 
 var cameraManager = new CameraManager();
 
@@ -49,7 +46,6 @@ var entityListTool = EntityListTool();
 selectionManager.addEventListener(function() {
     selectionDisplay.updateHandles();
     lightOverlayManager.updatePositions();
-    zoneOverlayManager.updatePositions();
 });
 
 var windowDimensions = Controller.getViewportDimensions();
@@ -140,7 +136,9 @@ var toolBar = (function () {
         newSphereButton,
         newLightButton,
         newTextButton,
+        newWebButton,
         newZoneButton,
+        newPolyVoxButton,
         browseMarketplaceButton;
 
     function initialize() {
@@ -207,9 +205,28 @@ var toolBar = (function () {
             alpha: 0.9,
             visible: false
         });
+
+        newWebButton = toolBar.addTool({
+            imageURL: "https://hifi-public.s3.amazonaws.com/images/www.svg",
+            subImage: { x: 0, y: 0, width: 128, height: 128 },
+            width: toolWidth,
+            height: toolHeight,
+            alpha: 0.9,
+            visible: false
+        });
+
         newZoneButton = toolBar.addTool({
-            imageURL: toolIconUrl + "zonecube3.svg",
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH + 208, width: 256, height: 256 },
+            imageURL: toolIconUrl + "zonecube_text.svg",
+            subImage: { x: 0, y: 128, width: 128, height: 128 },
+            width: toolWidth,
+            height: toolHeight,
+            alpha: 0.9,
+            visible: false
+        });
+
+        newPolyVoxButton = toolBar.addTool({
+            imageURL: toolIconUrl + "polyvox.svg",
+            subImage: { x: 0, y: 0, width: 256, height: 256 },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
@@ -246,7 +263,7 @@ var toolBar = (function () {
         }
         toolBar.selectTool(activeButton, isActive);
         lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
-        zoneOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
+        Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     };
 
     // Sets visibility of tool buttons, excluding the power button
@@ -256,7 +273,9 @@ var toolBar = (function () {
         toolBar.showTool(newSphereButton, doShow);
         toolBar.showTool(newLightButton, doShow);
         toolBar.showTool(newTextButton, doShow);
+        toolBar.showTool(newWebButton, doShow);
         toolBar.showTool(newZoneButton, doShow);
+        toolBar.showTool(newPolyVoxButton, doShow);
     };
 
     var RESIZE_INTERVAL = 50;
@@ -428,6 +447,22 @@ var toolBar = (function () {
             return true;
         }
 
+        if (newWebButton === toolBar.clicked(clickedOverlay)) {
+            var position = getPositionToCreateEntity();
+
+            if (position.x > 0 && position.y > 0 && position.z > 0) {
+                placingEntityID = Entities.addEntity({
+                                type: "Web",
+                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
+                                dimensions: { x: 1.6, y: 0.9, z: 0.01 },
+                                sourceUrl: "https://highfidelity.com/",
+                                });
+            } else {
+                print("Can't create Web Entity: would be out of bounds.");
+            }
+            return true;
+        }
+
         if (newZoneButton === toolBar.clicked(clickedOverlay)) {
             var position = getPositionToCreateEntity();
 
@@ -439,6 +474,24 @@ var toolBar = (function () {
                                 });
             } else {
                 print("Can't create box: Text would be out of bounds.");
+            }
+            return true;
+        }
+
+        if (newPolyVoxButton === toolBar.clicked(clickedOverlay)) {
+            var position = getPositionToCreateEntity();
+
+            if (position.x > 0 && position.y > 0 && position.z > 0) {
+                placingEntityID = Entities.addEntity({
+                    type: "PolyVox",
+                    position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS),
+                                                 DEFAULT_DIMENSIONS),
+                    dimensions: { x: 10, y: 10, z: 10 },
+                    voxelVolumeSize: {x:16, y:16, z:16},
+                    voxelSurfaceStyle: 1
+                });
+            } else {
+                print("Can't create PolyVox: would be out of bounds.");
             }
             return true;
         }
@@ -554,16 +607,6 @@ function findClickedEntity(event) {
     }
 
     var foundEntity = result.entityID;
-
-    if (!foundEntity.isKnownID) {
-        var identify = Entities.identifyEntity(foundEntity);
-        if (!identify.isKnownID) {
-            print("Unknown ID " + identify.id + " (update loop " + foundEntity.id + ")");
-            return null;
-        }
-        foundEntity = identify;
-    }
-
     return { pickRay: pickRay, entityID: foundEntity };
 }
 
@@ -585,20 +628,21 @@ function mousePressEvent(event) {
     }
 }
 
-var highlightedEntityID = { isKnownID: false };
+var highlightedEntityID = null;
 var mouseCapturedByTool = false;
 var lastMousePosition = null;
 var idleMouseTimerId = null;
 var IDLE_MOUSE_TIMEOUT = 200;
 var DEFAULT_ENTITY_DRAG_DROP_DISTANCE = 2.0;
 
-function mouseMoveEvent(event) {
+var lastMouseMoveEvent = null;
+function mouseMoveEventBuffered(event) {
+    lastMouseMoveEvent = event;
+}
+function mouseMove(event) {
     mouseHasMovedSincePress = true;
 
     if (placingEntityID) {
-        if (!placingEntityID.isKnownID) {
-            placingEntityID = Entities.identifyEntity(placingEntityID);
-        }
         var pickRay = Camera.computePickRay(event.x, event.y);
         var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
         var offset = Vec3.multiply(distance, pickRay.direction);
@@ -635,9 +679,9 @@ function highlightEntityUnderCursor(position, accurateRay) {
     var pickRay = Camera.computePickRay(position.x, position.y);
     var entityIntersection = Entities.findRayIntersection(pickRay, accurateRay);
     if (entityIntersection.accurate) {
-        if(highlightedEntityID.isKnownID && highlightedEntityID.id != entityIntersection.entityID.id) {
+        if(highlightedEntityID && highlightedEntityID != entityIntersection.entityID) {
             selectionDisplay.unhighlightSelectable(highlightedEntityID);
-            highlightedEntityID = { id: -1, isKnownID: false };
+            highlightedEntityID = { id: -1 };
         }
 
         var halfDiagonal = Vec3.length(entityIntersection.properties.dimensions) / 2.0;
@@ -648,7 +692,7 @@ function highlightEntityUnderCursor(position, accurateRay) {
         var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE)
                         && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
 
-        if (entityIntersection.entityID.isKnownID && sizeOK) {
+        if (entityIntersection.entityID && sizeOK) {
             if (wantEntityGlow) {
                 Entities.editEntity(entityIntersection.entityID, { glowLevel: 0.25 });
             }
@@ -661,6 +705,10 @@ function highlightEntityUnderCursor(position, accurateRay) {
 
 
 function mouseReleaseEvent(event) {
+    if (lastMouseMoveEvent) {
+        mouseMove(lastMouseMoveEvent);
+        lastMouseMoveEvent = null;
+    }
     if (propertyMenu.mouseReleaseEvent(event) || toolBar.mouseReleaseEvent(event)) {
         return true;
     }
@@ -703,7 +751,7 @@ function mouseClickEvent(event) {
         } else {
             var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
 
-            print("Checking properties: " + properties.id + " " + properties.isKnownID + " - Half Diagonal:" + halfDiagonal);
+            print("Checking properties: " + properties.id + " " + " - Half Diagonal:" + halfDiagonal);
             //                P         P - Model
             //               /|         A - Palm
             //              / | d       B - unit vector toward tip
@@ -742,7 +790,7 @@ function mouseClickEvent(event) {
                     selectionManager.addEntity(foundEntity, true);
                 }
 
-                print("Model selected: " + foundEntity.id);
+                print("Model selected: " + foundEntity);
                 selectionDisplay.select(selectedEntityID, event);
 
                 if (Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT)) {
@@ -772,7 +820,7 @@ function mouseClickEvent(event) {
 }
 
 Controller.mousePressEvent.connect(mousePressEvent);
-Controller.mouseMoveEvent.connect(mouseMoveEvent);
+Controller.mouseMoveEvent.connect(mouseMoveEventBuffered);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 
 
@@ -882,6 +930,10 @@ Script.update.connect(function (deltaTime) {
         lastOrientation = Camera.orientation;
         lastPosition = Camera.position;
     }
+    if (lastMouseMoveEvent) {
+        mouseMove(lastMouseMoveEvent);
+        lastMouseMoveEvent = null;
+    }
 });
 
 function insideBox(center, dimensions, point) {
@@ -896,7 +948,7 @@ function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
         var boundingBoxCorner = Vec3.subtract(selectionManager.worldPosition,
                                               Vec3.multiply(selectionManager.worldDimensions, 0.5));
         var entities = Entities.findEntitiesInBox(boundingBoxCorner, selectionManager.worldDimensions);
-        
+
         if (!keepIfTouching) {
             var isValid;
             if (selectionManager.localPosition === null) {
@@ -930,8 +982,8 @@ function deleteSelectedEntities() {
         var savedProperties = [];
         for (var i = 0; i < selectionManager.selections.length; i++) {
             var entityID = SelectionManager.selections[i];
-            var initialProperties = SelectionManager.savedProperties[entityID.id];
-            SelectionManager.savedProperties[entityID.id];
+            var initialProperties = SelectionManager.savedProperties[entityID];
+            SelectionManager.savedProperties[entityID];
             savedProperties.push({
                 entityID: entityID,
                 properties: initialProperties
@@ -968,7 +1020,7 @@ function handeMenuEvent(menuItem) {
             }
         }
     } else if (menuItem == "Import Entities" || menuItem == "Import Entities from URL") {
-    
+
         var importURL;
         if (menuItem == "Import Entities") {
             importURL = Window.browse("Select models to import", "", "*.json");
@@ -988,7 +1040,7 @@ function handeMenuEvent(menuItem) {
     } else if (menuItem == MENU_SHOW_LIGHTS_IN_EDIT_MODE) {
         lightOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_IN_EDIT_MODE));
     } else if (menuItem == MENU_SHOW_ZONES_IN_EDIT_MODE) {
-        zoneOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
+        Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     }
     tooltip.show(false);
 }
@@ -1018,8 +1070,11 @@ function importSVO(importURL) {
     var success = Clipboard.importEntities(importURL);
 
     if (success) {
-        var position = getPositionToCreateEntity();
-
+        var VERY_LARGE = 10000;
+        var position = { x: 0, y: 0, z: 0};
+        if (Clipboard.getClipboardContentsLargestDimension() < VERY_LARGE) {
+            position = getPositionToCreateEntity();
+        }
         var pastedEntityIDs = Clipboard.pasteEntities(position);
 
         if (isActive) {
@@ -1087,8 +1142,8 @@ function applyEntityProperties(data) {
     var selectedEntityIDs = [];
     for (var i = 0; i < properties.length; i++) {
         var entityID = properties[i].entityID;
-        if (DELETED_ENTITY_MAP[entityID.id] !== undefined) {
-            entityID = DELETED_ENTITY_MAP[entityID.id];
+        if (DELETED_ENTITY_MAP[entityID] !== undefined) {
+            entityID = DELETED_ENTITY_MAP[entityID];
         }
         Entities.editEntity(entityID, properties[i].properties);
         selectedEntityIDs.push(entityID);
@@ -1097,15 +1152,15 @@ function applyEntityProperties(data) {
         var entityID = data.createEntities[i].entityID;
         var properties = data.createEntities[i].properties;
         var newEntityID = Entities.addEntity(properties);
-        DELETED_ENTITY_MAP[entityID.id] = newEntityID;
+        DELETED_ENTITY_MAP[entityID] = newEntityID;
         if (data.selectCreated) {
             selectedEntityIDs.push(newEntityID);
         }
     }
     for (var i = 0; i < data.deleteEntities.length; i++) {
         var entityID = data.deleteEntities[i].entityID;
-        if (DELETED_ENTITY_MAP[entityID.id] !== undefined) {
-            entityID = DELETED_ENTITY_MAP[entityID.id];
+        if (DELETED_ENTITY_MAP[entityID] !== undefined) {
+            entityID = DELETED_ENTITY_MAP[entityID];
         }
         Entities.deleteEntity(entityID);
     }
@@ -1130,7 +1185,7 @@ function pushCommandForSelections(createdEntityData, deletedEntityData) {
     };
     for (var i = 0; i < SelectionManager.selections.length; i++) {
         var entityID = SelectionManager.selections[i];
-        var initialProperties = SelectionManager.savedProperties[entityID.id];
+        var initialProperties = SelectionManager.savedProperties[entityID];
         var currentProperties = Entities.getEntityProperties(entityID);
         undoData.setProperties.push({
             entityID: entityID,
@@ -1174,7 +1229,7 @@ PropertiesTool = function(opts) {
         var selections = [];
         for (var i = 0; i < selectionManager.selections.length; i++) {
             var entity = {};
-            entity.id = selectionManager.selections[i].id;
+            entity.id = selectionManager.selections[i];
             entity.properties = Entities.getEntityProperties(selectionManager.selections[i]);
             entity.properties.rotation = Quat.safeEulerAngles(entity.properties.rotation);
             selections.push(entity);
@@ -1185,7 +1240,11 @@ PropertiesTool = function(opts) {
 
     webView.eventBridge.webEventReceived.connect(function(data) {
         data = JSON.parse(data);
-        if (data.type == "update") {
+        if (data.type == "print") {
+            if (data.message) {
+                print(data.message);
+            }
+        } else if (data.type == "update") {
             selectionManager.saveProperties();
             if (selectionManager.selections.length > 1) {
                 properties = {
@@ -1201,6 +1260,9 @@ PropertiesTool = function(opts) {
                     data.properties.rotation = Quat.fromPitchYawRollDegrees(rotation.x, rotation.y, rotation.z);
                 }
                 Entities.editEntity(selectionManager.selections[0], data.properties);
+                if (data.properties.name != undefined) {
+                    entityListTool.sendUpdate();
+                }
             }
             pushCommandForSelections();
             selectionManager._update();
@@ -1217,7 +1279,7 @@ PropertiesTool = function(opts) {
                     var dY = grid.getOrigin().y - (selectionManager.worldPosition.y - selectionManager.worldDimensions.y / 2),
                     var diff = { x: 0, y: dY, z: 0 };
                     for (var i = 0; i < selectionManager.selections.length; i++) {
-                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i]];
                         var newPosition = Vec3.sum(properties.position, diff);
                         Entities.editEntity(selectionManager.selections[i], {
                             position: newPosition,
@@ -1230,7 +1292,7 @@ PropertiesTool = function(opts) {
                 if (selectionManager.hasSelection()) {
                     selectionManager.saveProperties();
                     for (var i = 0; i < selectionManager.selections.length; i++) {
-                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i]];
                         var bottomY = properties.boundingBox.center.y - properties.boundingBox.dimensions.y / 2;
                         var dY = grid.getOrigin().y - bottomY;
                         var diff = { x: 0, y: dY, z: 0 };
@@ -1246,7 +1308,7 @@ PropertiesTool = function(opts) {
                 if (selectionManager.hasSelection()) {
                     selectionManager.saveProperties();
                     for (var i = 0; i < selectionManager.selections.length; i++) {
-                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i]];
                         var naturalDimensions = properties.naturalDimensions;
 
                         // If any of the natural dimensions are not 0, resize
@@ -1268,10 +1330,29 @@ PropertiesTool = function(opts) {
                 if (selectionManager.hasSelection()) {
                     selectionManager.saveProperties();
                     for (var i = 0; i < selectionManager.selections.length; i++) {
-                        var properties = selectionManager.savedProperties[selectionManager.selections[i].id];
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i]];
                         Entities.editEntity(selectionManager.selections[i], {
                             dimensions: Vec3.multiply(multiplier, properties.dimensions),
                         });
+                    }
+                    pushCommandForSelections();
+                    selectionManager._update();
+                }
+            } else if (data.action == "centerAtmosphereToZone") {
+                if (selectionManager.hasSelection()) {
+                    selectionManager.saveProperties();
+                    for (var i = 0; i < selectionManager.selections.length; i++) {
+                        var properties = selectionManager.savedProperties[selectionManager.selections[i]];
+                        if (properties.type == "Zone") {
+                            var centerOfZone = properties.boundingBox.center;
+                            var atmosphereCenter = { x: centerOfZone.x, 
+                                                     y: centerOfZone.y - properties.atmosphere.innerRadius, 
+                                                     z: centerOfZone.z };
+
+                            Entities.editEntity(selectionManager.selections[i], {
+                                atmosphere: { center: atmosphereCenter },
+                            });
+                        }
                     }
                     pushCommandForSelections();
                     selectionManager._update();

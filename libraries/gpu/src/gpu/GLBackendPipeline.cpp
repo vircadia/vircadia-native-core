@@ -63,11 +63,6 @@ void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
     if (_pipeline._pipeline == pipeline) {
         return;
     }
-   
-    if (_pipeline._needStateSync) {
-        syncPipelineStateCache();
-        _pipeline._needStateSync = false;
-    }
 
     // null pipeline == reset
     if (!pipeline) {
@@ -75,6 +70,11 @@ void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
 
         _pipeline._program = 0;
         _pipeline._invalidProgram = true;
+
+#if (GPU_TRANSFORM_PROFILE == GPU_CORE)
+#else
+        _pipeline._program_transformCamera_viewInverse = -1;
+#endif
 
         _pipeline._state = nullptr;
         _pipeline._invalidState = true;
@@ -88,6 +88,11 @@ void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
         if (_pipeline._program != pipelineObject->_program->_program) {
             _pipeline._program = pipelineObject->_program->_program;
             _pipeline._invalidProgram = true;
+
+#if (GPU_TRANSFORM_PROFILE == GPU_CORE)
+#else
+            _pipeline._program_transformCamera_viewInverse = pipelineObject->_program->_transformCamera_viewInverse;
+#endif
         }
 
         // Now for the state
@@ -108,17 +113,7 @@ void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
     }
 }
 
-#define DEBUG_GLSTATE
 void GLBackend::updatePipeline() {
-#ifdef DEBUG_GLSTATE
-    if (_pipeline._needStateSync) {
-         State::Data state;
-         getCurrentGLState(state);
-         State::Signature signature = State::evalSignature(state);
-         (void) signature; // quiet compiler
-    }
-#endif
-
     if (_pipeline._invalidProgram) {
         // doing it here is aproblem for calls to glUniform.... so will do it on assing...
         glUseProgram(_pipeline._program);
@@ -145,6 +140,14 @@ void GLBackend::updatePipeline() {
         }
         _pipeline._invalidState = false;
     }
+
+#if (GPU_TRANSFORM_PROFILE == GPU_CORE)
+#else
+    // If shader program needs the inverseView we need to provide it
+    if (_pipeline._program_transformCamera_viewInverse >= 0) {
+        glUniformMatrix4fv(_pipeline._program_transformCamera_viewInverse, 1, false, (const GLfloat*) &_transform._transformCamera._viewInverse);
+    }
+#endif
 }
 
 void GLBackend::do_setUniformBuffer(Batch& batch, uint32 paramOffset) {
@@ -171,10 +174,21 @@ void GLBackend::do_setUniformTexture(Batch& batch, uint32 paramOffset) {
     GLuint slot = batch._params[paramOffset + 1]._uint;
     TexturePointer uniformTexture = batch._textures.get(batch._params[paramOffset + 0]._uint);
 
-    GLuint to = getTextureID(uniformTexture);
-    glActiveTexture(GL_TEXTURE0 + slot);
-    glBindTexture(GL_TEXTURE_2D, to);
+    if (!uniformTexture) {
+        return;
+    }
 
-    (void) CHECK_GL_ERROR();
+    GLTexture* object = GLBackend::syncGPUObject(*uniformTexture);
+    if (object) {
+        GLuint to = object->_texture;
+        GLuint target = object->_target;
+        glActiveTexture(GL_TEXTURE0 + slot);
+        glBindTexture(target, to);
+
+        (void) CHECK_GL_ERROR();
+
+    } else {
+        return;
+    }
 }
 

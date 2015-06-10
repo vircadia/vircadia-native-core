@@ -33,7 +33,7 @@ public:
     static void connect();
     static bool isConnected();
     static void configureCamera(Camera& camera, int screenWidth, int screenHeight);
-    static void display(Camera& whichCamera);
+    static void display(RenderArgs* renderArgs, Camera& whichCamera);
     static void overrideOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane);
 private:    
@@ -44,6 +44,20 @@ private:
     static eyeFrustum _leftEye;
     static eyeFrustum _rightEye;
     static eyeFrustum* _activeEye;
+    
+    // The first function is the code executed for each eye
+    // while the second is code to be executed between the two eyes.
+    // The use case here is to modify the output viewport coordinates 
+    // for the new eye.
+    // FIXME: we'd like to have a default empty lambda for the second parameter, 
+    // but gcc 4.8.1 complains about it due to a bug.  See 
+    // http://stackoverflow.com/questions/25490662/lambda-as-default-parameter-to-a-member-function-template
+    template<typename F, typename FF>
+    static void forEachEye(F f, FF ff) {
+        f(_leftEye);
+        ff();
+        f(_rightEye);
+    }
 };
 
 #endif // hifi_TV3DManager_h

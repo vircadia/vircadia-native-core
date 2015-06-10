@@ -3,6 +3,8 @@
 #include <BulletCollision/CollisionDispatch/btCollisionWorld.h>
 #include <LinearMath/btDefaultMotionState.h>
 
+#include <PhysicsCollisionGroups.h>
+
 #include "BulletUtil.h"
 #include "DynamicCharacterController.h"
 
@@ -154,7 +156,7 @@ void DynamicCharacterController::playerStep(btCollisionWorld* dynaWorld, btScala
                 velocityCorrection -= velocityCorrection.dot(_currentUp) * _currentUp;
             }
             _rigidBody->setLinearVelocity(actualVelocity + tau * velocityCorrection);
-        } 
+        }
     }
 }
 
@@ -267,7 +269,7 @@ void DynamicCharacterController::setDynamicsWorld(btDynamicsWorld* world) {
         if (world && _rigidBody) {
             _dynamicsWorld = world;
             _pendingFlags &= ~ PENDING_FLAG_JUMP;
-            _dynamicsWorld->addRigidBody(_rigidBody);
+            _dynamicsWorld->addRigidBody(_rigidBody, COLLISION_GROUP_MY_AVATAR, COLLISION_MASK_MY_AVATAR);
             _dynamicsWorld->addAction(this);
             //reset(_dynamicsWorld);
         }
@@ -311,9 +313,11 @@ void DynamicCharacterController::updateShapeIfNecessary() {
             // create new shape
             _shape = new btCapsuleShape(_radius, 2.0f * _halfHeight);
 
+            // HACK: use some simple mass property defaults for now
+            float mass = 100.0f;
+            btVector3 inertia(30.0f, 8.0f, 30.0f);
+
             // create new body
-            float mass = 1.0f;
-            btVector3 inertia(1.0f, 1.0f, 1.0f);
             _rigidBody = new btRigidBody(mass, nullptr, _shape, inertia);
             _rigidBody->setSleepingThresholds(0.0f, 0.0f);
             _rigidBody->setAngularFactor(0.0f);

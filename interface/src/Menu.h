@@ -58,15 +58,15 @@ class Menu : public QMenuBar {
     Q_OBJECT
 public:
     static Menu* getInstance();
-    
+
     void loadSettings();
     void saveSettings();
-    
+
     MenuWrapper* getMenu(const QString& menuName);
 
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
-    
+
     QAction* addActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
                                            const QString& actionName,
                                            const QKeySequence& shortcut = 0,
@@ -80,9 +80,9 @@ public:
                                            const QKeySequence& shortcut = 0,
                                            QAction::MenuRole role = QAction::NoRole,
                                            int menuItemLocation = UNSPECIFIED_POSITION);
-    
+
     void removeAction(MenuWrapper* menu, const QString& actionName);
-    
+
 public slots:
     MenuWrapper* addMenu(const QString& menuName);
     void removeMenu(const QString& menuName);
@@ -94,21 +94,21 @@ public slots:
     bool menuItemExists(const QString& menuName, const QString& menuitem);
     bool isOptionChecked(const QString& menuOption) const;
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
-    
+
 private:
     static Menu* _instance;
     Menu();
-    
+
     typedef void(*settingsAction)(Settings&, QAction&);
     static void loadAction(Settings& settings, QAction& action);
     static void saveAction(Settings& settings, QAction& action);
     void scanMenuBar(settingsAction modifySetting);
     void scanMenu(QMenu& menu, settingsAction modifySetting, Settings& settings);
-    
+
     /// helper method to have separators with labels that are also compatible with OS X
     void addDisabledActionAndSeparator(MenuWrapper* destinationMenu, const QString& actionName,
                                        int menuItemLocation = UNSPECIFIED_POSITION);
-    
+
     QAction* addCheckableActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
                                                     const QString& actionName,
                                                     const QKeySequence& shortcut = 0,
@@ -116,15 +116,15 @@ private:
                                                     const QObject* receiver = NULL,
                                                     const char* member = NULL,
                                                     int menuItemLocation = UNSPECIFIED_POSITION);
-    
+
     QAction* getActionFromName(const QString& menuName, MenuWrapper* menu);
     MenuWrapper* getSubMenuFromName(const QString& menuName, MenuWrapper* menu);
     MenuWrapper* getMenuParent(const QString& menuName, QString& finalMenuPart);
-    
+
     QAction* getMenuAction(const QString& menuName);
     int findPositionOfMenuItem(MenuWrapper* menu, const QString& searchMenuItem);
     int positionBeforeSeparatorIfNeeded(MenuWrapper* menu, int requestedPosition);
-    
+
     QHash<QString, QAction*> _actionHash;
 };
 
@@ -147,13 +147,16 @@ namespace MenuOption {
     const QString AudioScopeTwentyFrames = "Twenty";
     const QString AudioStats = "Audio Stats";
     const QString AudioStatsShowInjectedStreams = "Audio Stats Show Injected Streams";
+    const QString AutoMuteAudio = "Auto Mute Microphone";
     const QString AvatarReceiveStats = "Show Receive Stats";
     const QString BandwidthDetails = "Bandwidth Details";
+    const QString BinaryEyelidControl = "Binary Eyelid Control";
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
     const QString BookmarkLocation = "Bookmark Location";
     const QString Bookmarks = "Bookmarks";
     const QString CascadedShadows = "Cascaded";
     const QString CachesSize = "RAM Caches Size";
+    const QString CalibrateCamera = "Calibrate Camera";
     const QString Chat = "Chat...";
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
@@ -181,7 +184,7 @@ namespace MenuOption {
     const QString EditEntitiesHelp = "Edit Entities Help...";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
     const QString EnableCharacterController = "Enable avatar collisions";
-    const QString EnableGlowEffect = "Enable Glow Effect (Warning: Poor Oculus Performance)";
+    const QString EnableGlowEffect = "Enable Glow Effect";
     const QString EnableVRMode = "Enable VR Mode";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
@@ -211,9 +214,9 @@ namespace MenuOption {
     const QString Mirror = "Mirror";
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
+    const QString MuteFaceTracking = "Mute Face Tracking";
     const QString NoFaceTracking = "None";
     const QString OctreeStats = "Entity Statistics";
-    const QString OffAxisProjection = "Off-Axis Projection";
     const QString OnlyDisplayTopTen = "Only Display Top Ten";
     const QString PackageModel = "Package Model...";
     const QString Pair = "Pair";
@@ -259,6 +262,7 @@ namespace MenuOption {
     const QString RunTimingTests = "Run Timing Tests";
     const QString ScriptEditor = "Script Editor...";
     const QString ScriptedMotorControl = "Enable Scripted Motor Control";
+    const QString ShowDSConnectTable = "Show Domain Connection Timing";
     const QString ShowBordersEntityNodes = "Show Entity Nodes";
     const QString ShowIKConstraints = "Show IK Constraints";
     const QString SimpleShadows = "Simple";

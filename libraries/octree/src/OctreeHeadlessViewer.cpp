@@ -20,10 +20,7 @@ OctreeHeadlessViewer::OctreeHeadlessViewer() :
     _boundaryLevelAdjust(0),
     _maxPacketsPerSecond(DEFAULT_MAX_OCTREE_PPS)
 {
-    _viewFrustum.setFieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES);
-    _viewFrustum.setAspectRatio(DEFAULT_ASPECT_RATIO);
-    _viewFrustum.setNearClip(DEFAULT_NEAR_CLIP);
-    _viewFrustum.setFarClip(DEFAULT_FAR_CLIP);
+    _viewFrustum.setProjection(glm::perspective(glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES), DEFAULT_ASPECT_RATIO, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
 }
 
 OctreeHeadlessViewer::~OctreeHeadlessViewer() {
@@ -67,7 +64,8 @@ void OctreeHeadlessViewer::queryOctree() {
     _octreeQuery.setCameraAspectRatio(_viewFrustum.getAspectRatio());
     _octreeQuery.setCameraNearClip(_viewFrustum.getNearClip());
     _octreeQuery.setCameraFarClip(_viewFrustum.getFarClip());
-    _octreeQuery.setCameraEyeOffsetPosition(_viewFrustum.getEyeOffsetPosition());
+    _octreeQuery.setCameraEyeOffsetPosition(glm::vec3());
+
     _octreeQuery.setOctreeSizeScale(getVoxelSizeScale());
     _octreeQuery.setBoundaryLevelAdjust(getBoundaryLevelAdjust());
 
@@ -186,7 +184,7 @@ void OctreeHeadlessViewer::queryOctree() {
             }
             
             if (inView) {
-                _octreeQuery.setMaxOctreePacketsPerSecond(perServerPPS);
+                _octreeQuery.setMaxQueryPacketsPerSecond(perServerPPS);
                 if (wantExtraDebugging) {
                     qCDebug(octree) << "inView for node " << *node << ", give it budget of " << perServerPPS;
                 }
@@ -213,15 +211,15 @@ void OctreeHeadlessViewer::queryOctree() {
                         qCDebug(octree) << "Using regular camera position for node" << *node;
                     }
                 }
-                _octreeQuery.setMaxOctreePacketsPerSecond(perUnknownServer);
+                _octreeQuery.setMaxQueryPacketsPerSecond(perUnknownServer);
             } else {
-                _octreeQuery.setMaxOctreePacketsPerSecond(0);
+                _octreeQuery.setMaxQueryPacketsPerSecond(0);
             }
             // set up the packet for sending...
             unsigned char* endOfQueryPacket = queryPacket;
             
             // insert packet type/version and node UUID
-            endOfQueryPacket += populatePacketHeader(reinterpret_cast<char*>(endOfQueryPacket), packetType);
+            endOfQueryPacket += nodeList->populatePacketHeader(reinterpret_cast<char*>(endOfQueryPacket), packetType);
             
             // encode the query data...
             endOfQueryPacket += _octreeQuery.getBroadcastData(endOfQueryPacket);

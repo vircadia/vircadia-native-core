@@ -23,8 +23,9 @@
 #include "SphereEntityItem.h"
 
 
-EntityItem* SphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new SphereEntityItem(entityID, properties);
+EntityItemPointer SphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    EntityItemPointer result { new SphereEntityItem(entityID, properties) };
+    return result;
 }
 
 // our non-pure virtual subclass for now...
@@ -67,7 +68,7 @@ int SphereEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY_COLOR(PROP_COLOR, _color);
+    READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
 
     return bytesRead;
 }
@@ -89,7 +90,7 @@ void SphereEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBi
                                     OctreeElement::AppendState& appendState) const { 
 
     bool successPropertyFits = true;
-    APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
+    APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
 }
 
 bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -119,8 +120,8 @@ void SphereEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
     qCDebug(entities) << "SHPERE EntityItem id:" << getEntityItemID() << "---------------------------------------------";
     qCDebug(entities) << "               color:" << _color[0] << "," << _color[1] << "," << _color[2];
-    qCDebug(entities) << "            position:" << debugTreeVector(_position);
-    qCDebug(entities) << "          dimensions:" << debugTreeVector(_dimensions);
+    qCDebug(entities) << "            position:" << debugTreeVector(getPosition());
+    qCDebug(entities) << "          dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
 

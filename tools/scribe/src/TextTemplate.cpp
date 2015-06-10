@@ -871,7 +871,7 @@ int TextTemplate::evalBlockGeneration(std::ostream& dst, const BlockPointer& blo
         case Command::INCLUDE: {
             TextTemplatePointer include = _config->findInclude(block->command.arguments.front().c_str());
             if (include && !include->_root->blocks.empty()) {
-                if (&include->_root) {
+                if (include->_root) {
                     generateTree(dst, include->_root, vars);
                 }
             }

@@ -91,6 +91,18 @@ void Batch::drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, ui
     _params.push_back(nbInstances);
 }
 
+void Batch::clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil) {
+    ADD_COMMAND(clearFramebuffer);
+
+    _params.push_back(stencil);
+    _params.push_back(depth);
+    _params.push_back(color.w);
+    _params.push_back(color.z);
+    _params.push_back(color.y);
+    _params.push_back(color.x);
+    _params.push_back(targets);
+}
+
 void Batch::setInputFormat(const Stream::FormatPointer& format) {
     ADD_COMMAND(setInputFormat);
 

@@ -16,18 +16,23 @@
 #include <gpu/Texture.h>
 #include <gpu/Framebuffer.h>
 
+#include <model/Light.h>
+
 #include <QImage>
 #include <QMap>
-#include <QGLWidget>
+#include <QColor>
 
 #include <DependencyManager.h>
 #include <ResourceCache.h>
 
+namespace gpu {
+class Batch;
+}
 class NetworkTexture;
 
 typedef QSharedPointer<NetworkTexture> NetworkTexturePointer;
 
-enum TextureType { DEFAULT_TEXTURE, NORMAL_TEXTURE, SPECULAR_TEXTURE, EMISSIVE_TEXTURE, SPLAT_TEXTURE };
+enum TextureType { DEFAULT_TEXTURE, NORMAL_TEXTURE, SPECULAR_TEXTURE, EMISSIVE_TEXTURE, SPLAT_TEXTURE, CUBE_TEXTURE };
 
 /// Stores cached textures, including render-to-texture targets.
 class TextureCache : public ResourceCache, public Dependency {
@@ -35,9 +40,6 @@ class TextureCache : public ResourceCache, public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
-
-    void associateWithWidget(QGLWidget* widget);
-    
     /// Sets the desired texture resolution for the framebuffer objects. 
     void setFrameBufferSize(QSize frameBufferSize);
     const QSize& getFrameBufferSize() const { return _frameBufferSize; } 
@@ -52,6 +54,9 @@ public:
 
     /// Returns the a pale blue texture (useful for a normal map).
     const gpu::TexturePointer& getBlueTexture();
+
+    /// Returns a texture version of an image file
+    static gpu::TexturePointer getImageTexture(const QString& path);
 
     /// Loads a texture from the specified URL.
     NetworkTexturePointer getTexture(const QUrl& url, TextureType type = DEFAULT_TEXTURE, bool dilatable = false,
@@ -78,6 +83,7 @@ public:
 
     /// Enables or disables draw buffers on the primary framebuffer.  Note: the primary framebuffer must be bound.
     void setPrimaryDrawBuffers(bool color, bool normal = false, bool specular = false);
+    void setPrimaryDrawBuffers(gpu::Batch& batch, bool color, bool normal = false, bool specular = false);
     
     /// Returns a pointer to the secondary framebuffer object, used as an additional render target when performing full
     /// screen effects.
@@ -94,8 +100,6 @@ public:
     /// Returns the ID of the shadow framebuffer object's depth texture.
     GLuint getShadowDepthTextureID();
     
-    virtual bool eventFilter(QObject* watched, QEvent* event);
-
 protected:
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
@@ -127,7 +131,6 @@ private:
     gpu::TexturePointer _shadowTexture;
 
     QSize _frameBufferSize;
-    QGLWidget* _associatedWidget;
 };
 
 /// A simple object wrapper for an OpenGL texture.
@@ -149,6 +152,7 @@ private:
 };
 
 /// A texture loaded from the network.
+
 class NetworkTexture : public Resource, public Texture {
     Q_OBJECT
 
@@ -167,13 +171,14 @@ public:
     int getOriginalHeight() const { return _originalHeight; }
     int getWidth() const { return _width; }
     int getHeight() const { return _height; }
-
+    TextureType getType() const { return _type; }
 protected:
 
     virtual void downloadFinished(QNetworkReply* reply);
           
     Q_INVOKABLE void loadContent(const QByteArray& content);
-    Q_INVOKABLE void setImage(const QImage& image, bool translucent, const QColor& averageColor, int originalWidth,
+    // FIXME: This void* should be a gpu::Texture* but i cannot get it to work for now, moving on...
+    Q_INVOKABLE void setImage(const QImage& image, void* texture, bool translucent, const QColor& averageColor, int originalWidth,
                               int originalHeight);
 
     virtual void imageLoaded(const QImage& image);

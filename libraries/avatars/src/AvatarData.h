@@ -13,6 +13,7 @@
 #define hifi_AvatarData_h
 
 #include <string>
+#include <memory>
 /* VS2010 defines stdint.h, but not inttypes.h */
 #if defined(_MSC_VER)
 typedef signed char  int8_t;
@@ -57,6 +58,10 @@ typedef unsigned long long quint64;
 #include "Recorder.h"
 #include "Referential.h"
 
+typedef std::shared_ptr<AvatarData> AvatarSharedPointer;
+typedef std::weak_ptr<AvatarData> AvatarWeakPointer;
+typedef QHash<QUuid, AvatarSharedPointer> AvatarHash;
+
 // avatar motion behaviors
 const quint32 AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED = 1U << 0;
 const quint32 AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED = 1U << 1;
@@ -69,6 +74,7 @@ const quint32 AVATAR_MOTION_DEFAULTS =
 const quint32 AVATAR_MOTION_SCRIPTABLE_BITS = 
         AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
 
+const qint64 AVATAR_SILENCE_THRESHOLD_USECS = 5 * USECS_PER_SECOND;
 
 // Bitset of state flags - we store the key state, hand state, faceshift, chat circling, and existance of
 // referential data in this bit set. The hand state is an octal, but is split into two sections to maintain
@@ -290,7 +296,6 @@ public:
     QString getSkeletonModelURLFromScript() const { return _skeletonModelURL.toString(); }
     void setSkeletonModelURLFromScript(const QString& skeletonModelString) { setSkeletonModelURL(QUrl(skeletonModelString)); }
     
-    Node* getOwningAvatarMixer() { return _owningAvatarMixer.data(); }
     void setOwningAvatarMixer(const QWeakPointer<Node>& owningAvatarMixer) { _owningAvatarMixer = owningAvatarMixer; }
     
     const AABox& getLocalAABox() const { return _localAABox; }
@@ -302,7 +307,9 @@ public:
 
     void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
     Q_INVOKABLE glm::vec3 getVelocity() const { return _velocity; }
-    glm::vec3 getTargetVelocity() const { return _targetVelocity; }
+    const glm::vec3& getTargetVelocity() const { return _targetVelocity; }
+
+    bool shouldDie() const { return _owningAvatarMixer.isNull() || getUsecsSinceLastUpdate() > AVATAR_SILENCE_THRESHOLD_USECS; }
 
 public slots:
     void sendAvatarDataPacket();

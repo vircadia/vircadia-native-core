@@ -20,6 +20,7 @@
 #include <MouseEvent.h>
 #include <OctreeRenderer.h>
 #include <ScriptCache.h>
+#include <AbstractAudioInterface.h>
 
 class AbstractScriptingServicesInterface;
 class AbstractViewStateInterface;
@@ -57,13 +58,11 @@ public:
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
 
     virtual void init();
-    virtual void render(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE, 
-                        RenderArgs::RenderSide renderSide = RenderArgs::MONO,
-                        RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE);
+    virtual void render(RenderArgs* renderArgs) override;
 
-    virtual const FBXGeometry* getGeometryForEntity(const EntityItem* entityItem);
-    virtual const Model* getModelForEntityItem(const EntityItem* entityItem);
-    virtual const FBXGeometry* getCollisionGeometryForEntity(const EntityItem* entityItem);
+    virtual const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem);
+    virtual const Model* getModelForEntityItem(EntityItemPointer entityItem);
+    virtual const FBXGeometry* getCollisionGeometryForEntity(EntityItemPointer entityItem);
     
     /// clears the tree
     virtual void clear();
@@ -92,9 +91,9 @@ public:
     virtual void errorInLoadingScript(const QUrl& url);
 
 signals:
-    void mousePressOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void mouseMoveOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
-    void mouseReleaseOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void mousePressOnEntity(const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId);
+    void mouseMoveOnEntity(const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId);
+    void mouseReleaseOnEntity(const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId);
 
     void clickDownOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
     void holdingClickOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
@@ -106,11 +105,11 @@ signals:
 
     void enterEntity(const EntityItemID& entityItemID);
     void leaveEntity(const EntityItemID& entityItemID);
+    void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
 public slots:
     void addingEntity(const EntityItemID& entityID);
     void deletingEntity(const EntityItemID& entityID);
-    void changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID);
     void entitySciptChanging(const EntityItemID& entityID);
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
@@ -124,12 +123,15 @@ protected:
     virtual Octree* createTree() { return new EntityTree(true); }
 
 private:
-    void renderElementProxy(EntityTreeElement* entityTreeElement);
+    void addEntityToScene(EntityItemPointer entity);
+
+    void applyZonePropertiesToScene(std::shared_ptr<ZoneEntityItem> zone);
+    void renderElementProxy(EntityTreeElement* entityTreeElement, RenderArgs* args);
     void checkAndCallPreload(const EntityItemID& entityID);
     void checkAndCallUnload(const EntityItemID& entityID);
 
     QList<Model*> _releasedModels;
-    void renderProxies(const EntityItem* entity, RenderArgs* args);
+    void renderProxies(EntityItemPointer entity, RenderArgs* args);
     RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType, 
                                                                 bool precisionPicking);
 
@@ -146,7 +148,7 @@ private:
     ScriptEngine* _entitiesScriptEngine;
     ScriptEngine* _sandboxScriptEngine;
 
-    QScriptValue loadEntityScript(EntityItem* entity, bool isPreload = false);
+    QScriptValue loadEntityScript(EntityItemPointer entity, bool isPreload = false);
     QScriptValue loadEntityScript(const EntityItemID& entityItemID, bool isPreload = false);
     QScriptValue getPreviouslyLoadedEntityScript(const EntityItemID& entityItemID);
     QString loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL, bool& isPending, QUrl& url);
@@ -154,6 +156,9 @@ private:
     QScriptValueList createMouseEventArgs(const EntityItemID& entityID, const MouseEvent& mouseEvent);
     
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
+
+    void playEntityCollisionSound(const QUuid& myNodeID, EntityTree* entityTree, const EntityItemID& id, const Collision& collision);
+    AbstractAudioInterface* _localAudioInterface; // So we can render collision sounds
 
     bool _lastMouseEventValid;
     MouseEvent _lastMouseEvent;
@@ -169,7 +174,7 @@ private:
     QMultiMap<QUrl, EntityItemID> _waitingOnPreload;
 
     bool _hasPreviousZone = false;
-    const ZoneEntityItem* _bestZone;
+    std::shared_ptr<ZoneEntityItem> _bestZone;
     float _bestZoneVolume;
 
     glm::vec3 _previousKeyLightColor;
@@ -183,6 +188,8 @@ private:
     float _previousStageHour;
     int _previousStageDay;
     
+    QHash<EntityItemID, EntityItemPointer> _entitiesInScene;
 };
+
 
 #endif // hifi_EntityTreeRenderer_h

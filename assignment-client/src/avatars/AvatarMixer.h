@@ -35,6 +35,7 @@ public slots:
     
 private:
     void broadcastAvatarData();
+    void parseDomainServerSettings(const QJsonObject& domainSettings);
     
     QThread _broadcastThread;
     
@@ -47,6 +48,10 @@ private:
     int _numStatFrames;
     int _sumBillboardPackets;
     int _sumIdentityPackets;
+
+    float _maxKbpsPerNode = 0.0f;
+
+    QTimer* _broadcastTimer = nullptr;
 };
 
 #endif // hifi_AvatarMixer_h

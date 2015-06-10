@@ -18,7 +18,7 @@
 
 class ModelEntityItem : public EntityItem {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
 
@@ -117,6 +117,8 @@ public:
     static const QString DEFAULT_TEXTURES;
     const QString& getTextures() const { return _textures; }
     void setTextures(const QString& textures) { _textures = textures; }
+
+    virtual bool shouldBePhysical() const;
     
     static void cleanupLoadedAnimations();
     

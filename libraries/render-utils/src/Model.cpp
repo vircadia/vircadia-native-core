@@ -79,17 +79,22 @@ Model::Model(QObject* parent) :
     _lodDistance(0.0f),
     _pupilDilation(0.0f),
     _url("http://invalid.com"),
+    _isVisible(true),
     _blendNumber(0),
     _appliedBlendNumber(0),
+    _calculatedMeshPartBoxesValid(false),
     _calculatedMeshBoxesValid(false),
     _calculatedMeshTrianglesValid(false),
     _meshGroupsKnown(false),
+    _isWireframe(false),
     _renderCollisionHull(false) {
     
     // we may have been created in the network thread, but we live in the main thread
     if (_viewState) {
         moveToThread(_viewState->getMainThread());
     }
+    
+    setSnapModelToRegistrationPoint(true, glm::vec3(0.5f));
 }
 
 Model::~Model() {
@@ -100,8 +105,8 @@ Model::RenderPipelineLib Model::_renderPipelineLib;
 const GLint MATERIAL_GPU_SLOT = 3;
 
 void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
-    gpu::ShaderPointer& vertexShader,
-    gpu::ShaderPointer& pixelShader ) {
+                                                 gpu::ShaderPointer& vertexShader,
+                                                 gpu::ShaderPointer& pixelShader ) {
 
     gpu::Shader::BindingSet slotBindings;
     slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
@@ -109,6 +114,7 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
     slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), 1));
     slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), 2));
     slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), 3));
+    slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), 4));
 
     gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
     gpu::Shader::makeProgram(*program, slotBindings);
@@ -119,7 +125,7 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
 
     
     gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-
+ 
     // Backface on shadow
     if (key.isShadow()) {
         state->setCullMode(gpu::State::CULL_FRONT);
@@ -134,13 +140,26 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
 
     // Blend on transparent
     state->setBlendFunction(key.isTranslucent(),
-        gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+        gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA, // For transparent only, this keep the highlight intensity
         gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
     // Good to go add the brand new pipeline
     auto pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
     insert(value_type(key.getRaw(), RenderPipeline(pipeline, locations)));
-
+    
+    
+    if (!key.isWireFrame()) {
+        
+        RenderKey wireframeKey(key.getRaw() | RenderKey::IS_WIREFRAME);
+        gpu::StatePointer wireframeState = gpu::StatePointer(new gpu::State(state->getValues()));
+        
+        wireframeState->setFillMode(gpu::State::FILL_LINE);
+        
+        // create a new RenderPipeline with the same shader side and the mirrorState
+        auto wireframePipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, wireframeState));
+        insert(value_type(wireframeKey.getRaw(), RenderPipeline(wireframePipeline, locations)));
+    }
+    
     // If not a shadow pass, create the mirror version from the same state, just change the FrontFace
     if (!key.isShadow()) {
         
@@ -152,6 +171,17 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
         // create a new RenderPipeline with the same shader side and the mirrorState
         auto mirrorPipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, mirrorState));
         insert(value_type(mirrorKey.getRaw(), RenderPipeline(mirrorPipeline, locations)));
+        
+        if (!key.isWireFrame()) {
+            RenderKey wireframeKey(key.getRaw() | RenderKey::IS_MIRROR | RenderKey::IS_WIREFRAME);
+            gpu::StatePointer wireframeState = gpu::StatePointer(new gpu::State(state->getValues()));;
+            
+            wireframeState->setFillMode(gpu::State::FILL_LINE);
+            
+            // create a new RenderPipeline with the same shader side and the mirrorState
+            auto wireframePipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, wireframeState));
+            insert(value_type(wireframeKey.getRaw(), RenderPipeline(wireframePipeline, locations)));
+        }
     }
 }
 
@@ -167,13 +197,17 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
 
 #if (GPU_FEATURE_PROFILE == GPU_CORE)
     locations.materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
+    locations.lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
 #else
     locations.materialBufferUnit = program->getUniforms().findLocation("materialBuffer");
+    locations.lightBufferUnit = program->getUniforms().findLocation("lightBuffer");
 #endif
     locations.clusterMatrices = program->getUniforms().findLocation("clusterMatrices");
 
     locations.clusterIndices = program->getInputs().findLocation("clusterIndices");;
     locations.clusterWeights = program->getInputs().findLocation("clusterWeights");;
+    
+
 
 }
 
@@ -284,10 +318,14 @@ void Model::init() {
             RenderKey(RenderKey::HAS_TANGENTS | RenderKey::HAS_SPECULAR),
             modelNormalMapVertex, modelNormalSpecularMapPixel);
 
-
+        
         _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::IS_TRANSLUCENT),
-            modelVertex, modelTranslucentPixel);
+             RenderKey(RenderKey::IS_TRANSLUCENT),
+             modelVertex, modelTranslucentPixel);
+        // FIXME Ignore lightmap for translucents meshpart
+        _renderPipelineLib.addRenderPipeline(
+             RenderKey(RenderKey::IS_TRANSLUCENT | RenderKey::HAS_LIGHTMAP),
+             modelVertex, modelTranslucentPixel);
  
         _renderPipelineLib.addRenderPipeline(
             RenderKey(RenderKey::HAS_TANGENTS | RenderKey::IS_TRANSLUCENT),
@@ -376,6 +414,8 @@ void Model::reset() {
     }
     
     _meshGroupsKnown = false;
+    _readyWhenAdded = false; // in case any of our users are using scenes
+    invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
 }
 
 bool Model::updateGeometry() {
@@ -426,6 +466,8 @@ bool Model::updateGeometry() {
         _dilatedTextures.clear();
         _geometry = geometry;
         _meshGroupsKnown = false;
+        _readyWhenAdded = false; // in case any of our users are using scenes
+        invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
         initJointStates(newJointStates);
         needToRebuild = true;
     } else if (_jointStates.isEmpty()) {
@@ -451,9 +493,9 @@ bool Model::updateGeometry() {
             gpu::BufferPointer buffer(new gpu::Buffer());
             if (!mesh.blendshapes.isEmpty()) {
                 buffer->resize((mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3));
-                buffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.vertices.constData());
+                buffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.vertices.constData());
                 buffer->setSubData(mesh.vertices.size() * sizeof(glm::vec3),
-                    mesh.normals.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.normals.constData());
+                    mesh.normals.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.normals.constData());
             }
             _blendedVertexBuffers.push_back(buffer);
         }
@@ -527,6 +569,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
 
         // If we hit the models box, then consider the submeshes...
+        _mutex.lock();
         foreach(const AABox& subMeshBox, _calculatedMeshBoxes) {
 
             if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace)) {
@@ -562,6 +605,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
             } 
             subMeshIndex++;
         }
+        _mutex.unlock();
 
         if (intersectedSomething) {
             distance = bestDistance;
@@ -597,6 +641,7 @@ bool Model::convexHullContains(glm::vec3 point) {
     // we can use the AABox's contains() by mapping our point into the model frame
     // and testing there.
     if (modelFrameBox.contains(modelFramePoint)){
+        _mutex.lock();
         if (!_calculatedMeshTrianglesValid) {
             recalculateMeshBoxes(true);
         }
@@ -618,26 +663,34 @@ bool Model::convexHullContains(glm::vec3 point) {
                 }
                 if (insideMesh) {
                     // It's inside this mesh, return true.
+                    _mutex.unlock();
                     return true;
                 }
             }
             subMeshIndex++;
         }
+        _mutex.unlock();
     }
     // It wasn't in any mesh, return false.
     return false;
 }
 
 // TODO: we seem to call this too often when things haven't actually changed... look into optimizing this
+// Any script might trigger findRayIntersectionAgainstSubMeshes (and maybe convexHullContains), so these
+// can occur multiple times. In addition, rendering does it's own ray picking in order to decide which
+// entity-scripts to call.  I think it would be best to do the picking once-per-frame (in cpu, or gpu if possible)
+// and then the calls use the most recent such result. 
 void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
     bool calculatedMeshTrianglesNeeded = pickAgainstTriangles && !_calculatedMeshTrianglesValid;
 
-    if (!_calculatedMeshBoxesValid || calculatedMeshTrianglesNeeded) {
+    if (!_calculatedMeshBoxesValid || calculatedMeshTrianglesNeeded || (!_calculatedMeshPartBoxesValid && pickAgainstTriangles) ) {
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         int numberOfMeshes = geometry.meshes.size();
         _calculatedMeshBoxes.resize(numberOfMeshes);
         _calculatedMeshTriangles.clear();
         _calculatedMeshTriangles.resize(numberOfMeshes);
+        _calculatedMeshPartBoxes.clear();
+        _calculatedMeshPartOffet.clear();
         for (int i = 0; i < numberOfMeshes; i++) {
             const FBXMesh& mesh = geometry.meshes.at(i);
             Extents scaledMeshExtents = calculateScaledOffsetExtents(mesh.meshExtents);
@@ -646,8 +699,12 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
 
             if (pickAgainstTriangles) {
                 QVector<Triangle> thisMeshTriangles;
+                qint64 partOffset = 0;
                 for (int j = 0; j < mesh.parts.size(); j++) {
                     const FBXMeshPart& part = mesh.parts.at(j);
+
+                    bool atLeastOnePointInBounds = false;
+                    AABox thisPartBounds;
 
                     const int INDICES_PER_TRIANGLE = 3;
                     const int INDICES_PER_QUAD = 4;
@@ -661,10 +718,26 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                             int i2 = part.quadIndices[vIndex++];
                             int i3 = part.quadIndices[vIndex++];
 
-                            glm::vec3 v0 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i0], 1.0f)));
-                            glm::vec3 v1 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i1], 1.0f)));
-                            glm::vec3 v2 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i2], 1.0f)));
-                            glm::vec3 v3 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i3], 1.0f)));
+                            glm::vec3 mv0 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i0], 1.0f));
+                            glm::vec3 mv1 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i1], 1.0f));
+                            glm::vec3 mv2 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i2], 1.0f));
+                            glm::vec3 mv3 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i3], 1.0f));
+                            
+                            // track the mesh parts in model space
+                            if (!atLeastOnePointInBounds) {
+                                thisPartBounds.setBox(mv0, 0.0f);
+                                atLeastOnePointInBounds = true;
+                            } else {
+                                thisPartBounds += mv0;
+                            }
+                            thisPartBounds += mv1;
+                            thisPartBounds += mv2;
+                            thisPartBounds += mv3;
+
+                            glm::vec3 v0 = calculateScaledOffsetPoint(mv0);
+                            glm::vec3 v1 = calculateScaledOffsetPoint(mv1);
+                            glm::vec3 v2 = calculateScaledOffsetPoint(mv2);
+                            glm::vec3 v3 = calculateScaledOffsetPoint(mv3);
                         
                             // Sam's recommended triangle slices
                             Triangle tri1 = { v0, v1, v3 };
@@ -676,6 +749,7 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                         
                             thisMeshTriangles.push_back(tri1);
                             thisMeshTriangles.push_back(tri2);
+                            
                         }
                     }
 
@@ -687,17 +761,38 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                             int i1 = part.triangleIndices[vIndex++];
                             int i2 = part.triangleIndices[vIndex++];
 
-                            glm::vec3 v0 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i0], 1.0f)));
-                            glm::vec3 v1 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i1], 1.0f)));
-                            glm::vec3 v2 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i2], 1.0f)));
+                            glm::vec3 mv0 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i0], 1.0f));
+                            glm::vec3 mv1 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i1], 1.0f));
+                            glm::vec3 mv2 = glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i2], 1.0f));
+
+                            // track the mesh parts in model space
+                            if (!atLeastOnePointInBounds) {
+                                thisPartBounds.setBox(mv0, 0.0f);
+                                atLeastOnePointInBounds = true;
+                            } else {
+                                thisPartBounds += mv0;
+                            }
+                            thisPartBounds += mv1;
+                            thisPartBounds += mv2;
+
+                            glm::vec3 v0 = calculateScaledOffsetPoint(mv0);
+                            glm::vec3 v1 = calculateScaledOffsetPoint(mv1);
+                            glm::vec3 v2 = calculateScaledOffsetPoint(mv2);
 
                             Triangle tri = { v0, v1, v2 };
 
                             thisMeshTriangles.push_back(tri);
                         }
                     }
+                    _calculatedMeshPartBoxes[QPair<int,int>(i, j)] = thisPartBounds;
+                    _calculatedMeshPartOffet[QPair<int,int>(i, j)] = partOffset;
+
+                    partOffset += part.quadIndices.size() * sizeof(int);
+                    partOffset += part.triangleIndices.size() * sizeof(int);
+
                 }
                 _calculatedMeshTriangles[i] = thisMeshTriangles;
+                _calculatedMeshPartBoxesValid = true;
             }
         }
         _calculatedMeshBoxesValid = true;
@@ -711,7 +806,9 @@ void Model::renderSetup(RenderArgs* args) {
     // against. We cache the results of these calculations so long as the model hasn't been
     // simulated and the mesh hasn't changed.
     if (args && !_calculatedMeshBoxesValid) {
+        _mutex.lock();
         recalculateMeshBoxes();
+        _mutex.unlock();
     }
     
     // set up dilated textures on first render after load/simulate
@@ -729,26 +826,162 @@ void Model::renderSetup(RenderArgs* args) {
     }
 }
 
-bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
+
+class TransparentMeshPart {
+public:
+    TransparentMeshPart(Model* model, int meshIndex, int partIndex) : model(model), meshIndex(meshIndex), partIndex(partIndex) { }
+    typedef render::Payload<TransparentMeshPart> Payload;
+    typedef Payload::DataPointer Pointer;
+   
+    Model* model;   
+    int meshIndex;
+    int partIndex;
+};
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const TransparentMeshPart::Pointer& payload) { 
+        if (!payload->model->isVisible()) {
+            return ItemKey::Builder().withInvisible().build();
+        }
+        return ItemKey::Builder::transparentShape();
+    }
+    
+    template <> const Item::Bound payloadGetBound(const TransparentMeshPart::Pointer& payload) { 
+        if (payload) {
+            return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
+        }
+        return render::Item::Bound();
+    }
+    template <> void payloadRender(const TransparentMeshPart::Pointer& payload, RenderArgs* args) {
+        if (args) {
+            return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, true);
+        }
+    }
+}
+
+class OpaqueMeshPart {
+public:
+    OpaqueMeshPart(Model* model, int meshIndex, int partIndex) : model(model), meshIndex(meshIndex), partIndex(partIndex) { }
+    typedef render::Payload<OpaqueMeshPart> Payload;
+    typedef Payload::DataPointer Pointer;
+
+    Model* model;   
+    int meshIndex;
+    int partIndex;
+};
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const OpaqueMeshPart::Pointer& payload) { 
+        if (!payload->model->isVisible()) {
+            return ItemKey::Builder().withInvisible().build();
+        }
+        return ItemKey::Builder::opaqueShape();
+    }
+    
+    template <> const Item::Bound payloadGetBound(const OpaqueMeshPart::Pointer& payload) { 
+        if (payload) {
+            Item::Bound result = payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
+            //qDebug() << "payloadGetBound(OpaqueMeshPart) " << result;
+            return result;
+        }
+        return render::Item::Bound();
+    }
+    template <> void payloadRender(const OpaqueMeshPart::Pointer& payload, RenderArgs* args) {
+        if (args) {
+            return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, false);
+        }
+    }
+   /* template <> const model::MaterialKey& shapeGetMaterialKey(const OpaqueMeshPart::Pointer& payload) {
+        return payload->model->getPartMaterial(payload->meshIndex, payload->partIndex);
+    }*/
+}
+
+void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene) {
+    if (_isVisible != newValue) {
+        _isVisible = newValue;
+
+        render::PendingChanges pendingChanges;
+        foreach (auto item, _renderItems.keys()) {
+            pendingChanges.resetItem(item, _renderItems[item]);
+        }
+        scene->enqueuePendingChanges(pendingChanges);
+    }
+}
+
+
+bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
+    if (!_meshGroupsKnown && isLoadedWithTextures()) {
+        segregateMeshGroups();
+    }
+
+    bool somethingAdded = false;
+
+    // allow the attachments to add to scene
+    foreach (Model* attachment, _attachments) {
+        bool attachementSomethingAdded = attachment->addToScene(scene, pendingChanges);
+        somethingAdded = somethingAdded || attachementSomethingAdded;
+    }
+    
+    foreach (auto renderItem, _transparentRenderItems) {
+        auto item = scene->allocateID();
+        auto renderData = TransparentMeshPart::Pointer(renderItem);
+        auto renderPayload = render::PayloadPointer(new TransparentMeshPart::Payload(renderData));
+        pendingChanges.resetItem(item, renderPayload);
+        _renderItems.insert(item, renderPayload);
+        somethingAdded = true;
+    }
+    foreach (auto renderItem, _opaqueRenderItems) {
+        auto item = scene->allocateID();
+        auto renderData = OpaqueMeshPart::Pointer(renderItem);
+        auto renderPayload = render::PayloadPointer(new OpaqueMeshPart::Payload(renderData));
+        pendingChanges.resetItem(item, renderPayload);
+        _renderItems.insert(item, renderPayload);
+        somethingAdded = true;
+    }
+    
+    _readyWhenAdded = readyToAddToScene();
+
+    return somethingAdded;
+}
+
+void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
+    // allow the attachments to remove to scene
+    foreach (Model* attachment, _attachments) {
+        attachment->removeFromScene(scene, pendingChanges);
+    }
+
+    foreach (auto item, _renderItems.keys()) {
+        pendingChanges.removeItem(item);
+    }
+    _renderItems.clear();
+    _readyWhenAdded = false;
+}
+
+bool Model::render(RenderArgs* renderArgs, float alpha) {
+    return true; //
     PROFILE_RANGE(__FUNCTION__);
 
     // render the attachments
     foreach (Model* attachment, _attachments) {
-        attachment->render(alpha, mode, args);
+        attachment->render(renderArgs, alpha);
     }
     if (_meshStates.isEmpty()) {
         return false;
     }
 
-    renderSetup(args);
-    return renderCore(alpha, mode, args);
+    renderSetup(renderArgs);
+    return renderCore(renderArgs, alpha);
 }
 
-bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
+bool Model::renderCore(RenderArgs* args, float alpha) {
+  return true;
+  
     PROFILE_RANGE(__FUNCTION__);
     if (!_viewState) {
         return false;
     }
+
+    auto mode = args->_renderMode;
 
     // Let's introduce a gpu::Batch to capture all the calls to the graphics api
     _renderBatch.clear();
@@ -808,19 +1041,19 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
 
     //renderMeshes(batch, mode, translucent, alphaThreshold, hasTangents, hasSpecular, isSkinned, args, forceRenderMeshes);
     int opaqueMeshPartsRendered = 0;
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, false, args, true);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, true, args, true);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, false, args, true);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, true, args, true);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, false, args, true);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, true, args, true);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, false, args, true);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, true, args, true);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, false, false, args, true);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, true, false, args, true);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, false, false, args, true);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, true, false, args, true);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, false, false, args, true);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, true, false, args, true);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, false, false, args, true);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, true, false, args, true);
 
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, false, args, true);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, false, args, true);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, false, args, true);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, false, args, true);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, false, false, args, true);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, false, false, args, true);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, false, false, args, true);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, false, false, args, true);
 
     // render translucent meshes afterwards
     //DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(false, true, true);
@@ -834,14 +1067,14 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
 
     int translucentMeshPartsRendered = 0;
     const float MOSTLY_OPAQUE_THRESHOLD = 0.75f;
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, false, args, true);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, true, args, true);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, false, args, true);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, true, args, true);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, false, args, true);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, true, args, true);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, false, args, true);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, true, args, true);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, false, false, args, true);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, true, false, args, true);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, false, false, args, true);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, true, false, args, true);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, false, false, args, true);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, true, false, args, true);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, false, false, args, true);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, true, false, args, true);
 
     {
         GLenum buffers[1];
@@ -855,14 +1088,14 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     //    batch.setFramebuffer(DependencyManager::get<TextureCache>()->getPrimaryTransparentFramebuffer());
 
         const float MOSTLY_TRANSPARENT_THRESHOLD = 0.0f;
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, false, args, true);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, true, args, true);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, false, args, true);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, true, args, true);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, false, args, true);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, true, args, true);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, false, args, true);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, true, args, true);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, false, false, args, true);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, true, false, args, true);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, false, false, args, true);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, true, false, args, true);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, false, false, args, true);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, true, false, args, true);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, false, false, args, true);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, true, false, args, true);
 
    //     batch.setFramebuffer(DependencyManager::get<TextureCache>()->getPrimaryOpaqueFramebuffer());
     }
@@ -910,8 +1143,8 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
             glPushMatrix();
         #endif
 
-        ::gpu::GLBackend::renderBatch(batch);
-
+        ::gpu::GLBackend::renderBatch(batch, true); // force sync with gl state here
+ 
         #if defined(ANDROID)
         #else
             glPopMatrix();
@@ -920,11 +1153,6 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
 
     // restore all the default material settings
     _viewState->setupWorldLight();
-    
-    if (args) {
-        args->_translucentMeshPartsRendered = translucentMeshPartsRendered;
-        args->_opaqueMeshPartsRendered = opaqueMeshPartsRendered;
-    }
     
     #ifdef WANT_DEBUG_MESHBOXES
     renderDebugMeshBoxes();
@@ -935,6 +1163,7 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
 
 void Model::renderDebugMeshBoxes() {
     int colorNdx = 0;
+    _mutex.lock();
     foreach(AABox box, _calculatedMeshBoxes) {
         if (_debugMeshBoxesID == GeometryCache::UNKNOWN_ID) {
             _debugMeshBoxesID = DependencyManager::get<GeometryCache>()->allocateID();
@@ -984,6 +1213,7 @@ void Model::renderDebugMeshBoxes() {
         DependencyManager::get<GeometryCache>()->renderVertices(gpu::LINES, _debugMeshBoxesID);
         colorNdx++;
     }
+    _mutex.unlock();
 }
 
 Extents Model::getBindExtents() const {
@@ -1038,6 +1268,12 @@ Extents Model::calculateScaledOffsetExtents(const Extents& extents) const {
     Extents translatedExtents = { rotatedExtents.minimum + _translation, 
                                   rotatedExtents.maximum + _translation };
     return translatedExtents;
+}
+
+/// Returns the world space equivalent of some box in model space.
+AABox Model::calculateScaledOffsetAABox(const AABox& box) const {
+    
+    return AABox(calculateScaledOffsetExtents(Extents(box)));
 }
 
 glm::vec3 Model::calculateScaledOffsetPoint(const glm::vec3& point) const {
@@ -1105,12 +1341,16 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     if (_url == url && _geometry && _geometry->getURL() == url) {
         return;
     }
+    
+    _readyWhenAdded = false; // reset out render items.
+    _needsReload = true;
+    
     _url = url;
 
     // if so instructed, keep the current geometry until the new one is loaded 
     _nextBaseGeometry = _nextGeometry = DependencyManager::get<GeometryCache>()->getGeometry(url, fallback, delayLoad);
     _nextLODHysteresis = NetworkGeometry::NO_HYSTERESIS;
-    if (!retainCurrent || !isActive() || _nextGeometry->isLoaded()) {
+    if (!retainCurrent || !isActive() || (_nextGeometry && _nextGeometry->isLoaded())) {
         applyNextGeometry();
     }
 }
@@ -1360,10 +1600,17 @@ void Model::snapToRegistrationPoint() {
 }
 
 void Model::simulate(float deltaTime, bool fullUpdate) {
+    /*
+    qDebug() << "Model::simulate()";
+    qDebug() << "   _translation:" << _translation;
+    qDebug() << "   _rotation:" << _rotation;
+    */
+    
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
                     
     if (isActive() && fullUpdate) {
+        // NOTE: this seems problematic... need to review
         _calculatedMeshBoxesValid = false; // if we have to simulate, we need to assume our mesh boxes are all invalid
         _calculatedMeshTrianglesValid = false;
 
@@ -1732,9 +1979,9 @@ void Model::setBlendedVertices(int blendNumber, const QWeakPointer<NetworkGeomet
         }
 
         gpu::BufferPointer& buffer = _blendedVertexBuffers[i];
-        buffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) vertices.constData() + index*sizeof(glm::vec3));
+        buffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Byte*) vertices.constData() + index*sizeof(glm::vec3));
         buffer->setSubData(mesh.vertices.size() * sizeof(glm::vec3),
-            mesh.normals.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) normals.constData() + index*sizeof(glm::vec3));
+            mesh.normals.size() * sizeof(glm::vec3), (gpu::Byte*) normals.constData() + index*sizeof(glm::vec3));
 
         index += mesh.vertices.size();
     }
@@ -1750,6 +1997,9 @@ void Model::applyNextGeometry() {
     _baseGeometry = _nextBaseGeometry;
     _geometry = _nextGeometry;
     _meshGroupsKnown = false;
+    _readyWhenAdded = false; // in case any of our users are using scenes
+    _needsReload = false; // we are loaded now!
+    invalidCalculatedMeshBoxes();
     _nextBaseGeometry.reset();
     _nextGeometry.reset();
 }
@@ -1781,15 +2031,6 @@ void Model::deleteGeometry() {
     _blendedBlendshapeCoefficients.clear();
 }
 
-// Scene rendering support
-QVector<Model*> Model::_modelsInScene;
-gpu::Batch Model::_sceneRenderBatch;
-void Model::startScene(RenderArgs::RenderSide renderSide) {
-    if (renderSide != RenderArgs::STEREO_RIGHT) {
-        _modelsInScene.clear();
-    }
-}
-
 void Model::setupBatchTransform(gpu::Batch& batch, RenderArgs* args) {
     
     // Capture the view matrix once for the rendering of this model
@@ -1806,221 +2047,239 @@ void Model::setupBatchTransform(gpu::Batch& batch, RenderArgs* args) {
     batch.setViewTransform(_transforms[0]);
 }
 
-void Model::endScene(RenderMode mode, RenderArgs* args) {
-    PROFILE_RANGE(__FUNCTION__);
-
-
-#if (GPU_TRANSFORM_PROFILE == GPU_LEGACY)
-    // with legacy transform profile, we still to protect that transform stack...
-    glPushMatrix();
-#endif 
-
-    RenderArgs::RenderSide renderSide = RenderArgs::MONO;
-    if (args) {
-        renderSide = args->_renderSide;
+AABox Model::getPartBounds(int meshIndex, int partIndex) {
+    if (!_calculatedMeshPartBoxesValid) {
+        recalculateMeshBoxes(true);
     }
-
-    gpu::GLBackend backend;
-
-    if (args) {
-        glm::mat4 proj;
-        // If for easier debug depending on the pass
-        if (mode == RenderArgs::SHADOW_RENDER_MODE) {
-            args->_viewFrustum->evalProjectionMatrix(proj); 
-        } else {
-            args->_viewFrustum->evalProjectionMatrix(proj); 
-        }
-        gpu::Batch batch;
-        batch.setProjectionTransform(proj);
-        backend.render(batch);
+    if (_calculatedMeshPartBoxesValid && _calculatedMeshPartBoxes.contains(QPair<int,int>(meshIndex, partIndex))) {
+        return calculateScaledOffsetAABox(_calculatedMeshPartBoxes[QPair<int,int>(meshIndex, partIndex)]);
     }
-
-    // Do the rendering batch creation for mono or left eye, not for right eye
-    if (renderSide != RenderArgs::STEREO_RIGHT) {
-        // Let's introduce a gpu::Batch to capture all the calls to the graphics api
-        _sceneRenderBatch.clear();
-        gpu::Batch& batch = _sceneRenderBatch;
-
-        /*DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(
-            mode == RenderArgs::DEFAULT_RENDER_MODE || mode == RenderArgs::DIFFUSE_RENDER_MODE,
-            mode == RenderArgs::DEFAULT_RENDER_MODE || mode == RenderArgs::NORMAL_RENDER_MODE,
-            mode == RenderArgs::DEFAULT_RENDER_MODE);
-            */
-
-       /*  if (mode != RenderArgs::SHADOW_RENDER_MODE) */{
-            GLenum buffers[3];
-
-            int bufferCount = 0;
-         //   if (mode == RenderArgs::DEFAULT_RENDER_MODE || mode == RenderArgs::DIFFUSE_RENDER_MODE) {
-            if (mode != RenderArgs::SHADOW_RENDER_MODE) {
-                buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
-            }
-            //if (mode == RenderArgs::DEFAULT_RENDER_MODE || mode == RenderArgs::NORMAL_RENDER_MODE) {
-            if (mode != RenderArgs::SHADOW_RENDER_MODE) {
-                buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
-            }
-           // if (mode == RenderArgs::DEFAULT_RENDER_MODE) {
-            if (mode != RenderArgs::SHADOW_RENDER_MODE) {
-                buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
-            }
-            GLBATCH(glDrawBuffers)(bufferCount, buffers);
-        
-           // batch.setFramebuffer(DependencyManager::get<TextureCache>()->getPrimaryOpaqueFramebuffer());
-        }
-
-        const float DEFAULT_ALPHA_THRESHOLD = 0.5f;
-
-        int opaqueMeshPartsRendered = 0;
-
-        // now, for each model in the scene, render the mesh portions
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, true, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, true, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, true, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, true, args);
-
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, false, args);
-
-        // render translucent meshes afterwards
-        {
-            GLenum buffers[2];
-            int bufferCount = 0;
-            buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
-            buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
-            GLBATCH(glDrawBuffers)(bufferCount, buffers);
-        }
-
-        int translucentParts = 0;
-        const float MOSTLY_OPAQUE_THRESHOLD = 0.75f;
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, false, args);
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, true, args);
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, false, args);
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, true, args);
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, false, args);
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, true, args);
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, false, args);
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, true, args);
-
-
-        {
-            GLenum buffers[1];
-            int bufferCount = 0;
-            buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
-            GLBATCH(glDrawBuffers)(bufferCount, buffers);
-         //   batch.setFramebuffer(DependencyManager::get<TextureCache>()->getPrimaryTransparentFramebuffer());
-        }
-    
-       // if (mode == RenderArgs::DEFAULT_RENDER_MODE || mode == RenderArgs::DIFFUSE_RENDER_MODE) {
-        if (mode != RenderArgs::SHADOW_RENDER_MODE) {
-          //  batch.setFramebuffer(DependencyManager::get<TextureCache>()->getPrimaryTransparentFramebuffer());
-
-            const float MOSTLY_TRANSPARENT_THRESHOLD = 0.0f;
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, false, args);
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, true, args);
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, false, args);
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, true, args);
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, false, args);
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, true, args);
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, false, args);
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, true, args);
-        
-          // batch.setFramebuffer(DependencyManager::get<TextureCache>()->getPrimaryOpaqueFramebuffer());
-        }
-
-        GLBATCH(glDepthMask)(true);
-        GLBATCH(glDepthFunc)(GL_LESS);
-        GLBATCH(glDisable)(GL_CULL_FACE);
-    
-        if (mode == RenderArgs::SHADOW_RENDER_MODE) {
-            GLBATCH(glCullFace)(GL_BACK);
-        }
-
-        
-        GLBATCH(glActiveTexture)(GL_TEXTURE0 + 1);
-        GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
-        GLBATCH(glActiveTexture)(GL_TEXTURE0 + 2);
-        GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
-        GLBATCH(glActiveTexture)(GL_TEXTURE0 + 3);
-        GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
-        GLBATCH(glActiveTexture)(GL_TEXTURE0);
-        GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
-
-
-        // deactivate vertex arrays after drawing
-        GLBATCH(glDisableClientState)(GL_NORMAL_ARRAY);
-        GLBATCH(glDisableClientState)(GL_VERTEX_ARRAY);
-        GLBATCH(glDisableClientState)(GL_TEXTURE_COORD_ARRAY);
-        GLBATCH(glDisableClientState)(GL_COLOR_ARRAY);
-        GLBATCH(glDisableVertexAttribArray)(gpu::Stream::TANGENT);
-        GLBATCH(glDisableVertexAttribArray)(gpu::Stream::SKIN_CLUSTER_INDEX);
-        GLBATCH(glDisableVertexAttribArray)(gpu::Stream::SKIN_CLUSTER_WEIGHT);
-    
-        // bind with 0 to switch back to normal operation
-        GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, 0);
-        GLBATCH(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, 0);
-        GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
-
-        // Back to no program
-        GLBATCH(glUseProgram)(0);
-
-        if (args) {
-            args->_translucentMeshPartsRendered = translucentParts;
-            args->_opaqueMeshPartsRendered = opaqueMeshPartsRendered;
-        }
-
-    }
-
-    // Render!
-    {
-        PROFILE_RANGE("render Batch");
-        backend.render(_sceneRenderBatch);
-    }
-
-
-#if (GPU_TRANSFORM_PROFILE == GPU_LEGACY)
-    // with legacy transform profile, we still to protect that transform stack...
-    glPopMatrix();
-#endif 
-
-    // restore all the default material settings
-    _viewState->setupWorldLight();
-    
+    return AABox();
 }
 
-bool Model::renderInScene(float alpha, RenderArgs* args) {
-    // render the attachments
-    foreach (Model* attachment, _attachments) {
-        attachment->renderInScene(alpha);
+void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent) {
+    if (!_readyWhenAdded) {
+        return; // bail asap
     }
-    if (_meshStates.isEmpty()) {
-        return false;
+    
+    // we always need these properly calculated before we can render, this will likely already have been done
+    // since the engine will call our getPartBounds() before rendering us.
+    if (!_calculatedMeshPartBoxesValid) {
+        recalculateMeshBoxes(true);
+    }
+    auto textureCache = DependencyManager::get<TextureCache>();
+
+    gpu::Batch& batch = *(args->_batch);
+    auto mode = args->_renderMode;
+
+    // render the part bounding box
+    #ifdef DEBUG_BOUNDING_PARTS
+    {
+        glm::vec4 cubeColor(1.0f,0.0f,0.0f,1.0f);
+        AABox partBounds = getPartBounds(meshIndex, partIndex);
+
+        glm::mat4 translation = glm::translate(partBounds.calcCenter());
+        glm::mat4 scale = glm::scale(partBounds.getDimensions());
+        glm::mat4 modelToWorldMatrix = translation * scale;
+        batch.setModelTransform(modelToWorldMatrix);
+        //qDebug() << "partBounds:" << partBounds;
+        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(batch, 1.0f, cubeColor);
+    }
+    #endif //def DEBUG_BOUNDING_PARTS
+
+    // Capture the view matrix once for the rendering of this model
+    if (_transforms.empty()) {
+        _transforms.push_back(Transform());
     }
 
-    if (args->_debugFlags == RenderArgs::RENDER_DEBUG_HULLS && _renderCollisionHull == false) {
-        // turning collision hull rendering on
-        _renderCollisionHull = true;
-        _nextGeometry = _collisionGeometry;
-        _saveNonCollisionGeometry = _geometry;
-        updateGeometry();
-        simulate(0.0, true);
-    } else if (args->_debugFlags != RenderArgs::RENDER_DEBUG_HULLS && _renderCollisionHull == true) {
-        // turning collision hull rendering off
-        _renderCollisionHull = false;
-        _nextGeometry = _saveNonCollisionGeometry;
-        _saveNonCollisionGeometry.clear();
-        updateGeometry();
-        simulate(0.0, true);
+    auto alphaThreshold = args->_alphaThreshold; //translucent ? TRANSPARENT_ALPHA_THRESHOLD : OPAQUE_ALPHA_THRESHOLD; // FIX ME
+
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
+
+    // guard against partially loaded meshes
+    if (meshIndex >= networkMeshes.size() || meshIndex >= geometry.meshes.size() || meshIndex >= _meshStates.size() ) {
+        return; 
     }
 
-    renderSetup(args);
-    _modelsInScene.push_back(this);
-    return true;
+    const NetworkMesh& networkMesh = networkMeshes.at(meshIndex);
+    const FBXMesh& mesh = geometry.meshes.at(meshIndex);
+    const MeshState& state = _meshStates.at(meshIndex);
+    
+    bool translucentMesh = translucent; // networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
+    bool hasTangents = !mesh.tangents.isEmpty();
+    bool hasSpecular = mesh.hasSpecularTexture();
+    bool hasLightmap = mesh.hasEmissiveTexture();
+    bool isSkinned = state.clusterMatrices.size() > 1;
+    bool wireframe = isWireframe();
+    
+    if (wireframe) {
+        translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
+    }
+
+    Locations* locations = nullptr;
+    pickPrograms(batch, mode, translucentMesh, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
+                 args, locations);
+
+    updateVisibleJointStates();
+
+    // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
+    // to false to rebuild out mesh groups.
+    
+    if (meshIndex < 0 || meshIndex >= networkMeshes.size() || meshIndex > geometry.meshes.size()) {
+        _meshGroupsKnown = false; // regenerate these lists next time around.
+        _readyWhenAdded = false; // in case any of our users are using scenes
+        invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
+        return; // FIXME!
+    }
+    
+    batch.setIndexBuffer(gpu::UINT32, (networkMesh._indexBuffer), 0);
+    int vertexCount = mesh.vertices.size();
+    if (vertexCount == 0) {
+        // sanity check
+        return; // FIXME!
+    }
+
+    // Transform stage
+    if (_transforms.empty()) {
+        _transforms.push_back(Transform());
+    }
+    
+    if (isSkinned) {
+        GLBATCH(glUniformMatrix4fv)(locations->clusterMatrices, state.clusterMatrices.size(), false,
+            (const float*)state.clusterMatrices.constData());
+       _transforms[0] = Transform();
+       _transforms[0].preTranslate(_translation);
+    } else {
+       _transforms[0] = Transform(state.clusterMatrices[0]);
+       _transforms[0].preTranslate(_translation);
+    }
+    batch.setModelTransform(_transforms[0]);
+
+    if (mesh.blendshapes.isEmpty()) {
+        batch.setInputFormat(networkMesh._vertexFormat);
+        batch.setInputStream(0, *networkMesh._vertexStream);
+    } else {
+        batch.setInputFormat(networkMesh._vertexFormat);
+        batch.setInputBuffer(0, _blendedVertexBuffers[meshIndex], 0, sizeof(glm::vec3));
+        batch.setInputBuffer(1, _blendedVertexBuffers[meshIndex], vertexCount * sizeof(glm::vec3), sizeof(glm::vec3));
+        batch.setInputStream(2, *networkMesh._vertexStream);
+    }
+
+    if (mesh.colors.isEmpty()) {
+        GLBATCH(glColor4f)(1.0f, 1.0f, 1.0f, 1.0f);
+    }
+
+    // guard against partially loaded meshes
+    if (partIndex >= networkMesh.parts.size() || partIndex >= mesh.parts.size()) {
+        return; 
+    }
+
+    const NetworkMeshPart& networkPart = networkMesh.parts.at(partIndex);
+    const FBXMeshPart& part = mesh.parts.at(partIndex);
+    model::MaterialPointer material = part._material;
+
+    if (material == nullptr) {
+    //    qCDebug(renderutils) << "WARNING: material == nullptr!!!";
+    }
+    
+    if (material != nullptr) {
+
+        // apply material properties
+        if (mode != RenderArgs::SHADOW_RENDER_MODE) {
+            #ifdef WANT_DEBUG
+            qCDebug(renderutils) << "Material Changed ---------------------------------------------";
+            qCDebug(renderutils) << "part INDEX:" << partIndex;
+            qCDebug(renderutils) << "NEW part.materialID:" << part.materialID;
+            #endif //def WANT_DEBUG
+
+            if (locations->materialBufferUnit >= 0) {
+                batch.setUniformBuffer(locations->materialBufferUnit, material->getSchemaBuffer());
+            }
+
+            Texture* diffuseMap = networkPart.diffuseTexture.data();
+            if (mesh.isEye && diffuseMap) {
+                // FIXME - guard against out of bounds here
+                if (meshIndex < _dilatedTextures.size()) {
+                    if (partIndex < _dilatedTextures[meshIndex].size()) {
+                        diffuseMap = (_dilatedTextures[meshIndex][partIndex] =
+                            static_cast<DilatableNetworkTexture*>(diffuseMap)->getDilatedTexture(_pupilDilation)).data();
+                    }
+                }
+            }
+            static bool showDiffuse = true;
+            if (showDiffuse && diffuseMap) {
+                batch.setUniformTexture(0, diffuseMap->getGPUTexture());
+            
+            } else {
+                batch.setUniformTexture(0, textureCache->getWhiteTexture());
+            }
+
+            if (locations->texcoordMatrices >= 0) {
+                glm::mat4 texcoordTransform[2];
+                if (!part.diffuseTexture.transform.isIdentity()) {
+                    part.diffuseTexture.transform.getMatrix(texcoordTransform[0]);
+                }
+                if (!part.emissiveTexture.transform.isIdentity()) {
+                    part.emissiveTexture.transform.getMatrix(texcoordTransform[1]);
+                }
+                GLBATCH(glUniformMatrix4fv)(locations->texcoordMatrices, 2, false, (const float*) &texcoordTransform);
+            }
+
+            if (!mesh.tangents.isEmpty()) {                 
+                Texture* normalMap = networkPart.normalTexture.data();
+                batch.setUniformTexture(1, !normalMap ?
+                    textureCache->getBlueTexture() : normalMap->getGPUTexture());
+
+            }
+    
+            if (locations->specularTextureUnit >= 0) {
+                Texture* specularMap = networkPart.specularTexture.data();
+                batch.setUniformTexture(locations->specularTextureUnit, !specularMap ?
+                                            textureCache->getWhiteTexture() : specularMap->getGPUTexture());
+            }
+
+            if (args) {
+                args->_details._materialSwitches++;
+            }
+
+            // HACK: For unknown reason (yet!) this code that should be assigned only if the material changes need to be called for every
+            // drawcall with an emissive, so let's do it for now.
+            if (locations->emissiveTextureUnit >= 0) {
+                //  assert(locations->emissiveParams >= 0); // we should have the emissiveParams defined in the shader
+                float emissiveOffset = part.emissiveParams.x;
+                float emissiveScale = part.emissiveParams.y;
+                GLBATCH(glUniform2f)(locations->emissiveParams, emissiveOffset, emissiveScale);
+                
+                Texture* emissiveMap = networkPart.emissiveTexture.data();
+                batch.setUniformTexture(locations->emissiveTextureUnit, !emissiveMap ?
+                                        textureCache->getWhiteTexture() : emissiveMap->getGPUTexture());
+            }
+            
+            if (translucent && locations->lightBufferUnit >= 0) {
+                DependencyManager::get<DeferredLightingEffect>()->setupTransparent(args, locations->lightBufferUnit);
+            }
+        }
+    }
+    
+    qint64 offset = _calculatedMeshPartOffet[QPair<int,int>(meshIndex, partIndex)];
+    
+    if (part.quadIndices.size() > 0) {
+        batch.drawIndexed(gpu::QUADS, part.quadIndices.size(), offset);
+        offset += part.quadIndices.size() * sizeof(int);
+    }
+
+    if (part.triangleIndices.size() > 0) {
+        batch.drawIndexed(gpu::TRIANGLES, part.triangleIndices.size(), offset);
+        offset += part.triangleIndices.size() * sizeof(int);
+    }
+
+    if (args) {
+        const int INDICES_PER_TRIANGLE = 3;
+        const int INDICES_PER_QUAD = 4;
+        args->_details._trianglesRendered += part.triangleIndices.size() / INDICES_PER_TRIANGLE;
+        args->_details._quadsRendered += part.quadIndices.size() / INDICES_PER_QUAD;
+    }
 }
 
 void Model::segregateMeshGroups() {
@@ -2029,18 +2288,43 @@ void Model::segregateMeshGroups() {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
 
+    // all of our mesh vectors must match in size
+    if (networkMeshes.size() != geometry.meshes.size() ||
+        geometry.meshes.size() != _meshStates.size()) {
+        qDebug() << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
+        return;
+    }
 
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
     for (int i = 0; i < networkMeshes.size(); i++) {
         const NetworkMesh& networkMesh = networkMeshes.at(i);
         const FBXMesh& mesh = geometry.meshes.at(i);
         const MeshState& state = _meshStates.at(i);
+        
 
         bool translucentMesh = networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
         bool hasTangents = !mesh.tangents.isEmpty();
         bool hasSpecular = mesh.hasSpecularTexture();
         bool hasLightmap = mesh.hasEmissiveTexture();
         bool isSkinned = state.clusterMatrices.size() > 1;
+        bool wireframe = isWireframe();
+        
+        if (wireframe) {
+            translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
+        }
+
+        // Debug...
+        int totalParts = mesh.parts.size();
+        for (int partIndex = 0; partIndex < totalParts; partIndex++) {
+            // this is a good place to create our renderPayloads
+            if (translucentMesh) {
+                _transparentRenderItems << std::shared_ptr<TransparentMeshPart>(new TransparentMeshPart(this, i, partIndex));
+            } else {
+                _opaqueRenderItems << std::shared_ptr<OpaqueMeshPart>(new OpaqueMeshPart(this, i, partIndex));
+            }
+        }
+
+        
         QString materialID;
 
         // create a material name from all the parts. If there's one part, this will be a single material and its
@@ -2057,8 +2341,8 @@ void Model::segregateMeshGroups() {
         if (wantDebug) {
             qCDebug(renderutils) << "materialID:" << materialID << "parts:" << mesh.parts.size();
         }
-
-        RenderKey key(translucentMesh, hasLightmap, hasTangents, hasSpecular, isSkinned);
+        
+        RenderKey key(translucentMesh, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe);
 
         // reuse or create the bucket corresponding to that key and insert the mesh as unsorted
         _renderBuckets[key.getRaw()]._unsortedMeshes.insertMulti(materialID, i);
@@ -2067,20 +2351,20 @@ void Model::segregateMeshGroups() {
     for(auto& b : _renderBuckets) {
         foreach(auto i, b.second._unsortedMeshes) {
             b.second._meshes.append(i);
-            b.second._unsortedMeshes.clear();
         }
+        b.second._unsortedMeshes.clear();
     }
 
     _meshGroupsKnown = true;
-}
+} 
 
-QVector<int>* Model::pickMeshList(bool translucent, float alphaThreshold, bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned) {
+QVector<int>* Model::pickMeshList(bool translucent, float alphaThreshold, bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe) {
     PROFILE_RANGE(__FUNCTION__);
 
     // depending on which parameters we were called with, pick the correct mesh group to render
     QVector<int>* whichList = NULL;
 
-    RenderKey key(translucent, hasLightmap, hasTangents, hasSpecular, isSkinned);
+    RenderKey key(translucent, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe);
 
     auto bucket = _renderBuckets.find(key.getRaw());
     if (bucket != _renderBuckets.end()) {
@@ -2091,10 +2375,10 @@ QVector<int>* Model::pickMeshList(bool translucent, float alphaThreshold, bool h
 }
 
 void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args,
+                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args,
                             Locations*& locations) {
 
-    RenderKey key(mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned);
+    RenderKey key(mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe);
     auto pipeline = _renderPipelineLib.find(key.getRaw());
     if (pipeline == _renderPipelineLib.end()) {
         qDebug() << "No good, couldn't find a pipeline from the key ?" << key.getRaw();
@@ -2118,43 +2402,15 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
     }
 }
 
-int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args) {
-
-    PROFILE_RANGE(__FUNCTION__);
-    int meshPartsRendered = 0;
-
-    bool pickProgramsNeeded = true;
-    Locations* locations = nullptr;
-    
-    foreach(Model* model, _modelsInScene) {
-        QVector<int>* whichList = model->pickMeshList(translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned);
-        if (whichList) {
-            QVector<int>& list = *whichList;
-            if (list.size() > 0) {
-                if (pickProgramsNeeded) {
-                    pickPrograms(batch, mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, args, locations);
-                    pickProgramsNeeded = false;
-                }
-
-                model->setupBatchTransform(batch, args);
-                meshPartsRendered += model->renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, args, locations);
-            }
-        }
-    }
-
-    return meshPartsRendered;
-}
-
 int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args, 
+                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args,
                             bool forceRenderSomeMeshes) {
 
     PROFILE_RANGE(__FUNCTION__);
     int meshPartsRendered = 0;
 
     //Pick the mesh list with the requested render flags
-    QVector<int>* whichList = pickMeshList(translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned);    
+    QVector<int>* whichList = pickMeshList(translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe);
     if (!whichList) {
         return 0;
     }
@@ -2166,9 +2422,9 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
     }
 
     Locations* locations = nullptr;
-    pickPrograms(batch, mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, 
+    pickPrograms(batch, mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe,
                                 args, locations);
-    meshPartsRendered = renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, 
+    meshPartsRendered = renderMeshesFromList(list, batch, mode, translucent, alphaThreshold,
                                 args, locations, forceRenderSomeMeshes);
 
     return meshPartsRendered;
@@ -2195,6 +2451,8 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
         
         if (i < 0 || i >= networkMeshes.size() || i > geometry.meshes.size()) {
             _meshGroupsKnown = false; // regenerate these lists next time around.
+            _readyWhenAdded = false; // in case any of our users are using scenes
+            invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
             continue;
         }
         
@@ -2212,8 +2470,6 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
         // if we got here, then check to see if this mesh is in view
         if (args) {
             bool shouldRender = true;
-            args->_meshesConsidered++;
-
             if (args->_viewFrustum) {
             
                 shouldRender = forceRenderMeshes || 
@@ -2223,17 +2479,10 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     float distance = args->_viewFrustum->distanceToCamera(_calculatedMeshBoxes.at(i).calcCenter());
                     shouldRender = !_viewState ? false : _viewState->shouldRenderMesh(_calculatedMeshBoxes.at(i).getLargestDimension(),
                                                                             distance);
-                    if (!shouldRender) {
-                        args->_meshesTooSmall++;
-                    }
-                } else {
-                    args->_meshesOutOfView++;
                 }
             }
 
-            if (shouldRender) {
-                args->_meshesRendered++;
-            } else {
+            if (!shouldRender) {
                 continue; // skip this mesh
             }
         }
@@ -2324,11 +2573,6 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                         batch.setUniformTexture(locations->specularTextureUnit, !specularMap ?
                                                     textureCache->getWhiteTexture() : specularMap->getGPUTexture());
                     }
-
-                    if (args) {
-                        args->_materialSwitches++;
-                    }
-
                 }
 
                 // HACK: For unkwon reason (yet!) this code that should be assigned only if the material changes need to be called for every
@@ -2359,12 +2603,6 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                 offset += part.triangleIndices.size() * sizeof(int);
             }
 
-            if (args) {
-                const int INDICES_PER_TRIANGLE = 3;
-                const int INDICES_PER_QUAD = 4;
-                args->_trianglesRendered += part.triangleIndices.size() / INDICES_PER_TRIANGLE;
-                args->_quadsRendered += part.quadIndices.size() / INDICES_PER_QUAD;
-            }
         }
     }
 

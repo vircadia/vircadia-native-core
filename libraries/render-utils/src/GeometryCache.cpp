@@ -22,7 +22,7 @@
 #include <gpu/GLBackend.h>
 
 #include <FSTReader.h>
-#include <SharedUtil.h>
+#include <NumericalConstants.h>
 
 #include "TextureCache.h"
 #include "RenderUtilsLogging.h"
@@ -56,6 +56,12 @@ const int NUM_BYTES_PER_VERTEX = NUM_COORDS_PER_VERTEX * sizeof(GLfloat);
 const int NUM_BYTES_PER_INDEX = sizeof(GLushort);
 
 void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm::vec4& color, bool solid, int id) {
+    gpu::Batch batch;
+    renderSphere(batch, radius, slices, stacks, color, solid, id);
+    gpu::GLBackend::renderBatch(batch);
+}
+
+void GeometryCache::renderSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color, bool solid, int id) {
     bool registered = (id != UNKNOWN_ID);
 
     Vec2Pair radiusKey(glm::vec2(radius, slices), glm::vec2(stacks, 0));
@@ -69,7 +75,7 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
         || (!registered && !_sphereVertices.contains(radiusKey))) {
 
         if (registered && _registeredSphereVertices.contains(id)) {
-            _registeredSphereVertices[id].clear();
+            _registeredSphereVertices[id].reset();
             #ifdef WANT_DEBUG
                 qCDebug(renderutils) << "renderSphere()... RELEASING REGISTERED VERTICES BUFFER";
             #endif
@@ -111,7 +117,7 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
         *(vertex++) = 0.0f;
         *(vertex++) = 1.0f * radius;
 
-        verticesBuffer->append(sizeof(GLfloat) * vertices * NUM_COORDS_PER_VERTEX, (gpu::Buffer::Byte*) vertexData);
+        verticesBuffer->append(sizeof(GLfloat) * vertices * NUM_COORDS_PER_VERTEX, (gpu::Byte*) vertexData);
         delete[] vertexData;
 
         #ifdef WANT_DEBUG
@@ -133,7 +139,7 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
         || (!registered && !_sphereIndices.contains(slicesStacksKey))) {
 
         if (registered && _registeredSphereIndices.contains(id)) {
-            _registeredSphereIndices[id].clear();
+            _registeredSphereIndices[id].reset();
             #ifdef WANT_DEBUG
                 qCDebug(renderutils) << "renderSphere()... RELEASING REGISTERED INDICES BUFFER";
             #endif
@@ -196,7 +202,7 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
             indexCount += 3;
 
         }
-        indicesBuffer->append(sizeof(GLushort) * indices, (gpu::Buffer::Byte*) indexData);
+        indicesBuffer->append(sizeof(GLushort) * indices, (gpu::Byte*) indexData);
         delete[] indexData;
         
         #ifdef WANT_DEBUG
@@ -219,7 +225,7 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
         || (!registered && !_sphereColors.contains(colorKey))) {
 
         if (registered && _registeredSphereColors.contains(id)) {
-            _registeredSphereColors[id].clear();
+            _registeredSphereColors[id].reset();
             #ifdef WANT_DEBUG
                 qCDebug(renderutils) << "renderSphere()... RELEASING REGISTERED COLORS BUFFER";
             #endif
@@ -245,7 +251,7 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
             *(colorDataAt++) = compactColor;
         }
 
-        colorBuffer->append(sizeof(int) * vertices, (gpu::Buffer::Byte*) colorData);
+        colorBuffer->append(sizeof(int) * vertices, (gpu::Byte*) colorData);
         delete[] colorData;
 
         #ifdef WANT_DEBUG
@@ -279,8 +285,6 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
     gpu::BufferView normalsView(verticesBuffer, streamFormat->getAttributes().at(gpu::Stream::NORMAL)._element);
     gpu::BufferView colorView(colorBuffer, streamFormat->getAttributes().at(gpu::Stream::COLOR)._element);
     
-    gpu::Batch batch;
-
     batch.setInputFormat(streamFormat);
     batch.setInputBuffer(VERTICES_SLOT, verticesView);
     batch.setInputBuffer(NORMALS_SLOT, normalsView);
@@ -292,14 +296,6 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm
     } else {
         batch.drawIndexed(gpu::LINES, indices);
     }
-
-    gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void GeometryCache::renderCone(float base, float height, int slices, int stacks) {
@@ -402,7 +398,14 @@ void GeometryCache::renderCone(float base, float height, int slices, int stacks)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
+
 void GeometryCache::renderGrid(int xDivisions, int yDivisions, const glm::vec4& color) {
+    gpu::Batch batch;
+    renderGrid(batch, xDivisions, yDivisions, color);
+    gpu::GLBackend::renderBatch(batch);
+}
+
+void GeometryCache::renderGrid(gpu::Batch& batch, int xDivisions, int yDivisions, const glm::vec4& color) {
     IntPair key(xDivisions, yDivisions);
     Vec3Pair colorKey(glm::vec3(color.x, color.y, yDivisions), glm::vec3(color.z, color.y, xDivisions));
 
@@ -432,7 +435,7 @@ void GeometryCache::renderGrid(int xDivisions, int yDivisions, const glm::vec4& 
             *(vertex++) = y;
         }
 
-        verticesBuffer->append(sizeof(GLfloat) * vertices * 2, (gpu::Buffer::Byte*) vertexData);
+        verticesBuffer->append(sizeof(GLfloat) * vertices * 2, (gpu::Byte*) vertexData);
         delete[] vertexData;
         
         _gridBuffers[key] = verticesBuffer;
@@ -454,7 +457,7 @@ void GeometryCache::renderGrid(int xDivisions, int yDivisions, const glm::vec4& 
             *(colorDataAt++) = compactColor;
         }
 
-        colorBuffer->append(sizeof(int) * vertices, (gpu::Buffer::Byte*) colorData);
+        colorBuffer->append(sizeof(int) * vertices, (gpu::Byte*) colorData);
         delete[] colorData;
     }
     gpu::BufferPointer verticesBuffer = _gridBuffers[key];
@@ -470,25 +473,21 @@ void GeometryCache::renderGrid(int xDivisions, int yDivisions, const glm::vec4& 
     gpu::BufferView verticesView(verticesBuffer, 0, verticesBuffer->getSize(), streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
     gpu::BufferView colorView(colorBuffer, streamFormat->getAttributes().at(gpu::Stream::COLOR)._element);
     
-    gpu::Batch batch;
-
     batch.setInputFormat(streamFormat);
     batch.setInputBuffer(VERTICES_SLOT, verticesView);
     batch.setInputBuffer(COLOR_SLOT, colorView);
     batch.draw(gpu::LINES, vertices, 0);
+}
 
+void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id) {
+    gpu::Batch batch;
+    renderGrid(batch, x, y, width, height, rows, cols, color, id);
     gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
 }
 
 // TODO: properly handle the x,y,w,h changing for an ID
 // TODO: why do we seem to create extra BatchItemDetails when we resize the window?? what's that??
-void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id) {
+void GeometryCache::renderGrid(gpu::Batch& batch, int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id) {
     #ifdef WANT_DEBUG
         qCDebug(renderutils) << "GeometryCache::renderGrid(x["<<x<<"], "
             "y["<<y<<"],"
@@ -537,7 +536,7 @@ void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, in
             tx += dx;
         }
 
-        verticesBuffer->append(sizeof(GLfloat) * vertices * 2, (gpu::Buffer::Byte*) vertexData);
+        verticesBuffer->append(sizeof(GLfloat) * vertices * 2, (gpu::Byte*) vertexData);
         delete[] vertexData;
         
         if (registered) {
@@ -564,7 +563,7 @@ void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, in
             *(colorDataAt++) = compactColor;
         }
 
-        colorBuffer->append(sizeof(int) * vertices, (gpu::Buffer::Byte*) colorData);
+        colorBuffer->append(sizeof(int) * vertices, (gpu::Byte*) colorData);
         delete[] colorData;
     }
     gpu::BufferPointer verticesBuffer = registered ? _registeredAlternateGridBuffers[id] : _alternateGridBuffers[key];
@@ -580,20 +579,11 @@ void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, in
 
     gpu::BufferView verticesView(verticesBuffer, 0, verticesBuffer->getSize(), streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
     gpu::BufferView colorView(colorBuffer, streamFormat->getAttributes().at(gpu::Stream::COLOR)._element);
-    
-    gpu::Batch batch;
 
     batch.setInputFormat(streamFormat);
     batch.setInputBuffer(VERTICES_SLOT, verticesView);
     batch.setInputBuffer(COLOR_SLOT, colorView);
     batch.draw(gpu::LINES, vertices, 0);
-
-    gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, const glm::vec4& color) {
@@ -648,8 +638,8 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
         *(colorDataAt++) = compactColor;
     }
 
-    details.verticesBuffer->append(sizeof(GLfloat) * FLOATS_PER_VERTEX * details.vertices, (gpu::Buffer::Byte*) vertexData);
-    details.colorBuffer->append(sizeof(int) * details.vertices, (gpu::Buffer::Byte*) colorData);
+    details.verticesBuffer->append(sizeof(GLfloat) * FLOATS_PER_VERTEX * details.vertices, (gpu::Byte*) vertexData);
+    details.colorBuffer->append(sizeof(int) * details.vertices, (gpu::Byte*) colorData);
     delete[] vertexData;
     delete[] colorData;
 
@@ -660,7 +650,6 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
 
 void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, const glm::vec4& color) {
     BatchItemDetails& details = _registeredVertices[id];
-
     if (details.isCreated) {
         details.clear();
         #ifdef WANT_DEBUG
@@ -711,8 +700,78 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
         *(colorDataAt++) = compactColor;
     }
 
-    details.verticesBuffer->append(sizeof(GLfloat) * FLOATS_PER_VERTEX * details.vertices, (gpu::Buffer::Byte*) vertexData);
-    details.colorBuffer->append(sizeof(int) * details.vertices, (gpu::Buffer::Byte*) colorData);
+    details.verticesBuffer->append(sizeof(GLfloat) * FLOATS_PER_VERTEX * details.vertices, (gpu::Byte*) vertexData);
+    details.colorBuffer->append(sizeof(int) * details.vertices, (gpu::Byte*) colorData);
+    delete[] vertexData;
+    delete[] colorData;
+
+    #ifdef WANT_DEBUG
+        qCDebug(renderutils) << "new registered linestrip buffer made -- _registeredVertices.size():" << _registeredVertices.size();
+    #endif
+}
+
+void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, const QVector<glm::vec2>& texCoords, const glm::vec4& color) {
+    BatchItemDetails& details = _registeredVertices[id];
+
+    if (details.isCreated) {
+        details.clear();
+        #ifdef WANT_DEBUG
+            qCDebug(renderutils) << "updateVertices()... RELEASING REGISTERED";
+        #endif // def WANT_DEBUG
+    }
+
+    const int FLOATS_PER_VERTEX = 5;
+    details.isCreated = true;
+    details.vertices = points.size();
+    details.vertexSize = FLOATS_PER_VERTEX;
+
+    gpu::BufferPointer verticesBuffer(new gpu::Buffer());
+    gpu::BufferPointer colorBuffer(new gpu::Buffer());
+    gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format());
+    gpu::BufferStreamPointer stream(new gpu::BufferStream());
+
+    details.verticesBuffer = verticesBuffer;
+    details.colorBuffer = colorBuffer;
+    details.streamFormat = streamFormat;
+    details.stream = stream;
+
+    details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
+    details.streamFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), 3 * sizeof(float));
+    details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+
+    details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
+    details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
+
+    assert(points.size() == texCoords.size());
+
+    details.vertices = points.size();
+    details.vertexSize = FLOATS_PER_VERTEX;
+
+    int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
+                        ((int(color.y * 255.0f) & 0xFF) << 8) |
+                        ((int(color.z * 255.0f) & 0xFF) << 16) |
+                        ((int(color.w * 255.0f) & 0xFF) << 24);
+
+    GLfloat* vertexData = new GLfloat[details.vertices * FLOATS_PER_VERTEX];
+    GLfloat* vertex = vertexData;
+
+    int* colorData = new int[details.vertices];
+    int* colorDataAt = colorData;
+
+    for (int i = 0; i < points.size(); i++) {
+        glm::vec3 point = points[i];
+        glm::vec2 texCoord = texCoords[i];
+        *(vertex++) = point.x;
+        *(vertex++) = point.y;
+        *(vertex++) = point.z;
+        *(vertex++) = texCoord.x;
+        *(vertex++) = texCoord.y;
+
+        *(colorDataAt++) = compactColor;
+    }
+
+    details.verticesBuffer->append(sizeof(GLfloat) * FLOATS_PER_VERTEX * details.vertices, (gpu::Byte*) vertexData);
+    details.colorBuffer->append(sizeof(int) * details.vertices, (gpu::Byte*) colorData);
     delete[] vertexData;
     delete[] colorData;
 
@@ -722,24 +781,27 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
 }
 
 void GeometryCache::renderVertices(gpu::Primitive primitiveType, int id) {
+    gpu::Batch batch;
+    renderVertices(batch, primitiveType, id);
+    gpu::GLBackend::renderBatch(batch);
+}
+
+void GeometryCache::renderVertices(gpu::Batch& batch, gpu::Primitive primitiveType, int id) {
     BatchItemDetails& details = _registeredVertices[id];
     if (details.isCreated) {
-        gpu::Batch batch;
-
         batch.setInputFormat(details.streamFormat);
         batch.setInputStream(0, *details.stream);
         batch.draw(primitiveType, details.vertices, 0);
-
-        gpu::GLBackend::renderBatch(batch);
-
-        glDisableClientState(GL_VERTEX_ARRAY);
-        glDisableClientState(GL_COLOR_ARRAY);
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 }
 
 void GeometryCache::renderSolidCube(float size, const glm::vec4& color) {
+    gpu::Batch batch;
+    renderSolidCube(batch, size, color);
+    gpu::GLBackend::renderBatch(batch);
+}
+
+void GeometryCache::renderSolidCube(gpu::Batch& batch, float size, const glm::vec4& color) {
     Vec2Pair colorKey(glm::vec2(color.x, color.y), glm::vec2(color.z, color.y));
     const int FLOATS_PER_VERTEX = 3;
     const int VERTICES_PER_FACE = 4;
@@ -752,9 +814,9 @@ void GeometryCache::renderSolidCube(float size, const glm::vec4& color) {
     const int VERTEX_STRIDE = sizeof(GLfloat) * FLOATS_PER_VERTEX * 2; // vertices and normals
     const int NORMALS_OFFSET = sizeof(GLfloat) * FLOATS_PER_VERTEX;
 
-    if (!_solidCubeVerticies.contains(size)) {
+    if (!_solidCubeVertices.contains(size)) {
         gpu::BufferPointer verticesBuffer(new gpu::Buffer());
-        _solidCubeVerticies[size] = verticesBuffer;
+        _solidCubeVertices[size] = verticesBuffer;
 
         GLfloat* vertexData = new GLfloat[vertexPoints * 2]; // vertices and normals
         GLfloat* vertex = vertexData;
@@ -793,7 +855,7 @@ void GeometryCache::renderSolidCube(float size, const glm::vec4& color) {
             *(vertex++) = *cannonicalNormal++;
         }
 
-        verticesBuffer->append(sizeof(GLfloat) * vertexPoints * 2, (gpu::Buffer::Byte*) vertexData);
+        verticesBuffer->append(sizeof(GLfloat) * vertexPoints * 2, (gpu::Byte*) vertexData);
     }
 
     if (!_solidCubeIndexBuffer) {
@@ -808,7 +870,7 @@ void GeometryCache::renderSolidCube(float size, const glm::vec4& color) {
         gpu::BufferPointer indexBuffer(new gpu::Buffer());
         _solidCubeIndexBuffer = indexBuffer;
     
-        _solidCubeIndexBuffer->append(sizeof(cannonicalIndices), (gpu::Buffer::Byte*) cannonicalIndices);
+        _solidCubeIndexBuffer->append(sizeof(cannonicalIndices), (gpu::Byte*) cannonicalIndices);
     }
 
     if (!_solidCubeColors.contains(colorKey)) {
@@ -827,9 +889,9 @@ void GeometryCache::renderSolidCube(float size, const glm::vec4& color) {
                                                    compactColor, compactColor, compactColor, compactColor,
                                                    compactColor, compactColor, compactColor, compactColor };
 
-        colorBuffer->append(sizeof(colors), (gpu::Buffer::Byte*) colors);
+        colorBuffer->append(sizeof(colors), (gpu::Byte*) colors);
     }
-    gpu::BufferPointer verticesBuffer = _solidCubeVerticies[size];
+    gpu::BufferPointer verticesBuffer = _solidCubeVertices[size];
     gpu::BufferPointer colorBuffer = _solidCubeColors[colorKey];
 
     const int VERTICES_SLOT = 0;
@@ -845,25 +907,21 @@ void GeometryCache::renderSolidCube(float size, const glm::vec4& color) {
     gpu::BufferView normalsView(verticesBuffer, NORMALS_OFFSET, verticesBuffer->getSize(), VERTEX_STRIDE, streamFormat->getAttributes().at(gpu::Stream::NORMAL)._element);
     gpu::BufferView colorView(colorBuffer, streamFormat->getAttributes().at(gpu::Stream::COLOR)._element);
     
-    gpu::Batch batch;
-
     batch.setInputFormat(streamFormat);
     batch.setInputBuffer(VERTICES_SLOT, verticesView);
     batch.setInputBuffer(NORMALS_SLOT, normalsView);
     batch.setInputBuffer(COLOR_SLOT, colorView);
     batch.setIndexBuffer(gpu::UINT8, _solidCubeIndexBuffer, 0);
     batch.drawIndexed(gpu::TRIANGLES, indices);
-
-    gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void GeometryCache::renderWireCube(float size, const glm::vec4& color) {
+    gpu::Batch batch;
+    renderWireCube(batch, size, color);
+    gpu::GLBackend::renderBatch(batch);
+}
+
+void GeometryCache::renderWireCube(gpu::Batch& batch, float size, const glm::vec4& color) {
     Vec2Pair colorKey(glm::vec2(color.x, color.y),glm::vec2(color.z, color.y));
     const int FLOATS_PER_VERTEX = 3;
     const int VERTICES_PER_EDGE = 2;
@@ -891,7 +949,7 @@ void GeometryCache::renderWireCube(float size, const glm::vec4& color) {
             vertex[i] = cannonicalVertices[i] * halfSize;
         }
 
-        verticesBuffer->append(sizeof(GLfloat) * vertexPoints, (gpu::Buffer::Byte*) vertexData); // I'm skeptical that this is right
+        verticesBuffer->append(sizeof(GLfloat) * vertexPoints, (gpu::Byte*) vertexData); // I'm skeptical that this is right
     }
 
     if (!_wireCubeIndexBuffer) {
@@ -904,7 +962,7 @@ void GeometryCache::renderWireCube(float size, const glm::vec4& color) {
         gpu::BufferPointer indexBuffer(new gpu::Buffer());
         _wireCubeIndexBuffer = indexBuffer;
     
-        _wireCubeIndexBuffer->append(sizeof(cannonicalIndices), (gpu::Buffer::Byte*) cannonicalIndices);
+        _wireCubeIndexBuffer->append(sizeof(cannonicalIndices), (gpu::Byte*) cannonicalIndices);
     }
 
     if (!_cubeColors.contains(colorKey)) {
@@ -919,7 +977,7 @@ void GeometryCache::renderWireCube(float size, const glm::vec4& color) {
         int colors[NUM_COLOR_SCALARS_PER_CUBE] = { compactColor, compactColor, compactColor, compactColor,
                                                    compactColor, compactColor, compactColor, compactColor };
 
-        colorBuffer->append(sizeof(colors), (gpu::Buffer::Byte*) colors);
+        colorBuffer->append(sizeof(colors), (gpu::Byte*) colors);
     }
     gpu::BufferPointer verticesBuffer = _cubeVerticies[size];
     gpu::BufferPointer colorBuffer = _cubeColors[colorKey];
@@ -933,24 +991,20 @@ void GeometryCache::renderWireCube(float size, const glm::vec4& color) {
     gpu::BufferView verticesView(verticesBuffer, streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
     gpu::BufferView colorView(colorBuffer, streamFormat->getAttributes().at(gpu::Stream::COLOR)._element);
     
-    gpu::Batch batch;
-
     batch.setInputFormat(streamFormat);
     batch.setInputBuffer(VERTICES_SLOT, verticesView);
     batch.setInputBuffer(COLOR_SLOT, colorView);
     batch.setIndexBuffer(gpu::UINT8, _wireCubeIndexBuffer, 0);
     batch.drawIndexed(gpu::LINES, indices);
-
-    gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void GeometryCache::renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id) {
+    gpu::Batch batch;
+    renderBevelCornersRect(batch, x, y, width, height, bevelDistance, color, id);
+    gpu::GLBackend::renderBatch(batch);
+}
+
+void GeometryCache::renderBevelCornersRect(gpu::Batch& batch, int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id) {
     bool registered = (id != UNKNOWN_ID);
     Vec3Pair key(glm::vec3(x, y, 0.0f), glm::vec3(width, height, bevelDistance));
     BatchItemDetails& details = registered ? _registeredBevelRects[id] : _bevelRects[key];
@@ -1037,27 +1091,24 @@ void GeometryCache::renderBevelCornersRect(int x, int y, int width, int height, 
                                                    compactColor, compactColor, compactColor, compactColor };
 
 
-        details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
-        details.colorBuffer->append(sizeof(colors), (gpu::Buffer::Byte*) colors);
+        details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Byte*) vertexBuffer);
+        details.colorBuffer->append(sizeof(colors), (gpu::Byte*) colors);
 
         delete[] vertexBuffer;
     }
 
-    gpu::Batch batch;
-
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
     batch.draw(gpu::QUADS, 4, 0);
-
-    gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner, const glm::vec4& color, int id) {
+    gpu::Batch batch;
+    renderQuad(batch, minCorner, maxCorner, color, id);
+    gpu::GLBackend::renderBatch(batch);
+}
+
+void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner, const glm::vec4& color, int id) {
     bool registered = (id != UNKNOWN_ID);
     Vec4Pair key(glm::vec4(minCorner.x, minCorner.y, maxCorner.x, maxCorner.y), color);
     BatchItemDetails& details = registered ? _registeredQuad2D[id] : _quad2D[key];
@@ -1119,25 +1170,24 @@ void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxC
         int colors[NUM_COLOR_SCALARS_PER_QUAD] = { compactColor, compactColor, compactColor, compactColor };
 
 
-        details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
-        details.colorBuffer->append(sizeof(colors), (gpu::Buffer::Byte*) colors);
+        details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Byte*) vertexBuffer);
+        details.colorBuffer->append(sizeof(colors), (gpu::Byte*) colors);
     }
-
-    gpu::Batch batch;
 
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
     batch.draw(gpu::QUADS, 4, 0);
-
-    gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner,
+                    const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner, 
+                    const glm::vec4& color, int id) {
+    gpu::Batch batch;
+    renderQuad(batch, minCorner, maxCorner, texCoordMinCorner, texCoordMaxCorner, color, id);
+    gpu::GLBackend::renderBatch(batch);
+}
+
+void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
                     const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner, 
                     const glm::vec4& color, int id) {
 
@@ -1208,31 +1258,22 @@ void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxC
         int colors[NUM_COLOR_SCALARS_PER_QUAD] = { compactColor, compactColor, compactColor, compactColor };
 
 
-        details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
-        details.colorBuffer->append(sizeof(colors), (gpu::Buffer::Byte*) colors);
+        details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Byte*) vertexBuffer);
+        details.colorBuffer->append(sizeof(colors), (gpu::Byte*) colors);
     }
-
-    gpu::Batch batch;
-
-//    glEnable(GL_TEXTURE_2D);
-    //glBindTexture(GL_TEXTURE_2D, _currentTextureID); // this is quad specific...
 
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
     batch.draw(gpu::QUADS, 4, 0);
-
-    gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-  //  glBindTexture(GL_TEXTURE_2D, 0);
-  //  glDisable(GL_TEXTURE_2D);
 }
 
 void GeometryCache::renderQuad(const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color, int id) {
+    gpu::Batch batch;
+    renderQuad(batch, minCorner, maxCorner, color, id);
+    gpu::GLBackend::renderBatch(batch);
+}
+
+void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color, int id) {
     bool registered = (id != UNKNOWN_ID);
     Vec3PairVec4 key(Vec3Pair(minCorner, maxCorner), color);
     BatchItemDetails& details = registered ? _registeredQuad3D[id] : _quad3D[key];
@@ -1294,25 +1335,27 @@ void GeometryCache::renderQuad(const glm::vec3& minCorner, const glm::vec3& maxC
         int colors[NUM_COLOR_SCALARS_PER_QUAD] = { compactColor, compactColor, compactColor, compactColor };
 
 
-        details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
-        details.colorBuffer->append(sizeof(colors), (gpu::Buffer::Byte*) colors);
+        details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Byte*) vertexBuffer);
+        details.colorBuffer->append(sizeof(colors), (gpu::Byte*) colors);
     }
-
-    gpu::Batch batch;
 
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
     batch.draw(gpu::QUADS, 4, 0);
-
-    gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottomLeft, 
+                    const glm::vec3& bottomRight, const glm::vec3& topRight,
+                    const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomLeft,
+                    const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight, 
+                    const glm::vec4& color, int id) {
+    gpu::Batch batch;
+    renderQuad(batch, topLeft, bottomLeft, bottomRight, topRight, texCoordTopLeft, texCoordBottomLeft,
+               texCoordBottomRight, texCoordTopRight, color, id);
+    gpu::GLBackend::renderBatch(batch);
+}
+
+void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, const glm::vec3& bottomLeft, 
                     const glm::vec3& bottomRight, const glm::vec3& topRight,
                     const glm::vec2& texCoordTopLeft, const glm::vec2& texCoordBottomLeft,
                     const glm::vec2& texCoordBottomRight, const glm::vec2& texCoordTopRight, 
@@ -1396,35 +1439,22 @@ void GeometryCache::renderQuad(const glm::vec3& topLeft, const glm::vec3& bottom
                             ((int(color.w * 255.0f) & 0xFF) << 24);
         int colors[NUM_COLOR_SCALARS_PER_QUAD] = { compactColor, compactColor, compactColor, compactColor };
 
-        details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
-        details.colorBuffer->append(sizeof(colors), (gpu::Buffer::Byte*) colors);
+        details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Byte*) vertexBuffer);
+        details.colorBuffer->append(sizeof(colors), (gpu::Byte*) colors);
     }
-
-    gpu::Batch batch;
-
-    glEnable(GL_TEXTURE_2D);
-    //glBindTexture(GL_TEXTURE_2D, _currentTextureID); // this is quad specific...
 
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
     batch.draw(gpu::QUADS, 4, 0);
-
-    gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    
-    // TODO: The callers of this method (renderMagnifier and renderReticle) assume that we won't disable an unbind
-    // the texture after rendering. I'm not sure if this is correct in general but it's currently required for the
-    // oculus overlay to work.
-    //glBindTexture(GL_TEXTURE_2D, 0);
-    //glDisable(GL_TEXTURE_2D);
 }
 
 void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id) {
+    gpu::Batch batch;
+    renderDashedLine(batch, start, end, color, id);
+    gpu::GLBackend::renderBatch(batch);
+}
+
+void GeometryCache::renderDashedLine(gpu::Batch& batch, const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id) {
     bool registered = (id != UNKNOWN_ID);
     Vec3PairVec2Pair key(Vec3Pair(start, end), Vec2Pair(glm::vec2(color.x, color.y), glm::vec2(color.z, color.w)));
     BatchItemDetails& details = registered ? _registeredDashedLines[id] : _dashedLines[key];
@@ -1510,8 +1540,8 @@ void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& en
         *(vertex++) = end.z;
         *(colorDataAt++) = compactColor;
 
-        details.verticesBuffer->append(sizeof(GLfloat) * FLOATS_PER_VERTEX * details.vertices, (gpu::Buffer::Byte*) vertexData);
-        details.colorBuffer->append(sizeof(int) * details.vertices, (gpu::Buffer::Byte*) colorData);
+        details.verticesBuffer->append(sizeof(GLfloat) * FLOATS_PER_VERTEX * details.vertices, (gpu::Byte*) vertexData);
+        details.colorBuffer->append(sizeof(int) * details.vertices, (gpu::Byte*) colorData);
         delete[] vertexData;
         delete[] colorData;
 
@@ -1524,18 +1554,9 @@ void GeometryCache::renderDashedLine(const glm::vec3& start, const glm::vec3& en
         #endif
     }
 
-    gpu::Batch batch;
-
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
     batch.draw(gpu::LINES, details.vertices, 0);
-
-    gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 
@@ -1581,13 +1602,20 @@ GeometryCache::BatchItemDetails::~BatchItemDetails() {
 
 void GeometryCache::BatchItemDetails::clear() {
     isCreated = false;
-    verticesBuffer.clear();
-    colorBuffer.clear();
-    streamFormat.clear();
-    stream.clear();
+    verticesBuffer.reset();
+    colorBuffer.reset();
+    streamFormat.reset();
+    stream.reset();
 }
 
 void GeometryCache::renderLine(const glm::vec3& p1, const glm::vec3& p2, 
+                               const glm::vec4& color1, const glm::vec4& color2, int id) {
+    gpu::Batch batch;
+    renderLine(batch, p1, p2, color1, color2, id);
+    gpu::GLBackend::renderBatch(batch);
+}
+
+void GeometryCache::renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, 
                                const glm::vec4& color1, const glm::vec4& color2, int id) {
                                
     bool registered = (id != UNKNOWN_ID);
@@ -1653,8 +1681,8 @@ void GeometryCache::renderLine(const glm::vec3& p1, const glm::vec3& p2,
         const int NUM_COLOR_SCALARS = 2;
         int colors[NUM_COLOR_SCALARS] = { compactColor1, compactColor2 };
 
-        details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
-        details.colorBuffer->append(sizeof(colors), (gpu::Buffer::Byte*) colors);
+        details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Byte*) vertexBuffer);
+        details.colorBuffer->append(sizeof(colors), (gpu::Byte*) colors);
 
         #ifdef WANT_DEBUG
             if (id == UNKNOWN_ID) {
@@ -1665,21 +1693,19 @@ void GeometryCache::renderLine(const glm::vec3& p1, const glm::vec3& p2,
         #endif
     }
 
-    gpu::Batch batch;
-
     // this is what it takes to render a quad
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
     batch.draw(gpu::LINES, 2, 0);
-
-    gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void GeometryCache::renderLine(const glm::vec2& p1, const glm::vec2& p2,                                
+void GeometryCache::renderLine(const glm::vec2& p1, const glm::vec2& p2, const glm::vec4& color1, const glm::vec4& color2, int id) {
+    gpu::Batch batch;
+    renderLine(batch, p1, p2, color1, color2, id);
+    gpu::GLBackend::renderBatch(batch);
+}
+
+void GeometryCache::renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm::vec2& p2,                                
                                 const glm::vec4& color1, const glm::vec4& color2, int id) {
                                
     bool registered = (id != UNKNOWN_ID);
@@ -1745,8 +1771,8 @@ void GeometryCache::renderLine(const glm::vec2& p1, const glm::vec2& p2,
         const int NUM_COLOR_SCALARS = 2;
         int colors[NUM_COLOR_SCALARS] = { compactColor1, compactColor2 };
 
-        details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
-        details.colorBuffer->append(sizeof(colors), (gpu::Buffer::Byte*) colors);
+        details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Byte*) vertexBuffer);
+        details.colorBuffer->append(sizeof(colors), (gpu::Byte*) colors);
 
         #ifdef WANT_DEBUG
             if (id == UNKNOWN_ID) {
@@ -1757,18 +1783,10 @@ void GeometryCache::renderLine(const glm::vec2& p1, const glm::vec2& p2,
         #endif
     }
 
-    gpu::Batch batch;
-
     // this is what it takes to render a quad
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
     batch.draw(gpu::LINES, 2, 0);
-
-    gpu::GLBackend::renderBatch(batch);
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 
@@ -1797,8 +1815,8 @@ NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGe
     if (url.isEmpty()) {
         // make the minimal amount of dummy geometry to satisfy Model
         FBXJoint joint = { false, QVector<int>(), -1, 0.0f, 0.0f, glm::vec3(), glm::mat4(), glm::quat(), glm::quat(),
-                           glm::quat(), glm::mat4(), glm::mat4(), glm::vec3(), glm::vec3(), glm::quat(), glm::quat(),
-                           glm::mat4(), QString(""), glm::vec3(), glm::quat(), SHAPE_TYPE_NONE, false};
+                            glm::quat(), glm::mat4(), glm::mat4(), glm::vec3(), glm::vec3(), glm::quat(), glm::quat(),
+                            glm::mat4(), QString(""), glm::vec3(), glm::quat(), SHAPE_TYPE_NONE, false};
         _geometry.joints.append(joint);
         _geometry.leftEyeJointIndex = -1;
         _geometry.rightEyeJointIndex = -1;
@@ -2107,7 +2125,7 @@ void GeometryReader::run() {
                 }
                 fbxgeo = readFBX(_reply, _mapping, grabLightmaps, lightmapLevel);
             } else if (_url.path().toLower().endsWith(".obj")) {
-                fbxgeo = readOBJ(_reply, _mapping);
+                fbxgeo = OBJReader().readOBJ(_reply, _mapping, &_url);
             }
             QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&, fbxgeo));
         } else {
@@ -2234,10 +2252,10 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
             int offset = 0;
             foreach(const FBXMeshPart& part, mesh.parts) {
                 networkMesh._indexBuffer->setSubData(offset, part.quadIndices.size() * sizeof(int),
-                    (gpu::Resource::Byte*) part.quadIndices.constData());
+                    (gpu::Byte*) part.quadIndices.constData());
                 offset += part.quadIndices.size() * sizeof(int);
                 networkMesh._indexBuffer->setSubData(offset, part.triangleIndices.size() * sizeof(int),
-                    (gpu::Resource::Byte*) part.triangleIndices.constData());
+                    (gpu::Byte*) part.triangleIndices.constData());
                 offset += part.triangleIndices.size() * sizeof(int);
             }
         }
@@ -2256,19 +2274,19 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
 
                 networkMesh._vertexBuffer->resize(clusterWeightsOffset + mesh.clusterWeights.size() * sizeof(glm::vec4));
 
-                networkMesh._vertexBuffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.vertices.constData());
-                networkMesh._vertexBuffer->setSubData(normalsOffset, mesh.normals.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.normals.constData());
+                networkMesh._vertexBuffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.vertices.constData());
+                networkMesh._vertexBuffer->setSubData(normalsOffset, mesh.normals.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.normals.constData());
                 networkMesh._vertexBuffer->setSubData(tangentsOffset,
-                    mesh.tangents.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.tangents.constData());
-                networkMesh._vertexBuffer->setSubData(colorsOffset, mesh.colors.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.colors.constData());
+                    mesh.tangents.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.tangents.constData());
+                networkMesh._vertexBuffer->setSubData(colorsOffset, mesh.colors.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.colors.constData());
                 networkMesh._vertexBuffer->setSubData(texCoordsOffset,
-                    mesh.texCoords.size() * sizeof(glm::vec2), (gpu::Resource::Byte*) mesh.texCoords.constData());
+                    mesh.texCoords.size() * sizeof(glm::vec2), (gpu::Byte*) mesh.texCoords.constData());
                 networkMesh._vertexBuffer->setSubData(texCoords1Offset,
-                    mesh.texCoords1.size() * sizeof(glm::vec2), (gpu::Resource::Byte*) mesh.texCoords1.constData());
+                    mesh.texCoords1.size() * sizeof(glm::vec2), (gpu::Byte*) mesh.texCoords1.constData());
                 networkMesh._vertexBuffer->setSubData(clusterIndicesOffset,
-                    mesh.clusterIndices.size() * sizeof(glm::vec4), (gpu::Resource::Byte*) mesh.clusterIndices.constData());
+                    mesh.clusterIndices.size() * sizeof(glm::vec4), (gpu::Byte*) mesh.clusterIndices.constData());
                 networkMesh._vertexBuffer->setSubData(clusterWeightsOffset,
-                    mesh.clusterWeights.size() * sizeof(glm::vec4), (gpu::Resource::Byte*) mesh.clusterWeights.constData());
+                    mesh.clusterWeights.size() * sizeof(glm::vec4), (gpu::Byte*) mesh.clusterWeights.constData());
 
                 // otherwise, at least the cluster indices/weights can be static
                 networkMesh._vertexStream = gpu::BufferStreamPointer(new gpu::BufferStream());
@@ -2304,14 +2322,14 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
                 int clusterWeightsOffset = clusterIndicesOffset + mesh.clusterIndices.size() * sizeof(glm::vec4);
 
                 networkMesh._vertexBuffer->resize(clusterWeightsOffset + mesh.clusterWeights.size() * sizeof(glm::vec4));
-                networkMesh._vertexBuffer->setSubData(0, mesh.tangents.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.tangents.constData());
-                networkMesh._vertexBuffer->setSubData(colorsOffset, mesh.colors.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.colors.constData());
+                networkMesh._vertexBuffer->setSubData(0, mesh.tangents.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.tangents.constData());
+                networkMesh._vertexBuffer->setSubData(colorsOffset, mesh.colors.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.colors.constData());
                 networkMesh._vertexBuffer->setSubData(texCoordsOffset,
-                    mesh.texCoords.size() * sizeof(glm::vec2), (gpu::Resource::Byte*) mesh.texCoords.constData());
+                    mesh.texCoords.size() * sizeof(glm::vec2), (gpu::Byte*) mesh.texCoords.constData());
                 networkMesh._vertexBuffer->setSubData(clusterIndicesOffset,
-                    mesh.clusterIndices.size() * sizeof(glm::vec4), (gpu::Resource::Byte*) mesh.clusterIndices.constData());
+                    mesh.clusterIndices.size() * sizeof(glm::vec4), (gpu::Byte*) mesh.clusterIndices.constData());
                 networkMesh._vertexBuffer->setSubData(clusterWeightsOffset,
-                    mesh.clusterWeights.size() * sizeof(glm::vec4), (gpu::Resource::Byte*) mesh.clusterWeights.constData());
+                    mesh.clusterWeights.size() * sizeof(glm::vec4), (gpu::Byte*) mesh.clusterWeights.constData());
 
                 networkMesh._vertexStream = gpu::BufferStreamPointer(new gpu::BufferStream());
                 if (mesh.tangents.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, 0, sizeof(glm::vec3));

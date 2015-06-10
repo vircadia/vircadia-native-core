@@ -24,7 +24,7 @@
 #include <QBitArray>
 #include <QByteArray>
 
-#include "SharedUtil.h"
+#include "NumericalConstants.h"
 
 template<typename T> class ByteCountCoded {
 public:

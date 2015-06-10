@@ -11,11 +11,16 @@
 
 #include "RenderableZoneEntityItem.h"
 
+#include <gpu/GPUConfig.h>
+#include <gpu/Batch.h>
+
+#include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <GeometryCache.h>
+#include <PerfStat.h>
 
-EntityItem* RenderableZoneEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new RenderableZoneEntityItem(entityID, properties);
+EntityItemPointer RenderableZoneEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return EntityItemPointer(new RenderableZoneEntityItem(entityID, properties));
 }
 
 template<typename Lambda>
@@ -27,10 +32,12 @@ void RenderableZoneEntityItem::changeProperties(Lambda setNewProperties) {
     setNewProperties();
     
     if (oldShapeURL != getCompoundShapeURL()) {
-        if (!_model) {
-            _model = getModel();
-            _needsInitialSimulation = true;
+        if (_model) {
+            delete _model;
         }
+        
+        _model = getModel();
+        _needsInitialSimulation = true;
         _model->setURL(getCompoundShapeURL(), QUrl(), true, true);
     }
     if (oldPosition != getPosition() ||
@@ -61,6 +68,7 @@ int RenderableZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
 
 Model* RenderableZoneEntityItem::getModel() {
     Model* model = new Model();
+    model->setIsWireframe(true);
     model->init();
     return model;
 }
@@ -74,20 +82,64 @@ void RenderableZoneEntityItem::initialSimulation() {
     _needsInitialSimulation = false;
 }
 
-bool RenderableZoneEntityItem::contains(const glm::vec3& point) const {
-    if (getShapeType() != SHAPE_TYPE_COMPOUND) {
-        return EntityItem::contains(point);
-    }
-    
+void RenderableZoneEntityItem::updateGeometry() {
     if (_model && !_model->isActive() && hasCompoundShapeURL()) {
         // Since we have a delayload, we need to update the geometry if it has been downloaded
         _model->setURL(getCompoundShapeURL(), QUrl(), true);
     }
+    if (_model && _model->isActive() && _needsInitialSimulation) {
+        initialSimulation();
+    }
+}
+
+void RenderableZoneEntityItem::render(RenderArgs* args) {
+    Q_ASSERT(getType() == EntityTypes::Zone);
+    
+    if (_drawZoneBoundaries) {
+        switch (getShapeType()) {
+            case SHAPE_TYPE_COMPOUND: {
+                PerformanceTimer perfTimer("zone->renderCompound");
+                updateGeometry();
+                
+                if (_model && _model->isActive()) {
+                    // FIX ME: this is no longer available... we need to switch to payloads
+                    //_model->renderInScene(getLocalRenderAlpha(), args);
+                }
+                break;
+            }
+            case SHAPE_TYPE_BOX:
+            case SHAPE_TYPE_SPHERE: {
+                PerformanceTimer perfTimer("zone->renderPrimitive");
+                glm::vec4 DEFAULT_COLOR(1.0f, 1.0f, 1.0f, 1.0f);
+                
+                Q_ASSERT(args->_batch);
+                gpu::Batch& batch = *args->_batch;
+                batch.setModelTransform(getTransformToCenter());
+                
+                auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
+                
+                if (getShapeType() == SHAPE_TYPE_SPHERE) {
+                    const int SLICES = 15, STACKS = 15;
+                    deferredLightingEffect->renderWireSphere(batch, 0.5f, SLICES, STACKS, DEFAULT_COLOR);
+                } else {
+                    deferredLightingEffect->renderWireCube(batch, 1.0f, DEFAULT_COLOR);
+                }
+                break;
+            }
+            default:
+                // Not handled
+                break;
+        }
+    }
+}
+
+bool RenderableZoneEntityItem::contains(const glm::vec3& point) const {
+    if (getShapeType() != SHAPE_TYPE_COMPOUND) {
+        return EntityItem::contains(point);
+    }
+    const_cast<RenderableZoneEntityItem*>(this)->updateGeometry();
     
     if (_model && _model->isActive() && EntityItem::contains(point)) {
-        if (_needsInitialSimulation) {
-            const_cast<RenderableZoneEntityItem*>(this)->initialSimulation();
-        }
         return _model->convexHullContains(point);
     }
     

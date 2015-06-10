@@ -41,6 +41,7 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) :
     _headClipDistance(DEFAULT_NEAR_CLIP)
 {
     assert(_owningAvatar);
+    _enableShapes = true;
 }
 
 SkeletonModel::~SkeletonModel() {
@@ -254,9 +255,12 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
 }
 
 void SkeletonModel::updateJointState(int index) {
+    if (index > _jointStates.size()) {
+        return; // bail
+    }
     JointState& state = _jointStates[index];
     const FBXJoint& joint = state.getFBXJoint();
-    if (joint.parentIndex != -1) {
+    if (joint.parentIndex != -1 && joint.parentIndex <= _jointStates.size()) {
         const JointState& parentState = _jointStates.at(joint.parentIndex);
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         if (index == geometry.leanJointIndex) {

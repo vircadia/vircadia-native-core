@@ -153,6 +153,26 @@ if (showScore) {
 
 var BULLET_VELOCITY = 10.0;
 
+function entityCollisionWithEntity(entity1, entity2, collision) {
+    if (entity2 === targetID) {
+        score++;
+        if (showScore) {
+            Overlays.editOverlay(text, { text: "Score: " + score } );
+        }
+
+        //  We will delete the bullet and target in 1/2 sec, but for now we can see them bounce!
+        Script.setTimeout(deleteBulletAndTarget, 500);
+
+        // Turn the target and the bullet white
+        Entities.editEntity(entity1, { color: { red: 255, green: 255, blue: 255 }});
+        Entities.editEntity(entity2, { color: { red: 255, green: 255, blue: 255 }});
+
+        // play the sound near the camera so the shooter can hear it
+        audioOptions.position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));
+        Audio.playSound(targetHitSound, audioOptions);
+    }
+}
+
 function shootBullet(position, velocity, grenade) {
     var BULLET_SIZE = 0.10;
     var BULLET_LIFETIME = 10.0;
@@ -178,6 +198,7 @@ function shootBullet(position, velocity, grenade) {
           ignoreCollisions: false,
           collisionsWillMove: true
       });
+    Script.addEventHandler(bulletID, "collisionWithEntity", entityCollisionWithEntity);
 
     // Play firing sounds 
     audioOptions.position = position;   
@@ -310,27 +331,6 @@ function makePlatform(gravity, scale, size) {
 
 }
 
-function entityCollisionWithEntity(entity1, entity2, collision) {
-    if (((entity1.id == bulletID.id) || (entity1.id == targetID.id)) && 
-        ((entity2.id == bulletID.id) || (entity2.id == targetID.id))) {
-        score++;
-        if (showScore) {
-            Overlays.editOverlay(text, { text: "Score: " + score } );
-        }
-
-        //  We will delete the bullet and target in 1/2 sec, but for now we can see them bounce!
-        Script.setTimeout(deleteBulletAndTarget, 500); 
-
-        // Turn the target and the bullet white
-        Entities.editEntity(entity1, { color: { red: 255, green: 255, blue: 255 }});
-        Entities.editEntity(entity2, { color: { red: 255, green: 255, blue: 255 }});
-
-        // play the sound near the camera so the shooter can hear it
-        audioOptions.position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));   
-        Audio.playSound(targetHitSound, audioOptions);
-    }
-}
-
 function keyPressEvent(event) {
     // if our tools are off, then don't do anything
     if (event.text == "t") {
@@ -386,13 +386,6 @@ MyAvatar.attach(gunModel, "LeftHand", {x:-0.04, y: 0.22, z: 0.02}, Quat.fromPitc
 Script.setTimeout(playLoadSound, 2000); 
 
 function update(deltaTime) {
-    if (bulletID && !bulletID.isKnownID) {
-        bulletID = Entities.identifyEntity(bulletID);
-    }
-    if (targetID && !targetID.isKnownID) {
-        targetID = Entities.identifyEntity(targetID);
-    }
-
     if (activeControllers == 0) {
         if (Controller.getNumberOfSpatialControls() > 0) { 
             activeControllers = Controller.getNumberOfSpatialControls();
@@ -512,7 +505,6 @@ function scriptEnding() {
     clearPose();
 }
 
-Entities.entityCollisionWithEntity.connect(entityCollisionWithEntity);
 Script.scriptEnding.connect(scriptEnding);
 Script.update.connect(update);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);

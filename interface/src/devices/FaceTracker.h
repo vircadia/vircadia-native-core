@@ -26,7 +26,7 @@ public:
     virtual bool isActive() const { return false; }
     virtual bool isTracking() const { return false; }
     
-    virtual void init() {}
+    virtual void init();
     virtual void update(float deltaTime);
     virtual void reset();
     
@@ -42,10 +42,22 @@ public:
     bool isValidBlendshapeIndex(int index) const { return index >= 0 && index < getNumBlendshapes(); }
     const QVector<float>& getBlendshapeCoefficients() const;
     float getBlendshapeCoefficient(int index) const;
-    
+
+    bool isMuted() const { return _isMuted; }
+    void setIsMuted(bool isMuted) { _isMuted = isMuted; }
+    void toggleMute();
+
+signals:
+    void muteToggled();
+
+public slots:
+    virtual void setEnabled(bool enabled) = 0;
+
 protected:
-    FaceTracker();
     virtual ~FaceTracker() {};
+
+    bool _isInitialized = false;
+    bool _isMuted = true;
 
     glm::vec3 _headTranslation = glm::vec3(0.0f);
     glm::quat _headRotation = glm::quat();
@@ -63,8 +75,8 @@ private slots:
     void finishFPSTimer();
 
 private:
-    bool _isCalculatingFPS;
-    int _frameCount;
+    bool _isCalculatingFPS = false;
+    int _frameCount = 0;
 };
 
 #endif // hifi_FaceTracker_h

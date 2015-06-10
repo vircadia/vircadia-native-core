@@ -17,7 +17,6 @@
 #include "Camera.h"
 #include "Menu.h"
 #include "Util.h"
-#include "devices/OculusManager.h"
 
 
 CameraMode stringToMode(const QString& mode) {
@@ -49,10 +48,7 @@ QString modeToString(CameraMode mode) {
 Camera::Camera() : 
     _mode(CAMERA_MODE_THIRD_PERSON),
     _position(0.0f, 0.0f, 0.0f),
-    _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES),
-    _aspectRatio(16.0f/9.0f),
-    _nearClip(DEFAULT_NEAR_CLIP), // default
-    _farClip(DEFAULT_FAR_CLIP), // default
+    _projection(glm::perspective(glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES), 16.0f/9.0f, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP)),
     _hmdPosition(),
     _hmdRotation(),
     _isKeepLookingAt(false),
@@ -92,47 +88,17 @@ void Camera::setHmdRotation(const glm::quat& hmdRotation) {
     }
 }
 
-float Camera::getFarClip() const {
-    return (_farClip < std::numeric_limits<int16_t>::max())
-            ? _farClip
-            : std::numeric_limits<int16_t>::max() - 1;
-}
-
 void Camera::setMode(CameraMode mode) {
     _mode = mode;
     emit modeUpdated(modeToString(mode));
 }
 
-
-void Camera::setFieldOfView(float f) { 
-    _fieldOfView = f; 
-}
-
-void Camera::setAspectRatio(float a) {
-    _aspectRatio = a;
-}
-
-void Camera::setNearClip(float n) {
-    _nearClip = n;
-}
-
-void Camera::setFarClip(float f) {
-    _farClip = f;
+void Camera::setProjection(const glm::mat4& projection) { 
+    _projection = projection;
 }
 
 PickRay Camera::computePickRay(float x, float y) {
-    auto glCanvas = Application::getInstance()->getGLWidget();
-    return computeViewPickRay(x / glCanvas->width(), y / glCanvas->height());
-}
-
-PickRay Camera::computeViewPickRay(float xRatio, float yRatio) {
-    PickRay result;
-    if (OculusManager::isConnected()) {
-        Application::getInstance()->getApplicationOverlay().computeOculusPickRay(xRatio, yRatio, result.origin, result.direction);
-    } else {
-        Application::getInstance()->getViewFrustum()->computePickRay(xRatio, yRatio, result.origin, result.direction);
-    }
-    return result;
+    return qApp->computePickRay(x, y);
 }
 
 void Camera::setModeString(const QString& mode) {

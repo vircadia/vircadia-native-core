@@ -65,7 +65,8 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
 bool EntityTree::handlesEditPacketType(PacketType packetType) const {
     // we handle these types of "edit" packets
     switch (packetType) {
-        case PacketTypeEntityAddOrEdit:
+        case PacketTypeEntityAdd:
+        case PacketTypeEntityEdit:
         case PacketTypeEntityErase:
             return true;
         default:
@@ -74,7 +75,7 @@ bool EntityTree::handlesEditPacketType(PacketType packetType) const {
 }
 
 /// Adds a new entity item to the tree
-void EntityTree::postAddEntity(EntityItem* entity) {
+void EntityTree::postAddEntity(EntityItemPointer entity) {
     assert(entity);
     // check to see if we need to simulate this entity..
     if (_simulation) {
@@ -83,38 +84,51 @@ void EntityTree::postAddEntity(EntityItem* entity) {
         _simulation->unlock();
     }
     _isDirty = true;
+    maybeNotifyNewCollisionSoundURL("", entity->getCollisionSoundURL());
     emit addingEntity(entity->getEntityItemID());
 }
 
-bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, bool allowLockChange) {
+bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (!containingElement) {
         qCDebug(entities) << "UNEXPECTED!!!!  EntityTree::updateEntity() entityID doesn't exist!!! entityID=" << entityID;
         return false;
     }
 
-    EntityItem* existingEntity = containingElement->getEntityWithEntityItemID(entityID);
+    EntityItemPointer existingEntity = containingElement->getEntityWithEntityItemID(entityID);
     if (!existingEntity) {
         qCDebug(entities) << "UNEXPECTED!!!! don't call updateEntity() on entity items that don't exist. entityID=" << entityID;
         return false;
     }
 
-    return updateEntityWithElement(existingEntity, properties, containingElement, allowLockChange);
+    return updateEntityWithElement(existingEntity, properties, containingElement, senderNode);
 }
 
-bool EntityTree::updateEntity(EntityItem* entity, const EntityItemProperties& properties, bool allowLockChange) {
+bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
     EntityTreeElement* containingElement = getContainingElement(entity->getEntityItemID());
     if (!containingElement) {
         qCDebug(entities) << "UNEXPECTED!!!!  EntityTree::updateEntity() entity-->element lookup failed!!! entityID=" 
             << entity->getEntityItemID();
         return false;
     }
-    return updateEntityWithElement(entity, properties, containingElement, allowLockChange);
+    return updateEntityWithElement(entity, properties, containingElement, senderNode);
 }
 
-bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemProperties& origProperties, 
-                                         EntityTreeElement* containingElement, bool allowLockChange) {
+bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityItemProperties& origProperties, 
+                                         EntityTreeElement* containingElement, const SharedNodePointer& senderNode) {
     EntityItemProperties properties = origProperties;
+
+    bool allowLockChange;
+    QUuid senderID;
+    if (senderNode.isNull()) {
+        auto nodeList = DependencyManager::get<NodeList>();
+        allowLockChange = nodeList->getThisNodeCanAdjustLocks();
+        senderID = nodeList->getSessionUUID();
+    } else {
+        allowLockChange = senderNode->getCanAdjustLocks();
+        senderID = senderNode->getUUID();
+    }
+
     if (!allowLockChange && (entity->getLocked() != properties.getLocked())) {
         qCDebug(entities) << "Refusing disallowed lock adjustment.";
         return false;
@@ -134,25 +148,44 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
             }
         }
     } else {
-        if (properties.simulatorIDChanged() &&
-            !entity->getSimulatorID().isNull() &&
-            properties.getSimulatorID() != entity->getSimulatorID()) {
-            // A Node is trying to take ownership of the simulation of this entity from another Node.  Only allow this
-            // if ownership hasn't recently changed.
-            if (usecTimestampNow() - entity->getSimulatorIDChangedTime() < SIMULATOR_CHANGE_LOCKOUT_PERIOD) {
-                qCDebug(entities) << "simulator_change_lockout_period:"
-                                  << entity->getSimulatorID() << "to" << properties.getSimulatorID();
+        if (getIsServer()) {
+            bool simulationBlocked = !entity->getSimulatorID().isNull();
+            if (properties.simulatorIDChanged()) {
+                QUuid submittedID = properties.getSimulatorID();
+                // a legit interface will only submit their own ID or NULL:
+                if (submittedID.isNull()) {
+                    if (entity->getSimulatorID() == senderID) {
+                        // We only allow the simulation owner to clear their own simulationID's.
+                        simulationBlocked = false;
+                    }
+                    // else: We assume the sender really did believe it was the simulation owner when it sent
+                } else if (submittedID == senderID) {
+                    // the sender is trying to take or continue ownership
+                    if (entity->getSimulatorID().isNull() || entity->getSimulatorID() == senderID) {
+                        simulationBlocked = false;
+                    } else {
+                        // the sender is trying to steal ownership from another simulator
+                        // so we apply the ownership change filter
+                        if (usecTimestampNow() - entity->getSimulatorIDChangedTime() > SIMULATOR_CHANGE_LOCKOUT_PERIOD) {
+                            simulationBlocked = false;
+                        }
+                    }
+                } else {
+                    // the entire update is suspect --> ignore it
+                    return false;
+                }
+            }
+            if (simulationBlocked) {
                 // squash the physics-related changes.
                 properties.setSimulatorIDChanged(false);
                 properties.setPositionChanged(false);
-                properties.setVelocityChanged(false);
-                properties.setAccelerationChanged(false);
-            } else {
-                qCDebug(entities) << "allowing simulatorID change";
+                properties.setRotationChanged(false);
             }
         }
+        // else client accepts what the server says
 
         QString entityScriptBefore = entity->getScript();
+        QString collisionSoundURLBefore = entity->getCollisionSoundURL();
         uint32_t preFlags = entity->getDirtyFlags();
         UpdateEntityOperator theOperator(this, containingElement, entity, properties);
         recurseTreeWithOperator(&theOperator);
@@ -160,10 +193,10 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
 
         uint32_t newFlags = entity->getDirtyFlags() & ~preFlags;
         if (newFlags) {
-            if (_simulation) { 
+            if (_simulation) {
                 if (newFlags & DIRTY_SIMULATION_FLAGS) {
                     _simulation->lock();
-                    _simulation->entityChanged(entity);
+                    _simulation->changeEntity(entity);
                     _simulation->unlock();
                 }
             } else {
@@ -175,8 +208,9 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
         QString entityScriptAfter = entity->getScript();
         if (entityScriptBefore != entityScriptAfter) {
             emitEntityScriptChanging(entity->getEntityItemID()); // the entity script has changed
-        }        
-    }
+        }
+        maybeNotifyNewCollisionSoundURL(collisionSoundURLBefore, entity->getCollisionSoundURL());
+     }
     
     // TODO: this final containingElement check should eventually be removed (or wrapped in an #ifdef DEBUG).
     containingElement = getContainingElement(entity->getEntityItemID());
@@ -189,8 +223,8 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
     return true;
 }
 
-EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItem* result = NULL;
+EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    EntityItemPointer result = NULL;
 
     if (getIsClient()) {
         // if our Node isn't allowed to create entities in this domain, don't try.
@@ -200,19 +234,11 @@ EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItem
         }
     }
 
-    // NOTE: This method is used in the client and the server tree. In the client, it's possible to create EntityItems 
-    // that do not yet have known IDs. In the server tree however we don't want to have entities without known IDs.
     bool recordCreationTime = false;
-    if (!entityID.isKnownID) {
-        if (getIsServer()) {
-            qCDebug(entities) << "UNEXPECTED!!! ----- EntityTree::addEntity()... (getIsSever() && !entityID.isKnownID)";
-            return result;
-        }
-        if (properties.getCreated() == UNKNOWN_CREATED_TIME) {
-            // the entity's creation time was not specified in properties, which means this is a NEW entity
-            // and we must record its creation time
-            recordCreationTime = true;
-        }
+    if (properties.getCreated() == UNKNOWN_CREATED_TIME) {
+        // the entity's creation time was not specified in properties, which means this is a NEW entity
+        // and we must record its creation time
+        recordCreationTime = true;
     }
 
     // You should not call this on existing entities that are already part of the tree! Call updateEntity()
@@ -243,12 +269,17 @@ EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItem
 void EntityTree::emitEntityScriptChanging(const EntityItemID& entityItemID) {
     emit entityScriptChanging(entityItemID);
 }
+void EntityTree::maybeNotifyNewCollisionSoundURL(const QString& previousCollisionSoundURL, const QString& nextCollisionSoundURL) {
+    if (!nextCollisionSoundURL.isEmpty() && (nextCollisionSoundURL != previousCollisionSoundURL)) {
+        emit newCollisionSoundURL(QUrl(nextCollisionSoundURL));
+    }
+}
 
 void EntityTree::setSimulation(EntitySimulation* simulation) {
     if (simulation) {
         // assert that the simulation's backpointer has already been properly connected
         assert(simulation->getEntityTree() == this);
-    } 
+    }
     if (_simulation && _simulation != simulation) {
         // It's important to clearEntities() on the simulation since taht will update each
         // EntityItem::_simulationState correctly so as to not confuse the next _simulation.
@@ -268,7 +299,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
         return;
     }
 
-    EntityItem* existingEntity = containingElement->getEntityWithEntityItemID(entityID);
+    EntityItemPointer existingEntity = containingElement->getEntityWithEntityItemID(entityID);
     if (!existingEntity) {
         if (!ignoreWarnings) {
             qCDebug(entities) << "UNEXPECTED!!!! don't call EntityTree::deleteEntity() on entity items that don't exist. "
@@ -305,7 +336,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
             continue;
         }
 
-        EntityItem* existingEntity = containingElement->getEntityWithEntityItemID(entityID);
+        EntityItemPointer existingEntity = containingElement->getEntityWithEntityItemID(entityID);
         if (!existingEntity) {
             if (!ignoreWarnings) {
                 qCDebug(entities) << "UNEXPECTED!!!! don't call EntityTree::deleteEntities() on entity items that don't exist. "
@@ -339,113 +370,24 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
         _simulation->lock();
     }
     foreach(const EntityToDeleteDetails& details, entities) {
-        EntityItem* theEntity = details.entity;
+        EntityItemPointer theEntity = details.entity;
 
         if (getIsServer()) {
             // set up the deleted entities ID
             quint64 deletedAt = usecTimestampNow();
             _recentlyDeletedEntitiesLock.lockForWrite();
-            _recentlyDeletedEntityItemIDs.insert(deletedAt, theEntity->getEntityItemID().id);
+            _recentlyDeletedEntityItemIDs.insert(deletedAt, theEntity->getEntityItemID());
             _recentlyDeletedEntitiesLock.unlock();
         }
 
         if (_simulation) {
+            theEntity->clearActions(_simulation);
             _simulation->removeEntity(theEntity);
         }
-        delete theEntity; // now actually delete the entity!
     }
     if (_simulation) {
         _simulation->unlock();
     }
-}
-
-/// This method is used to find and fix entity IDs that are shifting from creator token based to known ID based entity IDs. 
-/// This should only be used on a client side (viewing) tree. The typical usage is that a local editor has been creating 
-/// entities in the local tree, those entities have creatorToken based entity IDs. But those entity edits are also sent up to
-/// the server, and the server eventually sends back to the client two messages that can come in varying order. The first 
-/// message would be a typical query/viewing data message conversation in which the viewer "sees" the newly created entity. 
-/// Those entities that have been seen, will have the authoritative "known ID". Therefore there is a potential that there can 
-/// be two copies of the same entity in the tree: the "local only" "creator token" version of the entity and the "seen" 
-/// "knownID" version of the entity. The server also sends an "entityAdded" message to the client which contains the mapping 
-/// of the creator token to the known ID. These messages can come in any order, so we need to handle the follow cases:
-///
-///     Case A: The local edit occurs, the addEntity message arrives, the "viewed data" has not yet arrived.
-///             In this case, we can expect that our local tree has only one copy of the entity (the creator token), 
-///             and we only really need to fix up that entity with a new version of the ID that includes the knownID
-///
-///     Case B: The local edit occurs, the "viewed data" for the new entity arrives, then the addEntity message arrives.
-///             In this case, we can expect that our local tree has two copies of the entity (the creator token, and the
-///             known ID version). We end up with two version of the entity because the server sends viewers only the 
-///             known ID version without a creator token. And we don't yet know the mapping until we get the mapping message.
-///             In this case we need to fix up that entity with a new version of the ID that includes the knownID and
-///             we need to delete the extra copy of the entity.
-///
-/// This method handles both of these cases.
-///
-/// NOTE: unlike some operations on the tree, this process does not mark the tree as being changed. This is because
-/// we're not changing the content of the tree, we're only changing the internal IDs that map entities from creator
-/// based to known IDs. This means we don't have to recurse the tree to mark the changed path as dirty.
-void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
-
-    if (!getIsClient()) {
-        qCDebug(entities) << "UNEXPECTED!!! EntityTree::handleAddEntityResponse() with !getIsClient() ***";
-        return;
-    }
-
-    const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data());
-    int numBytesPacketHeader = numBytesForPacketHeader(packet);
-    int bytesRead = numBytesPacketHeader;
-    dataAt += numBytesPacketHeader;
-
-    uint32_t creatorTokenID;
-    memcpy(&creatorTokenID, dataAt, sizeof(creatorTokenID));
-    dataAt += sizeof(creatorTokenID);
-    bytesRead += sizeof(creatorTokenID);
-
-    QUuid entityID = QUuid::fromRfc4122(packet.mid(bytesRead, NUM_BYTES_RFC4122_UUID));
-    dataAt += NUM_BYTES_RFC4122_UUID;
-
-    // First, look for the existing entity in the tree..
-    EntityItemID searchEntityID;
-    searchEntityID.id = entityID;
-    searchEntityID.creatorTokenID = creatorTokenID;
-
-    lockForWrite();
-
-    // find the creator token version, it's containing element, and the entity itself    
-    EntityItem* foundEntity = NULL;
-    EntityItemID  creatorTokenVersion = searchEntityID.convertToCreatorTokenVersion();
-    EntityItemID  knownIDVersion = searchEntityID.convertToKnownIDVersion();
-    
-    _changedEntityIDs[creatorTokenVersion] = knownIDVersion;
-
-    // First look for and find the "viewed version" of this entity... it's possible we got
-    // the known ID version sent to us between us creating our local version, and getting this
-    // remapping message. If this happened, we actually want to find and delete that version of
-    // the entity.
-    EntityTreeElement* knownIDVersionContainingElement = getContainingElement(knownIDVersion);
-    if (knownIDVersionContainingElement) {
-        foundEntity = knownIDVersionContainingElement->getEntityWithEntityItemID(knownIDVersion);
-        if (foundEntity) {
-            knownIDVersionContainingElement->removeEntityWithEntityItemID(knownIDVersion);
-            setContainingElement(knownIDVersion, NULL);
-        }
-    }
-
-    EntityTreeElement* creatorTokenContainingElement = getContainingElement(creatorTokenVersion);
-    if (creatorTokenContainingElement) {
-        foundEntity = creatorTokenContainingElement->getEntityWithEntityItemID(creatorTokenVersion);
-        if (foundEntity) {
-            creatorTokenContainingElement->updateEntityItemID(creatorTokenVersion, knownIDVersion);
-            setContainingElement(creatorTokenVersion, NULL);
-            setContainingElement(knownIDVersion, creatorTokenContainingElement);
-            
-            // because the ID of the entity is switching, we need to emit these signals for any 
-            // listeners who care about the changing of IDs
-            emit changingEntityID(creatorTokenVersion, knownIDVersion);
-        }
-    }
-    unlock();
 }
 
 
@@ -454,7 +396,7 @@ public:
     glm::vec3 position;
     float targetRadius;
     bool found;
-    const EntityItem* closestEntity;
+    EntityItemPointer closestEntity;
     float closestEntityDistance;
 };
 
@@ -468,7 +410,7 @@ bool EntityTree::findNearPointOperation(OctreeElement* element, void* extraData)
 
     // If this entityTreeElement contains the point, then search it...
     if (sphereIntersection) {
-        const EntityItem* thisClosestEntity = entityTreeElement->getClosestEntity(args->position);
+        EntityItemPointer thisClosestEntity = entityTreeElement->getClosestEntity(args->position);
 
         // we may have gotten NULL back, meaning no entity was available
         if (thisClosestEntity) {
@@ -494,7 +436,7 @@ bool EntityTree::findNearPointOperation(OctreeElement* element, void* extraData)
     return false;
 }
 
-const EntityItem* EntityTree::findClosestEntity(glm::vec3 position, float targetRadius) {
+EntityItemPointer EntityTree::findClosestEntity(glm::vec3 position, float targetRadius) {
     FindNearPointArgs args = { position, targetRadius, false, NULL, FLT_MAX };
     lockForRead();
     // NOTE: This should use recursion, since this is a spatial operation
@@ -507,7 +449,7 @@ class FindAllNearPointArgs {
 public:
     glm::vec3 position;
     float targetRadius;
-    QVector<const EntityItem*> entities;
+    QVector<EntityItemPointer> entities;
 };
 
 
@@ -528,8 +470,8 @@ bool EntityTree::findInSphereOperation(OctreeElement* element, void* extraData) 
 }
 
 // NOTE: assumes caller has handled locking
-void EntityTree::findEntities(const glm::vec3& center, float radius, QVector<const EntityItem*>& foundEntities) {
-    FindAllNearPointArgs args = { center, radius, QVector<const EntityItem*>() };
+void EntityTree::findEntities(const glm::vec3& center, float radius, QVector<EntityItemPointer>& foundEntities) {
+    FindAllNearPointArgs args = { center, radius, QVector<EntityItemPointer>() };
     // NOTE: This should use recursion, since this is a spatial operation
     recurseTreeWithOperation(findInSphereOperation, &args);
 
@@ -544,7 +486,7 @@ public:
     }
 
     AACube _cube;
-    QVector<EntityItem*> _foundEntities;
+    QVector<EntityItemPointer> _foundEntities;
 };
 
 bool EntityTree::findInCubeOperation(OctreeElement* element, void* extraData) {
@@ -558,7 +500,7 @@ bool EntityTree::findInCubeOperation(OctreeElement* element, void* extraData) {
 }
 
 // NOTE: assumes caller has handled locking
-void EntityTree::findEntities(const AACube& cube, QVector<EntityItem*>& foundEntities) {
+void EntityTree::findEntities(const AACube& cube, QVector<EntityItemPointer>& foundEntities) {
     FindEntitiesInCubeArgs args(cube);
     // NOTE: This should use recursion, since this is a spatial operation
     recurseTreeWithOperation(findInCubeOperation, &args);
@@ -573,7 +515,7 @@ public:
     }
     
     AABox _box;
-    QVector<EntityItem*> _foundEntities;
+    QVector<EntityItemPointer> _foundEntities;
 };
 
 bool EntityTree::findInBoxOperation(OctreeElement* element, void* extraData) {
@@ -587,7 +529,7 @@ bool EntityTree::findInBoxOperation(OctreeElement* element, void* extraData) {
 }
 
 // NOTE: assumes caller has handled locking
-void EntityTree::findEntities(const AABox& box, QVector<EntityItem*>& foundEntities) {
+void EntityTree::findEntities(const AABox& box, QVector<EntityItemPointer>& foundEntities) {
     FindEntitiesInBoxArgs args(box);
     // NOTE: This should use recursion, since this is a spatial operation
     recurseTreeWithOperation(findInBoxOperation, &args);
@@ -595,40 +537,22 @@ void EntityTree::findEntities(const AABox& box, QVector<EntityItem*>& foundEntit
     foundEntities.swap(args._foundEntities);
 }
 
-EntityItem* EntityTree::findEntityByID(const QUuid& id) {
+EntityItemPointer EntityTree::findEntityByID(const QUuid& id) {
     EntityItemID entityID(id);
     return findEntityByEntityItemID(entityID);
 }
 
-EntityItem* EntityTree::findEntityByEntityItemID(const EntityItemID& entityID) /*const*/ {
-    EntityItem* foundEntity = NULL;
+EntityItemPointer EntityTree::findEntityByEntityItemID(const EntityItemID& entityID) /*const*/ {
+    EntityItemPointer foundEntity = NULL;
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (containingElement) {
         foundEntity = containingElement->getEntityWithEntityItemID(entityID);
-        if (!foundEntity && _changedEntityIDs.contains(entityID)) {
-            foundEntity = containingElement->getEntityWithEntityItemID(_changedEntityIDs[entityID]);
-        }
     }
     return foundEntity;
 }
 
-EntityItemID EntityTree::assignEntityID(const EntityItemID& entityItemID) {
-    if (!getIsServer()) {
-        qCDebug(entities) << "UNEXPECTED!!! assignEntityID should only be called on a server tree. entityItemID:" << entityItemID;
-        return entityItemID;
-    }
-
-    if (getContainingElement(entityItemID)) {
-        qCDebug(entities) << "UNEXPECTED!!! don't call assignEntityID() for existing entityIDs. entityItemID:" << entityItemID;
-        return entityItemID;
-    }
-
-    // The EntityItemID is responsible for assigning actual IDs and keeping track of them.
-    return entityItemID.assignActualIDForToken();
-}
-
 int EntityTree::processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
-                    const unsigned char* editData, int maxLength, const SharedNodePointer& senderNode) {
+                                      const unsigned char* editData, int maxLength, const SharedNodePointer& senderNode) {
 
     if (!getIsServer()) {
         qCDebug(entities) << "UNEXPECTED!!! processEditPacketData() should only be called on a server tree.";
@@ -644,41 +568,35 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
             break;
         }
         
-        case PacketTypeEntityAddOrEdit: {
+        case PacketTypeEntityAdd:
+        case PacketTypeEntityEdit: {
             EntityItemID entityItemID;
             EntityItemProperties properties;
             bool validEditPacket = EntityItemProperties::decodeEntityEditPacket(editData, maxLength,
-                                                    processedBytes, entityItemID, properties);
+                                                                                processedBytes, entityItemID, properties);
 
             // If we got a valid edit packet, then it could be a new entity or it could be an update to
             // an existing entity... handle appropriately
             if (validEditPacket) {
-            
-                // If this is a knownID, then it should exist in our tree
-                if (entityItemID.isKnownID) {
-                    // search for the entity by EntityItemID
-                    EntityItem* existingEntity = findEntityByEntityItemID(entityItemID);
-                    
+                // search for the entity by EntityItemID
+                EntityItemPointer existingEntity = findEntityByEntityItemID(entityItemID);
+                if (existingEntity && packetType == PacketTypeEntityEdit) {
                     // if the EntityItem exists, then update it
-                    if (existingEntity) {
-                        if (wantEditLogging()) {
-                            qCDebug(entities) << "User [" << senderNode->getUUID() << "] editing entity. ID:" << entityItemID;
-                            qCDebug(entities) << "   properties:" << properties;
-                        }
-                        updateEntity(entityItemID, properties, senderNode->getCanAdjustLocks());
-                        existingEntity->markAsChangedOnServer();
-                    } else {
-                        qCDebug(entities) << "User attempted to edit an unknown entity. ID:" << entityItemID;
+                    if (wantEditLogging()) {
+                        qCDebug(entities) << "User [" << senderNode->getUUID() << "] editing entity. ID:" << entityItemID;
+                        qCDebug(entities) << "   properties:" << properties;
                     }
-                } else {
+                    updateEntity(entityItemID, properties, senderNode);
+                    existingEntity->markAsChangedOnServer();
+                } else if (packetType == PacketTypeEntityAdd) {
                     if (senderNode->getCanRez()) {
                         // this is a new entity... assign a new entityID
-                        entityItemID = assignEntityID(entityItemID);
                         if (wantEditLogging()) {
                             qCDebug(entities) << "User [" << senderNode->getUUID() << "] adding entity.";
                             qCDebug(entities) << "   properties:" << properties;
                         }
-                        EntityItem* newEntity = addEntity(entityItemID, properties);
+                        properties.setCreated(properties.getLastEdited());
+                        EntityItemPointer newEntity = addEntity(entityItemID, properties);
                         if (newEntity) {
                             newEntity->markAsChangedOnServer();
                             notifyNewlyCreatedEntity(*newEntity, senderNode);
@@ -690,8 +608,11 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
 
                         }
                     } else {
-                        qCDebug(entities) << "User without 'rez rights' [" << senderNode->getUUID() << "] attempted to add an entity.";
+                        qCDebug(entities) << "User without 'rez rights' [" << senderNode->getUUID()
+                                          << "] attempted to add an entity.";
                     }
+                } else {
+                    qCDebug(entities) << "Add or Edit failed." << packetType << existingEntity.get();
                 }
             }
             break;
@@ -739,10 +660,10 @@ void EntityTree::releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncod
     extraEncodeData->clear();
 }
 
-void EntityTree::entityChanged(EntityItem* entity) {
+void EntityTree::entityChanged(EntityItemPointer entity) {
     if (_simulation) {
         _simulation->lock();
-        _simulation->entityChanged(entity);
+        _simulation->changeEntity(entity);
         _simulation->unlock();
     }
 }
@@ -750,16 +671,21 @@ void EntityTree::entityChanged(EntityItem* entity) {
 void EntityTree::update() {
     if (_simulation) {
         lockForWrite();
-        QSet<EntityItem*> entitiesToDelete;
         _simulation->lock();
-        _simulation->updateEntities(entitiesToDelete);
+        _simulation->updateEntities();
+        VectorOfEntities pendingDeletes;
+        _simulation->getEntitiesToDelete(pendingDeletes);
         _simulation->unlock();
-        if (entitiesToDelete.size() > 0) {
+
+        if (pendingDeletes.size() > 0) {
             // translate into list of ID's
             QSet<EntityItemID> idsToDelete;
-            foreach (EntityItem* entity, entitiesToDelete) {
+            
+            for (auto entity : pendingDeletes) {
                 idsToDelete.insert(entity->getEntityItemID());
             }
+            
+            // delete these things the roundabout way
             deleteEntities(idsToDelete, true);
         }
         unlock();
@@ -788,7 +714,8 @@ bool EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumbe
     bool hasMoreToSend = true;
 
     unsigned char* copyAt = outputBuffer;
-    size_t numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(outputBuffer), PacketTypeEntityErase);
+    size_t numBytesPacketHeader = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(outputBuffer), 
+                                                                                           PacketTypeEntityErase);
     copyAt += numBytesPacketHeader;
     outputLength = numBytesPacketHeader;
 
@@ -990,66 +917,15 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
 EntityTreeElement* EntityTree::getContainingElement(const EntityItemID& entityItemID)  /*const*/ {
     // TODO: do we need to make this thread safe? Or is it acceptable as is
     EntityTreeElement* element = _entityToElementMap.value(entityItemID);
-    if (!element && entityItemID.creatorTokenID != UNKNOWN_ENTITY_TOKEN){
-        // check the creator token version too...
-        EntityItemID creatorTokenOnly;
-        creatorTokenOnly.id = UNKNOWN_ENTITY_ID;
-        creatorTokenOnly.creatorTokenID = entityItemID.creatorTokenID;
-        creatorTokenOnly.isKnownID = false;
-        element = _entityToElementMap.value(creatorTokenOnly);
-    }
-    
-    // If we still didn't find the entity, but the ID was in our changed entityIDs, search for the new ID version
-    if (!element && _changedEntityIDs.contains(entityItemID)) {
-        element = getContainingElement(_changedEntityIDs[entityItemID]);
-    }
-    
     return element;
-}
-
-// TODO: do we need to make this thread safe? Or is it acceptable as is
-void EntityTree::resetContainingElement(const EntityItemID& entityItemID, EntityTreeElement* element) {
-    if (entityItemID.id == UNKNOWN_ENTITY_ID) {
-        //assert(entityItemID.id != UNKNOWN_ENTITY_ID);
-        qCDebug(entities) << "UNEXPECTED! resetContainingElement() called with UNKNOWN_ENTITY_ID. entityItemID:" << entityItemID;
-        return;
-    }
-    if (entityItemID.creatorTokenID == UNKNOWN_ENTITY_TOKEN) {
-        //assert(entityItemID.creatorTokenID != UNKNOWN_ENTITY_TOKEN);
-        qCDebug(entities) << "UNEXPECTED! resetContainingElement() called with UNKNOWN_ENTITY_TOKEN. entityItemID:" << entityItemID;
-        return;
-    }
-    if (!element) {
-        //assert(element);
-        qCDebug(entities) << "UNEXPECTED! resetContainingElement() called with NULL element. entityItemID:" << entityItemID;
-        return;
-    }
-    
-    // remove the old version with the creatorTokenID
-    EntityItemID creatorTokenVersion;
-    creatorTokenVersion.id = UNKNOWN_ENTITY_ID;
-    creatorTokenVersion.isKnownID = false;
-    creatorTokenVersion.creatorTokenID = entityItemID.creatorTokenID;
-    _entityToElementMap.remove(creatorTokenVersion);
-
-    // set the new version with both creator token and real ID
-    _entityToElementMap[entityItemID] = element;
 }
 
 void EntityTree::setContainingElement(const EntityItemID& entityItemID, EntityTreeElement* element) {
     // TODO: do we need to make this thread safe? Or is it acceptable as is
-    
-    // If we're a sever side tree, we always remove the creator tokens from our map items
-    EntityItemID storedEntityItemID = entityItemID;
-    
-    if (getIsServer()) {
-        storedEntityItemID.creatorTokenID = UNKNOWN_ENTITY_TOKEN;
-    }
-    
     if (element) {
-        _entityToElementMap[storedEntityItemID] = element;
+        _entityToElementMap[entityItemID] = element;
     } else {
-        _entityToElementMap.remove(storedEntityItemID);
+        _entityToElementMap.remove(entityItemID);
     }
 }
 
@@ -1061,6 +937,27 @@ void EntityTree::debugDumpMap() {
         qCDebug(entities) << i.key() << ": " << i.value();
     }
     qCDebug(entities) << "-----------------------------------------------------";
+}
+
+class ContentsDimensionOperator : public RecurseOctreeOperator {
+public:
+    virtual bool preRecursion(OctreeElement* element);
+    virtual bool postRecursion(OctreeElement* element) { return true; }
+    float getLargestDimension() const { return _contentExtents.largestDimension(); }
+private:
+    Extents _contentExtents;
+};
+
+bool ContentsDimensionOperator::preRecursion(OctreeElement* element) {
+    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+    entityTreeElement->expandExtentsToContents(_contentExtents);
+    return true;
+}
+
+float EntityTree::getContentsLargestDimension() {
+    ContentsDimensionOperator theOperator;
+    recurseTreeWithOperator(&theOperator);
+    return theOperator.getLargestDimension();
 }
 
 class DebugOperator : public RecurseOctreeOperator {
@@ -1115,16 +1012,16 @@ bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) 
     SendEntitiesOperationArgs* args = static_cast<SendEntitiesOperationArgs*>(extraData);
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
 
-    const QList<EntityItem*>&  entities = entityTreeElement->getEntities();
+    const EntityItems&  entities = entityTreeElement->getEntities();
     for (int i = 0; i < entities.size(); i++) {
-        EntityItemID newID(NEW_ENTITY, EntityItemID::getNextCreatorTokenID(), false);
+        EntityItemID newID(QUuid::createUuid());
         args->newEntityIDs->append(newID);
         EntityItemProperties properties = entities[i]->getProperties();
         properties.setPosition(properties.getPosition() + args->root);
         properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
 
         // queue the packet to send to the server
-        args->packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, newID, properties);
+        args->packetSender->queueEditEntityMessage(PacketTypeEntityAdd, newID, properties);
 
         // also update the local tree instantly (note: this is not our tree, but an alternate tree)
         if (args->localTree) {
@@ -1137,10 +1034,10 @@ bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) 
     return true;
 }
 
-bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElement* element) {
+bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElement* element, bool skipDefaultValues) {
     entityDescription["Entities"] = QVariantList();
     QScriptEngine scriptEngine;
-    RecurseOctreeToMapOperator theOperator(entityDescription, element, &scriptEngine);
+    RecurseOctreeToMapOperator theOperator(entityDescription, element, &scriptEngine, skipDefaultValues);
     recurseTreeWithOperator(&theOperator);
     return true;
 }
@@ -1158,7 +1055,7 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         QVariantMap entityMap = entityVariant.toMap();
         QScriptValue entityScriptValue = variantMapToScriptValue(entityMap, scriptEngine);
         EntityItemProperties properties;
-        EntityItemPropertiesFromScriptValue(entityScriptValue, properties);
+        EntityItemPropertiesFromScriptValueIgnoreReadOnly(entityScriptValue, properties);
 
         EntityItemID entityItemID;
         if (entityMap.contains("id")) {
@@ -1167,9 +1064,9 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             entityItemID = EntityItemID(QUuid::createUuid());
         }
 
-        EntityItem* entity = addEntity(entityItemID, properties);
+        EntityItemPointer entity = addEntity(entityItemID, properties);
         if (!entity) {
-            qCDebug(entities) << "adding Entity failed:" << entityItemID << entity->getType();
+            qCDebug(entities) << "adding Entity failed:" << entityItemID << properties.getType();
         }
     }
 

@@ -1,6 +1,6 @@
 //
 //  LODManager.h
-//
+//  interface/src/LODManager.h
 //
 //  Created by Clement on 1/16/15.
 //  Copyright 2015 High Fidelity, Inc.
@@ -13,8 +13,8 @@
 #define hifi_LODManager_h
 
 #include <DependencyManager.h>
+#include <NumericalConstants.h>
 #include <OctreeConstants.h>
-#include <SharedUtil.h>
 #include <SimpleMovingAverage.h>
 
 const float DEFAULT_DESKTOP_LOD_DOWN_FPS = 30.0;
@@ -49,6 +49,8 @@ const float ADJUST_LOD_MAX_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE;
 // do. But both are still culled using the same angular size logic.
 const float AVATAR_TO_ENTITY_RATIO = 2.0f;
 
+class RenderArgs;
+class AABox;
 
 class LODManager : public QObject, public Dependency {
     Q_OBJECT
@@ -79,6 +81,7 @@ public:
     Q_INVOKABLE float getLODDecreaseFPS();
     Q_INVOKABLE float getLODIncreaseFPS();
     
+    static bool shouldRender(const RenderArgs* args, const AABox& bounds);
     bool shouldRenderMesh(float largestDimension, float distanceToCamera);
     void autoAdjustLOD(float currentFPS);
     

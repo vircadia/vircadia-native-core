@@ -47,7 +47,11 @@ public:
     float getLargestDimension() const { return glm::max(_scale.x, glm::max(_scale.y, _scale.z)); }
 
     glm::vec3 calcCenter() const;
-    glm::vec3 calcTopFarLeft() const;
+    glm::vec3 calcTopFarLeft() const { return _corner + _scale; }
+
+    const glm::vec3& getMinimum() const { return _corner; }
+    glm::vec3 getMaximum() const { return _corner + _scale; }
+
     glm::vec3 getVertex(BoxVertex vertex) const;
 
     const glm::vec3& getMinimumPoint() const { return _corner; }

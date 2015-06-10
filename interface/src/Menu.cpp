@@ -71,14 +71,14 @@ Menu::Menu() {
 
     {
         addActionToQMenuAndActionHash(fileMenu, MenuOption::Login);
-        
+
         // connect to the appropriate signal of the AccountManager so that we can change the Login/Logout menu item
         connect(&accountManager, &AccountManager::profileChanged,
                 dialogsManager.data(), &DialogsManager::toggleLoginDialog);
         connect(&accountManager, &AccountManager::logoutComplete,
                 dialogsManager.data(), &DialogsManager::toggleLoginDialog);
     }
-    
+
     addDisabledActionAndSeparator(fileMenu, "Scripts");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O,
                                   qApp, SLOT(loadDialog()));
@@ -92,7 +92,7 @@ Menu::Menu() {
 
     addDisabledActionAndSeparator(fileMenu, "Location");
     qApp->getBookmarks()->setupMenus(this, fileMenu);
-    
+
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::AddressBar,
                                   Qt::CTRL | Qt::Key_L,
@@ -148,8 +148,8 @@ Menu::Menu() {
                                                                              SLOT(setEnabled(bool)));
     connect(speechRecognizer.data(), SIGNAL(enabledUpdated(bool)), speechRecognizerAction, SLOT(setChecked(bool)));
 #endif
-    
-    addActionToQMenuAndActionHash(toolsMenu, MenuOption::Chat, 
+
+    addActionToQMenuAndActionHash(toolsMenu, MenuOption::Chat,
                                   0, // QML Qt::Key_Backslash,
                                   dialogsManager.data(), SLOT(showIRCLink()));
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::AddRemoveFriends, 0,
@@ -175,7 +175,7 @@ Menu::Menu() {
             discoverabilityManager.data(), SLOT(setVisibility()));
         visibilityGroup->addAction(visibleToNoOne);
 
-        connect(discoverabilityManager.data(), &DiscoverabilityManager::discoverabilityModeChanged, 
+        connect(discoverabilityManager.data(), &DiscoverabilityManager::discoverabilityModeChanged,
             discoverabilityManager.data(), &DiscoverabilityManager::visibilityChanged);
     }
 
@@ -196,7 +196,7 @@ Menu::Menu() {
                                   0, // QML Qt::Key_Apostrophe,
                                   qApp,
                                   SLOT(resetSensors()));
-    
+
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::PackageModel, 0,
                                   qApp, SLOT(packageModel()));
 
@@ -245,17 +245,17 @@ Menu::Menu() {
                                            qApp,
                                            SLOT(setFullscreen(bool)));
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson, 
-        0, // QML Qt::Key_P, 
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson,
+        0, // QML Qt::Key_P,
         true, qApp, SLOT(cameraMenuChanged()));
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, 
-        0, //QML Qt::SHIFT | Qt::Key_H, 
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror,
+        0, //QML Qt::SHIFT | Qt::Key_H,
         true);
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, 
-        0, // QML Qt::Key_H, 
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror,
+        0, // QML Qt::Key_H,
         false, qApp, SLOT(cameraMenuChanged()));
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools, 
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools,
 #ifdef Q_OS_MAC
                                            Qt::META | Qt::Key_H,
 #else
@@ -282,12 +282,11 @@ Menu::Menu() {
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_1, false,
                                            &nodeBounds, SLOT(setShowEntityNodes(bool)));
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::OffAxisProjection, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats);
-    addActionToQMenuAndActionHash(viewMenu, MenuOption::Log, 
-        Qt::CTRL | Qt::SHIFT | Qt::Key_L, 
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::Log,
+        Qt::CTRL | Qt::SHIFT | Qt::Key_L,
         qApp, SLOT(toggleLogDialog()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0,
                                   dialogsManager.data(), SLOT(bandwidthDetails()));
@@ -298,8 +297,8 @@ Menu::Menu() {
     MenuWrapper* developerMenu = addMenu("Developer");
 
     MenuWrapper* renderOptionsMenu = developerMenu->addMenu("Render");
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Atmosphere, 
-        0, // QML Qt::SHIFT | Qt::Key_A, 
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Atmosphere,
+        0, // QML Qt::SHIFT | Qt::Key_A,
         true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::AmbientOcclusion);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DontFadeOnOctreeServerChanges);
@@ -318,7 +317,7 @@ Menu::Menu() {
     ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight7, 0, false));
     ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight8, 0, false));
     ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight9, 0, false));
-    
+
     MenuWrapper* shadowMenu = renderOptionsMenu->addMenu("Shadows");
     QActionGroup* shadowGroup = new QActionGroup(shadowMenu);
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, "None", 0, true));
@@ -352,14 +351,14 @@ Menu::Menu() {
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionThird, 0, false));
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionQuarter, 0, false));
 
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars, 
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars,
         0, // QML Qt::Key_Asterisk,
         true);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableGlowEffect, 0, true, 
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableGlowEffect, 0, true,
                                             DependencyManager::get<GlowEffect>().data(), SLOT(toggleGlowEffect(bool)));
 
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Wireframe, Qt::ALT | Qt::Key_W, false);
-    addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, 
+    addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools,
         0, // QML Qt::SHIFT | Qt::Key_L,
         dialogsManager.data(), SLOT(lodTools()));
 
@@ -369,8 +368,12 @@ Menu::Menu() {
     {
         QActionGroup* faceTrackerGroup = new QActionGroup(avatarDebugMenu);
 
+        bool defaultNoFaceTracking = true;
+#ifdef HAVE_DDE
+        defaultNoFaceTracking = false;
+#endif
         QAction* noFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::NoFaceTracking,
-            0, true,
+            0, defaultNoFaceTracking,
             qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(noFaceTracker);
 
@@ -381,21 +384,33 @@ Menu::Menu() {
         faceTrackerGroup->addAction(faceshiftFaceTracker);
 #endif
 #ifdef HAVE_DDE
-        QAction* ddeFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::UseCamera, 
-            0, false,
+        QAction* ddeFaceTracker = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::UseCamera,
+            0, true,
             qApp, SLOT(setActiveFaceTracker()));
         faceTrackerGroup->addAction(ddeFaceTracker);
 #endif
     }
 #ifdef HAVE_DDE
     faceTrackingMenu->addSeparator();
+    QAction* binaryEyelidControl = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::BinaryEyelidControl, 0, true);
+    binaryEyelidControl->setVisible(true);  // DDE face tracking is on by default
     QAction* useAudioForMouth = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::UseAudioForMouth, 0, true);
-    useAudioForMouth->setVisible(false);
+    useAudioForMouth->setVisible(true);  // DDE face tracking is on by default
     QAction* ddeFiltering = addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::VelocityFilter, 0, true);
-    ddeFiltering->setVisible(false);
+    ddeFiltering->setVisible(true);  // DDE face tracking is on by default
+    QAction* ddeCalibrate = addActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::CalibrateCamera, 0,
+        DependencyManager::get<DdeFaceTracker>().data(), SLOT(calibrate()));
+    ddeCalibrate->setVisible(true);  // DDE face tracking is on by default
 #endif
-    
-    auto avatarManager = DependencyManager::get<AvatarManager>(); 
+#if defined(HAVE_FACESHIFT) || defined(HAVE_DDE)
+    faceTrackingMenu->addSeparator();
+    addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::MuteFaceTracking,
+        Qt::CTRL | Qt::SHIFT | Qt::Key_F, true,  // DDE face tracking is on by default
+        qApp, SLOT(toggleFaceTrackerMute()));
+    addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::AutoMuteAudio, 0, true);
+#endif
+
+    auto avatarManager = DependencyManager::get<AvatarManager>();
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AvatarReceiveStats, 0, false,
                                            avatarManager.data(), SLOT(setShouldShowReceiveStats(bool)));
 
@@ -411,7 +426,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHands, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::ShowIKConstraints, 0, false);
-    
+
     MenuWrapper* sixenseOptionsMenu = handOptionsMenu->addMenu("Sixense");
 #ifdef __APPLE__
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
@@ -439,7 +454,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);
 
 #ifdef HAVE_RSSDK
-    QMenu* realSenseOptionsMenu = handOptionsMenu->addMenu("RealSense");
+    MenuWrapper* realSenseOptionsMenu = handOptionsMenu->addMenu("RealSense");
     addActionToQMenuAndActionHash(realSenseOptionsMenu, MenuOption::LoadRSSDKFile, 0,
                                   RealSense::getInstance(), SLOT(loadRSSDKFile()));
 #endif
@@ -457,7 +472,11 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(networkMenu, MenuOption::DiskCacheEditor, 0,
                                   dialogsManager.data(), SLOT(toggleDiskCacheEditor()));
 
+    addActionToQMenuAndActionHash(networkMenu, MenuOption::ShowDSConnectTable, 0,
+                                  dialogsManager.data(), SLOT(showDomainConnectionDialog()));
+
     MenuWrapper* timingMenu = developerMenu->addMenu("Timing and Stats");
+
     MenuWrapper* perfTimerMenu = timingMenu->addMenu("Performance Timer");
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::DisplayDebugTimingDetails, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::OnlyDisplayTopTen, 0, true);
@@ -495,7 +514,7 @@ Menu::Menu() {
                                   0,
                                   audioIO.data(),
                                   SLOT(sendMuteEnvironmentPacket()));
-    
+
     auto scope = DependencyManager::get<AudioScope>();
 
     MenuWrapper* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope");
@@ -533,7 +552,7 @@ Menu::Menu() {
         audioScopeFramesGroup->addAction(twentyFrames);
         audioScopeFramesGroup->addAction(fiftyFrames);
     }
-    
+
     auto statsRenderer = DependencyManager::get<AudioIOStatsRenderer>();
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStats,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_A,
@@ -752,7 +771,7 @@ QAction* Menu::getActionFromName(const QString& menuName, MenuWrapper* menu) {
     } else {
         menuActions = actions();
     }
-    
+
     foreach (QAction* menuAction, menuActions) {
         QString actionText = menuAction->text();
         if (menuName == menuAction->text()) {
@@ -853,14 +872,14 @@ MenuWrapper* Menu::addMenu(const QString& menuName) {
         }
         addTo = menu;
     }
-    
+
     QMenuBar::repaint();
     return menu;
 }
 
 void Menu::removeMenu(const QString& menuName) {
     QAction* action = getMenuAction(menuName);
-    
+
     // only proceed if the menu actually exists
     if (action) {
         QString finalMenuPart;
@@ -870,14 +889,14 @@ void Menu::removeMenu(const QString& menuName) {
         } else {
             QMenuBar::removeAction(action);
         }
-        
+
         QMenuBar::repaint();
     }
 }
 
 bool Menu::menuExists(const QString& menuName) {
     QAction* action = getMenuAction(menuName);
-    
+
     // only proceed if the menu actually exists
     if (action) {
         return true;
@@ -922,7 +941,7 @@ void Menu::addMenuItem(const MenuItemProperties& properties) {
         if (!properties.shortcutKeySequence.isEmpty()) {
             shortcut = new QShortcut(properties.shortcutKeySequence, this);
         }
-        
+
         // check for positioning requests
         int requestedPosition = properties.position;
         if (requestedPosition == UNSPECIFIED_POSITION && !properties.beforeItem.isEmpty()) {
@@ -936,7 +955,7 @@ void Menu::addMenuItem(const MenuItemProperties& properties) {
                 requestedPosition = afterPosition + 1;
             }
         }
-        
+
         QAction* menuItemAction = NULL;
         if (properties.isSeparator) {
             addDisabledActionAndSeparator(menuObj, properties.menuItemName, requestedPosition);

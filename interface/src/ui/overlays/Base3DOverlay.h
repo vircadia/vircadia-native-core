@@ -49,6 +49,8 @@ public:
     void setDrawInFront(bool value) { _drawInFront = value; }
     void setDrawOnHUD(bool value) { _drawOnHUD = value; }
 
+    virtual AABox getBounds() const;
+
     virtual void setProperties(const QScriptValue& properties);
     virtual QScriptValue getProperty(const QString& property);
 

@@ -15,7 +15,7 @@
 #include <QVector>
 
 #include <DependencyManager.h>
-#include <SharedUtil.h>
+#include <NumericalConstants.h>
 
 #include "ProgramObject.h"
 
@@ -23,7 +23,7 @@
 #include "model/Stage.h"
 
 class AbstractViewStateInterface;
-class PostLightingRenderable;
+class RenderArgs;
 
 /// Handles deferred lighting for the bits that require it (voxels...)
 class DeferredLightingEffect : public Dependency {
@@ -33,29 +33,30 @@ public:
     
     void init(AbstractViewStateInterface* viewState);
 
-    /// Returns a reference to a simple program suitable for rendering static untextured geometry
-    ProgramObject& getSimpleProgram() { return _simpleProgram; }
-
     /// Sets up the state necessary to render static untextured geometry with the simple program.
-    void bindSimpleProgram();
+    void bindSimpleProgram(gpu::Batch& batch, bool textured = false);
     
     /// Tears down the state necessary to render static untextured geometry with the simple program.
-    void releaseSimpleProgram();
+    void releaseSimpleProgram(gpu::Batch& batch);
 
     //// Renders a solid sphere with the simple program.
-    void renderSolidSphere(float radius, int slices, int stacks, const glm::vec4& color);
+    void renderSolidSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color);
 
     //// Renders a wireframe sphere with the simple program.
-    void renderWireSphere(float radius, int slices, int stacks, const glm::vec4& color);
+    void renderWireSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color);
     
     //// Renders a solid cube with the simple program.
-    void renderSolidCube(float size, const glm::vec4& color);
+    void renderSolidCube(gpu::Batch& batch, float size, const glm::vec4& color);
 
     //// Renders a wireframe cube with the simple program.
-    void renderWireCube(float size, const glm::vec4& color);
+    void renderWireCube(gpu::Batch& batch, float size, const glm::vec4& color);
+    
+    //// Renders a quad with the simple program.
+    void renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color);
 
-    //// Renders a solid cone with the simple program.
-    void renderSolidCone(float base, float height, int slices, int stacks);
+    //// Renders a line with the simple program.
+    void renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, 
+                    const glm::vec4& color1, const glm::vec4& color2);
     
     /// Adds a point light to render for the current frame.
     void addPointLight(const glm::vec3& position, float radius, const glm::vec3& color = glm::vec3(0.0f, 0.0f, 0.0f),
@@ -65,11 +66,11 @@ public:
     void addSpotLight(const glm::vec3& position, float radius, const glm::vec3& color = glm::vec3(1.0f, 1.0f, 1.0f),
         float intensity = 0.5f, const glm::quat& orientation = glm::quat(), float exponent = 0.0f, float cutoff = PI);
     
-    /// Adds an object to render after performing the deferred lighting for the current frame (e.g., a translucent object).
-    void addPostLightingRenderable(PostLightingRenderable* renderable) { _postLightingRenderables.append(renderable); }
-    
     void prepare();
     void render();
+    void copyBack(RenderArgs* args);
+
+    void setupTransparent(RenderArgs* args, int lightBufferUnit);
 
     // update global lighting
     void setAmbientLightMode(int preset);
@@ -97,10 +98,17 @@ private:
     };
     
     static void loadLightProgram(const char* fragSource, bool limited, ProgramObject& program, LightLocations& locations);
-   
-    ProgramObject _simpleProgram;
-    int _glowIntensityLocation;
     
+    gpu::PipelinePointer _simpleProgram;
+    gpu::PipelinePointer _simpleProgramTextured;
+
+    ProgramObject _directionalSkyboxLight;
+    LightLocations _directionalSkyboxLightLocations;
+    ProgramObject _directionalSkyboxLightShadowMap;
+    LightLocations _directionalSkyboxLightShadowMapLocations;
+    ProgramObject _directionalSkyboxLightCascadedShadowMap;
+    LightLocations _directionalSkyboxLightCascadedShadowMapLocations;
+
     ProgramObject _directionalAmbientSphereLight;
     LightLocations _directionalAmbientSphereLightLocations;
     ProgramObject _directionalAmbientSphereLightShadowMap;
@@ -145,19 +153,12 @@ private:
     std::vector<int> _globalLights;
     std::vector<int> _pointLights;
     std::vector<int> _spotLights;
-    QVector<PostLightingRenderable*> _postLightingRenderables;
     
     AbstractViewStateInterface* _viewState;
 
     int _ambientLightMode = 0;
     model::AtmospherePointer _atmosphere;
     model::SkyboxPointer _skybox;
-};
-
-/// Simple interface for objects that require something to be rendered after deferred lighting.
-class PostLightingRenderable {
-public:
-    virtual void renderPostLighting() = 0;
 };
 
 #endif // hifi_DeferredLightingEffect_h

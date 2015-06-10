@@ -22,9 +22,15 @@
 #ifndef hifi_OctreePacketData_h
 #define hifi_OctreePacketData_h
 
+#include <QByteArray>
+#include <QString>
+#include <QUuid>
+
 #include <LimitedNodeList.h> // for MAX_PACKET_SIZE
 #include <PacketHeaders.h> // for MAX_PACKET_HEADER_BYTES
 #include <SharedUtil.h>
+#include <ShapeInfo.h>
+#include <BackgroundMode.h>
 
 #include "OctreeConstants.h"
 #include "OctreeElement.h"
@@ -128,16 +134,16 @@ public:
     bool updatePriorBytes(int offset, const unsigned char* replacementBytes, int length);
 
     /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
-    bool appendColor(const nodeColor& color);
-
-    /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
-    bool appendColor(const xColor& color);
-
-    /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
-    bool appendColor(const rgbColor& color);
-
-    /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendColor(colorPart red, colorPart green, colorPart blue);
+
+    /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(const nodeColor& color);
+
+    /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(const xColor& color);
+
+    /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(const rgbColor& color);
 
     /// appends a unsigned 8 bit int to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(uint8_t value);
@@ -156,6 +162,9 @@ public:
 
     /// appends a non-position vector to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(const glm::vec3& value);
+    
+    //appends a QVector of vec3's to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(const QVector<glm::vec3>& value);
 
     /// appends a packed quat to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(const glm::quat& value);
@@ -177,8 +186,9 @@ public:
 
     /// appends raw bytes, might fail if byte would cause packet to be too large
     bool appendRawData(const unsigned char* data, int length);
+    bool appendRawData(QByteArray data);
 
-    /// returns a byte offset from beginning of the uncompressed stream based on offset from end. 
+    /// returns a byte offset from beginning of the uncompressed stream based on offset from end.
     /// Positive offsetFromEnd returns that many bytes before the end of uncompressed stream
     int getUncompressedByteOffset(int offsetFromEnd = 0) const { return _bytesInUse - offsetFromEnd; }
 
@@ -219,6 +229,24 @@ public:
     static quint64 getTotalBytesOfOctalCodes() { return _totalBytesOfOctalCodes; }  /// total bytes for octal codes
     static quint64 getTotalBytesOfBitMasks() { return _totalBytesOfBitMasks; }  /// total bytes of bitmasks
     static quint64 getTotalBytesOfColor() { return _totalBytesOfColor; } /// total bytes of color
+    
+    static int unpackDataFromBytes(const unsigned char* dataBytes, float& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, glm::vec3& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, bool& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, quint64& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, uint32_t& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, uint16_t& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, uint8_t& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, rgbColor& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, glm::quat& result) { int bytes = unpackOrientationQuatFromBytes(dataBytes, result); return bytes; }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, ShapeType& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, BackgroundMode& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, QString& result);
+    static int unpackDataFromBytes(const unsigned char* dataBytes, QUuid& result);
+    static int unpackDataFromBytes(const unsigned char* dataBytes, xColor& result);
+    static int unpackDataFromBytes(const unsigned char* dataBytes, QVector<glm::vec3>& result);
+    static int unpackDataFromBytes(const unsigned char* dataBytes, QByteArray& result);
+
 
 private:
     /// appends raw bytes, might fail if byte would cause packet to be too large

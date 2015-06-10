@@ -1,6 +1,6 @@
 set(TARGET_NAME render-utils)
 
-AUTOSCRIBE_SHADER_LIB(gpu model)
+AUTOSCRIBE_SHADER_LIB(gpu model render)
 
 # pull in the resources.qrc file
 qt5_add_resources(QT_RESOURCES_FILE "${CMAKE_CURRENT_SOURCE_DIR}/res/fonts/fonts.qrc")
@@ -24,4 +24,4 @@ if (WIN32)
   endif()
 endif (WIN32)
 
-link_hifi_libraries(animation fbx shared gpu)
+link_hifi_libraries(animation fbx shared gpu model render)

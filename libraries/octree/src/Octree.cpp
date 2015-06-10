@@ -2087,7 +2087,7 @@ void Octree::writeToJSONFile(const char* fileName, OctreeElement* element) {
     QFile persistFile(fileName);
     QVariantMap entityDescription;
 
-    qCDebug(octree, "Saving to file %s...", fileName);
+    qCDebug(octree, "Saving JSON SVO to file %s...", fileName);
 
     OctreeElement* top;
     if (element) {
@@ -2096,7 +2096,15 @@ void Octree::writeToJSONFile(const char* fileName, OctreeElement* element) {
         top = _rootElement;
     }
 
-    bool entityDescriptionSuccess = writeToMap(entityDescription, top);
+    // include the "bitstream" version
+    PacketType expectedType = expectedDataPacketType();
+    PacketVersion expectedVersion = versionForPacketType(expectedType);
+    entityDescription["Version"] = (int) expectedVersion;
+
+    // store the entity data
+    bool entityDescriptionSuccess = writeToMap(entityDescription, top, true);
+
+    // convert the QVariantMap to JSON
     if (entityDescriptionSuccess && persistFile.open(QIODevice::WriteOnly)) {
         persistFile.write(QJsonDocument::fromVariant(entityDescription).toJson());
     } else {
@@ -2108,7 +2116,7 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
     std::ofstream file(fileName, std::ios::out|std::ios::binary);
 
     if(file.is_open()) {
-        qCDebug(octree, "Saving to file %s...", fileName);
+        qCDebug(octree, "Saving binary SVO to file %s...", fileName);
 
         PacketType expectedType = expectedDataPacketType();
         PacketVersion expectedVersion = versionForPacketType(expectedType);

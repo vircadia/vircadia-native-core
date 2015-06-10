@@ -13,6 +13,8 @@
 
 #include <assert.h>
 
+#include "Batch.h"
+
 #include "Resource.h"
 #include "Texture.h"
 #include "Pipeline.h"
@@ -20,16 +22,12 @@
 
 namespace gpu {
 
-class GPUObject {
-public:
-    GPUObject() {}
-    virtual ~GPUObject() {}
-};
-
-class Batch;
-
 class Backend {
 public:
+
+    virtual~ Backend() {};
+    virtual void render(Batch& batch) = 0;
+    virtual void syncCache() = 0;
 
     class TransformObject {
     public:
@@ -43,6 +41,7 @@ public:
         Mat4 _viewInverse;
         Mat4 _projectionViewUntranslated;
         Mat4 _projection;
+        Mat4 _projectionInverse;
         Vec4 _viewport;
     };
 
@@ -106,21 +105,23 @@ protected:
 
 class Context {
 public:
-    Context();
-    Context(const Context& context);
+    Context(Backend* backend);
     ~Context();
 
-    void enqueueBatch(Batch& batch);
+    void render(Batch& batch);
 
-
+    void syncCache();
 
 protected:
+    Context(const Context& context);
 
     // This function can only be called by "static Shader::makeProgram()"
     // makeProgramShader(...) make a program shader ready to be used in a Batch.
     // It compiles the sub shaders, link them and defines the Slots and their bindings.
     // If the shader passed is not a program, nothing happens. 
     static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings = Shader::BindingSet());
+
+    std::unique_ptr<Backend> _backend;
 
     friend class Shader;
 };

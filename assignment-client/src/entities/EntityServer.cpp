@@ -27,6 +27,11 @@ EntityServer::EntityServer(const QByteArray& packet)
 }
 
 EntityServer::~EntityServer() {
+    if (_pruneDeletedEntitiesTimer) {
+        _pruneDeletedEntitiesTimer->stop();
+        _pruneDeletedEntitiesTimer->deleteLater();
+    }
+
     EntityTree* tree = (EntityTree*)_tree;
     tree->removeNewlyCreatedHook(this);
 }
@@ -48,35 +53,13 @@ Octree* EntityServer::createTree() {
 }
 
 void EntityServer::beforeRun() {
-    QTimer* pruneDeletedEntitiesTimer = new QTimer(this);
-    connect(pruneDeletedEntitiesTimer, SIGNAL(timeout()), this, SLOT(pruneDeletedEntities()));
+    _pruneDeletedEntitiesTimer = new QTimer();
+    connect(_pruneDeletedEntitiesTimer, SIGNAL(timeout()), this, SLOT(pruneDeletedEntities()));
     const int PRUNE_DELETED_MODELS_INTERVAL_MSECS = 1 * 1000; // once every second
-    pruneDeletedEntitiesTimer->start(PRUNE_DELETED_MODELS_INTERVAL_MSECS);
+    _pruneDeletedEntitiesTimer->start(PRUNE_DELETED_MODELS_INTERVAL_MSECS);
 }
 
 void EntityServer::entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) {
-
-    unsigned char outputBuffer[MAX_PACKET_SIZE];
-    unsigned char* copyAt = outputBuffer;
-
-    int numBytesPacketHeader = populatePacketHeader(reinterpret_cast<char*>(outputBuffer), PacketTypeEntityAddResponse);
-    int packetLength = numBytesPacketHeader;
-    copyAt += numBytesPacketHeader;
-
-    // encode the creatorTokenID
-    uint32_t creatorTokenID = newEntity.getCreatorTokenID();
-    memcpy(copyAt, &creatorTokenID, sizeof(creatorTokenID));
-    copyAt += sizeof(creatorTokenID);
-    packetLength += sizeof(creatorTokenID);
-
-    // encode the entity ID
-    QUuid entityID = newEntity.getID();
-    QByteArray encodedID = entityID.toRfc4122();
-    memcpy(copyAt, encodedID.constData(), encodedID.size());
-    copyAt += sizeof(entityID);
-    packetLength += sizeof(entityID);
-
-    DependencyManager::get<NodeList>()->writeDatagram((char*) outputBuffer, packetLength, senderNode);
 }
 
 

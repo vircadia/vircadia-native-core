@@ -33,8 +33,8 @@ var cuePosition;
 var startStroke = 0;
 
 // Sounds to use 
-hitSounds = [];
-hitSounds.push(SoundCache.getSound(HIFI_PUBLIC_BUCKET + "Collisions-ballhitsandcatches/billiards/collision1.wav"));
+var hitSound = HIFI_PUBLIC_BUCKET + "sounds/Collisions-ballhitsandcatches/billiards/collision1.wav";
+SoundCache.getSound(hitSound);
 
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 var screenSize = Controller.getViewportDimensions();
@@ -127,6 +127,7 @@ function makeBalls(pos) {
 	          ignoreCollisions: false,
 	          damping: 0.50,
                   shapeType: "sphere",
+		  collisionSoundURL: hitSound,
 	          collisionsWillMove: true }));
 	    ballPosition.z += (BALL_SIZE + BALL_GAP) * SCALE;
             ballNumber++;
@@ -206,15 +207,9 @@ function keyPressEvent(event) {
 
 function cleanup() {
     for (var i = 0; i < tableParts.length; i++) {
-	if (!tableParts[i].isKnownID) {
-	    tableParts[i] = Entities.identifyEntity(tableParts[i]);
-	}
 	Entities.deleteEntity(tableParts[i]);
     }
     for (var i = 0; i < balls.length; i++) {
-	if (!balls[i].isKnownID) {
-	    balls[i] = Entities.identifyEntity(balls[i]);
-	}
 	Entities.deleteEntity(balls[i]);
     }
     Overlays.deleteOverlay(reticle); 
@@ -222,32 +217,13 @@ function cleanup() {
 }
 
 function update(deltaTime) {
-    if (!cueBall.isKnownID) {
-	cueBall = Entities.identifyEntity(cueBall);
-    } else {
-	//  Check if cue ball has fallen off table, re-drop if so 
-	var cueProperties = Entities.getEntityProperties(cueBall);
-	if (cueProperties.position.y < tableCenter.y) {
-	    // Replace the cueball 
-	    Entities.editEntity(cueBall, { position: cuePosition } );
+    //  Check if cue ball has fallen off table, re-drop if so 
+    var cueProperties = Entities.getEntityProperties(cueBall);
+    if (cueProperties.position.y < tableCenter.y) {
+        // Replace the cueball 
+        Entities.editEntity(cueBall, { position: cuePosition } );
 
-	}
     }
-
-}
-
-function entityCollisionWithEntity(entity1, entity2, collision) {
-    /*
-      NOT WORKING YET
-      if ((entity1.id == cueBall.id) || (entity2.id == cueBall.id)) {
-      print("Cue ball collision!");
-      //audioOptions.position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));   
-      //Audio.playSound(hitSounds[0], { position: Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation())) });
-      }
-
-      else if (isObjectBall(entity1.id) || isObjectBall(entity2.id)) {
-      print("Object ball collision");
-      } */
 }
 
 tableCenter = Vec3.sum(MyAvatar.position, Vec3.multiply(4.0, Quat.getFront(Camera.getOrientation())));
@@ -255,7 +231,6 @@ tableCenter = Vec3.sum(MyAvatar.position, Vec3.multiply(4.0, Quat.getFront(Camer
 makeTable(tableCenter);
 makeBalls(tableCenter);
 
-Entities.entityCollisionWithEntity.connect(entityCollisionWithEntity);
 Script.scriptEnding.connect(cleanup);
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);

@@ -22,7 +22,6 @@
 #include "Util.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
-#include "devices/OculusManager.h"
 
 using namespace std;
 
@@ -90,26 +89,28 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         // Only use face trackers when not playing back a recording.
         if (!myAvatar->isPlaying()) {
             FaceTracker* faceTracker = Application::getInstance()->getActiveFaceTracker();
-            _isFaceTrackerConnected = faceTracker != NULL;
+            _isFaceTrackerConnected = faceTracker != NULL && !faceTracker->isMuted();
             if (_isFaceTrackerConnected) {
                 _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
 
-                if (typeid(*faceTracker) == typeid(DdeFaceTracker) 
-                    && Menu::getInstance()->isOptionChecked(MenuOption::UseAudioForMouth)) {
+                if (typeid(*faceTracker) == typeid(DdeFaceTracker)) {
 
-                    calculateMouthShapes();
+                    if (Menu::getInstance()->isOptionChecked(MenuOption::UseAudioForMouth)) {
+                        calculateMouthShapes();
 
-                    const int JAW_OPEN_BLENDSHAPE = 21;
-                    const int MMMM_BLENDSHAPE = 34;
-                    const int FUNNEL_BLENDSHAPE = 40;
-                    const int SMILE_LEFT_BLENDSHAPE = 28;
-                    const int SMILE_RIGHT_BLENDSHAPE = 29;
-                    _blendshapeCoefficients[JAW_OPEN_BLENDSHAPE] += _audioJawOpen;
-                    _blendshapeCoefficients[SMILE_LEFT_BLENDSHAPE] += _mouth4;
-                    _blendshapeCoefficients[SMILE_RIGHT_BLENDSHAPE] += _mouth4;
-                    _blendshapeCoefficients[MMMM_BLENDSHAPE] += _mouth2;
-                    _blendshapeCoefficients[FUNNEL_BLENDSHAPE] += _mouth3;
+                        const int JAW_OPEN_BLENDSHAPE = 21;
+                        const int MMMM_BLENDSHAPE = 34;
+                        const int FUNNEL_BLENDSHAPE = 40;
+                        const int SMILE_LEFT_BLENDSHAPE = 28;
+                        const int SMILE_RIGHT_BLENDSHAPE = 29;
+                        _blendshapeCoefficients[JAW_OPEN_BLENDSHAPE] += _audioJawOpen;
+                        _blendshapeCoefficients[SMILE_LEFT_BLENDSHAPE] += _mouth4;
+                        _blendshapeCoefficients[SMILE_RIGHT_BLENDSHAPE] += _mouth4;
+                        _blendshapeCoefficients[MMMM_BLENDSHAPE] += _mouth2;
+                        _blendshapeCoefficients[FUNNEL_BLENDSHAPE] += _mouth3;
+                    }
 
+                    applyEyelidOffset(getFinalOrientationInWorldFrame());
                 }
             }
         }
@@ -204,6 +205,9 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
                                                                     _mouth3,
                                                                     _mouth4,
                                                                     _blendshapeCoefficients);
+
+        applyEyelidOffset(getOrientation());
+
     } else {
         _saccade = glm::vec3();
     }
@@ -219,7 +223,6 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         }
     }
     _eyePosition = calculateAverageEyePosition();
-
 }
 
 void Head::calculateMouthShapes() {
@@ -250,6 +253,32 @@ void Head::calculateMouthShapes() {
     _mouth4 = glm::mix(_audioJawOpen, _mouth4, SMILE_PERIOD + randFloat() * SMILE_RANDOM_PERIOD);
 }
 
+void Head::applyEyelidOffset(glm::quat headOrientation) {
+    // Adjusts the eyelid blendshape coefficients so that the eyelid follows the iris as the head pitches.
+
+    glm::quat eyeRotation = rotationBetween(headOrientation * IDENTITY_FRONT, getCorrectedLookAtPosition() - _eyePosition);
+    eyeRotation = eyeRotation * glm::angleAxis(safeEulerAngles(headOrientation).y, IDENTITY_UP);  // Rotation w.r.t. head
+    float eyePitch = safeEulerAngles(eyeRotation).x;
+
+    const float EYE_PITCH_TO_COEFFICIENT = 1.6f;  // Empirically determined
+    const float MAX_EYELID_OFFSET = 0.8f;  // So that don't fully close eyes when looking way down
+    float eyelidOffset = glm::clamp(-eyePitch * EYE_PITCH_TO_COEFFICIENT, -1.0f, MAX_EYELID_OFFSET);
+
+    for (int i = 0; i < 2; i++) {
+        const int LEFT_EYE = 8;
+        float eyeCoefficient = _blendshapeCoefficients[i] - _blendshapeCoefficients[LEFT_EYE + i];  // Raw value
+        eyeCoefficient = glm::clamp(eyelidOffset + eyeCoefficient * (1.0f - eyelidOffset), -1.0f, 1.0f);
+        if (eyeCoefficient > 0.0f) {
+            _blendshapeCoefficients[i] = eyeCoefficient;
+            _blendshapeCoefficients[LEFT_EYE + i] = 0.0f;
+
+        } else {
+            _blendshapeCoefficients[i] = 0.0f;
+            _blendshapeCoefficients[LEFT_EYE + i] = -eyeCoefficient;
+        }
+    }
+}
+
 void Head::relaxLean(float deltaTime) {
     // restore rotation, lean to neutral positions
     const float LEAN_RELAXATION_PERIOD = 0.25f;   // seconds
@@ -263,15 +292,11 @@ void Head::relaxLean(float deltaTime) {
     _deltaLeanForward *= relaxationFactor;
 }
 
-void Head::render(float alpha, ViewFrustum* renderFrustum, Model::RenderMode mode, bool postLighting) {
+void Head::render(RenderArgs* renderArgs, float alpha, ViewFrustum* renderFrustum, bool postLighting) {
     if (postLighting) {
         if (_renderLookatVectors) {
-            renderLookatVectors(_leftEyePosition, _rightEyePosition, getCorrectedLookAtPosition());    
+            renderLookatVectors(renderArgs, _leftEyePosition, _rightEyePosition, getCorrectedLookAtPosition());    
         }
-    } else {
-        RenderArgs args;
-        args._viewFrustum = renderFrustum;
-        _faceModel.render(alpha, mode, &args);
     }
 }
 
@@ -309,7 +334,7 @@ glm::quat Head::getCameraOrientation() const {
     // to change the driving direction while in Oculus mode. It is used to support driving toward where you're 
     // head is looking. Note that in oculus mode, your actual camera view and where your head is looking is not
     // always the same.
-    if (OculusManager::isConnected()) {
+    if (qApp->isHMDMode()) {
         return getOrientation();
     }
     Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
@@ -354,9 +379,9 @@ void Head::addLeanDeltas(float sideways, float forward) {
     _deltaLeanForward += forward;
 }
 
-void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
+void Head::renderLookatVectors(RenderArgs* renderArgs, glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    DependencyManager::get<GlowEffect>()->begin();
+    DependencyManager::get<GlowEffect>()->begin(renderArgs);
     
     glLineWidth(2.0);
     
@@ -365,7 +390,7 @@ void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosi
     geometryCache->renderLine(leftEyePosition, lookatPosition, startColor, endColor, _leftEyeLookAtID);
     geometryCache->renderLine(rightEyePosition, lookatPosition, startColor, endColor, _rightEyeLookAtID);
 
-    DependencyManager::get<GlowEffect>()->end();
+    DependencyManager::get<GlowEffect>()->end(renderArgs);
 }
 
 

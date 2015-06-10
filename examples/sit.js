@@ -316,7 +316,7 @@ function addIndicators(modelID) {
             modelID.properties.sittingPoints[i].indicator = new SeatIndicator(modelID.properties, i);
         }
         
-        models[modelID.id] = modelID;
+        models[modelID] = modelID;
     } else {
         Entities.editEntity(modelID, { glowLevel: 0.0 });
     }
@@ -326,7 +326,7 @@ function removeIndicators(modelID) {
     for (var i = 0; i < modelID.properties.sittingPoints.length; ++i) {
         modelID.properties.sittingPoints[i].indicator.cleanup();
     }
-    delete models[modelID.id];
+    delete models[modelID];
 }
 
 function showIndicators(doShow) {

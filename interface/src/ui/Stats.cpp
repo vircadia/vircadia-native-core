@@ -57,8 +57,8 @@ Stats::Stats():
         _octreeStatsWidth(STATS_OCTREE_MIN_WIDTH),
         _lastHorizontalOffset(0)
 {
-    auto glCanvas = Application::getInstance()->getGLWidget();
-    resetWidth(glCanvas->width(), 0);
+    auto canvasSize = Application::getInstance()->getCanvasSize();
+    resetWidth(canvasSize.x, 0);
 }
 
 void Stats::toggleExpanded() {
@@ -68,7 +68,7 @@ void Stats::toggleExpanded() {
 // called on mouse click release
 // check for clicks over stats  in order to expand or contract them
 void Stats::checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseDragStartedY, int horizontalOffset) {
-    auto glCanvas = Application::getInstance()->getGLWidget();
+    auto canvasSize = Application::getInstance()->getCanvasSize();
 
     if (0 != glm::compMax(glm::abs(glm::ivec2(mouseX - mouseDragStartedX, mouseY - mouseDragStartedY)))) {
         // not worried about dragging on stats
@@ -115,7 +115,7 @@ void Stats::checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseD
     // top-right stats click
     lines = _expanded ? 11 : 3;
     statsHeight = lines * STATS_PELS_PER_LINE + 10;
-    statsWidth = glCanvas->width() - statsX;
+    statsWidth = canvasSize.x - statsX;
     if (mouseX > statsX && mouseX < statsX + statsWidth  && mouseY > statsY && mouseY < statsY + statsHeight) {
         toggleExpanded();
         return;
@@ -123,8 +123,8 @@ void Stats::checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseD
 }
 
 void Stats::resetWidth(int width, int horizontalOffset) {
-    auto glCanvas = Application::getInstance()->getGLWidget();
-    int extraSpace = glCanvas->width() - horizontalOffset -2
+    auto canvasSize = Application::getInstance()->getCanvasSize();
+    int extraSpace = canvasSize.x - horizontalOffset - 2
                    - STATS_GENERAL_MIN_WIDTH
                    - (Menu::getInstance()->isOptionChecked(MenuOption::TestPing) ? STATS_PING_MIN_WIDTH -1 : 0)
                    - STATS_GEO_MIN_WIDTH
@@ -148,7 +148,7 @@ void Stats::resetWidth(int width, int horizontalOffset) {
             _pingStatsWidth += (int) extraSpace / panels;
         }
         _geoStatsWidth += (int) extraSpace / panels;
-        _octreeStatsWidth += glCanvas->width() -
+        _octreeStatsWidth += canvasSize.x -
             (_generalStatsWidth + _pingStatsWidth + _geoStatsWidth + 3);
     }
 }
@@ -197,7 +197,7 @@ void Stats::display(
         int outKbitsPerSecond,
         int voxelPacketsToProcess) 
 {
-    auto glCanvas = Application::getInstance()->getGLWidget();
+    auto canvasSize = Application::getInstance()->getCanvasSize();
 
     unsigned int backgroundColor = 0x33333399;
     int verticalOffset = 0, lines = 0;
@@ -211,7 +211,7 @@ void Stats::display(
     QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
 
     if (_lastHorizontalOffset != horizontalOffset) {
-        resetWidth(glCanvas->width(), horizontalOffset);
+        resetWidth(canvasSize.x, horizontalOffset);
         _lastHorizontalOffset = horizontalOffset;
     }
 
@@ -224,9 +224,10 @@ void Stats::display(
     lines = 5;
     int columnOneWidth = _generalStatsWidth;
 
-    PerformanceTimer::tallyAllTimerRecords(); // do this even if we're not displaying them, so they don't stack up
-    
-    if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails)) {
+    bool performanceTimerIsActive = PerformanceTimer::isActive();
+    bool displayPerf = _expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails);
+    if (displayPerf && performanceTimerIsActive) {
+        PerformanceTimer::tallyAllTimerRecords(); // do this even if we're not displaying them, so they don't stack up
 
         columnOneWidth = _generalStatsWidth + _pingStatsWidth + _geoStatsWidth; // 3 columns wide...
         // we will also include room for 1 line per timing record and a header of 4 lines
@@ -276,7 +277,7 @@ void Stats::display(
 
     
     // TODO: the display of these timing details should all be moved to JavaScript
-    if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails)) {
+    if (displayPerf && performanceTimerIsActive) {
         bool onlyDisplayTopTen = Menu::getInstance()->isOptionChecked(MenuOption::OnlyDisplayTopTen);
         // Timing details...
         verticalOffset += STATS_PELS_PER_LINE * 4; // skip 3 lines to be under the other columns
@@ -461,36 +462,35 @@ void Stats::display(
 
     lines = _expanded ? 10 : 2;
 
-    drawBackground(backgroundColor, horizontalOffset, 0, glCanvas->width() - horizontalOffset,
+    drawBackground(backgroundColor, horizontalOffset, 0, canvasSize.x - horizontalOffset,
         (lines + 1) * STATS_PELS_PER_LINE);
     horizontalOffset += 5;
 
     // Model/Entity render details
-    EntityTreeRenderer* entities = Application::getInstance()->getEntities();
     octreeStats.str("");
-    octreeStats << "Entity Items rendered: " << entities->getItemsRendered() 
-                << " / Out of view:" << entities->getItemsOutOfView()
-                << " / Too small:" << entities->getItemsTooSmall();
+    octreeStats << "Triangles: " << _renderDetails._trianglesRendered
+                << " / Quads:" << _renderDetails._quadsRendered
+                << " / Material Switches:" << _renderDetails._materialSwitches;
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
 
     if (_expanded) {
         octreeStats.str("");
-        octreeStats << "  Meshes rendered: " << entities->getMeshesRendered() 
-                    << " / Out of view:" << entities->getMeshesOutOfView()
-                    << " / Too small:" << entities->getMeshesTooSmall();
+        octreeStats << "  Mesh Parts Rendered Opaque: " << _renderDetails._opaque._rendered
+                    << " / Translucent:" << _renderDetails._translucent._rendered;
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
-
+        
         octreeStats.str("");
-        octreeStats << "  Triangles: " << entities->getTrianglesRendered() 
-                    << " / Quads:" << entities->getQuadsRendered()
-                    << " / Material Switches:" << entities->getMaterialSwitches();
+        octreeStats << "  Opaque considered: " << _renderDetails._opaque._considered
+                    << " / Out of view:" << _renderDetails._opaque._outOfView
+                    << " / Too small:" << _renderDetails._opaque._tooSmall;
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
-
+        
         octreeStats.str("");
-        octreeStats << "  Mesh Parts Rendered Opaque: " << entities->getOpaqueMeshPartsRendered() 
-                    << " / Translucent:" << entities->getTranslucentMeshPartsRendered();
+        octreeStats << "  Translucent considered: " << _renderDetails._translucent._considered
+                    << " / Out of view:" << _renderDetails._translucent._outOfView
+                    << " / Too small:" << _renderDetails._translucent._tooSmall;
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
     }

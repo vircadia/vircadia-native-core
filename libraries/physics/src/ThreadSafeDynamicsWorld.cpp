@@ -57,7 +57,7 @@ int ThreadSafeDynamicsWorld::stepSimulation( btScalar timeStep, int maxSubSteps,
 
     /*//process some debugging flags
     if (getDebugDrawer()) {
-        btIDebugDraw* debugDrawer = getDebugDrawer ();
+        btIDebugDraw* debugDrawer = getDebugDrawer();
         gDisableDeactivation = (debugDrawer->getDebugMode() & btIDebugDraw::DBG_NoDeactivation) != 0;
     }*/
     if (subSteps) {
@@ -84,3 +84,33 @@ int ThreadSafeDynamicsWorld::stepSimulation( btScalar timeStep, int maxSubSteps,
 
     return subSteps;
 }
+
+void ThreadSafeDynamicsWorld::synchronizeMotionStates() {
+    _changedMotionStates.clear();
+    BT_PROFILE("synchronizeMotionStates");
+    if (m_synchronizeAllMotionStates) {
+        //iterate  over all collision objects
+        for (int i=0;i<m_collisionObjects.size();i++) {
+            btCollisionObject* colObj = m_collisionObjects[i];
+            btRigidBody* body = btRigidBody::upcast(colObj);
+            if (body) {
+                if (body->getMotionState()) {
+                    synchronizeSingleMotionState(body);
+                    _changedMotionStates.push_back(static_cast<ObjectMotionState*>(body->getMotionState()));
+                }
+            }
+        }
+    } else  {       
+        //iterate over all active rigid bodies
+        for (int i=0;i<m_nonStaticRigidBodies.size();i++) {
+            btRigidBody* body = m_nonStaticRigidBodies[i];
+            if (body->isActive()) {
+                if (body->getMotionState()) {
+                    synchronizeSingleMotionState(body);
+                    _changedMotionStates.push_back(static_cast<ObjectMotionState*>(body->getMotionState()));
+                }
+            }
+        }
+    }   
+}       
+

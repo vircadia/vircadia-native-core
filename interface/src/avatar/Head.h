@@ -40,7 +40,7 @@ public:
     void init();
     void reset();
     void simulate(float deltaTime, bool isMine, bool billboard = false);
-    void render(float alpha, ViewFrustum* renderFrustum, Model::RenderMode mode, bool postLighting);
+    void render(RenderArgs* renderArgs, float alpha, ViewFrustum* renderFrustum, bool postLighting);
     void setScale(float scale);
     void setPosition(glm::vec3 position) { _position = position; }
     void setAverageLoudness(float averageLoudness) { _averageLoudness = averageLoudness; }
@@ -106,7 +106,7 @@ public:
     void addLeanDeltas(float sideways, float forward);
     
 private:
-    glm::vec3 calculateAverageEyePosition() const { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
+    glm::vec3 calculateAverageEyePosition() const { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * 0.5f; }
 
     // disallow copies of the Head, copy of owning Avatar is disallowed too
     Head(const Head&);
@@ -153,8 +153,9 @@ private:
     int _rightEyeLookAtID;
     
     // private methods
-    void renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
+    void renderLookatVectors(RenderArgs* renderArgs, glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
     void calculateMouthShapes();
+    void applyEyelidOffset(glm::quat headOrientation);
 
     friend class FaceModel;
 };

@@ -11,7 +11,7 @@ Original.TextInput {
     color: hifi.colors.text
     verticalAlignment: Original.TextInput.AlignVCenter
     font.family: hifi.fonts.fontFamily
-    font.pointSize: hifi.fonts.fontSize
+    font.pixelSize: hifi.fonts.pixelSize
 
 /*
     Original.Rectangle {
@@ -23,7 +23,7 @@ Original.TextInput {
 */
     Text {
         anchors.fill: parent
-        font.pointSize: parent.font.pointSize
+        font.pixelSize: parent.font.pixelSize
         font.family: parent.font.family
         verticalAlignment: parent.verticalAlignment
         horizontalAlignment: parent.horizontalAlignment

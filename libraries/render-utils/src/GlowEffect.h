@@ -15,6 +15,8 @@
 #include <gpu/GPUConfig.h>
 #include <gpu/Framebuffer.h>
 
+#include "RenderArgs.h"
+
 #include <QObject>
 #include <QGLWidget>
 #include <QStack>
@@ -34,17 +36,17 @@ public:
     /// (either the secondary or the tertiary).
     gpu::FramebufferPointer getFreeFramebuffer() const;
     
-    void init(QGLWidget* widget, bool enabled);
+    void init(bool enabled);
     
     /// Prepares the glow effect for rendering the current frame.  To be called before rendering the scene.
-    void prepare();
+    void prepare(RenderArgs* renderArgs);
     
     /// Starts using the glow effect.
     /// \param intensity the desired glow intensity, from zero to one
-    void begin(float intensity = 1.0f);
+    void begin(RenderArgs* renderArgs, float intensity = 1.0f);
     
     /// Stops using the glow effect.
-    void end();
+    void end(RenderArgs* renderArgs);
     
     /// Returns the current glow intensity.
     float getIntensity() const { return _intensity; }
@@ -52,7 +54,7 @@ public:
     /// Renders the glow effect.  To be called after rendering the scene.
     /// \param toTexture whether to render to a texture, rather than to the frame buffer
     /// \return the framebuffer object to which we rendered, or NULL if to the frame buffer
-    gpu::FramebufferPointer render(bool toTexture = false);
+    gpu::FramebufferPointer render(RenderArgs* renderArgs);
 
 public slots:
     void toggleGlowEffect(bool enabled);
@@ -60,9 +62,6 @@ public slots:
 private:
     GlowEffect();
     virtual ~GlowEffect();
-
-    int getDeviceWidth() const;
-    int getDeviceHeight() const;
 
     bool _initialized;
 
@@ -80,7 +79,6 @@ private:
     
     float _intensity;
     QStack<float> _intensityStack;
-    QGLWidget* _widget;
     bool _enabled;
 };
 
@@ -89,7 +87,11 @@ class Glower {
 public:
     
     Glower(float amount = 1.0f);
+    Glower(RenderArgs* renderArgs, float amount = 1.0f);
     ~Glower();
+
+private:
+    RenderArgs* _renderArgs;
 };
 
 #endif // hifi_GlowEffect_h

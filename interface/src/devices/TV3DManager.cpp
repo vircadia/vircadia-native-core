@@ -14,7 +14,7 @@
 #include <glm/glm.hpp>
 
 #include <GlowEffect.h>
-
+#include "gpu/GLBackend.h"
 #include "Application.h"
 
 #include "TV3DManager.h"
@@ -33,12 +33,8 @@ bool TV3DManager::isConnected() {
 }
 
 void TV3DManager::connect() {
-    auto glCanvas = Application::getInstance()->getGLWidget();
-    int width = glCanvas->getDeviceWidth();
-    int height = glCanvas->getDeviceHeight();
-    Camera& camera = *Application::getInstance()->getCamera();
-
-    configureCamera(camera, width, height);
+    auto deviceSize = qApp->getDeviceSize();
+    configureCamera(*(qApp->getCamera()), deviceSize.width(), deviceSize.height());
 }
 
 
@@ -47,9 +43,9 @@ void TV3DManager::connect() {
 void TV3DManager::setFrustum(Camera& whichCamera) {
     const double DTR = 0.0174532925; // degree to radians
     const double IOD = 0.05; //intraocular distance
-    double fovy = whichCamera.getFieldOfView(); // field of view in y-axis
-    double nearZ = whichCamera.getNearClip(); // near clipping plane
-    double screenZ = Application::getInstance()->getViewFrustum()->getFocalLength(); // screen projection plane
+    double fovy = DEFAULT_FIELD_OF_VIEW_DEGREES; // field of view in y-axis
+    double nearZ = DEFAULT_NEAR_CLIP; // near clipping plane
+    double screenZ = 0.25f; // screen projection plane
 
     double top = nearZ * tan(DTR * fovy / 2.0); //sets top of frustum based on fovy and near clipping plane
     double right = _aspect * top; // sets right of frustum based on aspect ratio
@@ -84,93 +80,69 @@ void TV3DManager::configureCamera(Camera& whichCamera, int screenWidth, int scre
     glLoadIdentity();
 }
 
-void TV3DManager::display(Camera& whichCamera) {
-    double nearZ = whichCamera.getNearClip(); // near clipping plane
-    double farZ = whichCamera.getFarClip(); // far clipping plane
+void TV3DManager::display(RenderArgs* renderArgs, Camera& whichCamera) {
+    double nearZ = DEFAULT_NEAR_CLIP; // near clipping plane
+    double farZ = DEFAULT_FAR_CLIP; // far clipping plane
 
     // left eye portal
     int portalX = 0;
     int portalY = 0;
-    auto glCanvas = Application::getInstance()->getGLWidget();
-    QSize deviceSize = glCanvas->getDeviceSize() *
-        Application::getInstance()->getRenderResolutionScale();
+    QSize deviceSize = qApp->getDeviceSize() *
+        qApp->getRenderResolutionScale();
     int portalW = deviceSize.width() / 2;
     int portalH = deviceSize.height();
 
-    ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
 
-    // We only need to render the overlays to a texture once, then we just render the texture as a quad
-    // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
-    applicationOverlay.renderOverlay();
-
-    DependencyManager::get<GlowEffect>()->prepare();
+    DependencyManager::get<GlowEffect>()->prepare(renderArgs);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glEnable(GL_SCISSOR_TEST);
-    // render left side view
-    glViewport(portalX, portalY, portalW, portalH);
-    glScissor(portalX, portalY, portalW, portalH);
-    
     Camera eyeCamera;
     eyeCamera.setRotation(whichCamera.getRotation());
     eyeCamera.setPosition(whichCamera.getPosition());
 
-    glPushMatrix();
-    {
-        _activeEye = &_leftEye;
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity(); // reset projection matrix
-        glFrustum(_leftEye.left, _leftEye.right, _leftEye.bottom, _leftEye.top, nearZ, farZ); // set left view frustum
-        GLfloat p[4][4];
-        glGetFloatv(GL_PROJECTION_MATRIX, &(p[0][0]));
-        GLfloat cotangent = p[1][1];
-        GLfloat fov = atan(1.0f / cotangent);
-        glTranslatef(_leftEye.modelTranslation, 0.0, 0.0); // translate to cancel parallax
-
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
-        eyeCamera.setEyeOffsetPosition(glm::vec3(-_activeEye->modelTranslation,0,0));
-        Application::getInstance()->displaySide(eyeCamera, false, RenderArgs::MONO);
-
-        applicationOverlay.displayOverlayTexture3DTV(whichCamera, _aspect, fov);
-        _activeEye = NULL;
-    }
-    glPopMatrix();
-    glDisable(GL_SCISSOR_TEST);
-
-    // render right side view
-    portalX = deviceSize.width() / 2;
     glEnable(GL_SCISSOR_TEST);
-    // render left side view
-    glViewport(portalX, portalY, portalW, portalH);
-    glScissor(portalX, portalY, portalW, portalH);
     glPushMatrix();
-    {
-        _activeEye = &_rightEye;
+    forEachEye([&](eyeFrustum& eye){
+        _activeEye = &eye;
+        glViewport(portalX, portalY, portalW, portalH);
+        glScissor(portalX, portalY, portalW, portalH);
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity(); // reset projection matrix
-        glFrustum(_rightEye.left, _rightEye.right, _rightEye.bottom, _rightEye.top, nearZ, farZ); // set right view frustum
+        glFrustum(eye.left, eye.right, eye.bottom, eye.top, nearZ, farZ); // set left view frustum
         GLfloat p[4][4];
+        // Really?
         glGetFloatv(GL_PROJECTION_MATRIX, &(p[0][0]));
-        GLfloat cotangent = p[1][1];
+        float cotangent = p[1][1];
         GLfloat fov = atan(1.0f / cotangent);
-        glTranslatef(_rightEye.modelTranslation, 0.0, 0.0); // translate to cancel parallax
+        glTranslatef(eye.modelTranslation, 0.0, 0.0); // translate to cancel parallax
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        eyeCamera.setEyeOffsetPosition(glm::vec3(-_activeEye->modelTranslation,0,0));
-        Application::getInstance()->displaySide(eyeCamera, false, RenderArgs::MONO);
-
-        applicationOverlay.displayOverlayTexture3DTV(whichCamera, _aspect, fov);
+        renderArgs->_renderSide = RenderArgs::MONO;
+        qApp->displaySide(renderArgs, eyeCamera, false);
+        qApp->getApplicationOverlay().displayOverlayTextureStereo(whichCamera, _aspect, fov);
         _activeEye = NULL;
-    }
+    }, [&]{
+        // render right side view
+        portalX = deviceSize.width() / 2;
+    });
     glPopMatrix();
     glDisable(GL_SCISSOR_TEST);
+
+    auto finalFbo = DependencyManager::get<GlowEffect>()->render(renderArgs);
+    auto fboSize = finalFbo->getSize();
+    // Get the ACTUAL device size for the BLIT
+    deviceSize = qApp->getDeviceSize();
+
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0, 0, fboSize.x, fboSize.y,
+                      0, 0, deviceSize.width(), deviceSize.height(),
+                        GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
     // reset the viewport to how we started
     glViewport(0, 0, deviceSize.width(), deviceSize.height());
-
-    DependencyManager::get<GlowEffect>()->render();
 }
 
 void TV3DManager::overrideOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,

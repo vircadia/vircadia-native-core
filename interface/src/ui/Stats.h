@@ -14,7 +14,7 @@
 
 #include <QObject>
 
-#include <NodeList.h>
+#include <RenderArgs.h>
 
 class Stats: public QObject {
     Q_OBJECT
@@ -27,11 +27,15 @@ public:
     static void drawBackground(unsigned int rgba, int x, int y, int width, int height);
 
     void toggleExpanded();
+    bool isExpanded() { return _expanded; }
+    
     void checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseDragStartedY, int horizontalOffset);
     void resetWidth(int width, int horizontalOffset);
     void display(const float* color, int horizontalOffset, float fps, int inPacketsPerSecond, int outPacketsPerSecond,
                  int inKbitsPerSecond, int outKbitsPerSecond, int voxelPacketsToProcess);
     bool includeTimingRecord(const QString& name);
+    
+    void setRenderDetails(const RenderDetails& details) { _renderDetails = details; }
     
 private:
     static Stats* _sharedInstance;
@@ -49,6 +53,7 @@ private:
 
     int _lastHorizontalOffset;
     
+    RenderDetails _renderDetails;
 };
 
 #endif // hifi_Stats_h

@@ -12,16 +12,25 @@
 #define hifi_RenderableParticleEffectEntityItem_h
 
 #include <ParticleEffectEntityItem.h>
+#include <TextureCache.h>
+#include "RenderableEntityItem.h"
 
 class RenderableParticleEffectEntityItem : public ParticleEffectEntityItem  {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     RenderableParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     virtual void render(RenderArgs* args);
 
+    void updateQuads(RenderArgs* args, bool textured);
+
+    SIMPLE_RENDERABLE();
+
 protected:
+
     int _cacheID;
-    const int VERTS_PER_PARTICLE = 16;
+    const int VERTS_PER_PARTICLE = 4;
+
+    NetworkTexturePointer _texture;
 };
 
 

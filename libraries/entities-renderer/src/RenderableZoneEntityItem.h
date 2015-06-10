@@ -19,7 +19,7 @@ class NetworkGeometry;
 
 class RenderableZoneEntityItem : public ZoneEntityItem  {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     
     RenderableZoneEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
     ZoneEntityItem(entityItemID, properties),
@@ -32,11 +32,13 @@ public:
                                                  ReadBitstreamToTreeParams& args,
                                                  EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
 
+    virtual void render(RenderArgs* args);
     virtual bool contains(const glm::vec3& point) const;
     
 private:
     Model* getModel();
     void initialSimulation();
+    void updateGeometry();
     
     template<typename Lambda>
     void changeProperties(Lambda functor);

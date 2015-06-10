@@ -13,6 +13,9 @@
 
 #include "SceneScriptingInterface.h"
 
+#include "SceneScriptingInterface.h"
+
+
 void SceneScriptingInterface::setStageOrientation(const glm::quat& orientation) {
     _skyStage->setOriginOrientation(orientation);
 }
@@ -86,6 +89,29 @@ bool SceneScriptingInterface::isStageSunModelEnabled() const {
     return _skyStage->isSunModelEnabled();
 }
 
+void SceneScriptingInterface::setBackgroundMode(const QString& mode) {
+    if (mode == QString("inherit")) {
+        _skyStage->setBackgroundMode(model::SunSkyStage::NO_BACKGROUND);
+    } else if (mode == QString("atmosphere")) {
+        _skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME);
+    } else if (mode == QString("skybox")) {
+        _skyStage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
+    }
+}
+
+QString SceneScriptingInterface::getBackgroundMode() const {
+    switch (_skyStage->getBackgroundMode()) {
+    case model::SunSkyStage::NO_BACKGROUND:
+        return QString("inherit");
+    case model::SunSkyStage::SKY_DOME:
+        return QString("atmosphere");
+    case model::SunSkyStage::SKY_BOX:
+        return QString("skybox");
+    default:
+        return QString("inherit");
+    };
+}
+
 model::SunSkyStagePointer SceneScriptingInterface::getSkyStage() const {
     return _skyStage;
 }
@@ -102,4 +128,35 @@ void SceneScriptingInterface::setShouldRenderEntities(bool shouldRenderEntities)
         _shouldRenderEntities = shouldRenderEntities;
         emit shouldRenderEntitiesChanged(_shouldRenderEntities);
     }
+}
+
+void SceneScriptingInterface::setEngineRenderOpaque(bool renderOpaque) {
+    _engineRenderOpaque = renderOpaque;
+}
+
+void SceneScriptingInterface::setEngineRenderTransparent(bool renderTransparent) {
+    _engineRenderTransparent = renderTransparent;
+}
+
+void SceneScriptingInterface::setEngineCullOpaque(bool cullOpaque) {
+    _engineCullOpaque = cullOpaque;
+}
+
+void SceneScriptingInterface::setEngineCullTransparent(bool cullTransparent) {
+    _engineCullTransparent = cullTransparent;
+}
+
+void SceneScriptingInterface::setEngineSortOpaque(bool sortOpaque) {
+    _engineSortOpaque = sortOpaque;
+}
+
+void SceneScriptingInterface::setEngineSortTransparent(bool sortTransparent) {
+    _engineSortOpaque = sortTransparent;
+}
+
+void SceneScriptingInterface::clearEngineCounters() {
+    _numFeedOpaqueItems = 0;
+    _numDrawnOpaqueItems = 0;
+    _numFeedTransparentItems = 0;
+    _numDrawnTransparentItems = 0;
 }

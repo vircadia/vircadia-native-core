@@ -40,15 +40,17 @@ if (WIN32)
   endif ()
   message (WINDOW_SDK_PATH= ${WINDOW_SDK_PATH})
   set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${WINDOW_SDK_PATH})
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+  # /wd4351 disables warning C4351: new behavior: elements of array will be default initialized
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /wd4351")
   # /LARGEADDRESSAWARE enables 32-bit apps to use more than 2GB of memory.
   # Caveats: http://stackoverflow.com/questions/2288728/drawbacks-of-using-largeaddressaware-for-32-bit-windows-executables
   # TODO: Remove when building 64-bit.
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LARGEADDRESSAWARE")
-elseif (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
-  #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long -pedantic")
-  #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unknown-pragmas")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -fno-strict-aliasing -Wno-unused-parameter -ggdb")
+else ()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -fno-strict-aliasing -Wno-unused-parameter")
+  if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb")
+  endif ()
 endif(WIN32)
 
 if ((NOT MSVC12) AND (NOT MSVC14))
@@ -176,8 +178,13 @@ option(GET_GVERB "Get Gverb library automatically as external project" 1)
 option(GET_SOXR "Get Soxr library automatically as external project" 1)
 option(GET_TBB "Get Threading Building Blocks library automatically as external project" 1)
 option(GET_LIBOVR "Get LibOVR library automatically as external project" 1)
-option(USE_NSIGHT "Attempt to find the nSight libraries" 1)
 option(GET_VHACD "Get V-HACD library automatically as external project" 1)
+option(GET_POLYVOX "Get polyvox library automatically as external project" 1)
+option(GET_OPENVR "Get OpenVR library automatically as external project" 1)
+option(GET_BOOSTCONFIG "Get Boost-config library automatically as external project" 1)
+option(GET_OGLPLUS "Get OGLplus library automatically as external project" 1)
+
+option(USE_NSIGHT "Attempt to find the nSight libraries" 1)
 
 if (WIN32)
   option(GET_GLEW "Get GLEW library automatically as external project" 1)

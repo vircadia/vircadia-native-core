@@ -16,15 +16,13 @@
 #include <QtCore/QSharedPointer>
 #include <QtCore/QUuid>
 
+#include <memory>
+
 #include <DependencyManager.h>
 #include <Node.h>
 
 #include "AvatarData.h"
 #include <glm/glm.hpp>
-
-typedef QSharedPointer<AvatarData> AvatarSharedPointer;
-typedef QWeakPointer<AvatarData> AvatarWeakPointer;
-typedef QHash<QUuid, AvatarSharedPointer> AvatarHash;
 
 class AvatarHashMap : public QObject, public Dependency {
     Q_OBJECT
@@ -36,28 +34,26 @@ public:
     
 public slots:
     void processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer);
-    bool containsAvatarWithDisplayName(const QString& displayName);
     bool isAvatarInRange(const glm::vec3 & position, const float range);
-    AvatarWeakPointer avatarWithDisplayName(const QString& displayname);
     
 private slots:
     void sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID);
     
 protected:
     AvatarHashMap();
-    virtual AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
-    
-    bool shouldKillAvatar(const AvatarSharedPointer& sharedAvatar);
     
     virtual AvatarSharedPointer newSharedAvatar();
-    AvatarSharedPointer matchingOrNewAvatar(const QUuid& nodeUUID, const QWeakPointer<Node>& mixerWeakPointer);
+    virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
+    virtual void removeAvatar(const QUuid& sessionUUID);
     
+    AvatarHash _avatarHash;
+
+private:
     void processAvatarDataPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
     void processAvatarIdentityPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
     void processAvatarBillboardPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
     void processKillAvatar(const QByteArray& datagram);
 
-    AvatarHash _avatarHash;
     QUuid _lastOwnerSessionUUID;
 };
 

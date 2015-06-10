@@ -1,6 +1,6 @@
 //
 //  RenderableBoxEntityItem.h
-//  interface/src/entities
+//  libraries/entities-renderer/src/
 //
 //  Created by Brad Hefta-Gaub on 8/6/14.
 //  Copyright 2014 High Fidelity, Inc.
@@ -13,16 +13,20 @@
 #define hifi_RenderableBoxEntityItem_h
 
 #include <BoxEntityItem.h>
+#include "RenderableDebugableEntityItem.h"
+#include "RenderableEntityItem.h"
 
-class RenderableBoxEntityItem : public BoxEntityItem  {
+class RenderableBoxEntityItem : public BoxEntityItem {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     RenderableBoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         BoxEntityItem(entityItemID, properties)
         { }
 
     virtual void render(RenderArgs* args);
+
+    SIMPLE_RENDERABLE()
 };
 
 

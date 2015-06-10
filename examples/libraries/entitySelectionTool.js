@@ -19,15 +19,8 @@ SPACE_WORLD = "world";
 SelectionManager = (function() {
     var that = {};
 
-    var PENDING_SELECTION_CHECK_INTERVAL = 50;
-
     that.savedProperties = {};
-
     that.selections = [];
-    // These are selections that don't have a known ID yet
-    that.pendingSelections = [];
-    var pendingSelectionTimer = null;
-
     var listeners = [];
 
     that.localRotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
@@ -45,7 +38,7 @@ SelectionManager = (function() {
         that.savedProperties = {};
         for (var i = 0; i < that.selections.length; i++) {
             var entityID = that.selections[i];
-            that.savedProperties[entityID.id] = Entities.getEntityProperties(entityID);
+            that.savedProperties[entityID] = Entities.getEntityProperties(entityID);
         }
     };
 
@@ -61,41 +54,17 @@ SelectionManager = (function() {
         that.selections = [];
         for (var i = 0; i < entityIDs.length; i++) {
             var entityID = entityIDs[i];
-            if (entityID.isKnownID) {
-                that.selections.push(entityID);
-            } else {
-                that.pendingSelections.push(entityID);
-                if (pendingSelectionTimer == null) {
-                    pendingSelectionTimer = Script.setInterval(that._checkPendingSelections, PENDING_SELECTION_CHECK_INTERVAL);
-                }
-            }
+            that.selections.push(entityID);
         }
 
         that._update();
     };
 
-    that._checkPendingSelections = function() {
-        for (var i = 0; i < that.pendingSelections.length; i++) {
-            var entityID = that.pendingSelections[i];
-            var newEntityID = Entities.identifyEntity(entityID);
-            if (newEntityID.isKnownID) {
-                that.pendingSelections.splice(i, 1);
-                that.addEntity(newEntityID);
-                i--;
-            }
-        }
-
-        if (that.pendingSelections.length == 0) {
-            Script.clearInterval(pendingSelectionTimer);
-            pendingSelectionTimer = null;
-        }
-    }
-
     that.addEntity = function(entityID, toggleSelection) {
-        if (entityID.isKnownID) {
+        if (entityID) {
             var idx = -1;
             for (var i = 0; i < that.selections.length; i++) {
-                if (entityID.id == that.selections[i].id) {
+                if (entityID == that.selections[i]) {
                     idx = i;
                     break;
                 }
@@ -104,14 +73,6 @@ SelectionManager = (function() {
                 that.selections.push(entityID);
             } else if (toggleSelection) {
                 that.selections.splice(idx, 1);
-            }
-        } else {
-            var idx = that.pendingSelections.indexOf(entityID);
-            if (idx == -1) {
-                that.pendingSelections.push(entityID);
-                if (pendingSelectionTimer == null) {
-                    pendingSelectionTimer = Script.setInterval(that._checkPendingSelections, PENDING_SELECTION_CHECK_INTERVAL);
-                }
             }
         }
 
@@ -123,24 +84,11 @@ SelectionManager = (function() {
         if (idx >= 0) {
             that.selections.splice(idx, 1);
         }
-
-        var idx = that.pendingSelections.indexOf(entityID);
-        if (idx >= 0) {
-            that.pendingSelections.splice(idx, 1);
-        }
-
         that._update();
     };
 
     that.clearSelections = function() {
         that.selections = [];
-        that.pendingSelections = [];
-
-        if (pendingSelectionTimer !== null) {
-            Script.clearInterval(pendingSelectionTimer);
-            pendingSelectionTimer = null;
-        }
-
         that._update();
     };
 
@@ -203,7 +151,7 @@ SelectionManager = (function() {
             try {
                 listeners[i]();
             } catch (e) {
-                print("got exception");
+                print("EntitySelectionTool got exception: " + JSON.stringify(e));
             }
         }
     };
@@ -1213,7 +1161,7 @@ SelectionDisplay = (function () {
                     rotation: rotation,
                     visible: true,
                 });
-                var distance = (properties.dimensions.z / 2) * Math.tan(properties.cutoff * (Math.PI / 180));
+                var distance = (properties.dimensions.z / 2) * Math.sin(properties.cutoff * (Math.PI / 180));
 
                 Overlays.editOverlay(grabberSpotLightL, {
                     position: EdgeNL,
@@ -1563,7 +1511,7 @@ SelectionDisplay = (function () {
             var wantDebug = false;
 
             for (var i = 0; i < SelectionManager.selections.length; i++) {
-                var properties = SelectionManager.savedProperties[SelectionManager.selections[i].id];
+                var properties = SelectionManager.savedProperties[SelectionManager.selections[i]];
                 var newPosition = Vec3.sum(properties.position, { x: vector.x, y: 0, z: vector.z });
                 Entities.editEntity(SelectionManager.selections[i], {
                     position: newPosition,
@@ -1641,7 +1589,7 @@ SelectionDisplay = (function () {
             }
             for (var i = 0; i < SelectionManager.selections.length; i++) {
                 var id = SelectionManager.selections[i];
-                var properties = selectionManager.savedProperties[id.id];
+                var properties = selectionManager.savedProperties[id];
 
                 var original = properties.position;
                 var newPosition = Vec3.sum(properties.position, vector);
@@ -1900,7 +1848,7 @@ SelectionDisplay = (function () {
         vector = change;
         Vec3.print("Radius stretch: ", vector);
         var length = vector.x + vector.y + vector.z;
-        var props = selectionManager.savedProperties[selectionManager.selections[0].id];
+        var props = selectionManager.savedProperties[selectionManager.selections[0]];
 
         var radius = props.dimensions.z / 2;
         var originalCutoff = props.cutoff;
@@ -1917,7 +1865,7 @@ SelectionDisplay = (function () {
     };
 
     function radiusStretchFunc(vector, change) {
-        var props = selectionManager.savedProperties[selectionManager.selections[0].id];
+        var props = selectionManager.savedProperties[selectionManager.selections[0]];
 
         // Find the axis being adjusted
         var size;
@@ -2084,7 +2032,7 @@ SelectionDisplay = (function () {
                 for (var i = 0; i < SelectionManager.selections.length; i++) {
                     var entityID = SelectionManager.selections[i];
                     var properties = Entities.getEntityProperties(entityID);
-                    var initialProperties = SelectionManager.savedProperties[entityID.id];
+                    var initialProperties = SelectionManager.savedProperties[entityID];
 
                     var newProperties = {
                         rotation: Quat.multiply(yawChange, initialProperties.rotation),
@@ -2211,7 +2159,7 @@ SelectionDisplay = (function () {
                 for (var i = 0; i < SelectionManager.selections.length; i++) {
                     var entityID = SelectionManager.selections[i];
                     var properties = Entities.getEntityProperties(entityID);
-                    var initialProperties = SelectionManager.savedProperties[entityID.id];
+                    var initialProperties = SelectionManager.savedProperties[entityID];
                     var dPos = Vec3.subtract(initialProperties.position, initialPosition);
                     dPos = Vec3.multiplyQbyV(pitchChange, dPos);
 
@@ -2331,7 +2279,7 @@ SelectionDisplay = (function () {
                 for (var i = 0; i < SelectionManager.selections.length; i++) {
                     var entityID = SelectionManager.selections[i];
                     var properties = Entities.getEntityProperties(entityID);
-                    var initialProperties = SelectionManager.savedProperties[entityID.id];
+                    var initialProperties = SelectionManager.savedProperties[entityID];
                     var dPos = Vec3.subtract(initialProperties.position, initialPosition);
                     dPos = Vec3.multiplyQbyV(rollChange, dPos);
 

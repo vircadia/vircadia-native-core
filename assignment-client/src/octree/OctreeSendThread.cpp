@@ -10,9 +10,9 @@
 //
 
 #include <NodeList.h>
+#include <NumericalConstants.h>
 #include <PacketHeaders.h>
 #include <PerfStat.h>
-#include <SharedUtil.h>
 
 #include "OctreeSendThread.h"
 #include "OctreeServer.h"
@@ -21,9 +21,8 @@
 quint64 startSceneSleepTime = 0;
 quint64 endSceneSleepTime = 0;
 
-OctreeSendThread::OctreeSendThread(const SharedAssignmentPointer& myAssignment, const SharedNodePointer& node) :
-    _myAssignment(myAssignment),
-    _myServer(static_cast<OctreeServer*>(myAssignment.data())),
+OctreeSendThread::OctreeSendThread(OctreeServer* myServer, const SharedNodePointer& node) :
+    _myServer(myServer),
     _node(node),
     _nodeUUID(node->getUUID()),
     _packetData(),
@@ -31,9 +30,14 @@ OctreeSendThread::OctreeSendThread(const SharedAssignmentPointer& myAssignment, 
     _isShuttingDown(false)
 {
     QString safeServerName("Octree");
+    
+    // set our QThread object name so we can identify this thread while debugging
+    setObjectName(QString("Octree Send Thread (%1)").arg(uuidStringWithoutCurlyBraces(node->getUUID())));
+    
     if (_myServer) {
         safeServerName = _myServer->getMyServerName();
     }
+
     qDebug() << qPrintable(safeServerName)  << "server [" << _myServer << "]: client connected "
                                             "- starting sending thread [" << this << "]";
 
@@ -53,7 +57,6 @@ OctreeSendThread::~OctreeSendThread() {
     OctreeServer::stopTrackingThread(this);
 
     _node.clear();
-    _myAssignment.clear();
 }
 
 void OctreeSendThread::setIsShuttingDown() {
@@ -66,14 +69,12 @@ bool OctreeSendThread::process() {
         return false; // exit early if we're shutting down
     }
 
-    // check that our server and assignment is still valid
-    if (!_myServer || !_myAssignment) {
-        return false; // exit early if it's not, it means the server is shutting down
-    }
-
     OctreeServer::didProcess(this);
 
     quint64  start = usecTimestampNow();
+
+    // we'd better have a server at this point, or we're in trouble
+    assert(_myServer);
 
     // don't do any send processing until the initial load of the octree is complete...
     if (_myServer->isInitialLoadComplete()) {
@@ -290,7 +291,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
     }
     
     // calculate max number of packets that can be sent during this interval
-    int clientMaxPacketsPerInterval = std::max(1, (nodeData->getMaxOctreePacketsPerSecond() / INTERVALS_PER_SECOND));
+    int clientMaxPacketsPerInterval = std::max(1, (nodeData->getMaxQueryPacketsPerSecond() / INTERVALS_PER_SECOND));
     int maxPacketsPerInterval = std::min(clientMaxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval());
 
     int truePacketsSent = 0;
@@ -342,8 +343,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
 
         if (!viewFrustumChanged && !nodeData->getWantDelta()) {
             // only set our last sent time if we weren't resetting due to frustum change
-            quint64 now = usecTimestampNow();
-            nodeData->setLastTimeBagEmpty(now);
+            nodeData->setLastTimeBagEmpty();
         }
 
         // track completed scenes and send out the stats packet accordingly
@@ -367,9 +367,11 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
 
         // TODO: add these to stats page
         //::startSceneSleepTime = _usleepTime;
-        
+
+        nodeData->sceneStart(usecTimestampNow() - CHANGE_FUDGE);
         // start tracking our stats
-        nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, _myServer->getOctree()->getRoot(), _myServer->getJurisdiction());
+        nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged,
+                                     _myServer->getOctree()->getRoot(), _myServer->getJurisdiction());
 
         // This is the start of "resending" the scene.
         bool dontRestartSceneOnMove = false; // this is experimental
@@ -557,6 +559,13 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
             quint64 endInside = usecTimestampNow();
             quint64 elapsedInsideUsecs = endInside - startInside;
             OctreeServer::trackInsideTime((float)elapsedInsideUsecs);
+        }
+
+
+        if (somethingToSend) {
+            qDebug() << "Hit PPS Limit, packetsSentThisInterval =" << packetsSentThisInterval
+                     << "  maxPacketsPerInterval = " << maxPacketsPerInterval
+                     << "  clientMaxPacketsPerInterval = " << clientMaxPacketsPerInterval;
         }
 
 

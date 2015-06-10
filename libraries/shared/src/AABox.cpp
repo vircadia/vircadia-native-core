@@ -10,11 +10,11 @@
 //
 
 #include "AABox.h"
+
 #include "AACube.h"
 #include "Extents.h"
 #include "GeometryUtil.h"
-#include "SharedUtil.h"
-
+#include "NumericalConstants.h"
 
 AABox::AABox(const AACube& other) : 
     _corner(other.getCorner()), _scale(other.getScale(), other.getScale(), other.getScale()) {
@@ -41,12 +41,6 @@ glm::vec3 AABox::calcCenter() const {
     center += (_scale * 0.5f);
     return center; 
 }
-
-glm::vec3 AABox::calcTopFarLeft() const { 
-    glm::vec3 topFarLeft(_corner);
-    topFarLeft += _scale;
-    return topFarLeft; 
-};
 
 void AABox::scale(float scale) {
     _corner = _corner * scale;

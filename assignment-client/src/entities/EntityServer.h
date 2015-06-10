@@ -51,6 +51,7 @@ protected:
 
 private:
     EntitySimulation* _entitySimulation;
+    QTimer* _pruneDeletedEntitiesTimer = nullptr;
 };
 
 #endif // hifi_EntityServer_h

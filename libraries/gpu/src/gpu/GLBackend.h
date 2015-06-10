@@ -24,12 +24,26 @@ namespace gpu {
 class GLBackend : public Backend {
 public:
 
+    explicit GLBackend(bool syncCache);
     GLBackend();
-    ~GLBackend();
+    virtual ~GLBackend();
 
-    void render(Batch& batch);
+    virtual void render(Batch& batch);
 
-    static void renderBatch(Batch& batch);
+    // This call synchronize the Full Backend cache with the current GLState
+    // THis is only intended to be used when mixing raw gl calls with the gpu api usage in order to sync
+    // the gpu::Backend state with the true gl state which has probably been messed up by these ugly naked gl calls
+    // Let's try to avoid to do that as much as possible!
+    virtual void syncCache();
+
+    // Render Batch create a local Context and execute the batch with it
+    // WARNING:
+    // if syncCache is true, then the gpu::GLBackend will synchornize
+    // its cache with the current gl state and it's BAD
+    // If you know you don't rely on any state changed by naked gl calls then
+    // leave to false where it belongs
+    // if true, the needed resync IS EXPENSIVE
+    static void renderBatch(Batch& batch, bool syncCache = false);
 
     static bool checkGLError(const char* name = nullptr);
 
@@ -70,14 +84,23 @@ public:
         GLuint _shader;
         GLuint _program;
 
-        GLuint _transformCameraSlot = -1;
-        GLuint _transformObjectSlot = -1;
+        GLint _transformCameraSlot = -1;
+        GLint _transformObjectSlot = -1;
+
+#if (GPU_TRANSFORM_PROFILE == GPU_CORE)
+#else
+        GLuint _transformCamera_viewInverse = -1;
+#endif
 
         GLShader();
         ~GLShader();
     };
     static GLShader* syncGPUObject(const Shader& shader);
     static GLuint getShaderID(const ShaderPointer& shader);
+
+    // FIXME: Please remove these 2 calls once the text renderer doesn't use naked gl calls anymore
+    static void loadMatrix(GLenum target, const glm::mat4 & m);
+    static void fetchMatrix(GLenum target, glm::mat4 & m);
 
     class GLState : public GPUObject {
     public:
@@ -191,11 +214,15 @@ protected:
     void do_drawInstanced(Batch& batch, uint32 paramOffset);
     void do_drawIndexedInstanced(Batch& batch, uint32 paramOffset);
 
+    void do_clearFramebuffer(Batch& batch, uint32 paramOffset);
+
     // Input Stage
     void do_setInputFormat(Batch& batch, uint32 paramOffset);
     void do_setInputBuffer(Batch& batch, uint32 paramOffset);
     void do_setIndexBuffer(Batch& batch, uint32 paramOffset);
-
+    
+    // Synchronize the state cache of this Backend with the actual real state of the GL Context
+    void syncInputStateCache();
     void updateInput();
     struct InputStageState {
         bool _invalidFormat;
@@ -233,9 +260,11 @@ protected:
     void do_setModelTransform(Batch& batch, uint32 paramOffset);
     void do_setViewTransform(Batch& batch, uint32 paramOffset);
     void do_setProjectionTransform(Batch& batch, uint32 paramOffset);
-
+    
     void initTransform();
     void killTransform();
+    // Synchronize the state cache of this Backend with the actual real state of the GL Context
+    void syncTransformStateCache();
     void updateTransform();
     struct TransformStageState {
         TransformObject _transformObject;
@@ -263,14 +292,18 @@ protected:
             _lastMode(GL_TEXTURE) {}
     } _transform;
 
-    // Pipeline Stage
-    void do_setPipeline(Batch& batch, uint32 paramOffset);
-
-    void do_setStateBlendFactor(Batch& batch, uint32 paramOffset);
-
+    // Uniform Stage
     void do_setUniformBuffer(Batch& batch, uint32 paramOffset);
     void do_setUniformTexture(Batch& batch, uint32 paramOffset);
- 
+    
+    struct UniformStageState {
+        
+    };
+    
+    // Pipeline Stage
+    void do_setPipeline(Batch& batch, uint32 paramOffset);
+    void do_setStateBlendFactor(Batch& batch, uint32 paramOffset);
+    
     // Standard update pipeline check that the current Program and current State or good to go for a
     void updatePipeline();
     // Force to reset all the state fields indicated by the 'toBeReset" signature
@@ -287,12 +320,16 @@ protected:
         GLuint _program;
         bool _invalidProgram;
 
+#if (GPU_TRANSFORM_PROFILE == GPU_CORE)
+#else
+        GLint _program_transformCamera_viewInverse = -1;
+#endif
+
         State::Data _stateCache;
         State::Signature _stateSignatureCache;
 
         GLState* _state;
         bool _invalidState = false;
-        bool _needStateSync = true;
 
         PipelineStageState() :
             _pipeline(),
@@ -301,8 +338,7 @@ protected:
             _stateCache(State::DEFAULT),
             _stateSignatureCache(0),
             _state(nullptr),
-            _invalidState(false),
-            _needStateSync(true)
+            _invalidState(false)
              {}
     } _pipeline;
 
@@ -336,6 +372,7 @@ protected:
 
     void do_glBindTexture(Batch& batch, uint32 paramOffset);
     void do_glActiveTexture(Batch& batch, uint32 paramOffset);
+    void do_glTexParameteri(Batch& batch, uint32 paramOffset);
 
     void do_glDrawBuffers(Batch& batch, uint32 paramOffset);
 
@@ -347,8 +384,9 @@ protected:
 
     void do_glEnableVertexAttribArray(Batch& batch, uint32 paramOffset);
     void do_glDisableVertexAttribArray(Batch& batch, uint32 paramOffset);
-
+    
     void do_glColor4f(Batch& batch, uint32 paramOffset);
+    void do_glLineWidth(Batch& batch, uint32 paramOffset);
 
     typedef void (GLBackend::*CommandCall)(Batch&, uint32);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];

@@ -49,6 +49,7 @@ protected slots:
     void resizeTextInput();
     void handleEvalutationFinished(QScriptValue result, bool isException);
     void handlePrint(const QString& message);
+    void handleError(const QString& message);
 
 private:
     void appendMessage(const QString& gutter, const QString& message);
