@@ -1,5 +1,5 @@
 //
-//  AutoUpdate.h
+//  AutoUpdater.h
 //  libraries/auto-update/src
 //
 //  Created by Leonardo Murillo on 6/1/2015.
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_AutoUpdate_h
-#define hifi_AutoUpdate_h
+#ifndef hifi_AutoUpdater_h
+#define hifi_AutoUpdater_h
 
 
 #include <QtCore/QSettings>
@@ -31,12 +31,12 @@
 
 const QUrl BUILDS_XML_URL("https://highfidelity.com/builds.xml");
 
-class AutoUpdate : public QObject, public Dependency {
+class AutoUpdater : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
     
 public:
-    AutoUpdate();
+    AutoUpdater();
     
     void checkForUpdate();
     const QMap<int, QMap<QString, QString>> &getBuildData() { return _builds; }
@@ -65,4 +65,4 @@ private slots:
  
 };
 
-#endif // _hifi_AutoUpdate_h
+#endif // _hifi_AutoUpdater_h

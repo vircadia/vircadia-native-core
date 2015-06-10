@@ -11,7 +11,7 @@
 
 #include "UpdateDialog.h"
 
-#include <AutoUpdate.h>
+#include <AutoUpdater.h>
 
 #include "DependencyManager.h"
 
@@ -20,7 +20,7 @@ HIFI_QML_DEF(UpdateDialog)
 UpdateDialog::UpdateDialog(QQuickItem* parent) :
     OffscreenQmlDialog(parent)
 {
-    auto applicationUpdater = DependencyManager::get<AutoUpdate>();
+    auto applicationUpdater = DependencyManager::get<AutoUpdater>();
     int currentVersion = QCoreApplication::applicationVersion().toInt();
     int latestVersion = applicationUpdater.data()->getBuildData().lastKey();
     int versionsBehind = latestVersion - currentVersion;
@@ -46,6 +46,6 @@ void UpdateDialog::hide() {
 }
 
 void UpdateDialog::triggerUpgrade() {
-    auto applicationUpdater = DependencyManager::get<AutoUpdate>();
+    auto applicationUpdater = DependencyManager::get<AutoUpdater>();
     applicationUpdater.data()->performAutoUpdate(applicationUpdater.data()->getBuildData().lastKey());
 }

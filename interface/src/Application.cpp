@@ -59,7 +59,7 @@
 #include <AddressManager.h>
 #include <AmbientOcclusionEffect.h>
 #include <AudioInjector.h>
-#include <AutoUpdate.h>
+#include <AutoUpdater.h>
 #include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <EntityScriptingInterface.h>
@@ -295,7 +295,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto discoverabilityManager = DependencyManager::set<DiscoverabilityManager>();
     auto sceneScriptingInterface = DependencyManager::set<SceneScriptingInterface>();
     auto offscreenUi = DependencyManager::set<OffscreenUi>();
-    auto autoUpdate = DependencyManager::set<AutoUpdate>();
+    auto autoUpdater = DependencyManager::set<AutoUpdater>();
     auto pathUtils =  DependencyManager::set<PathUtils>();
 
     return true;
@@ -624,8 +624,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(ddeTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
 #endif
     
-    auto applicationUpdater = DependencyManager::get<AutoUpdate>();
-    connect(applicationUpdater.data(), &AutoUpdate::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
+    auto applicationUpdater = DependencyManager::get<AutoUpdater>();
+    connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
     applicationUpdater->checkForUpdate();
 }
 

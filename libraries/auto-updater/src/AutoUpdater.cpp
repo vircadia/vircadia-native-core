@@ -1,5 +1,5 @@
 //
-//  AutoUpdate.cpp
+//  AutoUpdater.cpp
 //  libraries/auto-update/src
 //
 //  Created by Leonardo Murillo on 6/1/2015.
@@ -9,12 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "AutoUpdate.h"
+#include "AutoUpdater.h"
 
 #include <NetworkAccessManager.h>
 #include <SharedUtil.h>
 
-AutoUpdate::AutoUpdate() {
+AutoUpdater::AutoUpdater() {
 #if defined Q_OS_WIN32
     _operatingSystem = "windows";
 #elif defined Q_OS_MAC
@@ -26,19 +26,19 @@ AutoUpdate::AutoUpdate() {
     connect(this, SIGNAL(latestVersionDataParsed()), this, SLOT(checkVersionAndNotify()));
 }
 
-void AutoUpdate::checkForUpdate() {
+void AutoUpdater::checkForUpdate() {
     this->getLatestVersionData();
 }
 
-void AutoUpdate::getLatestVersionData() {
+void AutoUpdater::getLatestVersionData() {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest latestVersionRequest(BUILDS_XML_URL);
     latestVersionRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     QNetworkReply* reply = networkAccessManager.get(latestVersionRequest);
-    connect(reply, &QNetworkReply::finished, this, &AutoUpdate::parseLatestVersionData);
+    connect(reply, &QNetworkReply::finished, this, &AutoUpdater::parseLatestVersionData);
 }
 
-void AutoUpdate::parseLatestVersionData() {
+void AutoUpdater::parseLatestVersionData() {
     QNetworkReply* sender = qobject_cast<QNetworkReply*>(QObject::sender());
     
     QXmlStreamReader xml(sender);
@@ -103,7 +103,7 @@ void AutoUpdate::parseLatestVersionData() {
     emit latestVersionDataParsed();
 }
 
-void AutoUpdate::checkVersionAndNotify() {
+void AutoUpdater::checkVersionAndNotify() {
     int latestVersionAvailable = _builds.lastKey();
     if (QCoreApplication::applicationVersion() != "dev" &&
         QCoreApplication::applicationVersion().toInt() < latestVersionAvailable) {
@@ -111,7 +111,7 @@ void AutoUpdate::checkVersionAndNotify() {
     }
 }
 
-void AutoUpdate::performAutoUpdate(int version) {
+void AutoUpdater::performAutoUpdate(int version) {
     // NOTE: This is not yet auto updating - however this is a checkpoint towards that end
     // Next PR will handle the automatic download, upgrading and application restart
     const QMap<QString, QString>& chosenVersion = _builds.value(version);
@@ -120,11 +120,11 @@ void AutoUpdate::performAutoUpdate(int version) {
     QCoreApplication::quit();
 }
 
-void AutoUpdate::downloadUpdateVersion(int version) {
+void AutoUpdater::downloadUpdateVersion(int version) {
     emit newVersionIsDownloaded();
 }
 
-void AutoUpdate::appendBuildData(int versionNumber,
+void AutoUpdater::appendBuildData(int versionNumber,
                                  const QString& downloadURL,
                                  const QString& releaseTime,
                                  const QString& releaseNotes,
