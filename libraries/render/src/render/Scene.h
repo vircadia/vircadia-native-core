@@ -218,7 +218,7 @@ public:
 
         virtual void update(const UpdateFunctorPointer& functor) = 0;
 
-        virtual const model::MaterialKey& getMaterialKey() const = 0;
+        virtual const model::MaterialKey getMaterialKey() const = 0;
 
         ~PayloadInterface() {}
     protected:
@@ -283,7 +283,7 @@ template <class T> const Item::Bound payloadGetBound(const std::shared_ptr<T>& p
 template <class T> void payloadRender(const std::shared_ptr<T>& payloadData, RenderArgs* args) { }
     
 // Shape type interface
-template <class T> const model::MaterialKey& shapeGetMaterialKey(const std::shared_ptr<T>& payloadData) { return model::MaterialKey(); }
+template <class T> const model::MaterialKey shapeGetMaterialKey(const std::shared_ptr<T>& payloadData) { return model::MaterialKey(); }
 
 template <class T> class Payload : public Item::PayloadInterface {
 public:
@@ -298,7 +298,7 @@ public:
     virtual void render(RenderArgs* args) { payloadRender<T>(_data, args); } 
 
     // Shape Type interface
-    virtual const model::MaterialKey& getMaterialKey() const { return shapeGetMaterialKey<T>(_data); }
+    virtual const model::MaterialKey getMaterialKey() const { return shapeGetMaterialKey<T>(_data); }
 
     Payload(const DataPointer& data) : _data(data) {}
 protected:
