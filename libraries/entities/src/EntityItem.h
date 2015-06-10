@@ -28,12 +28,15 @@
 #include "EntityItemID.h"
 #include "EntityItemProperties.h"
 #include "EntityItemPropertiesDefaults.h"
-#include "EntityActionInterface.h"
 #include "EntityTypes.h"
 
 class EntitySimulation;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
+
+class EntityActionInterface;
+typedef std::shared_ptr<EntityActionInterface> EntityActionPointer;
+
 
 namespace render {
     class Scene;

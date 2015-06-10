@@ -9,11 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
+
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"
 #include "ShapeManager.h"
-#include "ObjectActionPullToPoint.h"
-#include "ObjectActionSpring.h"
 
 #include "PhysicalEntitySimulation.h"
 
@@ -233,32 +233,6 @@ void PhysicalEntitySimulation::handleCollisionEvents(CollisionEvents& collisionE
             emit entityCollisionWithEntity(collision.idA, collision.idB, collision);
         }
     }
-}
-
-EntityActionPointer PhysicalEntitySimulation::actionFactory(EntityActionType type,
-                                                            QUuid id,
-                                                            EntityItemPointer ownerEntity,
-                                                            QVariantMap arguments) {
-    EntityActionPointer action = nullptr;
-    switch (type) {
-        case ACTION_TYPE_NONE:
-            return nullptr;
-        case ACTION_TYPE_PULL_TO_POINT:
-            action = (EntityActionPointer) new ObjectActionPullToPoint(id, ownerEntity);
-            break;
-        case ACTION_TYPE_SPRING:
-            action = (EntityActionPointer) new ObjectActionSpring(id, ownerEntity);
-            break;
-    }
-
-    bool ok = action->updateArguments(arguments);
-    if (ok) {
-        ownerEntity->addAction(this, action);
-        return action;
-    }
-
-    action = nullptr;
-    return action;
 }
 
 void PhysicalEntitySimulation::applyActionChanges() {

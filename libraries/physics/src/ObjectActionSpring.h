@@ -23,8 +23,7 @@ public:
     virtual ~ObjectActionSpring();
 
     virtual bool updateArguments(QVariantMap arguments);
-    virtual void updateActionWorker(btCollisionWorld* collisionWorld, btScalar deltaTimeStep,
-                                    ObjectMotionState* motionState, btRigidBody* rigidBody);
+    virtual void updateActionWorker(float deltaTimeStep);
 
 private:
 

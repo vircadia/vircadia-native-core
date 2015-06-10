@@ -32,10 +32,6 @@ public:
 
     void init(EntityTree* tree, PhysicsEngine* engine, EntityEditPacketSender* packetSender);
 
-    virtual EntityActionPointer actionFactory(EntityActionType type,
-                                              QUuid id,
-                                              EntityItemPointer ownerEntity,
-                                              QVariantMap arguments);
     virtual void applyActionChanges();
 
 protected: // only called by EntitySimulation

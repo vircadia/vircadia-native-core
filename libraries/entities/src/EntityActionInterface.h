@@ -14,13 +14,16 @@
 
 #include <QUuid>
 
+#include "EntityItem.h"
+
 class EntitySimulation;
 
 enum EntityActionType {
     // keep these synchronized with actionTypeFromString and actionTypeToString
     ACTION_TYPE_NONE,
     ACTION_TYPE_PULL_TO_POINT,
-    ACTION_TYPE_SPRING
+    ACTION_TYPE_SPRING,
+    ACTION_TYPE_HOLD
 };
 
 
@@ -40,6 +43,14 @@ public:
     static QString actionTypeToString(EntityActionType actionType);
 
 protected:
+    virtual glm::vec3 getPosition() = 0;
+    virtual void setPosition(glm::vec3 position) = 0;
+    virtual glm::quat getRotation() = 0;
+    virtual void setRotation(glm::quat rotation) = 0;
+    virtual glm::vec3 getLinearVelocity() = 0;
+    virtual void setLinearVelocity(glm::vec3 linearVelocity) = 0;
+    virtual glm::vec3 getAngularVelocity() = 0;
+    virtual void setAngularVelocity(glm::vec3 angularVelocity) = 0;
 
     static glm::vec3 extractVec3Argument (QString objectName, QVariantMap arguments,
                                           QString argumentName, bool& ok, bool required = true);
@@ -48,6 +59,7 @@ protected:
     static float extractFloatArgument(QString objectName, QVariantMap arguments,
                                       QString argumentName, bool& ok, bool required = true);
 };
+
 
 typedef std::shared_ptr<EntityActionInterface> EntityActionPointer;
 

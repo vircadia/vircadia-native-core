@@ -24,8 +24,17 @@ ObjectActionPullToPoint::~ObjectActionPullToPoint() {
     #endif
 }
 
-void ObjectActionPullToPoint::updateActionWorker(btCollisionWorld* collisionWorld, btScalar deltaTimeStep,
-                                                 ObjectMotionState* motionState, btRigidBody* rigidBody) {
+void ObjectActionPullToPoint::updateActionWorker(btScalar deltaTimeStep) {
+    void* physicsInfo = _ownerEntity->getPhysicsInfo();
+    if (!physicsInfo) {
+        return;
+    }
+    ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
+    btRigidBody* rigidBody = motionState->getRigidBody();
+    if (!rigidBody) {
+        return;
+    }
+
     glm::vec3 offset = _target - bulletToGLM(rigidBody->getCenterOfMassPosition());
     float offsetLength = glm::length(offset);
     if (offsetLength > IGNORE_POSITION_DELTA) {

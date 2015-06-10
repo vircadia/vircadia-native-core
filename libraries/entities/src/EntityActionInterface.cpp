@@ -38,6 +38,8 @@ QString EntityActionInterface::actionTypeToString(EntityActionType actionType) {
             return "pullToPoint";
         case ACTION_TYPE_SPRING:
             return "spring";
+        case ACTION_TYPE_HOLD:
+            return "hold";
     }
     assert(false);
     return "none";

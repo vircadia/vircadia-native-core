@@ -24,8 +24,17 @@ ObjectActionSpring::~ObjectActionSpring() {
     #endif
 }
 
-void ObjectActionSpring::updateActionWorker(btCollisionWorld* collisionWorld, btScalar deltaTimeStep,
-                                            ObjectMotionState* motionState, btRigidBody* rigidBody) {
+void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
+    void* physicsInfo = _ownerEntity->getPhysicsInfo();
+    if (!physicsInfo) {
+        return;
+    }
+    ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
+    btRigidBody* rigidBody = motionState->getRigidBody();
+    if (!rigidBody) {
+        return;
+    }
+
     // handle the linear part
     if (_positionalTargetSet) {
         glm::vec3 offset = _positionalTarget - bulletToGLM(rigidBody->getCenterOfMassPosition());

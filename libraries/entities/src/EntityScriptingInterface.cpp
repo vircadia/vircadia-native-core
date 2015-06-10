@@ -17,6 +17,8 @@
 #include "ZoneEntityItem.h"
 #include "EntitiesLogging.h"
 #include "EntitySimulation.h"
+#include "EntityActionInterface.h"
+#include "EntityActionFactoryInterface.h"
 
 #include "EntityScriptingInterface.h"
 
@@ -491,12 +493,13 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
                                           const QUuid& entityID,
                                           const QVariantMap& arguments) {
     QUuid actionID = QUuid::createUuid();
+    auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
     bool success = actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
             EntityActionType actionType = EntityActionInterface::actionTypeFromString(actionTypeString);
             if (actionType == ACTION_TYPE_NONE) {
                 return false;
             }
-            if (simulation->actionFactory(actionType, actionID, entity, arguments)) {
+            if (actionFactory->factory(simulation, actionType, actionID, entity, arguments)) {
                 return true;
             }
             return false;
