@@ -59,7 +59,8 @@ private slots:
 
 private:
     Ui::RunningScriptsWidget* ui;
-    QSignalMapper _signalMapper;
+    QSignalMapper _reloadSignalMapper;
+    QSignalMapper _stopSignalMapper;
     ScriptsModelFilter _scriptsModelFilter;
     ScriptsModel _scriptsModel;
     ScriptsTableWidget* _recentlyLoadedScriptsTable;

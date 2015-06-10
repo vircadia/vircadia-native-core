@@ -4317,6 +4317,19 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     return scriptEngine;
 }
 
+void Application::reloadScript(const QString& scriptFilename) {
+    DependencyManager::get<ScriptCache>()->deleteScript(scriptFilename);
+
+    ScriptEngine* scriptEngine = _scriptEnginesHash.value(scriptFilename);
+    connect(scriptEngine, SIGNAL(finished(const QString&)), SLOT(loadScript(const QString&)));
+    scriptEngine->stop();
+
+    // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
+    // whenever a script stops in case it happened to have been setting joint rotations.
+    // TODO: expose animation priorities and provide a layered animation control system.
+    _myAvatar->clearScriptableSettings();
+}
+
 void Application::handleScriptEngineLoaded(const QString& scriptFilename) {
     ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(sender());
 

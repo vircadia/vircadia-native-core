@@ -400,6 +400,7 @@ public slots:
     bool askToLoadScript(const QString& scriptFilenameOrURL);
     ScriptEngine* loadScript(const QString& scriptFilename = QString(), bool isUserLoaded = true, 
         bool loadScriptFromEditor = false, bool activateMainWindow = false);
+    void reloadScript(const QString& scriptFilename);
     void scriptFinished(const QString& scriptName);
     void stopAllScripts(bool restart = false);
     void stopScript(const QString& scriptName);
