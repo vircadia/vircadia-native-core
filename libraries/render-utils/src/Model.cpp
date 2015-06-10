@@ -78,8 +78,8 @@ Model::Model(QObject* parent) :
     _showTrueJointTransforms(true),
     _lodDistance(0.0f),
     _pupilDilation(0.0f),
-    _isVisible(true),
     _url("http://invalid.com"),
+    _isVisible(true),
     _blendNumber(0),
     _appliedBlendNumber(0),
     _calculatedMeshPartBoxesValid(false),
@@ -916,8 +916,6 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
 
     bool somethingAdded = false;
 
-    qDebug() << "Model::addToScene : " << this->getURL().toString();
-
     // allow the attachments to add to scene
     foreach (Model* attachment, _attachments) {
         bool attachementSomethingAdded = attachment->addToScene(scene, pendingChanges);
@@ -957,7 +955,6 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
     }
     _renderItems.clear();
     _readyWhenAdded = false;
-    qDebug() << "Model::removeFromScene : " << this->getURL().toString();
 }
 
 bool Model::render(RenderArgs* renderArgs, float alpha) {
@@ -2121,8 +2118,8 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
 
     Locations* locations = nullptr;
-    pickPrograms(batch, mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
-                                args, locations);
+    pickPrograms(batch, mode, translucentMesh, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
+                 args, locations);
 
     updateVisibleJointStates();
 
