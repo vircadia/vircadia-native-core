@@ -107,6 +107,9 @@ Avatar::Avatar() :
 }
 
 Avatar::~Avatar() {
+    for(auto attachment : _unusedAttachments) {
+        delete attachment;
+    }
 }
 
 const float BILLBOARD_LOD_DISTANCE = 40.0f;
@@ -525,7 +528,7 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel) {
+void Avatar::fixupModelsInScene() {
     // check to see if when we added our models to the scene they were ready, if they were not ready, then
     // fix them up in the scene
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
@@ -544,8 +547,18 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool
             attachmentModel->addToScene(scene, pendingChanges);
         }
     }
+    for (auto attachmentModelToRemove : _attachmentsToRemove) {
+        attachmentModelToRemove->removeFromScene(scene, pendingChanges);
+        _unusedAttachments << attachmentModelToRemove;
+    }
+    _attachmentsToRemove.clear();
     scene->enqueuePendingChanges(pendingChanges);
+}
 
+void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel) {
+
+    fixupModelsInScene();
+    
     {
         Glower glower(renderArgs, glowLevel);
 
@@ -947,13 +960,18 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     }
     // make sure we have as many models as attachments
     while (_attachmentModels.size() < attachmentData.size()) {
-        Model* model = new Model(this);
+        Model* model = nullptr;
+        if (_unusedAttachments.size() > 0) {
+            model = _unusedAttachments.takeFirst();
+        } else {
+            model = new Model(this);
+        }
         model->init();
         _attachmentModels.append(model);
     }
     while (_attachmentModels.size() > attachmentData.size()) {
-        // NOTE: what's really going to happen here? This seems dangerous... has the model been removed from the scene?
-        delete _attachmentModels.takeLast();
+        auto attachmentModel = _attachmentModels.takeLast();
+        _attachmentsToRemove << attachmentModel;
     }
 
     // update the urls

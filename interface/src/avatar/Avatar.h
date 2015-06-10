@@ -195,6 +195,8 @@ protected:
     SkeletonModel _skeletonModel;
     glm::vec3 _skeletonOffset;
     QVector<Model*> _attachmentModels;
+    QVector<Model*> _attachmentsToRemove;
+    QVector<Model*> _unusedAttachments;
     float _bodyYawDelta;
 
     // These position histories and derivatives are in the world-frame.
@@ -234,6 +236,7 @@ protected:
     void renderDisplayName(RenderArgs* renderArgs);
     virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel = 0.0f);
     virtual bool shouldRenderHead(const RenderArgs* renderArgs, const glm::vec3& cameraPosition) const;
+    virtual void fixupModelsInScene();
 
     void simulateAttachments(float deltaTime);
 
