@@ -143,6 +143,10 @@ private:
     glm::vec3 _previousMagnifierTopLeft;
     glm::vec3 _previousMagnifierTopRight;
 
+    gpu::PipelinePointer _standardDrawPipeline;
+
+    gpu::PipelinePointer getDrawPipeline();
+
 };
 
 #endif // hifi_ApplicationOverlay_h

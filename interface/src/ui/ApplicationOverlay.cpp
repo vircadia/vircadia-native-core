@@ -36,6 +36,9 @@
 #include "Util.h"
 #include "ui/Stats.h"
 
+#include "../../libraries/render-utils/standardTransformPNTC_vert.h"
+#include "../../libraries/render-utils/standardDrawTexture_frag.h"
+
 // Used to animate the magnification windows
 const float MAG_SPEED = 0.08f;
 
@@ -278,6 +281,24 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
 //    glDisable(GL_TEXTURE_2D);
 //}
 
+gpu::PipelinePointer ApplicationOverlay::getDrawPipeline() {
+    if (!_standardDrawPipeline) {
+        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(standardTransformPNTC_vert)));
+        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(standardDrawTexture_frag)));
+        auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        gpu::Shader::makeProgram((*program));
+        
+        auto state = gpu::StatePointer(new gpu::State());
+
+        // enable decal blend
+        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
+        
+        _standardDrawPipeline.reset(gpu::Pipeline::create(program, state));
+    }
+
+    return _standardDrawPipeline;
+}
+
 // Draws the FBO texture for the screen
 void ApplicationOverlay::displayOverlayTexture(RenderArgs* renderArgs) {
 
@@ -290,11 +311,12 @@ void ApplicationOverlay::displayOverlayTexture(RenderArgs* renderArgs) {
             PathUtils::resourcesPath() + "images/sixense-reticle.png");
     }
 
-    /*
-    FIXME - doesn't work
+    
+    //FIXME - doesn't work
     renderArgs->_context->syncCache();
     gpu::Batch batch;
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true);
+    //DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true);
+    batch.setPipeline(getDrawPipeline());
     batch.setModelTransform(Transform());
     batch.setProjectionTransform(mat4());
     batch.setViewTransform(Transform());
@@ -302,7 +324,7 @@ void ApplicationOverlay::displayOverlayTexture(RenderArgs* renderArgs) {
     DependencyManager::get<GeometryCache>()->renderUnitQuad(batch, vec4(vec3(1), _alpha));
     renderArgs->_context->render(batch);
     return;
-    */
+
 
     
     glDisable(GL_DEPTH_TEST);
