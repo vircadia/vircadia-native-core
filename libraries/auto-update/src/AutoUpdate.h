@@ -41,7 +41,12 @@ public:
     void checkForUpdate();
     const QMap<int, QMap<QString, QString>> &getBuildData() { return _builds; }
     void performAutoUpdate(int version);
-    
+
+signals:
+    void latestVersionDataParsed();
+    void newVersionIsAvailable();
+    void newVersionIsDownloaded();
+
 private:
     QMap<int, QMap<QString, QString>> _builds;
     QString _operatingSystem;
@@ -53,11 +58,6 @@ private:
                          const QString& releaseTime,
                          const QString& releaseNotes,
                          const QString& pullRequestNumber);
-
-signals:
-    void latestVersionDataParsed();
-    void newVersionIsAvailable();
-    void newVersionIsDownloaded();
 
 private slots:
     void parseLatestVersionData();
