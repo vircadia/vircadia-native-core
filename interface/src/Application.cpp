@@ -958,7 +958,7 @@ void Application::paintGL() {
                             GL_COLOR_BUFFER_BIT, GL_NEAREST);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
-        _applicationOverlay.displayOverlayTexture();
+        _applicationOverlay.displayOverlayTexture(&renderArgs);
     }
 
     if (!OculusManager::isConnected() || OculusManager::allowSwap()) {

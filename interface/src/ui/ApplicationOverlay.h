@@ -33,9 +33,9 @@ public:
     ~ApplicationOverlay();
 
     void renderOverlay(RenderArgs* renderArgs);
-    void displayOverlayTexture();
-    void displayOverlayTextureStereo(Camera& whichCamera, float aspectRatio, float fov);
-    void displayOverlayTextureHmd(Camera& whichCamera);
+    void displayOverlayTexture(RenderArgs* renderArgs);
+    void displayOverlayTextureStereo(RenderArgs* renderArgs, Camera& whichCamera, float aspectRatio, float fov);
+    void displayOverlayTextureHmd(RenderArgs* renderArgs, Camera& whichCamera);
 
     QPoint getPalmClickLocation(const PalmData *palm) const;
     bool calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const;
@@ -59,6 +59,7 @@ public:
     glm::vec2 screenToOverlay(const glm::vec2 & screenPos) const;
     glm::vec2 overlayToScreen(const glm::vec2 & overlayPos) const;
     void computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const;
+    GLuint getOverlayTexture();
 
     static glm::vec2 directionToSpherical(const glm::vec3 & direction);
     static glm::vec3 sphericalToDirection(const glm::vec2 & sphericalPos);
@@ -77,12 +78,6 @@ private:
     public:
         TexturedHemisphere();
         ~TexturedHemisphere();
-        
-        void bind();
-        void release();
-        GLuint getTexture();
-        
-        void buildFramebufferObject();
         void buildVBO(const float fov, const float aspectRatio, const int slices, const int stacks);
         void render();
         
@@ -91,14 +86,14 @@ private:
         
         GLuint _vertices;
         GLuint _indices;
-        QOpenGLFramebufferObject* _framebufferObject;
         VerticesIndices _vbo;
     };
     
     float _hmdUIAngularSize = DEFAULT_HMD_UI_ANGULAR_SIZE;
-    
+    QOpenGLFramebufferObject* _framebufferObject;
+
     void renderReticle(glm::quat orientation, float alpha);
-    void renderPointers();;
+    void renderPointers();
     void renderMagnifier(glm::vec2 magPos, float sizeMult, bool showBorder);
     
     void renderControllerPointers();
@@ -108,6 +103,8 @@ private:
     void renderCameraToggle();
     void renderStatsAndLogs();
     void renderDomainConnectionStatusBorder();
+
+    void buildFramebufferObject();
 
     TexturedHemisphere _overlays;
     
