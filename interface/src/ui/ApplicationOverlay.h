@@ -35,9 +35,9 @@ public:
     ApplicationOverlay();
     ~ApplicationOverlay();
 
-    void renderOverlay();
+    void renderOverlay(RenderArgs* renderArgs);
     GLuint getOverlayTexture();
-    
+
     QPoint getPalmClickLocation(const PalmData *palm) const;
     bool calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const;
     

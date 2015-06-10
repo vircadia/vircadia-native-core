@@ -15,6 +15,9 @@
 #include <glm/glm.hpp>
 #include <functional>
 
+#include <render/Scene.h>
+#include <render/Engine.h>
+
 #include <QtGlobal>
 
 class Transform;
@@ -56,6 +59,10 @@ public:
     virtual void postLambdaEvent(std::function<void()> f) = 0;
     virtual qreal getDevicePixelRatio() = 0;
 
+    virtual render::ScenePointer getMain3DScene() = 0;
+    virtual render::EnginePointer getRenderEngine() = 0;
+
+    // FIXME - we shouldn't assume that there's a single instance of an AbstractViewStateInterface
     static AbstractViewStateInterface* instance();
     static void setInstance(AbstractViewStateInterface* instance);
 };

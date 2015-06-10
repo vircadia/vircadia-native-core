@@ -5,7 +5,7 @@ import QtQuick.Controls.Styles 1.3
 import QtWebKit 3.0
 import "controls"
 
-Dialog {
+VrDialog {
     id: root
     width: 800
     height: 800

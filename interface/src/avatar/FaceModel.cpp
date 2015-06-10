@@ -39,7 +39,8 @@ void FaceModel::simulate(float deltaTime, bool fullUpdate) {
     setPupilDilation(_owningHead->getPupilDilation());
     setBlendshapeCoefficients(_owningHead->getBlendshapeCoefficients());
     
-    invalidCalculatedMeshBoxes();
+    // FIXME - this is very expensive, we shouldn't do it if we don't have to
+    //invalidCalculatedMeshBoxes();
 
     if (isActive()) {
         setOffset(-_geometry->getFBXGeometry().neckPivot);

@@ -59,6 +59,7 @@ public slots:
     void setCurrentSendPosition(int currentSendPosition) { _currentSendPosition = currentSendPosition; }
     float getLoudness() const { return _loudness; }
     bool isPlaying() const { return !_isFinished; }
+    void restartPortionAfterFinished();
     
 signals:
     void finished();

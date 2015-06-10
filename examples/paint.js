@@ -12,7 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 Script.include('lineRider.js')
-var MAX_POINTS_PER_LINE = 30;
+var MAX_POINTS_PER_LINE = 80;
 
 
 var colorPalette = [{

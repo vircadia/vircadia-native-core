@@ -20,11 +20,14 @@
 
 #include <QImage>
 #include <QMap>
-#include <QGLWidget>
+#include <QColor>
 
 #include <DependencyManager.h>
 #include <ResourceCache.h>
 
+namespace gpu {
+class Batch;
+}
 class NetworkTexture;
 
 typedef QSharedPointer<NetworkTexture> NetworkTexturePointer;
@@ -53,7 +56,7 @@ public:
     const gpu::TexturePointer& getBlueTexture();
 
     /// Returns a texture version of an image file
-    gpu::TexturePointer getImageTexture(const QString & path);
+    static gpu::TexturePointer getImageTexture(const QString& path);
 
     /// Loads a texture from the specified URL.
     NetworkTexturePointer getTexture(const QUrl& url, TextureType type = DEFAULT_TEXTURE, bool dilatable = false,
@@ -80,6 +83,7 @@ public:
 
     /// Enables or disables draw buffers on the primary framebuffer.  Note: the primary framebuffer must be bound.
     void setPrimaryDrawBuffers(bool color, bool normal = false, bool specular = false);
+    void setPrimaryDrawBuffers(gpu::Batch& batch, bool color, bool normal = false, bool specular = false);
     
     /// Returns a pointer to the secondary framebuffer object, used as an additional render target when performing full
     /// screen effects.

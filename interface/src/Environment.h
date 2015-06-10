@@ -19,7 +19,7 @@
 
 #include "EnvironmentData.h"
 
-class Camera;
+class ViewFrustum;
 class ProgramObject;
 
 class Environment {

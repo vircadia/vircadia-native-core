@@ -82,7 +82,7 @@ void TV3DManager::configureCamera(Camera& whichCamera_, int screenWidth, int scr
     glLoadIdentity();
 }
 
-void TV3DManager::display(Camera& whichCamera) {
+void TV3DManager::display(RenderArgs* renderArgs, Camera& whichCamera) {
     double nearZ = DEFAULT_NEAR_CLIP; // near clipping plane
     double farZ = DEFAULT_FAR_CLIP; // far clipping plane
 
@@ -95,7 +95,7 @@ void TV3DManager::display(Camera& whichCamera) {
     int portalH = deviceSize.height();
 
 
-    DependencyManager::get<GlowEffect>()->prepare();
+    DependencyManager::get<GlowEffect>()->prepare(renderArgs);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     Camera eyeCamera;
@@ -120,10 +120,9 @@ void TV3DManager::display(Camera& whichCamera) {
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        qApp->displaySide(eyeCamera, false);
-#if 0
+        renderArgs->_renderSide = RenderArgs::MONO;
+        qApp->displaySide(renderArgs, eyeCamera, false);
         qApp->getApplicationOverlay().displayOverlayTextureStereo(whichCamera, _aspect, fov);
-#endif
         _activeEye = NULL;
     }, [&]{
         // render right side view
@@ -132,7 +131,7 @@ void TV3DManager::display(Camera& whichCamera) {
     glPopMatrix();
     glDisable(GL_SCISSOR_TEST);
 
-    auto finalFbo = DependencyManager::get<GlowEffect>()->render();
+    auto finalFbo = DependencyManager::get<GlowEffect>()->render(renderArgs);
     auto fboSize = finalFbo->getSize();
     // Get the ACTUAL device size for the BLIT
     deviceSize = qApp->getDeviceSize();

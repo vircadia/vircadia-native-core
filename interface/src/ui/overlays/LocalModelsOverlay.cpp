@@ -45,10 +45,10 @@ void LocalModelsOverlay::render(RenderArgs* args) {
 
         glPushMatrix(); {
             Application* app = Application::getInstance();
-            Transform originalTransform = qApp->getViewTransform();
-            qApp->getViewTransform().postTranslate(_position);
-            _entityTreeRenderer->render();
-            qApp->setViewTransform(originalTransform);
+            glm::vec3 oldTranslation = app->getViewMatrixTranslation();
+            app->setViewMatrixTranslation(oldTranslation + _position);
+            _entityTreeRenderer->render(args);
+            Application::getInstance()->setViewMatrixTranslation(oldTranslation);
         } glPopMatrix();
     }
 }
