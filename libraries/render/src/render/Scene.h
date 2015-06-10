@@ -24,6 +24,8 @@
 #include <AABox.h>
 #include <RenderArgs.h>
 
+#include "model/Material.h"
+
 namespace render {
 
 class Context;
@@ -216,6 +218,8 @@ public:
 
         virtual void update(const UpdateFunctorPointer& functor) = 0;
 
+        virtual const model::MaterialKey getMaterialKey() const = 0;
+
         ~PayloadInterface() {}
     protected:
     };
@@ -239,6 +243,9 @@ public:
     const Bound getBound() const { return _payload->getBound(); }
     void render(RenderArgs* args) { _payload->render(args); }
     void update(const UpdateFunctorPointer& updateFunctor)  { _payload->update(updateFunctor); }
+
+    // Shape Type Interface
+    const model::MaterialKey& getMaterialKey() const { return _payload->getMaterialKey(); }
 
 protected:
     PayloadPointer _payload;
@@ -275,16 +282,23 @@ template <class T> const ItemKey payloadGetKey(const std::shared_ptr<T>& payload
 template <class T> const Item::Bound payloadGetBound(const std::shared_ptr<T>& payloadData) { return Item::Bound(); }
 template <class T> void payloadRender(const std::shared_ptr<T>& payloadData, RenderArgs* args) { }
     
+// Shape type interface
+template <class T> const model::MaterialKey shapeGetMaterialKey(const std::shared_ptr<T>& payloadData) { return model::MaterialKey(); }
+
 template <class T> class Payload : public Item::PayloadInterface {
 public:
     typedef std::shared_ptr<T> DataPointer;
     typedef UpdateFunctor<T> Updater;
 
+    virtual void update(const UpdateFunctorPointer& functor) { static_cast<Updater*>(functor.get())->_func((*_data)); }
+
+    // Payload general interface
     virtual const ItemKey getKey() const { return payloadGetKey<T>(_data); }
     virtual const Item::Bound getBound() const { return payloadGetBound<T>(_data); }
-    virtual void render(RenderArgs* args) { payloadRender<T>(_data, args); }
- 
-    virtual void update(const UpdateFunctorPointer& functor) { static_cast<Updater*>(functor.get())->_func((*_data)); }
+    virtual void render(RenderArgs* args) { payloadRender<T>(_data, args); } 
+
+    // Shape Type interface
+    virtual const model::MaterialKey getMaterialKey() const { return shapeGetMaterialKey<T>(_data); }
 
     Payload(const DataPointer& data) : _data(data) {}
 protected:
