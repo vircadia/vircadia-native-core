@@ -14,10 +14,10 @@ var connectSound = SoundCache.getSound("file://" + Paths.resources + "sounds/sho
 
 // setup the options needed for that sound
 var connectSoundOptions = {
-  localOnly: true
+    localOnly: true
 }
 
 // play the sound locally once we get the first audio packet from a mixer
 Audio.receivedFirstPacket.connect(function(){
-  Audio.playSound(connectSound, connectSoundOptions);
+    Audio.playSound(connectSound, connectSoundOptions);
 });

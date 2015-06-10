@@ -437,6 +437,8 @@ public:
 
     explicit operator bool() const { return bool(_texture); }
     bool operator !() const { return (!_texture); }
+
+    bool isValid() const { return bool(_texture); }
 };
 typedef std::vector<TextureView> TextureViews;
 
