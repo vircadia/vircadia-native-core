@@ -313,7 +313,6 @@ void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::S
     for (auto attachmentModel : _attachmentModels) {
         attachmentModel->removeFromScene(scene, pendingChanges);
     }
-
 }
 
 void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting) {

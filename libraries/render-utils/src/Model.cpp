@@ -875,6 +875,9 @@ namespace render {
             return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, false);
         }
     }
+   /* template <> const model::MaterialKey& shapeGetMaterialKey(const OpaqueMeshPart::Pointer& payload) {
+        return payload->model->getPartMaterial(payload->meshIndex, payload->partIndex);
+    }*/
 }
 
 void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene) {

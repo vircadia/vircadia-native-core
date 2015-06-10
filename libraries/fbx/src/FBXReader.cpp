@@ -1902,8 +1902,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     } else {
                         material._material->setDiffuse(material.diffuse); 
                     }
-                    material._material->setSpecular(material.specular); 
-                    material._material->setShininess(material.shininess); 
+                    material._material->setMetallic(glm::length(material.specular)); 
+                    material._material->setGloss(material.shininess); 
 
                     if (material.opacity <= 0.0f) {
                         material._material->setOpacity(1.0f); 
