@@ -35,6 +35,14 @@ namespace render {
 template <> void jobRun(const ResolveDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
 }
 
+
+class DrawOpaqueDeferred {
+public:
+};
+namespace render {
+template <> void jobRun(const DrawOpaqueDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+}
+
 class DrawTransparentDeferred {
 public:
 };

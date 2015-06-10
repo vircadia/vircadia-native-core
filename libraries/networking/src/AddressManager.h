@@ -98,10 +98,15 @@ private:
     bool handleUsername(const QString& lookupString);
     bool handleDomainID(const QString& host);
 
+    void addCurrentAddressToHistory();
+
     QString _host;
     QUuid _rootPlaceID;
     PositionGetter _positionGetter;
     OrientationGetter _orientationGetter;
+
+    QList<QUrl> _history;
+    quint64 _lastHistoryAppend = 0;
 };
 
 #endif // hifi_AddressManager_h

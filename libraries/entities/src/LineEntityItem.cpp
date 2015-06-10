@@ -18,6 +18,7 @@
 #include "EntityTree.h"
 #include "EntitiesLogging.h"
 #include "EntityTreeElement.h"
+#include "OctreeConstants.h"
 
 
 
@@ -90,8 +91,8 @@ void LineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
     for (int i = 0; i < points.size(); i++) {
         glm::vec3 point = points.at(i);
         // Make sure all of our points are valid numbers.
-        // Must be greater than 0 because vector component is set to 0 if it is invalid data
-        if (point.x > 0 && point.y > 0 && point.z > 0){
+        // Must be greater than 0 because vector component is set to 0 if it is invalid data. Also should never be greater than TREE_SCALE
+        if ( (point.x > 0 && point.x < TREE_SCALE) && (point.y > 0 && point.y < TREE_SCALE) && (point.z > 0 && point.z < TREE_SCALE) ) {
             sanitizedPoints << point;
         } else {
             ++invalidPoints;

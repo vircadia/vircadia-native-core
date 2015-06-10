@@ -206,7 +206,14 @@ public:
     
     inline const glm::quat& getRotation() const { return _transform.getRotation(); }
     inline void setRotation(const glm::quat& rotation) { _transform.setRotation(rotation); }
-    
+
+    // Hyperlink related getters and setters
+    QString getHref() const { return _href; }
+    void setHref(QString value) { _href = value; }
+
+    QString getDescription() const { return _description; }
+    void setDescription(QString value) { _description = value; }
+
     /// Dimensions in meters (0.0 - TREE_SCALE)
     inline const glm::vec3& getDimensions() const { return _transform.getScale(); }
     virtual void setDimensions(const glm::vec3& value);
@@ -418,6 +425,8 @@ protected:
     quint64 _simulatorIDChangedTime; // when was _simulatorID last updated?
     QString _marketplaceID;
     QString _name;
+    QString _href; //Hyperlink href
+    QString _description; //Hyperlink description
 
     // NOTE: Damping is applied like this:  v *= pow(1 - damping, dt)
     //
