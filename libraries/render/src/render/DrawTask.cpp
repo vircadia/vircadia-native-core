@@ -445,3 +445,18 @@ template <> void render::jobRun(const DrawBackground& job, const SceneContextPoi
     // Force the context sync
     args->_context->syncCache();
 }
+
+
+
+void ItemMaterialBucketMap::insert(const ItemID& id, const model::MaterialKey& key) {
+    // Insert the itemID in every bucket where it filters true
+    for (auto& bucket : (*this)) {
+        if (bucket.first.test(key)) {
+            bucket.second.push_back(id);
+        }
+    }
+}
+
+void ItemMaterialBucketMap::allocateStandardMaterialBuckets() {
+    (*this)[model::MaterialFilter::Builder::opaqueDiffuse()];
+}
