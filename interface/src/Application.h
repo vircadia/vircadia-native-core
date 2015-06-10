@@ -470,8 +470,6 @@ private:
     void updateProjectionMatrix();
     void updateProjectionMatrix(Camera& camera, bool updateViewFrustum = true);
 
-    void updateCursorVisibility();
-
     void sendPingPackets();
 
     void initDisplay();

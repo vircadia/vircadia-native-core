@@ -55,7 +55,7 @@ AvatarManager::AvatarManager(QObject* parent) :
     _avatarFades() {
     // register a meta type for the weak pointer we'll use for the owning avatar mixer for each avatar
     qRegisterMetaType<QWeakPointer<Node> >("NodeWeakPointer");
-    _myAvatar = std::shared_ptr<MyAvatar>(new MyAvatar());
+    _myAvatar = std::make_shared<MyAvatar>();
 }
 
 void AvatarManager::init() {
@@ -97,9 +97,9 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     // simulate avatars
     AvatarHash::iterator avatarIterator = _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
-        Avatar* avatar = reinterpret_cast<Avatar*>(avatarIterator.value().get());
+        auto avatar = std::dynamic_pointer_cast<Avatar>(avatarIterator.value());
         
-        if (avatar == _myAvatar.get() || !avatar->isInitialized()) {
+        if (avatar == _myAvatar || !avatar->isInitialized()) {
             // DO NOT update _myAvatar!  Its update has already been done earlier in the main loop.
             // DO NOT update or fade out uninitialized Avatars
             ++avatarIterator;
@@ -121,26 +121,30 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     
     const float SHRINK_RATE = 0.9f;
     const float MIN_FADE_SCALE = 0.001f;
-
+    
+    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    render::PendingChanges pendingChanges;
     while (fadingIterator != _avatarFades.end()) {
-        Avatar* avatar = static_cast<Avatar*>(fadingIterator->get());
+        auto avatar = std::static_pointer_cast<Avatar>(*fadingIterator);
         avatar->setTargetScale(avatar->getScale() * SHRINK_RATE, true);
         if (avatar->getTargetScale() < MIN_FADE_SCALE) {
+            avatar->removeFromScene(*fadingIterator, scene, pendingChanges);
             fadingIterator = _avatarFades.erase(fadingIterator);
         } else {
             avatar->simulate(deltaTime);
             ++fadingIterator;
         }
     }
+    scene->enqueuePendingChanges(pendingChanges);
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
-    return AvatarSharedPointer(new Avatar());
+    return AvatarSharedPointer(std::make_shared<Avatar>());
 }
 
 // virtual 
 AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
-    std::shared_ptr<Avatar> avatar = std::dynamic_pointer_cast<Avatar>(AvatarHashMap::addAvatar(sessionUUID, mixerWeakPointer));
+    auto avatar = std::dynamic_pointer_cast<Avatar>(AvatarHashMap::addAvatar(sessionUUID, mixerWeakPointer));
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
     render::PendingChanges pendingChanges;
     avatar->addToScene(avatar, scene, pendingChanges);    
@@ -171,10 +175,6 @@ void AvatarManager::removeAvatar(const QUuid& sessionUUID) {
             _avatarFades.push_back(avatarIterator.value());
             _avatarHash.erase(avatarIterator);
         }
-        render::ScenePointer scene = Application::getInstance()->getMain3DScene();
-        render::PendingChanges pendingChanges;
-        avatar->removeFromScene(avatar, scene, pendingChanges);
-        scene->enqueuePendingChanges(pendingChanges);
     }
 }
 
@@ -182,12 +182,12 @@ void AvatarManager::clearOtherAvatars() {
     // clear any avatars that came from an avatar-mixer
     AvatarHash::iterator avatarIterator =  _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
-        Avatar* avatar = reinterpret_cast<Avatar*>(avatarIterator.value().get());
-        if (avatar == _myAvatar.get() || !avatar->isInitialized()) {
+        auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
+        if (avatar == _myAvatar || !avatar->isInitialized()) {
             // don't remove myAvatar or uninitialized avatars from the list
             ++avatarIterator;
         } else {
-            removeAvatarMotionState(avatar);
+            removeAvatarMotionState(avatar.get());
             _avatarFades.push_back(avatarIterator.value());
             avatarIterator = _avatarHash.erase(avatarIterator);
         }
@@ -250,7 +250,7 @@ void AvatarManager::handleCollisionEvents(CollisionEvents& collisionEvents) {
 void AvatarManager::updateAvatarPhysicsShape(const QUuid& id) {
     AvatarHash::iterator avatarItr = _avatarHash.find(id);
     if (avatarItr != _avatarHash.end()) {
-        Avatar* avatar = static_cast<Avatar*>(avatarItr.value().get());
+        auto avatar = std::static_pointer_cast<Avatar>(avatarItr.value());
         AvatarMotionState* motionState = avatar->_motionState;
         if (motionState) {
             motionState->addDirtyFlags(EntityItem::DIRTY_SHAPE);
@@ -259,7 +259,7 @@ void AvatarManager::updateAvatarPhysicsShape(const QUuid& id) {
             avatar->computeShapeInfo(shapeInfo);
             btCollisionShape* shape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
             if (shape) {
-                AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
+                AvatarMotionState* motionState = new AvatarMotionState(avatar.get(), shape);
                 avatar->_motionState = motionState;
                 _motionStatesToAdd.insert(motionState);
                 _avatarMotionStates.insert(motionState);
