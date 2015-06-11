@@ -615,6 +615,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
 
         renderArgs->_renderSide = RenderArgs::MONO;
         qApp->displaySide(renderArgs, *_camera, false);
+        qApp->getApplicationOverlay().displayOverlayTextureHmd(renderArgs, *_camera);
     });
     _activeEye = ovrEye_Count;
 
@@ -629,28 +630,27 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
-    //Render each eye into an fbo
-    for_each_eye(_ovrHmd, [&](ovrEyeType eye) {
-        _activeEye = eye;
-        // Update our camera to what the application camera is doing
-        _camera->setRotation(toGlm(eyeRenderPose[eye].Orientation));
-        _camera->setPosition(toGlm(eyeRenderPose[eye].Position));
-        configureCamera(*_camera);
-        glMatrixMode(GL_PROJECTION);
-        glLoadMatrixf(glm::value_ptr(_camera->getProjection()));
+    //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
+    ////Render each eye into an fbo
+    //for_each_eye(_ovrHmd, [&](ovrEyeType eye) {
+    //    _activeEye = eye;
+    //    // Update our camera to what the application camera is doing
+    //    _camera->setRotation(toGlm(eyeRenderPose[eye].Orientation));
+    //    _camera->setPosition(toGlm(eyeRenderPose[eye].Position));
+    //    configureCamera(*_camera);
+    //    glMatrixMode(GL_PROJECTION);
+    //    glLoadMatrixf(glm::value_ptr(_camera->getProjection()));
 
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
+    //    glMatrixMode(GL_MODELVIEW);
+    //    glLoadIdentity();
 
-        ovrRecti & vp = _eyeTextures[eye].Header.RenderViewport;
-        vp.Size.h = _recommendedTexSize.h * _offscreenRenderScale;
-        vp.Size.w = _recommendedTexSize.w * _offscreenRenderScale;
+    //    ovrRecti & vp = _eyeTextures[eye].Header.RenderViewport;
+    //    vp.Size.h = _recommendedTexSize.h * _offscreenRenderScale;
+    //    vp.Size.w = _recommendedTexSize.w * _offscreenRenderScale;
 
-        glViewport(vp.Pos.x, vp.Pos.y, vp.Size.w, vp.Size.h);
-        qApp->getApplicationOverlay().displayOverlayTextureHmd(renderArgs, *_camera);
-    });
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    //    glViewport(vp.Pos.x, vp.Pos.y, vp.Size.w, vp.Size.h);
+    //});
+    //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
     glPopMatrix();
 

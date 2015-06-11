@@ -312,7 +312,6 @@ void ApplicationOverlay::displayOverlayTexture(RenderArgs* renderArgs) {
 
     
     renderArgs->_context->syncCache();
-    glViewport(0, 0, qApp->getDeviceSize().width(), qApp->getDeviceSize().height());
 
     gpu::Batch batch;
     Transform model;
@@ -356,9 +355,10 @@ void ApplicationOverlay::displayOverlayTextureHmd(RenderArgs* renderArgs, Camera
         return;
     }
 
+    renderArgs->_context->syncCache();
+
     auto geometryCache = DependencyManager::get<GeometryCache>();
     gpu::Batch batch;
-    //DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true);
     batch.setPipeline(getDrawPipeline());
     batch._glDisable(GL_DEPTH_TEST);
     batch._glBindTexture(GL_TEXTURE_2D, _framebufferObject->texture());
@@ -367,19 +367,23 @@ void ApplicationOverlay::displayOverlayTextureHmd(RenderArgs* renderArgs, Camera
     batch.setProjectionTransform(whichCamera.getProjection());
     batch.setViewTransform(Transform());
 
-    Transform model;
-    model.setTranslation(vec3(0.0f, 0.0f, -2.0f));
-    batch.setModelTransform(model);
+    Transform mv;
+    mv.setTranslation(vec3(0.0f, 0.0f, -1.0f));
+    mv.preRotate(glm::inverse(qApp->getCamera()->getHmdRotation()));
+    mv.setScale(vec3(1.0f, 1.0f / aspect(qApp->getCanvasSize()), 1.0f));
+    batch.setModelTransform(mv);
+
 
     // FIXME doesn't work
-    drawSphereSection(batch);
+    // drawSphereSection(batch);
 
     // works...
     geometryCache->renderUnitQuad(batch, vec4(vec3(1), _alpha));
 
+    // sort of works, renders a semi-transparent red quad 
+    // geometryCache->renderSolidCube(batch, 1.0f, vec4(1));
+
     renderArgs->_context->render(batch);
-    // batch.setUniformTexture(0, gpu::TexturePointer());
-    //    geometryCache->renderSolidCube(batch, 0.5f, vec4(1));
 
     /*
     // The camera here contains only the head pose relative to the avatar position
@@ -427,8 +431,9 @@ void ApplicationOverlay::displayOverlayTextureHmd(RenderArgs* renderArgs, Camera
     */
 }
 
+/*
 // Draws the FBO texture for 3DTV.
-void ApplicationOverlay::displayOverlayTextureStereo(RenderArgs* renderArgs, Camera& whichCamera, float aspectRatio, float fov) {
+void ApplicationOverlay::displayOverlayTextureStereo(Camera& whichCamera, float aspectRatio, float fov) {
     if (_alpha == 0.0f) {
         return;
     }
@@ -473,15 +478,15 @@ void ApplicationOverlay::displayOverlayTextureStereo(RenderArgs* renderArgs, Cam
     GLfloat y = -halfQuadHeight;
     glDisable(GL_DEPTH_TEST);
 
-    //with_each_texture(_framebufferObject->texture(), _newUiTexture, [&] {
-    //    DependencyManager::get<GeometryCache>()->renderQuad(glm::vec3(x, y + quadHeight, -distance),
-    //                                            glm::vec3(x + quadWidth, y + quadHeight, -distance),
-    //                                            glm::vec3(x + quadWidth, y, -distance),
-    //                                            glm::vec3(x, y, -distance),
-    //                                            glm::vec2(0.0f, 1.0f), glm::vec2(1.0f, 1.0f), 
-    //                                            glm::vec2(1.0f, 0.0f), glm::vec2(0.0f, 0.0f),
-    //                                            overlayColor);
-    //});
+    with_each_texture(_overlays.getTexture(), _newUiTexture, [&] {
+        DependencyManager::get<GeometryCache>()->renderQuad(glm::vec3(x, y + quadHeight, -distance),
+                                                glm::vec3(x + quadWidth, y + quadHeight, -distance),
+                                                glm::vec3(x + quadWidth, y, -distance),
+                                                glm::vec3(x, y, -distance),
+                                                glm::vec2(0.0f, 1.0f), glm::vec2(1.0f, 1.0f), 
+                                                glm::vec2(1.0f, 0.0f), glm::vec2(0.0f, 0.0f),
+                                                overlayColor);
+    });
     
     if (!_crosshairTexture) {
         _crosshairTexture = TextureCache::getImageTexture(PathUtils::resourcesPath() +
@@ -521,6 +526,7 @@ void ApplicationOverlay::displayOverlayTextureStereo(RenderArgs* renderArgs, Cam
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
     glEnable(GL_LIGHTING);
 }
+*/
 
 void ApplicationOverlay::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const {
     cursorPos *= qApp->getCanvasSize();
