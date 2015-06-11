@@ -140,6 +140,10 @@ function mouseIntersectionWithPlane(pointOnPlane, planeNormal, event) {
 }
 
 function computeNewGrabPlane() {
+    if (!gIsGrabbing) {
+        return;
+    }
+
     var maybeResetMousePosition = false;
     if (gGrabMode !== "rotate") {
         gMouseAtRotateStart = gMouseCursorLocation;

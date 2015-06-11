@@ -245,7 +245,7 @@ public:
     void update(const UpdateFunctorPointer& updateFunctor)  { _payload->update(updateFunctor); }
 
     // Shape Type Interface
-    const model::MaterialKey& getMaterialKey() const { return _payload->getMaterialKey(); }
+    const model::MaterialKey getMaterialKey() const { return _payload->getMaterialKey(); }
 
 protected:
     PayloadPointer _payload;
