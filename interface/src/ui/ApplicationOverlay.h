@@ -72,7 +72,7 @@ private:
     float _hmdUIAngularSize = DEFAULT_HMD_UI_ANGULAR_SIZE;
     QOpenGLFramebufferObject* _framebufferObject;
 
-    void renderReticle(glm::quat orientation, float alpha);
+    void renderReticle(gpu::Batch& batch, glm::quat orientation, float alpha);
     void renderPointers();
     void renderMagnifier(glm::vec2 magPos, float sizeMult, bool showBorder);
     

@@ -120,27 +120,6 @@ bool raySphereIntersect(const glm::vec3 &dir, const glm::vec3 &origin, float r, 
     }
 }
 
-void ApplicationOverlay::renderReticle(glm::quat orientation, float alpha) {
-    glPushMatrix(); {
-        glm::vec3 axis = glm::axis(orientation);
-        glRotatef(glm::degrees(glm::angle(orientation)), axis.x, axis.y, axis.z);
-        glm::vec3 topLeft = getPoint(reticleSize / 2.0f, -reticleSize / 2.0f);
-        glm::vec3 topRight = getPoint(-reticleSize / 2.0f, -reticleSize / 2.0f);
-        glm::vec3 bottomLeft = getPoint(reticleSize / 2.0f, reticleSize / 2.0f);
-        glm::vec3 bottomRight = getPoint(-reticleSize / 2.0f, reticleSize / 2.0f);
-        
-        // TODO: this version of renderQuad() needs to take a color
-        glm::vec4 reticleColor = { RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], alpha };
-        
-        
-        
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomLeft, bottomRight, topRight,
-                                                            glm::vec2(0.0f, 0.0f), glm::vec2(1.0f, 0.0f),
-                                                            glm::vec2(1.0f, 1.0f), glm::vec2(0.0f, 1.0f), 
-                                                            reticleColor, _reticleQuad);
-    } glPopMatrix();
-}
-
 ApplicationOverlay::ApplicationOverlay() :
     _textureFov(glm::radians(DEFAULT_HMD_UI_ANGULAR_SIZE)),
     _textureAspectRatio(1.0f),
@@ -307,7 +286,7 @@ void ApplicationOverlay::displayOverlayTexture(RenderArgs* renderArgs) {
 
     if (!_crosshairTexture) {
         _crosshairTexture = TextureCache::getImageTexture(
-            PathUtils::resourcesPath() + "images/sixense-reticle.png");
+            PathUtils::resourcesPath() + "images/arrow.png");
     }
 
     
@@ -349,6 +328,40 @@ static gpu::BufferPointer _hemiVertices;
 static gpu::BufferPointer _hemiIndices;
 static int _hemiIndexCount{ 0 };
 
+glm::vec2 getPolarCoordinates(const PalmData& palm) {
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    auto avatarOrientation = myAvatar->getOrientation();
+    auto eyePos = myAvatar->getDefaultEyePosition();
+    glm::vec3 tip = myAvatar->getLaserPointerTipPosition(&palm);
+    // Direction of the tip relative to the eye
+    glm::vec3 tipDirection = tip - eyePos;
+    // orient into avatar space
+    tipDirection = glm::inverse(avatarOrientation) * tipDirection;
+    // Normalize for trig functions
+    tipDirection = glm::normalize(tipDirection);
+    // Convert to polar coordinates
+    glm::vec2 polar(glm::atan(tipDirection.x, -tipDirection.z), glm::asin(tipDirection.y));
+    return polar;
+}
+
+void ApplicationOverlay::renderReticle(gpu::Batch& batch, glm::quat orientation, float alpha) {
+    if (!_crosshairTexture) {
+        _crosshairTexture = TextureCache::getImageTexture(
+            PathUtils::resourcesPath() + "images/arrow.png");
+    }
+    
+    batch.setUniformTexture(0, _crosshairTexture);
+    glm::vec4 reticleColor = { RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], alpha };
+
+    vec3 dist = getPoint(0, 0);
+    mat4 reticleXfm = glm::translate(mat4(), vec3(0, 0, -1));
+    reticleXfm = glm::mat4_cast(orientation) * reticleXfm;
+    reticleXfm = glm::scale(reticleXfm, vec3(reticleSize, reticleSize, 1.0f));
+    batch.setModelTransform(Transform(reticleXfm));
+    DependencyManager::get<GeometryCache>()->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
+}
+
+
 // Draws the FBO texture for Oculus rift.
 void ApplicationOverlay::displayOverlayTextureHmd(RenderArgs* renderArgs, Camera& whichCamera) {
     if (_alpha == 0.0f) {
@@ -357,176 +370,60 @@ void ApplicationOverlay::displayOverlayTextureHmd(RenderArgs* renderArgs, Camera
 
     renderArgs->_context->syncCache();
 
-    auto geometryCache = DependencyManager::get<GeometryCache>();
     gpu::Batch batch;
     batch.setPipeline(getDrawPipeline());
     batch._glDisable(GL_DEPTH_TEST);
+    batch._glDisable(GL_CULL_FACE);
     batch._glBindTexture(GL_TEXTURE_2D, _framebufferObject->texture());
     batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     batch.setProjectionTransform(whichCamera.getProjection());
     batch.setViewTransform(Transform());
 
-    Transform mv;
-    mv.setTranslation(vec3(0.0f, 0.0f, -1.0f));
-    mv.preRotate(glm::inverse(qApp->getCamera()->getHmdRotation()));
-    mv.setScale(vec3(1.0f, 1.0f / aspect(qApp->getCanvasSize()), 1.0f));
-    batch.setModelTransform(mv);
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    const quat& avatarOrientation = myAvatar->getOrientation();
+    quat hmdOrientation = qApp->getCamera()->getHmdRotation();
+    vec3 hmdPosition = glm::inverse(avatarOrientation) * qApp->getCamera()->getHmdPosition();
+    mat4 overlayXfm = glm::mat4_cast(glm::inverse(hmdOrientation)) * glm::translate(mat4(), -hmdPosition);
+    batch.setModelTransform(Transform(overlayXfm));
+    drawSphereSection(batch);
 
 
-    // FIXME doesn't work
-    // drawSphereSection(batch);
+    if (!_crosshairTexture) {
+        _crosshairTexture = TextureCache::getImageTexture(
+            PathUtils::resourcesPath() + "images/arrow.png");
+    }
+    batch.setUniformTexture(0, _crosshairTexture);
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    //Controller Pointers
+    for (int i = 0; i < (int)myAvatar->getHand()->getNumPalms(); i++) {
+        PalmData& palm = myAvatar->getHand()->getPalms()[i];
+        if (palm.isActive()) {
+            glm::vec2 polar = getPolarCoordinates(palm);
+            // Convert to quaternion
+            mat4 pointerXfm = glm::mat4_cast(quat(vec3(polar.y, -polar.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
+            mat4 reticleXfm = overlayXfm * pointerXfm;
+            reticleXfm = glm::scale(reticleXfm, vec3(reticleSize, reticleSize, 1.0f));
+            batch.setModelTransform(reticleXfm);
+            // Render reticle at location
+            geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
+        }
+    }
 
-    // works...
-    geometryCache->renderUnitQuad(batch, vec4(vec3(1), _alpha));
-
-    // sort of works, renders a semi-transparent red quad 
-    // geometryCache->renderSolidCube(batch, 1.0f, vec4(1));
+    //Mouse Pointer
+    if (_reticleActive[MOUSE]) {
+        glm::vec2 projection = screenToSpherical(glm::vec2(_reticlePosition[MOUSE].x(),
+            _reticlePosition[MOUSE].y()));
+        mat4 pointerXfm = glm::mat4_cast(quat(vec3(-projection.y, projection.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
+        mat4 reticleXfm = overlayXfm * pointerXfm;
+        reticleXfm = glm::scale(reticleXfm, vec3(reticleSize, reticleSize, 1.0f));
+        batch.setModelTransform(reticleXfm);
+        geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
+    }
 
     renderArgs->_context->render(batch);
-
-    /*
-    // The camera here contains only the head pose relative to the avatar position
-    vec3 pos = whichCamera.getPosition();
-    quat rot = whichCamera.getOrientation();
-    mat4 overlayXfm = glm::translate(glm::mat4(), pos) * glm::mat4_cast(rot);
-
-    glLoadMatrixf(glm::value_ptr(glm::inverse(overlayXfm)));
-    glBindTexture(GL_TEXTURE_2D, _framebufferObject->texture());
-    _overlays.render();
-    */
-
-    //Update and draw the magnifiers
-    /*
-    // FIXME Mangifiers need to be re-thought
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    const float scale = myAvatar->getScale() * _oculusUIRadius;
-    overlayXfm = glm::scale(overlayXfm, vec3(scale));
-    for (int i = 0; i < NUMBER_OF_RETICLES; i++) {
-        if (_magActive[i]) {
-            _magSizeMult[i] += MAG_SPEED;
-            if (_magSizeMult[i] > 1.0f) {
-                _magSizeMult[i] = 1.0f;
-            }
-        } else {
-            _magSizeMult[i] -= MAG_SPEED;
-            if (_magSizeMult[i] < 0.0f) {
-                _magSizeMult[i] = 0.0f;
-            }
-        }
-            
-        if (_magSizeMult[i] > 0.0f) {
-            //Render magnifier, but dont show border for mouse magnifier
-            glm::vec2 projection = screenToOverlay(glm::vec2(_reticlePosition[MOUSE].x(),
-                                                                _reticlePosition[MOUSE].y()));
-            with_each_texture(_overlays.getTexture(), 0, [&] {
-                renderMagnifier(projection, _magSizeMult[i], i != MOUSE);
-            });
-        }
-    }
-
-    if (!Application::getInstance()->isMouseHidden()) {
-        renderPointersOculus();
-    }
-    */
 }
 
-/*
-// Draws the FBO texture for 3DTV.
-void ApplicationOverlay::displayOverlayTextureStereo(Camera& whichCamera, float aspectRatio, float fov) {
-    if (_alpha == 0.0f) {
-        return;
-    }
-    
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    const glm::vec3& viewMatrixTranslation = qApp->getViewMatrixTranslation();
-    
-    glEnable(GL_BLEND);
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
-    glEnable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
-    
-    glMatrixMode(GL_MODELVIEW);
-    
-    glPushMatrix();
-    glLoadIdentity();
-    // Transform to world space
-    glm::quat rotation = whichCamera.getRotation();
-    glm::vec3 axis2 = glm::axis(rotation);
-    glRotatef(-glm::degrees(glm::angle(rotation)), axis2.x, axis2.y, axis2.z);
-    glTranslatef(viewMatrixTranslation.x, viewMatrixTranslation.y, viewMatrixTranslation.z);
-    
-    // Translate to the front of the camera
-    glm::vec3 pos = whichCamera.getPosition();
-    glm::quat rot = myAvatar->getOrientation();
-    glm::vec3 axis = glm::axis(rot);
-    
-    glTranslatef(pos.x, pos.y, pos.z);
-    glRotatef(glm::degrees(glm::angle(rot)), axis.x, axis.y, axis.z);
-    
-    glm::vec4 overlayColor = {1.0f, 1.0f, 1.0f, _alpha};
-    
-    //Render
-    const GLfloat distance = 1.0f;
-    
-    const GLfloat halfQuadHeight = distance * tan(fov);
-    const GLfloat halfQuadWidth = halfQuadHeight * aspectRatio;
-    const GLfloat quadWidth = halfQuadWidth * 2.0f;
-    const GLfloat quadHeight = halfQuadHeight * 2.0f;
-    
-    GLfloat x = -halfQuadWidth;
-    GLfloat y = -halfQuadHeight;
-    glDisable(GL_DEPTH_TEST);
-
-    with_each_texture(_overlays.getTexture(), _newUiTexture, [&] {
-        DependencyManager::get<GeometryCache>()->renderQuad(glm::vec3(x, y + quadHeight, -distance),
-                                                glm::vec3(x + quadWidth, y + quadHeight, -distance),
-                                                glm::vec3(x + quadWidth, y, -distance),
-                                                glm::vec3(x, y, -distance),
-                                                glm::vec2(0.0f, 1.0f), glm::vec2(1.0f, 1.0f), 
-                                                glm::vec2(1.0f, 0.0f), glm::vec2(0.0f, 0.0f),
-                                                overlayColor);
-    });
-    
-    if (!_crosshairTexture) {
-        _crosshairTexture = TextureCache::getImageTexture(PathUtils::resourcesPath() +
-                                                          "images/sixense-reticle.png");
-    }
-    
-    //draw the mouse pointer
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(_crosshairTexture));
-    glm::vec2 canvasSize = qApp->getCanvasSize();
-    const float reticleSize = 40.0f / canvasSize.x * quadWidth;
-    x -= reticleSize / 2.0f;
-    y += reticleSize / 2.0f;
-    const float mouseX = (qApp->getMouseX() / (float)canvasSize.x) * quadWidth;
-    const float mouseY = (1.0 - (qApp->getMouseY() / (float)canvasSize.y)) * quadHeight;
-    
-    glm::vec4 reticleColor = { RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], 1.0f };
-
-    DependencyManager::get<GeometryCache>()->renderQuad(glm::vec3(x + mouseX, y + mouseY, -distance), 
-                                                glm::vec3(x + mouseX + reticleSize, y + mouseY, -distance),
-                                                glm::vec3(x + mouseX + reticleSize, y + mouseY - reticleSize, -distance),
-                                                glm::vec3(x + mouseX, y + mouseY - reticleSize, -distance),
-                                                glm::vec2(0.0f, 0.0f), glm::vec2(1.0f, 0.0f), 
-                                                glm::vec2(1.0f, 1.0f), glm::vec2(0.0f, 1.0f),
-                                                reticleColor, _reticleQuad);
-
-    glEnable(GL_DEPTH_TEST);
-    
-    glPopMatrix();
-    
-    glDepthMask(GL_TRUE);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glDisable(GL_TEXTURE_2D);
-    
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
-    glEnable(GL_LIGHTING);
-}
-*/
 
 void ApplicationOverlay::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const {
     cursorPos *= qApp->getCanvasSize();
@@ -554,22 +451,6 @@ void ApplicationOverlay::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origi
     // Intersection in world space
     origin = overlayPosition + hmdPosition;
     direction = glm::normalize(intersectionWithUi - origin);
-}
-
-glm::vec2 getPolarCoordinates(const PalmData& palm) {
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    auto avatarOrientation = myAvatar->getOrientation();
-    auto eyePos = myAvatar->getDefaultEyePosition();
-    glm::vec3 tip = myAvatar->getLaserPointerTipPosition(&palm);
-    // Direction of the tip relative to the eye
-    glm::vec3 tipDirection = tip - eyePos;
-    // orient into avatar space
-    tipDirection = glm::inverse(avatarOrientation) * tipDirection;
-    // Normalize for trig functions
-    tipDirection = glm::normalize(tipDirection);
-    // Convert to polar coordinates
-    glm::vec2 polar(glm::atan(tipDirection.x, -tipDirection.z), glm::asin(tipDirection.y));
-    return polar;
 }
 
 //Caculate the click location using one of the sixense controllers. Scale is not applied
@@ -624,7 +505,7 @@ bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position,
 void ApplicationOverlay::renderPointers() {
     //lazily load crosshair texture
     if (_crosshairTexture == 0) {
-        _crosshairTexture = TextureCache::getImageTexture(PathUtils::resourcesPath() + "images/sixense-reticle.png");
+        _crosshairTexture = TextureCache::getImageTexture(PathUtils::resourcesPath() + "images/arrow.png");
     }
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
@@ -788,43 +669,6 @@ void ApplicationOverlay::renderControllerPointers() {
                                                             glm::vec4(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], 1.0f));
         
     }
-}
-
-void ApplicationOverlay::renderPointersOculus() {
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_TEXTURE_2D);
-
-    glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(_crosshairTexture));
-    glDisable(GL_DEPTH_TEST);
-
-    glMatrixMode(GL_MODELVIEW);
-    
-    //Controller Pointers
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    for (int i = 0; i < (int)myAvatar->getHand()->getNumPalms(); i++) {
-        PalmData& palm = myAvatar->getHand()->getPalms()[i];
-        if (palm.isActive()) {
-            glm::vec2 polar = getPolarCoordinates(palm);
-            // Convert to quaternion
-            glm::quat orientation = glm::quat(glm::vec3(polar.y, -polar.x, 0.0f));
-            // Render reticle at location
-            renderReticle(orientation, _alpha);
-        } 
-    }
-
-    //Mouse Pointer
-    if (_reticleActive[MOUSE]) {
-        glm::vec2 projection = screenToSpherical(glm::vec2(_reticlePosition[MOUSE].x(),
-                                                           _reticlePosition[MOUSE].y()));
-        glm::quat orientation(glm::vec3(-projection.y, projection.x, 0.0f));
-        renderReticle(orientation, _alpha);
-    }
-
-    glEnable(GL_DEPTH_TEST);
-    glDisable(GL_TEXTURE_2D);
-    glDisable(GL_BLEND);
 }
 
 //Renders a small magnification of the currently bound texture at the coordinates
@@ -1111,7 +955,7 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder() {
 void ApplicationOverlay::buildHemiVertices(
     const float fov, const float aspectRatio, const int slices, const int stacks) {
     static float textureFOV = 0.0f, textureAspectRatio = 1.0f;
-    if (_hemiVerticesID != GeometryCache::UNKNOWN_ID && textureFOV == fov && textureAspectRatio == aspectRatio) {
+    if (textureFOV == fov && textureAspectRatio == aspectRatio) {
         return;
     }
 
@@ -1119,9 +963,6 @@ void ApplicationOverlay::buildHemiVertices(
     textureAspectRatio = aspectRatio;
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    if (_hemiVerticesID == GeometryCache::UNKNOWN_ID) {
-        _hemiVerticesID = geometryCache->allocateID();
-    }
 
     _hemiVertices = gpu::BufferPointer(new gpu::Buffer());
     _hemiIndices = gpu::BufferPointer(new gpu::Buffer());
@@ -1187,8 +1028,8 @@ void ApplicationOverlay::drawSphereSection(gpu::Batch& batch) {
     static const int COLOR_DATA_SLOT = 2;
     gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format()); // 1 for everyone
     streamFormat->setAttribute(gpu::Stream::POSITION, VERTEX_DATA_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-    streamFormat->setAttribute(gpu::Stream::TEXCOORD, TEXTURE_DATA_SLOT, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), sizeof(vec3));
-    streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_DATA_SLOT, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::RGBA), sizeof(vec3) + sizeof(vec2));
+    streamFormat->setAttribute(gpu::Stream::TEXCOORD, TEXTURE_DATA_SLOT, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
+    streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_DATA_SLOT, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::RGBA));
     batch.setInputFormat(streamFormat);
 
     static const int VERTEX_STRIDE = sizeof(vec3) + sizeof(vec2) + sizeof(vec4);
@@ -1230,35 +1071,6 @@ void ApplicationOverlay::buildFramebufferObject() {
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-/*
-//Renders a hemisphere with texture coordinates.
-void ApplicationOverlay::TexturedHemisphere::render() {
-    if (_vbo.first == 0 || _vbo.second == 0) {
-        qDebug() << "TexturedHemisphere::render(): Incorrect initialisation";
-        return;
-    }
-    
-    glBindBuffer(GL_ARRAY_BUFFER, _vbo.first);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vbo.second);
-    
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    
-    static const int STRIDE = sizeof(TextureVertex);
-    static const void* VERTEX_POINTER = 0;
-    static const void* TEX_COORD_POINTER = (void*)sizeof(glm::vec3);
-    glVertexPointer(3, GL_FLOAT, STRIDE, VERTEX_POINTER);
-    glTexCoordPointer(2, GL_FLOAT, STRIDE, TEX_COORD_POINTER);
-    
-    glDrawRangeElements(GL_TRIANGLES, 0, _vertices - 1, _indices, GL_UNSIGNED_SHORT, 0);
-    
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-}
-*/
 glm::vec2 ApplicationOverlay::directionToSpherical(const glm::vec3& direction) {
     glm::vec2 result;
     // Compute yaw
