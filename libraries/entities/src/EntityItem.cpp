@@ -563,7 +563,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
     READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
     READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
-    //READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocityInDegrees);
     READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, updateAngularDamping);
     READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, setVisible);
     READ_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, bool, updateIgnoreForCollisions);
@@ -572,6 +571,11 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
 
     if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_SIMULATOR_PRIORITY) {
+        // NOTE: the server is authoritative for changes to _simulatorID so we always unpack this data,
+        // even when we would otherwise ignore the rest of the packet.  That said, we assert the priority
+        // rules that we expect the server to be using, so it is possible that we'll sometimes ignore
+        // the incoming _simulatorID data (e.g. we might know something that the server does not... yet).
+
         uint8_t priority = 0;
         if (propertyFlags.getHasProperty(PROP_SIMULATOR_PRIORITY)) {
             int bytes = OctreePacketData::unpackDataFromBytes(dataAt, priority);
@@ -590,9 +594,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             // ownership has changed
             auto nodeList = DependencyManager::get<NodeList>();
             if (_simulatorID == nodeList->getSessionUUID()) {
-                // we think we're the owner but entityServer says otherwise
-                // we only relenquish ownership if the incoming priority is greater than ours
-                if (priority > _simulatorPriority) {
+                // we think we're the owner but entityServer says otherwise we only relenquish 
+                // ownership if the incoming priority is greater than or equal to ours
+                if (priority >= _simulatorPriority) {
                     // we're losing simulation ownership
                     _simulatorID = id;
                     _simulatorPriority = priority;
@@ -605,7 +609,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             }
         } else if (priority != _simulatorPriority) {
             // This should be an uncommon event: priority is changing but simulatorID is not.
-            // But we only accept this change if we are NOT the simulator owner.
+            // We only accept this change if we are NOT the simulator owner, since otherwise
+            // we would have initiated this change.
             auto nodeList = DependencyManager::get<NodeList>();
             if (_simulatorID != nodeList->getSessionUUID()) {
                 _simulatorPriority = priority;
