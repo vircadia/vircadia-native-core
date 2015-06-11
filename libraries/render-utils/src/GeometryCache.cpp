@@ -1179,6 +1179,21 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
     batch.draw(gpu::QUADS, 4, 0);
 }
 
+void GeometryCache::renderUnitQuad(const glm::vec4& color, int id) {
+    gpu::Batch batch;
+    renderUnitQuad(batch, color, id);
+    gpu::GLBackend::renderBatch(batch);
+}
+
+void GeometryCache::renderUnitQuad(gpu::Batch& batch, const glm::vec4& color, int id) {
+    static const glm::vec2 topLeft(-1, 1);
+    static const glm::vec2 bottomRight(1, -1);
+    static const glm::vec2 texCoordTopLeft(0.0f, 1.0f);
+    static const glm::vec2 texCoordBottomRight(1.0f, 0.0f);
+    renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color, id);
+}
+
+
 void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner,
                     const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner, 
                     const glm::vec4& color, int id) {

@@ -952,6 +952,7 @@ void Application::paintGL() {
         glPushMatrix();
         glLoadIdentity();
         displaySide(&renderArgs, _myCamera);
+        _applicationOverlay.displayOverlayTexture(&renderArgs);
         glPopMatrix();
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
@@ -968,8 +969,6 @@ void Application::paintGL() {
                           0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height(),
                             GL_COLOR_BUFFER_BIT, GL_NEAREST);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-
-        _applicationOverlay.displayOverlayTexture();
     }
 
     if (!OculusManager::isConnected() || OculusManager::allowSwap()) {
