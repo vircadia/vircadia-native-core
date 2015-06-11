@@ -24,7 +24,7 @@ void RenderableDebugableEntityItem::renderBoundingBox(EntityItem* entity, Render
                                                       float puffedOut, glm::vec4& color) {
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
-    batch.setModelTransform(entity->getTransform()); // we want to include the scale as well
+    batch.setModelTransform(entity->getTransformToCenter()); // we want to include the scale as well
     DependencyManager::get<DeferredLightingEffect>()->renderWireCube(batch, 1.0f + puffedOut, color);
 }
 
@@ -33,7 +33,7 @@ void RenderableDebugableEntityItem::render(EntityItem* entity, RenderArgs* args)
         Q_ASSERT(args->_batch);
         gpu::Batch& batch = *args->_batch;
 
-        batch.setModelTransform(entity->getTransform()); // we want to include the scale as well
+        batch.setModelTransform(entity->getTransformToCenter()); // we want to include the scale as well
         
         auto nodeList = DependencyManager::get<NodeList>();
         const QUuid& myNodeID = nodeList->getSessionUUID();

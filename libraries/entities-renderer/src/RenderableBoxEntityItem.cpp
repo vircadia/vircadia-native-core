@@ -33,7 +33,7 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
     
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
-    batch.setModelTransform(getTransform()); // we want to include the scale as well
+    batch.setModelTransform(getTransformToCenter()); // we want to include the scale as well
     DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(batch, 1.0f, cubeColor);
 
     RenderableDebugableEntityItem::render(this, args);

@@ -39,7 +39,7 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
     
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
-    batch.setModelTransform(getTransform()); // use a transform with scale, rotation, registration point and translation
+    batch.setModelTransform(getTransformToCenter()); // use a transform with scale, rotation, registration point and translation
     DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, 0.5f, SLICES, STACKS, sphereColor);
 
     RenderableDebugableEntityItem::render(this, args);
