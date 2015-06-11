@@ -100,6 +100,7 @@
 #include "ModelPackager.h"
 #include "Util.h"
 #include "InterfaceLogging.h"
+#include "InterfaceActionFactory.h"
 
 #include "avatar/AvatarManager.h"
 
@@ -257,6 +258,7 @@ bool setupEssentials(int& argc, char** argv) {
 
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
+    DependencyManager::registerInheritance<EntityActionFactoryInterface, InterfaceActionFactory>();
 
     Setting::init();
 
@@ -293,7 +295,8 @@ bool setupEssentials(int& argc, char** argv) {
     auto discoverabilityManager = DependencyManager::set<DiscoverabilityManager>();
     auto sceneScriptingInterface = DependencyManager::set<SceneScriptingInterface>();
     auto offscreenUi = DependencyManager::set<OffscreenUi>();
-    auto pathUtils =  DependencyManager::set<PathUtils>();
+    auto pathUtils = DependencyManager::set<PathUtils>();
+    auto actionFactory = DependencyManager::set<InterfaceActionFactory>();
 
     return true;
 }

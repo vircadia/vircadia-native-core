@@ -24,9 +24,7 @@ void RenderableDebugableEntityItem::renderBoundingBox(EntityItem* entity, Render
                                                       float puffedOut, glm::vec4& color) {
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
-    Transform transform = entity->getTransformToCenter();
-    //transform.postScale(entity->getDimensions());
-    batch.setModelTransform(transform);
+    batch.setModelTransform(entity->getTransformToCenter()); // we want to include the scale as well
     DependencyManager::get<DeferredLightingEffect>()->renderWireCube(batch, 1.0f + puffedOut, color);
 }
 
@@ -34,10 +32,9 @@ void RenderableDebugableEntityItem::render(EntityItem* entity, RenderArgs* args)
     if (args->_debugFlags & RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP) {
         Q_ASSERT(args->_batch);
         gpu::Batch& batch = *args->_batch;
-        Transform transform = entity->getTransformToCenter();
-        transform.postScale(entity->getDimensions());
-        batch.setModelTransform(transform);
 
+        batch.setModelTransform(entity->getTransformToCenter()); // we want to include the scale as well
+        
         auto nodeList = DependencyManager::get<NodeList>();
         const QUuid& myNodeID = nodeList->getSessionUUID();
         bool highlightSimulationOwnership = (entity->getSimulatorID() == myNodeID);

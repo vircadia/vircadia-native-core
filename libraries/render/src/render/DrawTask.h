@@ -87,6 +87,14 @@ public:
 };
 template <> void jobRun(const DrawBackground& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
 
+
+class DrawPostLayered {
+public:
+};
+template <> void jobRun(const DrawPostLayered& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+
+
+
 class ResetGLState {
 public:
 };
