@@ -107,6 +107,9 @@ Avatar::Avatar() :
 }
 
 Avatar::~Avatar() {
+    for(auto attachment : _unusedAttachments) {
+        delete attachment;
+    }
 }
 
 const float BILLBOARD_LOD_DISTANCE = 40.0f;
@@ -298,12 +301,21 @@ bool Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene>
     pendingChanges.resetItem(_renderItemID, avatarPayloadPointer);
     _skeletonModel.addToScene(scene, pendingChanges);
     getHead()->getFaceModel().addToScene(scene, pendingChanges);
+
+    for (auto attachmentModel : _attachmentModels) {
+        attachmentModel->addToScene(scene, pendingChanges);
+    }
+
     return true;
 }
 
 void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
     pendingChanges.removeItem(_renderItemID);
     _skeletonModel.removeFromScene(scene, pendingChanges);
+    getHead()->getFaceModel().removeFromScene(scene, pendingChanges);
+    for (auto attachmentModel : _attachmentModels) {
+        attachmentModel->removeFromScene(scene, pendingChanges);
+    }
 }
 
 void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting) {
@@ -516,7 +528,7 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel) {
+void Avatar::fixupModelsInScene() {
     // check to see if when we added our models to the scene they were ready, if they were not ready, then
     // fix them up in the scene
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
@@ -529,8 +541,24 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool
         getHead()->getFaceModel().removeFromScene(scene, pendingChanges);
         getHead()->getFaceModel().addToScene(scene, pendingChanges);
     }
+    for (auto attachmentModel : _attachmentModels) {
+        if (attachmentModel->needsFixupInScene()) {
+            attachmentModel->removeFromScene(scene, pendingChanges);
+            attachmentModel->addToScene(scene, pendingChanges);
+        }
+    }
+    for (auto attachmentModelToRemove : _attachmentsToRemove) {
+        attachmentModelToRemove->removeFromScene(scene, pendingChanges);
+        _unusedAttachments << attachmentModelToRemove;
+    }
+    _attachmentsToRemove.clear();
     scene->enqueuePendingChanges(pendingChanges);
+}
 
+void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel) {
+
+    fixupModelsInScene();
+    
     {
         Glower glower(renderArgs, glowLevel);
 
@@ -544,10 +572,6 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool
 
         if (postLighting) {
             getHand()->render(renderArgs, false);
-        } else {
-            // NOTE: we no longer call this here, because we've added all the model parts as renderable items in the scene
-            //_skeletonModel.render(renderArgs, 1.0f);
-            renderAttachments(renderArgs);
         }
     }
     getHead()->render(renderArgs, 1.0f, renderFrustum, postLighting);
@@ -571,20 +595,12 @@ void Avatar::simulateAttachments(float deltaTime) {
                 _skeletonModel.getJointCombinedRotation(jointIndex, jointRotation)) {
             model->setTranslation(jointPosition + jointRotation * attachment.translation * _scale);
             model->setRotation(jointRotation * attachment.rotation);
-            model->setScaleToFit(true, _scale * attachment.scale);
+            model->setScaleToFit(true, _scale * attachment.scale, true); // hack to force rescale
+            model->setSnapModelToCenter(false); // hack to force resnap
+            model->setSnapModelToCenter(true);
             model->simulate(deltaTime);
         }
     }
-}
-
-void Avatar::renderAttachments(RenderArgs* args) {
- //   RenderArgs::RenderMode modelRenderMode = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
-  //      RenderArgs::SHADOW_RENDER_MODE : RenderArgs::DEFAULT_RENDER_MODE;
-    /*
-    foreach (Model* model, _attachmentModels) {
-        model->render(args, 1.0f);
-    }
-    */
 }
 
 void Avatar::updateJointMappings() {
@@ -944,12 +960,18 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     }
     // make sure we have as many models as attachments
     while (_attachmentModels.size() < attachmentData.size()) {
-        Model* model = new Model(this);
+        Model* model = nullptr;
+        if (_unusedAttachments.size() > 0) {
+            model = _unusedAttachments.takeFirst();
+        } else {
+            model = new Model(this);
+        }
         model->init();
         _attachmentModels.append(model);
     }
     while (_attachmentModels.size() > attachmentData.size()) {
-        delete _attachmentModels.takeLast();
+        auto attachmentModel = _attachmentModels.takeLast();
+        _attachmentsToRemove << attachmentModel;
     }
 
     // update the urls

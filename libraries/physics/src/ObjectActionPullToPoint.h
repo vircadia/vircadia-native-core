@@ -23,7 +23,7 @@ public:
     virtual ~ObjectActionPullToPoint();
 
     virtual bool updateArguments(QVariantMap arguments);
-    virtual void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep);
+    virtual void updateActionWorker(float deltaTimeStep);
 
 private:
 

@@ -44,12 +44,13 @@ template <> void render::jobRun(const ResolveDeferred& job, const SceneContextPo
 RenderDeferredTask::RenderDeferredTask() : Task() {
    _jobs.push_back(Job(PrepareDeferred()));
    _jobs.push_back(Job(DrawBackground()));
-   _jobs.push_back(Job(DrawOpaque()));
+   _jobs.push_back(Job(DrawOpaqueDeferred()));
    _jobs.push_back(Job(DrawLight()));
    _jobs.push_back(Job(ResetGLState()));
    _jobs.push_back(Job(RenderDeferred()));
    _jobs.push_back(Job(ResolveDeferred()));
    _jobs.push_back(Job(DrawTransparentDeferred()));
+   _jobs.push_back(Job(DrawPostLayered()));
    _jobs.push_back(Job(ResetGLState()));
 }
 
@@ -78,6 +79,84 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
 
 
 
+template <> void render::jobRun(const DrawOpaqueDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    PerformanceTimer perfTimer("DrawOpaqueDeferred");
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
+
+    // render opaques
+    auto& scene = sceneContext->_scene;
+    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::opaqueShape().withoutLayered());
+    auto& renderDetails = renderContext->args->_details;
+
+    ItemIDsBounds inItems;
+    inItems.reserve(items.size());
+    for (auto id : items) {
+        inItems.emplace_back(ItemIDAndBounds(id));
+    }
+    ItemIDsBounds& renderedItems = inItems;
+
+    renderContext->_numFeedOpaqueItems = renderedItems.size();
+
+    ItemIDsBounds culledItems;
+    culledItems.reserve(inItems.size());
+    if (renderContext->_cullOpaque) {
+        renderDetails.pointTo(RenderDetails::OPAQUE_ITEM);
+        cullItems(sceneContext, renderContext, renderedItems, culledItems);
+        renderDetails.pointTo(RenderDetails::OTHER_ITEM);
+        renderedItems = culledItems;
+    }
+
+    renderContext->_numDrawnOpaqueItems = renderedItems.size();
+
+
+    ItemIDsBounds sortedItems;
+    sortedItems.reserve(culledItems.size());
+    if (renderContext->_sortOpaque) {
+        depthSortItems(sceneContext, renderContext, true, renderedItems, sortedItems); // Sort Front to back opaque items!
+        renderedItems = sortedItems;
+    }
+
+   // ItemIDsBounds sortedItems;
+ /*   ItemMaterialBucketMap stateSortedItems;
+    stateSortedItems.allocateStandardMaterialBuckets();
+    if (true) {
+        for (auto& itemIDAndBound : renderedItems) {
+            stateSortedItems.insert(itemIDAndBound.id, scene->getItem(itemIDAndBound.id).getMaterialKey());
+        }
+    }
+*/
+
+    if (renderContext->_renderOpaque) {
+        RenderArgs* args = renderContext->args;
+        gpu::Batch batch;
+        args->_batch = &batch;
+
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->_viewFrustum->evalProjectionMatrix(projMat);
+        args->_viewFrustum->evalViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
+
+        renderContext->args->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
+        {
+            GLenum buffers[3];
+            int bufferCount = 0;
+            buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
+            buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
+            buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
+            batch._glDrawBuffers(bufferCount, buffers);
+        }
+
+        renderItems(sceneContext, renderContext, renderedItems, renderContext->_maxDrawnOpaqueItems);
+
+        args->_context->render((*args->_batch));
+        args->_batch = nullptr;
+    }
+}
+
+
 template <> void render::jobRun(const DrawTransparentDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     PerformanceTimer perfTimer("DrawTransparentDeferred");
     assert(renderContext->args);
@@ -85,7 +164,7 @@ template <> void render::jobRun(const DrawTransparentDeferred& job, const SceneC
 
     // render transparents
     auto& scene = sceneContext->_scene;
-    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::transparentShape());
+    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::transparentShape().withoutLayered());
     auto& renderDetails = renderContext->args->_details;
     
     ItemIDsBounds inItems;

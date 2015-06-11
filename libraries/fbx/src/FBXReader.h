@@ -189,17 +189,6 @@ public:
 Q_DECLARE_METATYPE(FBXAnimationFrame)
 Q_DECLARE_METATYPE(QVector<FBXAnimationFrame>)
 
-/// An attachment to an FBX document.
-class FBXAttachment {
-public:
-    
-    int jointIndex;
-    QUrl url;
-    glm::vec3 translation;
-    glm::quat rotation;
-    glm::vec3 scale;
-};
-
 /// A point where an avatar can sit
 class SittingPoint {
 public:
@@ -256,9 +245,7 @@ public:
     Extents meshExtents;
     
     QVector<FBXAnimationFrame> animationFrames;
-    
-    QVector<FBXAttachment> attachments;
-    
+        
     int getJointIndex(const QString& name) const { return jointIndices.value(name) - 1; }
     QStringList getJointNames() const;
     
