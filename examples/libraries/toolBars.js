@@ -3,6 +3,7 @@
 //  examples
 //
 //  Created by Clément Brisset on 5/7/14.
+//  Persistable drag position by HRS 6/11/15.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
