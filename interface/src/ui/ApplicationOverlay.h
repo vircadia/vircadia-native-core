@@ -67,28 +67,8 @@ public:
     static glm::vec2 sphericalToScreen(const glm::vec2 & sphericalPos);
     
 private:
-    // Interleaved vertex data
-    struct TextureVertex {
-        glm::vec3 position;
-        glm::vec2 uv;
-    };
-
-    typedef QPair<GLuint, GLuint> VerticesIndices;
-    class TexturedHemisphere {
-    public:
-        TexturedHemisphere();
-        ~TexturedHemisphere();
-        void buildVBO(const float fov, const float aspectRatio, const int slices, const int stacks);
-        void render();
-        
-    private:
-        void cleanupVBO();
-        
-        GLuint _vertices;
-        GLuint _indices;
-        VerticesIndices _vbo;
-    };
-    
+    void buildHemiVertices(const float fov, const float aspectRatio, const int slices, const int stacks);
+    void drawSphereSection(gpu::Batch& batch);
     float _hmdUIAngularSize = DEFAULT_HMD_UI_ANGULAR_SIZE;
     QOpenGLFramebufferObject* _framebufferObject;
 
@@ -105,11 +85,11 @@ private:
     void renderDomainConnectionStatusBorder();
 
     void buildFramebufferObject();
-
-    TexturedHemisphere _overlays;
     
     float _textureFov;
     float _textureAspectRatio;
+    int _hemiVerticesID{ GeometryCache::UNKNOWN_ID };
+
     
     enum Reticles { MOUSE, LEFT_CONTROLLER, RIGHT_CONTROLLER, NUMBER_OF_RETICLES };
     bool _reticleActive[NUMBER_OF_RETICLES];

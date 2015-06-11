@@ -301,7 +301,6 @@ gpu::PipelinePointer ApplicationOverlay::getDrawPipeline() {
 
 // Draws the FBO texture for the screen
 void ApplicationOverlay::displayOverlayTexture(RenderArgs* renderArgs) {
-
     if (_alpha == 0.0f) {
         return;
     }
@@ -312,64 +311,44 @@ void ApplicationOverlay::displayOverlayTexture(RenderArgs* renderArgs) {
     }
 
     
-    //FIXME - doesn't work
     renderArgs->_context->syncCache();
+    glViewport(0, 0, qApp->getDeviceSize().width(), qApp->getDeviceSize().height());
+
     gpu::Batch batch;
+    Transform model;
     //DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true);
     batch.setPipeline(getDrawPipeline());
     batch.setModelTransform(Transform());
     batch.setProjectionTransform(mat4());
-    batch.setViewTransform(Transform());
-    batch.setUniformTexture(0, _crosshairTexture);
+    batch.setViewTransform(model);
+    batch._glBindTexture(GL_TEXTURE_2D, _framebufferObject->texture());
+    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     DependencyManager::get<GeometryCache>()->renderUnitQuad(batch, vec4(vec3(1), _alpha));
+
+    //draw the mouse pointer
+    glm::vec2 canvasSize = qApp->getCanvasSize();
+
+    // Get the mouse coordinates and convert to NDC [-1, 1]
+    vec2 mousePosition = vec2(qApp->getMouseX(), qApp->getMouseY());
+    mousePosition /= canvasSize;
+    mousePosition *= 2.0f;
+    mousePosition -= 1.0f;
+    mousePosition.y *= -1.0f;
+    model.setTranslation(vec3(mousePosition, 0));
+    glm::vec2 mouseSize = 32.0f / canvasSize;
+    model.setScale(vec3(mouseSize, 1.0f));
+    batch.setModelTransform(model);
+    batch.setUniformTexture(0, _crosshairTexture);
+    glm::vec4 reticleColor = { RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], 1.0f };
+    DependencyManager::get<GeometryCache>()->renderUnitQuad(batch, vec4(1));
     renderArgs->_context->render(batch);
-    return;
-
-
-    
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_TEXTURE_2D);
-    glViewport(0, 0, qApp->getDeviceSize().width(), qApp->getDeviceSize().height());
-
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix(); 
-    glLoadIdentity();
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-    {
-        glBindTexture(GL_TEXTURE_2D, _framebufferObject->texture());
-        DependencyManager::get<GeometryCache>()->renderUnitQuad(vec4(vec3(1), _alpha));
-        //draw the mouse pointer
-        glm::vec2 canvasSize = qApp->getCanvasSize();
-
-        // Get the mouse coordinates and convert to NDC [-1, 1]
-        vec2 mousePosition = vec2(qApp->getMouseX(), qApp->getMouseY());
-        mousePosition /= canvasSize;
-        mousePosition *= 2.0f;
-        mousePosition -= 1.0f;
-        mousePosition.y *= -1.0f;
-        mat4 mouseMv = glm::translate(mat4(), vec3(mousePosition, 0));
-
-        // Scale the mouse based on the canvasSize (NOT the device size, 
-        // we don't want a smaller mouse on retina displays)
-        glm::vec2 mouseSize = 32.0f / canvasSize;
-        mouseMv = glm::scale(mouseMv, vec3(mouseSize, 1.0f));
-
-        // Push the resulting matrix into modelview
-        glLoadMatrixf(glm::value_ptr(mouseMv));
-        glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(_crosshairTexture));
-        glm::vec4 reticleColor = { RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], 1.0f };
-        DependencyManager::get<GeometryCache>()->renderUnitQuad(reticleColor);
-    } 
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
 }
+
+
+static gpu::BufferPointer _hemiVertices;
+static gpu::BufferPointer _hemiIndices;
+static int _hemiIndexCount{ 0 };
 
 // Draws the FBO texture for Oculus rift.
 void ApplicationOverlay::displayOverlayTextureHmd(RenderArgs* renderArgs, Camera& whichCamera) {
@@ -377,15 +356,32 @@ void ApplicationOverlay::displayOverlayTextureHmd(RenderArgs* renderArgs, Camera
         return;
     }
 
-    _overlays.buildVBO(_textureFov, _textureAspectRatio, 80, 80);
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_TEXTURE_2D);
-    glActiveTexture(GL_TEXTURE0);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    gpu::Batch batch;
+    //DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true);
+    batch.setPipeline(getDrawPipeline());
+    batch._glDisable(GL_DEPTH_TEST);
+    batch._glBindTexture(GL_TEXTURE_2D, _framebufferObject->texture());
+    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    batch.setProjectionTransform(whichCamera.getProjection());
+    batch.setViewTransform(Transform());
+
+    Transform model;
+    model.setTranslation(vec3(0.0f, 0.0f, -2.0f));
+    batch.setModelTransform(model);
+
+    // FIXME doesn't work
+    drawSphereSection(batch);
+
+    // works...
+    geometryCache->renderUnitQuad(batch, vec4(vec3(1), _alpha));
+
+    renderArgs->_context->render(batch);
+    // batch.setUniformTexture(0, gpu::TexturePointer());
+    //    geometryCache->renderSolidCube(batch, 0.5f, vec4(1));
+
+    /*
     // The camera here contains only the head pose relative to the avatar position
     vec3 pos = whichCamera.getPosition();
     quat rot = whichCamera.getOrientation();
@@ -394,6 +390,7 @@ void ApplicationOverlay::displayOverlayTextureHmd(RenderArgs* renderArgs, Camera
     glLoadMatrixf(glm::value_ptr(glm::inverse(overlayXfm)));
     glBindTexture(GL_TEXTURE_2D, _framebufferObject->texture());
     _overlays.render();
+    */
 
     //Update and draw the magnifiers
     /*
@@ -423,11 +420,11 @@ void ApplicationOverlay::displayOverlayTextureHmd(RenderArgs* renderArgs, Camera
             });
         }
     }
-    */
 
     if (!Application::getInstance()->isMouseHidden()) {
         renderPointersOculus();
     }
+    */
 }
 
 // Draws the FBO texture for 3DTV.
@@ -1104,108 +1101,101 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder() {
     }
 }
 
-ApplicationOverlay::TexturedHemisphere::TexturedHemisphere() :
-    _vertices(0),
-    _indices(0),
-    _vbo(0, 0) {
-}
 
-ApplicationOverlay::TexturedHemisphere::~TexturedHemisphere() {
-    cleanupVBO();
-}
-
-void ApplicationOverlay::TexturedHemisphere::buildVBO(const float fov,
-                                                      const float aspectRatio,
-                                                      const int slices,
-                                                      const int stacks) {
+void ApplicationOverlay::buildHemiVertices(
+    const float fov, const float aspectRatio, const int slices, const int stacks) {
     static float textureFOV = 0.0f, textureAspectRatio = 1.0f;
-    if (textureFOV == fov && textureAspectRatio == aspectRatio) {
+    if (_hemiVerticesID != GeometryCache::UNKNOWN_ID && textureFOV == fov && textureAspectRatio == aspectRatio) {
         return;
     }
+
     textureFOV = fov;
     textureAspectRatio = aspectRatio;
+
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (_hemiVerticesID == GeometryCache::UNKNOWN_ID) {
+        _hemiVerticesID = geometryCache->allocateID();
+    }
+
+    _hemiVertices = gpu::BufferPointer(new gpu::Buffer());
+    _hemiIndices = gpu::BufferPointer(new gpu::Buffer());
+
 
     if (fov >= PI) {
         qDebug() << "TexturedHemisphere::buildVBO(): FOV greater or equal than Pi will create issues";
     }
-    // Cleanup old VBO if necessary
-    cleanupVBO();
-    
+
     //UV mapping source: http://www.mvps.org/directx/articles/spheremap.htm
     
-    // Compute number of vertices needed
-    _vertices = slices * stacks;
-    
+    vec3 pos; 
     // Compute vertices positions and texture UV coordinate
-    TextureVertex* vertexData = new TextureVertex[_vertices];
-    TextureVertex* vertexPtr = &vertexData[0];
+    // Create and write to buffer
+    //_hemiVertices->(sizeof(vec3) + sizeof(vec2) + sizeof(vec4)) * stacks * slices);
     for (int i = 0; i < stacks; i++) {
         float stacksRatio = (float)i / (float)(stacks - 1); // First stack is 0.0f, last stack is 1.0f
         // abs(theta) <= fov / 2.0f
         float pitch = -fov * (stacksRatio - 0.5f);
-        
         for (int j = 0; j < slices; j++) {
             float slicesRatio = (float)j / (float)(slices - 1); // First slice is 0.0f, last slice is 1.0f
             // abs(phi) <= fov * aspectRatio / 2.0f
             float yaw = -fov * aspectRatio * (slicesRatio - 0.5f);
-            
-            vertexPtr->position = getPoint(yaw, pitch);
-            vertexPtr->uv.x = slicesRatio;
-            vertexPtr->uv.y = stacksRatio;
-            vertexPtr++;
+            pos = getPoint(yaw, pitch);
+            _hemiVertices->append(sizeof(pos), (gpu::Byte*)&pos);
+            _hemiVertices->append(sizeof(vec2), (gpu::Byte*)&vec2(slicesRatio, stacksRatio));
+            _hemiVertices->append(sizeof(vec4), (gpu::Byte*)&vec4(1));
         }
     }
-    // Create and write to buffer
-    glGenBuffers(1, &_vbo.first);
-    glBindBuffer(GL_ARRAY_BUFFER, _vbo.first);
-    static const int BYTES_PER_VERTEX = sizeof(TextureVertex);
-    glBufferData(GL_ARRAY_BUFFER, _vertices * BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
-    delete[] vertexData;
-    
     
     // Compute number of indices needed
     static const int VERTEX_PER_TRANGLE = 3;
     static const int TRIANGLE_PER_RECTANGLE = 2;
     int numberOfRectangles = (slices - 1) * (stacks - 1);
-    _indices = numberOfRectangles * TRIANGLE_PER_RECTANGLE * VERTEX_PER_TRANGLE;
+    _hemiIndexCount = numberOfRectangles * TRIANGLE_PER_RECTANGLE * VERTEX_PER_TRANGLE;
     
     // Compute indices order
-    GLushort* indexData = new GLushort[_indices];
-    GLushort* indexPtr = indexData;
+    std::vector<GLushort> indices;
     for (int i = 0; i < stacks - 1; i++) {
         for (int j = 0; j < slices - 1; j++) {
             GLushort bottomLeftIndex = i * slices + j;
             GLushort bottomRightIndex = bottomLeftIndex + 1;
             GLushort topLeftIndex = bottomLeftIndex + slices;
             GLushort topRightIndex = topLeftIndex + 1;
-            
-            *(indexPtr++) = topLeftIndex;
-            *(indexPtr++) = bottomLeftIndex;
-            *(indexPtr++) = topRightIndex;
-            
-            *(indexPtr++) = topRightIndex;
-            *(indexPtr++) = bottomLeftIndex;
-            *(indexPtr++) = bottomRightIndex;
+            // FIXME make a z-order curve for better vertex cache locality
+            indices.push_back(topLeftIndex);
+            indices.push_back(bottomLeftIndex);
+            indices.push_back(topRightIndex);
+
+            indices.push_back(topRightIndex);
+            indices.push_back(bottomLeftIndex);
+            indices.push_back(bottomRightIndex);
         }
     }
-    // Create and write to buffer
-    glGenBuffers(1, &_vbo.second);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vbo.second);
-    static const int BYTES_PER_INDEX = sizeof(GLushort);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, _indices * BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
-    delete[] indexData;
+    _hemiIndices->append(sizeof(GLushort) * indices.size(), (gpu::Byte*)&indices[0]);
 }
 
-void ApplicationOverlay::TexturedHemisphere::cleanupVBO() {
-    if (_vbo.first != 0) {
-        glDeleteBuffers(1, &_vbo.first);
-        _vbo.first = 0;
-    }
-    if (_vbo.second != 0) {
-        glDeleteBuffers(1, &_vbo.second);
-        _vbo.second = 0;
-    }
+
+void ApplicationOverlay::drawSphereSection(gpu::Batch& batch) {
+    buildHemiVertices(_textureFov, _textureAspectRatio, 80, 80);
+    static const int VERTEX_DATA_SLOT = 0;
+    static const int TEXTURE_DATA_SLOT = 1;
+    static const int COLOR_DATA_SLOT = 2;
+    gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format()); // 1 for everyone
+    streamFormat->setAttribute(gpu::Stream::POSITION, VERTEX_DATA_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
+    streamFormat->setAttribute(gpu::Stream::TEXCOORD, TEXTURE_DATA_SLOT, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), sizeof(vec3));
+    streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_DATA_SLOT, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::RGBA), sizeof(vec3) + sizeof(vec2));
+    batch.setInputFormat(streamFormat);
+
+    static const int VERTEX_STRIDE = sizeof(vec3) + sizeof(vec2) + sizeof(vec4);
+    gpu::BufferView posView(_hemiVertices, 0, _hemiVertices->getSize(), VERTEX_STRIDE, streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
+    gpu::BufferView uvView(_hemiVertices, sizeof(vec3), _hemiVertices->getSize(), VERTEX_STRIDE, streamFormat->getAttributes().at(gpu::Stream::TEXCOORD)._element);
+    gpu::BufferView colView(_hemiVertices, sizeof(vec3) + sizeof(vec2), _hemiVertices->getSize(), VERTEX_STRIDE, streamFormat->getAttributes().at(gpu::Stream::COLOR)._element);
+    batch.setInputBuffer(VERTEX_DATA_SLOT, posView);
+    batch.setInputBuffer(TEXTURE_DATA_SLOT, uvView);
+    batch.setInputBuffer(COLOR_DATA_SLOT, colView);
+    batch.setIndexBuffer(gpu::UINT16, _hemiIndices, 0);
+    batch.drawIndexed(gpu::TRIANGLES, _hemiIndexCount);
 }
+
 
 GLuint ApplicationOverlay::getOverlayTexture() {
     return _framebufferObject->texture();
@@ -1234,6 +1224,7 @@ void ApplicationOverlay::buildFramebufferObject() {
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+/*
 //Renders a hemisphere with texture coordinates.
 void ApplicationOverlay::TexturedHemisphere::render() {
     if (_vbo.first == 0 || _vbo.second == 0) {
@@ -1261,7 +1252,7 @@ void ApplicationOverlay::TexturedHemisphere::render() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
-
+*/
 glm::vec2 ApplicationOverlay::directionToSpherical(const glm::vec3& direction) {
     glm::vec2 result;
     // Compute yaw
