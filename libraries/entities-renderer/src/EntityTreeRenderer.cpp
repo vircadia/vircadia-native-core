@@ -919,7 +919,14 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
             entityScript.property("mouseMoveEvent").call(entityScript, entityScriptArgs);
         }
 
-        //qCDebug(entitiesrenderer) << "mouseMoveEvent over entity:" << rayPickResult.entityID;
+        QString urlString = rayPickResult.properties.getHref();
+        QUrl url = QUrl(urlString, QUrl::StrictMode);
+        if (url.isValid() && !url.isEmpty()){
+            qCDebug(entitiesrenderer) << "mouseMoveEvent over entity:" << urlString;
+        } else {
+            qCDebug(entitiesrenderer) << "mouseMoveEvent over entity:" << "Not valid href";
+        }
+
         emit mouseMoveOnEntity(rayPickResult, event, deviceID);
         if (entityScript.property("mouseMoveOnEntity").isValid()) {
             entityScript.property("mouseMoveOnEntity").call(entityScript, entityScriptArgs);
