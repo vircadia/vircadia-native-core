@@ -242,24 +242,6 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     _framebufferObject->release();
 }
 
-// A quick and dirty solution for compositing the old overlay 
-// texture with the new one
-//template <typename F>
-//void with_each_texture(GLuint firstPassTexture, GLuint secondPassTexture, F f) {
-//    glEnable(GL_TEXTURE_2D);
-//    glActiveTexture(GL_TEXTURE0);
-//    if (firstPassTexture) {
-//        glBindTexture(GL_TEXTURE_2D, firstPassTexture);
-//        f();
-//    }
-//    //if (secondPassTexture) {
-//    //    glBindTexture(GL_TEXTURE_2D, secondPassTexture);
-//    //    f();
-//    //}
-//    glBindTexture(GL_TEXTURE_2D, 0);
-//    glDisable(GL_TEXTURE_2D);
-//}
-
 gpu::PipelinePointer ApplicationOverlay::getDrawPipeline() {
     if (!_standardDrawPipeline) {
         auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(standardTransformPNTC_vert)));
@@ -977,7 +959,6 @@ void ApplicationOverlay::buildHemiVertices(
     vec3 pos; 
     // Compute vertices positions and texture UV coordinate
     // Create and write to buffer
-    //_hemiVertices->(sizeof(vec3) + sizeof(vec2) + sizeof(vec4)) * stacks * slices);
     for (int i = 0; i < stacks; i++) {
         float stacksRatio = (float)i / (float)(stacks - 1); // First stack is 0.0f, last stack is 1.0f
         // abs(theta) <= fov / 2.0f
@@ -1052,7 +1033,7 @@ void ApplicationOverlay::buildFramebufferObject() {
     auto canvasSize = qApp->getCanvasSize();
     QSize fboSize = QSize(canvasSize.x, canvasSize.y);
     if (_framebufferObject != NULL && fboSize == _framebufferObject->size()) {
-        // Already build
+        // Already built
         return;
     }
     
