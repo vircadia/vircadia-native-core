@@ -180,10 +180,6 @@ btCollisionShape* EntityMotionState::computeNewShape() {
     return nullptr;
 }
 
-// RELIABLE_SEND_HACK: until we have truly reliable resends of non-moving updates
-// we alwasy resend packets for objects that have stopped moving up to some max limit.
-const int MAX_NUM_NON_MOVING_UPDATES = 5;
-
 bool EntityMotionState::isCandidateForOwnership(const QUuid& sessionID) const { 
     if (!_body || !_entity) {
         return false;
@@ -495,6 +491,10 @@ void EntityMotionState::measureBodyAcceleration() {
         glm::vec3 velocity = bulletToGLM(_body->getLinearVelocity());
         _measuredAcceleration = (velocity / powf(1.0f - _body->getLinearDamping(), dt) - _lastVelocity) * invDt;
         _lastVelocity = velocity;
+        if (numSubsteps > PHYSICS_ENGINE_MAX_NUM_SUBSTEPS && !_candidateForOwnership) {
+            _loopsSinceOwnershipBid = 0;
+            _loopsWithoutOwner = 0;
+        }
     }
 }
 glm::vec3 EntityMotionState::getObjectLinearVelocityChange() const {
