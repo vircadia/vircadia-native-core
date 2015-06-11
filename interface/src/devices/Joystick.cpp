@@ -109,6 +109,16 @@ void Joystick::registerToUserInputMapper(UserInputMapper& mapper) {
         
         availableInputs.append(UserInputMapper::InputPair(makeInput(SDL_CONTROLLER_BUTTON_LEFTSHOULDER), "L1"));
         availableInputs.append(UserInputMapper::InputPair(makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), "R1"));
+        
+        availableInputs.append(UserInputMapper::InputPair(makeInput(LEFT_AXIS_Y_NEG), "Left Stick Up"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(LEFT_AXIS_Y_POS), "Left Stick Down"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(LEFT_AXIS_X_POS), "Left Stick Right"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(LEFT_AXIS_X_NEG), "Left Stick Left"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(RIGHT_AXIS_Y_NEG), "Right Stick Up"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(RIGHT_AXIS_Y_POS), "Right Stick Down"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(RIGHT_AXIS_X_POS), "Right Stick Right"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(RIGHT_AXIS_X_NEG), "Right Stick Left"));
+
 #endif
         return availableInputs;
     };

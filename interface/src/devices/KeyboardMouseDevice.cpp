@@ -170,7 +170,33 @@ void KeyboardMouseDevice::registerToUserInputMapper(UserInputMapper& mapper) {
         for (int i = (int) Qt::Key_A; i <= (int) Qt::Key_Z; i++) {
             availableInputs.append(UserInputMapper::InputPair(makeInput(Qt::Key(i)), QKeySequence(Qt::Key(i)).toString()));
         }
+        for (int i = (int) Qt::Key_Left; i <= (int) Qt::Key_Down; i++) {
+            availableInputs.append(UserInputMapper::InputPair(makeInput(Qt::Key(i)), QKeySequence(Qt::Key(i)).toString()));
+        }
         availableInputs.append(UserInputMapper::InputPair(makeInput(Qt::Key_Space), QKeySequence(Qt::Key_Space).toString()));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(Qt::Key_Shift), "Shift"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(Qt::Key_PageUp), QKeySequence(Qt::Key_PageUp).toString()));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(Qt::Key_PageDown), QKeySequence(Qt::Key_PageDown).toString()));
+
+        availableInputs.append(UserInputMapper::InputPair(makeInput(Qt::LeftButton), "Left Mouse Click"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(Qt::MiddleButton), "Middle Mouse Click"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(Qt::RightButton), "Right Mouse Click"));
+        
+        availableInputs.append(UserInputMapper::InputPair(makeInput(MOUSE_AXIS_X_POS), "Mouse Move Right"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(MOUSE_AXIS_X_NEG), "Mouse Move Left"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(MOUSE_AXIS_Y_POS), "Mouse Move Up"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(MOUSE_AXIS_Y_NEG), "Mouse Move Down"));
+        
+        availableInputs.append(UserInputMapper::InputPair(makeInput(MOUSE_AXIS_WHEEL_Y_POS), "Mouse Wheel Right"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(MOUSE_AXIS_WHEEL_Y_NEG), "Mouse Wheel Left"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(MOUSE_AXIS_WHEEL_X_POS), "Mouse Wheel Up"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(MOUSE_AXIS_WHEEL_X_NEG), "Mouse Wheel Down"));
+        
+        availableInputs.append(UserInputMapper::InputPair(makeInput(TOUCH_AXIS_X_POS), "Touchpad Right"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(TOUCH_AXIS_X_NEG), "Touchpad Left"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(TOUCH_AXIS_Y_POS), "Touchpad Up"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(TOUCH_AXIS_Y_NEG), "Touchpad Down"));
+
         return availableInputs;
     };
     proxy->resetDeviceBindings = [this, &mapper] () -> bool {
