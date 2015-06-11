@@ -260,6 +260,8 @@ gpu::PipelinePointer ApplicationOverlay::getDrawPipeline() {
     return _standardDrawPipeline;
 }
 
+#define CURSOR_PIXEL_SIZE 32.0f
+
 // Draws the FBO texture for the screen
 void ApplicationOverlay::displayOverlayTexture(RenderArgs* renderArgs) {
     if (_alpha == 0.0f) {
@@ -296,7 +298,7 @@ void ApplicationOverlay::displayOverlayTexture(RenderArgs* renderArgs) {
     mousePosition -= 1.0f;
     mousePosition.y *= -1.0f;
     model.setTranslation(vec3(mousePosition, 0));
-    glm::vec2 mouseSize = 32.0f / canvasSize;
+    glm::vec2 mouseSize = CURSOR_PIXEL_SIZE / canvasSize;
     model.setScale(vec3(mouseSize, 1.0f));
     batch.setModelTransform(model);
     batch.setUniformTexture(0, _crosshairTexture);
@@ -957,20 +959,22 @@ void ApplicationOverlay::buildHemiVertices(
     //UV mapping source: http://www.mvps.org/directx/articles/spheremap.htm
     
     vec3 pos; 
+    vec2 uv;
     // Compute vertices positions and texture UV coordinate
     // Create and write to buffer
     for (int i = 0; i < stacks; i++) {
-        float stacksRatio = (float)i / (float)(stacks - 1); // First stack is 0.0f, last stack is 1.0f
+        uv.y = (float)i / (float)(stacks - 1); // First stack is 0.0f, last stack is 1.0f
         // abs(theta) <= fov / 2.0f
-        float pitch = -fov * (stacksRatio - 0.5f);
+        float pitch = -fov * (uv.y - 0.5f);
         for (int j = 0; j < slices; j++) {
-            float slicesRatio = (float)j / (float)(slices - 1); // First slice is 0.0f, last slice is 1.0f
+            uv.x = (float)j / (float)(slices - 1); // First slice is 0.0f, last slice is 1.0f
             // abs(phi) <= fov * aspectRatio / 2.0f
-            float yaw = -fov * aspectRatio * (slicesRatio - 0.5f);
+            float yaw = -fov * aspectRatio * (uv.x - 0.5f);
             pos = getPoint(yaw, pitch);
+            static const vec4 color(1);
             _hemiVertices->append(sizeof(pos), (gpu::Byte*)&pos);
-            _hemiVertices->append(sizeof(vec2), (gpu::Byte*)&vec2(slicesRatio, stacksRatio));
-            _hemiVertices->append(sizeof(vec4), (gpu::Byte*)&vec4(1));
+            _hemiVertices->append(sizeof(vec2), (gpu::Byte*)&uv);
+            _hemiVertices->append(sizeof(vec4), (gpu::Byte*)&color);
         }
     }
     
