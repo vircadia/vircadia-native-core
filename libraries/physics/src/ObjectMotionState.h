@@ -53,8 +53,6 @@ const uint32_t OUTGOING_DIRTY_PHYSICS_FLAGS = EntityItem::DIRTY_TRANSFORM | Enti
 class OctreeEditPacketSender;
 class PhysicsEngine;
 
-extern const int MAX_NUM_NON_MOVING_UPDATES;
-
 class ObjectMotionState : public btMotionState {
 public:
     // These poroperties of the PhysicsEngine are "global" within the context of all ObjectMotionStates

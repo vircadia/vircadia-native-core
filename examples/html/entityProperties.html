@@ -859,10 +859,6 @@
             elVoxelVolumeSizeZ.addEventListener('change', voxelVolumeSizeChangeFunction);
             elVoxelSurfaceStyle.addEventListener('change', createEmitTextPropertyUpdateFunction('voxelSurfaceStyle'));
 
-            var hyperlinkChangeFunction = createEmitGroupTextPropertyUpdateFunction('hyperlink','href');
-            var hyperlinkChangeFunction = createEmitGroupTextPropertyUpdateFunction('hyperlink','description');
-
-
             elMoveSelectionToGrid.addEventListener("click", function() {
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: "action",
