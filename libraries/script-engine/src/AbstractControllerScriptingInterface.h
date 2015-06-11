@@ -52,6 +52,8 @@ class AbstractControllerScriptingInterface : public QObject {
     Q_OBJECT
 
 public slots:
+    virtual void registerControllerTypes(QScriptEngine* engine) = 0;
+    
     virtual bool isPrimaryButtonPressed() const = 0;
     virtual glm::vec2 getPrimaryJoystickPosition() const = 0;
 

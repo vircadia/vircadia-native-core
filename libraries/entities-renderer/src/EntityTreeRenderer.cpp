@@ -1019,7 +1019,9 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
 void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
     checkAndCallPreload(entityID);
     auto entity = static_cast<EntityTree*>(_tree)->findEntityByID(entityID);
-    addEntityToScene(entity);
+    if (entity) {
+        addEntityToScene(entity);
+    }
 }
 
 void EntityTreeRenderer::addEntityToScene(EntityItemPointer entity) {

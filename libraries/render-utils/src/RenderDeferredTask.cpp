@@ -50,6 +50,7 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
    _jobs.push_back(Job(RenderDeferred()));
    _jobs.push_back(Job(ResolveDeferred()));
    _jobs.push_back(Job(DrawTransparentDeferred()));
+   _jobs.push_back(Job(DrawPostLayered()));
    _jobs.push_back(Job(ResetGLState()));
 }
 
@@ -85,7 +86,7 @@ template <> void render::jobRun(const DrawOpaqueDeferred& job, const SceneContex
 
     // render opaques
     auto& scene = sceneContext->_scene;
-    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::opaqueShape());
+    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::opaqueShape().withoutLayered());
     auto& renderDetails = renderContext->args->_details;
 
     ItemIDsBounds inItems;
@@ -163,7 +164,7 @@ template <> void render::jobRun(const DrawTransparentDeferred& job, const SceneC
 
     // render transparents
     auto& scene = sceneContext->_scene;
-    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::transparentShape());
+    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::transparentShape().withoutLayered());
     auto& renderDetails = renderContext->args->_details;
     
     ItemIDsBounds inItems;

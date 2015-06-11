@@ -1178,44 +1178,10 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bo
 
     // check to see if when we added our models to the scene they were ready, if they were not ready, then
     // fix them up in the scene
-    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
-    render::PendingChanges pendingChanges;
-    if (_skeletonModel.needsFixupInScene()) {
-        _skeletonModel.removeFromScene(scene, pendingChanges);
-        _skeletonModel.addToScene(scene, pendingChanges);
-    }
-    if (getHead()->getFaceModel().needsFixupInScene()) {
-        getHead()->getFaceModel().removeFromScene(scene, pendingChanges);
-        getHead()->getFaceModel().addToScene(scene, pendingChanges);
-    }
-    scene->enqueuePendingChanges(pendingChanges);
+    fixupModelsInScene();
 
-    Camera *camera = Application::getInstance()->getCamera();
-    const glm::vec3 cameraPos = camera->getPosition();
+    const glm::vec3 cameraPos = Application::getInstance()->getCamera()->getPosition();
 
-
-    // HACK: comment this block which possibly change the near and break the rendering 5/6/2015
-    // Only tweak the frustum near far if it's not shadow
- /*   if (renderMode != RenderArgs::SHADOW_RENDER_MODE) {
-        // Set near clip distance according to skeleton model dimensions if first person and there is no separate head model.
-        if (shouldRenderHead(cameraPos, renderMode) || !getHead()->getFaceModel().getURL().isEmpty()) {
-            renderFrustum->setNearClip(DEFAULT_NEAR_CLIP);
-        } else {
-            float clipDistance = _skeletonModel.getHeadClipDistance();
-            clipDistance = glm::length(getEyePosition() 
-                + camera->getOrientation() * glm::vec3(0.0f, 0.0f, -clipDistance) - cameraPos);
-            renderFrustum->setNearClip(clipDistance);
-        }
-    }*/
-
-    //  Render the body's voxels and head
-    if (!postLighting) {
-    
-        // NOTE: we no longer call this here, because we've added all the model parts as renderable items in the scene
-        //_skeletonModel.render(renderArgs, 1.0f);
-        renderAttachments(renderArgs);
-    }
-    
     //  Render head so long as the camera isn't inside it
     if (shouldRenderHead(renderArgs, cameraPos)) {
         getHead()->render(renderArgs, 1.0f, renderFrustum, postLighting);
@@ -1569,27 +1535,6 @@ void MyAvatar::updateMotionBehavior() {
     }
     _characterController.setEnabled(menu->isOptionChecked(MenuOption::EnableCharacterController));
     _feetTouchFloor = menu->isOptionChecked(MenuOption::ShiftHipsForIdleAnimations);
-}
-
-void MyAvatar::renderAttachments(RenderArgs* args) {
-    if (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON || args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-        Avatar::renderAttachments(args);
-        return;
-    }
-    const FBXGeometry& geometry = _skeletonModel.getGeometry()->getFBXGeometry();
-    QString headJointName = (geometry.headJointIndex == -1) ? QString() : geometry.joints.at(geometry.headJointIndex).name;
- //   RenderArgs::RenderMode modelRenderMode = (renderMode == RenderArgs::SHADOW_RENDER_MODE) ?
-  //      RenderArgs::SHADOW_RENDER_MODE : RenderArgs::DEFAULT_RENDER_MODE;
-    
-    // FIX ME - attachments need to be added to scene too...
-    /*
-    for (int i = 0; i < _attachmentData.size(); i++) {
-        const QString& jointName = _attachmentData.at(i).jointName;
-        if (jointName != headJointName && jointName != "Head") {
-            _attachmentModels.at(i)->render(args, 1.0f);
-        }
-    }
-    */
 }
 
 //Renders sixense laser pointers for UI selection with controllers
