@@ -60,6 +60,8 @@ const float ACTIVATION_LINEAR_VELOCITY_DELTA = 0.01f;
 const float ACTIVATION_GRAVITY_DELTA = 0.1f;
 const float ACTIVATION_ANGULAR_VELOCITY_DELTA = 0.03f;
 
+const uint8_t MIN_SIMULATOR_PRIORITY = 1;
+const uint8_t MAX_SIMULATOR_PRIORITY = 0xff;
 
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
 #define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() { };
@@ -317,7 +319,10 @@ public:
 
     const QString& getUserData() const { return _userData; }
     void setUserData(const QString& value) { _userData = value; }
-    
+
+    void setSimulatorPriority(uint8_t priority) { _simulatorPriority = priority; }
+    uint8_t getSimulatorPriority() const { return _simulatorPriority; }
+
     QUuid getSimulatorID() const { return _simulatorID; }
     void setSimulatorID(const QUuid& value);
     void updateSimulatorID(const QUuid& value);
@@ -426,6 +431,7 @@ protected:
     bool _collisionsWillMove;
     bool _locked;
     QString _userData;
+    uint8_t _simulatorPriority;
     QUuid _simulatorID; // id of Node which is currently responsible for simulating this Entity
     quint64 _simulatorIDChangedTime; // when was _simulatorID last updated?
     QString _marketplaceID;

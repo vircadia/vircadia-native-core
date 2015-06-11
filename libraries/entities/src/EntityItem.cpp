@@ -64,6 +64,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _collisionsWillMove(ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE),
     _locked(ENTITY_ITEM_DEFAULT_LOCKED),
     _userData(ENTITY_ITEM_DEFAULT_USER_DATA),
+    _simulatorPriority(0),
     _simulatorID(ENTITY_ITEM_DEFAULT_SIMULATOR_ID),
     _simulatorIDChangedTime(0),
     _marketplaceID(ENTITY_ITEM_DEFAULT_MARKETPLACE_ID),
@@ -249,6 +250,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, getCollisionsWillMove());
         APPEND_ENTITY_PROPERTY(PROP_LOCKED, getLocked());
         APPEND_ENTITY_PROPERTY(PROP_USER_DATA, getUserData());
+        APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_PRIORITY, getSimulatorPriority());
         APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, getSimulatorID());
         APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, getMarketplaceID());
         APPEND_ENTITY_PROPERTY(PROP_NAME, getName());
@@ -569,7 +571,47 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
 
-    if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
+    if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_SIMULATOR_PRIORITY) {
+        uint8_t priority = 0;
+        if (propertyFlags.getHasProperty(PROP_SIMULATOR_PRIORITY)) {
+            int bytes = OctreePacketData::unpackDataFromBytes(dataAt, priority);
+            dataAt += bytes;
+            bytesRead += bytes;
+        }
+        
+        QUuid id;
+        if (propertyFlags.getHasProperty(PROP_SIMULATOR_ID)) {
+            int bytes = OctreePacketData::unpackDataFromBytes(dataAt, id);
+            dataAt += bytes;
+            bytesRead += bytes;
+        }
+
+        if (_simulatorID != id) {
+            // ownership has changed
+            auto nodeList = DependencyManager::get<NodeList>();
+            if (_simulatorID == nodeList->getSessionUUID()) {
+                // we think we're the owner but entityServer says otherwise
+                // we only relenquish ownership if the incoming priority is greater than ours
+                if (priority > _simulatorPriority) {
+                    // we're losing simulation ownership
+                    _simulatorID = id;
+                    _simulatorPriority = priority;
+                    _simulatorIDChangedTime = usecTimestampNow();
+                }
+            } else {
+                _simulatorID = id;
+                _simulatorPriority = priority;
+                _simulatorIDChangedTime = usecTimestampNow();
+            }
+        } else if (priority != _simulatorPriority) {
+            // This should be an uncommon event: priority is changing but simulatorID is not.
+            // But we only accept this change if we are NOT the simulator owner.
+            auto nodeList = DependencyManager::get<NodeList>();
+            if (_simulatorID != nodeList->getSessionUUID()) {
+                _simulatorPriority = priority;
+            }
+        }
+    } else if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
         // we always accept the server's notion of simulatorID, so we fake overwriteLocalData as true
         // before we try to READ_ENTITY_PROPERTY it 
         bool temp = overwriteLocalData;
@@ -918,6 +960,7 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(locked, getLocked);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(userData, getUserData);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(simulatorID, getSimulatorID);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(simulatorPriority, getSimulatorPriority);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(marketplaceID, getMarketplaceID);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(name, getName);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(href, getHref);
@@ -968,6 +1011,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, updateCollisionsWillMove);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(created, updateCreated);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, updateLifetime);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulatorPriority, setSimulatorPriority);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulatorID, updateSimulatorID);
 
     // non-simulation properties below

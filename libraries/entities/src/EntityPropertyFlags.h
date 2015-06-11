@@ -121,6 +121,7 @@ enum EntityPropertyList {
     // used by hyperlinks
     PROP_HREF,
     PROP_DESCRIPTION,
+    PROP_SIMULATOR_PRIORITY,
     
     PROP_FACE_CAMERA,
     PROP_SCRIPT_TIMESTAMP,

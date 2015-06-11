@@ -73,6 +73,7 @@ CONSTRUCT_PROPERTY(locked, ENTITY_ITEM_DEFAULT_LOCKED),
 CONSTRUCT_PROPERTY(textures, ""),
 CONSTRUCT_PROPERTY(animationSettings, ""),
 CONSTRUCT_PROPERTY(userData, ENTITY_ITEM_DEFAULT_USER_DATA),
+CONSTRUCT_PROPERTY(simulatorPriority, 0),
 CONSTRUCT_PROPERTY(simulatorID, ENTITY_ITEM_DEFAULT_SIMULATOR_ID),
 CONSTRUCT_PROPERTY(text, TextEntityItem::DEFAULT_TEXT),
 CONSTRUCT_PROPERTY(lineHeight, TextEntityItem::DEFAULT_LINE_HEIGHT),
@@ -324,6 +325,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_LOCKED, locked);
     CHECK_PROPERTY_CHANGE(PROP_TEXTURES, textures);
     CHECK_PROPERTY_CHANGE(PROP_USER_DATA, userData);
+    CHECK_PROPERTY_CHANGE(PROP_SIMULATOR_PRIORITY, simulatorPriority);
     CHECK_PROPERTY_CHANGE(PROP_SIMULATOR_ID, simulatorID);
     CHECK_PROPERTY_CHANGE(PROP_TEXT, text);
     CHECK_PROPERTY_CHANGE(PROP_LINE_HEIGHT, lineHeight);
@@ -419,6 +421,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(locked);
     COPY_PROPERTY_TO_QSCRIPTVALUE(textures);
     COPY_PROPERTY_TO_QSCRIPTVALUE(userData);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(simulatorPriority);
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(simulatorID, getSimulatorIDAsString());
     COPY_PROPERTY_TO_QSCRIPTVALUE(text);
     COPY_PROPERTY_TO_QSCRIPTVALUE(lineHeight);
@@ -570,6 +573,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
                 auto result = QDateTime::fromMSecsSinceEpoch(_created / 1000, Qt::UTC); // usec per msec
                 return result;
             });
+        COPY_PROPERTY_FROM_QSCRIPTVALUE(simulatorPriority, float, setSimulatorPriority);
         COPY_PROPERTY_FROM_QSCRIPTVALUE(simulatorID, QUuid, setSimulatorID);
     }
 
@@ -727,6 +731,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, properties.getCollisionsWillMove());
             APPEND_ENTITY_PROPERTY(PROP_LOCKED, properties.getLocked());
             APPEND_ENTITY_PROPERTY(PROP_USER_DATA, properties.getUserData());
+            APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_PRIORITY, properties.getSimulatorPriority());
             APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, properties.getSimulatorID());
             APPEND_ENTITY_PROPERTY(PROP_HREF, properties.getHref());
             APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, properties.getDescription());
@@ -982,6 +987,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONS_WILL_MOVE, bool, setCollisionsWillMove);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_USER_DATA, QString, setUserData);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SIMULATOR_PRIORITY, uint8_t, setSimulatorPriority);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SIMULATOR_ID, QUuid, setSimulatorID);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HREF, QString, setHref);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DESCRIPTION, QString, setDescription);
@@ -1110,6 +1116,7 @@ void EntityItemProperties::markAllChanged() {
     _frictionChanged = true;
     _lifetimeChanged = true;
     _userDataChanged = true;
+    _simulatorPriorityChanged = true;
     _simulatorIDChanged = true;
     _scriptChanged = true;
     _scriptTimestampChanged = true;
