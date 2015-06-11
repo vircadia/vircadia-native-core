@@ -49,7 +49,7 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
 #ifdef WANT_DEBUG
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
-    batch.setModelTransform(getTransformToCenter());
+    batch.setModelTransform(getTransform());
     DependencyManager::get<DeferredLightingEffect>()->renderWireSphere(batch, 0.5f, 15, 15, glm::vec4(color, 1.0f));
 #endif
 };
