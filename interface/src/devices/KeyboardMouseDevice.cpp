@@ -173,9 +173,9 @@ void KeyboardMouseDevice::registerToUserInputMapper(UserInputMapper& mapper) {
         availableInputs.append(UserInputMapper::InputPair(makeInput(Qt::Key_Space), QKeySequence(Qt::Key_Space).toString()));
         return availableInputs;
     };
-    proxy->resetDeviceBindings = [this, &_mapper = mapper, &device = _deviceID] () -> bool {
-        _mapper.removeAllInputChannelsForDevice(device);
-        this->assignDefaultInputMapping(_mapper);
+    proxy->resetDeviceBindings = [this, &mapper] () -> bool {
+        mapper.removeAllInputChannelsForDevice(_deviceID);
+        this->assignDefaultInputMapping(mapper);
         return true;
     };
     mapper.registerDevice(_deviceID, proxy);
