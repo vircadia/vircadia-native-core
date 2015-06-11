@@ -4,7 +4,7 @@
 //  Created by Eric Levin on May 1, 2015
 //  Copyright 2015 High Fidelity, Inc.
 //
-//  Grab's physically moveable entities with the mouse, by applying a spring force. 
+//  Grab's physically moveable entities with the mouse, by applying a spring force.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -20,7 +20,7 @@ var ANGULAR_DAMPING_RATE = 0.40;
 // NOTE: to improve readability global variable names start with 'g'
 var gIsGrabbing = false;
 var gGrabbedEntity = null;
-var gPrevMouse = {x: 0, y: 0};
+var gActionID = null;
 var gEntityProperties;
 var gStartPosition;
 var gStartRotation;
@@ -31,20 +31,20 @@ var gPlaneNormal = ZERO_VEC3;
 // gMaxGrabDistance is a function of the size of the object.
 var gMaxGrabDistance;
 
-// gGrabMode defines the degrees of freedom of the grab target positions 
-// relative to gGrabStartPosition options include: 
+// gGrabMode defines the degrees of freedom of the grab target positions
+// relative to gGrabStartPosition options include:
 //     xzPlane  (default)
 //     verticalCylinder  (SHIFT)
 //     rotate  (CONTROL)
 // Modes to eventually support?:
-//     xyPlane 
-//     yzPlane 
+//     xyPlane
+//     yzPlane
 //     polar
 //     elevationAzimuth
-var gGrabMode = "xzplane"; 
+var gGrabMode = "xzplane";
 
-// gGrabOffset allows the user to grab an object off-center.  It points from ray's intersection 
-// with the move-plane to object center (at the moment the grab is initiated).  Future target positions 
+// gGrabOffset allows the user to grab an object off-center.  It points from ray's intersection
+// with the move-plane to object center (at the moment the grab is initiated).  Future target positions
 // are relative to the ray's intersection by the same offset.
 var gGrabOffset = { x: 0, y: 0, z: 0 };
 
@@ -53,13 +53,14 @@ var gTargetRotation;
 var gLiftKey = false; // SHIFT
 var gRotateKey = false; // CONTROL
 
+var gInitialMouse = { x: 0, y: 0 };
 var gPreviousMouse = { x: 0, y: 0 };
 var gMouseCursorLocation = { x: 0, y: 0 };
 var gMouseAtRotateStart = { x: 0, y: 0 };
 
 var gBeaconHeight = 0.10;
 
-var gAngularVelocity = ZERO_VEC3;
+// var gAngularVelocity = ZERO_VEC3;
 
 // TODO: play sounds again when we aren't leaking AudioInjector threads
 // var grabSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/eric/sounds/CloseClamp.wav");
@@ -166,7 +167,7 @@ function computeNewGrabPlane() {
     var xzOffset = Vec3.subtract(gPointOnPlane, Camera.getPosition());
     xzOffset.y = 0;
     gXzDistanceToGrab = Vec3.length(xzOffset);
-    
+
     if (gGrabMode !== "rotate" && maybeResetMousePosition) {
         // we reset the mouse position whenever we stop rotating
         Window.setCursorPosition(gMouseAtRotateStart.x, gMouseAtRotateStart.y);
@@ -177,6 +178,7 @@ function mousePressEvent(event) {
     if (!event.isLeftButton) {
         return;
     }
+    gInitialMouse = {x: event.x, y: event.y };
     gPreviousMouse = {x: event.x, y: event.y };
 
     var pickRay = Camera.computePickRay(event.x, event.y);
@@ -193,12 +195,13 @@ function mousePressEvent(event) {
 
     var clickedEntity = pickResults.entityID;
     var entityProperties = Entities.getEntityProperties(clickedEntity)
-    var objectPosition = entityProperties.position;
+    gStartPosition = entityProperties.position;
+    gStartRotation = entityProperties.rotation;
     var cameraPosition = Camera.getPosition();
 
     gBeaconHeight = Vec3.length(entityProperties.dimensions);
     gMaxGrabDistance = gBeaconHeight / MAX_SOLID_ANGLE;
-    if (Vec3.distance(objectPosition, cameraPosition) > gMaxGrabDistance) {
+    if (Vec3.distance(gStartPosition, cameraPosition) > gMaxGrabDistance) {
         // don't allow grabs of things far away
         return;
     }
@@ -209,20 +212,20 @@ function mousePressEvent(event) {
     gGrabbedEntity = clickedEntity;
     gCurrentPosition = entityProperties.position;
     gOriginalGravity = entityProperties.gravity;
-    gTargetPosition = objectPosition;
+    gTargetPosition = gStartPosition;
 
     // compute the grab point
-    var nearestPoint = Vec3.subtract(objectPosition, cameraPosition);
+    var nearestPoint = Vec3.subtract(gStartPosition, cameraPosition);
     var distanceToGrab = Vec3.dot(nearestPoint, pickRay.direction);
     nearestPoint = Vec3.multiply(distanceToGrab, pickRay.direction);
     gPointOnPlane = Vec3.sum(cameraPosition, nearestPoint);
 
     // compute the grab offset
-    gGrabOffset = Vec3.subtract(objectPosition, gPointOnPlane);
+    gGrabOffset = Vec3.subtract(gStartPosition, gPointOnPlane);
 
     computeNewGrabPlane();
 
-    updateDropLine(objectPosition);
+    updateDropLine(gStartPosition);
 
     // TODO: play sounds again when we aren't leaking AudioInjector threads
     //Audio.playSound(grabSound, { position: entityProperties.position, volume: VOLUME });
@@ -235,6 +238,8 @@ function mouseReleaseEvent() {
         }
 
         gIsGrabbing = false
+        Entities.deleteAction(gGrabbedEntity, gActionID);
+        gActionID = null;
 
         Overlays.editOverlay(gBeacon, { visible: false });
 
@@ -254,18 +259,24 @@ function mouseMoveEvent(event) {
         gOriginalGravity = entityProperties.gravity;
     }
 
+    var actionArgs = {};
+
     if (gGrabMode === "rotate") {
         var deltaMouse = { x: 0, y: 0 };
-        var dx = event.x - gPreviousMouse.x;
-        var dy = event.y - gPreviousMouse.y;
-
+        var dx = event.x - gInitialMouse.x;
+        var dy = event.y - gInitialMouse.y;
         var orientation = Camera.getOrientation();
         var dragOffset = Vec3.multiply(dx, Quat.getRight(orientation));
         dragOffset = Vec3.sum(dragOffset, Vec3.multiply(-dy, Quat.getUp(orientation)));
         var axis = Vec3.cross(dragOffset, Quat.getFront(orientation));
-        var axis = Vec3.normalize(axis);
-        var ROTATE_STRENGTH = 8.0; // magic number tuned by hand
-        gAngularVelocity = Vec3.multiply(ROTATE_STRENGTH, axis);
+        axis = Vec3.normalize(axis);
+        var ROTATE_STRENGTH = 0.4; // magic number tuned by hand
+        var angle = ROTATE_STRENGTH * Math.sqrt((dx * dx) + (dy * dy));
+        var deltaQ = Quat.angleAxis(angle, axis);
+        // var qZero = entityProperties.rotation;
+        var qZero = gStartRotation;
+        var qOne = Quat.multiply(deltaQ, qZero);
+        actionArgs = {targetRotation: qOne, angularTimeScale: 0.1};
     } else {
         var newTargetPosition;
         if (gGrabMode === "verticalCylinder") {
@@ -288,9 +299,18 @@ function mouseMoveEvent(event) {
             }
         }
         gTargetPosition = Vec3.sum(newTargetPosition, gGrabOffset);
+        actionArgs = {targetPosition: gTargetPosition, linearTimeScale: 0.1};
     }
     gPreviousMouse = { x: event.x, y: event.y };
     gMouseCursorLocation = { x: Window.getCursorPositionX(), y: Window.getCursorPositionY() };
+
+    if (!gActionID) {
+        gActionID = Entities.addAction("spring", gGrabbedEntity, actionArgs);
+    } else {
+        Entities.updateAction(gGrabbedEntity, gActionID, actionArgs);
+    }
+
+    updateDropLine(gTargetPosition);
 }
 
 function keyReleaseEvent(event) {
@@ -313,38 +333,8 @@ function keyPressEvent(event) {
     computeNewGrabPlane();
 }
 
-function update(deltaTime) {
-    if (!gIsGrabbing) {
-        return;
-    }
-
-    var entityProperties = Entities.getEntityProperties(gGrabbedEntity);
-    gCurrentPosition = entityProperties.position;
-    if (gGrabMode === "rotate") {
-        gAngularVelocity = Vec3.subtract(gAngularVelocity, Vec3.multiply(gAngularVelocity, ANGULAR_DAMPING_RATE));
-        Entities.editEntity(gGrabbedEntity, { angularVelocity: gAngularVelocity, });
-    } 
-
-    // always push toward linear grab position, even when rotating
-    var newVelocity = ZERO_VEC3;
-    var dPosition = Vec3.subtract(gTargetPosition, gCurrentPosition);
-    var delta = Vec3.length(dPosition);
-    if (delta > CLOSE_ENOUGH) {
-        var MAX_POSITION_DELTA = 4.0;
-        if (delta > MAX_POSITION_DELTA) {
-            dPosition = Vec3.multiply(dPosition, MAX_POSITION_DELTA / delta);
-        }
-        // desired speed is proportional to displacement by the inverse of timescale
-        // (for critically damped motion)
-        newVelocity = Vec3.multiply(dPosition, INV_MOVE_TIMESCALE);
-    }
-    Entities.editEntity(gGrabbedEntity, { velocity: newVelocity, });
-    updateDropLine(gTargetPosition);
-}
-
 Controller.mouseMoveEvent.connect(mouseMoveEvent);
 Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
-Script.update.connect(update);

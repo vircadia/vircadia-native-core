@@ -18,6 +18,7 @@
 
 #include <PerfStat.h>
 
+#include "EntityActionInterface.h"
 #include "EntityItem.h"
 #include "EntityTree.h"
 
@@ -56,10 +57,6 @@ public:
 
     friend class EntityTree;
 
-    virtual EntityActionPointer actionFactory(EntityActionType type,
-                                                 QUuid id,
-                                                 EntityItemPointer ownerEntity,
-                                                 QVariantMap arguments) { return nullptr; }
     virtual void addAction(EntityActionPointer action) { _actionsToAdd += action; }
     virtual void removeAction(const QUuid actionID) { _actionsToRemove += actionID; }
     virtual void removeActions(QList<QUuid> actionIDsToRemove) { _actionsToRemove += actionIDsToRemove; }

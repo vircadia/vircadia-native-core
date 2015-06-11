@@ -9,9 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "ObjectMotionState.h"
-#include "BulletUtil.h"
-
 #include "ObjectActionPullToPoint.h"
 
 ObjectActionPullToPoint::ObjectActionPullToPoint(QUuid id, EntityItemPointer ownerEntity) :
@@ -27,28 +24,34 @@ ObjectActionPullToPoint::~ObjectActionPullToPoint() {
     #endif
 }
 
-void ObjectActionPullToPoint::updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep) {
+void ObjectActionPullToPoint::updateActionWorker(btScalar deltaTimeStep) {
     if (!tryLockForRead()) {
         // don't risk hanging the thread running the physics simulation
         return;
     }
-    void* physicsInfo = _ownerEntity->getPhysicsInfo();
 
-    if (_active && physicsInfo) {
-        ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
-        btRigidBody* rigidBody = motionState->getRigidBody();
-        if (rigidBody) {
-            glm::vec3 offset = _target - bulletToGLM(rigidBody->getCenterOfMassPosition());
-            float offsetLength = glm::length(offset);
-            if (offsetLength > IGNORE_POSITION_DELTA) {
-                glm::vec3 newVelocity = glm::normalize(offset) * _speed;
-                rigidBody->setLinearVelocity(glmToBullet(newVelocity));
-                rigidBody->activate();
-            } else {
-                rigidBody->setLinearVelocity(glmToBullet(glm::vec3()));
-            }
-        }
+    void* physicsInfo = _ownerEntity->getPhysicsInfo();
+    if (!physicsInfo) {
+        unlock();
+        return;
     }
+    ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
+    btRigidBody* rigidBody = motionState->getRigidBody();
+    if (!rigidBody) {
+        unlock();
+        return;
+    }
+
+    glm::vec3 offset = _target - bulletToGLM(rigidBody->getCenterOfMassPosition());
+    float offsetLength = glm::length(offset);
+    if (offsetLength > IGNORE_POSITION_DELTA) {
+        glm::vec3 newVelocity = glm::normalize(offset) * _speed;
+        rigidBody->setLinearVelocity(glmToBullet(newVelocity));
+        rigidBody->activate();
+    } else {
+        rigidBody->setLinearVelocity(glmToBullet(glm::vec3()));
+    }
+
     unlock();
 }
 
