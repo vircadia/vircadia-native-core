@@ -25,6 +25,9 @@ EntityActionType EntityActionInterface::actionTypeFromString(QString actionTypeS
     if (normalizedActionTypeString == "spring") {
         return ACTION_TYPE_SPRING;
     }
+    if (normalizedActionTypeString == "hold") {
+        return ACTION_TYPE_HOLD;
+    }
 
     qDebug() << "Warning -- EntityActionInterface::actionTypeFromString got unknown action-type name" << actionTypeString;
     return ACTION_TYPE_NONE;

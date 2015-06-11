@@ -25,13 +25,23 @@ ObjectActionSpring::~ObjectActionSpring() {
 }
 
 void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
+    if (!tryLockForRead()) {
+        // don't risk hanging the thread running the physics simulation
+        qDebug() << "ObjectActionSpring::updateActionWorker lock failed";
+        return;
+    }
+
     void* physicsInfo = _ownerEntity->getPhysicsInfo();
     if (!physicsInfo) {
+        unlock();
+        qDebug() << "ObjectActionSpring::updateActionWorker no physicsInfo";
         return;
     }
     ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
     btRigidBody* rigidBody = motionState->getRigidBody();
     if (!rigidBody) {
+        unlock();
+        qDebug() << "ObjectActionSpring::updateActionWorker no rigidBody";
         return;
     }
 
@@ -79,6 +89,8 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
             rigidBody->setAngularVelocity(glmToBullet(glm::vec3(0.0f)));
         }
     }
+
+    unlock();
 }
 
 

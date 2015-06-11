@@ -25,7 +25,7 @@ public:
     virtual bool updateArguments(QVariantMap arguments);
     virtual void updateActionWorker(float deltaTimeStep);
 
-private:
+protected:
 
     glm::vec3 _positionalTarget;
     float _linearTimeScale;

@@ -25,13 +25,20 @@ ObjectActionPullToPoint::~ObjectActionPullToPoint() {
 }
 
 void ObjectActionPullToPoint::updateActionWorker(btScalar deltaTimeStep) {
+    if (!tryLockForRead()) {
+        // don't risk hanging the thread running the physics simulation
+        return;
+    }
+
     void* physicsInfo = _ownerEntity->getPhysicsInfo();
     if (!physicsInfo) {
+        unlock();
         return;
     }
     ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
     btRigidBody* rigidBody = motionState->getRigidBody();
     if (!rigidBody) {
+        unlock();
         return;
     }
 
@@ -44,6 +51,8 @@ void ObjectActionPullToPoint::updateActionWorker(btScalar deltaTimeStep) {
     } else {
         rigidBody->setLinearVelocity(glmToBullet(glm::vec3()));
     }
+
+    unlock();
 }
 
 

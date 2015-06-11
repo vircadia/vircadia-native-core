@@ -31,14 +31,7 @@ void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar delta
         qDebug() << "ObjectActionPullToPoint::updateAction no owner entity";
         return;
     }
-    if (!tryLockForRead()) {
-        // don't risk hanging the thread running the physics simulation
-        return;
-    }
-
     updateActionWorker(deltaTimeStep);
-
-    unlock();
 }
 
 void ObjectAction::debugDraw(btIDebugDraw* debugDrawer) {

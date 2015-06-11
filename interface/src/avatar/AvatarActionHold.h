@@ -15,9 +15,9 @@
 #include <QUuid>
 
 #include <EntityItem.h>
-#include <ObjectAction.h>
+#include <ObjectActionSpring.h>
 
-class AvatarActionHold : public ObjectAction {
+class AvatarActionHold : public ObjectActionSpring {
 public:
     AvatarActionHold(QUuid id, EntityItemPointer ownerEntity);
     virtual ~AvatarActionHold();
@@ -26,14 +26,8 @@ public:
     virtual void updateActionWorker(float deltaTimeStep);
 
 private:
-
-    glm::vec3 _linearOffset;
-    bool _linearOffsetSet;
-
-    glm::quat _angularOffset;
-    bool _angularOffsetSet;
-
-    float _timeScale = 0.01;
+    glm::vec3 _relativePosition;
+    glm::quat _relativeRotation;
 };
 
 #endif // hifi_AvatarActionHold_h

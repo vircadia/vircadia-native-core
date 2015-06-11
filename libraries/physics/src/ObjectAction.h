@@ -47,7 +47,7 @@ private:
     QReadWriteLock _lock;
 
 protected:
-    btRigidBody* getRigidBody();
+    virtual btRigidBody* getRigidBody();
     virtual glm::vec3 getPosition();
     virtual void setPosition(glm::vec3 position);
     virtual glm::quat getRotation();
