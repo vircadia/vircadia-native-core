@@ -159,9 +159,25 @@ void KeyboardMouseDevice::registerToUserInputMapper(UserInputMapper& mapper) {
     // Grab the current free device ID
     _deviceID = mapper.getFreeDeviceID();
 
-    auto proxy = UserInputMapper::DeviceProxy::Pointer(new UserInputMapper::DeviceProxy());
+    auto proxy = UserInputMapper::DeviceProxy::Pointer(new UserInputMapper::DeviceProxy("Keyboard"));
     proxy->getButton = [this] (const UserInputMapper::Input& input, int timestamp) -> bool { return this->getButton(input._channel); };
     proxy->getAxis = [this] (const UserInputMapper::Input& input, int timestamp) -> float { return this->getAxis(input._channel); };
+    proxy->getAvailabeInputs = [this] () -> QVector<UserInputMapper::InputPair> {
+        QVector<UserInputMapper::InputPair> availableInputs;
+        for (int i = (int) Qt::Key_0; i <= (int) Qt::Key_9; i++) {
+            availableInputs.append(UserInputMapper::InputPair(makeInput(Qt::Key(i)), QKeySequence(Qt::Key(i)).toString()));
+        }
+        for (int i = (int) Qt::Key_A; i <= (int) Qt::Key_Z; i++) {
+            availableInputs.append(UserInputMapper::InputPair(makeInput(Qt::Key(i)), QKeySequence(Qt::Key(i)).toString()));
+        }
+        availableInputs.append(UserInputMapper::InputPair(makeInput(Qt::Key_Space), QKeySequence(Qt::Key_Space).toString()));
+        return availableInputs;
+    };
+    proxy->resetDeviceBindings = [this, &mapper] () -> bool {
+        mapper.removeAllInputChannelsForDevice(_deviceID);
+        this->assignDefaultInputMapping(mapper);
+        return true;
+    };
     mapper.registerDevice(_deviceID, proxy);
 }
 
