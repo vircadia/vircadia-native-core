@@ -101,6 +101,7 @@
 #include "ModelPackager.h"
 #include "Util.h"
 #include "InterfaceLogging.h"
+#include "InterfaceActionFactory.h"
 
 #include "avatar/AvatarManager.h"
 
@@ -258,6 +259,7 @@ bool setupEssentials(int& argc, char** argv) {
 
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
+    DependencyManager::registerInheritance<EntityActionFactoryInterface, InterfaceActionFactory>();
 
     Setting::init();
 
@@ -294,7 +296,8 @@ bool setupEssentials(int& argc, char** argv) {
     auto discoverabilityManager = DependencyManager::set<DiscoverabilityManager>();
     auto sceneScriptingInterface = DependencyManager::set<SceneScriptingInterface>();
     auto offscreenUi = DependencyManager::set<OffscreenUi>();
-    auto pathUtils =  DependencyManager::set<PathUtils>();
+    auto pathUtils = DependencyManager::set<PathUtils>();
+    auto actionFactory = DependencyManager::set<InterfaceActionFactory>();
 
     return true;
 }
@@ -525,8 +528,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _window->setVisible(true);
     _glWidget->setFocusPolicy(Qt::StrongFocus);
     _glWidget->setFocus();
+#ifdef Q_OS_MAC
+    // OSX doesn't seem to provide for hiding the cursor only on the GL widget
+    _window->setCursor(Qt::BlankCursor);
+#else
+    // On windows and linux, hiding the top level cursor also means it's invisible
+    // when hovering over the window menu, which is a pain, so only hide it for
+    // the GL surface
     _glWidget->setCursor(Qt::BlankCursor);
-
+#endif
+    
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
 
@@ -942,6 +953,7 @@ void Application::paintGL() {
         glPushMatrix();
         glLoadIdentity();
         displaySide(&renderArgs, _myCamera);
+        _applicationOverlay.displayOverlayTexture(&renderArgs);
         glPopMatrix();
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
@@ -958,8 +970,6 @@ void Application::paintGL() {
                           0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height(),
                             GL_COLOR_BUFFER_BIT, GL_NEAREST);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-
-        _applicationOverlay.displayOverlayTexture();
     }
 
     if (!OculusManager::isConnected() || OculusManager::allowSwap()) {

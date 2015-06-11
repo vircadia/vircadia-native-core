@@ -13,7 +13,6 @@
 #define hifi_RenderableBoxEntityItem_h
 
 #include <BoxEntityItem.h>
-#include "RenderableDebugableEntityItem.h"
 #include "RenderableEntityItem.h"
 
 class RenderableBoxEntityItem : public BoxEntityItem {

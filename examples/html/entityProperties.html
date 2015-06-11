@@ -360,6 +360,10 @@
             var elVoxelVolumeSizeZ = document.getElementById("property-voxel-volume-size-z");
             var elVoxelSurfaceStyle = document.getElementById("property-voxel-surface-style");
 
+            var elHyperlinkHref = document.getElementById("property-hyperlink-href");
+            var elHyperlinkDescription = document.getElementById("property-hyperlink-description");
+
+
 
             if (window.EventBridge !== undefined) {
                 EventBridge.scriptEventReceived.connect(function(data) {
@@ -466,6 +470,9 @@
                             elLifetime.value = properties.lifetime;
                             elScriptURL.value = properties.script;
                             elUserData.value = properties.userData;
+
+                            elHyperlinkHref.value = properties.href;
+                            elHyperlinkDescription.value = properties.description;
 
                             for (var i = 0; i < allSections.length; i++) {
                                 for (var j = 0; j < allSections[i].length; j++) {
@@ -612,6 +619,8 @@
 
             elLocked.addEventListener('change', createEmitCheckedPropertyUpdateFunction('locked'));
             elName.addEventListener('change', createEmitTextPropertyUpdateFunction('name'));
+            elHyperlinkHref.addEventListener('change', createEmitTextPropertyUpdateFunction('href'));
+            elHyperlinkDescription.addEventListener('change', createEmitTextPropertyUpdateFunction('description'));
             elVisible.addEventListener('change', createEmitCheckedPropertyUpdateFunction('visible'));
 
             var positionChangeFunction = createEmitVec3PropertyUpdateFunction(
@@ -850,7 +859,6 @@
             elVoxelVolumeSizeZ.addEventListener('change', voxelVolumeSizeChangeFunction);
             elVoxelSurfaceStyle.addEventListener('change', createEmitTextPropertyUpdateFunction('voxelSurfaceStyle'));
 
-
             elMoveSelectionToGrid.addEventListener("click", function() {
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: "action",
@@ -937,6 +945,18 @@
                 <input type="text" id="property-name"></input>
             </div>
         </div>
+
+        <div class="property">
+            <div class="label">Hyperlink</div>
+            <div class="input-area">Href<br></div>
+            <div class="value">
+                <input id="property-hyperlink-href" class="url"></input>
+            </div>
+            <div class="input-area">Description<br></div> <div class="value">
+                <input id="property-hyperlink-description" class="url"></input>
+            </div>
+        </div>
+
         <div class="property">
             <span class="label">Locked</span>
             <span class="value">

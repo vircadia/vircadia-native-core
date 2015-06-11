@@ -192,7 +192,6 @@ void render::renderItems(const SceneContextPointer& sceneContext, const RenderCo
     }
 }
 
-
 void addClearStateCommands(gpu::Batch& batch) {
     batch._glDepthMask(true);
     batch._glDepthFunc(GL_LESS);
@@ -446,6 +445,48 @@ template <> void render::jobRun(const DrawBackground& job, const SceneContextPoi
     args->_context->syncCache();
 }
 
+template <> void render::jobRun(const DrawPostLayered& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    PerformanceTimer perfTimer("DrawPostLayered");
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
+
+    // render backgrounds
+    auto& scene = sceneContext->_scene;
+    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::opaqueShape().withLayered());
+
+
+    ItemIDsBounds inItems;
+    inItems.reserve(items.size());
+    for (auto id : items) {
+        auto& item = scene->getItem(id);
+        if (item.getKey().isVisible() && (item.getLayer() > 0)) {
+            inItems.emplace_back(id);
+        }
+    }
+    if (inItems.empty()) {
+        return;
+    }
+
+    RenderArgs* args = renderContext->args;
+    gpu::Batch batch;
+    args->_batch = &batch;
+
+    glm::mat4 projMat;
+    Transform viewMat;
+    args->_viewFrustum->evalProjectionMatrix(projMat);
+    args->_viewFrustum->evalViewTransform(viewMat);
+    batch.setProjectionTransform(projMat);
+    batch.setViewTransform(viewMat);
+
+    batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0);
+
+    renderItems(sceneContext, renderContext, inItems);
+    args->_context->render((*args->_batch));
+    args->_batch = nullptr;
+
+    // Force the context sync
+    args->_context->syncCache();
+}
 
 
 void ItemMaterialBucketMap::insert(const ItemID& id, const model::MaterialKey& key) {

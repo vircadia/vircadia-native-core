@@ -17,6 +17,8 @@
 #include "ZoneEntityItem.h"
 #include "EntitiesLogging.h"
 #include "EntitySimulation.h"
+#include "EntityActionInterface.h"
+#include "EntityActionFactoryInterface.h"
 
 #include "EntityScriptingInterface.h"
 
@@ -491,12 +493,19 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
                                           const QUuid& entityID,
                                           const QVariantMap& arguments) {
     QUuid actionID = QUuid::createUuid();
+    auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
     bool success = actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
+            // create this action even if the entity doesn't have physics info.  it will often be the
+            // case that a script adds an action immediately after an object is created, and the physicsInfo
+            // is computed asynchronously.
+            // if (!entity->getPhysicsInfo()) {
+            //     return false;
+            // }
             EntityActionType actionType = EntityActionInterface::actionTypeFromString(actionTypeString);
             if (actionType == ACTION_TYPE_NONE) {
                 return false;
             }
-            if (simulation->actionFactory(actionType, actionID, entity, arguments)) {
+            if (actionFactory->factory(simulation, actionType, actionID, entity, arguments)) {
                 return true;
             }
             return false;
