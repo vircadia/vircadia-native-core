@@ -27,7 +27,7 @@ class EntityActionFactoryInterface : public QObject, public Dependency {
                                         EntityActionType type,
                                         QUuid id,
                                         EntityItemPointer ownerEntity,
-                                        QVariantMap arguments) { assert(false); }
+                                        QVariantMap arguments) { assert(false); return nullptr; }
 };
 
 #endif // hifi_EntityActionFactoryInterface_h
