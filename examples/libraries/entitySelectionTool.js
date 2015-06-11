@@ -304,7 +304,8 @@ SelectionDisplay = (function () {
                     visible: false,
                     dashed: true,
                     lineWidth: 2.0,
-                    ignoreRayIntersection: true // this never ray intersects
+                    ignoreRayIntersection: true, // this never ray intersects
+                    drawInFront: true
                 });
 
     var selectionBox = Overlays.addOverlay("cube", {

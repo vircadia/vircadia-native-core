@@ -45,10 +45,12 @@ void ItemBucketMap::reset(const ItemID& id, const ItemKey& oldKey, const ItemKey
 }
 
 void ItemBucketMap::allocateStandardOpaqueTranparentBuckets() {
-    (*this)[ItemFilter::Builder::opaqueShape()];
-    (*this)[ItemFilter::Builder::transparentShape()];
+    (*this)[ItemFilter::Builder::opaqueShape().withoutLayered()];
+    (*this)[ItemFilter::Builder::transparentShape().withoutLayered()];
     (*this)[ItemFilter::Builder::light()];
     (*this)[ItemFilter::Builder::background()];
+    (*this)[ItemFilter::Builder::opaqueShape().withLayered()];
+    (*this)[ItemFilter::Builder::transparentShape().withLayered()];
 }
 
 
@@ -59,11 +61,6 @@ void Item::resetPayload(const PayloadPointer& payload) {
         _payload = payload;
         _key = _payload->getKey();
     }
-}
-
-void Item::kill() {
-    _payload.reset();
-    _key._flags.reset();
 }
 
 void PendingChanges::resetItem(ItemID id, const PayloadPointer& payload) {
@@ -164,27 +161,3 @@ void Scene::updateItems(const ItemIDs& ids, UpdateFunctors& functors) {
         _items[(*updateID)].update((*updateFunctor));
     }
 }
-
-void Scene::registerObserver(ObserverPointer& observer) {
-    // make sure it's a valid observer
-    if (observer && (observer->getScene() == nullptr)) {
-        // Then register the observer
-        _observers.push_back(observer);
-
-        // And let it do what it wants to do
-        observer->registerScene(this);
-    }
-}
-
-void Scene::unregisterObserver(ObserverPointer& observer) {
-    // make sure it's a valid observer currently registered
-    if (observer && (observer->getScene() == this)) {
-        // let it do what it wants to do
-        observer->unregisterScene();
-
-        // Then unregister the observer
-        auto it = std::find(_observers.begin(), _observers.end(), observer);
-        _observers.erase(it);
-    }
-}
-
