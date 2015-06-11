@@ -227,8 +227,7 @@ void PhysicsEngine::stepSimulation() {
     // (3) synchronize outgoing motion states
     // (4) send outgoing packets
 
-    const int MAX_NUM_SUBSTEPS = 4;
-    const float MAX_TIMESTEP = (float)MAX_NUM_SUBSTEPS * PHYSICS_ENGINE_FIXED_SUBSTEP;
+    const float MAX_TIMESTEP = (float)PHYSICS_ENGINE_MAX_NUM_SUBSTEPS * PHYSICS_ENGINE_FIXED_SUBSTEP;
     float dt = 1.0e-6f * (float)(_clock.getTimeMicroseconds());
     _clock.reset();
     float timeStep = btMin(dt, MAX_TIMESTEP);
@@ -245,7 +244,7 @@ void PhysicsEngine::stepSimulation() {
         _characterController->preSimulation(timeStep);
     }
 
-    int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);
+    int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, PHYSICS_ENGINE_MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);
     if (numSubsteps > 0) {
         BT_PROFILE("postSimulation");
         _numSubsteps += (uint32_t)numSubsteps;

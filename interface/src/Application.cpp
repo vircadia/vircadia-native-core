@@ -524,8 +524,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _window->setVisible(true);
     _glWidget->setFocusPolicy(Qt::StrongFocus);
     _glWidget->setFocus();
+#ifdef Q_OS_MAC
+    // OSX doesn't seem to provide for hiding the cursor only on the GL widget
+    _window->setCursor(Qt::BlankCursor);
+#else
+    // On windows and linux, hiding the top level cursor also means it's invisible
+    // when hovering over the window menu, which is a pain, so only hide it for
+    // the GL surface
     _glWidget->setCursor(Qt::BlankCursor);
-
+#endif
+    
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
 

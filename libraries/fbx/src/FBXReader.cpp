@@ -2646,34 +2646,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
         }
     }
     geometry.palmDirection = parseVec3(mapping.value("palmDirection", "0, -1, 0").toString());
-
-    // process attachments
-    QVariantHash attachments = mapping.value("attach").toHash();
-    for (QVariantHash::const_iterator it = attachments.constBegin(); it != attachments.constEnd(); it++) {
-        FBXAttachment attachment;
-        attachment.jointIndex = modelIDs.indexOf(processID(it.key()));
-        attachment.scale = glm::vec3(1.0f, 1.0f, 1.0f);
-
-        QVariantList properties = it->toList();
-        if (properties.isEmpty()) {
-            attachment.url = it->toString();
-        } else {
-            attachment.url = properties.at(0).toString();
-
-            if (properties.size() >= 2) {
-                attachment.translation = parseVec3(properties.at(1).toString());
-
-                if (properties.size() >= 3) {
-                    attachment.rotation = glm::quat(glm::radians(parseVec3(properties.at(2).toString())));
-
-                    if (properties.size() >= 4) {
-                        attachment.scale = parseVec3(properties.at(3).toString());
-                    }
-                }
-            }
-        }
-        geometry.attachments.append(attachment);
-    }
     
     // Add sitting points
     QVariantHash sittingPoints = mapping.value("sit").toHash();

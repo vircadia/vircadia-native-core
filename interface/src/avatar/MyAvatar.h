@@ -197,9 +197,6 @@ public slots:
 signals:
     void transformChanged();
 
-protected:
-    virtual void renderAttachments(RenderArgs* args);
-    
 private:
 
     // These are made private for MyAvatar so that you will use the "use" methods instead
