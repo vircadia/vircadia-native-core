@@ -91,7 +91,6 @@ glm::vec3 EntityActionInterface::extractVec3Argument(QString objectName, QVarian
     return glm::vec3(x, y, z);
 }
 
-
 glm::quat EntityActionInterface::extractQuatArgument(QString objectName, QVariantMap arguments,
                                                      QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {
@@ -139,8 +138,6 @@ glm::quat EntityActionInterface::extractQuatArgument(QString objectName, QVarian
     return glm::quat(w, x, y, z);
 }
 
-
-
 float EntityActionInterface::extractFloatArgument(QString objectName, QVariantMap arguments,
                                                   QString argumentName, bool& ok, bool required) {
     if (!arguments.contains(argumentName)) {
@@ -160,5 +157,20 @@ float EntityActionInterface::extractFloatArgument(QString objectName, QVariantMa
         return 0.0f;
     }
 
+    return v;
+}
+
+QString EntityActionInterface::extractStringArgument(QString objectName, QVariantMap arguments,
+                                                     QString argumentName, bool& ok, bool required) {
+    if (!arguments.contains(argumentName)) {
+        if (required) {
+            qDebug() << objectName << "requires argument:" << argumentName;
+        }
+        ok = false;
+        return "";
+    }
+
+    QVariant vV = arguments[argumentName];
+    QString v = vV.toString();
     return v;
 }

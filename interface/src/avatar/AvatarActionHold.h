@@ -28,6 +28,8 @@ public:
 private:
     glm::vec3 _relativePosition;
     glm::quat _relativeRotation;
+    QString _hand;
+    bool _parametersSet = false;
 };
 
 #endif // hifi_AvatarActionHold_h

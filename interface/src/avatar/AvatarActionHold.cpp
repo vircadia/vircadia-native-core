@@ -29,7 +29,12 @@ AvatarActionHold::~AvatarActionHold() {
 
 void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    glm::vec3 palmPosition = myAvatar->getRightPalmPosition();
+    glm::vec3 palmPosition;
+    if (_hand == "right") {
+        palmPosition = myAvatar->getRightPalmPosition();
+    } else {
+        palmPosition = myAvatar->getLeftPalmPosition();
+    }
 
     auto rotation = myAvatar->getWorldAlignedOrientation();
     auto offset = rotation * _relativePosition;
@@ -55,28 +60,46 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
     bool tSOk = true;
     float timeScale =
         EntityActionInterface::extractFloatArgument("hold", arguments, "timeScale", tSOk, false);
+    bool hOk = true;
+    QString hand =
+        EntityActionInterface::extractStringArgument("hold", arguments, "hand", hOk, false);
 
     lockForWrite();
     if (rPOk) {
         _relativePosition = relativePosition;
-    } else {
+    } else if (!_parametersSet) {
         _relativePosition = glm::vec3(0.0f, 0.0f, 1.0f);
     }
 
     if (rROk) {
         _relativeRotation = relativeRotation;
-    } else {
+    } else if (!_parametersSet) {
         _relativeRotation = glm::quat(0.0f, 0.0f, 0.0f, 1.0f);
     }
 
     if (tSOk) {
         _linearTimeScale = timeScale;
         _angularTimeScale = timeScale;
-    } else {
+    } else if (!_parametersSet) {
         _linearTimeScale = 0.2;
         _angularTimeScale = 0.2;
     }
 
+    if (hOk) {
+        hand = hand.toLower();
+        if (hand == "left") {
+            _hand = "left";
+        } else if (hand == "right") {
+            _hand = "right";
+        } else {
+            qDebug() << "hold action -- invalid hand argument:" << hand;
+            _hand = "right";
+        }
+    } else if (!_parametersSet) {
+        _hand = "right";
+    }
+
+    _parametersSet = true;
     _positionalTargetSet = true;
     _rotationalTargetSet = true;
     _active = true;

@@ -59,6 +59,9 @@ protected:
                                           QString argumentName, bool& ok, bool required = true);
     static float extractFloatArgument(QString objectName, QVariantMap arguments,
                                       QString argumentName, bool& ok, bool required = true);
+    static QString extractStringArgument(QString objectName, QVariantMap arguments,
+                                         QString argumentName, bool& ok, bool required = true);
+
 };
 
 
