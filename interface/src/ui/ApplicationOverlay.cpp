@@ -210,7 +210,7 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
 
         overlays.renderHUD(renderArgs);
 
-        //renderPointers();
+        renderPointers();
 
         renderDomainConnectionStatusBorder();
         if (_newUiTexture) {
@@ -268,7 +268,7 @@ void ApplicationOverlay::bindCursorTexture(gpu::Batch& batch, uint8_t cursorInde
         _cursors[iconId] = DependencyManager::get<TextureCache>()->
             getImageTexture(iconPath);
     }
-    glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(_cursors[iconId]));
+    batch.setUniformTexture(0, _cursors[iconId]);
 }
 
 #define CURSOR_PIXEL_SIZE 32.0f
@@ -471,11 +471,11 @@ bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position,
 
 //Renders optional pointers
 void ApplicationOverlay::renderPointers() {
-    glEnable(GL_TEXTURE_2D);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //glEnable(GL_TEXTURE_2D);
+    //glEnable(GL_BLEND);
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    glActiveTexture(GL_TEXTURE0);
+    //glActiveTexture(GL_TEXTURE0);
     //bindCursorTexture();
 
     if (qApp->isHMDMode() && !qApp->getLastMouseMoveWasSimulated() && !qApp->isMouseHidden()) {
@@ -521,8 +521,8 @@ void ApplicationOverlay::renderPointers() {
         _magActive[MOUSE] = false;
         renderControllerPointers();
     }
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glDisable(GL_TEXTURE_2D);
+    //glBindTexture(GL_TEXTURE_2D, 0);
+    //glDisable(GL_TEXTURE_2D);
 }
 
 void ApplicationOverlay::renderControllerPointers() {
