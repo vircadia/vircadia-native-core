@@ -207,6 +207,9 @@ public:
 
     bool hasTerseUpdateChanges() const;
 
+    void clearSimulatorOwnership();
+    void setSimulatorOwnership(const QUuid& id, uint8_t priority);
+
 private:
     QUuid _id;
     bool _idSet;

@@ -169,15 +169,12 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                         // so we apply the rules for ownership change:
                         // (1) higher priority wins
                         // (2) equal priority wins if ownership filter has expired except...
-                        // (3) max priority never loses
                         uint8_t oldPriority = entity->getSimulatorPriority();
-                        if (oldPriority != MAX_SIMULATOR_PRIORITY) { 
-                            uint8_t newPriority = properties.getSimulatorPriority();
-                            if (newPriority > oldPriority || 
-                                 (newPriority == oldPriority && 
-                                  usecTimestampNow() > entity->getSimulationOwnershipExpiry())) {
-                                simulationBlocked = false;
-                            }
+                        uint8_t newPriority = properties.getSimulatorPriority();
+                        if (newPriority > oldPriority || 
+                             (newPriority == oldPriority && 
+                              usecTimestampNow() > entity->getSimulationOwnershipExpiry())) {
+                            simulationBlocked = false;
                         }
                     }
                 } else {

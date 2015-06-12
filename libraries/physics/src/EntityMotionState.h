@@ -80,6 +80,9 @@ public:
 
     virtual int16_t computeCollisionGroup();
 
+    // eternal logic can suggest a simuator priority bid for the next outgoing update
+    void setSimulatorPriorityHint(uint8_t priority);
+
     friend class PhysicalEntitySimulation;
 
 protected:
@@ -114,6 +117,7 @@ protected:
     bool _candidateForOwnership;
     uint32_t _loopsSinceOwnershipBid;
     uint32_t _loopsWithoutOwner;
+    uint8_t _simulatorPriorityHint;
 };
 
 #endif // hifi_EntityMotionState_h

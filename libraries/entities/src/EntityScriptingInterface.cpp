@@ -61,16 +61,6 @@ void EntityScriptingInterface::setEntityTree(EntityTree* modelTree) {
     }
 }
 
-void bidForSimulationOwnership(EntityItemProperties& properties) {
-    // We make a bid for simulation ownership by declaring our sessionID as simulation owner 
-    // in the outgoing properties.  The EntityServer may accept the bid or might not.
-    auto nodeList = DependencyManager::get<NodeList>();
-    const QUuid myNodeID = nodeList->getSessionUUID();
-    properties.setSimulatorID(myNodeID);
-}
-
-
-
 QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
 
     EntityItemProperties propertiesWithSimID = properties;
@@ -83,11 +73,15 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
         _entityTree->lockForWrite();
         EntityItemPointer entity = _entityTree->addEntity(id, propertiesWithSimID);
         if (entity) {
-            entity->setLastBroadcast(usecTimestampNow());
             // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
-            bidForSimulationOwnership(propertiesWithSimID);
+            auto nodeList = DependencyManager::get<NodeList>();
+            const QUuid myNodeID = nodeList->getSessionUUID();
+            propertiesWithSimID.setSimulatorOwnership(myNodeID, SCRIPT_EDIT_SIMULATOR_PRIORITY);
+
             // and make note of it now, so we can act on it right away.
             entity->setSimulatorID(propertiesWithSimID.getSimulatorID());
+
+            entity->setLastBroadcast(usecTimestampNow());
         } else {
             qCDebug(entities) << "script failed to add new Entity to local Octree";
             success = false;
@@ -160,9 +154,14 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties proper
                         // balls" test.  However, even if we solve this problem we still need to provide a "slerp the visible 
                         // proxy toward the true physical position" feature to hide the final glitches in the remote watcher's
                         // simulation.
+
+                        // we re-assert our simulation ownership
+                        properties.setSimulatorOwnership(myNodeID, 
+                                glm::max(entity->getSimulatorPriority(), SCRIPT_EDIT_SIMULATOR_PRIORITY));
+                    } else {
+                        // we make a bid for simulation ownership
+                        properties.setSimulatorOwnership(myNodeID, SCRIPT_EDIT_SIMULATOR_PRIORITY);
                     }
-                    // we make a bid for (or assert existing) simulation ownership
-                    properties.setSimulatorID(myNodeID);
                 }
                 entity->setLastBroadcast(usecTimestampNow());
             }

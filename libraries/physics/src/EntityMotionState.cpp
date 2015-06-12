@@ -97,7 +97,9 @@ void EntityMotionState::handleEasyChanges(uint32_t flags) {
     assert(entityTreeIsLocked());
     updateServerPhysicsVariables();
     ObjectMotionState::handleEasyChanges(flags);
+
     if (flags & EntityItem::DIRTY_SIMULATOR_ID) {
+        _loopsSinceOwnershipBid = 0;
         _loopsWithoutOwner = 0;
         _candidateForOwnership = 0;
         if (_entity->getSimulatorID().isNull()
@@ -453,14 +455,15 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
         if (!active) {
             // we own the simulation but the entity has stopped, so we tell the server that we're clearing simulatorID
             // but we remember that we do still own it...  and rely on the server to tell us that we don't
-            properties.setSimulatorID(QUuid());
+            properties.clearSimulatorOwnership();
         } else {
-            // explicitly set the property's simulatorID so that it is flagged as changed and will be packed
-            properties.setSimulatorID(sessionID);
+            // re-assert the simulation info
+            properties.setSimulatorOwnership(sessionID, _entity->getSimulatorPriority());
         }
     } else {
         // we don't own the simulation for this entity yet, but we're sending a bid for it
-        properties.setSimulatorID(sessionID);
+        properties.setSimulatorOwnership(sessionID, glm::max(_simulatorPriorityHint, VOLUNTEER_SIMULATOR_PRIORITY));
+        _simulatorPriorityHint = 0;
     }
 
     if (EntityItem::getSendPhysicsUpdates()) {
@@ -579,4 +582,9 @@ int16_t EntityMotionState::computeCollisionGroup() {
             break;
     }
     return COLLISION_GROUP_DEFAULT;
+}
+
+void EntityMotionState::setSimulatorPriorityHint(uint8_t priority) {
+    _candidateForOwnership = true;
+    _simulatorPriorityHint = priority;
 }

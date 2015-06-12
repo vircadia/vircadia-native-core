@@ -27,7 +27,8 @@
 #include "EntityTree.h"
 #include "EntitySimulation.h"
 
-const quint64 SIMULATOR_CHANGE_LOCKOUT_PERIOD = (quint64)(0.2f * USECS_PER_SECOND);
+const quint64 DEFAULT_SIMULATOR_CHANGE_LOCKOUT_PERIOD = (quint64)(0.2f * USECS_PER_SECOND);
+const quint64 MAX_SIMULATOR_CHANGE_LOCKOUT_PERIOD = 2 * USECS_PER_SECOND;
 
 bool EntityItem::_sendPhysicsUpdates = true;
 
@@ -322,6 +323,7 @@ int EntityItem::expectedBytes() {
 }
 
 
+// clients use this method to unpack FULL updates from entity-server
 int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
 
     if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
@@ -596,24 +598,22 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             // ownership has changed
             auto nodeList = DependencyManager::get<NodeList>();
             if (_simulatorID == nodeList->getSessionUUID()) {
-                // we think we're the owner but entityServer says otherwise 
-                // we relenquish ownership if the incoming priority is greater than or equal to ours
+                // we think we're the simulation owner but entity-server says otherwise 
+                // we relenquish ownership iff the incoming priority is greater than or equal to ours
                 // AND we don't have max priority
                 if (priority >= _simulatorPriority && _simulatorPriority != MAX_SIMULATOR_PRIORITY) {
                     // we're losing simulation ownership
                     _simulatorID = id;
                     _simulatorPriority = priority;
-                    _simulationOwnershipExpiry = usecTimestampNow() + SIMULATOR_CHANGE_LOCKOUT_PERIOD;
                 }
             } else {
                 _simulatorID = id;
                 _simulatorPriority = priority;
-                _simulationOwnershipExpiry = usecTimestampNow() + SIMULATOR_CHANGE_LOCKOUT_PERIOD;
             }
         } else if (priority != _simulatorPriority) {
             // priority is changing but simulatorID is not.
             // only accept this change if we are NOT the simulator owner, since otherwise
-            // we would have initiated this change
+            // we would have initiated this priority
             auto nodeList = DependencyManager::get<NodeList>();
             if (_simulatorID != nodeList->getSessionUUID()) {
                 _simulatorPriority = priority;
@@ -1395,19 +1395,49 @@ void EntityItem::updateCreated(uint64_t value) {
     }
 }
 
+void EntityItem::setSimulatorPriority(uint8_t priority) { 
+    _simulatorPriority = priority; 
+    if (_simulatorPriority == MAX_SIMULATOR_PRIORITY) {
+        // we always extend the the ownership expiry for MAX_SIMULATOR_PRIORITY
+        _simulationOwnershipExpiry = usecTimestampNow() + MAX_SIMULATOR_CHANGE_LOCKOUT_PERIOD;
+    } else if (_simulatorPriority == 0) {
+        _simulationOwnershipExpiry = 0;
+    }
+}
+
 void EntityItem::setSimulatorID(const QUuid& value) {
     if (_simulatorID != value) {
         _simulatorID = value;
-        _simulationOwnershipExpiry = usecTimestampNow() + SIMULATOR_CHANGE_LOCKOUT_PERIOD;
+        if (!_simulatorID.isNull()) {
+            // Note: this logic only works well if _simulatorPriority is properly set before this point
+            quint64 lockoutPeriod = (_simulatorPriority == MAX_SIMULATOR_PRIORITY) 
+                ? MAX_SIMULATOR_CHANGE_LOCKOUT_PERIOD : DEFAULT_SIMULATOR_CHANGE_LOCKOUT_PERIOD;
+            _simulationOwnershipExpiry = usecTimestampNow() + lockoutPeriod;
+        }
     }
 }
 
 void EntityItem::updateSimulatorID(const QUuid& value) {
     if (_simulatorID != value) {
         _simulatorID = value;
-        _simulationOwnershipExpiry = usecTimestampNow() + SIMULATOR_CHANGE_LOCKOUT_PERIOD;
+        if (!_simulatorID.isNull()) {
+            // Note: this logic only works well if _simulatorPriority is properly set before this point
+            quint64 lockoutPeriod = (_simulatorPriority == MAX_SIMULATOR_PRIORITY) 
+                ? MAX_SIMULATOR_CHANGE_LOCKOUT_PERIOD : DEFAULT_SIMULATOR_CHANGE_LOCKOUT_PERIOD;
+            _simulationOwnershipExpiry = usecTimestampNow() + lockoutPeriod;
+        }
         _dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
     }
+}
+
+void EntityItem::clearSimulationOwnership() {
+    _simulatorPriority = 0;
+    _simulatorID = QUuid();
+    _simulationOwnershipExpiry = 0;
+    // don't bother setting the DIRTY_SIMULATOR_ID flag because clearSimulatorOwnership() 
+    // is only ever called entity-server-side and the flags are only used client-side
+    //_dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
+
 }
 
 bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer action) {

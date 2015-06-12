@@ -1234,3 +1234,17 @@ bool EntityItemProperties::hasTerseUpdateChanges() const {
     // a TerseUpdate includes the transform and its derivatives
     return _positionChanged || _velocityChanged || _rotationChanged || _angularVelocityChanged || _accelerationChanged;
 }
+
+void EntityItemProperties::clearSimulatorOwnership() {
+    _simulatorID = QUuid();
+    _simulatorPriority = 0;
+    _simulatorIDChanged = true;
+    _simulatorPriorityChanged = true;
+}
+
+void EntityItemProperties::setSimulatorOwnership(const QUuid& id, uint8_t priority) {
+    _simulatorID = id;
+    _simulatorPriority = glm::max(priority, _simulatorPriority);
+    _simulatorIDChanged = true;
+    _simulatorPriorityChanged = true;
+}
