@@ -1019,7 +1019,7 @@ AABox Model::calculateScaledOffsetAABox(const AABox& box) const {
 
 glm::vec3 Model::calculateScaledOffsetPoint(const glm::vec3& point) const {
     // we need to include any fst scaling, translation, and rotation, which is captured in the offset matrix
-    glm::vec3 offsetPoint = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(point, 1.0f)); /// should this be point???
+    glm::vec3 offsetPoint = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(point, 1.0f));
     glm::vec3 scaledPoint = ((offsetPoint + _offset) * _scale);
     glm::vec3 rotatedPoint = _rotation * scaledPoint;
     glm::vec3 translatedPoint = rotatedPoint + _translation;
@@ -1840,11 +1840,11 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
 
         glm::vec4 cubeColor;
         if (isSkinned) {
-            cubeColor = glm::vec4(0.0f,1.0f,1.0f,1.0f);
+            cubeColor = glm::vec4(0.0f, 1.0f, 1.0f, 1.0f);
         } else if (inView) {
-            cubeColor = glm::vec4(1.0f,0.0f,1.0f,1.0f);
+            cubeColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
         } else {
-            cubeColor = glm::vec4(1.0f,1.0f,0.0f,1.0f);
+            cubeColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
         }
 
         Transform transform;
