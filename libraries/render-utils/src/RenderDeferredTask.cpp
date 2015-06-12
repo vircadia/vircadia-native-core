@@ -139,7 +139,6 @@ template <> void render::jobRun(const DrawOpaqueDeferred& job, const SceneContex
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
 
-        renderContext->args->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
         {
             GLenum buffers[3];
             int bufferCount = 0;
@@ -206,8 +205,6 @@ template <> void render::jobRun(const DrawTransparentDeferred& job, const SceneC
         args->_viewFrustum->evalViewTransform(viewMat);
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
-
-        args->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
 
         const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
 
