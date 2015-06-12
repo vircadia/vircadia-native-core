@@ -136,6 +136,9 @@ template <> void render::jobRun(const DrawOpaqueDeferred& job, const SceneContex
         Transform viewMat;
         args->_viewFrustum->evalProjectionMatrix(projMat);
         args->_viewFrustum->evalViewTransform(viewMat);
+        if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+            viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
+        }
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
 
@@ -203,6 +206,9 @@ template <> void render::jobRun(const DrawTransparentDeferred& job, const SceneC
         Transform viewMat;
         args->_viewFrustum->evalProjectionMatrix(projMat);
         args->_viewFrustum->evalViewTransform(viewMat);
+        if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+            viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
+        }
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
 
