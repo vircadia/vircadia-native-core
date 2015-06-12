@@ -56,6 +56,28 @@ void DrawSceneTask::run(const SceneContextPointer& sceneContext, const RenderCon
 Job::~Job() {
 }
 
+
+
+void FetchCullItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, CulledItems& outItems) {
+    PerformanceTimer perfTimer("FetchCullItems::run");
+
+    auto& scene = sceneContext->_scene;
+    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::opaqueShape());
+    auto& renderDetails = renderContext->args->_details;
+
+    ItemIDsBounds inItems;
+    inItems.reserve(items.size());
+    for (auto id : items) {
+        inItems.emplace_back(id);
+    }
+
+    ItemIDsBounds& renderedItems = inItems;
+
+    outItems._items.reserve(inItems.size());
+    cullItems(sceneContext, renderContext, renderedItems, outItems._items);
+}
+
+
 void render::cullItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
     PerformanceTimer perfTimer("cullItems");
     assert(renderContext->args);
