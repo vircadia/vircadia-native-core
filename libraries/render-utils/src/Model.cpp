@@ -2047,6 +2047,9 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
                             Locations*& locations) {
 
     RenderKey key(mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe);
+    if (mode == RenderArgs::MIRROR_RENDER_MODE) {
+        key = RenderKey(key.getRaw() | RenderKey::IS_MIRROR);
+    }
     auto pipeline = _renderPipelineLib.find(key.getRaw());
     if (pipeline == _renderPipelineLib.end()) {
         qDebug() << "No good, couldn't find a pipeline from the key ?" << key.getRaw();
