@@ -957,11 +957,14 @@ void Application::paintGL() {
         displaySide(&renderArgs, _myCamera);
         glPopMatrix();
 
+        renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
         if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
             _rearMirrorTools->render(&renderArgs, true, _glWidget->mapFromGlobal(QCursor::pos()));
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
             renderRearViewMirror(&renderArgs, _mirrorViewRect);       
         }
+
+        renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
 
         auto finalFbo = DependencyManager::get<GlowEffect>()->render(&renderArgs);
 
@@ -3440,7 +3443,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
                 "Application::displaySide() ... entities...");
 
             RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE;
-            RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE;
 
             if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowHulls)) {
                 renderDebugFlags = (RenderArgs::DebugFlags) (renderDebugFlags | (int) RenderArgs::RENDER_DEBUG_HULLS);
@@ -3449,10 +3451,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
                 renderDebugFlags =
                     (RenderArgs::DebugFlags) (renderDebugFlags | (int) RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP);
             }
-            if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
-                renderMode = RenderArgs::MIRROR_RENDER_MODE;
-            }
-            renderArgs->_renderMode = renderMode;
             renderArgs->_debugFlags = renderDebugFlags;
             _entities.render(renderArgs);
         }

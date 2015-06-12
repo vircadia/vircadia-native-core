@@ -263,7 +263,6 @@ template <> void render::jobRun(const DrawOpaque& job, const SceneContextPointer
 
     renderContext->_numDrawnOpaqueItems = renderedItems.size();
 
-
     ItemIDsBounds sortedItems;
     sortedItems.reserve(culledItems.size());
     if (renderContext->_sortOpaque) {
@@ -280,10 +279,12 @@ template <> void render::jobRun(const DrawOpaque& job, const SceneContextPointer
         Transform viewMat;
         args->_viewFrustum->evalProjectionMatrix(projMat);
         args->_viewFrustum->evalViewTransform(viewMat);
+        if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+            viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
+        }
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
 
-        renderContext->args->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
         {
             GLenum buffers[3];
             int bufferCount = 0;
@@ -347,10 +348,11 @@ template <> void render::jobRun(const DrawTransparent& job, const SceneContextPo
         Transform viewMat;
         args->_viewFrustum->evalProjectionMatrix(projMat);
         args->_viewFrustum->evalViewTransform(viewMat);
+        if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+            viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
+        }
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
-
-        args->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
 
         const float MOSTLY_OPAQUE_THRESHOLD = 0.75f;
         const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
@@ -434,6 +436,9 @@ template <> void render::jobRun(const DrawBackground& job, const SceneContextPoi
     Transform viewMat;
     args->_viewFrustum->evalProjectionMatrix(projMat);
     args->_viewFrustum->evalViewTransform(viewMat);
+    if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+        viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
+    }
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewMat);
 
@@ -475,6 +480,9 @@ template <> void render::jobRun(const DrawPostLayered& job, const SceneContextPo
     Transform viewMat;
     args->_viewFrustum->evalProjectionMatrix(projMat);
     args->_viewFrustum->evalViewTransform(viewMat);
+    if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+        viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
+    }
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewMat);
 
