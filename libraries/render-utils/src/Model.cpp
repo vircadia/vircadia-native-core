@@ -1783,8 +1783,13 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
         //
         //    return calculateScaledOffsetAABox(_calculatedMeshPartBoxes[QPair<int,int>(meshIndex, partIndex)]);
         //
+        //    NOTE: we also don't want to use the _calculatedMeshBoxes[] because they don't handle avatar moving correctly
+        //          without recalculating them...
+        //    return _calculatedMeshBoxes[meshIndex];
+        //
         // If we not skinned use the bounds of the subMesh for all it's parts
-        return _calculatedMeshBoxes[meshIndex];
+        const FBXMesh& mesh = _geometry->getFBXGeometry().meshes.at(meshIndex);
+        return calculateScaledOffsetExtents(mesh.meshExtents);
     }
     return AABox();
 }
