@@ -1019,7 +1019,7 @@ AABox Model::calculateScaledOffsetAABox(const AABox& box) const {
 
 glm::vec3 Model::calculateScaledOffsetPoint(const glm::vec3& point) const {
     // we need to include any fst scaling, translation, and rotation, which is captured in the offset matrix
-    glm::vec3 offsetPoint = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(point, 1.0f));
+    glm::vec3 offsetPoint = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(point, 1.0f)); /// should this be point???
     glm::vec3 scaledPoint = ((offsetPoint + _offset) * _scale);
     glm::vec3 rotatedPoint = _rotation * scaledPoint;
     glm::vec3 translatedPoint = rotatedPoint + _translation;
@@ -1764,13 +1764,33 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
     if (!_calculatedMeshPartBoxesValid) {
         recalculateMeshBoxes(true);
     }
+
+    if (meshIndex < _meshStates.size()) {
+        const MeshState& state = _meshStates.at(meshIndex);
+        bool isSkinned = state.clusterMatrices.size() > 1;
+        if (isSkinned) {
+            // if we're skinned return the entire mesh extents because we can't know for sure our clusters don't move us
+            return calculateScaledOffsetAABox(_geometry->getFBXGeometry().meshExtents);
+        }
+    }
+    
     if (_calculatedMeshPartBoxesValid && _calculatedMeshPartBoxes.contains(QPair<int,int>(meshIndex, partIndex))) {
-        return calculateScaledOffsetAABox(_calculatedMeshPartBoxes[QPair<int,int>(meshIndex, partIndex)]);
+        
+        // FIX ME! - This is currently a hack because for some mesh parts our efforts to calculate the bounding
+        //           box of the mesh part fails. It seems to create boxes that are not consistent with where the
+        //           geometry actually renders. If instead we make all the parts share the bounds of the entire subMesh
+        //           things will render properly.
+        //
+        //    return calculateScaledOffsetAABox(_calculatedMeshPartBoxes[QPair<int,int>(meshIndex, partIndex)]);
+        //
+        // If we not skinned use the bounds of the subMesh for all it's parts
+        return _calculatedMeshBoxes[meshIndex];
     }
     return AABox();
 }
 
 void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent) {
+
     if (!_readyWhenAdded) {
         return; // bail asap
     }
@@ -1785,19 +1805,6 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     gpu::Batch& batch = *(args->_batch);
     auto mode = args->_renderMode;
 
-    // render the part bounding box
-    #ifdef DEBUG_BOUNDING_PARTS
-    {
-        glm::vec4 cubeColor(1.0f,0.0f,0.0f,1.0f);
-        AABox partBounds = getPartBounds(meshIndex, partIndex);
-
-        glm::mat4 translation = glm::translate(partBounds.calcCenter());
-        glm::mat4 scale = glm::scale(partBounds.getDimensions());
-        glm::mat4 modelToWorldMatrix = translation * scale;
-        batch.setModelTransform(modelToWorldMatrix);
-        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(batch, 1.0f, cubeColor);
-    }
-    #endif //def DEBUG_BOUNDING_PARTS
 
     // Capture the view matrix once for the rendering of this model
     if (_transforms.empty()) {
@@ -1824,6 +1831,29 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     bool hasLightmap = mesh.hasEmissiveTexture();
     bool isSkinned = state.clusterMatrices.size() > 1;
     bool wireframe = isWireframe();
+
+    AABox partBounds = getPartBounds(meshIndex, partIndex);
+    bool inView = args->_viewFrustum->boxInFrustum(partBounds) != ViewFrustum::OUTSIDE;
+    
+    // render the part bounding box
+    #ifdef DEBUG_BOUNDING_PARTS
+    {
+        glm::vec4 cubeColor;
+        if (isSkinned) {
+            cubeColor = glm::vec4(0.0f,1.0f,1.0f,1.0f);
+        } else if (inView) {
+            cubeColor = glm::vec4(1.0f,0.0f,1.0f,1.0f);
+        } else {
+            cubeColor = glm::vec4(1.0f,1.0f,0.0f,1.0f);
+        }
+
+        Transform transform;
+        transform.setTranslation(partBounds.calcCenter());
+        transform.setScale(partBounds.getDimensions());
+        batch.setModelTransform(transform);
+        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(batch, 1.0f, cubeColor);
+    }
+    #endif //def DEBUG_BOUNDING_PARTS
     
     if (wireframe) {
         translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
@@ -1977,7 +2007,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
     
     qint64 offset = _calculatedMeshPartOffet[QPair<int,int>(meshIndex, partIndex)];
-    
+
     if (part.quadIndices.size() > 0) {
         batch.drawIndexed(gpu::QUADS, part.quadIndices.size(), offset);
         offset += part.quadIndices.size() * sizeof(int);
