@@ -251,7 +251,7 @@ public:
     void render(RenderArgs* args) { _payload->render(args); }
 
     // Shape Type Interface
-    const model::MaterialKey& getMaterialKey() const { return _payload->getMaterialKey(); }
+    const model::MaterialKey getMaterialKey() const { return _payload->getMaterialKey(); }
 
 protected:
     PayloadPointer _payload;

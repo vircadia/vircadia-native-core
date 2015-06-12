@@ -155,6 +155,9 @@ public:
     void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id = UNKNOWN_ID);
     void renderBevelCornersRect(gpu::Batch& batch, int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id = UNKNOWN_ID);
 
+    void renderUnitQuad(const glm::vec4& color = glm::vec4(1), int id = UNKNOWN_ID);
+    void renderUnitQuad(gpu::Batch& batch, const glm::vec4& color = glm::vec4(1), int id = UNKNOWN_ID);
+
     void renderQuad(int x, int y, int width, int height, const glm::vec4& color, int id = UNKNOWN_ID)
             { renderQuad(glm::vec2(x,y), glm::vec2(x + width, y + height), color, id); }
     void renderQuad(gpu::Batch& batch, int x, int y, int width, int height, const glm::vec4& color, int id = UNKNOWN_ID)
