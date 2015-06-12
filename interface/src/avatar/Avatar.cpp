@@ -328,6 +328,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
     if (postLighting &&
         glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(), _position) < 10.0f) {
         auto geometryCache = DependencyManager::get<GeometryCache>();
+        auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
 
         // render pointing lasers
         glm::vec3 laserColor = glm::vec3(1.0f, 0.0f, 1.0f);
@@ -354,6 +355,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
                 pointerTransform.setTranslation(position);
                 pointerTransform.setRotation(rotation);
                 batch->setModelTransform(pointerTransform);
+                deferredLighting->bindSimpleProgram(*batch);
                 geometryCache->renderLine(*batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor);
             }
         }
@@ -376,6 +378,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
                 pointerTransform.setTranslation(position);
                 pointerTransform.setRotation(rotation);
                 batch->setModelTransform(pointerTransform);
+                deferredLighting->bindSimpleProgram(*batch);
                 geometryCache->renderLine(*batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor);
             }
         }
@@ -462,7 +465,8 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
                 Transform transform;
                 transform.setTranslation(position);
                 batch->setModelTransform(transform);
-                DependencyManager::get<GeometryCache>()->renderSphere(*batch, LOOK_AT_INDICATOR_RADIUS, 15, 15, LOOK_AT_INDICATOR_COLOR);
+                DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(*batch, LOOK_AT_INDICATOR_RADIUS
+                                                                                    , 15, 15, LOOK_AT_INDICATOR_COLOR);
             }
         }
 
@@ -494,6 +498,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
                     _voiceSphereID = DependencyManager::get<GeometryCache>()->allocateID();
                 }
 
+                DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(*batch);
                 DependencyManager::get<GeometryCache>()->renderSphere(*batch, sphereRadius, 15, 15,
                     glm::vec4(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.0f - angle / MAX_SPHERE_ANGLE), true,
                     _voiceSphereID);
