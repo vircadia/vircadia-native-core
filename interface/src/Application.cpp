@@ -425,6 +425,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(audioIO.data(), &AudioClient::muteToggled, this, &Application::audioMuteToggled);
     connect(audioIO.data(), &AudioClient::receivedFirstPacket,
             &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::receivedFirstPacket);
+    connect(audioIO.data(), &AudioClient::disconnected,
+            &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::disconnected);
 
     audioThread->start();
 

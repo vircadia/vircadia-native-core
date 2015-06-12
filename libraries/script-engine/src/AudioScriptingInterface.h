@@ -39,6 +39,7 @@ signals:
     void mutedByMixer();
     void environmentMuted();
     void receivedFirstPacket();
+    void disconnected();
 
 private:
     AudioScriptingInterface();

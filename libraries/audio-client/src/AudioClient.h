@@ -186,6 +186,7 @@ signals:
     void deviceChanged();
 
     void receivedFirstPacket();
+    void disconnected();
 
 protected:
     AudioClient();
