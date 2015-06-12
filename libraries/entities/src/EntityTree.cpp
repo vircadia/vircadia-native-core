@@ -157,6 +157,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                     if (entity->getSimulatorID() == senderID) {
                         // We only allow the simulation owner to clear their own simulationID's.
                         simulationBlocked = false;
+                        properties.setSimulatorPriority(0); // clear priority irregardless of priority sent
                     }
                     // else: We assume the sender really did believe it was the simulation owner when it sent
                 } else if (submittedID == senderID) {
@@ -165,9 +166,18 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                         simulationBlocked = false;
                     } else {
                         // the sender is trying to steal ownership from another simulator
-                        // so we apply the ownership change filter
-                        if (usecTimestampNow() - entity->getSimulatorIDChangedTime() > SIMULATOR_CHANGE_LOCKOUT_PERIOD) {
-                            simulationBlocked = false;
+                        // so we apply the rules for ownership change:
+                        // (1) higher priority wins
+                        // (2) equal priority wins if ownership filter has expired except...
+                        // (3) max priority never loses
+                        uint8_t oldPriority = entity->getSimulatorPriority();
+                        if (oldPriority != MAX_SIMULATOR_PRIORITY) { 
+                            uint8_t newPriority = properties.getSimulatorPriority();
+                            if (newPriority > oldPriority || 
+                                 (newPriority == oldPriority && 
+                                  usecTimestampNow() > entity->getSimulationOwnershipExpiry())) {
+                                simulationBlocked = false;
+                            }
                         }
                     }
                 } else {
@@ -177,6 +187,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
             }
             if (simulationBlocked) {
                 // squash the physics-related changes.
+                properties.setSimulatorPriorityChanged(false);
                 properties.setSimulatorIDChanged(false);
                 properties.setPositionChanged(false);
                 properties.setRotationChanged(false);

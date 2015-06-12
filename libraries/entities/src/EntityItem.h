@@ -326,7 +326,7 @@ public:
     QUuid getSimulatorID() const { return _simulatorID; }
     void setSimulatorID(const QUuid& value);
     void updateSimulatorID(const QUuid& value);
-    quint64 getSimulatorIDChangedTime() const { return _simulatorIDChangedTime; }
+    const quint64& getSimulationOwnershipExpiry() const { return _simulationOwnershipExpiry; }
 
     const QString& getMarketplaceID() const { return _marketplaceID; }
     void setMarketplaceID(const QString& value) { _marketplaceID = value; }
@@ -433,7 +433,7 @@ protected:
     QString _userData;
     uint8_t _simulatorPriority;
     QUuid _simulatorID; // id of Node which is currently responsible for simulating this Entity
-    quint64 _simulatorIDChangedTime; // when was _simulatorID last updated?
+    quint64 _simulationOwnershipExpiry; // time in future when ownership is back up for grabs
     QString _marketplaceID;
     QString _name;
     QString _href; //Hyperlink href
