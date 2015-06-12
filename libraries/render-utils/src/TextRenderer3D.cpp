@@ -139,7 +139,6 @@ private:
     // Font characteristics
     QString _family;
     float _fontSize = 0.0f;
-    float _rowHeight = 0.0f;
     float _leading = 0.0f;
     float _ascent = 0.0f;
     float _descent = 0.0f;
@@ -289,8 +288,7 @@ void Font3D::read(QIODevice& in) {
     readStream(in, _descent);
     readStream(in, _spaceWidth);
     _fontSize = _ascent + _descent;
-    _rowHeight = _fontSize + _leading;
-
+    
     // Read character count
     uint16_t count;
     readStream(in, count);
