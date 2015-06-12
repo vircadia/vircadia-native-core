@@ -22,7 +22,7 @@
 #include <gpu/GLBackend.h>
 #include <GLMHelpers.h>
 #include <OffscreenUi.h>
-#include <PathUtils.h>
+#include <CursorManager.h>
 #include <PerfStat.h>
 
 #include "AudioClient.h"
@@ -128,7 +128,6 @@ ApplicationOverlay::ApplicationOverlay() :
     _alpha(1.0f),
     _oculusUIRadius(1.0f),
     _trailingAudioLoudness(0.0f),
-    _crosshairTexture(0),
     _previousBorderWidth(-1),
     _previousBorderHeight(-1),
     _previousMagnifierBottomLeft(),
@@ -260,6 +259,18 @@ gpu::PipelinePointer ApplicationOverlay::getDrawPipeline() {
     return _standardDrawPipeline;
 }
 
+void ApplicationOverlay::bindCursorTexture(gpu::Batch& batch, uint8_t cursorIndex) {
+    auto& cursorManager = Cursor::Manager::instance();
+    auto cursor = cursorManager.getCursor(cursorIndex);
+    auto iconId = cursor->getIcon();
+    if (!_cursors.count(iconId)) {
+        auto iconPath = cursorManager.getIconImage(cursor->getIcon());
+        _cursors[iconId] = DependencyManager::get<TextureCache>()->
+            getImageTexture(iconPath);
+    }
+    batch.setUniformTexture(0, _cursors[iconId]);
+}
+
 #define CURSOR_PIXEL_SIZE 32.0f
 
 // Draws the FBO texture for the screen
@@ -267,12 +278,6 @@ void ApplicationOverlay::displayOverlayTexture(RenderArgs* renderArgs) {
     if (_alpha == 0.0f) {
         return;
     }
-
-    if (!_crosshairTexture) {
-        _crosshairTexture = TextureCache::getImageTexture(
-            PathUtils::resourcesPath() + "images/arrow.png");
-    }
-
     
     renderArgs->_context->syncCache();
 
@@ -301,7 +306,7 @@ void ApplicationOverlay::displayOverlayTexture(RenderArgs* renderArgs) {
     glm::vec2 mouseSize = CURSOR_PIXEL_SIZE / canvasSize;
     model.setScale(vec3(mouseSize, 1.0f));
     batch.setModelTransform(model);
-    batch.setUniformTexture(0, _crosshairTexture);
+    bindCursorTexture(batch);
     glm::vec4 reticleColor = { RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], 1.0f };
     DependencyManager::get<GeometryCache>()->renderUnitQuad(batch, vec4(1));
     renderArgs->_context->render(batch);
@@ -327,24 +332,6 @@ glm::vec2 getPolarCoordinates(const PalmData& palm) {
     glm::vec2 polar(glm::atan(tipDirection.x, -tipDirection.z), glm::asin(tipDirection.y));
     return polar;
 }
-
-void ApplicationOverlay::renderReticle(gpu::Batch& batch, glm::quat orientation, float alpha) {
-    if (!_crosshairTexture) {
-        _crosshairTexture = TextureCache::getImageTexture(
-            PathUtils::resourcesPath() + "images/arrow.png");
-    }
-    
-    batch.setUniformTexture(0, _crosshairTexture);
-    glm::vec4 reticleColor = { RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], alpha };
-
-    vec3 dist = getPoint(0, 0);
-    mat4 reticleXfm = glm::translate(mat4(), vec3(0, 0, -1));
-    reticleXfm = glm::mat4_cast(orientation) * reticleXfm;
-    reticleXfm = glm::scale(reticleXfm, vec3(reticleSize, reticleSize, 1.0f));
-    batch.setModelTransform(Transform(reticleXfm));
-    DependencyManager::get<GeometryCache>()->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
-}
-
 
 // Draws the FBO texture for Oculus rift.
 void ApplicationOverlay::displayOverlayTextureHmd(RenderArgs* renderArgs, Camera& whichCamera) {
@@ -373,12 +360,9 @@ void ApplicationOverlay::displayOverlayTextureHmd(RenderArgs* renderArgs, Camera
     drawSphereSection(batch);
 
 
-    if (!_crosshairTexture) {
-        _crosshairTexture = TextureCache::getImageTexture(
-            PathUtils::resourcesPath() + "images/arrow.png");
-    }
-    batch.setUniformTexture(0, _crosshairTexture);
+    bindCursorTexture(batch);
     auto geometryCache = DependencyManager::get<GeometryCache>();
+    vec3 reticleScale = vec3(Cursor::Manager::instance().getScale() * reticleSize);
     //Controller Pointers
     for (int i = 0; i < (int)myAvatar->getHand()->getNumPalms(); i++) {
         PalmData& palm = myAvatar->getHand()->getPalms()[i];
@@ -387,7 +371,7 @@ void ApplicationOverlay::displayOverlayTextureHmd(RenderArgs* renderArgs, Camera
             // Convert to quaternion
             mat4 pointerXfm = glm::mat4_cast(quat(vec3(polar.y, -polar.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
             mat4 reticleXfm = overlayXfm * pointerXfm;
-            reticleXfm = glm::scale(reticleXfm, vec3(reticleSize, reticleSize, 1.0f));
+            reticleXfm = glm::scale(reticleXfm, reticleScale);
             batch.setModelTransform(reticleXfm);
             // Render reticle at location
             geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
@@ -400,7 +384,7 @@ void ApplicationOverlay::displayOverlayTextureHmd(RenderArgs* renderArgs, Camera
             _reticlePosition[MOUSE].y()));
         mat4 pointerXfm = glm::mat4_cast(quat(vec3(-projection.y, projection.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
         mat4 reticleXfm = overlayXfm * pointerXfm;
-        reticleXfm = glm::scale(reticleXfm, vec3(reticleSize, reticleSize, 1.0f));
+        reticleXfm = glm::scale(reticleXfm, reticleScale);
         batch.setModelTransform(reticleXfm);
         geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
     }
@@ -487,16 +471,12 @@ bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position,
 
 //Renders optional pointers
 void ApplicationOverlay::renderPointers() {
-    //lazily load crosshair texture
-    if (_crosshairTexture == 0) {
-        _crosshairTexture = TextureCache::getImageTexture(PathUtils::resourcesPath() + "images/arrow.png");
-    }
-    glEnable(GL_TEXTURE_2D);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //glEnable(GL_TEXTURE_2D);
+    //glEnable(GL_BLEND);
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(_crosshairTexture));
+    //glActiveTexture(GL_TEXTURE0);
+    //bindCursorTexture();
 
     if (qApp->isHMDMode() && !qApp->getLastMouseMoveWasSimulated() && !qApp->isMouseHidden()) {
         //If we are in oculus, render reticle later
@@ -541,8 +521,8 @@ void ApplicationOverlay::renderPointers() {
         _magActive[MOUSE] = false;
         renderControllerPointers();
     }
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glDisable(GL_TEXTURE_2D);
+    //glBindTexture(GL_TEXTURE_2D, 0);
+    //glDisable(GL_TEXTURE_2D);
 }
 
 void ApplicationOverlay::renderControllerPointers() {
