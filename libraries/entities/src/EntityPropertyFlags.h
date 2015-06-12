@@ -117,6 +117,10 @@ enum EntityPropertyList {
     //for lines
     PROP_LINE_WIDTH,
     PROP_LINE_POINTS,
+
+    // used by hyperlinks
+    PROP_HREF,
+    PROP_DESCRIPTION,
     
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties ABOVE this line

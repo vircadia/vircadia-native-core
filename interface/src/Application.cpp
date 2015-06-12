@@ -57,6 +57,7 @@
 
 #include <AccountManager.h>
 #include <AddressManager.h>
+#include <CursorManager.h>
 #include <AmbientOcclusionEffect.h>
 #include <AudioInjector.h>
 #include <DeferredLightingEffect.h>
@@ -106,6 +107,7 @@
 #include "ModelPackager.h"
 #include "Util.h"
 #include "InterfaceLogging.h"
+#include "InterfaceActionFactory.h"
 
 #include "avatar/AvatarManager.h"
 
@@ -256,6 +258,7 @@ bool setupEssentials(int& argc, char** argv) {
 
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
+    DependencyManager::registerInheritance<EntityActionFactoryInterface, InterfaceActionFactory>();
 
     Setting::init();
 
@@ -292,7 +295,8 @@ bool setupEssentials(int& argc, char** argv) {
     auto discoverabilityManager = DependencyManager::set<DiscoverabilityManager>();
     auto sceneScriptingInterface = DependencyManager::set<SceneScriptingInterface>();
     auto offscreenUi = DependencyManager::set<OffscreenUi>();
-    auto pathUtils =  DependencyManager::set<PathUtils>();
+    auto pathUtils = DependencyManager::set<PathUtils>();
+    auto actionFactory = DependencyManager::set<InterfaceActionFactory>();
 
     return true;
 }
@@ -418,6 +422,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(audioIO.data(), &AudioClient::muteToggled, this, &Application::audioMuteToggled);
     connect(audioIO.data(), &AudioClient::receivedFirstPacket,
             &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::receivedFirstPacket);
+    connect(audioIO.data(), &AudioClient::disconnected,
+            &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::disconnected);
 
     audioThread->start();
 
@@ -520,21 +526,26 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _glWindow = new GlWindow(_offscreenContext->getContext());
 
     QWidget* container = QWidget::createWindowContainer(_glWindow);
-    container->setFocusPolicy(Qt::StrongFocus);
     _window->setCentralWidget(container);
     _window->restoreGeometry();
     _window->setVisible(true);
-<<<<<<< HEAD
+    container->setFocusPolicy(Qt::StrongFocus);
     container->setFocus();
     _offscreenContext->makeCurrent();
     initializeGL();
     // initialization continues in initializeGL when OpenGL context is ready
-=======
-    _glWidget->setFocusPolicy(Qt::StrongFocus);
-    _glWidget->setFocus();
-    _glWidget->setCursor(Qt::BlankCursor);
->>>>>>> master
+#ifdef Q_OS_MAC
+    // OSX doesn't seem to provide for hiding the cursor only on the GL widget
+    _window->setCursor(Qt::BlankCursor);
+#else
+    // On windows and linux, hiding the top level cursor also means it's invisible
+    // when hovering over the window menu, which is a pain, so only hide it for
+    // the GL surface
+    container->setCursor(Qt::BlankCursor);
+#endif
 
+    // enable mouse tracking; otherwise, we only get drag events
+    container->setMouseTracking(true);
 
     _menuBarHeight = Menu::getInstance()->height();
 
@@ -622,12 +633,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 #endif
 
     this->installEventFilter(this);
-<<<<<<< HEAD
-=======
-    // The offscreen UI needs to intercept the mouse and keyboard
-    // events coming from the onscreen window
-    _glWidget->installEventFilter(DependencyManager::get<OffscreenUi>().data());
->>>>>>> master
 
     // initialize our face trackers after loading the menu settings
     auto faceshiftTracker = DependencyManager::get<Faceshift>();
@@ -711,12 +716,7 @@ Application::~Application() {
 
     ModelEntityItem::cleanupLoadedAnimations();
 
-<<<<<<< HEAD
     getActiveDisplayPlugin()->deactivate();
-=======
-    // stop the glWidget frame timer so it doesn't call paintGL
-    _glWidget->stopFrameTimer();
->>>>>>> master
 
     // remove avatars from physics engine
     DependencyManager::get<AvatarManager>()->clearOtherAvatars();
@@ -862,10 +862,9 @@ void Application::paintGL() {
         return;
     }
     PROFILE_RANGE(__FUNCTION__);
-<<<<<<< HEAD
     auto displayPlugin = getActiveDisplayPlugin();
     displayPlugin->preRender();
-=======
+
     _glWidget->makeCurrent();
 
     auto lodManager = DependencyManager::get<LODManager>();
@@ -874,7 +873,6 @@ void Application::paintGL() {
                           lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
                           RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
 
->>>>>>> master
     PerformanceTimer perfTimer("paintGL");
 
     _offscreenContext->makeCurrent();
@@ -1263,9 +1261,20 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
-            case Qt::Key_Apostrophe:
-                resetSensors();
+            case Qt::Key_Apostrophe: {
+                if (isMeta) {
+                    auto cursor = Cursor::Manager::instance().getCursor();
+                    auto curIcon = cursor->getIcon();
+                    if (curIcon == Cursor::Icon::DEFAULT) {
+                        cursor->setIcon(Cursor::Icon::LINK);
+                    } else {
+                        cursor->setIcon(Cursor::Icon::DEFAULT);
+                    }
+                } else {
+                    resetSensors();
+                }
                 break;
+            }
 
             case Qt::Key_A:
                 if (isShifted) {
@@ -1392,12 +1401,27 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Slash:
                 Menu::getInstance()->triggerOption(MenuOption::Stats);
                 break;
-            case Qt::Key_Plus:
-                _myAvatar->increaseSize();
+
+            case Qt::Key_Plus: {
+                if (isMeta && event->modifiers().testFlag(Qt::KeypadModifier)) {
+                    auto& cursorManager = Cursor::Manager::instance();
+                    cursorManager.setScale(cursorManager.getScale() * 1.1f);
+                } else {
+                    _myAvatar->increaseSize();
+                }
                 break;
-            case Qt::Key_Minus:
-                _myAvatar->decreaseSize();
+            }
+
+            case Qt::Key_Minus: {
+                if (isMeta && event->modifiers().testFlag(Qt::KeypadModifier)) {
+                    auto& cursorManager = Cursor::Manager::instance();
+                    cursorManager.setScale(cursorManager.getScale() / 1.1f);
+                } else {
+                    _myAvatar->decreaseSize();
+                }
                 break;
+            }
+
             case Qt::Key_Equal:
                 _myAvatar->resetSize();
                 break;

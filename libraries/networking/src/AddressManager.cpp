@@ -218,7 +218,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 const QString DOMAIN_NETWORK_PORT_KEY = "network_port";
                 const QString DOMAIN_ICE_SERVER_ADDRESS_KEY = "ice_server_address";
 
-               DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::HandleAddress);
+                DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::HandleAddress);
 
                 const QString DOMAIN_ID_KEY = "id";
                 QString domainIDString = domainObject[DOMAIN_ID_KEY].toString();

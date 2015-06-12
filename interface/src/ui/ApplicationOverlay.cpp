@@ -140,7 +140,6 @@ ApplicationOverlay::ApplicationOverlay() :
     _magnifier(true),
     _alpha(1.0f),
     _trailingAudioLoudness(0.0f),
-    _crosshairTexture(0),
     _previousBorderWidth(-1),
     _previousBorderHeight(-1),
     _previousMagnifierBottomLeft(),
@@ -629,8 +628,8 @@ void ApplicationOverlay::renderPointers() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(_crosshairTexture));
+    //glActiveTexture(GL_TEXTURE0);
+    //bindCursorTexture();
 
     if (qApp->isHMDMode() && !qApp->getLastMouseMoveWasSimulated() && !qApp->isMouseHidden()) {
         //If we are in oculus, render reticle later
@@ -676,8 +675,8 @@ void ApplicationOverlay::renderPointers() {
         _magActive[MOUSE] = false;
         renderControllerPointers();
     }
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glDisable(GL_TEXTURE_2D);
+    //glBindTexture(GL_TEXTURE_2D, 0);
+    //glDisable(GL_TEXTURE_2D);
 }
 
 void ApplicationOverlay::renderControllerPointers() {

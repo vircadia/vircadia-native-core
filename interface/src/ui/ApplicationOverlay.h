@@ -68,7 +68,6 @@ public:
     static glm::vec2 sphericalToScreen(const glm::vec2 & sphericalPos);
     
 private:
-    
     void renderReticle(glm::quat orientation, float alpha);
     void renderPointers();;
     void renderMagnifier(glm::vec2 magPos, float sizeMult, bool showBorder);
@@ -80,6 +79,12 @@ private:
     void renderCameraToggle();
     void renderStatsAndLogs();
     void renderDomainConnectionStatusBorder();
+    void bindCursorTexture(gpu::Batch& batch, uint8_t cursorId = 0);
+
+    TexturedHemisphere _overlays;
+    
+    float _textureFov;
+    float _textureAspectRatio;
     
     enum Reticles { MOUSE, LEFT_CONTROLLER, RIGHT_CONTROLLER, NUMBER_OF_RETICLES };
     bool _reticleActive[NUMBER_OF_RETICLES];
@@ -94,10 +99,10 @@ private:
     float _alpha = 1.0f;
     float _trailingAudioLoudness;
     QOpenGLFramebufferObject* _framebufferObject{nullptr};
+    QMap<uint16_t, gpu::TexturePointer> _cursors;
 
-    gpu::TexturePointer _crosshairTexture;
     GLuint _newUiTexture{ 0 };
-    
+
     int _reticleQuad;
     int _magnifierQuad;
     int _audioRedQuad;

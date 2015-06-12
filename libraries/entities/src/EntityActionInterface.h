@@ -14,12 +14,16 @@
 
 #include <QUuid>
 
+#include "EntityItem.h"
+
 class EntitySimulation;
 
 enum EntityActionType {
     // keep these synchronized with actionTypeFromString and actionTypeToString
     ACTION_TYPE_NONE,
-    ACTION_TYPE_PULL_TO_POINT
+    ACTION_TYPE_PULL_TO_POINT,
+    ACTION_TYPE_SPRING,
+    ACTION_TYPE_HOLD
 };
 
 
@@ -32,17 +36,34 @@ public:
     virtual const EntityItemPointer& getOwnerEntity() const = 0;
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) = 0;
     virtual bool updateArguments(QVariantMap arguments) = 0;
-    // virtual QByteArray serialize() = 0;
-    // static EntityActionPointer deserialize(EntityItemPointer ownerEntity, QByteArray data);
 
     static EntityActionType actionTypeFromString(QString actionTypeString);
     static QString actionTypeToString(EntityActionType actionType);
 
 protected:
+    virtual glm::vec3 getPosition() = 0;
+    virtual void setPosition(glm::vec3 position) = 0;
+    virtual glm::quat getRotation() = 0;
+    virtual void setRotation(glm::quat rotation) = 0;
+    virtual glm::vec3 getLinearVelocity() = 0;
+    virtual void setLinearVelocity(glm::vec3 linearVelocity) = 0;
+    virtual glm::vec3 getAngularVelocity() = 0;
+    virtual void setAngularVelocity(glm::vec3 angularVelocity) = 0;
 
-    static glm::vec3 extractVec3Argument(QString objectName, QVariantMap arguments, QString argumentName, bool& ok);
-    static float extractFloatArgument(QString objectName, QVariantMap arguments, QString argumentName, bool& ok);
+    // these look in the arguments map for a named argument.  if it's not found or isn't well formed,
+    // ok will be set to false (note that it's never set to true -- set it to true before calling these).
+    // if required is true, failure to extract an argument will cause a warning to be printed.
+    static glm::vec3 extractVec3Argument (QString objectName, QVariantMap arguments,
+                                          QString argumentName, bool& ok, bool required = true);
+    static glm::quat extractQuatArgument (QString objectName, QVariantMap arguments,
+                                          QString argumentName, bool& ok, bool required = true);
+    static float extractFloatArgument(QString objectName, QVariantMap arguments,
+                                      QString argumentName, bool& ok, bool required = true);
+    static QString extractStringArgument(QString objectName, QVariantMap arguments,
+                                         QString argumentName, bool& ok, bool required = true);
+
 };
+
 
 typedef std::shared_ptr<EntityActionInterface> EntityActionPointer;
 

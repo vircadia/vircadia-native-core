@@ -53,6 +53,7 @@ void RenderableParticleEffectEntityItem::render(RenderArgs* args) {
         batch.setUniformTexture(0, _texture->getGPUTexture());
     }
     batch.setModelTransform(getTransformToCenter());
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
     DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::QUADS, _cacheID);
 };
 
