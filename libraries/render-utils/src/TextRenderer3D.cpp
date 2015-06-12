@@ -392,7 +392,7 @@ void Font3D::drawString(gpu::Batch& batch, float x, float y, const QString& str,
             }
             if (isNewLine || forceNewLine) {
                 // Character return, move the advance to a new line
-                advance = glm::vec2(x, advance.y - _fontSize);
+                advance = glm::vec2(x, advance.y - _leading);
 
                 if (isNewLine) {
                     // No need to draw anything, go directly to next token
