@@ -1832,12 +1832,12 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     bool isSkinned = state.clusterMatrices.size() > 1;
     bool wireframe = isWireframe();
 
-    AABox partBounds = getPartBounds(meshIndex, partIndex);
-    bool inView = args->_viewFrustum->boxInFrustum(partBounds) != ViewFrustum::OUTSIDE;
-    
     // render the part bounding box
     #ifdef DEBUG_BOUNDING_PARTS
     {
+        AABox partBounds = getPartBounds(meshIndex, partIndex);
+        bool inView = args->_viewFrustum->boxInFrustum(partBounds) != ViewFrustum::OUTSIDE;
+
         glm::vec4 cubeColor;
         if (isSkinned) {
             cubeColor = glm::vec4(0.0f,1.0f,1.0f,1.0f);
