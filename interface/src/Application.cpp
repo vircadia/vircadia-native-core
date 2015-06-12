@@ -881,8 +881,7 @@ void Application::paintGL() {
 
     glEnable(GL_LINE_SMOOTH);
     
-    const float CAMERA_PERSON_THRESHOLD = MyAvatar::ZOOM_MIN * _myAvatar->getScale();
-    Menu::getInstance()->setIsOptionChecked("First Person", _myAvatar->getBoomLength() * _myAvatar->getScale() <= CAMERA_PERSON_THRESHOLD);
+    Menu::getInstance()->setIsOptionChecked("First Person", _myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
     Application::getInstance()->cameraMenuChanged();
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {

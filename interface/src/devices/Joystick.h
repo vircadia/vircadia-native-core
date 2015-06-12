@@ -41,6 +41,8 @@ public:
         RIGHT_AXIS_X_NEG,
         RIGHT_AXIS_Y_POS,
         RIGHT_AXIS_Y_NEG,
+        RIGHT_SHOULDER,
+        LEFT_SHOULDER,
     };
     
     Joystick();

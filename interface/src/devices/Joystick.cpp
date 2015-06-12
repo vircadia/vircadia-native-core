@@ -59,20 +59,30 @@ void Joystick::focusOutEvent() {
 void Joystick::handleAxisEvent(const SDL_ControllerAxisEvent& event) {
     SDL_GameControllerAxis axis = (SDL_GameControllerAxis) event.axis;
     
-    if (axis == SDL_CONTROLLER_AXIS_LEFTX) {
-        _axisStateMap[makeInput(LEFT_AXIS_X_POS).getChannel()] = (event.value > 0) ? event.value / MAX_AXIS : 0.0f;
-        _axisStateMap[makeInput(LEFT_AXIS_X_NEG).getChannel()] = (event.value < 0) ? -event.value / MAX_AXIS : 0.0f;
-    } else if (axis == SDL_CONTROLLER_AXIS_LEFTY) {
-        _axisStateMap[makeInput(LEFT_AXIS_Y_POS).getChannel()] = (event.value > 0) ? event.value / MAX_AXIS : 0.0f;
-        _axisStateMap[makeInput(LEFT_AXIS_Y_NEG).getChannel()] = (event.value < 0) ? -event.value / MAX_AXIS : 0.0f;
-    } else if (axis == SDL_CONTROLLER_AXIS_RIGHTX) {
-        _axisStateMap[makeInput(RIGHT_AXIS_X_POS).getChannel()] = (event.value > 0) ? event.value / MAX_AXIS : 0.0f;
-        _axisStateMap[makeInput(RIGHT_AXIS_X_NEG).getChannel()] = (event.value < 0) ? -event.value / MAX_AXIS : 0.0f;
-    } else if (axis == SDL_CONTROLLER_AXIS_RIGHTY) {
-        _axisStateMap[makeInput(RIGHT_AXIS_Y_POS).getChannel()] = (event.value > 0) ? event.value / MAX_AXIS : 0.0f;
-        _axisStateMap[makeInput(RIGHT_AXIS_Y_NEG).getChannel()] = (event.value < 0) ? -event.value / MAX_AXIS : 0.0f;
+    switch (axis) {
+        case SDL_CONTROLLER_AXIS_LEFTX:
+            _axisStateMap[makeInput(LEFT_AXIS_X_POS).getChannel()] = (event.value > 0) ? event.value / MAX_AXIS : 0.0f;
+            _axisStateMap[makeInput(LEFT_AXIS_X_NEG).getChannel()] = (event.value < 0) ? -event.value / MAX_AXIS : 0.0f;
+            break;
+        case SDL_CONTROLLER_AXIS_LEFTY:
+            _axisStateMap[makeInput(LEFT_AXIS_Y_POS).getChannel()] = (event.value > 0) ? event.value / MAX_AXIS : 0.0f;
+            _axisStateMap[makeInput(LEFT_AXIS_Y_NEG).getChannel()] = (event.value < 0) ? -event.value / MAX_AXIS : 0.0f;
+            break;
+        case SDL_CONTROLLER_AXIS_RIGHTX:
+            _axisStateMap[makeInput(RIGHT_AXIS_X_POS).getChannel()] = (event.value > 0) ? event.value / MAX_AXIS : 0.0f;
+            _axisStateMap[makeInput(RIGHT_AXIS_X_NEG).getChannel()] = (event.value < 0) ? -event.value / MAX_AXIS : 0.0f;
+            break;
+        case SDL_CONTROLLER_AXIS_RIGHTY:
+            _axisStateMap[makeInput(RIGHT_AXIS_Y_POS).getChannel()] = (event.value > 0) ? event.value / MAX_AXIS : 0.0f;
+            _axisStateMap[makeInput(RIGHT_AXIS_Y_NEG).getChannel()] = (event.value < 0) ? -event.value / MAX_AXIS : 0.0f;
+            break;
+        case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
+            _axisStateMap[makeInput(RIGHT_SHOULDER).getChannel()] = event.value / MAX_AXIS;
+            break;
+        case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
+            _axisStateMap[makeInput(LEFT_SHOULDER).getChannel()] = event.value / MAX_AXIS;
+            break;
     }
-
 }
 
 void Joystick::handleButtonEvent(const SDL_ControllerButtonEvent& event) {
@@ -109,6 +119,8 @@ void Joystick::registerToUserInputMapper(UserInputMapper& mapper) {
         
         availableInputs.append(UserInputMapper::InputPair(makeInput(SDL_CONTROLLER_BUTTON_LEFTSHOULDER), "L1"));
         availableInputs.append(UserInputMapper::InputPair(makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), "R1"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(RIGHT_SHOULDER), "L2"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(LEFT_SHOULDER), "R2"));
         
         availableInputs.append(UserInputMapper::InputPair(makeInput(LEFT_AXIS_Y_NEG), "Left Stick Up"));
         availableInputs.append(UserInputMapper::InputPair(makeInput(LEFT_AXIS_Y_POS), "Left Stick Down"));
@@ -136,6 +148,7 @@ void Joystick::assignDefaultInputMapping(UserInputMapper& mapper) {
     const float DPAD_MOVE_SPEED = .5f;
     const float JOYSTICK_YAW_SPEED = 0.5f;
     const float JOYSTICK_PITCH_SPEED = 0.25f;
+    const float BOOM_SPEED = 0.1f;
     
     // Y axes are flipped (up is negative)
     // Left Joystick: Movement, strafing
@@ -162,6 +175,10 @@ void Joystick::assignDefaultInputMapping(UserInputMapper& mapper) {
     mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(SDL_CONTROLLER_BUTTON_X), JOYSTICK_YAW_SPEED);
     mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(SDL_CONTROLLER_BUTTON_B), JOYSTICK_YAW_SPEED);
     
+    // Zoom
+    mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(RIGHT_SHOULDER), BOOM_SPEED);
+    mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(LEFT_SHOULDER), BOOM_SPEED);
+    
     
     // Hold front right shoulder button for precision controls
     // Left Joystick: Movement, strafing
@@ -187,6 +204,10 @@ void Joystick::assignDefaultInputMapping(UserInputMapper& mapper) {
     mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(SDL_CONTROLLER_BUTTON_A), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), DPAD_MOVE_SPEED/2.);
     mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(SDL_CONTROLLER_BUTTON_X), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_YAW_SPEED/2.);
     mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(SDL_CONTROLLER_BUTTON_B), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_YAW_SPEED/2.);
+    
+    // Zoom
+    mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(RIGHT_SHOULDER), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), BOOM_SPEED/2.);
+    mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(LEFT_SHOULDER), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), BOOM_SPEED/2.);
 #endif
 }
 
