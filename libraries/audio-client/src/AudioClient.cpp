@@ -156,6 +156,7 @@ void AudioClient::audioMixerKilled() {
     _hasReceivedFirstPacket = false;
     _outgoingAvatarAudioSequenceNumber = 0;
     _stats.reset();
+    emit disconnected();
 }
 
 

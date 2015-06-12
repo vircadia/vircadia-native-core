@@ -615,9 +615,11 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
 
         renderArgs->_renderSide = RenderArgs::MONO;
         qApp->displaySide(renderArgs, *_camera, false);
-        qApp->getApplicationOverlay().displayOverlayTextureHmd(renderArgs, *_camera);
+        qApp->getApplicationOverlay().displayOverlayTextureHmd(*_camera);
     });
     _activeEye = ovrEye_Count;
+
+    glPopMatrix();
 
     gpu::FramebufferPointer finalFbo;
     //Bind the output texture from the glow shader. If glow effect is disabled, we just grab the texture
@@ -629,7 +631,6 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
         finalFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer(); 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
-    glPopMatrix();
 
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
