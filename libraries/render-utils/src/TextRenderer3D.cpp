@@ -113,7 +113,7 @@ public:
     void read(QIODevice& path);
 
     glm::vec2 computeExtent(const QString& str) const;
-    float getRowHeight() const { return _fontSize; }
+    float getFontSize() const { return _fontSize; }
     
     // Render string to batch
     void drawString(gpu::Batch& batch, float x, float y, const QString& str,
@@ -476,9 +476,9 @@ glm::vec2 TextRenderer3D::computeExtent(const QString& str) const {
     return glm::vec2(0.0f, 0.0f);
 }
 
-float TextRenderer3D::getRowHeight() const {
+float TextRenderer3D::getFontSize() const {
     if (_font) {
-        return _font->getRowHeight();
+        return _font->getFontSize();
     }
     return 0.0f;
 }
