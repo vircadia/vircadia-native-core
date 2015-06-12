@@ -101,7 +101,7 @@ struct QuadBuilder {
                                     texMin);
     }
     QuadBuilder(const Glyph3D& glyph, const glm::vec2& offset) :
-    QuadBuilder(offset + glyph.offset - glm::vec2(0.0f, glyph.size.y), glyph.size,
+    QuadBuilder(offset + glm::vec2(glyph.offset.x, glyph.offset.y - glyph.size.y), glyph.size,
                     glyph.texOffset, glyph.texSize) {}
     
 };
@@ -113,7 +113,7 @@ public:
     void read(QIODevice& path);
 
     glm::vec2 computeExtent(const QString& str) const;
-    float getRowHeight() const { return _rowHeight; }
+    float getRowHeight() const { return _fontSize; }
     
     // Render string to batch
     void drawString(gpu::Batch& batch, float x, float y, const QString& str,
@@ -251,13 +251,14 @@ glm::vec2 Font3D::computeTokenExtent(const QString& token) const {
 glm::vec2 Font3D::computeExtent(const QString& str) const {
     glm::vec2 extent = glm::vec2(0.0f, 0.0f);
     
-    QStringList tokens = splitLines(str);
-    foreach(const QString& token, tokens) {
-        glm::vec2 tokenExtent = computeTokenExtent(token);
-        extent.x = std::max(tokenExtent.x, extent.x);
+    QStringList lines{ splitLines(str) };
+    if (!lines.empty()) {
+        for(const auto& line : lines) {
+            glm::vec2 tokenExtent = computeTokenExtent(line);
+            extent.x = std::max(tokenExtent.x, extent.x);
+        }
+        extent.y = lines.count() * _fontSize;
     }
-    extent.y = tokens.count() * _rowHeight;
-    
     return extent;
 }
 
@@ -393,7 +394,7 @@ void Font3D::drawString(gpu::Batch& batch, float x, float y, const QString& str,
             }
             if (isNewLine || forceNewLine) {
                 // Character return, move the advance to a new line
-                advance = glm::vec2(x, advance.y - _rowHeight);
+                advance = glm::vec2(x, advance.y - _fontSize);
 
                 if (isNewLine) {
                     // No need to draw anything, go directly to next token
@@ -413,7 +414,7 @@ void Font3D::drawString(gpu::Batch& batch, float x, float y, const QString& str,
                 for (auto c : token) {
                     auto glyph = _glyphs[c];
                     
-                    QuadBuilder qd(glyph, advance - glm::vec2(0.0f, _fontSize));
+                    QuadBuilder qd(glyph, advance - glm::vec2(0.0f, _ascent));
                     _verticesBuffer->append(sizeof(QuadBuilder), (const gpu::Byte*)&qd);
                     _numVertices += 4;
                     
