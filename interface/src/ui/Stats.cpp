@@ -161,6 +161,10 @@ void Stats::drawBackground(unsigned int rgba, int x, int y, int width, int heigh
                       ((rgba >> 8) & 0xff)  / 255.0f,
                       (rgba & 0xff) / 255.0f);
 
+    // FIX ME: is this correct? It seems to work to fix textures bleeding into us...
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_TEXTURE_2D);
+
     DependencyManager::get<GeometryCache>()->renderQuad(x, y, width, height, color);
 }
 
