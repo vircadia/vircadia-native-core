@@ -45,19 +45,47 @@ DialogContainer {
             property int inputAreaHeight: 56.0 * root.scale  // Height of the background's input area
             property int inputAreaStep: (height - inputAreaHeight) / 2
 
+            Image {
+                id: arrowContainer
+
+                source: "../images/arrowcontainer.svg"
+                
+                anchors {
+                    fill: parent
+                    leftMargin: parent.height + hifi.layout.spacing * 2
+                    rightMargin: parent.height + hifi.layout.spacing * 50
+                    topMargin: parent.inputAreaStep + hifi.layout.spacing
+                    bottomMargin: parent.inputAreaStep + hifi.layout.spacing
+                }
+            }
+
+            //Image {
+            //    id: darkGreyArrowBack
+
+            //    source: "../images/darkgreyarrow.svg"
+                
+                //anchors {
+                //    fill: parent
+                //    leftMargin: parent.height + hifi.layout.spacing * 4
+                //    rightMargin: parent.height + hifi.layout.spacing * 55
+                //    topMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
+                //    bottomMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
+                //}
+            //}
+
             TextInput {
                 id: addressLine
 
                 anchors {
                     fill: parent
-                    leftMargin: parent.height + hifi.layout.spacing * 2
+                    leftMargin: parent.height + parent.height + hifi.layout.spacing * 5
                     rightMargin: hifi.layout.spacing * 2
                     topMargin: parent.inputAreaStep + hifi.layout.spacing
                     bottomMargin: parent.inputAreaStep + hifi.layout.spacing
 
                 }
 
-                font.pixelSize: hifi.fonts.pixelSize * root.scale
+                font.pixelSize: hifi.fonts.pixelSize * root.scale * 0.75
 
                 helperText: "Go to: place, @user, /path, network address"
 

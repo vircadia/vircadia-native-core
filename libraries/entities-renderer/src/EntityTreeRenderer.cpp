@@ -48,6 +48,9 @@
 #include "RenderablePolyVoxEntityItem.h"
 #include "EntitiesRendererLogging.h"
 
+#include "DependencyManager.h"
+#include "AddressManager.h"
+
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState, 
                                             AbstractScriptingServicesInterface* scriptingServices) :
     OctreeRenderer(),
@@ -921,7 +924,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
 
         QString urlString = rayPickResult.properties.getHref();
         QUrl url = QUrl(urlString, QUrl::StrictMode);
-        if (url.isValid() && !url.isEmpty()){
+        if (url.isValid() && !url.isEmpty()) {
             qCDebug(entitiesrenderer) << "mouseMoveEvent over entity:" << urlString;
         } else {
             qCDebug(entitiesrenderer) << "mouseMoveEvent over entity:" << "Not valid href";
