@@ -193,7 +193,6 @@ const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::D
 const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
 Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
 
-
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
 public:
@@ -881,6 +880,10 @@ void Application::paintGL() {
     }
 
     glEnable(GL_LINE_SMOOTH);
+    
+    const float CAMERA_PERSON_THRESHOLD = MyAvatar::ZOOM_MIN * _myAvatar->getScale();
+    Menu::getInstance()->setIsOptionChecked("First Person", _myAvatar->getBoomLength() * _myAvatar->getScale() <= CAMERA_PERSON_THRESHOLD);
+    Application::getInstance()->cameraMenuChanged();
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         // Always use the default eye position, not the actual head eye position.
@@ -899,9 +902,8 @@ void Application::paintGL() {
         }
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-        static const float THIRD_PERSON_CAMERA_DISTANCE = 1.5f;
         _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
-            _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * THIRD_PERSON_CAMERA_DISTANCE * _myAvatar->getScale());
+            _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * _myAvatar->getBoomLength() * _myAvatar->getScale());
         if (OculusManager::isConnected()) {
             _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
         } else {
@@ -2370,10 +2372,14 @@ void Application::cameraMenuChanged() {
     } else if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
         if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
             _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+            _myAvatar->setBoomLength(MyAvatar::ZOOM_MIN);
         }
     } else {
         if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
             _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+            if (_myAvatar->getBoomLength() == MyAvatar::ZOOM_MIN) {
+                _myAvatar->setBoomLength(MyAvatar::ZOOM_DEFAULT);
+            }
         }
     }
 }
@@ -2472,7 +2478,8 @@ void Application::update(float deltaTime) {
     _myAvatar->setDriveKeys(ROT_DOWN, _userInputMapper.getActionState(UserInputMapper::PITCH_DOWN));
     _myAvatar->setDriveKeys(ROT_LEFT, _userInputMapper.getActionState(UserInputMapper::YAW_LEFT));
     _myAvatar->setDriveKeys(ROT_RIGHT, _userInputMapper.getActionState(UserInputMapper::YAW_RIGHT));
-
+    _myAvatar->setDriveKeys(BOOM_IN, _userInputMapper.getActionState(UserInputMapper::BOOM_IN));
+    _myAvatar->setDriveKeys(BOOM_OUT, _userInputMapper.getActionState(UserInputMapper::BOOM_OUT));
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
 

@@ -70,6 +70,10 @@ const int SCRIPTED_MOTOR_CAMERA_FRAME = 0;
 const int SCRIPTED_MOTOR_AVATAR_FRAME = 1;
 const int SCRIPTED_MOTOR_WORLD_FRAME = 2;
 
+const float MyAvatar::ZOOM_MIN = .5f;
+const float MyAvatar::ZOOM_MAX = 10.0f;
+const float MyAvatar::ZOOM_DEFAULT = 1.5f;
+
 MyAvatar::MyAvatar() :
 	Avatar(),
     _turningKeyPressTime(0.0f),
@@ -77,6 +81,7 @@ MyAvatar::MyAvatar() :
     _wasPushing(false),
     _isPushing(false),
     _isBraking(false),
+    _boomLength(ZOOM_DEFAULT),
     _trapDuration(0.0f),
     _thrust(0.0f),
     _keyboardMotorVelocity(0.0f),
@@ -1347,6 +1352,9 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
             }
         }
     }
+    
+    _boomLength += _driveKeys[BOOM_OUT] - _driveKeys[BOOM_IN];
+    _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);
 
     return newLocalVelocity;
 }
