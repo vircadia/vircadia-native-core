@@ -75,12 +75,8 @@
 #include "octree/OctreeFade.h"
 #include "octree/OctreePacketProcessor.h"
 #include "UndoStackScriptingInterface.h"
-<<<<<<< HEAD
 #include "DisplayPlugins.h"
-=======
-
 #include "render/Engine.h"
->>>>>>> master
 
 class QGLWidget;
 class QKeyEvent;
@@ -288,22 +284,7 @@ public:
 
     QImage renderAvatarBillboard(RenderArgs* renderArgs);
 
-<<<<<<< HEAD
-    void displaySide(const Camera& camera, bool selfAvatarOnly = false);
-=======
-    void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false, bool billboard = false);
-
-    /// Stores the current modelview matrix as the untranslated view matrix to use for transforms and the supplied vector as
-    /// the view matrix translation.
-    void updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation = glm::vec3());
-
-    const glm::mat4& getUntranslatedViewMatrix() const { return _untranslatedViewMatrix; }
-
-    /// Loads a view matrix that incorporates the specified model translation without the precision issues that can
-    /// result from matrix multiplication at high translation magnitudes.
-    void loadTranslatedViewMatrix(const glm::vec3& translation);
-
->>>>>>> master
+    void displaySide(RenderArgs* renderArgs, const Camera& camera, bool selfAvatarOnly = false, bool billboard = false);
     void getModelViewMatrix(glm::dmat4* modelViewMatrix);
     void getProjectionMatrix(glm::dmat4* projectionMatrix);
 
