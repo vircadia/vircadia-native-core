@@ -39,12 +39,13 @@ DialogContainer {
         Image {
             id: backgroundImage
 
-            source: "../images/address-bar.svg"
+            source: "../images/address-bar.001.svg"
             width: 576 * root.scale
             height: 80 * root.scale
             property int inputAreaHeight: 56.0 * root.scale  // Height of the background's input area
             property int inputAreaStep: (height - inputAreaHeight) / 2
 
+            /*
             Image {
                 id: arrowContainer
 
@@ -57,21 +58,50 @@ DialogContainer {
                     topMargin: parent.inputAreaStep + hifi.layout.spacing
                     bottomMargin: parent.inputAreaStep + hifi.layout.spacing
                 }
+            }*/
+
+            Image {
+                id: darkGreyArrowBack
+
+                source: "../images/darkgreyarrow.png"
+                
+                anchors {
+                    fill: parent
+                    leftMargin: parent.height + hifi.layout.spacing * 2
+                    rightMargin: parent.height + hifi.layout.spacing * 60
+                    topMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
+                    bottomMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
+                }
             }
 
-            //Image {
-            //    id: darkGreyArrowBack
+            Image {
+                id: seperator
 
-            //    source: "../images/darkgreyarrow.svg"
+                source: "../images/sepline.png"
                 
-                //anchors {
-                //    fill: parent
-                //    leftMargin: parent.height + hifi.layout.spacing * 4
-                //    rightMargin: parent.height + hifi.layout.spacing * 55
-                //    topMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
-                //    bottomMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
-                //}
-            //}
+                anchors {
+                    fill: parent
+                    leftMargin: parent.height + hifi.layout.spacing * 7
+                    rightMargin: parent.height + hifi.layout.spacing * 57
+                    topMargin: parent.inputAreaStep + hifi.layout.spacing
+                    bottomMargin: parent.inputAreaStep + hifi.layout.spacing
+                }
+            }
+
+            
+            Image {
+                id: lightGreyArrowForward
+
+                source: "../images/lightgreyarrow.png"
+                
+                anchors {
+                    fill: parent
+                    leftMargin: parent.height + hifi.layout.spacing * 10
+                    rightMargin: parent.height + hifi.layout.spacing * 52
+                    topMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
+                    bottomMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
+                }
+            }
 
             TextInput {
                 id: addressLine
