@@ -38,6 +38,10 @@ typedef int (*SixenseTakeIntFunction)(int);
 typedef int (*SixenseTakeIntAndSixenseControllerData)(int, sixenseControllerData*);
 #endif
 
+// These bits aren't used for buttons, so they can be used as masks:
+const unsigned int LEFT_MASK = 0;
+const unsigned int RIGHT_MASK = 1U << 1;
+
 #endif
 
 SixenseManager& SixenseManager::getInstance() {
@@ -147,6 +151,7 @@ void SixenseManager::update(float deltaTime) {
 #ifdef HAVE_SIXENSE
     Hand* hand = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHand();
     if (_isInitialized && _isEnabled) {
+        _buttonPressedMap.clear();
 #ifdef __APPLE__
         SixenseBaseFunction sixenseGetNumActiveControllers =
         (SixenseBaseFunction) _sixenseLibrary->resolve("sixenseGetNumActiveControllers");
@@ -154,12 +159,18 @@ void SixenseManager::update(float deltaTime) {
         
         if (sixenseGetNumActiveControllers() == 0) {
             _hydrasConnected = false;
+            if (_deviceID) {
+                Application::getUserInputMapper()->removeDevice(_deviceID);
+                _deviceID = 0;
+            }
             return;
         }
         
         PerformanceTimer perfTimer("sixense");
         if (!_hydrasConnected) {
             _hydrasConnected = true;
+            registerToUserInputMapper(*Application::getUserInputMapper());
+            getInstance().assignDefaultInputMapping(*Application::getUserInputMapper());
             UserActivityLogger::getInstance().connectedDevice("spatial_controller", "hydra");
         }
         
@@ -216,11 +227,13 @@ void SixenseManager::update(float deltaTime) {
                 palm->setActive(false); // if this isn't a Sixsense ID palm, always make it inactive
             }
             
-            
             //  Read controller buttons and joystick into the hand
             palm->setControllerButtons(data->buttons);
             palm->setTrigger(data->trigger);
             palm->setJoystick(data->joystick_x, data->joystick_y);
+            
+            handleButtonEvent(data->buttons, numActiveControllers - 1);
+            handleAxisEvent(data->joystick_x, data->joystick_y, data->trigger, numActiveControllers - 1);
             
             // Emulate the mouse so we can use scripts
             if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput) && !_controllersAtBase) {
@@ -590,3 +603,137 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
 
 #endif  // HAVE_SIXENSE
 
+void SixenseManager::focusOutEvent() {
+    _axisStateMap.clear();
+    _buttonPressedMap.clear();
+};
+
+void SixenseManager::handleAxisEvent(float stickX, float stickY, float trigger, int index) {
+    _axisStateMap[makeInput(AXIS_Y_POS, index).getChannel()] = (stickY > 0) ? stickY : 0.0f;
+    _axisStateMap[makeInput(AXIS_Y_NEG, index).getChannel()] = (stickY < 0) ? -stickY : 0.0f;
+    _axisStateMap[makeInput(AXIS_X_POS, index).getChannel()] = (stickX > 0) ? stickX : 0.0f;
+    _axisStateMap[makeInput(AXIS_X_NEG, index).getChannel()] = (stickX < 0) ? -stickX : 0.0f;
+    _axisStateMap[makeInput(BACK_TRIGGER, index).getChannel()] = trigger;
+}
+
+void SixenseManager::handleButtonEvent(unsigned int buttons, int index) {
+    if (buttons & BUTTON_0) {
+        _buttonPressedMap.insert(makeInput(BUTTON_0, index).getChannel());
+    }
+    if (buttons & BUTTON_1) {
+        _buttonPressedMap.insert(makeInput(BUTTON_1, index).getChannel());
+    }
+    if (buttons & BUTTON_2) {
+        _buttonPressedMap.insert(makeInput(BUTTON_2, index).getChannel());
+    }
+    if (buttons & BUTTON_3) {
+        _buttonPressedMap.insert(makeInput(BUTTON_3, index).getChannel());
+    }
+    if (buttons & BUTTON_4) {
+        _buttonPressedMap.insert(makeInput(BUTTON_4, index).getChannel());
+    }
+    if (buttons & BUTTON_FWD) {
+        _buttonPressedMap.insert(makeInput(BUTTON_FWD, index).getChannel());
+    }
+}
+
+void SixenseManager::registerToUserInputMapper(UserInputMapper& mapper) {
+    // Grab the current free device ID
+    _deviceID = mapper.getFreeDeviceID();
+    
+    auto proxy = UserInputMapper::DeviceProxy::Pointer(new UserInputMapper::DeviceProxy("Hydra"));
+    proxy->getButton = [this] (const UserInputMapper::Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
+    proxy->getAxis = [this] (const UserInputMapper::Input& input, int timestamp) -> float { return this->getAxis(input.getChannel()); };
+    proxy->getAvailabeInputs = [this] () -> QVector<UserInputMapper::InputPair> {
+        QVector<UserInputMapper::InputPair> availableInputs;
+        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_0, 0), "Left Start"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_1, 0), "Left Button 1"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_2, 0), "Left Button 2"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_3, 0), "Left Button 3"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_4, 0), "Left Button 4"));
+        
+        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_FWD, 0), "L1"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(BACK_TRIGGER, 0), "L2"));
+        
+        availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_Y_POS, 0), "Left Stick Up"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_Y_NEG, 0), "Left Stick Down"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_X_POS, 0), "Left Stick Right"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_X_NEG, 0), "Left Stick Left"));
+        
+        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_0, 1), "Right Start"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_1, 1), "Right Button 1"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_2, 1), "Right Button 2"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_3, 1), "Right Button 3"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_4, 1), "Right Button 4"));
+        
+        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_FWD, 1), "R1"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(BACK_TRIGGER, 1), "R2"));
+        
+        availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_Y_POS, 1), "Right Stick Up"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_Y_NEG, 1), "Right Stick Down"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_X_POS, 1), "Right Stick Right"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_X_NEG, 1), "Right Stick Left"));
+        return availableInputs;
+    };
+    proxy->resetDeviceBindings = [this, &mapper] () -> bool {
+        mapper.removeAllInputChannelsForDevice(_deviceID);
+        this->assignDefaultInputMapping(mapper);
+        return true;
+    };
+    mapper.registerDevice(_deviceID, proxy);
+}
+
+void SixenseManager::assignDefaultInputMapping(UserInputMapper& mapper) {
+    const float JOYSTICK_MOVE_SPEED = 1.0f;
+    const float JOYSTICK_YAW_SPEED = 0.5f;
+    const float JOYSTICK_PITCH_SPEED = 0.25f;
+    const float BUTTON_MOVE_SPEED = 1.0f;
+    const float BOOM_SPEED = .1f;
+    
+    // Left Joystick: Movement, strafing
+    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_FORWARD, makeInput(AXIS_Y_POS, 0), JOYSTICK_MOVE_SPEED);
+    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_BACKWARD, makeInput(AXIS_Y_NEG, 0), JOYSTICK_MOVE_SPEED);
+    mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(AXIS_X_POS, 0), JOYSTICK_MOVE_SPEED);
+    mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(AXIS_X_NEG, 0), JOYSTICK_MOVE_SPEED);
+    
+    // Right Joystick: Camera orientation
+    mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(AXIS_X_POS, 1), JOYSTICK_YAW_SPEED);
+    mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(AXIS_X_NEG, 1), JOYSTICK_YAW_SPEED);
+    mapper.addInputChannel(UserInputMapper::PITCH_UP, makeInput(AXIS_Y_POS, 1), JOYSTICK_PITCH_SPEED);
+    mapper.addInputChannel(UserInputMapper::PITCH_DOWN, makeInput(AXIS_Y_NEG, 1), JOYSTICK_PITCH_SPEED);
+    
+    // Buttons
+    mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(BUTTON_3, 0), BOOM_SPEED);
+    mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(BUTTON_1, 0), BOOM_SPEED);
+    
+    mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(BUTTON_3, 1), BUTTON_MOVE_SPEED);
+    mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(BUTTON_1, 1), BUTTON_MOVE_SPEED);
+}
+
+float SixenseManager::getButton(int channel) const {
+    if (!_buttonPressedMap.empty()) {
+        if (_buttonPressedMap.find(channel) != _buttonPressedMap.end()) {
+            return 1.0f;
+        } else {
+            return 0.0f;
+        }
+    }
+    return 0.0f;
+}
+
+float SixenseManager::getAxis(int channel) const {
+    auto axis = _axisStateMap.find(channel);
+    if (axis != _axisStateMap.end()) {
+        return (*axis).second;
+    } else {
+        return 0.0f;
+    }
+}
+
+UserInputMapper::Input SixenseManager::makeInput(unsigned int button, int index) {
+    return UserInputMapper::Input(_deviceID, button | (index == 0 ? LEFT_MASK : RIGHT_MASK), UserInputMapper::ChannelType::BUTTON);
+}
+
+UserInputMapper::Input SixenseManager::makeInput(SixenseManager::JoystickAxisChannel axis, int index) {
+    return UserInputMapper::Input(_deviceID, axis | (index == 0 ? LEFT_MASK : RIGHT_MASK), UserInputMapper::ChannelType::AXIS);
+}

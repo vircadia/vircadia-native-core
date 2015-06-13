@@ -82,6 +82,8 @@ void Joystick::handleAxisEvent(const SDL_ControllerAxisEvent& event) {
         case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
             _axisStateMap[makeInput(LEFT_SHOULDER).getChannel()] = event.value / MAX_AXIS;
             break;
+        default:
+            break;
     }
 }
 
@@ -102,8 +104,8 @@ void Joystick::registerToUserInputMapper(UserInputMapper& mapper) {
     _deviceID = mapper.getFreeDeviceID();
     
     auto proxy = UserInputMapper::DeviceProxy::Pointer(new UserInputMapper::DeviceProxy(_name));
-    proxy->getButton = [this] (const UserInputMapper::Input& input, int timestamp) -> bool { return this->getButton(input._channel); };
-    proxy->getAxis = [this] (const UserInputMapper::Input& input, int timestamp) -> float { return this->getAxis(input._channel); };
+    proxy->getButton = [this] (const UserInputMapper::Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
+    proxy->getAxis = [this] (const UserInputMapper::Input& input, int timestamp) -> float { return this->getAxis(input.getChannel()); };
     proxy->getAvailabeInputs = [this] () -> QVector<UserInputMapper::InputPair> {
         QVector<UserInputMapper::InputPair> availableInputs;
 #ifdef HAVE_SDL2

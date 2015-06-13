@@ -160,8 +160,8 @@ void KeyboardMouseDevice::registerToUserInputMapper(UserInputMapper& mapper) {
     _deviceID = mapper.getFreeDeviceID();
 
     auto proxy = UserInputMapper::DeviceProxy::Pointer(new UserInputMapper::DeviceProxy("Keyboard"));
-    proxy->getButton = [this] (const UserInputMapper::Input& input, int timestamp) -> bool { return this->getButton(input._channel); };
-    proxy->getAxis = [this] (const UserInputMapper::Input& input, int timestamp) -> float { return this->getAxis(input._channel); };
+    proxy->getButton = [this] (const UserInputMapper::Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
+    proxy->getAxis = [this] (const UserInputMapper::Input& input, int timestamp) -> float { return this->getAxis(input.getChannel()); };
     proxy->getAvailabeInputs = [this] () -> QVector<UserInputMapper::InputPair> {
         QVector<UserInputMapper::InputPair> availableInputs;
         for (int i = (int) Qt::Key_0; i <= (int) Qt::Key_9; i++) {

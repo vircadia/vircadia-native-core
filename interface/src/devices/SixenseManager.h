@@ -13,6 +13,7 @@
 #define hifi_SixenseManager_h
 
 #include <QObject>
+#include <unordered_set>
 
 #ifdef HAVE_SIXENSE
     #include <glm/glm.hpp>
@@ -24,6 +25,8 @@
 #endif
 
 #endif
+
+#include "ui/UserInputMapper.h"
 
 class PalmData;
 
@@ -45,6 +48,14 @@ const bool DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS = false;
 class SixenseManager : public QObject {
     Q_OBJECT
 public:
+    enum JoystickAxisChannel {
+        AXIS_Y_POS = 1U << 0,
+        AXIS_Y_NEG = 1U << 3,
+        AXIS_X_POS = 1U << 4,
+        AXIS_X_NEG = 1U << 5,
+        BACK_TRIGGER = 1U << 6,
+    };
+    
     static SixenseManager& getInstance();
     
     void initialize();
@@ -60,6 +71,21 @@ public:
     bool getInvertButtons() const { return _invertButtons; }
     void setInvertButtons(bool invertSixenseButtons) { _invertButtons = invertSixenseButtons; }
     
+    typedef std::unordered_set<int> ButtonPressedMap;
+    typedef std::map<int, float> AxisStateMap;
+    
+    float getButton(int channel) const;
+    float getAxis(int channel) const;
+    
+    UserInputMapper::Input makeInput(unsigned int button, int index);
+    UserInputMapper::Input makeInput(JoystickAxisChannel axis, int index);
+    
+    void registerToUserInputMapper(UserInputMapper& mapper);
+    void assignDefaultInputMapping(UserInputMapper& mapper);
+    
+    void update();
+    void focusOutEvent();
+    
 public slots:
     void toggleSixense(bool shouldEnable);
     void setFilter(bool filter);
@@ -70,6 +96,8 @@ private:
     ~SixenseManager();
     
 #ifdef HAVE_SIXENSE
+    void handleButtonEvent(unsigned int buttons, int index);
+    void handleAxisEvent(float x, float y, float trigger, int index);
     void updateCalibration(const sixenseControllerData* controllers);
     void emulateMouse(PalmData* palm, int index);
 
@@ -110,6 +138,12 @@ private:
     
     float _reticleMoveSpeed = DEFAULT_SIXENSE_RETICLE_MOVE_SPEED;
     bool _invertButtons = DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS;
+
+protected:
+    int _deviceID = 0;
+    
+    ButtonPressedMap _buttonPressedMap;
+    AxisStateMap _axisStateMap;
 };
 
 #endif // hifi_SixenseManager_h
