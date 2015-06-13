@@ -52,10 +52,8 @@ const DisplayPluginList& getDisplayPlugins() {
         init = true;
 
         DisplayPlugin* PLUGIN_POOL[] = {
-            new Basic2DWindowOpenGLDisplayPlugin(),
-#ifdef DEBUG
             new NullDisplayPlugin(),
-#endif
+            new Basic2DWindowOpenGLDisplayPlugin(),
             new SideBySideStereoDisplayPlugin(),
             new InterleavedStereoDisplayPlugin(),
 //            new OculusWin32DisplayPlugin(),

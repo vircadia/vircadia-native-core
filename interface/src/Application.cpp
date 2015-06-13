@@ -531,6 +531,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _window->setVisible(true);
     container->setFocusPolicy(Qt::StrongFocus);
     container->setFocus();
+    container->installEventFilter(DependencyManager::get<OffscreenUi>().data());
+
     _offscreenContext->makeCurrent();
     initializeGL();
     // initialization continues in initializeGL when OpenGL context is ready
