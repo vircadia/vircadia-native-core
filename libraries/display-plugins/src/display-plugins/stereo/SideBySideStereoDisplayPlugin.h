@@ -13,7 +13,7 @@ class SideBySideStereoDisplayPlugin : public StereoDisplayPlugin {
     Q_OBJECT
 public:
     SideBySideStereoDisplayPlugin();
-    virtual const QString & getName() override;
+    virtual const QString & getName() const override;
 private:
     static const QString NAME;
 };

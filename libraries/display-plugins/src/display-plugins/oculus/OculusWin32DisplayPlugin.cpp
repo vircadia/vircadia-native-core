@@ -146,11 +146,11 @@ private:
 
 const QString OculusWin32DisplayPlugin::NAME("Oculus Rift");
 
-const QString & OculusWin32DisplayPlugin::getName() {
+const QString & OculusWin32DisplayPlugin::getName() const {
     return NAME;
 }
 
-bool OculusWin32DisplayPlugin::isSupported() {
+bool OculusWin32DisplayPlugin::isSupported() const {
     if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
         return false;
     }

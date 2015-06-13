@@ -11,24 +11,26 @@
 
 class NullDisplayPlugin : public DisplayPlugin {
 public:
-    static const QString NAME;
 
     virtual ~NullDisplayPlugin() final {}
-    virtual const QString & getName();
+    virtual const QString & getName() const override;
 
-    void activate(PluginContainer * container);
-    void deactivate();
+    void activate(PluginContainer * container) override;
+    void deactivate() override;
 
-    virtual QSize getDeviceSize() const;
-    virtual glm::ivec2 getCanvasSize() const;
-    virtual bool hasFocus() const;
-    virtual glm::ivec2 getRelativeMousePosition() const;
-    virtual glm::ivec2 getTrueMousePosition() const;
-    virtual PickRay computePickRay(const glm::vec2 & pos) const;
-    virtual bool isMouseOnScreen() const;
-    virtual QWindow* getWindow() const;
-    virtual void preRender();
-    virtual void preDisplay();
-    virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize);
-    virtual void finishFrame();
+    virtual QSize getDeviceSize() const override;
+    virtual glm::ivec2 getCanvasSize() const override;
+    virtual bool hasFocus() const override;
+//    virtual glm::ivec2 getRelativeMousePosition() const override;
+    virtual glm::ivec2 getTrueMousePosition() const override;
+    virtual PickRay computePickRay(const glm::vec2 & pos) const override;
+    virtual bool isMouseOnScreen() const override;
+    virtual QWindow* getWindow() const override;
+    virtual void preRender() override;
+    virtual void preDisplay() override;
+    virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize) override;
+    virtual void finishFrame() override;
+
+private:
+    static const QString NAME;
 };

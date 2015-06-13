@@ -621,9 +621,6 @@ bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position,
 //Renders optional pointers
 void ApplicationOverlay::renderPointers() {
     //lazily load crosshair texture
-    if (_crosshairTexture == 0) {
-        _crosshairTexture = TextureCache::getImageTexture(PathUtils::resourcesPath() + "images/sixense-reticle.png");
-    }
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -791,16 +788,16 @@ void ApplicationOverlay::renderControllerPointers() {
 }
 
 void ApplicationOverlay::renderPointersOculus() {
-
+#if 0
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_TEXTURE_2D);
-
-    glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(_crosshairTexture));
     glDisable(GL_DEPTH_TEST);
 
+    glEnable(GL_TEXTURE_2D);
+    bindCursorTexture();
+
     glMatrixMode(GL_MODELVIEW);
-    
+
     //Controller Pointers
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     for (int i = 0; i < (int)myAvatar->getHand()->getNumPalms(); i++) {
@@ -825,6 +822,7 @@ void ApplicationOverlay::renderPointersOculus() {
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_BLEND);
+#endif
 }
 
 //Renders a small magnification of the currently bound texture at the coordinates

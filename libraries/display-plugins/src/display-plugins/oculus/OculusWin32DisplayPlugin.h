@@ -20,8 +20,8 @@ using MirrorFboPtr = QSharedPointer<MirrorFramebufferWrapper>;
 
 class OculusWin32DisplayPlugin : public OculusBaseDisplayPlugin {
 public:
-    virtual bool isSupported();
-    virtual const QString & getName();
+    virtual bool isSupported() const override;
+    virtual const QString & getName() const override;
 
     virtual void activate(PluginContainer * container) override;
     virtual void deactivate() override;

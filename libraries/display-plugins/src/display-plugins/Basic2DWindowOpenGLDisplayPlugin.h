@@ -13,7 +13,7 @@ class Basic2DWindowOpenGLDisplayPlugin : public MainWindowOpenGLDisplayPlugin {
     Q_OBJECT
 
 public:
-    virtual const QString & getName() override;
+    virtual const QString & getName() const override;
 
 private:
     static const QString NAME;

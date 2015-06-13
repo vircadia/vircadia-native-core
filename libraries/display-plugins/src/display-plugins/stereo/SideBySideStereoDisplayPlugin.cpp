@@ -19,7 +19,7 @@
 
 const QString SideBySideStereoDisplayPlugin::NAME("SBS Stereo Display");
 
-const QString & SideBySideStereoDisplayPlugin::getName() {
+const QString & SideBySideStereoDisplayPlugin::getName() const {
     return NAME;
 }
 

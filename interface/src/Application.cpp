@@ -865,7 +865,7 @@ void Application::paintGL() {
     auto displayPlugin = getActiveDisplayPlugin();
     displayPlugin->preRender();
 
-    _glWidget->makeCurrent();
+    _offscreenContext->makeCurrent();
 
     auto lodManager = DependencyManager::get<LODManager>();
     gpu::Context context(new gpu::GLBackend());
@@ -875,7 +875,6 @@ void Application::paintGL() {
 
     PerformanceTimer perfTimer("paintGL");
 
-    _offscreenContext->makeCurrent();
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
@@ -938,7 +937,7 @@ void Application::paintGL() {
     }
 
     renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
-    DependencyManager::get<GlowEffect>()->prepare();
+    DependencyManager::get<GlowEffect>()->prepare(&renderArgs);
     // Primary rendering pass
     auto primaryFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
     auto finalFbo = primaryFbo;
@@ -963,13 +962,13 @@ void Application::paintGL() {
                 eyeCamera.setTransform(displayPlugin->getModelview(eye, _myCamera.getTransform()));
                 eyeCamera.setProjection(displayPlugin->getProjection(eye, _myCamera.getProjection()));
 
-                displaySide(eyeCamera);
+                displaySide(&renderArgs, eyeCamera);
 
                 if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
                     glm::vec2 mpos = getActiveDisplayPlugin()->getUiMousePosition();
-                    _rearMirrorTools->render(true, QPoint(mpos.x, mpos.y));
+                    _rearMirrorTools->render(&renderArgs, true, QPoint(mpos.x, mpos.y));
                 } else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-                    renderRearViewMirror(_mirrorViewRect);
+                    renderRearViewMirror(&renderArgs, _mirrorViewRect);
                 }
             }, [&] {
                 r.moveLeft(r.width());
@@ -977,15 +976,15 @@ void Application::paintGL() {
             glDisable(GL_SCISSOR_TEST);
         } else {
             glViewport(0, 0, size.width(), size.height());
-            displaySide(_myCamera);
+            displaySide(&renderArgs, _myCamera);
             if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
                 glm::vec2 mpos = getActiveDisplayPlugin()->getUiMousePosition();
-                _rearMirrorTools->render(true, QPoint(mpos.x, mpos.y));
+                _rearMirrorTools->render(&renderArgs, true, QPoint(mpos.x, mpos.y));
             } else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-                renderRearViewMirror(_mirrorViewRect);
+                renderRearViewMirror(&renderArgs, _mirrorViewRect);
             }
         }
-        finalFbo = DependencyManager::get<GlowEffect>()->render();
+        finalFbo = DependencyManager::get<GlowEffect>()->render(&renderArgs);
     }
 
     glPopMatrix();
@@ -3030,7 +3029,8 @@ void Application::updateShadowMap(RenderArgs* renderArgs) {
         glMatrixMode(GL_MODELVIEW);
     }
 
-    glViewport(0, 0, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+
+    glViewport(0, 0, getDeviceSize().width(), getDeviceSize().height());
     activeRenderingThread = nullptr;
 }
 
@@ -3271,7 +3271,7 @@ namespace render {
                     PerformanceTimer perfTimer("atmosphere");
                     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                         "Application::displaySide() ... atmosphere...");
-                    background->_environment->renderAtmospheres(*(args->_viewFrustum));
+                    background->_environment->renderAtmospheres(args->_viewFrustum->getPosition());
                 }
 
             }
@@ -3291,7 +3291,7 @@ namespace render {
 }
 
 
-void Application::displaySide(RenderArgs* renderArgs, const Camera& theCamera, bool selfAvatarOnly) {
+void Application::displaySide(RenderArgs* renderArgs, const Camera& theCamera, bool selfAvatarOnly, bool billboard) {
     activeRenderingThread = QThread::currentThread();
     PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("display");
@@ -3555,32 +3555,6 @@ bool Application::getCascadeShadowsEnabled() {
     return Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows);
 }
 
-glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
-    float horizontalScale = _glWidget->getDeviceWidth() / 2.0f;
-    float verticalScale   = _glWidget->getDeviceHeight() / 2.0f;
-
-    // -1,-1 is 0,windowHeight
-    // 1,1 is windowWidth,0
-
-    // -1,1                    1,1
-    // +-----------------------+
-    // |           |           |
-    // |           |           |
-    // | -1,0      |           |
-    // |-----------+-----------|
-    // |          0,0          |
-    // |           |           |
-    // |           |           |
-    // |           |           |
-    // +-----------------------+
-    // -1,-1                   1,-1
-
-    glm::vec2 screenPoint((projectedPoint.x + 1.0) * horizontalScale,
-        ((projectedPoint.y + 1.0) * -verticalScale) + _glWidget->getDeviceHeight());
-
-    return screenPoint;
-}
-
 void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard) {
     // Grab current viewport to reset it at the end
     int viewport[4];
@@ -3643,7 +3617,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     glPopMatrix();
 
     if (!billboard) {
-        _rearMirrorTools->render(renderArgs, false, _glWidget->mapFromGlobal(QCursor::pos()));
+        _rearMirrorTools->render(renderArgs, false, getActiveDisplayPlugin()->getWindow()->mapFromGlobal(QCursor::pos()));
     }
     // reset Viewport and projection matrix
     glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
@@ -4829,7 +4803,6 @@ void Application::updateDisplayMode() {
 
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         offscreenUi->setMouseTranslator(getActiveDisplayPlugin()->getMouseTranslator());
-        updateCursorVisibility();
     }
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
 }

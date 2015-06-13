@@ -9,6 +9,6 @@
 
 const QString Basic2DWindowOpenGLDisplayPlugin::NAME("2D Display");
 
-const QString & Basic2DWindowOpenGLDisplayPlugin::getName() {
+const QString & Basic2DWindowOpenGLDisplayPlugin::getName() const {
     return NAME;
 }

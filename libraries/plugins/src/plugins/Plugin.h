@@ -7,7 +7,7 @@ class PluginContainer;
 
 class Plugin : public QObject {
 public:
-    virtual const QString& getName() = 0;
+    virtual const QString& getName() const = 0;
     virtual bool isSupported() const;
 
     /// Called when plugin is initially loaded, typically at application start

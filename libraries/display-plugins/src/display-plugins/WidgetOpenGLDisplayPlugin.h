@@ -18,7 +18,7 @@ public:
 
     WidgetOpenGLDisplayPlugin();
 
-    virtual const QString & getName() override;
+    virtual const QString & getName() const override;
     virtual glm::ivec2 getTrueMousePosition() const override;
     virtual QSize getDeviceSize() const override;
     virtual glm::ivec2 getCanvasSize() const override;

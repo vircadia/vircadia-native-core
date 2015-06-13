@@ -19,7 +19,7 @@
 
 const QString InterleavedStereoDisplayPlugin::NAME("Interleaved Stereo Display");
 
-const QString & InterleavedStereoDisplayPlugin::getName() {
+const QString & InterleavedStereoDisplayPlugin::getName() const {
     return NAME;
 }
 

@@ -81,8 +81,6 @@ private:
     void renderDomainConnectionStatusBorder();
     void bindCursorTexture(gpu::Batch& batch, uint8_t cursorId = 0);
 
-    TexturedHemisphere _overlays;
-    
     float _textureFov;
     float _textureAspectRatio;
     

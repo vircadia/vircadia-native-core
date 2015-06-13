@@ -21,6 +21,8 @@
 #else
 #endif
 
+#include <display-plugins/openvr/OpenVrDisplayPlugin.h>
+
 
 static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool active = false) {
     auto menu = Menu::getInstance();
@@ -56,7 +58,8 @@ const DisplayPluginList& getDisplayPlugins() {
 #endif
             new SideBySideStereoDisplayPlugin(),
             new InterleavedStereoDisplayPlugin(),
-            new OculusWin32DisplayPlugin(),
+//            new OculusWin32DisplayPlugin(),
+            new OpenVrDisplayPlugin(),
             nullptr
         };
         for (int i = 0; PLUGIN_POOL[i]; ++i) {

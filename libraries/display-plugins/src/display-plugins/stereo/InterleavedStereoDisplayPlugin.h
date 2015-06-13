@@ -13,7 +13,7 @@ class InterleavedStereoDisplayPlugin : public StereoDisplayPlugin {
     Q_OBJECT
 public:
     InterleavedStereoDisplayPlugin();
-    virtual const QString & getName() override;
+    virtual const QString & getName() const override;
 
     // initialize OpenGL context settings needed by the plugin
     virtual void customizeContext(PluginContainer * container) override;

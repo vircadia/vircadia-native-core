@@ -11,7 +11,7 @@
 
 const QString NullDisplayPlugin::NAME("NullDisplayPlugin");
 
-const QString & NullDisplayPlugin::getName() {
+const QString & NullDisplayPlugin::getName() const {
     return NAME;
 }
 
@@ -25,10 +25,6 @@ glm::ivec2 NullDisplayPlugin::getCanvasSize() const {
 
 bool NullDisplayPlugin::hasFocus() const {
     return false;
-}
-
-glm::ivec2 NullDisplayPlugin::getRelativeMousePosition() const {
-    return glm::ivec2();
 }
 
 glm::ivec2 NullDisplayPlugin::getTrueMousePosition() const {
