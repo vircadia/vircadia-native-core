@@ -21,7 +21,6 @@
 #include <ViewFrustum.h>
 
 #include "OpenVrHelpers.h"
-#include "../OglplusHelpers.h"
 
 
 const QString OpenVrDisplayPlugin::NAME("OpenVR (Vive)");
