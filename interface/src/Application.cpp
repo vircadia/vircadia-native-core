@@ -878,11 +878,6 @@ void Application::paintGL() {
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
     resizeGL();
 
-    {
-        PerformanceTimer perfTimer("renderOverlay");
-        _applicationOverlay.renderOverlay(&renderArgs);
-    }
-
     glEnable(GL_LINE_SMOOTH);
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
@@ -976,6 +971,12 @@ void Application::paintGL() {
                             GL_COLOR_BUFFER_BIT, GL_NEAREST);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
     }
+
+    {
+        PerformanceTimer perfTimer("renderOverlay");
+        _applicationOverlay.renderOverlay(&renderArgs);
+    }
+
 
     if (!OculusManager::isConnected() || OculusManager::allowSwap()) {
         _glWidget->swapBuffers();

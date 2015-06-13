@@ -275,7 +275,7 @@ void ApplicationOverlay::bindCursorTexture(gpu::Batch& batch, uint8_t cursorInde
 
 // Draws the FBO texture for the screen
 void ApplicationOverlay::displayOverlayTexture(RenderArgs* renderArgs) {
-    if (_alpha == 0.0f) {
+    if (_alpha == 0.0f || !_framebufferObject) {
         return;
     }
     
@@ -335,7 +335,7 @@ glm::vec2 getPolarCoordinates(const PalmData& palm) {
 
 // Draws the FBO texture for Oculus rift.
 void ApplicationOverlay::displayOverlayTextureHmd(RenderArgs* renderArgs, Camera& whichCamera) {
-    if (_alpha == 0.0f) {
+    if (_alpha == 0.0f || !_framebufferObject) {
         return;
     }
 
