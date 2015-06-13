@@ -914,22 +914,13 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
     bool precisionPicking = false; // for mouse moves we do not do precision picking
     RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::TryLock, precisionPicking);
     if (rayPickResult.intersects) {
+        //qCDebug(entitiesrenderer) << "mouseReleaseEvent over entity:" << rayPickResult.entityID;
         QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
-
         // load the entity script if needed...
         QScriptValue entityScript = loadEntityScript(rayPickResult.entity);
         if (entityScript.property("mouseMoveEvent").isValid()) {
             entityScript.property("mouseMoveEvent").call(entityScript, entityScriptArgs);
         }
-
-        QString urlString = rayPickResult.properties.getHref();
-        QUrl url = QUrl(urlString, QUrl::StrictMode);
-        if (url.isValid() && !url.isEmpty()) {
-            qCDebug(entitiesrenderer) << "mouseMoveEvent over entity:" << urlString;
-        } else {
-            qCDebug(entitiesrenderer) << "mouseMoveEvent over entity:" << "Not valid href";
-        }
-
         emit mouseMoveOnEntity(rayPickResult, event, deviceID);
         if (entityScript.property("mouseMoveOnEntity").isValid()) {
             entityScript.property("mouseMoveOnEntity").call(entityScript, entityScriptArgs);
