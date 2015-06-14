@@ -252,6 +252,9 @@ public:
     /// \param delayLoad if true, don't load the geometry immediately; wait until load is first requested
     QSharedPointer<NetworkGeometry> getGeometry(const QUrl& url, const QUrl& fallback = QUrl(), bool delayLoad = false);
 
+    /// Set a batch to the simple pipeline, returning the previous pipeline
+    void useSimpleDrawPipeline(gpu::Batch& batch);
+
 protected:
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
@@ -269,6 +272,7 @@ private:
         int vertexSize;
     };
 
+    gpu::PipelinePointer _standardDrawPipeline;
     QHash<float, gpu::BufferPointer> _cubeVerticies;
     QHash<Vec2Pair, gpu::BufferPointer> _cubeColors;
     gpu::BufferPointer _wireCubeIndexBuffer;
@@ -276,7 +280,7 @@ private:
     QHash<float, gpu::BufferPointer> _solidCubeVertices;
     QHash<Vec2Pair, gpu::BufferPointer> _solidCubeColors;
     gpu::BufferPointer _solidCubeIndexBuffer;
-    
+
     class BatchItemDetails {
     public:
         static int population;

@@ -28,6 +28,9 @@
 #include "RenderUtilsLogging.h"
 #include "GeometryCache.h"
 
+#include "standardTransformPNTC_vert.h"
+#include "standardDrawTexture_frag.h"
+
 //#define WANT_DEBUG
 
 const int GeometryCache::UNKNOWN_ID = -1;
@@ -1817,6 +1820,23 @@ QSharedPointer<Resource> GeometryCache::createResource(const QUrl& url, const QS
     return geometry.staticCast<Resource>();
 }
 
+void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch) {
+    if (!_standardDrawPipeline) {
+        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(standardTransformPNTC_vert)));
+        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(standardDrawTexture_frag)));
+        auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        gpu::Shader::makeProgram((*program));
+
+        auto state = gpu::StatePointer(new gpu::State());
+
+        // enable decal blend
+        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
+
+        _standardDrawPipeline.reset(gpu::Pipeline::create(program, state));
+    }
+    batch.setPipeline(_standardDrawPipeline);
+}
+
 const float NetworkGeometry::NO_HYSTERESIS = -1.0f;
 
 NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGeometry>& fallback, bool delayLoad,
@@ -2385,3 +2405,4 @@ int NetworkMesh::getTranslucentPartCount(const FBXMesh& fbxMesh) const {
     }
     return count;
 }
+

@@ -333,8 +333,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _cursorVisible(true),
         _lastMouseMove(usecTimestampNow()),
         _lastMouseMoveWasSimulated(false),
-        _touchAvgX(0.0f),
-        _touchAvgY(0.0f),
         _isTouchPressed(false),
         _mousePressed(false),
         _enableProcessOctreeThread(true),
@@ -840,7 +838,7 @@ void Application::initializeUi() {
     VrMenu::executeQueuedLambdas();
     offscreenUi->setMouseTranslator([this](const QPointF& p){
         if (OculusManager::isConnected()) {
-            glm::vec2 pos = _applicationOverlay.screenToOverlay(toGlm(p));
+            glm::vec2 pos = _compositor.screenToOverlay(toGlm(p));
             return QPointF(pos.x, pos.y);
         }
         return QPointF(p);
@@ -950,7 +948,7 @@ void Application::paintGL() {
         glPushMatrix();
         glLoadIdentity();
         displaySide(&renderArgs, _myCamera);
-        _applicationOverlay.displayOverlayTexture(&renderArgs);
+        _compositor.displayOverlayTexture(&renderArgs);
         glPopMatrix();
 
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
@@ -1551,8 +1549,7 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
         _keyboardMouseDevice.mousePressEvent(event);
 
         if (event->button() == Qt::LeftButton) {
-            _mouseDragStartedX = getTrueMouseX();
-            _mouseDragStartedY = getTrueMouseY();
+            _mouseDragStarted = getTrueMouse();
             _mousePressed = true;
 
             if (mouseOnScreen()) {
@@ -1654,22 +1651,18 @@ void Application::touchUpdateEvent(QTouchEvent* event) {
     bool validTouch = false;
     if (activeWindow() == _window) {
         const QList<QTouchEvent::TouchPoint>& tPoints = event->touchPoints();
-        _touchAvgX = 0.0f;
-        _touchAvgY = 0.0f;
+        _touchAvg = vec2();
         int numTouches = tPoints.count();
         if (numTouches > 1) {
             for (int i = 0; i < numTouches; ++i) {
-                _touchAvgX += tPoints[i].pos().x();
-                _touchAvgY += tPoints[i].pos().y();
+                _touchAvg += toGlm(tPoints[i].pos());
             }
-            _touchAvgX /= (float)(numTouches);
-            _touchAvgY /= (float)(numTouches);
+            _touchAvg /= (float)(numTouches);
             validTouch = true;
         }
     }
     if (!_isTouchPressed) {
-        _touchDragStartedAvgX = _touchAvgX;
-        _touchDragStartedAvgY = _touchAvgY;
+        _touchDragStartedAvg = _touchAvg;
     }
     _isTouchPressed = validTouch;
 }
@@ -1705,8 +1698,7 @@ void Application::touchEndEvent(QTouchEvent* event) {
     _keyboardMouseDevice.touchEndEvent(event);
 
     // put any application specific touch behavior below here..
-    _touchDragStartedAvgX = _touchAvgX;
-    _touchDragStartedAvgY = _touchAvgY;
+    _touchDragStartedAvg = _touchAvg;
     _isTouchPressed = false;
 
 }
@@ -1855,9 +1847,9 @@ void Application::setFullscreen(bool fullscreen) {
         Menu::getInstance()->getActionForOption(MenuOption::Fullscreen)->setChecked(fullscreen);
     }
 
-// The following code block is useful on platforms that can have a visible
-// app menu in a fullscreen window.  However the OSX mechanism hides the
-// application menu for fullscreen apps, so the check is not required.
+    // The following code block is useful on platforms that can have a visible
+    // app menu in a fullscreen window.  However the OSX mechanism hides the
+    // application menu for fullscreen apps, so the check is not required.
 #ifndef Q_OS_MAC
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
         if (fullscreen) {
@@ -1927,11 +1919,6 @@ void Application::setEnableVRMode(bool enableVRMode) {
         OculusManager::recalibrate();
     } else {
         OculusManager::abandonCalibration();
-
-        _mirrorCamera.setHmdPosition(glm::vec3());
-        _mirrorCamera.setHmdRotation(glm::quat());
-        _myCamera.setHmdPosition(glm::vec3());
-        _myCamera.setHmdRotation(glm::quat());
     }
 
     resizeGL();
@@ -1943,44 +1930,34 @@ void Application::setLowVelocityFilter(bool lowVelocityFilter) {
 
 bool Application::mouseOnScreen() const {
     if (OculusManager::isConnected()) {
-        return getMouseX() >= 0 && getMouseX() <= _glWidget->getDeviceWidth() &&
-               getMouseY() >= 0 && getMouseY() <= _glWidget->getDeviceHeight();
+        ivec2 mouse = getMouse();
+        if (!glm::all(glm::greaterThanEqual(mouse, ivec2()))) {
+            return false;
+        }
+        ivec2 size = toGlm(_glWidget->getDeviceSize());
+        if (!glm::all(glm::lessThanEqual(mouse, size))) {
+            return false;
+        }
     }
     return true;
 }
 
-int Application::getMouseX() const {
+ivec2 Application::getMouse() const {
     if (OculusManager::isConnected()) {
-        glm::vec2 pos = _applicationOverlay.screenToOverlay(glm::vec2(getTrueMouseX(), getTrueMouseY()));
-        return pos.x;
+        return _compositor.screenToOverlay(getTrueMouse());
     }
-    return getTrueMouseX();
+    return getTrueMouse();
 }
 
-int Application::getMouseY() const {
+ivec2 Application::getMouseDragStarted() const {
     if (OculusManager::isConnected()) {
-        glm::vec2 pos = _applicationOverlay.screenToOverlay(glm::vec2(getTrueMouseX(), getTrueMouseY()));
-        return pos.y;
+        return _compositor.screenToOverlay(getTrueMouseDragStarted());
     }
-    return getTrueMouseY();
+    return getTrueMouseDragStarted();
 }
 
-int Application::getMouseDragStartedX() const {
-    if (OculusManager::isConnected()) {
-        glm::vec2 pos = _applicationOverlay.screenToOverlay(glm::vec2(getTrueMouseDragStartedX(),
-                                                                      getTrueMouseDragStartedY()));
-        return pos.x;
-    }
-    return getTrueMouseDragStartedX();
-}
-
-int Application::getMouseDragStartedY() const {
-    if (OculusManager::isConnected()) {
-        glm::vec2 pos = _applicationOverlay.screenToOverlay(glm::vec2(getTrueMouseDragStartedX(),
-                                                                      getTrueMouseDragStartedY()));
-        return pos.y;
-    }
-    return getTrueMouseDragStartedY();
+ivec2 Application::getTrueMouseDragStarted() const {
+    return _mouseDragStarted;
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
@@ -3127,7 +3104,7 @@ PickRay Application::computePickRay(float x, float y) const {
     y /= size.y;
     PickRay result;
     if (isHMDMode()) {
-        getApplicationOverlay().computeHmdPickRay(glm::vec2(x, y), result.origin, result.direction);
+        getApplicationCompositor().computeHmdPickRay(glm::vec2(x, y), result.origin, result.direction);
     } else {
         if (QThread::currentThread() == activeRenderingThread) {
             getDisplayViewFrustum()->computePickRay(x, y, result.origin, result.direction);
@@ -4809,12 +4786,8 @@ QSize Application::getDeviceSize() const {
     return _glWidget->getDeviceSize();
 }
 
-int Application::getTrueMouseX() const {
-    return _glWidget->mapFromGlobal(QCursor::pos()).x();
-}
-
-int Application::getTrueMouseY() const {
-    return _glWidget->mapFromGlobal(QCursor::pos()).y();
+ivec2 Application::getTrueMouse() const {
+    return toGlm(_glWidget->mapFromGlobal(QCursor::pos()));
 }
 
 bool Application::isThrottleRendering() const {
@@ -4844,3 +4817,18 @@ qreal Application::getDevicePixelRatio() {
     return _window ? _window->windowHandle()->devicePixelRatio() : 1.0;
 }
 
+mat4 Application::getEyeProjection(int eye) const {
+    if (isHMDMode()) {
+        return OculusManager::getEyeProjection(eye);
+    } 
+      
+    return _viewFrustum.getProjection();
+}
+
+mat4 Application::getEyePose(int eye) const {
+    if (isHMDMode()) {
+        return OculusManager::getEyePose(eye);
+    }
+
+    return mat4();
+}

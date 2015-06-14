@@ -81,6 +81,9 @@ public:
     static glm::vec3 getRightEyePosition() { return _eyePositions[ovrEye_Right]; }
     
     static int getHMDScreen();
+
+    static glm::mat4 getEyeProjection(int eye);
+    static glm::mat4 getEyePose(int eye);
     
 private:
     static void initSdk();

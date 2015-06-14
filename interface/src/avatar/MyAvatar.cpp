@@ -1559,7 +1559,6 @@ void MyAvatar::renderLaserPointers() {
 
 //Gets the tip position for the laser pointer
 glm::vec3 MyAvatar::getLaserPointerTipPosition(const PalmData* palm) {
-    const ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
     glm::vec3 direction = glm::normalize(palm->getTipPosition() - palm->getPosition());
 
     glm::vec3 position = palm->getPosition();
@@ -1568,7 +1567,8 @@ glm::vec3 MyAvatar::getLaserPointerTipPosition(const PalmData* palm) {
 
 
     glm::vec3 result;
-    if (applicationOverlay.calculateRayUICollisionPoint(position, direction, result)) {
+    const auto& compositor = Application::getInstance()->getApplicationCompositor();
+    if (compositor.calculateRayUICollisionPoint(position, direction, result)) {
         return result;
     }
 

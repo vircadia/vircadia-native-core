@@ -120,7 +120,7 @@ void TV3DManager::display(RenderArgs* renderArgs, Camera& whichCamera) {
         glLoadIdentity();
         renderArgs->_renderSide = RenderArgs::MONO;
         qApp->displaySide(renderArgs, eyeCamera, false);
-        qApp->getApplicationOverlay().displayOverlayTexture(renderArgs);
+        qApp->getApplicationCompositor().displayOverlayTexture(renderArgs);
         _activeEye = NULL;
     }, [&]{
         // render right side view

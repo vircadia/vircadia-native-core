@@ -69,6 +69,7 @@
 #include "ui/UpdateDialog.h"
 #include "ui/overlays/Overlays.h"
 #include "ui/ApplicationOverlay.h"
+#include "ui/ApplicationCompositor.h"
 #include "ui/RunningScriptsWidget.h"
 #include "ui/ToolWindow.h"
 #include "ui/UserInputMapper.h"
@@ -222,15 +223,21 @@ public:
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     bool mouseOnScreen() const;
-    int getMouseX() const;
-    int getMouseY() const;
-    glm::ivec2 getTrueMousePosition() const;
-    int getTrueMouseX() const;
-    int getTrueMouseY() const;
-    int getMouseDragStartedX() const;
-    int getMouseDragStartedY() const;
-    int getTrueMouseDragStartedX() const { return _mouseDragStartedX; }
-    int getTrueMouseDragStartedY() const { return _mouseDragStartedY; }
+
+    ivec2 getMouse() const;
+    ivec2 getTrueMouse() const;
+    ivec2 getMouseDragStarted() const;
+    ivec2 getTrueMouseDragStarted() const;
+
+    // TODO get rid of these and use glm types directly
+    int getMouseX() const { return getMouse().x; }
+    int getMouseY() const { return getMouse().y; }
+    int getTrueMouseX() const { return getTrueMouse().x; }
+    int getTrueMouseY() const { return getTrueMouse().y; }
+    int getMouseDragStartedX() const { return getMouseDragStarted().x; }
+    int getMouseDragStartedY() const { return getMouseDragStarted().y; }
+    int getTrueMouseDragStartedX() const { return getTrueMouseDragStarted().x; }
+    int getTrueMouseDragStartedY() const { return getTrueMouseDragStarted().y; }
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
     
     FaceTracker* getActiveFaceTracker();
@@ -239,6 +246,8 @@ public:
     QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
     const ApplicationOverlay& getApplicationOverlay() const { return _applicationOverlay; }
+    ApplicationCompositor& getApplicationCompositor() { return _compositor; }
+    const ApplicationCompositor& getApplicationCompositor() const { return _compositor; }
     Overlays& getOverlays() { return _overlays; }
 
     float getFps() const { return _fps; }
@@ -333,6 +342,9 @@ public:
     bool isHMDMode() const;
     glm::quat getHeadOrientation() const;
     glm::vec3 getHeadPosition() const;
+    glm::mat4 getHeadPose() const;
+    glm::mat4 getEyePose(int eye) const;
+    glm::mat4 getEyeProjection(int eye) const;
 
     QRect getDesirableApplicationGeometry();
     RunningScriptsWidget* getRunningScriptsWidget() { return _runningScriptsWidget; }
@@ -584,18 +596,17 @@ private:
     Environment _environment;
 
     bool _cursorVisible;
-    int _mouseDragStartedX;
-    int _mouseDragStartedY;
+    ivec2 _mouseDragStarted;
+
     quint64 _lastMouseMove;
     bool _lastMouseMoveWasSimulated;
 
     glm::vec3 _mouseRayOrigin;
     glm::vec3 _mouseRayDirection;
 
-    float _touchAvgX;
-    float _touchAvgY;
-    float _touchDragStartedAvgX;
-    float _touchDragStartedAvgY;
+    vec2 _touchAvg;
+    vec2 _touchDragStartedAvg;
+
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
 
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
@@ -676,6 +687,7 @@ private:
 
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
+    ApplicationCompositor _compositor;
 };
 
 #endif // hifi_Application_h

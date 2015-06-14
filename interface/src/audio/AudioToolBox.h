@@ -14,7 +14,7 @@
 
 #include <DependencyManager.h>
 #include <GeometryCache.h>
-#include <QOpenGLTexture>
+#include <gpu/Texture.h>
 
 class AudioToolBox : public Dependency {
     SINGLETON_DEPENDENCY
