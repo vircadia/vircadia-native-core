@@ -50,7 +50,7 @@ public:
     ~TextRenderer3D();
 
     glm::vec2 computeExtent(const QString& str) const;
-    float getRowHeight() const;
+    float getFontSize() const;
     
     void draw(gpu::Batch& batch, float x, float y, const QString& str, const glm::vec4& color = glm::vec4(-1.0f),
                const glm::vec2& bounds = glm::vec2(-1.0f));

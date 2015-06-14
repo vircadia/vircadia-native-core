@@ -161,6 +161,10 @@ void Stats::drawBackground(unsigned int rgba, int x, int y, int width, int heigh
                       ((rgba >> 8) & 0xff)  / 255.0f,
                       (rgba & 0xff) / 255.0f);
 
+    // FIX ME: is this correct? It seems to work to fix textures bleeding into us...
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_TEXTURE_2D);
+
     DependencyManager::get<GeometryCache>()->renderQuad(x, y, width, height, color);
 }
 
@@ -460,7 +464,7 @@ void Stats::display(
     verticalOffset = STATS_PELS_INITIALOFFSET;
     horizontalOffset = _lastHorizontalOffset + _generalStatsWidth + _pingStatsWidth + _geoStatsWidth + 3;
 
-    lines = _expanded ? 10 : 2;
+    lines = _expanded ? 10 : 3;
 
     drawBackground(backgroundColor, horizontalOffset, 0, canvasSize.x - horizontalOffset,
         (lines + 1) * STATS_PELS_PER_LINE);
@@ -608,12 +612,10 @@ void Stats::display(
     }
 
     // LOD Details
-    if (_expanded) {
-        octreeStats.str("");
-        QString displayLODDetails = DependencyManager::get<LODManager>()->getLODFeedbackText();
-        octreeStats << "LOD: You can see " << qPrintable(displayLODDetails.trimmed());
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
-    }
+    octreeStats.str("");
+    QString displayLODDetails = DependencyManager::get<LODManager>()->getLODFeedbackText();
+    octreeStats << "LOD: You can see " << qPrintable(displayLODDetails.trimmed());
+    verticalOffset += STATS_PELS_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
 }
 

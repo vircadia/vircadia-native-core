@@ -33,9 +33,9 @@ public:
     ~ApplicationOverlay();
 
     void renderOverlay(RenderArgs* renderArgs);
-    void displayOverlayTexture(RenderArgs* renderArgs);
-    void displayOverlayTextureStereo(RenderArgs* renderArgs, Camera& whichCamera, float aspectRatio, float fov);
-    void displayOverlayTextureHmd(RenderArgs* renderArgs, Camera& whichCamera);
+    void displayOverlayTexture();
+    void displayOverlayTextureStereo(Camera& whichCamera, float aspectRatio, float fov);
+    void displayOverlayTextureHmd(Camera& whichCamera);
 
     QPoint getPalmClickLocation(const PalmData *palm) const;
     bool calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const;
@@ -59,7 +59,6 @@ public:
     glm::vec2 screenToOverlay(const glm::vec2 & screenPos) const;
     glm::vec2 overlayToScreen(const glm::vec2 & overlayPos) const;
     void computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const;
-    GLuint getOverlayTexture();
 
     static glm::vec2 directionToSpherical(const glm::vec3 & direction);
     static glm::vec3 sphericalToDirection(const glm::vec2 & sphericalPos);
@@ -67,12 +66,38 @@ public:
     static glm::vec2 sphericalToScreen(const glm::vec2 & sphericalPos);
     
 private:
-    void buildHemiVertices(const float fov, const float aspectRatio, const int slices, const int stacks);
-    void drawSphereSection(gpu::Batch& batch);
-    float _hmdUIAngularSize = DEFAULT_HMD_UI_ANGULAR_SIZE;
-    QOpenGLFramebufferObject* _framebufferObject;
+    // Interleaved vertex data
+    struct TextureVertex {
+        glm::vec3 position;
+        glm::vec2 uv;
+    };
 
-    void renderPointers();
+    typedef QPair<GLuint, GLuint> VerticesIndices;
+    class TexturedHemisphere {
+    public:
+        TexturedHemisphere();
+        ~TexturedHemisphere();
+        
+        void bind();
+        void release();
+        GLuint getTexture();
+        
+        void buildFramebufferObject();
+        void buildVBO(const float fov, const float aspectRatio, const int slices, const int stacks);
+        void render();
+        
+    private:
+        void cleanupVBO();
+        
+        GLuint _vertices;
+        GLuint _indices;
+        QOpenGLFramebufferObject* _framebufferObject;
+        VerticesIndices _vbo;
+    };
+    
+    float _hmdUIAngularSize = DEFAULT_HMD_UI_ANGULAR_SIZE;
+    void renderReticle(glm::quat orientation, float alpha);
+    void renderPointers();;
     void renderMagnifier(glm::vec2 magPos, float sizeMult, bool showBorder);
     
     void renderControllerPointers();
@@ -84,12 +109,10 @@ private:
     void renderDomainConnectionStatusBorder();
     void bindCursorTexture(gpu::Batch& batch, uint8_t cursorId = 0);
 
-    void buildFramebufferObject();
+    TexturedHemisphere _overlays;
     
     float _textureFov;
     float _textureAspectRatio;
-    int _hemiVerticesID{ GeometryCache::UNKNOWN_ID };
-
     
     enum Reticles { MOUSE, LEFT_CONTROLLER, RIGHT_CONTROLLER, NUMBER_OF_RETICLES };
     bool _reticleActive[NUMBER_OF_RETICLES];
@@ -102,6 +125,8 @@ private:
     float _alpha = 1.0f;
     float _oculusUIRadius;
     float _trailingAudioLoudness;
+    
+     gpu::TexturePointer _crosshairTexture;
 
 
     QMap<uint16_t, gpu::TexturePointer> _cursors;
@@ -123,10 +148,6 @@ private:
     glm::vec3 _previousMagnifierBottomRight;
     glm::vec3 _previousMagnifierTopLeft;
     glm::vec3 _previousMagnifierTopRight;
-
-    gpu::PipelinePointer _standardDrawPipeline;
-
-    gpu::PipelinePointer getDrawPipeline();
 
 };
 
