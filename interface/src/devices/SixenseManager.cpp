@@ -65,6 +65,8 @@ SixenseManager::SixenseManager() :
     _bumperPressed[1] = false;
     _oldX[1] = -1;
     _oldY[1] = -1;
+    _prevPalms[0] = nullptr;
+    _prevPalms[1] = nullptr;
 }
 
 SixenseManager::~SixenseManager() {
@@ -162,6 +164,12 @@ void SixenseManager::update(float deltaTime) {
             if (_deviceID) {
                 Application::getUserInputMapper()->removeDevice(_deviceID);
                 _deviceID = 0;
+                if (_prevPalms[0]) {
+                    _prevPalms[0]->setActive(false);
+                }
+                if (_prevPalms[1]) {
+                    _prevPalms[1]->setActive(false);
+                }
             }
             return;
         }
@@ -209,6 +217,7 @@ void SixenseManager::update(float deltaTime) {
             for (size_t j = 0; j < hand->getNumPalms(); j++) {
                 if (hand->getPalms()[j].getSixenseID() == data->controller_index) {
                     palm = &(hand->getPalms()[j]);
+                    _prevPalms[numActiveControllers - 1] = palm;
                     foundHand = true;
                 }
             }
@@ -217,6 +226,7 @@ void SixenseManager::update(float deltaTime) {
                 hand->getPalms().push_back(newPalm);
                 palm = &(hand->getPalms()[hand->getNumPalms() - 1]);
                 palm->setSixenseID(data->controller_index);
+                _prevPalms[numActiveControllers - 1] = palm;
                 qCDebug(interfaceapp, "Found new Sixense controller, ID %i", data->controller_index);
             }
             

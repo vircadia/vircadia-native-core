@@ -132,6 +132,7 @@ private:
     bool _bumperPressed[2];
     int _oldX[2];
     int _oldY[2];
+    PalmData* _prevPalms[2];
     
     bool _lowVelocityFilter;
     bool _controllersAtBase;
