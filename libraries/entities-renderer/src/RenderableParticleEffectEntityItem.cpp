@@ -75,7 +75,7 @@ void RenderableParticleEffectEntityItem::updateQuads(RenderArgs* args, bool text
     vertices.reserve(getLivingParticleCount() * VERTS_PER_PARTICLE);
     
     if (textured) {
-      textureCoords.reserve(getLivingParticleCount() * VERTS_PER_PARTICLE);
+        textureCoords.reserve(getLivingParticleCount() * VERTS_PER_PARTICLE);
     }
     positions.reserve(getLivingParticleCount());
    
