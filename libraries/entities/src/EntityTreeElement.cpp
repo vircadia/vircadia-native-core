@@ -392,17 +392,20 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     
     // If we wrote fewer entities than we expected, update the number of entities in our packet
     bool successUpdateEntityCount = true;
-    if (!noEntitiesFit && numberOfEntities != actualNumberOfEntities) {
+    if (numberOfEntities != actualNumberOfEntities) {
         successUpdateEntityCount = packetData->updatePriorBytes(numberOfEntitiesOffset,
                                             (const unsigned char*)&actualNumberOfEntities, sizeof(actualNumberOfEntities));
     }
 
     // If we weren't able to update our entity count, or we couldn't fit any entities, then
     // we should discard our element and return a result of NONE
-    if (!successUpdateEntityCount || noEntitiesFit) {
+    if (!successUpdateEntityCount) {
         packetData->discardLevel(elementLevel);
         appendElementState = OctreeElement::NONE;
     } else {
+        if (noEntitiesFit) {
+            appendElementState = OctreeElement::PARTIAL;
+        }
         packetData->endLevel(elementLevel);
     }
     return appendElementState;
