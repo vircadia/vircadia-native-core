@@ -92,7 +92,6 @@ class PolyVoxEntityItem : public EntityItem {
     glm::vec3 _voxelVolumeSize; // this is always 3 bytes
     QByteArray _voxelData;
     PolyVoxSurfaceStyle _voxelSurfaceStyle;
-
 };
 
 #endif // hifi_PolyVoxEntityItem_h
