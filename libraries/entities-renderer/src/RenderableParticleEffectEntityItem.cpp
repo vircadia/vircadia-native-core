@@ -75,22 +75,24 @@ void RenderableParticleEffectEntityItem::updateQuads(RenderArgs* args, bool text
     vertices.reserve(getLivingParticleCount() * VERTS_PER_PARTICLE);
     
     if (textured) {
-        positions.reserve(getLivingParticleCount());
-        textureCoords.reserve(getLivingParticleCount() * VERTS_PER_PARTICLE);
-        
-        for (quint32 i = _particleHeadIndex; i != _particleTailIndex; i = (i + 1) % _maxParticles) {
-            positions.append(_particlePositions[i]);
-            
+      textureCoords.reserve(getLivingParticleCount() * VERTS_PER_PARTICLE);
+    }
+    positions.reserve(getLivingParticleCount());
+   
+    
+    for (quint32 i = _particleHeadIndex; i != _particleTailIndex; i = (i + 1) % _maxParticles) {
+        positions.append(_particlePositions[i]);
+        if (textured) {        
             textureCoords.append(glm::vec2(0, 1));
             textureCoords.append(glm::vec2(1, 1));
             textureCoords.append(glm::vec2(1, 0));
             textureCoords.append(glm::vec2(0, 0));
         }
+    }
         
         // sort particles back to front
         ::zSortAxis = args->_viewFrustum->getDirection();
         qSort(positions.begin(), positions.end(), zSort);
-    }
     
     for (int i = 0; i < positions.size(); i++) {
         glm::vec3 pos = (textured) ? positions[i] : _particlePositions[i];
