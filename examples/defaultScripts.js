@@ -11,7 +11,6 @@
 Script.load("progress.js");
 Script.load("edit.js");
 Script.load("selectAudioDevice.js");
-Script.load("controllers/hydra/hydraMove.js");
 Script.load("inspect.js");
 Script.load("lobby.js");
 Script.load("notifications.js");

@@ -645,6 +645,9 @@ void SixenseManager::handleButtonEvent(unsigned int buttons, int index) {
     if (buttons & BUTTON_FWD) {
         _buttonPressedMap.insert(makeInput(BUTTON_FWD, index).getChannel());
     }
+    if (buttons & BUTTON_TRIGGER) {
+        _buttonPressedMap.insert(makeInput(BUTTON_TRIGGER, index).getChannel());
+    }
 }
 
 void SixenseManager::registerToUserInputMapper(UserInputMapper& mapper) {
@@ -669,6 +672,7 @@ void SixenseManager::registerToUserInputMapper(UserInputMapper& mapper) {
         availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_Y_NEG, 0), "Left Stick Down"));
         availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_X_POS, 0), "Left Stick Right"));
         availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_X_NEG, 0), "Left Stick Left"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_TRIGGER, 0), "Left Trigger Press"));
         
         availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_0, 1), "Right Start"));
         availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_1, 1), "Right Button 1"));
@@ -683,6 +687,8 @@ void SixenseManager::registerToUserInputMapper(UserInputMapper& mapper) {
         availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_Y_NEG, 1), "Right Stick Down"));
         availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_X_POS, 1), "Right Stick Right"));
         availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_X_NEG, 1), "Right Stick Left"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_TRIGGER, 1), "Right Trigger Press"));
+
         return availableInputs;
     };
     proxy->resetDeviceBindings = [this, &mapper] () -> bool {

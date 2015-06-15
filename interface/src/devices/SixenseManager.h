@@ -36,6 +36,7 @@ const unsigned int BUTTON_2 = 1U << 6;
 const unsigned int BUTTON_3 = 1U << 3;
 const unsigned int BUTTON_4 = 1U << 4;
 const unsigned int BUTTON_FWD = 1U << 7;
+const unsigned int BUTTON_TRIGGER = 1U << 8;
 
 // Event type that represents using the controller
 const unsigned int CONTROLLER_0_EVENT = 1500U;
