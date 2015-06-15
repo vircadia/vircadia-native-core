@@ -101,7 +101,7 @@ void EntityMotionState::handleEasyChanges(uint32_t flags) {
     if (flags & EntityItem::DIRTY_SIMULATOR_ID) {
         _loopsSinceOwnershipBid = 0;
         _loopsWithoutOwner = 0;
-        _candidateForOwnership = 0;
+        _candidateForOwnership = false;
         if (_entity->getSimulatorID().isNull()
                 && !_entity->isMoving()
                 && _body->isActive()) {

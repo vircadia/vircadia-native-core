@@ -124,6 +124,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_USER_DATA;
     requestedProperties += PROP_MARKETPLACE_ID;
     requestedProperties += PROP_NAME;
+    requestedProperties += PROP_SIMULATOR_PRIORITY;
     requestedProperties += PROP_SIMULATOR_ID;
     requestedProperties += PROP_HREF;
     requestedProperties += PROP_DESCRIPTION;
@@ -599,16 +600,17 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             auto nodeList = DependencyManager::get<NodeList>();
             if (_simulatorID == nodeList->getSessionUUID()) {
                 // we think we're the simulation owner but entity-server says otherwise 
-                // we relenquish ownership iff the incoming priority is greater than or equal to ours
-                // AND we don't have max priority
-                if (priority >= _simulatorPriority && _simulatorPriority != MAX_SIMULATOR_PRIORITY) {
+                // we relenquish ownership only if we don't have MAX_SIMULATOR_PRIORITY
+                if (_simulatorPriority != MAX_SIMULATOR_PRIORITY) {
                     // we're losing simulation ownership
                     _simulatorID = id;
                     _simulatorPriority = priority;
+                    _dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
                 }
             } else {
                 _simulatorID = id;
                 _simulatorPriority = priority;
+                _dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
             }
         } else if (priority != _simulatorPriority) {
             // priority is changing but simulatorID is not.
@@ -967,8 +969,8 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionsWillMove, getCollisionsWillMove);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(locked, getLocked);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(userData, getUserData);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(simulatorID, getSimulatorID);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(simulatorPriority, getSimulatorPriority);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(simulatorID, getSimulatorID);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(marketplaceID, getMarketplaceID);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(name, getName);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(href, getHref);
