@@ -453,6 +453,7 @@ private slots:
     void setEnable3DTVMode(bool enable3DTVMode);
     void setEnableVRMode(bool enableVRMode);
     void cameraMenuChanged();
+    void rotationModeChanged();
 
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
 

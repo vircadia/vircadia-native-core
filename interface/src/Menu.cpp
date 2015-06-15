@@ -254,6 +254,9 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror,
         0, // QML Qt::Key_H,
         false, qApp, SLOT(cameraMenuChanged()));
+    
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::CenterPlayerInView,
+                                           0, false, qApp, SLOT(rotationModeChanged()));
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools,
 #ifdef Q_OS_MAC
