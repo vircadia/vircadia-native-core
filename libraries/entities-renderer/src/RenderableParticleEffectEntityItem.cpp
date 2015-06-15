@@ -53,7 +53,7 @@ void RenderableParticleEffectEntityItem::render(RenderArgs* args) {
         batch.setUniformTexture(0, _texture->getGPUTexture());
     }
     batch.setModelTransform(getTransformToCenter());
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, textured);
     DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::QUADS, _cacheID);
 };
 
@@ -96,10 +96,11 @@ void RenderableParticleEffectEntityItem::updateQuads(RenderArgs* args, bool text
         glm::vec3 pos = (textured) ? positions[i] : _particlePositions[i];
 
         // generate corners of quad aligned to face the camera.
-        vertices.append(pos - rightOffset + upOffset);
         vertices.append(pos + rightOffset + upOffset);
-        vertices.append(pos + rightOffset - upOffset);
+        vertices.append(pos - rightOffset + upOffset);
         vertices.append(pos - rightOffset - upOffset);
+        vertices.append(pos + rightOffset - upOffset);
+   
     }
     
     if (textured) {
