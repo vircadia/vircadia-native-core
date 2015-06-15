@@ -2,6 +2,7 @@
 //  examples
 //
 //  Created by Brad Hefta-Gaub on 10/2/14.
+//  Persist toolbar by HRS 6/11/15.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  This script allows you to edit entities with a new UI/UX for mouse and trackpad based editing
@@ -320,6 +321,7 @@ var toolBar = (function () {
         }
     }
 
+    const persistKey = "highfidelity.edit.toolbar.position";
     that.move = function () {
         var newViewPort,
             toolsX,
@@ -330,6 +332,15 @@ var toolBar = (function () {
         if (toolBar === undefined) {
             initialize();
 
+            toolBar.save = function () {
+                Settings.setValue(persistKey, JSON.stringify([toolBar.x, toolBar.y]));
+            };
+            var old = JSON.parse(Settings.getValue(persistKey) || '0');
+            if (old) {
+                windowDimensions = newViewPort;
+                toolBar.move(old[0], old[1]);
+                return;
+            }
         } else if (windowDimensions.x === newViewPort.x &&
                    windowDimensions.y === newViewPort.y) {
             return;
