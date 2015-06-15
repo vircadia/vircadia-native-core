@@ -350,8 +350,6 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         }
     } else {
         // we we couldn't add the entity count, then we couldn't add anything for this element and we're in a NONE state
-        if (this == _myTree->getRoot())
-            qDebug() << "OctreeElement::NONE 0";;
         appendElementState = OctreeElement::NONE;
     }
 
