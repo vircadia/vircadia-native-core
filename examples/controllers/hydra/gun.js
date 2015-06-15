@@ -99,6 +99,13 @@ var NUM_BUTTONS = 3;
 
 var screenSize = Controller.getViewportDimensions();
 var startX = screenSize.x / 2 - (NUM_BUTTONS * (BUTTON_SIZE + PADDING)) / 2;
+Script.include(["../../libraries/toolBars.js"]);
+const persistKey = "highfidelity.gun.toolbar.position";
+var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL);
+toolBar.save = function () {
+    Settings.setValue(persistKey, JSON.stringify([toolBar.x, toolBar.y]));
+};
+var old = JSON.parse(Settings.getValue(persistKey) || '0');
 var reticle = Overlays.addOverlay("image", {
                     x: screenSize.x / 2 - (BUTTON_SIZE / 2),
                     y: screenSize.y / 2 - (BUTTON_SIZE / 2),
@@ -108,9 +115,9 @@ var reticle = Overlays.addOverlay("image", {
                     alpha: 1
                 });
 
-var offButton = Overlays.addOverlay("image", {
-                    x: startX,
-                    y: screenSize.y - (BUTTON_SIZE + PADDING),
+var offButton = toolBar.addOverlay("image", {
+                    x: old ? old[0] : startX,
+                    y: old ? old[1] : (screenSize.y - (BUTTON_SIZE + PADDING)),
                     width: BUTTON_SIZE,
                     height: BUTTON_SIZE,
                     imageURL: HIFI_PUBLIC_BUCKET + "images/gun/close.svg",
@@ -118,7 +125,7 @@ var offButton = Overlays.addOverlay("image", {
                 });
 
 startX += BUTTON_SIZE + PADDING;
-var platformButton = Overlays.addOverlay("image", {
+var platformButton = toolBar.addOverlay("image", {
                     x: startX,
                     y: screenSize.y - (BUTTON_SIZE + PADDING),
                     width: BUTTON_SIZE,
@@ -128,7 +135,7 @@ var platformButton = Overlays.addOverlay("image", {
                 });
 
 startX += BUTTON_SIZE + PADDING;
-var gridButton = Overlays.addOverlay("image", {
+var gridButton = toolBar.addOverlay("image", {
                     x: startX,
                     y: screenSize.y - (BUTTON_SIZE + PADDING),
                     width: BUTTON_SIZE,
@@ -493,10 +500,8 @@ function mousePressEvent(event) {
 }
 
 function scriptEnding() {
-    Overlays.deleteOverlay(reticle); 
-    Overlays.deleteOverlay(offButton);
-    Overlays.deleteOverlay(platformButton);
-    Overlays.deleteOverlay(gridButton);
+    Overlays.deleteOverlay(reticle);
+    toolBar.cleanup();
     Overlays.deleteOverlay(pointer[0]);
     Overlays.deleteOverlay(pointer[1]);
     Overlays.deleteOverlay(text);
