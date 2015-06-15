@@ -96,9 +96,9 @@ private:
     SixenseManager();
     ~SixenseManager();
     
-#ifdef HAVE_SIXENSE
     void handleButtonEvent(unsigned int buttons, int index);
     void handleAxisEvent(float x, float y, float trigger, int index);
+#ifdef HAVE_SIXENSE
     void updateCalibration(const sixenseControllerData* controllers);
     void emulateMouse(PalmData* palm, int index);
 
