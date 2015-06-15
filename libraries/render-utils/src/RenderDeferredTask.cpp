@@ -50,6 +50,7 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
    _jobs.push_back(Job(RenderDeferred()));
    _jobs.push_back(Job(ResolveDeferred()));
    _jobs.push_back(Job(DrawTransparentDeferred()));
+   _jobs.push_back(Job(DrawPostLayered()));
    _jobs.push_back(Job(ResetGLState()));
 }
 
@@ -85,7 +86,7 @@ template <> void render::jobRun(const DrawOpaqueDeferred& job, const SceneContex
 
     // render opaques
     auto& scene = sceneContext->_scene;
-    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::opaqueShape());
+    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::opaqueShape().withoutLayered());
     auto& renderDetails = renderContext->args->_details;
 
     ItemIDsBounds inItems;
@@ -135,10 +136,12 @@ template <> void render::jobRun(const DrawOpaqueDeferred& job, const SceneContex
         Transform viewMat;
         args->_viewFrustum->evalProjectionMatrix(projMat);
         args->_viewFrustum->evalViewTransform(viewMat);
+        if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+            viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
+        }
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
 
-        renderContext->args->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
         {
             GLenum buffers[3];
             int bufferCount = 0;
@@ -163,7 +166,7 @@ template <> void render::jobRun(const DrawTransparentDeferred& job, const SceneC
 
     // render transparents
     auto& scene = sceneContext->_scene;
-    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::transparentShape());
+    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::transparentShape().withoutLayered());
     auto& renderDetails = renderContext->args->_details;
     
     ItemIDsBounds inItems;
@@ -203,10 +206,11 @@ template <> void render::jobRun(const DrawTransparentDeferred& job, const SceneC
         Transform viewMat;
         args->_viewFrustum->evalProjectionMatrix(projMat);
         args->_viewFrustum->evalViewTransform(viewMat);
+        if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+            viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
+        }
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
-
-        args->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
 
         const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
 

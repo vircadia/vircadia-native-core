@@ -66,6 +66,9 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     // set the logging target to the the CHILD_TARGET_NAME
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
 
+    // make sure we output process IDs for a child AC otherwise it's insane to parse
+    LogHandler::getInstance().setShouldOutputPID(true);
+
     // setup our _requestAssignment member variable from the passed arguments
     _requestAssignment = Assignment(Assignment::RequestCommand, requestAssignmentType, assignmentPool);
 

@@ -123,6 +123,7 @@ protected:
 namespace render {
    template <> const ItemKey payloadGetKey(const Overlay::Pointer& overlay); 
    template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay);
+   template <> int payloadGetLayer(const Overlay::Pointer& overlay);
    template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args);
 }
 

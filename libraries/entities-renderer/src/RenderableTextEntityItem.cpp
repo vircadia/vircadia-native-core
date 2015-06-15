@@ -47,12 +47,13 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     glm::vec3 maxCorner = glm::vec3(dimensions.x, 0.0f, SLIGHTLY_BEHIND);
     DependencyManager::get<DeferredLightingEffect>()->renderQuad(batch, minCorner, maxCorner, backgroundColor);
     
-    float scale = _lineHeight / _textRenderer->getRowHeight();
+    float scale = _lineHeight / _textRenderer->getFontSize();
     transformToTopLeft.setScale(scale); // Scale to have the correct line height
     batch.setModelTransform(transformToTopLeft);
     
-    float leftMargin = 0.5f * _lineHeight, topMargin = 0.5f * _lineHeight;
-    glm::vec2 bounds = glm::vec2(dimensions.x - 2.0f * leftMargin, dimensions.y - 2.0f * topMargin);
+    float leftMargin = 0.1f * _lineHeight, topMargin = 0.1f * _lineHeight;
+    glm::vec2 bounds = glm::vec2(dimensions.x - 2.0f * leftMargin,
+                                 dimensions.y - 2.0f * topMargin);
     _textRenderer->draw(batch, leftMargin / scale, -topMargin / scale, _text, textColor, bounds / scale);
 }
 

@@ -192,7 +192,6 @@ void render::renderItems(const SceneContextPointer& sceneContext, const RenderCo
     }
 }
 
-
 void addClearStateCommands(gpu::Batch& batch) {
     batch._glDepthMask(true);
     batch._glDepthFunc(GL_LESS);
@@ -264,7 +263,6 @@ template <> void render::jobRun(const DrawOpaque& job, const SceneContextPointer
 
     renderContext->_numDrawnOpaqueItems = renderedItems.size();
 
-
     ItemIDsBounds sortedItems;
     sortedItems.reserve(culledItems.size());
     if (renderContext->_sortOpaque) {
@@ -281,10 +279,12 @@ template <> void render::jobRun(const DrawOpaque& job, const SceneContextPointer
         Transform viewMat;
         args->_viewFrustum->evalProjectionMatrix(projMat);
         args->_viewFrustum->evalViewTransform(viewMat);
+        if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+            viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
+        }
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
 
-        renderContext->args->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
         {
             GLenum buffers[3];
             int bufferCount = 0;
@@ -348,10 +348,11 @@ template <> void render::jobRun(const DrawTransparent& job, const SceneContextPo
         Transform viewMat;
         args->_viewFrustum->evalProjectionMatrix(projMat);
         args->_viewFrustum->evalViewTransform(viewMat);
+        if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+            viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
+        }
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
-
-        args->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
 
         const float MOSTLY_OPAQUE_THRESHOLD = 0.75f;
         const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
@@ -435,6 +436,9 @@ template <> void render::jobRun(const DrawBackground& job, const SceneContextPoi
     Transform viewMat;
     args->_viewFrustum->evalProjectionMatrix(projMat);
     args->_viewFrustum->evalViewTransform(viewMat);
+    if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+        viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
+    }
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewMat);
 
@@ -446,6 +450,51 @@ template <> void render::jobRun(const DrawBackground& job, const SceneContextPoi
     args->_context->syncCache();
 }
 
+template <> void render::jobRun(const DrawPostLayered& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    PerformanceTimer perfTimer("DrawPostLayered");
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
+
+    // render backgrounds
+    auto& scene = sceneContext->_scene;
+    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::opaqueShape().withLayered());
+
+
+    ItemIDsBounds inItems;
+    inItems.reserve(items.size());
+    for (auto id : items) {
+        auto& item = scene->getItem(id);
+        if (item.getKey().isVisible() && (item.getLayer() > 0)) {
+            inItems.emplace_back(id);
+        }
+    }
+    if (inItems.empty()) {
+        return;
+    }
+
+    RenderArgs* args = renderContext->args;
+    gpu::Batch batch;
+    args->_batch = &batch;
+
+    glm::mat4 projMat;
+    Transform viewMat;
+    args->_viewFrustum->evalProjectionMatrix(projMat);
+    args->_viewFrustum->evalViewTransform(viewMat);
+    if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+        viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
+    }
+    batch.setProjectionTransform(projMat);
+    batch.setViewTransform(viewMat);
+
+    batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0);
+
+    renderItems(sceneContext, renderContext, inItems);
+    args->_context->render((*args->_batch));
+    args->_batch = nullptr;
+
+    // Force the context sync
+    args->_context->syncCache();
+}
 
 
 void ItemMaterialBucketMap::insert(const ItemID& id, const model::MaterialKey& key) {

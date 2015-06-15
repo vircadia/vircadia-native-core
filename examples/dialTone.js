@@ -3,6 +3,7 @@
 //  examples
 //
 //  Created by Stephen Birarda on 06/08/15.
+//  Added disconnect HRS 6/11/15.
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -10,14 +11,19 @@
 //
 
 // setup the local sound we're going to use
-var connectSound = SoundCache.getSound("file://" + Paths.resources + "sounds/short1.wav");
+var connectSound = SoundCache.getSound("file://" + Paths.resources + "sounds/hello.wav");
+var disconnectSound = SoundCache.getSound("file://" + Paths.resources + "sounds/goodbye.wav");
 
 // setup the options needed for that sound
 var connectSoundOptions = {
     localOnly: true
-}
+};
 
 // play the sound locally once we get the first audio packet from a mixer
 Audio.receivedFirstPacket.connect(function(){
     Audio.playSound(connectSound, connectSoundOptions);
+});
+
+Audio.disconnected.connect(function(){
+    Audio.playSound(disconnectSound, connectSoundOptions);
 });

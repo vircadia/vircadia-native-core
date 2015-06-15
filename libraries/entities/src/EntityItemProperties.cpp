@@ -347,6 +347,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_SURFACE_STYLE, voxelSurfaceStyle);
     CHECK_PROPERTY_CHANGE(PROP_LINE_WIDTH, lineWidth);
     CHECK_PROPERTY_CHANGE(PROP_LINE_POINTS, linePoints);
+    CHECK_PROPERTY_CHANGE(PROP_HREF, href);
+    CHECK_PROPERTY_CHANGE(PROP_DESCRIPTION, description);
+
     changedProperties += _stage.getChangedProperties();
     changedProperties += _atmosphere.getChangedProperties();
     changedProperties += _skybox.getChangedProperties();
@@ -439,7 +442,9 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(voxelSurfaceStyle);
     COPY_PROPERTY_TO_QSCRIPTVALUE(lineWidth);
     COPY_PROPERTY_TO_QSCRIPTVALUE(linePoints);
-    
+    COPY_PROPERTY_TO_QSCRIPTVALUE(href);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(description);
+
     // Sitting properties support
     if (!skipDefaults) {
         QScriptValue sittingPoints = engine->newObject();
@@ -548,6 +553,9 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelSurfaceStyle, uint16_t, setVoxelSurfaceStyle);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lineWidth, float, setLineWidth);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(linePoints, qVectorVec3, setLinePoints);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(href, QString, setHref);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(description, QString, setDescription);
+
 
     if (!honorReadOnly) {
         // this is used by the json reader to set things that we don't want javascript to able to affect.
@@ -712,6 +720,8 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_LOCKED, properties.getLocked());
             APPEND_ENTITY_PROPERTY(PROP_USER_DATA, properties.getUserData());
             APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, properties.getSimulatorID());
+            APPEND_ENTITY_PROPERTY(PROP_HREF, properties.getHref());
+            APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, properties.getDescription());
             
             if (properties.getType() == EntityTypes::Web) {
                 APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, properties.getSourceUrl());
@@ -962,6 +972,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_USER_DATA, QString, setUserData);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SIMULATOR_ID, QUuid, setSimulatorID);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HREF, QString, setHref);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DESCRIPTION, QString, setDescription);
     
     if (properties.getType() == EntityTypes::Web) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SOURCE_URL, QString, setSourceUrl);
@@ -1146,6 +1158,9 @@ void EntityItemProperties::markAllChanged() {
     
     _lineWidthChanged = true;
     _linePointsChanged = true;
+
+    _hrefChanged = true;
+    _descriptionChanged = true;
 
 }
 

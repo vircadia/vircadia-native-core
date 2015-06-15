@@ -13,7 +13,15 @@
 
 
 // UserInputMapper Class
+
+// Default contruct allocate the poutput size with the current hardcoded action channels
+UserInputMapper::UserInputMapper() {
+    assignDefaulActionScales();
+    createActionNames();
+}
+
 bool UserInputMapper::registerDevice(uint16 deviceID, const DeviceProxy::Pointer& proxy){
+    proxy->_name += " (" + QString::number(deviceID) + ")";
     _registeredDevices[deviceID] = proxy;
     return true;
 }
@@ -27,6 +35,12 @@ UserInputMapper::DeviceProxy::Pointer UserInputMapper::getDeviceProxy(const Inpu
     }
 }
 
+void UserInputMapper::resetAllDeviceBindings() {
+    for (auto device : _registeredDevices) {
+        device.second->resetDeviceBindings();
+    }
+}
+
 bool UserInputMapper::addInputChannel(Action action, const Input& input, float scale) {
     return addInputChannel(action, input, Input(), scale);
 }
@@ -37,7 +51,7 @@ bool UserInputMapper::addInputChannel(Action action, const Input& input, const I
         qDebug() << "UserInputMapper::addInputChannel: The input comes from a device #" << input.getDevice() << "is unknown. no inputChannel mapped.";
         return false;
     }
-
+    
     auto inputChannel = InputChannel(input, modifier, action, scale);
 
     // Insert or replace the input to modifiers
@@ -61,12 +75,57 @@ int UserInputMapper::addInputChannels(const InputChannels& channels) {
     return nbAdded;
 }
 
+bool UserInputMapper::removeInputChannel(InputChannel inputChannel) {
+    // Remove from Input to Modifiers map
+    if (inputChannel.hasModifier()) {
+        _inputToModifiersMap.erase(inputChannel._input.getID());
+    }
+    
+    // Remove from Action to Inputs map
+    std::pair<ActionToInputsMap::iterator, ActionToInputsMap::iterator> ret;
+    ret = _actionToInputsMap.equal_range(inputChannel._action);
+    for (ActionToInputsMap::iterator it=ret.first; it!=ret.second; ++it) {
+        if (it->second == inputChannel) {
+            _actionToInputsMap.erase(it);
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+void UserInputMapper::removeAllInputChannels() {
+    _inputToModifiersMap.clear();
+    _actionToInputsMap.clear();
+}
+
+void UserInputMapper::removeAllInputChannelsForDevice(uint16 device) {
+    QVector<InputChannel> channels = getAllInputsForDevice(device);
+    for (auto& channel : channels) {
+        removeInputChannel(channel);
+    }
+}
+
 int UserInputMapper::getInputChannels(InputChannels& channels) const {
     for (auto& channel : _actionToInputsMap) {
         channels.push_back(channel.second);
     }
 
     return _actionToInputsMap.size();
+}
+
+QVector<UserInputMapper::InputChannel> UserInputMapper::getAllInputsForDevice(uint16 device) {
+    InputChannels allChannels;
+    getInputChannels(allChannels);
+    
+    QVector<InputChannel> channels;
+    for (InputChannel inputChannel : allChannels) {
+        if (inputChannel._input._device == device) {
+            channels.push_back(inputChannel);
+        }
+    }
+    
+    return channels;
 }
 
 void UserInputMapper::update(float deltaTime) {
@@ -130,6 +189,24 @@ void UserInputMapper::update(float deltaTime) {
     }
 }
 
+QVector<UserInputMapper::Action> UserInputMapper::getAllActions() {
+    QVector<Action> actions;
+    for (auto i = 0; i < NUM_ACTIONS; i++) {
+        actions.append(Action(i));
+    }
+    return actions;
+}
+
+QVector<UserInputMapper::InputChannel> UserInputMapper::getInputChannelsForAction(UserInputMapper::Action action) {
+    QVector<InputChannel> inputChannels;
+    std::pair <ActionToInputsMap::iterator, ActionToInputsMap::iterator> ret;
+    ret = _actionToInputsMap.equal_range(action);
+    for (ActionToInputsMap::iterator it=ret.first; it!=ret.second; ++it) {
+        inputChannels.append(it->second);
+    }
+    return inputChannels;
+}
+
 void UserInputMapper::assignDefaulActionScales() {
     _actionScales[LONGITUDINAL_BACKWARD] = 1.0f; // 1m per unit
     _actionScales[LONGITUDINAL_FORWARD] = 1.0f; // 1m per unit
@@ -143,4 +220,21 @@ void UserInputMapper::assignDefaulActionScales() {
     _actionScales[PITCH_UP] = 1.0f; // 1 degree per unit
     _actionScales[BOOM_IN] = 1.0f; // 1m per unit
     _actionScales[BOOM_OUT] = 1.0f; // 1m per unit
+}
+
+// This is only necessary as long as the actions are hardcoded
+// Eventually you can just add the string when you add the action
+void UserInputMapper::createActionNames() {
+    _actionNames[LONGITUDINAL_BACKWARD] = "LONGITUDINAL_BACKWARD";
+    _actionNames[LONGITUDINAL_FORWARD] = "LONGITUDINAL_FORWARD";
+    _actionNames[LATERAL_LEFT] = "LATERAL_LEFT";
+    _actionNames[LATERAL_RIGHT] = "LATERAL_RIGHT";
+    _actionNames[VERTICAL_DOWN] = "VERTICAL_DOWN";
+    _actionNames[VERTICAL_UP] = "VERTICAL_UP";
+    _actionNames[YAW_LEFT] = "YAW_LEFT";
+    _actionNames[YAW_RIGHT] = "YAW_RIGHT";
+    _actionNames[PITCH_DOWN] = "PITCH_DOWN";
+    _actionNames[PITCH_UP] = "PITCH_UP";
+    _actionNames[BOOM_IN] = "BOOM_IN";
+    _actionNames[BOOM_OUT] = "BOOM_OUT";
 }

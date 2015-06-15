@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "RenderableSphereEntityItem.h"
+
 #include <glm/gtx/quaternion.hpp>
 
 #include <gpu/GPUConfig.h>
@@ -18,7 +20,7 @@
 #include <DeferredLightingEffect.h>
 #include <PerfStat.h>
 
-#include "RenderableSphereEntityItem.h"
+#include "RenderableDebugableEntityItem.h"
 
 EntityItemPointer RenderableSphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return EntityItemPointer(new RenderableSphereEntityItem(entityID, properties));
@@ -37,6 +39,8 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
     
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
-    batch.setModelTransform(getTransformToCenter());
+    batch.setModelTransform(getTransformToCenter()); // use a transform with scale, rotation, registration point and translation
     DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, 0.5f, SLICES, STACKS, sphereColor);
+
+    RenderableDebugableEntityItem::render(this, args);
 };
