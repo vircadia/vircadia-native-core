@@ -280,9 +280,9 @@ enum TextRendererType {
 };
 
 static TextRenderer3D* textRenderer(TextRendererType type) {
-    static TextRenderer3D* chatRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, 24, -1,
+    static TextRenderer3D* chatRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, -1,
         false, TextRenderer3D::SHADOW_EFFECT);
-    static TextRenderer3D* displayNameRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, 12);
+    static TextRenderer3D* displayNameRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY);
 
     switch(type) {
     case CHAT:
