@@ -35,6 +35,7 @@ private:
     void renderDomainConnectionStatusBorder(gpu::Batch& batch);
     void renderRearView(gpu::Batch& batch);
     void renderQmlUi(gpu::Batch& batch);
+    void renderOverlays(gpu::Batch& batch, RenderArgs* renderArgs);
     void buildFramebufferObject();
 
     float _alpha{ 1.0f };

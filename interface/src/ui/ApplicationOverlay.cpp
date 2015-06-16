@@ -85,28 +85,10 @@ ApplicationOverlay::~ApplicationOverlay() {
 void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
 
-    Overlays& overlays = qApp->getOverlays();
     glm::vec2 size = qApp->getCanvasSize();
     // TODO Handle fading and deactivation/activation of UI
 
-
     // TODO First render the mirror to the mirror FBO
-
-
-    // Now render the overlay components together into a single texture
-    gpu::Batch batch;
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    geometryCache->useSimpleDrawPipeline(batch);
-    static const float NEAR_CLIP = -10000;
-    static const float FAR_CLIP = 10000;
-    batch._glDisable(GL_DEPTH);
-    batch._glDisable(GL_LIGHTING);
-    batch._glEnable(GL_BLEND);
-    renderAudioMeter(batch);
-    renderCameraToggle(batch);
-    renderStatsAndLogs(batch);
-    renderDomainConnectionStatusBorder(batch);
-    renderQmlUi(batch);
 
     // Execute the batch into our framebuffer
     buildFramebufferObject();
@@ -114,26 +96,22 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glViewport(0, 0, size.x, size.y);
-    mat4 legacyProjection = glm::ortho<float>(0, size.x, size.y, 0, NEAR_CLIP, FAR_CLIP);
 
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadMatrixf(glm::value_ptr(legacyProjection));
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
+    // Now render the overlay components together into a single texture
+    gpu::Batch batch;
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    geometryCache->useSimpleDrawPipeline(batch);
+    batch._glDisable(GL_DEPTH);
+    batch._glDisable(GL_LIGHTING);
+    batch._glEnable(GL_BLEND);
 
-    // give external parties a change to hook in
-    //emit qApp->renderingOverlay();
-    overlays.renderHUD(renderArgs);
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
+    renderOverlays(batch, renderArgs);
+
+    renderAudioMeter(batch);
+    renderCameraToggle(batch);
+    renderStatsAndLogs(batch);
+    renderDomainConnectionStatusBorder(batch);
+    renderQmlUi(batch);
 
     renderArgs->_context->syncCache();
     renderArgs->_context->render(batch);
@@ -148,6 +126,30 @@ void ApplicationOverlay::renderQmlUi(gpu::Batch& batch) {
         auto geometryCache = DependencyManager::get<GeometryCache>();
         geometryCache->renderUnitQuad(batch, glm::vec4(1));
     }
+}
+
+void ApplicationOverlay::renderOverlays(gpu::Batch& batch, RenderArgs* renderArgs) {
+    static const float NEAR_CLIP = -10000;
+    static const float FAR_CLIP = 10000;
+    glm::vec2 size = qApp->getCanvasSize();
+    mat4 legacyProjection = glm::ortho<float>(0, size.x, size.y, 0, NEAR_CLIP, FAR_CLIP);
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadMatrixf(glm::value_ptr(legacyProjection));
+    glMatrixMode(GL_MODELVIEW);
+
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // give external parties a change to hook in
+    emit qApp->renderingOverlay();
+    qApp->getOverlays().renderHUD(renderArgs);
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
 }
 
 void ApplicationOverlay::renderCameraToggle(gpu::Batch& batch) {
