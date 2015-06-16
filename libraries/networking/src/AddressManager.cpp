@@ -435,7 +435,7 @@ bool AddressManager::handleDomainID(const QString& host) {
 }
 
 void AddressManager::handlePath(const QString& path, LookupTrigger trigger, bool wasPathOnly) {
-    if (!handleViewpoint(path)) {
+    if (!handleViewpoint(path, false, wasPathOnly)) {
         qCDebug(networking) << "User entered path could not be handled as a viewpoint - " << path <<
                             "- wll attempt to ask domain-server to resolve.";
 
