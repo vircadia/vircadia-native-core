@@ -70,7 +70,7 @@ const int SCRIPTED_MOTOR_CAMERA_FRAME = 0;
 const int SCRIPTED_MOTOR_AVATAR_FRAME = 1;
 const int SCRIPTED_MOTOR_WORLD_FRAME = 2;
 
-const float MyAvatar::ZOOM_MIN = .5f;
+const float MyAvatar::ZOOM_MIN = 0.5f;
 const float MyAvatar::ZOOM_MAX = 10.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 
