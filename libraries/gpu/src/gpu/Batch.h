@@ -70,7 +70,7 @@ public:
     typedef Stream::Slot Slot;
 
     Batch();
-    Batch(const Batch& batch);
+    explicit Batch(const Batch& batch);
     ~Batch();
 
     void clear();
