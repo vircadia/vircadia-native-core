@@ -1458,9 +1458,10 @@ void MyAvatar::maybeUpdateBillboard() {
             return;
         }
     }
+    /*
     gpu::Context context(new gpu::GLBackend());
     RenderArgs renderArgs(&context);
-    QImage image = Application::getInstance()->renderAvatarBillboard(&renderArgs);
+    QImage image = qApp->renderAvatarBillboard(&renderArgs);
     _billboard.clear();
     QBuffer buffer(&_billboard);
     buffer.open(QIODevice::WriteOnly);
@@ -1468,6 +1469,7 @@ void MyAvatar::maybeUpdateBillboard() {
     _billboardValid = true;
     
     sendBillboardPacket();
+    */
 }
 
 void MyAvatar::increaseSize() {

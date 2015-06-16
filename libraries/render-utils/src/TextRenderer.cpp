@@ -434,6 +434,8 @@ glm::vec2 Font::drawString(float x, float y, const QString & str,
             fromGlm(MatrixStack::projection().top()));
     if (effectType == TextRenderer::OUTLINE_EFFECT) {
         _program->setUniformValue("Outline", true);
+    } else {
+        _program->setUniformValue("Outline", false);
     }
     // Needed?
     glEnable(GL_TEXTURE_2D);
@@ -538,6 +540,25 @@ glm::vec2 TextRenderer::computeExtent(const QString & str) const {
     }
     return glm::vec2(0.1f,0.1f);
 }
+
+static gpu::PipelinePointer _textDrawPipeline;
+
+void TextRenderer::useTextPipeline(gpu::Batch& batch) {
+    if (!_textDrawPipeline) {
+        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(sdf_text_vert)));
+        auto fs = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(sdf_text_frag)));
+        auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, fs));
+        gpu::Shader::makeProgram((*program));
+
+        auto state = gpu::StatePointer(new gpu::State());
+        // enable decal blend
+        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
+        _textDrawPipeline.reset(gpu::Pipeline::create(program, state));
+    }
+    batch.setPipeline(_textDrawPipeline);
+    batch._glBindTexture(GL_TEXTURE_2D, this->_font->_texture->textureId());
+}
+
 
 float TextRenderer::draw(float x, float y, const QString & str,
     const glm::vec4& color, const glm::vec2 & bounds) {

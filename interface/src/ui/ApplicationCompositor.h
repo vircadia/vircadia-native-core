@@ -6,12 +6,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_ApplicationOverlayCompositor_h
-#define hifi_ApplicationOverlayCompositor_h
+#ifndef hifi_ApplicationCompositor_h
+#define hifi_ApplicationCompositor_h
 
 #include <QObject>
 #include <cstdint>
 
+#include <EntityItemID.h>
 #include <GeometryCache.h>
 #include <GLMHelpers.h>
 #include <gpu/Batch.h>
@@ -61,7 +62,7 @@ public:
     glm::vec2 screenToOverlay(const glm::vec2 & screenPos) const;
     glm::vec2 overlayToScreen(const glm::vec2 & overlayPos) const;
     void computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const;
-    GLuint getOverlayTexture();
+    GLuint getOverlayTexture() const;
 
     static glm::vec2 directionToSpherical(const glm::vec3 & direction);
     static glm::vec3 sphericalToDirection(const glm::vec2 & sphericalPos);
@@ -74,12 +75,17 @@ private:
     void buildHemiVertices(const float fov, const float aspectRatio, const int slices, const int stacks);
     void drawSphereSection(gpu::Batch& batch);
 
-    void renderPointers();
-    void renderMagnifier(const glm::vec2& magPos, float sizeMult, bool showBorder);
-    
-    void renderControllerPointers();
-    void renderPointersOculus();
-    
+    void renderPointers(gpu::Batch& batch);
+    void renderMagnifier(gpu::Batch& batch, const glm::vec2& magPos, float sizeMult, bool showBorder);
+    void renderControllerPointers(gpu::Batch& batch);
+    void renderPointersOculus(gpu::Batch& batch);
+
+    // Support for hovering and tooltips
+    static EntityItemID _noItemId;
+    EntityItemID _hoverItemId{ _noItemId };
+    QString _hoverItemHref;
+    quint64 _hoverItemEnterUsecs{ 0 };
+
     float _hmdUIAngularSize = DEFAULT_HMD_UI_ANGULAR_SIZE;
     float _textureFov{ glm::radians(DEFAULT_HMD_UI_ANGULAR_SIZE) };
     float _textureAspectRatio{ 1.0f };
@@ -100,10 +106,6 @@ private:
 
     int _reticleQuad;
     int _magnifierQuad;
-    int _audioRedQuad;
-    int _audioGreenQuad;
-    int _audioBlueQuad;
-    int _domainStatusBorder;
     int _magnifierBorder;
 
     int _previousBorderWidth{ -1 };
@@ -115,4 +117,4 @@ private:
     glm::vec3 _previousMagnifierTopRight;
 };
 
-#endif // hifi_ApplicationOverlayCompositor_h
+#endif // hifi_ApplicationCompositor_h

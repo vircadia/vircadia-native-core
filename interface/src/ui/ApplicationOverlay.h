@@ -29,13 +29,16 @@ public:
 
 private:
 
-    void renderAudioMeter();
-    void renderCameraToggle();
-    void renderStatsAndLogs();
-    void renderDomainConnectionStatusBorder();
+    void renderAudioMeter(gpu::Batch& batch);
+    void renderCameraToggle(gpu::Batch& batch);
+    void renderStatsAndLogs(gpu::Batch& batch);
+    void renderDomainConnectionStatusBorder(gpu::Batch& batch);
+    void renderRearView(gpu::Batch& batch);
+    void renderQmlUi(gpu::Batch& batch);
     void buildFramebufferObject();
-    float _alpha = 1.0f;
-    float _trailingAudioLoudness;
+
+    float _alpha{ 1.0f };
+    float _trailingAudioLoudness{ 0.0f };
     GLuint _uiTexture{ 0 };
     
     int _audioRedQuad;
@@ -44,10 +47,15 @@ private:
     int _domainStatusBorder;
     int _magnifierBorder;
 
-    int _previousBorderWidth;
-    int _previousBorderHeight;
+    float _scaleMirror{ 1.0f };
+    float _rotateMirror{ 0.0f };
+    float _raiseMirror{ 0.0f };
 
-    QOpenGLFramebufferObject* _framebufferObject;
+
+    ivec2 _previousBorderSize{ -1 };
+    QRect _mirrorViewRect;
+    QOpenGLFramebufferObject* _overlayFramebuffer{ nullptr };
+    QOpenGLFramebufferObject* _mirrorFramebuffer{ nullptr };
 };
 
 #endif // hifi_ApplicationOverlay_h

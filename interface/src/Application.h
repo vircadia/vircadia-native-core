@@ -109,15 +109,6 @@ static const QString FST_EXTENSION  = ".fst";
 static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
 static const float BILLBOARD_DISTANCE = 5.56f;       // meters
 
-static const int MIRROR_VIEW_TOP_PADDING = 5;
-static const int MIRROR_VIEW_LEFT_PADDING = 10;
-static const int MIRROR_VIEW_WIDTH = 265;
-static const int MIRROR_VIEW_HEIGHT = 215;
-static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
-static const float MIRROR_REARVIEW_DISTANCE = 0.722f;
-static const float MIRROR_REARVIEW_BODY_DISTANCE = 2.56f;
-static const float MIRROR_FIELD_OF_VIEW = 30.0f;
-
 static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
 
 static const QString INFO_HELP_PATH = "html/interface-welcome.html";
@@ -482,6 +473,7 @@ private slots:
     void faceTrackerMuteToggled();
 
     void setCursorVisible(bool visible);
+    //void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard = false);
 
 private:
     void resetCamerasOnResizeGL(Camera& camera, const glm::uvec2& size);
@@ -516,7 +508,6 @@ private:
     glm::vec3 getSunDirection();
 
     void updateShadowMap(RenderArgs* renderArgs);
-    void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard = false);
     void setMenuShortcutsEnabled(bool enabled);
 
     static void attachNewHeadToNode(Node *newNode);
@@ -564,30 +555,20 @@ private:
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
 
-    KeyboardMouseDevice _keyboardMouseDevice; // Default input device, the good old keyboard mouse and maybe touchpad
-
-    UserInputMapper _userInputMapper; // User input mapper allowing to mapp different real devices to the action channels that the application has to offer
-
-    MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
-
-    Camera _myCamera;                  // My view onto the world
-    Camera _mirrorCamera;              // Cammera for mirror view
-    QRect _mirrorViewRect;
-    RearMirrorTools* _rearMirrorTools;
+    KeyboardMouseDevice _keyboardMouseDevice;   // Default input device, the good old keyboard mouse and maybe touchpad
+    UserInputMapper _userInputMapper;           // User input mapper allowing to mapp different real devices to the action channels that the application has to offer
+    MyAvatar* _myAvatar;                        // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
+    Camera _myCamera;                           // My view onto the world
     
-    Setting::Handle<bool> _firstRun;
-    Setting::Handle<QString> _previousScriptLocation;
-    Setting::Handle<QString> _scriptsLocationHandle;
-    Setting::Handle<float> _fieldOfView;
+    Setting::Handle<bool>       _firstRun;
+    Setting::Handle<QString>    _previousScriptLocation;
+    Setting::Handle<QString>    _scriptsLocationHandle;
+    Setting::Handle<float>      _fieldOfView;
 
     Transform _viewTransform;
     glm::mat4 _untranslatedViewMatrix;
     glm::vec3 _viewMatrixTranslation;
     glm::mat4 _projectionMatrix;
-
-    float _scaleMirror;
-    float _rotateMirror;
-    float _raiseMirror;
 
     static const int CASCADED_SHADOW_MATRIX_COUNT = 4;
     glm::mat4 _shadowMatrices[CASCADED_SHADOW_MATRIX_COUNT];

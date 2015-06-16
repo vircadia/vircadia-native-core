@@ -39,15 +39,21 @@
 const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
 const int AUDIO_METER_GAP = 5;
 const int MUTE_ICON_PADDING = 10;
-const float CONNECTION_STATUS_BORDER_COLOR[] = { 1.0f, 0.0f, 0.0f };
+const vec4 CONNECTION_STATUS_BORDER_COLOR{ 1.0f, 0.0f, 0.0f, 0.8f };
 const float CONNECTION_STATUS_BORDER_LINE_WIDTH = 4.0f;
+static const int MIRROR_VIEW_TOP_PADDING = 5;
+static const int MIRROR_VIEW_LEFT_PADDING = 10;
+static const int MIRROR_VIEW_WIDTH = 265;
+static const int MIRROR_VIEW_HEIGHT = 215;
+static const int STATS_HORIZONTAL_OFFSET = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
+static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
+static const float MIRROR_REARVIEW_DISTANCE = 0.722f;
+static const float MIRROR_REARVIEW_BODY_DISTANCE = 2.56f;
+static const float MIRROR_FIELD_OF_VIEW = 30.0f;
+
 
 ApplicationOverlay::ApplicationOverlay() :
-    _alpha(1.0f),
-    _trailingAudioLoudness(0.0f),
-    _previousBorderWidth(-1),
-    _previousBorderHeight(-1),
-    _framebufferObject(nullptr)
+    _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT))
 {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     _audioRedQuad = geometryCache->allocateID();
@@ -82,67 +88,70 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     Overlays& overlays = qApp->getOverlays();
     glm::vec2 size = qApp->getCanvasSize();
     // TODO Handle fading and deactivation/activation of UI
-    
-    // Render 2D overlay
+
+
+    // TODO First render the mirror to the mirror FBO
+
+
+    // Now render the overlay components together into a single texture
+    gpu::Batch batch;
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    geometryCache->useSimpleDrawPipeline(batch);
+    static const float NEAR_CLIP = -10000;
+    static const float FAR_CLIP = 10000;
+    batch._glDisable(GL_DEPTH);
+    batch._glDisable(GL_LIGHTING);
+    batch._glEnable(GL_BLEND);
+    renderAudioMeter(batch);
+    renderCameraToggle(batch);
+    renderStatsAndLogs(batch);
+    renderDomainConnectionStatusBorder(batch);
+    renderQmlUi(batch);
+
+    // Execute the batch into our framebuffer
+    buildFramebufferObject();
+    _overlayFramebuffer->bind();
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glViewport(0, 0, size.x, size.y);
+    mat4 legacyProjection = glm::ortho<float>(0, size.x, size.y, 0, NEAR_CLIP, FAR_CLIP);
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadMatrixf(glm::value_ptr(legacyProjection));
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    buildFramebufferObject();
-
-    _framebufferObject->bind();
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glViewport(0, 0, size.x, size.y);
-
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix(); {
-        const float NEAR_CLIP = -10000;
-        const float FAR_CLIP = 10000;
-        glLoadIdentity();
-        glOrtho(0, size.x, size.y, 0, NEAR_CLIP, FAR_CLIP);
-
-        glMatrixMode(GL_MODELVIEW);
-
-        renderAudioMeter();
-        renderCameraToggle();
-
-        renderStatsAndLogs();
-
-        // give external parties a change to hook in
-        emit qApp->renderingOverlay();
-
-        overlays.renderHUD(renderArgs);
-
-        renderDomainConnectionStatusBorder();
-        if (_uiTexture) {
-            glMatrixMode(GL_PROJECTION);
-            glLoadIdentity();
-            glMatrixMode(GL_MODELVIEW);
-            glLoadIdentity();
-            glEnable(GL_TEXTURE_2D);
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            glBindTexture(GL_TEXTURE_2D, _uiTexture);
-            DependencyManager::get<GeometryCache>()->renderUnitQuad();
-            glBindTexture(GL_TEXTURE_2D, 0);
-            glDisable(GL_TEXTURE_2D);
-            glDisable(GL_BLEND);
-        }
-        glLoadIdentity();
-
-
-        glMatrixMode(GL_PROJECTION);
-    } glPopMatrix();
-
     glMatrixMode(GL_MODELVIEW);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_LIGHTING);
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
+    glPushMatrix();
+    glLoadIdentity();
 
-    _framebufferObject->release();
+    // give external parties a change to hook in
+    //emit qApp->renderingOverlay();
+    overlays.renderHUD(renderArgs);
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+
+    renderArgs->_context->syncCache();
+    renderArgs->_context->render(batch);
+    _overlayFramebuffer->release();
 }
 
-void ApplicationOverlay::renderCameraToggle() {
+void ApplicationOverlay::renderQmlUi(gpu::Batch& batch) {
+    if (_uiTexture) {
+        batch.setProjectionTransform(mat4());
+        batch.setModelTransform(mat4());
+        batch._glBindTexture(GL_TEXTURE_2D, _uiTexture);
+        auto geometryCache = DependencyManager::get<GeometryCache>();
+        geometryCache->renderUnitQuad(batch, glm::vec4(1));
+    }
+}
+
+void ApplicationOverlay::renderCameraToggle(gpu::Batch& batch) {
+    /*
     if (Menu::getInstance()->isOptionChecked(MenuOption::NoFaceTracking)) {
         return;
     }
@@ -158,9 +167,11 @@ void ApplicationOverlay::renderCameraToggle() {
     }
 
     DependencyManager::get<CameraToolBox>()->render(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP, audioMeterY, boxed);
+    */
 }
 
-void ApplicationOverlay::renderAudioMeter() {
+void ApplicationOverlay::renderAudioMeter(gpu::Batch& batch) {
+    /*
     auto audio = DependencyManager::get<AudioClient>();
 
     //  Audio VU Meter and Mute Icon
@@ -274,9 +285,90 @@ void ApplicationOverlay::renderAudioMeter() {
                                                             audioLevel, AUDIO_METER_HEIGHT, quadColor,
                                                             _audioBlueQuad);
     }
+    */
 }
 
-void ApplicationOverlay::renderStatsAndLogs() {
+void ApplicationOverlay::renderRearView(gpu::Batch& batch) {
+    //    // Grab current viewport to reset it at the end
+    //    int viewport[4];
+    //    glGetIntegerv(GL_VIEWPORT, viewport);
+    //    float aspect = (float)region.width() / region.height();
+    //    float fov = MIRROR_FIELD_OF_VIEW;
+
+    //    // bool eyeRelativeCamera = false;
+    //    if (billboard) {
+    //        fov = BILLBOARD_FIELD_OF_VIEW;  // degees
+    //        _mirrorCamera.setPosition(_myAvatar->getPosition() +
+    //            _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * BILLBOARD_DISTANCE * _myAvatar->getScale());
+
+    //    } else if (RearMirrorTools::rearViewZoomLevel.get() == BODY) {
+    //        _mirrorCamera.setPosition(_myAvatar->getChestPosition() +
+    //            _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
+
+    //    } else { // HEAD zoom level
+    //        // FIXME note that the positioing of the camera relative to the avatar can suffer limited
+    //        // precision as the user's position moves further away from the origin.  Thus at
+    //        // /1e7,1e7,1e7 (well outside the buildable volume) the mirror camera veers and sways
+    //        // wildly as you rotate your avatar because the floating point values are becoming
+    //        // larger, squeezing out the available digits of precision you have available at the
+    //        // human scale for camera positioning.
+
+    //        // Previously there was a hack to correct this using the mechanism of repositioning
+    //        // the avatar at the origin of the world for the purposes of rendering the mirror,
+    //        // but it resulted in failing to render the avatar's head model in the mirror view
+    //        // when in first person mode.  Presumably this was because of some missed culling logic
+    //        // that was not accounted for in the hack.
+
+    //        // This was removed in commit 71e59cfa88c6563749594e25494102fe01db38e9 but could be further
+    //        // investigated in order to adapt the technique while fixing the head rendering issue,
+    //        // but the complexity of the hack suggests that a better approach
+    //        _mirrorCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
+    //            _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
+    //    }
+    //    _mirrorCamera.setProjection(glm::perspective(glm::radians(fov), aspect, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
+    //    _mirrorCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
+
+    //    // set the bounds of rear mirror view
+    //    if (billboard) {
+    //        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
+    //        glViewport(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
+    //        glScissor(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
+    //    } else {
+    //        // if not rendering the billboard, the region is in device independent coordinates; must convert to device
+    //        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
+    //        float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale();
+    //        int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
+    //        glViewport(x, size.height() - y - height, width, height);
+    //        glScissor(x, size.height() - y - height, width, height);
+    //    }
+    //    bool updateViewFrustum = false;
+    //    updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
+    //    glEnable(GL_SCISSOR_TEST);
+    //    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    //    // render rear mirror view
+    //    glMatrixMode(GL_MODELVIEW);
+    //    glPushMatrix();
+    //    glLoadIdentity();
+    //    glLoadMatrixf(glm::value_ptr(glm::mat4_cast(_mirrorCamera.getOrientation()) * glm::translate(glm::mat4(), _mirrorCamera.getPosition())));
+    //    renderArgs->_context->syncCache();
+    //    displaySide(renderArgs, _mirrorCamera, true, billboard);
+    //    glMatrixMode(GL_MODELVIEW);
+    //    glPopMatrix();
+
+    //    if (!billboard) {
+    //        _rearMirrorTools->render(renderArgs, false, _glWidget->mapFromGlobal(QCursor::pos()));
+    //    }
+
+    //    // reset Viewport and projection matrix
+    //    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+    //    glDisable(GL_SCISSOR_TEST);
+    //    updateProjectionMatrix(_myCamera, updateViewFrustum);
+    //}
+}
+
+void ApplicationOverlay::renderStatsAndLogs(gpu::Batch& batch) {
+    /*
     Application* application = Application::getInstance();
     QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
     
@@ -284,7 +376,7 @@ void ApplicationOverlay::renderStatsAndLogs() {
     NodeBounds& nodeBoundsDisplay = application->getNodeBoundsDisplay();
 
     //  Display stats and log text onscreen
-    glLineWidth(1.0f);
+    batch._glLineWidth(1.0f);
     glPointSize(1.0f);
 
     // Determine whether to compute timing details
@@ -297,10 +389,9 @@ void ApplicationOverlay::renderStatsAndLogs() {
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
         // let's set horizontal offset to give stats some margin to mirror
-        int horizontalOffset = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
         int voxelPacketsToProcess = octreePacketProcessor.packetsToProcessCount();
         //  Onscreen text about position, servers, etc
-        Stats::getInstance()->display(WHITE_TEXT, horizontalOffset, application->getFps(),
+        Stats::getInstance()->display(WHITE_TEXT, STATS_HORIZONTAL_OFFSET, application->getFps(),
                                       bandwidthRecorder->getCachedTotalAverageInputPacketsPerSecond(),
                                       bandwidthRecorder->getCachedTotalAverageOutputPacketsPerSecond(),
                                       bandwidthRecorder->getCachedTotalAverageInputKilobitsPerSecond(),
@@ -320,56 +411,73 @@ void ApplicationOverlay::renderStatsAndLogs() {
             0.30f, 0.0f, 0, frameTimer.toUtf8().constData(), WHITE_TEXT);
     }
     nodeBoundsDisplay.drawOverlay();
+    */
 }
 
-void ApplicationOverlay::renderDomainConnectionStatusBorder() {
+void ApplicationOverlay::renderDomainConnectionStatusBorder(gpu::Batch& batch) {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    std::once_flag once;
+    std::call_once(once, [&] {
+        QVector<vec2> points;
+        static const float B = 0.99;
+        points.push_back(vec2(-B));
+        points.push_back(vec2(B, -B));
+        points.push_back(vec2(B));
+        points.push_back(vec2(-B, B));
+        points.push_back(vec2(-B));
+        geometryCache->updateVertices(_domainStatusBorder, points, CONNECTION_STATUS_BORDER_COLOR);
+    });
     auto nodeList = DependencyManager::get<NodeList>();
 
+
     if (nodeList && !nodeList->getDomainHandler().isConnected()) {
-        auto geometryCache = DependencyManager::get<GeometryCache>();
-        auto canvasSize = qApp->getCanvasSize();
-        if ((int)canvasSize.x != _previousBorderWidth || (int)canvasSize.y != _previousBorderHeight) {
-            glm::vec4 color(CONNECTION_STATUS_BORDER_COLOR[0],
-                            CONNECTION_STATUS_BORDER_COLOR[1],
-                            CONNECTION_STATUS_BORDER_COLOR[2], 1.0f);
+        batch.setProjectionTransform(mat4());
+        batch.setModelTransform(mat4());
+        batch.setUniformTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
+        batch._glLineWidth(CONNECTION_STATUS_BORDER_LINE_WIDTH);
 
-            QVector<glm::vec2> border;
-            border << glm::vec2(0, 0);
-            border << glm::vec2(0, canvasSize.y);
-            border << glm::vec2(canvasSize.x, canvasSize.y);
-            border << glm::vec2(canvasSize.x, 0);
-            border << glm::vec2(0, 0);
-            geometryCache->updateVertices(_domainStatusBorder, border, color);
-            _previousBorderWidth = canvasSize.x;
-            _previousBorderHeight = canvasSize.y;
-        }
+        // TODO animate the disconnect border for some excitement while not connected?
+        //double usecs = usecTimestampNow();
+        //double secs = usecs / 1000000.0;
+        //float scaleAmount = 1.0f + (0.01f * sin(secs * 5.0f));
+        //batch.setModelTransform(glm::scale(mat4(), vec3(scaleAmount)));
 
-        glLineWidth(CONNECTION_STATUS_BORDER_LINE_WIDTH);
-
-        geometryCache->renderVertices(gpu::LINE_STRIP, _domainStatusBorder);
+        geometryCache->renderVertices(batch, gpu::LINE_STRIP, _domainStatusBorder);
     }
 }
 
 GLuint ApplicationOverlay::getOverlayTexture() {
-    if (!_framebufferObject) {
+    if (!_overlayFramebuffer) {
         return 0;
     }
-    return _framebufferObject->texture();
+    return _overlayFramebuffer->texture();
 }
 
 void ApplicationOverlay::buildFramebufferObject() {
+    if (!_mirrorFramebuffer) {
+        _mirrorFramebuffer = new QOpenGLFramebufferObject(QSize(MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT), QOpenGLFramebufferObject::Depth);
+        glBindTexture(GL_TEXTURE_2D, _mirrorFramebuffer->texture());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        GLfloat borderColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
     auto canvasSize = qApp->getCanvasSize();
     QSize fboSize = QSize(canvasSize.x, canvasSize.y);
-    if (_framebufferObject != NULL && fboSize == _framebufferObject->size()) {
+    if (_overlayFramebuffer && fboSize == _overlayFramebuffer->size()) {
         // Already built
         return;
     }
     
-    if (_framebufferObject != NULL) {
-        delete _framebufferObject;
+    if (_overlayFramebuffer) {
+        delete _overlayFramebuffer;
     }
     
-    _framebufferObject = new QOpenGLFramebufferObject(fboSize, QOpenGLFramebufferObject::Depth);
+    _overlayFramebuffer = new QOpenGLFramebufferObject(fboSize, QOpenGLFramebufferObject::Depth);
     glBindTexture(GL_TEXTURE_2D, getOverlayTexture());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
