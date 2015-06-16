@@ -36,7 +36,7 @@ public:
     const ScriptsModel* getScriptsModel() { return &_scriptsModel; }
 
 signals:
-    void stopScriptName(const QString& name);
+    void stopScriptName(const QString& name, bool restart = false);
 
 protected:
     virtual bool eventFilter(QObject* sender, QEvent* event);

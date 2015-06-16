@@ -4062,6 +4062,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     connect(scriptEngine, SIGNAL(finished(const QString&)), this, SLOT(scriptFinished(const QString&)));
 
     connect(scriptEngine, SIGNAL(loadScript(const QString&, bool)), this, SLOT(loadScript(const QString&, bool)));
+    connect(scriptEngine, SIGNAL(reloadScript(const QString&, bool)), this, SLOT(reloadScript(const QString&, bool)));
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
     qScriptRegisterMetaType(scriptEngine, OverlayPropertyResultToScriptValue, OverlayPropertyResultFromScriptValue);
@@ -4277,7 +4278,7 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
 }
 
 ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,
-                                        bool loadScriptFromEditor, bool activateMainWindow) {
+                                        bool loadScriptFromEditor, bool activateMainWindow, bool reload) {
 
     if (isAboutToQuit()) {
         return NULL;
@@ -4306,7 +4307,7 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
         connect(scriptEngine, &ScriptEngine::errorLoadingScript, this, &Application::handleScriptLoadError);
 
         // get the script engine object to load the script at the designated script URL
-        scriptEngine->loadURL(scriptUrl);
+        scriptEngine->loadURL(scriptUrl, reload);
     }
 
     // restore the main window's active state
@@ -4317,17 +4318,8 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     return scriptEngine;
 }
 
-void Application::reloadScript(const QString& scriptFilename) {
-    DependencyManager::get<ScriptCache>()->deleteScript(scriptFilename);
-
-    ScriptEngine* scriptEngine = _scriptEnginesHash.value(scriptFilename);
-    connect(scriptEngine, SIGNAL(finished(const QString&)), SLOT(loadScript(const QString&)));
-    scriptEngine->stop();
-
-    // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
-    // whenever a script stops in case it happened to have been setting joint rotations.
-    // TODO: expose animation priorities and provide a layered animation control system.
-    _myAvatar->clearScriptableSettings();
+void Application::reloadScript(const QString& scriptName, bool isUserLoaded) {
+    loadScript(scriptName, isUserLoaded, false, false, true);
 }
 
 void Application::handleScriptEngineLoaded(const QString& scriptFilename) {
@@ -4375,7 +4367,7 @@ void Application::stopAllScripts(bool restart) {
             continue;
         }
         if (restart && it.value()->isUserLoaded()) {
-            connect(it.value(), SIGNAL(finished(const QString&)), SLOT(loadScript(const QString&)));
+            connect(it.value(), SIGNAL(finished(const QString&)), SLOT(reloadScript(const QString&)));
         }
         it.value()->stop();
         qCDebug(interfaceapp) << "stopping script..." << it.key();
@@ -4387,10 +4379,16 @@ void Application::stopAllScripts(bool restart) {
     _myAvatar->clearScriptableSettings();
 }
 
-void Application::stopScript(const QString &scriptName) {
+void Application::stopScript(const QString &scriptName, bool restart) {
     const QString& scriptURLString = QUrl(scriptName).toString();
     if (_scriptEnginesHash.contains(scriptURLString)) {
-        _scriptEnginesHash.value(scriptURLString)->stop();
+        ScriptEngine* scriptEngine = _scriptEnginesHash[scriptURLString];
+        if (restart) {
+            auto scriptCache = DependencyManager::get<ScriptCache>();
+            scriptCache->deleteScript(scriptName);
+            connect(scriptEngine, SIGNAL(finished(const QString&)), SLOT(reloadScript(const QString&)));
+        }
+        scriptEngine->stop();
         qCDebug(interfaceapp) << "stopping script..." << scriptName;
         // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
         // whenever a script stops in case it happened to have been setting joint rotations.
@@ -4404,6 +4402,10 @@ void Application::stopScript(const QString &scriptName) {
 
 void Application::reloadAllScripts() {
     stopAllScripts(true);
+}
+
+void Application::reloadOneScript(const QString& scriptName) {
+    stopScript(scriptName, true);
 }
 
 void Application::loadDefaultScripts() {

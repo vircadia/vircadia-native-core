@@ -398,16 +398,19 @@ public slots:
     bool acceptSnapshot(const QString& urlString);
     bool askToSetAvatarUrl(const QString& url);
     bool askToLoadScript(const QString& scriptFilenameOrURL);
+
     ScriptEngine* loadScript(const QString& scriptFilename = QString(), bool isUserLoaded = true, 
-        bool loadScriptFromEditor = false, bool activateMainWindow = false);
-    void reloadScript(const QString& scriptFilename);
+        bool loadScriptFromEditor = false, bool activateMainWindow = false, bool reload = false);
+    void reloadScript(const QString& scriptName, bool isUserLoaded = true);
     void scriptFinished(const QString& scriptName);
     void stopAllScripts(bool restart = false);
-    void stopScript(const QString& scriptName);
+    void stopScript(const QString& scriptName, bool restart = false);
     void reloadAllScripts();
+    void reloadOneScript(const QString& scriptName);
     void loadDefaultScripts();
     void toggleRunningScriptsWidget();
     void saveScripts();
+
     void showFriendsWindow();
     void friendsWindowClosed();
 
