@@ -94,17 +94,25 @@ Menu::Menu() {
 
     addDisabledActionAndSeparator(fileMenu, "History");
 
-    addActionToQMenuAndActionHash(fileMenu,
-                                  MenuOption::Back,
-                                  0,
-                                  addressManager.data(),
-                                  SLOT(goBack()));
+    QAction* backAction = addActionToQMenuAndActionHash(fileMenu,
+                                                        MenuOption::Back,
+                                                        0,
+                                                        addressManager.data(),
+                                                        SLOT(goBack()));
 
-    addActionToQMenuAndActionHash(fileMenu,
-                                  MenuOption::Forward,
-                                  0,
-                                  addressManager.data(),
-                                  SLOT(goForward()));
+    QAction* forwardAction = addActionToQMenuAndActionHash(fileMenu,
+                                                           MenuOption::Forward,
+                                                           0,
+                                                           addressManager.data(),
+                                                           SLOT(goForward()));
+
+    // connect to the AddressManager signal to enable and disable the back and forward menu items
+    connect(addressManager.data(), &AddressManager::goBackPossible, backAction, &QAction::setEnabled);
+    connect(addressManager.data(), &AddressManager::goForwardPossible, forwardAction, &QAction::setEnabled);
+
+    // set the two actions to start disabled since the stacks are clear on startup
+    backAction->setDisabled(true);
+    forwardAction->setDisabled(true);
 
     addDisabledActionAndSeparator(fileMenu, "Location");
     qApp->getBookmarks()->setupMenus(this, fileMenu);

@@ -62,11 +62,13 @@ void AddressManager::loadSettings(const QString& lookupString) {
 
 void AddressManager::goBack() {
     if (_backStack.size() > 0) {
-        // pop a URL from the backStack
-        QUrl poppedURL = _backStack.pop();
-
         // go to that address
-        handleUrl(poppedURL, LookupTrigger::Back);
+        handleUrl(_backStack.pop(), LookupTrigger::Back);
+
+        if (_backStack.size() == 0) {
+            // the back stack is now empty so it is no longer possible to go back - emit that signal
+            emit goBackPossible(false);
+        }
     }
 }
 
@@ -74,6 +76,11 @@ void AddressManager::goForward() {
     if (_forwardStack.size() > 0) {
         // pop a URL from the forwardStack and go to that address
         handleUrl(_forwardStack.pop(), LookupTrigger::Forward);
+
+        if (_forwardStack.size() == 0) {
+            // the forward stack is empty so it is no longer possible to go forwards - emit that signal
+            emit goForwardPossible(false);
+        }
     }
 }
 
@@ -580,12 +587,27 @@ void AddressManager::addCurrentAddressToHistory(LookupTrigger trigger) {
         if (trigger == LookupTrigger::UserInput) {
             // anyime the user has manually looked up an address we know we should clear the forward stack
             _forwardStack.clear();
+
+            emit goForwardPossible(false);
         }
 
         if (trigger == LookupTrigger::Back) {
-            // when the user is going back, we move the current address to the forward stack and do not but it into the back stack
+            // we're about to push to the forward stack
+            // if it's currently empty emit our signal to say that going forward is now possible
+            if (_forwardStack.size() == 0) {
+                emit goForwardPossible(true);
+            }
+
+            // when the user is going back, we move the current address to the forward stack
+            // and do not but it into the back stack
             _forwardStack.push(currentAddress());
         } else {
+            // we're about to push to the back stack
+            // if it's currently empty emit our signal to say that going forward is now possible
+            if (_forwardStack.size() == 0) {
+                emit goBackPossible(true);
+            }
+
             // unless this was triggered from the result of a named path lookup, add the current address to the history
             _backStack.push(currentAddress());
         }

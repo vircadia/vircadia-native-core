@@ -81,13 +81,19 @@ signals:
     void lookupResultsFinished();
     void lookupResultIsOffline();
     void lookupResultIsNotFound();
+
     void possibleDomainChangeRequired(const QString& newHostname, quint16 newPort);
     void possibleDomainChangeRequiredViaICEForID(const QString& iceServerHostname, const QUuid& domainID);
+
     void locationChangeRequired(const glm::vec3& newPosition,
                                 bool hasOrientationChange, const glm::quat& newOrientation,
                                 bool shouldFaceLocation);
     void pathChangeRequired(const QString& newPath);
     void hostChanged(const QString& newHost);
+
+    void goBackPossible(bool isPossible);
+    void goForwardPossible(bool isPossible);
+
 protected:
     AddressManager();
 private slots:
