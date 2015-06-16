@@ -122,6 +122,7 @@ void EntityMotionState::handleEasyChanges(uint32_t flags) {
         _candidateForOwnership = true;
         _loopsSinceOwnershipBid = uint32_t(-1);
         _loopsWithoutOwner = uint32_t(-1);
+        _simulatorPriorityHint = SCRIPT_EDIT_SIMULATOR_PRIORITY;
     }
     if ((flags & EntityItem::DIRTY_PHYSICS_ACTIVATION) && !_body->isActive()) {
         _body->activate();
