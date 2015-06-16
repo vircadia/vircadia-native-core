@@ -436,6 +436,9 @@ void AddressManager::handlePath(const QString& path, LookupTrigger trigger, bool
             // if we received a path with a host then we need to remember what it was here so we can not
             // double set add to the history stack once handle viewpoint is called with the result
             _newHostLookupPath = path;
+        } else {
+            // clear the _newHostLookupPath so it doesn't match when this return comes in
+            _newHostLookupPath = QString();
         }
 
         emit pathChangeRequired(path);
@@ -469,7 +472,7 @@ bool AddressManager::handleViewpoint(const QString& viewpointString, bool should
         // We use _newHostLookupPath to determine if the client has already stored its last address
         // before moving to a new host thanks to the information in the same lookup URL.
 
-        if (definitelyPathOnly || (!pathString.isEmpty() && pathString == _newHostLookupPath)) {
+        if (definitelyPathOnly || (!pathString.isEmpty() && pathString != _newHostLookupPath)) {
             addCurrentAddressToHistory(LookupTrigger::UserInput);
         }
 
@@ -576,22 +579,15 @@ void AddressManager::addCurrentAddressToHistory(LookupTrigger trigger) {
     if (trigger != LookupTrigger::StartupFromSettings) {
         if (trigger == LookupTrigger::UserInput) {
             // anyime the user has manually looked up an address we know we should clear the forward stack
-            qDebug() << "CLEARING THE FORWARD STACK";
             _forwardStack.clear();
         }
 
         if (trigger == LookupTrigger::Back) {
-            qDebug() << "PUTTING THE CURRENT ADDRESS INTO THE FORWARD STACK";
             // when the user is going back, we move the current address to the forward stack and do not but it into the back stack
             _forwardStack.push(currentAddress());
         } else {
-            qDebug() << "ADDING THE CURRENT ADDRESS TO THE BACK STACK";
             // unless this was triggered from the result of a named path lookup, add the current address to the history
             _backStack.push(currentAddress());
         }
-
-        qDebug() << "THE BACK STACK IS NOW:" << _backStack;
-        qDebug() << "THE FORWARD STACK IS NOW:" << _forwardStack;
-
     }
 }
