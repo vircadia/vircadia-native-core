@@ -238,6 +238,9 @@ void RenderablePolyVoxEntityItem::setVoxelInternal(int x, int y, int z, uint8_t 
 
 
 void RenderablePolyVoxEntityItem::setVoxel(int x, int y, int z, uint8_t toValue) {
+    if (_locked) {
+        return;
+    }
     setVoxelInternal(x, y, z, toValue);
     compressVolumeData();
 }
@@ -263,6 +266,10 @@ void RenderablePolyVoxEntityItem::updateOnCount(int x, int y, int z, uint8_t toV
 }
 
 void RenderablePolyVoxEntityItem::setAll(uint8_t toValue) {
+    if (_locked) {
+        return;
+    }
+
     for (int z = 0; z < _voxelVolumeSize.z; z++) {
         for (int y = 0; y < _voxelVolumeSize.y; y++) {
             for (int x = 0; x < _voxelVolumeSize.x; x++) {
@@ -275,11 +282,19 @@ void RenderablePolyVoxEntityItem::setAll(uint8_t toValue) {
 }
 
 void RenderablePolyVoxEntityItem::setVoxelInVolume(glm::vec3 position, uint8_t toValue) {
+    if (_locked) {
+        return;
+    }
+
     // same as setVoxel but takes a vector rather than 3 floats.
-    setVoxel(position.x, position.y, position.z, toValue);
+    setVoxel((int)position.x, (int)position.y, (int)position.z, toValue);
 }
 
 void RenderablePolyVoxEntityItem::setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue) {
+    if (_locked) {
+        return;
+    }
+
     // This three-level for loop iterates over every voxel in the volume
     for (int z = 0; z < _voxelVolumeSize.z; z++) {
         for (int y = 0; y < _voxelVolumeSize.y; y++) {
