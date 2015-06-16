@@ -191,7 +191,7 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
     }
 }
 
-void DeferredLightingEffect::prepare() {
+void DeferredLightingEffect::prepare(RenderArgs* args) {
     // clear the normal and specular buffers
     auto textureCache = DependencyManager::get<TextureCache>();
     textureCache->setPrimaryDrawBuffers(false, true, false);
@@ -205,7 +205,7 @@ void DeferredLightingEffect::prepare() {
     textureCache->setPrimaryDrawBuffers(true, false, false);
 }
 
-void DeferredLightingEffect::render() {
+void DeferredLightingEffect::render(RenderArgs* args) {
     // perform deferred lighting, rendering to free fbo
     glDisable(GL_BLEND);
     glDisable(GL_LIGHTING);

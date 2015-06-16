@@ -21,18 +21,18 @@
 
 using namespace render;
 
-template <> void render::jobRun(const PrepareDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     PerformanceTimer perfTimer("PrepareDeferred");
-    DependencyManager::get<DeferredLightingEffect>()->prepare();
+    DependencyManager::get<DeferredLightingEffect>()->prepare(renderContext->args);
 }
 
-template <> void render::jobRun(const RenderDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     PerformanceTimer perfTimer("RenderDeferred");
-    DependencyManager::get<DeferredLightingEffect>()->render();
+    DependencyManager::get<DeferredLightingEffect>()->render(renderContext->args);
 //    renderContext->args->_context->syncCache();
 }
 
-template <> void render::jobRun(const ResolveDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+void ResolveDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     PerformanceTimer perfTimer("ResolveDeferred");
     DependencyManager::get<DeferredLightingEffect>()->copyBack(renderContext->args);
     renderContext->args->_context->syncCache();
@@ -40,7 +40,7 @@ template <> void render::jobRun(const ResolveDeferred& job, const SceneContextPo
 }
 
 
-
+/*
 RenderDeferredTask::RenderDeferredTask() : Task() {
    _jobs.push_back(Job(PrepareDeferred()));
    _jobs.push_back(Job(DrawBackground()));
@@ -52,6 +52,22 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
    _jobs.push_back(Job(DrawTransparentDeferred()));
    _jobs.push_back(Job(DrawPostLayered()));
    _jobs.push_back(Job(ResetGLState()));
+}
+*/
+RenderDeferredTask::RenderDeferredTask() : Task() {
+   _jobs.push_back(Job(new PrepareDeferred::JobModel()));
+   _jobs.push_back(Job(new DrawBackground::JobModel()));
+   _jobs.push_back(Job(new FetchItems::JobModel()));
+   _jobs.push_back(Job(new CullItems::JobModel(_jobs.back().getOutput())));
+   _jobs.push_back(Job(new DepthSortItems::JobModel(_jobs.back().getOutput())));
+   _jobs.push_back(Job(new DrawOpaqueDeferred::JobModel(_jobs.back().getOutput())));
+   _jobs.push_back(Job(new DrawLight::JobModel()));
+   _jobs.push_back(Job(new ResetGLState::JobModel()));
+   _jobs.push_back(Job(new RenderDeferred::JobModel()));
+   _jobs.push_back(Job(new ResolveDeferred::JobModel()));
+   _jobs.push_back(Job(new DrawTransparentDeferred::JobModel()));
+   _jobs.push_back(Job(new DrawPostLayered::JobModel()));
+   _jobs.push_back(Job(new ResetGLState::JobModel()));
 }
 
 RenderDeferredTask::~RenderDeferredTask() {
@@ -77,9 +93,8 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     }
 };
 
-
-
-template <> void render::jobRun(const DrawOpaqueDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+/*
+void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     PerformanceTimer perfTimer("DrawOpaqueDeferred");
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
@@ -126,7 +141,7 @@ template <> void render::jobRun(const DrawOpaqueDeferred& job, const SceneContex
         }
     }
 */
-
+/*
     if (renderContext->_renderOpaque) {
         RenderArgs* args = renderContext->args;
         gpu::Batch batch;
@@ -153,13 +168,49 @@ template <> void render::jobRun(const DrawOpaqueDeferred& job, const SceneContex
 
         renderItems(sceneContext, renderContext, renderedItems, renderContext->_maxDrawnOpaqueItems);
 
+        renderContext->args->_context->syncCache();
         args->_context->render((*args->_batch));
         args->_batch = nullptr;
     }
 }
+*/
 
+void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
+    PerformanceTimer perfTimer("DrawOpaqueDeferred");
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
 
-template <> void render::jobRun(const DrawTransparentDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    RenderArgs* args = renderContext->args;
+    gpu::Batch batch;
+    args->_batch = &batch;
+
+    glm::mat4 projMat;
+    Transform viewMat;
+    args->_viewFrustum->evalProjectionMatrix(projMat);
+    args->_viewFrustum->evalViewTransform(viewMat);
+    if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+        viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
+    }
+    batch.setProjectionTransform(projMat);
+    batch.setViewTransform(viewMat);
+
+    {
+        GLenum buffers[3];
+        int bufferCount = 0;
+        buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
+        buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
+        buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
+        batch._glDrawBuffers(bufferCount, buffers);
+    }
+
+    renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnOpaqueItems);
+
+    renderContext->args->_context->syncCache();
+    args->_context->render((*args->_batch));
+    args->_batch = nullptr;
+}
+
+void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     PerformanceTimer perfTimer("DrawTransparentDeferred");
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
@@ -172,7 +223,13 @@ template <> void render::jobRun(const DrawTransparentDeferred& job, const SceneC
     ItemIDsBounds inItems;
     inItems.reserve(items.size());
     for (auto id : items) {
-        inItems.push_back(id);
+        auto item = scene->getItem(id);
+        AABox bound;
+        {
+            PerformanceTimer perfTimer("getBound");
+            bound = item.getBound();
+        }
+        inItems.emplace_back(ItemIDAndBounds(id, bound));
     }
     ItemIDsBounds& renderedItems = inItems;
 
