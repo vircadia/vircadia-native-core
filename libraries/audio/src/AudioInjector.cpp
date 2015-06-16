@@ -51,7 +51,7 @@ void AudioInjector::setIsFinished(bool isFinished) {
         emit finished();
 
         if (_localBuffer) {
-            _localBuffer->stop();
+            // delete will stop (and nosily if we do so ourselves here first).
             _localBuffer->deleteLater();
             _localBuffer = NULL;
         }
@@ -60,7 +60,6 @@ void AudioInjector::setIsFinished(bool isFinished) {
 
         if (_shouldDeleteAfterFinish) {
             // we've been asked to delete after finishing, trigger a queued deleteLater here
-            qCDebug(audio) << "AudioInjector triggering delete from setIsFinished";
             QMetaObject::invokeMethod(this, "deleteLater", Qt::QueuedConnection);
         }
     }

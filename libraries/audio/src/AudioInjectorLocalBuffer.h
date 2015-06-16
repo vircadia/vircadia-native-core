@@ -44,6 +44,7 @@ private:
     
     int _currentOffset;
     float _volume;
+    bool _isFinished;
 };
 
 #endif // hifi_AudioInjectorLocalBuffer_h
