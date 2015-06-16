@@ -105,7 +105,7 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
 
 
 void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemIDsBounds& outItems) {
-    PerformanceTimer perfTimer("FetchCullItems::run");
+    PerformanceTimer perfTimer("FetchItems::run");
 
     auto& scene = sceneContext->_scene;
     auto& items = scene->getMasterBucket().at(_filter);
@@ -114,13 +114,13 @@ void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContex
     outItems.clear();
     outItems.reserve(items.size());
     for (auto id : items) {
-        auto item = scene->getItem(id);
-        AABox bound;
+        auto& item = scene->getItem(id);
+      /*  AABox bound;
         {
-            PerformanceTimer perfTimer("getBound");
+      //      PerformanceTimer perfTimer("getBound");
             bound = item.getBound();
-        }
-        outItems.emplace_back(ItemIDAndBounds(id, bound));
+        }*/
+        outItems.emplace_back(ItemIDAndBounds(id, item.getBound()));
     }
 }
 
