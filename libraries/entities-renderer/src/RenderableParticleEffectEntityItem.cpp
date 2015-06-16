@@ -90,9 +90,9 @@ void RenderableParticleEffectEntityItem::updateQuads(RenderArgs* args, bool text
         }
     }
         
-        // sort particles back to front
-        ::zSortAxis = args->_viewFrustum->getDirection();
-        qSort(positions.begin(), positions.end(), zSort);
+    // sort particles back to front
+    ::zSortAxis = args->_viewFrustum->getDirection();
+    qSort(positions.begin(), positions.end(), zSort);
     
     for (int i = 0; i < positions.size(); i++) {
         glm::vec3 pos = (textured) ? positions[i] : _particlePositions[i];
