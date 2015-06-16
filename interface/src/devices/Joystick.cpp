@@ -44,8 +44,8 @@ void Joystick::closeJoystick() {
 
 void Joystick::update() {
     for (auto axisState : _axisStateMap) {
-        if (axisState.second < CONTROLLER_THRESHOLD && axisState.second > -CONTROLLER_THRESHOLD) {
-            _axisStateMap[axisState.first] = 0;
+        if (fabsf(axisState.second) < CONTROLLER_THRESHOLD) {
+            _axisStateMap[axisState.first] = 0.0f;
         }
     }
 }
