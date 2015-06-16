@@ -1056,38 +1056,38 @@ void GeometryCache::renderBevelCornersRect(gpu::Batch& batch, int x, int y, int 
         int vertexPoint = 0;
 
         // Triangle strip points
-        //      4 ------ 6
-        //    /            \
-        //  2                8
-        //  |                |
-        //  1                7
-        //    \            /
         //      3 ------ 5
+        //    /            \
+        //  1                7
+        //  |                |
+        //  2                8
+        //    \            /
+        //      4 ------ 6
         
         // 1
         vertexBuffer[vertexPoint++] = x;
-        vertexBuffer[vertexPoint++] = y + bevelDistance;
+        vertexBuffer[vertexPoint++] = y + height - bevelDistance;
         // 2
         vertexBuffer[vertexPoint++] = x;
-        vertexBuffer[vertexPoint++] = y + height - bevelDistance;
+        vertexBuffer[vertexPoint++] = y + bevelDistance;
         // 3
         vertexBuffer[vertexPoint++] = x + bevelDistance;
-        vertexBuffer[vertexPoint++] = y;
+        vertexBuffer[vertexPoint++] = y + height;
         // 4
         vertexBuffer[vertexPoint++] = x + bevelDistance;
-        vertexBuffer[vertexPoint++] = y + height;
+        vertexBuffer[vertexPoint++] = y;
         // 5
         vertexBuffer[vertexPoint++] = x + width - bevelDistance;
-        vertexBuffer[vertexPoint++] = y;
+        vertexBuffer[vertexPoint++] = y + height;
         // 6
         vertexBuffer[vertexPoint++] = x + width - bevelDistance;
-        vertexBuffer[vertexPoint++] = y + height;
+        vertexBuffer[vertexPoint++] = y;
         // 7
         vertexBuffer[vertexPoint++] = x + width;
-        vertexBuffer[vertexPoint++] = y + bevelDistance;
+        vertexBuffer[vertexPoint++] = y + height - bevelDistance;
         // 8
         vertexBuffer[vertexPoint++] = x + width;
-        vertexBuffer[vertexPoint++] = y + height - bevelDistance;
+        vertexBuffer[vertexPoint++] = y + bevelDistance;
         
         int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
                             ((int(color.y * 255.0f) & 0xFF) << 8) |
