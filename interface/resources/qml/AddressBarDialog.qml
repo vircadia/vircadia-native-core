@@ -39,68 +39,42 @@ DialogContainer {
         Image {
             id: backgroundImage
 
-            source: "../images/address-bar.001.svg"
+            source: "../images/address-bar.svg"
             width: 576 * root.scale
             height: 80 * root.scale
             property int inputAreaHeight: 56.0 * root.scale  // Height of the background's input area
             property int inputAreaStep: (height - inputAreaHeight) / 2
 
-            /*
             Image {
-                id: arrowContainer
+                id: backArrow
 
-                source: "../images/arrowcontainer.svg"
+                source: "../images/left-arrow.svg"
+                scale: 0.9
                 
                 anchors {
                     fill: parent
-                    leftMargin: parent.height + hifi.layout.spacing * 2
-                    rightMargin: parent.height + hifi.layout.spacing * 50
-                    topMargin: parent.inputAreaStep + hifi.layout.spacing
-                    bottomMargin: parent.inputAreaStep + hifi.layout.spacing
-                }
-            }*/
-
-            Image {
-                id: darkGreyArrowBack
-
-                source: "../images/darkgreyarrow.png"
-                
-                anchors {
-                    fill: parent
-                    leftMargin: parent.height + hifi.layout.spacing * 2
+                    leftMargin: parent.height + hifi.layout.spacing + 6
                     rightMargin: parent.height + hifi.layout.spacing * 60
                     topMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
                     bottomMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
                 }
             }
-
-            Image {
-                id: seperator
-
-                source: "../images/sepline.png"
-                
-                anchors {
-                    fill: parent
-                    leftMargin: parent.height + hifi.layout.spacing * 7
-                    rightMargin: parent.height + hifi.layout.spacing * 57
-                    topMargin: parent.inputAreaStep + hifi.layout.spacing
-                    bottomMargin: parent.inputAreaStep + hifi.layout.spacing
-                }
-            }
-
             
             Image {
-                id: lightGreyArrowForward
+                id: forwardArrow
 
-                source: "../images/lightgreyarrow.png"
+                source: "../images/darkgreyarrow.svg"
                 
                 anchors {
                     fill: parent
-                    leftMargin: parent.height + hifi.layout.spacing * 10
-                    rightMargin: parent.height + hifi.layout.spacing * 52
+                    leftMargin: parent.height + hifi.layout.spacing * 9
+                    rightMargin: parent.height + hifi.layout.spacing * 53
                     topMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
                     bottomMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
                 }
+
+                width: parent.width * 0.5
+                height: parent.height * 0.5
             }
 
             TextInput {
