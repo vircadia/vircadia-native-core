@@ -558,6 +558,7 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
                 return false;
             }
             if (actionFactory->factory(simulation, actionType, actionID, entity, arguments)) {
+                entity->flagForOwnership();
                 return true;
             }
             return false;
@@ -571,7 +572,11 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
 
 bool EntityScriptingInterface::updateAction(const QUuid& entityID, const QUuid& actionID, const QVariantMap& arguments) {
     return actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
-            return entity->updateAction(simulation, actionID, arguments);
+            bool success = entity->updateAction(simulation, actionID, arguments);
+            if (success) {
+                entity->flagForOwnership();
+            }
+            return success;
         });
 }
 
