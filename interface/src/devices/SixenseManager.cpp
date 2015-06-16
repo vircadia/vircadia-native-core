@@ -161,7 +161,7 @@ void SixenseManager::update(float deltaTime) {
         
         if (sixenseGetNumActiveControllers() == 0) {
             _hydrasConnected = false;
-            if (_deviceID) {
+            if (_deviceID != 0) {
                 Application::getUserInputMapper()->removeDevice(_deviceID);
                 _deviceID = 0;
                 if (_prevPalms[0]) {
@@ -704,7 +704,7 @@ void SixenseManager::assignDefaultInputMapping(UserInputMapper& mapper) {
     const float JOYSTICK_YAW_SPEED = 0.5f;
     const float JOYSTICK_PITCH_SPEED = 0.25f;
     const float BUTTON_MOVE_SPEED = 1.0f;
-    const float BOOM_SPEED = .1f;
+    const float BOOM_SPEED = 0.1f;
     
     // Left Joystick: Movement, strafing
     mapper.addInputChannel(UserInputMapper::LONGITUDINAL_FORWARD, makeInput(AXIS_Y_POS, 0), JOYSTICK_MOVE_SPEED);

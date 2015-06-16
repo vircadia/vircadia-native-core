@@ -17,7 +17,7 @@
 
 #include "Joystick.h"
 
-const float CONTROLLER_THRESHOLD = .25f;
+const float CONTROLLER_THRESHOLD = 0.25f;
 
 #ifdef HAVE_SDL2
 const float MAX_AXIS = 32768.0f;
@@ -147,7 +147,7 @@ void Joystick::registerToUserInputMapper(UserInputMapper& mapper) {
 void Joystick::assignDefaultInputMapping(UserInputMapper& mapper) {
 #ifdef HAVE_SDL2
     const float JOYSTICK_MOVE_SPEED = 1.0f;
-    const float DPAD_MOVE_SPEED = .5f;
+    const float DPAD_MOVE_SPEED = 0.5f;
     const float JOYSTICK_YAW_SPEED = 0.5f;
     const float JOYSTICK_PITCH_SPEED = 0.25f;
     const float BOOM_SPEED = 0.1f;
