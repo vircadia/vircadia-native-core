@@ -1026,7 +1026,7 @@ void GeometryCache::renderBevelCornersRect(gpu::Batch& batch, int x, int y, int 
     }
 
     const int FLOATS_PER_VERTEX = 2; // vertices
-    const int NUM_VERTICES = 12;
+    const int NUM_VERTICES = 8;
 
     if (!details.isCreated) {
 
@@ -1055,51 +1055,45 @@ void GeometryCache::renderBevelCornersRect(gpu::Batch& batch, int x, int y, int 
         GLfloat vertexBuffer[vertexPoints]; // only vertices, no normals because we're a 2D quad
         int vertexPoint = 0;
 
-        // left side quad
+        // Triangle strip points
+        //      4 ------ 6
+        //    /            \
+        //  2                8
+        //  |                |
+        //  1                7
+        //    \            /
+        //      3 ------ 5
+        
+        // 1
         vertexBuffer[vertexPoint++] = x;
         vertexBuffer[vertexPoint++] = y + bevelDistance;
-        
-        vertexBuffer[vertexPoint++] = x + bevelDistance;
-        vertexBuffer[vertexPoint++] = y;
-        
-        vertexBuffer[vertexPoint++] = x + bevelDistance;
-        vertexBuffer[vertexPoint++] = y + height;
-        
+        // 2
         vertexBuffer[vertexPoint++] = x;
         vertexBuffer[vertexPoint++] = y + height - bevelDistance;
-
-        // middle quad
+        // 3
         vertexBuffer[vertexPoint++] = x + bevelDistance;
         vertexBuffer[vertexPoint++] = y;
-        
-        vertexBuffer[vertexPoint++] = x + width - bevelDistance;
-        vertexBuffer[vertexPoint++] = y;
-        
-        vertexBuffer[vertexPoint++] = x + width - bevelDistance;
-        vertexBuffer[vertexPoint++] = y + height;
-        
+        // 4
         vertexBuffer[vertexPoint++] = x + bevelDistance;
         vertexBuffer[vertexPoint++] = y + height;
-
-        // right side quad
+        // 5
         vertexBuffer[vertexPoint++] = x + width - bevelDistance;
         vertexBuffer[vertexPoint++] = y;
-        
+        // 6
+        vertexBuffer[vertexPoint++] = x + width - bevelDistance;
+        vertexBuffer[vertexPoint++] = y + height;
+        // 7
         vertexBuffer[vertexPoint++] = x + width;
         vertexBuffer[vertexPoint++] = y + bevelDistance;
-        
+        // 8
         vertexBuffer[vertexPoint++] = x + width;
         vertexBuffer[vertexPoint++] = y + height - bevelDistance;
-        
-        vertexBuffer[vertexPoint++] = x + width - bevelDistance;
-        vertexBuffer[vertexPoint++] = y + height;
         
         int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
                             ((int(color.y * 255.0f) & 0xFF) << 8) |
                             ((int(color.z * 255.0f) & 0xFF) << 16) |
                             ((int(color.w * 255.0f) & 0xFF) << 24);
         int colors[NUM_VERTICES] = { compactColor, compactColor, compactColor, compactColor,
-                                     compactColor, compactColor, compactColor, compactColor,
                                      compactColor, compactColor, compactColor, compactColor };
 
 
@@ -1109,7 +1103,7 @@ void GeometryCache::renderBevelCornersRect(gpu::Batch& batch, int x, int y, int 
 
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
-    batch.draw(gpu::QUADS, details.vertices, 0);
+    batch.draw(gpu::TRIANGLE_STRIP, details.vertices, 0);
 }
 
 void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner, const glm::vec4& color, int id) {
