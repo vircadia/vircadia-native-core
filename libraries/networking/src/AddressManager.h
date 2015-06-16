@@ -12,8 +12,8 @@
 #ifndef hifi_AddressManager_h
 #define hifi_AddressManager_h
 
-#include <qobject.h>
-#include <QSharedMemory>
+#include <QtCore/QObject>
+#include <QtCore/QStack>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -38,6 +38,14 @@ class AddressManager : public QObject, public Dependency {
     Q_PROPERTY(QString hostname READ getHost)
     Q_PROPERTY(QString pathname READ currentPath)
 public:
+
+    enum LookupTrigger {
+        UserInput,
+        Back,
+        Forward,
+        StartupFromSettings
+    };
+
     bool isConnected();
     const QString& getProtocol() { return HIFI_URL_SCHEME; };
 
@@ -47,10 +55,7 @@ public:
     const QUuid& getRootPlaceID() const { return _rootPlaceID; }
 
     const QString& getHost() const { return _host; }
-    void setHost(const QString& host);
 
-    void attemptPlaceNameLookup(const QString& lookupString, const QString& overridePath = QString());
-    void attemptDomainIDLookup(const QString& lookupString, const QString& overridePath = QString());
 
     void setPositionGetter(PositionGetter positionGetter) { _positionGetter = positionGetter; }
     void setOrientationGetter(OrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
@@ -60,9 +65,12 @@ public:
 public slots:
     void handleLookupString(const QString& lookupString);
 
-    void goToUser(const QString& username);
-    void goToAddressFromObject(const QVariantMap& addressMap, const QNetworkReply& reply);
-    bool goToViewpoint(const QString& viewpointString) { return handleViewpoint(viewpointString); }
+    // we currently expect this to be called from NodeList once handleLookupString has been called with a path
+    bool goToViewpointForPath(const QString& viewpointString, const QString& pathString)
+        { return handleViewpoint(viewpointString, false, false, pathString); }
+
+    void goBack();
+    void goForward();
 
     void storeCurrentAddress();
 
@@ -73,40 +81,57 @@ signals:
     void lookupResultsFinished();
     void lookupResultIsOffline();
     void lookupResultIsNotFound();
+
     void possibleDomainChangeRequired(const QString& newHostname, quint16 newPort);
     void possibleDomainChangeRequiredViaICEForID(const QString& iceServerHostname, const QUuid& domainID);
+
     void locationChangeRequired(const glm::vec3& newPosition,
                                 bool hasOrientationChange, const glm::quat& newOrientation,
                                 bool shouldFaceLocation);
     void pathChangeRequired(const QString& newPath);
     void hostChanged(const QString& newHost);
+
+    void goBackPossible(bool isPossible);
+    void goForwardPossible(bool isPossible);
+
 protected:
     AddressManager();
 private slots:
     void handleAPIResponse(QNetworkReply& requestReply);
     void handleAPIError(QNetworkReply& errorReply);
+
+    void goToUser(const QString& username);
+    void goToAddressFromObject(const QVariantMap& addressMap, const QNetworkReply& reply);
 private:
-    void setDomainInfo(const QString& hostname, quint16 port);
+    void setHost(const QString& host, LookupTrigger trigger);
+    void setDomainInfo(const QString& hostname, quint16 port, LookupTrigger trigger);
 
     const JSONCallbackParameters& apiCallbackParameters();
 
-    bool handleUrl(const QUrl& lookupUrl);
+    bool handleUrl(const QUrl& lookupUrl, LookupTrigger trigger = UserInput);
 
-    bool handleNetworkAddress(const QString& lookupString);
-    void handlePath(const QString& path);
-    bool handleViewpoint(const QString& viewpointString, bool shouldFace = false);
+    bool handleNetworkAddress(const QString& lookupString, LookupTrigger trigger);
+    void handlePath(const QString& path, LookupTrigger trigger, bool wasPathOnly = false);
+    bool handleViewpoint(const QString& viewpointString, bool shouldFace = false,
+                         bool definitelyPathOnly = false, const QString& pathString = QString());
     bool handleUsername(const QString& lookupString);
     bool handleDomainID(const QString& host);
 
-    void addCurrentAddressToHistory();
+    void attemptPlaceNameLookup(const QString& lookupString, const QString& overridePath, LookupTrigger trigger);
+    void attemptDomainIDLookup(const QString& lookupString, const QString& overridePath, LookupTrigger trigger);
+
+    void addCurrentAddressToHistory(LookupTrigger trigger);
 
     QString _host;
     QUuid _rootPlaceID;
     PositionGetter _positionGetter;
     OrientationGetter _orientationGetter;
 
-    QList<QUrl> _history;
-    quint64 _lastHistoryAppend = 0;
+    QStack<QUrl> _backStack;
+    QStack<QUrl> _forwardStack;
+    quint64 _lastBackPush = 0;
+
+    QString _newHostLookupPath;
 };
 
 #endif // hifi_AddressManager_h
