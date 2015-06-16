@@ -96,8 +96,9 @@ public:
         DIRTY_LIFETIME = 0x0100,
         DIRTY_UPDATEABLE = 0x0200,
         DIRTY_MATERIAL = 0x00400,
-        DIRTY_PHYSICS_ACTIVATION = 0x0800, // we want to activate the object
-        DIRTY_SIMULATOR_ID = 0x1000,
+        DIRTY_PHYSICS_ACTIVATION = 0x0800, // should activate object in physics engine
+        DIRTY_SIMULATOR_OWNERSHIP = 0x1000, // should claim simulator ownership
+        DIRTY_SIMULATOR_ID = 0x2000, // the simulatorID has changed
         DIRTY_TRANSFORM = DIRTY_POSITION | DIRTY_ROTATION,
         DIRTY_VELOCITIES = DIRTY_LINEAR_VELOCITY | DIRTY_ANGULAR_VELOCITY
     };
@@ -386,6 +387,8 @@ public:
     quint64 getLastEditedFromRemote() { return _lastEditedFromRemote; }
 
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
+
+    void flagForOwnership() { _dirtyFlags |= DIRTY_SIMULATOR_OWNERSHIP; }
 
     bool addAction(EntitySimulation* simulation, EntityActionPointer action);
     bool updateAction(EntitySimulation* simulation, const QUuid& actionID, const QVariantMap& arguments);

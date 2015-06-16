@@ -161,6 +161,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties proper
                     } else {
                         // we make a bid for simulation ownership
                         properties.setSimulatorOwnership(myNodeID, SCRIPT_EDIT_SIMULATOR_PRIORITY);
+                        entity->flagForOwnership();
                     }
                 }
                 entity->setLastBroadcast(usecTimestampNow());

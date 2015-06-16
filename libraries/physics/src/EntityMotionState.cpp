@@ -58,8 +58,7 @@ bool entityTreeIsLocked() {
 EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer entity) :
     ObjectMotionState(shape),
     _entity(entity),
-    _sentActive(false),
-    _numNonMovingUpdates(0),
+    _sentInactive(true),
     _lastStep(0),
     _serverPosition(0.0f),
     _serverRotation(),
@@ -116,6 +115,13 @@ void EntityMotionState::handleEasyChanges(uint32_t flags) {
                 _loopsSinceOwnershipBid = 0;
             }
         }
+    }
+    if (flags & EntityItem::DIRTY_SIMULATOR_OWNERSHIP) {
+        // we're manipulating this object directly via script, so we artificially 
+        // manipulate the logic to trigger an immediate bid for ownership
+        _candidateForOwnership = true;
+        _loopsSinceOwnershipBid = uint32_t(-1);
+        _loopsWithoutOwner = uint32_t(-1);
     }
     if ((flags & EntityItem::DIRTY_PHYSICS_ACTIVATION) && !_body->isActive()) {
         _body->activate();
@@ -197,6 +203,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
         if (_loopsWithoutOwner > OWNERSHIP_BID_DELAY) {
             //qDebug() << "Warning -- claiming something I saw moving." << getName();
             _candidateForOwnership = true;
+            _loopsSinceOwnershipBid = uint32_t(-1);
         }
     } else {
         _loopsWithoutOwner = 0;
@@ -243,7 +250,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         _serverVelocity = bulletToGLM(_body->getLinearVelocity());
         _serverAngularVelocity = bulletToGLM(_body->getAngularVelocity());
         _lastStep = simulationStep;
-        _sentActive = false;
+        _sentInactive = true;
         return false;
     }
 
@@ -257,7 +264,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     float dt = (float)(numSteps) * PHYSICS_ENGINE_FIXED_SUBSTEP;
 
     const float INACTIVE_UPDATE_PERIOD = 0.5f;
-    if (!_sentActive) {
+    if (_sentInactive) {
         // we resend the inactive update every INACTIVE_UPDATE_PERIOD
         // until it is removed from the outgoing updates
         // (which happens when we don't own the simulation and it isn't touching our simulation)
@@ -345,30 +352,23 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep, const QUuid& s
     assert(_body);
     assert(entityTreeIsLocked());
 
-    if (!remoteSimulationOutOfSync(simulationStep)) {
-        _candidateForOwnership = false;
-        return false;
-    }
-
-    if (_entity->getSimulatorID() == sessionID) {
-        // we own the simulation
-        _candidateForOwnership = false;
-        return true;
-    }
-
-    const uint32_t FRAMES_BETWEEN_OWNERSHIP_CLAIMS = 30;
-    if (_candidateForOwnership) {
-        _candidateForOwnership = false;
-        ++_loopsSinceOwnershipBid;
-        if (_loopsSinceOwnershipBid > FRAMES_BETWEEN_OWNERSHIP_CLAIMS) {
-            // we don't own the simulation, but it's time to bid for it
-            _loopsSinceOwnershipBid = 0;
-            return true;
+    if (_entity->getSimulatorID() != sessionID) {
+        // we don't own the simulation, but maybe we should...
+        if (_candidateForOwnership) {
+            _candidateForOwnership = false;
+            ++_loopsSinceOwnershipBid;
+            const uint32_t FRAMES_BETWEEN_OWNERSHIP_CLAIMS = 30;
+            if (_loopsSinceOwnershipBid > FRAMES_BETWEEN_OWNERSHIP_CLAIMS) {
+                // it's time to bid for ownership
+                _loopsSinceOwnershipBid = 0;
+                return true;
+            }
         }
-    }
-
+        return false;
+    } 
     _candidateForOwnership = false;
-    return false;
+   
+    return remoteSimulationOutOfSync(simulationStep);
 }
 
 void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const QUuid& sessionID, uint32_t step) {
@@ -382,7 +382,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
         _entity->setVelocity(zero);
         _entity->setAngularVelocity(zero);
         _entity->setAcceleration(zero);
-        _sentActive = false;
+        _sentInactive = true;
     } else {
         float gravityLength = glm::length(_entity->getGravity());
         float accVsGravity = glm::abs(glm::length(_measuredAcceleration) - gravityLength);
@@ -419,7 +419,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
             _entity->setVelocity(zero);
             _entity->setAngularVelocity(zero);
         }
-        _sentActive = true;
+        _sentInactive = false;
     }
 
     // remember properties for local server prediction
@@ -543,8 +543,11 @@ void EntityMotionState::measureBodyAcceleration() {
         _measuredAcceleration = (velocity / powf(1.0f - _body->getLinearDamping(), dt) - _lastVelocity) * invDt;
         _lastVelocity = velocity;
         if (numSubsteps > PHYSICS_ENGINE_MAX_NUM_SUBSTEPS && !_candidateForOwnership) {
+            // object has just been re-activated so clear ownership logic
             _loopsSinceOwnershipBid = 0;
             _loopsWithoutOwner = 0;
+            _lastStep = ObjectMotionState::getWorldSimulationStep();
+            _sentInactive = false;
         }
     }
 }

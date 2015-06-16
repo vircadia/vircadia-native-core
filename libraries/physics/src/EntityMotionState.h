@@ -96,8 +96,7 @@ protected:
 
     EntityItemPointer _entity;
 
-    bool _sentActive;   // true if body was active when we sent last update
-    int _numNonMovingUpdates; // RELIABLE_SEND_HACK for "not so reliable" resends of packets for non-moving objects
+    bool _sentInactive;   // true if body was inactive when we sent last update
 
     // these are for the prediction of the remote server's simple extrapolation
     uint32_t _lastStep; // last step of server extrapolation
