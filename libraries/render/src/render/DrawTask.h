@@ -186,6 +186,10 @@ void renderItems(const SceneContextPointer& sceneContext, const RenderContextPoi
 
 class FetchItems {
 public:
+
+    FetchItems() {}
+    FetchItems(const ItemFilter& filter): _filter(filter) {}
+
     ItemFilter _filter = ItemFilter::Builder::opaqueShape().withoutLayered();
 
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemIDsBounds& outItems);

@@ -43,19 +43,11 @@ public:
     typedef render::Job::ModelI<DrawOpaqueDeferred, render::ItemIDsBounds> JobModel;
 };
 
-/*class DrawOpaqueDeferred {
-public:
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-
-    typedef render::Job::Model<DrawOpaqueDeferred> JobModel;
-};
-*/
-
 class DrawTransparentDeferred {
 public:
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
 
-    typedef render::Job::Model<DrawTransparentDeferred> JobModel;
+    typedef render::Job::ModelI<DrawTransparentDeferred, render::ItemIDsBounds> JobModel;
 };
 
 class RenderDeferredTask : public render::Task {

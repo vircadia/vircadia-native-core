@@ -1795,6 +1795,7 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
 }
 
 void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent) {
+    PerformanceTimer perfTimer("Model::renderPart");
 
     if (!_readyWhenAdded) {
         return; // bail asap

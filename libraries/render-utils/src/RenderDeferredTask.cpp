@@ -57,7 +57,7 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
 RenderDeferredTask::RenderDeferredTask() : Task() {
    _jobs.push_back(Job(new PrepareDeferred::JobModel()));
    _jobs.push_back(Job(new DrawBackground::JobModel()));
-   _jobs.push_back(Job(new FetchItems::JobModel()));
+   _jobs.push_back(Job(new FetchItems::JobModel(FetchItems())));
    _jobs.push_back(Job(new CullItems::JobModel(_jobs.back().getOutput())));
    _jobs.push_back(Job(new DepthSortItems::JobModel(_jobs.back().getOutput())));
    _jobs.push_back(Job(new DrawOpaqueDeferred::JobModel(_jobs.back().getOutput())));
@@ -65,7 +65,10 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
    _jobs.push_back(Job(new ResetGLState::JobModel()));
    _jobs.push_back(Job(new RenderDeferred::JobModel()));
    _jobs.push_back(Job(new ResolveDeferred::JobModel()));
-   _jobs.push_back(Job(new DrawTransparentDeferred::JobModel()));
+   _jobs.push_back(Job(new FetchItems::JobModel(FetchItems(ItemFilter::Builder::transparentShape().withoutLayered()))));
+   _jobs.push_back(Job(new CullItems::JobModel(_jobs.back().getOutput())));
+   _jobs.push_back(Job(new DepthSortItems::JobModel(_jobs.back().getOutput())));
+   _jobs.push_back(Job(new DrawTransparentDeferred::JobModel(_jobs.back().getOutput())));
    _jobs.push_back(Job(new DrawPostLayered::JobModel()));
    _jobs.push_back(Job(new ResetGLState::JobModel()));
 }
@@ -209,7 +212,7 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
     args->_context->render((*args->_batch));
     args->_batch = nullptr;
 }
-
+/*
 void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     PerformanceTimer perfTimer("DrawTransparentDeferred");
     assert(renderContext->args);
@@ -288,4 +291,44 @@ void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const
         // reset blend function to standard...
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
     }
+}*/
+
+void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
+    PerformanceTimer perfTimer("DrawTransparentDeferred");
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
+    auto& renderDetails = renderContext->args->_details;
+
+    RenderArgs* args = renderContext->args;
+    gpu::Batch batch;
+    args->_batch = &batch;
+
+    glm::mat4 projMat;
+    Transform viewMat;
+    args->_viewFrustum->evalProjectionMatrix(projMat);
+    args->_viewFrustum->evalViewTransform(viewMat);
+    if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+        viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
+    }
+    batch.setProjectionTransform(projMat);
+    batch.setViewTransform(viewMat);
+
+    const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
+
+    {
+        GLenum buffers[3];
+        int bufferCount = 0;
+        buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
+        batch._glDrawBuffers(bufferCount, buffers);
+        args->_alphaThreshold = TRANSPARENT_ALPHA_THRESHOLD;
+    }
+
+
+    renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnTransparentItems);
+
+    args->_context->render((*args->_batch));
+    args->_batch = nullptr;
+
+        // reset blend function to standard...
+        glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
 }
