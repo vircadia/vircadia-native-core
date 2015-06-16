@@ -57,6 +57,7 @@
 
 #include <AccountManager.h>
 #include <AddressManager.h>
+#include <CursorManager.h>
 #include <AmbientOcclusionEffect.h>
 #include <AudioInjector.h>
 #include <DeferredLightingEffect.h>
@@ -100,6 +101,7 @@
 #include "ModelPackager.h"
 #include "Util.h"
 #include "InterfaceLogging.h"
+#include "InterfaceActionFactory.h"
 
 #include "avatar/AvatarManager.h"
 
@@ -257,6 +259,7 @@ bool setupEssentials(int& argc, char** argv) {
 
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
+    DependencyManager::registerInheritance<EntityActionFactoryInterface, InterfaceActionFactory>();
 
     Setting::init();
 
@@ -293,7 +296,8 @@ bool setupEssentials(int& argc, char** argv) {
     auto discoverabilityManager = DependencyManager::set<DiscoverabilityManager>();
     auto sceneScriptingInterface = DependencyManager::set<SceneScriptingInterface>();
     auto offscreenUi = DependencyManager::set<OffscreenUi>();
-    auto pathUtils =  DependencyManager::set<PathUtils>();
+    auto pathUtils = DependencyManager::set<PathUtils>();
+    auto actionFactory = DependencyManager::set<InterfaceActionFactory>();
 
     return true;
 }
@@ -336,7 +340,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _enableProcessOctreeThread(true),
         _octreeProcessor(),
         _nodeBoundsDisplay(this),
-        _applicationOverlay(),
         _runningScriptsWidget(NULL),
         _runningScriptsWidgetWasVisible(false),
         _trayIcon(new QSystemTrayIcon(_window)),
@@ -347,7 +350,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _notifiedPacketVersionMismatchThisDomain(false),
         _domainConnectionRefusals(QList<QString>()),
         _maxOctreePPS(maxOctreePacketsPerSecond.get()),
-        _lastFaceTrackerUpdate(0)
+        _lastFaceTrackerUpdate(0),
+        _applicationOverlay()
 {
     setInstance(this);
 #ifdef Q_OS_WIN
@@ -421,6 +425,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(audioIO.data(), &AudioClient::muteToggled, this, &Application::audioMuteToggled);
     connect(audioIO.data(), &AudioClient::receivedFirstPacket,
             &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::receivedFirstPacket);
+    connect(audioIO.data(), &AudioClient::disconnected,
+            &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::disconnected);
 
     audioThread->start();
 
@@ -524,7 +530,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _window->setVisible(true);
     _glWidget->setFocusPolicy(Qt::StrongFocus);
     _glWidget->setFocus();
-
+#ifdef Q_OS_MAC
+    // OSX doesn't seem to provide for hiding the cursor only on the GL widget
+    _window->setCursor(Qt::BlankCursor);
+#else
+    // On windows and linux, hiding the top level cursor also means it's invisible
+    // when hovering over the window menu, which is a pain, so only hide it for
+    // the GL surface
+    _glWidget->setCursor(Qt::BlankCursor);
+#endif
+    
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
 
@@ -942,11 +957,14 @@ void Application::paintGL() {
         displaySide(&renderArgs, _myCamera);
         glPopMatrix();
 
+        renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
         if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
             _rearMirrorTools->render(&renderArgs, true, _glWidget->mapFromGlobal(QCursor::pos()));
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
             renderRearViewMirror(&renderArgs, _mirrorViewRect);       
         }
+
+        renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
 
         auto finalFbo = DependencyManager::get<GlowEffect>()->render(&renderArgs);
 
@@ -1228,9 +1246,20 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
-            case Qt::Key_Apostrophe:
-                resetSensors();
+            case Qt::Key_Apostrophe: {
+                if (isMeta) {
+                    auto cursor = Cursor::Manager::instance().getCursor();
+                    auto curIcon = cursor->getIcon();
+                    if (curIcon == Cursor::Icon::DEFAULT) {
+                        cursor->setIcon(Cursor::Icon::LINK);
+                    } else {
+                        cursor->setIcon(Cursor::Icon::DEFAULT);
+                    }
+                } else {
+                    resetSensors();
+                }
                 break;
+            }
 
             case Qt::Key_A:
                 if (isShifted) {
@@ -1354,12 +1383,27 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Slash:
                 Menu::getInstance()->triggerOption(MenuOption::Stats);
                 break;
-            case Qt::Key_Plus:
-                _myAvatar->increaseSize();
+
+            case Qt::Key_Plus: {
+                if (isMeta && event->modifiers().testFlag(Qt::KeypadModifier)) {
+                    auto& cursorManager = Cursor::Manager::instance();
+                    cursorManager.setScale(cursorManager.getScale() * 1.1f);
+                } else {
+                    _myAvatar->increaseSize();
+                }
                 break;
-            case Qt::Key_Minus:
-                _myAvatar->decreaseSize();
+            }
+
+            case Qt::Key_Minus: {
+                if (isMeta && event->modifiers().testFlag(Qt::KeypadModifier)) {
+                    auto& cursorManager = Cursor::Manager::instance();
+                    cursorManager.setScale(cursorManager.getScale() / 1.1f);
+                } else {
+                    _myAvatar->decreaseSize();
+                }
                 break;
+            }
+
             case Qt::Key_Equal:
                 _myAvatar->resetSize();
                 break;
@@ -1895,8 +1939,6 @@ void Application::setEnableVRMode(bool enableVRMode) {
     }
 
     resizeGL();
-
-    updateCursorVisibility();
 }
 
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
@@ -2398,19 +2440,8 @@ void Application::updateCursor(float deltaTime) {
     lastMousePos = QCursor::pos();
 }
 
-void Application::updateCursorVisibility() {
-    if (!_cursorVisible ||
-        Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode) ||
-        Menu::getInstance()->isOptionChecked(MenuOption::Enable3DTVMode)) {
-        _window->setCursor(Qt::BlankCursor);
-    } else {
-        _window->unsetCursor();
-    }
-}
-
 void Application::setCursorVisible(bool visible) {
     _cursorVisible = visible;
-    updateCursorVisibility();
 }
 
 void Application::update(float deltaTime) {
@@ -3409,7 +3440,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
                 "Application::displaySide() ... entities...");
 
             RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE;
-            RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE;
 
             if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowHulls)) {
                 renderDebugFlags = (RenderArgs::DebugFlags) (renderDebugFlags | (int) RenderArgs::RENDER_DEBUG_HULLS);
@@ -3418,10 +3448,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
                 renderDebugFlags =
                     (RenderArgs::DebugFlags) (renderDebugFlags | (int) RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP);
             }
-            if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
-                renderMode = RenderArgs::MIRROR_RENDER_MODE;
-            }
-            renderArgs->_renderMode = renderMode;
             renderArgs->_debugFlags = renderDebugFlags;
             _entities.render(renderArgs);
         }

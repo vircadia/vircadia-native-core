@@ -14,6 +14,7 @@
 #include <gpu/GPUConfig.h>
 #include <gpu/Batch.h>
 
+#include <AbstractViewStateInterface.h>
 #include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <GeometryCache.h>
@@ -100,10 +101,17 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
             case SHAPE_TYPE_COMPOUND: {
                 PerformanceTimer perfTimer("zone->renderCompound");
                 updateGeometry();
-                
-                if (_model && _model->isActive()) {
-                    // FIX ME: this is no longer available... we need to switch to payloads
-                    //_model->renderInScene(getLocalRenderAlpha(), args);
+                if (_model && _model->needsFixupInScene()) {
+                    // check to see if when we added our models to the scene they were ready, if they were not ready, then
+                    // fix them up in the scene
+                    render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+                    render::PendingChanges pendingChanges;
+                    _model->removeFromScene(scene, pendingChanges);
+                    _model->addToScene(scene, pendingChanges);
+                    
+                    scene->enqueuePendingChanges(pendingChanges);
+                    
+                    _model->setVisibleInScene(getVisible(), scene);
                 }
                 break;
             }
@@ -131,6 +139,15 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                 break;
         }
     }
+    
+    if ((!_drawZoneBoundaries || getShapeType() != SHAPE_TYPE_COMPOUND) &&
+        _model && !_model->needsFixupInScene()) {
+        // If the model is in the scene but doesn't need to be, remove it.
+        render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+        render::PendingChanges pendingChanges;
+        _model->removeFromScene(scene, pendingChanges);
+        scene->enqueuePendingChanges(pendingChanges);
+    }
 }
 
 bool RenderableZoneEntityItem::contains(const glm::vec3& point) const {
@@ -144,4 +161,52 @@ bool RenderableZoneEntityItem::contains(const glm::vec3& point) const {
     }
     
     return false;
+}
+
+class RenderableZoneEntityItemMeta {
+public:
+    RenderableZoneEntityItemMeta(EntityItemPointer entity) : entity(entity){ }
+    typedef render::Payload<RenderableZoneEntityItemMeta> Payload;
+    typedef Payload::DataPointer Pointer;
+    
+    EntityItemPointer entity;
+};
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const RenderableZoneEntityItemMeta::Pointer& payload) {
+        return ItemKey::Builder::opaqueShape();
+    }
+    
+    template <> const Item::Bound payloadGetBound(const RenderableZoneEntityItemMeta::Pointer& payload) {
+        if (payload && payload->entity) {
+            return payload->entity->getAABox();
+        }
+        return render::Item::Bound();
+    }
+    template <> void payloadRender(const RenderableZoneEntityItemMeta::Pointer& payload, RenderArgs* args) {
+        if (args) {
+            if (payload && payload->entity) {
+                payload->entity->render(args);
+            }
+        }
+    }
+}
+
+bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
+                                           render::PendingChanges& pendingChanges) {
+    _myMetaItem = scene->allocateID();
+    
+    auto renderData = RenderableZoneEntityItemMeta::Pointer(new RenderableZoneEntityItemMeta(self));
+    auto renderPayload = render::PayloadPointer(new RenderableZoneEntityItemMeta::Payload(renderData));
+    
+    pendingChanges.resetItem(_myMetaItem, renderPayload);
+    return true;
+}
+
+void RenderableZoneEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
+                                                render::PendingChanges& pendingChanges) {
+    pendingChanges.removeItem(_myMetaItem);
+    if (_model) {
+        _model->removeFromScene(scene, pendingChanges);
+    }
 }

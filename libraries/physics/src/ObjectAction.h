@@ -13,11 +13,16 @@
 #ifndef hifi_ObjectAction_h
 #define hifi_ObjectAction_h
 
-#include <btBulletDynamicsCommon.h>
-
 #include <QUuid>
 
+#include <btBulletDynamicsCommon.h>
+
 #include <EntityItem.h>
+
+#include "ObjectMotionState.h"
+#include "BulletUtil.h"
+#include "EntityActionInterface.h"
+
 
 class ObjectAction : public btActionInterface, public EntityActionInterface {
 public:
@@ -30,6 +35,9 @@ public:
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) { _ownerEntity = ownerEntity; }
     virtual bool updateArguments(QVariantMap arguments) { return false; }
 
+    // this is called from updateAction and should be overridden by subclasses
+    virtual void updateActionWorker(float deltaTimeStep) {}
+
     // these are from btActionInterface
     virtual void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep);
     virtual void debugDraw(btIDebugDraw* debugDrawer);
@@ -39,6 +47,16 @@ private:
     QReadWriteLock _lock;
 
 protected:
+    virtual btRigidBody* getRigidBody();
+    virtual glm::vec3 getPosition();
+    virtual void setPosition(glm::vec3 position);
+    virtual glm::quat getRotation();
+    virtual void setRotation(glm::quat rotation);
+    virtual glm::vec3 getLinearVelocity();
+    virtual void setLinearVelocity(glm::vec3 linearVelocity);
+    virtual glm::vec3 getAngularVelocity();
+    virtual void setAngularVelocity(glm::vec3 angularVelocity);
+
     bool tryLockForRead() { return _lock.tryLockForRead(); }
     void lockForWrite() { _lock.lockForWrite(); }
     void unlock() { _lock.unlock(); }

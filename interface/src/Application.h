@@ -149,6 +149,7 @@ public:
     static glm::quat getOrientationForPath() { return getInstance()->_myAvatar->getOrientation(); }
     static glm::vec3 getPositionForAudio() { return getInstance()->_myAvatar->getHead()->getPosition(); }
     static glm::quat getOrientationForAudio() { return getInstance()->_myAvatar->getHead()->getFinalOrientationInWorldFrame(); }
+    static UserInputMapper* getUserInputMapper() { return &getInstance()->_userInputMapper; }
     static void initPlugins();
     static void shutdownPlugins();
 
@@ -474,8 +475,6 @@ private:
     void resetCamerasOnResizeGL(Camera& camera, const glm::uvec2& size);
     void updateProjectionMatrix();
     void updateProjectionMatrix(Camera& camera, bool updateViewFrustum = true);
-
-    void updateCursorVisibility();
 
     void sendPingPackets();
 

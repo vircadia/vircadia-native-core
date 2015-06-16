@@ -201,14 +201,6 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     glm::vec3 position = getPosition();
     glm::vec3 dimensions = getDimensions();
 
-    bool debugSimulationOwnership = args->_debugFlags & RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP;
-    bool highlightSimulationOwnership = false;
-    if (debugSimulationOwnership) {
-        auto nodeList = DependencyManager::get<NodeList>();
-        const QUuid& myNodeID = nodeList->getSessionUUID();
-        highlightSimulationOwnership = (getSimulatorID() == myNodeID);
-    }
-
     if (hasModel()) {
         if (_model) {
             if (QUrl(getModelURL()) != _model->getURL()) {
@@ -232,7 +224,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
         remapTextures();
         {
-            float alpha = getLocalRenderAlpha();
+            // float alpha = getLocalRenderAlpha();
 
             if (!_model || _needsModelReload) {
                 // TODO: this getModel() appears to be about 3% of model render time. We should optimize
@@ -273,11 +265,6 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     _needsInitialSimulation = false;
                 }
             }
-        }
-
-        if (highlightSimulationOwnership) {
-            glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
-            RenderableDebugableEntityItem::renderBoundingBox(this, args, 0.0f, greenColor);
         }
     } else {
         glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);

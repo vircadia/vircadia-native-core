@@ -35,6 +35,7 @@ AddressManager::AddressManager() :
     _positionGetter(NULL),
     _orientationGetter(NULL)
 {
+
 }
 
 bool AddressManager::isConnected() {
@@ -415,6 +416,9 @@ bool AddressManager::handleViewpoint(const QString& viewpointString, bool should
                               positionRegex.cap(2).toFloat(),
                               positionRegex.cap(3).toFloat());
 
+        // we're about to jump positions - store the current address in our history
+        addCurrentAddressToHistory();
+
         if (!isNaN(newPosition.x) && !isNaN(newPosition.y) && !isNaN(newPosition.z)) {
             glm::quat newOrientation;
 
@@ -467,6 +471,10 @@ bool AddressManager::handleUsername(const QString& lookupString) {
 
 void AddressManager::setHost(const QString& host) {
     if (host != _host) {
+
+        // if the host is being changed we should store current address in the history
+        addCurrentAddressToHistory();
+
         _host = host;
         emit hostChanged(_host);
     }
@@ -474,7 +482,8 @@ void AddressManager::setHost(const QString& host) {
 
 
 void AddressManager::setDomainInfo(const QString& hostname, quint16 port) {
-    _host = hostname;
+    setHost(hostname);
+
     _rootPlaceID = QUuid();
 
     qCDebug(networking) << "Possible domain change required to connect to domain at" << hostname << "on" << port;
@@ -499,4 +508,23 @@ void AddressManager::copyAddress() {
 
 void AddressManager::copyPath() {
     QApplication::clipboard()->setText(currentPath());
+}
+
+void AddressManager::addCurrentAddressToHistory() {
+    if (_lastHistoryAppend == 0) {
+        // we don't store the first address on application load
+        // just update the last append time so the next is stored
+        _lastHistoryAppend = usecTimestampNow();
+    } else {
+        const quint64 DOUBLE_STORE_THRESHOLD_USECS = 500000;
+
+        // avoid double storing when the host changes and the viewpoint changes immediately after
+        if (usecTimestampNow() - _lastHistoryAppend > DOUBLE_STORE_THRESHOLD_USECS) {
+            // add the current address to the history
+            _history.append(currentAddress());
+
+            // change our last history append to now
+            _lastHistoryAppend = usecTimestampNow();
+        }
+    }
 }

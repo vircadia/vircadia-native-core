@@ -96,7 +96,6 @@ private:
     };
     
     float _hmdUIAngularSize = DEFAULT_HMD_UI_ANGULAR_SIZE;
-    
     void renderReticle(glm::quat orientation, float alpha);
     void renderPointers();;
     void renderMagnifier(glm::vec2 magPos, float sizeMult, bool showBorder);
@@ -108,6 +107,7 @@ private:
     void renderCameraToggle();
     void renderStatsAndLogs();
     void renderDomainConnectionStatusBorder();
+    void bindCursorTexture(gpu::Batch& batch, uint8_t cursorId = 0);
 
     TexturedHemisphere _overlays;
     
@@ -125,9 +125,12 @@ private:
     float _alpha = 1.0f;
     float _oculusUIRadius;
     float _trailingAudioLoudness;
+    
+     gpu::TexturePointer _crosshairTexture;
 
 
-    gpu::TexturePointer _crosshairTexture;
+    QMap<uint16_t, gpu::TexturePointer> _cursors;
+
     GLuint _newUiTexture{ 0 };
     
     int _reticleQuad;

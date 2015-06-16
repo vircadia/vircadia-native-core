@@ -24,6 +24,8 @@
 #include <AABox.h>
 #include <RenderArgs.h>
 
+#include "model/Material.h"
+
 namespace render {
 
 class Context;
@@ -34,7 +36,6 @@ public:
     enum FlagBit {
         TYPE_SHAPE = 0,   // Item is a Shape
         TYPE_LIGHT,       // Item is a Light
-        TYPE_BACKGROUND,  // Item is a Background
         TRANSLUCENT,      // Transparent and not opaque, for some odd reason TRANSPARENCY doesn't work...
         VIEW_SPACE,       // Transformed in view space, and not in world space
         DYNAMIC,          // Dynamic and bound will change unlike static item
@@ -42,7 +43,7 @@ public:
         INVISIBLE,        // Visible or not? could be just here to cast shadow
         SHADOW_CASTER,    // Item cast shadows
         PICKABLE,         // Item can be picked/selected
-        NO_DEPTH_SORT,    // Item should not be depth sorted
+        LAYERED,          // Item belongs to one of the layers different from the default layer
 
         NUM_FLAGS,      // Not a valid flag
     };
@@ -55,6 +56,7 @@ public:
     ItemKey(const Flags& flags) : _flags(flags) {}
 
     class Builder {
+        friend class ItemKey;
         Flags _flags{ 0 };
     public:
         Builder() {}
@@ -63,7 +65,6 @@ public:
 
         Builder& withTypeShape() { _flags.set(TYPE_SHAPE); return (*this); }
         Builder& withTypeLight() { _flags.set(TYPE_LIGHT); return (*this); }
-        Builder& withTypeBackground() { _flags.set(TYPE_BACKGROUND); return (*this); }
         Builder& withTransparent() { _flags.set(TRANSLUCENT); return (*this); }
         Builder& withViewSpace() { _flags.set(VIEW_SPACE); return (*this); }
         Builder& withDynamic() { _flags.set(DYNAMIC); return (*this); }
@@ -71,14 +72,15 @@ public:
         Builder& withInvisible() { _flags.set(INVISIBLE); return (*this); }
         Builder& withShadowCaster() { _flags.set(SHADOW_CASTER); return (*this); }
         Builder& withPickable() { _flags.set(PICKABLE); return (*this); }
-        Builder& withNoDepthSort() { _flags.set(NO_DEPTH_SORT); return (*this); }
+        Builder& withLayered() { _flags.set(LAYERED); return (*this); }
 
         // Convenient standard keys that we will keep on using all over the place
-        static ItemKey opaqueShape() { return Builder().withTypeShape().build(); }
-        static ItemKey transparentShape() { return Builder().withTypeShape().withTransparent().build(); }
-        static ItemKey light() { return Builder().withTypeLight().build(); }
-        static ItemKey background() { return Builder().withTypeBackground().build(); }
+        static Builder opaqueShape() { return Builder().withTypeShape(); }
+        static Builder transparentShape() { return Builder().withTypeShape().withTransparent(); }
+        static Builder light() { return Builder().withTypeLight(); }
+        static Builder background() { return Builder().withViewSpace().withLayered(); }
     };
+    ItemKey(const Builder& builder) : ItemKey(builder._flags) {}
 
     bool isOpaque() const { return !_flags[TRANSLUCENT]; }
     bool isTransparent() const { return _flags[TRANSLUCENT]; }
@@ -99,8 +101,7 @@ public:
 
     bool isPickable() const { return _flags[PICKABLE]; }
 
-    bool isDepthSort() const { return !_flags[NO_DEPTH_SORT]; }
-    bool isNoDepthSort() const { return _flags[NO_DEPTH_SORT]; }
+    bool isLayered() const { return _flags[LAYERED]; }
 };
 
 inline QDebug operator<<(QDebug debug, const ItemKey& itemKey) {
@@ -120,6 +121,7 @@ public:
     ItemFilter(const ItemKey::Flags& value = ItemKey::Flags(0), const ItemKey::Flags& mask = ItemKey::Flags(0)) : _value(value), _mask(mask) {}
 
     class Builder {
+        friend class ItemFilter;
         ItemKey::Flags _value{ 0 };
         ItemKey::Flags _mask{ 0 };
     public:
@@ -129,7 +131,6 @@ public:
 
         Builder& withTypeShape()        { _value.set(ItemKey::TYPE_SHAPE); _mask.set(ItemKey::TYPE_SHAPE); return (*this); }
         Builder& withTypeLight()        { _value.set(ItemKey::TYPE_LIGHT); _mask.set(ItemKey::TYPE_LIGHT); return (*this); }
-        Builder& withTypeBackground()   { _value.set(ItemKey::TYPE_BACKGROUND); _mask.set(ItemKey::TYPE_BACKGROUND); return (*this); }
         
         Builder& withOpaque()           { _value.reset(ItemKey::TRANSLUCENT); _mask.set(ItemKey::TRANSLUCENT); return (*this); }
         Builder& withTransparent()      { _value.set(ItemKey::TRANSLUCENT); _mask.set(ItemKey::TRANSLUCENT); return (*this); }
@@ -151,15 +152,17 @@ public:
 
         Builder& withPickable()         { _value.set(ItemKey::PICKABLE);  _mask.set(ItemKey::PICKABLE); return (*this); }
 
-        Builder& withDepthSort()      { _value.reset(ItemKey::NO_DEPTH_SORT); _mask.set(ItemKey::NO_DEPTH_SORT); return (*this); }
-        Builder& withNotDepthSort()   { _value.set(ItemKey::NO_DEPTH_SORT);  _mask.set(ItemKey::NO_DEPTH_SORT); return (*this); }
+        Builder& withoutLayered()       { _value.reset(ItemKey::LAYERED); _mask.set(ItemKey::LAYERED); return (*this); }
+        Builder& withLayered()          { _value.set(ItemKey::LAYERED);  _mask.set(ItemKey::LAYERED); return (*this); }
 
         // Convenient standard keys that we will keep on using all over the place
-        static ItemFilter opaqueShape() { return Builder().withTypeShape().withOpaque().withWorldSpace().build(); }
-        static ItemFilter transparentShape() { return Builder().withTypeShape().withTransparent().withWorldSpace().build(); }
-        static ItemFilter light() { return Builder().withTypeLight().build(); }
-        static ItemFilter background() { return Builder().withTypeBackground().build(); }
+        static Builder opaqueShape() { return Builder().withTypeShape().withOpaque().withWorldSpace(); }
+        static Builder transparentShape() { return Builder().withTypeShape().withTransparent().withWorldSpace(); }
+        static Builder light() { return Builder().withTypeLight(); }
+        static Builder background() { return Builder().withViewSpace().withLayered(); }
     };
+
+    ItemFilter(const Builder& builder) : ItemFilter(builder._value, builder._mask) {}
 
     // Item Filter operator testing if a key pass the filter
     bool test(const ItemKey& key) const { return (key._flags & _mask) == (_value & _mask); }
@@ -177,7 +180,7 @@ public:
 };
 
 inline QDebug operator<<(QDebug debug, const ItemFilter& me) {
-    debug << "[ItemFilter: opaqueShape:" << me.test(ItemKey::Builder::opaqueShape())
+    debug << "[ItemFilter: opaqueShape:" << me.test(ItemKey::Builder::opaqueShape().build())
                  << "]";
     return debug;
 }
@@ -212,33 +215,43 @@ public:
     public:
         virtual const ItemKey getKey() const = 0;
         virtual const Bound getBound() const = 0;
+        virtual int getLayer() const = 0;
+
         virtual void render(RenderArgs* args) = 0;
 
-        virtual void update(const UpdateFunctorPointer& functor) = 0;
+        virtual const model::MaterialKey getMaterialKey() const = 0;
 
         ~PayloadInterface() {}
     protected:
+        friend class Item;
+        virtual void update(const UpdateFunctorPointer& functor) = 0;
     };
-    
-
-    
     typedef std::shared_ptr<PayloadInterface> PayloadPointer;
-
-    
 
     Item() {}
     ~Item() {}
 
+    // Main scene / item managment interface Reset/Update/Kill
     void resetPayload(const PayloadPointer& payload);
-    void kill();
+    void update(const UpdateFunctorPointer& updateFunctor)  { _payload->update(updateFunctor); } // Communicate update to the payload
+    void kill() { _payload.reset(); _key._flags.reset(); } // Kill means forget the payload and key
 
     // Check heuristic key
     const ItemKey& getKey() const { return _key; }
 
     // Payload Interface
+
+    // Get the bound of the item expressed in world space (or eye space depending on the key.isWorldSpace())
     const Bound getBound() const { return _payload->getBound(); }
+
+    // Get the layer where the item belongs. 0 by default meaning NOT LAYERED
+    int getLayer() const { return _payload->getLayer(); }
+
+    // Render call for the item
     void render(RenderArgs* args) { _payload->render(args); }
-    void update(const UpdateFunctorPointer& updateFunctor)  { _payload->update(updateFunctor); }
+
+    // Shape Type Interface
+    const model::MaterialKey getMaterialKey() const { return _payload->getMaterialKey(); }
 
 protected:
     PayloadPointer _payload;
@@ -273,22 +286,36 @@ inline QDebug operator<<(QDebug debug, const Item& item) {
 // of the Payload interface
 template <class T> const ItemKey payloadGetKey(const std::shared_ptr<T>& payloadData) { return ItemKey(); }
 template <class T> const Item::Bound payloadGetBound(const std::shared_ptr<T>& payloadData) { return Item::Bound(); }
+template <class T> int payloadGetLayer(const std::shared_ptr<T>& payloadData) { return 0; }
 template <class T> void payloadRender(const std::shared_ptr<T>& payloadData, RenderArgs* args) { }
     
+// Shape type interface
+template <class T> const model::MaterialKey shapeGetMaterialKey(const std::shared_ptr<T>& payloadData) { return model::MaterialKey(); }
+
 template <class T> class Payload : public Item::PayloadInterface {
 public:
     typedef std::shared_ptr<T> DataPointer;
     typedef UpdateFunctor<T> Updater;
 
+    Payload(const DataPointer& data) : _data(data) {}
+
+    // Payload general interface
     virtual const ItemKey getKey() const { return payloadGetKey<T>(_data); }
     virtual const Item::Bound getBound() const { return payloadGetBound<T>(_data); }
-    virtual void render(RenderArgs* args) { payloadRender<T>(_data, args); }
- 
-    virtual void update(const UpdateFunctorPointer& functor) { static_cast<Updater*>(functor.get())->_func((*_data)); }
+    virtual int getLayer() const { return payloadGetLayer<T>(_data); }
 
-    Payload(const DataPointer& data) : _data(data) {}
+
+    virtual void render(RenderArgs* args) { payloadRender<T>(_data, args); } 
+
+    // Shape Type interface
+    virtual const model::MaterialKey getMaterialKey() const { return shapeGetMaterialKey<T>(_data); }
+
 protected:
     DataPointer _data;
+
+    // Update mechanics
+    virtual void update(const UpdateFunctorPointer& functor) { static_cast<Updater*>(functor.get())->_func((*_data)); }
+    friend class Item;
 };
 
 // Let's show how to make a simple FooPayload example:
@@ -344,6 +371,7 @@ public:
 
 typedef std::vector< ItemIDAndBounds > ItemIDsBounds;
 
+
 // A map of ItemIDSets allowing to create bucket lists of items which are filtering correctly
 class ItemBucketMap : public std::map<ItemFilter, ItemIDSet, ItemFilter::Less> {
 public:
@@ -360,8 +388,6 @@ public:
 };
 
 class Engine;
-class Observer;
-
 
 class PendingChanges {
 public:
@@ -397,36 +423,6 @@ typedef std::queue<PendingChanges> PendingChangesQueue;
 // Items are notified accordingly on any update message happening
 class Scene {
 public:
- 
-    class Observer {
-    public:
-        Observer(Scene* scene) {
-            
-        }
-        ~Observer() {}
-
-        const Scene* getScene() const { return _scene; }
-        Scene* editScene() { return _scene; }
-
-    protected:
-        Scene* _scene = nullptr;
-        virtual void onRegisterScene() {}
-        virtual void onUnregisterScene() {}
-
-        friend class Scene;
-        void registerScene(Scene* scene) {
-            _scene = scene;
-            onRegisterScene();
-        }
-
-        void unregisterScene() {
-            onUnregisterScene();
-            _scene = 0;
-        }
-    };
-    typedef std::shared_ptr< Observer > ObserverPointer;
-    typedef std::vector< ObserverPointer > Observers;
-
     Scene();
     ~Scene() {}
 
@@ -435,11 +431,6 @@ public:
 
     /// Enqueue change batch to the scene
     void enqueuePendingChanges(const PendingChanges& pendingChanges);
-
-    /// Scene Observer listen to any change and get notified
-    void registerObserver(ObserverPointer& observer);
-    void unregisterObserver(ObserverPointer& observer);
-
 
     /// Access the main bucketmap of items
     const ItemBucketMap& getMasterBucket() const { return _masterBucketMap; }
@@ -468,10 +459,6 @@ protected:
     void resetItems(const ItemIDs& ids, Payloads& payloads);
     void removeItems(const ItemIDs& ids);
     void updateItems(const ItemIDs& ids, UpdateFunctors& functors);
-
-
-    // The scene context listening for any change to the database
-    Observers _observers;
 
     friend class Engine;
 };

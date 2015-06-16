@@ -134,8 +134,8 @@ void setMeshPartDefaults(FBXMeshPart& meshPart, QString materialID) {
     meshPart._material = model::MaterialPointer(new model::Material());
     meshPart._material->setDiffuse(glm::vec3(1.0, 1.0, 1.0));
     meshPart._material->setOpacity(1.0);
-    meshPart._material->setSpecular(glm::vec3(1.0, 1.0, 1.0));
-    meshPart._material->setShininess(96.0);
+    meshPart._material->setMetallic(0.0);
+    meshPart._material->setGloss(96.0);
     meshPart._material->setEmissive(glm::vec3(0.0, 0.0, 0.0));
 }
 
@@ -481,8 +481,8 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, Q
                 meshPart.specularTexture.filename = material->specularTextureFilename;
                 // ... and some things are set in the underlying material.
                 meshPart._material->setDiffuse(material->diffuseColor);
-                meshPart._material->setSpecular(material->specularColor);
-                meshPart._material->setShininess(material->shininess);
+                meshPart._material->setMetallic(glm::length(material->specularColor));
+                meshPart._material->setGloss(material->shininess);
                 meshPart._material->setOpacity(material->opacity);
             }
             // qCDebug(modelformat) << "OBJ Reader part:" << meshPartCount << "name:" << leadFace.groupName << "material:" << groupMaterialName << "diffuse:" << meshPart._material->getDiffuse() << "faces:" << faceGroup.count() << "triangle indices will start with:" << mesh.vertices.count();
@@ -544,7 +544,6 @@ void fbxDebugDump(const FBXGeometry& fbxgeo) {
     qCDebug(modelformat) << "---------------- fbxGeometry ----------------";
     qCDebug(modelformat) << "  hasSkeletonJoints =" << fbxgeo.hasSkeletonJoints;
     qCDebug(modelformat) << "  offset =" << fbxgeo.offset;
-    qCDebug(modelformat) << "  attachments.count() = " << fbxgeo.attachments.count();
     qCDebug(modelformat) << "  meshes.count() =" << fbxgeo.meshes.count();
     foreach (FBXMesh mesh, fbxgeo.meshes) {
         qCDebug(modelformat) << "    vertices.count() =" << mesh.vertices.count();
@@ -567,10 +566,10 @@ void fbxDebugDump(const FBXGeometry& fbxgeo) {
             qCDebug(modelformat) << "        quadIndices.count() =" << meshPart.quadIndices.count();
             qCDebug(modelformat) << "        triangleIndices.count() =" << meshPart.triangleIndices.count();
             qCDebug(modelformat) << "        diffuseColor =" << meshPart.diffuseColor << "mat =" << meshPart._material->getDiffuse();
-            qCDebug(modelformat) << "        specularColor =" << meshPart.specularColor << "mat =" << meshPart._material->getSpecular();
+            qCDebug(modelformat) << "        specularColor =" << meshPart.specularColor << "mat =" << meshPart._material->getMetallic();
             qCDebug(modelformat) << "        emissiveColor =" << meshPart.emissiveColor << "mat =" << meshPart._material->getEmissive();
             qCDebug(modelformat) << "        emissiveParams =" << meshPart.emissiveParams;
-            qCDebug(modelformat) << "        shininess =" << meshPart.shininess << "mat =" << meshPart._material->getShininess();
+            qCDebug(modelformat) << "        gloss =" << meshPart.shininess << "mat =" << meshPart._material->getGloss();
             qCDebug(modelformat) << "        opacity =" << meshPart.opacity << "mat =" << meshPart._material->getOpacity();
             qCDebug(modelformat) << "        materialID =" << meshPart.materialID;
             qCDebug(modelformat) << "        diffuse texture =" << meshPart.diffuseTexture.filename;

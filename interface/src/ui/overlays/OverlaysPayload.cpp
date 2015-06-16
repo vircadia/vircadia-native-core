@@ -37,7 +37,7 @@ namespace render {
     template <> const ItemKey payloadGetKey(const Overlay::Pointer& overlay) {
         if (overlay->is3D() && !static_cast<Base3DOverlay*>(overlay.get())->getDrawOnHUD()) {
             if (static_cast<Base3DOverlay*>(overlay.get())->getDrawInFront()) {
-                return ItemKey::Builder().withTypeShape().withNoDepthSort().build();
+                return ItemKey::Builder().withTypeShape().withLayered().build();
             } else {
                 return ItemKey::Builder::opaqueShape();
             }
@@ -51,6 +51,17 @@ namespace render {
         } else {
             QRect bounds = static_cast<Overlay2D*>(overlay.get())->getBounds();
             return AABox(glm::vec3(bounds.x(), bounds.y(), 0.0f), glm::vec3(bounds.width(), bounds.height(), 0.1f));
+        }
+    }
+    template <> int payloadGetLayer(const Overlay::Pointer& overlay) {
+        // MAgic number while we are defining the layering mechanism:
+        const int LAYER_2D =  2;
+        const int LAYER_3D_FRONT = 1;
+        const int LAYER_3D = 0;
+        if (overlay->is3D()) {
+            return (static_cast<Base3DOverlay*>(overlay.get())->getDrawInFront() ? LAYER_3D_FRONT : LAYER_3D);
+        } else {
+            return LAYER_2D;
         }
     }
     template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args) {

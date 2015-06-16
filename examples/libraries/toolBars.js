@@ -3,6 +3,7 @@
 //  examples
 //
 //  Created by Clément Brisset on 5/7/14.
+//  Persistable drag position by HRS 6/11/15.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -236,6 +237,7 @@ ToolBar = function(x, y, direction) {
                 y: y - ToolBar.SPACING
             });
         }
+        this.save();
     }
     
     this.setAlpha = function(alpha, tool) {
@@ -313,9 +315,8 @@ ToolBar = function(x, y, direction) {
     this.cleanup = function() {
         for(var tool in this.tools) {
             this.tools[tool].cleanup();
-            delete this.tools[tool];
         }
-        
+
         if (this.back != null) {
             Overlays.deleteOverlay(this.back);
             this.back = null;
@@ -326,6 +327,70 @@ ToolBar = function(x, y, direction) {
         this.y = y;
         this.width = 0;
         this.height = 0;
+    }
+
+    var that = this;
+    this.contains = function (xOrPoint, optionalY) {
+        var x = (optionalY === undefined) ? xOrPoint.x : xOrPoint,
+            y = (optionalY === undefined) ? xOrPoint.y : optionalY;
+        return (that.x <= x) && (x <= (that.x + that.width)) &&
+            (that.y <= y) && (y <= (that.y + that.height));
+    }
+    that.hover = function (enable) {
+        that.isHovering = enable;
+        if (that.back) {
+            if (enable) {
+                that.oldAlpha = Overlays.getProperty(that.back, 'backgroundAlpha');
+            }
+            Overlays.editOverlay(this.back, {
+                visible: enable,
+                backgroundAlpha: enable ? 0.5 : that.oldAlpha
+            });
+        }
+    };
+    // These are currently only doing that which is necessary for toolbar hover and toolbar drag.
+    // They have not yet been extended to tool hover/click/release, etc.
+    this.mousePressEvent = function (event) {
+        if (!that.contains(event)) {
+            that.mightBeDragging = false;
+            return;
+        }
+        that.mightBeDragging = true;
+        that.dragOffsetX = that.x - event.x;
+        that.dragOffsetY = that.y - event.y;
+    };
+    this.mouseMove  = function (event) {
+        if (!that.mightBeDragging || !event.isLeftButton) {
+            that.mightBeDragging = false;
+            if (!that.contains(event)) {
+                if (that.isHovering) {
+                    that.hover(false);
+                }
+                return;
+            }
+            if (!that.isHovering) {
+                that.hover(true);
+            }
+            return;
+        }
+        that.move(that.dragOffsetX + event.x, that.dragOffsetY + event.y);
+    };
+    Controller.mousePressEvent.connect(this.mousePressEvent);
+    Controller.mouseMoveEvent.connect(this.mouseMove);
+    // Called on move. A different approach would be to have all this on the prototype,
+    // and let apps extend where needed. Ex. app defines its toolbar.move() to call this.__proto__.move and then save.
+    this.save = function () { };
+    // This compatability hack breaks the model, but makes converting existing scripts easier:
+    this.addOverlay = function (ignored, oldSchoolProperties) {
+        var properties = JSON.parse(JSON.stringify(oldSchoolProperties)); // a copy
+        if (that.numberOfTools() === 0) {
+            that.move(properties.x, properties.y);
+        }
+        delete properties.x;
+        delete properties.y;
+        var index = that.addTool(properties);
+        var id = that.tools[index].overlay();
+        return id;
     }
 }
 ToolBar.SPACING = 4;

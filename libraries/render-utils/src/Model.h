@@ -51,17 +51,11 @@ namespace render {
     class PendingChanges;
     typedef unsigned int ItemID;
 }
-class OpaqueMeshPart;
-class TransparentMeshPart;
+class MeshPartPayload;
 
-inline uint qHash(const std::shared_ptr<TransparentMeshPart>& a, uint seed) {
+inline uint qHash(const std::shared_ptr<MeshPartPayload>& a, uint seed) {
     return qHash(a.get(), seed);
 }
-inline uint qHash(const std::shared_ptr<OpaqueMeshPart>& a, uint seed) {
-    return qHash(a.get(), seed);
-}
-
-
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject, public PhysicsEntity {
@@ -77,7 +71,7 @@ public:
     virtual ~Model();
     
     /// enables/disables scale to fit behavior, the model will be automatically scaled to the specified largest dimension
-    void setScaleToFit(bool scaleToFit, float largestDimension = 0.0f);
+    void setScaleToFit(bool scaleToFit, float largestDimension = 0.0f, bool forceRescale = false);
     bool getScaleToFit() const { return _scaleToFit; } /// is scale to fit enabled
     bool getIsScaledToFit() const { return _scaledToFit; } /// is model scaled to fit
     const glm::vec3& getScaleToFitDimensions() const { return _scaleToFitDimensions; } /// the dimensions model is scaled to
@@ -312,8 +306,7 @@ protected:
     float getLimbLength(int jointIndex) const;
     
     /// Allow sub classes to force invalidating the bboxes
-    void invalidCalculatedMeshBoxes() { 
-        qDebug() << "invalidCalculatedMeshBoxes()";
+    void invalidCalculatedMeshBoxes() {
         _calculatedMeshBoxesValid = false;
         _calculatedMeshPartBoxesValid = false;
         _calculatedMeshTrianglesValid = false;
@@ -351,8 +344,6 @@ private:
 
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
     
-    QVector<Model*> _attachments;
-
     QSet<WeakAnimationHandlePointer> _animationHandles;
 
     QList<AnimationHandlePointer> _runningAnimations;
@@ -402,18 +393,8 @@ private:
     int _debugMeshBoxesID = GeometryCache::UNKNOWN_ID;
 
     // helper functions used by render() or renderInScene()
-    bool renderCore(RenderArgs* args, float alpha);
-    int renderMeshes(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
-                        bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args = NULL,
-                        bool forceRenderMeshes = false);
-                        
+
     void setupBatchTransform(gpu::Batch& batch, RenderArgs* args);
-    QVector<int>* pickMeshList(bool translucent, float alphaThreshold, bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe);
-
-    int renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
-                                        RenderArgs* args, Locations* locations, 
-                                        bool forceRenderSomeMeshes = false);
-
     static void pickPrograms(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args,
                             Locations*& locations);
@@ -524,34 +505,14 @@ private:
     };
     static RenderPipelineLib _renderPipelineLib;
 
-   
-    class RenderBucket {
-    public:
-        QVector<int> _meshes;
-        QMap<QString, int> _unsortedMeshes;
-    };
-    typedef std::unordered_map<int, RenderBucket> BaseRenderBucketMap;
-    class RenderBucketMap : public BaseRenderBucketMap {
-    public:
-        typedef RenderKey Key;
-    };
-    RenderBucketMap _renderBuckets;
-
     bool _renderCollisionHull;
     
     
-    QSet<std::shared_ptr<TransparentMeshPart>> _transparentRenderItems;
-    QSet<std::shared_ptr<OpaqueMeshPart>> _opaqueRenderItems;
+    QSet<std::shared_ptr<MeshPartPayload>> _transparentRenderItems;
+    QSet<std::shared_ptr<MeshPartPayload>> _opaqueRenderItems;
     QMap<render::ItemID, render::PayloadPointer> _renderItems;
     bool _readyWhenAdded = false;
     bool _needsReload = true;
-    
-    
-private:
-    // FIX ME - We want to get rid of this interface for rendering...
-    // right now the only remaining user are Avatar attachments.
-    // that usage has been temporarily disabled... 
-    bool render(RenderArgs* renderArgs, float alpha = 1.0f);
     
 };
 
