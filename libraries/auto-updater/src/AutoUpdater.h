@@ -27,6 +27,7 @@
 #include <QtNetwork/QNetworkConfiguration>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
+
 #include <DependencyManager.h>
 
 const QUrl BUILDS_XML_URL("https://highfidelity.com/builds.xml");
@@ -39,7 +40,7 @@ public:
     AutoUpdater();
     
     void checkForUpdate();
-    const QMap<int, QMap<QString, QString>> &getBuildData() { return _builds; }
+    const QMap<int, QMap<QString, QString>>& getBuildData() { return _builds; }
     void performAutoUpdate(int version);
 
 signals:
@@ -62,7 +63,6 @@ private:
 private slots:
     void parseLatestVersionData();
     void checkVersionAndNotify();
- 
 };
 
 #endif // _hifi_AutoUpdater_h
