@@ -323,7 +323,7 @@ inline void Transform::setScale(const Vec3& scale) {
 }
 
 inline void Transform::postScale(float scale) {
-    if (isValidScale(scale) || scale == 1.0f) {
+    if (!isValidScale(scale) || scale == 1.0f) {
         return;
     }
     if (isScaling()) {
