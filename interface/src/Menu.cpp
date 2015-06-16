@@ -90,6 +90,22 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(fileMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
                                   qApp, SLOT(toggleRunningScriptsWidget()));
 
+    auto addressManager = DependencyManager::get<AddressManager>();
+
+    addDisabledActionAndSeparator(fileMenu, "History");
+
+    addActionToQMenuAndActionHash(fileMenu,
+                                  MenuOption::Back,
+                                  0,
+                                  addressManager.data(),
+                                  SLOT(goBack()));
+
+    addActionToQMenuAndActionHash(fileMenu,
+                                  MenuOption::Forward,
+                                  0,
+                                  addressManager.data(),
+                                  SLOT(goForward()));
+
     addDisabledActionAndSeparator(fileMenu, "Location");
     qApp->getBookmarks()->setupMenus(this, fileMenu);
 
@@ -98,7 +114,6 @@ Menu::Menu() {
                                   Qt::CTRL | Qt::Key_L,
                                   dialogsManager.data(),
                                   SLOT(toggleAddressBar()));
-    auto addressManager = DependencyManager::get<AddressManager>();
     addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyAddress, 0,
                                   addressManager.data(), SLOT(copyAddress()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyPath, 0,
