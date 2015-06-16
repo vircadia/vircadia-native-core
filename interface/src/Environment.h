@@ -16,6 +16,9 @@
 #include <QMutex>
 
 #include <HifiSockAddr.h>
+#include <gpu/Batch.h>
+
+#include <ProgramObject.h>
 
 #include "EnvironmentData.h"
 
@@ -29,7 +32,7 @@ public:
 
     void init();
     void resetToDefault();
-    void renderAtmospheres(ViewFrustum& camera);
+    void renderAtmospheres(gpu::Batch& batch, ViewFrustum& camera);
 
     void override(const EnvironmentData& overrideData) { _overrideData = overrideData; _environmentIsOverridden = true; }
     void endOverride() { _environmentIsOverridden = false; }
@@ -46,12 +49,12 @@ private:
 
     ProgramObject* createSkyProgram(const char* from, int* locations);
 
-    void renderAtmosphere(ViewFrustum& camera, const EnvironmentData& data);
+    void renderAtmosphere(gpu::Batch& batch, ViewFrustum& camera, const EnvironmentData& data);
 
     bool _initialized;
     ProgramObject* _skyFromAtmosphereProgram;
     ProgramObject* _skyFromSpaceProgram;
-    
+
     enum {
         CAMERA_POS_LOCATION,
         LIGHT_POS_LOCATION,
@@ -74,6 +77,14 @@ private:
     
     int _skyFromAtmosphereUniformLocations[LOCATION_COUNT];
     int _skyFromSpaceUniformLocations[LOCATION_COUNT];
+
+    void setupAtmosphereProgram(const char* vertSource, const char* fragSource, gpu::PipelinePointer& pipelineProgram, int* locations);
+
+
+    gpu::PipelinePointer _newSkyFromAtmosphereProgram;
+    gpu::PipelinePointer _newSkyFromSpaceProgram;
+    int _newSkyFromAtmosphereUniformLocations[LOCATION_COUNT];
+    int _newSkyFromSpaceUniformLocations[LOCATION_COUNT];
     
     typedef QHash<int, EnvironmentData> ServerData;
     

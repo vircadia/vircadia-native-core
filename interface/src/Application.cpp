@@ -3255,6 +3255,9 @@ namespace render {
     template <> const Item::Bound payloadGetBound(const BackgroundRenderData::Pointer& stuff) { return Item::Bound(); }
     template <> void payloadRender(const BackgroundRenderData::Pointer& background, RenderArgs* args) {
 
+        Q_ASSERT(args->_batch);
+        gpu::Batch& batch = *args->_batch;
+
         // Background rendering decision
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         auto skybox = model::SkyboxPointer();
@@ -3322,7 +3325,11 @@ namespace render {
                     PerformanceTimer perfTimer("atmosphere");
                     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                         "Application::displaySide() ... atmosphere...");
-                    background->_environment->renderAtmospheres(*(args->_viewFrustum));
+                        //gpu::Batch batch;
+                        background->_environment->renderAtmospheres(batch, *(args->_viewFrustum));
+                        //gpu::GLBackend::renderBatch(batch, true);
+                        //glUseProgram(0);
+
                 }
 
             }
@@ -3333,7 +3340,6 @@ namespace render {
             if (skybox) {
                 gpu::Batch batch;
                 model::Skybox::render(batch, *(Application::getInstance()->getDisplayViewFrustum()), *skybox);
-
                 gpu::GLBackend::renderBatch(batch, true);
                 glUseProgram(0);
             }

@@ -1,5 +1,6 @@
-#version 120
-
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
 //
 // For licensing information, see http://http.developer.nvidia.com/GPUGems/gpugems_app01.html:
 //
@@ -32,12 +33,20 @@
 // Copyright (c) 2004 Sean O'Neil
 //
 
+<@include gpu/Transform.slh@>
+<$declareStandardTransform()$>
+
 uniform float fOuterRadius;		// The outer (atmosphere) radius
 
-varying vec3 position;
+varying vec3 myPosition;
 
-void main(void)
-{
-	position = gl_Vertex.xyz * fOuterRadius;
-	gl_Position = gl_ModelViewProjectionMatrix * vec4(position, 1.0);
+
+void main(void) {
+	myPosition = gl_Vertex.xyz * fOuterRadius;
+    
+    // standard transform
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    vec4 v4pos = vec4(myPosition, 1.0);
+    <$transformModelToClipPos(cam, obj, v4pos, gl_Position)$>
 }

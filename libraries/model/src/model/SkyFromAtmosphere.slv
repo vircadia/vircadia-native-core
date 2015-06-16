@@ -33,6 +33,9 @@
 // Copyright (c) 2004 Sean O'Neil
 //
 
+<@include gpu/Transform.slh@>
+<$declareStandardTransform()$>
+
 uniform vec3 v3CameraPos;		// The camera's current position
 uniform vec3 v3LightPos;		// The direction vector to the light source
 uniform vec3 v3InvWavelength;	// 1 / pow(wavelength, 4) for the red, green, and blue channels
@@ -50,19 +53,19 @@ uniform float fScaleOverScaleDepth;	// fScale / fScaleDepth
 const int nSamples = 2;
 const float fSamples = 2.0;
 
-varying vec3 position;
+varying vec3 myPosition;
 
-
-float scale(float fCos)
-{
-	float x = 1.0 - fCos;
-	return fScaleDepth * exp(-0.00287 + x*(0.459 + x*(3.83 + x*(-6.80 + x*5.25))));
-}
 
 void main(void)
 {
 	// Get the ray from the camera to the vertex, and its length (which is the far point of the ray passing through the atmosphere)
-	position = gl_Vertex.xyz * fOuterRadius;
+	myPosition = gl_Vertex.xyz * fOuterRadius;
     
-	gl_Position = gl_ModelViewProjectionMatrix * vec4(position, 1.0);
+	//gl_Position = gl_ModelViewProjectionMatrix * vec4(position, 1.0);
+
+    // standard transform
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    vec4 v4pos = vec4(myPosition, 1.0);
+    <$transformModelToClipPos(cam, obj, v4pos, gl_Position)$>
 }

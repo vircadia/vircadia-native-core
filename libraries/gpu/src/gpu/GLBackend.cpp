@@ -61,6 +61,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_glUseProgram),
     (&::gpu::GLBackend::do_glUniform1f),
     (&::gpu::GLBackend::do_glUniform2f),
+    (&::gpu::GLBackend::do_glUniform3f),
     (&::gpu::GLBackend::do_glUniform4fv),
     (&::gpu::GLBackend::do_glUniformMatrix4fv),
 
@@ -462,6 +463,7 @@ void Batch::_glUniform2f(GLint location, GLfloat v0, GLfloat v1) {
 
     DO_IT_NOW(_glUniform2f, 1);
 }
+
 void GLBackend::do_glUniform2f(Batch& batch, uint32 paramOffset) {
     if (_pipeline._program == 0) {
         // We should call updatePipeline() to bind the program but we are not doing that
@@ -474,6 +476,32 @@ void GLBackend::do_glUniform2f(Batch& batch, uint32 paramOffset) {
         batch._params[paramOffset + 0]._float);
     (void) CHECK_GL_ERROR();
 }
+
+void Batch::_glUniform3f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2) {
+    ADD_COMMAND_GL(glUniform3f);
+
+    _params.push_back(v2);
+    _params.push_back(v1);
+    _params.push_back(v0);
+    _params.push_back(location);
+
+    DO_IT_NOW(_glUniform3f, 1);
+}
+
+void GLBackend::do_glUniform3f(Batch& batch, uint32 paramOffset) {
+    if (_pipeline._program == 0) {
+        // We should call updatePipeline() to bind the program but we are not doing that
+        // because these uniform setters are deprecated and we don;t want to create side effect
+        return;
+    }
+    glUniform3f(
+        batch._params[paramOffset + 3]._int,
+        batch._params[paramOffset + 2]._float,
+        batch._params[paramOffset + 1]._float,
+        batch._params[paramOffset + 0]._float);
+    (void) CHECK_GL_ERROR();
+}
+
 
 void Batch::_glUniform4fv(GLint location, GLsizei count, const GLfloat* value) {
     ADD_COMMAND_GL(glUniform4fv);
