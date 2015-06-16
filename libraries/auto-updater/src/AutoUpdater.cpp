@@ -104,9 +104,13 @@ void AutoUpdater::parseLatestVersionData() {
 }
 
 void AutoUpdater::checkVersionAndNotify() {
+    if (QCoreApplication::applicationVersion() == "dev" || _builds.empty()) {
+        // No version checking is required in dev builds or when not builds
+        // data was found for the platform
+        return;
+    }
     int latestVersionAvailable = _builds.lastKey();
-    if (QCoreApplication::applicationVersion() != "dev" &&
-        QCoreApplication::applicationVersion().toInt() < latestVersionAvailable) {
+    if (QCoreApplication::applicationVersion().toInt() < latestVersionAvailable) {
         emit newVersionIsAvailable();
     }
 }
