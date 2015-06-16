@@ -369,8 +369,8 @@ private:
     };
 
     QHash<QPair<int,int>, AABox> _calculatedMeshPartBoxes; // world coordinate AABoxes for all sub mesh part boxes
-    QHash<QPair<int,int>, qint64> _calculatedMeshPartOffet;
-    bool _calculatedMeshPartOffetValid;
+    QHash<QPair<int,int>, qint64> _calculatedMeshPartOffset;
+    bool _calculatedMeshPartOffsetValid;
    
     
     bool _calculatedMeshPartBoxesValid;

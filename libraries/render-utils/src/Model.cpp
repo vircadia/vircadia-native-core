@@ -83,7 +83,7 @@ Model::Model(QObject* parent) :
     _blendNumber(0),
     _appliedBlendNumber(0),
     _calculatedMeshPartBoxesValid(false),
-    _calculatedMeshPartOffetValid(false),
+    _calculatedMeshPartOffsetValid(false),
     _calculatedMeshBoxesValid(false),
     _calculatedMeshTrianglesValid(false),
     _meshGroupsKnown(false),
@@ -666,22 +666,22 @@ bool Model::convexHullContains(glm::vec3 point) {
 }
 
 void Model::recalculateMeshPartOffsets() {
-    if (!_calculatedMeshPartOffetValid) {
+    if (!_calculatedMeshPartOffsetValid) {
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         int numberOfMeshes = geometry.meshes.size();
-        _calculatedMeshPartOffet.clear();
+        _calculatedMeshPartOffset.clear();
         for (int i = 0; i < numberOfMeshes; i++) {
             const FBXMesh& mesh = geometry.meshes.at(i);
             qint64 partOffset = 0;
             for (int j = 0; j < mesh.parts.size(); j++) {
                 const FBXMeshPart& part = mesh.parts.at(j);
-                _calculatedMeshPartOffet[QPair<int,int>(i, j)] = partOffset;
+                _calculatedMeshPartOffset[QPair<int,int>(i, j)] = partOffset;
                 partOffset += part.quadIndices.size() * sizeof(int);
                 partOffset += part.triangleIndices.size() * sizeof(int);
 
             }
         }
-        _calculatedMeshPartOffetValid = true;
+        _calculatedMeshPartOffsetValid = true;
     }
 }
 // TODO: we seem to call this too often when things haven't actually changed... look into optimizing this
@@ -699,8 +699,8 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
         _calculatedMeshTriangles.clear();
         _calculatedMeshTriangles.resize(numberOfMeshes);
         _calculatedMeshPartBoxes.clear();
-        _calculatedMeshPartOffet.clear();
-        _calculatedMeshPartOffetValid = false;
+        _calculatedMeshPartOffset.clear();
+        _calculatedMeshPartOffsetValid = false;
         for (int i = 0; i < numberOfMeshes; i++) {
             const FBXMesh& mesh = geometry.meshes.at(i);
             Extents scaledMeshExtents = calculateScaledOffsetExtents(mesh.meshExtents);
@@ -795,7 +795,7 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                         }
                     }
                     _calculatedMeshPartBoxes[QPair<int,int>(i, j)] = thisPartBounds;
-                    _calculatedMeshPartOffet[QPair<int,int>(i, j)] = partOffset;
+                    _calculatedMeshPartOffset[QPair<int,int>(i, j)] = partOffset;
 
                     partOffset += part.quadIndices.size() * sizeof(int);
                     partOffset += part.triangleIndices.size() * sizeof(int);
@@ -803,7 +803,7 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                 }
                 _calculatedMeshTriangles[i] = thisMeshTriangles;
                 _calculatedMeshPartBoxesValid = true;
-                _calculatedMeshPartOffetValid = true;
+                _calculatedMeshPartOffsetValid = true;
             }
         }
         _calculatedMeshBoxesValid = true;
@@ -1809,7 +1809,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
     
     // We need to make sure we have valid offsets calculated before we can render
-    if (!_calculatedMeshPartOffetValid) {
+    if (!_calculatedMeshPartOffsetValid) {
         recalculateMeshPartOffsets();
     }
     auto textureCache = DependencyManager::get<TextureCache>();
@@ -2018,7 +2018,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         }
     }
     
-    qint64 offset = _calculatedMeshPartOffet[QPair<int,int>(meshIndex, partIndex)];
+    qint64 offset = _calculatedMeshPartOffset[QPair<int,int>(meshIndex, partIndex)];
 
     if (part.quadIndices.size() > 0) {
         batch.drawIndexed(gpu::QUADS, part.quadIndices.size(), offset);
