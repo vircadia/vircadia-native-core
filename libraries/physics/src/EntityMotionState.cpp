@@ -26,6 +26,8 @@
 static const float ACCELERATION_EQUIVALENT_EPSILON_RATIO = 0.1f;
 static const quint8 STEPS_TO_DECIDE_BALLISTIC = 4;
 
+const uint32_t LOOPS_FOR_SIMULATION_ORPHAN = 50;
+const uint32_t LOOPS_BETWEEN_OWNERSHIP_BIDS = 30;
 
 #ifdef WANT_DEBUG_ENTITY_TREE_LOCKS
 bool EntityMotionState::entityTreeIsLocked() const {
@@ -120,8 +122,8 @@ void EntityMotionState::handleEasyChanges(uint32_t flags) {
         // we're manipulating this object directly via script, so we artificially 
         // manipulate the logic to trigger an immediate bid for ownership
         _candidateForOwnership = true;
-        _loopsSinceOwnershipBid = uint32_t(-1);
-        _loopsWithoutOwner = uint32_t(-1);
+        _loopsSinceOwnershipBid = LOOPS_BETWEEN_OWNERSHIP_BIDS;
+        _loopsWithoutOwner = LOOPS_FOR_SIMULATION_ORPHAN;
         _simulatorPriorityHint = SCRIPT_EDIT_SIMULATOR_PRIORITY;
     }
     if ((flags & EntityItem::DIRTY_PHYSICS_ACTIVATION) && !_body->isActive()) {
@@ -200,11 +202,10 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     if (_entity->getSimulatorID().isNull()) {
         _loopsWithoutOwner++;
 
-        const uint32_t OWNERSHIP_BID_DELAY = 50;
-        if (_loopsWithoutOwner > OWNERSHIP_BID_DELAY) {
+        if (_loopsWithoutOwner > LOOPS_FOR_SIMULATION_ORPHAN) {
             //qDebug() << "Warning -- claiming something I saw moving." << getName();
             _candidateForOwnership = true;
-            _loopsSinceOwnershipBid = uint32_t(-1);
+            _loopsSinceOwnershipBid = LOOPS_BETWEEN_OWNERSHIP_BIDS + 1;
         }
     } else {
         _loopsWithoutOwner = 0;
@@ -358,8 +359,7 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep, const QUuid& s
         if (_candidateForOwnership) {
             _candidateForOwnership = false;
             ++_loopsSinceOwnershipBid;
-            const uint32_t FRAMES_BETWEEN_OWNERSHIP_CLAIMS = 30;
-            if (_loopsSinceOwnershipBid > FRAMES_BETWEEN_OWNERSHIP_CLAIMS) {
+            if (_loopsSinceOwnershipBid > LOOPS_BETWEEN_OWNERSHIP_BIDS) {
                 // it's time to bid for ownership
                 _loopsSinceOwnershipBid = 0;
                 return true;
