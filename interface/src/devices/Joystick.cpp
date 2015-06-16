@@ -61,20 +61,20 @@ void Joystick::handleAxisEvent(const SDL_ControllerAxisEvent& event) {
     
     switch (axis) {
         case SDL_CONTROLLER_AXIS_LEFTX:
-            _axisStateMap[makeInput(LEFT_AXIS_X_POS).getChannel()] = (event.value > 0) ? event.value / MAX_AXIS : 0.0f;
-            _axisStateMap[makeInput(LEFT_AXIS_X_NEG).getChannel()] = (event.value < 0) ? -event.value / MAX_AXIS : 0.0f;
+            _axisStateMap[makeInput(LEFT_AXIS_X_POS).getChannel()] = (event.value > 0.0f) ? event.value / MAX_AXIS : 0.0f;
+            _axisStateMap[makeInput(LEFT_AXIS_X_NEG).getChannel()] = (event.value < 0.0f) ? -event.value / MAX_AXIS : 0.0f;
             break;
         case SDL_CONTROLLER_AXIS_LEFTY:
-            _axisStateMap[makeInput(LEFT_AXIS_Y_POS).getChannel()] = (event.value > 0) ? event.value / MAX_AXIS : 0.0f;
-            _axisStateMap[makeInput(LEFT_AXIS_Y_NEG).getChannel()] = (event.value < 0) ? -event.value / MAX_AXIS : 0.0f;
+            _axisStateMap[makeInput(LEFT_AXIS_Y_POS).getChannel()] = (event.value > 0.0f) ? event.value / MAX_AXIS : 0.0f;
+            _axisStateMap[makeInput(LEFT_AXIS_Y_NEG).getChannel()] = (event.value < 0.0f) ? -event.value / MAX_AXIS : 0.0f;
             break;
         case SDL_CONTROLLER_AXIS_RIGHTX:
-            _axisStateMap[makeInput(RIGHT_AXIS_X_POS).getChannel()] = (event.value > 0) ? event.value / MAX_AXIS : 0.0f;
-            _axisStateMap[makeInput(RIGHT_AXIS_X_NEG).getChannel()] = (event.value < 0) ? -event.value / MAX_AXIS : 0.0f;
+            _axisStateMap[makeInput(RIGHT_AXIS_X_POS).getChannel()] = (event.value > 0.0f) ? event.value / MAX_AXIS : 0.0f;
+            _axisStateMap[makeInput(RIGHT_AXIS_X_NEG).getChannel()] = (event.value < 0.0f) ? -event.value / MAX_AXIS : 0.0f;
             break;
         case SDL_CONTROLLER_AXIS_RIGHTY:
-            _axisStateMap[makeInput(RIGHT_AXIS_Y_POS).getChannel()] = (event.value > 0) ? event.value / MAX_AXIS : 0.0f;
-            _axisStateMap[makeInput(RIGHT_AXIS_Y_NEG).getChannel()] = (event.value < 0) ? -event.value / MAX_AXIS : 0.0f;
+            _axisStateMap[makeInput(RIGHT_AXIS_Y_POS).getChannel()] = (event.value > 0.0f) ? event.value / MAX_AXIS : 0.0f;
+            _axisStateMap[makeInput(RIGHT_AXIS_Y_NEG).getChannel()] = (event.value < 0.0f) ? -event.value / MAX_AXIS : 0.0f;
             break;
         case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
             _axisStateMap[makeInput(RIGHT_SHOULDER).getChannel()] = event.value / MAX_AXIS;
@@ -184,32 +184,32 @@ void Joystick::assignDefaultInputMapping(UserInputMapper& mapper) {
     
     // Hold front right shoulder button for precision controls
     // Left Joystick: Movement, strafing
-    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_FORWARD, makeInput(LEFT_AXIS_Y_NEG), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_MOVE_SPEED/2.);
-    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_BACKWARD, makeInput(LEFT_AXIS_Y_POS), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_MOVE_SPEED/2.);
-    mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(LEFT_AXIS_X_POS), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_MOVE_SPEED/2.);
-    mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(LEFT_AXIS_X_NEG), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_MOVE_SPEED/2.);
+    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_FORWARD, makeInput(LEFT_AXIS_Y_NEG), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_MOVE_SPEED/2.0f);
+    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_BACKWARD, makeInput(LEFT_AXIS_Y_POS), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_MOVE_SPEED/2.0f);
+    mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(LEFT_AXIS_X_POS), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_MOVE_SPEED/2.0f);
+    mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(LEFT_AXIS_X_NEG), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_MOVE_SPEED/2.0f);
     
     // Right Joystick: Camera orientation
-    mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(RIGHT_AXIS_X_POS), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_YAW_SPEED/2.);
-    mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(RIGHT_AXIS_X_NEG), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_YAW_SPEED/2.);
-    mapper.addInputChannel(UserInputMapper::PITCH_UP, makeInput(RIGHT_AXIS_Y_NEG), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_PITCH_SPEED/2.);
-    mapper.addInputChannel(UserInputMapper::PITCH_DOWN, makeInput(RIGHT_AXIS_Y_POS), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_PITCH_SPEED/2.);
+    mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(RIGHT_AXIS_X_POS), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_YAW_SPEED/2.0f);
+    mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(RIGHT_AXIS_X_NEG), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_YAW_SPEED/2.0f);
+    mapper.addInputChannel(UserInputMapper::PITCH_UP, makeInput(RIGHT_AXIS_Y_NEG), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_PITCH_SPEED/2.0f);
+    mapper.addInputChannel(UserInputMapper::PITCH_DOWN, makeInput(RIGHT_AXIS_Y_POS), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_PITCH_SPEED/2.0f);
     
     // Dpad movement
-    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_FORWARD, makeInput(SDL_CONTROLLER_BUTTON_DPAD_UP), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), DPAD_MOVE_SPEED/2.);
-    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_BACKWARD, makeInput(SDL_CONTROLLER_BUTTON_DPAD_DOWN), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), DPAD_MOVE_SPEED/2.);
-    mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(SDL_CONTROLLER_BUTTON_DPAD_RIGHT), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), DPAD_MOVE_SPEED/2.);
-    mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(SDL_CONTROLLER_BUTTON_DPAD_LEFT), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), DPAD_MOVE_SPEED/2.);
+    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_FORWARD, makeInput(SDL_CONTROLLER_BUTTON_DPAD_UP), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), DPAD_MOVE_SPEED/2.0f);
+    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_BACKWARD, makeInput(SDL_CONTROLLER_BUTTON_DPAD_DOWN), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), DPAD_MOVE_SPEED/2.0f);
+    mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(SDL_CONTROLLER_BUTTON_DPAD_RIGHT), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), DPAD_MOVE_SPEED/2.0f);
+    mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(SDL_CONTROLLER_BUTTON_DPAD_LEFT), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), DPAD_MOVE_SPEED/2.0f);
     
     // Button controls
-    mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(SDL_CONTROLLER_BUTTON_Y), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), DPAD_MOVE_SPEED/2.);
-    mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(SDL_CONTROLLER_BUTTON_A), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), DPAD_MOVE_SPEED/2.);
-    mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(SDL_CONTROLLER_BUTTON_X), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_YAW_SPEED/2.);
-    mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(SDL_CONTROLLER_BUTTON_B), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_YAW_SPEED/2.);
+    mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(SDL_CONTROLLER_BUTTON_Y), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), DPAD_MOVE_SPEED/2.0f);
+    mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(SDL_CONTROLLER_BUTTON_A), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), DPAD_MOVE_SPEED/2.0f);
+    mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(SDL_CONTROLLER_BUTTON_X), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_YAW_SPEED/2.0f);
+    mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(SDL_CONTROLLER_BUTTON_B), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_YAW_SPEED/2.0f);
     
     // Zoom
-    mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(RIGHT_SHOULDER), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), BOOM_SPEED/2.);
-    mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(LEFT_SHOULDER), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), BOOM_SPEED/2.);
+    mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(RIGHT_SHOULDER), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), BOOM_SPEED/2.0f);
+    mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(LEFT_SHOULDER), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), BOOM_SPEED/2.0f);
 #endif
 }
 

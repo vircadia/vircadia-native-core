@@ -619,10 +619,10 @@ void SixenseManager::focusOutEvent() {
 };
 
 void SixenseManager::handleAxisEvent(float stickX, float stickY, float trigger, int index) {
-    _axisStateMap[makeInput(AXIS_Y_POS, index).getChannel()] = (stickY > 0) ? stickY : 0.0f;
-    _axisStateMap[makeInput(AXIS_Y_NEG, index).getChannel()] = (stickY < 0) ? -stickY : 0.0f;
-    _axisStateMap[makeInput(AXIS_X_POS, index).getChannel()] = (stickX > 0) ? stickX : 0.0f;
-    _axisStateMap[makeInput(AXIS_X_NEG, index).getChannel()] = (stickX < 0) ? -stickX : 0.0f;
+    _axisStateMap[makeInput(AXIS_Y_POS, index).getChannel()] = (stickY > 0.0f) ? stickY : 0.0f;
+    _axisStateMap[makeInput(AXIS_Y_NEG, index).getChannel()] = (stickY < 0.0f) ? -stickY : 0.0f;
+    _axisStateMap[makeInput(AXIS_X_POS, index).getChannel()] = (stickX > 0.0f) ? stickX : 0.0f;
+    _axisStateMap[makeInput(AXIS_X_NEG, index).getChannel()] = (stickX < 0.0f) ? -stickX : 0.0f;
     _axisStateMap[makeInput(BACK_TRIGGER, index).getChannel()] = trigger;
 }
 
