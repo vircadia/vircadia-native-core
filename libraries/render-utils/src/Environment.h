@@ -18,9 +18,7 @@
 #include <HifiSockAddr.h>
 #include <gpu/Batch.h>
 
-//#include <ProgramObject.h>
-
-#include "EnvironmentData.h"
+#include <EnvironmentData.h>
 
 class ViewFrustum;
 class ProgramObject;
