@@ -9,27 +9,24 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "InterfaceConfig.h"
-
 #include <QByteArray>
 #include <QMutexLocker>
 #include <QtDebug>
 
-#include <GeometryCache.h>
+#include "GeometryCache.h"
 #include <GeometryUtil.h>
 #include <NumericalConstants.h>
 #include <OctreePacketData.h>
 #include <PacketHeaders.h>
 #include <PathUtils.h>
-#include <ProgramObject.h>
 #include <SharedUtil.h>
 
 #include "Environment.h"
 
-#include "../../build/libraries/model/SkyFromSpace_vert.h"
-#include "../../build/libraries/model/SkyFromSpace_frag.h"
-#include "../../build/libraries/model/SkyFromAtmosphere_vert.h"
-#include "../../build/libraries/model/SkyFromAtmosphere_frag.h"
+#include "SkyFromSpace_vert.h"
+#include "SkyFromSpace_frag.h"
+#include "SkyFromAtmosphere_vert.h"
+#include "SkyFromAtmosphere_frag.h"
 
 uint qHash(const HifiSockAddr& sockAddr) {
     if (sockAddr.getAddress().isNull()) {
