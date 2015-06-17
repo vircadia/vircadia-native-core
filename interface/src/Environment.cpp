@@ -33,11 +33,6 @@
 #include "../../build/libraries/model/SkyFromSpace_frag.h"
 #include "../../build/libraries/model/SkyFromAtmosphere_vert.h"
 #include "../../build/libraries/model/SkyFromAtmosphere_frag.h"
-#include "../../build/libraries/render-utils/simple_vert.h"
-#include "../../build/libraries/render-utils/simple_frag.h"
-
-#include "../../build/libraries/render-utils/other_simple_vert.h"
-#include "../../build/libraries/render-utils/other_simple_frag.h"
 
 uint qHash(const HifiSockAddr& sockAddr) {
     if (sockAddr.getAddress().isNull()) {
@@ -53,10 +48,6 @@ Environment::Environment()
 }
 
 Environment::~Environment() {
-    if (_initialized) {
-        delete _skyFromAtmosphereProgram;
-        delete _skyFromSpaceProgram;
-    }
 }
 
 void Environment::init() {
@@ -65,19 +56,8 @@ void Environment::init() {
         return;
     }
 
-    _skyFromAtmosphereProgram = createSkyProgram("Atmosphere", _skyFromAtmosphereUniformLocations);
-    _skyFromSpaceProgram = createSkyProgram("Space", _skyFromSpaceUniformLocations);
-
-
-
-    qDebug() << "here:" << __LINE__;
-    setupAtmosphereProgram(SkyFromSpace_vert, SkyFromSpace_frag, _newSkyFromSpaceProgram, _newSkyFromSpaceUniformLocations);
-    //setupAtmosphereProgram(other_simple_vert, other_simple_frag, _newSkyFromSpaceProgram, _newSkyFromSpaceUniformLocations);
-    qDebug() << "here:" << __LINE__;
-    setupAtmosphereProgram(SkyFromAtmosphere_vert, SkyFromAtmosphere_frag, _newSkyFromAtmosphereProgram, _newSkyFromAtmosphereUniformLocations);
-    //setupAtmosphereProgram(other_simple_vert, other_simple_frag, _newSkyFromAtmosphereProgram, _newSkyFromAtmosphereUniformLocations);
-    qDebug() << "here:" << __LINE__;
-
+    setupAtmosphereProgram(SkyFromSpace_vert, SkyFromSpace_frag, _skyFromSpaceProgram, _skyFromSpaceUniformLocations);
+    setupAtmosphereProgram(SkyFromAtmosphere_vert, SkyFromAtmosphere_frag, _skyFromAtmosphereProgram, _skyFromAtmosphereUniformLocations);
     
     // start off with a default-constructed environment data
     _data[HifiSockAddr()][0];
@@ -97,15 +77,9 @@ void Environment::setupAtmosphereProgram(const char* vertSource, const char* fra
 
     gpu::StatePointer state = gpu::StatePointer(new gpu::State());
     
-    /*
     state->setCullMode(gpu::State::CULL_NONE);
     state->setDepthTest(false);
-    state->setBlendFunction(true,gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
-    */
-    
-    state->setCullMode(gpu::State::CULL_NONE);
-    state->setDepthTest(false);
-    state->setBlendFunction(false,
+    state->setBlendFunction(true,
                             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
     
@@ -267,41 +241,12 @@ int Environment::parseData(const HifiSockAddr& senderAddress, const QByteArray& 
     return bytesRead;
 }
 
-ProgramObject* Environment::createSkyProgram(const char* from, int* locations) {
-    ProgramObject* program = new ProgramObject();
-    QByteArray prefix = QString(PathUtils::resourcesPath() + "/shaders/SkyFrom" + from).toUtf8();
-    program->addShaderFromSourceFile(QGLShader::Vertex, prefix + ".vert");
-    program->addShaderFromSourceFile(QGLShader::Fragment, prefix + ".frag");
-    program->link();
-    
-    locations[CAMERA_POS_LOCATION] = program->uniformLocation("v3CameraPos");
-    locations[LIGHT_POS_LOCATION] = program->uniformLocation("v3LightPos");
-    locations[INV_WAVELENGTH_LOCATION] = program->uniformLocation("v3InvWavelength");
-    locations[CAMERA_HEIGHT2_LOCATION] = program->uniformLocation("fCameraHeight2");
-    locations[OUTER_RADIUS_LOCATION] = program->uniformLocation("fOuterRadius");
-    locations[OUTER_RADIUS2_LOCATION] = program->uniformLocation("fOuterRadius2");
-    locations[INNER_RADIUS_LOCATION] = program->uniformLocation("fInnerRadius");
-    locations[KR_ESUN_LOCATION] = program->uniformLocation("fKrESun");
-    locations[KM_ESUN_LOCATION] = program->uniformLocation("fKmESun");
-    locations[KR_4PI_LOCATION] = program->uniformLocation("fKr4PI");
-    locations[KM_4PI_LOCATION] = program->uniformLocation("fKm4PI");
-    locations[SCALE_LOCATION] = program->uniformLocation("fScale");
-    locations[SCALE_DEPTH_LOCATION] = program->uniformLocation("fScaleDepth");
-    locations[SCALE_OVER_SCALE_DEPTH_LOCATION] = program->uniformLocation("fScaleOverScaleDepth");
-    locations[G_LOCATION] = program->uniformLocation("g");
-    locations[G2_LOCATION] = program->uniformLocation("g2");
-    
-    return program;
-}
-
 void Environment::renderAtmosphere(gpu::Batch& batch, ViewFrustum& camera, const EnvironmentData& data) {
 
     glm::vec3 center = data.getAtmosphereCenter();
     
     Transform transform;
     transform.setTranslation(center);
-    //transform.setScale(2.0f);
-    //transform.setTranslation(glm::vec3(0,0,0));
     batch.setModelTransform(transform);
     
     glm::vec3 relativeCameraPos = camera.getPosition() - center;
@@ -310,18 +255,16 @@ void Environment::renderAtmosphere(gpu::Batch& batch, ViewFrustum& camera, const
     // use the appropriate shader depending on whether we're inside or outside
     int* locations;
     if (height < data.getAtmosphereOuterRadius()) {
-        batch.setPipeline(_newSkyFromAtmosphereProgram);
-        locations = _newSkyFromAtmosphereUniformLocations;
+        batch.setPipeline(_skyFromAtmosphereProgram);
+        locations = _skyFromAtmosphereUniformLocations;
         
     } else {
-        batch.setPipeline(_newSkyFromSpaceProgram);
-        locations = _newSkyFromSpaceUniformLocations;
+        batch.setPipeline(_skyFromSpaceProgram);
+        locations = _skyFromSpaceUniformLocations;
     }
     
     // the constants here are from Sean O'Neil's GPU Gems entry
     // (http://http.developer.nvidia.com/GPUGems2/gpugems2_chapter16.html), GameEngine.cpp
-    
-    
     batch._glUniform3f(locations[CAMERA_POS_LOCATION], relativeCameraPos.x, relativeCameraPos.y, relativeCameraPos.z);
     glm::vec3 lightDirection = glm::normalize(data.getSunLocation());
     batch._glUniform3f(locations[LIGHT_POS_LOCATION], lightDirection.x, lightDirection.y, lightDirection.z);

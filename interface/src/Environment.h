@@ -47,13 +47,9 @@ private:
     bool findCapsulePenetration(const glm::vec3& start, 
             const glm::vec3& end, float radius, glm::vec3& penetration); // NOTE: Deprecated
 
-    ProgramObject* createSkyProgram(const char* from, int* locations);
-
     void renderAtmosphere(gpu::Batch& batch, ViewFrustum& camera, const EnvironmentData& data);
 
     bool _initialized;
-    ProgramObject* _skyFromAtmosphereProgram;
-    ProgramObject* _skyFromSpaceProgram;
 
     enum {
         CAMERA_POS_LOCATION,
@@ -75,16 +71,13 @@ private:
         LOCATION_COUNT
     };
     
-    int _skyFromAtmosphereUniformLocations[LOCATION_COUNT];
-    int _skyFromSpaceUniformLocations[LOCATION_COUNT];
-
     void setupAtmosphereProgram(const char* vertSource, const char* fragSource, gpu::PipelinePointer& pipelineProgram, int* locations);
 
 
-    gpu::PipelinePointer _newSkyFromAtmosphereProgram;
-    gpu::PipelinePointer _newSkyFromSpaceProgram;
-    int _newSkyFromAtmosphereUniformLocations[LOCATION_COUNT];
-    int _newSkyFromSpaceUniformLocations[LOCATION_COUNT];
+    gpu::PipelinePointer _skyFromAtmosphereProgram;
+    gpu::PipelinePointer _skyFromSpaceProgram;
+    int _skyFromAtmosphereUniformLocations[LOCATION_COUNT];
+    int _skyFromSpaceUniformLocations[LOCATION_COUNT];
     
     typedef QHash<int, EnvironmentData> ServerData;
     
