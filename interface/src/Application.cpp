@@ -874,6 +874,11 @@ void Application::paintGL() {
         OculusManager::beginFrameTiming();
     }
 
+    {
+        PerformanceTimer perfTimer("renderOverlay");
+        _applicationOverlay.renderOverlay(&renderArgs);
+    }
+
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
@@ -974,10 +979,6 @@ void Application::paintGL() {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
     }
 
-    {
-        PerformanceTimer perfTimer("renderOverlay");
-        _applicationOverlay.renderOverlay(&renderArgs);
-    }
 
 
     if (!OculusManager::isConnected() || OculusManager::allowSwap()) {

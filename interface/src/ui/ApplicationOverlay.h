@@ -33,6 +33,7 @@ private:
     void renderCameraToggle(RenderArgs* renderArgs);
     void renderStatsAndLogs(RenderArgs* renderArgs);
     void renderDomainConnectionStatusBorder(RenderArgs* renderArgs);
+    void renderRearViewToFbo(RenderArgs* renderArgs);
     void renderRearView(RenderArgs* renderArgs);
     void renderQmlUi(RenderArgs* renderArgs);
     void renderOverlays(RenderArgs* renderArgs);
@@ -52,7 +53,7 @@ private:
     float _rotateMirror{ 0.0f };
     float _raiseMirror{ 0.0f };
 
-
+    Camera _mirrorCamera;
     ivec2 _previousBorderSize{ -1 };
     QRect _mirrorViewRect;
     QOpenGLFramebufferObject* _overlayFramebuffer{ nullptr };

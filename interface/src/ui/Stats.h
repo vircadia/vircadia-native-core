@@ -31,6 +31,7 @@ class Stats : public QQuickItem {
     Q_OBJECT
     HIFI_QML_DECL
     Q_PROPERTY(bool expanded READ isExpanded WRITE setExpanded NOTIFY expandedChanged)
+    Q_PROPERTY(bool timingExpanded READ isTimingExpanded NOTIFY timingExpandedChanged)
     STATS_PROPERTY(int, serverCount, 0)
     STATS_PROPERTY(int, framerate, 0)
     STATS_PROPERTY(int, avatarCount, 0)
@@ -82,6 +83,7 @@ public:
     void updateStats();
 
     bool isExpanded() { return _expanded; }
+    bool isTimingExpanded() { return _timingExpanded; }
 
     void setExpanded(bool expanded) {
         if (_expanded != expanded) {
@@ -92,6 +94,7 @@ public:
 
 signals:
     void expandedChanged();
+    void timingExpandedChanged();
     void serverCountChanged();
     void framerateChanged();
     void avatarCountChanged();
@@ -137,6 +140,7 @@ private:
     int _recentMaxPackets{ 0 } ; // recent max incoming voxel packets to process
     bool _resetRecentMaxPacketsSoon{ true };
     bool _expanded{ false };
+    bool _timingExpanded{ false };
 };
 
 #endif // hifi_Stats_h

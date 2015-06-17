@@ -87,16 +87,16 @@ ApplicationOverlay::~ApplicationOverlay() {
 void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
 
-    glm::vec2 size = qApp->getCanvasSize();
-    // TODO Handle fading and deactivation/activation of UI
+    buildFramebufferObject();
 
-    // TODO First render the mirror to the mirror FBO
+    // First render the mirror to the mirror FBO
+    renderRearViewToFbo(renderArgs);
 
     // Execute the batch into our framebuffer
-    buildFramebufferObject();
     _overlayFramebuffer->bind();
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glm::vec2 size = qApp->getCanvasSize();
     glViewport(0, 0, size.x, size.y);
 
     // Now render the overlay components together into a single texture
@@ -104,6 +104,7 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     //renderAudioMeter(renderArgs);
     //renderCameraToggle(renderArgs);
     renderStatsAndLogs(renderArgs);
+    renderRearView(renderArgs);
 
     renderDomainConnectionStatusBorder(renderArgs);
     renderQmlUi(renderArgs);
@@ -284,73 +285,77 @@ void ApplicationOverlay::renderAudioMeter(RenderArgs* renderArgs) {
     }
 }
 
-void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
-    //    // Grab current viewport to reset it at the end
-    //    int viewport[4];
-    //    glGetIntegerv(GL_VIEWPORT, viewport);
-    //    float aspect = (float)region.width() / region.height();
-    //    float fov = MIRROR_FIELD_OF_VIEW;
+void fboViewport(QOpenGLFramebufferObject* fbo) {
+    auto size = fbo->size();
+    glViewport(0, 0, size.width(), size.height());
+}
 
-    //    // bool eyeRelativeCamera = false;
-    //    if (billboard) {
-    //        fov = BILLBOARD_FIELD_OF_VIEW;  // degees
-    //        _mirrorCamera.setPosition(_myAvatar->getPosition() +
-    //            _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * BILLBOARD_DISTANCE * _myAvatar->getScale());
+void ApplicationOverlay::renderRearViewToFbo(RenderArgs* renderArgs) {
+    // Grab current viewport to reset it at the end
+    auto mirrorSize = _mirrorFramebuffer->size();
+    float aspect = (float)mirrorSize.width() / mirrorSize.height();
+    float fov = MIRROR_FIELD_OF_VIEW;
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    // bool eyeRelativeCamera = false;
+    bool billboard = false;
+    if (billboard) {
+        fov = BILLBOARD_FIELD_OF_VIEW;  // degees
+        _mirrorCamera.setPosition(myAvatar->getPosition() +
+            myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * BILLBOARD_DISTANCE * myAvatar->getScale());
 
-    //    } else if (RearMirrorTools::rearViewZoomLevel.get() == BODY) {
-    //        _mirrorCamera.setPosition(_myAvatar->getChestPosition() +
-    //            _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
+    } else if (RearMirrorTools::rearViewZoomLevel.get() == BODY) {
+        _mirrorCamera.setPosition(myAvatar->getChestPosition() +
+            myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * myAvatar->getScale());
 
-    //    } else { // HEAD zoom level
-    //        // FIXME note that the positioing of the camera relative to the avatar can suffer limited
-    //        // precision as the user's position moves further away from the origin.  Thus at
-    //        // /1e7,1e7,1e7 (well outside the buildable volume) the mirror camera veers and sways
-    //        // wildly as you rotate your avatar because the floating point values are becoming
-    //        // larger, squeezing out the available digits of precision you have available at the
-    //        // human scale for camera positioning.
+    } else { // HEAD zoom level
+        // FIXME note that the positioing of the camera relative to the avatar can suffer limited
+        // precision as the user's position moves further away from the origin.  Thus at
+        // /1e7,1e7,1e7 (well outside the buildable volume) the mirror camera veers and sways
+        // wildly as you rotate your avatar because the floating point values are becoming
+        // larger, squeezing out the available digits of precision you have available at the
+        // human scale for camera positioning.
 
-    //        // Previously there was a hack to correct this using the mechanism of repositioning
-    //        // the avatar at the origin of the world for the purposes of rendering the mirror,
-    //        // but it resulted in failing to render the avatar's head model in the mirror view
-    //        // when in first person mode.  Presumably this was because of some missed culling logic
-    //        // that was not accounted for in the hack.
+        // Previously there was a hack to correct this using the mechanism of repositioning
+        // the avatar at the origin of the world for the purposes of rendering the mirror,
+        // but it resulted in failing to render the avatar's head model in the mirror view
+        // when in first person mode.  Presumably this was because of some missed culling logic
+        // that was not accounted for in the hack.
 
-    //        // This was removed in commit 71e59cfa88c6563749594e25494102fe01db38e9 but could be further
-    //        // investigated in order to adapt the technique while fixing the head rendering issue,
-    //        // but the complexity of the hack suggests that a better approach
-    //        _mirrorCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
-    //            _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
-    //    }
-    //    _mirrorCamera.setProjection(glm::perspective(glm::radians(fov), aspect, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
-    //    _mirrorCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
+        // This was removed in commit 71e59cfa88c6563749594e25494102fe01db38e9 but could be further
+        // investigated in order to adapt the technique while fixing the head rendering issue,
+        // but the complexity of the hack suggests that a better approach
+        _mirrorCamera.setPosition(myAvatar->getHead()->getEyePosition() +
+            myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * myAvatar->getScale());
+    }
+    _mirrorCamera.setProjection(glm::perspective(glm::radians(fov), aspect, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
+    _mirrorCamera.setRotation(myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
 
-    //    // set the bounds of rear mirror view
-    //    if (billboard) {
-    //        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
-    //        glViewport(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
-    //        glScissor(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
-    //    } else {
-    //        // if not rendering the billboard, the region is in device independent coordinates; must convert to device
-    //        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
-    //        float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale();
-    //        int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
-    //        glViewport(x, size.height() - y - height, width, height);
-    //        glScissor(x, size.height() - y - height, width, height);
-    //    }
-    //    bool updateViewFrustum = false;
-    //    updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
-    //    glEnable(GL_SCISSOR_TEST);
-    //    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // set the bounds of rear mirror view
+    if (billboard) {
+        //QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
+        //glViewport(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
+        //glScissor(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
+    } else {
+        auto mirrorSize = _mirrorFramebuffer->size();
+        fboViewport(_mirrorFramebuffer);
+    }
 
-    //    // render rear mirror view
-    //    glMatrixMode(GL_MODELVIEW);
-    //    glPushMatrix();
-    //    glLoadIdentity();
-    //    glLoadMatrixf(glm::value_ptr(glm::mat4_cast(_mirrorCamera.getOrientation()) * glm::translate(glm::mat4(), _mirrorCamera.getPosition())));
-    //    renderArgs->_context->syncCache();
-    //    displaySide(renderArgs, _mirrorCamera, true, billboard);
-    //    glMatrixMode(GL_MODELVIEW);
-    //    glPopMatrix();
+    _mirrorFramebuffer->bind();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    {
+        auto projection = _mirrorCamera.getProjection();
+        glMatrixMode(GL_PROJECTION);
+        glLoadMatrixf(glm::value_ptr(projection));
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glLoadIdentity();
+        glLoadMatrixf(glm::value_ptr(glm::mat4_cast(_mirrorCamera.getOrientation()) * glm::translate(glm::mat4(), _mirrorCamera.getPosition())));
+        renderArgs->_context->syncCache();
+        qApp->displaySide(renderArgs, _mirrorCamera, true, billboard);
+        glMatrixMode(GL_MODELVIEW);
+        glPopMatrix();
+    }
+    _mirrorFramebuffer->release();
 
     //    if (!billboard) {
     //        _rearMirrorTools->render(renderArgs, false, _glWidget->mapFromGlobal(QCursor::pos()));
@@ -361,6 +366,30 @@ void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
     //    glDisable(GL_SCISSOR_TEST);
     //    updateProjectionMatrix(_myCamera, updateViewFrustum);
     //}
+}
+
+void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
+    if (_mirrorFramebuffer && _mirrorFramebuffer->texture()) {
+        gpu::Batch batch;
+        auto geometryCache = DependencyManager::get<GeometryCache>();
+        geometryCache->useSimpleDrawPipeline(batch);
+        batch._glDisable(GL_DEPTH_TEST);
+        batch._glDisable(GL_LIGHTING);
+        batch._glEnable(GL_BLEND);
+        batch.setProjectionTransform(mat4());
+        batch.setModelTransform(mat4());
+        auto textureCache = DependencyManager::get<TextureCache>();
+        batch.setUniformTexture(0, textureCache->getBlueTexture());
+        geometryCache->renderUnitQuad(batch, glm::vec4(1));
+        batch._glBindTexture(GL_TEXTURE_2D, _mirrorFramebuffer->texture());
+        geometryCache->renderUnitQuad(batch, glm::vec4(1));
+        renderArgs->_context->syncCache();
+        auto overlaySize = _overlayFramebuffer->size();
+        glViewport(MIRROR_VIEW_LEFT_PADDING, overlaySize.height() - MIRROR_VIEW_TOP_PADDING - MIRROR_VIEW_HEIGHT,
+            MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT);
+        renderArgs->_context->render(batch);
+        fboViewport(_overlayFramebuffer);
+    }
 }
 
 void ApplicationOverlay::renderStatsAndLogs(RenderArgs* renderArgs) {

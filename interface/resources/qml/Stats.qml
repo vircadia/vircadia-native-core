@@ -230,6 +230,7 @@ Hifi.Stats {
 
     Rectangle {
         y: 250
+        visible: root.timingExpanded
         width: perfText.width + 8
         height: perfText.height + 8
         color: root.bgColor;

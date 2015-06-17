@@ -296,6 +296,10 @@ void Stats::updateStats() {
     bool performanceTimerIsActive = PerformanceTimer::isActive();
     bool displayPerf = _expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails);
     if (displayPerf && performanceTimerIsActive) {
+        if (!_timingExpanded) {
+            _timingExpanded = true;
+            emit timingExpandedChanged();
+        }
         PerformanceTimer::tallyAllTimerRecords(); // do this even if we're not displaying them, so they don't stack up
 
         // we will also include room for 1 line per timing record and a header of 4 lines
@@ -336,8 +340,10 @@ void Stats::updateStats() {
         }
         _timingStats = perfLines;
         emit timingStatsChanged();
+    } else if (_timingExpanded) {
+        _timingExpanded = false;
+        emit timingExpandedChanged();
     }
-
 }
 
 void Stats::setRenderDetails(const RenderDetails& details) {
