@@ -18,7 +18,7 @@
 #include <HifiSockAddr.h>
 #include <gpu/Batch.h>
 
-#include <ProgramObject.h>
+//#include <ProgramObject.h>
 
 #include "EnvironmentData.h"
 

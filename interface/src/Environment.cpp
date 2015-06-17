@@ -15,17 +15,14 @@
 #include <QMutexLocker>
 #include <QtDebug>
 
-#include <DeferredLightingEffect.h>
+#include <GeometryCache.h>
 #include <GeometryUtil.h>
+#include <NumericalConstants.h>
+#include <OctreePacketData.h>
 #include <PacketHeaders.h>
 #include <PathUtils.h>
 #include <ProgramObject.h>
 #include <SharedUtil.h>
-
-#include "Application.h"
-#include "Camera.h"
-#include "world.h"
-#include "InterfaceLogging.h"
 
 #include "Environment.h"
 
@@ -52,7 +49,6 @@ Environment::~Environment() {
 
 void Environment::init() {
     if (_initialized) {
-        qCDebug(interfaceapp, "[ERROR] Environment is already initialized.");
         return;
     }
 

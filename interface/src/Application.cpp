@@ -3330,11 +3330,13 @@ namespace render {
                     PerformanceTimer perfTimer("atmosphere");
                     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                         "Application::displaySide() ... atmosphere...");
-                    gpu::Batch batch;
-                    //DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch,0.5f, 100, 50, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)); //Draw a unit sphere
+
                     background->_environment->renderAtmospheres(batch, *(args->_viewFrustum));
+                    
+                    // FIX ME - If I don't call this renderBatch() here, then the atmosphere doesn't render, but it
+                    // seems like these payloadRender() methods shouldn't be doing this. We need to investigate why
+                    // the engine isn't rendering our batch
                     gpu::GLBackend::renderBatch(batch, true);
-                    glUseProgram(0);
 
                 }
 
