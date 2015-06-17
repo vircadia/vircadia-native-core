@@ -41,7 +41,11 @@ public:
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
                                                 
-    virtual void somethingChangedNotification() { _needsInitialSimulation = true; }
+    virtual void somethingChangedNotification() { 
+        // FIX ME: this is overly aggressive. We only really need to simulate() if something about
+        // the world space transform has changed and/or if some animation is occurring.
+        _needsInitialSimulation = true;  
+    }
 
     virtual bool readyToAddToScene(RenderArgs* renderArgs = nullptr);
     virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
