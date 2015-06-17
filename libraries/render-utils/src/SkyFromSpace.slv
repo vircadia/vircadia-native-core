@@ -38,15 +38,15 @@
 
 uniform float fOuterRadius;		// The outer (atmosphere) radius
 
-varying vec3 myPosition;
+varying vec3 position;
 
 
 void main(void) {
-	myPosition = gl_Vertex.xyz * fOuterRadius;
+	position = gl_Vertex.xyz * fOuterRadius;
     
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    vec4 v4pos = vec4(myPosition, 1.0);
+    vec4 v4pos = vec4(position, 1.0);
     <$transformModelToClipPos(cam, obj, v4pos, gl_Position)$>
 }

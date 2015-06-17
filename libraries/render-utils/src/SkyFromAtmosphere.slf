@@ -51,7 +51,7 @@ uniform vec3 v3LightPos;
 uniform float g;
 uniform float g2;
 
-varying vec3 myPosition;
+varying vec3 position;
 
 
 float scale(float fCos)
@@ -64,7 +64,7 @@ float scale(float fCos)
 void main (void)
 {
     // Get the ray from the camera to the vertex, and its length (which is the far point of the ray passing through the atmosphere)
-    vec3 v3Pos = myPosition;
+    vec3 v3Pos = position;
     vec3 v3Ray = v3Pos - v3CameraPos;
     float fFar = length(v3Ray);
     v3Ray /= fFar;

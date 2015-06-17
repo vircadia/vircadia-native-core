@@ -53,18 +53,16 @@ uniform float fScaleOverScaleDepth;	// fScale / fScaleDepth
 const int nSamples = 2;
 const float fSamples = 2.0;
 
-varying vec3 myPosition;
+varying vec3 position;
 
 void main(void)
 {
 	// Get the ray from the camera to the vertex, and its length (which is the far point of the ray passing through the atmosphere)
-	myPosition = gl_Vertex.xyz * fOuterRadius;
+	position = gl_Vertex.xyz * fOuterRadius;
     
-	//gl_Position = gl_ModelViewProjectionMatrix * vec4(position, 1.0);
-
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    vec4 v4pos = vec4(myPosition, 1.0);
+    vec4 v4pos = vec4(position, 1.0);
     <$transformModelToClipPos(cam, obj, v4pos, gl_Position)$>
 }
