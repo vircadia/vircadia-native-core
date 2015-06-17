@@ -141,11 +141,7 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) 
     decompressVolumeData();
 }
 
-void RenderablePolyVoxEntityItem::setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) {
-    if (voxelSurfaceStyle == _voxelSurfaceStyle) {
-        return;
-    }
-
+void RenderablePolyVoxEntityItem::updateVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) {
     // if we are switching to or from "edged" we need to force a resize of _volData.
     if (voxelSurfaceStyle == SURFACE_EDGED_CUBIC ||
         _voxelSurfaceStyle == SURFACE_EDGED_CUBIC) {
@@ -153,10 +149,10 @@ void RenderablePolyVoxEntityItem::setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxel
             delete _volData;
         }
         _volData = nullptr;
-        PolyVoxEntityItem::setVoxelSurfaceStyle(voxelSurfaceStyle);
+        _voxelSurfaceStyle = voxelSurfaceStyle;
         setVoxelVolumeSize(_voxelVolumeSize);
     } else {
-        PolyVoxEntityItem::setVoxelSurfaceStyle(voxelSurfaceStyle);
+        _voxelSurfaceStyle = voxelSurfaceStyle;
     }
     _needsModelReload = true;
 }
