@@ -55,7 +55,6 @@ const float fSamples = 2.0;
 
 varying vec3 myPosition;
 
-
 void main(void)
 {
 	// Get the ray from the camera to the vertex, and its length (which is the far point of the ray passing through the atmosphere)

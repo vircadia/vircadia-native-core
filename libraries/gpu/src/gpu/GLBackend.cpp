@@ -62,6 +62,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_glUniform1f),
     (&::gpu::GLBackend::do_glUniform2f),
     (&::gpu::GLBackend::do_glUniform3f),
+    (&::gpu::GLBackend::do_glUniform3fv),
     (&::gpu::GLBackend::do_glUniform4fv),
     (&::gpu::GLBackend::do_glUniformMatrix4fv),
 
@@ -499,6 +500,30 @@ void GLBackend::do_glUniform3f(Batch& batch, uint32 paramOffset) {
         batch._params[paramOffset + 2]._float,
         batch._params[paramOffset + 1]._float,
         batch._params[paramOffset + 0]._float);
+    (void) CHECK_GL_ERROR();
+}
+
+void Batch::_glUniform3fv(GLint location, GLsizei count, const GLfloat* value) {
+    ADD_COMMAND_GL(glUniform3fv);
+
+    const int VEC3_SIZE = 3 * sizeof(float);
+    _params.push_back(cacheData(count * VEC3_SIZE, value));
+    _params.push_back(count);
+    _params.push_back(location);
+
+    DO_IT_NOW(_glUniform3fv, 3);
+}
+void GLBackend::do_glUniform3fv(Batch& batch, uint32 paramOffset) {
+    if (_pipeline._program == 0) {
+        // We should call updatePipeline() to bind the program but we are not doing that
+        // because these uniform setters are deprecated and we don;t want to create side effect
+        return;
+    }
+    glUniform3fv(
+        batch._params[paramOffset + 2]._int,
+        batch._params[paramOffset + 1]._uint,
+        (const GLfloat*)batch.editData(batch._params[paramOffset + 0]._uint));
+
     (void) CHECK_GL_ERROR();
 }
 

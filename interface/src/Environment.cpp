@@ -15,6 +15,7 @@
 #include <QMutexLocker>
 #include <QtDebug>
 
+#include <DeferredLightingEffect.h>
 #include <GeometryUtil.h>
 #include <PacketHeaders.h>
 #include <PathUtils.h>
@@ -32,6 +33,8 @@
 #include "../../build/libraries/model/SkyFromSpace_frag.h"
 #include "../../build/libraries/model/SkyFromAtmosphere_vert.h"
 #include "../../build/libraries/model/SkyFromAtmosphere_frag.h"
+#include "../../build/libraries/render-utils/simple_vert.h"
+#include "../../build/libraries/render-utils/simple_frag.h"
 
 uint qHash(const HifiSockAddr& sockAddr) {
     if (sockAddr.getAddress().isNull()) {
@@ -64,11 +67,11 @@ void Environment::init() {
 
 
 
-    qDebug() << "line:" << __LINE__;
+    qDebug() << "here:" << __LINE__;
     setupAtmosphereProgram(SkyFromSpace_vert, SkyFromSpace_frag, _newSkyFromSpaceProgram, _newSkyFromSpaceUniformLocations);
-    qDebug() << "line:" << __LINE__;
+    qDebug() << "here:" << __LINE__;
     setupAtmosphereProgram(SkyFromAtmosphere_vert, SkyFromAtmosphere_frag, _newSkyFromAtmosphereProgram, _newSkyFromAtmosphereUniformLocations);
-    qDebug() << "line:" << __LINE__;
+    qDebug() << "here:" << __LINE__;
 
     
     // start off with a default-constructed environment data
@@ -77,7 +80,7 @@ void Environment::init() {
     _initialized = true;
 }
 
-void Environment::setupAtmosphereProgram(const char* vertSource, const char* fragSource, gpu::PipelinePointer& pipelineProgram, int* locations) {
+void Environment::setupAtmosphereProgram(const char* vertSource, const char* fragSource, gpu::PipelinePointer& pipeline, int* locations) {
 
     auto VS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(vertSource)));
     auto PS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(fragSource)));
@@ -91,7 +94,7 @@ void Environment::setupAtmosphereProgram(const char* vertSource, const char* fra
     state->setCullMode(gpu::State::CULL_NONE);
     state->setDepthTest(false);
     state->setBlendFunction(true,gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
-    pipelineProgram = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+    pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
 
     locations[CAMERA_POS_LOCATION] = program->getUniforms().findLocation("v3CameraPos");
     locations[LIGHT_POS_LOCATION] = program->getUniforms().findLocation("v3LightPos");
@@ -109,34 +112,6 @@ void Environment::setupAtmosphereProgram(const char* vertSource, const char* fra
     locations[SCALE_OVER_SCALE_DEPTH_LOCATION] = program->getUniforms().findLocation("fScaleOverScaleDepth");
     locations[G_LOCATION] = program->getUniforms().findLocation("g");
     locations[G2_LOCATION] = program->getUniforms().findLocation("g2");
-    
-    /*
-
-    program.addShaderFromSourceCode(QGLShader::Vertex, vertSource);
-    program.addShaderFromSourceCode(QGLShader::Fragment, fragSource);
-    program.link();
-    
-    program.bind();
-
-    locations[CAMERA_POS_LOCATION] = program.uniformLocation("v3CameraPos");
-    locations[LIGHT_POS_LOCATION] = program.uniformLocation("v3LightPos");
-    locations[INV_WAVELENGTH_LOCATION] = program.uniformLocation("v3InvWavelength");
-    locations[CAMERA_HEIGHT2_LOCATION] = program.uniformLocation("fCameraHeight2");
-    locations[OUTER_RADIUS_LOCATION] = program.uniformLocation("fOuterRadius");
-    locations[OUTER_RADIUS2_LOCATION] = program.uniformLocation("fOuterRadius2");
-    locations[INNER_RADIUS_LOCATION] = program.uniformLocation("fInnerRadius");
-    locations[KR_ESUN_LOCATION] = program.uniformLocation("fKrESun");
-    locations[KM_ESUN_LOCATION] = program.uniformLocation("fKmESun");
-    locations[KR_4PI_LOCATION] = program.uniformLocation("fKr4PI");
-    locations[KM_4PI_LOCATION] = program.uniformLocation("fKm4PI");
-    locations[SCALE_LOCATION] = program.uniformLocation("fScale");
-    locations[SCALE_DEPTH_LOCATION] = program.uniformLocation("fScaleDepth");
-    locations[SCALE_OVER_SCALE_DEPTH_LOCATION] = program.uniformLocation("fScaleOverScaleDepth");
-    locations[G_LOCATION] = program.uniformLocation("g");
-    locations[G2_LOCATION] = program.uniformLocation("g2");
-    
-    program.release();
-    */
 }
 
 void Environment::resetToDefault() {
@@ -305,29 +280,24 @@ ProgramObject* Environment::createSkyProgram(const char* from, int* locations) {
 }
 
 void Environment::renderAtmosphere(gpu::Batch& batch, ViewFrustum& camera, const EnvironmentData& data) {
+    
     glm::vec3 center = data.getAtmosphereCenter();
     
-    //glPushMatrix();
-    //glTranslatef(center.x, center.y, center.z);
-
     Transform transform;
     transform.setTranslation(center);
-    transform.setScale(1.0f);
+    //transform.setScale(2.0f);
     batch.setModelTransform(transform);
     
     glm::vec3 relativeCameraPos = camera.getPosition() - center;
     float height = glm::length(relativeCameraPos);
 
     // use the appropriate shader depending on whether we're inside or outside
-    //ProgramObject* program;
     int* locations;
     if (height < data.getAtmosphereOuterRadius()) {
-        //program = &_newSkyFromAtmosphereProgram;
         batch.setPipeline(_newSkyFromAtmosphereProgram);
         locations = _newSkyFromAtmosphereUniformLocations;
         
     } else {
-        //program = &_newSkyFromSpaceProgram;
         batch.setPipeline(_newSkyFromSpaceProgram);
         locations = _newSkyFromSpaceUniformLocations;
     }
@@ -335,39 +305,13 @@ void Environment::renderAtmosphere(gpu::Batch& batch, ViewFrustum& camera, const
     // the constants here are from Sean O'Neil's GPU Gems entry
     // (http://http.developer.nvidia.com/GPUGems2/gpugems2_chapter16.html), GameEngine.cpp
 
-    //program->bind();
-    /*
-    program->setUniform(locations[CAMERA_POS_LOCATION], relativeCameraPos);
+    batch._glUniform3f(locations[CAMERA_POS_LOCATION], relativeCameraPos.x, relativeCameraPos.y, relativeCameraPos.z);
     glm::vec3 lightDirection = glm::normalize(data.getSunLocation());
-    program->setUniform(locations[LIGHT_POS_LOCATION], lightDirection);
-    program->setUniformValue(locations[INV_WAVELENGTH_LOCATION],
-        1 / powf(data.getScatteringWavelengths().r, 4.0f),
-        1 / powf(data.getScatteringWavelengths().g, 4.0f),
-        1 / powf(data.getScatteringWavelengths().b, 4.0f));
-    program->setUniformValue(locations[CAMERA_HEIGHT2_LOCATION], height * height);
-    program->setUniformValue(locations[OUTER_RADIUS_LOCATION], data.getAtmosphereOuterRadius());
-    program->setUniformValue(locations[OUTER_RADIUS2_LOCATION], data.getAtmosphereOuterRadius() * data.getAtmosphereOuterRadius());
-    program->setUniformValue(locations[INNER_RADIUS_LOCATION], data.getAtmosphereInnerRadius());
-    program->setUniformValue(locations[KR_ESUN_LOCATION], data.getRayleighScattering() * data.getSunBrightness());
-    program->setUniformValue(locations[KM_ESUN_LOCATION], data.getMieScattering() * data.getSunBrightness());
-    program->setUniformValue(locations[KR_4PI_LOCATION], data.getRayleighScattering() * 4.0f * PI);
-    program->setUniformValue(locations[KM_4PI_LOCATION], data.getMieScattering() * 4.0f * PI);
-    program->setUniformValue(locations[SCALE_LOCATION], 1.0f / (data.getAtmosphereOuterRadius() - data.getAtmosphereInnerRadius()));
-    program->setUniformValue(locations[SCALE_DEPTH_LOCATION], 0.25f);
-    program->setUniformValue(locations[SCALE_OVER_SCALE_DEPTH_LOCATION],
-        (1.0f / (data.getAtmosphereOuterRadius() - data.getAtmosphereInnerRadius())) / 0.25f);
-    program->setUniformValue(locations[G_LOCATION], -0.990f);
-    program->setUniformValue(locations[G2_LOCATION], -0.990f * -0.990f);
-    */
-
-
-    batch._glUniform3fv(locations[CAMERA_POS_LOCATION], relativeCameraPos);
-    glm::vec3 lightDirection = glm::normalize(data.getSunLocation());
-    batch._glUniform3fv(locations[LIGHT_POS_LOCATION], lightDirection);
+    batch._glUniform3f(locations[LIGHT_POS_LOCATION], lightDirection.x, lightDirection.y, lightDirection.z);
     batch._glUniform3f(locations[INV_WAVELENGTH_LOCATION],
-        1 / powf(data.getScatteringWavelengths().r, 4.0f),
-        1 / powf(data.getScatteringWavelengths().g, 4.0f),
-        1 / powf(data.getScatteringWavelengths().b, 4.0f));
+                        1 / powf(data.getScatteringWavelengths().r, 4.0f),
+                        1 / powf(data.getScatteringWavelengths().g, 4.0f),
+                        1 / powf(data.getScatteringWavelengths().b, 4.0f));
     batch._glUniform1f(locations[CAMERA_HEIGHT2_LOCATION], height * height);
     batch._glUniform1f(locations[OUTER_RADIUS_LOCATION], data.getAtmosphereOuterRadius());
     batch._glUniform1f(locations[OUTER_RADIUS2_LOCATION], data.getAtmosphereOuterRadius() * data.getAtmosphereOuterRadius());
@@ -383,15 +327,5 @@ void Environment::renderAtmosphere(gpu::Batch& batch, ViewFrustum& camera, const
     batch._glUniform1f(locations[G_LOCATION], -0.990f);
     batch._glUniform1f(locations[G2_LOCATION], -0.990f * -0.990f);
 
-
-    //glDepthMask(GL_FALSE);
-    //glDisable(GL_DEPTH_TEST);
-    //glDisable(GL_CULL_FACE);
-    //glEnable(GL_BLEND);
     DependencyManager::get<GeometryCache>()->renderSphere(batch,1.0f, 100, 50, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)); //Draw a unit sphere
-    //glDepthMask(GL_TRUE);
-    
-    //program->release();
-    
-    //glPopMatrix();
 }
