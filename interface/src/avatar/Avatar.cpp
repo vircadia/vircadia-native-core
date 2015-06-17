@@ -1075,7 +1075,12 @@ float Avatar::getSkeletonHeight() const {
 float Avatar::getHeadHeight() const {
     Extents extents = getHead()->getFaceModel().getMeshExtents();
     if (!extents.isEmpty() && extents.isValid()) {
-        return extents.maximum.y - extents.minimum.y;
+
+        // HACK: We have a really odd case when fading out for some models where this value explodes
+        float result = extents.maximum.y - extents.minimum.y;
+        if (result >= 0.0f && result < 100.0f * _scale ) {
+            return result;
+        }
     }
 
     extents = _skeletonModel.getMeshExtents();
