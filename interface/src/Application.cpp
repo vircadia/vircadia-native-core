@@ -3332,12 +3332,6 @@ namespace render {
                         "Application::displaySide() ... atmosphere...");
 
                     background->_environment->renderAtmospheres(batch, *(args->_viewFrustum));
-                    
-                    // FIX ME - If I don't call this renderBatch() here, then the atmosphere doesn't render, but it
-                    // seems like these payloadRender() methods shouldn't be doing this. We need to investigate why
-                    // the engine isn't rendering our batch
-                    gpu::GLBackend::renderBatch(batch, true);
-
                 }
 
             }
@@ -3346,12 +3340,13 @@ namespace render {
             
             skybox = skyStage->getSkybox();
             if (skybox) {
-                gpu::Batch batch;
                 model::Skybox::render(batch, *(Application::getInstance()->getDisplayViewFrustum()), *skybox);
-                gpu::GLBackend::renderBatch(batch, true);
-                glUseProgram(0);
             }
         }
+        // FIX ME - If I don't call this renderBatch() here, then the atmosphere and skybox don't render, but it
+        // seems like these payloadRender() methods shouldn't be doing this. We need to investigate why the engine
+        // isn't rendering our batch
+        gpu::GLBackend::renderBatch(batch, true);
     }
 }
 
