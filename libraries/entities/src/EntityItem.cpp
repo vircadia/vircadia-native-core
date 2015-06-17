@@ -67,12 +67,12 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _simulatorIDChangedTime(0),
     _marketplaceID(ENTITY_ITEM_DEFAULT_MARKETPLACE_ID),
     _name(ENTITY_ITEM_DEFAULT_NAME),
+    _href(""),
+    _description(""),
     _dirtyFlags(0),
     _element(nullptr),
     _physicsInfo(nullptr),
-    _simulated(false),
-    _href(""),
-    _description("")
+    _simulated(false)
 {
     quint64 now = usecTimestampNow();
     _lastSimulated = now;
