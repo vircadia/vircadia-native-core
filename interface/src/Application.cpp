@@ -877,6 +877,7 @@ void Application::paintGL() {
     {
         PerformanceTimer perfTimer("renderOverlay");
         _applicationOverlay.renderOverlay(&renderArgs);
+        renderArgs._context->resetState();
     }
 
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
@@ -3639,84 +3640,6 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
 
     return screenPoint;
 }
-
-//void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard) {
-//    // Grab current viewport to reset it at the end
-//    int viewport[4];
-//    glGetIntegerv(GL_VIEWPORT, viewport);
-//    float aspect = (float)region.width() / region.height();
-//    float fov = MIRROR_FIELD_OF_VIEW;
-//
-//    // bool eyeRelativeCamera = false;
-//    if (billboard) {
-//        fov = BILLBOARD_FIELD_OF_VIEW;  // degees
-//        _mirrorCamera.setPosition(_myAvatar->getPosition() +
-//                                  _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * BILLBOARD_DISTANCE * _myAvatar->getScale());
-//
-//    } else if (RearMirrorTools::rearViewZoomLevel.get() == BODY) {
-//        _mirrorCamera.setPosition(_myAvatar->getChestPosition() +
-//                                  _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
-//
-//    } else { // HEAD zoom level
-//        // FIXME note that the positioing of the camera relative to the avatar can suffer limited
-//        // precision as the user's position moves further away from the origin.  Thus at
-//        // /1e7,1e7,1e7 (well outside the buildable volume) the mirror camera veers and sways
-//        // wildly as you rotate your avatar because the floating point values are becoming
-//        // larger, squeezing out the available digits of precision you have available at the
-//        // human scale for camera positioning.
-//
-//        // Previously there was a hack to correct this using the mechanism of repositioning
-//        // the avatar at the origin of the world for the purposes of rendering the mirror,
-//        // but it resulted in failing to render the avatar's head model in the mirror view
-//        // when in first person mode.  Presumably this was because of some missed culling logic
-//        // that was not accounted for in the hack.
-//
-//        // This was removed in commit 71e59cfa88c6563749594e25494102fe01db38e9 but could be further
-//        // investigated in order to adapt the technique while fixing the head rendering issue,
-//        // but the complexity of the hack suggests that a better approach
-//        _mirrorCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
-//                                    _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
-//    }
-//    _mirrorCamera.setProjection(glm::perspective(glm::radians(fov), aspect, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
-//    _mirrorCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
-//
-//    // set the bounds of rear mirror view
-//    if (billboard) {
-//        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
-//        glViewport(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
-//        glScissor(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
-//    } else {
-//        // if not rendering the billboard, the region is in device independent coordinates; must convert to device
-//        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
-//        float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale();
-//        int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
-//        glViewport(x, size.height() - y - height, width, height);
-//        glScissor(x, size.height() - y - height, width, height);
-//    }
-//    bool updateViewFrustum = false;
-//    updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
-//    glEnable(GL_SCISSOR_TEST);
-//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//
-//    // render rear mirror view
-//    glMatrixMode(GL_MODELVIEW);
-//    glPushMatrix();
-//    glLoadIdentity();
-//    glLoadMatrixf(glm::value_ptr(glm::mat4_cast(_mirrorCamera.getOrientation()) * glm::translate(glm::mat4(), _mirrorCamera.getPosition())));
-//    renderArgs->_context->syncCache();
-//    displaySide(renderArgs, _mirrorCamera, true, billboard);
-//    glMatrixMode(GL_MODELVIEW);
-//    glPopMatrix();
-//
-//    if (!billboard) {
-//        _rearMirrorTools->render(renderArgs, false, _glWidget->mapFromGlobal(QCursor::pos()));
-//    }
-//
-//    // reset Viewport and projection matrix
-//    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
-//    glDisable(GL_SCISSOR_TEST);
-//    updateProjectionMatrix(_myCamera, updateViewFrustum);
-//}
 
 void Application::resetSensors() {
     DependencyManager::get<Faceshift>()->reset();

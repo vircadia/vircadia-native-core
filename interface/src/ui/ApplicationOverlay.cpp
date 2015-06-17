@@ -53,6 +53,13 @@ static const float MIRROR_FIELD_OF_VIEW = 30.0f;
 static const float ORTHO_NEAR_CLIP = -10000;
 static const float ORTHO_FAR_CLIP = 10000;
 
+// TODO move somewhere useful
+static void fboViewport(QOpenGLFramebufferObject* fbo) {
+    auto size = fbo->size();
+    glViewport(0, 0, size.width(), size.height());
+}
+
+
 
 ApplicationOverlay::ApplicationOverlay() :
     _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT))
@@ -94,10 +101,8 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
 
     // Execute the batch into our framebuffer
     _overlayFramebuffer->bind();
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glm::vec2 size = qApp->getCanvasSize();
-    glViewport(0, 0, size.x, size.y);
+    fboViewport(_overlayFramebuffer);
 
     // Now render the overlay components together into a single texture
     //renderOverlays(renderArgs);
@@ -285,11 +290,6 @@ void ApplicationOverlay::renderAudioMeter(RenderArgs* renderArgs) {
     }
 }
 
-void fboViewport(QOpenGLFramebufferObject* fbo) {
-    auto size = fbo->size();
-    glViewport(0, 0, size.width(), size.height());
-}
-
 void ApplicationOverlay::renderRearViewToFbo(RenderArgs* renderArgs) {
     // Grab current viewport to reset it at the end
     auto mirrorSize = _mirrorFramebuffer->size();
@@ -342,19 +342,22 @@ void ApplicationOverlay::renderRearViewToFbo(RenderArgs* renderArgs) {
 
     _mirrorFramebuffer->bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glLoadMatrixf(glm::value_ptr(_mirrorCamera.getProjection()));
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+    glLoadMatrixf(glm::value_ptr(glm::mat4_cast(_mirrorCamera.getOrientation()) * glm::translate(glm::mat4(), _mirrorCamera.getPosition())));
     {
-        auto projection = _mirrorCamera.getProjection();
-        glMatrixMode(GL_PROJECTION);
-        glLoadMatrixf(glm::value_ptr(projection));
-        glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
-        glLoadIdentity();
-        glLoadMatrixf(glm::value_ptr(glm::mat4_cast(_mirrorCamera.getOrientation()) * glm::translate(glm::mat4(), _mirrorCamera.getPosition())));
         renderArgs->_context->syncCache();
         qApp->displaySide(renderArgs, _mirrorCamera, true, billboard);
-        glMatrixMode(GL_MODELVIEW);
-        glPopMatrix();
     }
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
     _mirrorFramebuffer->release();
 
     //    if (!billboard) {

@@ -36,6 +36,8 @@ public:
     // Let's try to avoid to do that as much as possible!
     virtual void syncCache();
 
+    virtual void resetState();
+
     // Render Batch create a local Context and execute the batch with it
     // WARNING:
     // if syncCache is true, then the gpu::GLBackend will synchornize
