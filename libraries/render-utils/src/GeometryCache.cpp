@@ -1025,11 +1025,11 @@ void GeometryCache::renderBevelCornersRect(gpu::Batch& batch, int x, int y, int 
         #endif // def WANT_DEBUG
     }
 
-    const int FLOATS_PER_VERTEX = 2; // vertices
-    const int NUM_VERTICES = 8;
-
     if (!details.isCreated) {
-
+        static const int FLOATS_PER_VERTEX = 2; // vertices
+        static const int NUM_VERTICES = 8;
+        static constexpr int NUM_FLOATS = NUM_VERTICES * FLOATS_PER_VERTEX;
+        
         details.isCreated = true;
         details.vertices = NUM_VERTICES;
         details.vertexSize = FLOATS_PER_VERTEX;
@@ -1051,8 +1051,7 @@ void GeometryCache::renderBevelCornersRect(gpu::Batch& batch, int x, int y, int 
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
 
 
-        int vertexPoints = NUM_VERTICES * FLOATS_PER_VERTEX;
-        GLfloat vertexBuffer[vertexPoints]; // only vertices, no normals because we're a 2D quad
+        GLfloat vertexBuffer[NUM_FLOATS]; // only vertices, no normals because we're a 2D quad
         int vertexPoint = 0;
 
         // Triangle strip points
