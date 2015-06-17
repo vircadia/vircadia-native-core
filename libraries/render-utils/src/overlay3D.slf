@@ -25,6 +25,5 @@ void main(void) {
     if (diffuse.a < 0.5) {
         discard;
     }
-    
-    gl_FragColor = vec4(varColor.rgb * (1 - diffuse.a) + diffuse.a * diffuse.rgb, 1.0);
+    gl_FragColor = vec4(varColor * diffuse);
 }
