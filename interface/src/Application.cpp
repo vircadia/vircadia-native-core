@@ -3245,6 +3245,9 @@ namespace render {
     template <> const Item::Bound payloadGetBound(const BackgroundRenderData::Pointer& stuff) { return Item::Bound(); }
     template <> void payloadRender(const BackgroundRenderData::Pointer& background, RenderArgs* args) {
 
+        Q_ASSERT(args->_batch);
+        gpu::Batch& batch = *args->_batch;
+
         // Background rendering decision
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         auto skybox = model::SkyboxPointer();
@@ -3312,7 +3315,8 @@ namespace render {
                     PerformanceTimer perfTimer("atmosphere");
                     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                         "Application::displaySide() ... atmosphere...");
-                    background->_environment->renderAtmospheres(*(args->_viewFrustum));
+
+                    background->_environment->renderAtmospheres(batch, *(args->_viewFrustum));
                 }
 
             }
@@ -3321,13 +3325,13 @@ namespace render {
             
             skybox = skyStage->getSkybox();
             if (skybox) {
-                gpu::Batch batch;
                 model::Skybox::render(batch, *(Application::getInstance()->getDisplayViewFrustum()), *skybox);
-
-                gpu::GLBackend::renderBatch(batch, true);
-                glUseProgram(0);
             }
         }
+        // FIX ME - If I don't call this renderBatch() here, then the atmosphere and skybox don't render, but it
+        // seems like these payloadRender() methods shouldn't be doing this. We need to investigate why the engine
+        // isn't rendering our batch
+        gpu::GLBackend::renderBatch(batch, true);
     }
 }
 

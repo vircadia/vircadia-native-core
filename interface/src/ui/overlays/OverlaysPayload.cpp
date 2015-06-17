@@ -66,8 +66,8 @@ namespace render {
     }
     template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args) {
         if (args) {
-            glPushMatrix();
             if (overlay->getAnchor() == Overlay::MY_AVATAR) {
+                glPushMatrix();
                 MyAvatar* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
                 glm::quat myAvatarRotation = avatar->getOrientation();
                 glm::vec3 myAvatarPosition = avatar->getPosition();
@@ -78,9 +78,11 @@ namespace render {
                 glTranslatef(myAvatarPosition.x, myAvatarPosition.y, myAvatarPosition.z);
                 glRotatef(angle, axis.x, axis.y, axis.z);
                 glScalef(myAvatarScale, myAvatarScale, myAvatarScale);
+                overlay->render(args);
+                glPopMatrix();
+            } else {
+                overlay->render(args);
             }
-            overlay->render(args);
-            glPopMatrix();
         }
     }
 }
