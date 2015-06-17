@@ -61,7 +61,11 @@ void makeBindings(GLBackend::GLShader* shader) {
     if (loc >= 0) {
         glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD, "texcoord");
     }
-
+    loc = glGetAttribLocation(glprogram, "attribTexcoord");
+    if (loc >= 0) {
+        glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD, "attribTexcoord");
+    }
+    
     loc = glGetAttribLocation(glprogram, "tangent");
     if (loc >= 0) {
         glBindAttribLocation(glprogram, gpu::Stream::TANGENT, "tangent");

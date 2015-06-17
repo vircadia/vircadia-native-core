@@ -14,7 +14,7 @@
 
 <$declareStandardTransform()$>
 
-attribute vec2 attribTexcoord;
+//attribute vec2 texcoord;
 
 varying vec2 varTexcoord;
 
@@ -27,7 +27,7 @@ varying vec3 varEyeNormal;
 varying vec4 varColor;
 
 void main(void) {
-    varTexcoord = attribTexcoord;
+    varTexcoord = gl_MultiTexCoord0.xy;
 
     // pass along the color
     varColor = gl_Color;
