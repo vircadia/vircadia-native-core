@@ -2405,4 +2405,3 @@ int NetworkMesh::getTranslucentPartCount(const FBXMesh& fbxMesh) const {
     }
     return count;
 }
-

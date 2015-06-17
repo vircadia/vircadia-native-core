@@ -880,6 +880,16 @@ void Application::paintGL() {
     _glWidget->makeCurrent();
 
     auto lodManager = DependencyManager::get<LODManager>();
+
+    {
+        PerformanceTimer perfTimer("renderOverlay");
+        gpu::Context context(new gpu::GLBackend());
+        RenderArgs renderArgs(&context, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
+                          lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
+                          RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
+        _applicationOverlay.renderOverlay(&renderArgs);
+    }
+    
     gpu::Context context(new gpu::GLBackend());
     RenderArgs renderArgs(&context, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
                           lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
@@ -891,12 +901,7 @@ void Application::paintGL() {
         OculusManager::beginFrameTiming();
     }
 
-    {
-        PerformanceTimer perfTimer("renderOverlay");
-        _applicationOverlay.renderOverlay(&renderArgs);
-        renderArgs._context->resetState();
-    }
-
+  
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
@@ -1004,7 +1009,6 @@ void Application::paintGL() {
     }
 
 
-
     if (!OculusManager::isConnected() || OculusManager::allowSwap()) {
         _glWidget->swapBuffers();
     }
@@ -1079,12 +1083,6 @@ void Application::resizeGL() {
     offscreenUi->resize(_glWidget->size());
     _glWidget->makeCurrent();
 
-#if 0
-    // update Stats width
-    // let's set horizontal offset to give stats some margin to mirror
-    int horizontalOffset = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
-    Stats::getInstance()->resetWidth(_renderResolution.x, horizontalOffset);
-#endif
 }
 
 void Application::updateProjectionMatrix() {

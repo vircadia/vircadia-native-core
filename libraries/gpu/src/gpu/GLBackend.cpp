@@ -656,6 +656,4 @@ void GLBackend::fetchMatrix(GLenum target, glm::mat4 & m) {
     glGetFloatv(target, glm::value_ptr(m));
 }
 
-void GLBackend::resetState() {
-    resetPipelineState(0);
-}
+

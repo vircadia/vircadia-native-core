@@ -28,7 +28,6 @@ public:
     virtual~ Backend() {};
     virtual void render(Batch& batch) = 0;
     virtual void syncCache() = 0;
-    virtual void resetState() = 0;
 
     class TransformObject {
     public:
@@ -112,9 +111,6 @@ public:
     void render(Batch& batch);
 
     void syncCache();
-
-    // TODO remove, make all apps set all the state they need
-    void resetState();
 
 protected:
     Context(const Context& context);

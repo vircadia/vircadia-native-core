@@ -39,7 +39,3 @@ void Context::render(Batch& batch) {
 void Context::syncCache() {
     _backend->syncCache();
 }
-
-void Context::resetState() {
-    _backend->resetState();
-}
