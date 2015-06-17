@@ -1817,6 +1817,7 @@ void Application::idle() {
         targetFramePeriod = 1000.0 / targetFramerate;
     }
     double timeSinceLastUpdate = (double)_lastTimeUpdated.nsecsElapsed() / 1000000.0;
+    //if (true) {
     if (timeSinceLastUpdate > targetFramePeriod) {
         _lastTimeUpdated.start();
         {
@@ -1843,7 +1844,7 @@ void Application::idle() {
             }
 
             // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
-            idleTimer->start(2);
+            idleTimer->start(0);
         }
     }
 

@@ -87,7 +87,6 @@ ApplicationOverlay::~ApplicationOverlay() {
 void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
 
-    Stats::getInstance()->updateStats();
     glm::vec2 size = qApp->getCanvasSize();
     // TODO Handle fading and deactivation/activation of UI
 
@@ -104,8 +103,7 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     //renderOverlays(renderArgs);
     //renderAudioMeter(renderArgs);
     //renderCameraToggle(renderArgs);
-    //renderStatsAndLogs(renderArgs);
-
+    renderStatsAndLogs(renderArgs);
 
     renderDomainConnectionStatusBorder(renderArgs);
     renderQmlUi(renderArgs);
@@ -370,14 +368,9 @@ void ApplicationOverlay::renderStatsAndLogs(RenderArgs* renderArgs) {
     //  Display stats and log text onscreen
 
     // Determine whether to compute timing details
-    bool shouldDisplayTimingDetail = Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails) &&
-                                     Menu::getInstance()->isOptionChecked(MenuOption::Stats); //&&
-                                     // Stats::getInstance()->isExpanded();
-    if (shouldDisplayTimingDetail != PerformanceTimer::isActive()) {
-        PerformanceTimer::setActive(shouldDisplayTimingDetail);
-    }
     Stats::getInstance()->updateStats();
 
+    /*
     //  Show on-screen msec timer
     if (Menu::getInstance()->isOptionChecked(MenuOption::FrameTimer)) {
         auto canvasSize = qApp->getCanvasSize();
@@ -401,6 +394,7 @@ void ApplicationOverlay::renderStatsAndLogs(RenderArgs* renderArgs) {
     glEnable(GL_LIGHTING);
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
+    */
 }
 
 void ApplicationOverlay::renderDomainConnectionStatusBorder(RenderArgs* renderArgs) {

@@ -13,6 +13,8 @@
 
 #include "Stats.h"
 
+#include <sstream>
+
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -41,7 +43,6 @@ Stats* Stats::getInstance() {
     if (!INSTANCE) {
         Stats::registerType();
         Stats::show();
-        //Stats::toggle();
         Q_ASSERT(INSTANCE);
     }
     return INSTANCE;
@@ -104,6 +105,13 @@ void Stats::updateStats() {
         }
     }
 
+    bool shouldDisplayTimingDetail = Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails) &&
+        Menu::getInstance()->isOptionChecked(MenuOption::Stats) && isExpanded();
+    if (shouldDisplayTimingDetail != PerformanceTimer::isActive()) {
+        PerformanceTimer::setActive(shouldDisplayTimingDetail);
+    }
+
+
     auto nodeList = DependencyManager::get<NodeList>();
     auto avatarManager = DependencyManager::get<AvatarManager>();
     // we need to take one avatar out so we don't include ourselves
@@ -144,7 +152,7 @@ void Stats::updateStats() {
             pingVoxel = totalPingOctree / octreeServerCount;
         }
 
-        STAT_UPDATE(entitiesPing, pingVoxel);
+        //STAT_UPDATE(entitiesPing, pingVoxel);
         //if (_expanded) {
         //    QString voxelMaxPing;
         //    if (pingVoxel >= 0) {  // Average is only meaningful if pingVoxel is valid.
@@ -202,22 +210,137 @@ void Stats::updateStats() {
     } // expanded avatar column
 
     // Fourth column, octree stats
+    int serverCount = 0;
+    int movingServerCount = 0;
+    unsigned long totalNodes = 0;
+    unsigned long totalInternal = 0;
+    unsigned long totalLeaves = 0;
+    std::stringstream sendingModeStream("");
+    sendingModeStream << "[";
+    NodeToOctreeSceneStats* octreeServerSceneStats = Application::getInstance()->getOcteeSceneStats();
+    for (NodeToOctreeSceneStatsIterator i = octreeServerSceneStats->begin(); i != octreeServerSceneStats->end(); i++) {
+        //const QUuid& uuid = i->first;
+        OctreeSceneStats& stats = i->second;
+        serverCount++;
+        if (_expanded) {
+            if (serverCount > 1) {
+                sendingModeStream << ",";
+            }
+            if (stats.isMoving()) {
+                sendingModeStream << "M";
+                movingServerCount++;
+            } else {
+                sendingModeStream << "S";
+            }
+        }
+
+        // calculate server node totals
+        totalNodes += stats.getTotalElements();
+        if (_expanded) {
+            totalInternal += stats.getTotalInternal();
+            totalLeaves += stats.getTotalLeaves();
+        }
+    }
+    if (_expanded) {
+        if (serverCount == 0) {
+            sendingModeStream << "---";
+        }
+        sendingModeStream << "] " << serverCount << " servers";
+        if (movingServerCount > 0) {
+            sendingModeStream << " <SCENE NOT STABLE>";
+        } else {
+            sendingModeStream << " <SCENE STABLE>";
+        }
+        QString sendingModeResult = sendingModeStream.str().c_str();
+        STAT_UPDATE(sendingMode, sendingModeResult);
+    }
+
+    // Incoming packets
+    QLocale locale(QLocale::English);
+    auto voxelPacketsToProcess = qApp->getOctreePacketProcessor().packetsToProcessCount();
+    if (_expanded) {
+        std::stringstream octreeStats;
+        QString packetsString = locale.toString((int)voxelPacketsToProcess);
+        QString maxString = locale.toString((int)_recentMaxPackets);
+        octreeStats << "Octree Packets to Process: " << qPrintable(packetsString)
+            << " [Recent Max: " << qPrintable(maxString) << "]";
+        QString str = octreeStats.str().c_str();
+        STAT_UPDATE(packetStats, str);
+        // drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
+    }
+
+    if (_resetRecentMaxPacketsSoon && voxelPacketsToProcess > 0) {
+        _recentMaxPackets = 0;
+        _resetRecentMaxPacketsSoon = false;
+    }
+    if (voxelPacketsToProcess == 0) {
+        _resetRecentMaxPacketsSoon = true;
+    } else if (voxelPacketsToProcess > _recentMaxPackets) {
+        _recentMaxPackets = voxelPacketsToProcess;
+    }
+
+    // Server Octree Elements
+    STAT_UPDATE(serverElements, totalNodes);
+    STAT_UPDATE(localElements, OctreeElement::getNodeCount());
+
+    if (_expanded) {
+        STAT_UPDATE(serverInternal, totalInternal);
+        STAT_UPDATE(serverLeaves, totalLeaves);
+        // Local Voxels
+        STAT_UPDATE(localInternal, OctreeElement::getInternalNodeCount());
+        STAT_UPDATE(localLeaves, OctreeElement::getLeafNodeCount());
+        // LOD Details
+        STAT_UPDATE(lodStatus, "You can see " + DependencyManager::get<LODManager>()->getLODFeedbackText());
+    }
+
+    bool performanceTimerIsActive = PerformanceTimer::isActive();
+    bool displayPerf = _expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails);
+    if (displayPerf && performanceTimerIsActive) {
+        PerformanceTimer::tallyAllTimerRecords(); // do this even if we're not displaying them, so they don't stack up
+
+        // we will also include room for 1 line per timing record and a header of 4 lines
+        // Timing details...
+
+        // First iterate all the records, and for the ones that should be included, insert them into 
+        // a new Map sorted by average time...
+        bool onlyDisplayTopTen = Menu::getInstance()->isOptionChecked(MenuOption::OnlyDisplayTopTen);
+        QMap<float, QString> sortedRecords;
+        const QMap<QString, PerformanceTimerRecord>& allRecords = PerformanceTimer::getAllTimerRecords();
+        QMapIterator<QString, PerformanceTimerRecord> i(allRecords);
+
+        while (i.hasNext()) {
+            i.next();
+            if (includeTimingRecord(i.key())) {
+                float averageTime = (float)i.value().getMovingAverage() / (float)USECS_PER_MSEC;
+                sortedRecords.insertMulti(averageTime, i.key());
+            }
+        }
+
+        int linesDisplayed = 0;
+        QMapIterator<float, QString> j(sortedRecords);
+        j.toBack();
+        QString perfLines;
+        while (j.hasPrevious()) {
+            j.previous();
+            static const QChar noBreakingSpace = QChar::Nbsp;
+            QString functionName = j.value();
+            const PerformanceTimerRecord& record = allRecords.value(functionName);
+            perfLines += QString("%1: %2 [%3]\n").
+                arg(QString(qPrintable(functionName)), 120, noBreakingSpace).
+                arg((float)record.getMovingAverage() / (float)USECS_PER_MSEC, 8, 'f', 3, noBreakingSpace).
+                arg((int)record.getCount(), 6, 10, noBreakingSpace);
+            linesDisplayed++;
+            if (onlyDisplayTopTen && linesDisplayed == 10) {
+                break;
+            }
+        }
+        _timingStats = perfLines;
+        emit timingStatsChanged();
+    }
+
 }
 
 void Stats::setRenderDetails(const RenderDetails& details) {
-    //STATS_PROPERTY(int, triangles, 0)
-    //STATS_PROPERTY(int, quads, 0)
-    //STATS_PROPERTY(int, materialSwitches, 0)
-    //STATS_PROPERTY(int, meshOpaque, 0)
-    //STATS_PROPERTY(int, meshTranslucent, 0)
-    //STATS_PROPERTY(int, opaqueConsidered, 0)
-    //STATS_PROPERTY(int, opaqueOutOfView, 0)
-    //STATS_PROPERTY(int, opaqueTooSmall, 0)
-    //STATS_PROPERTY(int, translucentConsidered, 0)
-    //STATS_PROPERTY(int, translucentOutOfView, 0)
-    //STATS_PROPERTY(int, translucentTooSmall, 0)
-    //STATS_PROPERTY(int, octreeElementsServer, 0)
-    //STATS_PROPERTY(int, octreeElementsLocal, 0)
     STAT_UPDATE(triangles, details._trianglesRendered);
     STAT_UPDATE(quads, details._quadsRendered);
     STAT_UPDATE(materialSwitches, details._materialSwitches);
@@ -240,200 +363,8 @@ void Stats::display(
         int voxelPacketsToProcess) 
 {
     // iterate all the current voxel stats, and list their sending modes, and total voxel counts
-    std::stringstream sendingMode("");
-    sendingMode << "Octree Sending Mode: [";
-    int serverCount = 0;
-    int movingServerCount = 0;
-    unsigned long totalNodes = 0;
-    unsigned long totalInternal = 0;
-    unsigned long totalLeaves = 0;
-    NodeToOctreeSceneStats* octreeServerSceneStats = Application::getInstance()->getOcteeSceneStats();
-    for(NodeToOctreeSceneStatsIterator i = octreeServerSceneStats->begin(); i != octreeServerSceneStats->end(); i++) {
-        //const QUuid& uuid = i->first;
-        OctreeSceneStats& stats = i->second;
-        serverCount++;
-        if (_expanded) {
-            if (serverCount > 1) {
-                sendingMode << ",";
-            }
-            if (stats.isMoving()) {
-                sendingMode << "M";
-                movingServerCount++;
-            } else {
-                sendingMode << "S";
-            }
-        }
 
-        // calculate server node totals
-        totalNodes += stats.getTotalElements();
-        if (_expanded) {
-            totalInternal += stats.getTotalInternal();
-            totalLeaves += stats.getTotalLeaves();                
-        }
-    }
-    if (_expanded) {
-        if (serverCount == 0) {
-            sendingMode << "---";
-        }
-        sendingMode << "] " << serverCount << " servers";
-        if (movingServerCount > 0) {
-            sendingMode << " <SCENE NOT STABLE>";
-        } else {
-            sendingMode << " <SCENE STABLE>";
-        }
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)sendingMode.str().c_str(), color);
-    }
-
-    // Incoming packets
-    if (_expanded) {
-        octreeStats.str("");
-        QString packetsString = locale.toString((int)voxelPacketsToProcess);
-        QString maxString = locale.toString((int)_recentMaxPackets);
-        octreeStats << "Octree Packets to Process: " << qPrintable(packetsString)
-                    << " [Recent Max: " << qPrintable(maxString) << "]";        
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
-    }
-
-    if (_resetRecentMaxPacketsSoon && voxelPacketsToProcess > 0) {
-        _recentMaxPackets = 0;
-        _resetRecentMaxPacketsSoon = false;
-    }
-    if (voxelPacketsToProcess == 0) {
-        _resetRecentMaxPacketsSoon = true;
-    } else {
-        if (voxelPacketsToProcess > _recentMaxPackets) {
-            _recentMaxPackets = voxelPacketsToProcess;
-        }
-    }
-
-    QString serversTotalString = locale.toString((uint)totalNodes); // consider adding: .rightJustified(10, ' ');
-    unsigned long localTotal = OctreeElement::getNodeCount();
-    QString localTotalString = locale.toString((uint)localTotal); // consider adding: .rightJustified(10, ' ');
-
-    // Server Octree Elements
-    if (!_expanded) {
-        octreeStats.str("");
-        octreeStats << "Octree Elements Server: " << qPrintable(serversTotalString)
-                        << " Local:" << qPrintable(localTotalString);
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
-    }
-
-    if (_expanded) {
-        octreeStats.str("");
-        octreeStats << "Octree Elements -";
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
-
-        QString serversInternalString = locale.toString((uint)totalInternal);
-        QString serversLeavesString = locale.toString((uint)totalLeaves);
-
-        octreeStats.str("");
-        octreeStats << "  Server: " << qPrintable(serversTotalString) <<
-            " Internal: " << qPrintable(serversInternalString) <<
-            " Leaves: " << qPrintable(serversLeavesString);
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
-
-        // Local Voxels
-        unsigned long localInternal = OctreeElement::getInternalNodeCount();
-        unsigned long localLeaves = OctreeElement::getLeafNodeCount();
-        QString localInternalString = locale.toString((uint)localInternal);
-        QString localLeavesString = locale.toString((uint)localLeaves);
-
-        octreeStats.str("");
-        octreeStats << "  Local: " << qPrintable(serversTotalString) <<
-            " Internal: " << qPrintable(localInternalString) <<
-            " Leaves: " << qPrintable(localLeavesString) << "";
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
-    }
-
-    // LOD Details
-    octreeStats.str("");
-    QString displayLODDetails = DependencyManager::get<LODManager>()->getLODFeedbackText();
-    octreeStats << "LOD: You can see " << qPrintable(displayLODDetails.trimmed());
-    verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)octreeStats.str().c_str(), color);
 }
-
-
-//// Performance timer
-
-
-    bool performanceTimerIsActive = PerformanceTimer::isActive();
-    bool displayPerf = _expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails);
-    if (displayPerf && performanceTimerIsActive) {
-        PerformanceTimer::tallyAllTimerRecords(); // do this even if we're not displaying them, so they don't stack up
-        columnOneWidth = _generalStatsWidth + _pingStatsWidth + _geoStatsWidth; // 3 columns wide...
-        // we will also include room for 1 line per timing record and a header of 4 lines
-        lines += 4;
-
-        const QMap<QString, PerformanceTimerRecord>& allRecords = PerformanceTimer::getAllTimerRecords();
-        QMapIterator<QString, PerformanceTimerRecord> i(allRecords);
-        bool onlyDisplayTopTen = Menu::getInstance()->isOptionChecked(MenuOption::OnlyDisplayTopTen);
-        int statsLines = 0;
-        while (i.hasNext()) {
-            i.next();
-            if (includeTimingRecord(i.key())) {
-                lines++;
-                statsLines++;
-                if (onlyDisplayTopTen && statsLines == 10) {
-                    break;
-                }
-            }
-        }
-    }
-
-
-    // TODO: the display of these timing details should all be moved to JavaScript
-    if (displayPerf && performanceTimerIsActive) {
-        bool onlyDisplayTopTen = Menu::getInstance()->isOptionChecked(MenuOption::OnlyDisplayTopTen);
-        // Timing details...
-        verticalOffset += STATS_PELS_PER_LINE * 4; // skip 3 lines to be under the other columns
-        drawText(columnOneHorizontalOffset, verticalOffset, scale, rotation, font, 
-                "-------------------------------------------------------- Function "
-                "------------------------------------------------------- --msecs- -calls--", color);
-
-        // First iterate all the records, and for the ones that should be included, insert them into 
-        // a new Map sorted by average time...
-        QMap<float, QString> sortedRecords;
-        const QMap<QString, PerformanceTimerRecord>& allRecords = PerformanceTimer::getAllTimerRecords();
-        QMapIterator<QString, PerformanceTimerRecord> i(allRecords);
-
-        while (i.hasNext()) {
-            i.next();
-            if (includeTimingRecord(i.key())) {
-                float averageTime = (float)i.value().getMovingAverage() / (float)USECS_PER_MSEC;
-                sortedRecords.insertMulti(averageTime, i.key());
-            }
-        }
-
-        int linesDisplayed = 0;
-        QMapIterator<float, QString> j(sortedRecords);
-        j.toBack();
-        while (j.hasPrevious()) {
-            j.previous();
-            QChar noBreakingSpace = QChar::Nbsp;
-            QString functionName = j.value(); 
-            const PerformanceTimerRecord& record = allRecords.value(functionName);
-
-            QString perfLine = QString("%1: %2 [%3]").
-                arg(QString(qPrintable(functionName)), 120, noBreakingSpace).
-                arg((float)record.getMovingAverage() / (float)USECS_PER_MSEC, 8, 'f', 3, noBreakingSpace).
-                arg((int)record.getCount(), 6, 10, noBreakingSpace);
-
-            verticalOffset += STATS_PELS_PER_LINE;
-            drawText(columnOneHorizontalOffset, verticalOffset, scale, rotation, font, perfLine.toUtf8().constData(), color);
-            linesDisplayed++;
-            if (onlyDisplayTopTen && linesDisplayed == 10) {
-                break;
-            }
-        }
-    }
-
 
 
 */

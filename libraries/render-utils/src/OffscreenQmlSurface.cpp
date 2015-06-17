@@ -11,6 +11,9 @@
 #include <QOpenGLDebugLogger>
 #include <QGLWidget>
 #include <QtQml>
+
+#include <PerfStat.h>
+
 #include "AbstractViewStateInterface.h"
 
 Q_DECLARE_LOGGING_CATEGORY(offscreenFocus)
@@ -212,6 +215,7 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
 
 
 void OffscreenQmlSurface::updateQuick() {
+    PerformanceTimer perfTimer("qmlUpdate");
     if (_paused) {
         return;
     }

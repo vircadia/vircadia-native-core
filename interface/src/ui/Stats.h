@@ -30,7 +30,7 @@ private: \
 class Stats : public QQuickItem {
     Q_OBJECT
     HIFI_QML_DECL
-    Q_PROPERTY(bool expanded READ isExpanded NOTIFY expandedChanged)
+    Q_PROPERTY(bool expanded READ isExpanded WRITE setExpanded NOTIFY expandedChanged)
     STATS_PROPERTY(int, serverCount, 0)
     STATS_PROPERTY(int, framerate, 0)
     STATS_PROPERTY(int, avatarCount, 0)
@@ -61,8 +61,16 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, translucentConsidered, 0)
     STATS_PROPERTY(int, translucentOutOfView, 0)
     STATS_PROPERTY(int, translucentTooSmall, 0)
-    STATS_PROPERTY(int, octreeElementsServer, 0)
-    STATS_PROPERTY(int, octreeElementsLocal, 0)
+    STATS_PROPERTY(QString, sendingMode, QString())
+    STATS_PROPERTY(QString, packetStats, QString())
+    STATS_PROPERTY(QString, lodStatus, QString())
+    STATS_PROPERTY(QString, timingStats, QString())
+    STATS_PROPERTY(int, serverElements, 0)
+    STATS_PROPERTY(int, serverInternal, 0)
+    STATS_PROPERTY(int, serverLeaves, 0)
+    STATS_PROPERTY(int, localElements, 0)
+    STATS_PROPERTY(int, localInternal, 0)
+    STATS_PROPERTY(int, localLeaves, 0)
 
 public:
     static Stats* getInstance();
@@ -76,8 +84,9 @@ public:
     bool isExpanded() { return _expanded; }
 
     void setExpanded(bool expanded) {
-        if (expanded != _expanded) {
+        if (_expanded != expanded) {
             _expanded = expanded;
+            emit expandedChanged();
         }
     }
 
@@ -113,8 +122,16 @@ signals:
     void translucentConsideredChanged();
     void translucentOutOfViewChanged();
     void translucentTooSmallChanged();
-    void octreeElementsServerChanged();
-    void octreeElementsLocalChanged();
+    void sendingModeChanged();
+    void packetStatsChanged();
+    void lodStatusChanged();
+    void serverElementsChanged();
+    void serverInternalChanged();
+    void serverLeavesChanged();
+    void localElementsChanged();
+    void localInternalChanged();
+    void localLeavesChanged();
+    void timingStatsChanged();
 
 private:
     int _recentMaxPackets{ 0 } ; // recent max incoming voxel packets to process
