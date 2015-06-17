@@ -51,7 +51,7 @@ void AudioInjector::setIsFinished(bool isFinished) {
         emit finished();
 
         if (_localBuffer) {
-            // delete will stop (and nosily if we do so ourselves here first).
+            _localBuffer->stop();
             _localBuffer->deleteLater();
             _localBuffer = NULL;
         }
@@ -120,9 +120,6 @@ void AudioInjector::injectLocally() {
             _localBuffer->setCurrentOffset(_currentSendPosition);
 
             success = _localAudioInterface->outputLocalInjector(_options.stereo, this);
-
-            // if we're not looping and the buffer tells us it is empty then emit finished
-            connect(_localBuffer, &AudioInjectorLocalBuffer::bufferEmpty, this, &AudioInjector::stop);
 
             if (!success) {
                 qCDebug(audio) << "AudioInjector::injectLocally could not output locally via _localAudioInterface";

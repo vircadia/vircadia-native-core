@@ -17,8 +17,7 @@ AudioInjectorLocalBuffer::AudioInjectorLocalBuffer(const QByteArray& rawAudioArr
     _shouldLoop(false),
     _isStopped(false),
     _currentOffset(0),
-    _volume(1.0f),
-    _isFinished(false)
+    _volume(1.0f)
 {
     
 }
@@ -52,11 +51,6 @@ void copy(char* to, char* from, int size, qreal factor) {
 qint64 AudioInjectorLocalBuffer::readData(char* data, qint64 maxSize) {
     if (!_isStopped) {
         
-        if (_isFinished) {
-            emit bufferEmpty();
-            return -1; // qt docs say -1 is appropriate when subsequent calls will not write data
-        }
-
         // first copy to the end of the raw audio
         int bytesToEnd = _rawAudioArray.size() - _currentOffset;
         
@@ -75,10 +69,7 @@ qint64 AudioInjectorLocalBuffer::readData(char* data, qint64 maxSize) {
             _currentOffset += bytesRead;
         }
         
-        if (!_shouldLoop && bytesRead == bytesToEnd) {
-            // If we emit bufferEmpty now, we'll clip the end of the sound. Wait until the next call.
-            _isFinished = true;
-        } else if (_shouldLoop && _currentOffset == _rawAudioArray.size()) {
+        if (_shouldLoop && _currentOffset == _rawAudioArray.size()) {
             _currentOffset = 0;
         }
         
