@@ -699,17 +699,21 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, floa
     // Compute correct scale to apply
     float scale = DESIRED_HIGHT_ON_SCREEN / (fontSize * pixelHeight) * devicePixelRatio;
     
+    // Compute pixel alignment offset
     float clipToPix = 0.5f * windowSizeY / p1.w; // Got from clip to pixel coordinates
     glm::vec4 screenPos = clipToPix * p1; // in pixels coords
     glm::vec4 screenOffset = (glm::round(screenPos) - screenPos) / clipToPix; // in clip coords
     glm::vec3 worldOffset = glm::vec3(screenOffset.x, screenOffset.y, 0.0f) / (float)pixelHeight;
     
+    // Compute orientation
+    glm::vec3 eulerAngles = ::safeEulerAngles(frustum.getOrientation());
+    eulerAngles.z = 0.0f; // Cancel roll
+    glm::quat orientation(eulerAngles); // back to quaternions
+    
+    // Set transform (The order IS important)
     result.setTranslation(textPosition);
-    result.setRotation(frustum.getOrientation()); // Always face the screen
-    
-    // Pixel alignment
-    result.postTranslate(worldOffset);
-    
+    result.setRotation(orientation); // Always face the screen
+    result.postTranslate(worldOffset); // Pixel alignment
     result.setScale(scale);
     return result;
 }
