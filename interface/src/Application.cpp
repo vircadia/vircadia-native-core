@@ -3330,10 +3330,11 @@ namespace render {
                     PerformanceTimer perfTimer("atmosphere");
                     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                         "Application::displaySide() ... atmosphere...");
-                        //gpu::Batch batch;
-                        background->_environment->renderAtmospheres(batch, *(args->_viewFrustum));
-                        //gpu::GLBackend::renderBatch(batch, true);
-                        //glUseProgram(0);
+                    gpu::Batch batch;
+                    //DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch,0.5f, 100, 50, glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)); //Draw a unit sphere
+                    background->_environment->renderAtmospheres(batch, *(args->_viewFrustum));
+                    gpu::GLBackend::renderBatch(batch, true);
+                    glUseProgram(0);
 
                 }
 

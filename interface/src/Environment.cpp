@@ -36,6 +36,9 @@
 #include "../../build/libraries/render-utils/simple_vert.h"
 #include "../../build/libraries/render-utils/simple_frag.h"
 
+#include "../../build/libraries/render-utils/other_simple_vert.h"
+#include "../../build/libraries/render-utils/other_simple_frag.h"
+
 uint qHash(const HifiSockAddr& sockAddr) {
     if (sockAddr.getAddress().isNull()) {
         return 0; // shouldn't happen, but if it does, zero is a perfectly valid hash
@@ -69,8 +72,10 @@ void Environment::init() {
 
     qDebug() << "here:" << __LINE__;
     setupAtmosphereProgram(SkyFromSpace_vert, SkyFromSpace_frag, _newSkyFromSpaceProgram, _newSkyFromSpaceUniformLocations);
+    //setupAtmosphereProgram(other_simple_vert, other_simple_frag, _newSkyFromSpaceProgram, _newSkyFromSpaceUniformLocations);
     qDebug() << "here:" << __LINE__;
     setupAtmosphereProgram(SkyFromAtmosphere_vert, SkyFromAtmosphere_frag, _newSkyFromAtmosphereProgram, _newSkyFromAtmosphereUniformLocations);
+    //setupAtmosphereProgram(other_simple_vert, other_simple_frag, _newSkyFromAtmosphereProgram, _newSkyFromAtmosphereUniformLocations);
     qDebug() << "here:" << __LINE__;
 
     
@@ -91,9 +96,19 @@ void Environment::setupAtmosphereProgram(const char* vertSource, const char* fra
     gpu::Shader::makeProgram(*program, slotBindings);
 
     gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    
+    /*
     state->setCullMode(gpu::State::CULL_NONE);
     state->setDepthTest(false);
     state->setBlendFunction(true,gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
+    */
+    
+    state->setCullMode(gpu::State::CULL_NONE);
+    state->setDepthTest(false);
+    state->setBlendFunction(false,
+                            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+    
     pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
 
     locations[CAMERA_POS_LOCATION] = program->getUniforms().findLocation("v3CameraPos");
@@ -280,12 +295,13 @@ ProgramObject* Environment::createSkyProgram(const char* from, int* locations) {
 }
 
 void Environment::renderAtmosphere(gpu::Batch& batch, ViewFrustum& camera, const EnvironmentData& data) {
-    
+
     glm::vec3 center = data.getAtmosphereCenter();
     
     Transform transform;
     transform.setTranslation(center);
     //transform.setScale(2.0f);
+    //transform.setTranslation(glm::vec3(0,0,0));
     batch.setModelTransform(transform);
     
     glm::vec3 relativeCameraPos = camera.getPosition() - center;
@@ -304,7 +320,8 @@ void Environment::renderAtmosphere(gpu::Batch& batch, ViewFrustum& camera, const
     
     // the constants here are from Sean O'Neil's GPU Gems entry
     // (http://http.developer.nvidia.com/GPUGems2/gpugems2_chapter16.html), GameEngine.cpp
-
+    
+    
     batch._glUniform3f(locations[CAMERA_POS_LOCATION], relativeCameraPos.x, relativeCameraPos.y, relativeCameraPos.z);
     glm::vec3 lightDirection = glm::normalize(data.getSunLocation());
     batch._glUniform3f(locations[LIGHT_POS_LOCATION], lightDirection.x, lightDirection.y, lightDirection.z);
@@ -327,5 +344,5 @@ void Environment::renderAtmosphere(gpu::Batch& batch, ViewFrustum& camera, const
     batch._glUniform1f(locations[G_LOCATION], -0.990f);
     batch._glUniform1f(locations[G2_LOCATION], -0.990f * -0.990f);
 
-    DependencyManager::get<GeometryCache>()->renderSphere(batch,1.0f, 100, 50, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)); //Draw a unit sphere
+    DependencyManager::get<GeometryCache>()->renderSphere(batch,1.0f, 100, 50, glm::vec4(1.0f, 0.0f, 0.0f, 0.5f)); //Draw a unit sphere
 }
