@@ -74,9 +74,11 @@ SDL2Manager* SDL2Manager::getInstance() {
 }
 
 void SDL2Manager::focusOutEvent() {
+#ifdef HAVE_SDL2
     for (auto joystick : _openJoysticks) {
         joystick->focusOutEvent();
     }
+#endif
 }
 
 void SDL2Manager::update() {
