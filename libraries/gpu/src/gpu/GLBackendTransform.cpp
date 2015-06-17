@@ -75,6 +75,8 @@ void GLBackend::syncTransformStateCache() {
 }
 
 void GLBackend::updateTransform() {
+    GLint originalMatrixMode;
+    glGetIntegerv(GL_MATRIX_MODE, &originalMatrixMode);
     // Check all the dirty flags and update the state accordingly
     if (_transform._invalidProj) {
         _transform._transformCamera._projection = _transform._projection;
@@ -132,6 +134,7 @@ void GLBackend::updateTransform() {
         (void) CHECK_GL_ERROR();
     }
 
+
     if (_transform._invalidModel || _transform._invalidView) {
         if (_transform._lastMode != GL_MODELVIEW) {
             glMatrixMode(GL_MODELVIEW);
@@ -160,6 +163,7 @@ void GLBackend::updateTransform() {
 
     // Flags are clean
     _transform._invalidView = _transform._invalidProj = _transform._invalidModel = false;
+    glMatrixMode(originalMatrixMode);
 }
 
 
