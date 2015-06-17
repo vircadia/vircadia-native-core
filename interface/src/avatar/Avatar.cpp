@@ -689,7 +689,7 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, floa
     float windowSizeY = viewportMatrix[3] - viewportMatrix[1];
     // TODO REMOVE ^^^
     
-    const float DESIRED_HIGHT_ON_SCREEN = 25; // In pixels (this is double on retinas)
+    const float DESIRED_HIGHT_ON_SCREEN = 20; // In pixels (this is double on retinas)
     
     // Projected point are between -1.0f and 1.0f, hence 0.5f * windowSizeY
     double pixelHeight = 0.5f * windowSizeY * glm::abs((p1.y / p1.w) - (p0.y / p0.w)); //
