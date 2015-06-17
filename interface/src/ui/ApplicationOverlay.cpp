@@ -50,6 +50,8 @@ static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
 static const float MIRROR_REARVIEW_DISTANCE = 0.722f;
 static const float MIRROR_REARVIEW_BODY_DISTANCE = 2.56f;
 static const float MIRROR_FIELD_OF_VIEW = 30.0f;
+static const float ORTHO_NEAR_CLIP = -10000;
+static const float ORTHO_FAR_CLIP = 10000;
 
 
 ApplicationOverlay::ApplicationOverlay() :
@@ -85,6 +87,7 @@ ApplicationOverlay::~ApplicationOverlay() {
 void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
 
+    Stats::getInstance()->updateStats();
     glm::vec2 size = qApp->getCanvasSize();
     // TODO Handle fading and deactivation/activation of UI
 
@@ -98,41 +101,38 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     glViewport(0, 0, size.x, size.y);
 
     // Now render the overlay components together into a single texture
-    gpu::Batch batch;
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    geometryCache->useSimpleDrawPipeline(batch);
-    batch._glDisable(GL_DEPTH);
-    batch._glDisable(GL_LIGHTING);
-    batch._glEnable(GL_BLEND);
+    //renderOverlays(renderArgs);
+    //renderAudioMeter(renderArgs);
+    //renderCameraToggle(renderArgs);
+    //renderStatsAndLogs(renderArgs);
 
-    renderOverlays(batch, renderArgs);
 
-    renderAudioMeter(batch);
-    renderCameraToggle(batch);
-    renderStatsAndLogs(batch);
-    renderDomainConnectionStatusBorder(batch);
-    renderQmlUi(batch);
+    renderDomainConnectionStatusBorder(renderArgs);
+    renderQmlUi(renderArgs);
 
-    renderArgs->_context->syncCache();
-    renderArgs->_context->render(batch);
     _overlayFramebuffer->release();
 }
 
-void ApplicationOverlay::renderQmlUi(gpu::Batch& batch) {
+void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
     if (_uiTexture) {
+        gpu::Batch batch;
+        auto geometryCache = DependencyManager::get<GeometryCache>();
+        geometryCache->useSimpleDrawPipeline(batch);
+        batch._glDisable(GL_DEPTH_TEST);
+        batch._glDisable(GL_LIGHTING);
+        batch._glEnable(GL_BLEND);
         batch.setProjectionTransform(mat4());
         batch.setModelTransform(mat4());
         batch._glBindTexture(GL_TEXTURE_2D, _uiTexture);
-        auto geometryCache = DependencyManager::get<GeometryCache>();
         geometryCache->renderUnitQuad(batch, glm::vec4(1));
+        renderArgs->_context->syncCache();
+        renderArgs->_context->render(batch);
     }
 }
 
-void ApplicationOverlay::renderOverlays(gpu::Batch& batch, RenderArgs* renderArgs) {
-    static const float NEAR_CLIP = -10000;
-    static const float FAR_CLIP = 10000;
+void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     glm::vec2 size = qApp->getCanvasSize();
-    mat4 legacyProjection = glm::ortho<float>(0, size.x, size.y, 0, NEAR_CLIP, FAR_CLIP);
+    mat4 legacyProjection = glm::ortho<float>(0, size.x, size.y, 0, ORTHO_NEAR_CLIP, ORTHO_FAR_CLIP);
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadMatrixf(glm::value_ptr(legacyProjection));
@@ -152,8 +152,7 @@ void ApplicationOverlay::renderOverlays(gpu::Batch& batch, RenderArgs* renderArg
     glMatrixMode(GL_MODELVIEW);
 }
 
-void ApplicationOverlay::renderCameraToggle(gpu::Batch& batch) {
-    /*
+void ApplicationOverlay::renderCameraToggle(RenderArgs* renderArgs) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::NoFaceTracking)) {
         return;
     }
@@ -169,11 +168,9 @@ void ApplicationOverlay::renderCameraToggle(gpu::Batch& batch) {
     }
 
     DependencyManager::get<CameraToolBox>()->render(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP, audioMeterY, boxed);
-    */
 }
 
-void ApplicationOverlay::renderAudioMeter(gpu::Batch& batch) {
-    /*
+void ApplicationOverlay::renderAudioMeter(RenderArgs* renderArgs) {
     auto audio = DependencyManager::get<AudioClient>();
 
     //  Audio VU Meter and Mute Icon
@@ -287,10 +284,9 @@ void ApplicationOverlay::renderAudioMeter(gpu::Batch& batch) {
                                                             audioLevel, AUDIO_METER_HEIGHT, quadColor,
                                                             _audioBlueQuad);
     }
-    */
 }
 
-void ApplicationOverlay::renderRearView(gpu::Batch& batch) {
+void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
     //    // Grab current viewport to reset it at the end
     //    int viewport[4];
     //    glGetIntegerv(GL_VIEWPORT, viewport);
@@ -369,37 +365,18 @@ void ApplicationOverlay::renderRearView(gpu::Batch& batch) {
     //}
 }
 
-void ApplicationOverlay::renderStatsAndLogs(gpu::Batch& batch) {
-    /*
-    Application* application = Application::getInstance();
-    QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
-    
-    const OctreePacketProcessor& octreePacketProcessor = application->getOctreePacketProcessor();
-    NodeBounds& nodeBoundsDisplay = application->getNodeBoundsDisplay();
+void ApplicationOverlay::renderStatsAndLogs(RenderArgs* renderArgs) {
 
     //  Display stats and log text onscreen
-    batch._glLineWidth(1.0f);
-    glPointSize(1.0f);
 
     // Determine whether to compute timing details
     bool shouldDisplayTimingDetail = Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails) &&
-                                     Menu::getInstance()->isOptionChecked(MenuOption::Stats) &&
-                                     Stats::getInstance()->isExpanded();
+                                     Menu::getInstance()->isOptionChecked(MenuOption::Stats); //&&
+                                     // Stats::getInstance()->isExpanded();
     if (shouldDisplayTimingDetail != PerformanceTimer::isActive()) {
         PerformanceTimer::setActive(shouldDisplayTimingDetail);
     }
-    
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
-        // let's set horizontal offset to give stats some margin to mirror
-        int voxelPacketsToProcess = octreePacketProcessor.packetsToProcessCount();
-        //  Onscreen text about position, servers, etc
-        Stats::getInstance()->display(WHITE_TEXT, STATS_HORIZONTAL_OFFSET, application->getFps(),
-                                      bandwidthRecorder->getCachedTotalAverageInputPacketsPerSecond(),
-                                      bandwidthRecorder->getCachedTotalAverageOutputPacketsPerSecond(),
-                                      bandwidthRecorder->getCachedTotalAverageInputKilobitsPerSecond(),
-                                      bandwidthRecorder->getCachedTotalAverageOutputKilobitsPerSecond(),
-                                      voxelPacketsToProcess);
-    }
+    Stats::getInstance()->updateStats();
 
     //  Show on-screen msec timer
     if (Menu::getInstance()->isOptionChecked(MenuOption::FrameTimer)) {
@@ -412,16 +389,26 @@ void ApplicationOverlay::renderStatsAndLogs(gpu::Batch& batch) {
         drawText(canvasSize.x - 100, canvasSize.y - timerBottom,
             0.30f, 0.0f, 0, frameTimer.toUtf8().constData(), WHITE_TEXT);
     }
+
+    glPointSize(1.0f);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    NodeBounds& nodeBoundsDisplay = qApp->getNodeBoundsDisplay();
     nodeBoundsDisplay.drawOverlay();
-    */
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+    glEnable(GL_BLEND);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
 }
 
-void ApplicationOverlay::renderDomainConnectionStatusBorder(gpu::Batch& batch) {
+void ApplicationOverlay::renderDomainConnectionStatusBorder(RenderArgs* renderArgs) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     std::once_flag once;
     std::call_once(once, [&] {
         QVector<vec2> points;
-        static const float B = 0.99;
+        static const float B = 0.99f;
         points.push_back(vec2(-B));
         points.push_back(vec2(B, -B));
         points.push_back(vec2(B));
@@ -430,9 +417,13 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder(gpu::Batch& batch) {
         geometryCache->updateVertices(_domainStatusBorder, points, CONNECTION_STATUS_BORDER_COLOR);
     });
     auto nodeList = DependencyManager::get<NodeList>();
-
-
     if (nodeList && !nodeList->getDomainHandler().isConnected()) {
+        gpu::Batch batch;
+        auto geometryCache = DependencyManager::get<GeometryCache>();
+        geometryCache->useSimpleDrawPipeline(batch);
+        batch._glDisable(GL_DEPTH);
+        batch._glDisable(GL_LIGHTING);
+        batch._glEnable(GL_BLEND);
         batch.setProjectionTransform(mat4());
         batch.setModelTransform(mat4());
         batch.setUniformTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
@@ -445,6 +436,8 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder(gpu::Batch& batch) {
         //batch.setModelTransform(glm::scale(mat4(), vec3(scaleAmount)));
 
         geometryCache->renderVertices(batch, gpu::LINE_STRIP, _domainStatusBorder);
+        renderArgs->_context->syncCache();
+        renderArgs->_context->render(batch);
     }
 }
 

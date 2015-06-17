@@ -29,13 +29,13 @@ public:
 
 private:
 
-    void renderAudioMeter(gpu::Batch& batch);
-    void renderCameraToggle(gpu::Batch& batch);
-    void renderStatsAndLogs(gpu::Batch& batch);
-    void renderDomainConnectionStatusBorder(gpu::Batch& batch);
-    void renderRearView(gpu::Batch& batch);
-    void renderQmlUi(gpu::Batch& batch);
-    void renderOverlays(gpu::Batch& batch, RenderArgs* renderArgs);
+    void renderAudioMeter(RenderArgs* renderArgs);
+    void renderCameraToggle(RenderArgs* renderArgs);
+    void renderStatsAndLogs(RenderArgs* renderArgs);
+    void renderDomainConnectionStatusBorder(RenderArgs* renderArgs);
+    void renderRearView(RenderArgs* renderArgs);
+    void renderQmlUi(RenderArgs* renderArgs);
+    void renderOverlays(RenderArgs* renderArgs);
     void buildFramebufferObject();
 
     float _alpha{ 1.0f };

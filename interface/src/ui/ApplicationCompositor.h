@@ -74,6 +74,7 @@ private:
     void bindCursorTexture(gpu::Batch& batch, uint8_t cursorId = 0);
     void buildHemiVertices(const float fov, const float aspectRatio, const int slices, const int stacks);
     void drawSphereSection(gpu::Batch& batch);
+    void updateTooltips();
 
     void renderPointers(gpu::Batch& batch);
     void renderMagnifier(gpu::Batch& batch, const glm::vec2& magPos, float sizeMult, bool showBorder);

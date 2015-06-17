@@ -22,6 +22,7 @@
 #include <OffscreenUi.h>
 #include <CursorManager.h>
 #include <PerfStat.h>
+#include <Tooltip.h>
 
 
 #include "AudioClient.h"
@@ -41,7 +42,7 @@
 static const float MAG_SPEED = 0.08f;
 
 static const quint64 MSECS_TO_USECS = 1000ULL;
-static const quint64 TOOLTIP_DELAY = 2000000ULL;
+static const quint64 TOOLTIP_DELAY = 500 * MSECS_TO_USECS;
 
 static const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
 static const float RETICLE_COLOR[] = { 0.0f, 198.0f / 255.0f, 244.0f / 255.0f };
@@ -59,7 +60,7 @@ static gpu::BufferPointer _hemiVertices;
 static gpu::BufferPointer _hemiIndices;
 static int _hemiIndexCount{ 0 };
 EntityItemID ApplicationCompositor::_noItemId;
-
+static QString _tooltipId;
 
 // Return a point's cartesian coordinates on a sphere from pitch and yaw
 glm::vec3 getPoint(float yaw, float pitch) {
@@ -159,12 +160,18 @@ ApplicationCompositor::ApplicationCompositor() {
             _hoverItemHref.clear();
             auto cursor = Cursor::Manager::instance().getCursor();
             cursor->setIcon(Cursor::Icon::DEFAULT);
+            if (!_tooltipId.isEmpty()) {
+                qDebug() << "Closing tooltip " << _tooltipId;
+                Tooltip::closeTip(_tooltipId);
+                _tooltipId.clear();
+            }
         }
     });
 }
 
 ApplicationCompositor::~ApplicationCompositor() {
 }
+
 
 void ApplicationCompositor::bindCursorTexture(gpu::Batch& batch, uint8_t cursorIndex) {
     auto& cursorManager = Cursor::Manager::instance();
@@ -184,16 +191,9 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
         return;
     }
 
+    updateTooltips();
+
     vec2 canvasSize = qApp->getCanvasSize();
-
-    _textureAspectRatio = aspect(canvasSize);
-
-    if (_hoverItemId != _noItemId) {
-        quint64 hoverDuration = usecTimestampNow() - _hoverItemEnterUsecs;
-        if (!_hoverItemHref.isEmpty() && hoverDuration > TOOLTIP_DELAY) {
-            // TODO Enable and position the tooltip
-        }
-    }
 
     //Handle fading and deactivation/activation of UI
     gpu::Batch batch;
@@ -261,6 +261,11 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
     if (!texture) {
         return;
     }
+
+    vec2 canvasSize = qApp->getCanvasSize();
+    _textureAspectRatio = aspect(canvasSize);
+
+    updateTooltips();
 
     renderArgs->_context->syncCache();
     auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -392,13 +397,6 @@ bool ApplicationCompositor::calculateRayUICollisionPoint(const glm::vec3& positi
 
 //Renders optional pointers
 void ApplicationCompositor::renderPointers(gpu::Batch& batch) {
-    //glEnable(GL_TEXTURE_2D);
-    //glEnable(GL_BLEND);
-    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    //glActiveTexture(GL_TEXTURE0);
-    //bindCursorTexture();
-
     if (qApp->isHMDMode() && !qApp->getLastMouseMoveWasSimulated() && !qApp->isMouseHidden()) {
         //If we are in oculus, render reticle later
         if (_lastMouseMove == 0) {
@@ -442,8 +440,6 @@ void ApplicationCompositor::renderPointers(gpu::Batch& batch) {
         _magActive[MOUSE] = false;
         renderControllerPointers(batch);
     }
-    //glBindTexture(GL_TEXTURE_2D, 0);
-    //glDisable(GL_TEXTURE_2D);
 }
        
 
@@ -718,7 +714,6 @@ void ApplicationCompositor::drawSphereSection(gpu::Batch& batch) {
     batch.drawIndexed(gpu::TRIANGLES, _hemiIndexCount);
 }
 
-
 glm::vec2 ApplicationCompositor::directionToSpherical(const glm::vec3& direction) {
     glm::vec2 result;
     // Compute yaw
@@ -788,127 +783,13 @@ glm::vec2 ApplicationCompositor::overlayToScreen(const glm::vec2& overlayPos) co
     return sphericalToScreen(overlayToSpherical(overlayPos));
 }
 
-#if 0
-
-gpu::PipelinePointer ApplicationOverlay::getDrawPipeline() {
-    if (!_standardDrawPipeline) {
-        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(standardTransformPNTC_vert)));
-        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(standardDrawTexture_frag)));
-        auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
-        gpu::Shader::makeProgram((*program));
-
-        auto state = gpu::StatePointer(new gpu::State());
-
-        // enable decal blend
-        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
-
-        _standardDrawPipeline.reset(gpu::Pipeline::create(program, state));
-    }
-
-    return _standardDrawPipeline;
-}
-
-
-// Draws the FBO texture for the screen
-void ApplicationOverlay::displayOverlayTexture(RenderArgs* renderArgs) {
-    if (_alpha == 0.0f) {
-        return;
-    }
-
-    renderArgs->_context->syncCache();
-
-    gpu::Batch batch;
-    Transform model;
-    //DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true);
-    batch.setPipeline(getDrawPipeline());
-    batch.setModelTransform(Transform());
-    batch.setProjectionTransform(mat4());
-    batch.setViewTransform(model);
-    batch._glBindTexture(GL_TEXTURE_2D, _framebufferObject->texture());
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    DependencyManager::get<GeometryCache>()->renderUnitQuad(batch, vec4(vec3(1), _alpha));
-
-    //draw the mouse pointer
-    glm::vec2 canvasSize = qApp->getCanvasSize();
-
-    // Get the mouse coordinates and convert to NDC [-1, 1]
-    vec2 mousePosition = vec2(qApp->getMouseX(), qApp->getMouseY());
-    mousePosition /= canvasSize;
-    mousePosition *= 2.0f;
-    mousePosition -= 1.0f;
-    mousePosition.y *= -1.0f;
-    model.setTranslation(vec3(mousePosition, 0));
-    glm::vec2 mouseSize = CURSOR_PIXEL_SIZE / canvasSize;
-    model.setScale(vec3(mouseSize, 1.0f));
-    batch.setModelTransform(model);
-    bindCursorTexture(batch);
-    glm::vec4 reticleColor = { RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], 1.0f };
-    DependencyManager::get<GeometryCache>()->renderUnitQuad(batch, vec4(1));
-    renderArgs->_context->render(batch);
-}
-
-
-
-// Draws the FBO texture for Oculus rift.
-void ApplicationOverlay::displayOverlayTextureHmd(RenderArgs* renderArgs, Camera& whichCamera) {
-    if (_alpha == 0.0f) {
-        return;
-    }
-
-    renderArgs->_context->syncCache();
-
-    gpu::Batch batch;
-    batch.setPipeline(getDrawPipeline());
-    batch._glDisable(GL_DEPTH_TEST);
-    batch._glDisable(GL_CULL_FACE);
-    batch._glBindTexture(GL_TEXTURE_2D, _framebufferObject->texture());
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    batch.setProjectionTransform(whichCamera.getProjection());
-    batch.setViewTransform(Transform());
-
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    const quat& avatarOrientation = myAvatar->getOrientation();
-    quat hmdOrientation = qApp->getCamera()->getHmdRotation();
-    vec3 hmdPosition = glm::inverse(avatarOrientation) * qApp->getCamera()->getHmdPosition();
-    mat4 overlayXfm = glm::mat4_cast(glm::inverse(hmdOrientation)) * glm::translate(mat4(), -hmdPosition);
-    batch.setModelTransform(Transform(overlayXfm));
-    drawSphereSection(batch);
-
-
-    bindCursorTexture(batch);
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    vec3 reticleScale = vec3(Cursor::Manager::instance().getScale() * reticleSize);
-    //Controller Pointers
-    for (int i = 0; i < (int)myAvatar->getHand()->getNumPalms(); i++) {
-        PalmData& palm = myAvatar->getHand()->getPalms()[i];
-        if (palm.isActive()) {
-            glm::vec2 polar = getPolarCoordinates(palm);
-            // Convert to quaternion
-            mat4 pointerXfm = glm::mat4_cast(quat(vec3(polar.y, -polar.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
-            mat4 reticleXfm = overlayXfm * pointerXfm;
-            reticleXfm = glm::scale(reticleXfm, reticleScale);
-            batch.setModelTransform(reticleXfm);
-            // Render reticle at location
-            geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
+void ApplicationCompositor::updateTooltips() {
+    if (_hoverItemId != _noItemId) {
+        quint64 hoverDuration = usecTimestampNow() - _hoverItemEnterUsecs;
+        if (_hoverItemEnterUsecs != UINT64_MAX && !_hoverItemHref.isEmpty() && hoverDuration > TOOLTIP_DELAY) {
+            // TODO Enable and position the tooltip
+            _hoverItemEnterUsecs = UINT64_MAX;
+            _tooltipId = Tooltip::showTip("URL: " + _hoverItemHref);
         }
     }
-
-    //Mouse Pointer
-    if (_reticleActive[MOUSE]) {
-        glm::vec2 projection = screenToSpherical(glm::vec2(_reticlePosition[MOUSE].x(),
-            _reticlePosition[MOUSE].y()));
-        mat4 pointerXfm = glm::mat4_cast(quat(vec3(-projection.y, projection.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
-        mat4 reticleXfm = overlayXfm * pointerXfm;
-        reticleXfm = glm::scale(reticleXfm, reticleScale);
-        batch.setModelTransform(reticleXfm);
-        geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
-    }
-
-    renderArgs->_context->render(batch);
 }
-
-
-
-#endif

@@ -88,6 +88,7 @@
 #include <SettingHandle.h>
 #include <SoundCache.h>
 #include <TextRenderer.h>
+#include <Tooltip.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
 #include <VrMenu.h>
@@ -822,6 +823,7 @@ void Application::initializeUi() {
     LoginDialog::registerType();
     MessageDialog::registerType();
     VrMenu::registerType();
+    Tooltip::registerType();
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_glWidget->context()->contextHandle());
