@@ -62,8 +62,7 @@ DialogContainer {
                 MouseArea {
                     anchors.fill: parent
                     acceptedButtons: Qt.LeftButton
-                    onClicked: { 
-                        event.accepted = true  
+                    onClicked: {  
                         addressBarDialog.loadBack()
                     }
                 }
@@ -85,8 +84,7 @@ DialogContainer {
                 MouseArea {
                     anchors.fill: parent
                     acceptedButtons: Qt.LeftButton
-                    onClicked: { 
-                        event.accepted = true  
+                    onClicked: {
                         addressBarDialog.loadForward()
                     }
                 }
@@ -113,7 +111,7 @@ DialogContainer {
                     addressBarDialog.loadAddress(addressLine.text)
                 }
             }
-
+ 
             MouseArea {
                 // Drag the icon
                 width: parent.height
@@ -129,6 +127,7 @@ DialogContainer {
                 }
             }
 
+            /*
             MouseArea {
                 // Drag the input rectangle
                 width: parent.width - parent.height
@@ -142,7 +141,7 @@ DialogContainer {
                     maximumX: root.parent ? root.maximumX : 0
                     maximumY: root.parent ? root.maximumY + parent.inputAreaStep : 0
                 }
-            }
+            }*/
         }
     }
 
