@@ -32,32 +32,17 @@ var movementParameters = DEFAULT_PARAMETERS;
 
 var mouseLook = (function () {
 
-    var MOUSELOOK_BUTTON_URL = HIFI_PUBLIC_BUCKET + "images/tools/directory.svg",
-        CURSORMODE_BUTTON_URL = HIFI_PUBLIC_BUCKET + "images/tools/marketplace.svg",
-        BUTTON_WIDTH = 50,
+    var BUTTON_WIDTH = 50,
         BUTTON_HEIGHT = 50,
         BUTTON_ALPHA = 0.9,
         BUTTON_MARGIN = 8,
-        mouseLookButton,
-        EDIT_TOOLBAR_BUTTONS = 10,  // Number of buttons in edit.js toolbar
-        viewport,
         active = false,
         keyboardID = 0;
-
-    function updateButtonPosition() {
-        Overlays.editOverlay(mouseLookButton, {
-            x: viewport.x - BUTTON_WIDTH - BUTTON_MARGIN,
-            y: viewport.y - BUTTON_HEIGHT - BUTTON_MARGIN
-        });
-    }
 
     function onKeyPressEvent(event) {
     	if (event.text == 'm' && event.isMeta) {
     		active = !active;
     		updateMapping();
-            Overlays.editOverlay(mouseLookButton, {
-                imageURL: active ? MOUSELOOK_BUTTON_URL : CURSORMODE_BUTTON_URL
-            });
     	}
     }
 
@@ -70,8 +55,6 @@ var mouseLook = (function () {
                 yawSpeed = 0;
                 pitchSpeed = 0;
 
-                // remove right click modifier from mouse pitch and yaw
-                var rightClick = Controller.getAvailableInputs(keyboardID)[46].input.channel;
                 var a = Controller.getAvailableInputs(keyboardID)[10].input.channel;
                 var d = Controller.getAvailableInputs(keyboardID)[13].input.channel;
                 var left = Controller.getAvailableInputs(keyboardID)[36].input.channel;
@@ -82,17 +65,6 @@ var mouseLook = (function () {
                     var inputChannels = Controller.getAllActions()[i].inputChannels;
                     for (j = 0; j < inputChannels.length; j++) {
                         var inputChannel = inputChannels[j];
-
-                        // Get rid of right click modifier on pitch and yaw
-                        // if (inputChannel.modifier.device == keyboardID &&
-                        //     inputChannel.modifier.channel == rightClick) {
-                        //     Controller.removeInputChannel(inputChannel);
-                        //     inputChannel.modifier.device = 0;
-                        //     inputChannel.modifier.channel = 0;
-                        //     inputChannel.modifier.type = 0;
-                        //     inputChannel.modifier.id = 0;
-                        //     Controller.addInputChannel(inputChannel);
-                        // }
 
                         // make a, d, left, and right strafe
                         if ((inputChannel.input.channel == a || inputChannel.input.channel == left) && inputChannel.modifier.device == 0) {
@@ -129,14 +101,6 @@ var mouseLook = (function () {
     }
 
     function onScriptUpdate(dt) {
-        var oldViewport = viewport;
-
-        viewport = Controller.getViewportDimensions();
-
-        if (viewport.x !== oldViewport.x || viewport.y !== oldViewport.y) {
-            updateButtonPosition();
-        }
-
         if (active && Window.hasFocus()) {
             var x = Window.getCursorPositionX();
             // I'm not sure why this + 0.5 is necessary?
@@ -178,20 +142,6 @@ var mouseLook = (function () {
     }
 
     function setUp() {
-        viewport = Controller.getViewportDimensions();
-
-        mouseLookButton = Overlays.addOverlay("image", {
-            imageURL: CURSORMODE_BUTTON_URL,
-            width: BUTTON_WIDTH,
-            height: BUTTON_HEIGHT,
-            x: viewport.x - BUTTON_WIDTH - BUTTON_MARGIN,
-            y: viewport.y - BUTTON_MARGIN - BUTTON_HEIGHT,
-            alpha: BUTTON_ALPHA,
-            visible: true
-        });
-
-        updateButtonPosition();
-
         keyboardID = Controller.findDevice("Keyboard");
 
         Controller.keyPressEvent.connect(onKeyPressEvent);
@@ -216,14 +166,10 @@ var mouseLook = (function () {
         if (menuItem == "Mouselook Mode") {
             active = !active;
             updateMapping();
-            Overlays.editOverlay(mouseLookButton, {
-                imageURL: active ? MOUSELOOK_BUTTON_URL : CURSORMODE_BUTTON_URL
-            });
         }
     }
 
     function tearDown() {
-        Overlays.deleteOverlay(mouseLookButton);
         if (keyboardID != 0) {
        		Controller.resetDevice(keyboardID);
         }
