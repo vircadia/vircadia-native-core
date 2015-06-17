@@ -151,6 +151,7 @@
 #include "ui/AddressBarDialog.h"
 #include "ui/UpdateDialog.h"
 
+static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 #if defined(Q_OS_WIN)
@@ -932,13 +933,15 @@ void Application::paintGL() {
         }
 
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-#if 0
+        // TODO put the mirror modifiers somewhere both the app and the overlay can access it
+        float _rotateMirror = 0.0f;
+        float _raiseMirror = 0.0f;
+        float _scaleMirror = 1.0f;
         _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
         _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
                               glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) +
                               (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
                                glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
-#endif
     }
 
     // Update camera position

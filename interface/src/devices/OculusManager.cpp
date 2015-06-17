@@ -610,7 +610,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
         glViewport(vp.Pos.x, vp.Pos.y, vp.Size.w, vp.Size.h);
 
         renderArgs->_renderSide = RenderArgs::MONO;
-        qApp->displaySide(renderArgs, *_camera, false);
+        qApp->displaySide(renderArgs, *_camera);
         //qApp->getApplicationCompositor().displayOverlayTexture(renderArgs);
         qApp->getApplicationCompositor().displayOverlayTextureHmd(renderArgs, eye);
     });

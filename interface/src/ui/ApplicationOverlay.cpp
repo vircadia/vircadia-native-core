@@ -46,7 +46,6 @@ static const int MIRROR_VIEW_LEFT_PADDING = 10;
 static const int MIRROR_VIEW_WIDTH = 265;
 static const int MIRROR_VIEW_HEIGHT = 215;
 static const int STATS_HORIZONTAL_OFFSET = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
-static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
 static const float MIRROR_REARVIEW_DISTANCE = 0.722f;
 static const float MIRROR_REARVIEW_BODY_DISTANCE = 2.56f;
 static const float MIRROR_FIELD_OF_VIEW = 30.0f;

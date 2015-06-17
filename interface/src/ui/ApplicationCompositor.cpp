@@ -191,6 +191,11 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
         return;
     }
 
+    GLuint texture = qApp->getApplicationOverlay().getOverlayTexture();
+    if (!texture) {
+        return;
+    }
+
     updateTooltips();
 
     vec2 canvasSize = qApp->getCanvasSize();
@@ -198,10 +203,6 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     //Handle fading and deactivation/activation of UI
     gpu::Batch batch;
 
-    GLuint texture = qApp->getApplicationOverlay().getOverlayTexture();
-    if (!texture) {
-        return;
-    }
     renderArgs->_context->syncCache();
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
@@ -262,28 +263,38 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
         return;
     }
 
+    updateTooltips();
+
     vec2 canvasSize = qApp->getCanvasSize();
     _textureAspectRatio = aspect(canvasSize);
-
-    updateTooltips();
 
     renderArgs->_context->syncCache();
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
     gpu::Batch batch;
-    DependencyManager::get<GeometryCache>()->useSimpleDrawPipeline(batch);
+    geometryCache->useSimpleDrawPipeline(batch);
     batch._glDisable(GL_DEPTH_TEST);
     batch._glDisable(GL_CULL_FACE);
     batch._glBindTexture(GL_TEXTURE_2D, texture);
     batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
     batch.setViewTransform(Transform());
     batch.setProjectionTransform(qApp->getEyeProjection(eye));
+
     mat4 eyePose = qApp->getEyePose(eye);
     glm::mat4 overlayXfm = glm::inverse(eyePose);
-    batch.setModelTransform(overlayXfm);
-    drawSphereSection(batch);
+
+#ifdef DEBUG_OVERLAY
+    {
+        batch.setModelTransform(glm::translate(mat4(), vec3(0, 0, -2)));
+        geometryCache->renderUnitQuad(batch, glm::vec4(1));
+    }
+#else
+    {
+        batch.setModelTransform(overlayXfm);
+        drawSphereSection(batch);
+    }
+#endif
 
     // Doesn't actually render
     renderPointers(batch);
