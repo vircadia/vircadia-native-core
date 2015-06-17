@@ -400,10 +400,10 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         statsString += QString().sprintf("    Internal Elements: %s nodes (%5.2f%%)\r\n",
                                          locale.toString((uint)internalNodeCount).rightJustified(16,
                                                                                                  ' ').toLocal8Bit().constData(),
-                                         (double)((internalNodeCount / nodeCount) * AS_PERCENT));
+                                         (double)((internalNodeCount / (float)nodeCount) * AS_PERCENT));
         statsString += QString().sprintf("        Leaf Elements: %s nodes (%5.2f%%)\r\n",
                                          locale.toString((uint)leafNodeCount).rightJustified(16, ' ').toLocal8Bit().constData(),
-                                         (double)((leafNodeCount / nodeCount) * AS_PERCENT));
+                                         (double)((leafNodeCount / (float)nodeCount) * AS_PERCENT));
         statsString += "\r\n";
         statsString += "\r\n";
 
