@@ -45,6 +45,7 @@ public:
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                          void** intersectedObject, bool precisionPicking) const;
 
+    using PolyVoxEntityItem::setVoxelSurfaceStyle;
     virtual void setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle);
 
     void getModel();
