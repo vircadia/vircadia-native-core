@@ -509,10 +509,9 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
     const float DISPLAYNAME_DISTANCE = 20.0f;
     setShowDisplayName(distanceToTarget < DISPLAYNAME_DISTANCE);
 
-    
     auto cameraMode = Application::getInstance()->getCamera()->getMode();
     if (!isMyAvatar() || cameraMode != CAMERA_MODE_FIRST_PERSON) {
-        renderDisplayName(batch);
+        renderDisplayName(batch, *frustum);
     }
 }
 
@@ -654,7 +653,7 @@ float Avatar::getBillboardSize() const {
 }
 
 glm::vec3 Avatar::getDisplayNamePosition() const {
-    glm::vec3 namePosition;
+    glm::vec3 namePosition(0.0f);
     if (getSkeletonModel().getNeckPosition(namePosition)) {
         namePosition += getBodyUpDirection() * getHeadHeight() * 1.1f;
     } else {
@@ -664,78 +663,68 @@ glm::vec3 Avatar::getDisplayNamePosition() const {
     return namePosition;
 }
 
-float Avatar::calculateDisplayNameScaleFactor(const glm::vec3& textPosition, bool inHMD) const {
-
-    // We need to compute the scale factor such as the text remains with fixed size respect to window coordinates
-    // We project a unit vector and check the difference in screen coordinates, to check which is the
-    // correction scale needed
-    // save the matrices for later scale correction factor
-    // The up vector must be relative to the rotation current rotation matrix:
-    // we set the identity
+Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, float fontSize) const {
+    Transform result;
+    // We assume textPosition is whithin the frustum
+    glm::vec3 textPosition = getDisplayNamePosition();
+    
+    // Compute viewProjection matrix
+    glm::mat4 projMat, viewMat;
+    Transform view;
+    frustum.evalProjectionMatrix(projMat);
+    frustum.evalViewTransform(view);
+    glm::mat4 viewProj = projMat * view.getInverseMatrix(viewMat);
+    
+    // Used to determine correct scale
     glm::vec3 testPoint0 = textPosition;
-    glm::vec3 testPoint1 = textPosition + (Application::getInstance()->getCamera()->getRotation() * IDENTITY_UP);
-
-    double textWindowHeight;
-
+    glm::vec3 testPoint1 = testPoint0 + glm::normalize(frustum.getUp());
+    // testPoints projections
+    glm::vec4 p0 = viewProj * glm::vec4(testPoint0, 1.0);
+    glm::vec4 p1 = viewProj * glm::vec4(testPoint1, 1.0);
+    
+    // TODO REMOVE vvv
     GLint viewportMatrix[4];
     glGetIntegerv(GL_VIEWPORT, viewportMatrix);
     glm::dmat4 modelViewMatrix;
-    float windowSizeX = viewportMatrix[2] - viewportMatrix[0];
     float windowSizeY = viewportMatrix[3] - viewportMatrix[1];
-
-    glm::dmat4 projectionMatrix;
-    Application::getInstance()->getModelViewMatrix(&modelViewMatrix);
-    Application::getInstance()->getProjectionMatrix(&projectionMatrix);
-
-
-    glm::dvec4 p0 = modelViewMatrix * glm::dvec4(testPoint0, 1.0);
-    p0 = projectionMatrix * p0;
-    glm::dvec2 result0 = glm::vec2(windowSizeX * (p0.x / p0.w + 1.0f) * 0.5f, windowSizeY * (p0.y / p0.w + 1.0f) * 0.5f);
-
-    glm::dvec4 p1 = modelViewMatrix * glm::dvec4(testPoint1, 1.0);
-    p1 = projectionMatrix * p1;
-    glm::vec2 result1 = glm::vec2(windowSizeX * (p1.x / p1.w + 1.0f) * 0.5f, windowSizeY * (p1.y / p1.w + 1.0f) * 0.5f);
-    textWindowHeight = abs(result1.y - result0.y);
-
-    // need to scale to compensate for the font resolution due to the device
-    float scaleFactor = QApplication::desktop()->windowHandle()->devicePixelRatio() *
-        ((textWindowHeight > EPSILON) ? 1.0f / textWindowHeight : 1.0f);
-    if (inHMD) {
-        const float HMDMODE_NAME_SCALE = 0.65f;
-        scaleFactor *= HMDMODE_NAME_SCALE;
-    } else {
-        scaleFactor *= Application::getInstance()->getRenderResolutionScale();
-    }
-    return scaleFactor;
+    // TODO REMOVE ^^^
+    
+    const float DESIRED_HIGHT_ON_SCREEN = 25; // In pixels (this is double on retinas)
+    
+    // Projected point are between -1.0f and 1.0f, hence 0.5f * windowSizeY
+    double pixelHeight = 0.5f * windowSizeY * glm::abs((p1.y / p1.w) - (p0.y / p0.w)); //
+    // Handles pixel density (especially for macs retina displays)
+    double devicePixelRatio = qApp->getDevicePixelRatio() * qApp->getRenderResolutionScale(); // pixels / unit
+    
+    // Compute correct scale to apply
+    float scale = DESIRED_HIGHT_ON_SCREEN / (fontSize * pixelHeight) * devicePixelRatio;
+    
+    float clipToPix = 0.5f * windowSizeY / p1.w; // Got from clip to pixel coordinates
+    glm::vec4 screenPos = clipToPix * p1; // in pixels coords
+    glm::vec4 screenOffset = (glm::round(screenPos) - screenPos) / clipToPix; // in clip coords
+    glm::vec3 worldOffset = glm::vec3(screenOffset.x, screenOffset.y, 0.0f) / (float)pixelHeight;
+    
+    result.setTranslation(textPosition);
+    result.setRotation(frustum.getOrientation()); // Always face the screen
+    
+    // Pixel alignment
+    result.postTranslate(worldOffset);
+    
+    result.setScale(scale);
+    return result;
 }
 
-void Avatar::renderDisplayName(gpu::Batch& batch) const {
+void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum) const {
     bool shouldShowReceiveStats = DependencyManager::get<AvatarManager>()->shouldShowReceiveStats() && !isMyAvatar();
 
+    // If we have nothing to draw, or it's tottaly transparent, return
     if ((_displayName.isEmpty() && !shouldShowReceiveStats) || _displayNameAlpha == 0.0f) {
         return;
     }
-
-    // which viewing mode?
-    bool inHMD = Application::getInstance()->isHMDMode();
-
-    glm::vec3 textPosition = getDisplayNamePosition();
-
-    // we need "always facing camera": we must remove the camera rotation from the stac
-    glm::quat rotation = Application::getInstance()->getCamera()->getRotation();
-
-    // TODO: Fix scaling - at some point this or the text rendering changed in scale.
-    float scaleFactor = calculateDisplayNameScaleFactor(textPosition, inHMD);
-    scaleFactor /= 3.5f;
-
-    Transform textTransform;
-    textTransform.setTranslation(textPosition);
-    textTransform.setRotation(rotation);
-    textTransform.setScale(scaleFactor);
+    auto renderer = textRenderer(DISPLAYNAME);
 
     // optionally render timing stats for this avatar with the display name
     QString renderedDisplayName = _displayName;
-
     if (shouldShowReceiveStats) {
         float kilobitsPerSecond = getAverageBytesReceivedPerSecond() / (float) BYTES_PER_KILOBIT;
 
@@ -743,42 +732,43 @@ void Avatar::renderDisplayName(gpu::Batch& batch) const {
         if (!renderedDisplayName.isEmpty()) {
             statsFormat.prepend(" - ");
         }
-
-        QString statsText = statsFormat.arg(QString::number(kilobitsPerSecond, 'f', 2)).arg(getReceiveRate());
-        renderedDisplayName += statsText;
+        renderedDisplayName += statsFormat.arg(QString::number(kilobitsPerSecond, 'f', 2)).arg(getReceiveRate());
     }
     
-    glm::vec2 extent = textRenderer(DISPLAYNAME)->computeExtent(renderedDisplayName);
-    QRect nameDynamicRect = QRect(0, 0, (int)extent.x, (int)extent.y);;
-    int text_x = -nameDynamicRect.width() / 2;
-    int text_y = -nameDynamicRect.height() / 2;
+    // Compute display name extent/position offset
+    glm::vec2 extent = renderer->computeExtent(renderedDisplayName);
+    QRect nameDynamicRect = QRect(0, 0, (int)extent.x, (int)extent.y);
+    const int text_x = -nameDynamicRect.width() / 2;
+    const int text_y = -nameDynamicRect.height() / 2;
 
-    // draw a gray background
-    int left = text_x;
-    int right = left + nameDynamicRect.width();
-    int bottom = text_y;
-    int top = bottom + nameDynamicRect.height();
+    // Compute background position/size
+    static const float SLIGHTLY_BEHIND = -0.001f;
     const int border = 0.1f * nameDynamicRect.height();
-    bottom -= border;
-    left -= border;
-    top += border;
-    right += border;
-    int bevelDistance = 0.1f * (top - bottom);
+    const int left = text_x - border;
+    const int bottom = text_y - border;
+    const int width = nameDynamicRect.width() + 2.0f * border;
+    const int height = nameDynamicRect.height() + 2.0f * border;
+    const int bevelDistance = 0.1f * height;
     
+    // Display name and background colors
     glm::vec4 textColor(0.93f, 0.93f, 0.93f, _displayNameAlpha);
     glm::vec4 backgroundColor(0.2f, 0.2f, 0.2f,
                               (_displayNameAlpha / DISPLAYNAME_ALPHA) * DISPLAYNAME_BACKGROUND_ALPHA);
     
+    // Compute display name transform
+    auto textTransform = calculateDisplayNameTransform(frustum, renderer->getFontSize());
+    
+    // Render background slightly behind to avoid z-fighting
     auto backgroundTransform = textTransform;
-    backgroundTransform.postTranslate(glm::vec3(0.0f, 0.0f, -0.001f));
+    backgroundTransform.postTranslate(glm::vec3(0.0f, 0.0f, SLIGHTLY_BEHIND));
     batch.setModelTransform(backgroundTransform);
     DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
-    DependencyManager::get<GeometryCache>()->renderBevelCornersRect(batch, left, bottom, right - left, top - bottom,
+    DependencyManager::get<GeometryCache>()->renderBevelCornersRect(batch, left, bottom, width, height,
                                                                     bevelDistance, backgroundColor);
+    // Render actual name
     QByteArray nameUTF8 = renderedDisplayName.toLocal8Bit();
-
     batch.setModelTransform(textTransform);
-    textRenderer(DISPLAYNAME)->draw(batch, text_x, -text_y, nameUTF8.data(), textColor);
+    renderer->draw(batch, text_x, -text_y, nameUTF8.data(), textColor);
 }
 
 bool Avatar::findRayIntersection(RayIntersectionInfo& intersection) const {
@@ -1105,7 +1095,7 @@ void Avatar::setShowDisplayName(bool showDisplayName) {
     }
 
     // For myAvatar, the alpha update is not done (called in simulate for other avatars)
-    if (DependencyManager::get<AvatarManager>()->getMyAvatar() == this) {
+    if (isMyAvatar()) {
         if (showDisplayName) {
             _displayNameAlpha = DISPLAYNAME_ALPHA;
         } else {
@@ -1118,7 +1108,6 @@ void Avatar::setShowDisplayName(bool showDisplayName) {
     } else {
         _displayNameTargetAlpha = 0.0f;
     }
-
 }
 
 // virtual 
