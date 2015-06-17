@@ -270,7 +270,9 @@ void MeshMassProperties::computeMassProperties(const VectorOfPoints& points, con
     }
 
     // create some variables to hold temporary results
+    #ifdef DEBUG
     uint32_t numPoints = points.size();
+    #endif
     const btVector3 p0(0.0f, 0.0f, 0.0f);
     btMatrix3x3 tetraInertia;
     btMatrix3x3 doubleDebugInertia;

@@ -65,8 +65,6 @@ private:
     // the thickness of the effect
     const int _effectThickness;
 
-    const float _pointSize;
-
     // text color
     const glm::vec4 _color;
 
