@@ -31,8 +31,18 @@ void AddressBarDialog::hide() {
 void AddressBarDialog::loadAddress(const QString& address) {
     qDebug() << "Called LoadAddress with address " << address;
     if (!address.isEmpty()) {
-        DependencyManager::get<AddressManager>()->handleLookupString(address);
+        DependencyManager::get<AddressManager>()->handleLookupString(address);;
     }
+}
+
+void AddressBarDialog::loadBack() {
+    qDebug() << "Called LoadBack";
+    DependencyManager::get<AddressManager>()->goBack();
+}
+
+void AddressBarDialog::loadForward() {
+    qDebug() << "Called LoadForward";
+    DependencyManager::get<AddressManager>()->goForward();
 }
 
 void AddressBarDialog::displayAddressOfflineMessage() {

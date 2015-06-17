@@ -58,6 +58,15 @@ DialogContainer {
                     topMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
                     bottomMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
                 }
+
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton
+                    onClicked: { 
+                        event.accepted = true  
+                        addressBarDialog.loadBack()
+                    }
+                }
             }
             
             Image {
@@ -73,8 +82,14 @@ DialogContainer {
                     bottomMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
                 }
 
-                width: parent.width * 0.5
-                height: parent.height * 0.5
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton
+                    onClicked: { 
+                        event.accepted = true  
+                        addressBarDialog.loadForward()
+                    }
+                }
             }
 
             TextInput {
