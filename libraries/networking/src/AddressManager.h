@@ -72,6 +72,8 @@ public slots:
     void goBack();
     void goForward();
 
+    void goToUser(const QString& username);
+
     void storeCurrentAddress();
 
     void copyAddress();
@@ -100,7 +102,6 @@ private slots:
     void handleAPIResponse(QNetworkReply& requestReply);
     void handleAPIError(QNetworkReply& errorReply);
 
-    void goToUser(const QString& username);
     void goToAddressFromObject(const QVariantMap& addressMap, const QNetworkReply& reply);
 private:
     void setHost(const QString& host, LookupTrigger trigger);
