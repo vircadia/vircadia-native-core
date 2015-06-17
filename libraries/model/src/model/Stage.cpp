@@ -45,7 +45,7 @@ Mat4d EarthSunModel::evalWorldToGeoLocationMat(double longitude, double latitude
 
 void EarthSunModel::updateWorldToSurface() const {
     // Check if the final position is too close to the earth center ?
-    float absAltitude = _earthRadius + (double)_altitude;
+    float absAltitude = _earthRadius + _altitude;
     if (absAltitude < 0.01f) {
         absAltitude = 0.01f;
     }
