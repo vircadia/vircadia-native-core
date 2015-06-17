@@ -1028,7 +1028,7 @@ void GeometryCache::renderBevelCornersRect(gpu::Batch& batch, int x, int y, int 
     if (!details.isCreated) {
         static const int FLOATS_PER_VERTEX = 2; // vertices
         static const int NUM_VERTICES = 8;
-        static constexpr int NUM_FLOATS = NUM_VERTICES * FLOATS_PER_VERTEX;
+        static const int NUM_FLOATS = NUM_VERTICES * FLOATS_PER_VERTEX;
         
         details.isCreated = true;
         details.vertices = NUM_VERTICES;
