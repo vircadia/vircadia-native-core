@@ -99,6 +99,8 @@ void BillboardOverlay::render(RenderArgs* args) {
         
         DependencyManager::get<GeometryCache>()->renderQuad(*batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
                                                             glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha));
+    
+        batch->setUniformTexture(0, args->_whiteTexture); // restore default white color after me
     } else {
         glEnable(GL_ALPHA_TEST);
         glAlphaFunc(GL_GREATER, 0.5f);
