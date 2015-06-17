@@ -164,6 +164,7 @@ void OculusManager::connect() {
         int configResult = ovrHmd_ConfigureRendering(_ovrHmd, &cfg.Config,
             distortionCaps, _eyeFov, _eyeRenderDesc);
         assert(configResult);
+        (void)configResult; // quiet warning
 
 
         _recommendedTexSize = ovrHmd_GetFovTextureSize(_ovrHmd, ovrEye_Left, _eyeFov[ovrEye_Left], 1.0f);

@@ -451,7 +451,6 @@ TextRenderer3D::TextRenderer3D(const char* family, float pointSize, int weight, 
                            EffectType effect, int effectThickness, const QColor& color) :
     _effectType(effect),
     _effectThickness(effectThickness),
-    _pointSize(pointSize),
     _color(toGlm(color)),
     _font(loadFont3D(family)) {
     if (!_font) {
