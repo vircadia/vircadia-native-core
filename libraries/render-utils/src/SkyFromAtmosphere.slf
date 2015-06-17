@@ -53,11 +53,13 @@ uniform float g2;
 
 varying vec3 position;
 
+
 float scale(float fCos)
 {
     float x = 1.0 - fCos;
     return fScaleDepth * exp(-0.00287 + x*(0.459 + x*(3.83 + x*(-6.80 + x*5.25))));
 }
+
 
 void main (void)
 {
@@ -102,7 +104,8 @@ void main (void)
     
     float fCos = dot(v3LightPos, v3Direction) / length(v3Direction);
     float fMiePhase = 1.5 * ((1.0 - g2) / (2.0 + g2)) * (1.0 + fCos*fCos) / pow(1.0 + g2 - 2.0*g*fCos, 1.5);
-    gl_FragColor.rgb = frontColor.rgb + fMiePhase * secondaryFrontColor.rgb;
-    gl_FragColor.a = gl_FragColor.b;
-    gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0/2.2));
+    
+    vec3 finalColor = frontColor.rgb + fMiePhase * secondaryFrontColor.rgb;
+    gl_FragColor.a = finalColor.b;
+    gl_FragColor.rgb = pow(finalColor.rgb, vec3(1.0/2.2));
 }

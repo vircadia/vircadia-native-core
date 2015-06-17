@@ -39,9 +39,9 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
     _walletUUID(walletUUID),
     _assignmentServerHostname(assignmentServerHostname),
     _assignmentServerPort(assignmentServerPort)
-{    
+{
     qDebug() << "_requestAssignmentType =" << _requestAssignmentType;
-    
+
     // start the Logging class with the parent's target name
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME);
 
@@ -77,13 +77,13 @@ void AssignmentClientMonitor::simultaneousWaitOnChildren(int waitMsecs) {
     while(_childProcesses.size() > 0 && !waitTimer.hasExpired(waitMsecs)) {
         // continue processing events so we can handle a process finishing up
         QCoreApplication::processEvents();
-    }     
+    }
 }
 
 void AssignmentClientMonitor::childProcessFinished() {
     QProcess* childProcess = qobject_cast<QProcess*>(sender());
     qint64 processID = _childProcesses.key(childProcess);
-    
+
     if (processID > 0) {
         qDebug() << "Child process" << processID << "has finished. Removing from internal map.";
         _childProcesses.remove(processID);
@@ -98,17 +98,17 @@ void AssignmentClientMonitor::stopChildProcesses() {
         qDebug() << "Attempting to terminate child process" << childProcess->processId();
         childProcess->terminate();
     }
-    
+
     simultaneousWaitOnChildren(WAIT_FOR_CHILD_MSECS);
-    
+
     if (_childProcesses.size() > 0) {
         // ask even more firmly
         foreach(QProcess* childProcess, _childProcesses) {
             qDebug() << "Attempting to kill child process" << childProcess->processId();
             childProcess->kill();
         }
-        
-        simultaneousWaitOnChildren(WAIT_FOR_CHILD_MSECS); 
+
+        simultaneousWaitOnChildren(WAIT_FOR_CHILD_MSECS);
     }
 }
 
@@ -122,7 +122,7 @@ void AssignmentClientMonitor::aboutToQuit() {
 void AssignmentClientMonitor::spawnChildClient() {
     QProcess* assignmentClient = new QProcess(this);
 
-    
+
     // unparse the parts of the command-line that the child cares about
     QStringList _childArguments;
     if (_assignmentPool != "") {
@@ -153,7 +153,7 @@ void AssignmentClientMonitor::spawnChildClient() {
 
     // make sure that the output from the child process appears in our output
     assignmentClient->setProcessChannelMode(QProcess::ForwardedChannels);
-    
+
     assignmentClient->start(QCoreApplication::applicationFilePath(), _childArguments);
 
     // make sure we hear that this process has finished when it does
@@ -194,7 +194,7 @@ void AssignmentClientMonitor::checkSpares() {
             qDebug() << "asking child" << aSpareId << "to exit.";
             SharedNodePointer childNode = nodeList->nodeWithUUID(aSpareId);
             childNode->activateLocalSocket();
-            
+
             QByteArray diePacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeStopNode);
             nodeList->writeUnverifiedDatagram(diePacket, childNode);
         }
@@ -239,7 +239,7 @@ void AssignmentClientMonitor::readPendingDatagrams() {
                     // update our records about how to reach this child
                     matchingNode->setLocalSocket(senderSockAddr);
 
-                    QVariantMap packetVariantMap = 
+                    QVariantMap packetVariantMap =
                         JSONBreakableMarshal::fromStringBuffer(receivedPacket.mid(numBytesForPacketHeader(receivedPacket)));
                     QJsonObject unpackedStatsJSON = QJsonObject::fromVariantMap(packetVariantMap);
 

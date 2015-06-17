@@ -43,72 +43,90 @@ void BillboardOverlay::render(RenderArgs* args) {
         return;
     }
 
-    glEnable(GL_ALPHA_TEST);
-    glAlphaFunc(GL_GREATER, 0.5f);
+    glm::quat rotation;
+    if (_isFacingAvatar) {
+        // rotate about vertical to face the camera
+        rotation = Application::getInstance()->getCamera()->getRotation();
+        rotation *= glm::angleAxis(glm::pi<float>(), glm::vec3(0.0f, 1.0f, 0.0f));
+        rotation *= getRotation();
+    } else {
+        rotation = getRotation();
+    }
 
-    glEnable(GL_TEXTURE_2D);
-    glDisable(GL_LIGHTING);
+    float imageWidth = _texture->getWidth();
+    float imageHeight = _texture->getHeight();
 
-    glBindTexture(GL_TEXTURE_2D, _texture->getID());
+    QRect fromImage;
+    if (_fromImage.isNull()) {
+        fromImage.setX(0);
+        fromImage.setY(0);
+        fromImage.setWidth(imageWidth);
+        fromImage.setHeight(imageHeight);
+    } else {
+        float scaleX = imageWidth / _texture->getOriginalWidth();
+        float scaleY = imageHeight / _texture->getOriginalHeight();
 
-    glPushMatrix(); {
-        glTranslatef(_position.x, _position.y, _position.z);
-        glm::quat rotation;
-        if (_isFacingAvatar) {
-            // rotate about vertical to face the camera
-            rotation = Application::getInstance()->getCamera()->getRotation();
-            rotation *= glm::angleAxis(glm::pi<float>(), glm::vec3(0.0f, 1.0f, 0.0f));
-            rotation *= getRotation();
-        } else {
-            rotation = getRotation();
-        }
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-        glScalef(_scale, _scale, _scale);
+        fromImage.setX(scaleX * _fromImage.x());
+        fromImage.setY(scaleY * _fromImage.y());
+        fromImage.setWidth(scaleX * _fromImage.width());
+        fromImage.setHeight(scaleY * _fromImage.height());
+    }
 
-        const float MAX_COLOR = 255.0f;
-        xColor color = getColor();
-        float alpha = getAlpha();
+    float maxSize = glm::max(fromImage.width(), fromImage.height());
+    float x = fromImage.width() / (2.0f * maxSize);
+    float y = -fromImage.height() / (2.0f * maxSize);
 
-        float imageWidth = _texture->getWidth();
-        float imageHeight = _texture->getHeight();
+    glm::vec2 topLeft(-x, -y);
+    glm::vec2 bottomRight(x, y);
+    glm::vec2 texCoordTopLeft(fromImage.x() / imageWidth, fromImage.y() / imageHeight);
+    glm::vec2 texCoordBottomRight((fromImage.x() + fromImage.width()) / imageWidth,
+                                  (fromImage.y() + fromImage.height()) / imageHeight);
 
-        QRect fromImage;
-        if (_fromImage.isNull()) {
-            fromImage.setX(0);
-            fromImage.setY(0);
-            fromImage.setWidth(imageWidth);
-            fromImage.setHeight(imageHeight);
-        } else {
-            float scaleX = imageWidth / _texture->getOriginalWidth();
-            float scaleY = imageHeight / _texture->getOriginalHeight();
+    const float MAX_COLOR = 255.0f;
+    xColor color = getColor();
+    float alpha = getAlpha();
 
-            fromImage.setX(scaleX * _fromImage.x());
-            fromImage.setY(scaleY * _fromImage.y());
-            fromImage.setWidth(scaleX * _fromImage.width());
-            fromImage.setHeight(scaleY * _fromImage.height());
-        }
+    auto batch = args->_batch;
 
-        float maxSize = glm::max(fromImage.width(), fromImage.height());
-        float x = fromImage.width() / (2.0f * maxSize);
-        float y = -fromImage.height() / (2.0f * maxSize);
+    if (batch) {
+        Transform transform;
+        transform.setTranslation(_position);
+        transform.setRotation(rotation);
+        transform.setScale(_scale);
 
-        glm::vec2 topLeft(-x, -y);
-        glm::vec2 bottomRight(x, y);
-        glm::vec2 texCoordTopLeft(fromImage.x() / imageWidth, fromImage.y() / imageHeight);
-        glm::vec2 texCoordBottomRight((fromImage.x() + fromImage.width()) / imageWidth,
-                                      (fromImage.y() + fromImage.height()) / imageHeight);
-
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
+        batch->setModelTransform(transform);
+        batch->setUniformTexture(0, _texture->getGPUTexture());
+        
+        DependencyManager::get<GeometryCache>()->renderQuad(*batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
                                                             glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha));
+    
+        batch->setUniformTexture(0, args->_whiteTexture); // restore default white color after me
+    } else {
+        glEnable(GL_ALPHA_TEST);
+        glAlphaFunc(GL_GREATER, 0.5f);
 
-    } glPopMatrix();
+        glEnable(GL_TEXTURE_2D);
+        glDisable(GL_LIGHTING);
 
-    glDisable(GL_TEXTURE_2D);
-    glEnable(GL_LIGHTING);
-    glDisable(GL_ALPHA_TEST);
+        glBindTexture(GL_TEXTURE_2D, _texture->getID());
 
-    glBindTexture(GL_TEXTURE_2D, 0);
+        glPushMatrix(); {
+            glTranslatef(_position.x, _position.y, _position.z);
+            glm::vec3 axis = glm::axis(rotation);
+            glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+            glScalef(_scale, _scale, _scale);
+
+            DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
+                                                                glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha));
+
+        } glPopMatrix();
+
+        glDisable(GL_TEXTURE_2D);
+        glEnable(GL_LIGHTING);
+        glDisable(GL_ALPHA_TEST);
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
 }
 
 void BillboardOverlay::setProperties(const QScriptValue &properties) {

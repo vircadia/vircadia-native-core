@@ -121,7 +121,7 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) 
     _volData->setBorderValue(255);
 
     #ifdef WANT_DEBUG
-    qDebug() << " new size is" << _volData->getWidth() << _volData->getHeight() << _volData->getDepth();
+    qDebug() << " new voxel-space size is" << _volData->getWidth() << _volData->getHeight() << _volData->getDepth();
     #endif
 
     // I'm not sure this is needed... the docs say that each element is initialized with its default
@@ -220,11 +220,14 @@ uint8_t RenderablePolyVoxEntityItem::getVoxel(int x, int y, int z) {
     return _volData->getVoxelAt(x, y, z);
 }
 
-void RenderablePolyVoxEntityItem::setVoxel(int x, int y, int z, uint8_t toValue) {
+void RenderablePolyVoxEntityItem::setVoxelInternal(int x, int y, int z, uint8_t toValue) {
+    // set a voxel without recompressing the voxel data
     assert(_volData);
     if (!inUserBounds(_volData, _voxelSurfaceStyle, x, y, z)) {
         return;
     }
+
+    updateOnCount(x, y, z, toValue);
 
     if (_voxelSurfaceStyle == SURFACE_EDGED_CUBIC) {
         _volData->setVoxelAt(x + 1, y + 1, z + 1, toValue);
@@ -233,6 +236,14 @@ void RenderablePolyVoxEntityItem::setVoxel(int x, int y, int z, uint8_t toValue)
     }
 }
 
+
+void RenderablePolyVoxEntityItem::setVoxel(int x, int y, int z, uint8_t toValue) {
+    if (_locked) {
+        return;
+    }
+    setVoxelInternal(x, y, z, toValue);
+    compressVolumeData();
+}
 
 void RenderablePolyVoxEntityItem::updateOnCount(int x, int y, int z, uint8_t toValue) {
     // keep _onCount up to date
@@ -255,11 +266,15 @@ void RenderablePolyVoxEntityItem::updateOnCount(int x, int y, int z, uint8_t toV
 }
 
 void RenderablePolyVoxEntityItem::setAll(uint8_t toValue) {
+    if (_locked) {
+        return;
+    }
+
     for (int z = 0; z < _voxelVolumeSize.z; z++) {
         for (int y = 0; y < _voxelVolumeSize.y; y++) {
             for (int x = 0; x < _voxelVolumeSize.x; x++) {
                 updateOnCount(x, y, z, toValue);
-                setVoxel(x, y, z, toValue);
+                setVoxelInternal(x, y, z, toValue);
             }
         }
     }
@@ -267,11 +282,19 @@ void RenderablePolyVoxEntityItem::setAll(uint8_t toValue) {
 }
 
 void RenderablePolyVoxEntityItem::setVoxelInVolume(glm::vec3 position, uint8_t toValue) {
-    updateOnCount(position.x, position.y, position.z, toValue);
-    setVoxel(position.x, position.y, position.z, toValue);
+    if (_locked) {
+        return;
+    }
+
+    // same as setVoxel but takes a vector rather than 3 floats.
+    setVoxel((int)position.x, (int)position.y, (int)position.z, toValue);
 }
 
 void RenderablePolyVoxEntityItem::setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue) {
+    if (_locked) {
+        return;
+    }
+
     // This three-level for loop iterates over every voxel in the volume
     for (int z = 0; z < _voxelVolumeSize.z; z++) {
         for (int y = 0; y < _voxelVolumeSize.y; y++) {
@@ -283,7 +306,7 @@ void RenderablePolyVoxEntityItem::setSphereInVolume(glm::vec3 center, float radi
                 // If the current voxel is less than 'radius' units from the center then we make it solid.
                 if (fDistToCenter <= radius) {
                     updateOnCount(x, y, z, toValue);
-                    setVoxel(x, y, z, toValue);
+                    setVoxelInternal(x, y, z, toValue);
                 }
             }
         }
@@ -380,10 +403,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         getModel();
     }
 
-    Transform transform;
-    transform.setTranslation(getPosition() - getRegistrationPoint() * getDimensions());
-    transform.setRotation(getRotation());
-    transform.setScale(getDimensions() / _voxelVolumeSize);
+    Transform transform(voxelToWorldMatrix());
 
     auto mesh = _modelGeometry.getMesh();
     Q_ASSERT(args->_batch);
@@ -514,6 +534,11 @@ void RenderablePolyVoxEntityItem::compressVolumeData() {
 
     QByteArray newVoxelData;
     QDataStream writer(&newVoxelData, QIODevice::WriteOnly | QIODevice::Truncate);
+
+    #ifdef WANT_DEBUG
+    qDebug() << "compressing voxel data of size:" << voxelXSize << voxelYSize << voxelZSize;
+    #endif
+
     writer << voxelXSize << voxelYSize << voxelZSize;
 
     QByteArray compressedData = qCompress(uncompressedData, 9);
@@ -573,7 +598,7 @@ void RenderablePolyVoxEntityItem::decompressVolumeData() {
             for (int x = 0; x < voxelXSize; x++) {
                 int uncompressedIndex = (z * voxelYSize * voxelXSize) + (y * voxelZSize) + x;
                 updateOnCount(x, y, z, uncompressedData[uncompressedIndex]);
-                setVoxel(x, y, z, uncompressedData[uncompressedIndex]);
+                setVoxelInternal(x, y, z, uncompressedData[uncompressedIndex]);
             }
         }
     }

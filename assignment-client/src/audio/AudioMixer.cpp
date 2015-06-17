@@ -850,7 +850,9 @@ void AudioMixer::run() {
 
         ++_numStatFrames;
 
+        // since we're a while loop we need to help Qt's event processing
         QCoreApplication::processEvents();
+        QCoreApplication::sendPostedEvents(this, 0);
 
         if (_isFinished) {
             break;

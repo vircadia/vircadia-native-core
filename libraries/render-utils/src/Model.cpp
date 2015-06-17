@@ -82,6 +82,7 @@ Model::Model(QObject* parent) :
     _isVisible(true),
     _blendNumber(0),
     _appliedBlendNumber(0),
+    _calculatedMeshPartOffsetValid(false),
     _calculatedMeshPartBoxesValid(false),
     _calculatedMeshBoxesValid(false),
     _calculatedMeshTrianglesValid(false),
@@ -544,6 +545,10 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
     // we can use the AABox's ray intersection by mapping our origin and direction into the model frame
     // and testing intersection there.
     if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face)) {
+    
+        if (!_calculatedMeshBoxesValid) {
+            recalculateMeshBoxes(pickAgainstTriangles);
+        }
 
         float bestDistance = std::numeric_limits<float>::max();
 
@@ -660,6 +665,25 @@ bool Model::convexHullContains(glm::vec3 point) {
     return false;
 }
 
+void Model::recalculateMeshPartOffsets() {
+    if (!_calculatedMeshPartOffsetValid) {
+        const FBXGeometry& geometry = _geometry->getFBXGeometry();
+        int numberOfMeshes = geometry.meshes.size();
+        _calculatedMeshPartOffset.clear();
+        for (int i = 0; i < numberOfMeshes; i++) {
+            const FBXMesh& mesh = geometry.meshes.at(i);
+            qint64 partOffset = 0;
+            for (int j = 0; j < mesh.parts.size(); j++) {
+                const FBXMeshPart& part = mesh.parts.at(j);
+                _calculatedMeshPartOffset[QPair<int,int>(i, j)] = partOffset;
+                partOffset += part.quadIndices.size() * sizeof(int);
+                partOffset += part.triangleIndices.size() * sizeof(int);
+
+            }
+        }
+        _calculatedMeshPartOffsetValid = true;
+    }
+}
 // TODO: we seem to call this too often when things haven't actually changed... look into optimizing this
 // Any script might trigger findRayIntersectionAgainstSubMeshes (and maybe convexHullContains), so these
 // can occur multiple times. In addition, rendering does it's own ray picking in order to decide which
@@ -675,7 +699,8 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
         _calculatedMeshTriangles.clear();
         _calculatedMeshTriangles.resize(numberOfMeshes);
         _calculatedMeshPartBoxes.clear();
-        _calculatedMeshPartOffet.clear();
+        _calculatedMeshPartOffset.clear();
+        _calculatedMeshPartOffsetValid = false;
         for (int i = 0; i < numberOfMeshes; i++) {
             const FBXMesh& mesh = geometry.meshes.at(i);
             Extents scaledMeshExtents = calculateScaledOffsetExtents(mesh.meshExtents);
@@ -770,7 +795,7 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                         }
                     }
                     _calculatedMeshPartBoxes[QPair<int,int>(i, j)] = thisPartBounds;
-                    _calculatedMeshPartOffet[QPair<int,int>(i, j)] = partOffset;
+                    _calculatedMeshPartOffset[QPair<int,int>(i, j)] = partOffset;
 
                     partOffset += part.quadIndices.size() * sizeof(int);
                     partOffset += part.triangleIndices.size() * sizeof(int);
@@ -778,6 +803,7 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                 }
                 _calculatedMeshTriangles[i] = thisMeshTriangles;
                 _calculatedMeshPartBoxesValid = true;
+                _calculatedMeshPartOffsetValid = true;
             }
         }
         _calculatedMeshBoxesValid = true;
@@ -786,16 +812,6 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
 }
 
 void Model::renderSetup(RenderArgs* args) {
-    // if we don't have valid mesh boxes, calculate them now, this only matters in cases
-    // where our caller has passed RenderArgs which will include a view frustum we can cull
-    // against. We cache the results of these calculations so long as the model hasn't been
-    // simulated and the mesh hasn't changed.
-    if (args && !_calculatedMeshBoxesValid) {
-        _mutex.lock();
-        recalculateMeshBoxes();
-        _mutex.unlock();
-    }
-    
     // set up dilated textures on first render after load/simulate
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     if (_dilatedTextures.isEmpty()) {
@@ -1342,18 +1358,15 @@ void Model::snapToRegistrationPoint() {
 }
 
 void Model::simulate(float deltaTime, bool fullUpdate) {
-    /*
-    qDebug() << "Model::simulate()";
-    qDebug() << "   _translation:" << _translation;
-    qDebug() << "   _rotation:" << _rotation;
-    */
-    
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
                     
     if (isActive() && fullUpdate) {
-        // NOTE: this seems problematic... need to review
-        _calculatedMeshBoxesValid = false; // if we have to simulate, we need to assume our mesh boxes are all invalid
+        // NOTE: This is overly aggressive and we are invalidating the MeshBoxes when in fact they may not be invalid
+        //       they really only become invalid if something about the transform to world space has changed. This is
+        //       not too bad at this point, because it doesn't impact rendering. However it does slow down ray picking
+        //       because ray picking needs valid boxes to work
+        _calculatedMeshBoxesValid = false;
         _calculatedMeshTrianglesValid = false;
 
         // check for scale to fit
@@ -1761,11 +1774,31 @@ void Model::setupBatchTransform(gpu::Batch& batch, RenderArgs* args) {
 }
 
 AABox Model::getPartBounds(int meshIndex, int partIndex) {
-    if (!_calculatedMeshPartBoxesValid) {
-        recalculateMeshBoxes(true);
+    if (meshIndex < _meshStates.size()) {
+        const MeshState& state = _meshStates.at(meshIndex);
+        bool isSkinned = state.clusterMatrices.size() > 1;
+        if (isSkinned) {
+            // if we're skinned return the entire mesh extents because we can't know for sure our clusters don't move us
+            return calculateScaledOffsetAABox(_geometry->getFBXGeometry().meshExtents);
+        }
     }
-    if (_calculatedMeshPartBoxesValid && _calculatedMeshPartBoxes.contains(QPair<int,int>(meshIndex, partIndex))) {
-        return calculateScaledOffsetAABox(_calculatedMeshPartBoxes[QPair<int,int>(meshIndex, partIndex)]);
+    
+    if (_geometry->getFBXGeometry().meshes.size() > meshIndex) {
+        
+        // FIX ME! - This is currently a hack because for some mesh parts our efforts to calculate the bounding
+        //           box of the mesh part fails. It seems to create boxes that are not consistent with where the
+        //           geometry actually renders. If instead we make all the parts share the bounds of the entire subMesh
+        //           things will render properly.
+        //
+        //    return calculateScaledOffsetAABox(_calculatedMeshPartBoxes[QPair<int,int>(meshIndex, partIndex)]);
+        //
+        //    NOTE: we also don't want to use the _calculatedMeshBoxes[] because they don't handle avatar moving correctly
+        //          without recalculating them...
+        //    return _calculatedMeshBoxes[meshIndex];
+        //
+        // If we not skinned use the bounds of the subMesh for all it's parts
+        const FBXMesh& mesh = _geometry->getFBXGeometry().meshes.at(meshIndex);
+        return calculateScaledOffsetExtents(mesh.meshExtents);
     }
     return AABox();
 }
@@ -1775,29 +1808,15 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         return; // bail asap
     }
     
-    // we always need these properly calculated before we can render, this will likely already have been done
-    // since the engine will call our getPartBounds() before rendering us.
-    if (!_calculatedMeshPartBoxesValid) {
-        recalculateMeshBoxes(true);
+    // We need to make sure we have valid offsets calculated before we can render
+    if (!_calculatedMeshPartOffsetValid) {
+        recalculateMeshPartOffsets();
     }
     auto textureCache = DependencyManager::get<TextureCache>();
 
     gpu::Batch& batch = *(args->_batch);
     auto mode = args->_renderMode;
 
-    // render the part bounding box
-    #ifdef DEBUG_BOUNDING_PARTS
-    {
-        glm::vec4 cubeColor(1.0f,0.0f,0.0f,1.0f);
-        AABox partBounds = getPartBounds(meshIndex, partIndex);
-
-        glm::mat4 translation = glm::translate(partBounds.calcCenter());
-        glm::mat4 scale = glm::scale(partBounds.getDimensions());
-        glm::mat4 modelToWorldMatrix = translation * scale;
-        batch.setModelTransform(modelToWorldMatrix);
-        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(batch, 1.0f, cubeColor);
-    }
-    #endif //def DEBUG_BOUNDING_PARTS
 
     // Capture the view matrix once for the rendering of this model
     if (_transforms.empty()) {
@@ -1824,6 +1843,29 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     bool hasLightmap = mesh.hasEmissiveTexture();
     bool isSkinned = state.clusterMatrices.size() > 1;
     bool wireframe = isWireframe();
+
+    // render the part bounding box
+    #ifdef DEBUG_BOUNDING_PARTS
+    {
+        AABox partBounds = getPartBounds(meshIndex, partIndex);
+        bool inView = args->_viewFrustum->boxInFrustum(partBounds) != ViewFrustum::OUTSIDE;
+
+        glm::vec4 cubeColor;
+        if (isSkinned) {
+            cubeColor = glm::vec4(0.0f, 1.0f, 1.0f, 1.0f);
+        } else if (inView) {
+            cubeColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
+        } else {
+            cubeColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
+        }
+
+        Transform transform;
+        transform.setTranslation(partBounds.calcCenter());
+        transform.setScale(partBounds.getDimensions());
+        batch.setModelTransform(transform);
+        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(batch, 1.0f, cubeColor);
+    }
+    #endif //def DEBUG_BOUNDING_PARTS
     
     if (wireframe) {
         translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
@@ -1976,8 +2018,8 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         }
     }
     
-    qint64 offset = _calculatedMeshPartOffet[QPair<int,int>(meshIndex, partIndex)];
-    
+    qint64 offset = _calculatedMeshPartOffset[QPair<int,int>(meshIndex, partIndex)];
+
     if (part.quadIndices.size() > 0) {
         batch.drawIndexed(gpu::QUADS, part.quadIndices.size(), offset);
         offset += part.quadIndices.size() * sizeof(int);
@@ -2047,6 +2089,9 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
                             Locations*& locations) {
 
     RenderKey key(mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe);
+    if (mode == RenderArgs::MIRROR_RENDER_MODE) {
+        key = RenderKey(key.getRaw() | RenderKey::IS_MIRROR);
+    }
     auto pipeline = _renderPipelineLib.find(key.getRaw());
     if (pipeline == _renderPipelineLib.end()) {
         qDebug() << "No good, couldn't find a pipeline from the key ?" << key.getRaw();

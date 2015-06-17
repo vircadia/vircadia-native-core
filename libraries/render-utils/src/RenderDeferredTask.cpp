@@ -15,9 +15,12 @@
 #include "DeferredLightingEffect.h"
 #include "ViewFrustum.h"
 #include "RenderArgs.h"
+#include "TextureCache.h"
 
 #include <PerfStat.h>
 
+#include "overlay3D_vert.h"
+#include "overlay3D_frag.h"
 
 using namespace render;
 
@@ -50,7 +53,7 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
    _jobs.push_back(Job(RenderDeferred()));
    _jobs.push_back(Job(ResolveDeferred()));
    _jobs.push_back(Job(DrawTransparentDeferred()));
-   _jobs.push_back(Job(DrawPostLayered()));
+   _jobs.push_back(Job(DrawOverlay3D()));
    _jobs.push_back(Job(ResetGLState()));
 }
 
@@ -136,10 +139,12 @@ template <> void render::jobRun(const DrawOpaqueDeferred& job, const SceneContex
         Transform viewMat;
         args->_viewFrustum->evalProjectionMatrix(projMat);
         args->_viewFrustum->evalViewTransform(viewMat);
+        if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+            viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
+        }
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
 
-        renderContext->args->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
         {
             GLenum buffers[3];
             int bufferCount = 0;
@@ -204,10 +209,11 @@ template <> void render::jobRun(const DrawTransparentDeferred& job, const SceneC
         Transform viewMat;
         args->_viewFrustum->evalProjectionMatrix(projMat);
         args->_viewFrustum->evalViewTransform(viewMat);
+        if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+            viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
+        }
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
-
-        args->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
 
         const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
 
@@ -222,10 +228,76 @@ template <> void render::jobRun(const DrawTransparentDeferred& job, const SceneC
 
         renderItems(sceneContext, renderContext, renderedItems, renderContext->_maxDrawnTransparentItems);
 
+        // Before rendering the batch make sure we re in sync with gl state
+        args->_context->syncCache();
         args->_context->render((*args->_batch));
         args->_batch = nullptr;
 
         // reset blend function to standard...
-        glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
+       // glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
     }
+}
+
+const gpu::PipelinePointer& DrawOverlay3D::getOpaquePipeline() const {
+    if (!_opaquePipeline) {
+        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(overlay3D_vert)));
+        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(overlay3D_frag)));
+        
+        auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+
+        auto state = gpu::StatePointer(new gpu::State());
+        state->setDepthTest(true, true, gpu::LESS_EQUAL);
+
+        _opaquePipeline.reset(gpu::Pipeline::create(program, state));
+    }
+    return _opaquePipeline;
+}
+
+template <> void render::jobRun(const DrawOverlay3D& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+      PerformanceTimer perfTimer("DrawOverlay3D");
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
+
+    // render backgrounds
+    auto& scene = sceneContext->_scene;
+    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::opaqueShape().withLayered());
+
+
+    ItemIDsBounds inItems;
+    inItems.reserve(items.size());
+    for (auto id : items) {
+        auto& item = scene->getItem(id);
+        if (item.getKey().isVisible() && (item.getLayer() == 1)) {
+            inItems.emplace_back(id);
+        }
+    }
+ 
+    RenderArgs* args = renderContext->args;
+    gpu::Batch batch;
+    args->_batch = &batch;
+    args->_whiteTexture = DependencyManager::get<TextureCache>()->getWhiteTexture();
+
+
+    glm::mat4 projMat;
+    Transform viewMat;
+    args->_viewFrustum->evalProjectionMatrix(projMat);
+    args->_viewFrustum->evalViewTransform(viewMat);
+    if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+        viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
+    }
+    batch.setProjectionTransform(projMat);
+    batch.setViewTransform(viewMat);
+    batch.setPipeline(job.getOpaquePipeline());
+    batch.setUniformTexture(0, args->_whiteTexture);
+
+    if (!inItems.empty()) {
+        batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0);
+        renderItems(sceneContext, renderContext, inItems);
+    }
+
+    // Before rendering the batch make sure we re in sync with gl state
+    args->_context->syncCache();
+    args->_context->render((*args->_batch));
+    args->_batch = nullptr;
+    args->_whiteTexture.reset();
 }

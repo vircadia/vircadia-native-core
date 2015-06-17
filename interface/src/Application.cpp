@@ -57,8 +57,10 @@
 
 #include <AccountManager.h>
 #include <AddressManager.h>
+#include <CursorManager.h>
 #include <AmbientOcclusionEffect.h>
 #include <AudioInjector.h>
+#include <AutoUpdater.h>
 #include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <EntityScriptingInterface.h>
@@ -146,6 +148,7 @@
 #include "ui/StandAloneJSConsole.h"
 #include "ui/Stats.h"
 #include "ui/AddressBarDialog.h"
+#include "ui/UpdateDialog.h"
 
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
@@ -294,6 +297,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto discoverabilityManager = DependencyManager::set<DiscoverabilityManager>();
     auto sceneScriptingInterface = DependencyManager::set<SceneScriptingInterface>();
     auto offscreenUi = DependencyManager::set<OffscreenUi>();
+    auto autoUpdater = DependencyManager::set<AutoUpdater>();
     auto pathUtils = DependencyManager::set<PathUtils>();
     auto actionFactory = DependencyManager::set<InterfaceActionFactory>();
 
@@ -423,6 +427,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(audioIO.data(), &AudioClient::muteToggled, this, &Application::audioMuteToggled);
     connect(audioIO.data(), &AudioClient::receivedFirstPacket,
             &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::receivedFirstPacket);
+    connect(audioIO.data(), &AudioClient::disconnected,
+            &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::disconnected);
 
     audioThread->start();
 
@@ -559,8 +565,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // allow you to move an entity around in your hand
     _entityEditSender.setPacketsPerSecond(3000); // super high!!
 
-    checkVersion();
-
     _overlays.init(); // do this before scripts load
 
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
@@ -632,8 +636,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     ddeTracker->init();
     connect(ddeTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
 #endif
+    
+    auto applicationUpdater = DependencyManager::get<AutoUpdater>();
+    connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
+    applicationUpdater->checkForUpdate();
 }
-
 
 void Application::aboutToQuit() {
     emit beforeAboutToQuit();
@@ -824,6 +831,7 @@ void Application::initializeUi() {
     LoginDialog::registerType();
     MessageDialog::registerType();
     VrMenu::registerType();
+    UpdateDialog::registerType();
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_glWidget->context()->contextHandle());
@@ -955,11 +963,14 @@ void Application::paintGL() {
         displaySide(&renderArgs, _myCamera);
         glPopMatrix();
 
+        renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
         if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
             _rearMirrorTools->render(&renderArgs, true, _glWidget->mapFromGlobal(QCursor::pos()));
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
             renderRearViewMirror(&renderArgs, _mirrorViewRect);       
         }
+
+        renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
 
         auto finalFbo = DependencyManager::get<GlowEffect>()->render(&renderArgs);
 
@@ -1241,9 +1252,20 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
-            case Qt::Key_Apostrophe:
-                resetSensors();
+            case Qt::Key_Apostrophe: {
+                if (isMeta) {
+                    auto cursor = Cursor::Manager::instance().getCursor();
+                    auto curIcon = cursor->getIcon();
+                    if (curIcon == Cursor::Icon::DEFAULT) {
+                        cursor->setIcon(Cursor::Icon::LINK);
+                    } else {
+                        cursor->setIcon(Cursor::Icon::DEFAULT);
+                    }
+                } else {
+                    resetSensors();
+                }
                 break;
+            }
 
             case Qt::Key_A:
                 if (isShifted) {
@@ -1367,12 +1389,27 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Slash:
                 Menu::getInstance()->triggerOption(MenuOption::Stats);
                 break;
-            case Qt::Key_Plus:
-                _myAvatar->increaseSize();
+
+            case Qt::Key_Plus: {
+                if (isMeta && event->modifiers().testFlag(Qt::KeypadModifier)) {
+                    auto& cursorManager = Cursor::Manager::instance();
+                    cursorManager.setScale(cursorManager.getScale() * 1.1f);
+                } else {
+                    _myAvatar->increaseSize();
+                }
                 break;
-            case Qt::Key_Minus:
-                _myAvatar->decreaseSize();
+            }
+
+            case Qt::Key_Minus: {
+                if (isMeta && event->modifiers().testFlag(Qt::KeypadModifier)) {
+                    auto& cursorManager = Cursor::Manager::instance();
+                    cursorManager.setScale(cursorManager.getScale() / 1.1f);
+                } else {
+                    _myAvatar->decreaseSize();
+                }
                 break;
+            }
+
             case Qt::Key_Equal:
                 _myAvatar->resetSize();
                 break;
@@ -3231,6 +3268,9 @@ namespace render {
     template <> const Item::Bound payloadGetBound(const BackgroundRenderData::Pointer& stuff) { return Item::Bound(); }
     template <> void payloadRender(const BackgroundRenderData::Pointer& background, RenderArgs* args) {
 
+        Q_ASSERT(args->_batch);
+        gpu::Batch& batch = *args->_batch;
+
         // Background rendering decision
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         auto skybox = model::SkyboxPointer();
@@ -3298,7 +3338,8 @@ namespace render {
                     PerformanceTimer perfTimer("atmosphere");
                     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                         "Application::displaySide() ... atmosphere...");
-                    background->_environment->renderAtmospheres(*(args->_viewFrustum));
+
+                    background->_environment->renderAtmospheres(batch, *(args->_viewFrustum));
                 }
 
             }
@@ -3307,13 +3348,13 @@ namespace render {
             
             skybox = skyStage->getSkybox();
             if (skybox) {
-                gpu::Batch batch;
                 model::Skybox::render(batch, *(Application::getInstance()->getDisplayViewFrustum()), *skybox);
-
-                gpu::GLBackend::renderBatch(batch, true);
-                glUseProgram(0);
             }
         }
+        // FIX ME - If I don't call this renderBatch() here, then the atmosphere and skybox don't render, but it
+        // seems like these payloadRender() methods shouldn't be doing this. We need to investigate why the engine
+        // isn't rendering our batch
+        gpu::GLBackend::renderBatch(batch, true);
     }
 }
 
@@ -3419,7 +3460,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
                 "Application::displaySide() ... entities...");
 
             RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE;
-            RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE;
 
             if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowHulls)) {
                 renderDebugFlags = (RenderArgs::DebugFlags) (renderDebugFlags | (int) RenderArgs::RENDER_DEBUG_HULLS);
@@ -3428,10 +3468,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
                 renderDebugFlags =
                     (RenderArgs::DebugFlags) (renderDebugFlags | (int) RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP);
             }
-            if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
-                renderMode = RenderArgs::MIRROR_RENDER_MODE;
-            }
-            renderArgs->_renderMode = renderMode;
             renderArgs->_debugFlags = renderDebugFlags;
             _entities.render(renderArgs);
         }
@@ -4501,72 +4537,6 @@ void Application::toggleLogDialog() {
     } else {
         _logDialog->show();
     }
-}
-
-void Application::checkVersion() {
-    QNetworkRequest latestVersionRequest((QUrl(CHECK_VERSION_URL)));
-    latestVersionRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-    latestVersionRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
-    QNetworkReply* reply = NetworkAccessManager::getInstance().get(latestVersionRequest);
-    connect(reply, SIGNAL(finished()), SLOT(parseVersionXml()));
-}
-
-void Application::parseVersionXml() {
-
-    #ifdef Q_OS_WIN32
-    QString operatingSystem("win");
-    #endif
-
-    #ifdef Q_OS_MAC
-    QString operatingSystem("mac");
-    #endif
-
-    #ifdef Q_OS_LINUX
-    QString operatingSystem("ubuntu");
-    #endif
-
-    QString latestVersion;
-    QUrl downloadUrl;
-    QString releaseNotes("Unavailable");
-    QNetworkReply* sender = qobject_cast<QNetworkReply*>(QObject::sender());
-
-    QXmlStreamReader xml(sender);
-
-    while (!xml.atEnd() && !xml.hasError()) {
-        if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name() == operatingSystem) {
-            while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == operatingSystem)) {
-                if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name().toString() == "version") {
-                    xml.readNext();
-                    latestVersion = xml.text().toString();
-                }
-                if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name().toString() == "url") {
-                    xml.readNext();
-                    downloadUrl = QUrl(xml.text().toString());
-                }
-                xml.readNext();
-            }
-        }
-        xml.readNext();
-    }
-
-    if (!shouldSkipVersion(latestVersion) && applicationVersion() != latestVersion) {
-        new UpdateDialog(_glWidget, releaseNotes, latestVersion, downloadUrl);
-    }
-    sender->deleteLater();
-}
-
-bool Application::shouldSkipVersion(QString latestVersion) {
-    QFile skipFile(SKIP_FILENAME);
-    skipFile.open(QIODevice::ReadWrite);
-    QString skipVersion(skipFile.readAll());
-    return (skipVersion == latestVersion || applicationVersion() == "dev");
-}
-
-void Application::skipVersion(QString latestVersion) {
-    QFile skipFile(SKIP_FILENAME);
-    skipFile.open(QIODevice::WriteOnly | QIODevice::Truncate);
-    skipFile.seek(0);
-    skipFile.write(latestVersion.toStdString().c_str());
 }
 
 void Application::takeSnapshot() {
