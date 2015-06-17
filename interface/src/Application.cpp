@@ -821,6 +821,23 @@ void Application::initializeGL() {
     InfoView::show(INFO_HELP_PATH, true);
 }
 
+template <typename F>
+void with_stable_stack_check(F f) {
+    
+    GLint mvDepth, prDepth;
+    glGetIntegerv(GL_MODELVIEW_STACK_DEPTH, &mvDepth);
+    glGetIntegerv(GL_PROJECTION_STACK_DEPTH, &prDepth);
+    
+    f();
+    
+    GLint mvDepthFinal, prDepthFinal;
+    glGetIntegerv(GL_MODELVIEW_STACK_DEPTH, &mvDepthFinal);
+    glGetIntegerv(GL_PROJECTION_STACK_DEPTH, &prDepthFinal);
+    Q_ASSERT(mvDepth == mvDepthFinal);
+    Q_ASSERT(prDepth == prDepthFinal);
+
+}
+
 void Application::initializeUi() {
     AddressBarDialog::registerType();
     ErrorDialog::registerType();
@@ -955,12 +972,14 @@ void Application::paintGL() {
         QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
         glViewport(0, 0, size.width(), size.height());
 
-        glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
-        glLoadIdentity();
-        displaySide(&renderArgs, _myCamera);
-        _compositor.displayOverlayTexture(&renderArgs);
-        glPopMatrix();
+        with_stable_stack_check([&]{
+            glMatrixMode(GL_MODELVIEW);
+            glPushMatrix();
+            glLoadIdentity();
+            displaySide(&renderArgs, _myCamera);
+            _compositor.displayOverlayTexture(&renderArgs);
+            glPopMatrix();
+        });
 
         //renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
         //if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
