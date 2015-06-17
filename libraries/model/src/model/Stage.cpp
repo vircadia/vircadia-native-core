@@ -292,11 +292,6 @@ void SunSkyStage::updateGraphicsObject() const {
         case NUM_BACKGROUND_MODES:
             Q_UNREACHABLE();
     };
-
-    static int firstTime = 0;
-    if (firstTime == 0) {
-        firstTime++;
-    }
 }
 
 void SunSkyStage::setBackgroundMode(BackgroundMode mode) {
