@@ -27,11 +27,11 @@ ScriptCache::ScriptCache(QObject* parent) {
     // nothing to do here...
 }
 
-QString ScriptCache::getScript(const QUrl& url, ScriptUser* scriptUser, bool& isPending, bool redownload) {
-    assert(!_scriptCache.contains(url) || !redownload);
+QString ScriptCache::getScript(const QUrl& url, ScriptUser* scriptUser, bool& isPending, bool reload) {
+    assert(!_scriptCache.contains(url) || !reload);
 
     QString scriptContents;
-    if (_scriptCache.contains(url)) {
+    if (_scriptCache.contains(url) && !reload) {
         qCDebug(scriptengine) << "Found script in cache:" << url.toString();
         scriptContents = _scriptCache[url];
         scriptUser->scriptContentsAvailable(url, scriptContents);
@@ -47,8 +47,8 @@ QString ScriptCache::getScript(const QUrl& url, ScriptUser* scriptUser, bool& is
             QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
             QNetworkRequest networkRequest = QNetworkRequest(url);
             networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-            if (redownload) {
-                networkRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferNetwork);
+            if (reload) {
+                networkRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
                 qCDebug(scriptengine) << "Redownloading script at:" << url.toString();
             } else {
                 qCDebug(scriptengine) << "Downloading script at:" << url.toString();

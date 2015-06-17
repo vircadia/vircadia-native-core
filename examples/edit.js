@@ -1349,6 +1349,15 @@ PropertiesTool = function(opts) {
                     pushCommandForSelections();
                     selectionManager._update();
                 }
+            } else if (data.action == "reloadScript") {
+                if (selectionManager.hasSelection()) {
+                    var timestamp = Date.now();
+                    for (var i = 0; i < selectionManager.selections.length; i++) {
+                        Entities.editEntity(selectionManager.selections[i], {
+                            scriptTimestamp: timestamp,
+                        });
+                    }
+                }
             } else if (data.action == "centerAtmosphereToZone") {
                 if (selectionManager.hasSelection()) {
                     selectionManager.saveProperties();

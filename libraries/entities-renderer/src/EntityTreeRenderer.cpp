@@ -155,13 +155,14 @@ void EntityTreeRenderer::errorInLoadingScript(const QUrl& url) {
     }
 }
 
-QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItemID, bool isPreload) {
+QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItemID, bool isPreload, bool reload) {
     EntityItemPointer entity = static_cast<EntityTree*>(_tree)->findEntityByEntityItemID(entityItemID);
-    return loadEntityScript(entity, isPreload);
+    return loadEntityScript(entity, isPreload, reload);
 }
 
 
-QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL, bool& isPending, QUrl& urlOut) {
+QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL, bool& isPending, QUrl& urlOut, 
+        bool& reload) {
     isPending = false;
     QUrl url(scriptMaybeURLorText);
     
@@ -199,7 +200,7 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
             auto scriptCache = DependencyManager::get<ScriptCache>();
             
             if (!scriptCache->isInBadScriptList(url)) {
-                scriptContents = scriptCache->getScript(url, this, isPending);
+                scriptContents = scriptCache->getScript(url, this, isPending, reload);
             }
         }
     }
@@ -208,7 +209,7 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
 }
 
 
-QScriptValue EntityTreeRenderer::loadEntityScript(EntityItemPointer entity, bool isPreload) {
+QScriptValue EntityTreeRenderer::loadEntityScript(EntityItemPointer entity, bool isPreload, bool reload) {
     if (_shuttingDown) {
         return QScriptValue(); // since we're shutting down, we don't load any more scripts
     }
@@ -228,8 +229,8 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItemPointer entity, bool
     if (_entityScripts.contains(entityID)) {
         EntityScriptDetails details = _entityScripts[entityID];
         
-        // check to make sure our script text hasn't changed on us since we last loaded it
-        if (details.scriptText == entityScript) {
+        // check to make sure our script text hasn't changed on us since we last loaded it and we're not redownloading it
+        if (details.scriptText == entityScript && !reload) {
             return details.scriptObject; // previously loaded
         }
         
@@ -244,7 +245,7 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItemPointer entity, bool
     bool isURL = false; // loadScriptContents() will tell us if this is a URL or just text.
     bool isPending = false;
     QUrl url;
-    QString scriptContents = loadScriptContents(entityScript, isURL, isPending, url);
+    QString scriptContents = loadScriptContents(entityScript, isURL, isPending, url, reload);
     
     if (isPending && isPreload && isURL) {
         _waitingOnPreload.insert(url, entityID);
@@ -1029,17 +1030,17 @@ void EntityTreeRenderer::addEntityToScene(EntityItemPointer entity) {
 }
 
 
-void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID) {
+void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID, const bool reload) {
     if (_tree && !_shuttingDown) {
         checkAndCallUnload(entityID);
-        checkAndCallPreload(entityID);
+        checkAndCallPreload(entityID, reload);
     }
 }
 
-void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID) {
+void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const bool reload) {
     if (_tree && !_shuttingDown) {
         // load the entity script if needed...
-        QScriptValue entityScript = loadEntityScript(entityID, true); // is preload!
+        QScriptValue entityScript = loadEntityScript(entityID, true, reload); // is preload!
         if (entityScript.property("preload").isValid()) {
             QScriptValueList entityArgs = createEntityArgs(entityID);
             entityScript.property("preload").call(entityScript, entityArgs);
