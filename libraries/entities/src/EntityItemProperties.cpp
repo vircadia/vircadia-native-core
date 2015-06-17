@@ -1235,6 +1235,12 @@ bool EntityItemProperties::hasTerseUpdateChanges() const {
     return _positionChanged || _velocityChanged || _rotationChanged || _angularVelocityChanged || _accelerationChanged;
 }
 
+bool EntityItemProperties::hasMiscPhysicsChanges() const {
+    return _gravityChanged || _dimensionsChanged || _densityChanged || _frictionChanged 
+        || _restitutionChanged || _dampingChanged || _angularDampingChanged || _registrationPointChanged ||
+        _compoundShapeURLChanged || _collisionsWillMoveChanged || _ignoreForCollisionsChanged;
+}
+
 void EntityItemProperties::clearSimulatorOwnership() {
     _simulatorID = QUuid();
     _simulatorPriority = 0;

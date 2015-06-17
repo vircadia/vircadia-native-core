@@ -206,6 +206,7 @@ public:
     void setCreated(QDateTime& v);
 
     bool hasTerseUpdateChanges() const;
+    bool hasMiscPhysicsChanges() const;
 
     void clearSimulatorOwnership();
     void setSimulatorOwnership(const QUuid& id, uint8_t priority);

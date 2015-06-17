@@ -140,13 +140,17 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties proper
             if (entity) {
                 // make sure the properties has a type, so that the encode can know which properties to include
                 properties.setType(entity->getType());
-                if (properties.hasTerseUpdateChanges()) {
+                bool hasTerseUpdateChanges = properties.hasTerseUpdateChanges();
+                bool hasPhysicsChanges = properties.hasMiscPhysicsChanges() || hasTerseUpdateChanges;
+                if (hasPhysicsChanges) {
                     auto nodeList = DependencyManager::get<NodeList>();
                     const QUuid myNodeID = nodeList->getSessionUUID();
     
                     if (entity->getSimulatorID() == myNodeID) {
                         // we think we already own the simulation, so make sure to send ALL TerseUpdate properties
-                        entity->getAllTerseUpdateProperties(properties);
+                        if (hasTerseUpdateChanges) {
+                            entity->getAllTerseUpdateProperties(properties);
+                        }
                         // TODO: if we knew that ONLY TerseUpdate properties have changed in properties AND the object 
                         // is dynamic AND it is active in the physics simulation then we could chose to NOT queue an update 
                         // and instead let the physics simulation decide when to send a terse update.  This would remove
@@ -558,7 +562,11 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
                 return false;
             }
             if (actionFactory->factory(simulation, actionType, actionID, entity, arguments)) {
-                entity->flagForOwnership();
+                auto nodeList = DependencyManager::get<NodeList>();
+                const QUuid myNodeID = nodeList->getSessionUUID();
+                if (entity->getSimulatorID() != myNodeID) {
+                    entity->flagForOwnership();
+                }
                 return true;
             }
             return false;
@@ -574,7 +582,11 @@ bool EntityScriptingInterface::updateAction(const QUuid& entityID, const QUuid& 
     return actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
             bool success = entity->updateAction(simulation, actionID, arguments);
             if (success) {
-                entity->flagForOwnership();
+                auto nodeList = DependencyManager::get<NodeList>();
+                const QUuid myNodeID = nodeList->getSessionUUID();
+                if (entity->getSimulatorID() != myNodeID) {
+                    entity->flagForOwnership();
+                }
             }
             return success;
         });
