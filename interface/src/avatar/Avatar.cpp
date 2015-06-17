@@ -511,7 +511,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
 
     auto cameraMode = Application::getInstance()->getCamera()->getMode();
     if (!isMyAvatar() || cameraMode != CAMERA_MODE_FIRST_PERSON) {
-        renderDisplayName(batch, *frustum);
+        renderDisplayName(batch, *renderArgs->_viewFrustum);
     }
 }
 
