@@ -19,6 +19,18 @@ namespace render {
 
 
 
+    template <class T> void jobRun(T& jobModel, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+        jobModel.run(sceneContext, renderContext);
+    }
+    template <class T, class I> void jobRunI(T& jobModel, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const I& input) {
+        jobModel.run(sceneContext, renderContext, input);
+    }
+    template <class T, class O> void jobRunO(T& jobModel, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, O& output) {
+        jobModel.run(sceneContext, renderContext, output);
+    }
+    template <class T, class I, class O> void jobRunIO(T& jobModel, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const I& input, O& output) {
+        jobModel.run(sceneContext, renderContext, input, output);
+    }
 
 template <class T> void jobRun(T& jobModel, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     jobModel.run(sceneContext, renderContext);
@@ -78,6 +90,7 @@ public:
     Job(const Job& other) : _concept(other._concept) {}
     ~Job();
 
+    const std::string& getName() const { return _concept->getName(); }
     const Varying getInput() const { return _concept->getInput(); }
     const Varying getOutput() const { return _concept->getOutput(); }
 
@@ -93,6 +106,7 @@ public:
     class Concept {
     public:
         virtual ~Concept() = default;
+        virtual const std::string getName() const = 0;
         virtual const Varying getInput() const { return Varying(); }
         virtual const Varying getOutput() const { return Varying(); }
         virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) = 0;

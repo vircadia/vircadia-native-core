@@ -551,11 +551,13 @@ void DrawPostLayered::run(const SceneContextPointer& sceneContext, const RenderC
     batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0);
 
     renderItems(sceneContext, renderContext, inItems);
+    
+    // Force the context sync
+    args->_context->syncCache();
+    
     args->_context->render((*args->_batch));
     args->_batch = nullptr;
 
-    // Force the context sync
-    args->_context->syncCache();
 }
 
 

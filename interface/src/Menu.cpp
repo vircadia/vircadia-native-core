@@ -90,6 +90,30 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(fileMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
                                   qApp, SLOT(toggleRunningScriptsWidget()));
 
+    auto addressManager = DependencyManager::get<AddressManager>();
+
+    addDisabledActionAndSeparator(fileMenu, "History");
+
+    QAction* backAction = addActionToQMenuAndActionHash(fileMenu,
+                                                        MenuOption::Back,
+                                                        0,
+                                                        addressManager.data(),
+                                                        SLOT(goBack()));
+
+    QAction* forwardAction = addActionToQMenuAndActionHash(fileMenu,
+                                                           MenuOption::Forward,
+                                                           0,
+                                                           addressManager.data(),
+                                                           SLOT(goForward()));
+
+    // connect to the AddressManager signal to enable and disable the back and forward menu items
+    connect(addressManager.data(), &AddressManager::goBackPossible, backAction, &QAction::setEnabled);
+    connect(addressManager.data(), &AddressManager::goForwardPossible, forwardAction, &QAction::setEnabled);
+
+    // set the two actions to start disabled since the stacks are clear on startup
+    backAction->setDisabled(true);
+    forwardAction->setDisabled(true);
+
     addDisabledActionAndSeparator(fileMenu, "Location");
     qApp->getBookmarks()->setupMenus(this, fileMenu);
 
@@ -98,7 +122,6 @@ Menu::Menu() {
                                   Qt::CTRL | Qt::Key_L,
                                   dialogsManager.data(),
                                   SLOT(toggleAddressBar()));
-    auto addressManager = DependencyManager::get<AddressManager>();
     addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyAddress, 0,
                                   addressManager.data(), SLOT(copyAddress()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyPath, 0,
@@ -407,7 +430,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::MuteFaceTracking,
         Qt::CTRL | Qt::SHIFT | Qt::Key_F, true,  // DDE face tracking is on by default
         qApp, SLOT(toggleFaceTrackerMute()));
-    addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::AutoMuteAudio, 0, true);
+    addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::AutoMuteAudio, 0, false);
 #endif
 
     auto avatarManager = DependencyManager::get<AvatarManager>();
