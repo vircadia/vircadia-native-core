@@ -22,7 +22,9 @@ varying vec4 varColor;
 
 void main(void) {
     vec4 diffuse = texture2D(diffuseMap, varTexcoord.st);
-
+    if (diffuse.a < 0.5) {
+        discard;
+    }
     
-    gl_FragColor = vec4(varColor * diffuse);
+    gl_FragColor = vec4(varColor.rgb * (1 - diffuse.a) + diffuse.a * diffuse.rgb, 1.0);
 }
