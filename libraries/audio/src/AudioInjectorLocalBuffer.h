@@ -32,9 +32,6 @@ public:
     void setCurrentOffset(int currentOffset) { _currentOffset = currentOffset; }
     void setVolume(float volume) { _volume = glm::clamp(volume, 0.0f, 1.0f); }
     
-signals:
-    void bufferEmpty();
-    
 private:
     qint64 recursiveReadFromFront(char* data, qint64 maxSize);
     

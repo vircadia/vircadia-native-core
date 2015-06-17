@@ -16,8 +16,9 @@
 #include <QMutex>
 
 #include <HifiSockAddr.h>
+#include <gpu/Batch.h>
 
-#include "EnvironmentData.h"
+#include <EnvironmentData.h>
 
 class ViewFrustum;
 class ProgramObject;
@@ -29,7 +30,7 @@ public:
 
     void init();
     void resetToDefault();
-    void renderAtmospheres(ViewFrustum& camera);
+    void renderAtmospheres(gpu::Batch& batch, ViewFrustum& camera);
 
     void override(const EnvironmentData& overrideData) { _overrideData = overrideData; _environmentIsOverridden = true; }
     void endOverride() { _environmentIsOverridden = false; }
@@ -44,14 +45,10 @@ private:
     bool findCapsulePenetration(const glm::vec3& start, 
             const glm::vec3& end, float radius, glm::vec3& penetration); // NOTE: Deprecated
 
-    ProgramObject* createSkyProgram(const char* from, int* locations);
-
-    void renderAtmosphere(ViewFrustum& camera, const EnvironmentData& data);
+    void renderAtmosphere(gpu::Batch& batch, ViewFrustum& camera, const EnvironmentData& data);
 
     bool _initialized;
-    ProgramObject* _skyFromAtmosphereProgram;
-    ProgramObject* _skyFromSpaceProgram;
-    
+
     enum {
         CAMERA_POS_LOCATION,
         LIGHT_POS_LOCATION,
@@ -72,6 +69,11 @@ private:
         LOCATION_COUNT
     };
     
+    void setupAtmosphereProgram(const char* vertSource, const char* fragSource, gpu::PipelinePointer& pipelineProgram, int* locations);
+
+
+    gpu::PipelinePointer _skyFromAtmosphereProgram;
+    gpu::PipelinePointer _skyFromSpaceProgram;
     int _skyFromAtmosphereUniformLocations[LOCATION_COUNT];
     int _skyFromSpaceUniformLocations[LOCATION_COUNT];
     
