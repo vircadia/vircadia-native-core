@@ -124,7 +124,9 @@ public:
     push();
     f();
     pop();
+    #ifdef DEBUG
     assert(startingDepth = size());
+    #endif
   }
 
   template <typename Function>
