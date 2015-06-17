@@ -17,7 +17,7 @@
 
 #include <QDesktopWidget>
 #include <QGuiApplication>
-#include <QScreen>	
+#include <QScreen>
 #include <QOpenGLTimerQuery>
 
 #include <glm/glm.hpp>
@@ -214,7 +214,7 @@ void OculusManager::connect() {
 #endif
     } else {
         _isConnected = false;
-        
+
         // we're definitely not in "VR mode" so tell the menu that
         Menu::getInstance()->getActionForOption(MenuOption::EnableVRMode)->setChecked(false);
     }
@@ -346,7 +346,7 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
             break;
         default:
             break;
-            
+
     }
 }
 
@@ -395,7 +395,7 @@ void OculusManager::generateDistortionMesh() {
             v->texB.y = ov->TanEyeAnglesB.y;
             v->color.r = v->color.g = v->color.b = (GLubyte)(ov->VignetteFactor * 255.99f);
             v->color.a = (GLubyte)(ov->TimeWarpFactor * 255.99f);
-            v++; 
+            v++;
             ov++;
         }
 
@@ -410,7 +410,7 @@ void OculusManager::generateDistortionMesh() {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _indices[eyeNum]);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned short) * meshData.IndexCount, meshData.pIndexData, GL_STATIC_DRAW);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-        
+
         //Now that we have the VBOs we can get rid of the mesh data
         delete [] pVBVerts;
         ovrHmd_DestroyDistortionMesh(&meshData);
@@ -476,7 +476,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
 
     // Every so often do some additional timing calculations and debug output
     bool debugFrame = 0 == _frameIndex % 400;
-    
+
 #if 0
     // Try to measure the amount of time taken to do the distortion
     // (does not seem to work on OSX with SDK based distortion)
@@ -487,14 +487,14 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
     if (!timerQuery.isCreated()) {
         timerQuery.create();
     }
-    
+
     if (timerActive && timerQuery.isResultAvailable()) {
         auto result = timerQuery.waitForResult();
         if (result) { qCDebug(interfaceapp) << "Distortion took "  << result << "ns"; };
         timerActive = false;
     }
 #endif
-    
+
 #ifdef OVR_DIRECT_MODE
     static bool attached = false;
     if (!attached) {
@@ -505,7 +505,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
         }
     }
 #endif
-    
+
 #ifndef OVR_CLIENT_DISTORTION
     // FIXME:  we need a better way of responding to the HSW.  In particular
     // we need to ensure that it's only displayed once per session, rather than
@@ -522,7 +522,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
         }
     }
 #endif
-    
+
 
     //beginFrameTiming must be called before display
     if (!_frameTimingActive) {
@@ -545,14 +545,14 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
 
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
-  
+
     glm::quat orientation;
     glm::vec3 trackerPosition;
     auto deviceSize = qApp->getDeviceSize();
 
     ovrTrackingState ts = ovrHmd_GetTrackingState(_ovrHmd, ovr_GetTimeInSeconds());
     ovrVector3f ovrHeadPosition = ts.HeadPose.ThePose.Position;
-    
+
     trackerPosition = glm::vec3(ovrHeadPosition.x, ovrHeadPosition.y, ovrHeadPosition.z);
 
     if (_calibrationState != CALIBRATED) {
@@ -628,7 +628,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
         glViewport(0, 0, _renderTargetSize.w, _renderTargetSize.h);
         finalFbo = DependencyManager::get<GlowEffect>()->render(renderArgs);
     } else {
-        finalFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer(); 
+        finalFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
@@ -645,7 +645,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
 #endif
 
 #ifdef OVR_CLIENT_DISTORTION
-    
+
     //Wait till time-warp to reduce latency
     ovr_WaitTillTime(_hmdFrameTiming.TimewarpPointSeconds);
 
@@ -656,7 +656,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
         0, 0, fboSize.x, fboSize.y,
         0, 0, deviceSize.width(), deviceSize.height(),
         GL_COLOR_BUFFER_BIT, GL_NEAREST);
-#else 
+#else
     //Clear the color buffer to ensure that there isnt any residual color
     //Left over from when OR was not connected.
     glClear(GL_COLOR_BUFFER_BIT);
@@ -672,7 +672,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
     for_each_eye([&](ovrEyeType eye) {
         ovrGLTexture & glEyeTexture = reinterpret_cast<ovrGLTexture&>(_eyeTextures[eye]);
         glEyeTexture.OGL.TexId = finalFbo->texture();
-        
+
     });
 
     ovrHmd_EndFrame(_ovrHmd, eyeRenderPose, _eyeTextures);
@@ -699,12 +699,14 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
 
             if (nonZero)
             {
-                qCDebug(interfaceapp) << QString().sprintf("M2P Latency: Ren: %4.2fms TWrp: %4.2fms PostPresent: %4.2fms Err: %4.2fms %4.2fms",
-                                             latencies[0], latencies[1], latencies[2], latencies[3], latencies[4]);
+                qCDebug(interfaceapp)
+                    << QString().sprintf("M2P Latency: Ren: %4.2fms TWrp: %4.2fms PostPresent: %4.2fms Err: %4.2fms %4.2fms",
+                                         (double)latencies[0], (double)latencies[1], (double)latencies[2],
+                                         (double)latencies[3], (double)latencies[4]);
             }
         }
     }
-    
+
 }
 
 #ifdef OVR_CLIENT_DISTORTION
@@ -728,7 +730,7 @@ void OculusManager::renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]) {
 
     //Render the distortion meshes for each eye
     for (int eyeNum = 0; eyeNum < ovrEye_Count; eyeNum++) {
-        
+
         ovrHmd_GetRenderScaleAndOffset(_eyeRenderDesc[eyeNum].Fov, _renderTargetSize, _eyeTextures[eyeNum].Header.RenderViewport,
                                        _UVScaleOffset[eyeNum]);
 
@@ -844,7 +846,7 @@ int OculusManager::getHMDScreen() {
         const int SIMILAR_NAMES = 10;
         const int EXACT_LOCATION_MATCH = 50;
         const int EXACT_RESOLUTION_MATCH = 25;
-        
+
         int bestMatchScore = 0;
 
         // look at the display list and see if we can find the best match
@@ -853,7 +855,7 @@ int OculusManager::getHMDScreen() {
         foreach (QScreen* screen, QGuiApplication::screens()) {
             QString screenName = screen->name();
             QRect screenRect = desktop->screenGeometry(screenNumber);
-            
+
             int screenScore = 0;
             if (screenName == productNameFromOVR) {
                 screenScore += EXACT_NAME_MATCH;

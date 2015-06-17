@@ -77,7 +77,7 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     const float AUDIO_LONG_TERM_AVERAGING_SECS = 30.0f;
     _averageLoudness = glm::mix(_averageLoudness, _audioLoudness, glm::min(deltaTime / AUDIO_AVERAGING_SECS, 1.0f));
 
-    if (_longTermAverageLoudness == -1.0) {
+    if (_longTermAverageLoudness == -1.0f) {
         _longTermAverageLoudness = _averageLoudness;
     } else {
         _longTermAverageLoudness = glm::mix(_longTermAverageLoudness, _averageLoudness, glm::min(deltaTime / AUDIO_LONG_TERM_AVERAGING_SECS, 1.0f));

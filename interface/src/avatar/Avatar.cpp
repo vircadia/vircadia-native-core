@@ -691,16 +691,18 @@ float Avatar::calculateDisplayNameScaleFactor(const glm::vec3& textPosition, boo
 
     glm::dvec4 p0 = modelViewMatrix * glm::dvec4(testPoint0, 1.0);
     p0 = projectionMatrix * p0;
-    glm::dvec2 result0 = glm::vec2(windowSizeX * (p0.x / p0.w + 1.0f) * 0.5f, windowSizeY * (p0.y / p0.w + 1.0f) * 0.5f);
+    glm::dvec2 result0 = glm::vec2(windowSizeX * ((float)p0.x / (float)p0.w + 1.0f) * 0.5f,
+                                   windowSizeY * ((float)p0.y / (float)p0.w + 1.0f) * 0.5f);
 
     glm::dvec4 p1 = modelViewMatrix * glm::dvec4(testPoint1, 1.0);
     p1 = projectionMatrix * p1;
-    glm::vec2 result1 = glm::vec2(windowSizeX * (p1.x / p1.w + 1.0f) * 0.5f, windowSizeY * (p1.y / p1.w + 1.0f) * 0.5f);
-    textWindowHeight = abs(result1.y - result0.y);
+    glm::vec2 result1 = glm::vec2(windowSizeX * ((float)p1.x / (float)p1.w + 1.0f) * 0.5f,
+                                  windowSizeY * ((float)p1.y / (float)p1.w + 1.0f) * 0.5f);
+    textWindowHeight = fabs((double)result1.y - (double)result0.y);
 
     // need to scale to compensate for the font resolution due to the device
-    float scaleFactor = QApplication::desktop()->windowHandle()->devicePixelRatio() *
-        ((textWindowHeight > EPSILON) ? 1.0f / textWindowHeight : 1.0f);
+    float scaleFactor = (float)QApplication::desktop()->windowHandle()->devicePixelRatio() *
+        (((float)textWindowHeight > EPSILON) ? 1.0f / (float)textWindowHeight : 1.0f);
     if (inHMD) {
         const float HMDMODE_NAME_SCALE = 0.65f;
         scaleFactor *= HMDMODE_NAME_SCALE;

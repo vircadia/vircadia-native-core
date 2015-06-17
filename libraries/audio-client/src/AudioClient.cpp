@@ -33,10 +33,19 @@
 #include <QtMultimedia/QAudioInput>
 #include <QtMultimedia/QAudioOutput>
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#endif
+
 extern "C" {
     #include <gverb/gverb.h>
     #include <gverb/gverbdsp.h>
 }
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 #include <soxr.h>
 
