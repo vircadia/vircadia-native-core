@@ -125,7 +125,7 @@ public:
     f();
     pop();
     #ifdef DEBUG
-    assert(startingDepth = size());
+    assert(startingDepth == size());
     #endif
   }
 
