@@ -13,6 +13,7 @@
 #define hifi_SixenseManager_h
 
 #include <QObject>
+#include <unordered_set>
 
 #ifdef HAVE_SIXENSE
     #include <glm/glm.hpp>
@@ -25,6 +26,8 @@
 
 #endif
 
+#include "ui/UserInputMapper.h"
+
 class PalmData;
 
 const unsigned int BUTTON_0 = 1U << 0; // the skinny button between 1 and 2
@@ -33,6 +36,7 @@ const unsigned int BUTTON_2 = 1U << 6;
 const unsigned int BUTTON_3 = 1U << 3;
 const unsigned int BUTTON_4 = 1U << 4;
 const unsigned int BUTTON_FWD = 1U << 7;
+const unsigned int BUTTON_TRIGGER = 1U << 8;
 
 // Event type that represents using the controller
 const unsigned int CONTROLLER_0_EVENT = 1500U;
@@ -45,6 +49,14 @@ const bool DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS = false;
 class SixenseManager : public QObject {
     Q_OBJECT
 public:
+    enum JoystickAxisChannel {
+        AXIS_Y_POS = 1U << 0,
+        AXIS_Y_NEG = 1U << 3,
+        AXIS_X_POS = 1U << 4,
+        AXIS_X_NEG = 1U << 5,
+        BACK_TRIGGER = 1U << 6,
+    };
+    
     static SixenseManager& getInstance();
     
     void initialize();
@@ -60,6 +72,21 @@ public:
     bool getInvertButtons() const { return _invertButtons; }
     void setInvertButtons(bool invertSixenseButtons) { _invertButtons = invertSixenseButtons; }
     
+    typedef std::unordered_set<int> ButtonPressedMap;
+    typedef std::map<int, float> AxisStateMap;
+    
+    float getButton(int channel) const;
+    float getAxis(int channel) const;
+    
+    UserInputMapper::Input makeInput(unsigned int button, int index);
+    UserInputMapper::Input makeInput(JoystickAxisChannel axis, int index);
+    
+    void registerToUserInputMapper(UserInputMapper& mapper);
+    void assignDefaultInputMapping(UserInputMapper& mapper);
+    
+    void update();
+    void focusOutEvent();
+    
 public slots:
     void toggleSixense(bool shouldEnable);
     void setFilter(bool filter);
@@ -69,6 +96,8 @@ private:
     SixenseManager();
     ~SixenseManager();
     
+    void handleButtonEvent(unsigned int buttons, int index);
+    void handleAxisEvent(float x, float y, float trigger, int index);
 #ifdef HAVE_SIXENSE
     void updateCalibration(const sixenseControllerData* controllers);
     void emulateMouse(PalmData* palm, int index);
@@ -104,12 +133,19 @@ private:
     bool _bumperPressed[2];
     int _oldX[2];
     int _oldY[2];
+    PalmData* _prevPalms[2];
     
     bool _lowVelocityFilter;
     bool _controllersAtBase;
     
     float _reticleMoveSpeed = DEFAULT_SIXENSE_RETICLE_MOVE_SPEED;
     bool _invertButtons = DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS;
+
+protected:
+    int _deviceID = 0;
+    
+    ButtonPressedMap _buttonPressedMap;
+    AxisStateMap _axisStateMap;
 };
 
 #endif // hifi_SixenseManager_h

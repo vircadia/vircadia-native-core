@@ -369,7 +369,8 @@ private:
     };
 
     QHash<QPair<int,int>, AABox> _calculatedMeshPartBoxes; // world coordinate AABoxes for all sub mesh part boxes
-    QHash<QPair<int,int>, qint64> _calculatedMeshPartOffet;
+    QHash<QPair<int,int>, qint64> _calculatedMeshPartOffset;
+    bool _calculatedMeshPartOffsetValid;
    
     
     bool _calculatedMeshPartBoxesValid;
@@ -381,6 +382,7 @@ private:
     QMutex _mutex;
 
     void recalculateMeshBoxes(bool pickAgainstTriangles = false);
+    void recalculateMeshPartOffsets();
 
     void segregateMeshGroups(); // used to calculate our list of translucent vs opaque meshes
 

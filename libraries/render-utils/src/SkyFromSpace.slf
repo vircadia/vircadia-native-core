@@ -108,7 +108,8 @@ void main (void)
 	float fMiePhase = 1.5 * ((1.0 - g2) / (2.0 + g2)) * (1.0 + fCos*fCos) / pow(1.0 + g2 - 2.0*g*fCos, 1.5);
 	vec3 color = v3FrontColor * (v3InvWavelength * fKrESun);
 	vec3 secondaryColor = v3FrontColor * fKmESun;
-    gl_FragColor.rgb = color + fMiePhase * secondaryColor;
-	gl_FragColor.a = gl_FragColor.b;
-    gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0/2.2));
+
+    vec3 finalColor = color + fMiePhase * secondaryColor;
+    gl_FragColor.a = finalColor.b;
+    gl_FragColor.rgb = pow(finalColor.rgb, vec3(1.0/2.2));
 }

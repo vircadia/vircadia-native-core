@@ -14,6 +14,8 @@
 
 #include "render/DrawTask.h"
 
+#include "gpu/Pipeline.h"
+
 class PrepareDeferred {
 public:
 };
@@ -48,6 +50,15 @@ public:
 };
 namespace render {
 template <> void jobRun(const DrawTransparentDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+}
+
+class DrawOverlay3D {
+    mutable gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
+public:
+    const gpu::PipelinePointer& getOpaquePipeline() const;
+};
+namespace render {
+template <> void jobRun(const DrawOverlay3D& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
 }
 
 class RenderDeferredTask : public render::Task {
