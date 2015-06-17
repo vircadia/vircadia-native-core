@@ -229,8 +229,6 @@ protected:
     AtmospherePointer _atmosphere;
     mutable SkyboxPointer _skybox;
 
-    gpu::PipelinePointer _skyPipeline;
-
     float _dayTime = 12.0f;
     int _yearTime = 0;
     mutable EarthSunModel _earthSunModel;
