@@ -45,19 +45,64 @@ DialogContainer {
             property int inputAreaHeight: 56.0 * root.scale  // Height of the background's input area
             property int inputAreaStep: (height - inputAreaHeight) / 2
 
+            Image {
+                id: backArrow
+
+                source: "../images/left-arrow.svg"
+                scale: 0.9
+                
+                anchors {
+                    fill: parent
+                    leftMargin: parent.height + hifi.layout.spacing + 6
+                    rightMargin: parent.height + hifi.layout.spacing * 60
+                    topMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
+                    bottomMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton
+                    onClicked: {  
+                        addressBarDialog.loadBack()
+                    }
+                }
+            }
+            
+            Image {
+                id: forwardArrow
+
+                source: "../images/darkgreyarrow.svg"
+                
+                anchors {
+                    fill: parent
+                    leftMargin: parent.height + hifi.layout.spacing * 9
+                    rightMargin: parent.height + hifi.layout.spacing * 53
+                    topMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
+                    bottomMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton
+                    onClicked: {
+                        addressBarDialog.loadForward()
+                    }
+                }
+            }
+
             TextInput {
                 id: addressLine
 
                 anchors {
                     fill: parent
-                    leftMargin: parent.height + hifi.layout.spacing * 2
+                    leftMargin: parent.height + parent.height + hifi.layout.spacing * 5
                     rightMargin: hifi.layout.spacing * 2
                     topMargin: parent.inputAreaStep + hifi.layout.spacing
                     bottomMargin: parent.inputAreaStep + hifi.layout.spacing
 
                 }
 
-                font.pixelSize: hifi.fonts.pixelSize * root.scale
+                font.pixelSize: hifi.fonts.pixelSize * root.scale * 0.75
 
                 helperText: "Go to: place, @user, /path, network address"
 
@@ -66,7 +111,7 @@ DialogContainer {
                     addressBarDialog.loadAddress(addressLine.text)
                 }
             }
-
+ 
             MouseArea {
                 // Drag the icon
                 width: parent.height
@@ -82,6 +127,7 @@ DialogContainer {
                 }
             }
 
+            /*
             MouseArea {
                 // Drag the input rectangle
                 width: parent.width - parent.height
@@ -95,7 +141,7 @@ DialogContainer {
                     maximumX: root.parent ? root.maximumX : 0
                     maximumY: root.parent ? root.maximumY + parent.inputAreaStep : 0
                 }
-            }
+            }*/
         }
     }
 
