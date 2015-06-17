@@ -60,6 +60,7 @@
 #include <CursorManager.h>
 #include <AmbientOcclusionEffect.h>
 #include <AudioInjector.h>
+#include <AutoUpdater.h>
 #include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <EntityScriptingInterface.h>
@@ -148,6 +149,7 @@
 #include "ui/StandAloneJSConsole.h"
 #include "ui/Stats.h"
 #include "ui/AddressBarDialog.h"
+#include "ui/UpdateDialog.h"
 
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
@@ -297,6 +299,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto discoverabilityManager = DependencyManager::set<DiscoverabilityManager>();
     auto sceneScriptingInterface = DependencyManager::set<SceneScriptingInterface>();
     auto offscreenUi = DependencyManager::set<OffscreenUi>();
+    auto autoUpdater = DependencyManager::set<AutoUpdater>();
     auto pathUtils = DependencyManager::set<PathUtils>();
     auto actionFactory = DependencyManager::set<InterfaceActionFactory>();
 
@@ -558,8 +561,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // allow you to move an entity around in your hand
     _entityEditSender.setPacketsPerSecond(3000); // super high!!
 
-    checkVersion();
-
     _overlays.init(); // do this before scripts load
 
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
@@ -631,8 +632,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     ddeTracker->init();
     connect(ddeTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
 #endif
+    
+    auto applicationUpdater = DependencyManager::get<AutoUpdater>();
+    connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
+    applicationUpdater->checkForUpdate();
 }
-
 
 void Application::aboutToQuit() {
     emit beforeAboutToQuit();
@@ -824,6 +828,7 @@ void Application::initializeUi() {
     MessageDialog::registerType();
     VrMenu::registerType();
     Tooltip::registerType();
+    UpdateDialog::registerType();
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_glWidget->context()->contextHandle());
@@ -4509,72 +4514,6 @@ void Application::toggleLogDialog() {
     } else {
         _logDialog->show();
     }
-}
-
-void Application::checkVersion() {
-    QNetworkRequest latestVersionRequest((QUrl(CHECK_VERSION_URL)));
-    latestVersionRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-    latestVersionRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
-    QNetworkReply* reply = NetworkAccessManager::getInstance().get(latestVersionRequest);
-    connect(reply, SIGNAL(finished()), SLOT(parseVersionXml()));
-}
-
-void Application::parseVersionXml() {
-
-    #ifdef Q_OS_WIN32
-    QString operatingSystem("win");
-    #endif
-
-    #ifdef Q_OS_MAC
-    QString operatingSystem("mac");
-    #endif
-
-    #ifdef Q_OS_LINUX
-    QString operatingSystem("ubuntu");
-    #endif
-
-    QString latestVersion;
-    QUrl downloadUrl;
-    QString releaseNotes("Unavailable");
-    QNetworkReply* sender = qobject_cast<QNetworkReply*>(QObject::sender());
-
-    QXmlStreamReader xml(sender);
-
-    while (!xml.atEnd() && !xml.hasError()) {
-        if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name() == operatingSystem) {
-            while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == operatingSystem)) {
-                if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name().toString() == "version") {
-                    xml.readNext();
-                    latestVersion = xml.text().toString();
-                }
-                if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name().toString() == "url") {
-                    xml.readNext();
-                    downloadUrl = QUrl(xml.text().toString());
-                }
-                xml.readNext();
-            }
-        }
-        xml.readNext();
-    }
-
-    if (!shouldSkipVersion(latestVersion) && applicationVersion() != latestVersion) {
-        new UpdateDialog(_glWidget, releaseNotes, latestVersion, downloadUrl);
-    }
-    sender->deleteLater();
-}
-
-bool Application::shouldSkipVersion(QString latestVersion) {
-    QFile skipFile(SKIP_FILENAME);
-    skipFile.open(QIODevice::ReadWrite);
-    QString skipVersion(skipFile.readAll());
-    return (skipVersion == latestVersion || applicationVersion() == "dev");
-}
-
-void Application::skipVersion(QString latestVersion) {
-    QFile skipFile(SKIP_FILENAME);
-    skipFile.open(QIODevice::WriteOnly | QIODevice::Truncate);
-    skipFile.seek(0);
-    skipFile.write(latestVersion.toStdString().c_str());
 }
 
 void Application::takeSnapshot() {

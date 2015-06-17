@@ -66,7 +66,6 @@
 #include "ui/SnapshotShareDialog.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
-#include "ui/UpdateDialog.h"
 #include "ui/overlays/Overlays.h"
 #include "ui/ApplicationOverlay.h"
 #include "ui/ApplicationCompositor.h"
@@ -312,8 +311,6 @@ public:
 
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
 
-    void skipVersion(QString latestVersion);
-
     QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
     ScriptEngine* getScriptEngine(QString scriptHash) { return _scriptEnginesHash.contains(scriptHash) ? _scriptEnginesHash[scriptHash] : NULL; }
     
@@ -462,8 +459,6 @@ private slots:
     void closeMirrorView();
     void restoreMirrorView();
     void shrinkMirrorView();
-
-    void parseVersionXml();
 
     void manageRunningScriptsWidgetVisibility(bool shown);
     
@@ -619,9 +614,6 @@ private:
 
     FileLogger* _logger;
 
-    void checkVersion();
-    void displayUpdateDialog();
-    bool shouldSkipVersion(QString latestVersion);
     void takeSnapshot();
 
     TouchEvent _lastTouchEvent;
