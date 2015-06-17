@@ -20,6 +20,8 @@
 #undef main
 #endif
 
+#include "ui/UserInputMapper.h"
+
 class Joystick : public QObject {
     Q_OBJECT
     
@@ -29,11 +31,39 @@ class Joystick : public QObject {
     Q_PROPERTY(int instanceId READ getInstanceId)
 #endif
     
-    Q_PROPERTY(int numAxes READ getNumAxes)
-    Q_PROPERTY(int numButtons READ getNumButtons)
 public:
+    enum JoystickAxisChannel {
+        LEFT_AXIS_X_POS = 0,
+        LEFT_AXIS_X_NEG,
+        LEFT_AXIS_Y_POS,
+        LEFT_AXIS_Y_NEG,
+        RIGHT_AXIS_X_POS,
+        RIGHT_AXIS_X_NEG,
+        RIGHT_AXIS_Y_POS,
+        RIGHT_AXIS_Y_NEG,
+        RIGHT_SHOULDER,
+        LEFT_SHOULDER,
+    };
+    
     Joystick();
     ~Joystick();
+    
+    typedef std::unordered_set<int> ButtonPressedMap;
+    typedef std::map<int, float> AxisStateMap;
+    
+    float getButton(int channel) const;
+    float getAxis(int channel) const;
+    
+#ifdef HAVE_SDL2
+    UserInputMapper::Input makeInput(SDL_GameControllerButton button);
+#endif
+    UserInputMapper::Input makeInput(Joystick::JoystickAxisChannel axis);
+    
+    void registerToUserInputMapper(UserInputMapper& mapper);
+    void assignDefaultInputMapping(UserInputMapper& mapper);
+    
+    void update();
+    void focusOutEvent();
     
 #ifdef HAVE_SDL2
     Joystick(SDL_JoystickID instanceId, const QString& name, SDL_GameController* sdlGameController);
@@ -51,15 +81,8 @@ public:
     int getInstanceId() const { return _instanceId; }
 #endif
     
-    const QVector<float>& getAxes() const { return _axes; }
-    const QVector<bool>& getButtons() const { return _buttons; }
+    int getDeviceID() { return _deviceID; }
     
-    int getNumAxes() const { return _axes.size(); }
-    int getNumButtons() const { return _buttons.size(); }
-    
-signals:
-    void axisValueChanged(int axis, float newValue, float oldValue);
-    void buttonStateChanged(int button, float newValue, float oldValue);
 private:
 #ifdef HAVE_SDL2
     SDL_GameController* _sdlGameController;
@@ -68,8 +91,12 @@ private:
 #endif
 
     QString _name;
-    QVector<float> _axes;
-    QVector<bool> _buttons;
+    
+protected:
+    int _deviceID = 0;
+    
+    ButtonPressedMap _buttonPressedMap;
+    AxisStateMap _axisStateMap;
 };
 
-#endif // hifi_JoystickTracker_h
+#endif // hifi_Joystick_h

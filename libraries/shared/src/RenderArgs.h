@@ -13,6 +13,8 @@
 #define hifi_RenderArgs_h
 
 #include <functional>
+#include <memory>
+
 
 class AABox;
 class OctreeRenderer;
@@ -20,6 +22,7 @@ class ViewFrustum;
 namespace gpu {
 class Batch;
 class Context;
+class Texture;
 }
 
 class RenderDetails {
@@ -109,6 +112,8 @@ public:
     gpu::Batch* _batch = nullptr;
     ShoudRenderFunctor _shouldRender;
     
+    std::shared_ptr<gpu::Texture> _whiteTexture;
+
     RenderDetails _details;
 
     float _alphaThreshold = 0.5f;

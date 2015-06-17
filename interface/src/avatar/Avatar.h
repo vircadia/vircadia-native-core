@@ -52,6 +52,8 @@ enum DriveKeys {
     ROT_RIGHT,
     ROT_UP,
     ROT_DOWN,
+    BOOM_IN,
+    BOOM_OUT,
     MAX_DRIVE_KEYS
 };
 

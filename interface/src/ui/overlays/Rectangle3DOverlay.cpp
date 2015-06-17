@@ -41,74 +41,116 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
     const float MAX_COLOR = 255.0f;
     glm::vec4 rectangleColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
-    glDisable(GL_LIGHTING);
-    
     glm::vec3 position = getPosition();
     glm::vec3 center = getCenter();
     glm::vec2 dimensions = getDimensions();
     glm::vec2 halfDimensions = dimensions * 0.5f;
     glm::quat rotation = getRotation();
 
-    float glowLevel = getGlowLevel();
-    Glower* glower = NULL;
-    if (glowLevel > 0.0f) {
-        glower = new Glower(glowLevel);
-    }
+    auto batch = args->_batch;
 
-    glPushMatrix();
-        glTranslatef(position.x, position.y, position.z);
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-        glPushMatrix();
-            glm::vec3 positionToCenter = center - position;
-            glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-            //glScalef(dimensions.x, dimensions.y, 1.0f);
+    if (batch) {
+        Transform transform;
+        transform.setTranslation(position);
+        transform.setRotation(rotation);
 
-            glLineWidth(_lineWidth);
+        batch->setModelTransform(transform);
 
+        if (getIsSolid()) {
+            glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, 0.0f);
+            glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, 0.0f);
+            DependencyManager::get<GeometryCache>()->renderQuad(*batch, topLeft, bottomRight, rectangleColor);
+        } else {
             auto geometryCache = DependencyManager::get<GeometryCache>();
+            if (getIsDashedLine()) {
+                glm::vec3 point1(-halfDimensions.x, -halfDimensions.y, 0.0f);
+                glm::vec3 point2(halfDimensions.x, -halfDimensions.y, 0.0f);
+                glm::vec3 point3(halfDimensions.x, halfDimensions.y, 0.0f);
+                glm::vec3 point4(-halfDimensions.x, halfDimensions.y, 0.0f);
             
-            // for our overlay, is solid means we draw a solid "filled" rectangle otherwise we just draw a border line...
-            if (getIsSolid()) {
-                glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, 0.0f);
-                glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, 0.0f);
-                DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, rectangleColor);
+                geometryCache->renderDashedLine(*batch, point1, point2, rectangleColor);
+                geometryCache->renderDashedLine(*batch, point2, point3, rectangleColor);
+                geometryCache->renderDashedLine(*batch, point3, point4, rectangleColor);
+                geometryCache->renderDashedLine(*batch, point4, point1, rectangleColor);
             } else {
-                if (getIsDashedLine()) {
+                if (halfDimensions != _previousHalfDimensions) {
+                    QVector<glm::vec3> border;
+                    border << glm::vec3(-halfDimensions.x, -halfDimensions.y, 0.0f);
+                    border << glm::vec3(halfDimensions.x, -halfDimensions.y, 0.0f);
+                    border << glm::vec3(halfDimensions.x, halfDimensions.y, 0.0f);
+                    border << glm::vec3(-halfDimensions.x, halfDimensions.y, 0.0f);
+                    border << glm::vec3(-halfDimensions.x, -halfDimensions.y, 0.0f);
+                    geometryCache->updateVertices(_geometryCacheID, border, rectangleColor);
 
-                    glm::vec3 point1(-halfDimensions.x, -halfDimensions.y, 0.0f);
-                    glm::vec3 point2(halfDimensions.x, -halfDimensions.y, 0.0f);
-                    glm::vec3 point3(halfDimensions.x, halfDimensions.y, 0.0f);
-                    glm::vec3 point4(-halfDimensions.x, halfDimensions.y, 0.0f);
-                
-                    geometryCache->renderDashedLine(point1, point2, rectangleColor);
-                    geometryCache->renderDashedLine(point2, point3, rectangleColor);
-                    geometryCache->renderDashedLine(point3, point4, rectangleColor);
-                    geometryCache->renderDashedLine(point4, point1, rectangleColor);
-
-                } else {
-                
-                    if (halfDimensions != _previousHalfDimensions) {
-                        QVector<glm::vec3> border;
-                        border << glm::vec3(-halfDimensions.x, -halfDimensions.y, 0.0f);
-                        border << glm::vec3(halfDimensions.x, -halfDimensions.y, 0.0f);
-                        border << glm::vec3(halfDimensions.x, halfDimensions.y, 0.0f);
-                        border << glm::vec3(-halfDimensions.x, halfDimensions.y, 0.0f);
-                        border << glm::vec3(-halfDimensions.x, -halfDimensions.y, 0.0f);
-                        geometryCache->updateVertices(_geometryCacheID, border, rectangleColor);
-
-                        _previousHalfDimensions = halfDimensions;
-                        
-                    }
-                    geometryCache->renderVertices(gpu::LINE_STRIP, _geometryCacheID);
+                    _previousHalfDimensions = halfDimensions;
                 }
+                geometryCache->renderVertices(*batch, gpu::LINE_STRIP, _geometryCacheID);
             }
- 
+        }
+    } else {
+        glDisable(GL_LIGHTING);
+        
+        float glowLevel = getGlowLevel();
+        Glower* glower = NULL;
+        if (glowLevel > 0.0f) {
+            glower = new Glower(glowLevel);
+        }
+
+        glPushMatrix();
+            glTranslatef(position.x, position.y, position.z);
+            glm::vec3 axis = glm::axis(rotation);
+            glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+            glPushMatrix();
+                glm::vec3 positionToCenter = center - position;
+                glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
+                //glScalef(dimensions.x, dimensions.y, 1.0f);
+
+                glLineWidth(_lineWidth);
+
+                auto geometryCache = DependencyManager::get<GeometryCache>();
+                
+                // for our overlay, is solid means we draw a solid "filled" rectangle otherwise we just draw a border line...
+                if (getIsSolid()) {
+                    glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, 0.0f);
+                    glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, 0.0f);
+                    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, rectangleColor);
+                } else {
+                    if (getIsDashedLine()) {
+
+                        glm::vec3 point1(-halfDimensions.x, -halfDimensions.y, 0.0f);
+                        glm::vec3 point2(halfDimensions.x, -halfDimensions.y, 0.0f);
+                        glm::vec3 point3(halfDimensions.x, halfDimensions.y, 0.0f);
+                        glm::vec3 point4(-halfDimensions.x, halfDimensions.y, 0.0f);
+                    
+                        geometryCache->renderDashedLine(point1, point2, rectangleColor);
+                        geometryCache->renderDashedLine(point2, point3, rectangleColor);
+                        geometryCache->renderDashedLine(point3, point4, rectangleColor);
+                        geometryCache->renderDashedLine(point4, point1, rectangleColor);
+
+                    } else {
+                    
+                        if (halfDimensions != _previousHalfDimensions) {
+                            QVector<glm::vec3> border;
+                            border << glm::vec3(-halfDimensions.x, -halfDimensions.y, 0.0f);
+                            border << glm::vec3(halfDimensions.x, -halfDimensions.y, 0.0f);
+                            border << glm::vec3(halfDimensions.x, halfDimensions.y, 0.0f);
+                            border << glm::vec3(-halfDimensions.x, halfDimensions.y, 0.0f);
+                            border << glm::vec3(-halfDimensions.x, -halfDimensions.y, 0.0f);
+                            geometryCache->updateVertices(_geometryCacheID, border, rectangleColor);
+
+                            _previousHalfDimensions = halfDimensions;
+                            
+                        }
+                        geometryCache->renderVertices(gpu::LINE_STRIP, _geometryCacheID);
+                    }
+                }
+     
+            glPopMatrix();
         glPopMatrix();
-    glPopMatrix();
-    
-    if (glower) {
-        delete glower;
+        
+        if (glower) {
+            delete glower;
+        }
     }
 }
 

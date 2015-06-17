@@ -1,6 +1,6 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
-
+//  Generated on <$_SCRIBE_DATE$>
 //
 // For licensing information, see http://http.developer.nvidia.com/GPUGems/gpugems_app01.html:
 //
@@ -33,36 +33,20 @@
 // Copyright (c) 2004 Sean O'Neil
 //
 
-uniform vec3 v3CameraPos;		// The camera's current position
-uniform vec3 v3LightPos;		// The direction vector to the light source
-uniform vec3 v3InvWavelength;	// 1 / pow(wavelength, 4) for the red, green, and blue channels
+<@include gpu/Transform.slh@>
+<$declareStandardTransform()$>
+
 uniform float fOuterRadius;		// The outer (atmosphere) radius
-uniform float fInnerRadius;		// The inner (planetary) radius
-uniform float fKrESun;			// Kr * ESun
-uniform float fKmESun;			// Km * ESun
-uniform float fKr4PI;			// Kr * 4 * PI
-uniform float fKm4PI;			// Km * 4 * PI
-uniform float fScale;			// 1 / (fOuterRadius - fInnerRadius)
-uniform float fScaleDepth;		// The scale depth (i.e. the altitude at which the atmosphere's average density is found)
-uniform float fScaleOverScaleDepth;	// fScale / fScaleDepth
-
-
-const int nSamples = 2;
-const float fSamples = 2.0;
 
 varying vec3 position;
 
 
-float scale(float fCos)
-{
-	float x = 1.0 - fCos;
-	return fScaleDepth * exp(-0.00287 + x*(0.459 + x*(3.83 + x*(-6.80 + x*5.25))));
-}
-
-void main(void)
-{
-	// Get the ray from the camera to the vertex, and its length (which is the far point of the ray passing through the atmosphere)
+void main(void) {
 	position = gl_Vertex.xyz * fOuterRadius;
     
-	gl_Position = gl_ModelViewProjectionMatrix * vec4(position, 1.0);
+    // standard transform
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    vec4 v4pos = vec4(position, 1.0);
+    <$transformModelToClipPos(cam, obj, v4pos, gl_Position)$>
 }
