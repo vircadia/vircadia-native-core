@@ -60,7 +60,6 @@ void AudioInjector::setIsFinished(bool isFinished) {
 
         if (_shouldDeleteAfterFinish) {
             // we've been asked to delete after finishing, trigger a queued deleteLater here
-            qCDebug(audio) << "AudioInjector triggering delete from setIsFinished";
             QMetaObject::invokeMethod(this, "deleteLater", Qt::QueuedConnection);
         }
     }
@@ -121,9 +120,6 @@ void AudioInjector::injectLocally() {
             _localBuffer->setCurrentOffset(_currentSendPosition);
 
             success = _localAudioInterface->outputLocalInjector(_options.stereo, this);
-
-            // if we're not looping and the buffer tells us it is empty then emit finished
-            connect(_localBuffer, &AudioInjectorLocalBuffer::bufferEmpty, this, &AudioInjector::stop);
 
             if (!success) {
                 qCDebug(audio) << "AudioInjector::injectLocally could not output locally via _localAudioInterface";

@@ -118,7 +118,9 @@ public:
 
   template <typename Function>
   void withPush(Function f) {
+    #ifdef DEBUG
     size_t startingDepth = size();
+    #endif
     push();
     f();
     pop();

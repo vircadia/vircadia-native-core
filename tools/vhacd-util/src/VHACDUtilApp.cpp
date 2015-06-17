@@ -322,6 +322,7 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
                 QString outputFileName = baseFileName + "-" + QString::number(count) + ".obj";
                 writeOBJ(outputFileName, fbx, outputCentimeters, count);
                 count++;
+                (void)meshPart; // quiet warning
             }
         }
     }
