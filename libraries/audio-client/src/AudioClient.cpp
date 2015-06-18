@@ -45,6 +45,7 @@ extern "C" {
 #include <PositionalAudioStream.h>
 #include <SettingHandle.h>
 #include <SharedUtil.h>
+#include <SoundCache.h>
 #include <UUID.h>
 
 #include "AudioInjector.h"
@@ -1337,4 +1338,72 @@ void AudioClient::audioStateChanged(QAudio::State state) {
     if (state == QAudio::IdleState) {
         emit audioFinished();
     }
+}
+
+AudioInjector* AudioClient::playSound(const QString& soundUrl, const float volume, const float stretchFactor, const glm::vec3 position) {
+    if (soundUrl.isEmpty()) {
+        return NULL;
+    }
+    auto soundCache = DependencyManager::get<SoundCache>();
+    if (soundCache.isNull()) {
+        return NULL;
+    }
+    SharedSoundPointer sound = soundCache.data()->getSound(QUrl(soundUrl));
+    if (sound.isNull() || !sound->isReady()) {
+        return NULL;
+    }
+
+    // Quiet sound aren't really heard at all, so we can compress everything to the range [1-c, 1], if we play it all.
+    const float COLLISION_SOUND_COMPRESSION_RANGE = 1.0f; // This section could be removed when the value is 1, but let's see how it goes.
+    const float compressedVolume = (volume * COLLISION_SOUND_COMPRESSION_RANGE) + (1.0f - COLLISION_SOUND_COMPRESSION_RANGE);
+
+    // This is quite similar to AudioScriptingInterface::playSound() and should probably be refactored.
+    AudioInjectorOptions options;
+    options.stereo = sound->isStereo();
+    options.position = position;
+    options.volume = compressedVolume;
+
+    QByteArray samples = sound->getByteArray();
+    if (stretchFactor == 1.0f) {
+        return playSound(samples, options);
+    }
+
+    soxr_io_spec_t spec = soxr_io_spec(SOXR_INT16_I, SOXR_INT16_I);
+    soxr_quality_spec_t qualitySpec = soxr_quality_spec(SOXR_MQ, 0);
+    const int channelCount = sound->isStereo() ? 2 : 1;
+    const int standardRate = AudioConstants::SAMPLE_RATE;
+    const int resampledRate = standardRate * stretchFactor;
+    const int nInputSamples = samples.size() / sizeof(int16_t);
+    const int nOutputSamples = nInputSamples * stretchFactor;
+    QByteArray resampled(nOutputSamples * sizeof(int16_t), '\0');
+    const int16_t* receivedSamples = reinterpret_cast<const int16_t*>(samples.data());
+    soxr_error_t soxError = soxr_oneshot(standardRate, resampledRate, channelCount,
+                                         receivedSamples, nInputSamples, NULL,
+                                         reinterpret_cast<int16_t*>(resampled.data()), nOutputSamples, NULL,
+                                         &spec, &qualitySpec, 0);
+    if (soxError) {
+        qCDebug(audioclient) << "Unable to resample" << soundUrl << "from" << nInputSamples << "@" << standardRate << "to" << nOutputSamples << "@" << resampledRate;
+        resampled = samples;
+    }
+    return playSound(resampled, options);
+}
+
+AudioInjector* AudioClient::playSound(const QByteArray& buffer, const AudioInjectorOptions options) {
+    QThread* injectorThread = new QThread();
+    injectorThread->setObjectName("Audio Injector Thread");
+
+    AudioInjector* injector = new AudioInjector(buffer, options);
+    injector->setLocalAudioInterface(this);
+
+    injector->moveToThread(injectorThread);
+
+    // start injecting when the injector thread starts
+    connect(injectorThread, &QThread::started, injector, &AudioInjector::injectAudio);
+
+    // connect the right slots and signals for AudioInjector and thread cleanup
+    connect(injector, &AudioInjector::destroyed, injectorThread, &QThread::quit);
+    connect(injectorThread, &QThread::finished, injectorThread, &QThread::deleteLater);
+
+    injectorThread->start();
+    return injector;
 }

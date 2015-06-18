@@ -40,6 +40,7 @@
 #include <Sound.h>
 #include <StDev.h>
 
+#include "AudioInjector.h"
 #include "AudioIOStats.h"
 #include "AudioNoiseGate.h"
 
@@ -129,6 +130,10 @@ public:
     void setOrientationGetter(AudioOrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
 
     static const float CALLBACK_ACCELERATOR_RATIO;
+
+    AudioInjector* playSound(const QByteArray& buffer, const AudioInjectorOptions options);
+    AudioInjector* playSound(const QString& soundUrl, const float volume, const float stretchFactor, const glm::vec3 position);
+
 
 public slots:
     void start();
