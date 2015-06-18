@@ -11,7 +11,6 @@
 
 var MOVE_DISTANCE = 0.3;
 var PITCH_INCREMENT = 0.5; // degrees
-var VR_PITCH_INCREMENT = 15.0; // degrees
 var YAW_INCREMENT = 0.5; // degrees
 var VR_YAW_INCREMENT = 15.0; // degrees
 var BOOM_SPEED = 0.5;
@@ -25,6 +24,32 @@ var shifted = false;
 var SHIFT_UPDATE_TIME = 0.5;
 var shiftTimer = SHIFT_UPDATE_TIME;
 var SHIFT_MAG = 4.0;
+
+var warpActive = false;
+var WARP_UPDATE_TIME = .5;
+var warpTimer = WARP_UPDATE_TIME;
+
+var warpPosition = { x: 0, y: 0, z: 0 };
+
+var WARP_SPHERE_SIZE = 1;
+var warpSphere = Overlays.addOverlay("sphere", {
+    position: { x: 0, y: 0, z: 0 },
+    size: WARP_SPHERE_SIZE,
+    color: { red: 0, green: 255, blue: 0 },
+    alpha: 1.0,
+    solid: true,
+    visible: false,
+});
+
+var WARP_LINE_HEIGHT = 10;
+var warpLine = Overlays.addOverlay("line3d", {
+    start: { x: 0, y: 0, z:0 },
+    end: { x: 0, y: 0, z: 0 },
+    color: { red: 0, green: 255, blue: 255},
+    alpha: 1,
+    lineWidth: 5,
+    visible: false,
+});
 
 var hmdControls = (function () {
 
@@ -88,18 +113,12 @@ var hmdControls = (function () {
                 }
                 break;
             case 8: // pitch down
-                if (pitchTimer < 0.0 && Menu.isOptionChecked("Enable VR Mode")) {
-                    MyAvatar.headPitch = Math.max(-180, Math.min(180, MyAvatar.headPitch - (shifted ? SHIFT_MAG * VR_PITCH_INCREMENT : VR_PITCH_INCREMENT)));
-                    pitchTimer = CAMERA_UPDATE_TIME;
-                } else if (!Menu.isOptionChecked("Enable VR Mode")) {
+                if (!Menu.isOptionChecked("Enable VR Mode")) {
                     MyAvatar.headPitch = Math.max(-180, Math.min(180, MyAvatar.headPitch - (shifted ? SHIFT_MAG * PITCH_INCREMENT : PITCH_INCREMENT)));
                 }
                 break;
             case 9: // pitch up
-                if (pitchTimer < 0.0 && Menu.isOptionChecked("Enable VR Mode")) {
-                    MyAvatar.headPitch = Math.max(-180, Math.min(180, MyAvatar.headPitch + (shifted ? SHIFT_MAG * VR_PITCH_INCREMENT : VR_PITCH_INCREMENT)));
-                    pitchTimer = CAMERA_UPDATE_TIME;
-                } else if (!Menu.isOptionChecked("Enable VR Mode")) {
+                if (!Menu.isOptionChecked("Enable VR Mode")) {
                     MyAvatar.headPitch = Math.max(-180, Math.min(180, MyAvatar.headPitch + (shifted ? SHIFT_MAG * PITCH_INCREMENT : PITCH_INCREMENT)));
                 }
                 break;
@@ -109,6 +128,23 @@ var hmdControls = (function () {
                     shiftTimer = SHIFT_UPDATE_TIME;
                 }
                 break;
+            case 13: // action1 = start/end warp
+                if (warpTimer < 0.0) {
+                    warpActive = !warpActive;
+                    if (!warpActive) {
+                        finishWarp();
+                    }
+                    warpTimer = WARP_UPDATE_TIME;
+                }
+                break;
+            case 14: // action2 = cancel warp
+                warpActive = false;
+                Overlays.editOverlay(warpSphere, {
+                    visible: false,
+                });
+                Overlays.editOverlay(warpLine, {
+                    visible: false,
+                });
             default:
                 break;
         }
@@ -124,6 +160,65 @@ var hmdControls = (function () {
         if (shiftTimer >= 0.0) {
             shiftTimer = shiftTimer - dt;
         }
+        if (warpTimer >= 0.0) {
+            warpTimer = warpTimer - dt;
+        }
+
+        if (warpActive) {
+            updateWarp();
+        }
+    }
+
+    function updateWarp() {
+        var look = Quat.getFront(Camera.getOrientation());
+        var pitch = Math.asin(look.y);
+
+        // Get relative to looking straight down
+        pitch += Math.PI / 2;
+
+        // Scale up
+        pitch *= 2;
+        var distance = pitch * pitch * pitch;
+
+        var warpDirection = Vec3.normalize({ x: look.x, y: 0, z: look.z });
+        warpPosition = Vec3.multiply(warpDirection, distance);
+        warpPosition = Vec3.sum(MyAvatar.position, warpPosition);
+
+        // Commented out until ray picking can be fixed
+        // var pickRay = {
+        //     origin: Vec3.sum(warpPosition, WARP_PICK_OFFSET),
+        //     direction: { x: 0, y: -1, z: 0 }
+        // };
+
+        // var intersection = Entities.findRayIntersection(pickRay);
+
+        // if (intersection.intersects && intersection.distance < WARP_PICK_MAX_DISTANCE) {
+        //     // Warp 1 meter above the object - this is an approximation
+        //     // TODO Get the actual offset to the Avatar's feet and plant them to
+        //     // the object.
+        //     warpPosition = Vec3.sum(intersection.intersection, { x: 0, y: 1, z:0 });
+        // }
+
+        // Adjust overlays to match warp position
+        Overlays.editOverlay(warpSphere, {
+            position: warpPosition,
+            visible: true,
+        });
+        Overlays.editOverlay(warpLine, {
+            start: warpPosition,
+            end: Vec3.sum(warpPosition, { x: 0, y: WARP_LINE_HEIGHT, z: 0 }),
+            visible: true,
+        });
+    }
+
+    function finishWarp() {
+        Overlays.editOverlay(warpSphere, {
+            visible: false,
+        });
+        Overlays.editOverlay(warpLine, {
+            visible: false,
+        });
+        MyAvatar.position = warpPosition;
     }
 
 	function setUp() {
