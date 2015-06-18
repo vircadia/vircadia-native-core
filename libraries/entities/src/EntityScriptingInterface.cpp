@@ -443,7 +443,7 @@ bool EntityScriptingInterface::setVoxels(QUuid entityID,
 }
 
 bool EntityScriptingInterface::setPoints(QUuid entityID, std::function<bool(LineEntityItem&)> actor) {
-    if (_entityTree) {
+    if (!_entityTree) {
         return false;
     }
     
@@ -453,6 +453,7 @@ bool EntityScriptingInterface::setPoints(QUuid entityID, std::function<bool(Line
     }
     
     EntityTypes::EntityType entityType = entity->getType();
+    
     if (entityType != EntityTypes::Line) {
         return false;
     }

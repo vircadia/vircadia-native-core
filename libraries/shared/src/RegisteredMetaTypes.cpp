@@ -20,6 +20,7 @@
 
 static int vec4MetaTypeId = qRegisterMetaType<glm::vec4>();
 static int vec3MetaTypeId = qRegisterMetaType<glm::vec3>();
+static int qVectorVec3MetaTypeId = qRegisterMetaType<QVector<glm::vec3>>();
 static int vec2MetaTypeId = qRegisterMetaType<glm::vec2>();
 static int quatMetaTypeId = qRegisterMetaType<glm::quat>();
 static int xColorMetaTypeId = qRegisterMetaType<xColor>();
@@ -31,6 +32,7 @@ static int collisionMetaTypeId = qRegisterMetaType<Collision>();
 void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, vec4toScriptValue, vec4FromScriptValue);
     qScriptRegisterMetaType(engine, vec3toScriptValue, vec3FromScriptValue);
+    qScriptRegisterMetaType(engine, qVectorVec3ToScriptValue, qVectorVec3FromScriptValue);
     qScriptRegisterMetaType(engine, vec2toScriptValue, vec2FromScriptValue);
     qScriptRegisterMetaType(engine, quatToScriptValue, quatFromScriptValue);
     qScriptRegisterMetaType(engine, qRectToScriptValue, qRectFromScriptValue);
