@@ -25,54 +25,34 @@
 using namespace render;
 
 void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    PerformanceTimer perfTimer("PrepareDeferred");
     DependencyManager::get<DeferredLightingEffect>()->prepare(renderContext->args);
 }
 
 void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    PerformanceTimer perfTimer("RenderDeferred");
     DependencyManager::get<DeferredLightingEffect>()->render(renderContext->args);
-//    renderContext->args->_context->syncCache();
 }
 
 void ResolveDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     PerformanceTimer perfTimer("ResolveDeferred");
     DependencyManager::get<DeferredLightingEffect>()->copyBack(renderContext->args);
-    renderContext->args->_context->syncCache();
-
 }
 
-
-/*
 RenderDeferredTask::RenderDeferredTask() : Task() {
-   _jobs.push_back(Job(PrepareDeferred()));
-   _jobs.push_back(Job(DrawBackground()));
-   _jobs.push_back(Job(DrawOpaqueDeferred()));
-   _jobs.push_back(Job(DrawLight()));
-   _jobs.push_back(Job(ResetGLState()));
-   _jobs.push_back(Job(RenderDeferred()));
-   _jobs.push_back(Job(ResolveDeferred()));
-   _jobs.push_back(Job(DrawTransparentDeferred()));
-   _jobs.push_back(Job(DrawOverlay3D()));
-   _jobs.push_back(Job(ResetGLState()));
-}
-*/
-RenderDeferredTask::RenderDeferredTask() : Task() {
-   _jobs.push_back(Job(new PrepareDeferred::JobModel()));
-   _jobs.push_back(Job(new DrawBackground::JobModel()));
-   _jobs.push_back(Job(new FetchItems::JobModel(FetchItems())));
-   _jobs.push_back(Job(new CullItems::JobModel(_jobs.back().getOutput())));
-   _jobs.push_back(Job(new DepthSortItems::JobModel(_jobs.back().getOutput())));
-   _jobs.push_back(Job(new DrawOpaqueDeferred::JobModel(_jobs.back().getOutput())));
-   _jobs.push_back(Job(new DrawLight::JobModel()));
+   _jobs.push_back(Job(new PrepareDeferred::JobModel("PrepareDeferred")));
+   _jobs.push_back(Job(new DrawBackground::JobModel("DrawBackground")));
+   _jobs.push_back(Job(new FetchItems::JobModel("FetchOpaque", FetchItems())));
+   _jobs.push_back(Job(new CullItems::JobModel("CullOpaque", _jobs.back().getOutput())));
+   _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortOpaque", _jobs.back().getOutput())));
+   _jobs.push_back(Job(new DrawOpaqueDeferred::JobModel("DrawOpaqueDeferred", _jobs.back().getOutput())));
+   _jobs.push_back(Job(new DrawLight::JobModel("DrawLight")));
    _jobs.push_back(Job(new ResetGLState::JobModel()));
-   _jobs.push_back(Job(new RenderDeferred::JobModel()));
-   _jobs.push_back(Job(new ResolveDeferred::JobModel()));
-   _jobs.push_back(Job(new FetchItems::JobModel(FetchItems(ItemFilter::Builder::transparentShape().withoutLayered()))));
-   _jobs.push_back(Job(new CullItems::JobModel(_jobs.back().getOutput())));
-   _jobs.push_back(Job(new DepthSortItems::JobModel(_jobs.back().getOutput())));
-   _jobs.push_back(Job(new DrawTransparentDeferred::JobModel(_jobs.back().getOutput())));
-   _jobs.push_back(Job(new DrawOverlay3D::JobModel()));
+   _jobs.push_back(Job(new RenderDeferred::JobModel("RenderDeferred")));
+   _jobs.push_back(Job(new ResolveDeferred::JobModel("ResolveDeferred")));
+   _jobs.push_back(Job(new FetchItems::JobModel("FetchTransparent", FetchItems(ItemFilter::Builder::transparentShape().withoutLayered()))));
+   _jobs.push_back(Job(new CullItems::JobModel("CullTransparent", _jobs.back().getOutput())));
+   _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortTransparent", _jobs.back().getOutput(), DepthSortItems(false))));
+   _jobs.push_back(Job(new DrawTransparentDeferred::JobModel("TransparentDeferred", _jobs.back().getOutput())));
+   _jobs.push_back(Job(new DrawOverlay3D::JobModel("DrawOverlay3D")));
    _jobs.push_back(Job(new ResetGLState::JobModel()));
 }
 
@@ -100,13 +80,14 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
 };
 
 void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
-    PerformanceTimer perfTimer("DrawOpaqueDeferred");
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
 
     RenderArgs* args = renderContext->args;
     gpu::Batch batch;
     args->_batch = &batch;
+
+    renderContext->_numDrawnOpaqueItems = inItems.size();
 
     glm::mat4 projMat;
     Transform viewMat;
@@ -129,13 +110,14 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
 
     renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnOpaqueItems);
 
+    // Before rendering the batch make sure we re in sync with gl state
+    args->_context->syncCache();
     renderContext->args->_context->syncCache();
     args->_context->render((*args->_batch));
     args->_batch = nullptr;
 }
 
 void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
-    PerformanceTimer perfTimer("DrawTransparentDeferred");
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
     auto& renderDetails = renderContext->args->_details;
@@ -144,6 +126,8 @@ void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const
     gpu::Batch batch;
     args->_batch = &batch;
     
+    renderContext->_numDrawnTransparentItems = inItems.size();
+
     glm::mat4 projMat;
     Transform viewMat;
     args->_viewFrustum->evalProjectionMatrix(projMat);
@@ -166,6 +150,8 @@ void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const
     
     renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnTransparentItems);
     
+    // Before rendering the batch make sure we re in sync with gl state
+    args->_context->syncCache();
     args->_context->render((*args->_batch));
     args->_batch = nullptr;
     
@@ -189,7 +175,6 @@ const gpu::PipelinePointer& DrawOverlay3D::getOpaquePipeline() const {
 }
 
 void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-      PerformanceTimer perfTimer("DrawOverlay3D");
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
 

@@ -13,6 +13,9 @@
 #define hifi_render_Task_h
 
 #include "Engine.h"
+#include "gpu/Batch.h"
+#include <PerfStat.h>
+
 
 namespace render {
 
@@ -79,9 +82,9 @@ public:
     const Varying getOutput() const { return _concept->getOutput(); }
 
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-        if (_concept) {
-            _concept->run(sceneContext, renderContext);
-        }
+        PerformanceTimer perfTimer(getName().c_str());
+        PROFILE_RANGE(getName().c_str());
+        _concept->run(sceneContext, renderContext);
     }
 
 protected:
@@ -129,9 +132,8 @@ public:
 
         const Varying getInput() const { return _input; }
 
-        ModelI(const Varying& input): _input(input) {}
-        ModelI(const Varying& input, const std::string& name): Concept(name), _input(input) {}
-        ModelI(Data data): _data(data) {}
+        ModelI(const std::string& name, const Varying& input): Concept(name), _input(input) {}
+        ModelI(const std::string& name, Data data): Concept(name), _data(data) {}
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) { jobRunI(_data, sceneContext, renderContext, _input.get<I>()); }
     };
@@ -146,11 +148,11 @@ public:
 
         const Varying getOutput() const { return _output; }
 
-        ModelO() : _output(Output()) {
+        ModelO(const std::string& name): Concept(name), _output(Output()) {
             
         }
 
-        ModelO(Data data): _data(data), _output(Output()) {}
+        ModelO(const std::string& name, Data data): Concept(name), _data(data), _output(Output()) {}
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
             jobRunO(_data, sceneContext, renderContext, _output.edit<O>());
@@ -170,8 +172,8 @@ public:
         const Varying getInput() const { return _input; }
         const Varying getOutput() const { return _output; }
 
-        ModelIO(const Varying& input): _input(input), _output(Output()) {}
-        ModelIO(Data data, Output output): _data(data), _output(output) {}
+        ModelIO(const std::string& name, const Varying& input, Data data = Data()): Concept(name), _data(data), _input(input), _output(Output()) {}
+        ModelIO(const std::string& name, Data data, Output output): Concept(name), _data(data), _output(output) {}
 
         void setInput(const Varying& input) { _input = input; }
 
@@ -215,23 +217,12 @@ class DepthSortItems {
 public:
     bool _frontToBack = true;
 
+    DepthSortItems(bool frontToBack = true) : _frontToBack(frontToBack) {}
+
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outITems);
 
     typedef Job::ModelIO<DepthSortItems, ItemIDsBounds, ItemIDsBounds> JobModel;
 };
-
-
-
-class DrawOpaque {
-public:
-};
-template <> void jobRun(DrawOpaque& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
-
-
-class DrawTransparent {
-public:
-};
-template <> void jobRun(DrawTransparent& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
 
 class DrawLight {
 public:
@@ -245,14 +236,6 @@ public:
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
 
     typedef Job::Model<DrawBackground> JobModel;
-};
-
-
-class DrawPostLayered {
-public:
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
-
-    typedef Job::Model<DrawPostLayered> JobModel;
 };
 
 class ResetGLState {
