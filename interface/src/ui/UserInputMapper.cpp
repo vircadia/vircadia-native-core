@@ -248,6 +248,8 @@ void UserInputMapper::assignDefaulActionScales() {
     _actionScales[BOOM_IN] = 1.0f; // 1m per unit
     _actionScales[BOOM_OUT] = 1.0f; // 1m per unit
     _actionStates[SHIFT] = 1.0f; // on
+    _actionStates[ACTION1] = 1.0f; // default
+    _actionStates[ACTION2] = 1.0f; // default
 }
 
 // This is only necessary as long as the actions are hardcoded
@@ -266,4 +268,6 @@ void UserInputMapper::createActionNames() {
     _actionNames[BOOM_IN] = "BOOM_IN";
     _actionNames[BOOM_OUT] = "BOOM_OUT";
     _actionNames[SHIFT] = "SHIFT";
+    _actionNames[ACTION1] = "ACTION1";
+    _actionNames[ACTION2] = "ACTION2";
 }

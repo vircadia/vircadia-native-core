@@ -173,9 +173,7 @@ void Joystick::assignDefaultInputMapping(UserInputMapper& mapper) {
     
     // Button controls
     mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(SDL_CONTROLLER_BUTTON_Y), DPAD_MOVE_SPEED);
-    mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(SDL_CONTROLLER_BUTTON_A), DPAD_MOVE_SPEED);
-    mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(SDL_CONTROLLER_BUTTON_X), JOYSTICK_YAW_SPEED);
-    mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(SDL_CONTROLLER_BUTTON_B), JOYSTICK_YAW_SPEED);
+    mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(SDL_CONTROLLER_BUTTON_X), DPAD_MOVE_SPEED);
     
     // Zoom
     mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(RIGHT_SHOULDER), BOOM_SPEED);
@@ -203,15 +201,16 @@ void Joystick::assignDefaultInputMapping(UserInputMapper& mapper) {
     
     // Button controls
     mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(SDL_CONTROLLER_BUTTON_Y), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), DPAD_MOVE_SPEED/2.0f);
-    mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(SDL_CONTROLLER_BUTTON_A), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), DPAD_MOVE_SPEED/2.0f);
-    mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(SDL_CONTROLLER_BUTTON_X), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_YAW_SPEED/2.0f);
-    mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(SDL_CONTROLLER_BUTTON_B), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), JOYSTICK_YAW_SPEED/2.0f);
+    mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(SDL_CONTROLLER_BUTTON_X), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), DPAD_MOVE_SPEED/2.0f);
     
     // Zoom
     mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(RIGHT_SHOULDER), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), BOOM_SPEED/2.0f);
     mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(LEFT_SHOULDER), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), BOOM_SPEED/2.0f);
     
     mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(SDL_CONTROLLER_BUTTON_LEFTSHOULDER));
+    
+    mapper.addInputChannel(UserInputMapper::ACTION1, makeInput(SDL_CONTROLLER_BUTTON_B));
+    mapper.addInputChannel(UserInputMapper::ACTION2, makeInput(SDL_CONTROLLER_BUTTON_A));
 #endif
 }
 

@@ -278,7 +278,8 @@ void KeyboardMouseDevice::assignDefaultInputMapping(UserInputMapper& mapper) {
 #endif
     
     mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(Qt::Key_Space));
-
+    mapper.addInputChannel(UserInputMapper::ACTION1, makeInput(Qt::Key_R));
+    mapper.addInputChannel(UserInputMapper::ACTION2, makeInput(Qt::Key_T));
 }
 
 float KeyboardMouseDevice::getButton(int channel) const {

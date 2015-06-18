@@ -727,6 +727,9 @@ void SixenseManager::assignDefaultInputMapping(UserInputMapper& mapper) {
     
     mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(BUTTON_2, 0));
     mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(BUTTON_2, 1));
+    
+    mapper.addInputChannel(UserInputMapper::ACTION1, makeInput(BUTTON_4, 0));
+    mapper.addInputChannel(UserInputMapper::ACTION2, makeInput(BUTTON_4, 1));
 
 }
 
