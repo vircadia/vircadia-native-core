@@ -249,7 +249,7 @@ void OculusManager::connect(QOpenGLContext* shareContext) {
         _ovrHmd = ovrHmd_CreateDebug(ovrHmd_DK2);
     }
 #endif
-
+    
 #endif
 
     if (!_ovrHmd) {
@@ -486,6 +486,7 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
             break;
         default:
             break;
+
     }
 }
 
@@ -501,6 +502,7 @@ void OculusManager::abandonCalibration() {
         _calibrationMessage = 0;
     }
 }
+
 
 bool OculusManager::isConnected() {
     return _isConnected;
@@ -549,7 +551,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
     assert(oldFrameIndex == -1 || (unsigned int)oldFrameIndex == _frameIndex - 1);
     oldFrameIndex = _frameIndex;
 #endif
-
+    
 #ifndef Q_OS_WIN
 
     // FIXME:  we need a better way of responding to the HSW.  In particular
@@ -567,6 +569,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
         }
     }
 #endif
+
 
     //beginFrameTiming must be called before display
     if (!_frameTimingActive) {
@@ -686,6 +689,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
 #ifdef Q_OS_WIN
     auto srcFboSize = finalFbo->getSize();
 
+
     // Blit to the oculus provided texture
     glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
     _swapFbo->Bound(oglplus::Framebuffer::Target::Draw, [&] {
@@ -715,6 +719,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
     GLsync syncObject = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     glFlush();
 
+
     _outputWindow->makeCurrent();
     // force the compositing context to wait for the texture 
     // rendering to complete before it starts the distortion rendering,
@@ -725,104 +730,16 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
     for_each_eye([&](ovrEyeType eye) {
         ovrGLTexture & glEyeTexture = reinterpret_cast<ovrGLTexture&>(_eyeTextures[eye]);
         glEyeTexture.OGL.TexId = textureId;
+
     });
 
     // restore our normal viewport
     ovrHmd_EndFrame(_ovrHmd, eyeRenderPose, _eyeTextures);
     glCanvas->makeCurrent();
 #endif
-
-    // No DK2, no message.
-    {
-        float latencies[5] = {};
-        if (debugFrame && ovrHmd_GetFloatArray(_ovrHmd, "DK2Latency", latencies, 5) == 5)
-        {
-            bool nonZero = false;
-            for (int i = 0; i < 5; ++i)
-            {
-                nonZero |= (latencies[i] != 0.f);
-            }
-
-            if (nonZero)
-            {
-                qCDebug(interfaceapp)
-                    << QString().sprintf("M2P Latency: Ren: %4.2fms TWrp: %4.2fms PostPresent: %4.2fms Err: %4.2fms %4.2fms",
-                                         (double)latencies[0], (double)latencies[1], (double)latencies[2],
-                                         (double)latencies[3], (double)latencies[4]);
-            }
-        }
-    }
-
-}
-
-#ifdef OVR_CLIENT_DISTORTION
-void OculusManager::renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]) {
-
-    glLoadIdentity();
-    auto deviceSize = qApp->getDeviceSize();
-    glOrtho(0, deviceSize.width(), 0, deviceSize.height(), -1.0, 1.0);
-
-    glDisable(GL_DEPTH_TEST);
-
-    glDisable(GL_BLEND);
-    _program.bind();
-    _program.setUniformValue(_textureLocation, 0);
-
-    _program.enableAttributeArray(_positionAttributeLocation);
-    _program.enableAttributeArray(_colorAttributeLocation);
-    _program.enableAttributeArray(_texCoord0AttributeLocation);
-    _program.enableAttributeArray(_texCoord1AttributeLocation);
-    _program.enableAttributeArray(_texCoord2AttributeLocation);
-
-    //Render the distortion meshes for each eye
-    for (int eyeNum = 0; eyeNum < ovrEye_Count; eyeNum++) {
-
-        ovrHmd_GetRenderScaleAndOffset(_eyeRenderDesc[eyeNum].Fov, _renderTargetSize, _eyeTextures[eyeNum].Header.RenderViewport,
-                                       _UVScaleOffset[eyeNum]);
-
-        GLfloat uvScale[2] = { _UVScaleOffset[eyeNum][0].x, _UVScaleOffset[eyeNum][0].y };
-        _program.setUniformValueArray(_eyeToSourceUVScaleLocation, uvScale, 1, 2);
-        GLfloat uvOffset[2] = { _UVScaleOffset[eyeNum][1].x, 1.0f - _UVScaleOffset[eyeNum][1].y };
-        _program.setUniformValueArray(_eyeToSourceUVOffsetLocation, uvOffset, 1, 2);
-
-        ovrMatrix4f timeWarpMatrices[2];
-        glm::mat4 transposeMatrices[2];
-        //Grabs the timewarp matrices to be used in the shader
-        ovrHmd_GetEyeTimewarpMatrices(_ovrHmd, (ovrEyeType)eyeNum, eyeRenderPose[eyeNum], timeWarpMatrices);
-        //Have to transpose the matrices before using them
-        transposeMatrices[0] = glm::transpose(toGlm(timeWarpMatrices[0]));
-        transposeMatrices[1] = glm::transpose(toGlm(timeWarpMatrices[1]));
-
-        glUniformMatrix4fv(_eyeRotationStartLocation, 1, GL_FALSE, (GLfloat *)&transposeMatrices[0][0][0]);
-        glUniformMatrix4fv(_eyeRotationEndLocation, 1, GL_FALSE, (GLfloat *)&transposeMatrices[1][0][0]);
-
-        glBindBuffer(GL_ARRAY_BUFFER, _vertices[eyeNum]);
-
-        //Set vertex attribute pointers
-        glVertexAttribPointer(_positionAttributeLocation, 2, GL_FLOAT, GL_FALSE, sizeof(DistortionVertex), (void *)0);
-        glVertexAttribPointer(_texCoord0AttributeLocation, 2, GL_FLOAT, GL_FALSE, sizeof(DistortionVertex), (void *)8);
-        glVertexAttribPointer(_texCoord1AttributeLocation, 2, GL_FLOAT, GL_FALSE, sizeof(DistortionVertex), (void *)16);
-        glVertexAttribPointer(_texCoord2AttributeLocation, 2, GL_FLOAT, GL_FALSE, sizeof(DistortionVertex), (void *)24);
-        glVertexAttribPointer(_colorAttributeLocation, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(DistortionVertex), (void *)32);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _indices[eyeNum]);
-        glDrawElements(GL_TRIANGLES, _meshSize[eyeNum], GL_UNSIGNED_SHORT, 0);
-    }
-
-    _program.disableAttributeArray(_positionAttributeLocation);
-    _program.disableAttributeArray(_colorAttributeLocation);
-    _program.disableAttributeArray(_texCoord0AttributeLocation);
-    _program.disableAttributeArray(_texCoord1AttributeLocation);
-    _program.disableAttributeArray(_texCoord2AttributeLocation);
-
-    glEnable(GL_BLEND);
-    glEnable(GL_DEPTH_TEST);
-    _program.release();
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-=======
     
 
->>>>>>> db56e15410520adab59d0e54348d9b32d17d808a
+
 }
 
 //Tries to reconnect to the sensors
