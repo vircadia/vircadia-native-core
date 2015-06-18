@@ -12,6 +12,8 @@
 #include "GLBackendShared.h"
 #include <glm/gtc/type_ptr.hpp>
 
+using namespace gpu;
+
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
 {
     (&::gpu::GLBackend::do_draw),
@@ -141,6 +143,14 @@ bool GLBackend::checkGLError(const char* name) {
     }
 }
 
+bool GLBackend::checkGLErrorDebug(const char* name) {
+#ifdef DEBUG
+    checkGLError(name);
+#else
+    Q_UNUSED(name);
+    return false;
+#endif
+}
 
 void GLBackend::syncCache() {
     syncTransformStateCache();
