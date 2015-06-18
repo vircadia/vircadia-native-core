@@ -61,12 +61,7 @@ class PolyVoxEntityItem : public EntityItem {
         SURFACE_EDGED_CUBIC
     };
 
-    void setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) {
-        if (voxelSurfaceStyle == _voxelSurfaceStyle) {
-            return;
-        }
-        updateVoxelSurfaceStyle(voxelSurfaceStyle);
-    }
+    void setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle);
     // this other version of setVoxelSurfaceStyle is needed for SET_ENTITY_PROPERTY_FROM_PROPERTIES
     void setVoxelSurfaceStyle(uint16_t voxelSurfaceStyle) { setVoxelSurfaceStyle((PolyVoxSurfaceStyle) voxelSurfaceStyle); }
     virtual PolyVoxSurfaceStyle getVoxelSurfaceStyle() const { return _voxelSurfaceStyle; }
