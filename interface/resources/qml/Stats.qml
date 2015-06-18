@@ -240,6 +240,7 @@ Hifi.Stats {
             id: perfText
             color: root.fontColor
             font.family: root.monospaceFont
+            font.pixelSize: 10
             text: "-------------------------------------------------------- Function " +
                 "------------------------------------------------------- --msecs- -calls--\n" +
                 root.timingStats;
