@@ -1025,13 +1025,13 @@ void GeometryCache::renderBevelCornersRect(gpu::Batch& batch, int x, int y, int 
         #endif // def WANT_DEBUG
     }
 
-    const int FLOATS_PER_VERTEX = 2; // vertices
-    const int vertices = 8;
-
     if (!details.isCreated) {
-
+        static const int FLOATS_PER_VERTEX = 2; // vertices
+        static const int NUM_VERTICES = 8;
+        static const int NUM_FLOATS = NUM_VERTICES * FLOATS_PER_VERTEX;
+        
         details.isCreated = true;
-        details.vertices = vertices;
+        details.vertices = NUM_VERTICES;
         details.vertexSize = FLOATS_PER_VERTEX;
 
         gpu::BufferPointer verticesBuffer(new gpu::Buffer());
@@ -1044,62 +1044,65 @@ void GeometryCache::renderBevelCornersRect(gpu::Batch& batch, int x, int y, int 
         details.streamFormat = streamFormat;
         details.stream = stream;
     
-        details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
+        details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ));
         details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
 
 
-        int vertexPoints = vertices * FLOATS_PER_VERTEX;
-        GLfloat* vertexBuffer = new GLfloat[vertexPoints]; // only vertices, no normals because we're a 2D quad
-        GLfloat* vertex = vertexBuffer;
+        GLfloat vertexBuffer[NUM_FLOATS]; // only vertices, no normals because we're a 2D quad
         int vertexPoint = 0;
 
-        // left side
-        vertex[vertexPoint++] = x;
-        vertex[vertexPoint++] = y + bevelDistance;
+        // Triangle strip points
+        //      3 ------ 5
+        //    /            \
+        //  1                7
+        //  |                |
+        //  2                8
+        //    \            /
+        //      4 ------ 6
         
-        vertex[vertexPoint++] = x;
-        vertex[vertexPoint++] = y + height - bevelDistance;
-
-        // top side
-        vertex[vertexPoint++] = x + bevelDistance;
-        vertex[vertexPoint++] = y + height;
+        // 1
+        vertexBuffer[vertexPoint++] = x;
+        vertexBuffer[vertexPoint++] = y + height - bevelDistance;
+        // 2
+        vertexBuffer[vertexPoint++] = x;
+        vertexBuffer[vertexPoint++] = y + bevelDistance;
+        // 3
+        vertexBuffer[vertexPoint++] = x + bevelDistance;
+        vertexBuffer[vertexPoint++] = y + height;
+        // 4
+        vertexBuffer[vertexPoint++] = x + bevelDistance;
+        vertexBuffer[vertexPoint++] = y;
+        // 5
+        vertexBuffer[vertexPoint++] = x + width - bevelDistance;
+        vertexBuffer[vertexPoint++] = y + height;
+        // 6
+        vertexBuffer[vertexPoint++] = x + width - bevelDistance;
+        vertexBuffer[vertexPoint++] = y;
+        // 7
+        vertexBuffer[vertexPoint++] = x + width;
+        vertexBuffer[vertexPoint++] = y + height - bevelDistance;
+        // 8
+        vertexBuffer[vertexPoint++] = x + width;
+        vertexBuffer[vertexPoint++] = y + bevelDistance;
         
-        vertex[vertexPoint++] = x + width - bevelDistance;
-        vertex[vertexPoint++] = y + height;
-
-        // right
-        vertex[vertexPoint++] = x + width;
-        vertex[vertexPoint++] = y + height - bevelDistance;
-        vertex[vertexPoint++] = x + width;
-        vertex[vertexPoint++] = y + bevelDistance;
-
-        // bottom
-        vertex[vertexPoint++] = x + width - bevelDistance;
-        vertex[vertexPoint++] = y;
-        vertex[vertexPoint++] = x +bevelDistance;
-        vertex[vertexPoint++] = y;
-
-        const int NUM_COLOR_SCALARS_PER_QUAD = 8;
         int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
                             ((int(color.y * 255.0f) & 0xFF) << 8) |
                             ((int(color.z * 255.0f) & 0xFF) << 16) |
                             ((int(color.w * 255.0f) & 0xFF) << 24);
-        int colors[NUM_COLOR_SCALARS_PER_QUAD] = { compactColor, compactColor, compactColor, compactColor,
-                                                   compactColor, compactColor, compactColor, compactColor };
+        int colors[NUM_VERTICES] = { compactColor, compactColor, compactColor, compactColor,
+                                     compactColor, compactColor, compactColor, compactColor };
 
 
         details.verticesBuffer->append(sizeof(vertexBuffer), (gpu::Byte*) vertexBuffer);
         details.colorBuffer->append(sizeof(colors), (gpu::Byte*) colors);
-
-        delete[] vertexBuffer;
     }
 
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
-    batch.draw(gpu::QUADS, 4, 0);
+    batch.draw(gpu::TRIANGLE_STRIP, details.vertices, 0);
 }
 
 void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner, const glm::vec4& color, int id) {

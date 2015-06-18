@@ -163,7 +163,7 @@ public:
     AvatarData();
     virtual ~AvatarData();
     
-    virtual bool isMyAvatar() { return false; }
+    virtual bool isMyAvatar() const { return false; }
 
     const QUuid& getSessionUUID() const { return _sessionUUID; }
 
@@ -378,7 +378,6 @@ protected:
     QVector<AttachmentData> _attachmentData;
     QString _displayName;
 
-    QRect _displayNameBoundingRect;
     float _displayNameTargetAlpha;
     float _displayNameAlpha;
 
