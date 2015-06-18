@@ -270,7 +270,9 @@ void MeshMassProperties::computeMassProperties(const VectorOfPoints& points, con
     }
 
     // create some variables to hold temporary results
+    #ifndef NDEBUG
     uint32_t numPoints = points.size();
+    #endif
     const btVector3 p0(0.0f, 0.0f, 0.0f);
     btMatrix3x3 tetraInertia;
     btMatrix3x3 doubleDebugInertia;
@@ -281,9 +283,11 @@ void MeshMassProperties::computeMassProperties(const VectorOfPoints& points, con
     uint32_t numTriangles = triangleIndices.size() / 3;
     for (uint32_t i = 0; i < numTriangles; ++i) {
         uint32_t t = 3 * i;
+        #ifndef NDEBUG
         assert(triangleIndices[t] < numPoints);
         assert(triangleIndices[t + 1] < numPoints);
         assert(triangleIndices[t + 2] < numPoints);
+        #endif
 
         // extract raw vertices
         tetraPoints[0] = p0;

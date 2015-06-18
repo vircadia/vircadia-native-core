@@ -305,7 +305,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                                     << returnedPath;
                             }
                         } else {
-                            handlePath(overridePath, trigger);
+                            handlePath(returnedPath, trigger);
                         }
                     } else {
                         // we didn't override the path or get one back - ask the DS for the viewpoint of its index path

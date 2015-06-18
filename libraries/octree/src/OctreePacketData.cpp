@@ -384,10 +384,12 @@ bool OctreePacketData::appendValue(const glm::vec3& value) {
 bool OctreePacketData::appendValue(const QVector<glm::vec3>& value) {
     uint16_t qVecSize = value.size();
     bool success = appendValue(qVecSize);
-    success = append((const unsigned char*)value.constData(), qVecSize * sizeof(glm::vec3));
     if (success) {
-        _bytesOfValues += qVecSize * sizeof(glm::vec3);
-        _totalBytesOfValues += qVecSize * sizeof(glm::vec3);
+        success = append((const unsigned char*)value.constData(), qVecSize * sizeof(glm::vec3));
+        if (success) {
+            _bytesOfValues += qVecSize * sizeof(glm::vec3);
+            _totalBytesOfValues += qVecSize * sizeof(glm::vec3);
+        }
     }
     return success;
 }

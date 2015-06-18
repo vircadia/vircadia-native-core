@@ -16,22 +16,6 @@
 
 namespace render {
 
-
-
-
-    template <class T> void jobRun(T& jobModel, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-        jobModel.run(sceneContext, renderContext);
-    }
-    template <class T, class I> void jobRunI(T& jobModel, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const I& input) {
-        jobModel.run(sceneContext, renderContext, input);
-    }
-    template <class T, class O> void jobRunO(T& jobModel, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, O& output) {
-        jobModel.run(sceneContext, renderContext, output);
-    }
-    template <class T, class I, class O> void jobRunIO(T& jobModel, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const I& input, O& output) {
-        jobModel.run(sceneContext, renderContext, input, output);
-    }
-
 template <class T> void jobRun(T& jobModel, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     jobModel.run(sceneContext, renderContext);
 }
@@ -104,9 +88,15 @@ protected:
 public:
 
     class Concept {
+        std::string _name;
     public:
+        Concept() : _name() {}
+        Concept(const std::string& name) : _name(name) {}
         virtual ~Concept() = default;
-        virtual const std::string getName() const = 0;
+        
+        void setName(const std::string& name) { _name = name; }
+        const std::string& getName() const { return _name; }
+        
         virtual const Varying getInput() const { return Varying(); }
         virtual const Varying getOutput() const { return Varying(); }
         virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) = 0;
@@ -122,7 +112,9 @@ public:
         Data _data;
 
         Model() {}
+        Model(const std::string& name): Concept(name) {}
         Model(Data data): _data(data) {}
+        Model(Data data, const std::string& name): Concept(name), _data(data) {}
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) { jobRun(_data, sceneContext, renderContext); }
     };
@@ -138,6 +130,7 @@ public:
         const Varying getInput() const { return _input; }
 
         ModelI(const Varying& input): _input(input) {}
+        ModelI(const Varying& input, const std::string& name): Concept(name), _input(input) {}
         ModelI(Data data): _data(data) {}
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) { jobRunI(_data, sceneContext, renderContext, _input.get<I>()); }

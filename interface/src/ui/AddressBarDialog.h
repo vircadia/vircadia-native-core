@@ -28,6 +28,8 @@ protected:
     void hide();
 
     Q_INVOKABLE void loadAddress(const QString& address);
+    Q_INVOKABLE void loadBack();
+    Q_INVOKABLE void loadForward();
 };
 
 #endif

@@ -376,7 +376,7 @@ void ApplicationOverlay::displayOverlayTextureHmd(Camera& whichCamera) {
             textureAspectRatio = _textureAspectRatio;
             
             _overlays.buildVBO(_textureFov, _textureAspectRatio, 80, 80);
-        }
+        }	
 
         with_each_texture(_overlays.getTexture(), _newUiTexture, [&] {
             _overlays.render();
@@ -605,7 +605,6 @@ void ApplicationOverlay::renderPointers() {
             _lastMouseMove = usecTimestampNow();
         } else if (usecTimestampNow() - _lastMouseMove > MAX_IDLE_TIME * USECS_PER_SECOND) {
             //float pitch = 0.0f, yaw = 0.0f, roll = 0.0f; // radians
-            //OculusManager::getEulerAngles(yaw, pitch, roll);
             glm::quat orientation = qApp->getHeadOrientation(); // (glm::vec3(pitch, yaw, roll));
             glm::vec3 result;
             

@@ -14,6 +14,8 @@
 
 #include "render/DrawTask.h"
 
+#include "gpu/Pipeline.h"
+
 class PrepareDeferred {
 public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
@@ -48,6 +50,16 @@ public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
 
     typedef render::Job::ModelI<DrawTransparentDeferred, render::ItemIDsBounds> JobModel;
+};
+
+class DrawOverlay3D {
+    mutable gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
+public:
+    const gpu::PipelinePointer& getOpaquePipeline() const;
+    
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+
+    typedef render::Job::Model<DrawOverlay3D> JobModel;
 };
 
 class RenderDeferredTask : public render::Task {
