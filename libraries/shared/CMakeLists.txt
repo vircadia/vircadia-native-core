@@ -2,7 +2,7 @@ set(TARGET_NAME shared)
 
 # use setup_hifi_library macro to setup our project and link appropriate Qt modules
 # TODO: there isn't really a good reason to have Script linked here - let's get what is requiring it out (RegisteredMetaTypes.cpp)
-setup_hifi_library(Gui Network OpenGL Script Widgets)
+setup_hifi_library(Gui Network Script Widgets)
 
 setup_hifi_opengl()
 
