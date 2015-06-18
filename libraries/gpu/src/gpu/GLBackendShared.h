@@ -49,6 +49,8 @@ static const GLenum _elementTypeToGLType[gpu::NUM_TYPES] = {
 
 // Stupid preprocessor trick to turn the line macro into a string
 #define CHECK_GL_ERROR_HELPER(x) #x
-#define CHECK_GL_ERROR() gpu::GLBackend::checkGLErrorDebug(__FUNCTION__ ":" CHECK_GL_ERROR_HELPER(__LINE__))
+// FIXME doesn't build on Linux or Mac.  Hmmmm
+// #define CHECK_GL_ERROR() gpu::GLBackend::checkGLErrorDebug(__FUNCTION__ ":" CHECK_GL_ERROR_HELPER(__LINE__))
+#define CHECK_GL_ERROR() gpu::GLBackend::checkGLErrorDebug(__FUNCTION__)
 
 #endif
