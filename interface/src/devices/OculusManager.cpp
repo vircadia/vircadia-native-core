@@ -249,7 +249,7 @@ void OculusManager::connect(QOpenGLContext* shareContext) {
         _ovrHmd = ovrHmd_CreateDebug(ovrHmd_DK2);
     }
 #endif
-
+    
 #endif
 
     if (!_ovrHmd) {
