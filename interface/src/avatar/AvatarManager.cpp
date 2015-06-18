@@ -13,7 +13,17 @@
 
 #include <QScriptEngine>
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#endif
+
 #include <glm/gtx/string_cast.hpp>
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+
 
 #include <GlowEffect.h>
 #include <PerfStat.h>

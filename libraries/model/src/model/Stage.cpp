@@ -42,9 +42,9 @@ Mat4d EarthSunModel::evalWorldToGeoLocationMat(double longitude, double latitude
 
 void EarthSunModel::updateWorldToSurface() const {
     // Check if the final position is too close to the earth center ?
-    double absAltitude = _earthRadius + _altitude;
-    if ( absAltitude < 0.01) {
-        absAltitude = 0.01;
+    float absAltitude = _earthRadius + _altitude;
+    if ( absAltitude < 0.01f) {
+        absAltitude = 0.01f;
     }
 
     // Final world to local Frame
@@ -263,8 +263,8 @@ double evalSunDeclinaison(double dayNumber) {
 void SunSkyStage::updateGraphicsObject() const {
     // Always update the sunLongitude based on the current dayTime and the current origin
     // The day time is supposed to be local at the origin
-    double signedNormalizedDayTime = (_dayTime - NUM_HOURS_PER_HALF_DAY) / NUM_HOURS_PER_HALF_DAY;
-    double sunLongitude = _earthSunModel.getLongitude() + (MAX_LONGITUDE * signedNormalizedDayTime);
+    float signedNormalizedDayTime = (_dayTime - NUM_HOURS_PER_HALF_DAY) / NUM_HOURS_PER_HALF_DAY;
+    float sunLongitude = _earthSunModel.getLongitude() + (MAX_LONGITUDE * signedNormalizedDayTime);
     _earthSunModel.setSunLongitude(sunLongitude);
 
     // And update the sunLAtitude as the declinaison depending of the time of the year
