@@ -124,8 +124,8 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
    
     if (!(_isFaceTrackerConnected || billboard)) {
         // Update eye saccades
-        const float AVERAGE_MICROSACCADE_INTERVAL = 0.50f;
-        const float AVERAGE_SACCADE_INTERVAL = 4.0f;
+        const float AVERAGE_MICROSACCADE_INTERVAL = 1.0f;
+        const float AVERAGE_SACCADE_INTERVAL = 6.0f;
         const float MICROSACCADE_MAGNITUDE = 0.002f;
         const float SACCADE_MAGNITUDE = 0.04f;
         const float MAXIMUM_SACCADE_SPEED = 0.8f;
