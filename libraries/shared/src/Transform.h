@@ -29,7 +29,7 @@ inline bool isValidScale(glm::vec3 scale) {
 }
 
 inline bool isValidScale(float scale) {
-    bool result = scale != 0.0f;
+    bool result = scale != 0.0f && !glm::isnan(scale) && !glm::isinf(scale);
     assert(result);
     return result;
 }
@@ -323,7 +323,7 @@ inline void Transform::setScale(const Vec3& scale) {
 }
 
 inline void Transform::postScale(float scale) {
-    if (isValidScale(scale) || scale == 1.0f) {
+    if (!isValidScale(scale) || scale == 1.0f) {
         return;
     }
     if (isScaling()) {
