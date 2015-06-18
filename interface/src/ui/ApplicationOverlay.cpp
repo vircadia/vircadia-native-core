@@ -20,6 +20,7 @@
 #include <DeferredLightingEffect.h>
 #include <GLMHelpers.h>
 #include <gpu/GLBackend.h>
+#include <gpu/GLBackendShared.h>
 #include <GLMHelpers.h>
 #include <OffscreenUi.h>
 #include <CursorManager.h>
@@ -89,8 +90,10 @@ ApplicationOverlay::ApplicationOverlay() :
 ApplicationOverlay::~ApplicationOverlay() {
 }
 
+
 // Renders the overlays either to a texture or to the screen
 void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
+    CHECK_GL_ERROR();
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
 
     buildFramebufferObject();
@@ -102,18 +105,24 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     _overlayFramebuffer->bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     fboViewport(_overlayFramebuffer);
+    CHECK_GL_ERROR();
 
     // Now render the overlay components together into a single texture
     //renderOverlays(renderArgs);
     //renderAudioMeter(renderArgs);
     //renderCameraToggle(renderArgs);
     renderStatsAndLogs(renderArgs);
+    CHECK_GL_ERROR();
     renderRearView(renderArgs);
+    CHECK_GL_ERROR();
 
     renderDomainConnectionStatusBorder(renderArgs);
+    CHECK_GL_ERROR();
     renderQmlUi(renderArgs);
+    CHECK_GL_ERROR();
 
     _overlayFramebuffer->release();
+    CHECK_GL_ERROR();
 }
 
 void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
@@ -446,7 +455,7 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder(RenderArgs* renderAr
         gpu::Batch batch;
         auto geometryCache = DependencyManager::get<GeometryCache>();
         geometryCache->useSimpleDrawPipeline(batch);
-        batch._glDisable(GL_DEPTH);
+        batch._glDisable(GL_DEPTH_TEST);
         batch._glDisable(GL_LIGHTING);
         batch._glEnable(GL_BLEND);
         batch.setProjectionTransform(mat4());
