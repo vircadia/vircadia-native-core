@@ -73,11 +73,12 @@ public:
     virtual void setVoxelInVolume(glm::vec3 position, uint8_t toValue);
 
     SIMPLE_RENDERABLE();
-    
+
 private:
     // The PolyVoxEntityItem class has _voxelData which contains dimensions and compressed voxel data.  The dimensions
     // may not match _voxelVolumeSize.
 
+    void setVoxelInternal(int x, int y, int z, uint8_t toValue);
     void compressVolumeData();
     void decompressVolumeData();
 

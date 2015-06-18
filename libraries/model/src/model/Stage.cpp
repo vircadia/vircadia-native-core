@@ -14,9 +14,6 @@
 #include <math.h>
 #include <qcompilerdetection.h>
 
-#include "SkyFromAtmosphere_vert.h"
-#include "SkyFromAtmosphere_frag.h"
-
 using namespace model;
 
 
@@ -207,17 +204,6 @@ SunSkyStage::SunSkyStage() :
     // Begining of march
     setYearTime(60.0f);
 
-    auto skyFromAtmosphereVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(SkyFromAtmosphere_vert)));
-    auto skyFromAtmosphereFragment = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(SkyFromAtmosphere_frag)));
-    auto skyShader = gpu::ShaderPointer(gpu::Shader::createProgram(skyFromAtmosphereVertex, skyFromAtmosphereFragment));
-
-    auto skyState = gpu::StatePointer(new gpu::State());
- //   skyState->setStencilEnable(false);
-   // skyState->setBlendEnable(false);
-
-    _skyPipeline = gpu::PipelinePointer(gpu::Pipeline::create(skyShader, skyState));
-
-
     _skybox.reset(new Skybox());
     _skybox->setColor(Color(1.0f, 0.0f, 0.0f));
 
@@ -306,12 +292,6 @@ void SunSkyStage::updateGraphicsObject() const {
         case NUM_BACKGROUND_MODES:
             Q_UNREACHABLE();
     };
-
-    static int firstTime = 0;
-    if (firstTime == 0) {
-        firstTime++;
-        gpu::Shader::makeProgram(*(_skyPipeline->getProgram()));
-    }
 }
 
 void SunSkyStage::setBackgroundMode(BackgroundMode mode) {

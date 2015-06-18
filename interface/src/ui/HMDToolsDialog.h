@@ -35,8 +35,6 @@ signals:
 public slots:
     void reject();
     void switchModeClicked(bool checked);
-    void activateWindowAfterEnterMode();
-    void moveWindowAfterLeaveMode();
     void applicationWindowScreenChanged(QScreen* screen);
     void aboutToQuit(); 
     void screenCountChanged(int newCount);
@@ -51,8 +49,6 @@ private:
     void enterHDMMode();
     void leaveHDMMode();
 
-    bool _wasMoved;
-    QRect _previousRect;
     QScreen* _previousScreen;
     QScreen* _hmdScreen;
     int _hmdScreenNumber;

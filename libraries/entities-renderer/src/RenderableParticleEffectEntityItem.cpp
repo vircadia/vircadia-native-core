@@ -53,7 +53,7 @@ void RenderableParticleEffectEntityItem::render(RenderArgs* args) {
         batch.setUniformTexture(0, _texture->getGPUTexture());
     }
     batch.setModelTransform(getTransformToCenter());
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, textured);
     DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::QUADS, _cacheID);
 };
 
@@ -75,31 +75,34 @@ void RenderableParticleEffectEntityItem::updateQuads(RenderArgs* args, bool text
     vertices.reserve(getLivingParticleCount() * VERTS_PER_PARTICLE);
     
     if (textured) {
-        positions.reserve(getLivingParticleCount());
         textureCoords.reserve(getLivingParticleCount() * VERTS_PER_PARTICLE);
-        
-        for (quint32 i = _particleHeadIndex; i != _particleTailIndex; i = (i + 1) % _maxParticles) {
-            positions.append(_particlePositions[i]);
-            
+    }
+    positions.reserve(getLivingParticleCount());
+   
+    
+    for (quint32 i = _particleHeadIndex; i != _particleTailIndex; i = (i + 1) % _maxParticles) {
+        positions.append(_particlePositions[i]);
+        if (textured) {        
             textureCoords.append(glm::vec2(0, 1));
             textureCoords.append(glm::vec2(1, 1));
             textureCoords.append(glm::vec2(1, 0));
             textureCoords.append(glm::vec2(0, 0));
         }
-        
-        // sort particles back to front
-        ::zSortAxis = args->_viewFrustum->getDirection();
-        qSort(positions.begin(), positions.end(), zSort);
     }
+        
+    // sort particles back to front
+    ::zSortAxis = args->_viewFrustum->getDirection();
+    qSort(positions.begin(), positions.end(), zSort);
     
     for (int i = 0; i < positions.size(); i++) {
         glm::vec3 pos = (textured) ? positions[i] : _particlePositions[i];
 
         // generate corners of quad aligned to face the camera.
-        vertices.append(pos - rightOffset + upOffset);
         vertices.append(pos + rightOffset + upOffset);
-        vertices.append(pos + rightOffset - upOffset);
+        vertices.append(pos - rightOffset + upOffset);
         vertices.append(pos - rightOffset - upOffset);
+        vertices.append(pos + rightOffset - upOffset);
+   
     }
     
     if (textured) {

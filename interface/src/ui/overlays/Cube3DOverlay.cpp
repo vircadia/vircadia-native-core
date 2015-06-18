@@ -69,8 +69,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
 
             transform.setScale(dimensions);
             batch->setModelTransform(transform);
-
-            DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(*batch, 1.0f, cubeColor);
+            DependencyManager::get<GeometryCache>()->renderSolidCube(*batch, 1.0f, cubeColor);
         } else {
 
             if (getIsDashedLine()) {
