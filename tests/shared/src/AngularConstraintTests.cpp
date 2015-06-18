@@ -297,7 +297,7 @@ void AngularConstraintTests::testConeRollerConstraint() {
     glm::vec3 maxAngles(maxAngleX, maxAngleY, maxAngleZ);
     AngularConstraint* c = AngularConstraint::newAngularConstraint(minAngles, maxAngles);
 
-    float expectedConeAngle = 0.25 * (maxAngleX - minAngleX + maxAngleY - minAngleY);
+    float expectedConeAngle = 0.25f * (maxAngleX - minAngleX + maxAngleY - minAngleY);
     glm::vec3 middleAngles = 0.5f * (maxAngles + minAngles);
     glm::quat yaw = glm::angleAxis(middleAngles[1], glm::vec3(0.0f, 1.0f, 0.0f));
     glm::quat pitch = glm::angleAxis(middleAngles[0], glm::vec3(1.0f, 0.0f, 0.0f));

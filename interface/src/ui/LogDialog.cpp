@@ -11,9 +11,18 @@
 
 #include "InterfaceConfig.h"
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#endif
+
 #include <QDesktopWidget>
 #include <QTextBlock>
 #include <QtGui>
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 #include <PathUtils.h>
 #include <SharedUtil.h>

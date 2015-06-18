@@ -881,7 +881,7 @@ bool capsuleVsAACube(const Shape* shapeA, const Shape* shapeB, CollisionList& co
         faceNormal = glm::vec3(0.0f, 0.0f, signs.z);
     }
 
-    if (fabs(glm::dot(faceNormal, capsuleAxis)) < EPSILON) {
+    if (fabsf(glm::dot(faceNormal, capsuleAxis)) < EPSILON) {
         if (glm::dot(nearestApproach, faceNormal) > cubeB->getScale() + capsuleA->getRadius()) {
             return false;
         }

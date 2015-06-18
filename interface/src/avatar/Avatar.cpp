@@ -716,6 +716,7 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, floa
     result.postTranslate(worldOffset); // Pixel alignment
     result.setScale(scale);
     return result;
+
 }
 
 void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum) const {

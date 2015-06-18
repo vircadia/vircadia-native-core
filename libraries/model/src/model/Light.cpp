@@ -73,7 +73,7 @@ void Light::setMaximumRadius(float radius) {
         radius = 1.0f;
     }
     float CutOffIntensityRatio = 0.05f;
-    float surfaceRadius = radius / (sqrt(1.0f / CutOffIntensityRatio) - 1.f);
+    float surfaceRadius = radius / (sqrtf(1.0f / CutOffIntensityRatio) - 1.0f);
     editSchema()._attenuation = Vec4(surfaceRadius, 1.0f/surfaceRadius, CutOffIntensityRatio, radius);
 }
 

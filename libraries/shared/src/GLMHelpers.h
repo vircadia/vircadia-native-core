@@ -28,9 +28,18 @@ using glm::vec3;
 using glm::vec4;
 using glm::quat;
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#endif
+
 #include <QtCore/QByteArray>
 #include <QtGui/QMatrix4x4>
 #include <QtGui/QColor>
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 #include "SharedUtil.h"
 
