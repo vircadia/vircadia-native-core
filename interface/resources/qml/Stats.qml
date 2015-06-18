@@ -238,8 +238,9 @@ Hifi.Stats {
             x: 4; y: 4
             id: perfText
             color: root.fontColor
-            font.family: "Lucida Console"
-            text: "-------------------------------------------------------- Function " + 
+            font.family: root.monospaceFont
+            font.pixelSize: 10
+            text: "-------------------------------------------------------- Function " +
                 "------------------------------------------------------- --msecs- -calls--\n" +
                 root.timingStats;
         }

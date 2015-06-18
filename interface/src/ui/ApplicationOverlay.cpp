@@ -95,32 +95,28 @@ ApplicationOverlay::~ApplicationOverlay() {
 void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     CHECK_GL_ERROR();
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
+    
+    // TODO move to Application::idle()?
+    Stats::getInstance()->updateStats();
 
     buildFramebufferObject();
 
     // First render the mirror to the mirror FBO
-    renderRearViewToFbo(renderArgs);
+    // renderRearViewToFbo(renderArgs);
 
     // Execute the batch into our framebuffer
     _overlayFramebuffer->bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     fboViewport(_overlayFramebuffer);
-    CHECK_GL_ERROR();
 
     // Now render the overlay components together into a single texture
-    //renderOverlays(renderArgs);
+    renderOverlays(renderArgs);
     //renderAudioMeter(renderArgs);
     //renderCameraToggle(renderArgs);
     renderStatsAndLogs(renderArgs);
-    CHECK_GL_ERROR();
-    renderRearView(renderArgs);
-    CHECK_GL_ERROR();
-
+    // renderRearView(renderArgs);
     renderDomainConnectionStatusBorder(renderArgs);
-    CHECK_GL_ERROR();
     renderQmlUi(renderArgs);
-    CHECK_GL_ERROR();
-
     _overlayFramebuffer->release();
     CHECK_GL_ERROR();
 }
@@ -162,6 +158,7 @@ void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
     glMatrixMode(GL_MODELVIEW);
+    fboViewport(_overlayFramebuffer);
 }
 
 void ApplicationOverlay::renderCameraToggle(RenderArgs* renderArgs) {
@@ -180,6 +177,7 @@ void ApplicationOverlay::renderCameraToggle(RenderArgs* renderArgs) {
     }
 
     DependencyManager::get<CameraToolBox>()->render(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP, audioMeterY, boxed);
+    fboViewport(_overlayFramebuffer);
 }
 
 void ApplicationOverlay::renderAudioMeter(RenderArgs* renderArgs) {
@@ -296,6 +294,7 @@ void ApplicationOverlay::renderAudioMeter(RenderArgs* renderArgs) {
                                                             audioLevel, AUDIO_METER_HEIGHT, quadColor,
                                                             _audioBlueQuad);
     }
+    fboViewport(_overlayFramebuffer);
 }
 
 void ApplicationOverlay::renderRearViewToFbo(RenderArgs* renderArgs) {
@@ -305,16 +304,9 @@ void ApplicationOverlay::renderRearViewToFbo(RenderArgs* renderArgs) {
     float fov = MIRROR_FIELD_OF_VIEW;
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     // bool eyeRelativeCamera = false;
-    bool billboard = false;
-    if (billboard) {
-        fov = BILLBOARD_FIELD_OF_VIEW;  // degees
-        _mirrorCamera.setPosition(myAvatar->getPosition() +
-            myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * BILLBOARD_DISTANCE * myAvatar->getScale());
-
-    } else if (RearMirrorTools::rearViewZoomLevel.get() == BODY) {
+    if (RearMirrorTools::rearViewZoomLevel.get() == BODY) {
         _mirrorCamera.setPosition(myAvatar->getChestPosition() +
             myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * myAvatar->getScale());
-
     } else { // HEAD zoom level
         // FIXME note that the positioing of the camera relative to the avatar can suffer limited
         // precision as the user's position moves further away from the origin.  Thus at
@@ -339,14 +331,7 @@ void ApplicationOverlay::renderRearViewToFbo(RenderArgs* renderArgs) {
     _mirrorCamera.setRotation(myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
 
     // set the bounds of rear mirror view
-    if (billboard) {
-        //QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
-        //glViewport(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
-        //glScissor(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
-    } else {
-        auto mirrorSize = _mirrorFramebuffer->size();
-        fboViewport(_mirrorFramebuffer);
-    }
+    fboViewport(_mirrorFramebuffer);
 
     _mirrorFramebuffer->bind();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -360,23 +345,14 @@ void ApplicationOverlay::renderRearViewToFbo(RenderArgs* renderArgs) {
     glLoadMatrixf(glm::value_ptr(glm::mat4_cast(_mirrorCamera.getOrientation()) * glm::translate(glm::mat4(), _mirrorCamera.getPosition())));
     {
         renderArgs->_context->syncCache();
-        qApp->displaySide(renderArgs, _mirrorCamera, true, billboard);
+        qApp->displaySide(renderArgs, _mirrorCamera, true, false);
     }
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
     glMatrixMode(GL_MODELVIEW);
     glPopMatrix();
     _mirrorFramebuffer->release();
-
-    //    if (!billboard) {
-    //        _rearMirrorTools->render(renderArgs, false, _glWidget->mapFromGlobal(QCursor::pos()));
-    //    }
-
-    //    // reset Viewport and projection matrix
-    //    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
-    //    glDisable(GL_SCISSOR_TEST);
-    //    updateProjectionMatrix(_myCamera, updateViewFrustum);
-    //}
+    fboViewport(_overlayFramebuffer);
 }
 
 void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
@@ -408,7 +384,7 @@ void ApplicationOverlay::renderStatsAndLogs(RenderArgs* renderArgs) {
     //  Display stats and log text onscreen
 
     // Determine whether to compute timing details
-    Stats::getInstance()->updateStats();
+
 
     /*
     //  Show on-screen msec timer
@@ -434,6 +410,7 @@ void ApplicationOverlay::renderStatsAndLogs(RenderArgs* renderArgs) {
     glEnable(GL_LIGHTING);
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
+    fboViewport(_overlayFramebuffer);
     */
 }
 
