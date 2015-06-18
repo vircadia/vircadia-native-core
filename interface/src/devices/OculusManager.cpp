@@ -212,8 +212,6 @@ bool OculusManager::_eyePerFrameMode = false;
 ovrEyeType OculusManager::_lastEyeRendered = ovrEye_Count;
 ovrSizei OculusManager::_recommendedTexSize = { 0, 0 };
 float OculusManager::_offscreenRenderScale = 1.0;
-
-static glm::mat4 _eyeProjections[ovrEye_Count];
 static glm::mat4 _combinedProjection;
 static ovrPosef _eyeRenderPoses[ovrEye_Count];
 ovrRecti OculusManager::_eyeViewports[ovrEye_Count];
@@ -266,7 +264,13 @@ void OculusManager::connect(QOpenGLContext* shareContext) {
 
     for_each_eye([&](ovrEyeType eye) {
         _eyeFov[eye] = _ovrHmd->DefaultEyeFov[eye];
+        _eyeProjection[eye] = toGlm(ovrMatrix4f_Projection(_eyeFov[eye], 
+            DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded));
     });
+    ovrFovPort combinedFov = _ovrHmd->MaxEyeFov[0];
+    combinedFov.RightTan = _ovrHmd->MaxEyeFov[1].RightTan;
+    _combinedProjection = toGlm(ovrMatrix4f_Projection(combinedFov, 
+        DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded));
 
     _recommendedTexSize = ovrHmd_GetFovTextureSize(_ovrHmd, ovrEye_Left, _eyeFov[ovrEye_Left], 1.0f);
     _renderTargetSize = { _recommendedTexSize.w * 2, _recommendedTexSize.h };
@@ -523,18 +527,12 @@ void OculusManager::endFrameTiming() {
 
 //Sets the camera FoV and aspect ratio
 void OculusManager::configureCamera(Camera& camera) {
-    ovrFovPort fov;
     if (_activeEye == ovrEye_Count) {
         // When not rendering, provide a FOV encompasing both eyes
-        fov = _eyeFov[0];
-        fov.RightTan = _eyeFov[1].RightTan;
-    } else {
-        // When rendering, provide the exact FOV
-        fov = _eyeFov[_activeEye];
-    }
-    // Convert the FOV to the correct projection matrix
-    glm::mat4 projection = toGlm(ovrMatrix4f_Projection(fov, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded));
-    camera.setProjection(projection);
+        camera.setProjection(_combinedProjection);
+        return;
+    } 
+    camera.setProjection(_eyeProjection[_activeEye]);
 }
 
 //Displays everything for the oculus, frame timing must be active
@@ -812,7 +810,7 @@ int OculusManager::getHMDScreen() {
 }
 
 mat4 OculusManager::getEyeProjection(int eye) {
-    return _eyeProjections[eye];
+    return _eyeProjection[eye];
 }
 
 mat4 OculusManager::getEyePose(int eye) {
