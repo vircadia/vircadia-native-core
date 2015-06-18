@@ -1930,11 +1930,15 @@ void Application::setEnableVRMode(bool enableVRMode) {
             // attempt to reconnect the Oculus manager - it's possible this was a workaround
             // for the sixense crash
             OculusManager::disconnect();
-            OculusManager::connect();
+            OculusManager::connect(_glWidget->context()->contextHandle());
+            _glWidget->setFocus();
+            _glWidget->makeCurrent();
+            glClear(GL_COLOR_BUFFER_BIT);
         }
         OculusManager::recalibrate();
     } else {
         OculusManager::abandonCalibration();
+        OculusManager::disconnect();
 
         _mirrorCamera.setHmdPosition(glm::vec3());
         _mirrorCamera.setHmdRotation(glm::quat());
@@ -2169,13 +2173,6 @@ void Application::init() {
     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
 
     _mirrorCamera.setMode(CAMERA_MODE_MIRROR);
-
-    OculusManager::connect();
-    if (OculusManager::isConnected()) {
-        QMetaObject::invokeMethod(Menu::getInstance()->getActionForOption(MenuOption::Fullscreen),
-                                  "trigger",
-                                  Qt::QueuedConnection);
-    }
 
     TV3DManager::connect();
     if (TV3DManager::isConnected()) {
