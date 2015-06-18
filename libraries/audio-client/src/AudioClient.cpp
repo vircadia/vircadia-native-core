@@ -786,6 +786,11 @@ void AudioClient::handleAudioInput() {
 
             delete[] inputAudioSamples;
 
+            //  Remove DC offset 
+            if (!_isStereoInput && !_audioSourceInjectEnabled) {
+                _inputGate.removeDCOffset(networkAudioSamples, numNetworkSamples);
+            }
+            
             // only impose the noise gate and perform tone injection if we are sending mono audio
             if (!_isStereoInput && !_audioSourceInjectEnabled && _isNoiseGateEnabled) {
                 _inputGate.gateSamples(networkAudioSamples, numNetworkSamples);
