@@ -707,8 +707,8 @@ const char* OctreeSceneStats::getItemValue(Item item) {
             float elapsedAverage = _elapsedAverage.getAverage();
             calcAverageFPS = (float)USECS_PER_SECOND / (float)elapsedAverage;
 
-            sprintf(_itemValueBuffer, "%llu usecs (%d fps) Average: %.0f usecs (%d fps)", 
-                    (long long unsigned int)_elapsed, calcFPS, elapsedAverage, calcAverageFPS);
+            sprintf(_itemValueBuffer, "%llu usecs (%d fps) Average: %.0f usecs (%d fps)",
+                    (long long unsigned int)_elapsed, calcFPS, (double)elapsedAverage, calcAverageFPS);
             break;
         }
         case ITEM_ENCODE:
@@ -733,7 +733,7 @@ const char* OctreeSceneStats::getItemValue(Item item) {
             float calculatedBPV = total == 0 ? 0 : (_bytes * 8) / total;
             float averageBPV = _bitsPerOctreeAverage.getAverage();
             sprintf(_itemValueBuffer, "%lu (%.2f bits/octree Average: %.2f bits/octree) %lu internal %lu leaves", 
-                    total, calculatedBPV, averageBPV,
+                    total, (double)calculatedBPV, (double)averageBPV,
                     (long unsigned int)_existsInPacketBitsWritten,
                     (long unsigned int)_colorSent);
             break;

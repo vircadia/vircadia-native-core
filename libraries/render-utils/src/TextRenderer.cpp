@@ -18,11 +18,20 @@
 #include <QBuffer>
 #include <QFile>
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#endif
+
 // FIXME, decouple from the GL headers
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLBuffer>
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>

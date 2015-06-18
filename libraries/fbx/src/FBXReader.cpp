@@ -1251,7 +1251,7 @@ FBXLight extractLight(const FBXNode& object) {
                 if (property.name == "P") {
                     QString propname = property.properties.at(0).toString();
                     if (propname == "Intensity") {
-                        light.intensity = 0.01f * property.properties.at(valIndex).value<double>();
+                        light.intensity = 0.01f * property.properties.at(valIndex).value<float>();
                     } else if (propname == "Color") {
                         light.color = getVec3(property.properties, valIndex);
                     }

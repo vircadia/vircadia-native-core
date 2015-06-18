@@ -62,7 +62,8 @@ void MovingMinMaxAvgTests::runAllTests() {
 
             assert(stats.getMin() == min);
             assert(stats.getMax() == max);
-            assert(fabs(stats.getAverage() / average - 1.0) < EPSILON || fabs(stats.getAverage() - average) < EPSILON);
+            assert(fabsf((float)stats.getAverage() / (float)average - 1.0f) < EPSILON ||
+                   fabsf((float)stats.getAverage() - (float)average) < EPSILON);
 
             if ((i + 1) % INTERVAL_LENGTH == 0) {
 
@@ -81,7 +82,8 @@ void MovingMinMaxAvgTests::runAllTests() {
 
                 assert(stats.getWindowMin() == windowMin);
                 assert(stats.getWindowMax() == windowMax);
-                assert(fabs(stats.getAverage() / average - 1.0) < EPSILON || fabs(stats.getAverage() - average) < EPSILON);
+                assert(fabsf((float)stats.getAverage() / (float)average - 1.0f) < EPSILON ||
+                       fabsf((float)stats.getAverage() - (float)average) < EPSILON);
 
             } else {
                 assert(!stats.getNewStatsAvailableFlag());
@@ -126,7 +128,7 @@ void MovingMinMaxAvgTests::runAllTests() {
 
             assert(stats.getMin() == min);
             assert(stats.getMax() == max);
-            assert(fabs(stats.getAverage() / average - 1.0) < EPSILON);
+            assert(fabsf((float)stats.getAverage() / (float)average - 1.0f) < EPSILON);
 
             if ((i + 1) % INTERVAL_LENGTH == 0) {
 
@@ -145,7 +147,7 @@ void MovingMinMaxAvgTests::runAllTests() {
 
                 assert(stats.getWindowMin() == windowMin);
                 assert(stats.getWindowMax() == windowMax);
-                assert(fabs(stats.getAverage() / average - 1.0) < EPSILON);
+                assert(fabsf((float)stats.getAverage() / (float)average - 1.0f) < EPSILON);
 
             } else {
                 assert(!stats.getNewStatsAvailableFlag());
@@ -185,12 +187,12 @@ void MovingMinMaxAvgTests::runAllTests() {
 
             min = std::min(min, sample);
             max = std::max(max, sample);
-            average = (average * totalSamples + sample) / (totalSamples + 1);
+            average = (average * totalSamples + (double)sample) / (totalSamples + 1);
             totalSamples++;
 
             assert(stats.getMin() == min);
             assert(stats.getMax() == max);
-            assert(fabs(stats.getAverage() / average - 1.0) < EPSILON);
+            assert(fabsf((float)stats.getAverage() / (float)average - 1.0f) < EPSILON);
 
             if ((i + 1) % INTERVAL_LENGTH == 0) {
 
@@ -209,7 +211,7 @@ void MovingMinMaxAvgTests::runAllTests() {
 
                 assert(stats.getWindowMin() == windowMin);
                 assert(stats.getWindowMax() == windowMax);
-                assert(fabs(stats.getAverage() / average - 1.0) < EPSILON);
+                assert(fabsf((float)stats.getAverage() / (float)average - 1.0f) < EPSILON);
 
             } else {
                 assert(!stats.getNewStatsAvailableFlag());
@@ -218,4 +220,3 @@ void MovingMinMaxAvgTests::runAllTests() {
     }
     printf("moving min/max/avg test passed!\n");
 }
-
