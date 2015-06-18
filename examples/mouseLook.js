@@ -46,6 +46,18 @@ var mouseLook = (function () {
     	}
     }
 
+    function findInput(name) {
+        var availableInputs = Controller.getAvailableInputs(keyboardID);
+        for (i = 0; i < availableInputs.length; i++) {
+            if (availableInputs[i].inputName == name) {
+                return availableInputs[i].input;
+            }
+        }
+
+        // If the input isn't found, it will default to the first available input
+        return availableInputs[0].input;
+    }
+
     function updateMapping() {
     	if (keyboardID != 0) {
     		if (active) {
@@ -55,11 +67,11 @@ var mouseLook = (function () {
                 yawSpeed = 0;
                 pitchSpeed = 0;
 
-                var a = Controller.getAvailableInputs(keyboardID)[10].input.channel;
-                var d = Controller.getAvailableInputs(keyboardID)[13].input.channel;
-                var left = Controller.getAvailableInputs(keyboardID)[36].input.channel;
-                var right = Controller.getAvailableInputs(keyboardID)[38].input.channel;
-                var shift = Controller.getAvailableInputs(keyboardID)[41].input.channel;
+                var a = findInput("A").channel;
+                var d = findInput("D").channel;
+                var left = findInput("Left").channel;
+                var right = findInput("Right").channel;
+                var shift = findInput("Shift").channel;
 
                 for (i = 6; i <= 9; i++) {
                     var inputChannels = Controller.getAllActions()[i].inputChannels;
