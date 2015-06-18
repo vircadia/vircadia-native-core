@@ -210,6 +210,8 @@ void Joystick::assignDefaultInputMapping(UserInputMapper& mapper) {
     // Zoom
     mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(RIGHT_SHOULDER), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), BOOM_SPEED/2.0f);
     mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(LEFT_SHOULDER), makeInput(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER), BOOM_SPEED/2.0f);
+    
+    mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(SDL_CONTROLLER_BUTTON_LEFTSHOULDER));
 #endif
 }
 

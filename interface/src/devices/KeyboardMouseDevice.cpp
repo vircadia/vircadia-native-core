@@ -276,6 +276,8 @@ void KeyboardMouseDevice::assignDefaultInputMapping(UserInputMapper& mapper) {
     mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(MOUSE_AXIS_WHEEL_X_POS), BUTTON_YAW_SPEED);
 
 #endif
+    
+    mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(Qt::Key_Space));
 
 }
 

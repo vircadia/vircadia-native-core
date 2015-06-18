@@ -724,6 +724,10 @@ void SixenseManager::assignDefaultInputMapping(UserInputMapper& mapper) {
     
     mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(BUTTON_3, 1), BUTTON_MOVE_SPEED);
     mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(BUTTON_1, 1), BUTTON_MOVE_SPEED);
+    
+    mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(BUTTON_2, 0));
+    mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(BUTTON_2, 1));
+
 }
 
 float SixenseManager::getButton(int channel) const {
