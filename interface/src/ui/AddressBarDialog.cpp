@@ -35,6 +35,16 @@ void AddressBarDialog::loadAddress(const QString& address) {
     }
 }
 
+void AddressBarDialog::loadBack() {
+    qDebug() << "Called LoadBack";
+    DependencyManager::get<AddressManager>()->goBack();
+}
+
+void AddressBarDialog::loadForward() {
+    qDebug() << "Called LoadForward";
+    DependencyManager::get<AddressManager>()->goForward();
+}
+
 void AddressBarDialog::displayAddressOfflineMessage() {
     OffscreenUi::error("That user or place is currently offline");
 }
