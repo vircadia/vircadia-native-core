@@ -35,11 +35,12 @@ public:
     void reset();
     void update(float deltaTime);
     void simulate(float deltaTime);
+    void preRender(RenderArgs* renderArgs);
     void updateFromTrackers(float deltaTime);
 
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting = false) override;
     virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel = 0.0f) override;
-    virtual bool shouldRenderHead(const RenderArgs* renderArgs, const glm::vec3& cameraPosition) const override;
+    virtual bool shouldRenderHead(const RenderArgs* renderArgs) const override;
     void renderDebugBodyPoints();
 
     // setters
@@ -210,6 +211,9 @@ private:
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
+    void setCurrentSkeletonModel(SkeletonModel* skeletonModel);
+    void initModelWhenReady(Model* model);
+
     glm::vec3 _gravity;
 
     float _driveKeys[MAX_DRIVE_KEYS];
@@ -265,6 +269,10 @@ private:
     QString _headModelName;
     QString _bodyModelName;
     QString _fullAvatarModelName;
+
+    // used for rendering when in first person view or when in an HMD.
+    SkeletonModel* _currentSkeletonModel;
+    SkeletonModel _firstPersonSkeletonModel;
 };
 
 #endif // hifi_MyAvatar_h

@@ -240,6 +240,8 @@ public:
     AABox getPartBounds(int meshIndex, int partIndex);
     void renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent);
 
+    bool initWhenReady(render::ScenePointer scene);
+
 protected:
     QSharedPointer<NetworkGeometry> _geometry;
     
@@ -311,6 +313,12 @@ protected:
         _calculatedMeshPartBoxesValid = false;
         _calculatedMeshTrianglesValid = false;
     }
+
+    // rebuild the clusterMatrices from the current jointStates
+    void updateClusterMatrices();
+
+    // hook for derived classes to be notified when setUrl invalidates the current model.
+    virtual void onInvalidate() {};
 
 private:
     

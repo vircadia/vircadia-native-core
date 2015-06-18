@@ -27,6 +27,7 @@
 #include <GeometryUtil.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
+#include <PathUtils.h>
 #include <PerfStat.h>
 #include <ShapeCollider.h>
 #include <SharedUtil.h>
@@ -96,8 +97,12 @@ MyAvatar::MyAvatar() :
     _feetTouchFloor(true),
     _isLookingAtLeftEye(true),
     _realWorldFieldOfView("realWorldFieldOfView",
-                          DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES)
+                          DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
+    _currentSkeletonModel(nullptr),
+    _firstPersonSkeletonModel(this)
 {
+    _firstPersonSkeletonModel.setIsFirstPerson(true);
+
     ShapeCollider::initDispatchTable();
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
@@ -131,6 +136,7 @@ QByteArray MyAvatar::toByteArray() {
 
 void MyAvatar::reset() {
     _skeletonModel.reset();
+    _firstPersonSkeletonModel.reset();
     getHead()->reset();
 
     _targetVelocity = glm::vec3(0.0f);
@@ -189,6 +195,7 @@ void MyAvatar::simulate(float deltaTime) {
     {
         PerformanceTimer perfTimer("skeleton");
         _skeletonModel.simulate(deltaTime);
+        _firstPersonSkeletonModel.simulate(deltaTime);
     }
 
     if (!_skeletonModel.hasSkeleton()) {
@@ -993,6 +1000,11 @@ void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     Avatar::setSkeletonModelURL(skeletonModelURL);
     _billboardValid = false;
+
+    if (_useFullAvatar) {
+        const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_body.fst");
+        _firstPersonSkeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
+    }
 }
 
 void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName) {
@@ -1176,18 +1188,12 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName, const g
 
 void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel) {
 
-    if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
-        return; // wait until both models are loaded
+    if (!(_skeletonModel.isRenderable() && _firstPersonSkeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
+        return; // wait until all models are loaded
     }
 
-    // check to see if when we added our models to the scene they were ready, if they were not ready, then
-    // fix them up in the scene
-    fixupModelsInScene();
-
-    const glm::vec3 cameraPos = Application::getInstance()->getCamera()->getPosition();
-
     //  Render head so long as the camera isn't inside it
-    if (shouldRenderHead(renderArgs, cameraPos)) {
+    if (shouldRenderHead(renderArgs)) {
         getHead()->render(renderArgs, 1.0f, renderFrustum, postLighting);
     }
     if (postLighting) {
@@ -1195,12 +1201,42 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bo
     }
 }
 
+void MyAvatar::setCurrentSkeletonModel(SkeletonModel* skeletonModel) {
+    if (_currentSkeletonModel != skeletonModel && skeletonModel->isActive() && skeletonModel->isRenderable()) {
+
+        render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+
+        if (_currentSkeletonModel) {
+            _currentSkeletonModel->setVisibleInScene(false, scene);
+        }
+        skeletonModel->setVisibleInScene(true, scene);
+        _currentSkeletonModel = skeletonModel;
+    }
+}
+
+void MyAvatar::preRender(RenderArgs* renderArgs) {
+
+    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+
+    _skeletonModel.initWhenReady(scene);
+    _firstPersonSkeletonModel.initWhenReady(scene);
+
+    // set visiblity on each model
+    if (shouldRenderHead(renderArgs)) {
+        setCurrentSkeletonModel(&_skeletonModel);
+    } else {
+        setCurrentSkeletonModel(&_firstPersonSkeletonModel);
+    }
+}
+
 const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
 
-bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs, const glm::vec3& cameraPosition) const {
+bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
+    const glm::vec3 cameraPos = Application::getInstance()->getCamera()->getPosition();
     const Head* head = getHead();
-    return (renderArgs->_renderMode != RenderArgs::NORMAL_RENDER_MODE) || (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON) ||
-        (glm::length(cameraPosition - head->getEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE * _scale);
+    return ((renderArgs->_renderMode != RenderArgs::DEFAULT_RENDER_MODE) ||
+            (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON) ||
+            (glm::length(cameraPos - head->getEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE * _scale));
 }
 
 void MyAvatar::updateOrientation(float deltaTime) {
