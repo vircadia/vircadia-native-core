@@ -9,8 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-
 var lastX = Window.getCursorPositionX();
 var lastY = Window.getCursorPositionY();
 var yawFromMouse = 0;
@@ -53,9 +51,19 @@ var mouseLook = (function () {
                 return availableInputs[i].input;
             }
         }
-
         // If the input isn't found, it will default to the first available input
         return availableInputs[0].input;
+    }
+
+    function findAction(name) {
+        var actions = Controller.getAllActions();
+        for (var i = 0; i < actions.length; i++) {
+            if (actions[i].actionName == name) {
+                return i;
+            }
+        }
+        // If the action isn't found, it will default to the first available action
+        return 0;
     }
 
     function updateMapping() {
@@ -73,35 +81,34 @@ var mouseLook = (function () {
                 var right = findInput("Right").channel;
                 var shift = findInput("Shift").channel;
 
-                for (i = 6; i <= 9; i++) {
+                for (var i = findAction("YAW_LEFT"); i <= findAction("YAW_RIGHT"); i++) {
                     var inputChannels = Controller.getAllActions()[i].inputChannels;
-                    for (j = 0; j < inputChannels.length; j++) {
+                    for (var j = 0; j < inputChannels.length; j++) {
                         var inputChannel = inputChannels[j];
-
                         // make a, d, left, and right strafe
                         if ((inputChannel.input.channel == a || inputChannel.input.channel == left) && inputChannel.modifier.device == 0) {
                             Controller.removeInputChannel(inputChannel);
-                            inputChannel.action = 2;
+                            inputChannel.action = findAction("LATERAL_LEFT");
                             Controller.addInputChannel(inputChannel);
                         } else if ((inputChannel.input.channel == d || inputChannel.input.channel == right) && inputChannel.modifier.device == 0) {
                             Controller.removeInputChannel(inputChannel);
-                            inputChannel.action = 3;
+                            inputChannel.action = findAction("LATERAL_RIGHT");
                             Controller.addInputChannel(inputChannel);
                         }
                     }
                 }
-                // make shift + a/d/left/right change yaw/pitch
-                for (i = 2; i <= 3; i++) {
+                for (var i = findAction("LATERAL_LEFT"); i <= findAction("LATERAL_RIGHT"); i++) {
                     var inputChannels = Controller.getAllActions()[i].inputChannels;
-                    for (j = 0; j < inputChannels.length; j++) {
+                    for (var j = 0; j < inputChannels.length; j++) {
                         var inputChannel = inputChannels[j];
+                        // make shift + a/d/left/right change yaw/pitch
                         if ((inputChannel.input.channel == a || inputChannel.input.channel == left) && inputChannel.modifier.channel == shift) {
                             Controller.removeInputChannel(inputChannel);
-                            inputChannel.action = 6;
+                            inputChannel.action = findAction("YAW_LEFT");
                             Controller.addInputChannel(inputChannel);
                         } else if ((inputChannel.input.channel == d || inputChannel.input.channel == right) && inputChannel.modifier.channel == shift) {
                             Controller.removeInputChannel(inputChannel);
-                            inputChannel.action = 7;
+                            inputChannel.action = findAction("YAW_RIGHT");
                             Controller.addInputChannel(inputChannel);
                         }
                     }
@@ -146,8 +153,8 @@ var mouseLook = (function () {
     }
 
     function resetCursorPosition() {
-        var newX = Window.x + Window.innerWidth / 2;
-        var newY = Window.y + Window.innerHeight / 2;
+        var newX = Window.x + Window.innerWidth / 2.0;
+        var newY = Window.y + Window.innerHeight / 2.0;
         Window.setCursorPosition(newX, newY);
         lastX = newX;
         lastY = newY;
