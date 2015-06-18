@@ -17,7 +17,6 @@ var BOOM_SPEED = 0.5;
 var THRESHOLD = 0.2;
 
 var CAMERA_UPDATE_TIME = 0.5;
-var pitchTimer = CAMERA_UPDATE_TIME;
 var yawTimer = CAMERA_UPDATE_TIME;
 
 var shifted = false;
@@ -153,9 +152,6 @@ var hmdControls = (function () {
     function update(dt) {
         if (yawTimer >= 0.0) {
             yawTimer = yawTimer - dt;
-        }
-        if (pitchTimer >= 0.0) {
-             pitchTimer = pitchTimer - dt;
         }
         if (shiftTimer >= 0.0) {
             shiftTimer = shiftTimer - dt;
