@@ -616,7 +616,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             (double)((totalBytesOfOctalCodes / (float)totalOutboundBytes) * AS_PERCENT));
         statsString += QString().sprintf("             Total BitMasks Bytes: %s bytes (%5.2f%%)\r\n",
             locale.toString((uint)totalBytesOfBitMasks).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData(),
-            (double)((totalBytesOfBitMasks / (float)totalOutboundBytes) * AS_PERCENT));
+            (double)(((float)totalBytesOfBitMasks / (float)totalOutboundBytes) * AS_PERCENT));
         statsString += QString().sprintf("                Total Color Bytes: %s bytes (%5.2f%%)\r\n",
             locale.toString((uint)totalBytesOfColor).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData(),
             (double)((totalBytesOfColor / (float)totalOutboundBytes) * AS_PERCENT));
@@ -731,7 +731,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             checkSum += OctreeElement::getChildrenCount(i);
             statsString += QString().sprintf("    Nodes with %d children:      %s nodes (%5.2f%%)\r\n", i,
                 locale.toString((uint)OctreeElement::getChildrenCount(i)).rightJustified(16, ' ').toLocal8Bit().constData(),
-                (double)((OctreeElement::getChildrenCount(i) / (float)nodeCount) * AS_PERCENT));
+                (double)(((float)OctreeElement::getChildrenCount(i) / (float)nodeCount) * AS_PERCENT));
         }
         statsString += "                                ----------------------\r\n";
         statsString += QString("                    Total:      %1 nodes\r\n")
