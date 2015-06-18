@@ -14,6 +14,7 @@
 #include "Stats.h"
 
 #include <sstream>
+#include <QFontDatabase>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
@@ -50,6 +51,8 @@ Stats* Stats::getInstance() {
 
 Stats::Stats(QQuickItem* parent) :  QQuickItem(parent) {
     INSTANCE = this;
+    const QFont font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    _monospaceFont = font.family();
 }
 
 bool Stats::includeTimingRecord(const QString& name) {
