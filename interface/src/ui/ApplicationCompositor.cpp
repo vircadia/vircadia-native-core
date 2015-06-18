@@ -284,6 +284,7 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
     mat4 eyePose = qApp->getEyePose(eye);
     glm::mat4 overlayXfm = glm::inverse(eyePose);
 
+#define DEBUG_OVERLAY
 #ifdef DEBUG_OVERLAY
     {
         batch.setModelTransform(glm::translate(mat4(), vec3(0, 0, -2)));
