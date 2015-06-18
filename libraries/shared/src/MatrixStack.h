@@ -118,13 +118,15 @@ public:
 
   template <typename Function>
   void withPush(Function f) {
-    #ifdef DEBUG
+    #ifndef NDEBUG
     size_t startingDepth = size();
     #endif
     push();
     f();
     pop();
-    assert(startingDepth = size());
+    #ifndef NDEBUG
+    assert(startingDepth == size());
+    #endif
   }
 
   template <typename Function>

@@ -3,13 +3,13 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 
 include(ExternalProject)
 ExternalProject_Add(
-  	${EXTERNAL_NAME}
-  	URL http://softlayer-dal.dl.sourceforge.net/project/oglplus/oglplus-0.61.x/oglplus-0.61.0.zip
-	URL_MD5 bb55038c36c660d2b6c7be380414fa60
-	CONFIGURE_COMMAND ""
-	BUILD_COMMAND ""
-	INSTALL_COMMAND ""
-  	LOG_DOWNLOAD 1
+    ${EXTERNAL_NAME}
+    GIT_REPOSITORY https://github.com/jherico/oglplus.git
+    GIT_TAG 470d8e56fd6bf3913ceec03d82f42d3bafab2cbe
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+    LOG_DOWNLOAD 1
 )
 
 ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
