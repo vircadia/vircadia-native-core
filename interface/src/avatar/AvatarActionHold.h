@@ -22,8 +22,14 @@ public:
     AvatarActionHold(QUuid id, EntityItemPointer ownerEntity);
     virtual ~AvatarActionHold();
 
+    virtual EntityActionType getType() { return ACTION_TYPE_HOLD; }
+
     virtual bool updateArguments(QVariantMap arguments);
     virtual void updateActionWorker(float deltaTimeStep);
+
+protected:
+    void serializeToDataStream(QDataStream& dataStream);
+    void deserializeFromDataStream(QDataStream& dataStream);
 
 private:
     glm::vec3 _relativePosition;

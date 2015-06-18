@@ -30,6 +30,7 @@ public:
     virtual ~ObjectAction();
 
     const QUuid& getID() const { return _id; }
+    virtual EntityActionType getType() { assert(false); return ACTION_TYPE_NONE; }
     virtual void removeFromSimulation(EntitySimulation* simulation) const;
     virtual const EntityItemPointer& getOwnerEntity() const { return _ownerEntity; }
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) { _ownerEntity = ownerEntity; }
@@ -47,6 +48,9 @@ private:
     QReadWriteLock _lock;
 
 protected:
+    virtual void serializeToDataStream(QDataStream& dataStream) = 0;
+    virtual void deserializeFromDataStream(QDataStream& dataStream) = 0;
+
     virtual btRigidBody* getRigidBody();
     virtual glm::vec3 getPosition();
     virtual void setPosition(glm::vec3 position);

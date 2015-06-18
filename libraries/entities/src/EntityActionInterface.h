@@ -32,10 +32,16 @@ public:
     EntityActionInterface() { }
     virtual ~EntityActionInterface() { }
     virtual const QUuid& getID() const = 0;
+    virtual EntityActionType getType() { assert(false); return ACTION_TYPE_NONE; }
+
     virtual void removeFromSimulation(EntitySimulation* simulation) const = 0;
     virtual const EntityItemPointer& getOwnerEntity() const = 0;
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) = 0;
     virtual bool updateArguments(QVariantMap arguments) = 0;
+
+    virtual QByteArray serialize();
+    virtual void serializeToDataStream(QDataStream& dataStream) = 0;
+    virtual void deserializeFromDataStream(QDataStream& dataStream) = 0;
 
     static EntityActionType actionTypeFromString(QString actionTypeString);
     static QString actionTypeToString(EntityActionType actionType);
@@ -66,5 +72,8 @@ protected:
 
 
 typedef std::shared_ptr<EntityActionInterface> EntityActionPointer;
+
+QDataStream& operator<<(QDataStream& stream, const EntityActionType& entityActionType);
+QDataStream& operator>>(QDataStream& stream, EntityActionType& entityActionType);
 
 #endif // hifi_EntityActionInterface_h

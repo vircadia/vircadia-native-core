@@ -22,8 +22,14 @@ public:
     ObjectActionOffset(QUuid id, EntityItemPointer ownerEntity);
     virtual ~ObjectActionOffset();
 
+    virtual EntityActionType getType() { return ACTION_TYPE_OFFSET; }
+
     virtual bool updateArguments(QVariantMap arguments);
     virtual void updateActionWorker(float deltaTimeStep);
+
+protected:
+    virtual void serializeToDataStream(QDataStream& dataStream);
+    virtual void deserializeFromDataStream(QDataStream& dataStream);
 
 private:
     glm::vec3 _pointToOffsetFrom;

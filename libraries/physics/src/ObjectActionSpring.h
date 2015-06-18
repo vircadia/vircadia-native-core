@@ -22,10 +22,14 @@ public:
     ObjectActionSpring(QUuid id, EntityItemPointer ownerEntity);
     virtual ~ObjectActionSpring();
 
+    virtual EntityActionType getType() { return ACTION_TYPE_SPRING; }
+
     virtual bool updateArguments(QVariantMap arguments);
     virtual void updateActionWorker(float deltaTimeStep);
 
 protected:
+    virtual void serializeToDataStream(QDataStream& dataStream);
+    virtual void deserializeFromDataStream(QDataStream& dataStream);
 
     glm::vec3 _positionalTarget;
     float _linearTimeScale;

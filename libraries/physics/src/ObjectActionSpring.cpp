@@ -142,3 +142,24 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
     unlock();
     return true;
 }
+
+
+void ObjectActionSpring::serializeToDataStream(QDataStream& dataStream) {
+    dataStream << _positionalTarget;
+    dataStream << _linearTimeScale;
+    dataStream << _positionalTargetSet;
+
+    dataStream << _rotationalTarget;
+    dataStream << _angularTimeScale;
+    dataStream << _rotationalTargetSet;
+}
+
+void ObjectActionSpring::deserializeFromDataStream(QDataStream& dataStream) {
+    dataStream >> _positionalTarget;
+    dataStream >> _linearTimeScale;
+    dataStream >> _positionalTargetSet;
+
+    dataStream >> _rotationalTarget;
+    dataStream >> _angularTimeScale;
+    dataStream >> _rotationalTargetSet;
+}

@@ -107,3 +107,17 @@ bool ObjectActionOffset::updateArguments(QVariantMap arguments) {
     unlock();
     return true;
 }
+
+void ObjectActionOffset::serializeToDataStream(QDataStream& dataStream) {
+    dataStream << _pointToOffsetFrom;
+    dataStream << _linearDistance;
+    dataStream << _linearTimeScale;
+    dataStream << _positionalTargetSet;
+}
+
+void ObjectActionOffset::deserializeFromDataStream(QDataStream& dataStream) {
+    dataStream >> _pointToOffsetFrom;
+    dataStream >> _linearDistance;
+    dataStream >> _linearTimeScale;
+    dataStream >> _positionalTargetSet;
+}

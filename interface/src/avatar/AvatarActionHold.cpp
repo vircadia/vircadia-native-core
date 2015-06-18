@@ -115,3 +115,16 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
     unlock();
     return true;
 }
+
+void AvatarActionHold::serializeToDataStream(QDataStream& dataStream) {
+    dataStream << _relativePosition;
+    dataStream << _relativeRotation;
+    dataStream << _hand;
+}
+
+void AvatarActionHold::deserializeFromDataStream(QDataStream& dataStream) {
+    dataStream >> _relativePosition;
+    dataStream >> _relativeRotation;
+    dataStream >> _hand;
+    _parametersSet = true;
+}

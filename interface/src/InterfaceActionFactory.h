@@ -23,6 +23,9 @@ public:
                                         QUuid id,
                                         EntityItemPointer ownerEntity,
                                         QVariantMap arguments);
+    virtual EntityActionPointer factoryBA(EntitySimulation* simulation,
+                                          EntityItemPointer ownerEntity,
+                                          QByteArray data);
 };
 
 #endif // hifi_InterfaceActionFactory_h
