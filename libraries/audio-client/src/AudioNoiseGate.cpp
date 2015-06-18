@@ -39,7 +39,7 @@ void AudioNoiseGate::removeDCOffset(int16_t* samples, int numSamples) {
     //
     //  Measure the DC offset over a trailing number of frames, and remove it from the input signal.
     //  This causes the noise background measurements and server muting to be more accurate.  Many off-board
-    //  ADC's have a noticeable DC offset.  
+    //  ADC's have a noticeable DC offset.
     //
     const float DC_OFFSET_AVERAGING = 0.99f;
     float measuredDcOffset = 0.0f;
@@ -47,7 +47,6 @@ void AudioNoiseGate::removeDCOffset(int16_t* samples, int numSamples) {
     for (int i = 0; i < numSamples; i++) {
         measuredDcOffset += samples[i];
         samples[i] -= (int16_t) _dcOffset;
-        //samples[i] = 0;
     }
     // Update measured DC offset
     measuredDcOffset /= numSamples;
