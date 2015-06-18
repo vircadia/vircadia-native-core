@@ -47,6 +47,9 @@ public:
 
     static bool checkGLError(const char* name = nullptr);
 
+    // Only checks in debug builds
+    static bool checkGLErrorDebug(const char* name = nullptr);
+
     static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings = Shader::BindingSet());
     
 
