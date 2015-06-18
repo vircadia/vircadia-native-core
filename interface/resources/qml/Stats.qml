@@ -234,7 +234,6 @@ Hifi.Stats {
         width: perfText.width + 8
         height: perfText.height + 8
         color: root.bgColor;
-        anchors.top: row.bottom + 16
         Text {
             x: 4; y: 4
             id: perfText
