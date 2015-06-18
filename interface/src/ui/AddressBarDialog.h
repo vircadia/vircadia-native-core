@@ -26,6 +26,8 @@ protected:
     void displayAddressOfflineMessage();
     void displayAddressNotFoundMessage();
     void hide();
+    void changeBackAlpha(bool isPossible);
+    void changeForwardAlpha(bool isPossible);
 
     Q_INVOKABLE void loadAddress(const QString& address);
     Q_INVOKABLE void loadBack();

@@ -30,6 +30,12 @@ DialogContainer {
     property int maximumX: parent ? parent.width - width : 0
     property int maximumY: parent ? parent.height - height : 0
 
+
+    function myQmlFunction(msg) {
+                    console.log("Got message:", msg)
+                    return "some return value"
+    }
+
     AddressBarDialog {
         id: addressBarDialog
 
@@ -49,7 +55,6 @@ DialogContainer {
                 id: backArrow
 
                 source: "../images/left-arrow.svg"
-                scale: 0.9
                 
                 anchors {
                     fill: parent
@@ -64,6 +69,13 @@ DialogContainer {
                     acceptedButtons: Qt.LeftButton
                     onClicked: {  
                         addressBarDialog.loadBack()
+                    }
+                }
+
+                Connections {
+                target: addressBarDialog
+                onGoBackPossible: { 
+                        console.log("ayy lmao BACK")
                     }
                 }
             }
@@ -86,6 +98,13 @@ DialogContainer {
                     acceptedButtons: Qt.LeftButton
                     onClicked: {
                         addressBarDialog.loadForward()
+                    }
+                }
+
+                Connections {
+                target: addressBarDialog
+                onGoForwardPossible: { 
+                        console.log("ayy lmao FORWARD")
                     }
                 }
             }
