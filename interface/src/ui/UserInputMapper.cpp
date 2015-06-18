@@ -8,8 +8,11 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "UserInputMapper.h"
 #include <algorithm>
+
+#include "Application.h"
+
+#include "UserInputMapper.h"
 
 
 // UserInputMapper Class
@@ -207,6 +210,9 @@ void UserInputMapper::update(float deltaTime) {
     // Scale all the channel step with the scale
     for (auto i = 0; i < NUM_ACTIONS; i++) {
         _actionStates[i] *= _actionScales[i];
+        if (_actionStates[i] > 0) {
+            emit Application::getInstance()->getControllerScriptingInterface()->actionEvent(i, _actionStates[i]);
+        }
     }
 }
 

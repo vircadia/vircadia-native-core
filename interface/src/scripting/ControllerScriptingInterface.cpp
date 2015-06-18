@@ -28,6 +28,7 @@ ControllerScriptingInterface::ControllerScriptingInterface() :
 {
 
 }
+
 static int actionMetaTypeId = qRegisterMetaType<UserInputMapper::Action>();
 static int inputChannelMetaTypeId = qRegisterMetaType<UserInputMapper::InputChannel>();
 static int inputMetaTypeId = qRegisterMetaType<UserInputMapper::Input>();
