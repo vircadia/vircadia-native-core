@@ -546,9 +546,9 @@ void ViewFrustum::printDebugDetails() const {
 
 glm::vec2 ViewFrustum::projectPoint(glm::vec3 point, bool& pointInView) const {
 
-    glm::vec4 pointVec4 = glm::vec4(point,1);
+    glm::vec4 pointVec4 = glm::vec4(point, 1.0f);
     glm::vec4 projectedPointVec4 = _ourModelViewProjectionMatrix * pointVec4;
-    pointInView = (projectedPointVec4.w > 0); // math! If the w result is negative then the point is behind the viewer
+    pointInView = (projectedPointVec4.w > 0.0f); // math! If the w result is negative then the point is behind the viewer
 
     // what happens with w is 0???
     float x = projectedPointVec4.x / projectedPointVec4.w;
