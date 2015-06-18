@@ -442,6 +442,40 @@ bool EntityScriptingInterface::setVoxels(QUuid entityID,
     return true;
 }
 
+bool EntityScriptingInterface::setPoints(QUuid entityID, std::function<bool(LineEntityItem&)> actor) {
+    if (_entityTree) {
+        return false;
+    }
+    
+    EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
+    if (!entity) {
+        qCDebug(entities) << "EntityScriptingInterface::setPoints no entity with ID" << entityID;
+    }
+    
+    EntityTypes::EntityType entityType = entity->getType();
+    if (entityType != EntityTypes::Line) {
+        return false;
+    }
+    
+    auto now = usecTimestampNow();
+    
+    LineEntityItem* lineEntity = static_cast<LineEntityItem*>(entity.get());
+    _entityTree->lockForWrite();
+    bool success = actor(*lineEntity);
+    entity->setLastEdited(now);
+    entity->setLastBroadcast(now);
+    _entityTree->unlock();
+    
+    _entityTree->lockForRead();
+    EntityItemProperties properties = entity->getProperties();
+    _entityTree->unlock();
+    
+    properties.setLastEdited(now);
+    
+    queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
+    return success;
+}
+
 bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& center, float radius, int value) {
     return setVoxels(entityID, [center, radius, value](PolyVoxEntityItem& polyVoxEntity) {
             polyVoxEntity.setSphere(center, radius, value);
@@ -458,6 +492,13 @@ bool EntityScriptingInterface::setAllVoxels(QUuid entityID, int value) {
     return setVoxels(entityID, [value](PolyVoxEntityItem& polyVoxEntity) {
             polyVoxEntity.setAll(value);
         });
+}
+
+bool EntityScriptingInterface::setAllPoints(QUuid entityID, const QVector<glm::vec3>& points) {
+    return setPoints(entityID, [points](LineEntityItem& lineEntity) -> bool
+    {
+        return lineEntity.setLinePoints(points);
+    });
 }
 
 

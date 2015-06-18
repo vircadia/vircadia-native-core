@@ -93,6 +93,16 @@ QVector<glm::vec3> qVectorVec3FromScriptValue(const QScriptValue& array){
     return newVector;
 }
 
+void qVectorVec3FromScriptValue(const QScriptValue& array, QVector<glm::vec3>& vector ) {
+    int length = array.property("length").toInteger();
+    
+    for (int i = 0; i < length; i++) {
+        glm::vec3 newVec3 = glm::vec3();
+        vec3FromScriptValue(array.property(i), newVec3);
+        vector << newVec3;
+    }
+}
+
 QScriptValue vec2toScriptValue(QScriptEngine* engine, const glm::vec2 &vec2) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("x", vec2.x);

@@ -85,7 +85,7 @@ bool LineEntityItem::setProperties(const EntityItemProperties& properties) {
     return somethingChanged;
 }
 
-void LineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
+bool LineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
     QVector<glm::vec3> sanitizedPoints;
     int invalidPoints = 0;
     for (int i = 0; i < points.size(); i++) {
@@ -103,6 +103,7 @@ void LineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
     }
     _points = sanitizedPoints;
     _pointsChanged = true;
+    return true;
 }
 
 int LineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,

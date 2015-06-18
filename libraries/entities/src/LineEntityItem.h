@@ -54,7 +54,7 @@ class LineEntityItem : public EntityItem {
     void setLineWidth(float lineWidth){ _lineWidth = lineWidth; }
     float getLineWidth() const{ return _lineWidth; }
     
-    void setLinePoints(const QVector<glm::vec3>& points);
+    bool setLinePoints(const QVector<glm::vec3>& points);
     
     const QVector<glm::vec3>& getLinePoints() const{ return _points; }
     
