@@ -709,7 +709,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
     });
 
     // restore our normal viewport
-    ovrHmd_EndFrame(_ovrHmd, eyeRenderPose, _eyeTextures);
+    ovrHmd_EndFrame(_ovrHmd, _eyeRenderPoses, _eyeTextures);
     glCanvas->makeCurrent();
 #endif
     
