@@ -42,7 +42,7 @@ void AddressBarDialog::changeForwardAlpha(bool isPossible) {
     QQmlEngine engine;
     QQmlComponent component(&engine, "AddressBarDialog.qml");
     QObject *object = component.create();
-    qDebug() << "AAAAAAAAAAAAAA :  " << ((QQuickItem*)parent())->children()[0]->objectName();
+    qDebug() << "Current parent's child :  " << ((QQuickItem*)parent())->children()[0]->objectName();
 
     QVariant returnedValue;
     QVariant msg = "Hello from C++";

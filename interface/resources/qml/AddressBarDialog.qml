@@ -75,7 +75,7 @@ DialogContainer {
                 Connections {
                 target: addressBarDialog
                 onGoBackPossible: { 
-                        console.log("ayy lmao BACK")
+                        console.log("BACK")
                     }
                 }
             }
@@ -104,7 +104,7 @@ DialogContainer {
                 Connections {
                 target: addressBarDialog
                 onGoForwardPossible: { 
-                        console.log("ayy lmao FORWARD")
+                        console.log("FORWARD")
                     }
                 }
             }
