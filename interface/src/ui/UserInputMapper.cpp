@@ -106,6 +106,11 @@ void UserInputMapper::removeAllInputChannelsForDevice(uint16 device) {
     }
 }
 
+void UserInputMapper::removeDevice(int device) {
+    removeAllInputChannelsForDevice((uint16) device);
+    _registeredDevices.erase(device);
+}
+
 int UserInputMapper::getInputChannels(InputChannels& channels) const {
     for (auto& channel : _actionToInputsMap) {
         channels.push_back(channel.second);

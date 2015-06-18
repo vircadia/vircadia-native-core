@@ -39,7 +39,7 @@ public:
 
     void setSurfaceOrientation(const Quat& orientation);
     const Quat& getSurfaceOrientation() const { valid(); return _surfaceOrientation; }
-
+ 
     const Vec3d& getSurfacePos() const { valid(); return _surfacePos; }
 
     const Mat4d& getSurfaceToWorldMat() const { valid(); return _surfaceToWorldMat; }
@@ -72,7 +72,7 @@ public:
 
 protected:
     float  _scale = 1000.0f; //Km
-    float  _earthRadius = 6360.0;
+    double  _earthRadius = 6360.0;
 
     Quat    _surfaceOrientation;
 
@@ -83,13 +83,13 @@ protected:
     mutable Mat4d _worldToSurfaceMat;
     mutable Mat4d _surfaceToWorldMat;
     void updateWorldToSurface() const;
-
+ 
     mutable Mat4d _surfaceToEyeMat;
     mutable Mat4d _eyeToSurfaceMat;
     mutable Vec3d _eyeDir;
     mutable Vec3d _eyePos;
     void updateSurfaceToEye() const;
-
+            
     mutable Mat4d _worldToEyeMat;
     mutable Mat4d _eyeToWorldMat;
 
@@ -207,7 +207,7 @@ public:
 
     LightPointer getSunLight() const { valid(); return _sunLight;  }
     AtmospherePointer getAtmosphere() const { valid(); return _atmosphere;  }
-
+ 
     enum BackgroundMode {
         NO_BACKGROUND = 0,
         SKY_DOME,
@@ -229,13 +229,11 @@ protected:
     AtmospherePointer _atmosphere;
     mutable SkyboxPointer _skybox;
 
-    gpu::PipelinePointer _skyPipeline;
-
     float _dayTime = 12.0f;
     int _yearTime = 0;
     mutable EarthSunModel _earthSunModel;
     bool _sunModelEnable = true;
-
+ 
     mutable bool _invalid = true;
     void invalidate() const { _invalid = true; }
     void valid() const { if (_invalid) { updateGraphicsObject(); _invalid = false; } }

@@ -10,12 +10,9 @@
 //
 #include "Stage.h"
 
-#include <glm/gtx/transform.hpp>
+#include <glm/gtx/transform.hpp> 
 #include <math.h>
 #include <qcompilerdetection.h>
-
-#include "SkyFromAtmosphere_vert.h"
-#include "SkyFromAtmosphere_frag.h"
 
 using namespace model;
 
@@ -29,7 +26,7 @@ void EarthSunModel::updateAll() const {
 Mat4d EarthSunModel::evalWorldToGeoLocationMat(double longitude, double latitude, double absAltitude, double scale) {
     // Longitude is along Z axis but - from east to west
     Mat4d rotLon = glm::rotate(glm::radians(longitude), Vec3d(0.0, 0.0, 1.0));
-
+     
     // latitude is along X axis + from south to north
     Mat4d rotLat = glm::rotate(-glm::radians(latitude), Vec3d(1.0, 0.0, 0.0));
 
@@ -45,9 +42,9 @@ Mat4d EarthSunModel::evalWorldToGeoLocationMat(double longitude, double latitude
 
 void EarthSunModel::updateWorldToSurface() const {
     // Check if the final position is too close to the earth center ?
-    float absAltitude = _earthRadius + _altitude;
-    if (absAltitude < 0.01f) {
-        absAltitude = 0.01f;
+    double absAltitude = _earthRadius + _altitude;
+    if ( absAltitude < 0.01) {
+        absAltitude = 0.01;
     }
 
     // Final world to local Frame
@@ -73,11 +70,11 @@ void EarthSunModel::updateSun() const {
     Mat4d rotSun = evalWorldToGeoLocationMat(_sunLongitude, _sunLatitude, _earthRadius, _scale);
     rotSun = glm::inverse(rotSun);
 
-    _sunDir = Vec3d(rotSun * Vec4d(0.0, 1.0, 0.0, 0.0));
+    _sunDir = Vec3d(rotSun * Vec4d(0.0, 1.0, 0.0, 0.0)); 
 
     // sun direction is looking up toward Y axis at the specified sun lat, long
     Vec3d lssd = Vec3d(_worldToSurfaceMat * Vec4d(_sunDir.x, _sunDir.y, _sunDir.z, 0.0));
-
+    
     // apply surface rotation offset
     glm::dquat dSurfOrient(_surfaceOrientation);
     lssd = glm::rotate(dSurfOrient, lssd);
@@ -195,28 +192,17 @@ SunSkyStage::SunSkyStage() :
     _skybox(new Skybox())
 {
     _sunLight->setType(Light::SUN);
-
+ 
     setSunIntensity(1.0f);
     setSunAmbientIntensity(0.5f);
     setSunColor(Vec3(1.0f, 1.0f, 1.0f));
 
     // Default origin location is a special place in the world...
     setOriginLocation(122.407f, 37.777f, 0.03f);
-    // Noun
+    // Noun 
     setDayTime(12.0f);
     // Begining of march
     setYearTime(60.0f);
-
-    auto skyFromAtmosphereVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(SkyFromAtmosphere_vert)));
-    auto skyFromAtmosphereFragment = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(SkyFromAtmosphere_frag)));
-    auto skyShader = gpu::ShaderPointer(gpu::Shader::createProgram(skyFromAtmosphereVertex, skyFromAtmosphereFragment));
-
-    auto skyState = gpu::StatePointer(new gpu::State());
- //   skyState->setStencilEnable(false);
-   // skyState->setBlendEnable(false);
-
-    _skyPipeline = gpu::PipelinePointer(gpu::Pipeline::create(skyShader, skyState));
-
 
     _skybox.reset(new Skybox());
     _skybox->setColor(Color(1.0f, 0.0f, 0.0f));
@@ -277,12 +263,12 @@ double evalSunDeclinaison(double dayNumber) {
 void SunSkyStage::updateGraphicsObject() const {
     // Always update the sunLongitude based on the current dayTime and the current origin
     // The day time is supposed to be local at the origin
-    float signedNormalizedDayTime = (_dayTime - NUM_HOURS_PER_HALF_DAY) / NUM_HOURS_PER_HALF_DAY;
-    float sunLongitude = _earthSunModel.getLongitude() + (MAX_LONGITUDE * signedNormalizedDayTime);
+    double signedNormalizedDayTime = (_dayTime - NUM_HOURS_PER_HALF_DAY) / NUM_HOURS_PER_HALF_DAY;
+    double sunLongitude = _earthSunModel.getLongitude() + (MAX_LONGITUDE * signedNormalizedDayTime);
     _earthSunModel.setSunLongitude(sunLongitude);
 
     // And update the sunLAtitude as the declinaison depending of the time of the year
-    _earthSunModel.setSunLatitude(evalSunDeclinaison(_yearTime));
+    _earthSunModel.setSunLatitude(evalSunDeclinaison(_yearTime)); 
 
     if (isSunModelEnabled()) {
         Vec3d sunLightDir = -_earthSunModel.getSurfaceSunDir();
@@ -306,12 +292,6 @@ void SunSkyStage::updateGraphicsObject() const {
         case NUM_BACKGROUND_MODES:
             Q_UNREACHABLE();
     };
-
-    static int firstTime = 0;
-    if (firstTime == 0) {
-        firstTime++;
-        gpu::Shader::makeProgram(*(_skyPipeline->getProgram()));
-    }
 }
 
 void SunSkyStage::setBackgroundMode(BackgroundMode mode) {

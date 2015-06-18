@@ -189,6 +189,7 @@ public:
     bool removeInputChannel(InputChannel channel);
     void removeAllInputChannels();
     void removeAllInputChannelsForDevice(uint16 device);
+    void removeDevice(int device);
     //Grab all the input channels currently in use, return the number
     int getInputChannels(InputChannels& channels) const;
     QVector<InputChannel> getAllInputsForDevice(uint16 device);

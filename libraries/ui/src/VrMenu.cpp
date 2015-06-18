@@ -135,8 +135,8 @@ void VrMenu::setRootMenu(QObject* rootMenu) {
 
 void VrMenu::addMenu(QMenu* menu) {
     Q_ASSERT(!MenuUserData::forObject(menu));
-    QObject * parent = menu->parent();
-    QObject * qmlParent;
+    QObject* parent = menu->parent();
+    QObject* qmlParent = nullptr;
     if (dynamic_cast<QMenu*>(parent)) {
         MenuUserData* userData = MenuUserData::forObject(parent);
         qmlParent = findMenuObject(userData->uuid.toString());

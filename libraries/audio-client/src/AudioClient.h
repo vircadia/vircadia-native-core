@@ -188,6 +188,8 @@ signals:
     void receivedFirstPacket();
     void disconnected();
 
+    void audioFinished();
+
 protected:
     AudioClient();
     ~AudioClient();
@@ -195,6 +197,9 @@ protected:
     virtual void customDeleter() {
         deleteLater();
     }
+
+private slots:
+    void audioStateChanged(QAudio::State state);
 
 private:
     void outputFormatChanged();

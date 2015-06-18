@@ -75,6 +75,8 @@ void GLBackend::syncTransformStateCache() {
 }
 
 void GLBackend::updateTransform() {
+    GLint originalMatrixMode;
+    glGetIntegerv(GL_MATRIX_MODE, &originalMatrixMode);
     // Check all the dirty flags and update the state accordingly
     if (_transform._invalidProj) {
         _transform._transformCamera._projection = _transform._projection;
@@ -132,12 +134,13 @@ void GLBackend::updateTransform() {
         (void) CHECK_GL_ERROR();
     }
 
+
     if (_transform._invalidModel || _transform._invalidView) {
+        if (_transform._lastMode != GL_MODELVIEW) {
+            glMatrixMode(GL_MODELVIEW);
+            _transform._lastMode = GL_MODELVIEW;
+        }
         if (!_transform._model.isIdentity()) {
-            if (_transform._lastMode != GL_MODELVIEW) {
-                glMatrixMode(GL_MODELVIEW);
-                _transform._lastMode = GL_MODELVIEW;
-            }
             Transform::Mat4 modelView;
             if (!_transform._view.isIdentity()) {
                 Transform mvx;
@@ -147,19 +150,12 @@ void GLBackend::updateTransform() {
                 _transform._model.getMatrix(modelView);
             }
             glLoadMatrixf(reinterpret_cast< const GLfloat* >(&modelView));
+        } else if (!_transform._view.isIdentity()) {
+            Transform::Mat4 modelView;
+            _transform._view.getInverseMatrix(modelView);
+            glLoadMatrixf(reinterpret_cast< const GLfloat* >(&modelView));
         } else {
-            if (!_transform._view.isIdentity()) {
-                if (_transform._lastMode != GL_MODELVIEW) {
-                    glMatrixMode(GL_MODELVIEW);
-                    _transform._lastMode = GL_MODELVIEW;
-                }
-                Transform::Mat4 modelView;
-                _transform._view.getInverseMatrix(modelView);
-                glLoadMatrixf(reinterpret_cast< const GLfloat* >(&modelView));
-            } else {
-                // TODO: eventually do something about the matrix when neither view nor model is specified?
-                // glLoadIdentity();
-            }
+            glLoadIdentity();
         }
         (void) CHECK_GL_ERROR();
     }
@@ -167,6 +163,7 @@ void GLBackend::updateTransform() {
 
     // Flags are clean
     _transform._invalidView = _transform._invalidProj = _transform._invalidModel = false;
+    glMatrixMode(originalMatrixMode);
 }
 
 

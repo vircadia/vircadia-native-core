@@ -354,7 +354,8 @@
             var elZoneAtmosphereScatteringWavelengthsZ = document.getElementById("property-zone-atmosphere-scattering-wavelengths-z");
             var elZoneAtmosphereHasStars = document.getElementById("property-zone-atmosphere-has-stars");
 
-            var elPolyVoxSelections = document.querySelectorAll(".poly-vox-section");
+            var elPolyVoxSections = document.querySelectorAll(".poly-vox-section");
+            allSections.push(elPolyVoxSections);
             var elVoxelVolumeSizeX = document.getElementById("property-voxel-volume-size-x");
             var elVoxelVolumeSizeY = document.getElementById("property-voxel-volume-size-y");
             var elVoxelVolumeSizeZ = document.getElementById("property-voxel-volume-size-z");
@@ -602,6 +603,10 @@
                                 elParticleLocalGravity.value = properties.localGravity.toFixed(2);
                                 elParticleRadius.value = properties.particleRadius.toFixed(3);
                             } else if (properties.type == "PolyVox") {
+                                for (var i = 0; i < elPolyVoxSections.length; i++) {
+                                    elPolyVoxSections[i].style.display = 'block';
+                                }
+
                                 elVoxelVolumeSizeX.value = properties.voxelVolumeSize.x.toFixed(2);
                                 elVoxelVolumeSizeY.value = properties.voxelVolumeSize.y.toFixed(2);
                                 elVoxelVolumeSizeZ.value = properties.voxelVolumeSize.z.toFixed(2);
@@ -1014,9 +1019,9 @@
         <div class="poly-vox-section property">
             <div class="label">Voxel Volume Size</div>
             <div class="value">
-                <div class="input-area">X <br><input class="coord" type='number' id="property-voxel-volume-size-x"></input></div>
-                <div class="input-area">Y <br><input class="coord" type='number' id="property-voxel-volume-size-y"></input></div>
-                <div class="input-area">Z <br><input class="coord" type='number' id="property-voxel-volume-size-z"></input></div>
+              <div class="input-area">X <br> <input class="coord" type='number' id="property-voxel-volume-size-x"></input></div>
+              <div class="input-area">Y <br><input class="coord" type='number' id="property-voxel-volume-size-y"></input></div>
+              <div class="input-area">Z <br><input class="coord" type='number' id="property-voxel-volume-size-z"></input></div>
             </div>
 
             <div class="label">Surface Extractor</div>
