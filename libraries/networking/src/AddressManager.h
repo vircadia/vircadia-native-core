@@ -62,6 +62,9 @@ public:
 
     void loadSettings(const QString& lookupString = QString());
 
+    bool getBackState() { return (!_backStack.isEmpty()); }
+    bool getForwardState() { return (!_forwardStack.isEmpty()); }
+
 public slots:
     void handleLookupString(const QString& lookupString);
 
