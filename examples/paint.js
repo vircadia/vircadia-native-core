@@ -210,7 +210,7 @@ function MousePaint() {
 
   function cleanup() {
     lines.forEach(function(line) {
-      // Entities.deleteEntity(line);
+      Entities.deleteEntity(line);
     });
     Entities.deleteEntity(brush);
     lineRider.cleanup();
