@@ -72,8 +72,6 @@ public:
     void emitTouchUpdateEvent(const TouchEvent& event) { emit touchUpdateEvent(event); }
     
     void emitWheelEvent(QWheelEvent* event) { emit wheelEvent(*event); }
-    
-    void emitActionEvents();
 
     bool isKeyCaptured(QKeyEvent* event) const;
     bool isKeyCaptured(const KeyEvent& event) const;
