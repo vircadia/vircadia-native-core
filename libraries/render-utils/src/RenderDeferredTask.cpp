@@ -238,7 +238,8 @@ template <> void render::jobRun(const DrawTransparentDeferred& job, const SceneC
     }
 }
 
-const gpu::PipelinePointer& DrawOverlay3D::getOpaquePipeline() const {
+gpu::PipelinePointer DrawOverlay3D::_opaquePipeline;
+const gpu::PipelinePointer& DrawOverlay3D::getOpaquePipeline() {
     if (!_opaquePipeline) {
         auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(overlay3D_vert)));
         auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(overlay3D_frag)));

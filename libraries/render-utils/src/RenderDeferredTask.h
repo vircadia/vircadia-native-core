@@ -53,9 +53,9 @@ template <> void jobRun(const DrawTransparentDeferred& job, const SceneContextPo
 }
 
 class DrawOverlay3D {
-    mutable gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
+    static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
 public:
-    const gpu::PipelinePointer& getOpaquePipeline() const;
+    static const gpu::PipelinePointer& getOpaquePipeline();
 };
 namespace render {
 template <> void jobRun(const DrawOverlay3D& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);

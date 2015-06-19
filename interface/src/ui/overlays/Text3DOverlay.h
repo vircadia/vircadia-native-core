@@ -17,7 +17,7 @@
 #include <QString>
 
 #include <RenderArgs.h>
-#include <TextRenderer.h>
+#include <TextRenderer3D.h>
 
 #include "Planar3DOverlay.h"
 
@@ -62,7 +62,7 @@ public:
 private:
     void enableClipPlane(GLenum plane, float x, float y, float z, float w);
 
-    TextRenderer* _textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
+    TextRenderer3D* _textRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
     
     QString _text;
     xColor _backgroundColor;

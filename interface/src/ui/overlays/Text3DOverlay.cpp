@@ -14,6 +14,8 @@
 #include "Application.h"
 #include "Text3DOverlay.h"
 
+#include <RenderDeferredTask.h>
+
 const xColor DEFAULT_BACKGROUND_COLOR = { 0, 0, 0 };
 const float DEFAULT_BACKGROUND_ALPHA = 0.7f;
 const float DEFAULT_MARGIN = 0.1f;
@@ -52,7 +54,7 @@ Text3DOverlay::~Text3DOverlay() {
 
 xColor Text3DOverlay::getBackgroundColor() {
     if (_colorPulse == 0.0f) {
-        return _backgroundColor; 
+        return _backgroundColor;
     }
 
     float pulseLevel = updatePulse();
@@ -75,19 +77,23 @@ void Text3DOverlay::render(RenderArgs* args) {
         return; // do nothing if we're not visible
     }
 
-    glPushMatrix(); {
-        glTranslatef(_position.x, _position.y, _position.z);
+    auto batch = args->_batch;
+
+    if (batch) {
         glm::quat rotation;
-        
+
         if (_isFacingAvatar) {
             // rotate about vertical to face the camera
             rotation = Application::getInstance()->getCamera()->getRotation();
         } else {
             rotation = getRotation();
         }
-        
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+
+        Transform transform;
+        transform.setTranslation(_position);
+        transform.setRotation(rotation);
+
+        batch->setModelTransform(transform);
 
         const float MAX_COLOR = 255.0f;
         xColor backgroundColor = getBackgroundColor();
@@ -96,40 +102,42 @@ void Text3DOverlay::render(RenderArgs* args) {
 
         glm::vec2 dimensions = getDimensions();
         glm::vec2 halfDimensions = dimensions * 0.5f;
-        
+
         const float SLIGHTLY_BEHIND = -0.005f;
 
         glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, SLIGHTLY_BEHIND);
         glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);
-        
+        DependencyManager::get<GeometryCache>()->renderQuad(*batch, topLeft, bottomRight, quadColor);
+
         // Same font properties as textSize()
         float maxHeight = (float)_textRenderer->computeExtent("Xy").y * LINE_SCALE_RATIO;
-        
-        float scaleFactor =  (maxHeight / FIXED_FONT_SCALING_RATIO) * _lineHeight; 
 
-        glTranslatef(-(halfDimensions.x - _leftMargin), halfDimensions.y - _topMargin, 0.0f);
+        float scaleFactor =  (maxHeight / FIXED_FONT_SCALING_RATIO) * _lineHeight;
 
         glm::vec2 clipMinimum(0.0f, 0.0f);
-        glm::vec2 clipDimensions((dimensions.x - (_leftMargin + _rightMargin)) / scaleFactor, 
+        glm::vec2 clipDimensions((dimensions.x - (_leftMargin + _rightMargin)) / scaleFactor,
                                  (dimensions.y - (_topMargin + _bottomMargin)) / scaleFactor);
 
-        glScalef(scaleFactor, -scaleFactor, scaleFactor);
-        enableClipPlane(GL_CLIP_PLANE0, -1.0f, 0.0f, 0.0f, clipMinimum.x + clipDimensions.x);
-        enableClipPlane(GL_CLIP_PLANE1, 1.0f, 0.0f, 0.0f, -clipMinimum.x);
-        enableClipPlane(GL_CLIP_PLANE2, 0.0f, -1.0f, 0.0f, clipMinimum.y + clipDimensions.y);
-        enableClipPlane(GL_CLIP_PLANE3, 0.0f, 1.0f, 0.0f, -clipMinimum.y);
-    
-        glm::vec4 textColor = { _color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, getAlpha() };
-        _textRenderer->draw(0, 0, _text, textColor);
+        transform.setScale(glm::vec3(scaleFactor, -scaleFactor, scaleFactor));
+        transform.preTranslate(glm::vec3(-(halfDimensions.x - _leftMargin), halfDimensions.y - _topMargin, 0.0f));
+        batch->setModelTransform(transform);
 
-        glDisable(GL_CLIP_PLANE0);
-        glDisable(GL_CLIP_PLANE1);
-        glDisable(GL_CLIP_PLANE2);
-        glDisable(GL_CLIP_PLANE3);
-        
-    } glPopMatrix();
-    
+        // enableClipPlane(GL_CLIP_PLANE0, -1.0f, 0.0f, 0.0f, clipMinimum.x + clipDimensions.x);
+        // enableClipPlane(GL_CLIP_PLANE1, 1.0f, 0.0f, 0.0f, -clipMinimum.x);
+        // enableClipPlane(GL_CLIP_PLANE2, 0.0f, -1.0f, 0.0f, clipMinimum.y + clipDimensions.y);
+        // enableClipPlane(GL_CLIP_PLANE3, 0.0f, 1.0f, 0.0f, -clipMinimum.y);
+
+        glm::vec4 textColor = { _color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, getAlpha() };
+        _textRenderer->draw(*batch, 0, 0, _text, textColor);
+
+        // glDisable(GL_CLIP_PLANE0);
+        // glDisable(GL_CLIP_PLANE1);
+        // glDisable(GL_CLIP_PLANE2);
+        // glDisable(GL_CLIP_PLANE3);
+
+        batch->setPipeline(DrawOverlay3D::getOpaquePipeline());
+    }
+
 }
 
 void Text3DOverlay::enableClipPlane(GLenum plane, float x, float y, float z, float w) {
