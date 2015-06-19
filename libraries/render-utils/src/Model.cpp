@@ -545,11 +545,6 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
     // we can use the AABox's ray intersection by mapping our origin and direction into the model frame
     // and testing intersection there.
     if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face)) {
-    
-        if (!_calculatedMeshBoxesValid) {
-            recalculateMeshBoxes(pickAgainstTriangles);
-        }
-
         float bestDistance = std::numeric_limits<float>::max();
 
         float distanceToSubMesh;
@@ -560,6 +555,11 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
         // If we hit the models box, then consider the submeshes...
         _mutex.lock();
+
+        if (!_calculatedMeshBoxesValid) {
+            recalculateMeshBoxes(pickAgainstTriangles);
+        }
+
         foreach(const AABox& subMeshBox, _calculatedMeshBoxes) {
 
             if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace)) {
