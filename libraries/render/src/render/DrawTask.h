@@ -13,40 +13,171 @@
 #define hifi_render_Task_h
 
 #include "Engine.h"
+#include "gpu/Batch.h"
+#include <PerfStat.h>
+
 
 namespace render {
 
-template <class T> void jobRun(const T& jobModel, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) { }
+template <class T> void jobRun(T& jobModel, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    jobModel.run(sceneContext, renderContext);
+}
+template <class T, class I> void jobRunI(T& jobModel, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const I& input) {
+    jobModel.run(sceneContext, renderContext, input);
+}
+template <class T, class O> void jobRunO(T& jobModel, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, O& output) {
+    jobModel.run(sceneContext, renderContext, output);
+}
+template <class T, class I, class O> void jobRunIO(T& jobModel, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const I& input, O& output) {
+    jobModel.run(sceneContext, renderContext, input, output);
+}
 
 class Job {
 public:
 
-    template <class T> 
-    Job(T data) : _concept(new Model<T>(data)) {}
+    // Varying represent a varying piece of data
+    class Varying {
+    public:
+
+        Varying(const Varying& var): _concept(var._concept) {}
+
+        Varying() {}
+        template <class T> 
+        Varying(const T& data) : _concept(new Job::Varying::Model<T>(data)) {}
+
+        // Access the _data contained win the concept explicitely
+        template <class T> T& edit() { return (static_cast<Model<T>*> (_concept.get())->_data); }
+        template <class T> const T& get() const { return (static_cast<const Model<T>*> (_concept.get())->_data); }
+
+    protected:
+        friend class Job;
+
+        std::vector<std::weak_ptr<Job>> _consumerJobs;
+
+        void addJobConsumer(const std::shared_ptr<Job>& job) {
+            _consumerJobs.push_back(job);
+        }
+ 
+        class Concept {
+        public:
+            virtual ~Concept() = default;
+        };
+        template <class T> class Model : public Concept {
+        public:
+            typedef T Data;
+            Data _data;
+            Model(const Model& source): _data(source.data) {}
+            Model(const Data& data): _data(data) {}
+            virtual ~Model() {}
+        };
+
+        std::shared_ptr<Concept> _concept;
+    };
+
     Job(const Job& other) : _concept(other._concept) {}
     ~Job();
 
-    virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-        if (_concept) {
-            _concept->run(sceneContext, renderContext);
-        }
+    const std::string& getName() const { return _concept->getName(); }
+    const Varying getInput() const { return _concept->getInput(); }
+    const Varying getOutput() const { return _concept->getOutput(); }
+
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+        PerformanceTimer perfTimer(getName().c_str());
+        PROFILE_RANGE(getName().c_str());
+        _concept->run(sceneContext, renderContext);
     }
 
 protected:
+public:
+
     class Concept {
+        std::string _name;
     public:
+        Concept() : _name() {}
+        Concept(const std::string& name) : _name(name) {}
         virtual ~Concept() = default;
+        
+        void setName(const std::string& name) { _name = name; }
+        const std::string& getName() const { return _name; }
+        
+        virtual const Varying getInput() const { return Varying(); }
+        virtual const Varying getOutput() const { return Varying(); }
         virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) = 0;
     };
 
+    Job(Concept* concept) : _concept(concept) {}
+
+public:
     template <class T> class Model : public Concept {
     public:
         typedef T Data;
-    
+
         Data _data;
+
+        Model() {}
+        Model(const std::string& name): Concept(name) {}
         Model(Data data): _data(data) {}
+        Model(Data data, const std::string& name): Concept(name), _data(data) {}
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) { jobRun(_data, sceneContext, renderContext); }
+    };
+
+    template <class T, class I> class ModelI : public Concept {
+    public:
+        typedef T Data;
+        typedef I Input;
+
+        Data _data;
+        Varying _input;
+
+        const Varying getInput() const { return _input; }
+
+        ModelI(const std::string& name, const Varying& input): Concept(name), _input(input) {}
+        ModelI(const std::string& name, Data data): Concept(name), _data(data) {}
+
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) { jobRunI(_data, sceneContext, renderContext, _input.get<I>()); }
+    };
+
+    template <class T, class O> class ModelO : public Concept {
+    public:
+        typedef T Data;
+        typedef O Output;
+
+        Data _data;
+        Varying _output;
+
+        const Varying getOutput() const { return _output; }
+
+        ModelO(const std::string& name): Concept(name), _output(Output()) {
+            
+        }
+
+        ModelO(const std::string& name, Data data): Concept(name), _data(data), _output(Output()) {}
+
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+            jobRunO(_data, sceneContext, renderContext, _output.edit<O>());
+        }
+    };
+
+    template <class T, class I, class O> class ModelIO : public Concept {
+    public:
+        typedef T Data;
+        typedef I Input;
+        typedef O Output;
+
+        Data _data;
+        Varying _input;
+        Varying _output;
+
+        const Varying getInput() const { return _input; }
+        const Varying getOutput() const { return _output; }
+
+        ModelIO(const std::string& name, const Varying& input, Data data = Data()): Concept(name), _data(data), _input(input), _output(Output()) {}
+        ModelIO(const std::string& name, Data data, Output output): Concept(name), _data(data), _output(output) {}
+
+        void setInput(const Varying& input) { _input = input; }
+
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) { jobRunIO(_data, sceneContext, renderContext, _input.get<I>(), _output.edit<O>()); }
     };
 
     std::shared_ptr<Concept> _concept;
@@ -62,43 +193,59 @@ void depthSortItems(const SceneContextPointer& sceneContext, const RenderContext
 void renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, int maxDrawnItems = -1);
 
 
-
-void materialSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
-
-
-class DrawOpaque {
+class FetchItems {
 public:
+    typedef std::function<void (const RenderContextPointer& context, int count)> ProbeNumItems;
+    FetchItems(const ProbeNumItems& probe): _probeNumItems(probe) {}
+    FetchItems(const ItemFilter& filter, const ProbeNumItems& probe): _filter(filter), _probeNumItems(probe) {}
+
+    ItemFilter _filter = ItemFilter::Builder::opaqueShape().withoutLayered();
+    ProbeNumItems _probeNumItems;
+
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemIDsBounds& outItems);
+
+    typedef Job::ModelO<FetchItems, ItemIDsBounds> JobModel;
 };
-template <> void jobRun(const DrawOpaque& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
 
-
-class DrawTransparent {
+class CullItems {
 public:
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
+
+    typedef Job::ModelIO<CullItems, ItemIDsBounds, ItemIDsBounds> JobModel;
 };
-template <> void jobRun(const DrawTransparent& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+
+class DepthSortItems {
+public:
+    bool _frontToBack = true;
+
+    DepthSortItems(bool frontToBack = true) : _frontToBack(frontToBack) {}
+
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outITems);
+
+    typedef Job::ModelIO<DepthSortItems, ItemIDsBounds, ItemIDsBounds> JobModel;
+};
 
 class DrawLight {
 public:
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+
+    typedef Job::Model<DrawLight> JobModel;
 };
-template <> void jobRun(const DrawLight& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
 
 class DrawBackground {
 public:
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+
+    typedef Job::Model<DrawBackground> JobModel;
 };
-template <> void jobRun(const DrawBackground& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
-
-
-class DrawPostLayered {
-public:
-};
-template <> void jobRun(const DrawPostLayered& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
-
-
 
 class ResetGLState {
 public:
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+
+    typedef Job::Model<ResetGLState> JobModel;
 };
-template <> void jobRun(const ResetGLState& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+
 
 
 class DrawSceneTask : public Task {
@@ -126,6 +273,7 @@ public:
     // standard builders allocating the main buckets
     void allocateStandardMaterialBuckets();
 };
+void materialSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
 
 }
 

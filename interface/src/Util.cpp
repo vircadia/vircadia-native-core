@@ -41,7 +41,7 @@ void renderWorldBox(gpu::Batch& batch) {
     static const glm::vec3 green(0.0f, 1.0f, 0.0f);
     static const glm::vec3 blue(0.0f, 0.0f, 1.0f);
     static const glm::vec3 grey(0.5f, 0.5f, 0.5f);
-    
+
     auto transform = Transform{};
     batch.setModelTransform(transform);
     geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(TREE_SCALE, 0.0f, 0.0f), red);
@@ -49,13 +49,13 @@ void renderWorldBox(gpu::Batch& batch) {
     geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, TREE_SCALE), blue);
     geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, TREE_SCALE), glm::vec3(TREE_SCALE, 0.0f, TREE_SCALE), grey);
     geometryCache->renderLine(batch, glm::vec3(TREE_SCALE, 0.0f, TREE_SCALE), glm::vec3(TREE_SCALE, 0.0f, 0.0f), grey);
-    
+
     //  Draw meter markers along the 3 axis to help with measuring things
     const float MARKER_DISTANCE = 1.0f;
     const float MARKER_RADIUS = 0.05f;
-    
+
     geometryCache->renderSphere(batch, MARKER_RADIUS, 10, 10, red);
-    
+
     transform.setTranslation(glm::vec3(MARKER_DISTANCE, 0.0f, 0.0f));
     batch.setModelTransform(transform);
     geometryCache->renderSphere(batch, MARKER_RADIUS, 10, 10, red);
@@ -79,10 +79,10 @@ const glm::vec3 randVector() {
 }
 
 static TextRenderer* textRenderer(int mono) {
-    static TextRenderer* monoRenderer = TextRenderer::getInstance(MONO_FONT_FAMILY); 
+    static TextRenderer* monoRenderer = TextRenderer::getInstance(MONO_FONT_FAMILY);
     static TextRenderer* proportionalRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY,
         -1, -1, false, TextRenderer::SHADOW_EFFECT);
-    static TextRenderer* inconsolataRenderer = TextRenderer::getInstance(INCONSOLATA_FONT_FAMILY, -1, INCONSOLATA_FONT_WEIGHT, 
+    static TextRenderer* inconsolataRenderer = TextRenderer::getInstance(INCONSOLATA_FONT_FAMILY, -1, INCONSOLATA_FONT_WEIGHT,
         false);
     switch (mono) {
         case 1:
@@ -133,46 +133,46 @@ void runTimingTests() {
     QElapsedTimer startTime;
     startTime.start();
     float elapsedUsecs;
-    
+
     float NSEC_TO_USEC = 1.0f / 1000.0f;
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "QElapsedTimer::nsecElapsed() usecs: %f", elapsedUsecs);
-    
+    qCDebug(interfaceapp, "QElapsedTimer::nsecElapsed() usecs: %f", (double)elapsedUsecs);
+
     // Test sleep functions for accuracy
     startTime.start();
     QThread::msleep(1);
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "QThread::msleep(1) ms: %f", elapsedUsecs / 1000.0f);
+    qCDebug(interfaceapp, "QThread::msleep(1) ms: %f", (double)(elapsedUsecs / 1000.0f));
 
     startTime.start();
     QThread::sleep(1);
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "QThread::sleep(1) ms: %f", elapsedUsecs / 1000.0f);
+    qCDebug(interfaceapp, "QThread::sleep(1) ms: %f", (double)(elapsedUsecs / 1000.0f));
 
     startTime.start();
     usleep(1);
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "usleep(1) ms: %f", elapsedUsecs / 1000.0f);
+    qCDebug(interfaceapp, "usleep(1) ms: %f", (double)(elapsedUsecs / 1000.0f));
 
     startTime.start();
     usleep(10);
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "usleep(10) ms: %f", elapsedUsecs / 1000.0f);
+    qCDebug(interfaceapp, "usleep(10) ms: %f", (double)(elapsedUsecs / 1000.0f));
 
     startTime.start();
     usleep(100);
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "usleep(100) ms: %f", elapsedUsecs / 1000.0f);
+    qCDebug(interfaceapp, "usleep(100) ms: %f", (double)(elapsedUsecs / 1000.0f));
 
     startTime.start();
     usleep(1000);
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "usleep(1000) ms: %f", elapsedUsecs / 1000.0f);
+    qCDebug(interfaceapp, "usleep(1000) ms: %f", (double)(elapsedUsecs / 1000.0f));
 
     startTime.start();
     usleep(15000);
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "usleep(15000) ms: %f", elapsedUsecs / 1000.0f);
+    qCDebug(interfaceapp, "usleep(15000) ms: %f", (double)(elapsedUsecs / 1000.0f));
 
     // Random number generation
     startTime.start();
@@ -180,7 +180,8 @@ void runTimingTests() {
         iResults[i] = rand();
     }
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "rand() stored in array usecs: %f, first result:%d", elapsedUsecs / (float) numTests, iResults[0]);
+    qCDebug(interfaceapp, "rand() stored in array usecs: %f, first result:%d",
+            (double)(elapsedUsecs / numTests), iResults[0]);
 
     // Random number generation using randFloat()
     startTime.start();
@@ -188,7 +189,8 @@ void runTimingTests() {
         fResults[i] = randFloat();
     }
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "randFloat() stored in array usecs: %f, first result: %f", elapsedUsecs / (float) numTests, fResults[0]);
+    qCDebug(interfaceapp, "randFloat() stored in array usecs: %f, first result: %f",
+            (double)(elapsedUsecs / numTests), (double)(fResults[0]));
 
     free(iResults);
     free(fResults);
@@ -200,7 +202,7 @@ void runTimingTests() {
         fTest = powf(fTest, 0.5f);
     }
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "powf(f, 0.5) usecs: %f", elapsedUsecs / (float) numTests);
+    qCDebug(interfaceapp, "powf(f, 0.5) usecs: %f", (double)(elapsedUsecs / (float) numTests));
 
     //  Vector Math
     float distance;
@@ -213,19 +215,20 @@ void runTimingTests() {
     }
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
     qCDebug(interfaceapp, "vector math usecs: %f [%f usecs total for %d tests], last result:%f",
-           elapsedUsecs / (float) numTests, elapsedUsecs, numTests, distance);
+            (double)(elapsedUsecs / (float) numTests), (double)elapsedUsecs, numTests, (double)distance);
 
     //  Vec3 test
     glm::vec3 vecA(randVector()), vecB(randVector());
     float result;
-    
+
     startTime.start();
     for (int i = 0; i < numTests; i++) {
         glm::vec3 temp = vecA-vecB;
         result = glm::dot(temp,temp);
     }
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qCDebug(interfaceapp, "vec3 assign and dot() usecs: %f, last result:%f", elapsedUsecs / (float) numTests, result);
+    qCDebug(interfaceapp, "vec3 assign and dot() usecs: %f, last result:%f",
+            (double)(elapsedUsecs / numTests), (double)result);
 }
 
 bool rayIntersectsSphere(const glm::vec3& rayStarting, const glm::vec3& rayNormalizedDirection,

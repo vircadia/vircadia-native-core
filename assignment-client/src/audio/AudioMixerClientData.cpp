@@ -295,10 +295,10 @@ void AudioMixerClientData::printUpstreamDownstreamStats() const {
 
 void AudioMixerClientData::printAudioStreamStats(const AudioStreamStats& streamStats) const {
     printf("                      Packet loss | overall: %5.2f%% (%d lost), last_30s: %5.2f%% (%d lost)\n",
-        streamStats._packetStreamStats.getLostRate() * 100.0f,
-        streamStats._packetStreamStats._lost,
-        streamStats._packetStreamWindowStats.getLostRate() * 100.0f,
-        streamStats._packetStreamWindowStats._lost);
+           (double)(streamStats._packetStreamStats.getLostRate() * 100.0f),
+           streamStats._packetStreamStats._lost,
+           (double)(streamStats._packetStreamWindowStats.getLostRate() * 100.0f),
+           streamStats._packetStreamWindowStats._lost);
 
     printf("                Ringbuffer frames | desired: %u, avg_available(10s): %u, available: %u\n",
         streamStats._desiredJitterBufferFrames,

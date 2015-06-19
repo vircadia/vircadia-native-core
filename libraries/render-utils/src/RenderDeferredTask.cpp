@@ -24,37 +24,49 @@
 
 using namespace render;
 
-template <> void render::jobRun(const PrepareDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    PerformanceTimer perfTimer("PrepareDeferred");
-    DependencyManager::get<DeferredLightingEffect>()->prepare();
+void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    DependencyManager::get<DeferredLightingEffect>()->prepare(renderContext->args);
 }
 
-template <> void render::jobRun(const RenderDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    PerformanceTimer perfTimer("RenderDeferred");
-    DependencyManager::get<DeferredLightingEffect>()->render();
-//    renderContext->args->_context->syncCache();
+void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    DependencyManager::get<DeferredLightingEffect>()->render(renderContext->args);
 }
 
-template <> void render::jobRun(const ResolveDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+void ResolveDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     PerformanceTimer perfTimer("ResolveDeferred");
     DependencyManager::get<DeferredLightingEffect>()->copyBack(renderContext->args);
-    renderContext->args->_context->syncCache();
-
 }
 
-
-
 RenderDeferredTask::RenderDeferredTask() : Task() {
-   _jobs.push_back(Job(PrepareDeferred()));
-   _jobs.push_back(Job(DrawBackground()));
-   _jobs.push_back(Job(DrawOpaqueDeferred()));
-   _jobs.push_back(Job(DrawLight()));
-   _jobs.push_back(Job(ResetGLState()));
-   _jobs.push_back(Job(RenderDeferred()));
-   _jobs.push_back(Job(ResolveDeferred()));
-   _jobs.push_back(Job(DrawTransparentDeferred()));
-   _jobs.push_back(Job(DrawOverlay3D()));
-   _jobs.push_back(Job(ResetGLState()));
+    _jobs.push_back(Job(new PrepareDeferred::JobModel("PrepareDeferred")));
+    _jobs.push_back(Job(new DrawBackground::JobModel("DrawBackground")));
+    _jobs.push_back(Job(new FetchItems::JobModel("FetchOpaque",
+        FetchItems(
+            [] (const RenderContextPointer& context, int count) {
+                context->_numFeedOpaqueItems = count; 
+            }
+        )
+    )));
+    _jobs.push_back(Job(new CullItems::JobModel("CullOpaque", _jobs.back().getOutput())));
+    _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortOpaque", _jobs.back().getOutput())));
+    _jobs.push_back(Job(new DrawOpaqueDeferred::JobModel("DrawOpaqueDeferred", _jobs.back().getOutput())));
+    _jobs.push_back(Job(new DrawLight::JobModel("DrawLight")));
+    _jobs.push_back(Job(new ResetGLState::JobModel()));
+    _jobs.push_back(Job(new RenderDeferred::JobModel("RenderDeferred")));
+    _jobs.push_back(Job(new ResolveDeferred::JobModel("ResolveDeferred")));
+    _jobs.push_back(Job(new FetchItems::JobModel("FetchTransparent",
+         FetchItems(
+            ItemFilter::Builder::transparentShape().withoutLayered(),
+            [] (const RenderContextPointer& context, int count) {
+                context->_numFeedTransparentItems = count; 
+            }
+         )
+     )));
+    _jobs.push_back(Job(new CullItems::JobModel("CullTransparent", _jobs.back().getOutput())));
+    _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortTransparent", _jobs.back().getOutput(), DepthSortItems(false))));
+    _jobs.push_back(Job(new DrawTransparentDeferred::JobModel("TransparentDeferred", _jobs.back().getOutput())));
+    _jobs.push_back(Job(new DrawOverlay3D::JobModel("DrawOverlay3D")));
+    _jobs.push_back(Job(new ResetGLState::JobModel()));
 }
 
 RenderDeferredTask::~RenderDeferredTask() {
@@ -80,162 +92,86 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     }
 };
 
-
-
-template <> void render::jobRun(const DrawOpaqueDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    PerformanceTimer perfTimer("DrawOpaqueDeferred");
+void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
 
-    // render opaques
-    auto& scene = sceneContext->_scene;
-    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::opaqueShape().withoutLayered());
-    auto& renderDetails = renderContext->args->_details;
+    RenderArgs* args = renderContext->args;
+    gpu::Batch batch;
+    args->_batch = &batch;
 
-    ItemIDsBounds inItems;
-    inItems.reserve(items.size());
-    for (auto id : items) {
-        inItems.emplace_back(ItemIDAndBounds(id));
+    renderContext->_numDrawnOpaqueItems = inItems.size();
+
+    glm::mat4 projMat;
+    Transform viewMat;
+    args->_viewFrustum->evalProjectionMatrix(projMat);
+    args->_viewFrustum->evalViewTransform(viewMat);
+    if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+        viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
     }
-    ItemIDsBounds& renderedItems = inItems;
+    batch.setProjectionTransform(projMat);
+    batch.setViewTransform(viewMat);
 
-    renderContext->_numFeedOpaqueItems = renderedItems.size();
-
-    ItemIDsBounds culledItems;
-    culledItems.reserve(inItems.size());
-    if (renderContext->_cullOpaque) {
-        renderDetails.pointTo(RenderDetails::OPAQUE_ITEM);
-        cullItems(sceneContext, renderContext, renderedItems, culledItems);
-        renderDetails.pointTo(RenderDetails::OTHER_ITEM);
-        renderedItems = culledItems;
-    }
-
-    renderContext->_numDrawnOpaqueItems = renderedItems.size();
-
-
-    ItemIDsBounds sortedItems;
-    sortedItems.reserve(culledItems.size());
-    if (renderContext->_sortOpaque) {
-        depthSortItems(sceneContext, renderContext, true, renderedItems, sortedItems); // Sort Front to back opaque items!
-        renderedItems = sortedItems;
+    {
+        GLenum buffers[3];
+        int bufferCount = 0;
+        buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
+        buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
+        buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
+        batch._glDrawBuffers(bufferCount, buffers);
+        const float OPAQUE_ALPHA_THRESHOLD = 0.5f;
+        args->_alphaThreshold = OPAQUE_ALPHA_THRESHOLD;
     }
 
-   // ItemIDsBounds sortedItems;
- /*   ItemMaterialBucketMap stateSortedItems;
-    stateSortedItems.allocateStandardMaterialBuckets();
-    if (true) {
-        for (auto& itemIDAndBound : renderedItems) {
-            stateSortedItems.insert(itemIDAndBound.id, scene->getItem(itemIDAndBound.id).getMaterialKey());
-        }
-    }
-*/
+    renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnOpaqueItems);
 
-    if (renderContext->_renderOpaque) {
-        RenderArgs* args = renderContext->args;
-        gpu::Batch batch;
-        args->_batch = &batch;
-
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->_viewFrustum->evalProjectionMatrix(projMat);
-        args->_viewFrustum->evalViewTransform(viewMat);
-        if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-            viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
-        }
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
-
-        {
-            GLenum buffers[3];
-            int bufferCount = 0;
-            buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
-            buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
-            buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
-            batch._glDrawBuffers(bufferCount, buffers);
-        }
-
-        renderItems(sceneContext, renderContext, renderedItems, renderContext->_maxDrawnOpaqueItems);
-
-        args->_context->render((*args->_batch));
-        args->_batch = nullptr;
-    }
+    // Before rendering the batch make sure we re in sync with gl state
+    args->_context->syncCache();
+    renderContext->args->_context->syncCache();
+    args->_context->render((*args->_batch));
+    args->_batch = nullptr;
 }
 
-
-template <> void render::jobRun(const DrawTransparentDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    PerformanceTimer perfTimer("DrawTransparentDeferred");
+void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
-
-    // render transparents
-    auto& scene = sceneContext->_scene;
-    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::transparentShape().withoutLayered());
     auto& renderDetails = renderContext->args->_details;
+
+    RenderArgs* args = renderContext->args;
+    gpu::Batch batch;
+    args->_batch = &batch;
     
-    ItemIDsBounds inItems;
-    inItems.reserve(items.size());
-    for (auto id : items) {
-        inItems.push_back(id);
+    renderContext->_numDrawnTransparentItems = inItems.size();
+
+    glm::mat4 projMat;
+    Transform viewMat;
+    args->_viewFrustum->evalProjectionMatrix(projMat);
+    args->_viewFrustum->evalViewTransform(viewMat);
+    if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+        viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
     }
-    ItemIDsBounds& renderedItems = inItems;
-
-    renderContext->_numFeedTransparentItems = renderedItems.size();
-
-    ItemIDsBounds culledItems;
-    if (renderContext->_cullTransparent) {
-        renderDetails.pointTo(RenderDetails::TRANSLUCENT_ITEM);
-        cullItems(sceneContext, renderContext, inItems, culledItems);
-        renderDetails.pointTo(RenderDetails::OTHER_ITEM);
-        renderedItems = culledItems;
+    batch.setProjectionTransform(projMat);
+    batch.setViewTransform(viewMat);
+    const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
+    
+    {
+        GLenum buffers[3];
+        int bufferCount = 0;
+        buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
+        batch._glDrawBuffers(bufferCount, buffers);
+        args->_alphaThreshold = TRANSPARENT_ALPHA_THRESHOLD;
     }
     
-    renderContext->_numDrawnTransparentItems = renderedItems.size();
-
-    ItemIDsBounds sortedItems;
-    if (renderContext->_sortTransparent) {
-        depthSortItems(sceneContext, renderContext, false, renderedItems, sortedItems); // Sort Back to front transparent items!
-        renderedItems = sortedItems;
-    }
-
-    if (renderContext->_renderTransparent) {
-        RenderArgs* args = renderContext->args;
-        gpu::Batch batch;
-        args->_batch = &batch;
-
-        
-
-
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->_viewFrustum->evalProjectionMatrix(projMat);
-        args->_viewFrustum->evalViewTransform(viewMat);
-        if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-            viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
-        }
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
-
-        const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
-
-        {
-            GLenum buffers[3];
-            int bufferCount = 0;
-            buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
-            batch._glDrawBuffers(bufferCount, buffers);
-            args->_alphaThreshold = TRANSPARENT_ALPHA_THRESHOLD;
-        }
-
-
-        renderItems(sceneContext, renderContext, renderedItems, renderContext->_maxDrawnTransparentItems);
-
-        // Before rendering the batch make sure we re in sync with gl state
-        args->_context->syncCache();
-        args->_context->render((*args->_batch));
-        args->_batch = nullptr;
-
-        // reset blend function to standard...
-       // glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
-    }
+    
+    renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnTransparentItems);
+    
+    // Before rendering the batch make sure we re in sync with gl state
+    args->_context->syncCache();
+    args->_context->render((*args->_batch));
+    args->_batch = nullptr;
+    
+    // reset blend function to standard...
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
 }
 
 const gpu::PipelinePointer& DrawOverlay3D::getOpaquePipeline() const {
@@ -253,8 +189,7 @@ const gpu::PipelinePointer& DrawOverlay3D::getOpaquePipeline() const {
     return _opaquePipeline;
 }
 
-template <> void render::jobRun(const DrawOverlay3D& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-      PerformanceTimer perfTimer("DrawOverlay3D");
+void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
 
@@ -271,12 +206,13 @@ template <> void render::jobRun(const DrawOverlay3D& job, const SceneContextPoin
             inItems.emplace_back(id);
         }
     }
- 
+    renderContext->_numFeedOverlay3DItems = inItems.size();
+    renderContext->_numDrawnOverlay3DItems = inItems.size();
+
     RenderArgs* args = renderContext->args;
     gpu::Batch batch;
     args->_batch = &batch;
     args->_whiteTexture = DependencyManager::get<TextureCache>()->getWhiteTexture();
-
 
     glm::mat4 projMat;
     Transform viewMat;
@@ -287,12 +223,13 @@ template <> void render::jobRun(const DrawOverlay3D& job, const SceneContextPoin
     }
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewMat);
-    batch.setPipeline(job.getOpaquePipeline());
+
+    batch.setPipeline(getOpaquePipeline());
     batch.setUniformTexture(0, args->_whiteTexture);
 
     if (!inItems.empty()) {
         batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0);
-        renderItems(sceneContext, renderContext, inItems);
+        renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnOverlay3DItems);
     }
 
     // Before rendering the batch make sure we re in sync with gl state
@@ -301,3 +238,4 @@ template <> void render::jobRun(const DrawOverlay3D& job, const SceneContextPoin
     args->_batch = nullptr;
     args->_whiteTexture.reset();
 }
+

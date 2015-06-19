@@ -90,7 +90,7 @@ public:
     
     void relayDriveKeysToCharacterController();
 
-    bool isMyAvatar() { return true; }
+    bool isMyAvatar() const { return true; }
     
     bool isLookingAtLeftEye();
 

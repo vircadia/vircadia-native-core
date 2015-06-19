@@ -168,3 +168,10 @@ void PolyVoxEntityItem::debugDump() const {
     qCDebug(entities) << "          dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
+
+void PolyVoxEntityItem::setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) {
+    if (voxelSurfaceStyle == _voxelSurfaceStyle) {
+        return;
+    }
+    updateVoxelSurfaceStyle(voxelSurfaceStyle);
+}
