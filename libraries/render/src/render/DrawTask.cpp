@@ -107,12 +107,11 @@ void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContex
     outItems.reserve(items.size());
     for (auto id : items) {
         auto& item = scene->getItem(id);
-      /*  AABox bound;
-        {
-      //      PerformanceTimer perfTimer("getBound");
-            bound = item.getBound();
-        }*/
         outItems.emplace_back(ItemIDAndBounds(id, item.getBound()));
+    }
+
+    if (_probeNumItems) {
+        _probeNumItems(renderContext, outItems.size());
     }
 }
 

@@ -195,11 +195,12 @@ void renderItems(const SceneContextPointer& sceneContext, const RenderContextPoi
 
 class FetchItems {
 public:
-
-    FetchItems() {}
-    FetchItems(const ItemFilter& filter): _filter(filter) {}
+    typedef std::function<void (const RenderContextPointer& context, int count)> ProbeNumItems;
+    FetchItems(const ProbeNumItems& probe): _probeNumItems(probe) {}
+    FetchItems(const ItemFilter& filter, const ProbeNumItems& probe): _filter(filter), _probeNumItems(probe) {}
 
     ItemFilter _filter = ItemFilter::Builder::opaqueShape().withoutLayered();
+    ProbeNumItems _probeNumItems;
 
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemIDsBounds& outItems);
 

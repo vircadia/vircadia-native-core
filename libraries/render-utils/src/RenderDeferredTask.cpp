@@ -38,22 +38,35 @@ void ResolveDeferred::run(const SceneContextPointer& sceneContext, const RenderC
 }
 
 RenderDeferredTask::RenderDeferredTask() : Task() {
-   _jobs.push_back(Job(new PrepareDeferred::JobModel("PrepareDeferred")));
-   _jobs.push_back(Job(new DrawBackground::JobModel("DrawBackground")));
-   _jobs.push_back(Job(new FetchItems::JobModel("FetchOpaque", FetchItems())));
-   _jobs.push_back(Job(new CullItems::JobModel("CullOpaque", _jobs.back().getOutput())));
-   _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortOpaque", _jobs.back().getOutput())));
-   _jobs.push_back(Job(new DrawOpaqueDeferred::JobModel("DrawOpaqueDeferred", _jobs.back().getOutput())));
-   _jobs.push_back(Job(new DrawLight::JobModel("DrawLight")));
-   _jobs.push_back(Job(new ResetGLState::JobModel()));
-   _jobs.push_back(Job(new RenderDeferred::JobModel("RenderDeferred")));
-   _jobs.push_back(Job(new ResolveDeferred::JobModel("ResolveDeferred")));
-   _jobs.push_back(Job(new FetchItems::JobModel("FetchTransparent", FetchItems(ItemFilter::Builder::transparentShape().withoutLayered()))));
-   _jobs.push_back(Job(new CullItems::JobModel("CullTransparent", _jobs.back().getOutput())));
-   _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortTransparent", _jobs.back().getOutput(), DepthSortItems(false))));
-   _jobs.push_back(Job(new DrawTransparentDeferred::JobModel("TransparentDeferred", _jobs.back().getOutput())));
-   _jobs.push_back(Job(new DrawOverlay3D::JobModel("DrawOverlay3D")));
-   _jobs.push_back(Job(new ResetGLState::JobModel()));
+    _jobs.push_back(Job(new PrepareDeferred::JobModel("PrepareDeferred")));
+    _jobs.push_back(Job(new DrawBackground::JobModel("DrawBackground")));
+    _jobs.push_back(Job(new FetchItems::JobModel("FetchOpaque",
+        FetchItems(
+            [] (const RenderContextPointer& context, int count) {
+                context->_numFeedOpaqueItems = count; 
+            }
+        )
+    )));
+    _jobs.push_back(Job(new CullItems::JobModel("CullOpaque", _jobs.back().getOutput())));
+    _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortOpaque", _jobs.back().getOutput())));
+    _jobs.push_back(Job(new DrawOpaqueDeferred::JobModel("DrawOpaqueDeferred", _jobs.back().getOutput())));
+    _jobs.push_back(Job(new DrawLight::JobModel("DrawLight")));
+    _jobs.push_back(Job(new ResetGLState::JobModel()));
+    _jobs.push_back(Job(new RenderDeferred::JobModel("RenderDeferred")));
+    _jobs.push_back(Job(new ResolveDeferred::JobModel("ResolveDeferred")));
+    _jobs.push_back(Job(new FetchItems::JobModel("FetchTransparent",
+         FetchItems(
+            ItemFilter::Builder::transparentShape().withoutLayered(),
+            [] (const RenderContextPointer& context, int count) {
+                context->_numFeedTransparentItems = count; 
+            }
+         )
+     )));
+    _jobs.push_back(Job(new CullItems::JobModel("CullTransparent", _jobs.back().getOutput())));
+    _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortTransparent", _jobs.back().getOutput(), DepthSortItems(false))));
+    _jobs.push_back(Job(new DrawTransparentDeferred::JobModel("TransparentDeferred", _jobs.back().getOutput())));
+    _jobs.push_back(Job(new DrawOverlay3D::JobModel("DrawOverlay3D")));
+    _jobs.push_back(Job(new ResetGLState::JobModel()));
 }
 
 RenderDeferredTask::~RenderDeferredTask() {
@@ -191,7 +204,9 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
             inItems.emplace_back(id);
         }
     }
- 
+    renderContext->_numFeedOverlay3DItems = inItems.size();
+    renderContext->_numDrawnOverlay3DItems = inItems.size();
+
     RenderArgs* args = renderContext->args;
     gpu::Batch batch;
     args->_batch = &batch;
@@ -212,7 +227,7 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
 
     if (!inItems.empty()) {
         batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0);
-        renderItems(sceneContext, renderContext, inItems);
+        renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnOverlay3DItems);
     }
 
     // Before rendering the batch make sure we re in sync with gl state

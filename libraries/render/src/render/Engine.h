@@ -45,6 +45,10 @@ public:
     int _numDrawnTransparentItems = 0;
     int _maxDrawnTransparentItems = -1;
 
+    int _numFeedOverlay3DItems = 0;
+    int _numDrawnOverlay3DItems = 0;
+    int _maxDrawnOverlay3DItems = -1;
+
     RenderContext() {}
 };
 typedef std::shared_ptr<RenderContext> RenderContextPointer;
