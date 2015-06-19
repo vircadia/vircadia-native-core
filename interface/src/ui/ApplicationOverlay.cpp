@@ -29,13 +29,12 @@
 #include "AudioClient.h"
 #include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
-#include "audio/AudioToolBox.h"
 #include "Application.h"
 #include "ApplicationOverlay.h"
-#include "devices/CameraToolBox.h"
 
 #include "Util.h"
 #include "ui/Stats.h"
+#include "ui/AvatarInputs.h"
 
 const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
 const int AUDIO_METER_GAP = 5;
@@ -86,11 +85,9 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
 
     // TODO move to Application::idle()?
     Stats::getInstance()->updateStats();
+    AvatarInputs::getInstance()->update();
 
     buildFramebufferObject();
-
-    // First render the mirror to the mirror FBO
-    // renderRearViewToFbo(renderArgs);
 
     // Execute the batch into our framebuffer
     _overlayFramebuffer->bind();
@@ -99,10 +96,7 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
 
     // Now render the overlay components together into a single texture
     renderOverlays(renderArgs);
-    //renderAudioMeter(renderArgs);
-    //renderCameraToggle(renderArgs);
     renderStatsAndLogs(renderArgs);
-    // renderRearView(renderArgs);
     renderDomainConnectionStatusBorder(renderArgs);
     renderQmlUi(renderArgs);
     _overlayFramebuffer->release();
@@ -146,142 +140,6 @@ void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
     glMatrixMode(GL_MODELVIEW);
-    fboViewport(_overlayFramebuffer);
-}
-
-void ApplicationOverlay::renderCameraToggle(RenderArgs* renderArgs) {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::NoFaceTracking)) {
-        return;
-    }
-
-    int audioMeterY;
-    bool smallMirrorVisible = Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && !qApp->isHMDMode();
-    bool boxed = smallMirrorVisible &&
-        !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror);
-    if (boxed) {
-        audioMeterY = MIRROR_VIEW_HEIGHT + AUDIO_METER_GAP + MUTE_ICON_PADDING;
-    } else {
-        audioMeterY = AUDIO_METER_GAP + MUTE_ICON_PADDING;
-    }
-
-    DependencyManager::get<CameraToolBox>()->render(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP, audioMeterY, boxed);
-    fboViewport(_overlayFramebuffer);
-}
-
-void ApplicationOverlay::renderAudioMeter(RenderArgs* renderArgs) {
-    auto audio = DependencyManager::get<AudioClient>();
-
-    //  Audio VU Meter and Mute Icon
-    const int MUTE_ICON_SIZE = 24;
-    const int AUDIO_METER_HEIGHT = 8;
-    const int INTER_ICON_GAP = 2;
-
-    int cameraSpace = 0;
-    int audioMeterWidth = MIRROR_VIEW_WIDTH - MUTE_ICON_SIZE - MUTE_ICON_PADDING;
-    int audioMeterScaleWidth = audioMeterWidth - 2;
-    int audioMeterX = MIRROR_VIEW_LEFT_PADDING + MUTE_ICON_SIZE + AUDIO_METER_GAP;
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::NoFaceTracking)) {
-        cameraSpace = MUTE_ICON_SIZE + INTER_ICON_GAP;
-        audioMeterWidth -= cameraSpace;
-        audioMeterScaleWidth -= cameraSpace;
-        audioMeterX += cameraSpace;
-    }
-
-    int audioMeterY;
-    bool smallMirrorVisible = Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && !qApp->isHMDMode();
-    bool boxed = smallMirrorVisible &&
-        !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror);
-    if (boxed) {
-        audioMeterY = MIRROR_VIEW_HEIGHT + AUDIO_METER_GAP + MUTE_ICON_PADDING;
-    } else {
-        audioMeterY = AUDIO_METER_GAP + MUTE_ICON_PADDING;
-    }
-
-    const glm::vec4 AUDIO_METER_BLUE = { 0.0, 0.0, 1.0, 1.0 };
-    const glm::vec4 AUDIO_METER_GREEN = { 0.0, 1.0, 0.0, 1.0 };
-    const glm::vec4 AUDIO_METER_RED = { 1.0, 0.0, 0.0, 1.0 };
-    const float CLIPPING_INDICATOR_TIME = 1.0f;
-    const float AUDIO_METER_AVERAGING = 0.5;
-    const float LOG2 = log(2.0f);
-    const float METER_LOUDNESS_SCALE = 2.8f / 5.0f;
-    const float LOG2_LOUDNESS_FLOOR = 11.0f;
-    float audioGreenStart = 0.25f * audioMeterScaleWidth;
-    float audioRedStart = 0.8f * audioMeterScaleWidth;
-    float audioLevel = 0.0f;
-    float loudness = audio->getLastInputLoudness() + 1.0f;
-
-    _trailingAudioLoudness = AUDIO_METER_AVERAGING * _trailingAudioLoudness + (1.0f - AUDIO_METER_AVERAGING) * loudness;
-    float log2loudness = logf(_trailingAudioLoudness) / LOG2;
-
-    if (log2loudness <= LOG2_LOUDNESS_FLOOR) {
-        audioLevel = (log2loudness / LOG2_LOUDNESS_FLOOR) * METER_LOUDNESS_SCALE * audioMeterScaleWidth;
-    } else {
-        audioLevel = (log2loudness - (LOG2_LOUDNESS_FLOOR - 1.0f)) * METER_LOUDNESS_SCALE * audioMeterScaleWidth;
-    }
-    if (audioLevel > audioMeterScaleWidth) {
-        audioLevel = audioMeterScaleWidth;
-    }
-    bool isClipping = ((audio->getTimeSinceLastClip() > 0.0f) && (audio->getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME));
-
-    DependencyManager::get<AudioToolBox>()->render(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP, audioMeterY, cameraSpace, boxed);
-
-    auto canvasSize = qApp->getCanvasSize();
-    DependencyManager::get<AudioScope>()->render(canvasSize.x, canvasSize.y);
-    DependencyManager::get<AudioIOStatsRenderer>()->render(WHITE_TEXT, canvasSize.x, canvasSize.y);
-
-    audioMeterY += AUDIO_METER_HEIGHT;
-
-    //  Draw audio meter background Quad
-    DependencyManager::get<GeometryCache>()->renderQuad(audioMeterX, audioMeterY, audioMeterWidth, AUDIO_METER_HEIGHT,
-                                                            glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-
-    if (audioLevel > audioRedStart) {
-        glm::vec4 quadColor;
-        if (!isClipping) {
-            quadColor = AUDIO_METER_RED;
-        } else {
-            quadColor = glm::vec4(1, 1, 1, 1);
-        }
-        // Draw Red Quad
-        DependencyManager::get<GeometryCache>()->renderQuad(audioMeterX + audioRedStart,
-                                                            audioMeterY,
-                                                            audioLevel - audioRedStart,
-                                                            AUDIO_METER_HEIGHT, quadColor,
-                                                            _audioRedQuad);
-
-        audioLevel = audioRedStart;
-    }
-
-    if (audioLevel > audioGreenStart) {
-        glm::vec4 quadColor;
-        if (!isClipping) {
-            quadColor = AUDIO_METER_GREEN;
-        } else {
-            quadColor = glm::vec4(1, 1, 1, 1);
-        }
-        // Draw Green Quad
-        DependencyManager::get<GeometryCache>()->renderQuad(audioMeterX + audioGreenStart,
-                                                            audioMeterY,
-                                                            audioLevel - audioGreenStart,
-                                                            AUDIO_METER_HEIGHT, quadColor,
-                                                            _audioGreenQuad);
-
-        audioLevel = audioGreenStart;
-    }
-
-    if (audioLevel >= 0) {
-        glm::vec4 quadColor;
-        if (!isClipping) {
-            quadColor = AUDIO_METER_BLUE;
-        } else {
-            quadColor = glm::vec4(1, 1, 1, 1);
-        }
-        // Draw Blue (low level) quad
-        DependencyManager::get<GeometryCache>()->renderQuad(audioMeterX,
-                                                            audioMeterY,
-                                                            audioLevel, AUDIO_METER_HEIGHT, quadColor,
-                                                            _audioBlueQuad);
-    }
     fboViewport(_overlayFramebuffer);
 }
 

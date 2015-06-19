@@ -62,7 +62,6 @@
 #include "ui/ModelsBrowser.h"
 #include "ui/NodeBounds.h"
 #include "ui/OctreeStatsDialog.h"
-#include "ui/RearMirrorTools.h"
 #include "ui/SnapshotShareDialog.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
@@ -566,7 +565,6 @@ private:
     Camera _myCamera;                           // My view onto the world
     Camera _mirrorCamera;              // Cammera for mirror view
     QRect _mirrorViewRect;
-    RearMirrorTools* _rearMirrorTools;
     
     Setting::Handle<bool>       _firstRun;
     Setting::Handle<QString>    _previousScriptLocation;

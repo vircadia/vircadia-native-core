@@ -1,8 +1,5 @@
 //
-//  Stats.cpp
-//  interface/src/ui
-//
-//  Created by Lucas Crisman on 22/03/14.
+//  Created by Bradley Austin Davis 2015/06/17
 //  Copyright 2013 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.

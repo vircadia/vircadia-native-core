@@ -66,6 +66,9 @@
 #include <EntityScriptingInterface.h>
 #include <ErrorDialog.h>
 #include <GlowEffect.h>
+#include <gpu/Batch.h>
+#include <gpu/Context.h>
+#include <gpu/GLBackend.h>
 #include <HFActionEvent.h>
 #include <HFBackEvent.h>
 #include <InfoView.h>
@@ -83,6 +86,7 @@
 #include <PerfStat.h>
 #include <PhysicsEngine.h>
 #include <ProgramObject.h>
+#include <RenderDeferredTask.h>
 #include <ResourceCache.h>
 #include <SceneScriptingInterface.h>
 #include <ScriptCache.h>
@@ -107,11 +111,9 @@
 
 #include "avatar/AvatarManager.h"
 
-#include "audio/AudioToolBox.h"
 #include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
 
-#include "devices/CameraToolBox.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/Leapmotion.h"
@@ -120,12 +122,6 @@
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
-
-#include "gpu/Batch.h"
-#include "gpu/Context.h"
-#include "gpu/GLBackend.h"
-
-#include "RenderDeferredTask.h"
 
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
@@ -142,6 +138,7 @@
 #include "SpeechRecognizer.h"
 #endif
 
+#include "ui/AvatarInputs.h"
 #include "ui/DataWebDialog.h"
 #include "ui/DialogsManager.h"
 #include "ui/LoginDialog.h"
@@ -282,8 +279,6 @@ bool setupEssentials(int& argc, char** argv) {
     auto animationCache = DependencyManager::set<AnimationCache>();
     auto ddeFaceTracker = DependencyManager::set<DdeFaceTracker>();
     auto modelBlender = DependencyManager::set<ModelBlender>();
-    auto audioToolBox = DependencyManager::set<AudioToolBox>();
-    auto cameraToolBox = DependencyManager::set<CameraToolBox>();
     auto avatarManager = DependencyManager::set<AvatarManager>();
     auto lodManager = DependencyManager::set<LODManager>();
     auto jsConsole = DependencyManager::set<StandAloneJSConsole>();
@@ -861,23 +856,11 @@ void Application::initializeUi() {
     });
 }
 
-/*
-    {
-        PerformanceTimer perfTimer("renderOverlay");
-        gpu::Context context(new gpu::GLBackend());
-        RenderArgs renderArgs(&context, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
-                          lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
-                          RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
-        _applicationOverlay.renderOverlay(&renderArgs);
-    }
-*/
-
 void Application::paintGL() {
     PROFILE_RANGE(__FUNCTION__);
     _glWidget->makeCurrent();
 
     auto lodManager = DependencyManager::get<LODManager>();
-    
     gpu::Context context(new gpu::GLBackend());
     RenderArgs renderArgs(&context, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
                           lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
@@ -894,6 +877,17 @@ void Application::paintGL() {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
     resizeGL();
+
+    {
+        PerformanceTimer perfTimer("renderOverlay");
+        /*
+        gpu::Context context(new gpu::GLBackend());
+        RenderArgs renderArgs(&context, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
+            lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
+            RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
+            */
+        _applicationOverlay.renderOverlay(&renderArgs);
+    }
 
     glEnable(GL_LINE_SMOOTH);
     
@@ -977,9 +971,7 @@ void Application::paintGL() {
         glPopMatrix();
 
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
-        if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
-            _rearMirrorTools->render(&renderArgs, true, _glWidget->mapFromGlobal(QCursor::pos()));
-        } else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
             renderRearViewMirror(&renderArgs, _mirrorViewRect);       
         }
 
@@ -1576,23 +1568,6 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
             _mouseDragStarted = getTrueMouse();
             _mousePressed = true;
 
-            if (mouseOnScreen()) {
-                if (DependencyManager::get<AudioToolBox>()->mousePressEvent(getMouseX(), getMouseY())) {
-                    // stop propagation
-                    return;
-                }
-
-                if (DependencyManager::get<CameraToolBox>()->mousePressEvent(getMouseX(), getMouseY())) {
-                    // stop propagation
-                    return;
-                }
-
-                if (_rearMirrorTools->mousePressEvent(getMouseX(), getMouseY())) {
-                    // stop propagation
-                    return;
-                }
-            }
-
             // nobody handled this - make it an action event on the _window object
             HFActionEvent actionEvent(HFActionEvent::startType(),
                                       computePickRay(event->x(), event->y()));
@@ -1608,17 +1583,6 @@ void Application::mouseDoublePressEvent(QMouseEvent* event, unsigned int deviceI
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isMouseCaptured()) {
         return;
-    }
-
-    if (activeWindow() == _window) {
-        if (event->button() == Qt::LeftButton) {
-            if (mouseOnScreen()) {
-                if (DependencyManager::get<CameraToolBox>()->mouseDoublePressEvent(getMouseX(), getMouseY())) {
-                    // stop propagation
-                    return;
-                }
-            }
-        }
     }
 }
 
@@ -2222,13 +2186,6 @@ void Application::init() {
     _entityClipboardRenderer.init();
     _entityClipboardRenderer.setViewFrustum(getViewFrustum());
     _entityClipboardRenderer.setTree(&_entityClipboard);
-
-    _rearMirrorTools = new RearMirrorTools(_mirrorViewRect);
-    connect(_rearMirrorTools, SIGNAL(closeView()), SLOT(closeMirrorView()));
-    connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
-    connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
-    connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
-
 
     // initialize the GlowEffect with our widget
     bool glow = Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect);
@@ -3662,7 +3619,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
         _mirrorCamera.setPosition(_myAvatar->getPosition() +
                                   _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * BILLBOARD_DISTANCE * _myAvatar->getScale());
 
-    } else if (RearMirrorTools::rearViewZoomLevel.get() == BODY) {
+    } else if (!AvatarInputs::getInstance()->mirrorZoomed()) {
         _mirrorCamera.setPosition(_myAvatar->getChestPosition() +
                                   _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
 
@@ -3711,10 +3668,6 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     glPushMatrix();
     displaySide(renderArgs, _mirrorCamera, true, billboard);
     glPopMatrix();
-
-    if (!billboard) {
-        _rearMirrorTools->render(renderArgs, false, _glWidget->mapFromGlobal(QCursor::pos()));
-    }
 
     // reset Viewport and projection matrix
     glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);

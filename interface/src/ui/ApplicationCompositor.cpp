@@ -16,27 +16,12 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <avatar/AvatarManager.h>
-#include <DeferredLightingEffect.h>
 #include <gpu/GLBackend.h>
-#include <gpu/Texture.h>
-#include <OffscreenUi.h>
 #include <CursorManager.h>
-#include <PerfStat.h>
 #include <Tooltip.h>
 
-
-#include "AudioClient.h"
-#include "audio/AudioIOStatsRenderer.h"
-#include "audio/AudioScope.h"
-#include "audio/AudioToolBox.h"
 #include "Application.h"
-#include "devices/CameraToolBox.h"
 
-#include "Util.h"
-#include "ui/Stats.h"
-
-#include "../../libraries/render-utils/standardTransformPNTC_vert.h"
-#include "../../libraries/render-utils/standardDrawTexture_frag.h"
 
 // Used to animate the magnification windows
 static const float MAG_SPEED = 0.08f;

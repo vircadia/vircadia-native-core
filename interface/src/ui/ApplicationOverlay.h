@@ -29,8 +29,8 @@ public:
 
 private:
 
-    void renderAudioMeter(RenderArgs* renderArgs);
-    void renderCameraToggle(RenderArgs* renderArgs);
+    //void renderAudioMeter(RenderArgs* renderArgs);
+    //void renderCameraToggle(RenderArgs* renderArgs);
     void renderStatsAndLogs(RenderArgs* renderArgs);
     void renderDomainConnectionStatusBorder(RenderArgs* renderArgs);
     void renderRearViewToFbo(RenderArgs* renderArgs);
