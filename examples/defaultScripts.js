@@ -19,4 +19,5 @@ Script.load("grab.js");
 Script.load("pointer.js");
 Script.load("directory.js");
 Script.load("mouseLook.js");
+Script.load("hmdControls.js");
 Script.load("dialTone.js");

@@ -11,8 +11,10 @@
 
 var MOVE_DISTANCE = 10.0;
 var PITCH_INCREMENT = 0.5; // degrees
+var pitchChange = 0; // degrees
 var YAW_INCREMENT = 0.5; // degrees
 var VR_YAW_INCREMENT = 15.0; // degrees
+var yawChange = 0;
 var BOOM_SPEED = 0.5;
 var THRESHOLD = 0.2;
 
@@ -53,7 +55,16 @@ var warpLine = Overlays.addOverlay("line3d", {
 var velocity = { x: 0, y: 0, z: 0 };
 var VERY_LONG_TIME = 1000000.0;
 
+var active = Menu.isOptionChecked("Enable VR Mode");
+var prevVRMode = Menu.isOptionChecked("Enable VR Mode");
+
 var hmdControls = (function () {
+
+    function onKeyPressEvent(event) {
+        if (event.text == 'g' && event.isMeta) {
+            active = !active;
+        }
+    }
 
     function findAction(name) {
         var actions = Controller.getAllActions();
@@ -67,6 +78,9 @@ var hmdControls = (function () {
     }
 
 	function onActionEvent(action, state) {
+        if (!active) {
+            return;
+        }
         if (state < THRESHOLD) {
             if (action == findAction("YAW_LEFT") || action == findAction("YAW_RIGHT")) {
                 yawTimer = CAMERA_UPDATE_TIME;
@@ -108,28 +122,28 @@ var hmdControls = (function () {
                 break;
             case findAction("YAW_LEFT"):
                 if (yawTimer < 0.0 && Menu.isOptionChecked("Enable VR Mode")) {
-                    MyAvatar.bodyYaw = MyAvatar.bodyYaw + (shifted ? SHIFT_MAG * VR_YAW_INCREMENT : VR_YAW_INCREMENT);
+                    yawChange = yawChange + (shifted ? SHIFT_MAG * VR_YAW_INCREMENT : VR_YAW_INCREMENT);
                     yawTimer = CAMERA_UPDATE_TIME;
                 } else if (!Menu.isOptionChecked("Enable VR Mode")) {
-                    MyAvatar.bodyYaw = MyAvatar.bodyYaw + (shifted ? SHIFT_MAG * YAW_INCREMENT : YAW_INCREMENT);
+                    yawChange = yawChange + (shifted ? SHIFT_MAG * YAW_INCREMENT : YAW_INCREMENT);
                 }
                 break;
             case findAction("YAW_RIGHT"):
                 if (yawTimer < 0.0 && Menu.isOptionChecked("Enable VR Mode")) {
-                    MyAvatar.bodyYaw = MyAvatar.bodyYaw - (shifted ? SHIFT_MAG * VR_YAW_INCREMENT : VR_YAW_INCREMENT);
+                    yawChange = yawChange - (shifted ? SHIFT_MAG * VR_YAW_INCREMENT : VR_YAW_INCREMENT);
                     yawTimer = CAMERA_UPDATE_TIME;
                 } else if (!Menu.isOptionChecked("Enable VR Mode")) {
-                    MyAvatar.bodyYaw = MyAvatar.bodyYaw - (shifted ? SHIFT_MAG * YAW_INCREMENT : YAW_INCREMENT);
+                    yawChange = yawChange - (shifted ? SHIFT_MAG * YAW_INCREMENT : YAW_INCREMENT);
                 }
                 break;
             case findAction("PITCH_DOWN"):
                 if (!Menu.isOptionChecked("Enable VR Mode")) {
-                    MyAvatar.headPitch = Math.max(-180, Math.min(180, MyAvatar.headPitch - (shifted ? SHIFT_MAG * PITCH_INCREMENT : PITCH_INCREMENT)));
+                    pitchChange = pitchChange - (shifted ? SHIFT_MAG * PITCH_INCREMENT : PITCH_INCREMENT);
                 }
                 break;
             case findAction("PITCH_UP"):
                 if (!Menu.isOptionChecked("Enable VR Mode")) {
-                    MyAvatar.headPitch = Math.max(-180, Math.min(180, MyAvatar.headPitch + (shifted ? SHIFT_MAG * PITCH_INCREMENT : PITCH_INCREMENT)));
+                    pitchChange = pitchChange + (shifted ? SHIFT_MAG * PITCH_INCREMENT : PITCH_INCREMENT);
                 }
                 break;
             case findAction("SHIFT"): // speed up
@@ -161,6 +175,11 @@ var hmdControls = (function () {
     }
 
     function update(dt) {
+        if (prevVRMode != Menu.isOptionChecked("Enable VR Mode")) {
+            active = Menu.isOptionChecked("Enable VR Mode");
+            prevVRMode = Menu.isOptionChecked("Enable VR Mode");
+        }
+
         if (yawTimer >= 0.0) {
             yawTimer = yawTimer - dt;
         }
@@ -175,9 +194,28 @@ var hmdControls = (function () {
             updateWarp();
         }
 
-        MyAvatar.motorVelocity = velocity;
-        MyAvatar.motorTimescale = 0.0;
-        velocity = { x: 0, y: 0, z: 0 };
+        if (active) {
+            Controller.captureActionEvents();
+
+            print(yawChange);
+            print(pitchChange);
+            print(JSON.stringify(velocity));
+
+            MyAvatar.bodyYaw = MyAvatar.bodyYaw + yawChange;
+            MyAvatar.headPitch = Math.max(-180, Math.min(180, MyAvatar.headPitch + pitchChange));
+            yawChange = 0;
+            pitchChange = 0;
+
+            MyAvatar.motorVelocity = velocity;
+            MyAvatar.motorTimescale = 0.0;
+            velocity = { x: 0, y: 0, z: 0 };
+        } else {
+            Controller.releaseActionEvents();
+            yawChange = 0;
+            pitchChange = 0;
+            MyAvatar.motorVelocity = {x:0.0, y:0.0, z:0.0}
+            MyAvatar.motorTimescale = VERY_LONG_TIME;
+        }
     }
 
     function updateWarp() {
@@ -233,7 +271,7 @@ var hmdControls = (function () {
     }
 
 	function setUp() {
-		Controller.captureActionEvents();
+        Controller.keyPressEvent.connect(onKeyPressEvent);
 
         Controller.actionEvent.connect(onActionEvent);
 

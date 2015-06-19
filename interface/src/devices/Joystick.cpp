@@ -17,7 +17,7 @@
 
 #include "Joystick.h"
 
-const float CONTROLLER_THRESHOLD = 0.25f;
+const float CONTROLLER_THRESHOLD = 0.3f;
 
 #ifdef HAVE_SDL2
 const float MAX_AXIS = 32768.0f;
