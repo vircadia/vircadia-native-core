@@ -26,6 +26,7 @@
 #include "EntitiesLogging.h"
 #include "EntityTree.h"
 #include "EntitySimulation.h"
+#include "EntityActionFactoryInterface.h"
 
 bool EntityItem::_sendPhysicsUpdates = true;
 
@@ -1363,7 +1364,6 @@ bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer act
     assert(action->getOwnerEntity().get() == this);
 
     simulation->addAction(action);
-
     return false;
 }
 
@@ -1398,7 +1398,35 @@ void EntityItem::clearActions(EntitySimulation* simulation) {
 }
 
 void EntityItem::setActionData(QByteArray actionData) {
+    QVector<QByteArray> serializedActions;
+    QDataStream ds(actionData);
+    ds >> serializedActions;
 
+    foreach(QByteArray serializedAction, serializedActions) {
+        QDataStream dsForAction(serializedAction);
+        EntityActionType actionType;
+        QUuid actionID;
+        dsForAction >> actionType;
+        dsForAction >> actionID;
+
+        if (_objectActions.contains(actionID)) {
+            EntityActionPointer action = _objectActions[actionID];
+            // XXX make sure types match?
+            action->deserializeFromDataStream(dsForAction);
+        } else {
+            auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
+
+            EntityTree* entityTree = _element ? _element->getTree() : nullptr;
+            EntitySimulation* simulation = entityTree? entityTree->getSimulation() : nullptr;
+
+            if (entityTree) {
+                EntityItemPointer entity = entityTree->findEntityByEntityItemID(_id);
+                if (actionFactory->factoryBA(simulation, entity, serializedAction)) {
+                    // XXX something
+                }
+            }
+        }
+    }
 }
 
 

@@ -485,6 +485,16 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
 
     bool success = actor(simulation, entity);
     _entityTree->unlock();
+
+    // transmit the change
+    _entityTree->lockForRead();
+    EntityItemProperties properties = entity->getProperties();
+    _entityTree->unlock();
+    properties.setActionDataDirty();
+    auto now = usecTimestampNow();
+    properties.setLastEdited(now);
+    queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
+
     return success;
 }
 
