@@ -188,6 +188,8 @@ public:
     bool appendRawData(const unsigned char* data, int length);
     bool appendRawData(QByteArray data);
 
+    bool canAppendBytes(int numBytes) const { return _bytesAvailable > numBytes; }
+
     /// returns a byte offset from beginning of the uncompressed stream based on offset from end.
     /// Positive offsetFromEnd returns that many bytes before the end of uncompressed stream
     int getUncompressedByteOffset(int offsetFromEnd = 0) const { return _bytesInUse - offsetFromEnd; }

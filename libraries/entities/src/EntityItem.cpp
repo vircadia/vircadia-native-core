@@ -27,6 +27,8 @@
 #include "EntityTree.h"
 #include "EntitySimulation.h"
 
+const char* plankyBlock2 = "PlankyBlock46"; // adebug
+
 const quint64 DEFAULT_SIMULATOR_CHANGE_LOCKOUT_PERIOD = (quint64)(0.2f * USECS_PER_SECOND);
 const quint64 MAX_SIMULATOR_CHANGE_LOCKOUT_PERIOD = 2 * USECS_PER_SECOND;
 
@@ -581,11 +583,13 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // rules that we expect the server to be using, so it is possible that we'll sometimes ignore
         // the incoming _simulatorID data (e.g. we might know something that the server does not... yet).
 
+        int requiredProperties = 1; // adebug
         uint8_t priority = 0;
         if (propertyFlags.getHasProperty(PROP_SIMULATOR_PRIORITY)) {
             int bytes = OctreePacketData::unpackDataFromBytes(dataAt, priority);
             dataAt += bytes;
             bytesRead += bytes;
+            requiredProperties *= 3; // adebug
         }
         
         QUuid id;
@@ -593,32 +597,66 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             int bytes = OctreePacketData::unpackDataFromBytes(dataAt, id);
             dataAt += bytes;
             bytesRead += bytes;
+            requiredProperties *= 7;
         }
 
-        if (_simulatorID != id) {
-            // ownership has changed
-            auto nodeList = DependencyManager::get<NodeList>();
-            if (_simulatorID == nodeList->getSessionUUID()) {
-                // we think we're the simulation owner but entity-server says otherwise 
-                // we relenquish ownership only if we don't have MAX_SIMULATOR_PRIORITY
-                if (_simulatorPriority != MAX_SIMULATOR_PRIORITY) {
-                    // we're losing simulation ownership
+        // adebug
+        if (requiredProperties == 3) {
+            std::cout << "adebug split properties for '" << _name.toStdString() << "' with priority only" << std::endl;  // adebug
+        }
+        else if (requiredProperties == 7) {
+            std::cout << "adebug split properties for '" << _name.toStdString() << "' with id only" << std::endl;  // adebug
+        }
+
+        // TODO: refactor simulation ownership info to be a single property
+        if (requiredProperties == 3*7) {
+            if (_simulatorID != id) {
+                // ownership has changed
+                auto nodeList = DependencyManager::get<NodeList>();
+                if (_simulatorID == nodeList->getSessionUUID()) {
+                    // we think we're the simulation owner but entity-server says otherwise 
+                    // we relenquish ownership only if we don't have MAX_SIMULATOR_PRIORITY
+                    if (_simulatorPriority != MAX_SIMULATOR_PRIORITY) {
+                        // we're losing simulation ownership
+                        if (_name == plankyBlock2) {
+                            std::cout << "adebug lose ownership of '" << _name.toStdString() << "' to " << id.toString().toStdString() << " with priority " << int(priority) << std::endl;  // adebug
+                        }
+                        _simulatorID = id;
+                        _simulatorPriority = priority;
+                        if (! (_dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID)) {
+                            if (_name == plankyBlock2) {
+                                std::cout << "adebug setting DIRTY_SIMULATOR_ID while losing ownership" << std::endl;  // adebug
+                            }
+                        }
+                        _dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
+                    }
+                } else {
+                    auto nodeList = DependencyManager::get<NodeList>();
+                    if (id == nodeList->getSessionUUID()) {
+                        if (_name == plankyBlock2) {
+                            std::cout << "adebug gain ownership of '" << _name.toStdString() << "' id " << id.toString().toStdString() << " with priority " << int(priority) << std::endl;  // adebug
+                        }
+                    }
                     _simulatorID = id;
                     _simulatorPriority = priority;
+                    if (! (_dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID)) {
+                        if (_name == plankyBlock2) {
+                            std::cout << "adebug setting DIRTY_SIMULATOR_ID with ownership of " << _simulatorID.toString().toStdString() << std::endl;  // adebug
+                        }
+                    }
                     _dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
                 }
-            } else {
-                _simulatorID = id;
-                _simulatorPriority = priority;
-                _dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
-            }
-        } else if (priority != _simulatorPriority) {
-            // priority is changing but simulatorID is not.
-            // only accept this change if we are NOT the simulator owner, since otherwise
-            // we would have initiated this priority
-            auto nodeList = DependencyManager::get<NodeList>();
-            if (_simulatorID != nodeList->getSessionUUID()) {
-                _simulatorPriority = priority;
+            } else if (priority != _simulatorPriority) {
+                // priority is changing but simulatorID is not.
+                // only accept this change if we are NOT the simulator owner, since otherwise
+                // we would have initiated this priority
+                auto nodeList = DependencyManager::get<NodeList>();
+                if (_simulatorID != nodeList->getSessionUUID()) {
+                    if (_name == plankyBlock2) {
+                        std::cout << "adebug priority of '" << _name.toStdString() << "' changing from " << int(_simulatorPriority) << " to " << int(priority) << std::endl;  // adebug
+                    }
+                    _simulatorPriority = priority;
+                }
             }
         }
     } else if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
@@ -904,6 +942,11 @@ void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
     }
 }
 
+void EntityItem::clearDirtyFlags(uint32_t mask) {
+    // adebug TODO: move this back to header after done debugging
+    _dirtyFlags &= ~mask;
+}
+
 bool EntityItem::isMoving() const {
     return hasVelocity() || hasAngularVelocity();
 }
@@ -1039,6 +1082,9 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(description, setDescription);
 
     if (somethingChanged) {
+        if (_name == plankyBlock2) {
+            std::cout << "adebug update for '" << _name.toStdString() << "'" << std::endl;  // adebug
+        }
         uint64_t now = usecTimestampNow();
         #ifdef WANT_DEBUG
             int elapsed = now - getLastEdited();
@@ -1398,6 +1444,9 @@ void EntityItem::updateCreated(uint64_t value) {
 }
 
 void EntityItem::setSimulatorPriority(uint8_t priority) { 
+    if (_name == plankyBlock2) {
+        std::cout << "adebug setSimulatorPriority() for '" << _name.toStdString() << "' from " << int(_simulatorPriority) << " to " << int(priority) << std::endl;  // adebug
+    }
     _simulatorPriority = priority; 
     if (_simulatorPriority == MAX_SIMULATOR_PRIORITY) {
         // we always extend the the ownership expiry for MAX_SIMULATOR_PRIORITY
@@ -1409,6 +1458,9 @@ void EntityItem::setSimulatorPriority(uint8_t priority) {
 
 void EntityItem::setSimulatorID(const QUuid& value) {
     if (_simulatorID != value) {
+        if (_name == plankyBlock2) {
+            std::cout << "adebug setSimulatorID for '" << _name.toStdString() << "' from " << _simulatorID.toString().toStdString() << " to " << value.toString().toStdString() << std::endl;  // adebug
+        }
         _simulatorID = value;
         if (!_simulatorID.isNull()) {
             // Note: this logic only works well if _simulatorPriority is properly set before this point
@@ -1421,6 +1473,9 @@ void EntityItem::setSimulatorID(const QUuid& value) {
 
 void EntityItem::updateSimulatorID(const QUuid& value) {
     if (_simulatorID != value) {
+        if (_name == plankyBlock2) {
+            std::cout << "adebug updateSimulatorID for '" << _name.toStdString() << "' from " << _simulatorID.toString().toStdString() << " to " << value.toString().toStdString() << std::endl;  // adebug
+        }
         _simulatorID = value;
         if (!_simulatorID.isNull()) {
             // Note: this logic only works well if _simulatorPriority is properly set before this point
@@ -1433,6 +1488,9 @@ void EntityItem::updateSimulatorID(const QUuid& value) {
 }
 
 void EntityItem::clearSimulationOwnership() {
+    if (_name == plankyBlock2) {
+        std::cout << "adebug clearSimulationOwnership for '" << _name.toStdString() << "'" << std::endl;  // adebug
+    }
     _simulatorPriority = 0;
     _simulatorID = QUuid();
     _simulationOwnershipExpiry = 0;

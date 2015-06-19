@@ -72,6 +72,28 @@ const uint8_t ATTACHMENT_SIMULATOR_PRIORITY = MAX_SIMULATOR_PRIORITY;
 #define debugTimeOnly(T) qPrintable(QString("%1").arg(T, 16, 10))
 #define debugTreeVector(V) V << "[" << V << " in meters ]"
 
+class SimulationOwner {
+public:
+    SimulationOwner() : _id(), _priority(0) {}
+    SimulationOwner(const QUuid& id, uint8_t priority) : _id(id), _priority(priority) {}
+
+    const QUuid& getID() const { return _id; }
+    uint8_t getPriority() const { return _priority; }
+
+    void clear() { _id = QUuid(); _priority = 0; }
+    void set(const QUuid& id, uint8_t priority) { _id = id; _priority = priority; }
+
+    bool isNull() const { return _id.isNull(); }
+    bool matchesID(const QUuid& id) const { return _id == id; }
+    //void toQByteArray();
+
+    bool operator>=(uint8_t priority) const { return _priority >= priority; }
+
+private:
+    QUuid _id;
+    uint8_t _priority;
+};
+
 
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
@@ -367,7 +389,8 @@ public:
     virtual void updateShapeType(ShapeType type) { /* do nothing */ }
 
     uint32_t getDirtyFlags() const { return _dirtyFlags; }
-    void clearDirtyFlags(uint32_t mask = 0xffffffff) { _dirtyFlags &= ~mask; }
+    //void clearDirtyFlags(uint32_t mask = 0xffffffff) { _dirtyFlags &= ~mask; }
+    void clearDirtyFlags(uint32_t mask = 0xffffffff);
 
     bool isMoving() const;
 

@@ -22,12 +22,14 @@
 #ifdef WANT_DEBUG_ENTITY_TREE_LOCKS
 #include "EntityTree.h"
 #endif
+const char* plankyBlock = "PlankyBlock46"; // adebug
 
 static const float ACCELERATION_EQUIVALENT_EPSILON_RATIO = 0.1f;
 static const quint8 STEPS_TO_DECIDE_BALLISTIC = 4;
 
 const uint32_t LOOPS_FOR_SIMULATION_ORPHAN = 50;
-const uint32_t LOOPS_BETWEEN_OWNERSHIP_BIDS = 30;
+//const uint32_t LOOPS_BETWEEN_OWNERSHIP_BIDS = 30;
+const quint64 USECS_BETWEEN_OWNERSHIP_BIDS = USECS_PER_SECOND / 5;
 
 #ifdef WANT_DEBUG_ENTITY_TREE_LOCKS
 bool EntityMotionState::entityTreeIsLocked() const {
@@ -69,8 +71,7 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer 
     _serverGravity(0.0f),
     _serverAcceleration(0.0f),
     _accelerationNearlyGravityCount(0),
-    _candidateForOwnership(false),
-    _loopsSinceOwnershipBid(0),
+    _nextOwnershipBid(0),
     _loopsWithoutOwner(0)
 {
     _type = MOTIONSTATE_TYPE_ENTITY;
@@ -94,37 +95,55 @@ void EntityMotionState::updateServerPhysicsVariables() {
 }
 
 // virtual
-void EntityMotionState::handleEasyChanges(uint32_t flags) {
+void EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine) {
     assert(entityTreeIsLocked());
+    if (_entity && _entity->getName() == plankyBlock) {
+        quint64 dt = (usecTimestampNow() - _activationTime) / 1000; // adebug
+        std::cout << "adebug handleEasyChanges flags = 0x" << std::hex << flags << std::dec << "  dt = " << dt << std::endl;  // adebug
+    }
     updateServerPhysicsVariables();
-    ObjectMotionState::handleEasyChanges(flags);
+    ObjectMotionState::handleEasyChanges(flags, engine);
 
     if (flags & EntityItem::DIRTY_SIMULATOR_ID) {
-        _loopsSinceOwnershipBid = 0;
+        if (_entity && _entity->getName() == plankyBlock) {
+            std::cout << "adebug handleEasyChanges() '" << _entity->getName().toStdString() << "' found DIRTY_SIMULATOR_ID flag" << std::endl;  // adebug
+        }
         _loopsWithoutOwner = 0;
-        _candidateForOwnership = false;
-        if (_entity->getSimulatorID().isNull()
-                && !_entity->isMoving()
-                && _body->isActive()) {
+        if (_entity->getSimulatorID().isNull()) {
+            // simulation ownership is being removed
             // remove the ACTIVATION flag because this object is coming to rest
             // according to a remote simulation and we don't want to wake it up again
             flags &= ~EntityItem::DIRTY_PHYSICS_ACTIVATION;
+            // hint to Bullet that the object is deactivating
             _body->setActivationState(WANTS_DEACTIVATION);
-        } else {
-            auto nodeList = DependencyManager::get<NodeList>();
-            const QUuid& sessionID = nodeList->getSessionUUID();
-            if (_entity->getSimulatorID() != sessionID) {
-                _loopsSinceOwnershipBid = 0;
+            if (_entity && _entity->getName() == plankyBlock) {
+                std::cout << "adebug handleEasyChanges() '" << _entity->getName().toStdString() << "' clearing ownership so _candidatePriority goes to 0" << std::endl;  // adebug
+            }
+            _candidatePriority = 0;
+            if (_expectedOwnership != -1) {
+                std::cout << "adebug unexpected loss of ownership  '" << _entity->getName().toStdString() << "' expected -1 but got " << _expectedOwnership << std::endl;  // adebug
+            }
+            _expectedOwnership = 0;
+        } else  {
+            _nextOwnershipBid = usecTimestampNow() + USECS_BETWEEN_OWNERSHIP_BIDS;
+            if (engine->getSessionID() == _entity->getSimulatorID() || _entity->getSimulatorPriority() > _candidatePriority) {
+                // we own the simulation or our priority looses to remote
+                if (_entity && _entity->getName() == plankyBlock) {
+                    std::cout << "adebug handleEasyChanges() '" << _entity->getName().toStdString() << "' we own it so _candidatePriority goes to 0" << std::endl;  // adebug
+                }
+                if (_expectedOwnership != 1) {
+                    std::cout << "adebug unexpected gain of ownership  '" << _entity->getName().toStdString() << "' expected 1 but got " << _expectedOwnership << " _candidatePriority = " << int(_candidatePriority) << std::endl;  // adebug
+                }
+                _expectedOwnership = 0;
+                _candidatePriority = 0;
             }
         }
     }
     if (flags & EntityItem::DIRTY_SIMULATOR_OWNERSHIP) {
+        // also known as "bid for ownership with SCRIPT priority"
         // we're manipulating this object directly via script, so we artificially 
         // manipulate the logic to trigger an immediate bid for ownership
-        _candidateForOwnership = true;
-        _loopsSinceOwnershipBid = LOOPS_BETWEEN_OWNERSHIP_BIDS;
-        _loopsWithoutOwner = LOOPS_FOR_SIMULATION_ORPHAN;
-        _simulatorPriorityHint = SCRIPT_EDIT_SIMULATOR_PRIORITY;
+        setSimulatorPriorityHint(SCRIPT_EDIT_SIMULATOR_PRIORITY);
     }
     if ((flags & EntityItem::DIRTY_PHYSICS_ACTIVATION) && !_body->isActive()) {
         _body->activate();
@@ -202,13 +221,14 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     if (_entity->getSimulatorID().isNull()) {
         _loopsWithoutOwner++;
 
-        if (_loopsWithoutOwner > LOOPS_FOR_SIMULATION_ORPHAN) {
+        if (_loopsWithoutOwner > LOOPS_FOR_SIMULATION_ORPHAN && usecTimestampNow() > _nextOwnershipBid) {
             //qDebug() << "Warning -- claiming something I saw moving." << getName();
-            _candidateForOwnership = true;
-            _loopsSinceOwnershipBid = LOOPS_BETWEEN_OWNERSHIP_BIDS + 1;
+            quint64 dt = (usecTimestampNow() - _activationTime) / 1000; // adebug
+            if (_entity && _entity->getName() == plankyBlock) {
+                std::cout << "adebug setWorldTransform() bid for orphan '" << _entity->getName().toStdString() << "'  dt = " << dt << std::endl;  // adebug
+            }
+            setSimulatorPriorityHint(VOLUNTEER_SIMULATOR_PRIORITY);
         }
-    } else {
-        _loopsWithoutOwner = 0;
     }
 
     #ifdef WANT_DEBUG
@@ -239,7 +259,7 @@ bool EntityMotionState::isCandidateForOwnership(const QUuid& sessionID) const {
         return false;
     }
     assert(entityTreeIsLocked());
-    return _candidateForOwnership || sessionID == _entity->getSimulatorID();
+    return _candidatePriority > 0 || sessionID == _entity->getSimulatorID();
 }
 
 bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
@@ -356,18 +376,19 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep, const QUuid& s
 
     if (_entity->getSimulatorID() != sessionID) {
         // we don't own the simulation, but maybe we should...
-        if (_candidateForOwnership) {
-            _candidateForOwnership = false;
-            ++_loopsSinceOwnershipBid;
-            if (_loopsSinceOwnershipBid > LOOPS_BETWEEN_OWNERSHIP_BIDS) {
-                // it's time to bid for ownership
-                _loopsSinceOwnershipBid = 0;
-                return true;
+        if (_candidatePriority > 0) {
+            if (_candidatePriority < _entity->getSimulatorPriority()) {
+                // our priority looses to remote, so we don't bother to bid
+                if (_entity && _entity->getName() == plankyBlock) {
+                    std::cout << "adebug shouldSendUpdate() '" << _entity->getName().toStdString() << "' clear priority " << int(_candidatePriority) << " in favor of remote priority " << int(_entity->getSimulatorPriority()) << std::endl;  // adebug
+                }
+                _candidatePriority = 0;
+                return false;
             }
+            return usecTimestampNow() > _nextOwnershipBid;
         }
         return false;
     } 
-    _candidateForOwnership = false;
    
     return remoteSimulationOutOfSync(simulationStep);
 }
@@ -456,15 +477,28 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
         if (!active) {
             // we own the simulation but the entity has stopped, so we tell the server that we're clearing simulatorID
             // but we remember that we do still own it...  and rely on the server to tell us that we don't
+            std::cout << "adebug releasing ownership of '" << _entity->getName().toStdString() << "' for inactivity" << std::endl;  // adebug
             properties.clearSimulatorOwnership();
+            if (_entity && _entity->getName() == plankyBlock) {
+                std::cout << "adebug sendUpdate() send clear ownership for '" << _entity->getName().toStdString() << "'" << std::endl;  // adebug
+            }
+            _expectedOwnership = -1;
         } else {
             // re-assert the simulation info
             properties.setSimulatorOwnership(sessionID, _entity->getSimulatorPriority());
+            _expectedOwnership = 0;
         }
     } else {
         // we don't own the simulation for this entity yet, but we're sending a bid for it
-        properties.setSimulatorOwnership(sessionID, glm::max(_simulatorPriorityHint, VOLUNTEER_SIMULATOR_PRIORITY));
-        _simulatorPriorityHint = 0;
+        quint64 dt = (usecTimestampNow() - _activationTime) / 1000; // adebug
+        uint8_t bidPriority = glm::max<uint8_t>(_candidatePriority, VOLUNTEER_SIMULATOR_PRIORITY); // adebug
+        if (_entity && _entity->getName() == plankyBlock) {
+            std::cout << "adebug sendUpdate() bid for ownership of '" << _entity->getName().toStdString() << "'  dt = " << dt << " with priority " << int(bidPriority) << std::endl;  // adebug
+        }
+        properties.setSimulatorOwnership(sessionID, glm::max<uint8_t>(_candidatePriority, VOLUNTEER_SIMULATOR_PRIORITY));
+        _nextOwnershipBid = now + USECS_BETWEEN_OWNERSHIP_BIDS;
+        _expectedOwnership = 1;
+        //_candidatePriority = 0; // TODO: it would be nice to not have to clear this until we get a message back that ownership has changed
     }
 
     if (EntityItem::getSendPhysicsUpdates()) {
@@ -502,6 +536,13 @@ uint32_t EntityMotionState::getAndClearIncomingDirtyFlags() {
     return dirtyFlags;
 }
 
+// virtual 
+uint8_t EntityMotionState::getSimulatorPriority() const {
+    if (_entity) {
+        return _entity->getSimulatorPriority();
+    }
+    return 0;
+}
 
 // virtual
 QUuid EntityMotionState::getSimulatorID() const {
@@ -512,10 +553,13 @@ QUuid EntityMotionState::getSimulatorID() const {
     return QUuid();
 }
 
-
 // virtual
-void EntityMotionState::bump() {
-    _candidateForOwnership = true;
+void EntityMotionState::bump(uint8_t priority) {
+    if (_entity) {
+        //uint8_t inheritedPriority = priority < 2 ? 1 : priority - 1;
+        uint8_t inheritedPriority = VOLUNTEER_SIMULATOR_PRIORITY;
+        setSimulatorPriorityHint(inheritedPriority);
+    }
 }
 
 void EntityMotionState::resetMeasuredBodyAcceleration() {
@@ -543,9 +587,11 @@ void EntityMotionState::measureBodyAcceleration() {
         glm::vec3 velocity = bulletToGLM(_body->getLinearVelocity());
         _measuredAcceleration = (velocity / powf(1.0f - _body->getLinearDamping(), dt) - _lastVelocity) * invDt;
         _lastVelocity = velocity;
-        if (numSubsteps > PHYSICS_ENGINE_MAX_NUM_SUBSTEPS && !_candidateForOwnership) {
-            // object has just been re-activated so clear ownership logic
-            _loopsSinceOwnershipBid = 0;
+        if (numSubsteps > PHYSICS_ENGINE_MAX_NUM_SUBSTEPS) {
+            if (_entity && _entity->getName() == plankyBlock) {
+                std::cout << "adebug measureBodyAcceleration() activate '" << _entity->getName().toStdString() << "'" << std::endl;  // adebug
+            }
+            _activationTime = usecTimestampNow(); // adebug
             _loopsWithoutOwner = 0;
             _lastStep = ObjectMotionState::getWorldSimulationStep();
             _sentInactive = false;
@@ -589,6 +635,11 @@ int16_t EntityMotionState::computeCollisionGroup() {
 }
 
 void EntityMotionState::setSimulatorPriorityHint(uint8_t priority) {
-    _candidateForOwnership = true;
-    _simulatorPriorityHint = priority;
+    uint8_t oldPriority = _candidatePriority;
+    _candidatePriority = glm::max<uint8_t>(_candidatePriority, priority);
+    if (_candidatePriority != oldPriority) {
+        if (_entity && _entity->getName() == plankyBlock) {
+            std::cout << "adebug setSimulatorPriorityHint() '" << _entity->getName().toStdString() << "' _candidatePrioity changed from " << int(oldPriority) << " to " << int(_candidatePriority) << std::endl;  // adebug
+        }
+    }
 }

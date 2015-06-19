@@ -203,6 +203,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
         uint32_t newFlags = entity->getDirtyFlags() & ~preFlags;
         if (newFlags) {
             if (_simulation) {
+                std::cout << "adebug newFlags & DIRTY_SIMULATION_FLAGS = 0x" << std::hex << (newFlags & DIRTY_SIMULATION_FLAGS) << std::dec << std::endl;  // adebug
                 if (newFlags & DIRTY_SIMULATION_FLAGS) {
                     _simulation->lock();
                     _simulation->changeEntity(entity);

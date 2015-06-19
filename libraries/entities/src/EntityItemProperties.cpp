@@ -325,6 +325,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_LOCKED, locked);
     CHECK_PROPERTY_CHANGE(PROP_TEXTURES, textures);
     CHECK_PROPERTY_CHANGE(PROP_USER_DATA, userData);
+    // TODO: combine these as one property
     CHECK_PROPERTY_CHANGE(PROP_SIMULATOR_PRIORITY, simulatorPriority);
     CHECK_PROPERTY_CHANGE(PROP_SIMULATOR_ID, simulatorID);
     CHECK_PROPERTY_CHANGE(PROP_TEXT, text);
@@ -709,6 +710,42 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             //      PROP_PAGED_PROPERTY,
             //      PROP_CUSTOM_PROPERTIES_INCLUDED,
             
+/* TODO: remove this old experiment code
+            // simulation ownership data needs to get back ASAP, and affects whether the "terse update" 
+            // data will be accepted at the receiving end, so we put it at the front.
+//            if (requestedProperties.getHasProperty(PROP_SIMULATOR_PRIORITY) && 
+//                    requestedProperties.getHasProperty(PROP_SIMULATOR_ID)) {
+//                QByteArray ownershipData = properties.getSimulatorID().toRfc4122();
+//                ownershipData.append(properties.getSimulatorPriority();
+//                LevelDetails propertyLevel = packetData->startLevel();
+//                if (packetData->appendRawData(ownershipData)) {
+//                    propertyFlags |= PROP_SIMULATOR_PRIORITY;
+//                    propertiesDidntFit -= PROP_SIMULATOR_PRIORITY;
+//                    propertyCount++;
+//
+//                    propertyFlags |= PROP_SIMULATOR_ID;
+//                    propertiesDidntFit -= PROP_SIMULATOR_ID;
+//                    propertyCount++;
+//
+//                    packetData->endLevel(propertyLevel);
+//                }
+//            }
+            // BOOKMARK -- replace the two ownership properties with one... at the EntityProperties level
+            // but make it two properties at the EntityItem
+            if (requestedProperties.getHasProperty(PROP_SIMULATOR_OWNERSHIP)) {
+                QByteArray ownershipData = properties.getSimulatorID().toRfc4122();
+                ownershipData.append(properties.getSimulatorPriority();
+                LevelDetails propertyLevel = packetData->startLevel();
+                if (packetData->appendRawData(ownershipData)) {
+                    propertyFlags |= PROP_SIMULATOR_OWNERSHIP;
+                    propertyCount++;
+                    packetData->endLevel(propertyLevel);
+                } else {
+                    propertiesDidntFit -= PROP_SIMULATOR_OWNERSHIP;
+                }
+            }
+            */
+
             APPEND_ENTITY_PROPERTY(PROP_POSITION, properties.getPosition());
             APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, properties.getDimensions()); // NOTE: PROP_RADIUS obsolete
             APPEND_ENTITY_PROPERTY(PROP_ROTATION, properties.getRotation());
@@ -733,6 +770,64 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_USER_DATA, properties.getUserData());
             APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_PRIORITY, properties.getSimulatorPriority());
             APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, properties.getSimulatorID());
+/* TODO remove this experiment too
+            if (requestedProperties.getHasProperty(PROP_SIMULATOR_PRIORITY) && 
+                    requestedProperties.getHasProperty(PROP_SIMULATOR_ID)) {
+
+                QByteArray bytes = properties.getSimulatorID().toRfc4122();
+                if (packetData->canAppendBytes(1 + bytes.size())) {
+                    APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_PRIORITY, properties.getSimulatorPriority());
+                    APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, properties.getSimulatorID());
+                } else {
+                    LevelDetails propertyLevel = packetData->startLevel();
+                    successPropertyFits = false;
+                    packetData->discardLevel(propertyLevel);
+                    appendState = OctreeElement::PARTIAL;
+                }
+            } 
+                if (!requestedProperties.getHasProperty(PROP_SIMULATOR_PRIORITY)) {
+                    propertiesDidntFit -= PROP_SIMULATOR_PRIORITY;
+                }
+                if (!requestedProperties.getHasProperty(PROP_SIMULATOR_ID)) {
+                    propertiesDidntFit -= PROP_SIMULATOR_ID;
+                }
+            }
+*/
+/* and this one
+            //#define APPEND_ENTITY_PROPERTY(P,V)
+            if (requestedProperties.getHasProperty(PROP_SIMULATOR_PRIORITY) && 
+                    requestedProperties.getHasProperty(PROP_SIMULATOR_ID)) {
+
+                LevelDetails propertyLevel = packetData->startLevel();
+
+                QByteArray bytes = properties.getSimulatorID().toRfc4122();
+                if (packetData->canAppendBytes(10 + bytes.size())) {
+                    packetData->appendValue(properties.getSimulatorPriority());
+                    propertyFlags |= PROP_SIMULATOR_PRIORITY;
+                    propertiesDidntFit -= PROP_SIMULATOR_PRIORITY;
+                    propertyCount++;
+                    packetData->endLevel(propertyLevel);
+
+                    propertyLevel = packetData->startLevel();
+                    packetData->appendValue(properties.getSimulatorID());
+                    propertyFlags |= PROP_SIMULATOR_ID;
+                    propertiesDidntFit -= PROP_SIMULATOR_ID;
+                    propertyCount++;
+                    packetData->endLevel(propertyLevel);
+                } else {
+                    successPropertyFits = false;
+                    packetData->discardLevel(propertyLevel);
+                    appendState = OctreeElement::PARTIAL;
+                }
+            } else {
+                if (!requestedProperties.getHasProperty(PROP_SIMULATOR_PRIORITY)) {
+                    propertiesDidntFit -= PROP_SIMULATOR_PRIORITY;
+                }
+                if (!requestedProperties.getHasProperty(PROP_SIMULATOR_ID)) {
+                    propertiesDidntFit -= PROP_SIMULATOR_ID;
+                }
+            }
+*/
             APPEND_ENTITY_PROPERTY(PROP_HREF, properties.getHref());
             APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, properties.getDescription());
             

@@ -194,7 +194,7 @@ void PhysicsEngine::changeObjects(VectorOfMotionStates& objects) {
         if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
             object->handleHardAndEasyChanges(flags, this);
         } else if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-            object->handleEasyChanges(flags);
+            object->handleEasyChanges(flags, this);
         }
     }
 }
@@ -260,9 +260,6 @@ void PhysicsEngine::stepSimulation() {
 
 void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB) {
     BT_PROFILE("ownershipInfection");
-    if (_sessionID.isNull()) {
-        return;
-    }
 
     const btCollisionObject* characterObject = _characterController ? _characterController->getCollisionObject() : nullptr;
 
@@ -272,14 +269,14 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
     if (b && ((a && a->getSimulatorID() == _sessionID && !objectA->isStaticObject()) || (objectA == characterObject))) {
         // NOTE: we might own the simulation of a kinematic object (A) 
         // but we don't claim ownership of kinematic objects (B) based on collisions here.
-        if (!objectB->isStaticOrKinematicObject()) {
-            b->bump();
+        if (!objectB->isStaticOrKinematicObject() && b->getSimulatorID() != _sessionID) {
+            b->bump(a->getSimulatorPriority());
         }
     } else if (a && ((b && b->getSimulatorID() == _sessionID && !objectB->isStaticObject()) || (objectB == characterObject))) {
         // SIMILARLY: we might own the simulation of a kinematic object (B) 
         // but we don't claim ownership of kinematic objects (A) based on collisions here.
-        if (!objectA->isStaticOrKinematicObject()) {
-            a->bump();
+        if (!objectA->isStaticOrKinematicObject() && a->getSimulatorID() != _sessionID) {
+            a->bump(b->getSimulatorPriority());
         }
     }
 }
@@ -311,7 +308,9 @@ void PhysicsEngine::updateContactMap() {
                 _contactMap[ContactKey(a, b)].update(_numContactFrames, contactManifold->getContactPoint(0));
             }
 
-            doOwnershipInfection(objectA, objectB);
+            if (!_sessionID.isNull()) {
+                doOwnershipInfection(objectA, objectB);
+            }
         }
     }
 }
@@ -402,7 +401,7 @@ void PhysicsEngine::bump(ObjectMotionState* motionState) {
                 if (!objectA->isStaticOrKinematicObject()) {
                     ObjectMotionState* motionStateA = static_cast<ObjectMotionState*>(objectA->getUserPointer());
                     if (motionStateA) {
-                        motionStateA->bump();
+                        motionStateA->bump(VOLUNTEER_SIMULATOR_PRIORITY);
                         objectA->setActivationState(ACTIVE_TAG);
                     }
                 }
@@ -410,7 +409,7 @@ void PhysicsEngine::bump(ObjectMotionState* motionState) {
                 if (!objectB->isStaticOrKinematicObject()) {
                     ObjectMotionState* motionStateB = static_cast<ObjectMotionState*>(objectB->getUserPointer());
                     if (motionStateB) {
-                        motionStateB->bump();
+                        motionStateB->bump(VOLUNTEER_SIMULATOR_PRIORITY);
                         objectB->setActivationState(ACTIVE_TAG);
                     }
                 }

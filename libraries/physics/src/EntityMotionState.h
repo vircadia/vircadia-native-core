@@ -29,7 +29,7 @@ public:
     virtual ~EntityMotionState();
 
     void updateServerPhysicsVariables();
-    virtual void handleEasyChanges(uint32_t flags);
+    virtual void handleEasyChanges(uint32_t flags, PhysicsEngine* engine);
     virtual void handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
 
     /// \return MOTION_TYPE_DYNAMIC or MOTION_TYPE_STATIC based on params set in EntityItem
@@ -68,8 +68,9 @@ public:
 
     virtual const QUuid& getObjectID() const { return _entity->getID(); }
 
+    virtual uint8_t getSimulatorPriority() const;
     virtual QUuid getSimulatorID() const;
-    virtual void bump();
+    virtual void bump(uint8_t priority);
 
     EntityItemPointer getEntity() const { return _entity; }
 
@@ -113,10 +114,11 @@ protected:
     float _measuredDeltaTime;
 
     quint8 _accelerationNearlyGravityCount;
-    bool _candidateForOwnership;
-    uint32_t _loopsSinceOwnershipBid;
+    quint64 _nextOwnershipBid = 0;
     uint32_t _loopsWithoutOwner;
-    uint8_t _simulatorPriorityHint;
+    uint8_t _candidatePriority = 0;
+    quint64 _activationTime = 0; // adebug
+    int _expectedOwnership = 0; // adebug
 };
 
 #endif // hifi_EntityMotionState_h
