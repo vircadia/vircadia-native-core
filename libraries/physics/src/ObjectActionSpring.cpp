@@ -11,8 +11,8 @@
 
 #include "ObjectActionSpring.h"
 
-ObjectActionSpring::ObjectActionSpring(QUuid id, EntityItemPointer ownerEntity) :
-    ObjectAction(id, ownerEntity) {
+ObjectActionSpring::ObjectActionSpring(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) :
+    ObjectAction(type, id, ownerEntity) {
     #if WANT_DEBUG
     qDebug() << "ObjectActionSpring::ObjectActionSpring";
     #endif
@@ -143,8 +143,13 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
     return true;
 }
 
+QByteArray ObjectActionSpring::serialize() {
+    QByteArray ba;
+    QDataStream dataStream(&ba, QIODevice::WriteOnly);
 
-void ObjectActionSpring::serializeToDataStream(QDataStream& dataStream) {
+    dataStream << getType();
+    dataStream << getID();
+
     dataStream << _positionalTarget;
     dataStream << _linearTimeScale;
     dataStream << _positionalTargetSet;
@@ -152,9 +157,21 @@ void ObjectActionSpring::serializeToDataStream(QDataStream& dataStream) {
     dataStream << _rotationalTarget;
     dataStream << _angularTimeScale;
     dataStream << _rotationalTargetSet;
+
+    return ba;
 }
 
-void ObjectActionSpring::deserializeFromDataStream(QDataStream& dataStream) {
+void ObjectActionSpring::deserialize(QByteArray serializedArguments) {
+    QDataStream dataStream(serializedArguments);
+
+    EntityActionType type;
+    QUuid id;
+
+    dataStream >> type;
+    dataStream >> id;
+    assert(type == getType());
+    assert(id == getID());
+
     dataStream >> _positionalTarget;
     dataStream >> _linearTimeScale;
     dataStream >> _positionalTargetSet;
@@ -162,4 +179,6 @@ void ObjectActionSpring::deserializeFromDataStream(QDataStream& dataStream) {
     dataStream >> _rotationalTarget;
     dataStream >> _angularTimeScale;
     dataStream >> _rotationalTargetSet;
+
+    _active = true;
 }

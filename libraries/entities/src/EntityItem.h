@@ -381,6 +381,7 @@ public:
     void clearActions(EntitySimulation* simulation);
     void setActionData(QByteArray actionData);
     const QByteArray getActionData() const;
+    bool hasActions() { return !_objectActions.empty(); }
 
 protected:
 

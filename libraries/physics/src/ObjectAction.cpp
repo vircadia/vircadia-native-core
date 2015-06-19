@@ -13,7 +13,7 @@
 
 #include "ObjectAction.h"
 
-ObjectAction::ObjectAction(QUuid id, EntityItemPointer ownerEntity) :
+ObjectAction::ObjectAction(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) :
     btActionInterface(),
     _id(id),
     _active(false),
@@ -123,4 +123,13 @@ void ObjectAction::setAngularVelocity(glm::vec3 angularVelocity) {
     }
     rigidBody->setAngularVelocity(glmToBullet(angularVelocity));
     rigidBody->activate();
+}
+
+QByteArray ObjectAction::serialize() {
+    assert(false);
+    return QByteArray();
+}
+
+void ObjectAction::deserialize(QByteArray serializedArguments) {
+    assert(false);
 }

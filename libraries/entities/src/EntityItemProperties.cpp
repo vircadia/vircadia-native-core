@@ -181,7 +181,6 @@ QString EntityItemProperties::getAnimationSettings() const {
 
 void EntityItemProperties::setCreated(QDateTime &v) {
     _created = v.toMSecsSinceEpoch() * 1000; // usec per msec
-    qDebug() << "EntityItemProperties::setCreated QDateTime" << v << _created;
 }
 
 void EntityItemProperties::debugDump() const {

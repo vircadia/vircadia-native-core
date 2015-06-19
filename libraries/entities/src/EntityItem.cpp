@@ -761,6 +761,10 @@ void EntityItem::simulate(const quint64& now) {
 }
 
 void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
+    if (hasActions()) {
+        return;
+    }
+
     if (hasAngularVelocity()) {
         // angular damping
         if (_angularDamping > 0.0f) {
@@ -772,7 +776,7 @@ void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
         }
 
         float angularSpeed = glm::length(_angularVelocity);
-        
+
         const float EPSILON_ANGULAR_VELOCITY_LENGTH = 0.0017453f; // 0.0017453 rad/sec = 0.1f degrees/sec
         if (angularSpeed < EPSILON_ANGULAR_VELOCITY_LENGTH) {
             if (setFlags && angularSpeed > 0.0f) {
@@ -780,8 +784,8 @@ void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
             }
             _angularVelocity = ENTITY_ITEM_ZERO_VEC3;
         } else {
-            // for improved agreement with the way Bullet integrates rotations we use an approximation 
-            // and break the integration into bullet-sized substeps 
+            // for improved agreement with the way Bullet integrates rotations we use an approximation
+            // and break the integration into bullet-sized substeps
             glm::quat rotation = getRotation();
             float dt = timeElapsed;
             while (dt > PHYSICS_ENGINE_FIXED_SUBSTEP) {
@@ -1367,7 +1371,7 @@ bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer act
     assert(action->getOwnerEntity().get() == this);
 
     simulation->addAction(action);
-    return false;
+    return true;
 }
 
 bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionID, const QVariantMap& arguments) {
@@ -1404,11 +1408,10 @@ void EntityItem::setActionData(QByteArray actionData) {
     if (actionData.size() == 0) {
         return;
     }
+
     QVector<QByteArray> serializedActions;
     QDataStream ds(actionData);
     ds >> serializedActions;
-
-    qDebug() << "EntityItem::setActionData" << actionData.size() << "bytes";
 
     foreach(QByteArray serializedAction, serializedActions) {
         QDataStream dsForAction(serializedAction);
@@ -1420,7 +1423,7 @@ void EntityItem::setActionData(QByteArray actionData) {
         if (_objectActions.contains(actionID)) {
             EntityActionPointer action = _objectActions[actionID];
             // XXX make sure types match?
-            action->deserializeFromDataStream(dsForAction);
+            action->deserialize(serializedAction);
         } else {
             auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
 
@@ -1439,6 +1442,10 @@ void EntityItem::setActionData(QByteArray actionData) {
 
 
 const QByteArray EntityItem::getActionData() const {
+    if (_objectActions.size() == 0) {
+        return QByteArray();
+    }
+
     QVector<QByteArray> serializedActions;
     QHash<QUuid, EntityActionPointer>::const_iterator i = _objectActions.begin();
     while (i != _objectActions.end()) {
@@ -1452,5 +1459,6 @@ const QByteArray EntityItem::getActionData() const {
     QByteArray result;
     QDataStream ds(&result, QIODevice::WriteOnly);
     ds << serializedActions;
+
     return result;
 }

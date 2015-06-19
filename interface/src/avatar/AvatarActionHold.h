@@ -19,7 +19,7 @@
 
 class AvatarActionHold : public ObjectActionSpring {
 public:
-    AvatarActionHold(QUuid id, EntityItemPointer ownerEntity);
+    AvatarActionHold(EntityActionType type, QUuid id, EntityItemPointer ownerEntity);
     virtual ~AvatarActionHold();
 
     virtual EntityActionType getType() { return ACTION_TYPE_HOLD; }
@@ -27,9 +27,12 @@ public:
     virtual bool updateArguments(QVariantMap arguments);
     virtual void updateActionWorker(float deltaTimeStep);
 
+    virtual QByteArray serialize();
+    virtual void deserialize(QByteArray serializedArguments);
+
 protected:
-    void serializeToDataStream(QDataStream& dataStream);
-    void deserializeFromDataStream(QDataStream& dataStream);
+    // void serializeToDataStream(QDataStream& dataStream);
+    // void deserializeFromDataStream(QDataStream& dataStream);
 
 private:
     glm::vec3 _relativePosition;

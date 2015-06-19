@@ -175,25 +175,14 @@ QString EntityActionInterface::extractStringArgument(QString objectName, QVarian
     return v;
 }
 
-QByteArray EntityActionInterface::serialize() {
-    QByteArray ba;
-    QDataStream ds(&ba, QIODevice::WriteOnly);
-
-    ds << getType();
-    ds << getID();
-
-    serializeToDataStream(ds);
-    return ba;
-}
-
 QDataStream& operator<<(QDataStream& stream, const EntityActionType& entityActionType)
 {
-    return stream << (quint8)entityActionType;
+    return stream << (quint16)entityActionType;
 }
 
 QDataStream& operator>>(QDataStream& stream, EntityActionType& entityActionType)
 {
-    quint8 v;
+    quint16 v;
     stream >> v;
     entityActionType = (EntityActionType)v;
     return stream;

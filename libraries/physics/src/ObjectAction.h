@@ -26,7 +26,7 @@
 
 class ObjectAction : public btActionInterface, public EntityActionInterface {
 public:
-    ObjectAction(QUuid id, EntityItemPointer ownerEntity);
+    ObjectAction(EntityActionType type, QUuid id, EntityItemPointer ownerEntity);
     virtual ~ObjectAction();
 
     const QUuid& getID() const { return _id; }
@@ -43,13 +43,14 @@ public:
     virtual void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep);
     virtual void debugDraw(btIDebugDraw* debugDrawer);
 
+    virtual QByteArray serialize();
+    virtual void deserialize(QByteArray serializedArguments);
+
 private:
     QUuid _id;
     QReadWriteLock _lock;
 
 protected:
-    virtual void serializeToDataStream(QDataStream& dataStream) = 0;
-    virtual void deserializeFromDataStream(QDataStream& dataStream) = 0;
 
     virtual btRigidBody* getRigidBody();
     virtual glm::vec3 getPosition();

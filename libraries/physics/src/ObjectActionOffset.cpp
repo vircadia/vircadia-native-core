@@ -11,8 +11,8 @@
 
 #include "ObjectActionOffset.h"
 
-ObjectActionOffset::ObjectActionOffset(QUuid id, EntityItemPointer ownerEntity) :
-    ObjectAction(id, ownerEntity) {
+ObjectActionOffset::ObjectActionOffset(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) :
+    ObjectAction(type, id, ownerEntity) {
     #if WANT_DEBUG
     qDebug() << "ObjectActionOffset::ObjectActionOffset";
     #endif
@@ -108,16 +108,35 @@ bool ObjectActionOffset::updateArguments(QVariantMap arguments) {
     return true;
 }
 
-void ObjectActionOffset::serializeToDataStream(QDataStream& dataStream) {
+QByteArray ObjectActionOffset::serialize() {
+    QByteArray ba;
+    QDataStream dataStream(&ba, QIODevice::WriteOnly);
+    dataStream << getType();
+    dataStream << getID();
+
     dataStream << _pointToOffsetFrom;
     dataStream << _linearDistance;
     dataStream << _linearTimeScale;
     dataStream << _positionalTargetSet;
+
+    return ba;
 }
 
-void ObjectActionOffset::deserializeFromDataStream(QDataStream& dataStream) {
+void ObjectActionOffset::deserialize(QByteArray serializedArguments) {
+    QDataStream dataStream(serializedArguments);
+
+    EntityActionType type;
+    QUuid id;
+
+    dataStream >> type;
+    dataStream >> id;
+    assert(type == getType());
+    assert(id == getID());
+
     dataStream >> _pointToOffsetFrom;
     dataStream >> _linearDistance;
     dataStream >> _linearTimeScale;
     dataStream >> _positionalTargetSet;
+
+    _active = true;
 }

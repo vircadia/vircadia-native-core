@@ -19,7 +19,7 @@
 
 class ObjectActionSpring : public ObjectAction {
 public:
-    ObjectActionSpring(QUuid id, EntityItemPointer ownerEntity);
+    ObjectActionSpring(EntityActionType type, QUuid id, EntityItemPointer ownerEntity);
     virtual ~ObjectActionSpring();
 
     virtual EntityActionType getType() { return ACTION_TYPE_SPRING; }
@@ -27,10 +27,10 @@ public:
     virtual bool updateArguments(QVariantMap arguments);
     virtual void updateActionWorker(float deltaTimeStep);
 
-protected:
-    virtual void serializeToDataStream(QDataStream& dataStream);
-    virtual void deserializeFromDataStream(QDataStream& dataStream);
+    virtual QByteArray serialize();
+    virtual void deserialize(QByteArray serializedArguments);
 
+protected:
     glm::vec3 _positionalTarget;
     float _linearTimeScale;
     bool _positionalTargetSet;

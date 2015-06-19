@@ -23,11 +23,11 @@ EntityActionPointer interfaceActionFactory(EntityActionType type, QUuid id, Enti
         case ACTION_TYPE_NONE:
             return nullptr;
         case ACTION_TYPE_OFFSET:
-            return (EntityActionPointer) new ObjectActionOffset(id, ownerEntity);
+            return (EntityActionPointer) new ObjectActionOffset(type, id, ownerEntity);
         case ACTION_TYPE_SPRING:
-            return (EntityActionPointer) new ObjectActionSpring(id, ownerEntity);
+            return (EntityActionPointer) new ObjectActionSpring(type, id, ownerEntity);
         case ACTION_TYPE_HOLD:
-            return (EntityActionPointer) new AvatarActionHold(id, ownerEntity);
+            return (EntityActionPointer) new AvatarActionHold(type, id, ownerEntity);
     }
 
     assert(false);
@@ -64,7 +64,7 @@ EntityActionPointer InterfaceActionFactory::factoryBA(EntitySimulation* simulati
 
     EntityActionPointer action = interfaceActionFactory(type, id, ownerEntity);
 
-    action->deserializeFromDataStream(ds);
+    action->deserialize(data);
     ownerEntity->addAction(simulation, action);
     return action;
 }

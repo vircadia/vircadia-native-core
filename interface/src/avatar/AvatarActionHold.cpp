@@ -14,8 +14,8 @@
 
 #include "AvatarActionHold.h"
 
-AvatarActionHold::AvatarActionHold(QUuid id, EntityItemPointer ownerEntity) :
-    ObjectActionSpring(id, ownerEntity) {
+AvatarActionHold::AvatarActionHold(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) :
+    ObjectActionSpring(type, id, ownerEntity) {
     #if WANT_DEBUG
     qDebug() << "AvatarActionHold::AvatarActionHold";
     #endif
@@ -116,15 +116,35 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
     return true;
 }
 
-void AvatarActionHold::serializeToDataStream(QDataStream& dataStream) {
+QByteArray AvatarActionHold::serialize() {
+    QByteArray ba;
+    QDataStream dataStream(&ba, QIODevice::WriteOnly);
+
+    dataStream << getType();
+    dataStream << getID();
+
     dataStream << _relativePosition;
     dataStream << _relativeRotation;
     dataStream << _hand;
+
+    return ba;
 }
 
-void AvatarActionHold::deserializeFromDataStream(QDataStream& dataStream) {
+void AvatarActionHold::deserialize(QByteArray serializedArguments) {
+    QDataStream dataStream(serializedArguments);
+
+    EntityActionType type;
+    QUuid id;
+
+    dataStream >> type;
+    dataStream >> id;
+    assert(type == getType());
+    assert(id == getID());
+
     dataStream >> _relativePosition;
     dataStream >> _relativeRotation;
     dataStream >> _hand;
     _parametersSet = true;
+
+    _active = true;
 }
