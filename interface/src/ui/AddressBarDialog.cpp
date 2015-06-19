@@ -16,6 +16,8 @@
 #include "AddressManager.h"
 
 HIFI_QML_DEF(AddressBarDialog)
+Q_PROPERTY(bool backEnabled READ backEnabled CHANGED backEnabledChanged)
+Q_PROPERTY(bool forwardEnabled READ forwardEnabled CHANGED forwardEnabledChanged)
 
 AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(parent) {
     auto addressManager = DependencyManager::get<AddressManager>();
@@ -24,6 +26,8 @@ AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(pare
     connect(addressManager.data(), &AddressManager::lookupResultsFinished, this, &AddressBarDialog::hide);
     connect(addressManager.data(), &AddressManager::goBackPossible, this, &AddressBarDialog::changeBackAlpha);
     connect(addressManager.data(), &AddressManager::goForwardPossible, this, &AddressBarDialog::changeForwardAlpha);
+    _backEnabled = false;
+    _forwardEnabled = false;
 }
 
 void AddressBarDialog::hide() {
@@ -33,25 +37,19 @@ void AddressBarDialog::hide() {
 void AddressBarDialog::changeBackAlpha(bool isPossible) {
     if (isPossible) qDebug() << "Back is possible";
     else qDebug() << "Back is not possible";
+    if (isPossible != _backEnabled) {
+        _backEnabled = isPossible;
+        emit backEnabledChanged();
+    }
 }
 
 void AddressBarDialog::changeForwardAlpha(bool isPossible) {
     if (isPossible) qDebug() << "Forward is possible";
     else qDebug() << "Forward is not possible";
-
-    QQmlEngine engine;
-    QQmlComponent component(&engine, "AddressBarDialog.qml");
-    QObject *object = component.create();
-    qDebug() << "Current parent's child :  " << ((QQuickItem*)parent())->children()[0]->objectName();
-
-    QVariant returnedValue;
-    QVariant msg = "Hello from C++";
-    QMetaObject::invokeMethod(object, "myQmlFunction",
-        Q_RETURN_ARG(QVariant, returnedValue),
-        Q_ARG(QVariant, msg));
-
-    qDebug() << "QML function returned:" << returnedValue.toString();
-    delete object;;
+    if (isPossible != _forwardEnabled) {
+        _forwardEnabled = isPossible;
+        emit forwardEnabledChanged();
+    }
 }
 
 void AddressBarDialog::loadAddress(const QString& address) {

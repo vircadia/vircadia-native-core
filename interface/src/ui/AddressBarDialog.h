@@ -21,6 +21,12 @@ class AddressBarDialog : public OffscreenQmlDialog
 
 public:
     AddressBarDialog(QQuickItem* parent = nullptr);
+    bool backEnabled() { return _backEnabled; }
+    bool forwardEnabled() { return _forwardEnabled; }
+
+signals:
+    void backEnabledChanged();
+    void forwardEnabledChanged();
 
 protected:
     void displayAddressOfflineMessage();
@@ -32,6 +38,9 @@ protected:
     Q_INVOKABLE void loadAddress(const QString& address);
     Q_INVOKABLE void loadBack();
     Q_INVOKABLE void loadForward();
+
+    bool _backEnabled;
+    bool _forwardEnabled;
 };
 
 #endif

@@ -31,11 +31,6 @@ DialogContainer {
     property int maximumY: parent ? parent.height - height : 0
 
 
-    function myQmlFunction(msg) {
-                    console.log("Got message:", msg)
-                    return "some return value"
-    }
-
     AddressBarDialog {
         id: addressBarDialog
 
@@ -54,7 +49,7 @@ DialogContainer {
             Image {
                 id: backArrow
 
-                source: "../images/left-arrow.svg"
+                source: addressBarDialog.backEnabled ? "../images/left-arrow.svg" : "../images/redarrow.svg"
                 
                 anchors {
                     fill: parent
@@ -72,18 +67,22 @@ DialogContainer {
                     }
                 }
 
+                //onBackEnabledChanged: { parent.source: "../images/redarrow.svg" }
+
+                /*
                 Connections {
-                target: addressBarDialog
-                onGoBackPossible: { 
-                        console.log("BACK")
+                target: backArrow
+                onBackState: { 
+                        parent.source: "../images/redarrow.svg"
+
                     }
-                }
+                }*/
             }
             
             Image {
                 id: forwardArrow
 
-                source: "../images/darkgreyarrow.svg"
+                source: addressBarDialog.forwardEnabled ? "../images/darkgreyarrow.svg" : "../images/redarrow.svg"
                 
                 anchors {
                     fill: parent
@@ -101,12 +100,15 @@ DialogContainer {
                     }
                 }
 
+                //onForwardEnabledChanged: { parent.source: "../images/redarrow.svg" }
+
+                /*
                 Connections {
-                target: addressBarDialog
-                onGoForwardPossible: { 
-                        console.log("FORWARD")
+                target: forwardArrow
+                onForwardState: { 
+                        parent.source: "../images/redarrow.svg"
                     }
-                }
+                }*/
             }
 
             TextInput {
