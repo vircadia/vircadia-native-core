@@ -113,7 +113,7 @@ void Circle3DOverlay::render(RenderArgs* args) {
     auto& batch = *args->_batch;
     batch._glLineWidth(_lineWidth);
     batch.setModelTransform(transform);
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, false, false);
     
     // for our overlay, is solid means we draw a ring between the inner and outer radius of the circle, otherwise
     // we just draw a line...
