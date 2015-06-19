@@ -40,7 +40,6 @@
 #include <Sound.h>
 #include <StDev.h>
 
-#include "AudioInjector.h"
 #include "AudioIOStats.h"
 #include "AudioNoiseGate.h"
 
