@@ -25,11 +25,6 @@
 using namespace render;
 
 DrawSceneTask::DrawSceneTask() : Task() {
-
-    _jobs.push_back(Job(DrawOpaque()));
-    _jobs.push_back(Job(DrawLight()));
-    _jobs.push_back(Job(DrawTransparent()));
-    _jobs.push_back(Job(ResetGLState()));
 }
 
 DrawSceneTask::~DrawSceneTask() {
@@ -56,8 +51,11 @@ void DrawSceneTask::run(const SceneContextPointer& sceneContext, const RenderCon
 Job::~Job() {
 }
 
+
+
+
+
 void render::cullItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
-    PerformanceTimer perfTimer("cullItems");
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
 
@@ -68,17 +66,9 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
     renderDetails->_considered += inItems.size();
     
     // Culling / LOD
-    for (auto itemDetails : inItems) {
-        auto item = scene->getItem(itemDetails.id);
-        AABox bound;
-        {
-            PerformanceTimer perfTimer("getBound");
-
-            bound = item.getBound();
-        }
-
-        if (bound.isNull()) {
-            outItems.emplace_back(ItemIDAndBounds(itemDetails.id)); // One more Item to render
+    for (auto item : inItems) {
+        if (item.bounds.isNull()) {
+            outItems.emplace_back(item); // One more Item to render
             continue;
         }
 
@@ -87,16 +77,16 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
         bool outOfView;
         {
             PerformanceTimer perfTimer("boxInFrustum");
-            outOfView = args->_viewFrustum->boxInFrustum(bound) == ViewFrustum::OUTSIDE;
+            outOfView = args->_viewFrustum->boxInFrustum(item.bounds) == ViewFrustum::OUTSIDE;
         }
         if (!outOfView) {
             bool bigEnoughToRender;
             {
                 PerformanceTimer perfTimer("shouldRender");
-                bigEnoughToRender = (args->_shouldRender) ? args->_shouldRender(args, bound) : true;
+                bigEnoughToRender = (args->_shouldRender) ? args->_shouldRender(args, item.bounds) : true;
             }
             if (bigEnoughToRender) {
-                outItems.emplace_back(ItemIDAndBounds(itemDetails.id, bound)); // One more Item to render
+                outItems.emplace_back(item); // One more Item to render
             } else {
                 renderDetails->_tooSmall++;
             }
@@ -106,6 +96,32 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
     }
     renderDetails->_rendered += outItems.size();
 }
+
+
+void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemIDsBounds& outItems) {
+    auto& scene = sceneContext->_scene;
+    auto& items = scene->getMasterBucket().at(_filter);
+    auto& renderDetails = renderContext->args->_details;
+
+    outItems.clear();
+    outItems.reserve(items.size());
+    for (auto id : items) {
+        auto& item = scene->getItem(id);
+        outItems.emplace_back(ItemIDAndBounds(id, item.getBound()));
+    }
+
+    if (_probeNumItems) {
+        _probeNumItems(renderContext, outItems.size());
+    }
+}
+
+void CullItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
+
+    outItems.clear();
+    outItems.reserve(inItems.size());
+    cullItems(sceneContext, renderContext, inItems, outItems);
+}
+
 
 struct ItemBound {
     float _centerDepth = 0.0f;
@@ -130,7 +146,6 @@ struct BackToFrontSort {
 };
 
 void render::depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
-    PerformanceTimer perfTimer("depthSortItems");
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
     
@@ -139,9 +154,10 @@ void render::depthSortItems(const SceneContextPointer& sceneContext, const Rende
     
 
     // Allocate and simply copy
+    outItems.clear();
     outItems.reserve(inItems.size());
 
-    
+
     // Make a local dataset of the center distance and closest point distance
     std::vector<ItemBound> itemBounds;
     itemBounds.reserve(outItems.size());
@@ -169,8 +185,14 @@ void render::depthSortItems(const SceneContextPointer& sceneContext, const Rende
     }
 }
 
+
+void DepthSortItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
+    outItems.clear();
+    outItems.reserve(inItems.size());
+    depthSortItems(sceneContext, renderContext, _frontToBack, inItems, outItems);
+}
+
 void render::renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, int maxDrawnItems) {
-    PerformanceTimer perfTimer("renderItems");
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->args;
     // render
@@ -183,6 +205,10 @@ void render::renderItems(const SceneContextPointer& sceneContext, const RenderCo
         int numItems = 0;
         for (auto itemDetails : inItems) {
             auto item = scene->getItem(itemDetails.id);
+            if (numItems + 1 >= maxDrawnItems) {
+                item.render(args);
+                return;
+            }
             item.render(args);
             numItems++;
             if (numItems >= maxDrawnItems) {
@@ -224,8 +250,7 @@ void addClearStateCommands(gpu::Batch& batch) {
     // Back to no program
     batch._glUseProgram(0);
 }
-
-template <> void render::jobRun(const ResetGLState& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+void ResetGLState::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
 
     gpu::Batch theBatch;
     addClearStateCommands(theBatch);
@@ -233,160 +258,7 @@ template <> void render::jobRun(const ResetGLState& job, const SceneContextPoint
     renderContext->args->_context->render(theBatch);
 }
 
-template <> void render::jobRun(const DrawOpaque& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    PerformanceTimer perfTimer("DrawOpaque");
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
-    
-    // render opaques
-    auto& scene = sceneContext->_scene;
-    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::opaqueShape());
-    auto& renderDetails = renderContext->args->_details;
-
-    ItemIDsBounds inItems;
-    inItems.reserve(items.size());
-    for (auto id : items) {
-        inItems.emplace_back(ItemIDAndBounds(id));
-    }
-    ItemIDsBounds& renderedItems = inItems;
-
-    renderContext->_numFeedOpaqueItems = renderedItems.size();
-
-    ItemIDsBounds culledItems;
-    culledItems.reserve(inItems.size());
-    if (renderContext->_cullOpaque) {
-        renderDetails.pointTo(RenderDetails::OPAQUE_ITEM);
-        cullItems(sceneContext, renderContext, renderedItems, culledItems);
-        renderDetails.pointTo(RenderDetails::OTHER_ITEM);
-        renderedItems = culledItems;
-    }
-
-    renderContext->_numDrawnOpaqueItems = renderedItems.size();
-
-    ItemIDsBounds sortedItems;
-    sortedItems.reserve(culledItems.size());
-    if (renderContext->_sortOpaque) {
-        depthSortItems(sceneContext, renderContext, true, renderedItems, sortedItems); // Sort Front to back opaque items!
-        renderedItems = sortedItems;
-    }
-
-    if (renderContext->_renderOpaque) {
-        RenderArgs* args = renderContext->args;
-        gpu::Batch batch;
-        args->_batch = &batch;
-
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->_viewFrustum->evalProjectionMatrix(projMat);
-        args->_viewFrustum->evalViewTransform(viewMat);
-        if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-            viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
-        }
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
-
-        {
-            GLenum buffers[3];
-            int bufferCount = 0;
-            buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
-            buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
-            buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
-            batch._glDrawBuffers(bufferCount, buffers);
-        }
-
-        renderItems(sceneContext, renderContext, renderedItems, renderContext->_maxDrawnOpaqueItems);
-
-        args->_context->render((*args->_batch));
-        args->_batch = nullptr;
-    }
-}
-
-
-template <> void render::jobRun(const DrawTransparent& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    PerformanceTimer perfTimer("DrawTransparent");
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
-
-    // render transparents
-    auto& scene = sceneContext->_scene;
-    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::transparentShape());
-    auto& renderDetails = renderContext->args->_details;
-
-    ItemIDsBounds inItems;
-    inItems.reserve(items.size());
-    for (auto id : items) {
-        inItems.emplace_back(id);
-    }
-    ItemIDsBounds& renderedItems = inItems;
-
-    renderContext->_numFeedTransparentItems = renderedItems.size();
-
-    ItemIDsBounds culledItems;
-    culledItems.reserve(inItems.size());
-    if (renderContext->_cullTransparent) {
-        renderDetails.pointTo(RenderDetails::TRANSLUCENT_ITEM);
-        cullItems(sceneContext, renderContext, inItems, culledItems);
-        renderDetails.pointTo(RenderDetails::OTHER_ITEM);
-        renderedItems = culledItems;
-    }
-
-    renderContext->_numDrawnTransparentItems = renderedItems.size();
-
-    ItemIDsBounds sortedItems;
-    sortedItems.reserve(culledItems.size());
-    if (renderContext->_sortTransparent) {
-        depthSortItems(sceneContext, renderContext, false, renderedItems, sortedItems); // Sort Back to front transparent items!
-        renderedItems = sortedItems;
-    }
-
-    if (renderContext->_renderTransparent) {
-        RenderArgs* args = renderContext->args;
-        gpu::Batch batch;
-        args->_batch = &batch;
-
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->_viewFrustum->evalProjectionMatrix(projMat);
-        args->_viewFrustum->evalViewTransform(viewMat);
-        if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-            viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
-        }
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
-
-        const float MOSTLY_OPAQUE_THRESHOLD = 0.75f;
-        const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
-
-        // render translucent meshes afterwards
-        {
-            GLenum buffers[2];
-            int bufferCount = 0;
-            buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
-            buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
-            batch._glDrawBuffers(bufferCount, buffers);
-            args->_alphaThreshold = MOSTLY_OPAQUE_THRESHOLD;
-         }
-
-        renderItems(sceneContext, renderContext, renderedItems, renderContext->_maxDrawnTransparentItems);
-
-        {
-            GLenum buffers[3];
-            int bufferCount = 0;
-            buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
-            batch._glDrawBuffers(bufferCount, buffers);
-            args->_alphaThreshold = TRANSPARENT_ALPHA_THRESHOLD;
-        }
-
-
-        renderItems(sceneContext, renderContext, renderedItems, renderContext->_maxDrawnTransparentItems);
-
-        args->_context->render((*args->_batch));
-        args->_batch = nullptr;
-    }
-}
-
-template <> void render::jobRun(const DrawLight& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    PerformanceTimer perfTimer("DrawLight");
+void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
 
@@ -398,7 +270,8 @@ template <> void render::jobRun(const DrawLight& job, const SceneContextPointer&
     ItemIDsBounds inItems;
     inItems.reserve(items.size());
     for (auto id : items) {
-        inItems.emplace_back(id);
+        auto item = scene->getItem(id);
+        inItems.emplace_back(ItemIDAndBounds(id, item.getBound()));
     }
 
     ItemIDsBounds culledItems;
@@ -413,8 +286,7 @@ template <> void render::jobRun(const DrawLight& job, const SceneContextPointer&
     args->_batch = nullptr;
 }
 
-template <> void render::jobRun(const DrawBackground& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    PerformanceTimer perfTimer("DrawBackground");
+void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
 
@@ -449,53 +321,6 @@ template <> void render::jobRun(const DrawBackground& job, const SceneContextPoi
     // Force the context sync
     args->_context->syncCache();
 }
-
-template <> void render::jobRun(const DrawPostLayered& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    PerformanceTimer perfTimer("DrawPostLayered");
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
-
-    // render backgrounds
-    auto& scene = sceneContext->_scene;
-    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::opaqueShape().withLayered());
-
-
-    ItemIDsBounds inItems;
-    inItems.reserve(items.size());
-    for (auto id : items) {
-        auto& item = scene->getItem(id);
-        if (item.getKey().isVisible() && (item.getLayer() > 0)) {
-            inItems.emplace_back(id);
-        }
-    }
-    if (inItems.empty()) {
-        return;
-    }
-
-    RenderArgs* args = renderContext->args;
-    gpu::Batch batch;
-    args->_batch = &batch;
-
-    glm::mat4 projMat;
-    Transform viewMat;
-    args->_viewFrustum->evalProjectionMatrix(projMat);
-    args->_viewFrustum->evalViewTransform(viewMat);
-    if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-        viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
-    }
-    batch.setProjectionTransform(projMat);
-    batch.setViewTransform(viewMat);
-
-    batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0);
-
-    renderItems(sceneContext, renderContext, inItems);
-    args->_context->render((*args->_batch));
-    args->_batch = nullptr;
-
-    // Force the context sync
-    args->_context->syncCache();
-}
-
 
 void ItemMaterialBucketMap::insert(const ItemID& id, const model::MaterialKey& key) {
     // Insert the itemID in every bucket where it filters true

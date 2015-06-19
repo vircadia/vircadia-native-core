@@ -460,6 +460,7 @@ void GLBackend::do_glUniform1i(Batch& batch, uint32 paramOffset) {
         // because these uniform setters are deprecated and we don;t want to create side effect
         return;
     }
+    updatePipeline();
     glUniform1f(
         batch._params[paramOffset + 1]._int,
         batch._params[paramOffset + 0]._int);
@@ -482,6 +483,8 @@ void GLBackend::do_glUniform1f(Batch& batch, uint32 paramOffset) {
         // because these uniform setters are deprecated and we don;t want to create side effect
         return;
     }
+    updatePipeline();
+
     glUniform1f(
         batch._params[paramOffset + 1]._int,
         batch._params[paramOffset + 0]._float);
@@ -504,6 +507,7 @@ void GLBackend::do_glUniform2f(Batch& batch, uint32 paramOffset) {
         // because these uniform setters are deprecated and we don;t want to create side effect
         return;
     }
+    updatePipeline();
     glUniform2f(
         batch._params[paramOffset + 2]._int,
         batch._params[paramOffset + 1]._float,
@@ -528,6 +532,7 @@ void GLBackend::do_glUniform3f(Batch& batch, uint32 paramOffset) {
         // because these uniform setters are deprecated and we don;t want to create side effect
         return;
     }
+    updatePipeline();
     glUniform3f(
         batch._params[paramOffset + 3]._int,
         batch._params[paramOffset + 2]._float,
@@ -552,6 +557,7 @@ void GLBackend::do_glUniform3fv(Batch& batch, uint32 paramOffset) {
         // because these uniform setters are deprecated and we don;t want to create side effect
         return;
     }
+    updatePipeline();
     glUniform3fv(
         batch._params[paramOffset + 2]._int,
         batch._params[paramOffset + 1]._uint,
@@ -577,6 +583,7 @@ void GLBackend::do_glUniform4fv(Batch& batch, uint32 paramOffset) {
         // because these uniform setters are deprecated and we don;t want to create side effect
         return;
     }
+    updatePipeline();
     glUniform4fv(
         batch._params[paramOffset + 2]._int,
         batch._params[paramOffset + 1]._uint,
@@ -602,6 +609,7 @@ void GLBackend::do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset) {
         // because these uniform setters are deprecated and we don;t want to create side effect
         return;
     }
+    updatePipeline();
     glUniformMatrix4fv(
         batch._params[paramOffset + 3]._int,
         batch._params[paramOffset + 2]._uint,
