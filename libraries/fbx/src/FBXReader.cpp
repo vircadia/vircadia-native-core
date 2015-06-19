@@ -506,7 +506,7 @@ FBXNode parseFBX(QIODevice* device) {
 
 QVector<glm::vec4> createVec4Vector(const QVector<double>& doubleVector) {
     QVector<glm::vec4> values;
-    for (const double* it = doubleVector.constData(), *end = it + (doubleVector.size() / 4 * 4); it != end; ) {
+    for (const double* it = doubleVector.constData(), *end = it + ((doubleVector.size() / 4) * 4); it != end; ) {
         float x = *it++;
         float y = *it++;
         float z = *it++;
@@ -519,7 +519,7 @@ QVector<glm::vec4> createVec4Vector(const QVector<double>& doubleVector) {
 
 QVector<glm::vec4> createVec4VectorRGBA(const QVector<double>& doubleVector, glm::vec4& average) {
     QVector<glm::vec4> values;
-    for (const double* it = doubleVector.constData(), *end = it + (doubleVector.size() / 4 * 4); it != end; ) {
+    for (const double* it = doubleVector.constData(), *end = it + ((doubleVector.size() / 4) * 4); it != end; ) {
         float x = *it++;
         float y = *it++;
         float z = *it++;
@@ -536,7 +536,7 @@ QVector<glm::vec4> createVec4VectorRGBA(const QVector<double>& doubleVector, glm
 
 QVector<glm::vec3> createVec3Vector(const QVector<double>& doubleVector) {
     QVector<glm::vec3> values;
-    for (const double* it = doubleVector.constData(), *end = it + (doubleVector.size() / 3 * 3); it != end; ) {
+    for (const double* it = doubleVector.constData(), *end = it + ((doubleVector.size() / 3) * 3); it != end; ) {
         float x = *it++;
         float y = *it++;
         float z = *it++;
@@ -547,7 +547,7 @@ QVector<glm::vec3> createVec3Vector(const QVector<double>& doubleVector) {
 
 QVector<glm::vec2> createVec2Vector(const QVector<double>& doubleVector) {
     QVector<glm::vec2> values;
-    for (const double* it = doubleVector.constData(), *end = it + (doubleVector.size() / 2 * 2); it != end; ) {
+    for (const double* it = doubleVector.constData(), *end = it + ((doubleVector.size() / 2) * 2); it != end; ) {
         float s = *it++;
         float t = *it++;
         values.append(glm::vec2(s, -t));
