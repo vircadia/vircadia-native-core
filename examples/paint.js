@@ -13,14 +13,15 @@
 //
 Script.include('lineRider.js')
 var MAX_POINTS_PER_LINE = 30;
-var LINE_LIFETIME =  60 * 5  //5 minute lifetime
+var DRAWING_DISTANCE = 5;
+var LINE_DIMENSIONS = 5;
 
 var colorPalette = [{
   red: 236,
   green: 208,
   blue: 120
 }, {
-  red: 217,
+  red: 214,
   green: 91,
   blue: 67
 }, {
@@ -69,7 +70,7 @@ function hydraCheck() {
 //************ Mouse Paint **************************
 
 function MousePaint() {
-  var DRAWING_DISTANCE = 2;
+
   var lines = [];
   var deletedLines = [];
   var isDrawing = false;
@@ -92,7 +93,7 @@ function MousePaint() {
   var points = [];
 
 
-  var BRUSH_SIZE = 0.02;
+  var BRUSH_SIZE = .05;
 
   var brush = Entities.addEntity({
     type: 'Sphere',
@@ -111,45 +112,46 @@ function MousePaint() {
 
 
   function newLine(point) {
+    if (!point) {
+      return;
+    }
     line = Entities.addEntity({
-      position: MyAvatar.position,
+      position: point,
       type: "Line",
       color: currentColor,
       dimensions: {
-        x: 10,
-        y: 10,
-        z: 10
+        x: LINE_DIMENSIONS,
+        y: LINE_DIMENSIONS,
+        z: LINE_DIMENSIONS
       },
-      lineWidth: LINE_WIDTH,
-      lifetime: LINE_LIFETIME
+      lineWidth: LINE_WIDTH
     });
     points = [];
-    if (point) {
-
-      points.push(point);
-      path.push(point);
-    }
+    points.push(point);
+    path.push(point);
     lines.push(line);
   }
 
 
   function mouseMoveEvent(event) {
 
+    var point = computePoint(event)
+    Entities.editEntity(brush, {
+      position: point
+    });
+
     if (!isDrawing) {
       return;
     }
 
-    var pickRay = Camera.computePickRay(event.x, event.y);
-    var addVector = Vec3.multiply(Vec3.normalize(pickRay.direction), DRAWING_DISTANCE);
-    var point = Vec3.sum(Camera.getPosition(), addVector);
     points.push(point);
     path.push(point);
-    Entities.editEntity(line, {
-      linePoints: points
-    });
-    Entities.editEntity(brush, {
-      position: point
-    });
+    var success = Entities.setAllPoints(line, points);
+    if (!success) {
+      //We're out of bounds of entity bounding box, so start a new line
+      newLine(point)
+      return;
+    }
 
 
     if (points.length === MAX_POINTS_PER_LINE) {
@@ -157,6 +159,8 @@ function MousePaint() {
       newLine(point);
     }
   }
+
+
 
   function undoStroke() {
     var deletedLine = lines.pop();
@@ -172,13 +176,14 @@ function MousePaint() {
   }
 
   function mousePressEvent(event) {
-    if(!event.isLeftButton) {
+    if (!event.isLeftButton) {
       isDrawing = false;
       return;
     }
     lineRider.mousePressEvent(event);
     path = [];
-    newLine();
+    var point = computePoint(event);
+    newLine(point);
     isDrawing = true;
 
 
@@ -198,14 +203,14 @@ function MousePaint() {
     if (event.text === "z") {
       undoStroke();
     }
-    if(event.text === "x") {
+    if (event.text === "x") {
       redoStroke();
     }
   }
 
   function cleanup() {
     lines.forEach(function(line) {
-      Entities.deleteEntity(line);
+      // Entities.deleteEntity(line);
     });
     Entities.deleteEntity(brush);
     lineRider.cleanup();
@@ -255,6 +260,7 @@ function HydraPaint() {
   var maxLineWidth = 10;
   var currentLineWidth = minLineWidth;
   var MIN_PAINT_TRIGGER_THRESHOLD = .01;
+  var LINE_LIFETIME = 20;
   var COLOR_CHANGE_TIME_FACTOR = 0.1;
 
   var RIGHT_BUTTON_1 = 7
@@ -331,7 +337,7 @@ function HydraPaint() {
           z: 10
         },
         lineWidth: 5,
-        lifetime: LINE_LIFETIME
+        // lifetime: LINE_LIFETIME
       });
       this.points = [];
       if (point) {
@@ -480,6 +486,12 @@ function HydraPaint() {
   Script.scriptEnding.connect(cleanup);
   Controller.mousePressEvent.connect(mousePressEvent);
 
+}
+
+function computePoint(event) {
+  var pickRay = Camera.computePickRay(event.x, event.y);
+  var addVector = Vec3.multiply(Vec3.normalize(pickRay.direction), DRAWING_DISTANCE);
+  return Vec3.sum(Camera.getPosition(), addVector);
 }
 
 function randFloat(low, high) {

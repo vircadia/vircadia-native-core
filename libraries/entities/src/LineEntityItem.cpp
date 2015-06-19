@@ -86,17 +86,21 @@ bool LineEntityItem::setProperties(const EntityItemProperties& properties) {
 }
 
 bool LineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
-    int invalidPoints = 0;
     for (int i = 0; i < points.size(); i++) {
         glm::vec3 point = points.at(i);
         // Make sure all of our points are valid numbers.
         // Must be greater than 0 because vector component is set to 0 if it is invalid data. Also should never be greater than TREE_SCALE
         if ( (point.x <= 0 || point.x >= TREE_SCALE) || (point.y <= 0 || point.y >= TREE_SCALE) || (point.z <= 0 || point.z >= TREE_SCALE) ) {
+            qDebug() << "Point is outside domain bounds";
             return false;
         }
-    }
-    if (invalidPoints > 0) {
-        qDebug() << "Line with" << invalidPoints << "INVALID POINTS";
+        glm::vec3 pos = getPosition();
+        glm::vec3 halfBox = getDimensions() * 0.5f;
+        if ( (point.x < pos.x - halfBox.x || point.x > pos.x + halfBox.x) || (point.y < pos.y - halfBox.y || point.y > pos.y + halfBox.y) || (point.z < pos.z - halfBox.z || point.z > pos.z + halfBox.z) ) {
+            qDebug() << "Point is outside entity's bounding box";
+            return false;
+        }
+        
     }
     _points = points;
     _pointsChanged = true;
