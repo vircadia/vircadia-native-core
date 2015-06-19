@@ -42,14 +42,6 @@ const int AUDIO_METER_GAP = 5;
 const int MUTE_ICON_PADDING = 10;
 const vec4 CONNECTION_STATUS_BORDER_COLOR{ 1.0f, 0.0f, 0.0f, 0.8f };
 const float CONNECTION_STATUS_BORDER_LINE_WIDTH = 4.0f;
-static const int MIRROR_VIEW_TOP_PADDING = 5;
-static const int MIRROR_VIEW_LEFT_PADDING = 10;
-static const int MIRROR_VIEW_WIDTH = 265;
-static const int MIRROR_VIEW_HEIGHT = 215;
-static const int STATS_HORIZONTAL_OFFSET = MIRROR_VIEW_WIDTH + MIRROR_VIEW_LEFT_PADDING * 2;
-static const float MIRROR_REARVIEW_DISTANCE = 0.722f;
-static const float MIRROR_REARVIEW_BODY_DISTANCE = 2.56f;
-static const float MIRROR_FIELD_OF_VIEW = 30.0f;
 static const float ORTHO_NEAR_CLIP = -10000;
 static const float ORTHO_FAR_CLIP = 10000;
 
@@ -59,8 +51,7 @@ static void fboViewport(QOpenGLFramebufferObject* fbo) {
     glViewport(0, 0, size.width(), size.height());
 }
 
-ApplicationOverlay::ApplicationOverlay() :
-    _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT))
+ApplicationOverlay::ApplicationOverlay()
 {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     _audioRedQuad = geometryCache->allocateID();
@@ -295,93 +286,15 @@ void ApplicationOverlay::renderAudioMeter(RenderArgs* renderArgs) {
 }
 
 void ApplicationOverlay::renderRearViewToFbo(RenderArgs* renderArgs) {
-    // Grab current viewport to reset it at the end
-    auto mirrorSize = _mirrorFramebuffer->size();
-    float aspect = (float)mirrorSize.width() / mirrorSize.height();
-    float fov = MIRROR_FIELD_OF_VIEW;
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    // bool eyeRelativeCamera = false;
-    if (RearMirrorTools::rearViewZoomLevel.get() == BODY) {
-        _mirrorCamera.setPosition(myAvatar->getChestPosition() +
-            myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * myAvatar->getScale());
-    } else { // HEAD zoom level
-        // FIXME note that the positioing of the camera relative to the avatar can suffer limited
-        // precision as the user's position moves further away from the origin.  Thus at
-        // /1e7,1e7,1e7 (well outside the buildable volume) the mirror camera veers and sways
-        // wildly as you rotate your avatar because the floating point values are becoming
-        // larger, squeezing out the available digits of precision you have available at the
-        // human scale for camera positioning.
-
-        // Previously there was a hack to correct this using the mechanism of repositioning
-        // the avatar at the origin of the world for the purposes of rendering the mirror,
-        // but it resulted in failing to render the avatar's head model in the mirror view
-        // when in first person mode.  Presumably this was because of some missed culling logic
-        // that was not accounted for in the hack.
-
-        // This was removed in commit 71e59cfa88c6563749594e25494102fe01db38e9 but could be further
-        // investigated in order to adapt the technique while fixing the head rendering issue,
-        // but the complexity of the hack suggests that a better approach
-        _mirrorCamera.setPosition(myAvatar->getHead()->getEyePosition() +
-            myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * myAvatar->getScale());
-    }
-    _mirrorCamera.setProjection(glm::perspective(glm::radians(fov), aspect, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
-    _mirrorCamera.setRotation(myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
-
-    // set the bounds of rear mirror view
-    fboViewport(_mirrorFramebuffer);
-
-    _mirrorFramebuffer->bind();
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    glLoadMatrixf(glm::value_ptr(_mirrorCamera.getProjection()));
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-    glLoadMatrixf(glm::value_ptr(glm::mat4_cast(_mirrorCamera.getOrientation()) * glm::translate(glm::mat4(), _mirrorCamera.getPosition())));
-    {
-        renderArgs->_context->syncCache();
-        qApp->displaySide(renderArgs, _mirrorCamera, true, false);
-    }
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
-    _mirrorFramebuffer->release();
-    fboViewport(_overlayFramebuffer);
 }
 
 void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
-    if (_mirrorFramebuffer && _mirrorFramebuffer->texture()) {
-        gpu::Batch batch;
-        auto geometryCache = DependencyManager::get<GeometryCache>();
-        geometryCache->useSimpleDrawPipeline(batch);
-        batch._glDisable(GL_DEPTH_TEST);
-        batch._glDisable(GL_LIGHTING);
-        batch._glEnable(GL_BLEND);
-        batch.setProjectionTransform(mat4());
-        batch.setModelTransform(mat4());
-        auto textureCache = DependencyManager::get<TextureCache>();
-        batch.setUniformTexture(0, textureCache->getBlueTexture());
-        geometryCache->renderUnitQuad(batch, glm::vec4(1));
-        batch._glBindTexture(GL_TEXTURE_2D, _mirrorFramebuffer->texture());
-        geometryCache->renderUnitQuad(batch, glm::vec4(1));
-        renderArgs->_context->syncCache();
-        auto overlaySize = _overlayFramebuffer->size();
-        glViewport(MIRROR_VIEW_LEFT_PADDING, overlaySize.height() - MIRROR_VIEW_TOP_PADDING - MIRROR_VIEW_HEIGHT,
-            MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT);
-        renderArgs->_context->render(batch);
-        fboViewport(_overlayFramebuffer);
-    }
 }
 
 void ApplicationOverlay::renderStatsAndLogs(RenderArgs* renderArgs) {
-
     //  Display stats and log text onscreen
 
     // Determine whether to compute timing details
-
 
     /*
     //  Show on-screen msec timer
@@ -457,18 +370,6 @@ GLuint ApplicationOverlay::getOverlayTexture() {
 }
 
 void ApplicationOverlay::buildFramebufferObject() {
-    if (!_mirrorFramebuffer) {
-        _mirrorFramebuffer = new QOpenGLFramebufferObject(QSize(MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT), QOpenGLFramebufferObject::Depth);
-        glBindTexture(GL_TEXTURE_2D, _mirrorFramebuffer->texture());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        GLfloat borderColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
-
     auto canvasSize = qApp->getCanvasSize();
     QSize fboSize = QSize(canvasSize.x, canvasSize.y);
     if (_overlayFramebuffer && fboSize == _overlayFramebuffer->size()) {

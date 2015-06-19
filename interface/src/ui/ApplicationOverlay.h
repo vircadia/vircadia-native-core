@@ -49,15 +49,8 @@ private:
     int _domainStatusBorder;
     int _magnifierBorder;
 
-    float _scaleMirror{ 1.0f };
-    float _rotateMirror{ 0.0f };
-    float _raiseMirror{ 0.0f };
-
-    Camera _mirrorCamera;
     ivec2 _previousBorderSize{ -1 };
-    QRect _mirrorViewRect;
     QOpenGLFramebufferObject* _overlayFramebuffer{ nullptr };
-    QOpenGLFramebufferObject* _mirrorFramebuffer{ nullptr };
 };
 
 #endif // hifi_ApplicationOverlay_h

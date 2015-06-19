@@ -151,7 +151,6 @@
 #include "ui/AddressBarDialog.h"
 #include "ui/UpdateDialog.h"
 
-static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 #if defined(Q_OS_WIN)
@@ -325,11 +324,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _viewFrustum(),
         _lastQueriedViewFrustum(),
         _lastQueriedTime(usecTimestampNow()),
+        _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
         _firstRun("firstRun", true),
         _previousScriptLocation("LastScriptLocation"),
         _scriptsLocationHandle("scriptsLocation"),
         _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
         _viewTransform(),
+        _scaleMirror(1.0f),
+        _rotateMirror(0.0f),
+        _raiseMirror(0.0f),
         _cursorVisible(true),
         _lastMouseMove(usecTimestampNow()),
         _lastMouseMoveWasSimulated(false),
@@ -821,23 +824,6 @@ void Application::initializeGL() {
     InfoView::show(INFO_HELP_PATH, true);
 }
 
-template <typename F>
-void with_stable_stack_check(F f) {
-    
-    GLint mvDepth, prDepth;
-    glGetIntegerv(GL_MODELVIEW_STACK_DEPTH, &mvDepth);
-    glGetIntegerv(GL_PROJECTION_STACK_DEPTH, &prDepth);
-    
-    f();
-    
-    GLint mvDepthFinal, prDepthFinal;
-    glGetIntegerv(GL_MODELVIEW_STACK_DEPTH, &mvDepthFinal);
-    glGetIntegerv(GL_PROJECTION_STACK_DEPTH, &prDepthFinal);
-    Q_ASSERT(mvDepth == mvDepthFinal);
-    Q_ASSERT(prDepth == prDepthFinal);
-
-}
-
 void Application::initializeUi() {
     AddressBarDialog::registerType();
     ErrorDialog::registerType();
@@ -875,12 +861,7 @@ void Application::initializeUi() {
     });
 }
 
-void Application::paintGL() {
-    PROFILE_RANGE(__FUNCTION__);
-    _glWidget->makeCurrent();
-
-    auto lodManager = DependencyManager::get<LODManager>();
-
+/*
     {
         PerformanceTimer perfTimer("renderOverlay");
         gpu::Context context(new gpu::GLBackend());
@@ -889,6 +870,13 @@ void Application::paintGL() {
                           RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
         _applicationOverlay.renderOverlay(&renderArgs);
     }
+*/
+
+void Application::paintGL() {
+    PROFILE_RANGE(__FUNCTION__);
+    _glWidget->makeCurrent();
+
+    auto lodManager = DependencyManager::get<LODManager>();
     
     gpu::Context context(new gpu::GLBackend());
     RenderArgs renderArgs(&context, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
@@ -943,10 +931,6 @@ void Application::paintGL() {
         }
 
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-        // TODO put the mirror modifiers somewhere both the app and the overlay can access it
-        float _rotateMirror = 0.0f;
-        float _raiseMirror = 0.0f;
-        float _scaleMirror = 1.0f;
         _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
         _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
                               glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) +
@@ -986,24 +970,23 @@ void Application::paintGL() {
         QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
         glViewport(0, 0, size.width(), size.height());
 
-        with_stable_stack_check([&]{
-            glMatrixMode(GL_MODELVIEW);
-            glPushMatrix();
-            glLoadIdentity();
-            displaySide(&renderArgs, _myCamera);
-            _compositor.displayOverlayTexture(&renderArgs);
-            glPopMatrix();
-        });
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glLoadIdentity();
+        displaySide(&renderArgs, _myCamera);
+        glPopMatrix();
 
-        //renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
-        //if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
-        //    _rearMirrorTools->render(&renderArgs, true, _glWidget->mapFromGlobal(QCursor::pos()));
-        //} else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        //    renderRearViewMirror(&renderArgs, _mirrorViewRect);       
-        //}
-        //renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
+        renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
+        if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
+            _rearMirrorTools->render(&renderArgs, true, _glWidget->mapFromGlobal(QCursor::pos()));
+        } else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+            renderRearViewMirror(&renderArgs, _mirrorViewRect);       
+        }
+
+        renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
 
         auto finalFbo = DependencyManager::get<GlowEffect>()->render(&renderArgs);
+
 
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
@@ -1011,6 +994,8 @@ void Application::paintGL() {
                           0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height(),
                             GL_COLOR_BUFFER_BIT, GL_NEAREST);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+
+        _compositor.displayOverlayTexture(&renderArgs);
     }
 
 
@@ -1071,21 +1056,24 @@ void Application::resizeGL() {
     } else {
         renderSize = _glWidget->getDeviceSize() * getRenderResolutionScale();
     }
-    if (_renderResolution == toGlm(renderSize)) {
-        return;
+
+    if (_renderResolution != toGlm(renderSize)) {
+        _renderResolution = toGlm(renderSize);
+        DependencyManager::get<TextureCache>()->setFrameBufferSize(renderSize);
+        resetCamerasOnResizeGL(_myCamera, _renderResolution);
+
+        glViewport(0, 0, _renderResolution.x, _renderResolution.y); // shouldn't this account for the menu???
+
+        updateProjectionMatrix();
+        glLoadIdentity();
     }
 
-    _renderResolution = toGlm(renderSize);
-    DependencyManager::get<TextureCache>()->setFrameBufferSize(renderSize);
-    resetCamerasOnResizeGL(_myCamera, _renderResolution);
-
-    glViewport(0, 0, _renderResolution.x, _renderResolution.y); // shouldn't this account for the menu???
-
-    updateProjectionMatrix();
-    glLoadIdentity();
-
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->resize(_glWidget->size());
+
+    auto canvasSize = _glWidget->size();
+    if (canvasSize != offscreenUi->getWindow()->size()) {
+        offscreenUi->resize(canvasSize);
+    }
     _glWidget->makeCurrent();
 
 }
@@ -1303,37 +1291,37 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 Menu::getInstance()->triggerOption(MenuOption::Chat);
                 break;
 
-            //case Qt::Key_Up:
-            //    if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-            //        if (!isShifted) {
-            //            _scaleMirror *= 0.95f;
-            //        } else {
-            //            _raiseMirror += 0.05f;
-            //        }
-            //    }
-            //    break;
+            case Qt::Key_Up:
+                if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+                    if (!isShifted) {
+                        _scaleMirror *= 0.95f;
+                    } else {
+                        _raiseMirror += 0.05f;
+                    }
+                }
+                break;
 
-            //case Qt::Key_Down:
-            //    if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-            //        if (!isShifted) {
-            //            _scaleMirror *= 1.05f;
-            //        } else {
-            //            _raiseMirror -= 0.05f;
-            //        }
-            //    }
-            //    break;
+            case Qt::Key_Down:
+                if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+                    if (!isShifted) {
+                        _scaleMirror *= 1.05f;
+                    } else {
+                        _raiseMirror -= 0.05f;
+                    }
+                }
+                break;
 
-            //case Qt::Key_Left:
-            //    if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-            //        _rotateMirror += PI / 20.0f;
-            //    }
-            //    break;
+            case Qt::Key_Left:
+                if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+                    _rotateMirror += PI / 20.0f;
+                }
+                break;
 
-            //case Qt::Key_Right:
-            //    if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-            //        _rotateMirror -= PI / 20.0f;
-            //    }
-            //    break;
+            case Qt::Key_Right:
+                if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+                    _rotateMirror -= PI / 20.0f;
+                }
+                break;
 
 #if 0
             case Qt::Key_I:
@@ -1598,12 +1586,11 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
                     // stop propagation
                     return;
                 }
-#if 0
+
                 if (_rearMirrorTools->mousePressEvent(getMouseX(), getMouseY())) {
                     // stop propagation
                     return;
                 }
-#endif
             }
 
             // nobody handled this - make it an action event on the _window object
@@ -1653,15 +1640,6 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
 
         if (event->button() == Qt::LeftButton) {
             _mousePressed = false;
-
-#if 0
-            if (Menu::getInstance()->isOptionChecked(MenuOption::Stats) && mouseOnScreen()) {
-                // let's set horizontal offset to give stats some margin to mirror
-                int horizontalOffset = MIRROR_VIEW_WIDTH;
-                Stats::getInstance()->checkClick(getMouseX(), getMouseY(),
-                                                 getMouseDragStartedX(), getMouseDragStartedY(), horizontalOffset);
-            }
-#endif
 
             // fire an action end event
             HFActionEvent actionEvent(HFActionEvent::endType(),
@@ -1847,7 +1825,6 @@ void Application::idle() {
         targetFramePeriod = 1000.0 / targetFramerate;
     }
     double timeSinceLastUpdate = (double)_lastTimeUpdated.nsecsElapsed() / 1000000.0;
-    //if (true) {
     if (timeSinceLastUpdate > targetFramePeriod) {
         _lastTimeUpdated.start();
         {
@@ -1874,7 +1851,7 @@ void Application::idle() {
             }
 
             // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
-            idleTimer->start(0);
+            idleTimer->start(2);
         }
     }
 
@@ -2181,9 +2158,7 @@ void Application::init() {
     DependencyManager::get<AvatarManager>()->init();
     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
 
-#if 0
     _mirrorCamera.setMode(CAMERA_MODE_MIRROR);
-#endif
 
     TV3DManager::connect();
     if (TV3DManager::isConnected()) {
@@ -2248,13 +2223,12 @@ void Application::init() {
     _entityClipboardRenderer.setViewFrustum(getViewFrustum());
     _entityClipboardRenderer.setTree(&_entityClipboard);
 
-#if 0
     _rearMirrorTools = new RearMirrorTools(_mirrorViewRect);
     connect(_rearMirrorTools, SIGNAL(closeView()), SLOT(closeMirrorView()));
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
-#endif
+
 
     // initialize the GlowEffect with our widget
     bool glow = Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect);
@@ -3166,7 +3140,6 @@ PickRay Application::computePickRay(float x, float y) const {
     return result;
 }
 
-#if 0
 QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
     auto primaryFramebuffer = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
     glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFramebuffer));
@@ -3192,7 +3165,6 @@ QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     return image;
 }
-#endif
 
 ViewFrustum* Application::getViewFrustum() {
 #ifdef DEBUG
@@ -3410,7 +3382,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     viewTransform.setTranslation(theCamera.getPosition());
     viewTransform.setRotation(rotation);
     if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
-         //viewTransform.setScale(Transform::Vec3(-1.0f, 1.0f, 1.0f));
+//         viewTransform.setScale(Transform::Vec3(-1.0f, 1.0f, 1.0f));
     }
     if (renderArgs->_renderSide != RenderArgs::MONO) {
         glm::mat4 invView = glm::inverse(_untranslatedViewMatrix);
@@ -3675,6 +3647,79 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
         ((projectedPoint.y + 1.0f) * -verticalScale) + _glWidget->getDeviceHeight());
 
     return screenPoint;
+}
+
+void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard) {
+    // Grab current viewport to reset it at the end
+    int viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    float aspect = (float)region.width() / region.height();
+    float fov = MIRROR_FIELD_OF_VIEW;
+
+    // bool eyeRelativeCamera = false;
+    if (billboard) {
+        fov = BILLBOARD_FIELD_OF_VIEW;  // degees
+        _mirrorCamera.setPosition(_myAvatar->getPosition() +
+                                  _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * BILLBOARD_DISTANCE * _myAvatar->getScale());
+
+    } else if (RearMirrorTools::rearViewZoomLevel.get() == BODY) {
+        _mirrorCamera.setPosition(_myAvatar->getChestPosition() +
+                                  _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
+
+    } else { // HEAD zoom level
+        // FIXME note that the positioing of the camera relative to the avatar can suffer limited
+        // precision as the user's position moves further away from the origin.  Thus at
+        // /1e7,1e7,1e7 (well outside the buildable volume) the mirror camera veers and sways
+        // wildly as you rotate your avatar because the floating point values are becoming
+        // larger, squeezing out the available digits of precision you have available at the
+        // human scale for camera positioning.
+
+        // Previously there was a hack to correct this using the mechanism of repositioning
+        // the avatar at the origin of the world for the purposes of rendering the mirror,
+        // but it resulted in failing to render the avatar's head model in the mirror view
+        // when in first person mode.  Presumably this was because of some missed culling logic
+        // that was not accounted for in the hack.
+
+        // This was removed in commit 71e59cfa88c6563749594e25494102fe01db38e9 but could be further
+        // investigated in order to adapt the technique while fixing the head rendering issue,
+        // but the complexity of the hack suggests that a better approach
+        _mirrorCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
+                                    _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
+    }
+    _mirrorCamera.setProjection(glm::perspective(glm::radians(fov), aspect, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
+    _mirrorCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
+
+    // set the bounds of rear mirror view
+    if (billboard) {
+        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
+        glViewport(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
+        glScissor(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
+    } else {
+        // if not rendering the billboard, the region is in device independent coordinates; must convert to device
+        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
+        float ratio = (float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale();
+        int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
+        glViewport(x, size.height() - y - height, width, height);
+        glScissor(x, size.height() - y - height, width, height);
+    }
+    bool updateViewFrustum = false;
+    updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
+    glEnable(GL_SCISSOR_TEST);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // render rear mirror view
+    glPushMatrix();
+    displaySide(renderArgs, _mirrorCamera, true, billboard);
+    glPopMatrix();
+
+    if (!billboard) {
+        _rearMirrorTools->render(renderArgs, false, _glWidget->mapFromGlobal(QCursor::pos()));
+    }
+
+    // reset Viewport and projection matrix
+    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+    glDisable(GL_SCISSOR_TEST);
+    updateProjectionMatrix(_myCamera, updateViewFrustum);
 }
 
 void Application::resetSensors() {

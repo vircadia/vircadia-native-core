@@ -333,7 +333,7 @@ void Stats::updateStats() {
             QString functionName = j.value();
             const PerformanceTimerRecord& record = allRecords.value(functionName);
             perfLines += QString("%1: %2 [%3]\n").
-                arg(QString(qPrintable(functionName)), 120, noBreakingSpace).
+                arg(QString(qPrintable(functionName)), 90, noBreakingSpace).
                 arg((float)record.getMovingAverage() / (float)USECS_PER_MSEC, 8, 'f', 3, noBreakingSpace).
                 arg((int)record.getCount(), 6, 10, noBreakingSpace);
             linesDisplayed++;

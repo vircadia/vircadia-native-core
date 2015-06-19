@@ -1466,7 +1466,6 @@ void MyAvatar::maybeUpdateBillboard() {
             return;
         }
     }
-    /*
     gpu::Context context(new gpu::GLBackend());
     RenderArgs renderArgs(&context);
     QImage image = qApp->renderAvatarBillboard(&renderArgs);
@@ -1477,7 +1476,6 @@ void MyAvatar::maybeUpdateBillboard() {
     _billboardValid = true;
 
     sendBillboardPacket();
-    */
 }
 
 void MyAvatar::increaseSize() {
@@ -1577,7 +1575,7 @@ glm::vec3 MyAvatar::getLaserPointerTipPosition(const PalmData* palm) {
 
 
     glm::vec3 result;
-    const auto& compositor = Application::getInstance()->getApplicationCompositor();
+    const auto& compositor = qApp->getApplicationCompositor();
     if (compositor.calculateRayUICollisionPoint(position, direction, result)) {
         return result;
     }
