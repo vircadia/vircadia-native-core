@@ -17,7 +17,7 @@
 
 #include <QDesktopWidget>
 #include <QGuiApplication>
-#include <QScreen>	
+#include <QScreen>
 #include <QOpenGLTimerQuery>
 
 #include <glm/glm.hpp>
@@ -250,6 +250,7 @@ void OculusManager::connect(QOpenGLContext* shareContext) {
 
     if (!_ovrHmd) {
         _isConnected = false;
+
         // we're definitely not in "VR mode" so tell the menu that
         Menu::getInstance()->getActionForOption(MenuOption::EnableVRMode)->setChecked(false);
         ovr_Shutdown();
@@ -487,6 +488,7 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
             break;
         default:
             break;
+
     }
 }
 
@@ -502,6 +504,7 @@ void OculusManager::abandonCalibration() {
         _calibrationMessage = 0;
     }
 }
+
 
 bool OculusManager::isConnected() {
     return _isConnected;
@@ -546,6 +549,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
 #endif
     
 #ifndef Q_OS_WIN
+
     // FIXME:  we need a better way of responding to the HSW.  In particular
     // we need to ensure that it's only displayed once per session, rather than
     // every time the user toggles VR mode, and we need to hook it up to actual
@@ -561,6 +565,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
         }
     }
 #endif
+
 
     //beginFrameTiming must be called before display
     if (!_frameTimingActive) {
@@ -583,14 +588,14 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
 
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
-  
+
     glm::quat orientation;
     glm::vec3 trackerPosition;
     auto deviceSize = qApp->getDeviceSize();
 
     ovrTrackingState ts = ovrHmd_GetTrackingState(_ovrHmd, ovr_GetTimeInSeconds());
     ovrVector3f ovrHeadPosition = ts.HeadPose.ThePose.Position;
-    
+
     trackerPosition = glm::vec3(ovrHeadPosition.x, ovrHeadPosition.y, ovrHeadPosition.z);
 
     if (_calibrationState != CALIBRATED) {
@@ -653,7 +658,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
         glViewport(0, 0, _renderTargetSize.w, _renderTargetSize.h);
         finalFbo = DependencyManager::get<GlowEffect>()->render(renderArgs);
     } else {
-        finalFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer(); 
+        finalFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
     glPopMatrix();
@@ -666,6 +671,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
 
 #ifdef Q_OS_WIN
     auto srcFboSize = finalFbo->getSize();
+
 
     // Blit to the oculus provided texture
     glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
@@ -696,6 +702,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
     GLsync syncObject = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     glFlush();
 
+
     _outputWindow->makeCurrent();
     // force the compositing context to wait for the texture 
     // rendering to complete before it starts the distortion rendering,
@@ -707,6 +714,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
     for_each_eye([&](ovrEyeType eye) {
         ovrGLTexture & glEyeTexture = reinterpret_cast<ovrGLTexture&>(_eyeTextures[eye]);
         glEyeTexture.OGL.TexId = textureId;
+
     });
 
     // restore our normal viewport
@@ -714,6 +722,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
     glCanvas->makeCurrent();
 #endif
     
+
 
 }
 
@@ -775,7 +784,7 @@ int OculusManager::getHMDScreen() {
         const int SIMILAR_NAMES = 10;
         const int EXACT_LOCATION_MATCH = 50;
         const int EXACT_RESOLUTION_MATCH = 25;
-        
+
         int bestMatchScore = 0;
 
         // look at the display list and see if we can find the best match
@@ -784,7 +793,7 @@ int OculusManager::getHMDScreen() {
         foreach (QScreen* screen, QGuiApplication::screens()) {
             QString screenName = screen->name();
             QRect screenRect = desktop->screenGeometry(screenNumber);
-            
+
             int screenScore = 0;
             if (screenName == productNameFromOVR) {
                 screenScore += EXACT_NAME_MATCH;

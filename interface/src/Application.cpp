@@ -810,9 +810,9 @@ void Application::initializeGL() {
     _idleLoopStdev.reset();
 
     if (_justStarted) {
-        float startupTime = (float)_applicationStartupTime.elapsed() / 1000.0;
+        float startupTime = (float)_applicationStartupTime.elapsed() / 1000.0f;
         _justStarted = false;
-        qCDebug(interfaceapp, "Startup time: %4.2f seconds.", startupTime);
+        qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTime);
     }
 
     // update before the first render
@@ -3660,8 +3660,8 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
     // +-----------------------+
     // -1,-1                   1,-1
 
-    glm::vec2 screenPoint((projectedPoint.x + 1.0) * horizontalScale,
-        ((projectedPoint.y + 1.0) * -verticalScale) + _glWidget->getDeviceHeight());
+    glm::vec2 screenPoint((projectedPoint.x + 1.0f) * horizontalScale,
+        ((projectedPoint.y + 1.0f) * -verticalScale) + _glWidget->getDeviceHeight());
 
     return screenPoint;
 }
@@ -3799,7 +3799,7 @@ void Application::nodeKilled(SharedNodePointer node) {
             _entityServerJurisdictions.unlock();
 
             qCDebug(interfaceapp, "model server going away...... v[%f, %f, %f, %f]",
-                rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
+                    (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
 
             // Add the jurisditionDetails object to the list of "fade outs"
             if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnOctreeServerChanges)) {
@@ -3885,7 +3885,8 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
             jurisdiction->unlock();
 
             qCDebug(interfaceapp, "stats from new %s server... [%f, %f, %f, %f]",
-                qPrintable(serverType), rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
+                    qPrintable(serverType),
+                    (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
 
             // Add the jurisditionDetails object to the list of "fade outs"
             if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnOctreeServerChanges)) {

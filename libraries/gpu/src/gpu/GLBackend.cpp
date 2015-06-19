@@ -61,6 +61,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_glDrawBuffers),
 
     (&::gpu::GLBackend::do_glUseProgram),
+    (&::gpu::GLBackend::do_glUniform1i),
     (&::gpu::GLBackend::do_glUniform1f),
     (&::gpu::GLBackend::do_glUniform2f),
     (&::gpu::GLBackend::do_glUniform3f),
@@ -440,6 +441,28 @@ void GLBackend::do_glUseProgram(Batch& batch, uint32 paramOffset) {
     _pipeline._invalidProgram = false;
     glUseProgram(_pipeline._program);
 
+    (void) CHECK_GL_ERROR();
+}
+
+void Batch::_glUniform1i(GLint location, GLint v0) {
+    if (location < 0) {
+        return;
+    }
+    ADD_COMMAND_GL(glUniform1i);
+    _params.push_back(v0);
+    _params.push_back(location);
+    
+    DO_IT_NOW(_glUniform1i, 1);
+}
+void GLBackend::do_glUniform1i(Batch& batch, uint32 paramOffset) {
+    if (_pipeline._program == 0) {
+        // We should call updatePipeline() to bind the program but we are not doing that
+        // because these uniform setters are deprecated and we don;t want to create side effect
+        return;
+    }
+    glUniform1f(
+        batch._params[paramOffset + 1]._int,
+        batch._params[paramOffset + 0]._int);
     (void) CHECK_GL_ERROR();
 }
 

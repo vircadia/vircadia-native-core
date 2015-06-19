@@ -581,20 +581,20 @@ void sphericalHarmonicsScale(float * result, int order, const float * input, flo
 void sphericalHarmonicsEvaluateDirection(float * result, int order,  const glm::vec3 & dir) {
    // calculate coefficients for first 3 bands of spherical harmonics
    double P_0_0 = 0.282094791773878140;
-   double P_1_0 = 0.488602511902919920 * dir.z;
+   double P_1_0 = 0.488602511902919920 * (double)dir.z;
    double P_1_1 = -0.488602511902919920;
-   double P_2_0 = 0.946174695757560080 * dir.z * dir.z - 0.315391565252520050;
-   double P_2_1 = -1.092548430592079200 * dir.z;
+   double P_2_0 = 0.946174695757560080 * (double)dir.z * (double)dir.z - 0.315391565252520050;
+   double P_2_1 = -1.092548430592079200 * (double)dir.z;
    double P_2_2 = 0.546274215296039590;
    result[0] = P_0_0;
-   result[1] = P_1_1 * dir.y;
+   result[1] = P_1_1 * (double)dir.y;
    result[2] = P_1_0;
-   result[3] = P_1_1 * dir.x;
-   result[4] = P_2_2 * (dir.x * dir.y + dir.y * dir.x);
-   result[5] = P_2_1 * dir.y;
+   result[3] = P_1_1 * (double)dir.x;
+   result[4] = P_2_2 * ((double)dir.x * (double)dir.y + (double)dir.y * (double)dir.x);
+   result[5] = P_2_1 * (double)dir.y;
    result[6] = P_2_0;
-   result[7] = P_2_1 * dir.x;
-   result[8] = P_2_2 * (dir.x * dir.x - dir.y * dir.y);
+   result[7] = P_2_1 * (double)dir.x;
+   result[8] = P_2_2 * ((double)dir.x * (double)dir.x - (double)dir.y * (double)dir.y);
 }
 
 bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<glm::vec3> & output, const uint order) {

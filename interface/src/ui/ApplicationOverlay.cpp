@@ -59,8 +59,6 @@ static void fboViewport(QOpenGLFramebufferObject* fbo) {
     glViewport(0, 0, size.width(), size.height());
 }
 
-
-
 ApplicationOverlay::ApplicationOverlay() :
     _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT))
 {
@@ -70,10 +68,10 @@ ApplicationOverlay::ApplicationOverlay() :
     _audioBlueQuad = geometryCache->allocateID();
     _domainStatusBorder = geometryCache->allocateID();
     _magnifierBorder = geometryCache->allocateID();
-    
+
     // Once we move UI rendering and screen rendering to different
     // threads, we need to use a sync object to deteremine when
-    // the current UI texture is no longer being read from, and only 
+    // the current UI texture is no longer being read from, and only
     // then release it back to the UI for re-use
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     connect(offscreenUi.data(), &OffscreenUi::textureUpdated, this, [&](GLuint textureId) {
@@ -90,12 +88,11 @@ ApplicationOverlay::ApplicationOverlay() :
 ApplicationOverlay::~ApplicationOverlay() {
 }
 
-
 // Renders the overlays either to a texture or to the screen
 void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     CHECK_GL_ERROR();
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
-    
+
     // TODO move to Application::idle()?
     Stats::getInstance()->updateStats();
 
@@ -223,7 +220,7 @@ void ApplicationOverlay::renderAudioMeter(RenderArgs* renderArgs) {
     float loudness = audio->getLastInputLoudness() + 1.0f;
 
     _trailingAudioLoudness = AUDIO_METER_AVERAGING * _trailingAudioLoudness + (1.0f - AUDIO_METER_AVERAGING) * loudness;
-    float log2loudness = log(_trailingAudioLoudness) / LOG2;
+    float log2loudness = logf(_trailingAudioLoudness) / LOG2;
 
     if (log2loudness <= LOG2_LOUDNESS_FLOOR) {
         audioLevel = (log2loudness / LOG2_LOUDNESS_FLOOR) * METER_LOUDNESS_SCALE * audioMeterScaleWidth;
@@ -236,7 +233,7 @@ void ApplicationOverlay::renderAudioMeter(RenderArgs* renderArgs) {
     bool isClipping = ((audio->getTimeSinceLastClip() > 0.0f) && (audio->getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME));
 
     DependencyManager::get<AudioToolBox>()->render(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP, audioMeterY, cameraSpace, boxed);
-    
+
     auto canvasSize = qApp->getCanvasSize();
     DependencyManager::get<AudioScope>()->render(canvasSize.x, canvasSize.y);
     DependencyManager::get<AudioIOStatsRenderer>()->render(WHITE_TEXT, canvasSize.x, canvasSize.y);
@@ -256,11 +253,11 @@ void ApplicationOverlay::renderAudioMeter(RenderArgs* renderArgs) {
         }
         // Draw Red Quad
         DependencyManager::get<GeometryCache>()->renderQuad(audioMeterX + audioRedStart,
-                                                            audioMeterY, 
-                                                            audioLevel - audioRedStart, 
+                                                            audioMeterY,
+                                                            audioLevel - audioRedStart,
                                                             AUDIO_METER_HEIGHT, quadColor,
                                                             _audioRedQuad);
-        
+
         audioLevel = audioRedStart;
     }
 
@@ -273,8 +270,8 @@ void ApplicationOverlay::renderAudioMeter(RenderArgs* renderArgs) {
         }
         // Draw Green Quad
         DependencyManager::get<GeometryCache>()->renderQuad(audioMeterX + audioGreenStart,
-                                                            audioMeterY, 
-                                                            audioLevel - audioGreenStart, 
+                                                            audioMeterY,
+                                                            audioLevel - audioGreenStart,
                                                             AUDIO_METER_HEIGHT, quadColor,
                                                             _audioGreenQuad);
 
@@ -493,4 +490,3 @@ void ApplicationOverlay::buildFramebufferObject() {
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
-

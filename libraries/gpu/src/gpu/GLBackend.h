@@ -380,6 +380,7 @@ protected:
     void do_glDrawBuffers(Batch& batch, uint32 paramOffset);
 
     void do_glUseProgram(Batch& batch, uint32 paramOffset);
+    void do_glUniform1i(Batch& batch, uint32 paramOffset);
     void do_glUniform1f(Batch& batch, uint32 paramOffset);
     void do_glUniform2f(Batch& batch, uint32 paramOffset);
     void do_glUniform3f(Batch& batch, uint32 paramOffset);

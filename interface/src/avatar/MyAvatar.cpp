@@ -59,10 +59,10 @@ const float MAX_WALKING_SPEED = 2.5f; // human walking speed
 const float MAX_BOOST_SPEED = 0.5f * MAX_WALKING_SPEED; // keyboard motor gets additive boost below this speed
 const float MIN_AVATAR_SPEED = 0.05f; // speed is set to zero below this
 
-// TODO: normalize avatar speed for standard avatar size, then scale all motion logic 
+// TODO: normalize avatar speed for standard avatar size, then scale all motion logic
 // to properly follow avatar size.
 float MAX_AVATAR_SPEED = 300.0f;
-float MAX_KEYBOARD_MOTOR_SPEED = MAX_AVATAR_SPEED; 
+float MAX_KEYBOARD_MOTOR_SPEED = MAX_AVATAR_SPEED;
 float DEFAULT_KEYBOARD_MOTOR_TIMESCALE = 0.25f;
 float MIN_SCRIPTED_MOTOR_TIMESCALE = 0.005f;
 float DEFAULT_SCRIPTED_MOTOR_TIMESCALE = 1.0e6f;
@@ -147,7 +147,7 @@ void MyAvatar::update(float deltaTime) {
     if (_referential) {
         _referential->update();
     }
-    
+
     Head* head = getHead();
     head->relaxLean(deltaTime);
     updateFromTrackers(deltaTime);
@@ -164,12 +164,12 @@ void MyAvatar::update(float deltaTime) {
 
 void MyAvatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
-    
+
     // Play back recording
     if (_player && _player->isPlaying()) {
         _player->play();
     }
-    
+
     if (_scale != _targetScale) {
         float scale = (1.0f - SMOOTHING_RATIO) * _scale + SMOOTHING_RATIO * _targetScale;
         setScale(scale);
@@ -180,7 +180,7 @@ void MyAvatar::simulate(float deltaTime) {
         updateOrientation(deltaTime);
         updatePosition(deltaTime);
     }
-    
+
     {
         PerformanceTimer perfTimer("hand");
         // update avatar skeleton and simulate hand and head
@@ -223,12 +223,12 @@ void MyAvatar::simulate(float deltaTime) {
         head->setScale(_scale);
         head->simulate(deltaTime, true);
     }
-    
+
     // Record avatars movements.
     if (_recorder && _recorder->isRecording()) {
         _recorder->record();
     }
-    
+
     // consider updating our billboard
     maybeUpdateBillboard();
 }
@@ -236,18 +236,18 @@ void MyAvatar::simulate(float deltaTime) {
 //  Update avatar head rotation with sensor data
 void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
-    
+
     bool inHmd = qApp->isHMDMode();
-    
+
     if (isPlaying() && inHmd) {
         return;
     }
 
     if (inHmd) {
-        estimatedPosition = qApp->getHeadPosition(); 
+        estimatedPosition = qApp->getHeadPosition();
         estimatedPosition.x *= -1.0f;
         _trackedHeadPosition = estimatedPosition;
-        
+
         const float OCULUS_LEAN_SCALE = 0.05f;
         estimatedPosition /= OCULUS_LEAN_SCALE;
     } else {
@@ -258,7 +258,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
             estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
         }
     }
-   
+
     //  Rotate the body if the head is turned beyond the screen
     if (Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead)) {
         const float TRACKER_YAW_TURN_SENSITIVITY = 0.5f;
@@ -318,7 +318,7 @@ void MyAvatar::renderDebugBodyPoints() {
     glm::vec3 headPosition(getHead()->getEyePosition());
     float torsoToHead = glm::length(headPosition - torsoPosition);
     glm::vec3 position;
-    qCDebug(interfaceapp, "head-above-torso %.2f, scale = %0.2f", torsoToHead, getScale());
+    qCDebug(interfaceapp, "head-above-torso %.2f, scale = %0.2f", (double)torsoToHead, (double)getScale());
 
     //  Torso Sphere
     position = torsoPosition;
@@ -434,7 +434,7 @@ void MyAvatar::startRecording() {
     auto audioClient = DependencyManager::get<AudioClient>();
     connect(audioClient.data(), &AudioClient::inputReceived, _recorder.data(),
             &Recorder::recordAudio, Qt::BlockingQueuedConnection);
-    
+
     _recorder->startRecording();
 }
 
@@ -450,7 +450,7 @@ void MyAvatar::stopRecording() {
         // stop grabbing audio from the AudioClient
         auto audioClient = DependencyManager::get<AudioClient>();
         disconnect(audioClient.data(), 0, _recorder.data(), 0);
-        
+
         _recorder->stopRecording();
     }
 }
@@ -482,7 +482,7 @@ void MyAvatar::loadLastRecording() {
     if (!_player) {
         _player = PlayerPointer(new Player(this));
     }
-    
+
     _player->loadRecording(_recorder->getRecording());
 }
 
@@ -574,7 +574,7 @@ AnimationDetails MyAvatar::getAnimationDetailsByRole(const QString& role) {
     AnimationDetails result;
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "getAnimationDetailsByRole", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(AnimationDetails, result), 
+            Q_RETURN_ARG(AnimationDetails, result),
             Q_ARG(const QString&, role));
         return result;
     }
@@ -591,7 +591,7 @@ AnimationDetails MyAvatar::getAnimationDetails(const QString& url) {
     AnimationDetails result;
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "getAnimationDetails", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(AnimationDetails, result), 
+            Q_RETURN_ARG(AnimationDetails, result),
             Q_ARG(const QString&, url));
         return result;
     }
@@ -639,7 +639,7 @@ void MyAvatar::saveData() {
         settings.setValue("scale", attachment.scale);
     }
     settings.endArray();
-    
+
     settings.beginWriteArray("animationHandles");
     for (int i = 0; i < _animationHandles.size(); i++) {
         settings.setArrayIndex(i);
@@ -656,7 +656,7 @@ void MyAvatar::saveData() {
         settings.setValue("maskedJoints", pointer->getMaskedJoints());
     }
     settings.endArray();
-    
+
     settings.setValue("displayName", _displayName);
 
     settings.endGroup();
@@ -682,7 +682,7 @@ void MyAvatar::loadData() {
     _targetScale = loadSetting(settings, "scale", 1.0f);
     setScale(_scale);
 
-    // The old preferences only stored the face and skeleton URLs, we didn't track if the user wanted to use 1 or 2 urls 
+    // The old preferences only stored the face and skeleton URLs, we didn't track if the user wanted to use 1 or 2 urls
     // for their avatar, So we need to attempt to detect this old case and set our new preferences accordingly. If
     // the head URL is empty, then we will assume they are using a full url...
     bool isOldSettings = !(settings.contains("useFullAvatar") || settings.contains("fullAvatarURL"));
@@ -694,7 +694,7 @@ void MyAvatar::loadData() {
     _headModelName = settings.value("headModelName", DEFAULT_HEAD_MODEL_NAME).toString();
     _bodyModelName = settings.value("bodyModelName", DEFAULT_BODY_MODEL_NAME).toString();
     _fullAvatarModelName = settings.value("fullAvatarModelName", DEFAULT_FULL_AVATAR_MODEL_NAME).toString();
-    
+
     if (isOldSettings) {
         bool assumeFullAvatar = _headURLFromPreferences.isEmpty();
         _useFullAvatar = assumeFullAvatar;
@@ -720,14 +720,14 @@ void MyAvatar::loadData() {
                 QVariantHash bodyFST = FSTReader::downloadMapping(_skeletonURLFromPreferences.toString());
                 _bodyModelName = bodyFST["name"].toString();
             }
-            
+
             if (_headURLFromPreferences == DEFAULT_HEAD_MODEL_URL) {
                 _headModelName = DEFAULT_HEAD_MODEL_NAME;
             } else {
                 QVariantHash headFST = FSTReader::downloadMapping(_headURLFromPreferences.toString());
                 _headModelName = headFST["name"].toString();
             }
-            
+
             _fullAvatarModelName = "Default";
         }
     }
@@ -737,7 +737,7 @@ void MyAvatar::loadData() {
     } else {
         useHeadAndBodyURLs(_headURLFromPreferences, _skeletonURLFromPreferences, _headModelName, _bodyModelName);
     }
-    
+
     QVector<AttachmentData> attachmentData;
     int attachmentCount = settings.beginReadArray("attachmentData");
     for (int i = 0; i < attachmentCount; i++) {
@@ -758,7 +758,7 @@ void MyAvatar::loadData() {
     }
     settings.endArray();
     setAttachmentData(attachmentData);
-    
+
     int animationCount = settings.beginReadArray("animationHandles");
     while (_animationHandles.size() > animationCount) {
         _animationHandles.takeLast()->stop();
@@ -781,7 +781,7 @@ void MyAvatar::loadData() {
         handle->setStartAutomatically(settings.value("startAutomatically", true).toBool());
     }
     settings.endArray();
-    
+
     setDisplayName(settings.value("displayName").toString());
 
     settings.endGroup();
@@ -793,7 +793,7 @@ void MyAvatar::saveAttachmentData(const AttachmentData& attachment) const {
     settings.beginGroup(_skeletonModel.getURL().toString());
     settings.beginGroup(attachment.modelURL.toString());
     settings.setValue("jointName", attachment.jointName);
-    
+
     settings.beginGroup(attachment.jointName);
     settings.setValue("translation_x", attachment.translation.x);
     settings.setValue("translation_y", attachment.translation.y);
@@ -803,7 +803,7 @@ void MyAvatar::saveAttachmentData(const AttachmentData& attachment) const {
     settings.setValue("rotation_y", eulers.y);
     settings.setValue("rotation_z", eulers.z);
     settings.setValue("scale", attachment.scale);
-    
+
     settings.endGroup();
     settings.endGroup();
     settings.endGroup();
@@ -815,7 +815,7 @@ AttachmentData MyAvatar::loadAttachmentData(const QUrl& modelURL, const QString&
     settings.beginGroup("savedAttachmentData");
     settings.beginGroup(_skeletonModel.getURL().toString());
     settings.beginGroup(modelURL.toString());
-    
+
     AttachmentData attachment;
     attachment.modelURL = modelURL;
     if (jointName.isEmpty()) {
@@ -837,18 +837,18 @@ AttachmentData MyAvatar::loadAttachmentData(const QUrl& modelURL, const QString&
     } else {
         attachment = AttachmentData();
     }
-    
+
     settings.endGroup();
     settings.endGroup();
     settings.endGroup();
     settings.endGroup();
-    
+
     return attachment;
 }
 
 int MyAvatar::parseDataAtOffset(const QByteArray& packet, int offset) {
     qCDebug(interfaceapp) << "Error: ignoring update packet for MyAvatar"
-        << " packetLength = " << packet.size() 
+        << " packetLength = " << packet.size()
         << "  offset = " << offset;
     // this packet is just bad, so we pretend that we unpacked it ALL
     return packet.size() - offset;
@@ -866,14 +866,14 @@ void MyAvatar::updateLookAtTargetAvatar() {
     //
     _lookAtTargetAvatar.reset();
     _targetAvatarPosition = glm::vec3(0.0f);
-    
+
     glm::vec3 lookForward = getHead()->getFinalOrientationInWorldFrame() * IDENTITY_FRONT;
     glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
-    
+
     float smallestAngleTo = glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES) / 2.0f;
     const float KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR = 1.3f;
     const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;
-    
+
     int howManyLookingAtMe = 0;
     foreach (const AvatarSharedPointer& avatarPointer, DependencyManager::get<AvatarManager>()->getAvatarHash()) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.get());
@@ -1005,13 +1005,13 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
     }
 
     _useFullAvatar = true;
-    
+
     if (_fullAvatarURLFromPreferences != fullAvatarURL) {
         _fullAvatarURLFromPreferences = fullAvatarURL;
         if (modelName.isEmpty()) {
             QVariantHash fullAvatarFST = FSTReader::downloadMapping(_fullAvatarURLFromPreferences.toString());
             _fullAvatarModelName = fullAvatarFST["name"].toString();
-        } else {     
+        } else {
             _fullAvatarModelName = modelName;
         }
     }
@@ -1052,7 +1052,7 @@ void MyAvatar::useHeadAndBodyURLs(const QUrl& headURL, const QUrl& bodyURL, cons
         if (headName.isEmpty()) {
             QVariantHash headFST = FSTReader::downloadMapping(_headURLFromPreferences.toString());
             _headModelName = headFST["name"].toString();
-        } else {     
+        } else {
             _headModelName = headName;
         }
     }
@@ -1062,7 +1062,7 @@ void MyAvatar::useHeadAndBodyURLs(const QUrl& headURL, const QUrl& bodyURL, cons
         if (bodyName.isEmpty()) {
             QVariantHash bodyFST = FSTReader::downloadMapping(_skeletonURLFromPreferences.toString());
             _bodyModelName = bodyFST["name"].toString();
-        } else {     
+        } else {
             _bodyModelName = bodyName;
         }
     }
@@ -1093,7 +1093,7 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
 glm::vec3 MyAvatar::getSkeletonPosition() const {
     CameraMode mode = Application::getInstance()->getCamera()->getMode();
     if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
-        // The avatar is rotated PI about the yAxis, so we have to correct for it 
+        // The avatar is rotated PI about the yAxis, so we have to correct for it
         // to get the skeleton offset contribution in the world-frame.
         const glm::quat FLIP = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
         glm::vec3 skeletonOffset = _skeletonOffset;
@@ -1136,9 +1136,9 @@ void MyAvatar::setScriptedMotorVelocity(const glm::vec3& velocity) {
 }
 
 void MyAvatar::setScriptedMotorTimescale(float timescale) {
-    // we clamp the timescale on the large side (instead of just the low side) to prevent 
+    // we clamp the timescale on the large side (instead of just the low side) to prevent
     // obnoxiously large values from introducing NaN into avatar's velocity
-    _scriptedMotorTimescale = glm::clamp(timescale, MIN_SCRIPTED_MOTOR_TIMESCALE, 
+    _scriptedMotorTimescale = glm::clamp(timescale, MIN_SCRIPTED_MOTOR_TIMESCALE,
             DEFAULT_SCRIPTED_MOTOR_TIMESCALE);
 }
 
@@ -1156,14 +1156,14 @@ void MyAvatar::clearScriptableSettings() {
     clearJointAnimationPriorities();
     _scriptedMotorVelocity = glm::vec3(0.0f);
     _scriptedMotorTimescale = DEFAULT_SCRIPTED_MOTOR_TIMESCALE;
-}   
+}
 
 void MyAvatar::attach(const QString& modelURL, const QString& jointName, const glm::vec3& translation,
         const glm::quat& rotation, float scale, bool allowDuplicates, bool useSaved) {
-    if (QThread::currentThread() != thread()) {    
+    if (QThread::currentThread() != thread()) {
         Avatar::attach(modelURL, jointName, translation, rotation, scale, allowDuplicates, useSaved);
         return;
-    } 
+    }
     if (useSaved) {
         AttachmentData attachment = loadAttachmentData(modelURL, jointName);
         if (attachment.isValid()) {
@@ -1200,7 +1200,7 @@ const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
 
 bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs, const glm::vec3& cameraPosition) const {
     const Head* head = getHead();
-    return (renderArgs->_renderMode != RenderArgs::NORMAL_RENDER_MODE) || (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON) || 
+    return (renderArgs->_renderMode != RenderArgs::NORMAL_RENDER_MODE) || (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON) ||
         (glm::length(cameraPosition - head->getEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE * _scale);
 }
 
@@ -1250,10 +1250,10 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
         //Invert yaw and roll when in mirror mode
         if (Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
-            YAW(euler) *= -1.0;
-            ROLL(euler) *= -1.0;
+            YAW(euler) *= -1.0f;
+            ROLL(euler) *= -1.0f;
         }
-        
+
         Head* head = getHead();
         head->setBaseYaw(YAW(euler));
         head->setBasePitch(PITCH(euler));
@@ -1266,9 +1266,9 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
         return localVelocity;
     }
     // compute motor efficiency
-    // The timescale of the motor is the approximate time it takes for the motor to 
-    // accomplish its intended localVelocity.  A short timescale makes the motor strong, 
-    // and a long timescale makes it weak.  The value of timescale to use depends 
+    // The timescale of the motor is the approximate time it takes for the motor to
+    // accomplish its intended localVelocity.  A short timescale makes the motor strong,
+    // and a long timescale makes it weak.  The value of timescale to use depends
     // on what the motor is doing:
     //
     // (1) braking --> short timescale (aggressive motor assertion)
@@ -1279,8 +1279,8 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
     float MIN_KEYBOARD_BRAKE_SPEED = 0.3f;
     float timescale = MAX_KEYBOARD_MOTOR_TIMESCALE;
     bool isThrust = (glm::length2(_thrust) > EPSILON);
-    if (_isPushing || isThrust || 
-            (_scriptedMotorTimescale < MAX_KEYBOARD_MOTOR_TIMESCALE && 
+    if (_isPushing || isThrust ||
+            (_scriptedMotorTimescale < MAX_KEYBOARD_MOTOR_TIMESCALE &&
             _motionBehaviors | AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED)) {
         // we don't want to brake if something is pushing the avatar around
         timescale = _keyboardMotorTimescale;
@@ -1297,18 +1297,18 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
     float motorEfficiency = glm::clamp(deltaTime / timescale, 0.0f, 1.0f);
 
     glm::vec3 newLocalVelocity = localVelocity;
-    float keyboardInput = fabsf(_driveKeys[FWD] - _driveKeys[BACK]) + 
-        (fabsf(_driveKeys[RIGHT] - _driveKeys[LEFT])) + 
+    float keyboardInput = fabsf(_driveKeys[FWD] - _driveKeys[BACK]) +
+        (fabsf(_driveKeys[RIGHT] - _driveKeys[LEFT])) +
         fabsf(_driveKeys[UP] - _driveKeys[DOWN]);
     if (keyboardInput) {
         // Compute keyboard input
         glm::vec3 front = (_driveKeys[FWD] - _driveKeys[BACK]) * IDENTITY_FRONT;
         glm::vec3 right = (_driveKeys[RIGHT] - _driveKeys[LEFT]) * IDENTITY_RIGHT;
         glm::vec3 up = (_driveKeys[UP] - _driveKeys[DOWN]) * IDENTITY_UP;
-    
+
         glm::vec3 direction = front + right + up;
         float directionLength = glm::length(direction);
-    
+
         // Compute motor magnitude
         if (directionLength > EPSILON) {
             direction /= directionLength;
@@ -1338,7 +1338,7 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
                 motorEfficiency = glm::clamp(deltaTime / WALK_ACCELERATION_TIMESCALE, 0.0f, 1.0f);
             }
             _isPushing = true;
-        } 
+        }
         newLocalVelocity = localVelocity + motorEfficiency * (_keyboardMotorVelocity - localVelocity);
     } else {
         _keyboardMotorVelocity = glm::vec3(0.0f);
@@ -1402,13 +1402,13 @@ void MyAvatar::updatePosition(float deltaTime) {
         _targetVelocity *= MAX_AVATAR_SPEED / speed;
         speed = MAX_AVATAR_SPEED;
     }
-    
+
     if (speed > MIN_AVATAR_SPEED && !_characterController.isEnabled()) {
         // update position ourselves
         applyPositionDelta(deltaTime * _targetVelocity);
         measureMotionDerivatives(deltaTime);
     } // else physics will move avatar later
-    
+
     // update _moving flag based on speed
     const float MOVING_SPEED_THRESHOLD = 0.01f;
     _moving = speed > MOVING_SPEED_THRESHOLD;
@@ -1425,7 +1425,7 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
     float xzDistance = sqrt(positionBA.x * positionBA.x + positionBA.z * positionBA.z);
     if (xzDistance < (radiusA + radiusB)) {
         float yDistance = fabs(positionBA.y);
-        float halfHeights = 0.5 * (heightA + heightB);
+        float halfHeights = 0.5f * (heightA + heightB);
         if (yDistance < halfHeights) {
             // cylinders collide
             if (xzDistance > 0.0f) {
@@ -1475,7 +1475,7 @@ void MyAvatar::maybeUpdateBillboard() {
     buffer.open(QIODevice::WriteOnly);
     image.save(&buffer, "PNG");
     _billboardValid = true;
-    
+
     sendBillboardPacket();
     */
 }
@@ -1483,47 +1483,47 @@ void MyAvatar::maybeUpdateBillboard() {
 void MyAvatar::increaseSize() {
     if ((1.0f + SCALING_RATIO) * _targetScale < MAX_AVATAR_SCALE) {
         _targetScale *= (1.0f + SCALING_RATIO);
-        qCDebug(interfaceapp, "Changed scale to %f", _targetScale);
+        qCDebug(interfaceapp, "Changed scale to %f", (double)_targetScale);
     }
 }
 
 void MyAvatar::decreaseSize() {
     if (MIN_AVATAR_SCALE < (1.0f - SCALING_RATIO) * _targetScale) {
         _targetScale *= (1.0f - SCALING_RATIO);
-        qCDebug(interfaceapp, "Changed scale to %f", _targetScale);
+        qCDebug(interfaceapp, "Changed scale to %f", (double)_targetScale);
     }
 }
 
 void MyAvatar::resetSize() {
     _targetScale = 1.0f;
-    qCDebug(interfaceapp, "Reseted scale to %f", _targetScale);
+    qCDebug(interfaceapp, "Reseted scale to %f", (double)_targetScale);
 }
 
 void MyAvatar::goToLocation(const glm::vec3& newPosition,
                             bool hasOrientation, const glm::quat& newOrientation,
                             bool shouldFaceLocation) {
-    
+
     qCDebug(interfaceapp).nospace() << "MyAvatar goToLocation - moving to " << newPosition.x << ", "
         << newPosition.y << ", " << newPosition.z;
-    
+
     glm::vec3 shiftedPosition = newPosition;
-    
+
     if (hasOrientation) {
         qCDebug(interfaceapp).nospace() << "MyAvatar goToLocation - new orientation is "
             << newOrientation.x << ", " << newOrientation.y << ", " << newOrientation.z << ", " << newOrientation.w;
-        
+
         // orient the user to face the target
         glm::quat quatOrientation = newOrientation;
-        
+
         if (shouldFaceLocation) {
-            
+
             quatOrientation = newOrientation * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-            
+
             // move the user a couple units away
             const float DISTANCE_TO_USER = 2.0f;
             shiftedPosition = newPosition - quatOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
         }
-        
+
         setOrientation(quatOrientation);
     }
 
@@ -1591,8 +1591,8 @@ void MyAvatar::clearDriveKeys() {
     }
 }
 
-void MyAvatar::relayDriveKeysToCharacterController() { 
+void MyAvatar::relayDriveKeysToCharacterController() {
     if (_driveKeys[UP] > 0.0f) {
-        _characterController.jump(); 
+        _characterController.jump();
     }
 }
