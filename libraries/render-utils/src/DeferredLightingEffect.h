@@ -66,8 +66,8 @@ public:
     void addSpotLight(const glm::vec3& position, float radius, const glm::vec3& color = glm::vec3(1.0f, 1.0f, 1.0f),
         float intensity = 0.5f, const glm::quat& orientation = glm::quat(), float exponent = 0.0f, float cutoff = PI);
     
-    void prepare();
-    void render();
+    void prepare(RenderArgs* args);
+    void render(RenderArgs* args);
     void copyBack(RenderArgs* args);
 
     void setupTransparent(RenderArgs* args, int lightBufferUnit);
