@@ -1188,9 +1188,11 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName, const g
 
 void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel) {
 
-    if (!(_skeletonModel.isRenderable() && _firstPersonSkeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
+    if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         return; // wait until all models are loaded
     }
+
+    fixupModelsInScene();
 
     //  Render head so long as the camera isn't inside it
     if (shouldRenderHead(renderArgs)) {
