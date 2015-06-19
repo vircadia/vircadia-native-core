@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var MOVE_DISTANCE = 0.3;
+var MOVE_DISTANCE = 10.0;
 var PITCH_INCREMENT = 0.5; // degrees
 var YAW_INCREMENT = 0.5; // degrees
 var VR_YAW_INCREMENT = 15.0; // degrees
@@ -50,52 +50,63 @@ var warpLine = Overlays.addOverlay("line3d", {
     visible: false,
 });
 
+var velocity = { x: 0, y: 0, z: 0 };
+var VERY_LONG_TIME = 1000000.0;
+
 var hmdControls = (function () {
+
+    function findAction(name) {
+        var actions = Controller.getAllActions();
+        for (var i = 0; i < actions.length; i++) {
+            if (actions[i].actionName == name) {
+                return i;
+            }
+        }
+        // If the action isn't found, it will default to the first available action
+        return 0;
+    }
 
 	function onActionEvent(action, state) {
         if (state < THRESHOLD) {
-            if (action == 6 || action == 7) {
+            if (action == findAction("YAW_LEFT") || action == findAction("YAW_RIGHT")) {
                 yawTimer = CAMERA_UPDATE_TIME;
-            } else if (action == 8 || action == 9) {
+            } else if (action == findAction("PITCH_UP") || action == findAction("PITCH_DOWN")) {
                 pitchTimer = CAMERA_UPDATE_TIME;
             }
             return;
         }
         switch (action) {
-            case 0: // backward
-                var direction = Quat.getFront(Camera.getOrientation());
-                direction = Vec3.multiply(-1, direction);
+            case findAction("LONGITUDINAL_BACKWARD"):
+                var direction = {x: 0.0, y: 0.0, z:1.0};
                 direction = Vec3.multiply(Vec3.normalize(direction), shifted ? SHIFT_MAG * MOVE_DISTANCE : MOVE_DISTANCE);
-                MyAvatar.position = Vec3.sum(MyAvatar.position, direction);
+                velocity = Vec3.sum(velocity, direction);
                 break;
-            case 1: // forward
-                var direction = Quat.getFront(Camera.getOrientation());
+            case findAction("LONGITUDINAL_FORWARD"):
+                var direction = {x: 0.0, y: 0.0, z:-1.0};
                 direction = Vec3.multiply(Vec3.normalize(direction), shifted ? SHIFT_MAG * MOVE_DISTANCE : MOVE_DISTANCE);
-                MyAvatar.position = Vec3.sum(MyAvatar.position, direction);
+                velocity = Vec3.sum(velocity, direction);
                 break;
-            case 2: // left
-                var direction = Quat.getRight(Camera.getOrientation());
-                direction = Vec3.multiply(-1, direction);
+            case findAction("LATERAL_LEFT"):
+                var direction = {x:-1.0, y: 0.0, z: 0.0}
                 direction = Vec3.multiply(Vec3.normalize(direction), shifted ? SHIFT_MAG * MOVE_DISTANCE : MOVE_DISTANCE);
-                MyAvatar.position = Vec3.sum(MyAvatar.position, direction);
+                velocity = Vec3.sum(velocity, direction);
                 break;
-            case 3: // right
-                var direction = Quat.getRight(Camera.getOrientation());
+            case findAction("LATERAL_RIGHT"):
+                var direction = {x:1.0, y: 0.0, z: 0.0};
                 direction = Vec3.multiply(Vec3.normalize(direction), shifted ? SHIFT_MAG * MOVE_DISTANCE : MOVE_DISTANCE);
-                MyAvatar.position = Vec3.sum(MyAvatar.position, direction);
+                velocity = Vec3.sum(velocity, direction);
                 break;
-            case 4: // down
-                var direction = Quat.getUp(Camera.getOrientation());
-                direction = Vec3.multiply(-1, direction);
+            case findAction("VERTICAL_DOWN"):
+                var direction = {x: 0.0, y: -1.0, z: 0.0};
                 direction = Vec3.multiply(Vec3.normalize(direction), shifted ? SHIFT_MAG * MOVE_DISTANCE : MOVE_DISTANCE);
-                MyAvatar.position = Vec3.sum(MyAvatar.position, direction);
+                velocity = Vec3.sum(velocity, direction);
                 break;
-            case 5: // up
-                var direction = Quat.getUp(Camera.getOrientation());
+            case findAction("VERTICAL_UP"):
+                var direction = {x: 0.0, y: 1.0, z: 0.0};
                 direction = Vec3.multiply(Vec3.normalize(direction), shifted ? SHIFT_MAG * MOVE_DISTANCE : MOVE_DISTANCE);
-                MyAvatar.position = Vec3.sum(MyAvatar.position, direction);
+                velocity = Vec3.sum(velocity, direction);
                 break;
-            case 6: // yaw left
+            case findAction("YAW_LEFT"):
                 if (yawTimer < 0.0 && Menu.isOptionChecked("Enable VR Mode")) {
                     MyAvatar.bodyYaw = MyAvatar.bodyYaw + (shifted ? SHIFT_MAG * VR_YAW_INCREMENT : VR_YAW_INCREMENT);
                     yawTimer = CAMERA_UPDATE_TIME;
@@ -103,7 +114,7 @@ var hmdControls = (function () {
                     MyAvatar.bodyYaw = MyAvatar.bodyYaw + (shifted ? SHIFT_MAG * YAW_INCREMENT : YAW_INCREMENT);
                 }
                 break;
-            case 7: // yaw right
+            case findAction("YAW_RIGHT"):
                 if (yawTimer < 0.0 && Menu.isOptionChecked("Enable VR Mode")) {
                     MyAvatar.bodyYaw = MyAvatar.bodyYaw - (shifted ? SHIFT_MAG * VR_YAW_INCREMENT : VR_YAW_INCREMENT);
                     yawTimer = CAMERA_UPDATE_TIME;
@@ -111,23 +122,23 @@ var hmdControls = (function () {
                     MyAvatar.bodyYaw = MyAvatar.bodyYaw - (shifted ? SHIFT_MAG * YAW_INCREMENT : YAW_INCREMENT);
                 }
                 break;
-            case 8: // pitch down
+            case findAction("PITCH_DOWN"):
                 if (!Menu.isOptionChecked("Enable VR Mode")) {
                     MyAvatar.headPitch = Math.max(-180, Math.min(180, MyAvatar.headPitch - (shifted ? SHIFT_MAG * PITCH_INCREMENT : PITCH_INCREMENT)));
                 }
                 break;
-            case 9: // pitch up
+            case findAction("PITCH_UP"):
                 if (!Menu.isOptionChecked("Enable VR Mode")) {
                     MyAvatar.headPitch = Math.max(-180, Math.min(180, MyAvatar.headPitch + (shifted ? SHIFT_MAG * PITCH_INCREMENT : PITCH_INCREMENT)));
                 }
                 break;
-            case 12: // shift
+            case findAction("SHIFT"): // speed up
                 if (shiftTimer < 0.0) {
                     shifted = !shifted;
                     shiftTimer = SHIFT_UPDATE_TIME;
                 }
                 break;
-            case 13: // action1 = start/end warp
+            case findAction("ACTION1"): // start/end warp
                 if (warpTimer < 0.0) {
                     warpActive = !warpActive;
                     if (!warpActive) {
@@ -136,7 +147,7 @@ var hmdControls = (function () {
                     warpTimer = WARP_UPDATE_TIME;
                 }
                 break;
-            case 14: // action2 = cancel warp
+            case findAction("ACTION2"): // cancel warp
                 warpActive = false;
                 Overlays.editOverlay(warpSphere, {
                     visible: false,
@@ -163,6 +174,10 @@ var hmdControls = (function () {
         if (warpActive) {
             updateWarp();
         }
+
+        MyAvatar.motorVelocity = velocity;
+        MyAvatar.motorTimescale = 0.0;
+        velocity = { x: 0, y: 0, z: 0 };
     }
 
     function updateWarp() {
@@ -227,6 +242,8 @@ var hmdControls = (function () {
 
     function tearDown() {
     	Controller.releaseActionEvents();
+        MyAvatar.motorVelocity = {x:0.0, y:0.0, z:0.0}
+        MyAvatar.motorTimescale = VERY_LONG_TIME;
     }
 
     setUp();
