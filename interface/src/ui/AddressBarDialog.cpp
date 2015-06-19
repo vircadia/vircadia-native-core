@@ -22,32 +22,24 @@ AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(pare
     connect(addressManager.data(), &AddressManager::lookupResultIsOffline, this, &AddressBarDialog::displayAddressOfflineMessage);
     connect(addressManager.data(), &AddressManager::lookupResultIsNotFound, this, &AddressBarDialog::displayAddressNotFoundMessage);
     connect(addressManager.data(), &AddressManager::lookupResultsFinished, this, &AddressBarDialog::hide);
-    connect(addressManager.data(), &AddressManager::goBackPossible, this, &AddressBarDialog::changeBackAlpha);
-    connect(addressManager.data(), &AddressManager::goForwardPossible, this, &AddressBarDialog::changeForwardAlpha);
+    connect(addressManager.data(), &AddressManager::goBackPossible, this, [this] (bool isPossible) {
+        if (isPossible != _backEnabled) {
+            _backEnabled = isPossible;
+            emit backEnabledChanged();
+        }
+    });
+    connect(addressManager.data(), &AddressManager::goForwardPossible, this, [this] (bool isPossible) {
+        if (isPossible != _forwardEnabled) {
+            _forwardEnabled = isPossible;
+            emit forwardEnabledChanged();
+        }
+    });
     _backEnabled = DependencyManager::get<AddressManager>()->getBackState();
     _forwardEnabled = DependencyManager::get<AddressManager>()->getForwardState();
 }
 
 void AddressBarDialog::hide() {
     ((QQuickItem*)parent())->setEnabled(false);
-}
-
-void AddressBarDialog::changeBackAlpha(bool isPossible) {
-    if (isPossible) qDebug() << "Back is possible";
-    else qDebug() << "Back is not possible";
-    if (isPossible != _backEnabled) {
-        _backEnabled = isPossible;
-        emit backEnabledChanged();
-    }
-}
-
-void AddressBarDialog::changeForwardAlpha(bool isPossible) {
-    if (isPossible) qDebug() << "Forward is possible";
-    else qDebug() << "Forward is not possible";
-    if (isPossible != _forwardEnabled) {
-        _forwardEnabled = isPossible;
-        emit forwardEnabledChanged();
-    }
 }
 
 void AddressBarDialog::loadAddress(const QString& address) {

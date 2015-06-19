@@ -37,10 +37,6 @@ DialogContainer {
         implicitWidth: backgroundImage.width
         implicitHeight: backgroundImage.height
 
-        onParentChanged: {
-            console.log("Test: " + addressBarDialog.backEnabled + " " + addressBarDialog.forwardEnabled + " " + addressBarDialog)
-        }
-
         Image {
             id: backgroundImage
 
@@ -70,15 +66,6 @@ DialogContainer {
                         addressBarDialog.loadBack()
                     }
                 }
-
-                /*
-                Connections {
-                target: backArrow
-                onBackState: { 
-                        parent.source: "../images/redarrow.svg"
-
-                    }
-                }*/
             }
             
             Image {
@@ -101,14 +88,6 @@ DialogContainer {
                         addressBarDialog.loadForward()
                     }
                 }
-
-                /*
-                Connections {
-                target: forwardArrow
-                onForwardState: { 
-                        parent.source: "../images/redarrow.svg"
-                    }
-                }*/
             }
 
             TextInput {
@@ -148,6 +127,7 @@ DialogContainer {
                 }
             }
 
+            // Add this code to make text bar draggable
             /*
             MouseArea {
                 // Drag the input rectangle
