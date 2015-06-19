@@ -9,7 +9,13 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-function hslToRgb(hslColor) {
+////***************** UTILITIES *************************************
+
+map = function(value, min1, max1, min2, max2) {
+  return min2 + (max2 - min2) * ((value - min1) / (max1 - min1));
+}
+
+hslToRgb = function (hslColor) {
   var h = hslColor.hue;
   var s = hslColor.sat;
   var l = hslColor.light;
@@ -42,15 +48,13 @@ function hslToRgb(hslColor) {
 
 }
 
-function map(value, min1, max1, min2, max2) {
-  return min2 + (max2 - min2) * ((value - min1) / (max1 - min1));
-}
 
-function randFloat(low, high) {
+
+randFloat = function(low, high) {
   return low + Math.random() * (high - low);
 }
 
 
-function randInt(low, high) {
+randInt = function(low, high) {
   return Math.floor(randFloat(low, high));
 }
