@@ -91,6 +91,8 @@ public slots:
     Q_INVOKABLE virtual bool removeInputChannel(UserInputMapper::InputChannel inputChannel);
     Q_INVOKABLE virtual QVector<UserInputMapper::InputPair> getAvailableInputs(unsigned int device);
     Q_INVOKABLE virtual void resetAllDeviceBindings();
+    Q_INVOKABLE virtual void resetDevice(unsigned int device);
+    Q_INVOKABLE virtual int findDevice(QString name);
     virtual bool isPrimaryButtonPressed() const;
     virtual glm::vec2 getPrimaryJoystickPosition() const;
 

@@ -21,7 +21,7 @@ class EntitySimulation;
 enum EntityActionType {
     // keep these synchronized with actionTypeFromString and actionTypeToString
     ACTION_TYPE_NONE,
-    ACTION_TYPE_PULL_TO_POINT,
+    ACTION_TYPE_OFFSET,
     ACTION_TYPE_SPRING,
     ACTION_TYPE_HOLD
 };

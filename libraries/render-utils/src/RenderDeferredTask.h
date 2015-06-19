@@ -18,48 +18,49 @@
 
 class PrepareDeferred {
 public:
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+
+    typedef render::Job::Model<PrepareDeferred> JobModel;
 };
-namespace render {
-template <> void jobRun(const PrepareDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
-}
+
 
 class RenderDeferred {
 public:
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+
+    typedef render::Job::Model<RenderDeferred> JobModel;
 };
-namespace render {
-template <> void jobRun(const RenderDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
-}
 
 class ResolveDeferred {
 public:
-};
-namespace render {
-template <> void jobRun(const ResolveDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
-}
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
+    typedef render::Job::Model<ResolveDeferred> JobModel;
+};
 
 class DrawOpaqueDeferred {
 public:
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
+
+    typedef render::Job::ModelI<DrawOpaqueDeferred, render::ItemIDsBounds> JobModel;
 };
-namespace render {
-template <> void jobRun(const DrawOpaqueDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
-}
 
 class DrawTransparentDeferred {
 public:
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
+
+    typedef render::Job::ModelI<DrawTransparentDeferred, render::ItemIDsBounds> JobModel;
 };
-namespace render {
-template <> void jobRun(const DrawTransparentDeferred& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
-}
 
 class DrawOverlay3D {
     static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
 public:
     static const gpu::PipelinePointer& getOpaquePipeline();
+
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+
+    typedef render::Job::Model<DrawOverlay3D> JobModel;
 };
-namespace render {
-template <> void jobRun(const DrawOverlay3D& job, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
-}
 
 class RenderDeferredTask : public render::Task {
 public:
