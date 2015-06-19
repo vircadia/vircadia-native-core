@@ -929,12 +929,17 @@ void Application::paintGL() {
         }
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-        _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
-            _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * _myAvatar->getBoomLength() * _myAvatar->getScale());
         if (OculusManager::isConnected()) {
             _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
         } else {
             _myCamera.setRotation(_myAvatar->getHead()->getOrientation());
+        }
+        if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
+            _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
+                                  _myCamera.getRotation() * glm::vec3(0.0f, 0.0f, 1.0f) * _myAvatar->getBoomLength() * _myAvatar->getScale());
+        } else {
+            _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
+                                  _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * _myAvatar->getBoomLength() * _myAvatar->getScale());
         }
 
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
@@ -2422,6 +2427,12 @@ void Application::cameraMenuChanged() {
                 _myAvatar->setBoomLength(MyAvatar::ZOOM_DEFAULT);
             }
         }
+    }
+}
+
+void Application::rotationModeChanged() {
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
+        _myAvatar->setHeadPitch(0);
     }
 }
 
