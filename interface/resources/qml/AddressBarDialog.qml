@@ -37,6 +37,10 @@ DialogContainer {
         implicitWidth: backgroundImage.width
         implicitHeight: backgroundImage.height
 
+        onParentChanged: {
+            console.log("Test: " + addressBarDialog.backEnabled + " " + addressBarDialog.forwardEnabled+ " " + addressBarDialog)
+        }
+
         Image {
             id: backgroundImage
 

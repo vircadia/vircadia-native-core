@@ -16,8 +16,6 @@
 #include "AddressManager.h"
 
 HIFI_QML_DEF(AddressBarDialog)
-Q_PROPERTY(bool backEnabled READ backEnabled CHANGED backEnabledChanged)
-Q_PROPERTY(bool forwardEnabled READ forwardEnabled CHANGED forwardEnabledChanged)
 
 AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(parent) {
     auto addressManager = DependencyManager::get<AddressManager>();
