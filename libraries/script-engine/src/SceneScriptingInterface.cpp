@@ -159,4 +159,6 @@ void SceneScriptingInterface::clearEngineCounters() {
     _numDrawnOpaqueItems = 0;
     _numFeedTransparentItems = 0;
     _numDrawnTransparentItems = 0;
+    _numFeedOverlay3DItems = 0;
+    _numDrawnOverlay3DItems = 0;
 }
