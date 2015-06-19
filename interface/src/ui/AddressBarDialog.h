@@ -18,8 +18,8 @@ class AddressBarDialog : public OffscreenQmlDialog
 {
     Q_OBJECT
     HIFI_QML_DECL
-    Q_PROPERTY(bool backEnabled READ backEnabled CHANGED backEnabledChanged)
-    Q_PROPERTY(bool forwardEnabled READ forwardEnabled CHANGED forwardEnabledChanged)
+    Q_PROPERTY(bool backEnabled READ backEnabled NOTIFY backEnabledChanged)
+    Q_PROPERTY(bool forwardEnabled READ forwardEnabled NOTIFY forwardEnabledChanged)
 
 public:
     AddressBarDialog(QQuickItem* parent = nullptr);

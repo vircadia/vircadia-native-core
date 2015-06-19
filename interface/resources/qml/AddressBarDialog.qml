@@ -38,7 +38,7 @@ DialogContainer {
         implicitHeight: backgroundImage.height
 
         onParentChanged: {
-            console.log("Test: " + addressBarDialog.backEnabled + " " + addressBarDialog.forwardEnabled+ " " + addressBarDialog)
+            console.log("Test: " + addressBarDialog.backEnabled + " " + addressBarDialog.forwardEnabled + " " + addressBarDialog)
         }
 
         Image {
@@ -53,7 +53,7 @@ DialogContainer {
             Image {
                 id: backArrow
 
-                source: addressBarDialog.backEnabled ? "../images/left-arrow.svg" : "../images/redarrow.svg"
+                source: addressBarDialog.backEnabled ? "../images/left-arrow.svg" : "../images/redarrow_reversed.svg"
                 
                 anchors {
                     fill: parent
@@ -70,8 +70,6 @@ DialogContainer {
                         addressBarDialog.loadBack()
                     }
                 }
-
-                //onBackEnabledChanged: { parent.source: "../images/redarrow.svg" }
 
                 /*
                 Connections {
@@ -103,8 +101,6 @@ DialogContainer {
                         addressBarDialog.loadForward()
                     }
                 }
-
-                //onForwardEnabledChanged: { parent.source: "../images/redarrow.svg" }
 
                 /*
                 Connections {
