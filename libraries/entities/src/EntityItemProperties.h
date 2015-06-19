@@ -150,6 +150,7 @@ public:
     DEFINE_PROPERTY_REF(LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>);
     DEFINE_PROPERTY_REF(PROP_HREF, Href, href, QString);
     DEFINE_PROPERTY_REF(PROP_DESCRIPTION, Description, description, QString);
+    DEFINE_PROPERTY_REF(PROP_ACTION_DATA, ActionData, actionData, QByteArray);
 
     static QString getBackgroundModeString(BackgroundMode mode);
 
@@ -201,6 +202,8 @@ public:
     void setCreated(QDateTime& v);
 
     bool hasTerseUpdateChanges() const;
+
+    void setActionDataDirty() { _actionDataChanged = true; }
 
 private:
     QUuid _id;
@@ -299,7 +302,8 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelSurfaceStyle, voxelSurfaceStyle, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Href, href, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Description, description, "");
-    
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ActionData, actionData, "");
+
     properties.getStage().debugDump();
     properties.getAtmosphere().debugDump();
     properties.getSkybox().debugDump();

@@ -692,9 +692,9 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, floa
     const float DESIRED_HIGHT_ON_SCREEN = 20; // In pixels (this is double on retinas)
     
     // Projected point are between -1.0f and 1.0f, hence 0.5f * windowSizeY
-    double pixelHeight = 0.5f * windowSizeY * glm::abs((p1.y / p1.w) - (p0.y / p0.w)); //
+    float pixelHeight = 0.5f * windowSizeY * glm::abs((p1.y / p1.w) - (p0.y / p0.w)); //
     // Handles pixel density (especially for macs retina displays)
-    double devicePixelRatio = qApp->getDevicePixelRatio() * qApp->getRenderResolutionScale(); // pixels / unit
+    float devicePixelRatio = (float)qApp->getDevicePixelRatio() * qApp->getRenderResolutionScale(); // pixels / unit
     
     // Compute correct scale to apply
     float scale = DESIRED_HIGHT_ON_SCREEN / (fontSize * pixelHeight) * devicePixelRatio;

@@ -252,6 +252,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, getCollisionSoundURL());
         APPEND_ENTITY_PROPERTY(PROP_HREF, getHref());
         APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, getDescription());
+        APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, getActionData());
 
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
@@ -401,7 +402,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         qCDebug(entities) << "    lastEdited =" << lastEdited;
         qCDebug(entities) << "    ago=" << editedAgo << "seconds - " << agoAsString;
     #endif
-    
+
     quint64 lastEditedFromBuffer = 0;
     quint64 lastEditedFromBufferAdjusted = 0;
 
@@ -448,7 +449,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             ignoreServerPacket = true;
         }
     }
-    
+
     if (ignoreServerPacket) {
         overwriteLocalData = false;
         #ifdef WANT_DEBUG
@@ -465,8 +466,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         _lastEdited = lastEditedFromBufferAdjusted;
         _lastEditedFromRemote = now;
         _lastEditedFromRemoteInRemoteTime = lastEditedFromBuffer;
-        
-        // TODO: only send this notification if something ACTUALLY changed (hint, we haven't yet parsed 
+
+        // TODO: only send this notification if something ACTUALLY changed (hint, we haven't yet parsed
         // the properties out of the bitstream (see below))
         somethingChangedNotification(); // notify derived classes that something has changed
     }
@@ -486,7 +487,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     encodedUpdateDelta = updateDeltaCoder; // determine true length
     dataAt += encodedUpdateDelta.size();
     bytesRead += encodedUpdateDelta.size();
-    
+
     // Newer bitstreams will have a last simulated and a last updated value
     quint64 lastSimulatedFromBufferAdjusted = now;
     if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_LAST_SIMULATED_TIME) {
@@ -509,7 +510,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         dataAt += encodedSimulatedDelta.size();
         bytesRead += encodedSimulatedDelta.size();
     }
-    
+
     #ifdef WANT_DEBUG
         if (overwriteLocalData) {
             qCDebug(entities) << "EntityItem::readEntityDataFromBuffer()... changed entity:" << getEntityItemID();
@@ -518,7 +519,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             qCDebug(entities) << "                         getLastUpdated:" << debugTime(getLastUpdated(), now);
         }
     #endif
-    
+
 
     // Property Flags
     QByteArray encodedPropertyFlags = originalDataBuffer.mid(bytesRead); // maximum possible size
@@ -567,7 +568,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
     if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
         // we always accept the server's notion of simulatorID, so we fake overwriteLocalData as true
-        // before we try to READ_ENTITY_PROPERTY it 
+        // before we try to READ_ENTITY_PROPERTY it
         bool temp = overwriteLocalData;
         overwriteLocalData = true;
         READ_ENTITY_PROPERTY(PROP_SIMULATOR_ID, QUuid, updateSimulatorID);
@@ -583,12 +584,15 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_HREF, QString, setHref);
     READ_ENTITY_PROPERTY(PROP_DESCRIPTION, QString, setDescription);
 
-    bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
+    READ_ENTITY_PROPERTY(PROP_ACTION_DATA, QByteArray, setActionData);
+
+    bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+                                                  propertyFlags, overwriteLocalData);
 
     ////////////////////////////////////
     // WARNING: Do not add stream content here after the subclass. Always add it before the subclass
     //
-    // NOTE: we had a bad version of the stream that we added stream data after the subclass. We can attempt to recover 
+    // NOTE: we had a bad version of the stream that we added stream data after the subclass. We can attempt to recover
     // by doing this parsing here... but it's not likely going to fully recover the content.
     //
     // TODO: Remove this conde once we've sufficiently migrated content past this damaged version
@@ -1391,4 +1395,25 @@ void EntityItem::clearActions(EntitySimulation* simulation) {
         action->setOwnerEntity(nullptr);
         action->removeFromSimulation(simulation);
     }
+}
+
+void EntityItem::setActionData(QByteArray actionData) {
+
+}
+
+
+const QByteArray EntityItem::getActionData() const {
+    QVector<QByteArray> serializedActions;
+    QHash<QUuid, EntityActionPointer>::const_iterator i = _objectActions.begin();
+    while (i != _objectActions.end()) {
+        const QUuid id = i.key();
+        EntityActionPointer action = _objectActions[id];
+        QByteArray bytesForAction = action->serialize();
+        serializedActions << bytesForAction;
+    }
+
+    QByteArray result;
+    QDataStream ds(&result, QIODevice::WriteOnly);
+    ds << serializedActions;
+    return result;
 }

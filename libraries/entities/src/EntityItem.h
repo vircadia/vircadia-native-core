@@ -379,6 +379,8 @@ public:
     bool updateAction(EntitySimulation* simulation, const QUuid& actionID, const QVariantMap& arguments);
     bool removeAction(EntitySimulation* simulation, const QUuid& actionID);
     void clearActions(EntitySimulation* simulation);
+    void setActionData(QByteArray actionData);
+    const QByteArray getActionData() const;
 
 protected:
 

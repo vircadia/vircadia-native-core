@@ -108,7 +108,7 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
         EntityActionInterface::extractFloatArgument("spring action", arguments, "angularTimeScale", rscOk, false);
 
     if (!ptOk && !rtOk) {
-        qDebug() << "spring action requires either targetPosition or targetRotation argument";
+        qDebug() << "spring action requires at least one of targetPosition or targetRotation argument";
         return false;
     }
 

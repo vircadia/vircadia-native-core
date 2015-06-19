@@ -98,7 +98,7 @@ CONSTRUCT_PROPERTY(backgroundMode, BACKGROUND_MODE_INHERIT),
 CONSTRUCT_PROPERTY(sourceUrl, ""),
 CONSTRUCT_PROPERTY(lineWidth, LineEntityItem::DEFAULT_LINE_WIDTH),
 CONSTRUCT_PROPERTY(linePoints, QVector<glm::vec3>()),
-
+CONSTRUCT_PROPERTY(actionData, QByteArray()),
 
 _id(UNKNOWN_ENTITY_ID),
 _idSet(false),
@@ -349,6 +349,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_LINE_POINTS, linePoints);
     CHECK_PROPERTY_CHANGE(PROP_HREF, href);
     CHECK_PROPERTY_CHANGE(PROP_DESCRIPTION, description);
+    CHECK_PROPERTY_CHANGE(PROP_ACTION_DATA, actionData);
 
     changedProperties += _stage.getChangedProperties();
     changedProperties += _atmosphere.getChangedProperties();
@@ -444,6 +445,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(linePoints);
     COPY_PROPERTY_TO_QSCRIPTVALUE(href);
     COPY_PROPERTY_TO_QSCRIPTVALUE(description);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(actionData);
 
     // Sitting properties support
     if (!skipDefaults) {
@@ -555,6 +557,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(linePoints, qVectorVec3, setLinePoints);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(href, QString, setHref);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(description, QString, setDescription);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(actionData, QByteArray, setActionData);
 
 
     if (!honorReadOnly) {
@@ -804,6 +807,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, properties.getMarketplaceID());
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
             APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, properties.getCollisionSoundURL());
+            APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, properties.getActionData());
         }
         if (propertyCount > 0) {
             int endOfEntityItemData = packetData->getUncompressedByteOffset();
@@ -1051,6 +1055,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NAME, QString, setName);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACTION_DATA, QByteArray, setActionData);
 
     return valid;
 }
@@ -1162,6 +1167,7 @@ void EntityItemProperties::markAllChanged() {
     _hrefChanged = true;
     _descriptionChanged = true;
 
+    _actionDataChanged = true;
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.
