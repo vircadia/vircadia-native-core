@@ -122,7 +122,8 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_SIMULATOR_ID;
     requestedProperties += PROP_HREF;
     requestedProperties += PROP_DESCRIPTION;
-    
+    requestedProperties += PROP_ACTION_DATA;
+
     return requestedProperties;
 }
 
@@ -922,6 +923,7 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(name, getName);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(href, getHref);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(description, getDescription);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(actionData, getActionData);
 
     properties._defaultSettings = false;
     
@@ -982,6 +984,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(name, setName);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(href, setHref);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(description, setDescription);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(actionData, setActionData);
 
     if (somethingChanged) {
         uint64_t now = usecTimestampNow();
@@ -1398,9 +1401,14 @@ void EntityItem::clearActions(EntitySimulation* simulation) {
 }
 
 void EntityItem::setActionData(QByteArray actionData) {
+    if (actionData.size() == 0) {
+        return;
+    }
     QVector<QByteArray> serializedActions;
     QDataStream ds(actionData);
     ds >> serializedActions;
+
+    qDebug() << "EntityItem::setActionData" << actionData.size() << "bytes";
 
     foreach(QByteArray serializedAction, serializedActions) {
         QDataStream dsForAction(serializedAction);
@@ -1438,6 +1446,7 @@ const QByteArray EntityItem::getActionData() const {
         EntityActionPointer action = _objectActions[id];
         QByteArray bytesForAction = action->serialize();
         serializedActions << bytesForAction;
+        i++;
     }
 
     QByteArray result;
