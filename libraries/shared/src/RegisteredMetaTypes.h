@@ -60,7 +60,6 @@ QScriptValue qVectorVec3ToScriptValue(QScriptEngine* engine, const QVector<glm::
 void qVectorVec3FromScriptValue(const QScriptValue& array, QVector<glm::vec3>& vector);
 QVector<glm::vec3> qVectorVec3FromScriptValue( const QScriptValue& array);
 
-
 class PickRay {
 public:
     PickRay() : origin(0.0f), direction(0.0f)  { }
