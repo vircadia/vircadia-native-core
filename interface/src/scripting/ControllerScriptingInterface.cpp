@@ -457,6 +457,14 @@ void ControllerScriptingInterface::resetAllDeviceBindings() {
     Application::getUserInputMapper()->resetAllDeviceBindings();
 }
 
+void ControllerScriptingInterface::resetDevice(unsigned int device) {
+    Application::getUserInputMapper()->resetDevice(device);
+}
+
+int ControllerScriptingInterface::findDevice(QString name) {
+    return Application::getUserInputMapper()->findDevice(name);
+}
+
 InputController::InputController(int deviceTrackerId, int subTrackerId, QObject* parent) :
     AbstractInputController(),
     _deviceTrackerId(deviceTrackerId),

@@ -909,12 +909,17 @@ void Application::paintGL() {
         }
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-        _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
-            _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * _myAvatar->getBoomLength() * _myAvatar->getScale());
         if (OculusManager::isConnected()) {
             _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
         } else {
             _myCamera.setRotation(_myAvatar->getHead()->getOrientation());
+        }
+        if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
+            _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
+                                  _myCamera.getRotation() * glm::vec3(0.0f, 0.0f, 1.0f) * _myAvatar->getBoomLength() * _myAvatar->getScale());
+        } else {
+            _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
+                                  _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * _myAvatar->getBoomLength() * _myAvatar->getScale());
         }
 
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
@@ -2418,6 +2423,12 @@ void Application::cameraMenuChanged() {
     }
 }
 
+void Application::rotationModeChanged() {
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
+        _myAvatar->setHeadPitch(0);
+    }
+}
+
 void Application::updateCamera(float deltaTime) {
     PerformanceTimer perfTimer("updateCamera");
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
@@ -3530,6 +3541,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
         renderContext._maxDrawnOpaqueItems = sceneInterface->getEngineMaxDrawnOpaqueItems();
         renderContext._maxDrawnTransparentItems = sceneInterface->getEngineMaxDrawnTransparentItems();
+        renderContext._maxDrawnOverlay3DItems = sceneInterface->getEngineMaxDrawnOverlay3DItems();
 
         renderArgs->_shouldRender = LODManager::shouldRender;
 
@@ -3546,7 +3558,9 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
         sceneInterface->setEngineFeedTransparentItems(engineRC->_numFeedTransparentItems);
         sceneInterface->setEngineDrawnTransparentItems(engineRC->_numDrawnTransparentItems);
-        
+
+        sceneInterface->setEngineFeedOverlay3DItems(engineRC->_numFeedOverlay3DItems);
+        sceneInterface->setEngineDrawnOverlay3DItems(engineRC->_numDrawnOverlay3DItems);
     }
     //Render the sixense lasers
     if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
