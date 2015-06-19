@@ -197,10 +197,6 @@ var hmdControls = (function () {
         if (active) {
             Controller.captureActionEvents();
 
-            print(yawChange);
-            print(pitchChange);
-            print(JSON.stringify(velocity));
-
             MyAvatar.bodyYaw = MyAvatar.bodyYaw + yawChange;
             MyAvatar.headPitch = Math.max(-180, Math.min(180, MyAvatar.headPitch + pitchChange));
             yawChange = 0;
