@@ -12,7 +12,7 @@
 
 
 #include <avatar/AvatarActionHold.h>
-#include <ObjectActionPullToPoint.h>
+#include <ObjectActionOffset.h>
 #include <ObjectActionSpring.h>
 
 #include "InterfaceActionFactory.h"
@@ -27,8 +27,8 @@ EntityActionPointer InterfaceActionFactory::factory(EntitySimulation* simulation
     switch (type) {
         case ACTION_TYPE_NONE:
             return nullptr;
-        case ACTION_TYPE_PULL_TO_POINT:
-            action = (EntityActionPointer) new ObjectActionPullToPoint(id, ownerEntity);
+        case ACTION_TYPE_OFFSET:
+            action = (EntityActionPointer) new ObjectActionOffset(id, ownerEntity);
             break;
         case ACTION_TYPE_SPRING:
             action = (EntityActionPointer) new ObjectActionSpring(id, ownerEntity);

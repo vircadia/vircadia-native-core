@@ -70,7 +70,7 @@ public:
     typedef Stream::Slot Slot;
 
     Batch();
-    Batch(const Batch& batch);
+    explicit Batch(const Batch& batch);
     ~Batch();
 
     void clear();
@@ -148,6 +148,7 @@ public:
     void _glDrawBuffers(GLsizei n, const GLenum* bufs);
 
     void _glUseProgram(GLuint program);
+    void _glUniform1i(GLint location, GLint v0);
     void _glUniform1f(GLint location, GLfloat v0);
     void _glUniform2f(GLint location, GLfloat v0, GLfloat v1);
     void _glUniform3f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2);
@@ -210,6 +211,7 @@ public:
         COMMAND_glDrawBuffers,
 
         COMMAND_glUseProgram,
+        COMMAND_glUniform1i,
         COMMAND_glUniform1f,
         COMMAND_glUniform2f,
         COMMAND_glUniform3f,
