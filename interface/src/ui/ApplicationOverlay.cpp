@@ -108,9 +108,6 @@ void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
         gpu::Batch batch;
         auto geometryCache = DependencyManager::get<GeometryCache>();
         geometryCache->useSimpleDrawPipeline(batch);
-        batch._glDisable(GL_DEPTH_TEST);
-        batch._glDisable(GL_LIGHTING);
-        batch._glEnable(GL_BLEND);
         batch.setProjectionTransform(mat4());
         batch.setModelTransform(mat4());
         batch._glBindTexture(GL_TEXTURE_2D, _uiTexture);
@@ -122,6 +119,7 @@ void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
 
 void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     glm::vec2 size = qApp->getCanvasSize();
+
     mat4 legacyProjection = glm::ortho<float>(0, size.x, size.y, 0, ORTHO_NEAR_CLIP, ORTHO_FAR_CLIP);
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
@@ -140,6 +138,8 @@ void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
     glMatrixMode(GL_MODELVIEW);
+
+    renderArgs->_context->syncCache();
     fboViewport(_overlayFramebuffer);
 }
 
@@ -184,7 +184,7 @@ void ApplicationOverlay::renderStatsAndLogs(RenderArgs* renderArgs) {
 
 void ApplicationOverlay::renderDomainConnectionStatusBorder(RenderArgs* renderArgs) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    std::once_flag once;
+    static std::once_flag once;
     std::call_once(once, [&] {
         QVector<vec2> points;
         static const float B = 0.99f;
@@ -200,9 +200,6 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder(RenderArgs* renderAr
         gpu::Batch batch;
         auto geometryCache = DependencyManager::get<GeometryCache>();
         geometryCache->useSimpleDrawPipeline(batch);
-        batch._glDisable(GL_DEPTH_TEST);
-        batch._glDisable(GL_LIGHTING);
-        batch._glEnable(GL_BLEND);
         batch.setProjectionTransform(mat4());
         batch.setModelTransform(mat4());
         batch.setUniformTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
