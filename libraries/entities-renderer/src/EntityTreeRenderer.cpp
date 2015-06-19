@@ -19,7 +19,6 @@
 
 #include <AbstractScriptingServicesInterface.h>
 #include <AbstractViewStateInterface.h>
-#include <AudioClient.h>
 #include <DeferredLightingEffect.h>
 #include <GlowEffect.h>
 #include <Model.h>
@@ -1095,11 +1094,15 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
     if (energyFactorOfFull < COLLISION_MINIMUM_VOLUME) {
         return;
     }
+    // Quiet sound aren't really heard at all, so we can compress everything to the range [1-c, 1], if we play it all.
+    const float COLLISION_SOUND_COMPRESSION_RANGE = 1.0f; // This section could be removed when the value is 1, but let's see how it goes.
+    const float volume = (energyFactorOfFull * COLLISION_SOUND_COMPRESSION_RANGE) + (1.0f - COLLISION_SOUND_COMPRESSION_RANGE);
+
 
     // Shift the pitch down by ln(1 + (size / COLLISION_SIZE_FOR_STANDARD_PITCH)) / ln(2)
     const float COLLISION_SIZE_FOR_STANDARD_PITCH = 0.2f;
     const float stretchFactor = log(1.0f + (entity->getMinimumAACube().getLargestDimension() / COLLISION_SIZE_FOR_STANDARD_PITCH)) / log(2);
-    DependencyManager::get<AudioClient>()->playSound(collisionSoundURL, energyFactorOfFull, stretchFactor, position);
+    AudioInjector::playSound(collisionSoundURL, volume, stretchFactor, position);
 }
 
 void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB,

@@ -11,7 +11,6 @@
 
 #include "AudioScriptingInterface.h"
 
-#include "AudioClient.h"
 #include "ScriptAudioInjector.h"
 #include "ScriptEngineLogging.h"
 
@@ -47,7 +46,7 @@ ScriptAudioInjector* AudioScriptingInterface::playSound(Sound* sound, const Audi
         AudioInjectorOptions optionsCopy = injectorOptions;
         optionsCopy.stereo = sound->isStereo();
 
-        return new ScriptAudioInjector(DependencyManager::get<AudioClient>()->playSound(sound->getByteArray(), optionsCopy));
+        return new ScriptAudioInjector(AudioInjector::playSound(sound->getByteArray(), optionsCopy, _localAudioInterface));
 
     } else {
         qCDebug(scriptengine) << "AudioScriptingInterface::playSound called with null Sound object.";
