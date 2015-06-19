@@ -59,6 +59,7 @@ protected:
 
     bool tryLockForRead() { return _lock.tryLockForRead(); }
     void lockForWrite() { _lock.lockForWrite(); }
+    bool tryLockForWrite() { return _lock.tryLockForWrite(); }
     void unlock() { _lock.unlock(); }
 
     bool _active;
