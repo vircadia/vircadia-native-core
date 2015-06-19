@@ -1811,7 +1811,9 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     
     // We need to make sure we have valid offsets calculated before we can render
     if (!_calculatedMeshPartOffsetValid) {
+        _mutex.lock();
         recalculateMeshPartOffsets();
+        _mutex.unlock();
     }
     auto textureCache = DependencyManager::get<TextureCache>();
 
