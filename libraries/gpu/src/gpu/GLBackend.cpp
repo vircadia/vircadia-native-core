@@ -145,7 +145,7 @@ bool GLBackend::checkGLError(const char* name) {
 
 bool GLBackend::checkGLErrorDebug(const char* name) {
 #ifdef DEBUG
-    checkGLError(name);
+    return checkGLError(name);
 #else
     Q_UNUSED(name);
     return false;
