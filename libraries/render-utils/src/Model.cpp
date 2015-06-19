@@ -2021,7 +2021,9 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         }
     }
     
+    _mutex.lock();
     qint64 offset = _calculatedMeshPartOffset[QPair<int,int>(meshIndex, partIndex)];
+    _mutex.unlock();
 
     if (part.quadIndices.size() > 0) {
         batch.drawIndexed(gpu::QUADS, part.quadIndices.size(), offset);
