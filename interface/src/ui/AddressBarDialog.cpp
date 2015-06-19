@@ -34,8 +34,8 @@ AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(pare
             emit forwardEnabledChanged();
         }
     });
-    _backEnabled = DependencyManager::get<AddressManager>()->getBackState();
-    _forwardEnabled = DependencyManager::get<AddressManager>()->getForwardState();
+    _backEnabled = !(DependencyManager::get<AddressManager>()->getBackStack().isEmpty());
+    _forwardEnabled = !(DependencyManager::get<AddressManager>()->getForwardStack().isEmpty());
 }
 
 void AddressBarDialog::hide() {
