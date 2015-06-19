@@ -120,6 +120,23 @@ Slider = function(x,y,width,thumbSize) {
 
     this.onValueChanged = function(value) {};
 
+    this.setMaxValue = function(maxValue) {
+        if (this.maxValue == maxValue) {
+            return;
+        }
+        var currentVal = this.getValue();
+        this.maxValue = maxValue;
+        this.setValue(currentVal);
+    }
+    this.setMinValue = function(minValue) {
+        if (this.minValue == minValue) {
+            return;
+        }
+        var currentVal = this.getValue();
+        this.minValue = minValue;
+        this.setValue(currentVal);
+    }    
+
     this.destroy = function() {
         Overlays.deleteOverlay(this.background);
         Overlays.deleteOverlay(this.thumb);
@@ -609,6 +626,14 @@ Panel = function(x, y) {
         var item = this.items[name];
         if (item != null) {
             return item.getter();
+        }
+        return null;
+    }
+
+    this.getWidget = function(name) {
+        var item = this.items[name];
+        if (item != null) {
+            return item.widget;
         }
         return null;
     }

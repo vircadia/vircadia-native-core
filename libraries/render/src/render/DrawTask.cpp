@@ -207,7 +207,6 @@ void render::renderItems(const SceneContextPointer& sceneContext, const RenderCo
             auto item = scene->getItem(itemDetails.id);
             if (numItems + 1 >= maxDrawnItems) {
                 item.render(args);
-
                 return;
             }
             item.render(args);

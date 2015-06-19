@@ -119,6 +119,8 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
         buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
         buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
         batch._glDrawBuffers(bufferCount, buffers);
+        const float OPAQUE_ALPHA_THRESHOLD = 0.5f;
+        args->_alphaThreshold = OPAQUE_ALPHA_THRESHOLD;
     }
 
     renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnOpaqueItems);
