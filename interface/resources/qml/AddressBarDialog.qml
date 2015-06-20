@@ -30,6 +30,7 @@ DialogContainer {
     property int maximumX: parent ? parent.width - width : 0
     property int maximumY: parent ? parent.height - height : 0
 
+
     AddressBarDialog {
         id: addressBarDialog
 
@@ -78,8 +79,7 @@ DialogContainer {
             Image {
                 id: backArrow
 
-                source: "../images/left-arrow.svg"
-                scale: 0.9
+                source: addressBarDialog.backEnabled ? "../images/left-arrow.svg" : "../images/redarrow_reversed.svg"
                 
                 anchors {
                     fill: parent
@@ -101,7 +101,7 @@ DialogContainer {
             Image {
                 id: forwardArrow
 
-                source: "../images/right-arrow.svg"
+                source: addressBarDialog.forwardEnabled ? "../images/right-arrow.svg" : "../images/redarrow.svg"
                 
                 anchors {
                     fill: parent
@@ -141,6 +141,7 @@ DialogContainer {
                     addressBarDialog.loadAddress(addressLine.text)
                 }
             }
+
         }
     }
 

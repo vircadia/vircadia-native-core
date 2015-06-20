@@ -639,8 +639,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 void EntityItem::debugDump() const {
     auto position = getPosition();
     qCDebug(entities) << "EntityItem id:" << getEntityItemID();
-    qCDebug(entities, " edited ago:%f", getEditedAgo());
-    qCDebug(entities, " position:%f,%f,%f", position.x, position.y, position.z);
+    qCDebug(entities, " edited ago:%f", (double)getEditedAgo());
+    qCDebug(entities, " position:%f,%f,%f", (double)position.x, (double)position.y, (double)position.z);
     qCDebug(entities) << " dimensions:" << getDimensions();
 }
 

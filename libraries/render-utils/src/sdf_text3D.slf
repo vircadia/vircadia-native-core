@@ -11,18 +11,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 uniform sampler2D Font;
-uniform float Outline;
+uniform bool Outline;
 uniform vec4 Color;
 
-const float gamma = 2.6;
-const float smoothing = 100.0;
+// the interpolated normal
+varying vec4 interpolatedNormal;
+
+const float gamma = 2.2;
+const float smoothing = 64.0;
 const float interiorCutoff = 0.8;
 const float outlineExpansion = 0.2;
 
 void main() {
     // retrieve signed distance
     float sdf = texture2D(Font, gl_TexCoord[0].xy).g;
-    if (Outline == 1.0f) {
+    if (Outline) {
         if (sdf > interiorCutoff) {
             sdf = 1.0 - sdf;
         } else {
@@ -31,7 +34,7 @@ void main() {
     }
     // perform adaptive anti-aliasing of the edges
     // The larger we're rendering, the less anti-aliasing we need
-    float s = smoothing * length(fwidth(gl_TexCoord[0]));
+    float s = smoothing * length(fwidth(gl_TexCoord[0].xy));
     float w = clamp( s, 0.0, 0.5);
     float a = smoothstep(0.5 - w, 0.5 + w, sdf);
     
@@ -43,5 +46,7 @@ void main() {
     }
 
     // final color
-    gl_FragColor = vec4(Color.rgb, a);
+    gl_FragData[0] = vec4(Color.rgb, Color.a * a);
+    gl_FragData[1] = vec4(interpolatedNormal.xyz, 0.0) * 0.5 + vec4(0.5, 0.5, 0.5, 1.0);
+    gl_FragData[2] = vec4(0.0);
 }

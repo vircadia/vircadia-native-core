@@ -199,6 +199,7 @@ namespace MenuOption {
     const QString FrameTimer = "Show Timer";
     const QString Fullscreen = "Fullscreen";
     const QString FullscreenMirror = "Fullscreen Mirror";
+    const QString CenterPlayerInView = "Center Player In View";
     const QString GlowWhenSpeaking = "Glow When Speaking";
     const QString NamesAboveHeads = "Names Above Heads";
     const QString HMDTools = "HMD Tools";

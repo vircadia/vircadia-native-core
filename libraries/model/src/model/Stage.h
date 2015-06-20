@@ -72,7 +72,7 @@ public:
 
 protected:
     float  _scale = 1000.0f; //Km
-    double  _earthRadius = 6360.0;
+    float  _earthRadius = 6360.0;
 
     Quat    _surfaceOrientation;
 
