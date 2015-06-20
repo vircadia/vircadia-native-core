@@ -9,13 +9,13 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-////***************** UTILITIES *************************************
+
 
 map = function(value, min1, max1, min2, max2) {
   return min2 + (max2 - min2) * ((value - min1) / (max1 - min1));
 }
 
-hslToRgb = function (hslColor) {
+hslToRgb = function(hslColor) {
   var h = hslColor.hue;
   var s = hslColor.sat;
   var l = hslColor.light;
