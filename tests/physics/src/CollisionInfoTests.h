@@ -12,12 +12,16 @@
 #ifndef hifi_CollisionInfoTests_h
 #define hifi_CollisionInfoTests_h
 
-namespace CollisionInfoTests {
+#include <QtTest/QtTest>
 
+class CollisionInfoTests : public QObject {
+    Q_OBJECT
+
+private slots:
 //    void rotateThenTranslate();
 //    void translateThenRotate();
 
-    void runAllTests(); 
-}
+//    void runAllTests(); 
+};
 
 #endif // hifi_CollisionInfoTests_h

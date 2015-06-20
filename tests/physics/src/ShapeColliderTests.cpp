@@ -2507,36 +2507,36 @@ void ShapeColliderTests::measureTimeOfCollisionDispatch() {
     */
 }
 
-void ShapeColliderTests::runAllTests() {
-    ShapeCollider::initDispatchTable();
-
-    //measureTimeOfCollisionDispatch();
-
-    sphereMissesSphere();
-    sphereTouchesSphere();
-
-    sphereMissesCapsule();
-    sphereTouchesCapsule();
-
-    capsuleMissesCapsule();
-    capsuleTouchesCapsule();
-
-    sphereMissesAACube();
-    sphereTouchesAACubeFaces();
-    sphereTouchesAACubeEdges();
-    sphereTouchesAACubeCorners();
-
-    capsuleMissesAACube();
-    capsuleTouchesAACube();
-
-    rayHitsSphere();
-    rayBarelyHitsSphere();
-    rayBarelyMissesSphere();
-    rayHitsCapsule();
-    rayMissesCapsule();
-    rayHitsPlane();
-    rayMissesPlane();
-
-    rayHitsAACube();
-    rayMissesAACube();
-}
+//void ShapeColliderTests::runAllTests() {
+//    ShapeCollider::initDispatchTable();
+//
+//    //measureTimeOfCollisionDispatch();
+//
+//    sphereMissesSphere();
+//    sphereTouchesSphere();
+//
+//    sphereMissesCapsule();
+//    sphereTouchesCapsule();
+//
+//    capsuleMissesCapsule();
+//    capsuleTouchesCapsule();
+//
+//    sphereMissesAACube();
+//    sphereTouchesAACubeFaces();
+//    sphereTouchesAACubeEdges();
+//    sphereTouchesAACubeCorners();
+//
+//    capsuleMissesAACube();
+//    capsuleTouchesAACube();
+//
+//    rayHitsSphere();
+//    rayBarelyHitsSphere();
+//    rayBarelyMissesSphere();
+//    rayHitsCapsule();
+//    rayMissesCapsule();
+//    rayHitsPlane();
+//    rayMissesPlane();
+//
+//    rayHitsAACube();
+//    rayMissesAACube();
+//}

@@ -19,10 +19,12 @@
 void BulletUtilTests::fromBulletToGLM() {
     btVector3 bV(1.23f, 4.56f, 7.89f);
     glm::vec3 gV = bulletToGLM(bV);
-    if (gV.x != bV.getX()) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: x mismatch bullet.x = " << bV.getX() << "  !=  glm.x = " << gV.x << std::endl;
-    }
+    
+    QCOMPARE(gV.x, bV.getX());
+//    if (gV.x != bV  .getX()) {
+//        std::cout << __FILE__ << ":" << __LINE__
+//            << " ERROR: x mismatch bullet.x = " << bV.getX() << "  !=  glm.x = " << gV.x << std::endl;
+//    }
     if (gV.y != bV.getY()) {
         std::cout << __FILE__ << ":" << __LINE__
             << " ERROR: x mismatch bullet.y = " << bV.getY() << "  !=  glm.y = " << gV.y << std::endl;
@@ -96,7 +98,10 @@ void BulletUtilTests::fromGLMToBullet() {
     }
 }
 
-void BulletUtilTests::runAllTests() {
-    fromBulletToGLM();
-    fromGLMToBullet();
-}
+QTEST_MAIN(BulletUtilTests)
+
+
+//void BulletUtilTests::runAllTests() {
+//    fromBulletToGLM();
+//    fromGLMToBullet();
+//}

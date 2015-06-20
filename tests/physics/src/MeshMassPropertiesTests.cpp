@@ -449,11 +449,11 @@ void MeshMassPropertiesTests::testBoxAsMesh() {
 #endif // VERBOSE_UNIT_TESTS
 }
 
-void MeshMassPropertiesTests::runAllTests() {
-    testParallelAxisTheorem();
-    testTetrahedron();
-    testOpenTetrahedonMesh();
-    testClosedTetrahedronMesh();
-    testBoxAsMesh();
-    //testWithCube();
-}
+//void MeshMassPropertiesTests::runAllTests() {
+//    testParallelAxisTheorem();
+//    testTetrahedron();
+//    testOpenTetrahedonMesh();
+//    testClosedTetrahedronMesh();
+//    testBoxAsMesh();
+//    //testWithCube();
+//}

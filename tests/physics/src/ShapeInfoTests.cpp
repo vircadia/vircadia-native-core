@@ -234,13 +234,13 @@ void ShapeInfoTests::testCapsuleShape() {
     */
 }
 
-void ShapeInfoTests::runAllTests() {
-//#define MANUAL_TEST
-#ifdef MANUAL_TEST
-    testHashFunctions();
-#endif // MANUAL_TEST
-    testBoxShape();
-    testSphereShape();
-    testCylinderShape();
-    testCapsuleShape();
-}
+//void ShapeInfoTests::runAllTests() {
+////#define MANUAL_TEST
+//#ifdef MANUAL_TEST
+//    testHashFunctions();
+//#endif // MANUAL_TEST
+//    testBoxShape();
+//    testSphereShape();
+//    testCylinderShape();
+//    testCapsuleShape();
+//}

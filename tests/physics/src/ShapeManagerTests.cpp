@@ -248,11 +248,11 @@ void ShapeManagerTests::addCapsuleShape() {
     */
 }
 
-void ShapeManagerTests::runAllTests() {
-    testShapeAccounting();
-    addManyShapes();
-    addBoxShape();
-    addSphereShape();
-    addCylinderShape();
-    addCapsuleShape();
-}
+//void ShapeManagerTests::runAllTests() {
+//    testShapeAccounting();
+//    addManyShapes();
+//    addBoxShape();
+//    addSphereShape();
+//    addCylinderShape();
+//    addCapsuleShape();
+//}

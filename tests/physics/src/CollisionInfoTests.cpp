@@ -106,7 +106,9 @@ void CollisionInfoTests::translateThenRotate() {
 }
 */
 
-void CollisionInfoTests::runAllTests() {
+QTEST_MAIN(CollisionInfoTests)
+
+//void CollisionInfoTests::runAllTests() {
 //    CollisionInfoTests::rotateThenTranslate();
 //    CollisionInfoTests::translateThenRotate();
-}
+//}

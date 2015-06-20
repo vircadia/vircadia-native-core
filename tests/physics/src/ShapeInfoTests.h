@@ -12,13 +12,17 @@
 #ifndef hifi_ShapeInfoTests_h
 #define hifi_ShapeInfoTests_h
 
-namespace ShapeInfoTests {
+#include <QtTest/QtTest>
+
+class ShapeInfoTests : public QObject {
+    Q_OBJECT
+private slots:
     void testHashFunctions();
     void testBoxShape();
     void testSphereShape();
     void testCylinderShape();
     void testCapsuleShape();
-    void runAllTests(); 
-}
+//    void runAllTests(); 
+};
 
 #endif // hifi_ShapeInfoTests_h

@@ -11,12 +11,18 @@
 
 #ifndef hifi_MeshMassPropertiesTests_h
 #define hifi_MeshMassPropertiesTests_h
-namespace MeshMassPropertiesTests{
+
+#include <QtTest/QtTest>
+
+class MeshMassPropertiesTests : public QObject {
+    Q_OBJECT
+    
+private slots:
     void testParallelAxisTheorem();
     void testTetrahedron();
     void testOpenTetrahedonMesh();
     void testClosedTetrahedronMesh();
     void testBoxAsMesh();
-    void runAllTests();
-}
+//    void runAllTests();
+};
 #endif // hifi_MeshMassPropertiesTests_h

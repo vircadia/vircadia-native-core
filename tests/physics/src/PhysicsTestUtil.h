@@ -21,6 +21,11 @@ const glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
 const glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
 const glm::vec3 zAxis(0.0f, 0.0f, 1.0f);
 
-std::ostream& operator<<(std::ostream& s, const CollisionInfo& c);
+inline std::ostream& operator<<(std::ostream& s, const CollisionInfo& c) {
+    return s << "[penetration=" << c._penetration
+        << ", contactPoint=" << c._contactPoint
+        << ", addedVelocity=" << c._addedVelocity
+        << "]";
+}
 
 #endif // hifi_PhysicsTestUtil_h

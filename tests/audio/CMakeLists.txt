@@ -1,8 +1,12 @@
-set(TARGET_NAME audio-tests)
 
-setup_hifi_project()
+message(STATUS "TEST_PROJ_NAME = " ${TEST_PROJ_NAME})
 
-# link in the shared libraries
-link_hifi_libraries(shared audio networking)
+# Declare dependencies
+macro (SETUP_TESTCASE_DEPENDENCIES)
+	# link in the shared libraries
+	link_hifi_libraries(shared audio networking)
 
-copy_dlls_beside_windows_executable()
+	copy_dlls_beside_windows_executable()
+endmacro ()
+
+setup_hifi_testcase()
