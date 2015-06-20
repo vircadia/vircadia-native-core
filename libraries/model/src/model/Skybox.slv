@@ -19,28 +19,19 @@ struct Skybox {
     vec4 _color;
 };
 
-<@if GPU_FEATURE_PROFILE == GPU_CORE @>
 uniform skyboxBuffer {
     Skybox _skybox;
 };
 Skybox getSkybox() {
     return _skybox;
 }
-<@else@>
-uniform vec4 skyboxBuffer[1];
-Skybox getSkybox() {
-    Skybox _skybox;
-    _skybox._color = skyboxBuffer[0];
-    return _skybox;
-}
-<@endif@>
 
 varying vec3 normal;
 varying vec2 texcoord;
 varying vec3 color;
 
 void main(void) {
-    texcoord = gl_Vertex.xy;
+    texcoord = inPosition.xy;
 
     Skybox skybox = getSkybox();
     color = skybox._color.xyz;

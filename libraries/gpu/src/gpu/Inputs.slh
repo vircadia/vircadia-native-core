@@ -1,0 +1,26 @@
+<!
+//  Config.slh
+//  interface/src
+//
+//  Created by Bradley Austin Davis on 2015/06/19.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not GPU_INPUTS_SLH@>
+<@def GPU_INPUTS_SLH@>
+
+layout(location = 0) in vec4 inPosition;
+layout(location = 1) in vec3 inNormal;
+layout(location = 2) in vec4 inColor;
+layout(location = 3) in vec2 inTexCoord0;
+layout(location = 4) in vec3 inTangent;
+layout(location = 5) in ivec4 inSkinClusterIndex;
+layout(location = 6) in vec4 inSkinClusterWeight;
+layout(location = 7) in vec2 inTexCoord1;
+layout(location = 8) in mat4 inInstanceXfm;
+layout(location = 9) in vec2 inInstanceScale;
+layout(location = 10) in vec2 inInstanceTranslate;
+
+<@endif@>

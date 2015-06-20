@@ -14,16 +14,14 @@
 
 <@include gpu/Transform.slh@>
 
+<@include gpu/Inputs.slh@>
+
 <$declareStandardTransform()$>
 
 const int MAX_TEXCOORDS = 2;
 
 uniform mat4 texcoordMatrices[MAX_TEXCOORDS];
 
-// the tangent vector
-attribute vec3 tangent;
-
-attribute vec2 texcoord1;
 
 // the interpolated normal
 varying vec4 interpolatedNormal;
@@ -51,9 +49,9 @@ void main(void) {
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToClipPos(cam, obj, gl_Vertex, gl_Position)$>
-    <$transformModelToEyeDir(cam, obj, gl_Normal, interpolatedNormal.xyz)$>
-    <$transformModelToEyeDir(cam, obj, tangent, interpolatedTangent.xyz)$>
+    <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
+    <$transformModelToEyeDir(cam, obj, inNormal, interpolatedNormal.xyz)$>
+    <$transformModelToEyeDir(cam, obj, inTangent, interpolatedTangent.xyz)$>
 
     interpolatedNormal = vec4(normalize(interpolatedNormal.xyz), 0.0);
     interpolatedTangent = vec4(normalize(interpolatedTangent.xyz), 0.0);
