@@ -82,4 +82,7 @@ elseif(NOT ANDROID)
   set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${${EXTERNAL_NAME_UPPER}_LIBRARY} ${${EXTERNAL_NAME_UPPER}_LIBRARY_EXTRAS} CACHE TYPE INTERNAL)
 endif()
 
+# Hide this external target (for ide users)
+set_target_properties(${EXTERNAL_NAME} PROPERTIES FOLDER "hidden/externals")
+
 
