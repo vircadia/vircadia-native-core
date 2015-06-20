@@ -471,7 +471,9 @@ bool EntityScriptingInterface::setPoints(QUuid entityID, std::function<bool(Line
     EntityItemProperties properties = entity->getProperties();
     _entityTree->unlock();
     
+    properties.setLinePointsDirty();
     properties.setLastEdited(now);
+    
     
     queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
     return success;
@@ -500,6 +502,14 @@ bool EntityScriptingInterface::setAllPoints(QUuid entityID, const QVector<glm::v
     {
         return lineEntity.setLinePoints(points);
     });
+}
+
+bool EntityScriptingInterface::appendPoint(QUuid entityID, const glm::vec3& point) {
+    return setPoints(entityID, [point](LineEntityItem& lineEntity) -> bool
+    {
+        return lineEntity.appendPoint(point);
+    });
+    
 }
 
 
