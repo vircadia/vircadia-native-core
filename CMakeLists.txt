@@ -133,6 +133,9 @@ if (APPLE)
   set(CMAKE_OSX_SYSROOT ${_OSX_DESIRED_SDK_PATH}/MacOSX10.9.sdk)
 endif ()
 
+# Hide automoc folders (for IDEs)
+set(AUTOGEN_TARGETS_FOLDER "hidden/generated")  # Apparently this doesn't work... -.-
+
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # Instruct CMake to run moc automatically when needed.

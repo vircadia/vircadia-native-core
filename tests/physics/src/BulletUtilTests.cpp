@@ -16,6 +16,10 @@
 
 #include "BulletUtilTests.h"
 
+
+
+QTEST_MAIN(BulletUtilTests)
+
 void BulletUtilTests::fromBulletToGLM() {
     btVector3 bV(1.23f, 4.56f, 7.89f);
     glm::vec3 gV = bulletToGLM(bV);
@@ -97,9 +101,6 @@ void BulletUtilTests::fromGLMToBullet() {
             << " ERROR: x mismatch glm.w = " << gQ.w << "  !=  bullet.w = " << bQ.getW() << std::endl;
     }
 }
-
-QTEST_MAIN(BulletUtilTests)
-
 
 //void BulletUtilTests::runAllTests() {
 //    fromBulletToGLM();

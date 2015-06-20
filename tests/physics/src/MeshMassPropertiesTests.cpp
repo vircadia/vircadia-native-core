@@ -20,6 +20,8 @@
 const btScalar acceptableRelativeError(1.0e-5f);
 const btScalar acceptableAbsoluteError(1.0e-4f);
 
+QTEST_MAIN(MeshMassPropertiesTests)
+
 void printMatrix(const std::string& name, const btMatrix3x3& matrix) {
     std::cout << name << " = [" << std::endl;
     for (int i = 0; i < 3; ++i) {

@@ -15,6 +15,8 @@
 
 #include "ShapeManagerTests.h"
 
+QTEST_MAIN(ShapeManagerTests)
+
 void ShapeManagerTests::testShapeAccounting() {
     ShapeManager shapeManager;
     ShapeInfo info;

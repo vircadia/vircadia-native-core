@@ -21,6 +21,8 @@
 
 #include "ShapeInfoTests.h"
 
+QTEST_MAIN(ShapeInfoTests)
+
 void ShapeInfoTests::testHashFunctions() {
     int maxTests = 10000000;
     ShapeInfo info;

@@ -21,6 +21,8 @@
 #include "CollisionInfoTests.h"
 
 
+
+QTEST_MAIN(CollisionInfoTests)
 /*
 
 static glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
@@ -105,8 +107,6 @@ void CollisionInfoTests::translateThenRotate() {
     } 
 }
 */
-
-QTEST_MAIN(CollisionInfoTests)
 
 //void CollisionInfoTests::runAllTests() {
 //    CollisionInfoTests::rotateThenTranslate();
