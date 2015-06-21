@@ -13,6 +13,6 @@
 
 <@def GPU_FEATURE_PROFILE GPU_CORE@>
 <@def GPU_TRANSFORM_PROFILE GPU_CORE@>
-<@def VERSION_HEADER #version 410 core@>
+<@def VERSION_HEADER #version 430 core@>
 
 <@endif@>

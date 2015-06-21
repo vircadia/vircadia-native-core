@@ -18,6 +18,7 @@
 #include <mutex>
 
 #include <QWindow>
+#include <QtGlobal>
 #include <QFile>
 #include <QTime>
 #include <QImage>
@@ -47,8 +48,30 @@
 #include "gpu/Batch.h"
 #include "gpu/Context.h"
 
-#include "../../libraries/model/Skybox_vert.h"
-#include "../../libraries/model/Skybox_frag.h"
+#include "../model/Skybox_vert.h"
+#include "..//model/Skybox_frag.h"
+
+#include "simple_vert.h"
+#include "simple_frag.h"
+#include "simple_textured_frag.h"
+
+#include "deferred_light_vert.h"
+#include "deferred_light_limited_vert.h"
+
+#include "directional_light_frag.h"
+#include "directional_light_shadow_map_frag.h"
+#include "directional_light_cascaded_shadow_map_frag.h"
+
+#include "directional_ambient_light_frag.h"
+#include "directional_ambient_light_shadow_map_frag.h"
+#include "directional_ambient_light_cascaded_shadow_map_frag.h"
+
+#include "directional_skybox_light_frag.h"
+#include "directional_skybox_light_shadow_map_frag.h"
+#include "directional_skybox_light_cascaded_shadow_map_frag.h"
+
+#include "point_light_frag.h"
+#include "spot_light_frag.h"
 
 
 class RateCounter {
@@ -137,17 +160,6 @@ public:
         show();
         makeCurrent();
 
-        {
-            QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
-            logger->initialize(); // initializes in the current context, i.e. ctx
-            logger->enableMessages();
-            connect(logger, &QOpenGLDebugLogger::messageLogged, this, [&](const QOpenGLDebugMessage & debugMessage) {
-                qDebug() << debugMessage;
-            });
-            logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
-        }
-        qDebug() << (const char*)glGetString(GL_VERSION);
-
 #ifdef WIN32
         glewExperimental = true;
         GLenum err = glewInit();
@@ -164,6 +176,18 @@ public:
         }
         glGetError();
 #endif
+
+        {
+            QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
+            logger->initialize(); // initializes in the current context, i.e. ctx
+            logger->enableMessages();
+            connect(logger, &QOpenGLDebugLogger::messageLogged, this, [&](const QOpenGLDebugMessage & debugMessage) {
+                qDebug() << debugMessage;
+            });
+            logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
+        }
+        qDebug() << (const char*)glGetString(GL_VERSION);
+
 
 //        _textRenderer[0] = TextRenderer::getInstance(SANS_FONT_FAMILY, 12, false);
 //        _textRenderer[1] = TextRenderer::getInstance(SERIF_FONT_FAMILY, 12, false,
@@ -252,6 +276,13 @@ void QTestWindow::renderText() {
     }
 }
 
+void testShaderBuild(const char* vs_src, const char * fs_src) {
+    auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(vs_src)));
+    auto fs = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(fs_src)));
+    auto pr = gpu::ShaderPointer(gpu::Shader::createProgram(vs, fs));
+    gpu::Shader::makeProgram(*pr);
+}
+
 void QTestWindow::draw() {
     if (!isVisible()) {
         return;
@@ -263,10 +294,21 @@ void QTestWindow::draw() {
 
     static std::once_flag once;
     std::call_once(once, [&]{
-        auto skyVS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(Skybox_vert)));
-        auto skyFS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(Skybox_frag)));
-        auto skyShader = gpu::ShaderPointer(gpu::Shader::createProgram(skyVS, skyFS));
-        gpu::Shader::makeProgram(*skyShader);
+        testShaderBuild(Skybox_vert, Skybox_frag);
+        testShaderBuild(simple_vert, simple_frag);
+        testShaderBuild(simple_vert, simple_textured_frag);
+        testShaderBuild(deferred_light_vert, directional_light_frag);
+        testShaderBuild(deferred_light_vert, directional_light_shadow_map_frag);
+        testShaderBuild(deferred_light_vert, directional_light_cascaded_shadow_map_frag);
+        testShaderBuild(deferred_light_vert, directional_ambient_light_frag);
+        testShaderBuild(deferred_light_vert, directional_ambient_light_shadow_map_frag);
+        testShaderBuild(deferred_light_vert, directional_ambient_light_cascaded_shadow_map_frag);
+        testShaderBuild(deferred_light_vert, directional_skybox_light_frag);
+        testShaderBuild(deferred_light_vert, directional_skybox_light_shadow_map_frag);
+        testShaderBuild(deferred_light_vert, directional_skybox_light_cascaded_shadow_map_frag);
+        testShaderBuild(deferred_light_limited_vert, point_light_frag);
+        testShaderBuild(deferred_light_limited_vert, spot_light_frag);
+
    });
     //    renderText();
 
@@ -280,8 +322,26 @@ void QTestWindow::draw() {
     }
 }
 
+void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
+    if (!message.isEmpty()) {
+#ifdef Q_OS_WIN
+        OutputDebugStringA(message.toLocal8Bit().constData());
+        OutputDebugStringA("\n");
+#else 
+        std::cout << message.toLocal8Bit().constData() << std::endl;
+#endif
+    }
+}
+
+
+const char * LOG_FILTER_RULES = R"V0G0N(
+hifi.gpu=true
+)V0G0N";
+
 int main(int argc, char** argv) {    
     QGuiApplication app(argc, argv);
+    qInstallMessageHandler(messageHandler);
+    QLoggingCategory::setFilterRules(LOG_FILTER_RULES);
     QTestWindow window;
     QTimer timer;
     timer.setInterval(1);

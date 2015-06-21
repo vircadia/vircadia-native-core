@@ -165,8 +165,8 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
         char* temp = new char[infoLength] ;
         glGetShaderInfoLog(glshader, infoLength, NULL, temp);
 
-        qCDebug(gpulogging) << "GLShader::compileShader - failed to compile the gl shader object:";
-        qCDebug(gpulogging) << temp;
+        qWarning() << "GLShader::compileShader - failed to compile the gl shader object:";
+        qWarning() << temp;
 
         /*
         filestream.open("debugshader.glsl.info.txt");

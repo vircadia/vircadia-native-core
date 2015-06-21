@@ -12,13 +12,35 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@include gpu/Transform.slh@>
+
+<$declareStandardTransform()$>
+
 <@include gpu/Inputs.slh@>
 
-out vec4 texCoord0;
+struct ObjectPlanes { 
+    vec4 _S[4];
+    vec4 _T[4];
+    vec4 _R[4];
+    vec4 _Q[4];
+};
+
+uniform objPlanes {
+    ObjectPlanes _objPlanes;
+};
+
+ObjectPlanes getObjectPlanes() {
+    return _objPlanes;
+}
+
+out vec4 _texCoord0;
 
 void main(void) {
-    gl_Position = ftransform();
+    ObjectPlanes objPlanes = getObjectPlanes();
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
     vec4 projected = gl_Position / gl_Position.w;
-    texCoord0 = vec4(dot(projected, gl_ObjectPlaneS[3]) * gl_Position.w,
-        dot(projected, gl_ObjectPlaneT[3]) * gl_Position.w, 0.0, gl_Position.w);
+    _texCoord0 = vec4(dot(projected, objPlanes._S[3]) * gl_Position.w,
+        dot(projected, objPlanes._T[3]) * gl_Position.w, 0.0, gl_Position.w);
 }

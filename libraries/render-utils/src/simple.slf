@@ -13,15 +13,18 @@
 //
 
 <@include DeferredBufferWrite.slh@>
+<@include model/Material.slh@>
 
 // the interpolated normal
-varying vec4 interpolatedNormal;
+in vec3 _normal;
+in vec3 _color;
 
 void main(void) {
+    Material material = getMaterial();
     packDeferredFragment(
-        normalize(interpolatedNormal.xyz), 
+        normalize(_normal.xyz), 
         glowIntensity,
-        gl_Color.rgb,
-        gl_FrontMaterial.specular.rgb,
-        gl_FrontMaterial.shininess);
+        _color.rgb,
+        material._specular.rgb,
+        0.0);
 }
