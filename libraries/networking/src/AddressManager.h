@@ -62,6 +62,9 @@ public:
 
     void loadSettings(const QString& lookupString = QString());
 
+    const QStack<QUrl>& getBackStack() const { return _backStack; }
+    const QStack<QUrl>& getForwardStack() const { return _forwardStack; }
+
 public slots:
     void handleLookupString(const QString& lookupString);
 
