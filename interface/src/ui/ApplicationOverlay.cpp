@@ -225,8 +225,7 @@ GLuint ApplicationOverlay::getOverlayTexture() {
 }
 
 void ApplicationOverlay::buildFramebufferObject() {
-    auto canvasSize = qApp->getCanvasSize();
-    QSize fboSize = QSize(canvasSize.x, canvasSize.y);
+    QSize fboSize = qApp->getDeviceSize();
     if (_overlayFramebuffer && fboSize == _overlayFramebuffer->size()) {
         // Already built
         return;
