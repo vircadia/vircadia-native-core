@@ -20,7 +20,7 @@ class BulletUtilTests : public QObject {
 private slots:
     void fromBulletToGLM();
     void fromGLMToBullet();
-//    void runAllTests(); 
+    void fooTest ();
 };
 
 #endif // hifi_BulletUtilTests_h

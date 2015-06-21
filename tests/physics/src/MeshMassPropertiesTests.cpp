@@ -9,13 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "PhysicsTestUtil.h"
 #include <iostream>
 #include <string>
 #include <MeshMassProperties.h>
 
 #include "MeshMassPropertiesTests.h"
 
-//#define VERBOSE_UNIT_TESTS
+#define VERBOSE_UNIT_TESTS
 
 const btScalar acceptableRelativeError(1.0e-5f);
 const btScalar acceptableAbsoluteError(1.0e-4f);
@@ -40,13 +41,13 @@ void pushTriangle(VectorOfIndices& indices, uint32_t a, uint32_t b, uint32_t c) 
 }
 
 void MeshMassPropertiesTests::testParallelAxisTheorem() {
-#ifdef EXPOSE_HELPER_FUNCTIONS_FOR_UNIT_TEST
-    // verity we can compute the inertia tensor of a box in two different ways: 
+//#ifdef EXPOSE_HELPER_FUNCTIONS_FOR_UNIT_TEST
+    // verity we can compute the inertia tensor of a box in two different ways:
     // (a) as one box
     // (b) as a combination of two partial boxes.
-#ifdef VERBOSE_UNIT_TESTS
-    std::cout << "\n" << __FUNCTION__ << std::endl;
-#endif // VERBOSE_UNIT_TESTS
+//#ifdef VERBOSE_UNIT_TESTS
+//    std::cout << "\n" << __FUNCTION__ << std::endl;
+//#endif // VERBOSE_UNIT_TESTS
 
     btScalar bigBoxX = 7.0f;
     btScalar bigBoxY = 9.0f;
@@ -76,11 +77,12 @@ void MeshMassPropertiesTests::testParallelAxisTheorem() {
     btScalar error;
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 3; ++j) {
-            error = bitBoxInertia[i][j] - twoSmallBoxesInertia[i][j];
-            if (fabsf(error) > acceptableAbsoluteError) {
-                std::cout << __FILE__ << ":" << __LINE__ << " ERROR : box inertia[" << i << "][" << j << "] off by = "
-                    << error << std::endl;
-            }
+            QFUZZY_COMPARE(bitBoxInertia[i][j], twoSmallBoxesInertia[i][j], acceptableAbsoluteError);
+//            error = bitBoxInertia[i][j] - twoSmallBoxesInertia[i][j];
+//            if (fabsf(error) > acceptableAbsoluteError) {
+//                std::cout << __FILE__ << ":" << __LINE__ << " ERROR : box inertia[" << i << "][" << j << "] off by = "
+//                    << error << std::endl;
+//            }
         }
     }
 
@@ -88,7 +90,7 @@ void MeshMassPropertiesTests::testParallelAxisTheorem() {
     printMatrix("expected inertia", bitBoxInertia);
     printMatrix("computed inertia", twoSmallBoxesInertia);
 #endif // VERBOSE_UNIT_TESTS
-#endif // EXPOSE_HELPER_FUNCTIONS_FOR_UNIT_TEST
+//#endif // EXPOSE_HELPER_FUNCTIONS_FOR_UNIT_TEST
 }
 
 void MeshMassPropertiesTests::testTetrahedron(){

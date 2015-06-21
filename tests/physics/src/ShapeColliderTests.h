@@ -46,8 +46,6 @@ private slots:
     void rayMissesAACube();
 
     void measureTimeOfCollisionDispatch();
-
-//    void runAllTests(); 
 };
 
 #endif // hifi_ShapeColliderTests_h

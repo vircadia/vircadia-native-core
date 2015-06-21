@@ -20,8 +20,6 @@ class CollisionInfoTests : public QObject {
 private slots:
 //    void rotateThenTranslate();
 //    void translateThenRotate();
-
-//    void runAllTests(); 
 };
 
 #endif // hifi_CollisionInfoTests_h
