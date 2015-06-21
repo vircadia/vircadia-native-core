@@ -28,9 +28,6 @@ public:
     GLuint getOverlayTexture();
 
 private:
-
-    //void renderAudioMeter(RenderArgs* renderArgs);
-    //void renderCameraToggle(RenderArgs* renderArgs);
     void renderStatsAndLogs(RenderArgs* renderArgs);
     void renderDomainConnectionStatusBorder(RenderArgs* renderArgs);
     void renderRearViewToFbo(RenderArgs* renderArgs);
@@ -42,10 +39,7 @@ private:
     float _alpha{ 1.0f };
     float _trailingAudioLoudness{ 0.0f };
     GLuint _uiTexture{ 0 };
-    
-    int _audioRedQuad;
-    int _audioGreenQuad;
-    int _audioBlueQuad;
+
     int _domainStatusBorder;
     int _magnifierBorder;
 

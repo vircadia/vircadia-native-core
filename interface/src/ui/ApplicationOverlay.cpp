@@ -53,9 +53,6 @@ static void fboViewport(QOpenGLFramebufferObject* fbo) {
 ApplicationOverlay::ApplicationOverlay()
 {
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    _audioRedQuad = geometryCache->allocateID();
-    _audioGreenQuad = geometryCache->allocateID();
-    _audioBlueQuad = geometryCache->allocateID();
     _domainStatusBorder = geometryCache->allocateID();
     _magnifierBorder = geometryCache->allocateID();
 
