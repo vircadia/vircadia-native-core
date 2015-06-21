@@ -15,6 +15,8 @@
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
 #endif
 
+#include <mutex>
+
 #include <QWindow>
 #include <QFile>
 #include <QTime>
@@ -40,6 +42,14 @@
 #include <glm/glm.hpp>
 #include <PathUtils.h>
 #include <QDir>
+
+
+#include "gpu/Batch.h"
+#include "gpu/Context.h"
+
+#include "../../libraries/model/Skybox_vert.h"
+#include "../../libraries/model/Skybox_frag.h"
+
 
 class RateCounter {
     std::vector<float> times;
@@ -114,8 +124,8 @@ public:
         // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
         format.setDepthBufferSize(16);
         format.setStencilBufferSize(8);
-        format.setVersion(4, 5);
-        format.setProfile(QSurfaceFormat::OpenGLContextProfile::CompatibilityProfile);
+        format.setVersion(4, 1);
+        format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
         format.setOption(QSurfaceFormat::DebugContext);
 
         setFormat(format);
@@ -134,7 +144,7 @@ public:
             connect(logger, &QOpenGLDebugLogger::messageLogged, this, [&](const QOpenGLDebugMessage & debugMessage) {
                 qDebug() << debugMessage;
             });
-            //        logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
+            logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
         }
         qDebug() << (const char*)glGetString(GL_VERSION);
 
@@ -155,12 +165,12 @@ public:
         glGetError();
 #endif
 
-        _textRenderer[0] = TextRenderer::getInstance(SANS_FONT_FAMILY, 12, false);
-        _textRenderer[1] = TextRenderer::getInstance(SERIF_FONT_FAMILY, 12, false,
-            TextRenderer::SHADOW_EFFECT);
-        _textRenderer[2] = TextRenderer::getInstance(MONO_FONT_FAMILY, 48, -1,
-            false, TextRenderer::OUTLINE_EFFECT);
-        _textRenderer[3] = TextRenderer::getInstance(INCONSOLATA_FONT_FAMILY, 24);
+//        _textRenderer[0] = TextRenderer::getInstance(SANS_FONT_FAMILY, 12, false);
+//        _textRenderer[1] = TextRenderer::getInstance(SERIF_FONT_FAMILY, 12, false,
+//            TextRenderer::SHADOW_EFFECT);
+//        _textRenderer[2] = TextRenderer::getInstance(MONO_FONT_FAMILY, 48, -1,
+//            false, TextRenderer::OUTLINE_EFFECT);
+//        _textRenderer[3] = TextRenderer::getInstance(INCONSOLATA_FONT_FAMILY, 24);
 
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -169,7 +179,7 @@ public:
 
         makeCurrent();
 
-        setFramePosition(QPoint(-1000, 0));
+//        setFramePosition(QPoint(-1000, 0));
         resize(QSize(800, 600));
     }
 
@@ -251,7 +261,14 @@ void QTestWindow::draw() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glViewport(0, 0, _size.width() * devicePixelRatio(), _size.height() * devicePixelRatio());
 
-    renderText();
+    static std::once_flag once;
+    std::call_once(once, [&]{
+        auto skyVS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(Skybox_vert)));
+        auto skyFS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(Skybox_frag)));
+        auto skyShader = gpu::ShaderPointer(gpu::Shader::createProgram(skyVS, skyFS));
+        gpu::Shader::makeProgram(*skyShader);
+   });
+    //    renderText();
 
     _context->swapBuffers(this);
     glFinish();

@@ -12,12 +12,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include gpu/Input.slh@>
+<@include gpu/Inputs.slh@>
 
+out vec4 texCoord0;
 
 void main(void) {
     gl_Position = ftransform();
     vec4 projected = gl_Position / gl_Position.w;
-    gl_TexCoord[0] = vec4(dot(projected, gl_ObjectPlaneS[3]) * gl_Position.w,
+    texCoord0 = vec4(dot(projected, gl_ObjectPlaneS[3]) * gl_Position.w,
         dot(projected, gl_ObjectPlaneT[3]) * gl_Position.w, 0.0, gl_Position.w);
 }
