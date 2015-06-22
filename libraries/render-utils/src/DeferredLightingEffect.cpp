@@ -25,6 +25,7 @@
 
 #include "gpu/Batch.h"
 #include "gpu/GLBackend.h"
+#include "gpu/StandardShaderLib.h"
 
 #include "simple_vert.h"
 #include "simple_frag.h"
@@ -103,6 +104,19 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
 
     loadLightProgram(point_light_frag, true, _pointLight, _pointLightLocations);
     loadLightProgram(spot_light_frag, true, _spotLight, _spotLightLocations);
+
+    {
+        auto VSFS = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
+        auto PSBlit = gpu::StandardShaderLib::getDrawTexturePS();
+        auto blitProgram = gpu::ShaderPointer(gpu::Shader::createProgram(VSFS, PSBlit));
+        gpu::Shader::makeProgram(*blitProgram);
+        gpu::StatePointer blitState = gpu::StatePointer(new gpu::State());
+        blitState->setBlendFunction(true,
+                                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+        blitState->setColorWriteMask(true, true, true, false);
+        _blitLightBuffer = gpu::PipelinePointer(gpu::Pipeline::create(blitProgram, blitState));
+    }
 
     // Allocate a global light representing the Global Directional light casting shadow (the sun) and the ambient light
     _globalLights.push_back(0);
@@ -515,36 +529,48 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 }
 
 void DeferredLightingEffect::copyBack(RenderArgs* args) {
+
+    gpu::Batch batch;
+
     auto textureCache = DependencyManager::get<TextureCache>();
     QSize framebufferSize = textureCache->getFrameBufferSize();
 
     auto freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebuffer();
 
     //freeFBO->release();
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  //  glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     
-    glDisable(GL_CULL_FACE);
+  //  glDisable(GL_CULL_FACE);
     
     // now transfer the lit region to the primary fbo
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
-    glColorMask(true, true, true, false);
+  //  glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
+  //  glColorMask(true, true, true, false);
     
     auto primaryFBO = gpu::GLBackend::getFramebufferID(textureCache->getPrimaryFramebuffer());
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, primaryFBO);
+//    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, primaryFBO);
+    batch.setFramebuffer(textureCache->getPrimaryFramebuffer());
+    batch.setPipeline(_blitLightBuffer);
 
     //primaryFBO->bind();
     
-    glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(freeFBO->getRenderBuffer(0)));
-    glEnable(GL_TEXTURE_2D);
+   // glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(freeFBO->getRenderBuffer(0)));
+   // glEnable(GL_TEXTURE_2D);
     
-    glPushMatrix();
+    batch.setUniformTexture(0, freeFBO->getRenderBuffer(0));
+
+   /* glPushMatrix();
     glLoadIdentity();
     
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();
-    
+    */
+
+     batch.setProjectionTransform(glm::mat4());
+     batch.setModelTransform(Transform());
+     batch.setViewTransform(Transform());
+
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
     const int VIEWPORT_X_INDEX = 0;
@@ -557,12 +583,17 @@ void DeferredLightingEffect::copyBack(RenderArgs* args) {
     float tMin = viewport[VIEWPORT_Y_INDEX] / (float)framebufferSize.height();
     float tHeight = viewport[VIEWPORT_HEIGHT_INDEX] / (float)framebufferSize.height();
 
-    renderFullscreenQuad(sMin, sMin + sWidth, tMin, tMin + tHeight);
+    batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+
+    args->_context->syncCache();
+    args->_context->render(batch);
+//    renderFullscreenQuad(sMin, sMin + sWidth, tMin, tMin + tHeight);
     
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glDisable(GL_TEXTURE_2D);
+  //  glBindTexture(GL_TEXTURE_2D, 0);
+  //  glDisable(GL_TEXTURE_2D);
     
-    glColorMask(true, true, true, true);
+ /*   glColorMask(true, true, true, true);
     glEnable(GL_LIGHTING);
     glEnable(GL_COLOR_MATERIAL);
     glEnable(GL_DEPTH_TEST);
@@ -571,7 +602,7 @@ void DeferredLightingEffect::copyBack(RenderArgs* args) {
     glPopMatrix();
     
     glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
+    glPopMatrix();*/
 }
 
 void DeferredLightingEffect::setupTransparent(RenderArgs* args, int lightBufferUnit) {

@@ -104,6 +104,8 @@ private:
     gpu::PipelinePointer _simpleProgramTextured;
     gpu::PipelinePointer _simpleProgramTexturedCullNone;
 
+    gpu::PipelinePointer _blitLightBuffer;
+
     ProgramObject _directionalSkyboxLight;
     LightLocations _directionalSkyboxLightLocations;
     ProgramObject _directionalSkyboxLightShadowMap;

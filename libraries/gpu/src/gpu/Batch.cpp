@@ -201,7 +201,7 @@ void Batch::setUniformTexture(uint32 slot, const TextureView& view) {
 }
 
 void Batch::setFramebuffer(const FramebufferPointer& framebuffer) {
-    ADD_COMMAND(setUniformTexture);
+    ADD_COMMAND(setFramebuffer);
 
     _params.push_back(_framebuffers.cache(framebuffer));
 

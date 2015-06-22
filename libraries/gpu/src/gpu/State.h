@@ -341,6 +341,7 @@ public:
     
     // Color write mask
     void setColorWriteMask(uint8 mask) { SET_FIELD(COLOR_WRITE_MASK, DEFAULT.colorWriteMask, mask, _values.colorWriteMask); }
+    void setColorWriteMask(bool red, bool green, bool blue, bool alpha) { SET_FIELD(COLOR_WRITE_MASK, DEFAULT.colorWriteMask, (WRITE_RED * red) | (WRITE_GREEN * green) | (WRITE_BLUE * blue) | (WRITE_ALPHA * alpha), _values.colorWriteMask); }
     uint8 getColorWriteMask() const { return _values.colorWriteMask; }
     
     // All the possible fields
