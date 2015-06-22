@@ -1055,13 +1055,13 @@ void GeometryCache::renderBevelCornersRect(gpu::Batch& batch, int x, int y, int 
         int vertexPoint = 0;
 
         // Triangle strip points
-        //      3 ------ 5
-        //    /            \  
-        //  1                7
-        //  |                |
-        //  2                8
-        //    \            /
-        //      4 ------ 6
+        //      3 ------ 5      //
+        //    /            \    //
+        //  1                7  //
+        //  |                |  //
+        //  2                8  //
+        //    \            /    //
+        //      4 ------ 6      //
         
         // 1
         vertexBuffer[vertexPoint++] = x;
