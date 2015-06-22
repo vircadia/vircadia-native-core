@@ -30,6 +30,8 @@ public:
     Overlay2D(const Overlay2D* overlay2D);
     ~Overlay2D();
     
+    virtual AABox getBounds() const;
+    
     virtual bool is3D() const { return false; }
 
     // getters
@@ -37,8 +39,8 @@ public:
     int getY() const { return _bounds.y(); }
     int getWidth() const { return _bounds.width(); }
     int getHeight() const { return _bounds.height(); }
-    const QRect& getBounds() const { return _bounds; }
-
+    const QRect& getBoundingRect() const { return _bounds; }
+    
     // setters
     void setX(int x) { _bounds.setX(x); }
     void setY(int y) { _bounds.setY(y);  }

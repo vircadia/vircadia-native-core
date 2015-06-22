@@ -284,7 +284,7 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
         } else {
             Overlay2D* thisOverlay = static_cast<Overlay2D*>(i.value().get());
             if (thisOverlay->getVisible() && thisOverlay->isLoaded() &&
-                thisOverlay->getBounds().contains(pointCopy.x, pointCopy.y, false)) {
+                thisOverlay->getBoundingRect().contains(pointCopy.x, pointCopy.y, false)) {
                 return thisID;
             }
         }

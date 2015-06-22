@@ -28,6 +28,11 @@ Overlay2D::Overlay2D(const Overlay2D* overlay2D) :
 Overlay2D::~Overlay2D() {
 }
 
+AABox Overlay2D::getBounds() const {
+    return AABox(glm::vec3(_bounds.x(), _bounds.y(), 0.0f),
+                 glm::vec3(_bounds.width(), _bounds.height(), 0.01f));
+}
+
 void Overlay2D::setProperties(const QScriptValue& properties) {
     Overlay::setProperties(properties);
     
@@ -40,7 +45,7 @@ void Overlay2D::setProperties(const QScriptValue& properties) {
         boundsRect.setHeight(bounds.property("height").toVariant().toInt());
         setBounds(boundsRect);
     } else {
-        QRect oldBounds = getBounds();
+        QRect oldBounds = _bounds;
         QRect newBounds = oldBounds;
         
         if (properties.property("x").isValid()) {
