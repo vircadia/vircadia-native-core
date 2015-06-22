@@ -3307,6 +3307,8 @@ namespace render {
 
 void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool selfAvatarOnly, bool billboard) {
 
+    // FIXME: This preRender call is temporary until we create a separate render::scene for the mirror rendering.
+    // Then we can move this logic into the Avatar::simulate call.
     _myAvatar->preRender(renderArgs);
 
     activeRenderingThread = QThread::currentThread();
