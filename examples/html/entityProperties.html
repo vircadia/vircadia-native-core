@@ -932,6 +932,7 @@
 
     </script>
 </head>
+
 <body class="properties" onload='loaded();'>
     <div id="properties-list">
         <div id="type" class="property">
@@ -939,9 +940,12 @@
                 <label>Type: </label><span id="property-type"></span>
             </div>
         </div>
-        <div class="property">
+        <div id="id" class="property">
+            <span class="label" style="float: left; margin-right: 6px">
+                <label>ID: <label>
+            </span>
             <div class="value">
-                <label id="property-id" class="selectable"></label>
+                <span id="property-id" class="selectable"></span>
             </div>
         </div>
         <div class="property">
@@ -974,6 +978,18 @@
             <span class="value">
                 <input type='checkbox' id="property-visible">
             </span>
+        </div>
+
+        <div class="property">
+            <div class="label">User Data</div>
+            <div class="value">
+                <textarea id="property-user-data"></textarea>
+            </div>
+        </div>
+
+
+        <div class="section-header">
+            <label>Spacial Properites</label>
         </div>
 
         <div class="property">
@@ -1043,6 +1059,11 @@
             </div>
         </div>
 
+
+        <div class="section-header">
+            <label>Physical Properites</label>
+        </div>
+
         <div class="property">
             <div class="label">Linear Velocity</div>
             <div class="value">
@@ -1109,6 +1130,21 @@
             </div>
         </div>
 
+        <div id="color-section" class="property">
+            <div class="label">Color</div>
+            <div class="value">
+                <div id="property-color" class='color-picker'></div>
+                <div class="input-area">R <input class="coord" type='number' id="property-color-red"></input></div>
+                <div class="input-area">G <input class="coord" type='number' id="property-color-green"></input></div>
+                <div class="input-area">B <input class="coord" type='number' id="property-color-blue"></input></div>
+            </div>
+        </div>
+
+
+        <div class="section-header">
+            <label>Behavior</label>
+        </div>
+
         <div class="property">
             <span class="label">Ignore For Collisions</span>
             <span class="value">
@@ -1144,22 +1180,9 @@
             </div>
         </div>
 
-        <div class="property">
-            <div class="label">User Data</div>
-            <div class="value">
-                <textarea id="property-user-data"></textarea>
-            </div>
-        </div>
 
-
-        <div id="color-section" class="property">
-            <div class="label">Color</div>
-            <div class="value">
-                <div id="property-color" class='color-picker'></div>
-                <div class="input-area">R <input class="coord" type='number' id="property-color-red"></input></div>
-                <div class="input-area">G <input class="coord" type='number' id="property-color-green"></input></div>
-                <div class="input-area">B <input class="coord" type='number' id="property-color-blue"></input></div>
-            </div>
+        <div class="section-header web-section">
+            <label>Web</label>
         </div>
 
         <div class="web-section property">
@@ -1167,6 +1190,11 @@
             <div class="value">
                 <input type="text" id="property-web-source-url" class="url"></input>
             </div>
+        </div>
+
+
+        <div class="section-header particle-section">
+            <label>Particle</label>
         </div>
 
         <div class="particle-section property">
@@ -1212,6 +1240,11 @@
             <div class="value">
                 <input  class="coord" type='number' id="property-particle-radius" min="0" step="0.005"></input>
             </div>
+        </div>
+
+
+        <div class="section-header model-section">
+            <label>Model</label>
         </div>
 
         <div class="model-section property">
@@ -1280,8 +1313,13 @@
             </div>
         </div>
 
+
+        <div class="section-header text-section">
+            <label>Text</label>
+        </div>
+
         <div class="text-section property">
-            <div class="label">Text</div>
+            <div class="label">Text Content</div>
             <div class="value">
                 <input type="text" id="property-text-text"></input>
             </div>
@@ -1311,6 +1349,11 @@
             </div>
         </div>
 
+
+        <div class="section-header light-section">
+            <label>Light</label>
+        </div>
+        
         <div class="light-section property">
             <span class="label">Spot Light</span>
             <span class="value">
@@ -1343,6 +1386,11 @@
             <div class="value">
                 <input class="coord" type='number' id="property-light-cutoff"></input>
             </div>
+        </div>
+
+
+        <div class="section-header zone-section">
+            <label>Zone</label>
         </div>
 
         <div class="zone-section property">
@@ -1495,8 +1543,6 @@
                 <input type='checkbox' id="property-zone-atmosphere-has-stars">
             </span>
         </div>
-
     </div>
-
 </body>
 </html>
