@@ -1413,12 +1413,16 @@ void EntityItem::setActionData(QByteArray actionData) {
     QDataStream ds(actionData);
     ds >> serializedActions;
 
+    // Keep track of which actions got added or updated by the new actionData
+    QSet<QUuid> updated;
+
     foreach(QByteArray serializedAction, serializedActions) {
         QDataStream dsForAction(serializedAction);
         EntityActionType actionType;
         QUuid actionID;
         dsForAction >> actionType;
         dsForAction >> actionID;
+        updated << actionID;
 
         if (_objectActions.contains(actionID)) {
             EntityActionPointer action = _objectActions[actionID];
@@ -1428,7 +1432,7 @@ void EntityItem::setActionData(QByteArray actionData) {
             auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
 
             EntityTree* entityTree = _element ? _element->getTree() : nullptr;
-            EntitySimulation* simulation = entityTree? entityTree->getSimulation() : nullptr;
+            EntitySimulation* simulation = entityTree ? entityTree->getSimulation() : nullptr;
 
             if (entityTree) {
                 EntityItemPointer entity = entityTree->findEntityByEntityItemID(_id);
@@ -1436,6 +1440,24 @@ void EntityItem::setActionData(QByteArray actionData) {
                     // XXX something
                 }
             }
+        }
+    }
+
+    // remove any actions that weren't included in the new data.
+    QHash<QUuid, EntityActionPointer>::iterator i = _objectActions.begin();
+    while (i != _objectActions.end()) {
+        const QUuid id = i.key();
+        if (updated.contains(id)) {
+            i++;
+            continue;
+        }
+        EntityActionPointer action = _objectActions[id];
+        i = _objectActions.erase(i);
+        action->setOwnerEntity(nullptr);
+        EntityTree* entityTree = _element ? _element->getTree() : nullptr;
+        EntitySimulation* simulation = entityTree ? entityTree->getSimulation() : nullptr;
+        if (simulation) {
+            action->removeFromSimulation(simulation);
         }
     }
 }
