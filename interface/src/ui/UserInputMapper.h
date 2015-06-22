@@ -116,6 +116,8 @@ public:
     QString getDeviceName(uint16 deviceID) { return _registeredDevices[deviceID]->_name; }
     QVector<InputPair> getAvailableInputs(uint16 deviceID) { return _registeredDevices[deviceID]->getAvailabeInputs(); }
     void resetAllDeviceBindings();
+    void resetDevice(uint16 deviceID);
+    int findDevice(QString name);
 
     // Actions are the output channels of the Mapper, that's what the InputChannel map to
     // For now the Actions are hardcoded, this is bad, but we will fix that in the near future
@@ -189,6 +191,7 @@ public:
     bool removeInputChannel(InputChannel channel);
     void removeAllInputChannels();
     void removeAllInputChannelsForDevice(uint16 device);
+    void removeDevice(int device);
     //Grab all the input channels currently in use, return the number
     int getInputChannels(InputChannels& channels) const;
     QVector<InputChannel> getAllInputsForDevice(uint16 device);

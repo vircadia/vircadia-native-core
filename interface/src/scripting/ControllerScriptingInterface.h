@@ -65,6 +65,7 @@ public:
 
     void emitMouseMoveEvent(QMouseEvent* event, unsigned int deviceID = 0) { emit mouseMoveEvent(MouseEvent(*event, deviceID)); }
     void emitMousePressEvent(QMouseEvent* event, unsigned int deviceID = 0) { emit mousePressEvent(MouseEvent(*event, deviceID)); }
+    void emitMouseDoublePressEvent(QMouseEvent* event, unsigned int deviceID = 0) { emit mouseDoublePressEvent(MouseEvent(*event, deviceID)); }
     void emitMouseReleaseEvent(QMouseEvent* event, unsigned int deviceID = 0) { emit mouseReleaseEvent(MouseEvent(*event, deviceID)); }
 
     void emitTouchBeginEvent(const TouchEvent& event) { emit touchBeginEvent(event); }
@@ -91,6 +92,8 @@ public slots:
     Q_INVOKABLE virtual bool removeInputChannel(UserInputMapper::InputChannel inputChannel);
     Q_INVOKABLE virtual QVector<UserInputMapper::InputPair> getAvailableInputs(unsigned int device);
     Q_INVOKABLE virtual void resetAllDeviceBindings();
+    Q_INVOKABLE virtual void resetDevice(unsigned int device);
+    Q_INVOKABLE virtual int findDevice(QString name);
     virtual bool isPrimaryButtonPressed() const;
     virtual glm::vec2 getPrimaryJoystickPosition() const;
 

@@ -52,6 +52,8 @@ enum DriveKeys {
     ROT_RIGHT,
     ROT_UP,
     ROT_DOWN,
+    BOOM_IN,
+    BOOM_OUT,
     MAX_DRIVE_KEYS
 };
 
@@ -96,6 +98,7 @@ public:
     //getters
     bool isInitialized() const { return _initialized; }
     SkeletonModel& getSkeletonModel() { return _skeletonModel; }
+    const SkeletonModel& getSkeletonModel() const { return _skeletonModel; }
     const QVector<Model*>& getAttachmentModels() const { return _attachmentModels; }
     glm::vec3 getChestPosition() const;
     float getScale() const { return _scale; }
@@ -129,7 +132,7 @@ public:
     /// \return whether or not the plane penetrated
     bool findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions);
 
-    virtual bool isMyAvatar() { return false; }
+    virtual bool isMyAvatar() const { return false; }
     
     virtual QVector<glm::quat> getJointRotations() const;
     virtual glm::quat getJointRotation(int index) const;
@@ -139,7 +142,6 @@ public:
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
-    virtual void setDisplayName(const QString& displayName);
     virtual void setBillboard(const QByteArray& billboard);
 
     void setShowDisplayName(bool showDisplayName);
@@ -230,10 +232,10 @@ protected:
     float getSkeletonHeight() const;
     float getHeadHeight() const;
     float getPelvisFloatingHeight() const;
-    glm::vec3 getDisplayNamePosition();
+    glm::vec3 getDisplayNamePosition() const;
 
-    float calculateDisplayNameScaleFactor(const glm::vec3& textPosition, bool inHMD);
-    void renderDisplayName(RenderArgs* renderArgs);
+    Transform calculateDisplayNameTransform(const ViewFrustum& frustum, float fontSize) const;
+    void renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum) const;
     virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel = 0.0f);
     virtual bool shouldRenderHead(const RenderArgs* renderArgs, const glm::vec3& cameraPosition) const;
     virtual void fixupModelsInScene();

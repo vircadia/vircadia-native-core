@@ -30,6 +30,7 @@
 #include "OctreeStatsDialog.h"
 #include "PreferencesDialog.h"
 #include "ScriptEditorWindow.h"
+#include "UpdateDialog.h"
 
 
 void DialogsManager::toggleAddressBar() {
@@ -47,6 +48,10 @@ void DialogsManager::toggleLoginDialog() {
 
 void DialogsManager::showLoginDialog() {
     LoginDialog::show();
+}
+
+void DialogsManager::showUpdateDialog() {
+    UpdateDialog::show();
 }
 
 void DialogsManager::octreeStatsDetails() {

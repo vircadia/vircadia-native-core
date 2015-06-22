@@ -36,16 +36,14 @@ public:
 
     virtual uint8_t getVoxel(int x, int y, int z);
     virtual void setVoxel(int x, int y, int z, uint8_t toValue);
-    
+
     void updateOnCount(int x, int y, int z, uint8_t new_value);
 
     void render(RenderArgs* args);
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face,
                          void** intersectedObject, bool precisionPicking) const;
-
-    virtual void setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle);
 
     void getModel();
 
@@ -73,13 +71,18 @@ public:
     virtual void setVoxelInVolume(glm::vec3 position, uint8_t toValue);
 
     SIMPLE_RENDERABLE();
-    
+
+protected:
+    virtual void updateVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle);
+
 private:
     // The PolyVoxEntityItem class has _voxelData which contains dimensions and compressed voxel data.  The dimensions
     // may not match _voxelVolumeSize.
 
+    void setVoxelInternal(int x, int y, int z, uint8_t toValue);
     void compressVolumeData();
     void decompressVolumeData();
+
 
     PolyVox::SimpleVolume<uint8_t>* _volData = nullptr;
     model::Geometry _modelGeometry;

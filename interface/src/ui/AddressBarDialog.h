@@ -18,9 +18,17 @@ class AddressBarDialog : public OffscreenQmlDialog
 {
     Q_OBJECT
     HIFI_QML_DECL
+    Q_PROPERTY(bool backEnabled READ backEnabled NOTIFY backEnabledChanged)
+    Q_PROPERTY(bool forwardEnabled READ forwardEnabled NOTIFY forwardEnabledChanged)
 
 public:
     AddressBarDialog(QQuickItem* parent = nullptr);
+    bool backEnabled() { return _backEnabled; }
+    bool forwardEnabled() { return _forwardEnabled; }
+
+signals:
+    void backEnabledChanged();
+    void forwardEnabledChanged();
 
 protected:
     void displayAddressOfflineMessage();
@@ -28,6 +36,11 @@ protected:
     void hide();
 
     Q_INVOKABLE void loadAddress(const QString& address);
+    Q_INVOKABLE void loadBack();
+    Q_INVOKABLE void loadForward();
+
+    bool _backEnabled;
+    bool _forwardEnabled;
 };
 
 #endif

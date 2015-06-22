@@ -176,7 +176,7 @@ void PreferencesDialog::loadPreferences() {
     ui.maxOctreePPSSpin->setValue(qApp->getMaxOctreePacketsPerSecond());
 
 #if 0
-    ui.oculusUIAngularSizeSpin->setValue(qApp->getApplicationOverlay().getHmdUIAngularSize());
+    ui.oculusUIAngularSizeSpin->setValue(qApp->getApplicationCompositor().getHmdUIAngularSize());
 #endif
 
     SixenseManager& sixense = SixenseManager::getInstance();
@@ -241,10 +241,8 @@ void PreferencesDialog::savePreferences() {
     
     qApp->setMaxOctreePacketsPerSecond(ui.maxOctreePPSSpin->value());
 
-#if 0
-    qApp->getApplicationOverlay().setHmdUIAngularSize(ui.oculusUIAngularSizeSpin->value());
-#endif
-
+    qApp->getApplicationCompositor().setHmdUIAngularSize(ui.oculusUIAngularSizeSpin->value());
+    
     SixenseManager& sixense = SixenseManager::getInstance();
     sixense.setReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
     sixense.setInvertButtons(ui.invertSixenseButtonsCheckBox->isChecked());

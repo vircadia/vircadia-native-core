@@ -160,8 +160,8 @@ void KeyboardMouseDevice::registerToUserInputMapper(UserInputMapper& mapper) {
     _deviceID = mapper.getFreeDeviceID();
 
     auto proxy = UserInputMapper::DeviceProxy::Pointer(new UserInputMapper::DeviceProxy("Keyboard"));
-    proxy->getButton = [this] (const UserInputMapper::Input& input, int timestamp) -> bool { return this->getButton(input._channel); };
-    proxy->getAxis = [this] (const UserInputMapper::Input& input, int timestamp) -> float { return this->getAxis(input._channel); };
+    proxy->getButton = [this] (const UserInputMapper::Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
+    proxy->getAxis = [this] (const UserInputMapper::Input& input, int timestamp) -> float { return this->getAxis(input.getChannel()); };
     proxy->getAvailabeInputs = [this] () -> QVector<UserInputMapper::InputPair> {
         QVector<UserInputMapper::InputPair> availableInputs;
         for (int i = (int) Qt::Key_0; i <= (int) Qt::Key_9; i++) {
@@ -170,7 +170,33 @@ void KeyboardMouseDevice::registerToUserInputMapper(UserInputMapper& mapper) {
         for (int i = (int) Qt::Key_A; i <= (int) Qt::Key_Z; i++) {
             availableInputs.append(UserInputMapper::InputPair(makeInput(Qt::Key(i)), QKeySequence(Qt::Key(i)).toString()));
         }
+        for (int i = (int) Qt::Key_Left; i <= (int) Qt::Key_Down; i++) {
+            availableInputs.append(UserInputMapper::InputPair(makeInput(Qt::Key(i)), QKeySequence(Qt::Key(i)).toString()));
+        }
         availableInputs.append(UserInputMapper::InputPair(makeInput(Qt::Key_Space), QKeySequence(Qt::Key_Space).toString()));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(Qt::Key_Shift), "Shift"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(Qt::Key_PageUp), QKeySequence(Qt::Key_PageUp).toString()));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(Qt::Key_PageDown), QKeySequence(Qt::Key_PageDown).toString()));
+
+        availableInputs.append(UserInputMapper::InputPair(makeInput(Qt::LeftButton), "Left Mouse Click"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(Qt::MiddleButton), "Middle Mouse Click"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(Qt::RightButton), "Right Mouse Click"));
+        
+        availableInputs.append(UserInputMapper::InputPair(makeInput(MOUSE_AXIS_X_POS), "Mouse Move Right"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(MOUSE_AXIS_X_NEG), "Mouse Move Left"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(MOUSE_AXIS_Y_POS), "Mouse Move Up"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(MOUSE_AXIS_Y_NEG), "Mouse Move Down"));
+        
+        availableInputs.append(UserInputMapper::InputPair(makeInput(MOUSE_AXIS_WHEEL_Y_POS), "Mouse Wheel Right"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(MOUSE_AXIS_WHEEL_Y_NEG), "Mouse Wheel Left"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(MOUSE_AXIS_WHEEL_X_POS), "Mouse Wheel Up"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(MOUSE_AXIS_WHEEL_X_NEG), "Mouse Wheel Down"));
+        
+        availableInputs.append(UserInputMapper::InputPair(makeInput(TOUCH_AXIS_X_POS), "Touchpad Right"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(TOUCH_AXIS_X_NEG), "Touchpad Left"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(TOUCH_AXIS_Y_POS), "Touchpad Up"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(TOUCH_AXIS_Y_NEG), "Touchpad Down"));
+
         return availableInputs;
     };
     proxy->resetDeviceBindings = [this, &mapper] () -> bool {
@@ -189,7 +215,7 @@ void KeyboardMouseDevice::assignDefaultInputMapping(UserInputMapper& mapper) {
     const float MOUSE_PITCH_SPEED = 0.25f;
     const float TOUCH_YAW_SPEED = 0.5f;
     const float TOUCH_PITCH_SPEED = 0.25f;
-    //const float BUTTON_BOOM_SPEED = 0.1f;
+    const float BUTTON_BOOM_SPEED = 0.1f;
  
     // AWSD keys mapping
     mapper.addInputChannel(UserInputMapper::LONGITUDINAL_BACKWARD, makeInput(Qt::Key_S), BUTTON_MOVE_SPEED);
@@ -199,8 +225,8 @@ void KeyboardMouseDevice::assignDefaultInputMapping(UserInputMapper& mapper) {
     mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(Qt::Key_C), BUTTON_MOVE_SPEED);
     mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(Qt::Key_E), BUTTON_MOVE_SPEED);
 
-  //  mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(Qt::Key_W), makeInput(Qt::Key_Shift), BUTTON_BOOM_SPEED);
-  //  mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(Qt::Key_S), makeInput(Qt::Key_Shift), BUTTON_BOOM_SPEED);
+    mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(Qt::Key_W), makeInput(Qt::Key_Shift), BUTTON_BOOM_SPEED);
+    mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(Qt::Key_S), makeInput(Qt::Key_Shift), BUTTON_BOOM_SPEED);
     mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(Qt::Key_A), makeInput(Qt::RightButton), BUTTON_YAW_SPEED);
     mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(Qt::Key_D), makeInput(Qt::RightButton), BUTTON_YAW_SPEED);
     mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(Qt::Key_A), makeInput(Qt::Key_Shift), BUTTON_YAW_SPEED);
@@ -216,8 +242,6 @@ void KeyboardMouseDevice::assignDefaultInputMapping(UserInputMapper& mapper) {
     mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(Qt::Key_PageDown), BUTTON_MOVE_SPEED);
     mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(Qt::Key_PageUp), BUTTON_MOVE_SPEED);
 
- //   mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(Qt::Key_Up), makeInput(Qt::Key_Shift), BUTTON_BOOM_SPEED);
- //   mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(Qt::Key_Down), makeInput(Qt::Key_Shift), BUTTON_BOOM_SPEED);
     mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(Qt::Key_Left), makeInput(Qt::RightButton), BUTTON_YAW_SPEED);
     mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(Qt::Key_Right), makeInput(Qt::RightButton), BUTTON_YAW_SPEED);
     mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(Qt::Key_Left), makeInput(Qt::Key_Shift), BUTTON_YAW_SPEED);
@@ -246,8 +270,8 @@ void KeyboardMouseDevice::assignDefaultInputMapping(UserInputMapper& mapper) {
     mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(TOUCH_AXIS_X_POS), TOUCH_YAW_SPEED);
     
     // Wheel move
-    //mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(MOUSE_AXIS_WHEEL_Y_NEG), BUTTON_BOOM_SPEED);
-    //mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(MOUSE_AXIS_WHEEL_Y_POS), BUTTON_BOOM_SPEED);
+    mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(MOUSE_AXIS_WHEEL_Y_NEG), BUTTON_BOOM_SPEED);
+    mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(MOUSE_AXIS_WHEEL_Y_POS), BUTTON_BOOM_SPEED);
     mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(MOUSE_AXIS_WHEEL_X_NEG), BUTTON_YAW_SPEED);
     mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(MOUSE_AXIS_WHEEL_X_POS), BUTTON_YAW_SPEED);
 

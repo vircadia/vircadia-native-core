@@ -149,6 +149,7 @@ namespace MenuOption {
     const QString AudioStatsShowInjectedStreams = "Audio Stats Show Injected Streams";
     const QString AutoMuteAudio = "Auto Mute Microphone";
     const QString AvatarReceiveStats = "Show Receive Stats";
+    const QString Back = "Back";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BinaryEyelidControl = "Binary Eyelid Control";
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
@@ -193,8 +194,10 @@ namespace MenuOption {
     const QString Faceshift = "Faceshift";
     const QString FilterSixense = "Smooth Sixense Movement";
     const QString FirstPerson = "First Person";
+    const QString Forward = "Forward";
     const QString FrameTimer = "Show Timer";
     const QString FullscreenMirror = "Fullscreen Mirror";
+    const QString CenterPlayerInView = "Center Player In View";
     const QString GlowWhenSpeaking = "Glow When Speaking";
     const QString NamesAboveHeads = "Names Above Heads";
     const QString GoToUser = "Go To User";

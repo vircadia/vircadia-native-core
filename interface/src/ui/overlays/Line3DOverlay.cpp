@@ -32,46 +32,72 @@ Line3DOverlay::Line3DOverlay(const Line3DOverlay* line3DOverlay) :
 Line3DOverlay::~Line3DOverlay() {
 }
 
+AABox Line3DOverlay::getBounds() const {
+    auto start = _position + _start;
+    auto end = _position + _end;
+
+    auto min = glm::min(start, end);
+    auto max = glm::max(start, end);
+
+    return AABox(min, max - min);
+}
+
 void Line3DOverlay::render(RenderArgs* args) {
     if (!_visible) {
         return; // do nothing if we're not visible
     }
-
-    float glowLevel = getGlowLevel();
-    Glower* glower = NULL;
-    if (glowLevel > 0.0f) {
-        glower = new Glower(glowLevel);
-    }
-
-    glPushMatrix();
-
-    glDisable(GL_LIGHTING);
-    glLineWidth(_lineWidth);
 
     float alpha = getAlpha();
     xColor color = getColor();
     const float MAX_COLOR = 255.0f;
     glm::vec4 colorv4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
-    glm::vec3 position = getPosition();
-    glm::quat rotation = getRotation();
+    auto batch = args->_batch;
 
-    glTranslatef(position.x, position.y, position.z);
-    glm::vec3 axis = glm::axis(rotation);
-    glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+    if (batch) {
+        Transform transform;
+        transform.setTranslation(_position);
+        transform.setRotation(_rotation);
+        batch->setModelTransform(transform);
 
-    if (getIsDashedLine()) {
-        // TODO: add support for color to renderDashedLine()
-        DependencyManager::get<GeometryCache>()->renderDashedLine(_position, _end, colorv4, _geometryCacheID);
+        if (getIsDashedLine()) {
+            // TODO: add support for color to renderDashedLine()
+            DependencyManager::get<GeometryCache>()->renderDashedLine(*batch, _position, _end, colorv4, _geometryCacheID);
+        } else {
+            DependencyManager::get<GeometryCache>()->renderLine(*batch, _start, _end, colorv4, _geometryCacheID);
+        }
     } else {
-        DependencyManager::get<GeometryCache>()->renderLine(_start, _end, colorv4, _geometryCacheID);
-    }
-    glEnable(GL_LIGHTING);
+        float glowLevel = getGlowLevel();
+        Glower* glower = NULL;
+        if (glowLevel > 0.0f) {
+            glower = new Glower(glowLevel);
+        }
 
-    glPopMatrix();
+        glPushMatrix();
 
-    if (glower) {
-        delete glower;
+        glDisable(GL_LIGHTING);
+        glLineWidth(_lineWidth);
+
+        glm::vec3 position = getPosition();
+        glm::quat rotation = getRotation();
+
+        glTranslatef(position.x, position.y, position.z);
+        glm::vec3 axis = glm::axis(rotation);
+        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+
+        if (getIsDashedLine()) {
+            // TODO: add support for color to renderDashedLine()
+            DependencyManager::get<GeometryCache>()->renderDashedLine(_position, _end, colorv4, _geometryCacheID);
+        } else {
+            DependencyManager::get<GeometryCache>()->renderLine(_start, _end, colorv4, _geometryCacheID);
+        }
+        glEnable(GL_LIGHTING);
+
+        glPopMatrix();
+
+        if (glower) {
+            delete glower;
+        }
     }
 }
 

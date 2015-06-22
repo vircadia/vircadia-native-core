@@ -46,9 +46,6 @@ public:
     CameraMode getMode() const { return _mode; }
     void setMode(CameraMode m);
     
-    const glm::mat4& getProjection() const { return _projection; }
-    void setProjection(const glm::mat4& projection);
-
     void loadViewFrustum(ViewFrustum& frustum) const;
     ViewFrustum toViewFrustum() const;
 
@@ -56,17 +53,20 @@ public slots:
     QString getModeString() const;
     void setModeString(const QString& mode);
 
-    const glm::quat getRotation() const { return _rotation; }
+    const glm::quat& getRotation() const { return _rotation; }
     void setRotation(const glm::quat& rotation);
 
-    const glm::vec3 getPosition() const { return _position; }
+    const glm::vec3& getPosition() const { return _position; }
     void setPosition(const glm::vec3& position);
 
-    const glm::quat getOrientation() const { return getRotation(); }
+    const glm::quat& getOrientation() const { return getRotation(); }
     void setOrientation(const glm::quat& orientation) { setRotation(orientation); }
 
-    const glm::mat4 getTransform() const { return _transform; }
+    const glm::mat4& getTransform() const { return _transform; }
     void setTransform(const glm::mat4& transform);
+
+    const glm::mat4& getProjection() const { return _projection; }
+    void setProjection(const glm::mat4& projection);
 
     PickRay computePickRay(float x, float y);
 

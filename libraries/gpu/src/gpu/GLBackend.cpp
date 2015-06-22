@@ -12,6 +12,8 @@
 #include "GLBackendShared.h"
 #include <glm/gtc/type_ptr.hpp>
 
+using namespace gpu;
+
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
 {
     (&::gpu::GLBackend::do_draw),
@@ -59,8 +61,11 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_glDrawBuffers),
 
     (&::gpu::GLBackend::do_glUseProgram),
+    (&::gpu::GLBackend::do_glUniform1i),
     (&::gpu::GLBackend::do_glUniform1f),
     (&::gpu::GLBackend::do_glUniform2f),
+    (&::gpu::GLBackend::do_glUniform3f),
+    (&::gpu::GLBackend::do_glUniform3fv),
     (&::gpu::GLBackend::do_glUniform4fv),
     (&::gpu::GLBackend::do_glUniformMatrix4fv),
 
@@ -139,6 +144,14 @@ bool GLBackend::checkGLError(const char* name) {
     }
 }
 
+bool GLBackend::checkGLErrorDebug(const char* name) {
+#ifdef DEBUG
+    return checkGLError(name);
+#else
+    Q_UNUSED(name);
+    return false;
+#endif
+}
 
 void GLBackend::syncCache() {
     syncTransformStateCache();
@@ -431,6 +444,29 @@ void GLBackend::do_glUseProgram(Batch& batch, uint32 paramOffset) {
     (void) CHECK_GL_ERROR();
 }
 
+void Batch::_glUniform1i(GLint location, GLint v0) {
+    if (location < 0) {
+        return;
+    }
+    ADD_COMMAND_GL(glUniform1i);
+    _params.push_back(v0);
+    _params.push_back(location);
+    
+    DO_IT_NOW(_glUniform1i, 1);
+}
+void GLBackend::do_glUniform1i(Batch& batch, uint32 paramOffset) {
+    if (_pipeline._program == 0) {
+        // We should call updatePipeline() to bind the program but we are not doing that
+        // because these uniform setters are deprecated and we don;t want to create side effect
+        return;
+    }
+    updatePipeline();
+    glUniform1f(
+        batch._params[paramOffset + 1]._int,
+        batch._params[paramOffset + 0]._int);
+    (void) CHECK_GL_ERROR();
+}
+
 void Batch::_glUniform1f(GLint location, GLfloat v0) {
     if (location < 0) {
         return;
@@ -447,6 +483,8 @@ void GLBackend::do_glUniform1f(Batch& batch, uint32 paramOffset) {
         // because these uniform setters are deprecated and we don;t want to create side effect
         return;
     }
+    updatePipeline();
+
     glUniform1f(
         batch._params[paramOffset + 1]._int,
         batch._params[paramOffset + 0]._float);
@@ -462,18 +500,72 @@ void Batch::_glUniform2f(GLint location, GLfloat v0, GLfloat v1) {
 
     DO_IT_NOW(_glUniform2f, 1);
 }
+
 void GLBackend::do_glUniform2f(Batch& batch, uint32 paramOffset) {
     if (_pipeline._program == 0) {
         // We should call updatePipeline() to bind the program but we are not doing that
         // because these uniform setters are deprecated and we don;t want to create side effect
         return;
     }
+    updatePipeline();
     glUniform2f(
         batch._params[paramOffset + 2]._int,
         batch._params[paramOffset + 1]._float,
         batch._params[paramOffset + 0]._float);
     (void) CHECK_GL_ERROR();
 }
+
+void Batch::_glUniform3f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2) {
+    ADD_COMMAND_GL(glUniform3f);
+
+    _params.push_back(v2);
+    _params.push_back(v1);
+    _params.push_back(v0);
+    _params.push_back(location);
+
+    DO_IT_NOW(_glUniform3f, 1);
+}
+
+void GLBackend::do_glUniform3f(Batch& batch, uint32 paramOffset) {
+    if (_pipeline._program == 0) {
+        // We should call updatePipeline() to bind the program but we are not doing that
+        // because these uniform setters are deprecated and we don;t want to create side effect
+        return;
+    }
+    updatePipeline();
+    glUniform3f(
+        batch._params[paramOffset + 3]._int,
+        batch._params[paramOffset + 2]._float,
+        batch._params[paramOffset + 1]._float,
+        batch._params[paramOffset + 0]._float);
+    (void) CHECK_GL_ERROR();
+}
+
+void Batch::_glUniform3fv(GLint location, GLsizei count, const GLfloat* value) {
+    ADD_COMMAND_GL(glUniform3fv);
+
+    const int VEC3_SIZE = 3 * sizeof(float);
+    _params.push_back(cacheData(count * VEC3_SIZE, value));
+    _params.push_back(count);
+    _params.push_back(location);
+
+    DO_IT_NOW(_glUniform3fv, 3);
+}
+void GLBackend::do_glUniform3fv(Batch& batch, uint32 paramOffset) {
+    if (_pipeline._program == 0) {
+        // We should call updatePipeline() to bind the program but we are not doing that
+        // because these uniform setters are deprecated and we don;t want to create side effect
+        return;
+    }
+    updatePipeline();
+    glUniform3fv(
+        batch._params[paramOffset + 2]._int,
+        batch._params[paramOffset + 1]._uint,
+        (const GLfloat*)batch.editData(batch._params[paramOffset + 0]._uint));
+
+    (void) CHECK_GL_ERROR();
+}
+
 
 void Batch::_glUniform4fv(GLint location, GLsizei count, const GLfloat* value) {
     ADD_COMMAND_GL(glUniform4fv);
@@ -491,6 +583,7 @@ void GLBackend::do_glUniform4fv(Batch& batch, uint32 paramOffset) {
         // because these uniform setters are deprecated and we don;t want to create side effect
         return;
     }
+    updatePipeline();
     glUniform4fv(
         batch._params[paramOffset + 2]._int,
         batch._params[paramOffset + 1]._uint,
@@ -516,6 +609,7 @@ void GLBackend::do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset) {
         // because these uniform setters are deprecated and we don;t want to create side effect
         return;
     }
+    updatePipeline();
     glUniformMatrix4fv(
         batch._params[paramOffset + 3]._int,
         batch._params[paramOffset + 2]._uint,
@@ -603,4 +697,20 @@ void GLBackend::fetchMatrix(GLenum target, glm::mat4 & m) {
     glGetFloatv(target, glm::value_ptr(m));
 }
 
+void GLBackend::checkGLStackStable(std::function<void()> f) {
+#ifdef DEBUG
+    GLint mvDepth, prDepth;
+    glGetIntegerv(GL_MODELVIEW_STACK_DEPTH, &mvDepth);
+    glGetIntegerv(GL_PROJECTION_STACK_DEPTH, &prDepth);
+#endif
 
+    f();
+
+#ifdef DEBUG
+    GLint mvDepthFinal, prDepthFinal;
+    glGetIntegerv(GL_MODELVIEW_STACK_DEPTH, &mvDepthFinal);
+    glGetIntegerv(GL_PROJECTION_STACK_DEPTH, &prDepthFinal);
+    Q_ASSERT(mvDepth == mvDepthFinal);
+    Q_ASSERT(prDepth == prDepthFinal);
+#endif
+}

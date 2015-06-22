@@ -96,8 +96,9 @@ void BoundingBox::explandToInclude(const BoundingBox& box) {
 
 void BoundingBox::printDebugDetails(const char* label) const {
     qCDebug(octree, "%s _set=%s\n    corner=%f,%f size=%f,%f\n    bounds=[(%f,%f) to (%f,%f)]",
-           (label ? label : "BoundingBox"),
-           debug::valueOf(_set), corner.x, corner.y, size.x, size.y, corner.x, corner.y, corner.x+size.x, corner.y+size.y);
+            (label ? label : "BoundingBox"),
+            debug::valueOf(_set), (double)corner.x, (double)corner.y, (double)size.x, (double)size.y,
+            (double)corner.x, (double)corner.y, (double)(corner.x+size.x), (double)(corner.y+size.y));
 }
 
 
@@ -107,7 +108,7 @@ long OctreeProjectedPolygon::intersects_calls = 0;
 
 
 OctreeProjectedPolygon::OctreeProjectedPolygon(const BoundingBox& box) :
-    _vertexCount(4), 
+    _vertexCount(4),
     _maxX(-FLT_MAX), _maxY(-FLT_MAX), _minX(FLT_MAX), _minY(FLT_MAX),
     _distance(0)
 {
@@ -117,9 +118,9 @@ OctreeProjectedPolygon::OctreeProjectedPolygon(const BoundingBox& box) :
 }
 
 
-void OctreeProjectedPolygon::setVertex(int vertex, const glm::vec2& point) { 
+void OctreeProjectedPolygon::setVertex(int vertex, const glm::vec2& point) {
     _vertices[vertex] = point;
-    
+
     // keep track of our bounding box
     if (point.x > _maxX) {
         _maxX = point.x;
@@ -133,14 +134,14 @@ void OctreeProjectedPolygon::setVertex(int vertex, const glm::vec2& point) {
     if (point.y < _minY) {
         _minY = point.y;
     }
-    
+
 }
 
 // can be optimized with new pointInside()
 bool OctreeProjectedPolygon::occludes(const OctreeProjectedPolygon& occludee, bool checkAllInView) const {
 
     OctreeProjectedPolygon::occludes_calls++;
-    
+
     // if we are completely out of view, then we definitely don't occlude!
     // if the occludee is completely out of view, then we also don't occlude it
     //
@@ -158,7 +159,7 @@ bool OctreeProjectedPolygon::occludes(const OctreeProjectedPolygon& occludee, bo
         (occludee.getMinY() < getMinY())) {
         return false;
     }
-    
+
     // we need to test for identity as well, because in the case of identity, none of the points
     // will be "inside" but we don't want to bail early on the first non-inside point
     bool potentialIdenity = false;
@@ -171,7 +172,7 @@ bool OctreeProjectedPolygon::occludes(const OctreeProjectedPolygon& occludee, bo
     for(int i = 0; i < occludee.getVertexCount(); i++) {
         bool vertexMatched = false;
         if (!pointInside(occludee.getVertex(i), &vertexMatched)) {
-        
+
             // so the point we just tested isn't inside, but it might have matched a vertex
             // if it didn't match a vertext, then we bail because we can't be an identity
             // or if we're not expecting identity, then we also bail early, no matter what
@@ -182,7 +183,7 @@ bool OctreeProjectedPolygon::occludes(const OctreeProjectedPolygon& occludee, bo
             pointsInside++;
         }
     }
-    
+
     // we're only here if all points are inside matched and/or we had a potentialIdentity we need to check
     if (pointsInside == occludee.getVertexCount()) {
         return true;
@@ -192,7 +193,7 @@ bool OctreeProjectedPolygon::occludes(const OctreeProjectedPolygon& occludee, bo
     if (potentialIdenity) {
         return matches(occludee);
     }
-    
+
     return false; // if we got this far, then we're not occluded
 }
 
@@ -211,7 +212,7 @@ bool OctreeProjectedPolygon::matches(const OctreeProjectedPolygon& testee) const
     int originIndex = 0;
     for(int i = 0; i < vertextCount; i++) {
         glm::vec2 testeeVertex = testee.getVertex(i);
-        
+
         // if they match, we found our origin.
         if (testeeVertex == polygonVertex) {
             originIndex = i;
@@ -224,10 +225,10 @@ bool OctreeProjectedPolygon::matches(const OctreeProjectedPolygon& testee) const
         glm::vec2 testeeVertex  = testee.getVertex((i + originIndex) % vertextCount);
         glm::vec2 polygonVertex = getVertex(i);
         if (testeeVertex != polygonVertex) {
-            return false; // we don't match, therefore we're not the same 
-        }            
-    }        
-    return true; // all of our vertices match, therefore we're the same 
+            return false; // we don't match, therefore we're not the same
+        }
+    }
+    return true; // all of our vertices match, therefore we're the same
 }
 
 bool OctreeProjectedPolygon::matches(const BoundingBox& box) const {
@@ -259,17 +260,17 @@ bool OctreeProjectedPolygon::pointInside(const glm::vec2& point, bool* matchesVe
             return false;
         }
     }
-    
+
     return true;
 }
- 
+
 void OctreeProjectedPolygon::printDebugDetails() const {
     qCDebug(octree, "OctreeProjectedPolygon..."
-           "    minX=%f maxX=%f minY=%f maxY=%f", getMinX(), getMaxX(), getMinY(), getMaxY());
-    qCDebug(octree, "    vertex count=%d distance=%f", getVertexCount(), getDistance());
+            "    minX=%f maxX=%f minY=%f maxY=%f", (double)getMinX(), (double)getMaxX(), (double)getMinY(), (double)getMaxY());
+    qCDebug(octree, "    vertex count=%d distance=%f", getVertexCount(), (double)getDistance());
     for (int i = 0; i < getVertexCount(); i++) {
         glm::vec2 point = getVertex(i);
-        qCDebug(octree, "    vertex[%d] = %f, %f ", i, point.x, point.y);
+        qCDebug(octree, "    vertex[%d] = %f, %f ", i, (double)point.x, (double)point.y);
     }
 }
 
@@ -291,7 +292,7 @@ bool OctreeProjectedPolygon::intersects(const OctreeProjectedPolygon& testee) co
 // intersect on all axes.
 //
 // Note: this only works on convex polygons
-// 
+//
 //
 bool OctreeProjectedPolygon::intersectsOnAxes(const OctreeProjectedPolygon& testee) const {
 
@@ -307,11 +308,11 @@ bool OctreeProjectedPolygon::intersectsOnAxes(const OctreeProjectedPolygon& test
         // points that are ON the edge, are considered to be "outside"
         for (int j = 0; j < testee.getVertexCount(); j++) {
             glm::vec2 testeeVertex = testee.getVertex(j);
-            
+
             // in comparison below:
             //      >= will cause points on edge to be considered inside
             //      >  will cause points on edge to be considered outside
-            
+
             float c2 = a * testeeVertex.x + b * testeeVertex.y;
             if (c2 >= c) {
                 goto CONTINUE_OUTER;
@@ -328,11 +329,11 @@ bool OctreeProjectedPolygon::canMerge(const OctreeProjectedPolygon& that) const 
     // RIGHT/NEAR
     // LEFT/NEAR
     if (
-        (getProjectionType() == that.getProjectionType()) && 
+        (getProjectionType() == that.getProjectionType()) &&
         (
              getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR) ||
              getProjectionType() == (PROJECTION_LEFT | PROJECTION_NEAR)
-        ) 
+        )
        ) {
         if (getVertex(1) == that.getVertex(0) && getVertex(4) == that.getVertex(5)) {
             return true;
@@ -350,10 +351,10 @@ bool OctreeProjectedPolygon::canMerge(const OctreeProjectedPolygon& that) const 
 
     // NEAR/BOTTOM
     if (
-        (getProjectionType() == that.getProjectionType()) && 
+        (getProjectionType() == that.getProjectionType()) &&
         (
              getProjectionType() == (PROJECTION_NEAR | PROJECTION_BOTTOM)
-        ) 
+        )
        ) {
         if (getVertex(0) == that.getVertex(5) && getVertex(3) == that.getVertex(4)) {
             return true;
@@ -371,10 +372,10 @@ bool OctreeProjectedPolygon::canMerge(const OctreeProjectedPolygon& that) const 
 
     // NEAR/TOP
     if (
-        (getProjectionType() == that.getProjectionType()) && 
+        (getProjectionType() == that.getProjectionType()) &&
         (
              getProjectionType() == (PROJECTION_NEAR | PROJECTION_TOP)
-        ) 
+        )
        ) {
         if (getVertex(0) == that.getVertex(5) && getVertex(1) == that.getVertex(2)) {
             return true;
@@ -393,11 +394,11 @@ bool OctreeProjectedPolygon::canMerge(const OctreeProjectedPolygon& that) const 
     // RIGHT/NEAR & NEAR/RIGHT/TOP
     // LEFT/NEAR  & NEAR/LEFT/TOP
     if (
-            ((getProjectionType()     == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_TOP)) && 
-            (that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR))) 
+            ((getProjectionType()     == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_TOP)) &&
+            (that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR)))
             ||
-            ((getProjectionType()     == (PROJECTION_LEFT  | PROJECTION_NEAR | PROJECTION_TOP)) && 
-            (that.getProjectionType() == (PROJECTION_LEFT  | PROJECTION_NEAR))) 
+            ((getProjectionType()     == (PROJECTION_LEFT  | PROJECTION_NEAR | PROJECTION_TOP)) &&
+            (that.getProjectionType() == (PROJECTION_LEFT  | PROJECTION_NEAR)))
         )
     {
         if (getVertex(5) == that.getVertex(0) && getVertex(3) == that.getVertex(2)) {
@@ -407,12 +408,12 @@ bool OctreeProjectedPolygon::canMerge(const OctreeProjectedPolygon& that) const 
     // RIGHT/NEAR & NEAR/RIGHT/TOP
     // LEFT/NEAR  & NEAR/LEFT/TOP
     if (
-            ((that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_TOP)) && 
-            (getProjectionType()       == (PROJECTION_RIGHT | PROJECTION_NEAR))) 
+            ((that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_TOP)) &&
+            (getProjectionType()       == (PROJECTION_RIGHT | PROJECTION_NEAR)))
             ||
-            ((that.getProjectionType() == (PROJECTION_LEFT  | PROJECTION_NEAR | PROJECTION_TOP)) && 
-            (getProjectionType()       == (PROJECTION_LEFT  | PROJECTION_NEAR))) 
-            
+            ((that.getProjectionType() == (PROJECTION_LEFT  | PROJECTION_NEAR | PROJECTION_TOP)) &&
+            (getProjectionType()       == (PROJECTION_LEFT  | PROJECTION_NEAR)))
+
         )
     {
         if (getVertex(0) == that.getVertex(5) && getVertex(2) == that.getVertex(3)) {
@@ -423,12 +424,12 @@ bool OctreeProjectedPolygon::canMerge(const OctreeProjectedPolygon& that) const 
     // RIGHT/NEAR & NEAR/RIGHT/BOTTOM
     // NEAR/LEFT & NEAR/LEFT/BOTTOM
     if (
-            ((that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_BOTTOM)) && 
-            (getProjectionType()       == (PROJECTION_RIGHT | PROJECTION_NEAR))) 
+            ((that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_BOTTOM)) &&
+            (getProjectionType()       == (PROJECTION_RIGHT | PROJECTION_NEAR)))
             ||
-            ((that.getProjectionType() == (PROJECTION_LEFT | PROJECTION_NEAR | PROJECTION_BOTTOM)) && 
-            (getProjectionType()       == (PROJECTION_LEFT | PROJECTION_NEAR))) 
-            
+            ((that.getProjectionType() == (PROJECTION_LEFT | PROJECTION_NEAR | PROJECTION_BOTTOM)) &&
+            (getProjectionType()       == (PROJECTION_LEFT | PROJECTION_NEAR)))
+
         )
     {
         if (getVertex(5) == that.getVertex(0) && getVertex(3) == that.getVertex(2)) {
@@ -438,11 +439,11 @@ bool OctreeProjectedPolygon::canMerge(const OctreeProjectedPolygon& that) const 
     // RIGHT/NEAR & NEAR/RIGHT/BOTTOM
     // NEAR/LEFT & NEAR/LEFT/BOTTOM
     if (
-            ((getProjectionType()     == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_BOTTOM)) && 
-            (that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR))) 
+            ((getProjectionType()     == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_BOTTOM)) &&
+            (that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR)))
             ||
-            ((getProjectionType()     == (PROJECTION_LEFT | PROJECTION_NEAR | PROJECTION_BOTTOM)) && 
-            (that.getProjectionType() == (PROJECTION_LEFT | PROJECTION_NEAR))) 
+            ((getProjectionType()     == (PROJECTION_LEFT | PROJECTION_NEAR | PROJECTION_BOTTOM)) &&
+            (that.getProjectionType() == (PROJECTION_LEFT | PROJECTION_NEAR)))
         )
     {
         if (getVertex(0) == that.getVertex(5) && getVertex(2) == that.getVertex(3)) {
@@ -453,7 +454,7 @@ bool OctreeProjectedPolygon::canMerge(const OctreeProjectedPolygon& that) const 
     // NEAR/TOP & NEAR
     if (
             (getProjectionType()      == (PROJECTION_NEAR                   )) &&
-            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_TOP ))  
+            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_TOP ))
         )
     {
         if (getVertex(0) == that.getVertex(5) && getVertex(1) == that.getVertex(2)) {
@@ -464,7 +465,7 @@ bool OctreeProjectedPolygon::canMerge(const OctreeProjectedPolygon& that) const 
     // NEAR/TOP & NEAR
     if (
             (that.getProjectionType() == (PROJECTION_NEAR                   )) &&
-            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_TOP ))  
+            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_TOP ))
         )
     {
         if (getVertex(5) == that.getVertex(0) && getVertex(2) == that.getVertex(1)) {
@@ -475,7 +476,7 @@ bool OctreeProjectedPolygon::canMerge(const OctreeProjectedPolygon& that) const 
     // NEAR/BOTTOM & NEAR
     if (
             (getProjectionType()      == (PROJECTION_NEAR                      )) &&
-            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_BOTTOM ))  
+            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_BOTTOM ))
         )
     {
         if (getVertex(2) == that.getVertex(3) && getVertex(3) == that.getVertex(0)) {
@@ -486,7 +487,7 @@ bool OctreeProjectedPolygon::canMerge(const OctreeProjectedPolygon& that) const 
     // NEAR/BOTTOM & NEAR
     if (
             (that.getProjectionType() == (PROJECTION_NEAR                      )) &&
-            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_BOTTOM ))  
+            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_BOTTOM ))
         )
     {
         if (getVertex(3) == that.getVertex(2) && getVertex(0) == that.getVertex(3)) {
@@ -497,7 +498,7 @@ bool OctreeProjectedPolygon::canMerge(const OctreeProjectedPolygon& that) const 
     // NEAR/RIGHT & NEAR
     if (
             (getProjectionType()      == (PROJECTION_NEAR                      )) &&
-            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_RIGHT ))  
+            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_RIGHT ))
         )
     {
         if (getVertex(0) == that.getVertex(1) && getVertex(3) == that.getVertex(4)) {
@@ -508,18 +509,18 @@ bool OctreeProjectedPolygon::canMerge(const OctreeProjectedPolygon& that) const 
     // NEAR/RIGHT & NEAR
     if (
             (that.getProjectionType() == (PROJECTION_NEAR                      )) &&
-            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_RIGHT ))  
+            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_RIGHT ))
         )
     {
         if (getVertex(1) == that.getVertex(0) && getVertex(4) == that.getVertex(3)) {
             return true;
         }
     }
-    
+
     // NEAR/LEFT & NEAR
     if (
             (getProjectionType()      == (PROJECTION_NEAR                    )) &&
-            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_LEFT ))  
+            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_LEFT ))
         )
     {
         if (getVertex(1) == that.getVertex(1) && getVertex(2) == that.getVertex(4)) {
@@ -530,7 +531,7 @@ bool OctreeProjectedPolygon::canMerge(const OctreeProjectedPolygon& that) const 
     // NEAR/LEFT & NEAR
     if (
             (that.getProjectionType() == (PROJECTION_NEAR                    )) &&
-            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_LEFT ))  
+            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_LEFT ))
         )
     {
         if (getVertex(1) == that.getVertex(0) && getVertex(4) == that.getVertex(3)) {
@@ -559,7 +560,7 @@ bool OctreeProjectedPolygon::canMerge(const OctreeProjectedPolygon& that) const 
             return true;
         }
     }
-    
+
 
     // NEAR/RIGHT/BOTTOM & NEAR/BOTTOM
     if (
@@ -582,7 +583,7 @@ bool OctreeProjectedPolygon::canMerge(const OctreeProjectedPolygon& that) const 
             return true;
         }
     }
-    
+
     // NEAR/LEFT/BOTTOM & NEAR/BOTTOM
     if (
             ((getProjectionType()     == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
@@ -592,12 +593,12 @@ bool OctreeProjectedPolygon::canMerge(const OctreeProjectedPolygon& that) const 
         if (getVertex(2) == that.getVertex(0) && getVertex(4) == that.getVertex(4)) {
             return true;
         }
-    }        
+    }
 
     // NEAR/LEFT/BOTTOM & NEAR/BOTTOM
     if (
             ((that.getProjectionType() == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
-            (getProjectionType()       == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_LEFT )))  
+            (getProjectionType()       == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_LEFT )))
         )
     {
         if (getVertex(0) == that.getVertex(2) && getVertex(4) == that.getVertex(4)) {
@@ -609,7 +610,7 @@ bool OctreeProjectedPolygon::canMerge(const OctreeProjectedPolygon& that) const 
     // LEFT/NEAR/BOTTOM
     // LEFT/NEAR/TOP
     if (
-            (getProjectionType() == that.getProjectionType()) && 
+            (getProjectionType() == that.getProjectionType()) &&
             (
                 getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_BOTTOM ) ||
                 getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_TOP    ) ||
@@ -646,11 +647,11 @@ void OctreeProjectedPolygon::merge(const OctreeProjectedPolygon& that) {
     // RIGHT/NEAR
     // LEFT/NEAR
     if (
-        (getProjectionType() == that.getProjectionType()) && 
+        (getProjectionType() == that.getProjectionType()) &&
         (
-             getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR) || 
+             getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR) ||
              getProjectionType() == (PROJECTION_LEFT  | PROJECTION_NEAR)
-        ) 
+        )
        ) {
         if (getVertex(1) == that.getVertex(0) && getVertex(4) == that.getVertex(5)) {
             //setVertex(0, this.getVertex(0)); // no change
@@ -689,13 +690,13 @@ void OctreeProjectedPolygon::merge(const OctreeProjectedPolygon& that) {
             return; // done
         }
     }
-    
+
     // NEAR/BOTTOM
     if (
-        (getProjectionType() == that.getProjectionType()) && 
+        (getProjectionType() == that.getProjectionType()) &&
         (
              getProjectionType() == (PROJECTION_NEAR | PROJECTION_BOTTOM)
-        ) 
+        )
        ) {
         if (getVertex(0) == that.getVertex(5) && getVertex(3) == that.getVertex(4)) {
             setVertex(0, that.getVertex(0));
@@ -737,10 +738,10 @@ void OctreeProjectedPolygon::merge(const OctreeProjectedPolygon& that) {
 
     // NEAR/TOP
     if (
-        (getProjectionType() == that.getProjectionType()) && 
+        (getProjectionType() == that.getProjectionType()) &&
         (
              getProjectionType() == (PROJECTION_NEAR | PROJECTION_TOP)
-        ) 
+        )
        ) {
         if (getVertex(0) == that.getVertex(5) && getVertex(1) == that.getVertex(2)) {
             setVertex(0, that.getVertex(0));
@@ -779,16 +780,16 @@ void OctreeProjectedPolygon::merge(const OctreeProjectedPolygon& that) {
             return; // done
         }
     }
-    
+
 
     // RIGHT/NEAR & NEAR/RIGHT/TOP
     // LEFT/NEAR  & NEAR/LEFT/TOP
     if (
-            ((getProjectionType()     == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_TOP)) && 
-            (that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR))) 
+            ((getProjectionType()     == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_TOP)) &&
+            (that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR)))
             ||
-            ((getProjectionType()     == (PROJECTION_LEFT  | PROJECTION_NEAR | PROJECTION_TOP)) && 
-            (that.getProjectionType() == (PROJECTION_LEFT  | PROJECTION_NEAR))) 
+            ((getProjectionType()     == (PROJECTION_LEFT  | PROJECTION_NEAR | PROJECTION_TOP)) &&
+            (that.getProjectionType() == (PROJECTION_LEFT  | PROJECTION_NEAR)))
         )
     {
         if (getVertex(5) == that.getVertex(0) && getVertex(3) == that.getVertex(2)) {
@@ -806,12 +807,12 @@ void OctreeProjectedPolygon::merge(const OctreeProjectedPolygon& that) {
     // RIGHT/NEAR & NEAR/RIGHT/TOP
     // LEFT/NEAR  & NEAR/LEFT/TOP
     if (
-            ((that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_TOP)) && 
-            (getProjectionType()       == (PROJECTION_RIGHT | PROJECTION_NEAR))) 
+            ((that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_TOP)) &&
+            (getProjectionType()       == (PROJECTION_RIGHT | PROJECTION_NEAR)))
             ||
-            ((that.getProjectionType() == (PROJECTION_LEFT  | PROJECTION_NEAR | PROJECTION_TOP)) && 
-            (getProjectionType()       == (PROJECTION_LEFT  | PROJECTION_NEAR))) 
-            
+            ((that.getProjectionType() == (PROJECTION_LEFT  | PROJECTION_NEAR | PROJECTION_TOP)) &&
+            (getProjectionType()       == (PROJECTION_LEFT  | PROJECTION_NEAR)))
+
         )
     {
         if (getVertex(0) == that.getVertex(5) && getVertex(2) == that.getVertex(3)) {
@@ -829,12 +830,12 @@ void OctreeProjectedPolygon::merge(const OctreeProjectedPolygon& that) {
     // RIGHT/NEAR & NEAR/RIGHT/BOTTOM
     // NEAR/LEFT & NEAR/LEFT/BOTTOM
     if (
-            ((that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_BOTTOM)) && 
-            (getProjectionType()       == (PROJECTION_RIGHT | PROJECTION_NEAR))) 
+            ((that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_BOTTOM)) &&
+            (getProjectionType()       == (PROJECTION_RIGHT | PROJECTION_NEAR)))
             ||
-            ((that.getProjectionType() == (PROJECTION_LEFT | PROJECTION_NEAR | PROJECTION_BOTTOM)) && 
-            (getProjectionType()       == (PROJECTION_LEFT | PROJECTION_NEAR))) 
-            
+            ((that.getProjectionType() == (PROJECTION_LEFT | PROJECTION_NEAR | PROJECTION_BOTTOM)) &&
+            (getProjectionType()       == (PROJECTION_LEFT | PROJECTION_NEAR)))
+
         )
     {
         if (getVertex(5) == that.getVertex(0) && getVertex(3) == that.getVertex(2)) {
@@ -851,11 +852,11 @@ void OctreeProjectedPolygon::merge(const OctreeProjectedPolygon& that) {
     // RIGHT/NEAR & NEAR/RIGHT/BOTTOM
     // NEAR/LEFT & NEAR/LEFT/BOTTOM
     if (
-            ((getProjectionType()     == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_BOTTOM)) && 
-            (that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR))) 
+            ((getProjectionType()     == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_BOTTOM)) &&
+            (that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR)))
             ||
-            ((getProjectionType()     == (PROJECTION_LEFT | PROJECTION_NEAR | PROJECTION_BOTTOM)) && 
-            (that.getProjectionType() == (PROJECTION_LEFT | PROJECTION_NEAR))) 
+            ((getProjectionType()     == (PROJECTION_LEFT | PROJECTION_NEAR | PROJECTION_BOTTOM)) &&
+            (that.getProjectionType() == (PROJECTION_LEFT | PROJECTION_NEAR)))
         )
     {
         if (getVertex(0) == that.getVertex(5) && getVertex(2) == that.getVertex(3)) {
@@ -865,16 +866,16 @@ void OctreeProjectedPolygon::merge(const OctreeProjectedPolygon& that) {
             //setVertex(3, this.getVertex(3)); // no change
             //setVertex(4, this.getVertex(4)); // no change
             //setVertex(5, this.getVertex(5)); // no change
-            setProjectionType((PROJECTION_RIGHT | PROJECTION_NEAR)); 
+            setProjectionType((PROJECTION_RIGHT | PROJECTION_NEAR));
             return; // done
         }
     }
-    
-    
+
+
     // NEAR/TOP & NEAR
     if (
             (getProjectionType()      == (PROJECTION_NEAR                   )) &&
-            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_TOP ))  
+            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_TOP ))
         )
     {
         if (getVertex(0) == that.getVertex(5) && getVertex(1) == that.getVertex(2)) {
@@ -891,7 +892,7 @@ void OctreeProjectedPolygon::merge(const OctreeProjectedPolygon& that) {
     // NEAR/TOP & NEAR
     if (
             (that.getProjectionType() == (PROJECTION_NEAR                   )) &&
-            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_TOP ))  
+            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_TOP ))
         )
     {
         if (getVertex(5) == that.getVertex(0) && getVertex(2) == that.getVertex(1)) {
@@ -904,11 +905,11 @@ void OctreeProjectedPolygon::merge(const OctreeProjectedPolygon& that) {
             return; // done
         }
     }
-    
+
     // NEAR/BOTTOM & NEAR
     if (
             (getProjectionType()      == (PROJECTION_NEAR                      )) &&
-            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_BOTTOM ))  
+            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_BOTTOM ))
         )
     {
         if (getVertex(2) == that.getVertex(3) && getVertex(3) == that.getVertex(0)) {
@@ -924,7 +925,7 @@ void OctreeProjectedPolygon::merge(const OctreeProjectedPolygon& that) {
     // NEAR/BOTTOM & NEAR
     if (
             (that.getProjectionType() == (PROJECTION_NEAR                      )) &&
-            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_BOTTOM ))  
+            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_BOTTOM ))
         )
     {
         if (getVertex(3) == that.getVertex(2) && getVertex(0) == that.getVertex(3)) {
@@ -941,7 +942,7 @@ void OctreeProjectedPolygon::merge(const OctreeProjectedPolygon& that) {
     // NEAR/RIGHT & NEAR
     if (
             (getProjectionType()      == (PROJECTION_NEAR                      )) &&
-            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_RIGHT ))  
+            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_RIGHT ))
         )
     {
         if (getVertex(0) == that.getVertex(1) && getVertex(3) == that.getVertex(4)) {
@@ -957,7 +958,7 @@ void OctreeProjectedPolygon::merge(const OctreeProjectedPolygon& that) {
     // NEAR/RIGHT & NEAR
     if (
             (that.getProjectionType() == (PROJECTION_NEAR                      )) &&
-            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_RIGHT ))  
+            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_RIGHT ))
         )
     {
         if (getVertex(1) == that.getVertex(0) && getVertex(4) == that.getVertex(3)) {
@@ -974,7 +975,7 @@ void OctreeProjectedPolygon::merge(const OctreeProjectedPolygon& that) {
     // NEAR/LEFT & NEAR
     if (
             (getProjectionType()      == (PROJECTION_NEAR                    )) &&
-            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_LEFT ))  
+            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_LEFT ))
         )
     {
         if (getVertex(1) == that.getVertex(1) && getVertex(2) == that.getVertex(4)) {
@@ -991,7 +992,7 @@ void OctreeProjectedPolygon::merge(const OctreeProjectedPolygon& that) {
     // NEAR/LEFT & NEAR
     if (
             (that.getProjectionType() == (PROJECTION_NEAR                    )) &&
-            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_LEFT ))  
+            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_LEFT ))
         )
     {
         if (getVertex(1) == that.getVertex(0) && getVertex(4) == that.getVertex(3)) {
@@ -1096,7 +1097,7 @@ void OctreeProjectedPolygon::merge(const OctreeProjectedPolygon& that) {
     // NEAR/LEFT/BOTTOM & NEAR/BOTTOM
     if (
             ((that.getProjectionType() == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
-            (getProjectionType()       == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_LEFT )))  
+            (getProjectionType()       == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_LEFT )))
         )
     {
         if (getVertex(0) == that.getVertex(2) && getVertex(4) == that.getVertex(4)) {
@@ -1118,7 +1119,7 @@ void OctreeProjectedPolygon::merge(const OctreeProjectedPolygon& that) {
     // LEFT/NEAR/BOTTOM
     // LEFT/NEAR/TOP
     if (
-            (getProjectionType() == that.getProjectionType()) && 
+            (getProjectionType() == that.getProjectionType()) &&
             (
                 getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_BOTTOM ) ||
                 getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_TOP    ) ||

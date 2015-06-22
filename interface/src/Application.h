@@ -61,13 +61,12 @@
 #include "ui/ModelsBrowser.h"
 #include "ui/NodeBounds.h"
 #include "ui/OctreeStatsDialog.h"
-#include "ui/RearMirrorTools.h"
 #include "ui/SnapshotShareDialog.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
-#include "ui/UpdateDialog.h"
 #include "ui/overlays/Overlays.h"
 #include "ui/ApplicationOverlay.h"
+#include "ui/ApplicationCompositor.h"
 #include "ui/RunningScriptsWidget.h"
 #include "ui/ToolWindow.h"
 #include "ui/UserInputMapper.h"
@@ -92,8 +91,6 @@ class Node;
 class ProgramObject;
 class ScriptEngine;
 class GlWindow;
-class ApplicationOverlayCompositor;
-using CompositorPtr = std::shared_ptr<ApplicationOverlayCompositor>;
 
 static const float NODE_ADDED_RED   = 0.0f;
 static const float NODE_ADDED_GREEN = 1.0f;
@@ -227,22 +224,20 @@ public:
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     bool mouseOnScreen() const;
 
-    inline glm::ivec2 getMouse() const;
-    inline int getMouseX() const { return getMouse().x; }
-    inline int getMouseY() const { return getMouse().y; }
+    ivec2 getMouse() const;
+    ivec2 getTrueMouse() const;
+    ivec2 getMouseDragStarted() const;
+    ivec2 getTrueMouseDragStarted() const;
 
-    inline glm::ivec2 getTrueMousePosition() const;
-    inline int getTrueMouseX() const { return getTrueMousePosition().x; }
-    inline int getTrueMouseY() const { return getTrueMousePosition().y; }
-
-    inline glm::ivec2 getMouseDragStarted() const;
-    inline int getMouseDragStartedX() const { return getMouseDragStarted().x; }
-    inline int getMouseDragStartedY() const { return getMouseDragStarted().y; }
-    
-    inline const glm::ivec2& getTrueMouseDragStarted() const { return _mouseDragStarted; }
-    inline int getTrueMouseDragStartedX() const { return getTrueMouseDragStarted().x; }
-    inline int getTrueMouseDragStartedY() const { return getTrueMouseDragStarted().y; }
-
+    // TODO get rid of these and use glm types directly
+    int getMouseX() const { return getMouse().x; }
+    int getMouseY() const { return getMouse().y; }
+    int getTrueMouseX() const { return getTrueMouse().x; }
+    int getTrueMouseY() const { return getTrueMouse().y; }
+    int getMouseDragStartedX() const { return getMouseDragStarted().x; }
+    int getMouseDragStartedY() const { return getMouseDragStarted().y; }
+    int getTrueMouseDragStartedX() const { return getTrueMouseDragStarted().x; }
+    int getTrueMouseDragStartedY() const { return getTrueMouseDragStarted().y; }
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
     
     FaceTracker* getActiveFaceTracker();
@@ -251,6 +246,8 @@ public:
     QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
     const ApplicationOverlay& getApplicationOverlay() const { return _applicationOverlay; }
+    ApplicationCompositor& getApplicationCompositor() { return _compositor; }
+    const ApplicationCompositor& getApplicationCompositor() const { return _compositor; }
     Overlays& getOverlays() { return _overlays; }
 
     float getFps() const { return _fps; }
@@ -318,8 +315,6 @@ public:
 
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
 
-    void skipVersion(QString latestVersion);
-
     QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
     ScriptEngine* getScriptEngine(QString scriptHash) { return _scriptEnginesHash.contains(scriptHash) ? _scriptEnginesHash[scriptHash] : NULL; }
     
@@ -339,6 +334,9 @@ public:
     bool isHMDMode() const;
     glm::quat getHeadOrientation() const;
     glm::vec3 getHeadPosition() const;
+    glm::mat4 getHeadPose() const;
+    glm::mat4 getEyePose(int eye) const;
+    glm::mat4 getEyeProjection(int eye) const;
 
     QRect getDesirableApplicationGeometry();
     RunningScriptsWidget* getRunningScriptsWidget() { return _runningScriptsWidget; }
@@ -466,8 +464,6 @@ private slots:
     void restoreMirrorView();
     void shrinkMirrorView();
 
-    void parseVersionXml();
-
     void manageRunningScriptsWidgetVisibility(bool shown);
     
     void runTests();
@@ -557,27 +553,21 @@ private:
     ViewFrustum _shadowViewFrustum;
     quint64 _lastQueriedTime;
 
-    CompositorPtr _compositor;
-
     float _trailingAudioLoudness;
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
 
-    KeyboardMouseDevice _keyboardMouseDevice; // Default input device, the good old keyboard mouse and maybe touchpad
-
-    UserInputMapper _userInputMapper; // User input mapper allowing to mapp different real devices to the action channels that the application has to offer
-
-    MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
-
-    Camera _myCamera;                  // My view onto the world
+    KeyboardMouseDevice _keyboardMouseDevice;   // Default input device, the good old keyboard mouse and maybe touchpad
+    UserInputMapper _userInputMapper;           // User input mapper allowing to mapp different real devices to the action channels that the application has to offer
+    MyAvatar* _myAvatar;                        // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
+    Camera _myCamera;                           // My view onto the world
     Camera _mirrorCamera;              // Cammera for mirror view
     QRect _mirrorViewRect;
-    RearMirrorTools* _rearMirrorTools;
     
-    Setting::Handle<bool> _firstRun;
-    Setting::Handle<QString> _previousScriptLocation;
-    Setting::Handle<QString> _scriptsLocationHandle;
-    Setting::Handle<float> _fieldOfView;
+    Setting::Handle<bool>       _firstRun;
+    Setting::Handle<QString>    _previousScriptLocation;
+    Setting::Handle<QString>    _scriptsLocationHandle;
+    Setting::Handle<float>      _fieldOfView;
 
     Transform _viewTransform;
     glm::mat4 _projectionMatrix;
@@ -597,15 +587,17 @@ private:
     Environment _environment;
 
     bool _cursorVisible;
-    glm::ivec2 _mouseDragStarted;
+    ivec2 _mouseDragStarted;
+
     quint64 _lastMouseMove;
     bool _lastMouseMoveWasSimulated;
 
     glm::vec3 _mouseRayOrigin;
     glm::vec3 _mouseRayDirection;
 
-    glm::vec2 _touchAvg;
-    glm::vec2 _touchDragStartedAvg;
+    vec2 _touchAvg;
+    vec2 _touchDragStartedAvg;
+
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
 
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
@@ -637,9 +629,6 @@ private:
 
     FileLogger* _logger;
 
-    void checkVersion();
-    void displayUpdateDialog();
-    bool shouldSkipVersion(QString latestVersion);
     void takeSnapshot();
 
     TouchEvent _lastTouchEvent;
@@ -685,6 +674,7 @@ private:
 
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
+    ApplicationCompositor _compositor;
 };
 
 #endif // hifi_Application_h

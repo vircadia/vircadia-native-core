@@ -12,14 +12,14 @@
 #ifndef hifi_PolyVoxEntityItem_h
 #define hifi_PolyVoxEntityItem_h
 
-#include "EntityItem.h" 
+#include "EntityItem.h"
 
 class PolyVoxEntityItem : public EntityItem {
  public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     PolyVoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
-    
+
     ALLOW_INSTANTIATION // This class can be instantiated
 
     // methods for getting/setting all properties of an entity
@@ -29,22 +29,22 @@ class PolyVoxEntityItem : public EntityItem {
     // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
 
-    virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
+    virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                     EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
-                                    int& propertyCount, 
+                                    int& propertyCount,
                                     OctreeElement::AppendState& appendState) const;
 
-    virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
+    virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                  ReadBitstreamToTreeParams& args,
                                                  EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
-    
+
     // never have a ray intersection pick a PolyVoxEntityItem.
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face,
                          void** intersectedObject, bool precisionPicking) const { return false; }
 
     virtual void debugDump() const;
@@ -58,13 +58,12 @@ class PolyVoxEntityItem : public EntityItem {
     enum PolyVoxSurfaceStyle {
         SURFACE_MARCHING_CUBES,
         SURFACE_CUBIC,
-	SURFACE_EDGED_CUBIC
+        SURFACE_EDGED_CUBIC
     };
 
-    virtual void setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) { _voxelSurfaceStyle = voxelSurfaceStyle; }
-    virtual void setVoxelSurfaceStyle(uint16_t voxelSurfaceStyle) {
-	setVoxelSurfaceStyle((PolyVoxSurfaceStyle) voxelSurfaceStyle);
-    }
+    void setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle);
+    // this other version of setVoxelSurfaceStyle is needed for SET_ENTITY_PROPERTY_FROM_PROPERTIES
+    void setVoxelSurfaceStyle(uint16_t voxelSurfaceStyle) { setVoxelSurfaceStyle((PolyVoxSurfaceStyle) voxelSurfaceStyle); }
     virtual PolyVoxSurfaceStyle getVoxelSurfaceStyle() const { return _voxelSurfaceStyle; }
 
     static const glm::vec3 DEFAULT_VOXEL_VOLUME_SIZE;
@@ -82,12 +81,17 @@ class PolyVoxEntityItem : public EntityItem {
     virtual void setAll(uint8_t toValue) {}
 
     virtual void setVoxelInVolume(glm::vec3 position, uint8_t toValue) {}
-    
+
     virtual uint8_t getVoxel(int x, int y, int z) { return 0; }
     virtual void setVoxel(int x, int y, int z, uint8_t toValue) {}
 
+    static QByteArray makeEmptyVoxelData(quint16 voxelXSize = 16, quint16 voxelYSize = 16, quint16 voxelZSize = 16);
 
  protected:
+    virtual void updateVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) {
+        _voxelSurfaceStyle = voxelSurfaceStyle;
+    }
+
     glm::vec3 _voxelVolumeSize; // this is always 3 bytes
     QByteArray _voxelData;
     PolyVoxSurfaceStyle _voxelSurfaceStyle;

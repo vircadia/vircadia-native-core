@@ -29,6 +29,12 @@ AvatarActionHold::~AvatarActionHold() {
 
 void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+
+    if (!tryLockForRead()) {
+        // don't risk hanging the thread running the physics simulation
+        return;
+    }
+
     glm::vec3 palmPosition;
     if (_hand == "right") {
         palmPosition = myAvatar->getRightPalmPosition();
@@ -40,8 +46,11 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
     auto offset = rotation * _relativePosition;
     auto position = palmPosition + offset;
     rotation *= _relativeRotation;
+    unlock();
 
-    lockForWrite();
+    if (!tryLockForWrite()) {
+        return;
+    }
     _positionalTarget = position;
     _rotationalTarget = rotation;
     unlock();

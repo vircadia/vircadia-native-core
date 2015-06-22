@@ -39,25 +39,24 @@ class Batch;
 class Font3D;
 
 // TextRenderer3D is actually a fairly thin wrapper around a Font class
-// defined in the cpp file.  
+// defined in the cpp file.
 class TextRenderer3D {
 public:
     enum EffectType { NO_EFFECT, SHADOW_EFFECT, OUTLINE_EFFECT };
 
-    static TextRenderer3D* getInstance(const char* family, float pointSize = -1, int weight = -1, bool italic = false,
-        EffectType effect = NO_EFFECT, int effectThickness = 1, const QColor& color = QColor(255, 255, 255));
-
+    static TextRenderer3D* getInstance(const char* family, int weight = -1, bool italic = false,
+                                       EffectType effect = NO_EFFECT, int effectThickness = 1);
     ~TextRenderer3D();
 
     glm::vec2 computeExtent(const QString& str) const;
-    float getFontSize() const;
+    float getFontSize() const; // Pixel size
     
-    void draw(gpu::Batch& batch, float x, float y, const QString& str, const glm::vec4& color = glm::vec4(-1.0f),
-               const glm::vec2& bounds = glm::vec2(-1.0f));
+    void draw(gpu::Batch& batch, float x, float y, const QString& str, const glm::vec4& color = glm::vec4(1.0f),
+              const glm::vec2& bounds = glm::vec2(-1.0f));
 
 private:
-    TextRenderer3D(const char* family, float pointSize = -1, int weight = -1, bool italic = false,
-        EffectType effect = NO_EFFECT, int effectThickness = 1, const QColor& color = QColor(255, 255, 255));
+    TextRenderer3D(const char* family, int weight = -1, bool italic = false,
+                   EffectType effect = NO_EFFECT, int effectThickness = 1);
 
     // the type of effect to apply
     const EffectType _effectType;
@@ -65,10 +64,8 @@ private:
     // the thickness of the effect
     const int _effectThickness;
 
-    const float _pointSize;
-
     // text color
-    const glm::vec4 _color;
+    glm::vec4 _color;
 
     Font3D* _font;
 };

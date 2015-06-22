@@ -90,7 +90,7 @@ public:
     
     void relayDriveKeysToCharacterController();
 
-    bool isMyAvatar() { return true; }
+    bool isMyAvatar() const { return true; }
     
     bool isLookingAtLeftEye();
 
@@ -162,6 +162,13 @@ public:
     const RecorderPointer getRecorder() const { return _recorder; }
     const PlayerPointer getPlayer() const { return _player; }
     
+    float getBoomLength() const { return _boomLength; }
+    void setBoomLength(float boomLength) { _boomLength = boomLength; }
+    
+    static const float ZOOM_MIN;
+    static const float ZOOM_MAX;
+    static const float ZOOM_DEFAULT;
+    
 public slots:
     void increaseSize();
     void decreaseSize();
@@ -210,6 +217,8 @@ private:
     bool _wasPushing;
     bool _isPushing;
     bool _isBraking;
+    
+    float _boomLength;
 
     float _trapDuration; // seconds that avatar has been trapped by collisions
     glm::vec3 _thrust;  // impulse accumulator for outside sources

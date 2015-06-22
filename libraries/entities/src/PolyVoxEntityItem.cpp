@@ -23,13 +23,32 @@
 
 const glm::vec3 PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE = glm::vec3(32, 32, 32);
 const float PolyVoxEntityItem::MAX_VOXEL_DIMENSION = 32.0f;
-const QByteArray PolyVoxEntityItem::DEFAULT_VOXEL_DATA(qCompress(QByteArray(0), 9)); // XXX
+const QByteArray PolyVoxEntityItem::DEFAULT_VOXEL_DATA(PolyVoxEntityItem::makeEmptyVoxelData());
 const PolyVoxEntityItem::PolyVoxSurfaceStyle PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE =
     PolyVoxEntityItem::SURFACE_MARCHING_CUBES;
 
 EntityItemPointer PolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return EntityItemPointer(new PolyVoxEntityItem(entityID, properties));
 }
+
+
+
+
+QByteArray PolyVoxEntityItem::makeEmptyVoxelData(quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize) {
+    int rawSize = voxelXSize * voxelYSize * voxelZSize;
+
+    QByteArray uncompressedData = QByteArray(rawSize, '\0');
+    QByteArray newVoxelData;
+    QDataStream writer(&newVoxelData, QIODevice::WriteOnly | QIODevice::Truncate);
+    writer << voxelXSize << voxelYSize << voxelZSize;
+
+    QByteArray compressedData = qCompress(uncompressedData, 9);
+    writer << compressedData;
+
+    return newVoxelData;
+}
+
+
 
 PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
     EntityItem(entityItemID),
@@ -148,4 +167,11 @@ void PolyVoxEntityItem::debugDump() const {
     qCDebug(entities) << "            position:" << debugTreeVector(getPosition());
     qCDebug(entities) << "          dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
+}
+
+void PolyVoxEntityItem::setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) {
+    if (voxelSurfaceStyle == _voxelSurfaceStyle) {
+        return;
+    }
+    updateVoxelSurfaceStyle(voxelSurfaceStyle);
 }

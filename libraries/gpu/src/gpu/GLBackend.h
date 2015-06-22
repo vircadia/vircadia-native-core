@@ -12,11 +12,13 @@
 #define hifi_gpu_GLBackend_h
 
 #include <assert.h>
+#include <functional>
+#include <bitset>
+
 #include "GPUConfig.h"
 
 #include "Context.h"
 #include "Batch.h"
-#include <bitset>
 
 
 namespace gpu {
@@ -46,6 +48,11 @@ public:
     static void renderBatch(Batch& batch, bool syncCache = false);
 
     static bool checkGLError(const char* name = nullptr);
+
+    // Only checks in debug builds
+    static bool checkGLErrorDebug(const char* name = nullptr);
+
+    static void checkGLStackStable(std::function<void()> f);
 
     static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings = Shader::BindingSet());
     
@@ -377,8 +384,11 @@ protected:
     void do_glDrawBuffers(Batch& batch, uint32 paramOffset);
 
     void do_glUseProgram(Batch& batch, uint32 paramOffset);
+    void do_glUniform1i(Batch& batch, uint32 paramOffset);
     void do_glUniform1f(Batch& batch, uint32 paramOffset);
     void do_glUniform2f(Batch& batch, uint32 paramOffset);
+    void do_glUniform3f(Batch& batch, uint32 paramOffset);
+    void do_glUniform3fv(Batch& batch, uint32 paramOffset);
     void do_glUniform4fv(Batch& batch, uint32 paramOffset);
     void do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset);
 

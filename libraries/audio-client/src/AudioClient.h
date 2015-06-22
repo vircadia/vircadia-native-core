@@ -167,7 +167,7 @@ public slots:
     QString getDefaultDeviceName(QAudio::Mode mode);
     QVector<QString> getDeviceNames(QAudio::Mode mode);
 
-    float getInputVolume() const { return (_audioInput) ? _audioInput->volume() : 0.0f; }
+    float getInputVolume() const { return (_audioInput) ? (float)_audioInput->volume() : 0.0f; }
     void setInputVolume(float volume) { if (_audioInput) _audioInput->setVolume(volume); }
     void setReverb(bool reverb);
     void setReverbOptions(const AudioEffectOptions* options);
@@ -188,6 +188,8 @@ signals:
     void receivedFirstPacket();
     void disconnected();
 
+    void audioFinished();
+
 protected:
     AudioClient();
     ~AudioClient();
@@ -195,6 +197,9 @@ protected:
     virtual void customDeleter() {
         deleteLater();
     }
+
+private slots:
+    void audioStateChanged(QAudio::State state);
 
 private:
     void outputFormatChanged();

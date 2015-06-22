@@ -41,6 +41,22 @@ void UserInputMapper::resetAllDeviceBindings() {
     }
 }
 
+void UserInputMapper::resetDevice(uint16 deviceID) {
+    auto device = _registeredDevices.find(deviceID);
+    if (device != _registeredDevices.end()) {
+        device->second->resetDeviceBindings();
+    }
+}
+
+int UserInputMapper::findDevice(QString name) {
+    for (auto device : _registeredDevices) {
+        if (device.second->_name.split(" (")[0] == name) {
+            return device.first;
+        }
+    }
+    return 0;
+}
+
 bool UserInputMapper::addInputChannel(Action action, const Input& input, float scale) {
     return addInputChannel(action, input, Input(), scale);
 }
@@ -104,6 +120,11 @@ void UserInputMapper::removeAllInputChannelsForDevice(uint16 device) {
     for (auto& channel : channels) {
         removeInputChannel(channel);
     }
+}
+
+void UserInputMapper::removeDevice(int device) {
+    removeAllInputChannelsForDevice((uint16) device);
+    _registeredDevices.erase(device);
 }
 
 int UserInputMapper::getInputChannels(InputChannels& channels) const {

@@ -30,11 +30,6 @@
 #include "GeometryCache.h"
 #include "DeferredLightingEffect.h"
 
-// FIXME support the shadow effect, or remove it from the API
-// FIXME figure out how to improve the anti-aliasing on the
-// interior of the outline fonts
-const float DEFAULT_POINT_SIZE = 12;
-
 // Helper functions for reading binary data from an IO device
 template<class T>
 void readStream(QIODevice& in, T& t) {
@@ -117,7 +112,7 @@ public:
     
     // Render string to batch
     void drawString(gpu::Batch& batch, float x, float y, const QString& str,
-            const glm::vec4& color, TextRenderer3D::EffectType effectType,
+            const glm::vec4* color, TextRenderer3D::EffectType effectType,
             const glm::vec2& bound);
 
 private:
@@ -367,7 +362,7 @@ void Font3D::setupGPU() {
     }
 }
 
-void Font3D::drawString(gpu::Batch& batch, float x, float y, const QString& str, const glm::vec4& color,
+void Font3D::drawString(gpu::Batch& batch, float x, float y, const QString& str, const glm::vec4* color,
                       TextRenderer3D::EffectType effectType, const glm::vec2& bounds) {
     if (str == "") {
         return;
@@ -429,40 +424,33 @@ void Font3D::drawString(gpu::Batch& batch, float x, float y, const QString& str,
     setupGPU();
     batch.setPipeline(_pipeline);
     batch.setUniformTexture(_fontLoc, _texture);
-    batch._glUniform1f(_outlineLoc, (effectType == TextRenderer3D::OUTLINE_EFFECT) ? 1.0f : 0.0f);
-    batch._glUniform4fv(_colorLoc, 1, (const GLfloat*)&color);
+    batch._glUniform1i(_outlineLoc, (effectType == TextRenderer3D::OUTLINE_EFFECT));
+    batch._glUniform4fv(_colorLoc, 1, (const GLfloat*)color);
     
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);
     batch.draw(gpu::QUADS, _numVertices, 0);
 }
 
-TextRenderer3D* TextRenderer3D::getInstance(const char* family, float pointSize,
-        int weight, bool italic, EffectType effect, int effectThickness,
-        const QColor& color) {
-    if (pointSize < 0) {
-        pointSize = DEFAULT_POINT_SIZE;
-    }
-    return new TextRenderer3D(family, pointSize, weight, italic, effect,
-            effectThickness, color);
+TextRenderer3D* TextRenderer3D::getInstance(const char* family,
+        int weight, bool italic, EffectType effect, int effectThickness) {
+    return new TextRenderer3D(family, weight, italic, effect, effectThickness);
 }
 
-TextRenderer3D::TextRenderer3D(const char* family, float pointSize, int weight, bool italic,
-                           EffectType effect, int effectThickness, const QColor& color) :
+TextRenderer3D::TextRenderer3D(const char* family, int weight, bool italic,
+                           EffectType effect, int effectThickness) :
     _effectType(effect),
     _effectThickness(effectThickness),
-    _pointSize(pointSize),
-    _color(toGlm(color)),
     _font(loadFont3D(family)) {
     if (!_font) {
         qWarning() << "Unable to load font with family " << family;
         _font = loadFont3D("Courier");
     }
     if (1 != _effectThickness) {
-        qWarning() << "Effect thickness not current supported";
+        qWarning() << "Effect thickness not currently supported";
     }
     if (NO_EFFECT != _effectType && OUTLINE_EFFECT != _effectType) {
-        qWarning() << "Effect thickness not current supported";
+        qWarning() << "Effect type not currently supported";
     }
 }
 
@@ -487,11 +475,9 @@ void TextRenderer3D::draw(gpu::Batch& batch, float x, float y, const QString& st
                          const glm::vec2& bounds) {
     // The font does all the OpenGL work
     if (_font) {
-        glm::vec4 actualColor(color);
-        if (actualColor.r < 0) {
-            actualColor = _color;
-        }
-        _font->drawString(batch, x, y, str, actualColor, _effectType, bounds);
+        // Cache color so that the pointer stays valid.
+        _color = color;
+        _font->drawString(batch, x, y, str, &_color, _effectType, bounds);
     }
 }
 

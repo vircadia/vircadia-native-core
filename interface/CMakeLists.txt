@@ -127,7 +127,7 @@ target_include_directories(${TARGET_NAME} PRIVATE ${LIBOVR_INCLUDE_DIRS})
 
 # link required hifi libraries
 link_hifi_libraries(shared octree environment gpu model render fbx networking entities avatars 
-                    audio audio-client animation script-engine physics 
+                    audio audio-client auto-updater animation script-engine physics 
                     render-utils entities-renderer ui plugins display-plugins)
 
 add_dependency_external_projects(sdl2)
