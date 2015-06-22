@@ -1602,6 +1602,8 @@ void Application::mouseDoublePressEvent(QMouseEvent* event, unsigned int deviceI
         return;
     }
 
+    _controllerScriptingInterface.emitMouseDoublePressEvent(event);
+    
     if (activeWindow() == _window) {
         if (event->button() == Qt::LeftButton) {
             if (mouseOnScreen()) {
