@@ -50,10 +50,12 @@ body {
     background-color: #333333;
     color: #999;
     padding: 3pt;
+    padding-top: 6pt;
 }
 
 .section-header label {
     font-weight: bold;
+    font-size: 11pt;
 }
 
 .multi-property-section {
@@ -183,11 +185,11 @@ div.input-area {
 input {
 }
 
-#type {
+#type, #id {
     font-size: 9.0pt;
 }
 
-#type label {
+#type label, #id label {
     color: rgb(150, 150, 150);
 }
 
