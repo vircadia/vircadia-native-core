@@ -334,12 +334,12 @@ void ApplicationCompositor::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& or
 
     // Intersection UI overlay space
     glm::vec3 worldSpaceDirection = overlayOrientation * overlaySpaceDirection;
-    glm::vec3 intersectionWithUi = glm::normalize(worldSpaceDirection) * _oculusUIRadius;
-    intersectionWithUi += overlayPosition;
+    glm::vec3 worldSpaceIntersection = (glm::normalize(worldSpaceDirection) * _oculusUIRadius) + overlayPosition;
+    glm::vec3 worldSpaceHeadPosition = (overlayOrientation * glm::vec3(qApp->getHeadPose()[3])) + overlayPosition;
 
     // Intersection in world space
-    origin = overlayPosition;
-    direction = glm::normalize(intersectionWithUi - origin);
+    origin = worldSpaceHeadPosition;
+    direction = glm::normalize(worldSpaceIntersection - worldSpaceHeadPosition);
 }
 
 //Caculate the click location using one of the sixense controllers. Scale is not applied
