@@ -1185,6 +1185,11 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
     batch.draw(gpu::QUADS, 4, 0);
 }
 
+void GeometryCache::renderUnitCube(gpu::Batch& batch) {
+    static const glm::vec4 color(1);
+    renderSolidCube(batch, 1, color);
+}
+
 void GeometryCache::renderUnitQuad(const glm::vec4& color, int id) {
     gpu::Batch batch;
     renderUnitQuad(batch, color, id);

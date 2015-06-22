@@ -16,6 +16,7 @@
 
 <$declareStandardTransform()$>
 
+varying vec3 varPosition;
 varying vec3 varNormal;
 varying vec2 varTexcoord;
 varying vec4 varColor;
@@ -30,4 +31,5 @@ void main(void) {
     <$transformModelToClipPos(cam, obj, gl_Vertex, gl_Position)$>
     <$transformModelToEyeDir(cam, obj, gl_Normal, varNormal)$>
     varNormal = normalize(varNormal);
+    varPosition = gl_Vertex.xyz;
 }
