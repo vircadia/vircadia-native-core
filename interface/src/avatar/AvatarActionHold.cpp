@@ -90,8 +90,8 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
         _linearTimeScale = timeScale;
         _angularTimeScale = timeScale;
     } else if (!_parametersSet) {
-        _linearTimeScale = 0.2;
-        _angularTimeScale = 0.2;
+        _linearTimeScale = 0.2f;
+        _angularTimeScale = 0.2f;
     }
 
     if (hOk) {
