@@ -66,11 +66,7 @@ function MousePaint() {
       y: 0,
       z: 0
     },
-    color: {
-      red: 100,
-      green: 10,
-      blue: 100
-    },
+    color: currentColor,
     dimensions: {
       x: BRUSH_SIZE,
       y: BRUSH_SIZE,
