@@ -11,7 +11,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-var LINE_DIMENSIONS = 1;
+var LINE_DIMENSIONS = 5;
 var LIFETIME = 6000;
 
 var colorPalette = [{

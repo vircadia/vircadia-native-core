@@ -97,7 +97,6 @@ bool QuadEntityItem::appendPoint(const glm::vec3& point) {
         return false;
     }
     _points << point;
-    qDebug()<<"points: " << point;
     _pointsChanged = true;
     return true;
 }
