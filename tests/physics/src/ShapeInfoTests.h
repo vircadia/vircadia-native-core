@@ -14,9 +14,13 @@
 
 #include <QtTest/QtTest>
 
-// Add additional qtest functionality (the include order is important!)
-#include "BulletTestUtils.h"
-#include "../QTestExtensions.hpp"
+//// Add additional qtest functionality (the include order is important!)
+//#include "BulletTestUtils.h"
+//#include "../QTestExtensions.hpp"
+
+// Enable this to manually run testHashCollisions
+// (NOT a regular unit test; takes ~17 secs to run on an i7)
+#define MANUAL_TEST false
 
 class ShapeInfoTests : public QObject {
     Q_OBJECT
@@ -27,7 +31,5 @@ private slots:
     void testCylinderShape();
     void testCapsuleShape();
 };
-
-#include "../QTestExtensions.hpp"
 
 #endif // hifi_ShapeInfoTests_h

@@ -23,37 +23,42 @@ void ShapeManagerTests::testShapeAccounting() {
     info.setBox(glm::vec3(1.0f, 1.0f, 1.0f));
     
     int numReferences = shapeManager.getNumReferences(info);
-    if (numReferences != 0) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected ignorant ShapeManager after initialization" << std::endl;
-    }
+    QCOMPARE(numReferences, 0);
+//    if (numReferences != 0) {
+//        std::cout << __FILE__ << ":" << __LINE__
+//            << " ERROR: expected ignorant ShapeManager after initialization" << std::endl;
+//    }
 
     // create one shape and verify we get a valid pointer
     btCollisionShape* shape = shapeManager.getShape(info);
-    if (!shape) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected shape creation for default parameters" << std::endl;
-    }
+    QCOMPARE(shape != nullptr, true);
+//    if (!shape) {
+//        std::cout << __FILE__ << ":" << __LINE__
+//            << " ERROR: expected shape creation for default parameters" << std::endl;
+//    }
 
     // verify number of shapes
-    if (shapeManager.getNumShapes() != 1) {
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: expected one shape" << std::endl;
-    }
+    QCOMPARE(shapeManager.getNumShapes(), 1);
+//    if (shapeManager.getNumShapes() != 1) {
+//        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: expected one shape" << std::endl;
+//    }
 
     // reference the shape again and verify that we get the same pointer
     btCollisionShape* otherShape = shapeManager.getShape(info);
-    if (otherShape != shape) {
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: expected shape* " << (void*)(shape) 
-            << " but found shape* " << (void*)(otherShape) << std::endl;
-    }
+    QCOMPARE(otherShape, shape);
+//    if (otherShape != shape) {
+//        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: expected shape* " << (void*)(shape) 
+//            << " but found shape* " << (void*)(otherShape) << std::endl;
+//    }
 
     // verify number of references
     numReferences = shapeManager.getNumReferences(info);
     int expectedNumReferences = 2;
-    if (numReferences != expectedNumReferences) {
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: expected " << expectedNumReferences 
-            << " references but found " << numReferences << std::endl;
-    }
+    QCOMPARE(numReferences, expectedNumReferences);
+//    if (numReferences != expectedNumReferences) {
+//        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: expected " << expectedNumReferences 
+//            << " references but found " << numReferences << std::endl;
+//    }
 
     // release all references
     bool released = shapeManager.releaseShape(info);
@@ -62,59 +67,68 @@ void ShapeManagerTests::testShapeAccounting() {
         released = shapeManager.releaseShape(info) && released;
         numReferences--;
     }
-    if (!released) {
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: expected shape released" << std::endl;
-    }
+    QCOMPARE(released, true);
+//    if (!released) {
+//        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: expected shape released" << std::endl;
+//    }
 
     // verify shape still exists (not yet garbage collected)
-    if (shapeManager.getNumShapes() != 1) {
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: expected one shape after release but before garbage collection" << std::endl;
-    }
+    QCOMPARE(shapeManager.getNumShapes(), 1);
+//    if (shapeManager.getNumShapes() != 1) {
+//        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: expected one shape after release but before garbage collection" << std::endl;
+//    }
 
     // verify shape's refcount is zero
     numReferences = shapeManager.getNumReferences(info);
-    if (numReferences != 0) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected refcount = 0 for shape but found refcount = " << numReferences << std::endl;
-    }
+    QCOMPARE(numReferences, 0);
+//    if (numReferences != 0) {
+//        std::cout << __FILE__ << ":" << __LINE__
+//            << " ERROR: expected refcount = 0 for shape but found refcount = " << numReferences << std::endl;
+//    }
 
     // reference the shape again and verify refcount is updated
     otherShape = shapeManager.getShape(info);
     numReferences = shapeManager.getNumReferences(info);
-    if (numReferences != 1) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected refcount = 1 for shape but found refcount = " << numReferences << std::endl;
-    }
+    QCOMPARE(numReferences, 1);
+//    if (numReferences != 1) {
+//        std::cout << __FILE__ << ":" << __LINE__
+//            << " ERROR: expected refcount = 1 for shape but found refcount = " << numReferences << std::endl;
+//    }
 
     // verify that shape is not collected as garbage
     shapeManager.collectGarbage();
-    if (shapeManager.getNumShapes() != 1) {
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: expected one shape after release" << std::endl;
-    }
+    QCOMPARE(shapeManager.getNumShapes(), 1);
+//    if (shapeManager.getNumShapes() != 1) {
+//        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: expected one shape after release" << std::endl;
+//    }
     numReferences = shapeManager.getNumReferences(info);
-    if (numReferences != 1) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected refcount = 1 for shape but found refcount = " << numReferences << std::endl;
-    }
+    QCOMPARE(numReferences, 1);
+//    if (numReferences != 1) {
+//        std::cout << __FILE__ << ":" << __LINE__
+//            << " ERROR: expected refcount = 1 for shape but found refcount = " << numReferences << std::endl;
+//    }
 
     // release reference and verify that it is collected as garbage
     released = shapeManager.releaseShape(info);
     shapeManager.collectGarbage();
-    if (shapeManager.getNumShapes() != 0) {
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: expected zero shapes after release" << std::endl;
-    }
-    if (shapeManager.hasShape(shape)) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected ignorant ShapeManager after garbage collection" << std::endl;
-    }
+    QCOMPARE(shapeManager.getNumShapes(), 0);
+//    if (shapeManager.getNumShapes() != 0) {
+//        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: expected zero shapes after release" << std::endl;
+//    }
+    QCOMPARE(shapeManager.hasShape(shape), false);
+//    if (shapeManager.hasShape(shape)) {
+//        std::cout << __FILE__ << ":" << __LINE__
+//            << " ERROR: expected ignorant ShapeManager after garbage collection" << std::endl;
+//    }
 
     // add the shape again and verify that it gets added again
     otherShape = shapeManager.getShape(info);
     numReferences = shapeManager.getNumReferences(info);
-    if (numReferences != 1) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected refcount = 1 for shape but found refcount = " << numReferences << std::endl;
-    }
+    QCOMPARE(numReferences, 1);
+//    if (numReferences != 1) {
+//        std::cout << __FILE__ << ":" << __LINE__
+//            << " ERROR: expected refcount = 1 for shape but found refcount = " << numReferences << std::endl;
+//    }
 }
 
 void ShapeManagerTests::addManyShapes() {
@@ -134,49 +148,54 @@ void ShapeManagerTests::addManyShapes() {
         info.setBox(0.5f * scale);
         btCollisionShape* shape = shapeManager.getShape(info);
         shapes.push_back(shape);
-        if (!shape) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: i = " << i << " null box shape for scale = " << scale << std::endl;
-        }
+        QCOMPARE(shape != nullptr, true);
+//        if (!shape) {
+//            std::cout << __FILE__ << ":" << __LINE__
+//                << " ERROR: i = " << i << " null box shape for scale = " << scale << std::endl;
+//        }
 
         // make a box
         float radius = 0.5f * s;
         info.setSphere(radius);
         shape = shapeManager.getShape(info);
         shapes.push_back(shape);
-        if (!shape) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: i = " << i << " null sphere shape for radius = " << radius << std::endl;
-        }
+        QCOMPARE(shape != nullptr, true);
+//        if (!shape) {
+//            std::cout << __FILE__ << ":" << __LINE__
+//                << " ERROR: i = " << i << " null sphere shape for radius = " << radius << std::endl;
+//        }
     }
 
     // verify shape count
     int numShapes = shapeManager.getNumShapes();
-    if (numShapes != 2 * numSizes) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected numShapes = " << numSizes << " but found numShapes = " << numShapes << std::endl;
-    }
+    QCOMPARE(numShapes, 2 * numSizes);
+//    if (numShapes != 2 * numSizes) {
+//        std::cout << __FILE__ << ":" << __LINE__
+//            << " ERROR: expected numShapes = " << numSizes << " but found numShapes = " << numShapes << std::endl;
+//    }
 
     // release each shape by pointer
     for (int i = 0; i < numShapes; ++i) {
         btCollisionShape* shape = shapes[i];
         bool success = shapeManager.releaseShape(shape);
-        if (!success) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: failed to release shape index " << i << std::endl;
-            break;
-        }
+        QCOMPARE(success, true);
+//        if (!success) {
+//            std::cout << __FILE__ << ":" << __LINE__
+//                << " ERROR: failed to release shape index " << i << std::endl;
+//            break;
+//        }
     }
 
     // verify zero references
     for (int i = 0; i < numShapes; ++i) {
         btCollisionShape* shape = shapes[i];
         int numReferences = shapeManager.getNumReferences(shape);
-        if (numReferences != 0) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: expected zero references for shape " << i 
-                << " but refCount = " << numReferences << std::endl;
-        }
+        QCOMPARE(numReferences, 0);
+//        if (numReferences != 0) {
+//            std::cout << __FILE__ << ":" << __LINE__
+//                << " ERROR: expected zero references for shape " << i 
+//                << " but refCount = " << numReferences << std::endl;
+//        }
     }
 }
 
@@ -190,10 +209,11 @@ void ShapeManagerTests::addBoxShape() {
 
     ShapeInfo otherInfo = info;
     btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
-    if (shape != otherShape) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: Box ShapeInfo --> shape --> ShapeInfo --> shape did not work" << std::endl;
-    }
+    QCOMPARE(shape, otherShape);
+//    if (shape != otherShape) {
+//        std::cout << __FILE__ << ":" << __LINE__
+//            << " ERROR: Box ShapeInfo --> shape --> ShapeInfo --> shape did not work" << std::endl;
+//    }
 }
 
 void ShapeManagerTests::addSphereShape() {
@@ -206,10 +226,11 @@ void ShapeManagerTests::addSphereShape() {
 
     ShapeInfo otherInfo = info;
     btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
-    if (shape != otherShape) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: Sphere ShapeInfo --> shape --> ShapeInfo --> shape did not work" << std::endl;
-    }
+    QCOMPARE(shape, otherShape);
+//    if (shape != otherShape) {
+//        std::cout << __FILE__ << ":" << __LINE__
+//            << " ERROR: Sphere ShapeInfo --> shape --> ShapeInfo --> shape did not work" << std::endl;
+//    }
 }
 
 void ShapeManagerTests::addCylinderShape() {
@@ -224,10 +245,11 @@ void ShapeManagerTests::addCylinderShape() {
 
     ShapeInfo otherInfo = info;
     btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
-    if (shape != otherShape) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: Cylinder ShapeInfo --> shape --> ShapeInfo --> shape did not work" << std::endl;
-    }
+    QCOMPARE(shape, otherShape);
+//    if (shape != otherShape) {
+//        std::cout << __FILE__ << ":" << __LINE__
+//            << " ERROR: Cylinder ShapeInfo --> shape --> ShapeInfo --> shape did not work" << std::endl;
+//    }
     */
 }
 
@@ -243,18 +265,10 @@ void ShapeManagerTests::addCapsuleShape() {
 
     ShapeInfo otherInfo = info;
     btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
-    if (shape != otherShape) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: Capsule ShapeInfo --> shape --> ShapeInfo --> shape did not work" << std::endl;
-    }
+    QCOMPARE(shape, otherShape);
+//    if (shape != otherShape) {
+//        std::cout << __FILE__ << ":" << __LINE__
+//            << " ERROR: Capsule ShapeInfo --> shape --> ShapeInfo --> shape did not work" << std::endl;
+//    }
     */
 }
-
-//void ShapeManagerTests::runAllTests() {
-//    testShapeAccounting();
-//    addManyShapes();
-//    addBoxShape();
-//    addSphereShape();
-//    addCylinderShape();
-//    addCapsuleShape();
-//}
