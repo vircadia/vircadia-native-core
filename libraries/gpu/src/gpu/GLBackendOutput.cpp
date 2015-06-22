@@ -11,6 +11,7 @@
 #include "GPULogging.h"
 #include "GLBackendShared.h"
 
+using namespace gpu;
 
 GLBackend::GLFramebuffer::GLFramebuffer() {}
 
