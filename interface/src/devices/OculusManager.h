@@ -38,8 +38,6 @@ struct MirrorFramebufferWrapper;
 /// Handles interaction with the Oculus Rift.
 class OculusManager {
 public:
-    static void init();
-    static void deinit();
     static void connect(QOpenGLContext* shareContext);
     static void disconnect();
     static bool isConnected();
@@ -63,6 +61,9 @@ public:
     static glm::vec3 getRightEyePosition() { return _eyePositions[ovrEye_Right]; }
     
     static int getHMDScreen();
+
+    static glm::mat4 getEyeProjection(int eye);
+    static glm::mat4 getEyePose(int eye);
     
 private:
     static void initSdk();

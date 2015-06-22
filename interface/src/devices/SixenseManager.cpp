@@ -512,7 +512,7 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)
         || Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
-        pos = qApp->getApplicationOverlay().getPalmClickLocation(palm);
+        pos = qApp->getApplicationCompositor().getPalmClickLocation(palm);
     } else {
         // Get directon relative to avatar orientation
         glm::vec3 direction = glm::inverse(avatar->getOrientation()) * palm->getFingerDirection();

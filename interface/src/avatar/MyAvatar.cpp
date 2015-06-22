@@ -1468,7 +1468,7 @@ void MyAvatar::maybeUpdateBillboard() {
     }
     gpu::Context context(new gpu::GLBackend());
     RenderArgs renderArgs(&context);
-    QImage image = Application::getInstance()->renderAvatarBillboard(&renderArgs);
+    QImage image = qApp->renderAvatarBillboard(&renderArgs);
     _billboard.clear();
     QBuffer buffer(&_billboard);
     buffer.open(QIODevice::WriteOnly);
@@ -1567,7 +1567,6 @@ void MyAvatar::renderLaserPointers() {
 
 //Gets the tip position for the laser pointer
 glm::vec3 MyAvatar::getLaserPointerTipPosition(const PalmData* palm) {
-    const ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
     glm::vec3 direction = glm::normalize(palm->getTipPosition() - palm->getPosition());
 
     glm::vec3 position = palm->getPosition();
@@ -1576,7 +1575,8 @@ glm::vec3 MyAvatar::getLaserPointerTipPosition(const PalmData* palm) {
 
 
     glm::vec3 result;
-    if (applicationOverlay.calculateRayUICollisionPoint(position, direction, result)) {
+    const auto& compositor = qApp->getApplicationCompositor();
+    if (compositor.calculateRayUICollisionPoint(position, direction, result)) {
         return result;
     }
 

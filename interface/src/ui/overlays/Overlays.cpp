@@ -258,7 +258,7 @@ void Overlays::deleteOverlay(unsigned int id) {
 unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
     glm::vec2 pointCopy = point;
     if (qApp->isHMDMode()) {
-        pointCopy = qApp->getApplicationOverlay().screenToOverlay(point);
+        pointCopy = qApp->getApplicationCompositor().screenToOverlay(point);
     }
     
     QReadLocker lock(&_lock);
