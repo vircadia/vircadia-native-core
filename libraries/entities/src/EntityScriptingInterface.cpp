@@ -442,19 +442,8 @@ bool EntityScriptingInterface::setVoxels(QUuid entityID,
     return true;
 }
 
-bool EntityScriptingInterface::setPoints(QUuid entityID, std::function<bool(LineEntityItem&)> actor) {
+bool EntityScriptingInterface::setPoints(EntityItemPointer entity, std::function<bool(LineEntityItem&)> actor) {
     if (!_entityTree) {
-        return false;
-    }
-    
-    EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
-    if (!entity) {
-        qCDebug(entities) << "EntityScriptingInterface::setPoints no entity with ID" << entityID;
-    }
-    
-    EntityTypes::EntityType entityType = entity->getType();
-    
-    if (entityType != EntityTypes::Line) {
         return false;
     }
     
@@ -475,7 +464,33 @@ bool EntityScriptingInterface::setPoints(QUuid entityID, std::function<bool(Line
     properties.setLastEdited(now);
     
     
-    queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
+    queueEntityMessage(PacketTypeEntityEdit, entity->getID(), properties);
+    return success;
+}
+
+bool EntityScriptingInterface::setPoints(EntityItemPointer entity, std::function<bool(QuadEntityItem&)> actor) {
+    if (!_entityTree) {
+        return false;
+    }
+    
+    auto now = usecTimestampNow();
+    
+    QuadEntityItem* quadEntity = static_cast<QuadEntityItem*>(entity.get());
+    _entityTree->lockForWrite();
+    bool success = actor(*quadEntity);
+    entity->setLastEdited(now);
+    entity->setLastBroadcast(now);
+    _entityTree->unlock();
+    
+    _entityTree->lockForRead();
+    EntityItemProperties properties = entity->getProperties();
+    _entityTree->unlock();
+    
+    properties.setLinePointsDirty();
+    properties.setLastEdited(now);
+    
+    
+    queueEntityMessage(PacketTypeEntityEdit, entity->getID(), properties);
     return success;
 }
 
@@ -498,17 +513,53 @@ bool EntityScriptingInterface::setAllVoxels(QUuid entityID, int value) {
 }
 
 bool EntityScriptingInterface::setAllPoints(QUuid entityID, const QVector<glm::vec3>& points) {
-    return setPoints(entityID, [points](LineEntityItem& lineEntity) -> bool
-    {
-        return lineEntity.setLinePoints(points);
-    });
+    EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
+    if (!entity) {
+        qCDebug(entities) << "EntityScriptingInterface::setPoints no entity with ID" << entityID;
+    }
+    
+    EntityTypes::EntityType entityType = entity->getType();
+    
+    if (entityType == EntityTypes::Line) {
+        return setPoints(entity, [points](LineEntityItem& lineEntity) -> bool
+        {
+            return lineEntity.setLinePoints(points);
+        });
+    }
+    
+    if (entityType == EntityTypes::Quad) {
+        return setPoints(entity, [points](QuadEntityItem& quadEntity) -> bool
+        {
+            return quadEntity.setLinePoints(points);
+        });
+    }
+
+    return false;
 }
 
 bool EntityScriptingInterface::appendPoint(QUuid entityID, const glm::vec3& point) {
-    return setPoints(entityID, [point](LineEntityItem& lineEntity) -> bool
-    {
-        return lineEntity.appendPoint(point);
-    });
+    EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
+    if (!entity) {
+        qCDebug(entities) << "EntityScriptingInterface::setPoints no entity with ID" << entityID;
+    }
+    
+    EntityTypes::EntityType entityType = entity->getType();
+    
+    if (entityType == EntityTypes::Line) {
+        return setPoints(entity, [point](LineEntityItem& lineEntity) -> bool
+        {
+            return lineEntity.appendPoint(point);
+        });
+    }
+    
+    if (entityType == EntityTypes::Quad) {
+        return setPoints(entity, [point](QuadEntityItem& quadEntity) -> bool
+        {
+            return quadEntity.appendPoint(point);
+        });
+    }
+    
+    return false;
     
 }
 

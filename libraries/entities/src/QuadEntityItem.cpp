@@ -37,7 +37,7 @@ _lineWidth(DEFAULT_LINE_WIDTH),
 _pointsChanged(true),
 _points(QVector<glm::vec3>(0))
 {
-    _type = EntityTypes::Line;
+    _type = EntityTypes::Quad;
     _created = properties.getCreated();
     setProperties(properties);
     
@@ -97,6 +97,7 @@ bool QuadEntityItem::appendPoint(const glm::vec3& point) {
         return false;
     }
     _points << point;
+    qDebug()<<"points: " << point;
     _pointsChanged = true;
     return true;
 }
@@ -115,6 +116,7 @@ bool QuadEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
         }
         
     }
+
     _points = points;
     _pointsChanged = true;
     return true;
