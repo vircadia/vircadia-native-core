@@ -65,9 +65,10 @@ void ViewFrustum::setProjection(const glm::mat4& projection) {
     _farClip = -_corners[BOTTOM_LEFT_FAR].z;
     _aspectRatio = (_corners[TOP_RIGHT_NEAR].x - _corners[BOTTOM_LEFT_NEAR].x) /
         (_corners[TOP_RIGHT_NEAR].y - _corners[BOTTOM_LEFT_NEAR].y);
-    glm::vec3 right = glm::normalize(glm::vec3(_corners[TOP_RIGHT_NEAR]));
-    glm::vec3 left = glm::normalize(glm::vec3(_corners[TOP_LEFT_NEAR]));
-    _fieldOfView = abs(glm::degrees(glm::angle(right, left)));
+
+    glm::vec4 top = _inverseProjection * vec4(0, 1, -1, 1);
+    top /= top.w;
+    _fieldOfView = abs(glm::degrees(2.0f * abs(glm::angle(vec3(0, 0, -1), glm::normalize(vec3(top))))));
 }
 
 // ViewFrustum::calculateViewFrustum()

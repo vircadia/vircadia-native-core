@@ -12,6 +12,8 @@
 #include "GLBackendShared.h"
 #include <glm/gtc/type_ptr.hpp>
 
+using namespace gpu;
+
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
 {
     (&::gpu::GLBackend::do_draw),
@@ -142,6 +144,14 @@ bool GLBackend::checkGLError(const char* name) {
     }
 }
 
+bool GLBackend::checkGLErrorDebug(const char* name) {
+#ifdef DEBUG
+    return checkGLError(name);
+#else
+    Q_UNUSED(name);
+    return false;
+#endif
+}
 
 void GLBackend::syncCache() {
     syncTransformStateCache();
@@ -687,4 +697,20 @@ void GLBackend::fetchMatrix(GLenum target, glm::mat4 & m) {
     glGetFloatv(target, glm::value_ptr(m));
 }
 
+void GLBackend::checkGLStackStable(std::function<void()> f) {
+#ifdef DEBUG
+    GLint mvDepth, prDepth;
+    glGetIntegerv(GL_MODELVIEW_STACK_DEPTH, &mvDepth);
+    glGetIntegerv(GL_PROJECTION_STACK_DEPTH, &prDepth);
+#endif
 
+    f();
+
+#ifdef DEBUG
+    GLint mvDepthFinal, prDepthFinal;
+    glGetIntegerv(GL_MODELVIEW_STACK_DEPTH, &mvDepthFinal);
+    glGetIntegerv(GL_PROJECTION_STACK_DEPTH, &prDepthFinal);
+    Q_ASSERT(mvDepth == mvDepthFinal);
+    Q_ASSERT(prDepth == prDepthFinal);
+#endif
+}

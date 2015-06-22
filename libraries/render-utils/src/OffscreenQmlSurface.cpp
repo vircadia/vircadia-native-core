@@ -11,6 +11,9 @@
 #include <QOpenGLDebugLogger>
 #include <QGLWidget>
 #include <QtQml>
+
+#include <PerfStat.h>
+
 #include "AbstractViewStateInterface.h"
 
 Q_DECLARE_LOGGING_CATEGORY(offscreenFocus)
@@ -91,6 +94,7 @@ void OffscreenQmlSurface::resize(const QSize& newSize) {
     // Qt bug in 5.4 forces this check of pixel ratio,
     // even though we're rendering offscreen.
     qreal pixelRatio = 1.0;
+    _qmlEngine->rootContext()->setContextProperty("surfaceSize", newSize);
     if (_renderControl && _renderControl->_renderWindow) {
         pixelRatio = _renderControl->_renderWindow->devicePixelRatio();
     } else {
@@ -110,7 +114,6 @@ void OffscreenQmlSurface::resize(const QSize& newSize) {
         _quickWindow->setGeometry(QRect(QPoint(), newSize));
         _quickWindow->contentItem()->setSize(newSize);
     }
-
 
     // Update our members
     if (_rootItem) {
@@ -212,6 +215,7 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
 
 
 void OffscreenQmlSurface::updateQuick() {
+    PerformanceTimer perfTimer("qmlUpdate");
     if (_paused) {
         return;
     }

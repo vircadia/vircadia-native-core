@@ -28,6 +28,9 @@
 #include "RenderUtilsLogging.h"
 #include "GeometryCache.h"
 
+#include "standardTransformPNTC_vert.h"
+#include "standardDrawTexture_frag.h"
+
 //#define WANT_DEBUG
 
 const int GeometryCache::UNKNOWN_ID = -1;
@@ -1182,6 +1185,26 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
     batch.draw(gpu::QUADS, 4, 0);
 }
 
+void GeometryCache::renderUnitCube(gpu::Batch& batch) {
+    static const glm::vec4 color(1);
+    renderSolidCube(batch, 1, color);
+}
+
+void GeometryCache::renderUnitQuad(const glm::vec4& color, int id) {
+    gpu::Batch batch;
+    renderUnitQuad(batch, color, id);
+    gpu::GLBackend::renderBatch(batch);
+}
+
+void GeometryCache::renderUnitQuad(gpu::Batch& batch, const glm::vec4& color, int id) {
+    static const glm::vec2 topLeft(-1, 1);
+    static const glm::vec2 bottomRight(1, -1);
+    static const glm::vec2 texCoordTopLeft(0.0f, 1.0f);
+    static const glm::vec2 texCoordBottomRight(1.0f, 0.0f);
+    renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color, id);
+}
+
+
 void GeometryCache::renderQuad(const glm::vec2& minCorner, const glm::vec2& maxCorner,
                     const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner, 
                     const glm::vec4& color, int id) {
@@ -1803,6 +1826,23 @@ QSharedPointer<Resource> GeometryCache::createResource(const QUrl& url, const QS
                                              &Resource::allReferencesCleared);
     geometry->setLODParent(geometry);
     return geometry.staticCast<Resource>();
+}
+
+void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch) {
+    if (!_standardDrawPipeline) {
+        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(standardTransformPNTC_vert)));
+        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(standardDrawTexture_frag)));
+        auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        gpu::Shader::makeProgram((*program));
+
+        auto state = gpu::StatePointer(new gpu::State());
+
+        // enable decal blend
+        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
+
+        _standardDrawPipeline.reset(gpu::Pipeline::create(program, state));
+    }
+    batch.setPipeline(_standardDrawPipeline);
 }
 
 const float NetworkGeometry::NO_HYSTERESIS = -1.0f;

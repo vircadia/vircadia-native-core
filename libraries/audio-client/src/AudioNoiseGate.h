@@ -21,6 +21,7 @@ public:
     AudioNoiseGate();
     
     void gateSamples(int16_t* samples, int numSamples);
+    void removeDCOffset(int16_t* samples, int numSamples);
     
     bool clippedInLastFrame() const { return _didClipInLastFrame; }
     float getMeasuredFloor() const { return _measuredFloor; }
