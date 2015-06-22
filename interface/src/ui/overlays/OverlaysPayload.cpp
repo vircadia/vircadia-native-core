@@ -46,12 +46,7 @@ namespace render {
         }
     }
     template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay) {
-        if (overlay->is3D()) {
-            return std::dynamic_pointer_cast<Base3DOverlay>(overlay)->getBounds();
-        } else {
-            QRect bounds = std::dynamic_pointer_cast<Overlay2D>(overlay)->getBounds();
-            return AABox(glm::vec3(bounds.x(), bounds.y(), 0.0f), glm::vec3(bounds.width(), bounds.height(), 0.1f));
-        }
+        return overlay->getBounds();
     }
     template <> int payloadGetLayer(const Overlay::Pointer& overlay) {
         // MAgic number while we are defining the layering mechanism:
