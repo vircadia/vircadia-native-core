@@ -1,0 +1,84 @@
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="style.css">
+        <script>
+        
+            function emitUpdate() {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "update",
+                    armsFree: elArmsFree.checked,
+                    footstepSounds: elFootstepSounds.checked,
+                    blenderPreRotations: elBlenderPreRotations.checked
+                }));
+            }
+        
+            function loaded() {
+                // assign form elements to vars
+                elPower = document.getElementById("power");
+                elArmsFree = document.getElementById("arms-free");
+                elFootstepSounds = document.getElementById("footstep-sounds");
+                elBlenderPreRotations = document.getElementById("bender-pre-rotations");
+
+                if (window.EventBridge !== undefined) {
+                    EventBridge.scriptEventReceived.connect(function(data) {
+                        data = JSON.parse(data);
+                        
+                        if (data.type == "update") {
+                            if (data.armsFree !== undefined) {
+                                elArmsFree.checked = data.armsFree == true;
+                            }
+                            if (data.footstepSounds !== undefined) {
+                                elFootstepSounds.checked = data.footstepSounds == true;
+                            }
+                            if (data.blenderPreRotations !== undefined) {
+                                elBlenderPreRotations.checked = data.blenderPreRotations == true;
+                            }                         
+                        }
+                    });
+                }
+
+                elArmsFree.addEventListener("change", emitUpdate);
+                elFootstepSounds.addEventListener("change", emitUpdate);
+                elBlenderPreRotations.addEventListener("change", emitUpdate);
+
+                elPower.addEventListener("click", function() {
+                    EventBridge.emitWebEvent(JSON.stringify({
+                        type: "powerToggle"
+                    }));
+                });              
+                // request initial values    
+                EventBridge.emitWebEvent(JSON.stringify({ type: 'init' }));
+            }
+        </script>
+    </head>
+    <body onload='loaded();'>
+        <div class="grid-section">
+
+            <div id="entity-list-header">
+                <input type="button" id="power" value="Power" style="margin-left:68px; margin-top:10px"></button>
+            </div>
+    
+            <div class="property-section">
+                <label>Arms free</label>
+                <span>
+                    <input type='checkbox' id="arms-free">
+                </span>
+            </div>
+
+            <div class="property-section">
+                <label>Footstep sounds</label>
+                <span>
+                    <input type='checkbox' id="footstep-sounds">
+                </span>
+            </div>
+
+            <div class="property-section">
+                <label>Blender pre-rotations</label>
+                <span>
+                    <input type='checkbox' id="bender-pre-rotations">
+                </span>
+            </div>
+
+        </div>
+    </body>
+</html>
