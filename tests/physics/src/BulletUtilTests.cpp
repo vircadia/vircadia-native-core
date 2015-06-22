@@ -42,7 +42,7 @@ void BulletUtilTests::fromBulletToGLM() {
     glm::quat gQ = bulletToGLM(bQ);
     QCOMPARE(gQ.x, bQ.getX());
     QCOMPARE(gQ.y, bQ.getY());
-    QCOMPARE(gQ.z, bQ.getZ() + 10);
+    QCOMPARE(gQ.z, bQ.getZ());
     QCOMPARE(gQ.w, bQ.getW());
 }
 
@@ -66,11 +66,11 @@ void BulletUtilTests::fromGLMToBullet() {
     QCOMPARE(gQ.w, bQ.getW());
 }
 
-void BulletUtilTests::fooTest () {
-    
-    glm::vec3 a { 1, 0, 3 };
-    glm::vec3 b { 2, 0, 5 };
-    
-//    QCOMPARE(10, 22);
-    QFUZZY_COMPARE(a, b, 1.0f);
-}
+//void BulletUtilTests::fooTest () {
+//    
+//    glm::vec3 a { 1, 0, 3 };
+//    glm::vec3 b { 2, 0, 5 };
+//    
+////    QCOMPARE(10, 22);
+//    QFUZZY_COMPARE(a, b, 1.0f);
+//}

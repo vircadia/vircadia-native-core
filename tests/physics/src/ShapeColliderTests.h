@@ -18,6 +18,8 @@ class ShapeColliderTests : public QObject {
     Q_OBJECT
 
 private slots:
+    void initTestCase();
+    
     void sphereMissesSphere();
     void sphereTouchesSphere();
 

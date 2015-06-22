@@ -22,7 +22,7 @@ class BulletUtilTests : public QObject {
 private slots:
     void fromBulletToGLM();
     void fromGLMToBullet();
-    void fooTest ();
+//    void fooTest ();
 };
 
 // Define comparison + printing functions for the data types we need

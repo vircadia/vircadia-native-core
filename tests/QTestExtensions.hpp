@@ -73,6 +73,32 @@ inline QString QTest_generateCompareFailureMessage (const char * failMessage, co
     return msg;
 }
 
+// Why does qt have to make things so complicated...?
+inline QString makeMessageFromStream (std::function<void(QTextStream &)> writeMessage) {
+    QString msg;
+    QTextStream stream(&msg);
+    writeMessage(stream);
+    return msg;
+}
+
+inline void QTest_failWithCustomMessage (std::function<void(QTextStream &stream)> writeMessage, int line, const char *file)
+{
+    QTest::qFail(qPrintable(makeMessageFromStream(writeMessage)), file, line);
+}
+
+#define QFAIL_WITH_MESSAGE(...) \
+do { \
+    QTest_failWithCustomMessage([&](QTextStream& stream) { stream << __VA_ARGS__; }, __LINE__, __FILE__); \
+    return; \
+} while(0)
+
+inline void foo () {
+    int thing = 2;
+    QFAIL_WITH_MESSAGE("Message " << thing << ";");
+}
+
+
+
 // Generates a QCOMPARE style failure message with custom arguments.
 // This is expected to be wrapped in a macro (see QFUZZY_COMPARE), and it must
 // actually return on failure (unless other functionality is desired).
@@ -100,7 +126,9 @@ template <typename T, typename V>
 inline auto QTest_fuzzyCompare(const T & actual, const T & expected, const char * actual_expr, const char * expected_expr, int line, const char * file, const V & epsilon) -> decltype(fuzzyCompare(actual, expected))
 {
     if (fuzzyCompare(actual, expected) > epsilon) {
-        QTest::qFail(qPrintable(QTest_generateCompareFailureMessage("Compared values are not the same (fuzzy compare)", actual, expected, actual_expr, expected_expr,
+        QTest::qFail(qPrintable(QTest_generateCompareFailureMessage(
+            "Compared values are not the same (fuzzy compare)",
+            actual, expected, actual_expr, expected_expr,
             [&] (QTextStream & stream) -> QTextStream & {
                 return stream << "Err tolerance: " << fuzzyCompare((actual), (expected)) << " > " << epsilon;
             })), file, line);
@@ -115,4 +143,24 @@ do { \
         return; \
 } while(0)
 
+#define QCOMPARE_WITH_FUNCTION(actual, expected, testFunc) \
+do { \
+    if (!testFunc(actual, expected)) { \
+        QTest_failWithMessage("Compared values are not the same", actual, expected, #actual, #expected, __LINE__, __FILE__); \
+        return; \
+    } \
+while (0)
+
+#define QCOMPARE_WITH_LAMBDA(actual, expected, testClosure) \
+do { \
+    if (!testClosure()) \
+        QTest_failWithMessage("Compared values are not the same", actual, expected, #actual, #expected, __LINE__, __FILE__); \
+        return; \
+    } \
+while (0)
+
 #endif
+
+
+
+
