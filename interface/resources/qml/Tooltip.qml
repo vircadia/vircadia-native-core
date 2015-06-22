@@ -6,9 +6,7 @@ import "styles"
 Hifi.Tooltip {
     id: root
     HifiConstants { id: hifi }
-    // FIXME adjust position based on the edges of the screen
     x: (lastMousePosition.x > surfaceSize.width/2) ? lastMousePosition.x - 140 : lastMousePosition.x + 20
-    //y: lastMousePosition.y + 5
     y: (lastMousePosition.y > surfaceSize.height/2) ? lastMousePosition.y - 70 : lastMousePosition.y + 5
     implicitWidth: border.implicitWidth 
     implicitHeight: border.implicitHeight
