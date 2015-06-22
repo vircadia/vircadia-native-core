@@ -97,7 +97,6 @@ private:
     QPoint _reticlePosition[NUMBER_OF_RETICLES];
     bool _magActive[NUMBER_OF_RETICLES];
     float _magSizeMult[NUMBER_OF_RETICLES];
-    quint64 _lastMouseMove{ 0 };
     bool _magnifier{ true };
 
     float _alpha{ 1.0f };
