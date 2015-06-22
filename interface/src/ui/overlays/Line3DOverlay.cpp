@@ -32,6 +32,16 @@ Line3DOverlay::Line3DOverlay(const Line3DOverlay* line3DOverlay) :
 Line3DOverlay::~Line3DOverlay() {
 }
 
+AABox Line3DOverlay::getBounds() const {
+    auto start = _position + _start;
+    auto end = _position + _end;
+
+    auto min = glm::min(start, end);
+    auto max = glm::max(start, end);
+
+    return AABox(min, max - min);
+}
+
 void Line3DOverlay::render(RenderArgs* args) {
     if (!_visible) {
         return; // do nothing if we're not visible
