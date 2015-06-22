@@ -20,7 +20,6 @@
     <@def GPU_TRANSFORM_PROFILE GPU_LEGACY@>
     <@def VERSION_HEADER #version 120
 #extension GL_EXT_gpu_shader4 : enable@>
-gpu_shader4
 <@else@>
     <@def GPU_FEATURE_PROFILE GPU_LEGACY@>
     <@def GPU_TRANSFORM_PROFILE GPU_LEGACY@>
