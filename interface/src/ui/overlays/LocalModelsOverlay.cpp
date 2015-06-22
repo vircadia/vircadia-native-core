@@ -38,9 +38,9 @@ void LocalModelsOverlay::render(RenderArgs* args) {
     if (_visible) {
 
         float glowLevel = getGlowLevel();
-        QSharedPointer<Glower> glower;
+        Glower* glower = NULL;
         if (glowLevel > 0.0f) {
-            glower = QSharedPointer<Glower>(new Glower(glowLevel));
+            glower = new Glower(glowLevel);
         }
 
         glPushMatrix(); {
@@ -52,6 +52,9 @@ void LocalModelsOverlay::render(RenderArgs* args) {
             Application::getInstance()->setViewMatrixTranslation(oldTranslation);
 #endif
         } glPopMatrix();
+        if (glower) {
+            delete glower;
+        }
     }
 }
 

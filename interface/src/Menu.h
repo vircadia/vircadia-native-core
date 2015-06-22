@@ -200,7 +200,6 @@ namespace MenuOption {
     const QString CenterPlayerInView = "Center Player In View";
     const QString GlowWhenSpeaking = "Glow When Speaking";
     const QString NamesAboveHeads = "Names Above Heads";
-    const QString GoToUser = "Go To User";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString KeyboardMotorControl = "Enable Keyboard Motor Control";
     const QString LeapMotionOnHMD = "Leap Motion on HMD";

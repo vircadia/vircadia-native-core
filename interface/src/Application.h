@@ -137,7 +137,6 @@ class Application;
 
 typedef bool (Application::* AcceptURLMethod)(const QString &);
 
-
 class Application : public QApplication, public AbstractViewStateInterface, AbstractScriptingServicesInterface, PluginContainer {
     Q_OBJECT
 
@@ -251,8 +250,6 @@ public:
     Overlays& getOverlays() { return _overlays; }
 
     float getFps() const { return _fps; }
-    //const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
-    //void setViewMatrixTranslation(const glm::vec3& translation) { _viewMatrixTranslation = translation; }
 
     virtual const Transform& getViewTransform() const { return _viewTransform; }
     virtual Transform& getViewTransform() { return _viewTransform; }
@@ -281,7 +278,7 @@ public:
 
     QImage renderAvatarBillboard(RenderArgs* renderArgs);
 
-    void displaySide(RenderArgs* renderArgs, const Camera& camera, bool selfAvatarOnly = false, bool billboard = false);
+    void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false, bool billboard = false);
     void getModelViewMatrix(glm::dmat4* modelViewMatrix);
     void getProjectionMatrix(glm::dmat4* projectionMatrix);
 
@@ -453,12 +450,8 @@ private slots:
 
     void connectedToDomain(const QString& hostname);
 
-#if 0
-    friend class HMDToolsDialog;
-    void setFullscreen(bool fullscreen);
-#endif
-
     void cameraMenuChanged();
+    void rotationModeChanged();
 
     void closeMirrorView();
     void restoreMirrorView();
@@ -571,10 +564,6 @@ private:
 
     Transform _viewTransform;
     glm::mat4 _projectionMatrix;
-/*
-    glm::mat4 _untranslatedViewMatrix;
-    glm::vec3 _viewMatrixTranslation;
-*/
 
     float _scaleMirror;
     float _rotateMirror;

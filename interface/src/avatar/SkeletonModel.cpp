@@ -771,7 +771,6 @@ void SkeletonModel::resetShapePositionsToDefaultPose() {
 
 void SkeletonModel::renderBoundingCollisionShapes(float alpha) {
     const int BALL_SUBDIVISIONS = 10;
-#if 0
     if (_shapes.isEmpty()) {
         // the bounding shape has not been propery computed
         // so no need to render it
@@ -802,7 +801,6 @@ void SkeletonModel::renderBoundingCollisionShapes(float alpha) {
     Avatar::renderJointConnectingCone( origin, axis, _boundingShape.getRadius(), _boundingShape.getRadius(), glm::vec4(0.6f, 0.8f, 0.6f, alpha));
 
     glPopMatrix();
-#endif
 }
 
 bool SkeletonModel::hasSkeleton() {
