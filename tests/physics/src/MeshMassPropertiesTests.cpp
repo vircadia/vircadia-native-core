@@ -9,7 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "PhysicsTestUtil.h"
 #include <iostream>
 #include <string>
 #include <MeshMassProperties.h>
@@ -74,22 +73,28 @@ void MeshMassPropertiesTests::testParallelAxisTheorem() {
     btMatrix3x3 twoSmallBoxesInertia = smallBoxShiftedRight + smallBoxShiftedLeft;
 
     // verify bigBox same as twoSmallBoxes
-    btScalar error;
-    for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < 3; ++j) {
-            QFUZZY_COMPARE(bitBoxInertia[i][j], twoSmallBoxesInertia[i][j], acceptableAbsoluteError);
-//            error = bitBoxInertia[i][j] - twoSmallBoxesInertia[i][j];
-//            if (fabsf(error) > acceptableAbsoluteError) {
-//                std::cout << __FILE__ << ":" << __LINE__ << " ERROR : box inertia[" << i << "][" << j << "] off by = "
-//                    << error << std::endl;
-//            }
-        }
-    }
-
-#ifdef VERBOSE_UNIT_TESTS
-    printMatrix("expected inertia", bitBoxInertia);
-    printMatrix("computed inertia", twoSmallBoxesInertia);
-#endif // VERBOSE_UNIT_TESTS
+//    btScalar error;
+//    for (int i = 0; i < 3; ++i) {
+//        for (int j = 0; j < 3; ++j) {
+//            QFUZZY_COMPARE(bitBoxInertia[i][j], twoSmallBoxesInertia[i][j], acceptableAbsoluteError);
+////            error = bitBoxInertia[i][j] - twoSmallBoxesInertia[i][j];
+////            if (fabsf(error) > acceptableAbsoluteError) {
+////                std::cout << __FILE__ << ":" << __LINE__ << " ERROR : box inertia[" << i << "][" << j << "] off by = "
+////                    << error << std::endl;
+////            }
+//        }
+//    }
+    
+    // Try commenting this out to see what happens when the test fails
+    twoSmallBoxesInertia[0][2] += 10;
+    
+    // This now does the same as the above (using the maxDiff fuzzyCompare impl for two btMatrices)
+    QFUZZY_COMPARE(bitBoxInertia, twoSmallBoxesInertia, acceptableAbsoluteError);
+    
+//#ifdef VERBOSE_UNIT_TESTS
+//    printMatrix("expected inertia", bitBoxInertia);
+//    printMatrix("computed inertia", twoSmallBoxesInertia);
+//#endif // VERBOSE_UNIT_TESTS
 //#endif // EXPOSE_HELPER_FUNCTIONS_FOR_UNIT_TEST
 }
 

@@ -17,18 +17,19 @@
 #include <functional>
 
 // Adds some additional functionality to QtTest (eg. explicitely defined fuzzy comparison
-// of float and custom data types), and some extension mechanisms to provide other new
-// functionality as needed.
+// of float and custom data types), and some extension mechanisms to provide other
+// test functionality as needed.
 
-
-// Generic function that reimplements the debugging output of a QCOMPARE failure via QFAIL.
-// Use this to implement your own QCOMPARE-ish macros (see QEXPLICIT_FUZZY_COMPARE for
-// more info).
-template <typename T>
-void QTest_failWithMessage (const T & actual, const T & expected, const char * actual_expr, const char * expected_expr, int line, const char * file)
-{
-    
-}
+// QFUZZY_COMPARE (actual_expr, expected_expr, epsilon / error tolerance):
+// Requires that you have two functions defined:
+//
+//      V fuzzyCompare (const T & a, const T & b)
+//      QTextStream & operator << (const T & v)
+//
+//  fuzzyCompare should take a data type, T, and return the difference between two
+//  such values / objects in terms of a second type, V (which should match the error
+//  value type). For glm::vec3, T = glm::vec3, V = float, for example
+//
 
 // Generic function that reimplements the debugging output of a QCOMPARE failure via QFAIL.
 // Use this to implement your own QCOMPARE-ish macros (see QEXPLICIT_FUZZY_COMPARE for
@@ -61,19 +62,42 @@ inline QString QTest_generateCompareFailureMessage (const char * failMessage, co
     int pad1_ = qMax(s2.length() - s1.length(), 0);
     int pad2_ = qMax(s1.length() - s2.length(), 0);
     
-    QString pad1 = QString(")").rightJustified(pad1_, ' ');
-    QString pad2 = QString(")").rightJustified(pad2_, ' ');
+    QString pad1 = QString("): ").rightJustified(pad1_, ' ');
+    QString pad2 = QString("): ").rightJustified(pad2_, ' ');
     
     QString msg;
     QTextStream stream (&msg);
     stream << failMessage << "\n\t"
-    "Actual:   (" << actual_expr   << pad1 << ": " << actual   << "\n\t"
-    "Expected: (" << expected_expr << pad2 << ": " << expected;
+        "Actual:   (" << actual_expr   << pad1 << actual   << "\n\t"
+        "Expected: (" << expected_expr << pad2 << expected;
     return msg;
 }
 
+// Generates a QCOMPARE style failure message with custom arguments.
+// This is expected to be wrapped in a macro (see QFUZZY_COMPARE), and it must
+// actually return on failure (unless other functionality is desired).
+template <typename T>
+inline void QTest_failWithMessage(const char * failMessage, const T & actual, const T & expected, const char * actualExpr, const char * expectedExpr, int line, const char * file)
+{
+    QTest::qFail(qPrintable(QTest_generateCompareFailureMessage(failMessage, actual, expected, actualExpr, expectedExpr)), file, line);
+}
+
+// Generates a QCOMPARE style failure message with custom arguments.
+// Writing additional lines (eg:)
+//      Actual (<expr>): <actual value>
+//      Expected (<expr>): <expected value>
+//      <Your additional messages here...>
+//      Loc: [<filepath...>(<line num>)]
+// is provided via a lamdbda / closure that can write to the textstream.
+// Be aware that newlines are actually "\n\t" (with this impl), so use that to get
+// proper indenting (and add extra '\t's to get additional indentation).
+template <typename T>
+inline void QTest_failWithMessage(const char * failMessage, const T & actual, const T & expected, const char * actualExpr, const char * expectedExpr, int line, const char * file, std::function<QTextStream &(QTextStream&)> writeAdditionalMessageLines) {
+    QTest::qFail(qPrintable(QTest_generateCompareFailureMessage(failMessage, actual, expected, actualExpr, expectedExpr, writeAdditionalMessageLines)), file, line);
+}
+
 template <typename T, typename V>
-inline bool QTest_fuzzyCompare(const T & actual, const T & expected, const char * actual_expr, const char * expected_expr, int line, const char * file, const V & epsilon)
+inline auto QTest_fuzzyCompare(const T & actual, const T & expected, const char * actual_expr, const char * expected_expr, int line, const char * file, const V & epsilon) -> decltype(fuzzyCompare(actual, expected))
 {
     if (fuzzyCompare(actual, expected) > epsilon) {
         QTest::qFail(qPrintable(QTest_generateCompareFailureMessage("Compared values are not the same (fuzzy compare)", actual, expected, actual_expr, expected_expr,
@@ -90,19 +114,5 @@ do { \
     if (!QTest_fuzzyCompare(actual, expected, #actual, #expected, __LINE__, __FILE__, epsilon)) \
         return; \
 } while(0)
-
-// Note: this generates a message that looks something like the following:
-//  FAIL!  : BulletUtilTests::fooTest() Compared values are not the same (fuzzy compare)
-//      Actual    (foo * 3):   glm::vec3 { 1, 0, 3 }
-//      Expected  (bar + baz): glm::vec3 { 2, 0, 5 }
-//      Error Tolerance: 2.23607 > 1
-//  Loc: [/Users/semery/hifi/tests/physics/src/BulletUtilTests.cpp(68)]
-//
-// The last line (and the FAIL! message up to "Compared values...") are generated automatically by
-// QFAIL. It is possible to generate these manually via __FILE__ and __LINE__, but QFAIL does this
-// already so there's no point in reimplementing it. However, since we are using QFAIL to generate
-// our line number for us, it's important that it's actually invoked on the same line as the thing
-// that calls it -- hence the elaborate macro(s) above (since the result is *technically* one line)
-//
 
 #endif

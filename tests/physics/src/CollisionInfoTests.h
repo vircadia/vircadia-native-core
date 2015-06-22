@@ -12,6 +12,8 @@
 #ifndef hifi_CollisionInfoTests_h
 #define hifi_CollisionInfoTests_h
 
+#include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <QtTest/QtTest>
 
 class CollisionInfoTests : public QObject {
@@ -21,5 +23,17 @@ private slots:
 //    void rotateThenTranslate();
 //    void translateThenRotate();
 };
+
+
+// Define comparison + printing functions for the data types we need
+inline float fuzzyCompare (const glm::vec3 & a, const glm::vec3 & b) {
+    return glm::distance(a, b);
+}
+inline QTextStream & operator << (QTextStream & stream, const glm::vec3 & v) {
+    return stream << "glm::vec3 { " << v.x << ", " << v.y << ", " << v.z << " }";
+}
+
+// These hook into this (and must be defined first...)
+#include "../QTestExtensions.hpp"
 
 #endif // hifi_CollisionInfoTests_h

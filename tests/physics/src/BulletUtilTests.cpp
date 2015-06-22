@@ -11,11 +11,17 @@
 
 #include <iostream>
 
-#include "PhysicsTestUtil.h"
+//#include "PhysicsTestUtil.h"
 #include <BulletUtil.h>
 #include <NumericalConstants.h>
 
 #include "BulletUtilTests.h"
+
+// Constants
+const glm::vec3 origin(0.0f);
+const glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
+const glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
+const glm::vec3 zAxis(0.0f, 0.0f, 1.0f);
 
 
 QTEST_MAIN(BulletUtilTests)

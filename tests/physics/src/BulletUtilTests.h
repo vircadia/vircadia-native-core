@@ -13,6 +13,8 @@
 #define hifi_BulletUtilTests_h
 
 #include <QtTest/QtTest>
+#include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 class BulletUtilTests : public QObject {
     Q_OBJECT
@@ -22,5 +24,17 @@ private slots:
     void fromGLMToBullet();
     void fooTest ();
 };
+
+// Define comparison + printing functions for the data types we need
+
+inline float fuzzyCompare (const glm::vec3 & a, const glm::vec3 & b) {
+    return glm::distance(a, b);
+}
+inline QTextStream & operator << (QTextStream & stream, const glm::vec3 & v) {
+    return stream << "glm::vec3 { " << v.x << ", " << v.y << ", " << v.z << " }";
+}
+
+// These hook into this (and must be defined first...)
+#include "../QTestExtensions.hpp"
 
 #endif // hifi_BulletUtilTests_h
