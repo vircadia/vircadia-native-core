@@ -239,7 +239,9 @@ void PhysicalEntitySimulation::applyActionChanges() {
     if (_physicsEngine) {
         lock();
         foreach (EntityActionPointer actionToAdd, _actionsToAdd) {
-            _physicsEngine->addAction(actionToAdd);
+            if (!_actionsToRemove.contains(actionToAdd->getID())) {
+                _physicsEngine->addAction(actionToAdd);
+            }
         }
         _actionsToAdd.clear();
         foreach (QUuid actionToRemove, _actionsToRemove) {
