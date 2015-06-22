@@ -35,8 +35,8 @@
 
 namespace render {
     template <> const ItemKey payloadGetKey(const Overlay::Pointer& overlay) {
-        if (overlay->is3D() && !static_cast<Base3DOverlay*>(overlay.get())->getDrawOnHUD()) {
-            if (static_cast<Base3DOverlay*>(overlay.get())->getDrawInFront()) {
+        if (overlay->is3D() && !std::dynamic_pointer_cast<Base3DOverlay>(overlay)->getDrawOnHUD()) {
+            if (std::dynamic_pointer_cast<Base3DOverlay>(overlay)->getDrawInFront()) {
                 return ItemKey::Builder().withTypeShape().withLayered().build();
             } else {
                 return ItemKey::Builder::opaqueShape();
@@ -47,9 +47,9 @@ namespace render {
     }
     template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay) {
         if (overlay->is3D()) {
-            return static_cast<Base3DOverlay*>(overlay.get())->getBounds();
+            return std::dynamic_pointer_cast<Base3DOverlay>(overlay)->getBounds();
         } else {
-            QRect bounds = static_cast<Overlay2D*>(overlay.get())->getBounds();
+            QRect bounds = std::dynamic_pointer_cast<Overlay2D>(overlay)->getBounds();
             return AABox(glm::vec3(bounds.x(), bounds.y(), 0.0f), glm::vec3(bounds.width(), bounds.height(), 0.1f));
         }
     }
@@ -59,7 +59,7 @@ namespace render {
         const int LAYER_3D_FRONT = 1;
         const int LAYER_3D = 0;
         if (overlay->is3D()) {
-            return (static_cast<Base3DOverlay*>(overlay.get())->getDrawInFront() ? LAYER_3D_FRONT : LAYER_3D);
+            return (std::dynamic_pointer_cast<Base3DOverlay>(overlay)->getDrawInFront() ? LAYER_3D_FRONT : LAYER_3D);
         } else {
             return LAYER_2D;
         }
