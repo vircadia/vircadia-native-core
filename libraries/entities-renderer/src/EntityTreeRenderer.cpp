@@ -44,9 +44,6 @@
 #include "RenderablePolyVoxEntityItem.h"
 #include "EntitiesRendererLogging.h"
 
-#include "DependencyManager.h"
-#include "AddressManager.h"
-
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState, 
                                             AbstractScriptingServicesInterface* scriptingServices) :
     OctreeRenderer(),
