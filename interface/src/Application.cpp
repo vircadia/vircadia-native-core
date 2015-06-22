@@ -1584,6 +1584,8 @@ void Application::mouseDoublePressEvent(QMouseEvent* event, unsigned int deviceI
     if (_controllerScriptingInterface.isMouseCaptured()) {
         return;
     }
+
+    _controllerScriptingInterface.emitMouseDoublePressEvent(event);
 }
 
 void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
