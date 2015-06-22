@@ -118,7 +118,6 @@ WaveSynth = function(waveShape, numHarmonics, smoothing) {
 HarmonicsFilter = function(magnitudes, phaseAngles) {
     this.magnitudes = magnitudes;
     this.phaseAngles = phaseAngles;
-
     this.calculate = function(twoPiFT) {
         var harmonics = 0;
         var numHarmonics = magnitudes.length;
@@ -155,7 +154,7 @@ filter = (function() {
         },
 
         // these filters need instantiating, as they hold arrays of previous values
-        
+
         // simple averaging (LP) filter for damping / smoothing
         createAveragingFilter: function(length) {
             var newAveragingFilter = new AveragingFilter(length);
@@ -181,7 +180,7 @@ filter = (function() {
         },
 
         // the following filters do not need separate instances, as they hold no previous values
-        
+
         // Bezier response curve shaping for more natural transitions
         bezier: function(input, C2, C3) {
             // based on script by Dan Pupius (www.pupius.net) http://13thparallel.com/archive/bezier-curves/
