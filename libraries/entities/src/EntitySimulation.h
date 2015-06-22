@@ -57,10 +57,10 @@ public:
 
     friend class EntityTree;
 
-    virtual void addAction(EntityActionPointer action) { _actionsToAdd += action; }
-    virtual void removeAction(const QUuid actionID) { _actionsToRemove += actionID; }
-    virtual void removeActions(QList<QUuid> actionIDsToRemove) { _actionsToRemove += actionIDsToRemove; }
-    virtual void applyActionChanges() { _actionsToAdd.clear(); _actionsToRemove.clear(); }
+    virtual void addAction(EntityActionPointer action) { lock(); _actionsToAdd += action; unlock(); }
+    virtual void removeAction(const QUuid actionID) { lock(); _actionsToRemove += actionID; unlock(); }
+    virtual void removeActions(QList<QUuid> actionIDsToRemove) { lock(); _actionsToRemove += actionIDsToRemove; unlock(); }
+    virtual void applyActionChanges() { lock(); _actionsToAdd.clear(); _actionsToRemove.clear(); unlock(); }
 
 protected: // these only called by the EntityTree?
     /// \param entity pointer to EntityItem to be added

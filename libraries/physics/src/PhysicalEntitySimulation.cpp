@@ -237,12 +237,15 @@ void PhysicalEntitySimulation::handleCollisionEvents(CollisionEvents& collisionE
 
 void PhysicalEntitySimulation::applyActionChanges() {
     if (_physicsEngine) {
+        lock();
         foreach (EntityActionPointer actionToAdd, _actionsToAdd) {
             _physicsEngine->addAction(actionToAdd);
         }
+        _actionsToAdd.clear();
         foreach (QUuid actionToRemove, _actionsToRemove) {
             _physicsEngine->removeAction(actionToRemove);
         }
+        _actionsToRemove.clear();
+        unlock();
     }
-    EntitySimulation::applyActionChanges();
 }
