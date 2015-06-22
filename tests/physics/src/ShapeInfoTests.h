@@ -14,6 +14,10 @@
 
 #include <QtTest/QtTest>
 
+// Add additional qtest functionality (the include order is important!)
+#include "BulletTestUtils.h"
+#include "../QTestExtensions.hpp"
+
 class ShapeInfoTests : public QObject {
     Q_OBJECT
 private slots:
@@ -22,7 +26,8 @@ private slots:
     void testSphereShape();
     void testCylinderShape();
     void testCapsuleShape();
-//    void runAllTests(); 
 };
+
+#include "../QTestExtensions.hpp"
 
 #endif // hifi_ShapeInfoTests_h

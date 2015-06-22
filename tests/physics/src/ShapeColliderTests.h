@@ -13,6 +13,13 @@
 #define hifi_ShapeColliderTests_h
 
 #include <QtTest/QtTest>
+#include <QtGlobal>
+
+// Add additional qtest functionality (the include order is important!)
+#include "BulletTestUtils.h"
+#include "GlmTestUtils.h"
+#include "../QTestExtensions.hpp"
+
 
 class ShapeColliderTests : public QObject {
     Q_OBJECT
