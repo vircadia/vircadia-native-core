@@ -235,14 +235,14 @@ private:
     }
 };
 
-SwapFramebufferWrapper* _swapFbo{ nullptr };
-MirrorFramebufferWrapper* _mirrorFbo{ nullptr };
-ovrLayerEyeFov _sceneLayer;
+static SwapFramebufferWrapper* _swapFbo{ nullptr };
+static MirrorFramebufferWrapper* _mirrorFbo{ nullptr };
+static ovrLayerEyeFov _sceneLayer;
 
 #else
 
-ovrTexture OculusManager::_eyeTextures[ovrEye_Count];
-GlWindow* OculusManager::_outputWindow{ nullptr };
+static ovrTexture _eyeTextures[ovrEye_Count];
+static GlWindow* _outputWindow{ nullptr };
 
 #endif
 
