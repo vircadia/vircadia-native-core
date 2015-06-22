@@ -83,7 +83,7 @@ function MousePaint() {
     linePosition = position;
     line = Entities.addEntity({
       position: position,
-      type: "Quad",
+      type: "Line",
       color: currentColor,
       dimensions: {
         x: LINE_DIMENSIONS,
