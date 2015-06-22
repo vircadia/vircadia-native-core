@@ -33,6 +33,5 @@ QByteArray AssignmentAction::serialize() {
 }
 
 void AssignmentAction::deserialize(QByteArray serializedArguments) {
-    qDebug() << "setting data to" << serializedArguments.size() << "bytes";
     _data = serializedArguments;
 }
