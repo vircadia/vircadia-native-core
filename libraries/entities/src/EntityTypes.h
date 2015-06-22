@@ -46,7 +46,8 @@ public:
         Web,
         Line,
         PolyVox,
-        LAST = PolyVox
+        Quad,
+        LAST = Quad
     } EntityType;
 
     static const QString& getEntityTypeName(EntityType entityType);
