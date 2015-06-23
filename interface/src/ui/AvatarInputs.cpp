@@ -51,7 +51,7 @@ AvatarInputs::AvatarInputs(QQuickItem* parent) :  QQuickItem(parent) {
 #define AI_UPDATE_FLOAT(name, src, epsilon) \
     { \
         float val = src; \
-        if (abs(_##name - val) >= epsilon) { \
+        if (fabs(_##name - val) >= epsilon) { \
             _##name = val; \
             emit name##Changed(); \
         } \
