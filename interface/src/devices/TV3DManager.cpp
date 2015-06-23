@@ -109,7 +109,7 @@ void TV3DManager::display(RenderArgs* renderArgs, Camera& whichCamera) {
         glScissor(portalX, portalY, portalW, portalH);
 
         glm::mat4 projection = glm::frustum<float>(eye.left, eye.right, eye.bottom, eye.top, nearZ, farZ);
-        float fov = atan(1.0f / projection[1][1]);
+        // float fov = atanf(1.0f / projection[1][1]);
         projection = glm::translate(projection, vec3(eye.modelTranslation, 0, 0));
         eyeCamera.setProjection(projection);
 
