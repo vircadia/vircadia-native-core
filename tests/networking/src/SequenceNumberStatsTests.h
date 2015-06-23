@@ -12,13 +12,14 @@
 #ifndef hifi_SequenceNumberStatsTests_h
 #define hifi_SequenceNumberStatsTests_h
 
+#include <QtTest/QtTest>
+
 #include "SequenceNumberStatsTests.h"
 #include "SequenceNumberStats.h"
 
-namespace SequenceNumberStatsTests {
-
-    void runAllTests();
-
+class SequenceNumberStatsTests : public QObject {
+    Q_OBJECT
+private slots:
     void rolloverTest();
     void earlyLateTest();
     void duplicateTest();
