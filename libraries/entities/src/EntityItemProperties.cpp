@@ -98,6 +98,7 @@ CONSTRUCT_PROPERTY(backgroundMode, BACKGROUND_MODE_INHERIT),
 CONSTRUCT_PROPERTY(sourceUrl, ""),
 CONSTRUCT_PROPERTY(lineWidth, LineEntityItem::DEFAULT_LINE_WIDTH),
 CONSTRUCT_PROPERTY(linePoints, QVector<glm::vec3>()),
+CONSTRUCT_PROPERTY(billBoarded, ENTITY_ITEM_DEFAULT_BILLBOARDED),
 
 
 _id(UNKNOWN_ENTITY_ID),
@@ -444,6 +445,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(linePoints);
     COPY_PROPERTY_TO_QSCRIPTVALUE(href);
     COPY_PROPERTY_TO_QSCRIPTVALUE(description);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(billBoarded);
 
     // Sitting properties support
     if (!skipDefaults) {
@@ -555,7 +557,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(linePoints, qVectorVec3, setLinePoints);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(href, QString, setHref);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(description, QString, setDescription);
-
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(billBoarded, bool, setBillboarded);
 
     if (!honorReadOnly) {
         // this is used by the json reader to set things that we don't want javascript to able to affect.
@@ -722,6 +724,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, properties.getSimulatorID());
             APPEND_ENTITY_PROPERTY(PROP_HREF, properties.getHref());
             APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, properties.getDescription());
+            APPEND_ENTITY_PROPERTY(PROP_BILLBOARDED, properties.getBillboarded());
             
             if (properties.getType() == EntityTypes::Web) {
                 APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, properties.getSourceUrl());
@@ -974,6 +977,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SIMULATOR_ID, QUuid, setSimulatorID);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HREF, QString, setHref);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DESCRIPTION, QString, setDescription);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BILLBOARDED, bool, setBillboarded);
     
     if (properties.getType() == EntityTypes::Web) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SOURCE_URL, QString, setSourceUrl);
@@ -1161,7 +1165,9 @@ void EntityItemProperties::markAllChanged() {
 
     _hrefChanged = true;
     _descriptionChanged = true;
-
+    
+    _billBoardedChanged = true;
+    
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.

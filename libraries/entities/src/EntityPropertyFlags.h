@@ -122,6 +122,8 @@ enum EntityPropertyList {
     PROP_HREF,
     PROP_DESCRIPTION,
     
+    PROP_BILLBOARDED,
+    
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties ABOVE this line
     PROP_AFTER_LAST_ITEM,
