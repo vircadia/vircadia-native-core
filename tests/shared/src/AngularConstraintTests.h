@@ -12,10 +12,19 @@
 #ifndef hifi_AngularConstraintTests_h
 #define hifi_AngularConstraintTests_h
 
-namespace AngularConstraintTests {
+#include <QtTest/QtTest>
+
+class AngularConstraintTests : public QObject {
+    Q_OBJECT
+private slots:
     void testHingeConstraint();
     void testConeRollerConstraint();
-    void runAllTests(); 
-}
+};
+
+// Enable QFUZZY_COMPARE for glm::quat
+#include <glm/glm.hpp>
+float fuzzyCompare (const glm::quat & a, const glm::quat & b);
+QTextStream & operator << (QTextStream & stream, const glm::quat & q);
+#include "../QTestExtensions.hpp"
 
 #endif // hifi_AngularConstraintTests_h
