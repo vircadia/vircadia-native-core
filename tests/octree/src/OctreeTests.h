@@ -22,7 +22,14 @@ private slots:
     void byteCountCodingTests();
     void modelItemTests();
 
-//    void runAllTests(bool verbose); 
+    // TODO: Break these into separate test functions
 };
+
+// Helper functions
+inline QByteArray makeQByteArray (std::initializer_list<char> bytes) {
+    return QByteArray {
+        bytes.begin(), static_cast<int>(bytes.size() * sizeof(char))
+    };
+}
 
 #endif // hifi_OctreeTests_h

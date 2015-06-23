@@ -67,7 +67,7 @@ void AABoxCubeTests::raycastInHitsXMinFace () {
     bool intersects = box.findRayIntersection(origin, direction, distance, face);
     
     QCOMPARE(intersects, true);
-    QCOMPARE(distance, 0.5f);
+    QCOMPARE(distance, 0.25f);
     QCOMPARE(face, MIN_X_FACE);
 }
 

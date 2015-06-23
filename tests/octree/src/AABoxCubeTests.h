@@ -24,7 +24,7 @@ private slots:
     void raycastInHitsXMinFace ();
     
     // TODO: Add more unit tests!
-    // (eg. no test for failed intersection or non-orthogonal ray)
+    // (do we need this? Currently no tests for no-intersection or non-orthogonal rays)
 };
 
 #endif // hifi_AABoxCubeTests_h
