@@ -21,7 +21,7 @@ private slots:
     void testConeRollerConstraint();
 };
 
-// Enable QFUZZY_COMPARE for glm::quat
+// Use QFUZZY_COMPARE and define it for glm::quat
 #include <glm/glm.hpp>
 float fuzzyCompare (const glm::quat & a, const glm::quat & b);
 QTextStream & operator << (QTextStream & stream, const glm::quat & q);
