@@ -66,7 +66,7 @@ void AvatarInputs::update() {
     AI_UPDATE(cameraMuted, Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking));
 
     auto audioIO = DependencyManager::get<AudioClient>();
-    const float CLIPPING_INDICATOR_TIME = 1.0f;
+    // const float CLIPPING_INDICATOR_TIME = 1.0f;
     const float AUDIO_METER_AVERAGING = 0.5;
     const float LOG2 = log(2.0f);
     const float METER_LOUDNESS_SCALE = 2.8f / 5.0f;
@@ -84,7 +84,7 @@ void AvatarInputs::update() {
     } else {
         audioLevel = (log2loudness - (LOG2_LOUDNESS_FLOOR - 1.0f)) * METER_LOUDNESS_SCALE;
     }
-    if (audioLevel > 1.0) {
+    if (audioLevel > 1.0f) {
         audioLevel = 1.0;
     }
     AI_UPDATE_FLOAT(audioLevel, audioLevel, 0.01);
