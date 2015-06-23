@@ -135,9 +135,9 @@ ToolBar = function(x, y, direction) {
     this.back = this.back = Overlays.addOverlay("text", {
                     backgroundColor: { red: 255, green: 255, blue: 255 },
                     x: this.x,
-                    y: this.y,
+                    y: this.y - ToolBar.TITLE_BAR_HEIGHT,
                     width: this.width,
-                    height: this.height,
+                    height: this.height + ToolBar.TITLE_BAR_HEIGHT,
                     alpha: 1.0,
                     backgroundAlpha: 1.0,
                     visible: false
@@ -161,7 +161,7 @@ ToolBar = function(x, y, direction) {
             Overlays.editOverlay(this.back, {
                                  width: this.width +
                                  ((direction == ToolBar.HORIZONTAL) ? 1 : 2) * ToolBar.SPACING,
-                                 height: this.height +
+                                 height: this.height + ToolBar.TITLE_BAR_HEIGHT +
                                  ((direction == ToolBar.VERTICAL) ? 1 : 2) * ToolBar.SPACING,
             });
         }
@@ -201,7 +201,7 @@ ToolBar = function(x, y, direction) {
             Overlays.editOverlay(this.back, {
                                  width: this.width +
                                  ((direction == ToolBar.HORIZONTAL) ? 1 : 2) * ToolBar.SPACING,
-                                 height: this.height +
+                                 height: this.height + ToolBar.TITLE_BAR_HEIGHT +
                                  ((direction == ToolBar.VERTICAL) ? 1 : 2) * ToolBar.SPACING,
                                  });
         }
@@ -218,7 +218,7 @@ ToolBar = function(x, y, direction) {
         if (this.back != null) {
             Overlays.editOverlay(this.back, {
                 width: this.width + 2 * ToolBar.SPACING,
-                height: this.height + 2 * ToolBar.SPACING
+                height: this.height + ToolBar.TITLE_BAR_HEIGHT + 2 * ToolBar.SPACING
             });
         }
     }
@@ -234,7 +234,7 @@ ToolBar = function(x, y, direction) {
         if (this.back != null) {
             Overlays.editOverlay(this.back, {
                 x: x - ToolBar.SPACING,
-                y: y - ToolBar.SPACING
+                y: y - ToolBar.TITLE_BAR_HEIGHT - ToolBar.SPACING
             });
         }
         this.save();
@@ -265,7 +265,7 @@ ToolBar = function(x, y, direction) {
             Overlays.editOverlay(this.back, {
                                  width: this.width +
                                  ((direction == ToolBar.HORIZONTAL) ? 1 : 2) * ToolBar.SPACING,
-                                 height: this.height +
+                                 height: this.height + ToolBar.TITLE_BAR_HEIGHT +
                                  ((direction == ToolBar.VERTICAL) ? 1 : 2) * ToolBar.SPACING,
                                  visible: true,
                                  backgroundColor: color,
@@ -333,8 +333,9 @@ ToolBar = function(x, y, direction) {
     this.contains = function (xOrPoint, optionalY) {
         var x = (optionalY === undefined) ? xOrPoint.x : xOrPoint,
             y = (optionalY === undefined) ? xOrPoint.y : optionalY;
+        y += ToolBar.TITLE_BAR_HEIGHT;
         return (that.x <= x) && (x <= (that.x + that.width)) &&
-            (that.y <= y) && (y <= (that.y + that.height));
+            (that.y <= y) && (y <= (that.y + that.height + ToolBar.TITLE_BAR_HEIGHT));
     }
     that.hover = function (enable) {
         that.isHovering = enable;
@@ -351,13 +352,13 @@ ToolBar = function(x, y, direction) {
     // These are currently only doing that which is necessary for toolbar hover and toolbar drag.
     // They have not yet been extended to tool hover/click/release, etc.
     this.mousePressEvent = function (event) {
-        if (!that.contains(event)) {
+        if (Overlays.getOverlayAtPoint({ x: event.x, y: event.y }) == that.back) {
+            that.mightBeDragging = true;
+            that.dragOffsetX = that.x - event.x;
+            that.dragOffsetY = that.y - event.y;
+        } else {
             that.mightBeDragging = false;
-            return;
         }
-        that.mightBeDragging = true;
-        that.dragOffsetX = that.x - event.x;
-        that.dragOffsetY = that.y - event.y;
     };
     this.mouseMove  = function (event) {
         if (!that.mightBeDragging || !event.isLeftButton) {
@@ -396,3 +397,4 @@ ToolBar = function(x, y, direction) {
 ToolBar.SPACING = 4;
 ToolBar.VERTICAL = 0;
 ToolBar.HORIZONTAL = 1;
+ToolBar.TITLE_BAR_HEIGHT = 10;
