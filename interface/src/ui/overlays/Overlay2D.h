@@ -11,14 +11,7 @@
 #ifndef hifi_Overlay2D_h
 #define hifi_Overlay2D_h
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include <QRect>
-#include <QScriptValue>
-#include <QString>
-
-#include <SharedUtil.h> // for xColor
 
 #include "Overlay.h"
 
@@ -26,9 +19,8 @@ class Overlay2D : public Overlay {
     Q_OBJECT
     
 public:
-    Overlay2D();
+    Overlay2D() {}
     Overlay2D(const Overlay2D* overlay2D);
-    ~Overlay2D();
     
     virtual AABox getBounds() const;
     

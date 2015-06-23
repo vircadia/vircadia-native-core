@@ -11,10 +11,6 @@
 #ifndef hifi_Base3DOverlay_h
 #define hifi_Base3DOverlay_h
 
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
-
-#include <BoxBase.h>
 #include <Transform.h>
 
 #include "Overlay.h"

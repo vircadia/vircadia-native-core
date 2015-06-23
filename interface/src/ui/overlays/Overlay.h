@@ -11,21 +11,11 @@
 #ifndef hifi_Overlay_h
 #define hifi_Overlay_h
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
-#include <QRect>
-#include <QScriptValue>
-#include <QString>
-
-#include <RegisteredMetaTypes.h>
 #include <SharedUtil.h> // for xColor
-#include <RenderArgs.h>
-#include <AABox.h>
 #include <render/Scene.h>
 
-const xColor DEFAULT_OVERLAY_COLOR = { 255, 255, 255 };
-const float DEFAULT_ALPHA = 0.7f;
+class QScriptEngine;
+class QScriptValue;
 
 class Overlay : public QObject {
     Q_OBJECT
@@ -37,7 +27,6 @@ public:
     };
 
     typedef std::shared_ptr<Overlay> Pointer;
-
     typedef render::Payload<Overlay> Payload;
     typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
 

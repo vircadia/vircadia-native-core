@@ -8,24 +8,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
-#include <SharedUtil.h>
-
 #include "Overlay2D.h"
 
-
-Overlay2D::Overlay2D() {
-}
+#include <RegisteredMetaTypes.h>
 
 Overlay2D::Overlay2D(const Overlay2D* overlay2D) :
     Overlay(overlay2D),
     _bounds(overlay2D->_bounds)
 {
-}
-
-Overlay2D::~Overlay2D() {
 }
 
 AABox Overlay2D::getBounds() const {
