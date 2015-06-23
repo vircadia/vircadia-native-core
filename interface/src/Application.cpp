@@ -1063,9 +1063,7 @@ void Application::resizeGL() {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
     auto canvasSize = _glWidget->size();
-    if (canvasSize != offscreenUi->getWindow()->size()) {
-        offscreenUi->resize(canvasSize);
-    }
+    offscreenUi->resize(canvasSize);
     _glWidget->makeCurrent();
 
 }
@@ -4746,5 +4744,12 @@ mat4 Application::getEyePose(int eye) const {
         return OculusManager::getEyePose(eye);
     }
 
+    return mat4();
+}
+
+mat4 Application::getHeadPose() const {
+    if (isHMDMode()) {
+        return OculusManager::getHeadPose();
+    }
     return mat4();
 }
