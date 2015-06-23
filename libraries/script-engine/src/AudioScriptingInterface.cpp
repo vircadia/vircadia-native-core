@@ -46,24 +46,7 @@ ScriptAudioInjector* AudioScriptingInterface::playSound(Sound* sound, const Audi
         AudioInjectorOptions optionsCopy = injectorOptions;
         optionsCopy.stereo = sound->isStereo();
 
-        QThread* injectorThread = new QThread();
-        injectorThread->setObjectName("Audio Injector Thread");
-
-        AudioInjector* injector = new AudioInjector(sound, optionsCopy);
-        injector->setLocalAudioInterface(_localAudioInterface);
-
-        injector->moveToThread(injectorThread);
-
-        // start injecting when the injector thread starts
-        connect(injectorThread, &QThread::started, injector, &AudioInjector::injectAudio);
-
-        // connect the right slots and signals for AudioInjector and thread cleanup
-        connect(injector, &AudioInjector::destroyed, injectorThread, &QThread::quit);
-        connect(injectorThread, &QThread::finished, injectorThread, &QThread::deleteLater);
-
-        injectorThread->start();
-
-        return new ScriptAudioInjector(injector);
+        return new ScriptAudioInjector(AudioInjector::playSound(sound->getByteArray(), optionsCopy, _localAudioInterface));
 
     } else {
         qCDebug(scriptengine) << "AudioScriptingInterface::playSound called with null Sound object.";

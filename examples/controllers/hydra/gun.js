@@ -181,7 +181,7 @@ function entityCollisionWithEntity(entity1, entity2, collision) {
 }
 
 function shootBullet(position, velocity, grenade) {
-    var BULLET_SIZE = 0.10;
+    var BULLET_SIZE = .09;
     var BULLET_LIFETIME = 10.0;
     var BULLET_GRAVITY = -0.25;
     var GRENADE_VELOCITY = 15.0;

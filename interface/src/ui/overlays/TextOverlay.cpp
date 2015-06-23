@@ -80,6 +80,7 @@ void TextOverlay::render(RenderArgs* args) {
 
     glm::vec2 topLeft(left, top);
     glm::vec2 bottomRight(right, bottom);
+    glBindTexture(GL_TEXTURE_2D, 0);
     DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);
     
     const int leftAdjust = -1; // required to make text render relative to left edge of bounds
