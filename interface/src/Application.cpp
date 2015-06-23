@@ -889,7 +889,7 @@ void Application::paintGL() {
 
     glEnable(GL_LINE_SMOOTH);
     
-    if (!(Menu::getInstance()->isOptionChecked(MenuOption::IndependentMode) || Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror))); {
+    if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, _myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
         Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !(_myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN));
         Application::getInstance()->cameraMenuChanged();

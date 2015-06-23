@@ -103,7 +103,7 @@ PickRay Camera::computePickRay(float x, float y) {
 
 void Camera::setModeString(const QString& mode) {
     CameraMode targetMode = stringToMode(mode);
-    
+        
     switch (targetMode) {
         case CAMERA_MODE_FIRST_PERSON:
             Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, true);
@@ -121,7 +121,7 @@ void Camera::setModeString(const QString& mode) {
             break;
     }
     
-    Application::getInstance()->cameraMenuChanged();
+    qApp->cameraMenuChanged();
     
     if (_mode != targetMode) {
         setMode(targetMode);
