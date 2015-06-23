@@ -198,6 +198,8 @@ public:
     QString getSimulatorIDAsString() const { return _simulatorID.toString().mid(1,36).toUpper(); }
 
     void setVoxelDataDirty() { _voxelDataChanged = true; }
+    
+    void setLinePointsDirty() {_linePointsChanged = true; }
 
     void setCreated(QDateTime& v);
 
