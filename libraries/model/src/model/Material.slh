@@ -26,4 +26,9 @@ Material getMaterial() {
     return _mat;
 }
 
+float getMaterialOpacity(Material m) { return m._diffuse.a; }
+vec3 getMaterialDiffuse(Material m) { return m._diffuse.rgb; }
+vec3 getMaterialSpecular(Material m) { return m._specular.rgb; }
+float getMaterialShininess(Material m) { return m._specular.a; }
+
 <@endif@>
