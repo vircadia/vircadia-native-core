@@ -150,14 +150,14 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
     } else {
         if (getIsServer()) {
             bool simulationBlocked = !entity->getSimulatorID().isNull();
-            if (properties.simulatorIDChanged()) {
-                QUuid submittedID = properties.getSimulatorID();
+            if (properties.simulationOwnerChanged()) {
+                QUuid submittedID = properties.getSimulationOwner().getID();
                 // a legit interface will only submit their own ID or NULL:
                 if (submittedID.isNull()) {
                     if (entity->getSimulatorID() == senderID) {
                         // We only allow the simulation owner to clear their own simulationID's.
                         simulationBlocked = false;
-                        properties.setSimulatorPriority(0); // clear priority irregardless of priority sent
+                        properties.clearSimulationOwner(); // clear everything
                     }
                     // else: We assume the sender really did believe it was the simulation owner when it sent
                 } else if (submittedID == senderID) {
@@ -170,10 +170,9 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                         // (1) higher priority wins
                         // (2) equal priority wins if ownership filter has expired except...
                         uint8_t oldPriority = entity->getSimulatorPriority();
-                        uint8_t newPriority = properties.getSimulatorPriority();
+                        uint8_t newPriority = properties.getSimulationOwner().getPriority();
                         if (newPriority > oldPriority || 
-                             (newPriority == oldPriority && 
-                              usecTimestampNow() > entity->getSimulationOwnershipExpiry())) {
+                             (newPriority == oldPriority && properties.getSimulationOwner().hasExpired())) {
                             simulationBlocked = false;
                         }
                     }
@@ -183,11 +182,13 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                 }
             }
             if (simulationBlocked) {
-                // squash the physics-related changes.
-                properties.setSimulatorPriorityChanged(false);
-                properties.setSimulatorIDChanged(false);
+                // squash ownership and physics-related changes.
+                properties.setSimulationOwnerChanged(false);
                 properties.setPositionChanged(false);
                 properties.setRotationChanged(false);
+                properties.setVelocityChanged(false);
+                properties.setAngularVelocityChanged(false);
+                properties.setAccelerationChanged(false);
             }
         }
         // else client accepts what the server says
@@ -203,7 +204,6 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
         uint32_t newFlags = entity->getDirtyFlags() & ~preFlags;
         if (newFlags) {
             if (_simulation) {
-                std::cout << "adebug newFlags & DIRTY_SIMULATION_FLAGS = 0x" << std::hex << (newFlags & DIRTY_SIMULATION_FLAGS) << std::dec << std::endl;  // adebug
                 if (newFlags & DIRTY_SIMULATION_FLAGS) {
                     _simulation->lock();
                     _simulation->changeEntity(entity);

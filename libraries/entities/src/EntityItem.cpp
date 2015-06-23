@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <iostream> // adebug
+#include <sstream> // adebug
+
 #include <QtCore/QObject>
 
 #include <glm/gtx/transform.hpp>
@@ -69,9 +72,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _collisionsWillMove(ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE),
     _locked(ENTITY_ITEM_DEFAULT_LOCKED),
     _userData(ENTITY_ITEM_DEFAULT_USER_DATA),
-    _simulatorPriority(0),
-    _simulatorID(ENTITY_ITEM_DEFAULT_SIMULATOR_ID),
-    _simulationOwnershipExpiry(0),
+    _simulationOwner(),
     _marketplaceID(ENTITY_ITEM_DEFAULT_MARKETPLACE_ID),
     _name(ENTITY_ITEM_DEFAULT_NAME),
     _href(""),
@@ -102,6 +103,7 @@ EntityItem::~EntityItem() {
 EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties;
 
+    requestedProperties += PROP_SIMULATION_OWNER;
     requestedProperties += PROP_POSITION;
     requestedProperties += PROP_DIMENSIONS; // NOTE: PROP_RADIUS obsolete
     requestedProperties += PROP_ROTATION;
@@ -126,8 +128,6 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_USER_DATA;
     requestedProperties += PROP_MARKETPLACE_ID;
     requestedProperties += PROP_NAME;
-    requestedProperties += PROP_SIMULATOR_PRIORITY;
-    requestedProperties += PROP_SIMULATOR_ID;
     requestedProperties += PROP_HREF;
     requestedProperties += PROP_DESCRIPTION;
     
@@ -235,6 +235,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         //      PROP_PAGED_PROPERTY,
         //      PROP_CUSTOM_PROPERTIES_INCLUDED,
 
+        APPEND_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, _simulationOwner.toByteArray());
         APPEND_ENTITY_PROPERTY(PROP_POSITION, getPosition());
         APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getDimensions()); // NOTE: PROP_RADIUS obsolete
         APPEND_ENTITY_PROPERTY(PROP_ROTATION, getRotation());
@@ -256,8 +257,6 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, getCollisionsWillMove());
         APPEND_ENTITY_PROPERTY(PROP_LOCKED, getLocked());
         APPEND_ENTITY_PROPERTY(PROP_USER_DATA, getUserData());
-        APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_PRIORITY, getSimulatorPriority());
-        APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, getSimulatorID());
         APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, getMarketplaceID());
         APPEND_ENTITY_PROPERTY(PROP_NAME, getName());
         APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, getCollisionSoundURL());
@@ -328,6 +327,7 @@ int EntityItem::expectedBytes() {
 
 // clients use this method to unpack FULL updates from entity-server
 int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
+    static quint64 maxSkipTime = 0; // adebug
 
     if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
     
@@ -359,7 +359,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     glm::vec3 saveAngularVelocity = _angularVelocity;
 
     int originalLength = bytesLeftToRead;
-    QByteArray originalDataBuffer((const char*)data, originalLength);
+    // TODO: figure out a way to avoid the big deep copy below.
+    QByteArray originalDataBuffer((const char*)data, originalLength); // big deep copy!
 
     int clockSkew = args.sourceNode ? args.sourceNode->getClockSkewUsec() : 0;
 
@@ -443,6 +444,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     #endif
 
     bool ignoreServerPacket = false; // assume we'll use this server packet
+    std::ostringstream debugOutput;
 
     // If this packet is from the same server edit as the last packet we accepted from the server
     // we probably want to use it.
@@ -451,6 +453,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // the most recent packet from this server time
         if (_lastEdited > _lastEditedFromRemote) {
             ignoreServerPacket = true;
+        } else {
+            debugOutput << "adebug fromSameServerEdit for '" << _name.toStdString() << "'  le - lefr = " << (_lastEdited - _lastEditedFromRemote) << std::flush;  // adebug
         }
     } else {
         // If this isn't from the same sever packet, then honor our skew adjusted times...
@@ -458,6 +462,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // then we will not be changing our values, instead we just read and skip the data
         if (_lastEdited > lastEditedFromBufferAdjusted) {
             ignoreServerPacket = true;
+        } else {
+            debugOutput << "adebug honor skew adjust for '" << _name.toStdString() << "' le - lefba = " << (_lastEdited - lastEditedFromBufferAdjusted) << std::flush;  // adebug
         }
     }
     
@@ -537,6 +543,35 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     EntityPropertyFlags propertyFlags = encodedPropertyFlags;
     dataAt += propertyFlags.getEncodedLength();
     bytesRead += propertyFlags.getEncodedLength();
+
+    if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_SIMULATION_OWNER) {
+        // NOTE: the server is authoritative for changes to simOwnerID so we always unpack this data,
+        // even when we would otherwise ignore the rest of the packet.  That said, we assert the priority
+        // rules that we expect the server to be using, so it is possible that we'll sometimes ignore
+        // the incoming _simulatorID data (e.g. we might know something that the server does not... yet).
+
+        // BOOKMARK TODO adebug: follow pattern where the class unpacks itself
+        if (propertyFlags.getHasProperty(PROP_SIMULATION_OWNER)) {
+            QByteArray simOwnerData;
+            int bytes = OctreePacketData::unpackDataFromBytes(dataAt, simOwnerData);
+            SimulationOwner newSimOwner;
+            newSimOwner.fromByteArray(simOwnerData);
+            dataAt += bytes;
+            bytesRead += bytes;
+
+            SimulationOwner oldOwner = _simulationOwner; // adebug
+            if (_simulationOwner.set(newSimOwner)) {
+                std::cout << "adebug something changed: owner = " << _simulationOwner << std::endl;  // adebug
+                _dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
+            }
+            if (oldOwner != _simulationOwner) {
+                std::cout << "adebug ownership changed from " << oldOwner.getID().toString().toStdString() << ":" << int(oldOwner.getPriority()) << " to "
+                    << _simulationOwner.getID().toString().toStdString() << ":" << int(_simulationOwner.getPriority())
+                    << std::endl;  // adebug
+            }
+        }
+    }
+
     READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
 
     // Old bitstreams had PROP_RADIUS, new bitstreams have PROP_DIMENSIONS
@@ -577,89 +612,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
 
-    if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_SIMULATOR_PRIORITY) {
-        // NOTE: the server is authoritative for changes to _simulatorID so we always unpack this data,
-        // even when we would otherwise ignore the rest of the packet.  That said, we assert the priority
-        // rules that we expect the server to be using, so it is possible that we'll sometimes ignore
-        // the incoming _simulatorID data (e.g. we might know something that the server does not... yet).
-
-        int requiredProperties = 1; // adebug
-        uint8_t priority = 0;
-        if (propertyFlags.getHasProperty(PROP_SIMULATOR_PRIORITY)) {
-            int bytes = OctreePacketData::unpackDataFromBytes(dataAt, priority);
-            dataAt += bytes;
-            bytesRead += bytes;
-            requiredProperties *= 3; // adebug
-        }
-        
-        QUuid id;
-        if (propertyFlags.getHasProperty(PROP_SIMULATOR_ID)) {
-            int bytes = OctreePacketData::unpackDataFromBytes(dataAt, id);
-            dataAt += bytes;
-            bytesRead += bytes;
-            requiredProperties *= 7;
-        }
-
-        // adebug
-        if (requiredProperties == 3) {
-            std::cout << "adebug split properties for '" << _name.toStdString() << "' with priority only" << std::endl;  // adebug
-        }
-        else if (requiredProperties == 7) {
-            std::cout << "adebug split properties for '" << _name.toStdString() << "' with id only" << std::endl;  // adebug
-        }
-
-        // TODO: refactor simulation ownership info to be a single property
-        if (requiredProperties == 3*7) {
-            if (_simulatorID != id) {
-                // ownership has changed
-                auto nodeList = DependencyManager::get<NodeList>();
-                if (_simulatorID == nodeList->getSessionUUID()) {
-                    // we think we're the simulation owner but entity-server says otherwise 
-                    // we relenquish ownership only if we don't have MAX_SIMULATOR_PRIORITY
-                    if (_simulatorPriority != MAX_SIMULATOR_PRIORITY) {
-                        // we're losing simulation ownership
-                        if (_name == plankyBlock2) {
-                            std::cout << "adebug lose ownership of '" << _name.toStdString() << "' to " << id.toString().toStdString() << " with priority " << int(priority) << std::endl;  // adebug
-                        }
-                        _simulatorID = id;
-                        _simulatorPriority = priority;
-                        if (! (_dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID)) {
-                            if (_name == plankyBlock2) {
-                                std::cout << "adebug setting DIRTY_SIMULATOR_ID while losing ownership" << std::endl;  // adebug
-                            }
-                        }
-                        _dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
-                    }
-                } else {
-                    auto nodeList = DependencyManager::get<NodeList>();
-                    if (id == nodeList->getSessionUUID()) {
-                        if (_name == plankyBlock2) {
-                            std::cout << "adebug gain ownership of '" << _name.toStdString() << "' id " << id.toString().toStdString() << " with priority " << int(priority) << std::endl;  // adebug
-                        }
-                    }
-                    _simulatorID = id;
-                    _simulatorPriority = priority;
-                    if (! (_dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID)) {
-                        if (_name == plankyBlock2) {
-                            std::cout << "adebug setting DIRTY_SIMULATOR_ID with ownership of " << _simulatorID.toString().toStdString() << std::endl;  // adebug
-                        }
-                    }
-                    _dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
-                }
-            } else if (priority != _simulatorPriority) {
-                // priority is changing but simulatorID is not.
-                // only accept this change if we are NOT the simulator owner, since otherwise
-                // we would have initiated this priority
-                auto nodeList = DependencyManager::get<NodeList>();
-                if (_simulatorID != nodeList->getSessionUUID()) {
-                    if (_name == plankyBlock2) {
-                        std::cout << "adebug priority of '" << _name.toStdString() << "' changing from " << int(_simulatorPriority) << " to " << int(priority) << std::endl;  // adebug
-                    }
-                    _simulatorPriority = priority;
-                }
-            }
-        }
-    } else if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
+    if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION && 
+            args.bitstreamVersion < VERSION_ENTITIES_HAVE_SIMULATION_OWNER) {
         // we always accept the server's notion of simulatorID, so we fake overwriteLocalData as true
         // before we try to READ_ENTITY_PROPERTY it 
         bool temp = overwriteLocalData;
@@ -698,13 +652,17 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // use our simulation helper routine to get a best estimate of where the entity should be.
         const float MIN_TIME_SKIP = 0.0f;
         const float MAX_TIME_SKIP = 1.0f; // in seconds
+        quint64 dt = now - lastSimulatedFromBufferAdjusted;
+        if (dt > maxSkipTime) {
+            maxSkipTime = dt;
+            std::cout << "adebug maxSkipTime = " << maxSkipTime << " for '" << _name.toStdString() << "'" << std::endl;  // adebug
+        }
         float skipTimeForward = glm::clamp((float)(now - lastSimulatedFromBufferAdjusted) / (float)(USECS_PER_SECOND),
                 MIN_TIME_SKIP, MAX_TIME_SKIP);
         if (skipTimeForward > 0.0f) {
             #ifdef WANT_DEBUG
                 qCDebug(entities) << "skipTimeForward:" << skipTimeForward;
             #endif
-
             // we want to extrapolate the motion forward to compensate for packet travel time, but
             // we don't want the side effect of flag setting.
             simulateKinematicMotion(skipTimeForward, false);
@@ -714,7 +672,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     auto nodeList = DependencyManager::get<NodeList>();
     const QUuid& myNodeID = nodeList->getSessionUUID();
     if (overwriteLocalData) {
-        if (_simulatorID == myNodeID && !_simulatorID.isNull()) {
+        // TODO adebug: make this use operator==()
+        if (_simulationOwner.matchesID(myNodeID)) {
             // we own the simulation, so we keep our transform+velocities and remove any related dirty flags
             // rather than accept the values in the packet
             setPosition(savePosition);
@@ -723,6 +682,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             _angularVelocity = saveAngularVelocity;
             _dirtyFlags &= ~(EntityItem::DIRTY_TRANSFORM | EntityItem::DIRTY_VELOCITIES);
         } else {
+            std::cout << "adebug myNode = " << myNodeID.toString().toStdString() << "  owner = " << _simulationOwner.getID().toString().toStdString() << std::endl;  // adebug
+            std::cout << debugOutput.str() << std::endl; // adebug
             _lastSimulated = now;
         }
     }
@@ -987,6 +948,7 @@ EntityItemProperties EntityItem::getProperties() const {
 
     properties._type = getType();
     
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(simulationOwner, getSimulationOwner);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(position, getPosition);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(dimensions, getDimensions); // NOTE: radius is obsolete
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(rotation, getRotation);
@@ -1012,8 +974,6 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionsWillMove, getCollisionsWillMove);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(locked, getLocked);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(userData, getUserData);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(simulatorPriority, getSimulatorPriority);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(simulatorID, getSimulatorID);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(marketplaceID, getMarketplaceID);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(name, getName);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(href, getHref);
@@ -1064,8 +1024,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, updateCollisionsWillMove);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(created, updateCreated);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, updateLifetime);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulatorPriority, setSimulatorPriority);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulatorID, updateSimulatorID);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulationOwner, setSimulationOwner);
 
     // non-simulation properties below
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
@@ -1443,47 +1402,21 @@ void EntityItem::updateCreated(uint64_t value) {
     }
 }
 
-void EntityItem::setSimulatorPriority(uint8_t priority) { 
-    if (_name == plankyBlock2) {
-        std::cout << "adebug setSimulatorPriority() for '" << _name.toStdString() << "' from " << int(_simulatorPriority) << " to " << int(priority) << std::endl;  // adebug
-    }
-    _simulatorPriority = priority; 
-    if (_simulatorPriority == MAX_SIMULATOR_PRIORITY) {
-        // we always extend the the ownership expiry for MAX_SIMULATOR_PRIORITY
-        _simulationOwnershipExpiry = usecTimestampNow() + MAX_SIMULATOR_CHANGE_LOCKOUT_PERIOD;
-    } else if (_simulatorPriority == 0) {
-        _simulationOwnershipExpiry = 0;
-    }
+void EntityItem::setSimulationOwner(const QUuid& id, quint8 priority) {
+    _simulationOwner.set(id, priority);
 }
 
-void EntityItem::setSimulatorID(const QUuid& value) {
-    if (_simulatorID != value) {
-        if (_name == plankyBlock2) {
-            std::cout << "adebug setSimulatorID for '" << _name.toStdString() << "' from " << _simulatorID.toString().toStdString() << " to " << value.toString().toStdString() << std::endl;  // adebug
-        }
-        _simulatorID = value;
-        if (!_simulatorID.isNull()) {
-            // Note: this logic only works well if _simulatorPriority is properly set before this point
-            quint64 lockoutPeriod = (_simulatorPriority == MAX_SIMULATOR_PRIORITY) 
-                ? MAX_SIMULATOR_CHANGE_LOCKOUT_PERIOD : DEFAULT_SIMULATOR_CHANGE_LOCKOUT_PERIOD;
-            _simulationOwnershipExpiry = usecTimestampNow() + lockoutPeriod;
-        }
-    }
+void EntityItem::setSimulationOwner(const SimulationOwner& owner) {
+    _simulationOwner.set(owner);
 }
 
 void EntityItem::updateSimulatorID(const QUuid& value) {
-    if (_simulatorID != value) {
-        if (_name == plankyBlock2) {
-            std::cout << "adebug updateSimulatorID for '" << _name.toStdString() << "' from " << _simulatorID.toString().toStdString() << " to " << value.toString().toStdString() << std::endl;  // adebug
-        }
-        _simulatorID = value;
-        if (!_simulatorID.isNull()) {
-            // Note: this logic only works well if _simulatorPriority is properly set before this point
-            quint64 lockoutPeriod = (_simulatorPriority == MAX_SIMULATOR_PRIORITY) 
-                ? MAX_SIMULATOR_CHANGE_LOCKOUT_PERIOD : DEFAULT_SIMULATOR_CHANGE_LOCKOUT_PERIOD;
-            _simulationOwnershipExpiry = usecTimestampNow() + lockoutPeriod;
-        }
+    QUuid oldID = _simulationOwner.getID();
+    if (_simulationOwner.setID(value)) {
         _dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
+        if (oldID != _simulationOwner.getID() && _name == plankyBlock2) {
+            std::cout << "adebug updateSimulatorID for '" << _name.toStdString() << "' from " << oldID.toString().toStdString() << " to " << value.toString().toStdString() << std::endl;  // adebug
+        }
     }
 }
 
@@ -1491,9 +1424,7 @@ void EntityItem::clearSimulationOwnership() {
     if (_name == plankyBlock2) {
         std::cout << "adebug clearSimulationOwnership for '" << _name.toStdString() << "'" << std::endl;  // adebug
     }
-    _simulatorPriority = 0;
-    _simulatorID = QUuid();
-    _simulationOwnershipExpiry = 0;
+    _simulationOwner.clear();
     // don't bother setting the DIRTY_SIMULATOR_ID flag because clearSimulatorOwnership() 
     // is only ever called entity-server-side and the flags are only used client-side
     //_dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;

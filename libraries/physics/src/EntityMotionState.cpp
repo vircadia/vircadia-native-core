@@ -22,7 +22,8 @@
 #ifdef WANT_DEBUG_ENTITY_TREE_LOCKS
 #include "EntityTree.h"
 #endif
-const char* plankyBlock = "PlankyBlock46"; // adebug
+//const char* plankyBlock = "PlankyBlock46"; // adebug
+const char* plankyBlock = "magenta"; // adebug
 
 static const float ACCELERATION_EQUIVALENT_EPSILON_RATIO = 0.1f;
 static const quint8 STEPS_TO_DECIDE_BALLISTIC = 4;
@@ -97,17 +98,17 @@ void EntityMotionState::updateServerPhysicsVariables() {
 // virtual
 void EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine) {
     assert(entityTreeIsLocked());
-    if (_entity && _entity->getName() == plankyBlock) {
-        quint64 dt = (usecTimestampNow() - _activationTime) / 1000; // adebug
-        std::cout << "adebug handleEasyChanges flags = 0x" << std::hex << flags << std::dec << "  dt = " << dt << std::endl;  // adebug
-    }
+//    if (_entity && _entity->getName() == plankyBlock) {
+//        quint64 dt = (usecTimestampNow() - _activationTime) / 1000; // adebug
+//        std::cout << "adebug handleEasyChanges flags = 0x" << std::hex << flags << std::dec << "  dt = " << dt << std::endl;  // adebug
+//    }
     updateServerPhysicsVariables();
     ObjectMotionState::handleEasyChanges(flags, engine);
 
     if (flags & EntityItem::DIRTY_SIMULATOR_ID) {
-        if (_entity && _entity->getName() == plankyBlock) {
-            std::cout << "adebug handleEasyChanges() '" << _entity->getName().toStdString() << "' found DIRTY_SIMULATOR_ID flag" << std::endl;  // adebug
-        }
+//        if (_entity && _entity->getName() == plankyBlock) {
+//            std::cout << "adebug handleEasyChanges() '" << _entity->getName().toStdString() << "' found DIRTY_SIMULATOR_ID flag" << std::endl;  // adebug
+//        }
         _loopsWithoutOwner = 0;
         if (_entity->getSimulatorID().isNull()) {
             // simulation ownership is being removed
@@ -116,9 +117,9 @@ void EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine)
             flags &= ~EntityItem::DIRTY_PHYSICS_ACTIVATION;
             // hint to Bullet that the object is deactivating
             _body->setActivationState(WANTS_DEACTIVATION);
-            if (_entity && _entity->getName() == plankyBlock) {
-                std::cout << "adebug handleEasyChanges() '" << _entity->getName().toStdString() << "' clearing ownership so _candidatePriority goes to 0" << std::endl;  // adebug
-            }
+//            if (_entity && _entity->getName() == plankyBlock) {
+//                std::cout << "adebug handleEasyChanges() '" << _entity->getName().toStdString() << "' clearing ownership so _candidatePriority goes to 0" << std::endl;  // adebug
+//            }
             _candidatePriority = 0;
             if (_expectedOwnership != -1) {
                 std::cout << "adebug unexpected loss of ownership  '" << _entity->getName().toStdString() << "' expected -1 but got " << _expectedOwnership << std::endl;  // adebug
@@ -128,9 +129,9 @@ void EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine)
             _nextOwnershipBid = usecTimestampNow() + USECS_BETWEEN_OWNERSHIP_BIDS;
             if (engine->getSessionID() == _entity->getSimulatorID() || _entity->getSimulatorPriority() > _candidatePriority) {
                 // we own the simulation or our priority looses to remote
-                if (_entity && _entity->getName() == plankyBlock) {
-                    std::cout << "adebug handleEasyChanges() '" << _entity->getName().toStdString() << "' we own it so _candidatePriority goes to 0" << std::endl;  // adebug
-                }
+//                if (_entity && _entity->getName() == plankyBlock) {
+//                    std::cout << "adebug handleEasyChanges() '" << _entity->getName().toStdString() << "' we own it so _candidatePriority goes to 0" << std::endl;  // adebug
+//                }
                 if (_expectedOwnership != 1) {
                     std::cout << "adebug unexpected gain of ownership  '" << _entity->getName().toStdString() << "' expected 1 but got " << _expectedOwnership << " _candidatePriority = " << int(_candidatePriority) << std::endl;  // adebug
                 }
@@ -478,14 +479,14 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
             // we own the simulation but the entity has stopped, so we tell the server that we're clearing simulatorID
             // but we remember that we do still own it...  and rely on the server to tell us that we don't
             std::cout << "adebug releasing ownership of '" << _entity->getName().toStdString() << "' for inactivity" << std::endl;  // adebug
-            properties.clearSimulatorOwnership();
+            properties.clearSimulationOwner();
             if (_entity && _entity->getName() == plankyBlock) {
                 std::cout << "adebug sendUpdate() send clear ownership for '" << _entity->getName().toStdString() << "'" << std::endl;  // adebug
             }
             _expectedOwnership = -1;
         } else {
             // re-assert the simulation info
-            properties.setSimulatorOwnership(sessionID, _entity->getSimulatorPriority());
+            properties.setSimulationOwner(sessionID, _entity->getSimulatorPriority());
             _expectedOwnership = 0;
         }
     } else {
@@ -495,7 +496,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
         if (_entity && _entity->getName() == plankyBlock) {
             std::cout << "adebug sendUpdate() bid for ownership of '" << _entity->getName().toStdString() << "'  dt = " << dt << " with priority " << int(bidPriority) << std::endl;  // adebug
         }
-        properties.setSimulatorOwnership(sessionID, glm::max<uint8_t>(_candidatePriority, VOLUNTEER_SIMULATOR_PRIORITY));
+        properties.setSimulationOwner(sessionID, glm::max<uint8_t>(_candidatePriority, VOLUNTEER_SIMULATOR_PRIORITY));
         _nextOwnershipBid = now + USECS_BETWEEN_OWNERSHIP_BIDS;
         _expectedOwnership = 1;
         //_candidatePriority = 0; // TODO: it would be nice to not have to clear this until we get a message back that ownership has changed

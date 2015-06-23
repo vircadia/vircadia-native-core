@@ -249,6 +249,7 @@ public:
     static int unpackDataFromBytes(const unsigned char* dataBytes, QVector<glm::vec3>& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QByteArray& result);
 
+    QByteArray getRawData() const { return QByteArray((const char*)_uncompressed, _bytesInUse); } // adebug
 
 private:
     /// appends raw bytes, might fail if byte would cause packet to be too large

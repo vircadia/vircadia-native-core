@@ -17,6 +17,7 @@
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
+#include <StreamUtils.h> // adebug
 
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
@@ -38,7 +39,7 @@ EntityPropertyList PROP_LAST_ITEM = (EntityPropertyList)(PROP_AFTER_LAST_ITEM - 
 EntityItemProperties::EntityItemProperties() :
 
 CONSTRUCT_PROPERTY(visible, ENTITY_ITEM_DEFAULT_VISIBLE),
-CONSTRUCT_PROPERTY(position, 0),
+CONSTRUCT_PROPERTY(position, 0.0f),
 CONSTRUCT_PROPERTY(dimensions, ENTITY_ITEM_DEFAULT_DIMENSIONS),
 CONSTRUCT_PROPERTY(rotation, ENTITY_ITEM_DEFAULT_ROTATION),
 CONSTRUCT_PROPERTY(density, ENTITY_ITEM_DEFAULT_DENSITY),
@@ -73,8 +74,7 @@ CONSTRUCT_PROPERTY(locked, ENTITY_ITEM_DEFAULT_LOCKED),
 CONSTRUCT_PROPERTY(textures, ""),
 CONSTRUCT_PROPERTY(animationSettings, ""),
 CONSTRUCT_PROPERTY(userData, ENTITY_ITEM_DEFAULT_USER_DATA),
-CONSTRUCT_PROPERTY(simulatorPriority, 0),
-CONSTRUCT_PROPERTY(simulatorID, ENTITY_ITEM_DEFAULT_SIMULATOR_ID),
+CONSTRUCT_PROPERTY(simulationOwner, SimulationOwner()),
 CONSTRUCT_PROPERTY(text, TextEntityItem::DEFAULT_TEXT),
 CONSTRUCT_PROPERTY(lineHeight, TextEntityItem::DEFAULT_LINE_HEIGHT),
 CONSTRUCT_PROPERTY(textColor, TextEntityItem::DEFAULT_TEXT_COLOR),
@@ -290,8 +290,8 @@ void EntityItemProperties::setBackgroundModeFromString(const QString& background
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
     
-    CHECK_PROPERTY_CHANGE(PROP_DIMENSIONS, dimensions);
     CHECK_PROPERTY_CHANGE(PROP_POSITION, position);
+    CHECK_PROPERTY_CHANGE(PROP_DIMENSIONS, dimensions);
     CHECK_PROPERTY_CHANGE(PROP_ROTATION, rotation);
     CHECK_PROPERTY_CHANGE(PROP_DENSITY, density);
     CHECK_PROPERTY_CHANGE(PROP_VELOCITY, velocity);
@@ -325,9 +325,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_LOCKED, locked);
     CHECK_PROPERTY_CHANGE(PROP_TEXTURES, textures);
     CHECK_PROPERTY_CHANGE(PROP_USER_DATA, userData);
-    // TODO: combine these as one property
-    CHECK_PROPERTY_CHANGE(PROP_SIMULATOR_PRIORITY, simulatorPriority);
-    CHECK_PROPERTY_CHANGE(PROP_SIMULATOR_ID, simulatorID);
+    CHECK_PROPERTY_CHANGE(PROP_SIMULATION_OWNER, simulationOwner);
     CHECK_PROPERTY_CHANGE(PROP_TEXT, text);
     CHECK_PROPERTY_CHANGE(PROP_LINE_HEIGHT, lineHeight);
     CHECK_PROPERTY_CHANGE(PROP_TEXT_COLOR, textColor);
@@ -422,8 +420,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(locked);
     COPY_PROPERTY_TO_QSCRIPTVALUE(textures);
     COPY_PROPERTY_TO_QSCRIPTVALUE(userData);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(simulatorPriority);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(simulatorID, getSimulatorIDAsString());
+    //COPY_PROPERTY_TO_QSCRIPTVALUE(simulationOwner); // TODO: expose this for JSON saves?
     COPY_PROPERTY_TO_QSCRIPTVALUE(text);
     COPY_PROPERTY_TO_QSCRIPTVALUE(lineHeight);
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(textColor, getTextColor());
@@ -574,8 +571,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
                 auto result = QDateTime::fromMSecsSinceEpoch(_created / 1000, Qt::UTC); // usec per msec
                 return result;
             });
-        COPY_PROPERTY_FROM_QSCRIPTVALUE(simulatorPriority, float, setSimulatorPriority);
-        COPY_PROPERTY_FROM_QSCRIPTVALUE(simulatorID, QUuid, setSimulatorID);
+        // TODO: expose this to QScriptValue for JSON saves?
+        //COPY_PROPERTY_FROM_QSCRIPTVALUE(simulationOwner, ???, setSimulatorPriority);
     }
 
     _stage.copyFromScriptValue(object, _defaultSettings);
@@ -710,41 +707,26 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             //      PROP_PAGED_PROPERTY,
             //      PROP_CUSTOM_PROPERTIES_INCLUDED,
             
-/* TODO: remove this old experiment code
-            // simulation ownership data needs to get back ASAP, and affects whether the "terse update" 
-            // data will be accepted at the receiving end, so we put it at the front.
-//            if (requestedProperties.getHasProperty(PROP_SIMULATOR_PRIORITY) && 
-//                    requestedProperties.getHasProperty(PROP_SIMULATOR_ID)) {
-//                QByteArray ownershipData = properties.getSimulatorID().toRfc4122();
-//                ownershipData.append(properties.getSimulatorPriority();
-//                LevelDetails propertyLevel = packetData->startLevel();
-//                if (packetData->appendRawData(ownershipData)) {
-//                    propertyFlags |= PROP_SIMULATOR_PRIORITY;
-//                    propertiesDidntFit -= PROP_SIMULATOR_PRIORITY;
-//                    propertyCount++;
-//
-//                    propertyFlags |= PROP_SIMULATOR_ID;
-//                    propertiesDidntFit -= PROP_SIMULATOR_ID;
-//                    propertyCount++;
-//
-//                    packetData->endLevel(propertyLevel);
-//                }
-//            }
-            // BOOKMARK -- replace the two ownership properties with one... at the EntityProperties level
-            // but make it two properties at the EntityItem
-            if (requestedProperties.getHasProperty(PROP_SIMULATOR_OWNERSHIP)) {
-                QByteArray ownershipData = properties.getSimulatorID().toRfc4122();
-                ownershipData.append(properties.getSimulatorPriority();
+            // adebug TODO: convert this to use APPEND_ENTITY_PROPERTY(P,V) macro?
+            if (requestedProperties.getHasProperty(PROP_SIMULATION_OWNER)) {
                 LevelDetails propertyLevel = packetData->startLevel();
-                if (packetData->appendRawData(ownershipData)) {
-                    propertyFlags |= PROP_SIMULATOR_OWNERSHIP;
+                successPropertyFits = packetData->appendValue(properties._simulationOwner.toByteArray());
+                if (successPropertyFits) {
+//                    std::cout << "adebug appending ownerhip data" << std::endl;  // adebug
+//                    StreamUtil::dump(std::cout, properties._simulationOwner.toByteArray());
+                    propertyFlags |= PROP_SIMULATION_OWNER;
+                    propertiesDidntFit -= PROP_SIMULATION_OWNER;
                     propertyCount++;
                     packetData->endLevel(propertyLevel);
                 } else {
-                    propertiesDidntFit -= PROP_SIMULATOR_OWNERSHIP;
+//                    std::cout << "adebug ownership data did not fit" << std::endl;  // adebug
+                    packetData->discardLevel(propertyLevel);
+                    appendState = OctreeElement::PARTIAL;
                 }
+            } else {
+//                std::cout << "adebug property doesn't have ownerhip data" << std::endl;  // adebug
+                propertiesDidntFit -= PROP_SIMULATION_OWNER;
             }
-            */
 
             APPEND_ENTITY_PROPERTY(PROP_POSITION, properties.getPosition());
             APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, properties.getDimensions()); // NOTE: PROP_RADIUS obsolete
@@ -768,66 +750,6 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, properties.getCollisionsWillMove());
             APPEND_ENTITY_PROPERTY(PROP_LOCKED, properties.getLocked());
             APPEND_ENTITY_PROPERTY(PROP_USER_DATA, properties.getUserData());
-            APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_PRIORITY, properties.getSimulatorPriority());
-            APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, properties.getSimulatorID());
-/* TODO remove this experiment too
-            if (requestedProperties.getHasProperty(PROP_SIMULATOR_PRIORITY) && 
-                    requestedProperties.getHasProperty(PROP_SIMULATOR_ID)) {
-
-                QByteArray bytes = properties.getSimulatorID().toRfc4122();
-                if (packetData->canAppendBytes(1 + bytes.size())) {
-                    APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_PRIORITY, properties.getSimulatorPriority());
-                    APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, properties.getSimulatorID());
-                } else {
-                    LevelDetails propertyLevel = packetData->startLevel();
-                    successPropertyFits = false;
-                    packetData->discardLevel(propertyLevel);
-                    appendState = OctreeElement::PARTIAL;
-                }
-            } 
-                if (!requestedProperties.getHasProperty(PROP_SIMULATOR_PRIORITY)) {
-                    propertiesDidntFit -= PROP_SIMULATOR_PRIORITY;
-                }
-                if (!requestedProperties.getHasProperty(PROP_SIMULATOR_ID)) {
-                    propertiesDidntFit -= PROP_SIMULATOR_ID;
-                }
-            }
-*/
-/* and this one
-            //#define APPEND_ENTITY_PROPERTY(P,V)
-            if (requestedProperties.getHasProperty(PROP_SIMULATOR_PRIORITY) && 
-                    requestedProperties.getHasProperty(PROP_SIMULATOR_ID)) {
-
-                LevelDetails propertyLevel = packetData->startLevel();
-
-                QByteArray bytes = properties.getSimulatorID().toRfc4122();
-                if (packetData->canAppendBytes(10 + bytes.size())) {
-                    packetData->appendValue(properties.getSimulatorPriority());
-                    propertyFlags |= PROP_SIMULATOR_PRIORITY;
-                    propertiesDidntFit -= PROP_SIMULATOR_PRIORITY;
-                    propertyCount++;
-                    packetData->endLevel(propertyLevel);
-
-                    propertyLevel = packetData->startLevel();
-                    packetData->appendValue(properties.getSimulatorID());
-                    propertyFlags |= PROP_SIMULATOR_ID;
-                    propertiesDidntFit -= PROP_SIMULATOR_ID;
-                    propertyCount++;
-                    packetData->endLevel(propertyLevel);
-                } else {
-                    successPropertyFits = false;
-                    packetData->discardLevel(propertyLevel);
-                    appendState = OctreeElement::PARTIAL;
-                }
-            } else {
-                if (!requestedProperties.getHasProperty(PROP_SIMULATOR_PRIORITY)) {
-                    propertiesDidntFit -= PROP_SIMULATOR_PRIORITY;
-                }
-                if (!requestedProperties.getHasProperty(PROP_SIMULATOR_ID)) {
-                    propertiesDidntFit -= PROP_SIMULATOR_ID;
-                }
-            }
-*/
             APPEND_ENTITY_PROPERTY(PROP_HREF, properties.getHref());
             APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, properties.getDescription());
             
@@ -1059,7 +981,23 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     EntityPropertyFlags propertyFlags = encodedPropertyFlags;
     dataAt += propertyFlags.getEncodedLength();
     processedBytes += propertyFlags.getEncodedLength();
-    
+
+    // adebug TODO: convert this to use READ_ENTITY_PROPERTY_TO_PROPERTIES macro?
+    if (propertyFlags.getHasProperty(PROP_SIMULATION_OWNER)) {
+        QByteArray fromBuffer;
+        int bytes = OctreePacketData::unpackDataFromBytes(dataAt, fromBuffer);
+
+        dataAt += bytes;
+        processedBytes += bytes;
+        SimulationOwner simOwner;
+        simOwner.fromByteArray(fromBuffer);
+        properties.setSimulationOwner(simOwner);
+//        std::cout << "adebug decoding ownerhip data" << std::endl;  // adebug
+//        StreamUtil::dump(std::cout, fromBuffer);
+    } else {
+//        std::cout << "adebug no ownership info to decode"  << std::endl;  // adebug
+    }
+
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POSITION, glm::vec3, setPosition);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DIMENSIONS, glm::vec3, setDimensions);  // NOTE: PROP_RADIUS obsolete
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ROTATION, glm::quat, setRotation);
@@ -1082,8 +1020,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONS_WILL_MOVE, bool, setCollisionsWillMove);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_USER_DATA, QString, setUserData);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SIMULATOR_PRIORITY, uint8_t, setSimulatorPriority);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SIMULATOR_ID, QUuid, setSimulatorID);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HREF, QString, setHref);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DESCRIPTION, QString, setDescription);
     
@@ -1199,6 +1135,7 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
 }
 
 void EntityItemProperties::markAllChanged() {
+    _simulationOwnerChanged = true;
     _positionChanged = true;
     _dimensionsChanged = true;
     _rotationChanged = true;
@@ -1211,8 +1148,6 @@ void EntityItemProperties::markAllChanged() {
     _frictionChanged = true;
     _lifetimeChanged = true;
     _userDataChanged = true;
-    _simulatorPriorityChanged = true;
-    _simulatorIDChanged = true;
     _scriptChanged = true;
     _scriptTimestampChanged = true;
     _collisionSoundURLChanged = true;
@@ -1336,16 +1271,12 @@ bool EntityItemProperties::hasMiscPhysicsChanges() const {
         _compoundShapeURLChanged || _collisionsWillMoveChanged || _ignoreForCollisionsChanged;
 }
 
-void EntityItemProperties::clearSimulatorOwnership() {
-    _simulatorID = QUuid();
-    _simulatorPriority = 0;
-    _simulatorIDChanged = true;
-    _simulatorPriorityChanged = true;
+void EntityItemProperties::clearSimulationOwner() {
+    _simulationOwner.clear();
+    _simulationOwnerChanged = true;
 }
 
-void EntityItemProperties::setSimulatorOwnership(const QUuid& id, uint8_t priority) {
-    _simulatorID = id;
-    _simulatorPriority = glm::max(priority, _simulatorPriority);
-    _simulatorIDChanged = true;
-    _simulatorPriorityChanged = true;
+void EntityItemProperties::setSimulationOwner(const QUuid& id, uint8_t priority) {
+    _simulationOwner.set(id, priority);
+    _simulationOwnerChanged = true;
 }

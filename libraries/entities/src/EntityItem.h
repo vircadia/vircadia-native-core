@@ -29,6 +29,7 @@
 #include "EntityItemProperties.h"
 #include "EntityItemPropertiesDefaults.h"
 #include "EntityTypes.h"
+#include "SimulationOwner.h"
 
 class EntitySimulation;
 class EntityTreeElement;
@@ -60,40 +61,12 @@ const float ACTIVATION_LINEAR_VELOCITY_DELTA = 0.01f;
 const float ACTIVATION_GRAVITY_DELTA = 0.1f;
 const float ACTIVATION_ANGULAR_VELOCITY_DELTA = 0.03f;
 
-const uint8_t VOLUNTEER_SIMULATOR_PRIORITY = 0x01;
-const uint8_t SCRIPT_EDIT_SIMULATOR_PRIORITY = 0x80;
-const uint8_t MAX_SIMULATOR_PRIORITY = 0xff;
-const uint8_t ATTACHMENT_SIMULATOR_PRIORITY = MAX_SIMULATOR_PRIORITY;
-
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
 #define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() { };
 
 #define debugTime(T, N) qPrintable(QString("%1 [ %2 ago]").arg(T, 16, 10).arg(formatUsecTime(N - T), 15))
 #define debugTimeOnly(T) qPrintable(QString("%1").arg(T, 16, 10))
 #define debugTreeVector(V) V << "[" << V << " in meters ]"
-
-class SimulationOwner {
-public:
-    SimulationOwner() : _id(), _priority(0) {}
-    SimulationOwner(const QUuid& id, uint8_t priority) : _id(id), _priority(priority) {}
-
-    const QUuid& getID() const { return _id; }
-    uint8_t getPriority() const { return _priority; }
-
-    void clear() { _id = QUuid(); _priority = 0; }
-    void set(const QUuid& id, uint8_t priority) { _id = id; _priority = priority; }
-
-    bool isNull() const { return _id.isNull(); }
-    bool matchesID(const QUuid& id) const { return _id == id; }
-    //void toQByteArray();
-
-    bool operator>=(uint8_t priority) const { return _priority >= priority; }
-
-private:
-    QUuid _id;
-    uint8_t _priority;
-};
-
 
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
@@ -345,13 +318,13 @@ public:
     const QString& getUserData() const { return _userData; }
     void setUserData(const QString& value) { _userData = value; }
 
-    void setSimulatorPriority(uint8_t priority);
-    uint8_t getSimulatorPriority() const { return _simulatorPriority; }
+    const SimulationOwner& getSimulationOwner() const { return _simulationOwner; }
+    void setSimulationOwner(const QUuid& id, quint8 priority);
+    void setSimulationOwner(const SimulationOwner& owner);
 
-    QUuid getSimulatorID() const { return _simulatorID; }
-    void setSimulatorID(const QUuid& value);
+    quint8 getSimulatorPriority() const { return _simulationOwner.getPriority(); }
+    QUuid getSimulatorID() const { return _simulationOwner.getID(); }
     void updateSimulatorID(const QUuid& value);
-    const quint64& getSimulationOwnershipExpiry() const { return _simulationOwnershipExpiry; }
     void clearSimulationOwnership();
 
     const QString& getMarketplaceID() const { return _marketplaceID; }
@@ -460,9 +433,7 @@ protected:
     bool _collisionsWillMove;
     bool _locked;
     QString _userData;
-    uint8_t _simulatorPriority;
-    QUuid _simulatorID; // id of Node which is currently responsible for simulating this Entity
-    quint64 _simulationOwnershipExpiry; // time in future when ownership is back up for grabs
+    SimulationOwner _simulationOwner;
     QString _marketplaceID;
     QString _name;
     QString _href; //Hyperlink href

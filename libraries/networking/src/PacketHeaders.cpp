@@ -73,7 +73,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketTypeEntityAdd:
         case PacketTypeEntityEdit:
         case PacketTypeEntityData:
-            return VERSION_ENTITIES_HAVE_SIMULATOR_PRIORITY;
+            return VERSION_ENTITIES_HAVE_SIMULATION_OWNER;
         case PacketTypeEntityErase:
             return 2;
         case PacketTypeAudioStreamStats:

@@ -104,7 +104,7 @@ enum EntityPropertyList {
     PROP_COMPOUND_SHAPE_URL, // used by Model + zones entities
     PROP_MARKETPLACE_ID, // all entities
     PROP_ACCELERATION, // all entities
-    PROP_SIMULATOR_ID, // all entities
+    PROP_SIMULATOR_ID, // unused
     PROP_NAME, // all entities
     PROP_COLLISION_SOUND_URL,
     PROP_RESTITUTION,
@@ -121,7 +121,7 @@ enum EntityPropertyList {
     // used by hyperlinks
     PROP_HREF,
     PROP_DESCRIPTION,
-    PROP_SIMULATOR_PRIORITY,
+    PROP_SIMULATION_OWNER,
     
     PROP_FACE_CAMERA,
     PROP_SCRIPT_TIMESTAMP,

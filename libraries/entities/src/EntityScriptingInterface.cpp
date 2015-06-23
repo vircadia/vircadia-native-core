@@ -9,18 +9,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <iostream> // adebug
+#include "EntityScriptingInterface.h"
+
 #include <VariantMapToScriptValue.h>
 
+#include "EntitiesLogging.h"
+#include "EntityActionFactoryInterface.h"
+#include "EntityActionInterface.h"
+#include "EntitySimulation.h"
 #include "EntityTree.h"
 #include "LightEntityItem.h"
 #include "ModelEntityItem.h"
+#include "SimulationOwner.h"
 #include "ZoneEntityItem.h"
-#include "EntitiesLogging.h"
-#include "EntitySimulation.h"
-#include "EntityActionInterface.h"
-#include "EntityActionFactoryInterface.h"
 
-#include "EntityScriptingInterface.h"
 
 EntityScriptingInterface::EntityScriptingInterface() :
     _entityTree(NULL)
@@ -76,10 +79,10 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
             // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
             auto nodeList = DependencyManager::get<NodeList>();
             const QUuid myNodeID = nodeList->getSessionUUID();
-            propertiesWithSimID.setSimulatorOwnership(myNodeID, SCRIPT_EDIT_SIMULATOR_PRIORITY);
+            propertiesWithSimID.setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATOR_PRIORITY);
 
             // and make note of it now, so we can act on it right away.
-            entity->setSimulatorID(propertiesWithSimID.getSimulatorID());
+            entity->setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATOR_PRIORITY);
 
             entity->setLastBroadcast(usecTimestampNow());
         } else {
@@ -160,11 +163,11 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties proper
                         // simulation.
 
                         // we re-assert our simulation ownership
-                        properties.setSimulatorOwnership(myNodeID, 
+                        properties.setSimulationOwner(myNodeID, 
                                 glm::max(entity->getSimulatorPriority(), SCRIPT_EDIT_SIMULATOR_PRIORITY));
                     } else {
                         // we make a bid for simulation ownership
-                        properties.setSimulatorOwnership(myNodeID, SCRIPT_EDIT_SIMULATOR_PRIORITY);
+                        properties.setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATOR_PRIORITY);
                         entity->flagForOwnership();
                     }
                 }
