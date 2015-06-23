@@ -1063,9 +1063,7 @@ void Application::resizeGL() {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
     auto canvasSize = _glWidget->size();
-    if (canvasSize != offscreenUi->getWindow()->size()) {
-        offscreenUi->resize(canvasSize);
-    }
+    offscreenUi->resize(canvasSize);
     _glWidget->makeCurrent();
 
 }
