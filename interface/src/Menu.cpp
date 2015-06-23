@@ -268,15 +268,25 @@ Menu::Menu() {
                                            qApp,
                                            SLOT(setFullscreen(bool)));
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson,
-        0, // QML Qt::Key_P,
-        true, qApp, SLOT(cameraMenuChanged()));
+    MenuWrapper* cameraModeMenu = viewMenu->addMenu("Camera Mode");
+    QActionGroup* cameraModeGroup = new QActionGroup(cameraModeMenu);
+    cameraModeGroup->setExclusive(true);
+    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
+                                                                      MenuOption::FirstPerson, 0, // QML Qt:: Key_P
+                                                                      false, qApp, SLOT(cameraMenuChanged())));
+    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
+                                                                      MenuOption::ThirdPerson, 0,
+                                                                      true, qApp, SLOT(cameraMenuChanged())));
+    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
+                                                                      MenuOption::IndependentMode, 0,
+                                                                      false, qApp, SLOT(cameraMenuChanged())));
+    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
+                                                                      MenuOption::FullscreenMirror, 0, // QML Qt::Key_H,
+                                                                      false, qApp, SLOT(cameraMenuChanged())));
+
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror,
         0, //QML Qt::SHIFT | Qt::Key_H,
         true);
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror,
-        0, // QML Qt::Key_H,
-        false, qApp, SLOT(cameraMenuChanged()));
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools,
 #ifdef Q_OS_MAC

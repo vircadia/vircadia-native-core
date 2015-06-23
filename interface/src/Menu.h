@@ -195,6 +195,8 @@ namespace MenuOption {
     const QString Faceshift = "Faceshift";
     const QString FilterSixense = "Smooth Sixense Movement";
     const QString FirstPerson = "First Person";
+    const QString ThirdPerson = "Third Person";
+    const QString IndependentMode = "Independent Mode";
     const QString Forward = "Forward";
     const QString FrameTimer = "Show Timer";
     const QString Fullscreen = "Fullscreen";
