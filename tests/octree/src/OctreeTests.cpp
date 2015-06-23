@@ -51,8 +51,11 @@ enum ExamplePropertyList {
 
 typedef PropertyFlags<ExamplePropertyList> ExamplePropertyFlags;
 
+QTEST_MAIN(OctreeTests)
 
-void OctreeTests::propertyFlagsTests(bool verbose) {
+void OctreeTests::propertyFlagsTests() {
+    bool verbose = true;
+    
     int testsTaken = 0;
     int testsPassed = 0;
     int testsFailed = 0;
@@ -891,7 +894,9 @@ typedef ByteCountCoded<quint64> ByteCountCodedQUINT64;
 
 typedef ByteCountCoded<int> ByteCountCodedINT;
 
-void OctreeTests::byteCountCodingTests(bool verbose) {
+void OctreeTests::byteCountCodingTests() {
+    bool verbose = true;
+    
     int testsTaken = 0;
     int testsPassed = 0;
     int testsFailed = 0;
@@ -1268,7 +1273,8 @@ void OctreeTests::byteCountCodingTests(bool verbose) {
     }
 }
 
-void OctreeTests::modelItemTests(bool verbose) {
+void OctreeTests::modelItemTests() {
+    bool verbose = true;
     
 #if 0 // TODO - repair/replace these
 
@@ -1440,9 +1446,9 @@ void OctreeTests::modelItemTests(bool verbose) {
 }
 
 
-void OctreeTests::runAllTests(bool verbose) {
-    propertyFlagsTests(verbose);
-    byteCountCodingTests(verbose);
-    modelItemTests(verbose);
-}
+//void OctreeTests::runAllTests(bool verbose) {
+//    propertyFlagsTests(verbose);
+//    byteCountCodingTests(verbose);
+//    modelItemTests(verbose);
+//}
 

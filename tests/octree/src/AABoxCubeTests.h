@@ -12,9 +12,19 @@
 #ifndef hifi_AABoxCubeTests_h
 #define hifi_AABoxCubeTests_h
 
-namespace AABoxCubeTests {
-    void AABoxCubeTests(bool verbose);
-    void runAllTests(bool verbose); 
-}
+#include <QtTest/QtTest>
+
+
+class AABoxCubeTests : public QObject {
+    Q_OBJECT
+    
+private slots:
+    void raycastOutHitsXMinFace ();
+    void raycastOutHitsXMaxFace ();
+    void raycastInHitsXMinFace ();
+    
+    // TODO: Add more unit tests!
+    // (eg. no test for failed intersection or non-orthogonal ray)
+};
 
 #endif // hifi_AABoxCubeTests_h

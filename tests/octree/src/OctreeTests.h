@@ -12,13 +12,17 @@
 #ifndef hifi_OctreeTests_h
 #define hifi_OctreeTests_h
 
-namespace OctreeTests {
+#include <QtTest/QtTest>
 
-    void propertyFlagsTests(bool verbose);
-    void byteCountCodingTests(bool verbose);
-    void modelItemTests(bool verbose);
+class OctreeTests : public QObject {
+    Q_OBJECT
+    
+private slots:
+    void propertyFlagsTests();
+    void byteCountCodingTests();
+    void modelItemTests();
 
-    void runAllTests(bool verbose); 
-}
+//    void runAllTests(bool verbose); 
+};
 
 #endif // hifi_OctreeTests_h

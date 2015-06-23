@@ -229,7 +229,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     if (getIsClient()) {
         // if our Node isn't allowed to create entities in this domain, don't try.
         auto nodeList = DependencyManager::get<NodeList>();
-        if (!nodeList->getThisNodeCanRez()) {
+        if (nodeList && !nodeList->getThisNodeCanRez()) {
             return NULL;
         }
     }
