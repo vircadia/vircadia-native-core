@@ -1365,35 +1365,50 @@ void EntityItem::updateSimulatorID(const QUuid& value) {
 bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer action) {
     assert(action);
     const QUuid& actionID = action->getID();
+    _objectActionsLock.lockForWrite();
     assert(!_objectActions.contains(actionID) || _objectActions[actionID] == action);
     _objectActions[actionID] = action;
+    _objectActionsLock.unlock();
 
     assert(action->getOwnerEntity().get() == this);
 
     simulation->addAction(action);
+    serializeActionData();
     return true;
 }
 
 bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionID, const QVariantMap& arguments) {
+    _objectActionsLock.lockForRead();
     if (!_objectActions.contains(actionID)) {
+        _objectActionsLock.unlock();
         return false;
     }
     EntityActionPointer action = _objectActions[actionID];
-    return action->updateArguments(arguments);
+    _objectActionsLock.unlock();
+    bool success = action->updateArguments(arguments);
+    if (success) {
+        serializeActionData();
+    }
+    return success;
 }
 
 bool EntityItem::removeAction(EntitySimulation* simulation, const QUuid& actionID) {
+    _objectActionsLock.lockForWrite();
     if (_objectActions.contains(actionID)) {
         EntityActionPointer action = _objectActions[actionID];
         _objectActions.remove(actionID);
+        _objectActionsLock.unlock();
         action->setOwnerEntity(nullptr);
         action->removeFromSimulation(simulation);
+        serializeActionData();
         return true;
     }
+    _objectActionsLock.unlock();
     return false;
 }
 
 void EntityItem::clearActions(EntitySimulation* simulation) {
+    _objectActionsLock.lockForWrite();
     QHash<QUuid, EntityActionPointer>::iterator i = _objectActions.begin();
     while (i != _objectActions.end()) {
         const QUuid id = i.key();
@@ -1402,9 +1417,12 @@ void EntityItem::clearActions(EntitySimulation* simulation) {
         action->setOwnerEntity(nullptr);
         action->removeFromSimulation(simulation);
     }
+    _objectActionsLock.unlock();
+    serializeActionData();
 }
 
 void EntityItem::setActionData(QByteArray actionData) {
+    _actionData = actionData;
     if (actionData.size() == 0) {
         return;
     }
@@ -1424,11 +1442,14 @@ void EntityItem::setActionData(QByteArray actionData) {
         dsForAction >> actionID;
         updated << actionID;
 
+        _objectActionsLock.lockForRead();
         if (_objectActions.contains(actionID)) {
             EntityActionPointer action = _objectActions[actionID];
+            _objectActionsLock.unlock();
             // XXX make sure types match?
             action->deserialize(serializedAction);
         } else {
+            _objectActionsLock.unlock();
             auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
 
             EntityTree* entityTree = _element ? _element->getTree() : nullptr;
@@ -1444,28 +1465,32 @@ void EntityItem::setActionData(QByteArray actionData) {
     }
 
     // remove any actions that weren't included in the new data.
-    QHash<QUuid, EntityActionPointer>::iterator i = _objectActions.begin();
-    while (i != _objectActions.end()) {
-        const QUuid id = i.key();
-        if (updated.contains(id)) {
-            i++;
-            continue;
-        }
-        EntityActionPointer action = _objectActions[id];
-        i = _objectActions.erase(i);
-        action->setOwnerEntity(nullptr);
-        EntityTree* entityTree = _element ? _element->getTree() : nullptr;
-        EntitySimulation* simulation = entityTree ? entityTree->getSimulation() : nullptr;
-        if (simulation) {
+    EntityTree* entityTree = _element ? _element->getTree() : nullptr;
+    EntitySimulation* simulation = entityTree ? entityTree->getSimulation() : nullptr;
+    if (simulation) {
+        _objectActionsLock.lockForWrite();
+        QHash<QUuid, EntityActionPointer>::iterator i = _objectActions.begin();
+        while (i != _objectActions.end()) {
+            const QUuid id = i.key();
+            if (updated.contains(id)) {
+                i++;
+                continue;
+            }
+            EntityActionPointer action = _objectActions[id];
+            i = _objectActions.erase(i);
+            action->setOwnerEntity(nullptr);
             action->removeFromSimulation(simulation);
         }
+        _objectActionsLock.unlock();
     }
 }
 
 
-const QByteArray EntityItem::getActionData() const {
+void EntityItem::serializeActionData() {
+    _objectActionsLock.lockForRead();
     if (_objectActions.size() == 0) {
-        return QByteArray();
+        _objectActionsLock.unlock();
+        _actionData = QByteArray();
     }
 
     QVector<QByteArray> serializedActions;
@@ -1477,10 +1502,16 @@ const QByteArray EntityItem::getActionData() const {
         serializedActions << bytesForAction;
         i++;
     }
+    _objectActionsLock.unlock();
 
     QByteArray result;
     QDataStream ds(&result, QIODevice::WriteOnly);
     ds << serializedActions;
 
-    return result;
+    _actionData = result;
+}
+
+
+const QByteArray EntityItem::getActionData() const {
+    return _actionData;
 }

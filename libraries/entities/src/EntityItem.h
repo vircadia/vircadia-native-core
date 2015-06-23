@@ -455,7 +455,10 @@ protected:
     void* _physicsInfo = nullptr; // set by EntitySimulation
     bool _simulated; // set by EntitySimulation
 
+    void serializeActionData();
+    QReadWriteLock _objectActionsLock;
     QHash<QUuid, EntityActionPointer> _objectActions;
+    QByteArray _actionData;
 };
 
 #endif // hifi_EntityItem_h
