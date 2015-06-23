@@ -57,6 +57,7 @@ QScriptValue qURLToScriptValue(QScriptEngine* engine, const QUrl& url);
 void qURLFromScriptValue(const QScriptValue& object, QUrl& url);
 
 QScriptValue qVectorVec3ToScriptValue(QScriptEngine* engine, const QVector<glm::vec3>& vector);
+void qVectorVec3FromScriptValue(const QScriptValue& array, QVector<glm::vec3>& vector);
 QVector<glm::vec3> qVectorVec3FromScriptValue( const QScriptValue& array);
 
 class PickRay {

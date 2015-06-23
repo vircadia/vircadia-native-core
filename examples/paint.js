@@ -10,17 +10,16 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-//
-Script.include('lineRider.js')
-var MAX_POINTS_PER_LINE = 30;
-var LINE_LIFETIME =  60 * 5  //5 minute lifetime
+
+var LINE_DIMENSIONS = 5;
+var LIFETIME = 6000;
 
 var colorPalette = [{
   red: 236,
   green: 208,
   blue: 120
 }, {
-  red: 217,
+  red: 214,
   green: 91,
   blue: 67
 }, {
@@ -40,15 +39,6 @@ var colorPalette = [{
 var currentColorIndex = 0;
 var currentColor = colorPalette[currentColorIndex];
 
-
-
-if (hydraCheck() === true) {
-  HydraPaint();
-} else {
-  MousePaint();
-}
-
-
 function cycleColor() {
   currentColor = colorPalette[++currentColorIndex];
   if (currentColorIndex === colorPalette.length - 1) {
@@ -57,42 +47,17 @@ function cycleColor() {
 
 }
 
-function hydraCheck() {
-  var numberOfButtons = Controller.getNumberOfButtons();
-  var numberOfTriggers = Controller.getNumberOfTriggers();
-  var numberOfSpatialControls = Controller.getNumberOfSpatialControls();
-  var controllersPerTrigger = numberOfSpatialControls / numberOfTriggers;
-  hydrasConnected = (numberOfButtons == 12 && numberOfTriggers == 2 && controllersPerTrigger == 2);
-  return hydrasConnected; //hydrasConnected;
-}
-
-//************ Mouse Paint **************************
+MousePaint();
 
 function MousePaint() {
-  var DRAWING_DISTANCE = 2;
+  var DRAWING_DISTANCE = 5;
   var lines = [];
-  var deletedLines = [];
   var isDrawing = false;
-  var path = [];
-
-  var lineRider = new LineRider();
-  lineRider.addStartHandler(function() {
-    var points = [];
-    //create points array from list of all points in path
-    path.forEach(function(point) {
-      points.push(point);
-    });
-    lineRider.setPath(points);
-  });
-
-
 
   var LINE_WIDTH = 7;
-  var line;
-  var points = [];
+  var line, linePosition;
 
-
-  var BRUSH_SIZE = 0.02;
+  var BRUSH_SIZE = .05;
 
   var brush = Entities.addEntity({
     type: 'Sphere',
@@ -110,51 +75,42 @@ function MousePaint() {
   });
 
 
-  function newLine(point) {
+  function newLine(position) {
+    linePosition = position;
     line = Entities.addEntity({
-      position: MyAvatar.position,
+      position: position,
       type: "Line",
       color: currentColor,
       dimensions: {
-        x: 10,
-        y: 10,
-        z: 10
+        x: LINE_DIMENSIONS,
+        y: LINE_DIMENSIONS,
+        z: LINE_DIMENSIONS
       },
+      linePoints: [],
       lineWidth: LINE_WIDTH,
-      lifetime: LINE_LIFETIME
+      lifetime: LIFETIME
     });
-    points = [];
-    if (point) {
-
-      points.push(point);
-      path.push(point);
-    }
     lines.push(line);
   }
 
 
   function mouseMoveEvent(event) {
 
+    var worldPoint = computeWorldPoint(event);
+    Entities.editEntity(brush, {
+      position: worldPoint
+    });
+
     if (!isDrawing) {
       return;
     }
 
-    var pickRay = Camera.computePickRay(event.x, event.y);
-    var addVector = Vec3.multiply(Vec3.normalize(pickRay.direction), DRAWING_DISTANCE);
-    var point = Vec3.sum(Camera.getPosition(), addVector);
-    points.push(point);
-    path.push(point);
-    Entities.editEntity(line, {
-      linePoints: points
-    });
-    Entities.editEntity(brush, {
-      position: point
-    });
+    var localPoint = computeLocalPoint(event)
+    var success = Entities.appendPoint(line, localPoint);
 
-
-    if (points.length === MAX_POINTS_PER_LINE) {
-      //We need to start a new line!
-      newLine(point);
+    if (!success) {
+      newLine(worldPoint);
+      Entities.appendPoint(line, computeLocalPoint(event));
     }
   }
 
@@ -171,16 +127,25 @@ function MousePaint() {
     lines.push(restoredLine);
   }
 
+  function computeWorldPoint(event) {
+    var pickRay = Camera.computePickRay(event.x, event.y);
+    var addVector = Vec3.multiply(Vec3.normalize(pickRay.direction), DRAWING_DISTANCE);
+    return Vec3.sum(Camera.getPosition(), addVector);
+  }
+
+  function computeLocalPoint(event) {
+
+    var localPoint = Vec3.subtract(computeWorldPoint(event), linePosition);
+    return localPoint;
+  }
+
   function mousePressEvent(event) {
-    if(!event.isLeftButton) {
+    if (!event.isLeftButton) {
       isDrawing = false;
       return;
     }
-    lineRider.mousePressEvent(event);
-    path = [];
-    newLine();
+    newLine(computeWorldPoint(event));
     isDrawing = true;
-
 
   }
 
@@ -198,20 +163,20 @@ function MousePaint() {
     if (event.text === "z") {
       undoStroke();
     }
-    if(event.text === "x") {
+    if (event.text === "x") {
       redoStroke();
     }
   }
 
+
+
   function cleanup() {
     lines.forEach(function(line) {
-      Entities.deleteEntity(line);
+      // Entities.deleteEntity(line);
     });
     Entities.deleteEntity(brush);
-    lineRider.cleanup();
 
   }
-
 
   Controller.mousePressEvent.connect(mousePressEvent);
   Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
@@ -221,266 +186,6 @@ function MousePaint() {
   Controller.keyPressEvent.connect(keyPressEvent);
 }
 
-
-
-//*****************HYDRA PAINT *******************************************
-
-
-
-function HydraPaint() {
-
-
-
-  var lineRider = new LineRider();
-  lineRider.addStartHandler(function() {
-    var points = [];
-    //create points array from list of all points in path
-    rightController.path.forEach(function(point) {
-      points.push(point);
-    });
-    lineRider.setPath(points);
-  });
-
-  var LEFT = 0;
-  var RIGHT = 1;
-
-  var currentTime = 0;
-
-
-  var minBrushSize = .02;
-  var maxBrushSize = .04
-
-
-  var minLineWidth = 5;
-  var maxLineWidth = 10;
-  var currentLineWidth = minLineWidth;
-  var MIN_PAINT_TRIGGER_THRESHOLD = .01;
-  var COLOR_CHANGE_TIME_FACTOR = 0.1;
-
-  var RIGHT_BUTTON_1 = 7
-  var RIGHT_BUTTON_2 = 8
-  var RIGHT_BUTTON_3 = 9;
-  var RIGHT_BUTTON_4 = 10
-
-  var LEFT_BUTTON_1 = 1;
-  var LEFT_BUTTON_2 = 2;
-  var LEFT_BUTTON_3 = 3;
-  var LEFT_BUTTON_4 = 4;
-
-  var STROKE_SMOOTH_FACTOR = 1;
-
-  var MIN_DRAW_DISTANCE = 0.2;
-  var MAX_DRAW_DISTANCE = 0.4;
-
-  function controller(side, undoButton, redoButton, cycleColorButton, startRideButton) {
-    this.triggerHeld = false;
-    this.triggerThreshold = 0.9;
-    this.side = side;
-    this.palm = 2 * side;
-    this.tip = 2 * side + 1;
-    this.trigger = side;
-    this.lines = [];
-    this.deletedLines = [] //just an array of properties objects
-    this.isPainting = false;
-
-    this.undoButton = undoButton;
-    this.undoButtonPressed = false;
-    this.prevUndoButtonPressed = false;
-
-    this.redoButton = redoButton;
-    this.redoButtonPressed = false;
-    this.prevRedoButtonPressed = false;
-
-    this.cycleColorButton = cycleColorButton;
-    this.cycleColorButtonPressed = false;
-    this.prevColorCycleButtonPressed = false;
-
-    this.startRideButton = startRideButton;
-    this.startRideButtonPressed = false;
-    this.prevStartRideButtonPressed = false;
-
-    this.strokeCount = 0;
-    this.currentBrushSize = minBrushSize;
-    this.points = [];
-    this.path = [];
-
-    this.brush = Entities.addEntity({
-      type: 'Sphere',
-      position: {
-        x: 0,
-        y: 0,
-        z: 0
-      },
-      color: currentColor,
-      dimensions: {
-        x: minBrushSize,
-        y: minBrushSize,
-        z: minBrushSize
-      }
-    });
-
-
-    this.newLine = function(point) {
-      this.line = Entities.addEntity({
-        position: MyAvatar.position,
-        type: "Line",
-        color: currentColor,
-        dimensions: {
-          x: 10,
-          y: 10,
-          z: 10
-        },
-        lineWidth: 5,
-        lifetime: LINE_LIFETIME
-      });
-      this.points = [];
-      if (point) {
-        this.points.push(point);
-        this.path.push(point);
-      }
-      this.lines.push(this.line);
-    }
-
-    this.update = function(deltaTime) {
-      this.updateControllerState();
-      this.avatarPalmOffset = Vec3.subtract(this.palmPosition, MyAvatar.position);
-      this.projectedForwardDistance = Vec3.dot(Quat.getFront(Camera.getOrientation()), this.avatarPalmOffset);
-      this.mappedPalmOffset = map(this.projectedForwardDistance, -.5, .5, MIN_DRAW_DISTANCE, MAX_DRAW_DISTANCE);
-      this.tipDirection = Vec3.normalize(Vec3.subtract(this.tipPosition, this.palmPosition));
-      this.offsetVector = Vec3.multiply(this.mappedPalmOffset, this.tipDirection);
-      this.drawPoint = Vec3.sum(this.palmPosition, this.offsetVector);
-      this.currentBrushSize = map(this.triggerValue, 0, 1, minBrushSize, maxBrushSize);
-      Entities.editEntity(this.brush, {
-        position: this.drawPoint,
-        dimensions: {
-          x: this.currentBrushSize,
-          y: this.currentBrushSize,
-          z: this.currentBrushSize
-        },
-        color: currentColor
-      });
-      if (this.triggerValue > MIN_PAINT_TRIGGER_THRESHOLD) {
-        if (!this.isPainting) {
-          this.isPainting = true;
-          this.newLine();
-          this.path = [];
-        }
-        if (this.strokeCount % STROKE_SMOOTH_FACTOR === 0) {
-          this.paint(this.drawPoint);
-        }
-        this.strokeCount++;
-      } else if (this.triggerValue < MIN_PAINT_TRIGGER_THRESHOLD && this.isPainting) {
-        this.releaseTrigger();
-      }
-
-      this.oldPalmPosition = this.palmPosition;
-      this.oldTipPosition = this.tipPosition;
-    }
-
-    this.releaseTrigger = function() {
-      this.isPainting = false;
-
-    }
-
-
-    this.updateControllerState = function() {
-      this.undoButtonPressed = Controller.isButtonPressed(this.undoButton);
-      this.redoButtonPressed = Controller.isButtonPressed(this.redoButton);
-      this.cycleColorButtonPressed = Controller.isButtonPressed(this.cycleColorButton);
-      this.startRideButtonPressed = Controller.isButtonPressed(this.startRideButton);
-
-      //This logic gives us button release
-      if (this.prevUndoButtonPressed === true && this.undoButtonPressed === false) {
-        //User released undo button, so undo
-        this.undoStroke();
-      }
-      if (this.prevRedoButtonPressed === true && this.redoButtonPressed === false) {
-        this.redoStroke();
-      }
-
-      if (this.prevCycleColorButtonPressed === true && this.cycleColorButtonPressed === false) {
-        cycleColor();
-        Entities.editEntity(this.brush, {
-          color: currentColor
-        });
-      }
-      if (this.prevStartRideButtonPressed === true && this.startRideButtonPressed === false) {
-        lineRider.toggleRide();
-      }
-      this.prevRedoButtonPressed = this.redoButtonPressed;
-      this.prevUndoButtonPressed = this.undoButtonPressed;
-      this.prevCycleColorButtonPressed = this.cycleColorButtonPressed;
-      this.prevStartRideButtonPressed = this.startRideButtonPressed;
-
-      this.palmPosition = Controller.getSpatialControlPosition(this.palm);
-      this.tipPosition = Controller.getSpatialControlPosition(this.tip);
-      this.triggerValue = Controller.getTriggerValue(this.trigger);
-    }
-
-    this.undoStroke = function() {
-      var deletedLine = this.lines.pop();
-      var deletedLineProps = Entities.getEntityProperties(deletedLine);
-      this.deletedLines.push(deletedLineProps);
-      Entities.deleteEntity(deletedLine);
-    }
-
-    this.redoStroke = function() {
-      var restoredLine = Entities.addEntity(this.deletedLines.pop());
-      Entities.addEntity(restoredLine);
-      this.lines.push(restoredLine);
-    }
-
-    this.paint = function(point) {
-
-      currentLineWidth = map(this.triggerValue, 0, 1, minLineWidth, maxLineWidth);
-      this.points.push(point);
-      this.path.push(point);
-      Entities.editEntity(this.line, {
-        linePoints: this.points,
-        lineWidth: currentLineWidth,
-      });
-      if (this.points.length > MAX_POINTS_PER_LINE) {
-        this.newLine(point);
-      }
-    }
-
-    this.cleanup = function() {
-      Entities.deleteEntity(this.brush);
-      this.lines.forEach(function(line) {
-        Entities.deleteEntity(line);
-      });
-    }
-  }
-
-  function update(deltaTime) {
-    rightController.update(deltaTime);
-    leftController.update(deltaTime);
-    currentTime += deltaTime;
-  }
-
-  function cleanup() {
-    rightController.cleanup();
-    leftController.cleanup();
-    lineRider.cleanup();
-  }
-
-  function mousePressEvent(event) {
-    lineRider.mousePressEvent(event);
-  }
-
-  function vectorIsZero(v) {
-    return v.x === 0 && v.y === 0 && v.z === 0;
-  }
-
-
-  var rightController = new controller(RIGHT, RIGHT_BUTTON_3, RIGHT_BUTTON_4, RIGHT_BUTTON_1, RIGHT_BUTTON_2);
-  var leftController = new controller(LEFT, LEFT_BUTTON_3, LEFT_BUTTON_4, LEFT_BUTTON_1, LEFT_BUTTON_2);
-
-  Script.update.connect(update);
-  Script.scriptEnding.connect(cleanup);
-  Controller.mousePressEvent.connect(mousePressEvent);
-
-}
 
 function randFloat(low, high) {
   return low + Math.random() * (high - low);
