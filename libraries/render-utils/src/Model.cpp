@@ -1370,6 +1370,7 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
         //       because ray picking needs valid boxes to work
         _calculatedMeshBoxesValid = false;
         _calculatedMeshTrianglesValid = false;
+        onInvalidate();
 
         // check for scale to fit
         if (_scaleToFit && !_scaledToFit) {

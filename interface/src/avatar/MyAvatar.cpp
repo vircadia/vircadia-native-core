@@ -98,8 +98,8 @@ MyAvatar::MyAvatar() :
     _isLookingAtLeftEye(true),
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
-    _currentSkeletonModel(nullptr),
-    _firstPersonSkeletonModel(this)
+    _firstPersonSkeletonModel(this),
+    _prevShouldDrawHead(true)
 {
     _firstPersonSkeletonModel.setIsFirstPerson(true);
 
@@ -1203,16 +1203,9 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bo
     }
 }
 
-void MyAvatar::setCurrentSkeletonModel(SkeletonModel* skeletonModel) {
-    if (_currentSkeletonModel != skeletonModel && skeletonModel->isActive() && skeletonModel->isRenderable()) {
-
-        render::ScenePointer scene = Application::getInstance()->getMain3DScene();
-
-        if (_currentSkeletonModel) {
-            _currentSkeletonModel->setVisibleInScene(false, scene);
-        }
-        skeletonModel->setVisibleInScene(true, scene);
-        _currentSkeletonModel = skeletonModel;
+void MyAvatar::setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visible) {
+    if (model->isActive() && model->isRenderable()) {
+        model->setVisibleInScene(visible, scene);
     }
 }
 
@@ -1221,14 +1214,26 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
 
     _skeletonModel.initWhenReady(scene);
-    _firstPersonSkeletonModel.initWhenReady(scene);
-
-    // set visiblity on each model
-    if (shouldRenderHead(renderArgs)) {
-        setCurrentSkeletonModel(&_skeletonModel);
-    } else {
-        setCurrentSkeletonModel(&_firstPersonSkeletonModel);
+    if (_useFullAvatar) {
+        _firstPersonSkeletonModel.initWhenReady(scene);
     }
+
+    bool shouldDrawHead = shouldRenderHead(renderArgs);
+    if (shouldDrawHead != _prevShouldDrawHead) {
+        if (_useFullAvatar) {
+            if (shouldDrawHead) {
+                _skeletonModel.setVisibleInScene(true, scene);
+                _firstPersonSkeletonModel.setVisibleInScene(false, scene);
+            } else {
+                _skeletonModel.setVisibleInScene(false, scene);
+                _firstPersonSkeletonModel.setVisibleInScene(true, scene);
+            }
+        } else {
+            getHead()->getFaceModel().setVisibleInScene(shouldDrawHead, scene);
+        }
+
+    }
+    _prevShouldDrawHead = shouldDrawHead;
 }
 
 const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;

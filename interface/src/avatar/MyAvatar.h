@@ -211,8 +211,7 @@ private:
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
-    void setCurrentSkeletonModel(SkeletonModel* skeletonModel);
-    void initModelWhenReady(Model* model);
+    void setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visiblity);
 
     glm::vec3 _gravity;
 
@@ -271,8 +270,8 @@ private:
     QString _fullAvatarModelName;
 
     // used for rendering when in first person view or when in an HMD.
-    SkeletonModel* _currentSkeletonModel;
     SkeletonModel _firstPersonSkeletonModel;
+    bool _prevShouldDrawHead;
 };
 
 #endif // hifi_MyAvatar_h
