@@ -207,6 +207,8 @@ signals:
 
 private:
 
+    bool cameraInsideHead() const;
+
     // These are made private for MyAvatar so that you will use the "use" methods instead
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);

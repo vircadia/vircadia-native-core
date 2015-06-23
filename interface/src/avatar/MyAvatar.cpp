@@ -994,16 +994,21 @@ QString MyAvatar::getModelDescription() const {
 
 void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
     Avatar::setFaceModelURL(faceModelURL);
+    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    getHead()->getFaceModel().setVisibleInScene(_prevShouldDrawHead, scene);
     _billboardValid = false;
 }
 
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     Avatar::setSkeletonModelURL(skeletonModelURL);
+    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    _skeletonModel.setVisibleInScene(_prevShouldDrawHead, scene);
     _billboardValid = false;
 
     if (_useFullAvatar) {
         const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_body.fst");
         _firstPersonSkeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
+        _firstPersonSkeletonModel.setVisibleInScene(!_prevShouldDrawHead, scene);
     }
 }
 
@@ -1212,13 +1217,13 @@ void MyAvatar::setVisibleInSceneIfReady(Model* model, render::ScenePointer scene
 void MyAvatar::preRender(RenderArgs* renderArgs) {
 
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    const bool shouldDrawHead = shouldRenderHead(renderArgs);
 
     _skeletonModel.initWhenReady(scene);
     if (_useFullAvatar) {
         _firstPersonSkeletonModel.initWhenReady(scene);
     }
 
-    bool shouldDrawHead = shouldRenderHead(renderArgs);
     if (shouldDrawHead != _prevShouldDrawHead) {
         if (_useFullAvatar) {
             if (shouldDrawHead) {
@@ -1238,12 +1243,16 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
 
 const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
 
-bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
-    const glm::vec3 cameraPos = Application::getInstance()->getCamera()->getPosition();
+bool MyAvatar::cameraInsideHead() const {
     const Head* head = getHead();
+    const glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
+    return glm::length(cameraPosition - head->getEyePosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * _scale);
+}
+
+bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
     return ((renderArgs->_renderMode != RenderArgs::DEFAULT_RENDER_MODE) ||
             (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON) ||
-            (glm::length(cameraPos - head->getEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE * _scale));
+            !cameraInsideHead());
 }
 
 void MyAvatar::updateOrientation(float deltaTime) {
