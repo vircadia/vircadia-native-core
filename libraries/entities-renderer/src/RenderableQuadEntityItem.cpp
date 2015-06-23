@@ -31,7 +31,7 @@ void RenderableQuadEntityItem::updateGeometry() {
     }
     if (_pointsChanged) {
         glm::vec4 lineColor(toGlm(getXColor()), getLocalRenderAlpha());
-        geometryCache->updateVertices(_lineVerticesID, getLinePoints(), lineColor);
+        geometryCache->updateVertices(_lineVerticesID, getQuadVertices(), lineColor);
         _pointsChanged = false;
     }
 }
@@ -48,9 +48,9 @@ void RenderableQuadEntityItem::render(RenderArgs* args) {
     batch.setModelTransform(transform);
     
     batch._glLineWidth(getLineWidth());
-    if (getLinePoints().size() > 1) {
+    if (getLinePoints().size() > 3) {
         DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
-        DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::LINE_STRIP, _lineVerticesID);
+        DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::QUAD_STRIP, _lineVerticesID);
     }
     batch._glLineWidth(1.0f);
     

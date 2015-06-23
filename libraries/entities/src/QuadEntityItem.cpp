@@ -22,7 +22,7 @@
 
 
 
-const float QuadEntityItem::DEFAULT_LINE_WIDTH = 2.0f;
+const float QuadEntityItem::DEFAULT_LINE_WIDTH = 0.1f;
 const int QuadEntityItem::MAX_POINTS_PER_LINE = 70;
 
 
@@ -35,7 +35,8 @@ QuadEntityItem::QuadEntityItem(const EntityItemID& entityItemID, const EntityIte
 EntityItem(entityItemID) ,
 _lineWidth(DEFAULT_LINE_WIDTH),
 _pointsChanged(true),
-_points(QVector<glm::vec3>(0))
+_points(QVector<glm::vec3>(0)),
+_quadVertices(QVector<glm::vec3>(0))
 {
     _type = EntityTypes::Quad;
     _created = properties.getCreated();
@@ -105,6 +106,20 @@ bool QuadEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
     if (points.size() > MAX_POINTS_PER_LINE) {
         return false;
     }
+    //Check to see if points actually changed. If they haven't, return before doing anything else
+    if (points.size() == _points.size()) {
+        //same number of points, so now compare every point
+        for (int i = 0; i < points.size(); i++ ) {
+            if (points.at(i) != _points.at(i)){
+                _pointsChanged = true;
+                break;
+            }
+        }
+    }
+    if (!_pointsChanged) {
+        return false;
+    }
+
     for (int i = 0; i < points.size(); i++) {
         glm::vec3 point = points.at(i);
         glm::vec3 pos = getPosition();
@@ -115,9 +130,18 @@ bool QuadEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
         }
         
     }
-
     _points = points;
-    _pointsChanged = true;
+    //All our points are valid and at least one point has changed, now create quads from points
+    _quadVertices.clear();
+    for (int i = 0; i < points.size(); i++) {
+        glm::vec3 point = points.at(i);
+        
+        glm::vec3 p1 = glm::vec3(point.x - _lineWidth, point.y - _lineWidth, point.z);
+        glm::vec3 p2 = glm::vec3(point.x + _lineWidth, point.y - _lineWidth, point.z);
+        glm::vec3 p3 = glm::vec3(point.x + _lineWidth, point.y + _lineWidth, point.z);
+        glm::vec3 p4 = glm::vec3(point.x - _lineWidth, point.y + _lineWidth, point.z);
+        _quadVertices << p1 << p2 << p3 << p4;
+    }
     return true;
 }
 

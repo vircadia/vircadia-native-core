@@ -39,7 +39,7 @@ void RenderableLineEntityItem::updateGeometry() {
 void RenderableLineEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableLineEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Line);
-    updateGeometry(); 
+    updateGeometry();
     
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
