@@ -35,7 +35,8 @@ AvatarInputs* AvatarInputs::getInstance() {
 
 AvatarInputs::AvatarInputs(QQuickItem* parent) :  QQuickItem(parent) {
     INSTANCE = this;
-    _mirrorZoomed = rearViewZoomLevel.get() != 0;
+    int zoomSetting = rearViewZoomLevel.get();
+    _mirrorZoomed = zoomSetting == 0;
 }
 
 #define AI_UPDATE(name, src) \
