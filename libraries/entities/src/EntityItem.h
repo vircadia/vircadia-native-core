@@ -277,7 +277,7 @@ public:
     const QString& getScript() const { return _script; }
     void setScript(const QString& value) { _script = value; }
 
-    const quint64 getScriptTimestamp() const { return _scriptTimestamp; }
+    quint64 getScriptTimestamp() const { return _scriptTimestamp; }
     void setScriptTimestamp(const quint64 value) { _scriptTimestamp = value; }
 
     const QString& getCollisionSoundURL() const { return _collisionSoundURL; }
