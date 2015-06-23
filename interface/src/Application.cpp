@@ -4748,3 +4748,10 @@ mat4 Application::getEyePose(int eye) const {
 
     return mat4();
 }
+
+mat4 Application::getHeadPose() const {
+    if (isHMDMode()) {
+        return OculusManager::getHeadPose();
+    }
+    return mat4();
+}
