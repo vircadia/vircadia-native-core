@@ -280,15 +280,15 @@ void Stats::updateStats() {
     }
 
     // Server Octree Elements
-    STAT_UPDATE(serverElements, totalNodes);
-    STAT_UPDATE(localElements, OctreeElement::getNodeCount());
+    STAT_UPDATE(serverElements, (int)totalNodes);
+    STAT_UPDATE(localElements, (int)OctreeElement::getNodeCount());
 
     if (_expanded) {
-        STAT_UPDATE(serverInternal, totalInternal);
-        STAT_UPDATE(serverLeaves, totalLeaves);
+        STAT_UPDATE(serverInternal, (int)totalInternal);
+        STAT_UPDATE(serverLeaves, (int)totalLeaves);
         // Local Voxels
-        STAT_UPDATE(localInternal, OctreeElement::getInternalNodeCount());
-        STAT_UPDATE(localLeaves, OctreeElement::getLeafNodeCount());
+        STAT_UPDATE(localInternal, (int)OctreeElement::getInternalNodeCount());
+        STAT_UPDATE(localLeaves, (int)OctreeElement::getLeafNodeCount());
         // LOD Details
         STAT_UPDATE(lodStatus, "You can see " + DependencyManager::get<LODManager>()->getLODFeedbackText());
     }
