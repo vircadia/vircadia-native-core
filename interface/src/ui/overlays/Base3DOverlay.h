@@ -26,6 +26,7 @@ public:
     virtual bool is3D() const { return true; }
     const glm::vec3& getPosition() const { return _transform.getTranslation(); }
     const glm::quat& getRotation() const { return _transform.getRotation(); }
+    const glm::vec3& getScale() const { return _transform.getScale(); }
    
     // TODO: consider implementing registration points in this class
     const glm::vec3& getCenter() const { return getPosition(); }
@@ -41,6 +42,8 @@ public:
     // setters
     void setPosition(const glm::vec3& value) { _transform.setTranslation(value); }
     void setRotation(const glm::quat& value) { _transform.setRotation(value); }
+    void setScale(float value) { _transform.setScale(value); }
+    void setScale(const glm::vec3& value) { _transform.setScale(value); }
     
     void setLineWidth(float lineWidth) { _lineWidth = lineWidth; }
     void setIsSolid(bool isSolid) { _isSolid = isSolid; }

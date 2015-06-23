@@ -11,17 +11,10 @@
 #ifndef hifi_TextOverlay_h
 #define hifi_TextOverlay_h
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
-#include <QRect>
-#include <QScriptValue>
 #include <QString>
 
 #include <SharedUtil.h>
-#include <TextRenderer.h>
 
-#include "Overlay.h"
 #include "Overlay2D.h"
 
 const xColor DEFAULT_BACKGROUND_COLOR = { 0, 0, 0 };
@@ -29,6 +22,8 @@ const float DEFAULT_BACKGROUND_ALPHA = 0.7f;
 const int DEFAULT_MARGIN = 10;
 const int DEFAULT_FONTSIZE = 11;
 const int DEFAULT_FONT_WEIGHT = 50;
+
+class TextRenderer;
 
 class TextOverlay : public Overlay2D {
     Q_OBJECT

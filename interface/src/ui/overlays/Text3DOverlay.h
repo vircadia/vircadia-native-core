@@ -11,17 +11,11 @@
 #ifndef hifi_Text3DOverlay_h
 #define hifi_Text3DOverlay_h
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include <QString>
-
-#include <RenderArgs.h>
-#include <TextRenderer3D.h>
 
 #include "Planar3DOverlay.h"
 
-const int FIXED_FONT_POINT_SIZE = 40;
+class TextRenderer3D;
 
 class Text3DOverlay : public Planar3DOverlay {
     Q_OBJECT
@@ -60,7 +54,7 @@ public:
     virtual Text3DOverlay* createClone() const;
 
 private:
-    TextRenderer3D* _textRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
+    TextRenderer3D* _textRenderer = nullptr;
     
     QString _text;
     xColor _backgroundColor;

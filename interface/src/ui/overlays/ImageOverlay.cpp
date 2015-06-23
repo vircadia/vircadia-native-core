@@ -11,14 +11,11 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
-#include <QPainter>
-#include <QSvgRenderer>
+#include "ImageOverlay.h"
 
 #include <DependencyManager.h>
 #include <GeometryCache.h>
-#include <SharedUtil.h>
-
-#include "ImageOverlay.h"
+#include <RegisteredMetaTypes.h>
 
 ImageOverlay::ImageOverlay() :
     _imageURL(),
@@ -36,9 +33,6 @@ ImageOverlay::ImageOverlay(const ImageOverlay* imageOverlay) :
     _renderImage(imageOverlay->_renderImage),
     _wantClipFromImage(imageOverlay->_wantClipFromImage)
 {
-}
-
-ImageOverlay::~ImageOverlay() {
 }
 
 // TODO: handle setting image multiple times, how do we manage releasing the bound texture?

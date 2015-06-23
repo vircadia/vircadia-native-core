@@ -19,7 +19,7 @@ class Circle3DOverlay : public Planar3DOverlay {
 public:
     Circle3DOverlay();
     Circle3DOverlay(const Circle3DOverlay* circle3DOverlay);
-    ~Circle3DOverlay();
+    
     virtual void render(RenderArgs* args);
     virtual void setProperties(const QScriptValue& properties);
     virtual QScriptValue getProperty(const QString& property);
