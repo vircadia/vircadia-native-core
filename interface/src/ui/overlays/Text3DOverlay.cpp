@@ -118,7 +118,7 @@ void Text3DOverlay::render(RenderArgs* args) {
         glm::vec2 clipDimensions((dimensions.x - (_leftMargin + _rightMargin)) / scaleFactor,
                                  (dimensions.y - (_topMargin + _bottomMargin)) / scaleFactor);
 
-        transform.setScale(glm::vec3(scaleFactor, -scaleFactor, scaleFactor));
+        transform.setScale(scaleFactor);
         transform.preTranslate(glm::vec3(-(halfDimensions.x - _leftMargin), halfDimensions.y - _topMargin, 0.0f));
         batch->setModelTransform(transform);
 
