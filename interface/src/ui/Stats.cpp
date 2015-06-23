@@ -136,7 +136,7 @@ void Stats::updateStats() {
         unsigned long totalPingOctree = 0;
         int octreeServerCount = 0;
         int pingOctreeMax = 0;
-        int pingVoxel;
+        // int pingVoxel;
         nodeList->eachNode([&](const SharedNodePointer& node) {
             // TODO: this should also support entities
             if (node->getType() == NodeType::EntityServer) {
@@ -148,9 +148,9 @@ void Stats::updateStats() {
             }
         });
 
-        if (octreeServerCount) {
-            pingVoxel = totalPingOctree / octreeServerCount;
-        }
+        // if (octreeServerCount) {
+        //     pingVoxel = totalPingOctree / octreeServerCount;
+        // }
 
         //STAT_UPDATE(entitiesPing, pingVoxel);
         //if (_expanded) {
