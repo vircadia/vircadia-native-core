@@ -19,7 +19,7 @@
 const xColor DEFAULT_BACKGROUND_COLOR = { 0, 0, 0 };
 const float DEFAULT_BACKGROUND_ALPHA = 0.7f;
 const float DEFAULT_MARGIN = 0.1f;
-const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 40.0f; // this is a ratio determined through experimentation
+const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 80.0f; // this is a ratio determined through experimentation
 const float LINE_SCALE_RATIO = 1.2f;
 
 Text3DOverlay::Text3DOverlay() :
@@ -118,37 +118,22 @@ void Text3DOverlay::render(RenderArgs* args) {
         glm::vec2 clipDimensions((dimensions.x - (_leftMargin + _rightMargin)) / scaleFactor,
                                  (dimensions.y - (_topMargin + _bottomMargin)) / scaleFactor);
 
+        transform.setTranslation(_position);
+        transform.postTranslate(glm::vec3(-(halfDimensions.x - _leftMargin) , halfDimensions.y - _topMargin, 0.01f));
         transform.setScale(scaleFactor);
-        transform.preTranslate(glm::vec3(-(halfDimensions.x - _leftMargin), halfDimensions.y - _topMargin, 0.0f));
         batch->setModelTransform(transform);
-
-        // enableClipPlane(GL_CLIP_PLANE0, -1.0f, 0.0f, 0.0f, clipMinimum.x + clipDimensions.x);
-        // enableClipPlane(GL_CLIP_PLANE1, 1.0f, 0.0f, 0.0f, -clipMinimum.x);
-        // enableClipPlane(GL_CLIP_PLANE2, 0.0f, -1.0f, 0.0f, clipMinimum.y + clipDimensions.y);
-        // enableClipPlane(GL_CLIP_PLANE3, 0.0f, 1.0f, 0.0f, -clipMinimum.y);
 
         glm::vec4 textColor = { _color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, getAlpha() };
         _textRenderer->draw(*batch, 0, 0, _text, textColor);
-
-        // glDisable(GL_CLIP_PLANE0);
-        // glDisable(GL_CLIP_PLANE1);
-        // glDisable(GL_CLIP_PLANE2);
-        // glDisable(GL_CLIP_PLANE3);
 
         batch->setPipeline(DrawOverlay3D::getOpaquePipeline());
     }
 
 }
 
-void Text3DOverlay::enableClipPlane(GLenum plane, float x, float y, float z, float w) {
-    GLdouble coefficients[] = { x, y, z, w };
-    glClipPlane(plane, coefficients);
-    glEnable(plane);
-}
-
 void Text3DOverlay::setProperties(const QScriptValue& properties) {
     Planar3DOverlay::setProperties(properties);
-    
+
     QScriptValue text = properties.property("text");
     if (text.isValid()) {
         setText(text.toVariant().toString());

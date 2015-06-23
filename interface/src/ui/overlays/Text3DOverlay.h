@@ -60,8 +60,6 @@ public:
     virtual Text3DOverlay* createClone() const;
 
 private:
-    void enableClipPlane(GLenum plane, float x, float y, float z, float w);
-
     TextRenderer3D* _textRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
     
     QString _text;
