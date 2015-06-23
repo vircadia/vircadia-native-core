@@ -545,11 +545,6 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
     // we can use the AABox's ray intersection by mapping our origin and direction into the model frame
     // and testing intersection there.
     if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face)) {
-    
-        if (!_calculatedMeshBoxesValid) {
-            recalculateMeshBoxes(pickAgainstTriangles);
-        }
-
         float bestDistance = std::numeric_limits<float>::max();
 
         float distanceToSubMesh;
@@ -560,6 +555,11 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
         // If we hit the models box, then consider the submeshes...
         _mutex.lock();
+
+        if (!_calculatedMeshBoxesValid) {
+            recalculateMeshBoxes(pickAgainstTriangles);
+        }
+
         foreach(const AABox& subMeshBox, _calculatedMeshBoxes) {
 
             if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace)) {
@@ -1811,7 +1811,9 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     
     // We need to make sure we have valid offsets calculated before we can render
     if (!_calculatedMeshPartOffsetValid) {
+        _mutex.lock();
         recalculateMeshPartOffsets();
+        _mutex.unlock();
     }
     auto textureCache = DependencyManager::get<TextureCache>();
 
@@ -2019,7 +2021,9 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         }
     }
     
+    _mutex.lock();
     qint64 offset = _calculatedMeshPartOffset[QPair<int,int>(meshIndex, partIndex)];
+    _mutex.unlock();
 
     if (part.quadIndices.size() > 0) {
         batch.drawIndexed(gpu::QUADS, part.quadIndices.size(), offset);
