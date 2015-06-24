@@ -1992,9 +1992,8 @@ SelectionDisplay = (function () {
                     innerRadius: 0.9,
                 });
 
-            // TODO: re-enable when text overlays are fixed
             Overlays.editOverlay(rotationDegreesDisplay, {
-                visible: false,
+                visible: true,
             });
 
             updateRotationDegreesOverlay(0, yawHandleRotation, yawCenter);
@@ -2122,9 +2121,8 @@ SelectionDisplay = (function () {
                     innerRadius: 0.9,
                 });
 
-            // TODO: re-enable when text overlays are fixed
             Overlays.editOverlay(rotationDegreesDisplay, {
-                visible: false,
+                visible: true,
             });
 
             updateRotationDegreesOverlay(0, pitchHandleRotation, pitchCenter);
@@ -2244,9 +2242,8 @@ SelectionDisplay = (function () {
                     innerRadius: 0.9,
                 });
 
-            // TODO: re-enable when text overlays are fixed
             Overlays.editOverlay(rotationDegreesDisplay, {
-                visible: false,
+                visible: true,
             });
 
             updateRotationDegreesOverlay(0, rollHandleRotation, rollCenter);
