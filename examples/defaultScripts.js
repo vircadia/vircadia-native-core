@@ -16,7 +16,6 @@ Script.load("lobby.js");
 Script.load("notifications.js");
 Script.load("users.js");
 Script.load("grab.js");
-Script.load("pointer.js");
 Script.load("directory.js");
 Script.load("mouseLook.js");
 Script.load("hmdControls.js");

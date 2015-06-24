@@ -238,7 +238,7 @@ glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal) {
             float sd10 = previous[0][1] * previous[2][2] - previous[2][1] * previous[0][2];
             float sd20 = previous[0][1] * previous[1][2] - previous[1][1] * previous[0][2];
             float det = previous[0][0] * sd00 + previous[2][0] * sd20 - previous[1][0] * sd10;
-            if (fabs(det) == 0.0f) {
+            if (fabsf(det) == 0.0f) {
                 // determinant is zero; matrix is not invertible
                 break;
             }

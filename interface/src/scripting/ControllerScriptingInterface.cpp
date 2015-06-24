@@ -463,7 +463,7 @@ void ControllerScriptingInterface::resetDevice(unsigned int device) {
 }
 
 int ControllerScriptingInterface::findDevice(QString name) {
-    Application::getUserInputMapper()->findDevice(name);
+    return Application::getUserInputMapper()->findDevice(name);
 }
 
 InputController::InputController(int deviceTrackerId, int subTrackerId, QObject* parent) :

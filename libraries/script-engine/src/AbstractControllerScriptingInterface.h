@@ -107,6 +107,7 @@ signals:
 
     void mouseMoveEvent(const MouseEvent& event, unsigned int deviceID = 0);
     void mousePressEvent(const MouseEvent& event, unsigned int deviceID = 0);
+    void mouseDoublePressEvent(const MouseEvent& event, unsigned int deviceID = 0);
     void mouseReleaseEvent(const MouseEvent& event, unsigned int deviceID = 0);
 
     void touchBeginEvent(const TouchEvent& event);

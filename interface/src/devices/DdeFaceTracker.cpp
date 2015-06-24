@@ -415,7 +415,7 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         float browUp = _coefficients[_browUpCenterIndex];
         if (isFiltering) {
             const float BROW_VELOCITY_FILTER_STRENGTH = 0.5f;
-            float velocity = fabs(browUp - _lastBrowUp) / _averageMessageTime;
+            float velocity = fabsf(browUp - _lastBrowUp) / _averageMessageTime;
             float velocityFilter = glm::clamp(velocity * BROW_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f);
             _filteredBrowUp = velocityFilter * browUp + (1.0f - velocityFilter) * _filteredBrowUp;
             _lastBrowUp = browUp;
@@ -438,11 +438,12 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
 
         // Velocity filter EyeBlink values
         const float DDE_EYEBLINK_SCALE = 3.0f;
-        float eyeBlinks[] = { DDE_EYEBLINK_SCALE * _coefficients[_leftBlinkIndex], DDE_EYEBLINK_SCALE * _coefficients[_rightBlinkIndex] };
+        float eyeBlinks[] = { DDE_EYEBLINK_SCALE * _coefficients[_leftBlinkIndex],
+                              DDE_EYEBLINK_SCALE * _coefficients[_rightBlinkIndex] };
         if (isFiltering) {
             const float BLINK_VELOCITY_FILTER_STRENGTH = 0.3f;
             for (int i = 0; i < 2; i++) {
-                float velocity = fabs(eyeBlinks[i] - _lastEyeBlinks[i]) / _averageMessageTime;
+                float velocity = fabsf(eyeBlinks[i] - _lastEyeBlinks[i]) / _averageMessageTime;
                 float velocityFilter = glm::clamp(velocity * BLINK_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f);
                 _filteredEyeBlinks[i] = velocityFilter * eyeBlinks[i] + (1.0f - velocityFilter) * _filteredEyeBlinks[i];
                 _lastEyeBlinks[i] = eyeBlinks[i];
@@ -479,9 +480,9 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
                 if (_eyeStates[i] == EYE_CLOSING) {
                     // Close eyelid until it's fully closed
                     float closingValue = _lastEyeCoefficients[i] + EYELID_MOVEMENT_RATE * _averageMessageTime;
-                    if (closingValue >= 1.0) {
+                    if (closingValue >= 1.0f) {
                         _eyeStates[i] = EYE_CLOSED;
-                        eyeCoefficients[i] = 1.0;
+                        eyeCoefficients[i] = 1.0f;
                     } else {
                         eyeCoefficients[i] = closingValue;
                     }

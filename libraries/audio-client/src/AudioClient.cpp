@@ -33,10 +33,19 @@
 #include <QtMultimedia/QAudioInput>
 #include <QtMultimedia/QAudioOutput>
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#endif
+
 extern "C" {
     #include <gverb/gverb.h>
     #include <gverb/gverbdsp.h>
 }
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 #include <soxr.h>
 
@@ -786,6 +795,11 @@ void AudioClient::handleAudioInput() {
 
             delete[] inputAudioSamples;
 
+            //  Remove DC offset 
+            if (!_isStereoInput && !_audioSourceInjectEnabled) {
+                _inputGate.removeDCOffset(networkAudioSamples, numNetworkSamples);
+            }
+            
             // only impose the noise gate and perform tone injection if we are sending mono audio
             if (!_isStereoInput && !_audioSourceInjectEnabled && _isNoiseGateEnabled) {
                 _inputGate.gateSamples(networkAudioSamples, numNetworkSamples);
@@ -1011,7 +1025,10 @@ bool AudioClient::outputLocalInjector(bool isStereo, AudioInjector* injector) {
         localOutput->moveToThread(injector->getLocalBuffer()->thread());
 
         // have it be stopped when that local buffer is about to close
-        connect(injector->getLocalBuffer(), &AudioInjectorLocalBuffer::bufferEmpty, localOutput, &QAudioOutput::stop);
+        connect(localOutput, &QAudioOutput::stateChanged, this, &AudioClient::audioStateChanged);
+        connect(this, &AudioClient::audioFinished, localOutput, &QAudioOutput::stop);
+        connect(this, &AudioClient::audioFinished, injector, &AudioInjector::stop);
+
         connect(injector->getLocalBuffer(), &QIODevice::aboutToClose, localOutput, &QAudioOutput::stop);
 
         qCDebug(audioclient) << "Starting QAudioOutput for local injector" << localOutput;
@@ -1328,4 +1345,10 @@ void AudioClient::saveSettings() {
                                                     getWindowSecondsForDesiredCalcOnTooManyStarves());
     windowSecondsForDesiredReduction.set(_receivedAudioStream.getWindowSecondsForDesiredReduction());
     repetitionWithFade.set(_receivedAudioStream.getRepetitionWithFade());
+}
+
+void AudioClient::audioStateChanged(QAudio::State state) {
+    if (state == QAudio::IdleState) {
+        emit audioFinished();
+    }
 }

@@ -53,7 +53,7 @@ void UserInputMapper::resetDevice(uint16 deviceID) {
 
 int UserInputMapper::findDevice(QString name) {
     for (auto device : _registeredDevices) {
-        if (device.second->_name == name) {
+        if (device.second->_name.split(" (")[0] == name) {
             return device.first;
         }
     }

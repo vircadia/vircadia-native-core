@@ -22,10 +22,12 @@ Script.setTimeout(function() {
         type: "Model",
         modelURL: "https://hifi-public.s3.amazonaws.com/eric/models/stick.fbx",
         compoundShapeURL: "https://hifi-public.s3.amazonaws.com/eric/models/stick.obj",
-        dimensions: {x: .11, y: .11, z: .59},
+        dimensions: {x: .11, y: .11, z: 1.0},
         position: MyAvatar.getRightPalmPosition(), // initial position doesn't matter, as long as it's close
         rotation: MyAvatar.orientation,
         damping: .1,
+        collisionSoundURL: "http://public.highfidelity.io/sounds/Collisions-hitsandslaps/67LCollision07.wav",
+        restitution: 0.01,
         collisionsWillMove: true
     });
     actionID = Entities.addAction("hold", stickID, {relativePosition: {x: 0.0, y: 0.0, z: -0.9},

@@ -28,7 +28,7 @@ void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar delta
         return;
     }
     if (!_ownerEntity) {
-        qDebug() << "ObjectActionPullToPoint::updateAction no owner entity";
+        qDebug() << "ObjectAction::updateAction no owner entity";
         return;
     }
     updateActionWorker(deltaTimeStep);

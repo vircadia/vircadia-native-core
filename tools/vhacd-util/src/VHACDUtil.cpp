@@ -240,7 +240,7 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
                 continue;
             }
 
-            if (maximumMeshSize > 0.0 && largestDimension > maximumMeshSize) {
+            if (maximumMeshSize > 0.0f && largestDimension > maximumMeshSize) {
                 qDebug() << " Skipping (too large)...";
                 count++;
                 continue;

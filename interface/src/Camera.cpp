@@ -49,8 +49,6 @@ Camera::Camera() :
     _mode(CAMERA_MODE_THIRD_PERSON),
     _position(0.0f, 0.0f, 0.0f),
     _projection(glm::perspective(glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES), 16.0f/9.0f, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP)),
-    _hmdPosition(),
-    _hmdRotation(),
     _isKeepLookingAt(false),
     _lookingAt(0.0f, 0.0f, 0.0f)
 {
@@ -69,20 +67,6 @@ void Camera::setPosition(const glm::vec3& position) {
 
 void Camera::setRotation(const glm::quat& rotation) {
     _rotation = rotation; 
-    if (_isKeepLookingAt) {
-        lookAt(_lookingAt);
-    }
-}
-
-void Camera::setHmdPosition(const glm::vec3& hmdPosition) {
-    _hmdPosition = hmdPosition; 
-    if (_isKeepLookingAt) {
-        lookAt(_lookingAt);
-    }
-}
-
-void Camera::setHmdRotation(const glm::quat& hmdRotation) {
-    _hmdRotation = hmdRotation; 
     if (_isKeepLookingAt) {
         lookAt(_lookingAt);
     }

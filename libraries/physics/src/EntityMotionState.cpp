@@ -245,7 +245,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     
     float dx2 = glm::distance2(position, _serverPosition);
 
-    const float MAX_POSITION_ERROR_SQUARED = 0.001f; // 0.001 m^2 ~~> 0.03 m
+    const float MAX_POSITION_ERROR_SQUARED = 0.000004f; //  Sqrt() - corresponds to 2 millimeters
     if (dx2 > MAX_POSITION_ERROR_SQUARED) {
 
         #ifdef WANT_DEBUG
@@ -270,7 +270,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
             _serverRotation = glm::normalize(computeBulletRotationStep(_serverAngularVelocity, PHYSICS_ENGINE_FIXED_SUBSTEP) * _serverRotation);
         }
     }
-    const float MIN_ROTATION_DOT = 0.99f; // 0.99 dot threshold coresponds to about 16 degrees of slop
+    const float MIN_ROTATION_DOT = 0.99999f; // This corresponds to about 0.5 degrees of rotation
     glm::quat actualRotation = bulletToGLM(worldTrans.getRotation());
 
     #ifdef WANT_DEBUG

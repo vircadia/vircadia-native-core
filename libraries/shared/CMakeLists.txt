@@ -7,3 +7,4 @@ setup_hifi_library(Gui Network Script Widgets)
 add_dependency_external_projects(glm)
 find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
+

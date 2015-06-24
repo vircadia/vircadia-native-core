@@ -11,6 +11,7 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
+#include <DeferredLightingEffect.h>
 #include <GeometryCache.h>
 #include <GlowEffect.h>
 #include <SharedUtil.h>
@@ -75,20 +76,20 @@ void Circle3DOverlay::render(RenderArgs* args) {
 
     float alpha = getAlpha();
 
-    if (alpha == 0.0) {
+    if (alpha == 0.0f) {
         return; // do nothing if our alpha is 0, we're not visible
     }
-    
+
     // Create the circle in the coordinates origin
     float outerRadius = getOuterRadius();
     float innerRadius = getInnerRadius(); // only used in solid case
     float startAt = getStartAt();
     float endAt = getEndAt();
-    
+
     bool geometryChanged = (startAt != _lastStartAt || endAt != _lastEndAt ||
                                 innerRadius != _lastInnerRadius || outerRadius != _lastOuterRadius);
 
-    
+
     const float FULL_CIRCLE = 360.0f;
     const float SLICES = 180.0f;  // The amount of segment to create the circle
     const float SLICE_ANGLE = FULL_CIRCLE / SLICES;
@@ -101,195 +102,178 @@ void Circle3DOverlay::render(RenderArgs* args) {
     bool colorChanged = colorX.red != _lastColor.red || colorX.green != _lastColor.green || colorX.blue != _lastColor.blue;
     _lastColor = colorX;
 
-    glDisable(GL_LIGHTING);
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+
+    Transform transform;
+    transform.setTranslation(getCenter());
+    transform.setRotation(getRotation());
+    transform.setScale(glm::vec3(getDimensions(), 0.01f));
     
-    glm::vec3 position = getPosition();
-    glm::vec3 center = getCenter();
-    glm::vec2 dimensions = getDimensions();
-    glm::quat rotation = getRotation();
-
-    float glowLevel = getGlowLevel();
-    Glower* glower = NULL;
-    if (glowLevel > 0.0f) {
-        glower = new Glower(glowLevel);
-    }
-
-    glPushMatrix();
-        glTranslatef(position.x, position.y, position.z);
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-        glPushMatrix();
-            glm::vec3 positionToCenter = center - position;
-            glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-            glScalef(dimensions.x / 2.0f, dimensions.y / 2.0f, 1.0f);
-
-            glLineWidth(_lineWidth);
-
-            auto geometryCache = DependencyManager::get<GeometryCache>();
+    
+    auto& batch = *args->_batch;
+    batch._glLineWidth(_lineWidth);
+    batch.setModelTransform(transform);
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, false, false);
+    
+    // for our overlay, is solid means we draw a ring between the inner and outer radius of the circle, otherwise
+    // we just draw a line...
+    if (getIsSolid()) {
+        if (_quadVerticesID == GeometryCache::UNKNOWN_ID) {
+            _quadVerticesID = geometryCache->allocateID();
+        }
+        
+        if (geometryChanged || colorChanged) {
             
-            // for our overlay, is solid means we draw a ring between the inner and outer radius of the circle, otherwise
-            // we just draw a line...
-            if (getIsSolid()) {
-                if (_quadVerticesID == GeometryCache::UNKNOWN_ID) {
-                    _quadVerticesID = geometryCache->allocateID();
-                }
+            QVector<glm::vec2> points;
+            
+            float angle = startAt;
+            float angleInRadians = glm::radians(angle);
+            glm::vec2 firstInnerPoint(cosf(angleInRadians) * innerRadius, sinf(angleInRadians) * innerRadius);
+            glm::vec2 firstOuterPoint(cosf(angleInRadians) * outerRadius, sinf(angleInRadians) * outerRadius);
+            
+            points << firstInnerPoint << firstOuterPoint;
+            
+            while (angle < endAt) {
+                angleInRadians = glm::radians(angle);
+                glm::vec2 thisInnerPoint(cosf(angleInRadians) * innerRadius, sinf(angleInRadians) * innerRadius);
+                glm::vec2 thisOuterPoint(cosf(angleInRadians) * outerRadius, sinf(angleInRadians) * outerRadius);
                 
-                if (geometryChanged || colorChanged) {
-                    
-                    QVector<glm::vec2> points;
-
-                    float angle = startAt;
-                    float angleInRadians = glm::radians(angle);
-                    glm::vec2 firstInnerPoint(cos(angleInRadians) * innerRadius, sin(angleInRadians) * innerRadius);
-                    glm::vec2 firstOuterPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
-
-                    points << firstInnerPoint << firstOuterPoint;
-
-                    while (angle < endAt) {
-                        angleInRadians = glm::radians(angle);
-                        glm::vec2 thisInnerPoint(cos(angleInRadians) * innerRadius, sin(angleInRadians) * innerRadius);
-                        glm::vec2 thisOuterPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
-
-                        points << thisOuterPoint << thisInnerPoint;
+                points << thisOuterPoint << thisInnerPoint;
                 
-                        angle += SLICE_ANGLE;
-                    }
+                angle += SLICE_ANGLE;
+            }
             
-                    // get the last slice portion....
-                    angle = endAt;
-                    angleInRadians = glm::radians(angle);
-                    glm::vec2 lastInnerPoint(cos(angleInRadians) * innerRadius, sin(angleInRadians) * innerRadius);
-                    glm::vec2 lastOuterPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
+            // get the last slice portion....
+            angle = endAt;
+            angleInRadians = glm::radians(angle);
+            glm::vec2 lastInnerPoint(cosf(angleInRadians) * innerRadius, sinf(angleInRadians) * innerRadius);
+            glm::vec2 lastOuterPoint(cosf(angleInRadians) * outerRadius, sinf(angleInRadians) * outerRadius);
             
-                    points << lastOuterPoint << lastInnerPoint;
-
-                    geometryCache->updateVertices(_quadVerticesID, points, color);
-                }
+            points << lastOuterPoint << lastInnerPoint;
+            
+            geometryCache->updateVertices(_quadVerticesID, points, color);
+        }
+        
+        geometryCache->renderVertices(batch, gpu::QUAD_STRIP, _quadVerticesID);
+        
+    } else {
+        if (_lineVerticesID == GeometryCache::UNKNOWN_ID) {
+            _lineVerticesID = geometryCache->allocateID();
+        }
+        
+        if (geometryChanged || colorChanged) {
+            QVector<glm::vec2> points;
+            
+            float angle = startAt;
+            float angleInRadians = glm::radians(angle);
+            glm::vec2 firstPoint(cosf(angleInRadians) * outerRadius, sinf(angleInRadians) * outerRadius);
+            points << firstPoint;
+            
+            while (angle < endAt) {
+                angle += SLICE_ANGLE;
+                angleInRadians = glm::radians(angle);
+                glm::vec2 thisPoint(cosf(angleInRadians) * outerRadius, sinf(angleInRadians) * outerRadius);
+                points << thisPoint;
                 
-                geometryCache->renderVertices(gpu::QUAD_STRIP, _quadVerticesID);
-
-            } else {
-                if (_lineVerticesID == GeometryCache::UNKNOWN_ID) {
-                    _lineVerticesID = geometryCache->allocateID();
-                }
-
-                if (geometryChanged || colorChanged) {
-                    QVector<glm::vec2> points;
-                    
-                    float angle = startAt;
-                    float angleInRadians = glm::radians(angle);
-                    glm::vec2 firstPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
-                    points << firstPoint;
-
-                    while (angle < endAt) {
-                        angle += SLICE_ANGLE;
-                        angleInRadians = glm::radians(angle);
-                        glm::vec2 thisPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
-                        points << thisPoint;
-
-                        if (getIsDashedLine()) {
-                            angle += SLICE_ANGLE / 2.0f; // short gap
-                            angleInRadians = glm::radians(angle);
-                            glm::vec2 dashStartPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
-                            points << dashStartPoint;
-                        }
-                    }
-            
-                    // get the last slice portion....
-                    angle = endAt;
-                    angleInRadians = glm::radians(angle);
-                    glm::vec2 lastPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
-                    points << lastPoint;
-
-                    geometryCache->updateVertices(_lineVerticesID, points, color);
-                }
-
                 if (getIsDashedLine()) {
-                    geometryCache->renderVertices(gpu::LINES, _lineVerticesID);
-                } else {
-                    geometryCache->renderVertices(gpu::LINE_STRIP, _lineVerticesID);
+                    angle += SLICE_ANGLE / 2.0f; // short gap
+                    angleInRadians = glm::radians(angle);
+                    glm::vec2 dashStartPoint(cosf(angleInRadians) * outerRadius, sinf(angleInRadians) * outerRadius);
+                    points << dashStartPoint;
                 }
             }
             
-            // draw our tick marks
-            // for our overlay, is solid means we draw a ring between the inner and outer radius of the circle, otherwise
-            // we just draw a line...
-            if (getHasTickMarks()) {
-
-                if (_majorTicksVerticesID == GeometryCache::UNKNOWN_ID) {
-                    _majorTicksVerticesID = geometryCache->allocateID();
+            // get the last slice portion....
+            angle = endAt;
+            angleInRadians = glm::radians(angle);
+            glm::vec2 lastPoint(cosf(angleInRadians) * outerRadius, sinf(angleInRadians) * outerRadius);
+            points << lastPoint;
+            
+            geometryCache->updateVertices(_lineVerticesID, points, color);
+        }
+        
+        if (getIsDashedLine()) {
+            geometryCache->renderVertices(batch, gpu::LINES, _lineVerticesID);
+        } else {
+            geometryCache->renderVertices(batch, gpu::LINE_STRIP, _lineVerticesID);
+        }
+    }
+    
+    // draw our tick marks
+    // for our overlay, is solid means we draw a ring between the inner and outer radius of the circle, otherwise
+    // we just draw a line...
+    if (getHasTickMarks()) {
+        
+        if (_majorTicksVerticesID == GeometryCache::UNKNOWN_ID) {
+            _majorTicksVerticesID = geometryCache->allocateID();
+        }
+        if (_minorTicksVerticesID == GeometryCache::UNKNOWN_ID) {
+            _minorTicksVerticesID = geometryCache->allocateID();
+        }
+        
+        if (geometryChanged) {
+            QVector<glm::vec2> majorPoints;
+            QVector<glm::vec2> minorPoints;
+            
+            // draw our major tick marks
+            if (getMajorTickMarksAngle() > 0.0f && getMajorTickMarksLength() != 0.0f) {
+                
+                float tickMarkAngle = getMajorTickMarksAngle();
+                float angle = startAt - fmodf(startAt, tickMarkAngle) + tickMarkAngle;
+                float angleInRadians = glm::radians(angle);
+                float tickMarkLength = getMajorTickMarksLength();
+                float startRadius = (tickMarkLength > 0.0f) ? innerRadius : outerRadius;
+                float endRadius = startRadius + tickMarkLength;
+                
+                while (angle <= endAt) {
+                    angleInRadians = glm::radians(angle);
+                    
+                    glm::vec2 thisPointA(cosf(angleInRadians) * startRadius, sinf(angleInRadians) * startRadius);
+                    glm::vec2 thisPointB(cosf(angleInRadians) * endRadius, sinf(angleInRadians) * endRadius);
+                    
+                    majorPoints << thisPointA << thisPointB;
+                    
+                    angle += tickMarkAngle;
                 }
-                if (_minorTicksVerticesID == GeometryCache::UNKNOWN_ID) {
-                    _minorTicksVerticesID = geometryCache->allocateID();
-                }
-
-                if (geometryChanged) {
-                    QVector<glm::vec2> majorPoints;
-                    QVector<glm::vec2> minorPoints;
-
-                    // draw our major tick marks
-                    if (getMajorTickMarksAngle() > 0.0f && getMajorTickMarksLength() != 0.0f) {
-                
-                        float tickMarkAngle = getMajorTickMarksAngle();
-                        float angle = startAt - fmod(startAt, tickMarkAngle) + tickMarkAngle; 
-                        float angleInRadians = glm::radians(angle);
-                        float tickMarkLength = getMajorTickMarksLength();
-                        float startRadius = (tickMarkLength > 0.0f) ? innerRadius : outerRadius;
-                        float endRadius = startRadius + tickMarkLength;
-
-                        while (angle <= endAt) {
-                            angleInRadians = glm::radians(angle);
-
-                            glm::vec2 thisPointA(cos(angleInRadians) * startRadius, sin(angleInRadians) * startRadius);
-                            glm::vec2 thisPointB(cos(angleInRadians) * endRadius, sin(angleInRadians) * endRadius);
-
-                            majorPoints << thisPointA << thisPointB;
-                
-                            angle += tickMarkAngle;
-                        }
-                    }
-
-                    // draw our minor tick marks
-                    if (getMinorTickMarksAngle() > 0.0f && getMinorTickMarksLength() != 0.0f) {
-                
-                        float tickMarkAngle = getMinorTickMarksAngle();
-                        float angle = startAt - fmod(startAt, tickMarkAngle) + tickMarkAngle; 
-                        float angleInRadians = glm::radians(angle);
-                        float tickMarkLength = getMinorTickMarksLength();
-                        float startRadius = (tickMarkLength > 0.0f) ? innerRadius : outerRadius;
-                        float endRadius = startRadius + tickMarkLength;
-
-                        while (angle <= endAt) {
-                            angleInRadians = glm::radians(angle);
-
-                            glm::vec2 thisPointA(cos(angleInRadians) * startRadius, sin(angleInRadians) * startRadius);
-                            glm::vec2 thisPointB(cos(angleInRadians) * endRadius, sin(angleInRadians) * endRadius);
-
-                            minorPoints << thisPointA << thisPointB;
-                
-                            angle += tickMarkAngle;
-                        }
-                    }
-
-                    xColor majorColorX = getMajorTickMarksColor();
-                    glm::vec4 majorColor(majorColorX.red / MAX_COLOR, majorColorX.green / MAX_COLOR, majorColorX.blue / MAX_COLOR, alpha);
-
-                    geometryCache->updateVertices(_majorTicksVerticesID, majorPoints, majorColor);
-
-                    xColor minorColorX = getMinorTickMarksColor();
-                    glm::vec4 minorColor(minorColorX.red / MAX_COLOR, minorColorX.green / MAX_COLOR, minorColorX.blue / MAX_COLOR, alpha);
-
-                    geometryCache->updateVertices(_minorTicksVerticesID, minorPoints, minorColor);
-                }
-
-                geometryCache->renderVertices(gpu::LINES, _majorTicksVerticesID);
-
-                geometryCache->renderVertices(gpu::LINES, _minorTicksVerticesID);
             }
             
- 
-        glPopMatrix();
-    glPopMatrix();
+            // draw our minor tick marks
+            if (getMinorTickMarksAngle() > 0.0f && getMinorTickMarksLength() != 0.0f) {
+                
+                float tickMarkAngle = getMinorTickMarksAngle();
+                float angle = startAt - fmodf(startAt, tickMarkAngle) + tickMarkAngle;
+                float angleInRadians = glm::radians(angle);
+                float tickMarkLength = getMinorTickMarksLength();
+                float startRadius = (tickMarkLength > 0.0f) ? innerRadius : outerRadius;
+                float endRadius = startRadius + tickMarkLength;
+                
+                while (angle <= endAt) {
+                    angleInRadians = glm::radians(angle);
+                    
+                    glm::vec2 thisPointA(cosf(angleInRadians) * startRadius, sinf(angleInRadians) * startRadius);
+                    glm::vec2 thisPointB(cosf(angleInRadians) * endRadius, sinf(angleInRadians) * endRadius);
+                    
+                    minorPoints << thisPointA << thisPointB;
+                    
+                    angle += tickMarkAngle;
+                }
+            }
+            
+            xColor majorColorX = getMajorTickMarksColor();
+            glm::vec4 majorColor(majorColorX.red / MAX_COLOR, majorColorX.green / MAX_COLOR, majorColorX.blue / MAX_COLOR, alpha);
+            
+            geometryCache->updateVertices(_majorTicksVerticesID, majorPoints, majorColor);
+            
+            xColor minorColorX = getMinorTickMarksColor();
+            glm::vec4 minorColor(minorColorX.red / MAX_COLOR, minorColorX.green / MAX_COLOR, minorColorX.blue / MAX_COLOR, alpha);
+            
+            geometryCache->updateVertices(_minorTicksVerticesID, minorPoints, minorColor);
+        }
+        
+        geometryCache->renderVertices(batch, gpu::LINES, _majorTicksVerticesID);
+        
+        geometryCache->renderVertices(batch, gpu::LINES, _minorTicksVerticesID);
+    }
     
     if (geometryChanged) {
         _lastStartAt = startAt;
@@ -297,15 +281,11 @@ void Circle3DOverlay::render(RenderArgs* args) {
         _lastInnerRadius = innerRadius;
         _lastOuterRadius = outerRadius;
     }
-    
-    if (glower) {
-        delete glower;
-    }
 }
 
 void Circle3DOverlay::setProperties(const QScriptValue &properties) {
     Planar3DOverlay::setProperties(properties);
-    
+
     QScriptValue startAt = properties.property("startAt");
     if (startAt.isValid()) {
         setStartAt(startAt.toVariant().toFloat());
@@ -415,7 +395,7 @@ QScriptValue Circle3DOverlay::getProperty(const QString& property) {
 }
 
 
-bool Circle3DOverlay::findRayIntersection(const glm::vec3& origin, 
+bool Circle3DOverlay::findRayIntersection(const glm::vec3& origin,
                                 const glm::vec3& direction, float& distance, BoxFace& face) {
 
     bool intersects = Planar3DOverlay::findRayIntersection(origin, direction, distance, face);

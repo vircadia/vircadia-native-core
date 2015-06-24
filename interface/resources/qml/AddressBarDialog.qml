@@ -30,6 +30,7 @@ DialogContainer {
     property int maximumX: parent ? parent.width - width : 0
     property int maximumY: parent ? parent.height - height : 0
 
+
     AddressBarDialog {
         id: addressBarDialog
 
@@ -44,28 +45,6 @@ DialogContainer {
             height: 80 * root.scale
             property int inputAreaHeight: 56.0 * root.scale  // Height of the background's input area
             property int inputAreaStep: (height - inputAreaHeight) / 2
-
-            TextInput {
-                id: addressLine
-
-                anchors {
-                    fill: parent
-                    leftMargin: parent.height + hifi.layout.spacing * 2
-                    rightMargin: hifi.layout.spacing * 2
-                    topMargin: parent.inputAreaStep + hifi.layout.spacing
-                    bottomMargin: parent.inputAreaStep + hifi.layout.spacing
-
-                }
-
-                font.pixelSize: hifi.fonts.pixelSize * root.scale
-
-                helperText: "Go to: place, @user, /path, network address"
-
-                onAccepted: {
-                    event.accepted = true  // Generates erroneous error in program log, "ReferenceError: event is not defined".
-                    addressBarDialog.loadAddress(addressLine.text)
-                }
-            }
 
             MouseArea {
                 // Drag the icon
@@ -96,6 +75,73 @@ DialogContainer {
                     maximumY: root.parent ? root.maximumY + parent.inputAreaStep : 0
                 }
             }
+
+            Image {
+                id: backArrow
+
+                source: addressBarDialog.backEnabled ? "../images/left-arrow.svg" : "../images/redarrow_reversed.svg"
+                
+                anchors {
+                    fill: parent
+                    leftMargin: parent.height + hifi.layout.spacing + 6
+                    rightMargin: parent.height + hifi.layout.spacing * 60
+                    topMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
+                    bottomMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton
+                    onClicked: {  
+                        addressBarDialog.loadBack()
+                    }
+                }
+            }
+            
+            Image {
+                id: forwardArrow
+
+                source: addressBarDialog.forwardEnabled ? "../images/right-arrow.svg" : "../images/redarrow.svg"
+                
+                anchors {
+                    fill: parent
+                    leftMargin: parent.height + hifi.layout.spacing * 9
+                    rightMargin: parent.height + hifi.layout.spacing * 53
+                    topMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
+                    bottomMargin: parent.inputAreaStep + parent.inputAreaStep + hifi.layout.spacing
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton
+                    onClicked: {
+                        addressBarDialog.loadForward()
+                    }
+                }
+            }
+
+            TextInput {
+                id: addressLine
+
+                anchors {
+                    fill: parent
+                    leftMargin: parent.height + parent.height + hifi.layout.spacing * 5
+                    rightMargin: hifi.layout.spacing * 2
+                    topMargin: parent.inputAreaStep + hifi.layout.spacing
+                    bottomMargin: parent.inputAreaStep + hifi.layout.spacing
+
+                }
+
+                font.pixelSize: hifi.fonts.pixelSize * root.scale * 0.75
+
+                helperText: "Go to: place, @user, /path, network address"
+
+                onAccepted: {
+                    event.accepted = true  // Generates erroneous error in program log, "ReferenceError: event is not defined".
+                    addressBarDialog.loadAddress(addressLine.text)
+                }
+            }
+
         }
     }
 

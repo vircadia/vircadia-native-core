@@ -61,15 +61,26 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     gpu::Shader::BindingSet slotBindings;
     gpu::Shader::makeProgram(*program, slotBindings);
     gpu::Shader::makeProgram(*programTextured, slotBindings);
-
+    
     gpu::StatePointer state = gpu::StatePointer(new gpu::State());
     state->setCullMode(gpu::State::CULL_BACK);
     state->setDepthTest(true, true, gpu::LESS_EQUAL);
     state->setBlendFunction(false,
                             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+    
+    
+    gpu::StatePointer stateCullNone = gpu::StatePointer(new gpu::State());
+    stateCullNone->setCullMode(gpu::State::CULL_NONE);
+    stateCullNone->setDepthTest(true, true, gpu::LESS_EQUAL);
+    stateCullNone->setBlendFunction(false,
+                            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+    
     _simpleProgram = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+    _simpleProgramCullNone = gpu::PipelinePointer(gpu::Pipeline::create(program, stateCullNone));
     _simpleProgramTextured = gpu::PipelinePointer(gpu::Pipeline::create(programTextured, state));
+    _simpleProgramTexturedCullNone = gpu::PipelinePointer(gpu::Pipeline::create(programTextured, stateCullNone));
 
     _viewState = viewState;
     loadLightProgram(directional_light_frag, false, _directionalLight, _directionalLightLocations);
@@ -106,13 +117,21 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset(_ambientLightMode % gpu::SphericalHarmonics::NUM_PRESET));
 }
 
-void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured) {
+void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled) {
   // DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(batch, true, true, true);
     
     if (textured) {
-        batch.setPipeline(_simpleProgramTextured);
+        if (culled) {
+            batch.setPipeline(_simpleProgramTextured);
+        } else {
+            batch.setPipeline(_simpleProgramTexturedCullNone);
+        }
     } else {
-        batch.setPipeline(_simpleProgram);
+        if (culled) {
+            batch.setPipeline(_simpleProgram);
+        } else {
+            batch.setPipeline(_simpleProgramCullNone);
+        }
     }
 }
 
@@ -191,7 +210,7 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
     }
 }
 
-void DeferredLightingEffect::prepare() {
+void DeferredLightingEffect::prepare(RenderArgs* args) {
     // clear the normal and specular buffers
     auto textureCache = DependencyManager::get<TextureCache>();
     textureCache->setPrimaryDrawBuffers(false, true, false);
@@ -205,7 +224,7 @@ void DeferredLightingEffect::prepare() {
     textureCache->setPrimaryDrawBuffers(true, false, false);
 }
 
-void DeferredLightingEffect::render() {
+void DeferredLightingEffect::render(RenderArgs* args) {
     // perform deferred lighting, rendering to free fbo
     glDisable(GL_BLEND);
     glDisable(GL_LIGHTING);
