@@ -64,8 +64,8 @@ void MovingMinMaxAvgTests::testQuint64() {
         QCOMPARE(stats.getMin(), min);
         QCOMPARE(stats.getMax(), max);
         
-        QFUZZY_COMPARE((float) stats.getAverage() / (float) average, 1.0f, EPSILON);
-        QFUZZY_COMPARE((float) stats.getAverage(), (float) average, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR((float) stats.getAverage() / (float) average, 1.0f, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR((float) stats.getAverage(), (float) average, EPSILON);
         
 //        QCOMPARE(fabsf(
 //                       (float)stats.getAverage() / (float)average - 1.0f

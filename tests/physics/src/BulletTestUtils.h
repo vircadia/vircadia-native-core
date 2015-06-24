@@ -14,7 +14,7 @@
 // Implements functionality in QTestExtensions.hpp for glm types
 // There are 3 functions in here (which need to be defined for all types that use them):
 //
-// - fuzzyCompare (const T &, const T &) -> V                   (used by QFUZZY_COMPARE)
+// - getErrorDifference (const T &, const T &) -> V                   (used by QCOMPARE_WITH_ABS_ERROR)
 // - operator <<  (QTextStream &, const T &) -> QTextStream &   (used by all (additional) test macros)
 // - errorTest (const T &, const T &, V) -> std::function<bool()>
 //      (used by QCOMPARE_WITH_RELATIVE_ERROR via QCOMPARE_WITH_LAMBDA)
@@ -24,15 +24,15 @@
 // fuzzy compare (this is a distance function, basically)
 //
 
-inline btScalar fuzzyCompare(const btScalar & a, const btScalar & b) {
+inline btScalar getErrorDifference(const btScalar & a, const btScalar & b) {
     return fabs(a - b);
 }
-inline btScalar fuzzyCompare(const btVector3 & a, const btVector3 & b)
+inline btScalar getErrorDifference(const btVector3 & a, const btVector3 & b)
 {
     return (a - b).length();
 }
 // Matrices are compared element-wise -- if the error value for any element > epsilon, then fail
-inline btScalar fuzzyCompare (const btMatrix3x3 & a, const btMatrix3x3 & b) {
+inline btScalar getErrorDifference (const btMatrix3x3 & a, const btMatrix3x3 & b) {
     btScalar maxDiff   = 0;
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 3; ++j) {

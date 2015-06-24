@@ -21,9 +21,9 @@ private slots:
     void testConeRollerConstraint();
 };
 
-// Use QFUZZY_COMPARE and define it for glm::quat
+// Use QCOMPARE_WITH_ABS_ERROR and define it for glm::quat
 #include <glm/glm.hpp>
-float fuzzyCompare (const glm::quat & a, const glm::quat & b);
+float getErrorDifference (const glm::quat & a, const glm::quat & b);
 QTextStream & operator << (QTextStream & stream, const glm::quat & q);
 #include "../QTestExtensions.hpp"
 

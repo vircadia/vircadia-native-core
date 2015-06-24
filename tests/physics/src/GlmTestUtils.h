@@ -14,7 +14,7 @@
 
 // Implements functionality in QTestExtensions.hpp for glm types
 
-inline float fuzzyCompare(const glm::vec3 & a, const glm::vec3 & b) {
+inline float getErrorDifference(const glm::vec3 & a, const glm::vec3 & b) {
     return glm::distance(a, b);
 }
 inline QTextStream & operator << (QTextStream & stream, const glm::vec3 & v) {

@@ -24,8 +24,8 @@
 // - QFAIL takes a const char * failure message, and writing custom messages to it is complicated.
 //
 // To solve this, we have:
-// - QFUZZY_COMPARE (compares floats, or *any other type* using explicitely defined error thresholds.
-// To use it, you need to have a fuzzyCompare function ((T, T) -> V), and operator << for QTextStream).
+// - QCOMPARE_WITH_ABS_ERROR (compares floats, or *any other type* using explicitely defined error thresholds.
+// To use it, you need to have a compareWithAbsError function ((T, T) -> V), and operator << for QTextStream).
 // - QFAIL_WITH_MESSAGE("some " << streamed << " message"), which builds, writes to, and stringifies
 // a QTextStream using black magic.
 // - QCOMPARE_WITH_LAMBDA / QCOMPARE_WITH_FUNCTION, which implements QCOMPARE, but with a user-defined
@@ -156,16 +156,16 @@ inline void QTest_failWithMessage(
     QTest::qFail(qPrintable(QTest_generateCompareFailureMessage(failMessage, actual, expected, actualExpr, expectedExpr, writeAdditionalMessageLines)), file, line);
 }
 
-// Implements QFUZZY_COMPARE
+// Implements QCOMPARE_WITH_ABS_ERROR
 template <typename T, typename V>
-inline auto QTest_fuzzyCompare(const T & actual, const T & expected, const char * actual_expr, const char * expected_expr, int line, const char * file, const V & epsilon) -> decltype(fuzzyCompare(actual, expected))
+inline bool QTest_compareWithAbsError(const T & actual, const T & expected, const char * actual_expr, const char * expected_expr, int line, const char * file, const V & epsilon)
 {
-    if (fuzzyCompare(actual, expected) > epsilon) {
+    if (getErrorDifference(actual, expected) > epsilon) {
         QTest_failWithMessage(
             "Compared values are not the same (fuzzy compare)",
             actual, expected, actual_expr, expected_expr, line, file,
             [&] (QTextStream & stream) -> QTextStream & {
-                return stream << "Err tolerance: " << fuzzyCompare((actual), (expected)) << " > " << epsilon;
+                return stream << "Err tolerance: " << getErrorDifference((actual), (expected)) << " > " << epsilon;
             });
         return false;
     }
@@ -174,20 +174,20 @@ inline auto QTest_fuzzyCompare(const T & actual, const T & expected, const char 
 
 // Implements a fuzzy QCOMPARE using an explicit epsilon error value.
 // If you use this, you must have the following functions defined for the types you're using:
-//  <T, V>  V fuzzyCompare (const T& a, const T& b)         (should return the absolute, max difference between a and b)
+//  <T, V>  V compareWithAbsError (const T& a, const T& b)         (should return the absolute, max difference between a and b)
 //  <T>     QTextStream & operator << (QTextStream& stream, const T& value)
 //
 // Here's an implementation for glm::vec3:
-//  inline  float  fuzzyCompare (const glm::vec3 & a, const glm::vec3 & b) {    // returns
+//  inline  float  compareWithAbsError (const glm::vec3 & a, const glm::vec3 & b) {    // returns
 //      return glm::distance(a, b);
 //  }
 //  inline QTextStream & operator << (QTextStream & stream, const T & v) {
 //      return stream << "glm::vec3 { " << v.x << ", " << v.y << ", " << v.z << " }"
 //  }
 //
-#define QFUZZY_COMPARE(actual, expected, epsilon) \
+#define QCOMPARE_WITH_ABS_ERROR(actual, expected, epsilon) \
 do { \
-    if (!QTest_fuzzyCompare(actual, expected, #actual, #expected, __LINE__, __FILE__, epsilon)) \
+    if (!QTest_compareWithAbsError(actual, expected, #actual, #expected, __LINE__, __FILE__, epsilon)) \
         return; \
 } while(0)
 

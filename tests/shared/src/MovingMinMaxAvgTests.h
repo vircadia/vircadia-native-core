@@ -14,7 +14,7 @@
 
 #include <QtTest/QtTest>
 
-inline float fuzzyCompare (float a, float b) {
+inline float getErrorDifference (float a, float b) {
     return fabsf(a - b);
 }
 

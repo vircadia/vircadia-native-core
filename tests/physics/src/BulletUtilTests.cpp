@@ -72,5 +72,5 @@ void BulletUtilTests::fromGLMToBullet() {
 //    glm::vec3 b { 2, 0, 5 };
 //    
 ////    QCOMPARE(10, 22);
-//    QFUZZY_COMPARE(a, b, 1.0f);
+//    QCOMPARE_WITH_ABS_ERROR(a, b, 1.0f);
 //}

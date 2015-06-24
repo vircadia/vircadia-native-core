@@ -76,7 +76,7 @@ void MeshMassPropertiesTests::testParallelAxisTheorem() {
 //    btScalar error;
 //    for (int i = 0; i < 3; ++i) {
 //        for (int j = 0; j < 3; ++j) {
-//            QFUZZY_COMPARE(bitBoxInertia[i][j], twoSmallBoxesInertia[i][j], acceptableAbsoluteError);
+//            QCOMPARE_WITH_ABS_ERROR(bitBoxInertia[i][j], twoSmallBoxesInertia[i][j], acceptableAbsoluteError);
 ////            error = bitBoxInertia[i][j] - twoSmallBoxesInertia[i][j];
 ////            if (fabsf(error) > acceptableAbsoluteError) {
 ////                std::cout << __FILE__ << ":" << __LINE__ << " ERROR : box inertia[" << i << "][" << j << "] off by = "
@@ -88,8 +88,8 @@ void MeshMassPropertiesTests::testParallelAxisTheorem() {
     // Try commenting this out to see what happens when the test fails
 //    twoSmallBoxesInertia[0][2] += 10;
     
-    // This now does the same as the above (using the maxDiff fuzzyCompare impl for two btMatrices)
-    QFUZZY_COMPARE(bitBoxInertia, twoSmallBoxesInertia, acceptableAbsoluteError);
+    // This now does the same as the above (using the maxDiff getErrorDifference impl for two btMatrices)
+    QCOMPARE_WITH_ABS_ERROR(bitBoxInertia, twoSmallBoxesInertia, acceptableAbsoluteError);
     
 //#ifdef VERBOSE_UNIT_TESTS
 //    printMatrix("expected inertia", bitBoxInertia);
@@ -144,9 +144,9 @@ void MeshMassPropertiesTests::testTetrahedron(){
     // then fabsf(error) > acceptableRelativeError == fabsf(volume - expectedVolume) > err
     //    where err = acceptableRelativeError * expectedVolume
     
-    QFUZZY_COMPARE(volume, expectedVolume, acceptableRelativeError * volume);
+    QCOMPARE_WITH_ABS_ERROR(volume, expectedVolume, acceptableRelativeError * volume);
     
-    // pseudo-hack -- error value is calculated per-element, so QFUZZY_COMPARE will not work.
+    // pseudo-hack -- error value is calculated per-element, so QCOMPARE_WITH_ABS_ERROR will not work.
     // QCOMPARE_WITH_FUNCTION and QCOMPARE_WITH_LAMBDA lets you get around this by writing
     // a custom function to do the actual comparison; printing, etc is done automatically.
     auto testFunc = [&inertia, &expectedInertia] () {
@@ -228,7 +228,7 @@ void MeshMassPropertiesTests::testOpenTetrahedonMesh() {
 
     // verify
     // (expected - actual) / expected > e   ==>  expected - actual  >  e * expected
-    QFUZZY_COMPARE(mesh._volume, expectedVolume, acceptableRelativeError * expectedVolume);
+    QCOMPARE_WITH_ABS_ERROR(mesh._volume, expectedVolume, acceptableRelativeError * expectedVolume);
     
     
     
@@ -239,7 +239,7 @@ void MeshMassPropertiesTests::testOpenTetrahedonMesh() {
 //    }
 
     
-    QFUZZY_COMPARE(mesh._centerOfMass, expectedCenterOfMass, acceptableAbsoluteError);
+    QCOMPARE_WITH_ABS_ERROR(mesh._centerOfMass, expectedCenterOfMass, acceptableAbsoluteError);
     
 //    error = (mesh._centerOfMass - expectedCenterOfMass).length();
 //    if (fabsf(error) > acceptableAbsoluteError) {
@@ -306,7 +306,7 @@ void MeshMassPropertiesTests::testClosedTetrahedronMesh() {
     MeshMassProperties mesh(points, triangles);
 
     // verify
-    QFUZZY_COMPARE(mesh._volume, expectedVolume, acceptableRelativeError);
+    QCOMPARE_WITH_ABS_ERROR(mesh._volume, expectedVolume, acceptableRelativeError);
 //    btScalar error;
 //    error = (mesh._volume - expectedVolume) / expectedVolume;
 //    if (fabsf(error) > acceptableRelativeError) {
@@ -315,7 +315,7 @@ void MeshMassPropertiesTests::testClosedTetrahedronMesh() {
 //    }
 
     
-    QFUZZY_COMPARE(mesh._centerOfMass, expectedCenterOfMass, acceptableAbsoluteError);
+    QCOMPARE_WITH_ABS_ERROR(mesh._centerOfMass, expectedCenterOfMass, acceptableAbsoluteError);
 //    error = (mesh._centerOfMass - expectedCenterOfMass).length();
 //    if (fabsf(error) > acceptableAbsoluteError) {
 //        std::cout << __FILE__ << ":" << __LINE__ << " ERROR : centerOfMass of tetrahedron off by = "
@@ -352,14 +352,14 @@ void MeshMassPropertiesTests::testClosedTetrahedronMesh() {
     mesh.computeMassProperties(points, triangles);
 
     // verify
-//    QFUZZY_COMPARE(mesh._volume, expectedVolume, acceptableRelativeError * expectedVolume);
+//    QCOMPARE_WITH_ABS_ERROR(mesh._volume, expectedVolume, acceptableRelativeError * expectedVolume);
 ////    error = (mesh._volume - expectedVolume) / expectedVolume;
 ////    if (fabsf(error) > acceptableRelativeError) {
 ////        std::cout << __FILE__ << ":" << __LINE__ << " ERROR : volume of tetrahedron off by = "
 ////            << error << std::endl;
 ////    }
 //
-//    QFUZZY_COMPARE(mesh._centerOfMass, expectedCenterOfMass, acceptableAbsoluteError);
+//    QCOMPARE_WITH_ABS_ERROR(mesh._centerOfMass, expectedCenterOfMass, acceptableAbsoluteError);
 ////    error = (mesh._centerOfMass - expectedCenterOfMass).length();
 ////    if (fabsf(error) > acceptableAbsoluteError) {
 ////        std::cout << __FILE__ << ":" << __LINE__ << " ERROR : centerOfMass of tetrahedron off by = "
@@ -448,7 +448,7 @@ void MeshMassPropertiesTests::testBoxAsMesh() {
 
     // verify
     
-    QFUZZY_COMPARE(mesh._volume, expectedVolume, acceptableRelativeError * expectedVolume);
+    QCOMPARE_WITH_ABS_ERROR(mesh._volume, expectedVolume, acceptableRelativeError * expectedVolume);
 //    btScalar error;
 //    error = (mesh._volume - expectedVolume) / expectedVolume;
 //    if (fabsf(error) > acceptableRelativeError) {
@@ -456,7 +456,7 @@ void MeshMassPropertiesTests::testBoxAsMesh() {
 //            << error << std::endl;
 //    }
 
-    QFUZZY_COMPARE(mesh._centerOfMass, expectedCenterOfMass, acceptableAbsoluteError);
+    QCOMPARE_WITH_ABS_ERROR(mesh._centerOfMass, expectedCenterOfMass, acceptableAbsoluteError);
 //    error = (mesh._centerOfMass - expectedCenterOfMass).length();
 //    if (fabsf(error) > acceptableAbsoluteError) {
 //        std::cout << __FILE__ << ":" << __LINE__ << " ERROR : centerOfMass of tetrahedron off by = "
@@ -465,7 +465,7 @@ void MeshMassPropertiesTests::testBoxAsMesh() {
 
     
     // do this twice to avoid divide-by-zero?
-    QFUZZY_COMPARE(mesh._inertia, expectedInertia, acceptableAbsoluteError);
+    QCOMPARE_WITH_ABS_ERROR(mesh._inertia, expectedInertia, acceptableAbsoluteError);
     QCOMPARE_WITH_RELATIVE_ERROR(mesh._inertia, expectedInertia, acceptableRelativeError);
 //    for (int i = 0; i < 3; ++i) {
 //        for (int j = 0; j < 3; ++j) {

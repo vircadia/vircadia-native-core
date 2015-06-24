@@ -21,7 +21,7 @@
 QTEST_MAIN(AngularConstraintTests)
 
 // Computes the error value between two quaternions (using glm::dot)
-float fuzzyCompare(const glm::quat & a, const glm::quat & b) {
+float getErrorDifference(const glm::quat & a, const glm::quat & b) {
     return fabsf(glm::dot(a, b) - 1.0f);
 }
 QTextStream & operator << (QTextStream & stream, const glm::quat & q) {
@@ -77,7 +77,7 @@ void AngularConstraintTests::testHingeConstraint() {
         
         QVERIFY2(constrained, "HingeConstraint should clamp()");
         QVERIFY2(newRotation != rotation, "HingeConstraint should change rotation");
-        QFUZZY_COMPARE(newRotation, expectedRotation, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, EPSILON);
     }
     {   // test just outside max edge of constraint
         float angle = maxAngle + 0.001f;
@@ -88,7 +88,7 @@ void AngularConstraintTests::testHingeConstraint() {
         
         QVERIFY2(constrained, "HingeConstraint should clamp()");
         QVERIFY2(newRotation != rotation, "HingeConstraint should change rotation");
-        QFUZZY_COMPARE(newRotation, rotation, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(newRotation, rotation, EPSILON);
     }
     {   // test far outside min edge of constraint (wraps around to max)
         float angle = minAngle - 0.75f * (TWO_PI - (maxAngle - minAngle));
@@ -100,7 +100,7 @@ void AngularConstraintTests::testHingeConstraint() {
         glm::quat expectedRotation = glm::angleAxis(maxAngle, yAxis);
         QVERIFY2(constrained, "HingeConstraint should clamp()");
         QVERIFY2(newRotation != rotation, "HingeConstraint should change rotation");
-        QFUZZY_COMPARE(newRotation, expectedRotation, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, EPSILON);
     }
     {   // test far outside max edge of constraint (wraps around to min)
         float angle = maxAngle + 0.75f * (TWO_PI - (maxAngle - minAngle));
@@ -112,7 +112,7 @@ void AngularConstraintTests::testHingeConstraint() {
         
         QVERIFY2(constrained, "HingeConstraint should clamp()");
         QVERIFY2(newRotation != rotation, "HingeConstraint should change rotation");
-        QFUZZY_COMPARE(newRotation, expectedRotation, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, EPSILON);
     }
 
     float ACCEPTABLE_ERROR = 1.0e-4f;
@@ -128,7 +128,7 @@ void AngularConstraintTests::testHingeConstraint() {
         
         QVERIFY2(constrained, "HingeConstraint should clamp()");
         QVERIFY2(newRotation != rotation, "HingeConstraint should change rotation");
-        QFUZZY_COMPARE(newRotation, expectedRotation, ACCEPTABLE_ERROR);
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, ACCEPTABLE_ERROR);
     }
     {   // test way off rotation > maxAngle
         float offAngle = 0.5f;
@@ -143,7 +143,7 @@ void AngularConstraintTests::testHingeConstraint() {
         
         QVERIFY2(constrained, "HingeConstraint should clamp()");
         QVERIFY2(newRotation != rotation, "HingeConstraint should change rotation");
-        QFUZZY_COMPARE(newRotation, expectedRotation, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, EPSILON);
     }
     {   // test way off rotation < minAngle
         float offAngle = 0.5f;
@@ -158,7 +158,7 @@ void AngularConstraintTests::testHingeConstraint() {
         
         QVERIFY2(constrained, "HingeConstraint should clamp()");
         QVERIFY2(newRotation != rotation, "HingeConstraint should change rotation");
-        QFUZZY_COMPARE(newRotation, expectedRotation, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, EPSILON);
     }
     {   // test way off rotation > maxAngle with wrap over to minAngle
         float offAngle = -0.5f;
@@ -173,7 +173,7 @@ void AngularConstraintTests::testHingeConstraint() {
 
         QVERIFY2(constrained, "HingeConstraint should clamp()");
         QVERIFY2(newRotation != rotation, "HingeConstraint should change rotation");
-        QFUZZY_COMPARE(newRotation, expectedRotation, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, EPSILON);
     }
     {   // test way off rotation < minAngle with wrap over to maxAngle
         float offAngle = -0.6f;
@@ -188,7 +188,7 @@ void AngularConstraintTests::testHingeConstraint() {
         
         QVERIFY2(constrained, "HingeConstraint should clamp()");
         QVERIFY2(newRotation != rotation, "HingeConstraint should change rotation");
-        QFUZZY_COMPARE(newRotation, expectedRotation, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, EPSILON);
     }
     delete c;
 }
@@ -271,7 +271,7 @@ void AngularConstraintTests::testConeRollerConstraint() {
         
         QVERIFY2(constrained, "ConeRollerConstraint should clamp()");
         QVERIFY2(newRotation != rotation, "ConeRollerConstraint should change rotation");
-        QFUZZY_COMPARE(newRotation, expectedRotation, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, EPSILON);
     }
     {   // test just outside max edge of roll
         glm::quat rotation = glm::angleAxis(maxAngleZ + deltaAngle, expectedConeAxis);
@@ -282,7 +282,7 @@ void AngularConstraintTests::testConeRollerConstraint() {
         
         QVERIFY2(constrained, "ConeRollerConstraint should clamp()");
         QVERIFY2(newRotation != rotation, "ConeRollerConstraint should change rotation");
-        QFUZZY_COMPARE(newRotation, expectedRotation, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, EPSILON);
     }
     deltaAngle = 0.25f * expectedConeAngle;
     {   // test far outside cone and min roll
@@ -299,7 +299,7 @@ void AngularConstraintTests::testConeRollerConstraint() {
         
         QVERIFY2(constrained, "ConeRollerConstraint should clamp()");
         QVERIFY2(newRotation != rotation, "ConeRollerConstraint should change rotation");
-        QFUZZY_COMPARE(newRotation, expectedRotation, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, EPSILON);
     }
     {   // test far outside cone and max roll
         glm::quat roll = glm::angleAxis(maxAngleZ + deltaAngle, expectedConeAxis);
@@ -315,7 +315,7 @@ void AngularConstraintTests::testConeRollerConstraint() {
         
         QVERIFY2(constrained, "ConeRollerConstraint should clamp()");
         QVERIFY2(newRotation != rotation, "ConeRollerConstraint should change rotation");
-        QFUZZY_COMPARE(newRotation, expectedRotation, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(newRotation, expectedRotation, EPSILON);
     }
     delete c;
 }
