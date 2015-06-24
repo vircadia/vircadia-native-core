@@ -49,7 +49,7 @@ elseif (UNIX AND NOT ANDROID)
   endif ()
   
 elseif (WIN32)
-  if (CMAKE_CL_64)
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(_TBB_ARCH_DIR "intel64")
   else()
     set(_TBB_ARCH_DIR "ia32")
