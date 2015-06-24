@@ -210,7 +210,6 @@ private:
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
-    float _turningKeyPressTime;
     glm::vec3 _gravity;
 
     float _driveKeys[MAX_DRIVE_KEYS];
