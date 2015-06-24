@@ -44,7 +44,7 @@ body {
     border: 1.5pt solid black;
 }
 
-.section-header {
+.section-header, .sub-section-header {
     background: #AAA;
     border-bottom: 0.75pt solid #CCC;
     background-color: #333333;
@@ -53,9 +53,17 @@ body {
     padding-top: 6pt;
 }
 
-.section-header label {
+.section-header label, .sub-section-header label {
     font-weight: bold;
     font-size: 11pt;
+}
+
+.sub-section-header {
+    padding-top: 4px;
+}
+
+.sub-section-header label {
+    font-size: 9pt;
 }
 
 .multi-property-section {
