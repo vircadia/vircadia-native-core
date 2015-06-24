@@ -1,6 +1,3 @@
-
-message(STATUS "TEST_PROJ_NAME = " ${TEST_PROJ_NAME})
-
 # Declare dependencies
 macro (SETUP_TESTCASE_DEPENDENCIES)
 	# link in the shared libraries
