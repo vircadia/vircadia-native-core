@@ -137,10 +137,12 @@ bool QuadEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
         glm::vec3 point = points.at(i);
         
         glm::vec3 p1 = glm::vec3(point.x - _lineWidth, point.y - _lineWidth, point.z);
-        glm::vec3 p2 = glm::vec3(point.x + _lineWidth, point.y - _lineWidth, point.z);
-        glm::vec3 p3 = glm::vec3(point.x + _lineWidth, point.y + _lineWidth, point.z);
-        glm::vec3 p4 = glm::vec3(point.x - _lineWidth, point.y + _lineWidth, point.z);
+        glm::vec3 p2 = glm::vec3(point.x - _lineWidth, point.y + _lineWidth, point.z);
+        glm::vec3 p3 = glm::vec3(point.x + _lineWidth, point.y - _lineWidth, point.z);
+        glm::vec3 p4 = glm::vec3(point.x + _lineWidth, point.y + _lineWidth, point.z);
         _quadVertices << p1 << p2 << p3 << p4;
+        
+        
     }
     return true;
 }

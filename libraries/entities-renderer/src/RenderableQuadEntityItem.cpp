@@ -47,12 +47,10 @@ void RenderableQuadEntityItem::render(RenderArgs* args) {
     transform.setTranslation(getPosition());
     batch.setModelTransform(transform);
     
-    batch._glLineWidth(getLineWidth());
-    if (getLinePoints().size() > 3) {
-        DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
-        DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::QUAD_STRIP, _lineVerticesID);
-    }
-    batch._glLineWidth(1.0f);
+
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
+    DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::TRIANGLE_STRIP, _lineVerticesID);
+
     
     RenderableDebugableEntityItem::render(this, args);
 };
