@@ -13,15 +13,23 @@
 #define hifi_MovingPercentileTests_h
 
 #include <QtTest/QtTest>
+#include <../QTestExtensions.hpp>
 
 class MovingPercentileTests : public QObject {
     Q_OBJECT
 
 private slots:
-    void runAllTests();
+    // Tests
+    void testRunningMin ();
+    void testRunningMax ();
+    void testRunningMedian ();
 
 private:
+    // Utilities and helper functions
     float random();
+    void testRunningMinForN (int n);
+    void testRunningMaxForN (int n);
+    void testRunningMedianForN (int n);
 };
 
 #endif // hifi_MovingPercentileTests_h
