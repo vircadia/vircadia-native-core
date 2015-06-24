@@ -131,13 +131,13 @@ ToolBar = function(x, y, direction) {
     this.x = x;
     this.y = y;
     this.width = 0;
-    this.height = 0;
+    this.height = ToolBar.TITLE_BAR_HEIGHT;
     this.back = this.back = Overlays.addOverlay("text", {
                     backgroundColor: { red: 255, green: 255, blue: 255 },
                     x: this.x,
                     y: this.y - ToolBar.TITLE_BAR_HEIGHT,
                     width: this.width,
-                    height: this.height + ToolBar.TITLE_BAR_HEIGHT,
+                    height: this.height,
                     alpha: 1.0,
                     backgroundAlpha: 1.0,
                     visible: false
@@ -161,7 +161,7 @@ ToolBar = function(x, y, direction) {
             Overlays.editOverlay(this.back, {
                                  width: this.width +
                                  ((direction == ToolBar.HORIZONTAL) ? 1 : 2) * ToolBar.SPACING,
-                                 height: this.height + ToolBar.TITLE_BAR_HEIGHT +
+                                 height: this.height +
                                  ((direction == ToolBar.VERTICAL) ? 1 : 2) * ToolBar.SPACING,
             });
         }
@@ -201,7 +201,7 @@ ToolBar = function(x, y, direction) {
             Overlays.editOverlay(this.back, {
                                  width: this.width +
                                  ((direction == ToolBar.HORIZONTAL) ? 1 : 2) * ToolBar.SPACING,
-                                 height: this.height + ToolBar.TITLE_BAR_HEIGHT +
+                                 height: this.height +
                                  ((direction == ToolBar.VERTICAL) ? 1 : 2) * ToolBar.SPACING,
                                  });
         }
@@ -218,7 +218,7 @@ ToolBar = function(x, y, direction) {
         if (this.back != null) {
             Overlays.editOverlay(this.back, {
                 width: this.width + 2 * ToolBar.SPACING,
-                height: this.height + ToolBar.TITLE_BAR_HEIGHT + 2 * ToolBar.SPACING
+                height: this.height + 2 * ToolBar.SPACING
             });
         }
     }
@@ -234,7 +234,7 @@ ToolBar = function(x, y, direction) {
         if (this.back != null) {
             Overlays.editOverlay(this.back, {
                 x: x - ToolBar.SPACING,
-                y: y - ToolBar.TITLE_BAR_HEIGHT - ToolBar.SPACING
+                y: y - ToolBar.SPACING
             });
         }
         this.save();
@@ -265,7 +265,7 @@ ToolBar = function(x, y, direction) {
             Overlays.editOverlay(this.back, {
                                  width: this.width +
                                  ((direction == ToolBar.HORIZONTAL) ? 1 : 2) * ToolBar.SPACING,
-                                 height: this.height + ToolBar.TITLE_BAR_HEIGHT +
+                                 height: this.height +
                                  ((direction == ToolBar.VERTICAL) ? 1 : 2) * ToolBar.SPACING,
                                  visible: true,
                                  backgroundColor: color,
@@ -333,9 +333,8 @@ ToolBar = function(x, y, direction) {
     this.contains = function (xOrPoint, optionalY) {
         var x = (optionalY === undefined) ? xOrPoint.x : xOrPoint,
             y = (optionalY === undefined) ? xOrPoint.y : optionalY;
-        y += ToolBar.TITLE_BAR_HEIGHT;
         return (that.x <= x) && (x <= (that.x + that.width)) &&
-            (that.y <= y) && (y <= (that.y + that.height + ToolBar.TITLE_BAR_HEIGHT));
+            (that.y <= y) && (y <= (that.y + that.height));
     }
     that.hover = function (enable) {
         that.isHovering = enable;
