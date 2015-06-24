@@ -114,6 +114,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             // DO NOT update or fade out uninitialized Avatars
             ++avatarIterator;
         } else if (avatar->shouldDie()) {
+            removeAvatarMotionState(avatar);
             _avatarFades.push_back(avatarIterator.value());
             avatarIterator = _avatarHash.erase(avatarIterator);
         } else {
@@ -163,12 +164,13 @@ AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWe
 }
 
 // protected
-void AvatarManager::removeAvatarMotionState(Avatar* avatar) {
-    AvatarMotionState* motionState= avatar->_motionState;
+void AvatarManager::removeAvatarMotionState(AvatarSharedPointer avatar) {
+    auto rawPointer = std::static_pointer_cast<Avatar>(avatar);
+    AvatarMotionState* motionState= rawPointer->_motionState;
     if (motionState) {
         // clean up physics stuff
         motionState->clearObjectBackPointer();
-        avatar->_motionState = nullptr;
+        rawPointer->_motionState = nullptr;
         _avatarMotionStates.remove(motionState);
         _motionStatesToAdd.remove(motionState);
         _motionStatesToDelete.push_back(motionState);
@@ -181,7 +183,7 @@ void AvatarManager::removeAvatar(const QUuid& sessionUUID) {
     if (avatarIterator != _avatarHash.end()) {
         std::shared_ptr<Avatar> avatar = std::dynamic_pointer_cast<Avatar>(avatarIterator.value());
         if (avatar != _myAvatar && avatar->isInitialized()) {
-            removeAvatarMotionState(avatar.get());
+            removeAvatarMotionState(avatar);
             _avatarFades.push_back(avatarIterator.value());
             _avatarHash.erase(avatarIterator);
         }
@@ -197,7 +199,7 @@ void AvatarManager::clearOtherAvatars() {
             // don't remove myAvatar or uninitialized avatars from the list
             ++avatarIterator;
         } else {
-            removeAvatarMotionState(avatar.get());
+            removeAvatarMotionState(avatar);
             _avatarFades.push_back(avatarIterator.value());
             avatarIterator = _avatarHash.erase(avatarIterator);
         }

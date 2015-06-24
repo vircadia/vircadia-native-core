@@ -158,7 +158,6 @@ private:
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
 
     void playEntityCollisionSound(const QUuid& myNodeID, EntityTree* entityTree, const EntityItemID& id, const Collision& collision);
-    AbstractAudioInterface* _localAudioInterface; // So we can render collision sounds
 
     bool _lastMouseEventValid;
     MouseEvent _lastMouseEvent;

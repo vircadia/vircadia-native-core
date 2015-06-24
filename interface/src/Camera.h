@@ -45,26 +45,22 @@ public:
 
     void setRotation(const glm::quat& rotation);
     void setProjection(const glm::mat4 & projection);
-    void setHmdPosition(const glm::vec3& hmdPosition);
-    void setHmdRotation(const glm::quat& hmdRotation);
     void setMode(CameraMode m);
     
-    glm::quat getRotation() const { return _rotation * _hmdRotation; }
+    glm::quat getRotation() const { return _rotation; }
     const glm::mat4& getProjection() const { return _projection; }
-    const glm::vec3& getHmdPosition() const { return _hmdPosition; }
-    const glm::quat& getHmdRotation() const { return _hmdRotation; }
     CameraMode getMode() const { return _mode; }
 
 public slots:
     QString getModeString() const;
     void setModeString(const QString& mode);
 
-    glm::vec3 getPosition() const { return _position + _hmdPosition; }
+    glm::vec3 getPosition() const { return _position; }
     void setPosition(const glm::vec3& position);
 
-    void setOrientation(const glm::quat& orientation) { setRotation(orientation); }
     glm::quat getOrientation() const { return getRotation(); }
-    
+    void setOrientation(const glm::quat& orientation) { setRotation(orientation); }
+
     PickRay computePickRay(float x, float y);
 
     // These only work on independent cameras
@@ -86,8 +82,6 @@ private:
     glm::vec3 _position;
     glm::quat _rotation;
     glm::mat4 _projection;
-    glm::vec3 _hmdPosition;
-    glm::quat _hmdRotation;
     bool _isKeepLookingAt;
     glm::vec3 _lookingAt;
 };

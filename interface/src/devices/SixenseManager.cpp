@@ -36,6 +36,8 @@ const float NECK_X = 0.25f; // meters
 const float NECK_Y = 0.3f;  // meters
 const float NECK_Z = 0.3f;  // meters
 
+const float CONTROLLER_THRESHOLD = 0.35f;
+
 #ifdef __APPLE__
 typedef int (*SixenseBaseFunction)();
 typedef int (*SixenseTakeIntFunction)(int);
@@ -326,6 +328,12 @@ void SixenseManager::update(float deltaTime) {
         }
         _controllersAtBase = (numControllersAtBase == 2);
     }
+    
+    for (auto axisState : _axisStateMap) {
+        if (fabsf(axisState.second) < CONTROLLER_THRESHOLD) {
+            _axisStateMap[axisState.first] = 0.0f;
+        }
+    }
 #endif  // HAVE_SIXENSE
 }
 
@@ -512,7 +520,7 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)
         || Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
-        pos = qApp->getApplicationOverlay().getPalmClickLocation(palm);
+        pos = qApp->getApplicationCompositor().getPalmClickLocation(palm);
     } else {
         // Get directon relative to avatar orientation
         glm::vec3 direction = glm::inverse(avatar->getOrientation()) * palm->getFingerDirection();
@@ -724,6 +732,13 @@ void SixenseManager::assignDefaultInputMapping(UserInputMapper& mapper) {
     
     mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(BUTTON_3, 1), BUTTON_MOVE_SPEED);
     mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(BUTTON_1, 1), BUTTON_MOVE_SPEED);
+    
+    mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(BUTTON_2, 0));
+    mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(BUTTON_2, 1));
+    
+    mapper.addInputChannel(UserInputMapper::ACTION1, makeInput(BUTTON_4, 0));
+    mapper.addInputChannel(UserInputMapper::ACTION2, makeInput(BUTTON_4, 1));
+
 }
 
 float SixenseManager::getButton(int channel) const {

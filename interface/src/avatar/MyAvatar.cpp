@@ -76,7 +76,6 @@ const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 
 MyAvatar::MyAvatar() :
 	Avatar(),
-    _turningKeyPressTime(0.0f),
     _gravity(0.0f, 0.0f, 0.0f),
     _wasPushing(false),
     _isPushing(false),
@@ -1205,28 +1204,9 @@ bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs, const glm::vec3& c
 }
 
 void MyAvatar::updateOrientation(float deltaTime) {
-    //  Gather rotation information from keyboard
-    const float TIME_BETWEEN_HMD_TURNS = 0.5f;
-    const float HMD_TURN_DEGREES = 22.5f;
-    if (!qApp->isHMDMode()) {
-        //  Smoothly rotate body with arrow keys if not in HMD
-        _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_SPEED * deltaTime;
-        _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_SPEED * deltaTime;
-    } else {
-        //  Jump turns if in HMD
-        if (_driveKeys[ROT_RIGHT] || _driveKeys[ROT_LEFT]) {
-            if (_turningKeyPressTime == 0.0f) {
-                setOrientation(getOrientation() *
-                               glm::quat(glm::radians(glm::vec3(0.f, _driveKeys[ROT_LEFT] ? HMD_TURN_DEGREES : -HMD_TURN_DEGREES, 0.0f))));
-            }
-            _turningKeyPressTime += deltaTime;
-            if (_turningKeyPressTime > TIME_BETWEEN_HMD_TURNS) {
-                _turningKeyPressTime = 0.0f;
-            }
-        } else {
-            _turningKeyPressTime = 0.0f;
-        }
-    }
+    //  Smoothly rotate body with arrow keys
+    _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_SPEED * deltaTime;
+    _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_SPEED * deltaTime;
     getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
 
     // update body orientation by movement inputs
@@ -1468,7 +1448,7 @@ void MyAvatar::maybeUpdateBillboard() {
     }
     gpu::Context context(new gpu::GLBackend());
     RenderArgs renderArgs(&context);
-    QImage image = Application::getInstance()->renderAvatarBillboard(&renderArgs);
+    QImage image = qApp->renderAvatarBillboard(&renderArgs);
     _billboard.clear();
     QBuffer buffer(&_billboard);
     buffer.open(QIODevice::WriteOnly);
@@ -1567,7 +1547,6 @@ void MyAvatar::renderLaserPointers() {
 
 //Gets the tip position for the laser pointer
 glm::vec3 MyAvatar::getLaserPointerTipPosition(const PalmData* palm) {
-    const ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
     glm::vec3 direction = glm::normalize(palm->getTipPosition() - palm->getPosition());
 
     glm::vec3 position = palm->getPosition();
@@ -1576,7 +1555,8 @@ glm::vec3 MyAvatar::getLaserPointerTipPosition(const PalmData* palm) {
 
 
     glm::vec3 result;
-    if (applicationOverlay.calculateRayUICollisionPoint(position, direction, result)) {
+    const auto& compositor = qApp->getApplicationCompositor();
+    if (compositor.calculateRayUICollisionPoint(position, direction, result)) {
         return result;
     }
 

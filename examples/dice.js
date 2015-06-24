@@ -33,15 +33,13 @@ var BUTTON_SIZE = 32;
 var PADDING = 3;
 
 Script.include(["libraries/toolBars.js"]);
-var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL);
-const persistKey = "highfidelity.dice.toolbar.position";
-toolBar.save = function () {
-    Settings.setValue(persistKey, JSON.stringify([toolBar.x, toolBar.y]));
-};
-var old = JSON.parse(Settings.getValue(persistKey) || '0');
+var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.dice.toolbar", function (screenSize) {
+    return {
+        x: (screenSize.x / 2 - BUTTON_SIZE * 2 + PADDING),
+        y: (screenSize.y - (BUTTON_SIZE + PADDING))
+    };
+});
 var offButton = toolBar.addOverlay("image", {
-  x: old ? old[0] : (screenSize.x / 2 - BUTTON_SIZE * 2 + PADDING),
-  y: old ? old[1] : (screenSize.y - (BUTTON_SIZE + PADDING)),
   width: BUTTON_SIZE,
   height: BUTTON_SIZE,
   imageURL: HIFI_PUBLIC_BUCKET + "images/close.png",

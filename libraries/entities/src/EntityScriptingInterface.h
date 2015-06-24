@@ -22,6 +22,7 @@
 #include <OctreeScriptingInterface.h>
 #include <RegisteredMetaTypes.h>
 #include "PolyVoxEntityItem.h"
+#include "LineEntityItem.h"
 
 #include "EntityEditPacketSender.h"
 
@@ -121,6 +122,9 @@ public slots:
     Q_INVOKABLE bool setVoxelSphere(QUuid entityID, const glm::vec3& center, float radius, int value);
     Q_INVOKABLE bool setVoxel(QUuid entityID, const glm::vec3& position, int value);
     Q_INVOKABLE bool setAllVoxels(QUuid entityID, int value);
+    
+    Q_INVOKABLE bool setAllPoints(QUuid entityID, const QVector<glm::vec3>& points);
+    Q_INVOKABLE bool appendPoint(QUuid entityID, const glm::vec3& point);
 
     Q_INVOKABLE void dumpTree() const;
 
@@ -157,6 +161,7 @@ signals:
 private:
     bool actionWorker(const QUuid& entityID, std::function<bool(EntitySimulation*, EntityItemPointer)> actor);
     bool setVoxels(QUuid entityID, std::function<void(PolyVoxEntityItem&)> actor);
+    bool setPoints(QUuid entityID, std::function<bool(LineEntityItem&)> actor);
     void queueEntityMessage(PacketType packetType, EntityItemID entityID, const EntityItemProperties& properties);
 
     /// actually does the work of finding the ray intersection, can be called in locking mode or tryLock mode
