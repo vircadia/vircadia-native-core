@@ -350,6 +350,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_LINE_POINTS, linePoints);
     CHECK_PROPERTY_CHANGE(PROP_HREF, href);
     CHECK_PROPERTY_CHANGE(PROP_DESCRIPTION, description);
+    CHECK_PROPERTY_CHANGE(PROP_BILLBOARDED, billBoarded);
 
     changedProperties += _stage.getChangedProperties();
     changedProperties += _atmosphere.getChangedProperties();
