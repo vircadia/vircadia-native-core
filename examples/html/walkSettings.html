@@ -1,6 +1,6 @@
 <html>
     <head>
-        <link rel="stylesheet" type="text/css" href="style.css">
+        <link rel="stylesheet" type="text/css" href="walkStyle.css">
         <script>
         
             function emitUpdate() {
@@ -14,6 +14,7 @@
         
             function loaded() {
                 // assign form elements to vars
+                var powerOn = true;
                 elPower = document.getElementById("power");
                 elArmsFree = document.getElementById("arms-free");
                 elFootstepSounds = document.getElementById("footstep-sounds");
@@ -25,13 +26,13 @@
                         
                         if (data.type == "update") {
                             if (data.armsFree !== undefined) {
-                                elArmsFree.checked = data.armsFree == true;
+                                elArmsFree.checked = data.armsFree;
                             }
                             if (data.footstepSounds !== undefined) {
-                                elFootstepSounds.checked = data.footstepSounds == true;
+                                elFootstepSounds.checked = data.footstepSounds;
                             }
                             if (data.blenderPreRotations !== undefined) {
-                                elBlenderPreRotations.checked = data.blenderPreRotations == true;
+                                elBlenderPreRotations.checked = data.blenderPreRotations;
                             }                         
                         }
                     });
@@ -45,6 +46,12 @@
                     EventBridge.emitWebEvent(JSON.stringify({
                         type: "powerToggle"
                     }));
+                    powerOn = !powerOn;
+                    if (powerOn) {
+                        elPower.value = "Turn Animation Off";
+                    } else {
+                        elPower.value = "Turn Animation On";
+                    }
                 });              
                 // request initial values    
                 EventBridge.emitWebEvent(JSON.stringify({ type: 'init' }));
@@ -52,27 +59,27 @@
         </script>
     </head>
     <body onload='loaded();'>
-        <div class="grid-section">
+        <div>
 
-            <div id="entity-list-header">
-                <input type="button" id="power" value="Power" style="margin-left:68px; margin-top:10px"></button>
+            <div id="walk-settings-header">
+                <input type="button" id="power" value="Turn Animation Off" style="margin-left:30px; margin-top:10px"></button>
             </div>
     
-            <div class="property-section">
+            <div class="settings-section">
                 <label>Arms free</label>
                 <span>
                     <input type='checkbox' id="arms-free">
                 </span>
             </div>
 
-            <div class="property-section">
+            <div class="settings-section">
                 <label>Footstep sounds</label>
                 <span>
                     <input type='checkbox' id="footstep-sounds">
                 </span>
             </div>
 
-            <div class="property-section">
+            <div class="settings-section">
                 <label>Blender pre-rotations</label>
                 <span>
                     <input type='checkbox' id="bender-pre-rotations">

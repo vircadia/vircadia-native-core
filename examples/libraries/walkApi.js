@@ -2,16 +2,54 @@
 //  walkApi.js
 //  version 1.3
 //
-//  Created by David Wooldridge, June 2015
-//  Copyright © 2014 - 2015 High Fidelity, Inc.
+//  Created by David Wooldridge, Autumn 2014
+//  Copyright © 2015 High Fidelity, Inc.
 //
-//  Exposes API for use by walk.js version 1.2+.
+//  Exposes API for use by walk.js version 1.2+. 
 //
 //  Editing tools for animation data files available here: https://github.com/DaveDubUK/walkTools
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+// locomotion states
+const STATIC = 1;
+const SURFACE_MOTION = 2;
+const AIR_MOTION = 4;
+
+// directions
+const UP = 1;
+const DOWN = 2;
+const LEFT = 4;
+const RIGHT = 8;
+const FORWARDS = 16;
+const BACKWARDS = 32;
+const NONE = 64;
+
+// waveshapes
+const SAWTOOTH = 1;
+const TRIANGLE = 2;
+const SQUARE = 4;
+
+// constants used by walk.js and walkApi.js 
+const MAX_WALK_SPEED = 2.9; // peak, by observation
+const MAX_FT_WHEEL_INCREMENT = 25; // avoid fast walk when landing
+const TOP_SPEED = 300;
+const ON_SURFACE_THRESHOLD = 0.1; // height above surface to be considered as on the surface
+const TRANSITION_COMPLETE = 1000;
+const HIFI_PUBLIC_BUCKET = "https://hifi-public.s3.amazonaws.com/";
+
+// constants used by walkApi.js
+const MOVE_THRESHOLD = 0.075;
+const ACCELERATION_THRESHOLD = 0.2;  // detect stop to walking
+const DECELERATION_THRESHOLD = -6; // detect walking to stop
+const FAST_DECELERATION_THRESHOLD = -150; // detect flying to stop
+const BOUNCE_ACCELERATION_THRESHOLD = 25; // used to ignore gravity influence fluctuations after landing
+const GRAVITY_THRESHOLD = 3.0; // height above surface where gravity is in effect
+const OVERCOME_GRAVITY_SPEED = 0.5; // reaction sensitivity to jumping under gravity
+const LANDING_THRESHOLD = 0.35; // metres from a surface below which need to prepare for impact
+const MAX_TRANSITION_RECURSION = 10; // how many nested transitions are permitted
 
 Avatar = function() {
     // if Hydras are connected, the only way to enable use is by never setting any rotations on the arm joints
@@ -20,8 +58,13 @@ Avatar = function() {
         var numberOfButtons = Controller.getNumberOfButtons();
         var numberOfTriggers = Controller.getNumberOfTriggers();
         var numberOfSpatialControls = Controller.getNumberOfSpatialControls();
+        const HYDRA_BUTTONS = 12;
+        const HYDRA_TRIGGERS = 2;
+        const HYDRA_CONTROLLERS_PER_TRIGGER = 2;
         var controllersPerTrigger = numberOfSpatialControls / numberOfTriggers;
-        if (numberOfButtons == 12 && numberOfTriggers == 2 && controllersPerTrigger == 2) {
+        if (numberOfButtons == HYDRA_BUTTONS && 
+            numberOfTriggers == HYDRA_TRIGGERS &&
+            controllersPerTrigger == HYDRA_CONTROLLERS_PER_TRIGGER) {
             print('walk.js info: Razer Hydra detected. Setting arms free (not controlled by script)');
             return true;
         } else {
@@ -32,7 +75,7 @@ Avatar = function() {
     // settings
     this.headFree = true;
     this.armsFree = this.hydraCheck(); // automatically sets true to enable Hydra support - temporary fix
-    this.makesFootStepSounds = false; // true ? still inexplicably glitchy : fine
+    this.makesFootStepSounds = false; 
     this.isBlenderExport = false; // temporary fix
     this.animationSet = undefined; // currently just one animation set
     this.setAnimationSet = function(animationSet) {
@@ -45,8 +88,6 @@ Avatar = function() {
                 this.selectedSideStepLeft = walkAssets.getAnimationDataFile("MaleSideStepLeft");
                 this.selectedSideStepRight = walkAssets.getAnimationDataFile("MaleSideStepRight");
                 this.selectedWalkBlend = walkAssets.getAnimationDataFile("WalkBlend");
-                this.selectedTurnLeft = walkAssets.getAnimationDataFile("MaleTurnLeft");
-                this.selectedTurnRight = walkAssets.getAnimationDataFile("MaleTurnRight");
                 this.selectedHover = walkAssets.getAnimationDataFile("MaleHover");
                 this.selectedFly = walkAssets.getAnimationDataFile("MaleFly");
                 this.selectedFlyBackwards = walkAssets.getAnimationDataFile("MaleFlyBackwards");
@@ -59,17 +100,16 @@ Avatar = function() {
     }
     this.setAnimationSet('standardMale');
 
-    this.startTime = new Date().getTime();
-
     // calibration
     this.calibration = {
-        hipsToFeet: 1.011,
+        hipsToFeet: 1,
         strideLength: this.selectedWalk.calibration.strideLength
     }
     this.distanceFromSurface = 0;
     this.calibrate = function() {
         // Triple check: measurements are taken three times to ensure accuracy - the first result is often too large
-        var attempts = 3;
+        const MAX_ATTEMPTS = 3;
+        var attempts = MAX_ATTEMPTS;
         var extraAttempts = 0;
         do {
             for (joint in walkAssets.animationReference.joints) {
@@ -81,8 +121,8 @@ Avatar = function() {
                 }
             }
             this.calibration.hipsToFeet = MyAvatar.getJointPosition("Hips").y - MyAvatar.getJointPosition("RightToeBase").y;
-
-            // maybe measuring before Blender pre-rotations have been applied?
+            
+            // maybe measuring before Blender pre-rotations have been applied? 
             if (this.calibration.hipsToFeet < 0 && this.isBlenderExport) {
                 this.calibration.hipsToFeet *= -1;
             }
@@ -95,7 +135,7 @@ Avatar = function() {
 
         // just in case
         if (this.calibration.hipsToFeet <= 0 || isNaN(this.calibration.hipsToFeet)) {
-            this.calibration.hipsToFeet = 1.0;
+            this.calibration.hipsToFeet = 1;
             print('walk.js error: Unable to get a non-zero measurement for the avatar hips to feet measure. Hips to feet set to default value ('+
                   this.calibration.hipsToFeet.toFixed(3)+'m). This will cause some foot sliding. If your avatar has only just appeared, it is recommended that you re-load the walk script.');
         } else {
@@ -125,22 +165,34 @@ Avatar = function() {
 
     // footsteps
     this.nextStep = RIGHT; // the first step is right, because the waveforms say so
+    
+    this.leftAudioInjector = null;
+    this.rightAudioInjector = null;
     this.makeFootStepSound = function() {
         // correlate footstep volume with avatar speed. place the audio source at the feet, not the hips
-        var SPEED_THRESHOLD = 0.4;
-        var VOLUME_ATTENUATION = 0.8;
-        var MIN_VOLUME = 0.5;
+        const SPEED_THRESHOLD = 0.4;
+        const VOLUME_ATTENUATION = 0.8;
+        const MIN_VOLUME = 0.5;
         var options = {
             position: Vec3.sum(MyAvatar.position, {x:0, y: -this.calibration.hipsToFeet, z:0}),
             volume: Vec3.length(motion.velocity) > SPEED_THRESHOLD ?
                     VOLUME_ATTENUATION * Vec3.length(motion.velocity) / MAX_WALK_SPEED : MIN_VOLUME
         };
-
         if (this.nextStep === RIGHT) {
-            Audio.playSound(walkAssets.footsteps[0], options);
+            if (this.rightAudioInjector === null) {
+                this.rightAudioInjector = Audio.playSound(walkAssets.footsteps[0], options);
+            } else {
+                //this.rightAudioInjector.setOptions(options);
+                this.rightAudioInjector.restart();
+            }
             this.nextStep = LEFT;
         } else if (this.nextStep === LEFT) {
-            Audio.playSound(walkAssets.footsteps[1], options);
+            if (this.leftAudioInjector === null) {
+                this.leftAudioInjector = Audio.playSound(walkAssets.footsteps[1], options);
+            } else {
+                //this.leftAudioInjector.setOptions(options);
+                this.leftAudioInjector.restart();
+            }
             this.nextStep = RIGHT;
         }
     }
@@ -189,12 +241,12 @@ Motion = function() {
     this.lastYaw = Quat.safeEulerAngles(MyAvatar.orientation).y;
     this.lastYawDelta = 0;
     this.lastYawDeltaAcceleration = 0;
-
+    
     // Quat.safeEulerAngles(MyAvatar.orientation).y tends to repeat values between frames, so values are filtered
     var YAW_SMOOTHING = 22;
-    this.yawFilter = filter.createAveragingFilter(YAW_SMOOTHING);
-    this.deltaTimeFilter = filter.createAveragingFilter(YAW_SMOOTHING);
-    this.yawDeltaAccelerationFilter = filter.createAveragingFilter(YAW_SMOOTHING);
+    this.yawFilter = filter.createAveragingFilter(YAW_SMOOTHING); //createButterworthFilter(); //
+    this.deltaTimeFilter = filter.createAveragingFilter(YAW_SMOOTHING); //createButterworthFilter(); //
+    this.yawDeltaAccelerationFilter = filter.createAveragingFilter(YAW_SMOOTHING); //createButterworthFilter(); //
 
     // assess locomotion state
     this.assess = function(deltaTime) {
@@ -298,16 +350,16 @@ Motion = function() {
         var surfaceMotion = isOnSurface && this.isMoving;
         var acceleratingAndAirborne = this.isAccelerating && !isOnSurface;
         var goingTooFastToWalk = !this.isDecelerating && this.isFlyingSpeed;
-        var movingDirectlyUpOrDown = (this.direction === UP || this.direction === DOWN)
+        var movingDirectlyUpOrDown = (this.direction === UP || this.direction === DOWN) // && lateralVelocity < MOVE_THRESHOLD;
         var maybeBouncing = Math.abs(this.acceleration.y > BOUNCE_ACCELERATION_THRESHOLD) ? true : false;
 
         // we now have enough information to set the appropriate locomotion mode
         switch (this.state) {
             case STATIC:
-                var staticToAirMotion = this.isMoving && (acceleratingAndAirborne || goingTooFastToWalk ||
+                var staticToAirMotion = this.isMoving && (acceleratingAndAirborne || goingTooFastToWalk || 
                                                            (movingDirectlyUpOrDown && !isOnSurface));
                 var staticToSurfaceMotion = surfaceMotion && !motion.isComingToHalt && !movingDirectlyUpOrDown &&
-                                            !this.isDecelerating && lateralVelocity > MOVE_THRESHOLD;
+                                            !this.isDecelerating && lateralVelocity > MOVE_THRESHOLD;            
                 if (staticToAirMotion) {
                     this.nextState = AIR_MOTION;
                 } else if (staticToSurfaceMotion) {
@@ -318,8 +370,8 @@ Motion = function() {
                 break;
 
             case SURFACE_MOTION:
-                var surfaceMotionToStatic = !this.isMoving ||
-                                            (this.isDecelerating && motion.lastDirection !== DOWN && surfaceMotion &&
+                var surfaceMotionToStatic = !this.isMoving || 
+                                            (this.isDecelerating && motion.lastDirection !== DOWN && surfaceMotion && 
                                             !maybeBouncing && Vec3.length(this.velocity) < MAX_WALK_SPEED);
                 var surfaceMotionToAirMotion = (acceleratingAndAirborne || goingTooFastToWalk || movingDirectlyUpOrDown) &&
                                                (!surfaceMotion && isTakingOff) ||
@@ -339,7 +391,8 @@ Motion = function() {
 
             case AIR_MOTION:
                 var airMotionToSurfaceMotion = (surfaceMotion || aboutToLand) && !movingDirectlyUpOrDown;
-                var airMotionToStatic = !this.isMoving && this.direction === this.lastDirection;
+                var airMotionToStatic = !this.isMoving && this.direction === this.lastDirection; //||
+                                       //this.isDeceleratingFast || isOnSurface;
                 if (airMotionToSurfaceMotion){
                     this.nextState = SURFACE_MOTION;
                 } else if (airMotionToStatic) {
@@ -352,10 +405,12 @@ Motion = function() {
     }
 
     // frequency time wheel (foot / ground speed matching)
+    const DEFAULT_HIPS_TO_FEET = 1;
     this.frequencyTimeWheelPos = 0;
-    this.frequencyTimeWheelRadius = 0.5;
+    this.frequencyTimeWheelRadius = DEFAULT_HIPS_TO_FEET / 2;
     this.recentFrequencyTimeIncrements = [];
-    for (var i = 0; i < 8; i++) {
+    const FT_WHEEL_HISTORY_LENGTH = 8;
+    for (var i = 0; i < FT_WHEEL_HISTORY_LENGTH; i++) {
         this.recentFrequencyTimeIncrements.push(0);
     }
     this.averageFrequencyTimeIncrement = 0;
@@ -370,8 +425,9 @@ Motion = function() {
         }
         this.averageFrequencyTimeIncrement /= this.recentFrequencyTimeIncrements.length;
         this.frequencyTimeWheelPos += angle;
-        if (this.frequencyTimeWheelPos >= 360) {
-            this.frequencyTimeWheelPos = this.frequencyTimeWheelPos % 360;
+        const FULL_CIRCLE = 360;
+        if (this.frequencyTimeWheelPos >= FULL_CIRCLE) {
+            this.frequencyTimeWheelPos = this.frequencyTimeWheelPos % FULL_CIRCLE;
         }
     }
 
@@ -428,7 +484,7 @@ animationOperations = (function() {
             } else {
                 jointTranslations.z = joint.thrust * Math.sin
                     (filter.degToRad(modifiers.thrustFrequencyMultiplier * ft + joint.thrustPhase)) + joint.thrustOffset;
-            }
+            }           
             return jointTranslations;
         },
 
@@ -516,7 +572,7 @@ animationOperations = (function() {
 
             // harmonics
             targetAnimation.harmonics = {};
-            if (isDefined(sourceAnimation.harmonics)) {
+            if (sourceAnimation.harmonics) {
                 targetAnimation.harmonics = JSON.parse(JSON.stringify(sourceAnimation.harmonics));
             }
 
@@ -524,26 +580,26 @@ animationOperations = (function() {
             targetAnimation.filters = {};
             for (i in sourceAnimation.filters) {
                 // are any filters specified for this joint?
-                if (isDefined(sourceAnimation.filters[i])) {
+                if (sourceAnimation.filters[i]) {
                     targetAnimation.filters[i] = sourceAnimation.filters[i];
                     // wave shapers
-                    if (isDefined(sourceAnimation.filters[i].pitchFilter)) {
+                    if (sourceAnimation.filters[i].pitchFilter) {
                         targetAnimation.filters[i].pitchFilter = sourceAnimation.filters[i].pitchFilter;
                     }
-                    if (isDefined(sourceAnimation.filters[i].yawFilter)) {
+                    if (sourceAnimation.filters[i].yawFilter) {
                         targetAnimation.filters[i].yawFilter = sourceAnimation.filters[i].yawFilter;
                     }
-                    if (isDefined(sourceAnimation.filters[i].rollFilter)) {
+                    if (sourceAnimation.filters[i].rollFilter) {
                         targetAnimation.filters[i].rollFilter = sourceAnimation.filters[i].rollFilter;
                     }
                     // LP filters
-                    if (isDefined(sourceAnimation.filters[i].swayLPFilter)) {
+                    if (sourceAnimation.filters[i].swayLPFilter) {
                         targetAnimation.filters[i].swayLPFilter = sourceAnimation.filters[i].swayLPFilter;
                     }
-                    if (isDefined(sourceAnimation.filters[i].bobLPFilter)) {
+                    if (sourceAnimation.filters[i].bobLPFilter) {
                         targetAnimation.filters[i].bobLPFilter = sourceAnimation.filters[i].bobLPFilter;
                     }
-                    if (isDefined(sourceAnimation.filters[i].thrustLPFilter)) {
+                    if (sourceAnimation.filters[i].thrustLPFilter) {
                         targetAnimation.filters[i].thrustLPFilter = sourceAnimation.filters[i].thrustLPFilter;
                     }
                 }
@@ -618,6 +674,11 @@ TransitionParameters = function() {
     this.reachPoseNames = [];
 }
 
+const QUARTER_CYCLE = 90;
+const HALF_CYCLE = 180;
+const THREE_QUARTER_CYCLE = 270;
+const FULL_CYCLE = 360;
+
 // constructor for animation Transition
 Transition = function(nextAnimation, lastAnimation, lastTransition, playTransitionReachPoses) {
 
@@ -645,7 +706,7 @@ Transition = function(nextAnimation, lastAnimation, lastTransition, playTransiti
     // set parameters for the transition
     this.parameters = new TransitionParameters();
     this.liveReachPoses = [];
-    if (walkAssets && isDefined(lastAnimation) && isDefined(nextAnimation)) {
+    if (walkAssets && lastAnimation && nextAnimation) {
         // overwrite this.parameters with any transition parameters specified for this particular transition
         walkAssets.getTransitionParameters(lastAnimation, nextAnimation, this.parameters);
         // fire up any reach poses for this transition
@@ -661,11 +722,10 @@ Transition = function(nextAnimation, lastAnimation, lastTransition, playTransiti
 
     // coming to a halt whilst walking? if so, will need a clean stopping point defined
     if (motion.isComingToHalt) {
-        var FULL_CYCLE = 360;
-        var FULL_CYCLE_THRESHOLD = 320;
-        var HALF_CYCLE = 180;
-        var HALF_CYCLE_THRESHOLD = 140;
-        var CYCLE_COMMIT_THRESHOLD = 5;
+
+        const FULL_CYCLE_THRESHOLD = 320;
+        const HALF_CYCLE_THRESHOLD = 140;
+        const CYCLE_COMMIT_THRESHOLD = 5;
 
         // how many degrees do we need to turn the walk wheel to finish walking with both feet on the ground?
         if (this.lastElapsedFTDegrees < CYCLE_COMMIT_THRESHOLD) {
@@ -691,7 +751,8 @@ Transition = function(nextAnimation, lastAnimation, lastTransition, playTransiti
         // transition length in this case should be directly proportional to the remaining degrees to turn
         var MIN_FT_INCREMENT = 5.0; // degrees per frame
         var MIN_TRANSITION_DURATION = 0.4;
-        this.lastFrequencyTimeIncrement *= 0.66; // help ease the transition
+        const TWO_THIRDS = 0.6667;
+        this.lastFrequencyTimeIncrement *= TWO_THIRDS; // help ease the transition
         var lastFrequencyTimeIncrement = this.lastFrequencyTimeIncrement > MIN_FT_INCREMENT ?
                                          this.lastFrequencyTimeIncrement : MIN_FT_INCREMENT;
         var timeToFinish = Math.max(motion.deltaTime * this.degreesToTurn / lastFrequencyTimeIncrement,
@@ -719,7 +780,7 @@ Transition = function(nextAnimation, lastAnimation, lastTransition, playTransiti
     if (this.lastTransition !== nullTransition) {
         this.lastTransition.incrementRecursion();
     }
-
+    
     // end of transition initialisation. begin Transition public methods
 
     // keep up the pace for the frequency time wheel for the last animation
@@ -727,20 +788,20 @@ Transition = function(nextAnimation, lastAnimation, lastTransition, playTransiti
         var wheelAdvance = undefined;
 
         if (this.lastAnimation === avatar.selectedWalkBlend &&
-            this.nextAnimation === avatar.selectedIdle) {
+            this.nextAnimation === avatar.selectedIdle) {             
             if (this.degreesRemaining <= 0) {
                 // stop continued motion
                 wheelAdvance = 0;
                 if (motion.isComingToHalt) {
-                    if (this.lastFrequencyTimeWheelPos < 90) {
+                    if (this.lastFrequencyTimeWheelPos < QUARTER_CYCLE) {
                         this.lastFrequencyTimeWheelPos = 0;
                     } else {
-                        this.lastFrequencyTimeWheelPos = 180;
+                        this.lastFrequencyTimeWheelPos = HALF_CYCLE;
                     }
                 }
             } else {
                 wheelAdvance = this.lastFrequencyTimeIncrement;
-                var distanceToTravel = avatar.calibration.strideLength * wheelAdvance / 180;
+                var distanceToTravel = avatar.calibration.strideLength * wheelAdvance / HALF_CYCLE;
                 if (this.degreesRemaining <= 0) {
                     distanceToTravel = 0;
                     this.degreesRemaining = 0;
@@ -754,8 +815,8 @@ Transition = function(nextAnimation, lastAnimation, lastTransition, playTransiti
 
         // advance the ft wheel
         this.lastFrequencyTimeWheelPos += wheelAdvance;
-        if (this.lastFrequencyTimeWheelPos >= 360) {
-            this.lastFrequencyTimeWheelPos = this.lastFrequencyTimeWheelPos % 360;
+        if (this.lastFrequencyTimeWheelPos >= FULL_CYCLE) {
+            this.lastFrequencyTimeWheelPos = this.lastFrequencyTimeWheelPos % FULL_CYCLE;
         }
 
         // advance ft wheel for the nested (previous) Transition
@@ -768,9 +829,11 @@ Transition = function(nextAnimation, lastAnimation, lastTransition, playTransiti
     };
 
     this.updateProgress = function() {
-        var elapasedTime = (new Date().getTime() - this.startTime) / 1000;
+        const MILLISECONDS_CONVERT = 1000;
+        const ACCURACY_INCREASER = 1000;
+        var elapasedTime = (new Date().getTime() - this.startTime) / MILLISECONDS_CONVERT;
         this.progress = elapasedTime / this.parameters.duration;
-        this.progress = Math.round(this.progress * 1000) / 1000;
+        this.progress = Math.round(this.progress * ACCURACY_INCREASER) / ACCURACY_INCREASER;
 
         // updated nested transition/s
         if (this.lastTransition !== nullTransition) {
@@ -792,6 +855,7 @@ Transition = function(nextAnimation, lastAnimation, lastTransition, playTransiti
 
         // update transition progress
         this.filteredProgress = filter.bezier(this.progress, this.parameters.easingLower, this.parameters.easingUpper);
+        //if (this.progress >= 1) walkTools.toLog(this.lastAnimation.name + ' to '+ this.nextAnimation.name + ': done');
         return this.progress >= 1 ? TRANSITION_COMPLETE : false;
     };
 
@@ -896,23 +960,23 @@ FrequencyMultipliers = function(joint, direction) {
     this.bobFrequencyMultiplier = 1;
     this.thrustFrequencyMultiplier = 1;
 
-    if (isDefined(joint)) {
-        if (isDefined(joint.pitchFrequencyMultiplier)) {
+    if (joint) {
+        if (joint.pitchFrequencyMultiplier) {
             this.pitchFrequencyMultiplier = joint.pitchFrequencyMultiplier;
         }
-        if (isDefined(joint.yawFrequencyMultiplier)) {
+        if (joint.yawFrequencyMultiplier) {
             this.yawFrequencyMultiplier = joint.yawFrequencyMultiplier;
         }
-        if (isDefined(joint.rollFrequencyMultiplier)) {
+        if (joint.rollFrequencyMultiplier) {
             this.rollFrequencyMultiplier = joint.rollFrequencyMultiplier;
         }
-        if (isDefined(joint.swayFrequencyMultiplier)) {
+        if (joint.swayFrequencyMultiplier) {
             this.swayFrequencyMultiplier = joint.swayFrequencyMultiplier;
         }
-        if (isDefined(joint.bobFrequencyMultiplier)) {
+        if (joint.bobFrequencyMultiplier) {
             this.bobFrequencyMultiplier = joint.bobFrequencyMultiplier;
         }
-        if (isDefined(joint.thrustFrequencyMultiplier)) {
+        if (joint.thrustFrequencyMultiplier) {
             this.thrustFrequencyMultiplier = joint.thrustFrequencyMultiplier;
         }
     }

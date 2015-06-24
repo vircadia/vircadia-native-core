@@ -2,8 +2,8 @@
 //  walkFilters.js
 //  version 1.1
 //
-//  Created by David Wooldridge, June 2015
-//  Copyright © 2014 - 2015 High Fidelity, Inc.
+//  Created by David Wooldridge, Autumn 2014
+//  Copyright © 2015 High Fidelity, Inc.
 //
 //  Provides a variety of filters for use by the walk.js script v1.2+
 //
@@ -118,6 +118,7 @@ WaveSynth = function(waveShape, numHarmonics, smoothing) {
 HarmonicsFilter = function(magnitudes, phaseAngles) {
     this.magnitudes = magnitudes;
     this.phaseAngles = phaseAngles;
+
     this.calculate = function(twoPiFT) {
         var harmonics = 0;
         var numHarmonics = magnitudes.length;
@@ -130,6 +131,9 @@ HarmonicsFilter = function(magnitudes, phaseAngles) {
 
 // the main filter object literal
 filter = (function() {
+    
+    const HALF_CYCLE = 180;
+    
     // Bezier private variables
     var _C1 = {x:0, y:0};
     var _C4 = {x:1, y:1};
@@ -144,17 +148,17 @@ filter = (function() {
 
         // helper methods
         degToRad: function(degrees) {
-            var convertedValue = degrees * Math.PI / 180;
+            var convertedValue = degrees * Math.PI / HALF_CYCLE;
             return convertedValue;
         },
 
         radToDeg: function(radians) {
-            var convertedValue = radians * 180 / Math.PI;
+            var convertedValue = radians * HALF_CYCLE / Math.PI;
             return convertedValue;
         },
 
         // these filters need instantiating, as they hold arrays of previous values
-
+        
         // simple averaging (LP) filter for damping / smoothing
         createAveragingFilter: function(length) {
             var newAveragingFilter = new AveragingFilter(length);
@@ -180,7 +184,7 @@ filter = (function() {
         },
 
         // the following filters do not need separate instances, as they hold no previous values
-
+        
         // Bezier response curve shaping for more natural transitions
         bezier: function(input, C2, C3) {
             // based on script by Dan Pupius (www.pupius.net) http://13thparallel.com/archive/bezier-curves/
