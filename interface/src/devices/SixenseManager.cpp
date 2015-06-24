@@ -36,6 +36,8 @@ const float NECK_X = 0.25f; // meters
 const float NECK_Y = 0.3f;  // meters
 const float NECK_Z = 0.3f;  // meters
 
+const float CONTROLLER_THRESHOLD = 0.35f;
+
 #ifdef __APPLE__
 typedef int (*SixenseBaseFunction)();
 typedef int (*SixenseTakeIntFunction)(int);
@@ -325,6 +327,12 @@ void SixenseManager::update(float deltaTime) {
             updateCalibration(controllers);
         }
         _controllersAtBase = (numControllersAtBase == 2);
+    }
+    
+    for (auto axisState : _axisStateMap) {
+        if (fabsf(axisState.second) < CONTROLLER_THRESHOLD) {
+            _axisStateMap[axisState.first] = 0.0f;
+        }
     }
 #endif  // HAVE_SIXENSE
 }
