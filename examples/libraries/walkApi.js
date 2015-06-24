@@ -2,10 +2,10 @@
 //  walkApi.js
 //  version 1.3
 //
-//  Created by David Wooldridge, Autumn 2014
-//  Copyright Â© 2015 High Fidelity, Inc.
+//  Created by David Wooldridge, June 2015
+//  Copyright © 2014 - 2015 High Fidelity, Inc.
 //
-//  Exposes API for use by walk.js version 1.2+. 
+//  Exposes API for use by walk.js version 1.2+.
 //
 //  Editing tools for animation data files available here: https://github.com/DaveDubUK/walkTools
 //
@@ -32,7 +32,7 @@ const SAWTOOTH = 1;
 const TRIANGLE = 2;
 const SQUARE = 4;
 
-// constants used by walk.js and walkApi.js 
+// constants used by walk.js and walkApi.js
 const MAX_WALK_SPEED = 2.9; // peak, by observation
 const MAX_FT_WHEEL_INCREMENT = 25; // avoid fast walk when landing
 const TOP_SPEED = 300;
@@ -62,7 +62,7 @@ Avatar = function() {
         const HYDRA_TRIGGERS = 2;
         const HYDRA_CONTROLLERS_PER_TRIGGER = 2;
         var controllersPerTrigger = numberOfSpatialControls / numberOfTriggers;
-        if (numberOfButtons == HYDRA_BUTTONS && 
+        if (numberOfButtons == HYDRA_BUTTONS &&
             numberOfTriggers == HYDRA_TRIGGERS &&
             controllersPerTrigger == HYDRA_CONTROLLERS_PER_TRIGGER) {
             print('walk.js info: Razer Hydra detected. Setting arms free (not controlled by script)');
@@ -75,7 +75,7 @@ Avatar = function() {
     // settings
     this.headFree = true;
     this.armsFree = this.hydraCheck(); // automatically sets true to enable Hydra support - temporary fix
-    this.makesFootStepSounds = false; 
+    this.makesFootStepSounds = false;
     this.isBlenderExport = false; // temporary fix
     this.animationSet = undefined; // currently just one animation set
     this.setAnimationSet = function(animationSet) {
@@ -121,8 +121,8 @@ Avatar = function() {
                 }
             }
             this.calibration.hipsToFeet = MyAvatar.getJointPosition("Hips").y - MyAvatar.getJointPosition("RightToeBase").y;
-            
-            // maybe measuring before Blender pre-rotations have been applied? 
+
+            // maybe measuring before Blender pre-rotations have been applied?
             if (this.calibration.hipsToFeet < 0 && this.isBlenderExport) {
                 this.calibration.hipsToFeet *= -1;
             }
@@ -165,7 +165,7 @@ Avatar = function() {
 
     // footsteps
     this.nextStep = RIGHT; // the first step is right, because the waveforms say so
-    
+
     this.leftAudioInjector = null;
     this.rightAudioInjector = null;
     this.makeFootStepSound = function() {
@@ -229,7 +229,7 @@ Motion = function() {
     // orientation, locomotion and timing
     this.velocity = {x:0, y:0, z:0};
     this.acceleration = {x:0, y:0, z:0};
-    this.yaw = Quat.safeEulerAngles(MyAvatar.orientation).y; // MyAvatar.orientation.y; //
+    this.yaw = Quat.safeEulerAngles(MyAvatar.orientation).y;
     this.yawDelta = 0;
     this.yawDeltaAcceleration = 0;
     this.direction = FORWARDS;
@@ -241,12 +241,12 @@ Motion = function() {
     this.lastYaw = Quat.safeEulerAngles(MyAvatar.orientation).y;
     this.lastYawDelta = 0;
     this.lastYawDeltaAcceleration = 0;
-    
+
     // Quat.safeEulerAngles(MyAvatar.orientation).y tends to repeat values between frames, so values are filtered
     var YAW_SMOOTHING = 22;
-    this.yawFilter = filter.createAveragingFilter(YAW_SMOOTHING); //createButterworthFilter(); //
-    this.deltaTimeFilter = filter.createAveragingFilter(YAW_SMOOTHING); //createButterworthFilter(); //
-    this.yawDeltaAccelerationFilter = filter.createAveragingFilter(YAW_SMOOTHING); //createButterworthFilter(); //
+    this.yawFilter = filter.createAveragingFilter(YAW_SMOOTHING);
+    this.deltaTimeFilter = filter.createAveragingFilter(YAW_SMOOTHING);
+    this.yawDeltaAccelerationFilter = filter.createAveragingFilter(YAW_SMOOTHING);
 
     // assess locomotion state
     this.assess = function(deltaTime) {
@@ -350,16 +350,16 @@ Motion = function() {
         var surfaceMotion = isOnSurface && this.isMoving;
         var acceleratingAndAirborne = this.isAccelerating && !isOnSurface;
         var goingTooFastToWalk = !this.isDecelerating && this.isFlyingSpeed;
-        var movingDirectlyUpOrDown = (this.direction === UP || this.direction === DOWN) // && lateralVelocity < MOVE_THRESHOLD;
+        var movingDirectlyUpOrDown = (this.direction === UP || this.direction === DOWN)
         var maybeBouncing = Math.abs(this.acceleration.y > BOUNCE_ACCELERATION_THRESHOLD) ? true : false;
 
         // we now have enough information to set the appropriate locomotion mode
         switch (this.state) {
             case STATIC:
-                var staticToAirMotion = this.isMoving && (acceleratingAndAirborne || goingTooFastToWalk || 
+                var staticToAirMotion = this.isMoving && (acceleratingAndAirborne || goingTooFastToWalk ||
                                                            (movingDirectlyUpOrDown && !isOnSurface));
                 var staticToSurfaceMotion = surfaceMotion && !motion.isComingToHalt && !movingDirectlyUpOrDown &&
-                                            !this.isDecelerating && lateralVelocity > MOVE_THRESHOLD;            
+                                            !this.isDecelerating && lateralVelocity > MOVE_THRESHOLD;
                 if (staticToAirMotion) {
                     this.nextState = AIR_MOTION;
                 } else if (staticToSurfaceMotion) {
@@ -370,8 +370,8 @@ Motion = function() {
                 break;
 
             case SURFACE_MOTION:
-                var surfaceMotionToStatic = !this.isMoving || 
-                                            (this.isDecelerating && motion.lastDirection !== DOWN && surfaceMotion && 
+                var surfaceMotionToStatic = !this.isMoving ||
+                                            (this.isDecelerating && motion.lastDirection !== DOWN && surfaceMotion &&
                                             !maybeBouncing && Vec3.length(this.velocity) < MAX_WALK_SPEED);
                 var surfaceMotionToAirMotion = (acceleratingAndAirborne || goingTooFastToWalk || movingDirectlyUpOrDown) &&
                                                (!surfaceMotion && isTakingOff) ||
@@ -391,8 +391,7 @@ Motion = function() {
 
             case AIR_MOTION:
                 var airMotionToSurfaceMotion = (surfaceMotion || aboutToLand) && !movingDirectlyUpOrDown;
-                var airMotionToStatic = !this.isMoving && this.direction === this.lastDirection; //||
-                                       //this.isDeceleratingFast || isOnSurface;
+                var airMotionToStatic = !this.isMoving && this.direction === this.lastDirection;
                 if (airMotionToSurfaceMotion){
                     this.nextState = SURFACE_MOTION;
                 } else if (airMotionToStatic) {
@@ -484,7 +483,7 @@ animationOperations = (function() {
             } else {
                 jointTranslations.z = joint.thrust * Math.sin
                     (filter.degToRad(modifiers.thrustFrequencyMultiplier * ft + joint.thrustPhase)) + joint.thrustOffset;
-            }           
+            }
             return jointTranslations;
         },
 
@@ -780,7 +779,7 @@ Transition = function(nextAnimation, lastAnimation, lastTransition, playTransiti
     if (this.lastTransition !== nullTransition) {
         this.lastTransition.incrementRecursion();
     }
-    
+
     // end of transition initialisation. begin Transition public methods
 
     // keep up the pace for the frequency time wheel for the last animation
@@ -788,7 +787,7 @@ Transition = function(nextAnimation, lastAnimation, lastTransition, playTransiti
         var wheelAdvance = undefined;
 
         if (this.lastAnimation === avatar.selectedWalkBlend &&
-            this.nextAnimation === avatar.selectedIdle) {             
+            this.nextAnimation === avatar.selectedIdle) {
             if (this.degreesRemaining <= 0) {
                 // stop continued motion
                 wheelAdvance = 0;
@@ -855,7 +854,6 @@ Transition = function(nextAnimation, lastAnimation, lastTransition, playTransiti
 
         // update transition progress
         this.filteredProgress = filter.bezier(this.progress, this.parameters.easingLower, this.parameters.easingUpper);
-        //if (this.progress >= 1) walkTools.toLog(this.lastAnimation.name + ' to '+ this.nextAnimation.name + ': done');
         return this.progress >= 1 ? TRANSITION_COMPLETE : false;
     };
 

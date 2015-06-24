@@ -37,11 +37,9 @@
                         }
                     });
                 }
-
                 elArmsFree.addEventListener("change", emitUpdate);
                 elFootstepSounds.addEventListener("change", emitUpdate);
                 elBlenderPreRotations.addEventListener("change", emitUpdate);
-
                 elPower.addEventListener("click", function() {
                     EventBridge.emitWebEvent(JSON.stringify({
                         type: "powerToggle"

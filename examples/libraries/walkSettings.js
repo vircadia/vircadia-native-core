@@ -2,8 +2,8 @@
 //  walkSettings.js
 //  version 0.1
 //
-//  Created by David Wooldridge, Summer 2015
-//  Copyright Â© 2015 High Fidelity, Inc.
+//  Created by David Wooldridge, June 2015
+//  Copyright © 2014 - 2015 High Fidelity, Inc.
 //
 //  Presents settings for walk.js
 //
@@ -20,14 +20,14 @@ WalkSettings = function() {
     const MARGIN_TOP = 145;
     const ICON_SIZE = 50;
     const ICON_ALPHA = 0.9;
-    
+
     var minimisedTab = Overlays.addOverlay("image", {
         x: _innerWidth - MARGIN_RIGHT, y: Window.innerHeight - MARGIN_TOP,
         width: ICON_SIZE, height: ICON_SIZE,
         imageURL: pathToAssets + 'overlay-images/ddpa-minimised-ddpa-tab.png',
         visible: true, alpha: ICON_ALPHA
     });
-    
+
     function mousePressEvent(event) {
         if (Overlays.getOverlayAtPoint(event) === minimisedTab) {
             _visible = !_visible;
@@ -35,43 +35,36 @@ WalkSettings = function() {
         }
     }
     Controller.mousePressEvent.connect(mousePressEvent);
-    
+
     Script.update.connect(function(deltaTime) {
         if (window.innerWidth !== _innerWidth) {
             _innerWidth = window.innerWidth;
             Overlays.EditOverlay(minimisedTab, {x: _innerWidth - MARGIN_RIGHT});
         }
     });
-    
+
     function cleanup() {
         Overlays.deleteOverlay(minimisedTab);
     }
     Script.scriptEnding.connect(cleanup);
-    
-    var _control = false;
+
     var _shift = false;
     function keyPressEvent(event) {
-        if (event.text === "CONTROL") {
-            _control = true;
-        }
         if (event.text === "SHIFT") {
             _shift = true;
-        }        
+        }
         if (_shift && (event.text === 'o' || event.text === 'O')) {
             _visible = !_visible;
             _webView.setVisible(_visible);
         }
     }
     function keyReleaseEvent(event) {
-        if (event.text === "CONTROL") {
-            _control = false;
-        }
         if (event.text === "SHIFT") {
             _shift = false;
-        }           
-    }    
-    Controller.keyPressEvent.connect(keyPressEvent);  
-    Controller.keyReleaseEvent.connect(keyReleaseEvent);      
+        }
+    }
+    Controller.keyPressEvent.connect(keyPressEvent);
+    Controller.keyReleaseEvent.connect(keyReleaseEvent);
 
     // web window
     var _url = Script.resolvePath('html/walkSettings.html');
@@ -84,7 +77,7 @@ WalkSettings = function() {
         data = JSON.parse(data);
 
         if (data.type == "init") {
-            // send the current settings to the dialog
+            // send the current settings to the window
             _webView.eventBridge.emitScriptEvent(JSON.stringify({
                 type: "update",
                 armsFree: avatar.armsFree,
@@ -94,7 +87,7 @@ WalkSettings = function() {
         } else if (data.type == "powerToggle") {
             motion.isLive = !motion.isLive;
         } else if (data.type == "update") {
-            // receive settings from the dialog
+            // receive settings from the window
             avatar.armsFree = data.armsFree;
             avatar.makesFootStepSounds = data.footstepSounds;
             avatar.isBlenderExport = data.blenderPreRotations;
