@@ -217,7 +217,7 @@ do { \
 //
 #define QCOMPARE_WITH_LAMBDA(actual, expected, testClosure) \
 do { \
-    if (!testClosure()) \
+    if (!testClosure()) { \
         QTest_failWithMessage("Compared values are not the same", actual, expected, #actual, #expected, __LINE__, __FILE__); \
         return; \
     } \
@@ -233,9 +233,9 @@ do { \
 } while (0)
 
 // Same as QCOMPARE_WITH_FUNCTION, but with a custom fail message
-#define QCOMPARE_WITH_LAMBDA(actual, expected, testClosure, failMessage) \
-    do { \
-    if (!testClosure()) \
+#define QCOMPARE_WITH_LAMBDA_AND_MESSAGE(actual, expected, testClosure, failMessage) \
+do { \
+    if (!testClosure()) { \
         QTest_failWithMessage(failMessage, actual, expected, #actual, #expected, __LINE__, __FILE__); \
         return; \
     } \
