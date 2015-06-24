@@ -984,7 +984,7 @@ void Application::paintGL() {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
         glBlitFramebuffer(0, 0, _renderResolution.x, _renderResolution.y,
                           0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height(),
-                            GL_COLOR_BUFFER_BIT, GL_NEAREST);
+                            GL_COLOR_BUFFER_BIT, GL_LINEAR);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
         _compositor.displayOverlayTexture(&renderArgs);
