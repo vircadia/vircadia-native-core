@@ -16,6 +16,8 @@
 
 #include <qqueue.h>
 
+QTEST_MAIN(MovingPercentileTests)
+
 float MovingPercentileTests::random() {
     return rand() / (float)RAND_MAX;
 }

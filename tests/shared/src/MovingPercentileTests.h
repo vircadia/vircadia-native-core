@@ -12,11 +12,16 @@
 #ifndef hifi_MovingPercentileTests_h
 #define hifi_MovingPercentileTests_h
 
-namespace MovingPercentileTests {
+#include <QtTest/QtTest>
 
+class MovingPercentileTests : public QObject {
+    Q_OBJECT
+
+private slots:
+    void runAllTests();
+
+private:
     float random();
-
-    void runAllTests(); 
-}
+};
 
 #endif // hifi_MovingPercentileTests_h

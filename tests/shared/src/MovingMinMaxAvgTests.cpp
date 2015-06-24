@@ -15,6 +15,8 @@
 
 #include <NumericalConstants.h>
 
+QTEST_MAIN(MovingMinMaxAvgTests)
+
 quint64 MovingMinMaxAvgTests::randQuint64() {
     quint64 ret = 0;
     for (int i = 0; i < 32; i++) {

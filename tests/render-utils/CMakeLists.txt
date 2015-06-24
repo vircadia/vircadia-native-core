@@ -1,12 +1,13 @@
 
-# Declare dependencies
-macro (setup_testcase_dependencies)
-	#include_oglplus()
+set(TARGET_NAME render-utils-test)
+ 
+# This is not a testcase -- just set it up as a regular hifi project
+setup_hifi_project(Quick Gui OpenGL)
+set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Tests/manual-tests/")
 
-	# link in the shared libraries
-	link_hifi_libraries(render-utils gpu shared)
+#include_oglplus()
 
-	copy_dlls_beside_windows_executable()
-endmacro ()
+# link in the shared libraries
+link_hifi_libraries(render-utils gpu shared)
 
-setup_hifi_testcase(Quick Gui OpenGL)
+copy_dlls_beside_windows_executable()
