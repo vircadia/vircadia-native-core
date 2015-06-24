@@ -99,7 +99,6 @@
 #include <UserActivityLogger.h>
 #include <UUID.h>
 #include <VrMenu.h>
-#include <ui/ApplicationOverlayCompositor.h>
 
 #include "Application.h"
 #include "AudioClient.h"
@@ -2369,13 +2368,11 @@ void Application::cameraMenuChanged() {
     }
 }
 
-#if 0
 void Application::rotationModeChanged() {
     if (!Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
         _myAvatar->setHeadPitch(0);
     }
 }
-#endif
 
 void Application::updateCamera(float deltaTime) {
     PerformanceTimer perfTimer("updateCamera");
@@ -3282,8 +3279,7 @@ namespace render {
     }
 }
 
-
-void Application::displaySide(RenderArgs* renderArgs, const Camera& theCamera, bool selfAvatarOnly, bool billboard) {
+void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool selfAvatarOnly, bool billboard) {
     activeRenderingThread = QThread::currentThread();
     PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("display");
@@ -4747,7 +4743,7 @@ mat4 Application::getEyePose(int eye) const {
 
 mat4 Application::getHeadPose() const {
     if (isHMDMode()) {
-        return OculusManager::getHeadPose();
+        return getActiveDisplayPlugin()->getHeadPose();
     }
     return mat4();
 }
