@@ -135,7 +135,7 @@ ToolBar = function(x, y, direction) {
     this.back = this.back = Overlays.addOverlay("text", {
                     backgroundColor: { red: 255, green: 255, blue: 255 },
                     x: this.x,
-                    y: this.y - ToolBar.TITLE_BAR_HEIGHT,
+                    y: this.y,
                     width: this.width,
                     height: this.height,
                     alpha: 1.0,
