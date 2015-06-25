@@ -107,6 +107,7 @@ Avatar::Avatar() :
 }
 
 Avatar::~Avatar() {
+    assert(_motionState == nullptr);
     for(auto attachment : _unusedAttachments) {
         delete attachment;
     }

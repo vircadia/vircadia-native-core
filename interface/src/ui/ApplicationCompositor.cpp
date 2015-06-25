@@ -182,7 +182,8 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
 
     updateTooltips();
 
-    vec2 canvasSize = qApp->getCanvasSize();
+    auto deviceSize = qApp->getDeviceSize();
+    glViewport(0, 0, deviceSize.width(), deviceSize.height());
 
     //Handle fading and deactivation/activation of UI
     gpu::Batch batch;
@@ -204,6 +205,7 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
 
     //draw the mouse pointer
     // Get the mouse coordinates and convert to NDC [-1, 1]
+    vec2 canvasSize = qApp->getCanvasSize();
     vec2 mousePosition = toNormalizedDeviceScale(vec2(qApp->getMouse()), canvasSize);
     // Invert the Y axis
     mousePosition.y *= -1.0f;
@@ -334,12 +336,12 @@ void ApplicationCompositor::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& or
 
     // Intersection UI overlay space
     glm::vec3 worldSpaceDirection = overlayOrientation * overlaySpaceDirection;
-    glm::vec3 intersectionWithUi = glm::normalize(worldSpaceDirection) * _oculusUIRadius;
-    intersectionWithUi += overlayPosition;
+    glm::vec3 worldSpaceIntersection = (glm::normalize(worldSpaceDirection) * _oculusUIRadius) + overlayPosition;
+    glm::vec3 worldSpaceHeadPosition = (overlayOrientation * glm::vec3(qApp->getHeadPose()[3])) + overlayPosition;
 
     // Intersection in world space
-    origin = overlayPosition;
-    direction = glm::normalize(intersectionWithUi - origin);
+    origin = worldSpaceHeadPosition;
+    direction = glm::normalize(worldSpaceIntersection - worldSpaceHeadPosition);
 }
 
 //Caculate the click location using one of the sixense controllers. Scale is not applied
@@ -394,42 +396,13 @@ bool ApplicationCompositor::calculateRayUICollisionPoint(const glm::vec3& positi
 void ApplicationCompositor::renderPointers(gpu::Batch& batch) {
     if (qApp->isHMDMode() && !qApp->getLastMouseMoveWasSimulated() && !qApp->isMouseHidden()) {
         //If we are in oculus, render reticle later
-        if (_lastMouseMove == 0) {
-            _lastMouseMove = usecTimestampNow();
-        }
         QPoint position = QPoint(qApp->getTrueMouseX(), qApp->getTrueMouseY());
-
-        static const int MAX_IDLE_TIME = 3;
-        if (_reticlePosition[MOUSE] != position) {
-            _lastMouseMove = usecTimestampNow();
-        } else if (usecTimestampNow() - _lastMouseMove > MAX_IDLE_TIME * USECS_PER_SECOND) {
-            //float pitch = 0.0f, yaw = 0.0f, roll = 0.0f; // radians
-            //OculusManager::getEulerAngles(yaw, pitch, roll);
-            glm::quat orientation = qApp->getHeadOrientation(); // (glm::vec3(pitch, yaw, roll));
-            glm::vec3 result;
-
-            MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-            if (calculateRayUICollisionPoint(myAvatar->getEyePosition(),
-                myAvatar->getOrientation() * orientation * IDENTITY_FRONT,
-                result)) {
-                glm::vec3 lookAtDirection = glm::inverse(myAvatar->getOrientation()) * (result - myAvatar->getDefaultEyePosition());
-                glm::vec2 spericalPos = directionToSpherical(glm::normalize(lookAtDirection));
-                glm::vec2 screenPos = sphericalToScreen(spericalPos);
-                position = QPoint(screenPos.x, screenPos.y);
-                // FIXME
-                //glCanvas->cursor().setPos(glCanvas->mapToGlobal(position));
-            } else {
-                qDebug() << "No collision point";
-            }
-        }
-
         _reticlePosition[MOUSE] = position;
         _reticleActive[MOUSE] = true;
         _magActive[MOUSE] = _magnifier;
         _reticleActive[LEFT_CONTROLLER] = false;
         _reticleActive[RIGHT_CONTROLLER] = false;
     } else if (qApp->getLastMouseMoveWasSimulated() && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
-        _lastMouseMove = 0;
         //only render controller pointer if we aren't already rendering a mouse pointer
         _reticleActive[MOUSE] = false;
         _magActive[MOUSE] = false;

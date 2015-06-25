@@ -107,7 +107,7 @@ void Circle3DOverlay::render(RenderArgs* args) {
     Transform transform;
     transform.setTranslation(getCenter());
     transform.setRotation(getRotation());
-    transform.setScale(glm::vec3(getDimensions(), 0.01f));
+    transform.setScale(glm::vec3(getDimensions(), 0.01f) / 2.0f);
     
     
     auto& batch = *args->_batch;

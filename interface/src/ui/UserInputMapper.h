@@ -139,6 +139,11 @@ public:
  
         BOOM_IN,
         BOOM_OUT,
+        
+        SHIFT,
+        
+        ACTION1,
+        ACTION2,
 
         NUM_ACTIONS,
     };

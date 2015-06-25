@@ -54,7 +54,8 @@ class LineEntityItem : public EntityItem {
     void setLineWidth(float lineWidth){ _lineWidth = lineWidth; }
     float getLineWidth() const{ return _lineWidth; }
     
-    void setLinePoints(const QVector<glm::vec3>& points);
+    bool setLinePoints(const QVector<glm::vec3>& points);
+    bool appendPoint(const glm::vec3& point);
     
     const QVector<glm::vec3>& getLinePoints() const{ return _points; }
     
@@ -68,6 +69,7 @@ class LineEntityItem : public EntityItem {
 
     virtual void debugDump() const;
     static const float DEFAULT_LINE_WIDTH;
+    static const int MAX_POINTS_PER_LINE;
 
  protected:
     rgbColor _color;

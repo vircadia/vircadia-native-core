@@ -29,7 +29,7 @@ class Stats : public QQuickItem {
     HIFI_QML_DECL
     Q_PROPERTY(bool expanded READ isExpanded WRITE setExpanded NOTIFY expandedChanged)
     Q_PROPERTY(bool timingExpanded READ isTimingExpanded NOTIFY timingExpandedChanged)
-    Q_PROPERTY(QString monospaceFont READ monospaceFont)
+    Q_PROPERTY(QString monospaceFont READ monospaceFont CONSTANT)
 
     STATS_PROPERTY(int, serverCount, 0)
     STATS_PROPERTY(int, framerate, 0)

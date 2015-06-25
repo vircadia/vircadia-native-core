@@ -29,19 +29,13 @@ var buttonOnColor = {
 };
 
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-var screenSize = Controller.getViewportDimensions();
 
 var userCanPoint = false;
 Script.include(["libraries/toolBars.js"]);
-const persistKey = "highfidelity.pointer.toolbar.position";
-var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL);
-toolBar.save = function () {
-    Settings.setValue(persistKey, JSON.stringify([toolBar.x, toolBar.y]));
-};
-var old = JSON.parse(Settings.getValue(persistKey) || '0');
+var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.pointer.toolbar", function (screenSize) {
+    return {x: screenSize.x / 2 - BUTTON_SIZE * 2 + PADDING, y: screenSize.y - (BUTTON_SIZE + PADDING)},
+});
 var pointerButton = toolBar.addOverlay("image", {
-  x: old ? old[0] : screenSize.x / 2 - BUTTON_SIZE * 2 + PADDING,
-  y: old ? old[1] : screenSize.y - (BUTTON_SIZE + PADDING),
   width: BUTTON_SIZE,
   height: BUTTON_SIZE,
   imageURL: HIFI_PUBLIC_BUCKET + "images/laser.png",
