@@ -12,8 +12,6 @@
 #ifndef hifi_SimulationOwner_h
 #define hifi_SimulationOwner_h
 
-#include <iostream>
-
 #include <QtCore/QDebug>
 #include <QtCore/QByteArray>
 
@@ -50,18 +48,18 @@ public:
     bool set(const SimulationOwner& owner);
 
     bool isNull() const { return _id.isNull(); }
-    bool matchesID(const QUuid& id) const { return _id == id && !_id.isNull(); }
+    bool matchesValidID(const QUuid& id) const { return _id == id && !_id.isNull(); }
 
     void updateExpiry();
 
     bool hasExpired() const { return usecTimestampNow() > _expiry; }
 
     bool operator>=(quint8 priority) const { return _priority >= priority; }
-    bool operator==(const SimulationOwner& other);
+    bool operator==(const SimulationOwner& other) { return (_id == other._id && _priority == other._priority); }
+
     bool operator!=(const SimulationOwner& other);
     SimulationOwner& operator=(const SimulationOwner& other);
 
-    friend std::ostream& operator<<(std::ostream& s, const SimulationOwner& simOwner);
     friend QDebug& operator<<(QDebug& d, const SimulationOwner& simOwner);
 
     // debug

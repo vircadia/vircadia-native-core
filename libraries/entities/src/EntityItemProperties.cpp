@@ -17,7 +17,6 @@
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
-#include <StreamUtils.h> // adebug
 
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
@@ -712,19 +711,15 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 LevelDetails propertyLevel = packetData->startLevel();
                 successPropertyFits = packetData->appendValue(properties._simulationOwner.toByteArray());
                 if (successPropertyFits) {
-//                    std::cout << "adebug appending ownerhip data" << std::endl;  // adebug
-//                    StreamUtil::dump(std::cout, properties._simulationOwner.toByteArray());
                     propertyFlags |= PROP_SIMULATION_OWNER;
                     propertiesDidntFit -= PROP_SIMULATION_OWNER;
                     propertyCount++;
                     packetData->endLevel(propertyLevel);
                 } else {
-//                    std::cout << "adebug ownership data did not fit" << std::endl;  // adebug
                     packetData->discardLevel(propertyLevel);
                     appendState = OctreeElement::PARTIAL;
                 }
             } else {
-//                std::cout << "adebug property doesn't have ownerhip data" << std::endl;  // adebug
                 propertiesDidntFit -= PROP_SIMULATION_OWNER;
             }
 
@@ -992,10 +987,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         SimulationOwner simOwner;
         simOwner.fromByteArray(fromBuffer);
         properties.setSimulationOwner(simOwner);
-//        std::cout << "adebug decoding ownerhip data" << std::endl;  // adebug
-//        StreamUtil::dump(std::cout, fromBuffer);
-    } else {
-//        std::cout << "adebug no ownership info to decode"  << std::endl;  // adebug
     }
 
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POSITION, glm::vec3, setPosition);

@@ -362,8 +362,7 @@ public:
     virtual void updateShapeType(ShapeType type) { /* do nothing */ }
 
     uint32_t getDirtyFlags() const { return _dirtyFlags; }
-    //void clearDirtyFlags(uint32_t mask = 0xffffffff) { _dirtyFlags &= ~mask; }
-    void clearDirtyFlags(uint32_t mask = 0xffffffff);
+    void clearDirtyFlags(uint32_t mask = 0xffffffff) { _dirtyFlags &= ~mask; }
 
     bool isMoving() const;
 

@@ -11,6 +11,7 @@
 
 #include "SimulationOwner.h"
 
+#include <iostream> // included for tests
 #include <assert.h>
 
 #include <NumericalConstants.h>
@@ -86,7 +87,7 @@ void SimulationOwner::updateExpiry() {
     _expiry = usecTimestampNow() + OWNERSHIP_LOCKOUT_EXPIRY;
 }
 
-// TODO: move this test code out
+// NOTE: eventually this code will be moved into unit tests
 // static debug
 void SimulationOwner::test() {
     { // test default constructor
@@ -153,10 +154,6 @@ void SimulationOwner::test() {
     }
 }
 
-bool SimulationOwner::operator==(const SimulationOwner& other) {
-    return (_id == other._id && _priority == other._priority);
-}
-
 bool SimulationOwner::operator!=(const SimulationOwner& other) {
     return (_id != other._id && _priority != other._priority);
 }
@@ -173,12 +170,6 @@ SimulationOwner& SimulationOwner::operator=(const SimulationOwner& other) {
         _id = other._id;
     }
     return *this;
-}
-
-// friend of SimulationOwner
-std::ostream& operator<<(std::ostream& s, const SimulationOwner& simOwner) {
-    s << "{ id : " << simOwner._id.toString().toStdString() << ", priority : " << (int)simOwner._priority << " }";
-    return s;
 }
 
 QDebug& operator<<(QDebug& d, const SimulationOwner& simOwner) {
