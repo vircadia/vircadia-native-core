@@ -12,6 +12,7 @@
 #ifndef hifi_RenderableQuadEntityItem_h
 #define hifi_RenderableQuadEntityItem_h
 
+#include <gpu/Batch.h>
 #include <QuadEntityItem.h>
 #include "RenderableDebugableEntityItem.h"
 #include "RenderableEntityItem.h"
@@ -21,10 +22,7 @@ class RenderableQuadEntityItem : public QuadEntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     
-    RenderableQuadEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-    QuadEntityItem(entityItemID, properties),
-    _lineVerticesID(GeometryCache::UNKNOWN_ID)
-    { }
+    RenderableQuadEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     
     virtual void render(RenderArgs* args);
     
@@ -32,8 +30,9 @@ public:
     
 protected:
     void updateGeometry();
-    
-    int _lineVerticesID;
+    gpu::Stream::FormatPointer _format;
+    gpu::BufferPointer _verticesBuffer;
+    unsigned int _numVertices;
 };
 
 

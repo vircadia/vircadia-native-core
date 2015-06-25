@@ -12,7 +12,6 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <gpu/GPUConfig.h>
-#include <gpu/Batch.h>
 #include <GeometryCache.h>
 
 #include <DeferredLightingEffect.h>
@@ -20,28 +19,49 @@
 
 #include "RenderableQuadEntityItem.h"
 
+
 EntityItemPointer RenderableQuadEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return EntityItemPointer(new RenderableQuadEntityItem(entityID, properties));
 }
 
+RenderableQuadEntityItem::RenderableQuadEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+QuadEntityItem(entityItemID, properties) {
+    _format.reset(new gpu::Stream::Format());
+    _format->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
+    _numVertices = 0;
+}
+
+
 void RenderableQuadEntityItem::updateGeometry() {
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    if (_lineVerticesID == GeometryCache::UNKNOWN_ID) {
-        _lineVerticesID = geometryCache ->allocateID();
+    if(_quadVertices.size() < 4) {
+        return;
     }
+//    qDebug() << "num points: " << _points.size();
+//    qDebug() << "num quad vertices" << _quadVertices.size();
     if (_pointsChanged) {
-        glm::vec4 lineColor(toGlm(getXColor()), getLocalRenderAlpha());
-        geometryCache->updateVertices(_lineVerticesID, getQuadVertices(), lineColor);
+        _verticesBuffer.reset(new gpu::Buffer());
+        _numVertices = 0;
+        for (int i = 0; i < _quadVertices.size(); i+=4) {
+            _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(i));
+            _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(i + 1));
+            _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(i + 2));
+            _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(i + 3));
+            _numVertices += 4;
+        }
         _pointsChanged = false;
     }
 }
 
 void RenderableQuadEntityItem::render(RenderArgs* args) {
+    if (_quadVertices.size() < 4 ) {
+        return;
+    }
     PerformanceTimer perfTimer("RenderableQuadEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Quad);
-    updateGeometry();
     
     Q_ASSERT(args->_batch);
+    updateGeometry();
+    
     gpu::Batch& batch = *args->_batch;
     Transform transform = Transform();
     transform.setTranslation(getPosition());
@@ -49,7 +69,10 @@ void RenderableQuadEntityItem::render(RenderArgs* args) {
     
 
     DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
-    DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::TRIANGLE_STRIP, _lineVerticesID);
+    batch.setInputFormat(_format);
+    batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);
+    batch.draw(gpu::TRIANGLE_STRIP, _numVertices, 0);
+    
 
     
     RenderableDebugableEntityItem::render(this, args);

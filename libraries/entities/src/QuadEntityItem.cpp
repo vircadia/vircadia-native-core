@@ -106,8 +106,11 @@ bool QuadEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
     if (points.size() > MAX_POINTS_PER_LINE) {
         return false;
     }
+    if (points.size() != _points.size()) {
+        _pointsChanged = true;
+    }
     //Check to see if points actually changed. If they haven't, return before doing anything else
-    if (points.size() == _points.size()) {
+    else if (points.size() == _points.size()) {
         //same number of points, so now compare every point
         for (int i = 0; i < points.size(); i++ ) {
             if (points.at(i) != _points.at(i)){
@@ -119,6 +122,8 @@ bool QuadEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
     if (!_pointsChanged) {
         return false;
     }
+    
+    qDebug() << "POINTS CHANGED";
 
     for (int i = 0; i < points.size(); i++) {
         glm::vec3 point = points.at(i);
@@ -136,10 +141,11 @@ bool QuadEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
     for (int i = 0; i < points.size(); i++) {
         glm::vec3 point = points.at(i);
         
-        glm::vec3 p1 = glm::vec3(point.x - _lineWidth, point.y - _lineWidth, point.z);
-        glm::vec3 p2 = glm::vec3(point.x - _lineWidth, point.y + _lineWidth, point.z);
-        glm::vec3 p3 = glm::vec3(point.x + _lineWidth, point.y - _lineWidth, point.z);
-        glm::vec3 p4 = glm::vec3(point.x + _lineWidth, point.y + _lineWidth, point.z);
+        glm::vec3 p1 = glm::vec3(point.x - _lineWidth, point.y + _lineWidth, point.z);
+        glm::vec3 p2 = glm::vec3(point.x - _lineWidth, point.y - _lineWidth, point.z);
+        glm::vec3 p3 = glm::vec3(point.x + _lineWidth, point.y + _lineWidth, point.z);
+        glm::vec3 p4 = glm::vec3(point.x + _lineWidth, point.y - _lineWidth, point.z);
+
         _quadVertices << p1 << p2 << p3 << p4;
         
         
