@@ -34,9 +34,11 @@ Hifi.Tooltip {
             anchors.right: parent.right
             anchors.rightMargin: hifi.layout.spacing
             spacing: 5
+
             Text {
                 id: textPlace
                 color: "white"
+                font.underline: true
                 anchors.left: parent.left
                 anchors.right: parent.right
                 font.pixelSize: hifi.fonts.pixelSize / 2
