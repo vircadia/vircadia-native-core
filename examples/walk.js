@@ -3,7 +3,7 @@
 //  version 1.25
 //
 //  Created by David Wooldridge, June 2015
-//  Copyright © 2014 - 2015 High Fidelity, Inc.
+//  Copyright Â© 2014 - 2015 High Fidelity, Inc.
 //
 //  Animates an avatar using procedural animation techniques.
 //
@@ -13,61 +13,25 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// locomotion states
-var STATIC = 1;
-var SURFACE_MOTION = 2;
-var AIR_MOTION = 4;
-
-// directions
-var UP = 1;
-var DOWN = 2;
-var LEFT = 4;
-var RIGHT = 8;
-var FORWARDS = 16;
-var BACKWARDS = 32;
-var NONE = 64;
-
-// waveshapes
-var SAWTOOTH = 1;
-var TRIANGLE = 2;
-var SQUARE = 4;
-
-// constants
-const MAX_WALK_SPEED = 2.9; // peak, by observation
-const MAX_FT_WHEEL_INCREMENT = 25; // avoid fast walk when landing
-const TOP_SPEED = 300;
-const ON_SURFACE_THRESHOLD = 0.1; // height above surface to be considered as on the surface
-const TRANSITION_COMPLETE = 1000;
+// animations, reach poses, reach pose parameters, transitions, transition parameters, sounds, image/s and reference files
 const HIFI_PUBLIC_BUCKET = "https://hifi-public.s3.amazonaws.com/";
-
-// path to animations, reach-poses, reachPoses, transitions, overlay images and reference files
 var pathToAssets = HIFI_PUBLIC_BUCKET + "procedural-animator/assets/";
 
 Script.include([
+    "./libraries/walkConstants.js",
     "./libraries/walkFilters.js",
     "./libraries/walkApi.js",
     pathToAssets + "walkAssets.js"
 ]);
 
-// construct Avatar and Motion
+// construct Avatar, Motion and (null) Transition
 var avatar = new Avatar();
 var motion = new Motion();
-
-// create settings dialog
-Script.include("./libraries/walkSettings.js");
-
-// create and initialise Transition
 var nullTransition = new Transition();
 motion.currentTransition = nullTransition;
 
-// motion smoothing / damping filters
-var FLY_BLEND_DAMPING = 50;
-var leanPitchSmoothingFilter = filter.createButterworthFilter();
-var leanRollSmoothingFilter = filter.createButterworthFilter();
-var flyUpFilter = filter.createAveragingFilter(FLY_BLEND_DAMPING);
-var flyDownFilter = filter.createAveragingFilter(FLY_BLEND_DAMPING);
-var flyForwardFilter = filter.createAveragingFilter(FLY_BLEND_DAMPING);
-var flyBackwardFilter = filter.createAveragingFilter(FLY_BLEND_DAMPING);
+// create settings (gets initial values from avatar)
+Script.include("./libraries/walkSettings.js");
 
 // Main loop
 Script.update.connect(function(deltaTime) {
@@ -80,8 +44,8 @@ Script.update.connect(function(deltaTime) {
         // decide which animation should be playing
         selectAnimation();
 
-        // turn the frequency time wheels and determine stride length
-        determineStride();
+        // advance the animation cycle/s by the correct amount/s
+        advanceAnimations();
 
         // update the progress of any live transitions
         updateTransitions();
@@ -89,7 +53,7 @@ Script.update.connect(function(deltaTime) {
         // apply translation and rotations
         renderMotion();
 
-        // record this frame's parameters
+        // save this frame's parameters
         motion.saveHistory();
     }
 });
@@ -129,6 +93,13 @@ function setTransition(nextAnimation, playTransitionReachPoses) {
         avatar.nextStep = RIGHT;
     }
 }
+
+// fly animation blending: smoothing / damping filters
+const FLY_BLEND_DAMPING = 50;
+var flyUpFilter = filter.createAveragingFilter(FLY_BLEND_DAMPING);
+var flyDownFilter = filter.createAveragingFilter(FLY_BLEND_DAMPING);
+var flyForwardFilter = filter.createAveragingFilter(FLY_BLEND_DAMPING);
+var flyBackwardFilter = filter.createAveragingFilter(FLY_BLEND_DAMPING);
 
 // select / blend the appropriate animation for the current state of motion
 function selectAnimation() {
@@ -259,7 +230,7 @@ function selectAnimation() {
 }
 
 // determine the length of stride. advance the frequency time wheels. advance frequency time wheels for any live transitions
-function determineStride() {
+function advanceAnimations() {
     var wheelAdvance = 0;
 
     // turn the frequency time wheel
@@ -338,7 +309,6 @@ function updateTransitions() {
                 }
             }
         }
-        // update the Transition progress
         if (motion.currentTransition.updateProgress() === TRANSITION_COMPLETE) {
             motion.currentTransition = nullTransition;
         }
@@ -346,6 +316,7 @@ function updateTransitions() {
 }
 
 // helper function for renderMotion(). calculate the amount to lean forwards (or backwards) based on the avi's velocity
+var leanPitchSmoothingFilter = filter.createButterworthFilter();
 function getLeanPitch() {
     var leanProgress = 0;
 
@@ -356,10 +327,11 @@ function getLeanPitch() {
     }
     // use filters to shape the walking acceleration response
     leanProgress = leanPitchSmoothingFilter.process(leanProgress);
-    return motion.calibration.PITCH_MAX * leanProgress;
+    return PITCH_MAX * leanProgress;
 }
 
 // helper function for renderMotion(). calculate the angle at which to bank into corners whilst turning
+var leanRollSmoothingFilter = filter.createButterworthFilter();
 function getLeanRoll() {
     var leanRollProgress = 0;
     var linearContribution = 0;
@@ -368,7 +340,7 @@ function getLeanRoll() {
     if (Vec3.length(motion.velocity) > 0) {
         linearContribution = (Math.log(Vec3.length(motion.velocity) / TOP_SPEED) + LOG_SCALER) / LOG_SCALER;
     }
-    var angularContribution = Math.abs(motion.yawDelta) / motion.calibration.DELTA_YAW_MAX;
+    var angularContribution = Math.abs(motion.yawDelta) / DELTA_YAW_MAX;
     leanRollProgress = linearContribution;
     leanRollProgress *= angularContribution;
     // shape the response curve
@@ -382,7 +354,7 @@ function getLeanRoll() {
     }
     // filter progress
     leanRollProgress = leanRollSmoothingFilter.process(turnSign * leanRollProgress);
-    return motion.calibration.ROLL_MAX * leanRollProgress;
+    return ROLL_MAX * leanRollProgress;
 }
 
 // animate the avatar using sine waves, geometric waveforms and harmonic generators

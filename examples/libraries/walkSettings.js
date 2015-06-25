@@ -3,7 +3,7 @@
 //  version 0.1
 //
 //  Created by David Wooldridge, June 2015
-//  Copyright © 2014 - 2015 High Fidelity, Inc.
+//  Copyright Â© 2015 High Fidelity, Inc.
 //
 //  Presents settings for walk.js
 //
@@ -31,7 +31,7 @@ WalkSettings = function() {
     function mousePressEvent(event) {
         if (Overlays.getOverlayAtPoint(event) === minimisedTab) {
             _visible = !_visible;
-            _webView.setVisible(_visible);
+            _webWindow.setVisible(_visible);
         }
     }
     Controller.mousePressEvent.connect(mousePressEvent);
@@ -55,7 +55,7 @@ WalkSettings = function() {
         }
         if (_shift && (event.text === 'o' || event.text === 'O')) {
             _visible = !_visible;
-            _webView.setVisible(_visible);
+            _webWindow.setVisible(_visible);
         }
     }
     function keyReleaseEvent(event) {
@@ -67,30 +67,29 @@ WalkSettings = function() {
     Controller.keyReleaseEvent.connect(keyReleaseEvent);
 
     // web window
-    var _url = Script.resolvePath('html/walkSettings.html');
     const PANEL_WIDTH = 200;
     const PANEL_HEIGHT = 180;
-    var _webView = new WebWindow('Walk Settings', _url, PANEL_WIDTH, PANEL_HEIGHT, false);
-    _webView.setVisible(false);
-
-    _webView.eventBridge.webEventReceived.connect(function(data) {
+    var _url = Script.resolvePath('html/walkSettings.html');
+    var _webWindow = new WebWindow('Walk Settings', _url, PANEL_WIDTH, PANEL_HEIGHT, false);
+    _webWindow.setVisible(false);
+    _webWindow.eventBridge.webEventReceived.connect(function(data) {
         data = JSON.parse(data);
 
         if (data.type == "init") {
             // send the current settings to the window
-            _webView.eventBridge.emitScriptEvent(JSON.stringify({
+            _webWindow.eventBridge.emitScriptEvent(JSON.stringify({
                 type: "update",
                 armsFree: avatar.armsFree,
-                footstepSounds: avatar.makesFootStepSounds,
-                blenderPreRotations: avatar.isBlenderExport
+                makesFootStepSounds: avatar.makesFootStepSounds,
+                blenderPreRotations: avatar.blenderPreRotations
             }));
         } else if (data.type == "powerToggle") {
             motion.isLive = !motion.isLive;
         } else if (data.type == "update") {
             // receive settings from the window
             avatar.armsFree = data.armsFree;
-            avatar.makesFootStepSounds = data.footstepSounds;
-            avatar.isBlenderExport = data.blenderPreRotations;
+            avatar.makesFootStepSounds = data.makesFootStepSounds;
+            avatar.blenderPreRotations = data.blenderPreRotations;
         }
     });
 };

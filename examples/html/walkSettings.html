@@ -2,16 +2,16 @@
     <head>
         <link rel="stylesheet" type="text/css" href="walkStyle.css">
         <script>
-        
+
             function emitUpdate() {
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: "update",
                     armsFree: elArmsFree.checked,
-                    footstepSounds: elFootstepSounds.checked,
+                    makesFootStepSounds: elFootstepSounds.checked,
                     blenderPreRotations: elBlenderPreRotations.checked
                 }));
             }
-        
+
             function loaded() {
                 // assign form elements to vars
                 var powerOn = true;
@@ -23,17 +23,17 @@
                 if (window.EventBridge !== undefined) {
                     EventBridge.scriptEventReceived.connect(function(data) {
                         data = JSON.parse(data);
-                        
+
                         if (data.type == "update") {
                             if (data.armsFree !== undefined) {
                                 elArmsFree.checked = data.armsFree;
                             }
-                            if (data.footstepSounds !== undefined) {
-                                elFootstepSounds.checked = data.footstepSounds;
+                            if (data.makesFootStepSounds !== undefined) {
+                                elFootstepSounds.checked = data.makesFootStepSounds;
                             }
                             if (data.blenderPreRotations !== undefined) {
                                 elBlenderPreRotations.checked = data.blenderPreRotations;
-                            }                         
+                            }
                         }
                     });
                 }
@@ -50,8 +50,8 @@
                     } else {
                         elPower.value = "Turn Animation On";
                     }
-                });              
-                // request initial values    
+                });
+                // request initial values
                 EventBridge.emitWebEvent(JSON.stringify({ type: 'init' }));
             }
         </script>
@@ -62,7 +62,7 @@
             <div id="walk-settings-header">
                 <input type="button" id="power" value="Turn Animation Off" style="margin-left:30px; margin-top:10px"></button>
             </div>
-    
+
             <div class="settings-section">
                 <label>Arms free</label>
                 <span>

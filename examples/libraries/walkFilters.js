@@ -2,8 +2,8 @@
 //  walkFilters.js
 //  version 1.1
 //
-//  Created by David Wooldridge, Autumn 2014
-//  Copyright © 2014 - 2015 High Fidelity, Inc.
+//  Created by David Wooldridge, June 2015
+//  Copyright Â© 2014 - 2015 High Fidelity, Inc.
 //
 //  Provides a variety of filters for use by the walk.js script v1.2+
 //

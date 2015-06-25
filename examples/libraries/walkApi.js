@@ -3,7 +3,7 @@
 //  version 1.3
 //
 //  Created by David Wooldridge, June 2015
-//  Copyright © 2014 - 2015 High Fidelity, Inc.
+//  Copyright Â© 2014 - 2015 High Fidelity, Inc.
 //
 //  Exposes API for use by walk.js version 1.2+.
 //
@@ -13,46 +13,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// locomotion states
-const STATIC = 1;
-const SURFACE_MOTION = 2;
-const AIR_MOTION = 4;
-
-// directions
-const UP = 1;
-const DOWN = 2;
-const LEFT = 4;
-const RIGHT = 8;
-const FORWARDS = 16;
-const BACKWARDS = 32;
-const NONE = 64;
-
-// waveshapes
-const SAWTOOTH = 1;
-const TRIANGLE = 2;
-const SQUARE = 4;
-
-// constants used by walk.js and walkApi.js
-const MAX_WALK_SPEED = 2.9; // peak, by observation
-const MAX_FT_WHEEL_INCREMENT = 25; // avoid fast walk when landing
-const TOP_SPEED = 300;
-const ON_SURFACE_THRESHOLD = 0.1; // height above surface to be considered as on the surface
-const TRANSITION_COMPLETE = 1000;
-const HIFI_PUBLIC_BUCKET = "https://hifi-public.s3.amazonaws.com/";
-
-// constants used by walkApi.js
-const MOVE_THRESHOLD = 0.075;
-const ACCELERATION_THRESHOLD = 0.2;  // detect stop to walking
-const DECELERATION_THRESHOLD = -6; // detect walking to stop
-const FAST_DECELERATION_THRESHOLD = -150; // detect flying to stop
-const BOUNCE_ACCELERATION_THRESHOLD = 25; // used to ignore gravity influence fluctuations after landing
-const GRAVITY_THRESHOLD = 3.0; // height above surface where gravity is in effect
-const OVERCOME_GRAVITY_SPEED = 0.5; // reaction sensitivity to jumping under gravity
-const LANDING_THRESHOLD = 0.35; // metres from a surface below which need to prepare for impact
-const MAX_TRANSITION_RECURSION = 10; // how many nested transitions are permitted
+// included here to ensure walkApi.js can be used as an API, separate from walk.js
+Script.include("./libraries/walkConstants.js");
 
 Avatar = function() {
-    // if Hydras are connected, the only way to enable use is by never setting any rotations on the arm joints
+    // if Hydras are connected, the only way to enable use is to never set any arm joint rotation
     this.hydraCheck = function() {
         // function courtesy of Thijs Wenker (frisbee.js)
         var numberOfButtons = Controller.getNumberOfButtons();
@@ -75,8 +40,8 @@ Avatar = function() {
     // settings
     this.headFree = true;
     this.armsFree = this.hydraCheck(); // automatically sets true to enable Hydra support - temporary fix
-    this.makesFootStepSounds = false;
-    this.isBlenderExport = false; // temporary fix
+    this.makesFootStepSounds = true;
+    this.blenderPreRotations = false; // temporary fix
     this.animationSet = undefined; // currently just one animation set
     this.setAnimationSet = function(animationSet) {
         this.animationSet = animationSet;
@@ -123,7 +88,7 @@ Avatar = function() {
             this.calibration.hipsToFeet = MyAvatar.getJointPosition("Hips").y - MyAvatar.getJointPosition("RightToeBase").y;
 
             // maybe measuring before Blender pre-rotations have been applied?
-            if (this.calibration.hipsToFeet < 0 && this.isBlenderExport) {
+            if (this.calibration.hipsToFeet < 0 && this.blenderPreRotations) {
                 this.calibration.hipsToFeet *= -1;
             }
 
@@ -165,7 +130,6 @@ Avatar = function() {
 
     // footsteps
     this.nextStep = RIGHT; // the first step is right, because the waveforms say so
-
     this.leftAudioInjector = null;
     this.rightAudioInjector = null;
     this.makeFootStepSound = function() {
@@ -173,16 +137,18 @@ Avatar = function() {
         const SPEED_THRESHOLD = 0.4;
         const VOLUME_ATTENUATION = 0.8;
         const MIN_VOLUME = 0.5;
+        var volume = Vec3.length(motion.velocity) > SPEED_THRESHOLD ?
+                     VOLUME_ATTENUATION * Vec3.length(motion.velocity) / MAX_WALK_SPEED : MIN_VOLUME;
+        volume = volume > 1 ? 1 : volume; // occurs when landing at speed - can walk faster than max walking speed
         var options = {
             position: Vec3.sum(MyAvatar.position, {x:0, y: -this.calibration.hipsToFeet, z:0}),
-            volume: Vec3.length(motion.velocity) > SPEED_THRESHOLD ?
-                    VOLUME_ATTENUATION * Vec3.length(motion.velocity) / MAX_WALK_SPEED : MIN_VOLUME
+            volume: volume
         };
         if (this.nextStep === RIGHT) {
             if (this.rightAudioInjector === null) {
                 this.rightAudioInjector = Audio.playSound(walkAssets.footsteps[0], options);
             } else {
-                //this.rightAudioInjector.setOptions(options);
+                this.rightAudioInjector.setOptions(options);
                 this.rightAudioInjector.restart();
             }
             this.nextStep = LEFT;
@@ -190,7 +156,7 @@ Avatar = function() {
             if (this.leftAudioInjector === null) {
                 this.leftAudioInjector = Audio.playSound(walkAssets.footsteps[1], options);
             } else {
-                //this.leftAudioInjector.setOptions(options);
+                this.leftAudioInjector.setOptions(options);
                 this.leftAudioInjector.restart();
             }
             this.nextStep = RIGHT;
@@ -200,6 +166,7 @@ Avatar = function() {
 
 // constructor for the Motion object
 Motion = function() {
+    this.isLive = true;
     // locomotion status
     this.state = STATIC;
     this.nextState = STATIC;
@@ -211,14 +178,6 @@ Motion = function() {
     this.isDeceleratingFast = false;
     this.isComingToHalt = false;
     this.directedAcceleration = 0;
-
-    // settings
-    this.isLive = true;
-    this.calibration = {
-        PITCH_MAX: 60,
-        ROLL_MAX: 80,
-        DELTA_YAW_MAX: 1.7
-    }
 
     // used to make sure at least one step has been taken when transitioning from a walk cycle
     this.elapsedFTDegrees = 0;
@@ -360,6 +319,7 @@ Motion = function() {
                                                            (movingDirectlyUpOrDown && !isOnSurface));
                 var staticToSurfaceMotion = surfaceMotion && !motion.isComingToHalt && !movingDirectlyUpOrDown &&
                                             !this.isDecelerating && lateralVelocity > MOVE_THRESHOLD;
+
                 if (staticToAirMotion) {
                     this.nextState = AIR_MOTION;
                 } else if (staticToSurfaceMotion) {
@@ -376,6 +336,7 @@ Motion = function() {
                 var surfaceMotionToAirMotion = (acceleratingAndAirborne || goingTooFastToWalk || movingDirectlyUpOrDown) &&
                                                (!surfaceMotion && isTakingOff) ||
                                                (!surfaceMotion && this.isMoving && !isComingInToLand);
+
                 if (surfaceMotionToStatic) {
                     // working on the assumption that stopping is now inevitable
                     if (!motion.isComingToHalt && isOnSurface) {
@@ -392,6 +353,7 @@ Motion = function() {
             case AIR_MOTION:
                 var airMotionToSurfaceMotion = (surfaceMotion || aboutToLand) && !movingDirectlyUpOrDown;
                 var airMotionToStatic = !this.isMoving && this.direction === this.lastDirection;
+
                 if (airMotionToSurfaceMotion){
                     this.nextState = SURFACE_MOTION;
                 } else if (airMotionToStatic) {
@@ -492,7 +454,7 @@ animationOperations = (function() {
             var joint = animation.joints[jointName];
             var jointRotations = {x:0, y:0, z:0};
 
-            if (avatar.isBlenderExport) {
+            if (avatar.blenderPreRotations) {
                 jointRotations = Vec3.sum(jointRotations, walkAssets.blenderPreRotations.joints[jointName]);
             }
 
@@ -670,7 +632,7 @@ TransitionParameters = function() {
     this.duration = 0.5;
     this.easingLower = {x:0.25, y:0.75};
     this.easingUpper = {x:0.75, y:0.25};
-    this.reachPoseNames = [];
+    this.reachPoses = [];
 }
 
 const QUARTER_CYCLE = 90;
@@ -710,8 +672,8 @@ Transition = function(nextAnimation, lastAnimation, lastTransition, playTransiti
         walkAssets.getTransitionParameters(lastAnimation, nextAnimation, this.parameters);
         // fire up any reach poses for this transition
         if (playTransitionReachPoses) {
-            for (poseName in this.parameters.reachPoseNames) {
-                this.liveReachPoses.push(new ReachPose(this.parameters.reachPoseNames[poseName]));
+            for (poseName in this.parameters.reachPoses) {
+                this.liveReachPoses.push(new ReachPose(this.parameters.reachPoses[poseName]));
             }
         }
     }
