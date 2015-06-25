@@ -48,8 +48,8 @@ void SimulationOwner::clear() {
 
 void SimulationOwner::setPriority(quint8 priority) {
     _priority = priority;
-    if (_priority == MAX_SIMULATOR_PRIORITY) {
-        // we extend the the expiry whenever we set MAX_SIMULATOR_PRIORITY
+    if (_priority == MAX_SIMULATION_PRIORITY) {
+        // we extend the the expiry whenever we set MAX_SIMULATION_PRIORITY
         updateExpiry();
     } else if (_priority == 0) {
         // when priority is zero we clear everything

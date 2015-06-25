@@ -78,10 +78,10 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
             // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
             auto nodeList = DependencyManager::get<NodeList>();
             const QUuid myNodeID = nodeList->getSessionUUID();
-            propertiesWithSimID.setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATOR_PRIORITY);
+            propertiesWithSimID.setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
 
             // and make note of it now, so we can act on it right away.
-            entity->setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATOR_PRIORITY);
+            entity->setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
 
             entity->setLastBroadcast(usecTimestampNow());
         } else {
@@ -163,10 +163,10 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties proper
 
                         // we re-assert our simulation ownership
                         properties.setSimulationOwner(myNodeID, 
-                                glm::max(entity->getSimulatorPriority(), SCRIPT_EDIT_SIMULATOR_PRIORITY));
+                                glm::max(entity->getSimulatorPriority(), SCRIPT_EDIT_SIMULATION_PRIORITY));
                     } else {
                         // we make a bid for simulation ownership
-                        properties.setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATOR_PRIORITY);
+                        properties.setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
                         entity->flagForOwnership();
                     }
                 }

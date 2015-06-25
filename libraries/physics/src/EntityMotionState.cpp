@@ -121,7 +121,7 @@ void EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine)
         // also known as "bid for ownership with SCRIPT priority"
         // we're manipulating this object directly via script, so we artificially 
         // manipulate the logic to trigger an immediate bid for ownership
-        setOutgoingPriority(SCRIPT_EDIT_SIMULATOR_PRIORITY);
+        setOutgoingPriority(SCRIPT_EDIT_SIMULATION_PRIORITY);
     }
     if ((flags & EntityItem::DIRTY_PHYSICS_ACTIVATION) && !_body->isActive()) {
         _body->activate();
@@ -201,7 +201,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
 
         if (_loopsWithoutOwner > LOOPS_FOR_SIMULATION_ORPHAN && usecTimestampNow() > _nextOwnershipBid) {
             //qDebug() << "Warning -- claiming something I saw moving." << getName();
-            setOutgoingPriority(VOLUNTEER_SIMULATOR_PRIORITY);
+            setOutgoingPriority(VOLUNTEER_SIMULATION_PRIORITY);
         }
     }
 
@@ -455,7 +455,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
         }
     } else {
         // we don't own the simulation for this entity yet, but we're sending a bid for it
-        properties.setSimulationOwner(sessionID, glm::max<uint8_t>(_outgoingPriority, VOLUNTEER_SIMULATOR_PRIORITY));
+        properties.setSimulationOwner(sessionID, glm::max<uint8_t>(_outgoingPriority, VOLUNTEER_SIMULATION_PRIORITY));
         _nextOwnershipBid = now + USECS_BETWEEN_OWNERSHIP_BIDS;
     }
 
@@ -515,7 +515,7 @@ QUuid EntityMotionState::getSimulatorID() const {
 void EntityMotionState::bump(uint8_t priority) {
     if (_entity) {
         //uint8_t inheritedPriority = priority < 2 ? 1 : priority - 1;
-        uint8_t inheritedPriority = VOLUNTEER_SIMULATOR_PRIORITY;
+        uint8_t inheritedPriority = VOLUNTEER_SIMULATION_PRIORITY;
         setOutgoingPriority(inheritedPriority);
     }
 }

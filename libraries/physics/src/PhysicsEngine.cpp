@@ -270,13 +270,15 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
         // NOTE: we might own the simulation of a kinematic object (A) 
         // but we don't claim ownership of kinematic objects (B) based on collisions here.
         if (!objectB->isStaticOrKinematicObject() && b->getSimulatorID() != _sessionID) {
-            b->bump(a->getSimulatorPriority());
+            quint8 priority = a ? a->getSimulatorPriority() : PERSONAL_SIMULATION_PRIORITY;
+            b->bump(priority);
         }
     } else if (a && ((b && b->getSimulatorID() == _sessionID && !objectB->isStaticObject()) || (objectB == characterObject))) {
         // SIMILARLY: we might own the simulation of a kinematic object (B) 
         // but we don't claim ownership of kinematic objects (A) based on collisions here.
         if (!objectA->isStaticOrKinematicObject() && a->getSimulatorID() != _sessionID) {
-            a->bump(b->getSimulatorPriority());
+            quint8 priority = b ? b->getSimulatorPriority() : PERSONAL_SIMULATION_PRIORITY;
+            a->bump(priority);
         }
     }
 }
@@ -401,7 +403,7 @@ void PhysicsEngine::bump(ObjectMotionState* motionState) {
                 if (!objectA->isStaticOrKinematicObject()) {
                     ObjectMotionState* motionStateA = static_cast<ObjectMotionState*>(objectA->getUserPointer());
                     if (motionStateA) {
-                        motionStateA->bump(VOLUNTEER_SIMULATOR_PRIORITY);
+                        motionStateA->bump(VOLUNTEER_SIMULATION_PRIORITY);
                         objectA->setActivationState(ACTIVE_TAG);
                     }
                 }
@@ -409,7 +411,7 @@ void PhysicsEngine::bump(ObjectMotionState* motionState) {
                 if (!objectB->isStaticOrKinematicObject()) {
                     ObjectMotionState* motionStateB = static_cast<ObjectMotionState*>(objectB->getUserPointer());
                     if (motionStateB) {
-                        motionStateB->bump(VOLUNTEER_SIMULATOR_PRIORITY);
+                        motionStateB->bump(VOLUNTEER_SIMULATION_PRIORITY);
                         objectB->setActivationState(ACTIVE_TAG);
                     }
                 }
