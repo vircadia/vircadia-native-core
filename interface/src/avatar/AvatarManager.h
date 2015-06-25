@@ -73,7 +73,7 @@ private:
     // virtual overrides
     virtual AvatarSharedPointer newSharedAvatar();
     virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
-    void removeAvatarMotionState(Avatar* avatar);
+    void removeAvatarMotionState(AvatarSharedPointer avatar);
     virtual void removeAvatar(const QUuid& sessionUUID);
     
     QVector<AvatarSharedPointer> _avatarFades;

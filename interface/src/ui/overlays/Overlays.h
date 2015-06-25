@@ -11,12 +11,12 @@
 #ifndef hifi_Overlays_h
 #define hifi_Overlays_h
 
-#include <QString>
+#include <QReadWriteLock>
 #include <QScriptValue>
-#include <QSignalMapper>
 
-#include "Base3DOverlay.h"
 #include "Overlay.h"
+
+class PickRay;
 
 class OverlayPropertyResult {
 public:
@@ -48,9 +48,11 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
 
 class Overlays : public QObject {
     Q_OBJECT
+    
 public:
     Overlays();
     ~Overlays();
+    
     void init();
     void update(float deltatime);
     void renderHUD(RenderArgs* renderArgs);

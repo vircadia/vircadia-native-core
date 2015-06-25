@@ -25,9 +25,9 @@ bool HMDScriptingInterface::getHUDLookAtPosition3D(glm::vec3& result) const {
 
     glm::vec3 direction = orientation * glm::vec3(0.0f, 0.0f, -1.0f);
 
-    ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
+    const auto& compositor = Application::getInstance()->getApplicationCompositor();
 
-    return applicationOverlay.calculateRayUICollisionPoint(position, direction, result);
+    return compositor.calculateRayUICollisionPoint(position, direction, result);
 }
 
 QScriptValue HMDScriptingInterface::getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine) {
@@ -40,7 +40,7 @@ QScriptValue HMDScriptingInterface::getHUDLookAtPosition2D(QScriptContext* conte
         glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * (hudIntersection - sphereCenter);
         glm::quat rotation = ::rotationBetween(glm::vec3(0.0f, 0.0f, -1.0f), direction);
         glm::vec3 eulers = ::safeEulerAngles(rotation);
-        return qScriptValueFromValue<glm::vec2>(engine, Application::getInstance()->getApplicationOverlay()
+        return qScriptValueFromValue<glm::vec2>(engine, Application::getInstance()->getApplicationCompositor()
                                                 .sphericalToOverlay(glm::vec2(eulers.y, -eulers.x)));
     }
     return QScriptValue::NullValue;

@@ -237,7 +237,7 @@ protected:
     Transform calculateDisplayNameTransform(const ViewFrustum& frustum, float fontSize) const;
     void renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum) const;
     virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel = 0.0f);
-    virtual bool shouldRenderHead(const RenderArgs* renderArgs, const glm::vec3& cameraPosition) const;
+    virtual bool shouldRenderHead(const RenderArgs* renderArgs) const;
     virtual void fixupModelsInScene();
 
     void simulateAttachments(float deltaTime);

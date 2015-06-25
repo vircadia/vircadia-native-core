@@ -8,16 +8,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
+#include "Circle3DOverlay.h"
 
 #include <DeferredLightingEffect.h>
 #include <GeometryCache.h>
-#include <GlowEffect.h>
-#include <SharedUtil.h>
-#include <StreamUtils.h>
+#include <RegisteredMetaTypes.h>
 
-#include "Circle3DOverlay.h"
 
 Circle3DOverlay::Circle3DOverlay() :
     _startAt(0.0f),
@@ -66,9 +62,6 @@ Circle3DOverlay::Circle3DOverlay(const Circle3DOverlay* circle3DOverlay) :
 {
 }
 
-Circle3DOverlay::~Circle3DOverlay() {
-}
-
 void Circle3DOverlay::render(RenderArgs* args) {
     if (!_visible) {
         return; // do nothing if we're not visible
@@ -103,15 +96,13 @@ void Circle3DOverlay::render(RenderArgs* args) {
     _lastColor = colorX;
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
-
-    Transform transform;
-    transform.setTranslation(getCenter());
-    transform.setRotation(getRotation());
-    transform.setScale(glm::vec3(getDimensions(), 0.01f));
     
-    
+    Q_ASSERT(args->_batch);
     auto& batch = *args->_batch;
     batch._glLineWidth(_lineWidth);
+    
+    auto transform = _transform;
+    transform.postScale(glm::vec3(getDimensions(), 1.0f));
     batch.setModelTransform(transform);
     DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, false, false);
     
@@ -402,12 +393,12 @@ bool Circle3DOverlay::findRayIntersection(const glm::vec3& origin,
 
     if (intersects) {
         glm::vec3 hitPosition = origin + (distance * direction);
-        glm::vec3 localHitPosition = glm::inverse(_rotation) * (hitPosition - _position);
-        localHitPosition.y = localHitPosition.y * _dimensions.x / _dimensions.y;  // Scale to make circular
+        glm::vec3 localHitPosition = glm::inverse(getRotation()) * (hitPosition - getPosition());
+        localHitPosition.y = localHitPosition.y * getDimensions().x / getDimensions().y;  // Scale to make circular
 
         float distanceToHit = glm::length(localHitPosition);
-        float innerRadius = _dimensions.x / 2.0f * _innerRadius;
-        float outerRadius = _dimensions.x / 2.0f * _outerRadius;
+        float innerRadius = getDimensions().x / 2.0f * _innerRadius;
+        float outerRadius = getDimensions().x / 2.0f * _outerRadius;
 
         intersects = innerRadius <= distanceToHit && distanceToHit <= outerRadius;
     }
