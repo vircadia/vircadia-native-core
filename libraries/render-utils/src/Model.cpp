@@ -1102,8 +1102,10 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     _readyWhenAdded = false; // reset out render items.
     _needsReload = true;
     invalidCalculatedMeshBoxes();
-    
+
     _url = url;
+
+    onInvalidate();
 
     // if so instructed, keep the current geometry until the new one is loaded 
     _nextBaseGeometry = _nextGeometry = DependencyManager::get<GeometryCache>()->getGeometry(url, fallback, delayLoad);
@@ -1368,6 +1370,7 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
         //       because ray picking needs valid boxes to work
         _calculatedMeshBoxesValid = false;
         _calculatedMeshTrianglesValid = false;
+        onInvalidate();
 
         // check for scale to fit
         if (_scaleToFit && !_scaledToFit) {
@@ -1377,6 +1380,26 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
             snapToRegistrationPoint();
         }
         simulateInternal(deltaTime);
+    }
+}
+
+void Model::updateClusterMatrices() {
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    glm::mat4 modelToWorld = glm::mat4_cast(_rotation);
+    for (int i = 0; i < _meshStates.size(); i++) {
+        MeshState& state = _meshStates[i];
+        const FBXMesh& mesh = geometry.meshes.at(i);
+        if (_showTrueJointTransforms) {
+            for (int j = 0; j < mesh.clusters.size(); j++) {
+                const FBXCluster& cluster = mesh.clusters.at(j);
+                state.clusterMatrices[j] = modelToWorld * _jointStates[cluster.jointIndex].getTransform() * cluster.inverseBindMatrix;
+            }
+        } else {
+            for (int j = 0; j < mesh.clusters.size(); j++) {
+                const FBXCluster& cluster = mesh.clusters.at(j);
+                state.clusterMatrices[j] = modelToWorld * _jointStates[cluster.jointIndex].getVisibleTransform() * cluster.inverseBindMatrix;
+            }
+        }
     }
 }
 
@@ -2120,6 +2143,34 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
     }
 }
 
+bool Model::initWhenReady(render::ScenePointer scene) {
+    if (isActive() && isRenderable() && !_meshGroupsKnown && isLoadedWithTextures()) {
+        segregateMeshGroups();
+
+        render::PendingChanges pendingChanges;
+
+        foreach (auto renderItem, _transparentRenderItems) {
+            auto item = scene->allocateID();
+            auto renderData = MeshPartPayload::Pointer(renderItem);
+            auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
+            _renderItems.insert(item, renderPayload);
+            pendingChanges.resetItem(item, renderPayload);
+        }
+
+        foreach (auto renderItem, _opaqueRenderItems) {
+            auto item = scene->allocateID();
+            auto renderData = MeshPartPayload::Pointer(renderItem);
+            auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
+            _renderItems.insert(item, renderPayload);
+            pendingChanges.resetItem(item, renderPayload);
+        }
+        scene->enqueuePendingChanges(pendingChanges);
+
+        _readyWhenAdded = true;
+        return true;
+    }
+    return false;
+}
 
 ModelBlender::ModelBlender() :
     _pendingBlenders(0) {
