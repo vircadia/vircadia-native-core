@@ -38,7 +38,7 @@ Hifi.Tooltip {
                     anchors.margins: 5
                     font.pixelSize: hifi.fonts.pixelSize / 2
                     text: root.text
-                    wrapMode: Original.Text.WordWrap
+                    wrapMode: Original.Text.WrapAnywhere
                 }
 
                 Original.Image {
@@ -58,7 +58,7 @@ Hifi.Tooltip {
                     anchors.margins: 5
                     font.pixelSize: hifi.fonts.pixelSize / 2
                     text: root.text
-                    wrapMode: Original.Text.WordWrap
+                    wrapMode: Original.Text.WrapAnywhere
                 }
 
             }
