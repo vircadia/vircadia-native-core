@@ -14,9 +14,9 @@
 
 #include <Model.h>
 
-#include "Base3DOverlay.h"
+#include "Volume3DOverlay.h"
 
-class ModelOverlay : public Base3DOverlay {
+class ModelOverlay : public Volume3DOverlay {
     Q_OBJECT
 public:
     ModelOverlay();
@@ -41,9 +41,6 @@ private:
     QVariantMap _modelTextures;
     
     QUrl _url;
-    glm::quat _rotation;
-    float _scale;
-    
     bool _updateModel;
 };
 

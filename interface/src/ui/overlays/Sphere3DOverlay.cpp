@@ -17,15 +17,10 @@
 #include "Sphere3DOverlay.h"
 #include "Application.h"
 
-Sphere3DOverlay::Sphere3DOverlay() {
-}
 
 Sphere3DOverlay::Sphere3DOverlay(const Sphere3DOverlay* Sphere3DOverlay) :
     Volume3DOverlay(Sphere3DOverlay)
 {
-}
-
-Sphere3DOverlay::~Sphere3DOverlay() {
 }
 
 void Sphere3DOverlay::render(RenderArgs* args) {
@@ -42,11 +37,8 @@ void Sphere3DOverlay::render(RenderArgs* args) {
     auto batch = args->_batch;
 
     if (batch) {
-        Transform transform;
-        transform.setTranslation(_position);
-        transform.setRotation(_rotation);
-        transform.setScale(_dimensions);
-
+        Transform transform = _transform;
+        transform.postScale(getDimensions());
         batch->setModelTransform(transform);
         DependencyManager::get<GeometryCache>()->renderSphere(*batch, 1.0f, SLICES, SLICES, sphereColor, _isSolid);
     } else {

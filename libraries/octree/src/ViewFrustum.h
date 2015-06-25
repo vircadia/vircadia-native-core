@@ -30,8 +30,7 @@
 const float DEFAULT_KEYHOLE_RADIUS = 3.0f;
 const float DEFAULT_FIELD_OF_VIEW_DEGREES = 45.0f;
 const float DEFAULT_ASPECT_RATIO = 16.0f/9.0f;
-//const float DEFAULT_NEAR_CLIP = 0.08f;
-const float DEFAULT_NEAR_CLIP = 0.25f;
+const float DEFAULT_NEAR_CLIP = 0.08f;
 const float DEFAULT_FAR_CLIP = (float)TREE_SCALE;
 
 class ViewFrustum {

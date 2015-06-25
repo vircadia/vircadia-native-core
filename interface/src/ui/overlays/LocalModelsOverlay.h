@@ -21,7 +21,6 @@ class LocalModelsOverlay : public Volume3DOverlay {
 public:
     LocalModelsOverlay(EntityTreeRenderer* entityTreeRenderer);
     LocalModelsOverlay(const LocalModelsOverlay* localModelsOverlay);
-    ~LocalModelsOverlay();
     
     virtual void update(float deltatime);
     virtual void render(RenderArgs* args);
