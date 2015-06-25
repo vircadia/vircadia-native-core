@@ -12,25 +12,28 @@ Hifi.Tooltip {
     implicitWidth: border.implicitWidth 
     implicitHeight: border.implicitHeight
 
+    /*
     Border {
         id: border
         anchors.fill: parent
         implicitWidth: tooltipBackground.implicitWidth
         //implicitHeight: Math.max(text.implicitHeight, 64)
-        implicitHeight: tooltipBackground.implicitHeight
+        implicitHeight: tooltipBackground.implicitHeight*/
 
-        Original.Image {
-            id: tooltipBackground
-            source: "../images/tooltip_container.svg"
-            width: 323
-            height: 423
-            anchors.fill: parent
+        Original.Rectangle {
+            id: border
+            color: "#7f000000"
+            implicitWidth: 322
+            implicitHeight: col.height + hifi.layout.spacing * 2
 
             ColumnLayout {
+                id: col
                 spacing: 5
 
                 Text {
                     id: textPlace
+                    color: "#ffffff"
+                    width: border.implicitWidth
                     //anchors.fill: parent
                     anchors.margins: 5
                     font.pixelSize: hifi.fonts.pixelSize / 2
@@ -49,6 +52,8 @@ Hifi.Tooltip {
 
                 Text {
                     id: textDescription
+                    color: "#ffffff"
+                    width: border.implicitWidth
                     //anchors.fill: parent
                     anchors.margins: 5
                     font.pixelSize: hifi.fonts.pixelSize / 2
@@ -58,5 +63,5 @@ Hifi.Tooltip {
 
             }
         }
-    }
+    //}
 }
