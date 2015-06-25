@@ -33,20 +33,30 @@ QuadEntityItem(entityItemID, properties) {
 
 
 void RenderableQuadEntityItem::updateGeometry() {
-    if(_quadVertices.size() < 4) {
+    if(_quadVertices.size() < 1) {
         return;
     }
 //    qDebug() << "num points: " << _points.size();
 //    qDebug() << "num quad vertices" << _quadVertices.size();
     if (_pointsChanged) {
-        _verticesBuffer.reset(new gpu::Buffer());
         _numVertices = 0;
-        for (int i = 0; i < _quadVertices.size(); i+=4) {
-            _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(i));
-            _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(i + 1));
-            _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(i + 2));
-            _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(i + 3));
-            _numVertices += 4;
+        _verticesBuffer.reset(new gpu::Buffer());
+        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(0));
+        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(1));
+        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(2));
+        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(3));
+        _numVertices = 4;
+        glm::vec3 point, v1;
+        for (int i = 1; i < _points.size(); i++) {
+            point = _points.at(i);
+            if(i % 2 == 0) {
+                v1 = {point.x - _lineWidth, point.y, point.z};
+            } else {
+                v1 = {point.x + _lineWidth, point.y, point.z};
+            }
+
+            _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&v1);
+            _numVertices ++;
         }
         _pointsChanged = false;
     }
