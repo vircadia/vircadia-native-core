@@ -1029,7 +1029,7 @@ void Application::showEditEntitiesHelp() {
     InfoView::show(INFO_EDIT_ENTITIES_PATH);
 }
 
-void Application::resetCamerasOnResizeGL(Camera& camera, const glm::uvec2& size) {
+void Application::resetCameras(Camera& camera, const glm::uvec2& size) {
     if (OculusManager::isConnected()) {
         OculusManager::configureCamera(camera);
     } else if (TV3DManager::isConnected()) {
@@ -1052,13 +1052,14 @@ void Application::resizeGL() {
     if (_renderResolution != toGlm(renderSize)) {
         _renderResolution = toGlm(renderSize);
         DependencyManager::get<TextureCache>()->setFrameBufferSize(renderSize);
-        resetCamerasOnResizeGL(_myCamera, _renderResolution);
 
         glViewport(0, 0, _renderResolution.x, _renderResolution.y); // shouldn't this account for the menu???
 
         updateProjectionMatrix();
         glLoadIdentity();
     }
+
+    resetCameras(_myCamera, _renderResolution);
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
