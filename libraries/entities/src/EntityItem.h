@@ -314,9 +314,6 @@ public:
     const QString& getUserData() const { return _userData; }
     void setUserData(const QString& value) { _userData = value; }
     
-    bool getBillboarded() const { return _billBoarded; }
-    void setBillboarded(bool value) { _billBoarded = value; }
-    
     QUuid getSimulatorID() const { return _simulatorID; }
     void setSimulatorID(const QUuid& value);
     void updateSimulatorID(const QUuid& value);
@@ -430,7 +427,6 @@ protected:
     QString _name;
     QString _href; //Hyperlink href
     QString _description; //Hyperlink description
-    bool _billBoarded;
 
     // NOTE: Damping is applied like this:  v *= pow(1 - damping, dt)
     //

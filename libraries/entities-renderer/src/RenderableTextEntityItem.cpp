@@ -44,17 +44,17 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     glm::vec3 minCorner = glm::vec3(0.0f, -dimensions.y, SLIGHTLY_BEHIND);
     glm::vec3 maxCorner = glm::vec3(dimensions.x, 0.0f, SLIGHTLY_BEHIND);
     
-    // rotate about vertical to face the camera
-    if (getBillboarded()) {
-        glm::vec3 position = minCorner;
-        glm::quat rotation = args->_viewFrustum->getOrientation();
-        transformToTopLeft.setRotation(rotation);
-    }
-
+    
     // Batch render calls
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
     batch.setModelTransform(transformToTopLeft);
+    
+    //rotate about vertical to face the camera
+    if (getFaceCamera()) {
+        transformToTopLeft.postRotate(args->_viewFrustum->getOrientation());
+        batch.setModelTransform(transformToTopLeft);
+    }
     
     DependencyManager::get<DeferredLightingEffect>()->renderQuad(batch, minCorner, maxCorner, backgroundColor);
     

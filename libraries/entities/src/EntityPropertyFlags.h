@@ -122,7 +122,7 @@ enum EntityPropertyList {
     PROP_HREF,
     PROP_DESCRIPTION,
     
-    PROP_BILLBOARDED,
+    PROP_FACE_CAMERA,
     
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties ABOVE this line

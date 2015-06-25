@@ -150,7 +150,7 @@ public:
     DEFINE_PROPERTY_REF(LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>);
     DEFINE_PROPERTY_REF(PROP_HREF, Href, href, QString);
     DEFINE_PROPERTY_REF(PROP_DESCRIPTION, Description, description, QString);
-    DEFINE_PROPERTY(PROP_BILLBOARDED, Billboarded, billBoarded, bool);
+    DEFINE_PROPERTY(PROP_FACE_CAMERA, FaceCamera, faceCamera, bool);
     
     static QString getBackgroundModeString(BackgroundMode mode);
 

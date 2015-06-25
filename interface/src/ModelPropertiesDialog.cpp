@@ -76,13 +76,16 @@ _geometry(geometry)
             connect(newFreeJoint, SIGNAL(clicked(bool)), SLOT(createNewFreeJoint()));
         }
     }
-
+    _printButton = new QPushButton(tr("&Print Mapping"));
+    
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok |
                                                      QDialogButtonBox::Cancel | QDialogButtonBox::Reset);
+    buttons->addButton(_printButton, QDialogButtonBox::ActionRole);
     connect(buttons, SIGNAL(accepted()), SLOT(accept()));
     connect(buttons, SIGNAL(rejected()), SLOT(reject()));
     connect(buttons->button(QDialogButtonBox::Reset), SIGNAL(clicked(bool)), SLOT(reset()));
-
+    connect(_printButton, SIGNAL(clicked(bool)), SLOT(printJointMapping()));
+    
     form->addRow(buttons);
 
     // reset to initialize the fields
@@ -146,7 +149,28 @@ QVariantHash ModelPropertiesDialog::getMapping() const {
     }
 
     return mapping;
+    
 }
+
+
+void ModelPropertiesDialog::printJointMapping() const {
+    QVariantHash jointHash = getMapping();
+    QHashIterator<QString, QVariant> i(getMapping());
+    qDebug() << "STARTING...";
+    while (i.hasNext()) {
+        i.next();
+        if(i.key() == "joint" || i.key() == "jointIndex") {
+            QHashIterator<QString, QVariant> j(i.value().toHash());
+            while(j.hasNext()) {
+                j.next();
+                qDebug() << j.key() << ": " << j.value().toString();
+            }
+        } else {
+            qDebug() << i.key() << ": " << i.value().toString();
+        }
+    }
+}
+
 
 static void setJointText(QComboBox* box, const QString& text) {
     box->setCurrentIndex(qMax(box->findText(text), 0));

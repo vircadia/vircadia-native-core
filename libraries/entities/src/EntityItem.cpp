@@ -69,7 +69,6 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _name(ENTITY_ITEM_DEFAULT_NAME),
     _href(""),
     _description(""),
-    _billBoarded(false),
     _dirtyFlags(0),
     _element(nullptr),
     _physicsInfo(nullptr),
@@ -122,7 +121,6 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_SIMULATOR_ID;
     requestedProperties += PROP_HREF;
     requestedProperties += PROP_DESCRIPTION;
-    requestedProperties += PROP_BILLBOARDED;
     
     return requestedProperties;
 }
@@ -919,7 +917,6 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(name, getName);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(href, getHref);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(description, getDescription);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(billBoarded, getBillboarded);
 
     properties._defaultSettings = false;
     
@@ -980,7 +977,6 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(name, setName);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(href, setHref);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(description, setDescription);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(billBoarded, setBillboarded);
 
     if (somethingChanged) {
         uint64_t now = usecTimestampNow();
