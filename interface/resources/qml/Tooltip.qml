@@ -33,10 +33,10 @@ Hifi.Tooltip {
                 Text {
                     id: textPlace
                     color: "#ffffff"
-                    width: border.implicitWidth
+                    implicitWidth: 322
                     //anchors.fill: parent
                     anchors.margins: 5
-                    font.pixelSize: hifi.fonts.pixelSize / 2
+                    font.pixelSize: hifi.fonts.pixelSize * 1.5
                     text: root.text
                     wrapMode: Original.Text.WrapAnywhere
                 }
@@ -46,17 +46,15 @@ Hifi.Tooltip {
                     source: "../images/NoPictureProvided.svg"
                     //anchors.fill: parent
                     anchors.margins: 5
-                    verticalAlignment: Original.Image.AlignVCenter
-                    //horizontalAlignment: Image.AlignHCenter
                 }
 
                 Text {
                     id: textDescription
                     color: "#ffffff"
-                    width: border.implicitWidth
+                    implicitWidth: 322
                     //anchors.fill: parent
                     anchors.margins: 5
-                    font.pixelSize: hifi.fonts.pixelSize / 2
+                    font.pixelSize: hifi.fonts.pixelSize
                     text: root.text
                     wrapMode: Original.Text.WrapAnywhere
                 }
