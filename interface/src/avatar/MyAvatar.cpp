@@ -993,6 +993,7 @@ QString MyAvatar::getModelDescription() const {
 }
 
 void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
+
     Avatar::setFaceModelURL(faceModelURL);
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
     getHead()->getFaceModel().setVisibleInScene(_prevShouldDrawHead, scene);
@@ -1000,19 +1001,27 @@ void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
 }
 
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
+
     Avatar::setSkeletonModelURL(skeletonModelURL);
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
-    _skeletonModel.setVisibleInScene(_prevShouldDrawHead, scene);
     _billboardValid = false;
 
     if (_useFullAvatar) {
+        _skeletonModel.setVisibleInScene(_prevShouldDrawHead, scene);
+
         const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_body.fst");
         _firstPersonSkeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
         _firstPersonSkeletonModel.setVisibleInScene(!_prevShouldDrawHead, scene);
+    } else {
+        _skeletonModel.setVisibleInScene(true, scene);
+
+        _firstPersonSkeletonModel.setVisibleInScene(false, scene);
+        _firstPersonSkeletonModel.reset();
     }
 }
 
 void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName) {
+
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "useFullAvatarURL", Qt::BlockingQueuedConnection,
                                   Q_ARG(const QUrl&, fullAvatarURL),
