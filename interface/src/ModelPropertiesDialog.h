@@ -39,7 +39,6 @@ private slots:
     void chooseTextureDirectory();
     void updatePivotJoint();
     void createNewFreeJoint(const QString& joint = QString());
-    void printJointMapping() const;
     
 private:
     QComboBox* createJointBox(bool withNone = true) const;
@@ -53,7 +52,6 @@ private:
     FBXGeometry _geometry;
     QLineEdit* _name = nullptr;
     QPushButton* _textureDirectory = nullptr;
-    QPushButton* _printButton = nullptr;
     QDoubleSpinBox* _scale = nullptr;
     QDoubleSpinBox* _translationX = nullptr;
     QDoubleSpinBox* _translationY = nullptr;
