@@ -321,8 +321,9 @@ public:
     const SimulationOwner& getSimulationOwner() const { return _simulationOwner; }
     void setSimulationOwner(const QUuid& id, quint8 priority);
     void setSimulationOwner(const SimulationOwner& owner);
+    void promoteSimulationPriority(quint8 priority);
 
-    quint8 getSimulatorPriority() const { return _simulationOwner.getPriority(); }
+    quint8 getSimulationPriority() const { return _simulationOwner.getPriority(); }
     QUuid getSimulatorID() const { return _simulationOwner.getID(); }
     void updateSimulatorID(const QUuid& value);
     void clearSimulationOwnership();

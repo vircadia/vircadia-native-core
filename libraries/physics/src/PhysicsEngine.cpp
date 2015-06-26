@@ -270,14 +270,14 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
         // NOTE: we might own the simulation of a kinematic object (A) 
         // but we don't claim ownership of kinematic objects (B) based on collisions here.
         if (!objectB->isStaticOrKinematicObject() && b->getSimulatorID() != _sessionID) {
-            quint8 priority = a ? a->getSimulatorPriority() : PERSONAL_SIMULATION_PRIORITY;
+            quint8 priority = a ? a->getSimulationPriority() : PERSONAL_SIMULATION_PRIORITY;
             b->bump(priority);
         }
     } else if (a && ((b && b->getSimulatorID() == _sessionID && !objectB->isStaticObject()) || (objectB == characterObject))) {
         // SIMILARLY: we might own the simulation of a kinematic object (B) 
         // but we don't claim ownership of kinematic objects (A) based on collisions here.
         if (!objectA->isStaticOrKinematicObject() && a->getSimulatorID() != _sessionID) {
-            quint8 priority = b ? b->getSimulatorPriority() : PERSONAL_SIMULATION_PRIORITY;
+            quint8 priority = b ? b->getSimulationPriority() : PERSONAL_SIMULATION_PRIORITY;
             a->bump(priority);
         }
     }

@@ -119,9 +119,9 @@ public:
 
     virtual const QUuid& getObjectID() const = 0;
 
-    virtual uint8_t getSimulatorPriority() const { return 0; }
+    virtual quint8 getSimulationPriority() const { return 0; }
     virtual QUuid getSimulatorID() const = 0;
-    virtual void bump(uint8_t priority) {}
+    virtual void bump(quint8 priority) {}
 
     virtual QString getName() { return ""; }
 

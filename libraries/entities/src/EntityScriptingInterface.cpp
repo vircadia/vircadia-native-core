@@ -163,7 +163,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties proper
 
                         // we re-assert our simulation ownership
                         properties.setSimulationOwner(myNodeID, 
-                                glm::max(entity->getSimulatorPriority(), SCRIPT_EDIT_SIMULATION_PRIORITY));
+                                glm::max(entity->getSimulationPriority(), SCRIPT_EDIT_SIMULATION_PRIORITY));
                     } else {
                         // we make a bid for simulation ownership
                         properties.setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);

@@ -1392,6 +1392,10 @@ void EntityItem::setSimulationOwner(const SimulationOwner& owner) {
     _simulationOwner.set(owner);
 }
 
+void EntityItem::promoteSimulationPriority(quint8 priority) {
+    _simulationOwner.promotePriority(priority);
+}
+
 void EntityItem::updateSimulatorID(const QUuid& value) {
     if (_simulationOwner.setID(value)) {
         _dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;

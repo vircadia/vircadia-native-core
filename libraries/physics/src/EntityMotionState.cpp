@@ -111,7 +111,7 @@ void EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine)
             _outgoingPriority = 0;
         } else  {
             _nextOwnershipBid = usecTimestampNow() + USECS_BETWEEN_OWNERSHIP_BIDS;
-            if (engine->getSessionID() == _entity->getSimulatorID() || _entity->getSimulatorPriority() > _outgoingPriority) {
+            if (engine->getSessionID() == _entity->getSimulatorID() || _entity->getSimulationPriority() > _outgoingPriority) {
                 // we own the simulation or our priority looses to remote
                 _outgoingPriority = 0;
             }
@@ -351,7 +351,7 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep, const QUuid& s
     if (_entity->getSimulatorID() != sessionID) {
         // we don't own the simulation, but maybe we should...
         if (_outgoingPriority > 0) {
-            if (_outgoingPriority < _entity->getSimulatorPriority()) {
+            if (_outgoingPriority < _entity->getSimulationPriority()) {
                 // our priority looses to remote, so we don't bother to bid
                 _outgoingPriority = 0;
                 return false;
@@ -453,7 +453,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
         // else the ownership is not changing so we don't bother to pack it
     } else {
         // we don't own the simulation for this entity yet, but we're sending a bid for it
-        properties.setSimulationOwner(sessionID, glm::max<uint8_t>(_outgoingPriority, VOLUNTEER_SIMULATION_PRIORITY));
+        properties.setSimulationOwner(sessionID, glm::max<quint8>(_outgoingPriority, VOLUNTEER_SIMULATION_PRIORITY));
         _nextOwnershipBid = now + USECS_BETWEEN_OWNERSHIP_BIDS;
     }
 
@@ -493,9 +493,9 @@ uint32_t EntityMotionState::getAndClearIncomingDirtyFlags() {
 }
 
 // virtual 
-uint8_t EntityMotionState::getSimulatorPriority() const {
+quint8 EntityMotionState::getSimulationPriority() const {
     if (_entity) {
-        return _entity->getSimulatorPriority();
+        return _entity->getSimulationPriority();
     }
     return 0;
 }
@@ -510,10 +510,9 @@ QUuid EntityMotionState::getSimulatorID() const {
 }
 
 // virtual
-void EntityMotionState::bump(uint8_t priority) {
+void EntityMotionState::bump(quint8 priority) {
     if (_entity) {
-        //uint8_t inheritedPriority = priority < 2 ? 1 : priority - 1;
-        uint8_t inheritedPriority = VOLUNTEER_SIMULATION_PRIORITY;
+        quint8 inheritedPriority = VOLUNTEER_SIMULATION_PRIORITY;
         setOutgoingPriority(inheritedPriority);
     }
 }
@@ -586,6 +585,6 @@ int16_t EntityMotionState::computeCollisionGroup() {
     return COLLISION_GROUP_DEFAULT;
 }
 
-void EntityMotionState::setOutgoingPriority(uint8_t priority) {
-    _outgoingPriority = glm::max<uint8_t>(_outgoingPriority, priority);
+void EntityMotionState::setOutgoingPriority(quint8 priority) {
+    _outgoingPriority = glm::max<quint8>(_outgoingPriority, priority);
 }

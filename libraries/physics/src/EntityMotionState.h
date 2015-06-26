@@ -68,9 +68,9 @@ public:
 
     virtual const QUuid& getObjectID() const { return _entity->getID(); }
 
-    virtual uint8_t getSimulatorPriority() const;
+    virtual quint8 getSimulationPriority() const;
     virtual QUuid getSimulatorID() const;
-    virtual void bump(uint8_t priority);
+    virtual void bump(quint8 priority);
 
     EntityItemPointer getEntity() const { return _entity; }
 
@@ -82,7 +82,7 @@ public:
     virtual int16_t computeCollisionGroup();
 
     // eternal logic can suggest a simuator priority bid for the next outgoing update
-    void setOutgoingPriority(uint8_t priority);
+    void setOutgoingPriority(quint8 priority);
 
     friend class PhysicalEntitySimulation;
 
@@ -116,7 +116,7 @@ protected:
     quint8 _accelerationNearlyGravityCount;
     quint64 _nextOwnershipBid = 0;
     uint32_t _loopsWithoutOwner;
-    uint8_t _outgoingPriority = 0;
+    quint8 _outgoingPriority = 0;
 };
 
 #endif // hifi_EntityMotionState_h

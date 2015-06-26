@@ -169,7 +169,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                         // so we apply the rules for ownership change:
                         // (1) higher priority wins
                         // (2) equal priority wins if ownership filter has expired except...
-                        uint8_t oldPriority = entity->getSimulatorPriority();
+                        uint8_t oldPriority = entity->getSimulationPriority();
                         uint8_t newPriority = properties.getSimulationOwner().getPriority();
                         if (newPriority > oldPriority || 
                              (newPriority == oldPriority && properties.getSimulationOwner().hasExpired())) {
@@ -208,6 +208,10 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                     _simulation->lock();
                     _simulation->changeEntity(entity);
                     _simulation->unlock();
+                    // always promote volunteer priority
+                    if (entity->getSimulationPriority() == VOLUNTEER_SIMULATION_PRIORITY) {
+                        entity->promoteSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
+                    }
                 }
             } else {
                 // normally the _simulation clears ALL updateFlags, but since there is none we do it explicitly
