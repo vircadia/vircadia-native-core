@@ -11,6 +11,8 @@
 
 #include "ObjectActionSpring.h"
 
+const uint16_t ObjectActionSpring::springVersion = 1;
+
 ObjectActionSpring::ObjectActionSpring(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) :
     ObjectAction(type, id, ownerEntity) {
     #if WANT_DEBUG
@@ -149,6 +151,7 @@ QByteArray ObjectActionSpring::serialize() {
 
     dataStream << getType();
     dataStream << getID();
+    dataStream << ObjectActionSpring::springVersion;
 
     dataStream << _positionalTarget;
     dataStream << _linearTimeScale;
@@ -166,11 +169,16 @@ void ObjectActionSpring::deserialize(QByteArray serializedArguments) {
 
     EntityActionType type;
     QUuid id;
+    uint16_t serializationVersion;
 
     dataStream >> type;
-    dataStream >> id;
     assert(type == getType());
+    dataStream >> id;
     assert(id == getID());
+    dataStream >> serializationVersion;
+    if (serializationVersion != ObjectActionSpring::springVersion) {
+        return;
+    }
 
     dataStream >> _positionalTarget;
     dataStream >> _linearTimeScale;

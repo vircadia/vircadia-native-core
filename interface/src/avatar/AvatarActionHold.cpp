@@ -14,6 +14,8 @@
 
 #include "AvatarActionHold.h"
 
+const uint16_t AvatarActionHold::holdVersion = 1;
+
 AvatarActionHold::AvatarActionHold(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) :
     ObjectActionSpring(type, id, ownerEntity) {
     #if WANT_DEBUG
@@ -122,6 +124,7 @@ QByteArray AvatarActionHold::serialize() {
 
     dataStream << getType();
     dataStream << getID();
+    dataStream << AvatarActionHold::holdVersion;
 
     dataStream << _relativePosition;
     dataStream << _relativeRotation;
@@ -135,11 +138,16 @@ void AvatarActionHold::deserialize(QByteArray serializedArguments) {
 
     EntityActionType type;
     QUuid id;
+    uint16_t serializationVersion;
 
     dataStream >> type;
-    dataStream >> id;
     assert(type == getType());
+    dataStream >> id;
     assert(id == getID());
+    dataStream >> serializationVersion;
+    if (serializationVersion != AvatarActionHold::holdVersion) {
+        return;
+    }
 
     dataStream >> _relativePosition;
     dataStream >> _relativeRotation;

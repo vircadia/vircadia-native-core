@@ -11,6 +11,8 @@
 
 #include "ObjectActionOffset.h"
 
+const uint16_t ObjectActionOffset::offsetVersion = 1;
+
 ObjectActionOffset::ObjectActionOffset(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) :
     ObjectAction(type, id, ownerEntity) {
     #if WANT_DEBUG
@@ -113,6 +115,7 @@ QByteArray ObjectActionOffset::serialize() {
     QDataStream dataStream(&ba, QIODevice::WriteOnly);
     dataStream << getType();
     dataStream << getID();
+    dataStream << ObjectActionOffset::offsetVersion;
 
     dataStream << _pointToOffsetFrom;
     dataStream << _linearDistance;
@@ -127,11 +130,16 @@ void ObjectActionOffset::deserialize(QByteArray serializedArguments) {
 
     EntityActionType type;
     QUuid id;
+    uint16_t serializationVersion;
 
     dataStream >> type;
-    dataStream >> id;
     assert(type == getType());
+    dataStream >> id;
     assert(id == getID());
+    dataStream >> serializationVersion;
+    if (serializationVersion != ObjectActionOffset::offsetVersion) {
+        return;
+    }
 
     dataStream >> _pointToOffsetFrom;
     dataStream >> _linearDistance;

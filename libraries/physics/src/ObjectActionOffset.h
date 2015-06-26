@@ -31,6 +31,7 @@ public:
     virtual void deserialize(QByteArray serializedArguments);
 
  private:
+    static const uint16_t offsetVersion;
     glm::vec3 _pointToOffsetFrom;
     float _linearDistance;
     float _linearTimeScale;

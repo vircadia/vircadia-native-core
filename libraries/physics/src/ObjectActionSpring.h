@@ -31,6 +31,8 @@ public:
     virtual void deserialize(QByteArray serializedArguments);
 
 protected:
+    static const uint16_t springVersion;
+
     glm::vec3 _positionalTarget;
     float _linearTimeScale;
     bool _positionalTargetSet;

@@ -30,11 +30,9 @@ public:
     virtual QByteArray serialize();
     virtual void deserialize(QByteArray serializedArguments);
 
-protected:
-    // void serializeToDataStream(QDataStream& dataStream);
-    // void deserializeFromDataStream(QDataStream& dataStream);
-
 private:
+    static const uint16_t holdVersion;
+
     glm::vec3 _relativePosition;
     glm::quat _relativeRotation;
     QString _hand;
