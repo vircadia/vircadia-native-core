@@ -28,10 +28,14 @@ message(STATUS "ALL_TEST_TARGETS = ${ALL_TEST_TARGETS}")
 #	list(APPEND ALL_TEST_TARGETS ${targets_to_add...})	# appends to a local list var (copied from parent scope)
 #	set (ALL_TEST_TARGETS "${ALL_TEST_TARGETS}" PARENT_SCOPE)	# copies this back to parent scope
 #
-add_custom_target("all-tests" ALL 
+add_custom_target("all-tests" 
 	COMMAND ctest .
 	DEPENDS "${ALL_TEST_TARGETS}")
 set_target_properties("all-tests" PROPERTIES FOLDER "hidden/test-targets")
+set_target_properties("all-tests" PROPERTIES
+	EXCLUDE_FROM_DEFAULT_BUILD TRUE
+	EXCLUDE_FROM_ALL TRUE)
+
 
 # Note: we also do some funky stuff with macros (SETUP_TESTCASE_DEPENDENCIES is redefined in *each* CMakeLists.txt
 # file, and then invoked in SetupHifiTestCase.cmake) -- which is necessary since the dependencies must be re-linked
