@@ -185,5 +185,6 @@ const PacketVersion VERSION_ENTITIES_PARTICLE_FIX = 28;
 const PacketVersion VERSION_ENTITIES_LINE_POINTS = 29;
 const PacketVersion VERSION_ENTITIES_FACE_CAMERA = 30;
 const PacketVersion VERSION_ENTITIES_SCRIPT_TIMESTAMP = 31;
+const PacketVersion VERSION_ENTITIES_SCRIPT_TIMESTAMP_FIX = 32;
 
 #endif // hifi_PacketHeaders_h
