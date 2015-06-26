@@ -73,7 +73,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketTypeEntityAdd:
         case PacketTypeEntityEdit:
         case PacketTypeEntityData:
-            return VERSION_ENTITIES_FACE_CAMERA;
+            return VERSION_ACTIONS_OVER_WIRE;
         case PacketTypeEntityErase:
             return 2;
         case PacketTypeAudioStreamStats:

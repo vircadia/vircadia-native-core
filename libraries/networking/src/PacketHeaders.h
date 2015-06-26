@@ -184,5 +184,6 @@ const PacketVersion VERSION_NO_ENTITY_ID_SWAP = 27;
 const PacketVersion VERSION_ENTITIES_PARTICLE_FIX = 28;
 const PacketVersion VERSION_ENTITIES_LINE_POINTS = 29;
 const PacketVersion VERSION_ENTITIES_FACE_CAMERA = 30;
+const PacketVersion VERSION_ACTIONS_OVER_WIRE = 31;
 
 #endif // hifi_PacketHeaders_h
