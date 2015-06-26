@@ -257,6 +257,31 @@ void AvatarManager::handleOutgoingChanges(VectorOfMotionStates& motionStates) {
 
 void AvatarManager::handleCollisionEvents(CollisionEvents& collisionEvents) {
     // TODO: expose avatar collision events to JS
+    for (Collision collision : collisionEvents) {
+        if (collision.idA.isNull() || collision.idB.isNull()) {
+            MyAvatar* myAvatar = getMyAvatar();
+            const QString& collisionSoundURL = myAvatar->getCollisionSoundURL();
+            if (!collisionSoundURL.isEmpty()) {
+                const float velocityChange = glm::length(collision.velocityChange);
+                const float MIN_AVATAR_COLLISION_ACCELERATION = 0.01;
+                const bool isSound = (collision.type == CONTACT_EVENT_TYPE_START) && (velocityChange > MIN_AVATAR_COLLISION_ACCELERATION);
+
+                if (!isSound) {
+                    break;
+                }
+                // Your avatar sound is personal to you, so let's say the "mass" part of the kinetic energy is already accounted for.
+                const float energy = velocityChange * velocityChange;
+                const float COLLISION_ENERGY_AT_FULL_VOLUME = 0.5f;
+                const float energyFactorOfFull = fmin(1.0f, energy / COLLISION_ENERGY_AT_FULL_VOLUME);
+
+                // For general entity collisionSoundURL, playSound supports changing the pitch for the sound based on the size of the object,
+                // but most avatars are roughly the same size, so let's not be so fancy yet.
+                const float AVATAR_STRETCH_FACTOR = 1.0f;
+
+                AudioInjector::playSound(collisionSoundURL, energyFactorOfFull, AVATAR_STRETCH_FACTOR, myAvatar->getPosition());
+            }
+        }
+    }
 }
 
 void AvatarManager::updateAvatarPhysicsShape(const QUuid& id) {
