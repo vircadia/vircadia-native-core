@@ -29,16 +29,19 @@ EntityItemPointer RenderableQuadEntityItem::factory(const EntityItemID& entityID
 
 RenderableQuadEntityItem::RenderableQuadEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
 QuadEntityItem(entityItemID, properties) {
-    _format.reset(new gpu::Stream::Format());
-    _format->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     _numVertices = 0;
-    
 
 }
 
 gpu::PipelinePointer RenderableQuadEntityItem::_pipeline;
+gpu::Stream::FormatPointer RenderableQuadEntityItem::_format;
 
 void RenderableQuadEntityItem::createPipeline() {
+    static const int COLOR_OFFSET = 12;
+    _format.reset(new gpu::Stream::Format());
+    _format->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
+    _format->setAttribute(gpu::Stream::COLOR, 0, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), COLOR_OFFSET);
+    
     auto VS = DependencyManager::get<DeferredLightingEffect>()->getSimpleVertexShader();
     auto PS = DependencyManager::get<DeferredLightingEffect>()->getSimplePixelShader();
     gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PS));
@@ -62,14 +65,18 @@ void RenderableQuadEntityItem::updateGeometry() {
     }
 //    qDebug() << "num points: " << _points.size();
 //    qDebug() << "num quad vertices" << _quadVertices.size();
+    int compactColor = ((int(.7 * 255.0f) & 0xFF)) |
+    ((int(0.1 * 255.0f) & 0xFF) << 8) |
+    ((int(0.9 * 255.0f) & 0xFF) << 16) |
+    ((int(1.0 * 255.0f) & 0xFF) << 24);
     if (_pointsChanged) {
         _numVertices = 0;
         _verticesBuffer.reset(new gpu::Buffer());
-        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(0));
-        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(1));
-        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(2));
-        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(3));
-        _numVertices = 4;
+//        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(0));
+//        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(1));
+//        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(2));
+//        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(3));
+//        _numVertices = 4;
         glm::vec3 point, v1;
         for (int i = 1; i < _points.size(); i++) {
             point = _points.at(i);
@@ -80,6 +87,7 @@ void RenderableQuadEntityItem::updateGeometry() {
             }
 
             _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&v1);
+            _verticesBuffer->append(sizeof(int), (gpu::Byte*)&compactColor);
             _numVertices ++;
         }
         _pointsChanged = false;

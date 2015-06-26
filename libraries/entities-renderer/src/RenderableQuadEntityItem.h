@@ -29,10 +29,10 @@ public:
     SIMPLE_RENDERABLE();
     
     static gpu::PipelinePointer _pipeline;
+    static gpu::Stream::FormatPointer _format;
     
 protected:
     void updateGeometry();
-    gpu::Stream::FormatPointer _format;
     gpu::BufferPointer _verticesBuffer;
     unsigned int _numVertices;
 };
