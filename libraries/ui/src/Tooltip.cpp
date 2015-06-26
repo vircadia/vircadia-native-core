@@ -79,6 +79,10 @@ void Tooltip::requestHyperlinkImage() {
 
         QRegExp placeNameRegex(PLACE_NAME_REGEX_STRING);
         if (placeNameRegex.indexIn(_title) != -1) {
+            // NOTE: I'm currently not 100% sure why the UI library needs networking, but it's linked for now
+            // so I'm leveraging that here to get the place preview. We could also do this from the interface side
+            // should the network link be removed from UI at a later date.
+
             // we possibly have a valid place name - so ask the API for the associated info
             AccountManager& accountManager = AccountManager::getInstance();
 
