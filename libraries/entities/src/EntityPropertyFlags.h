@@ -55,7 +55,6 @@ enum EntityPropertyList {
     PROP_DAMPING,
     PROP_LIFETIME,
     PROP_SCRIPT,
-    PROP_SCRIPT_TIMESTAMP,
 
     // these properties are supported by some derived classes
     PROP_COLOR,
@@ -122,7 +121,9 @@ enum EntityPropertyList {
     // used by hyperlinks
     PROP_HREF,
     PROP_DESCRIPTION,
+
     PROP_FACE_CAMERA,
+    PROP_SCRIPT_TIMESTAMP,
     PROP_ACTION_DATA,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
