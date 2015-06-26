@@ -534,13 +534,13 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     dataAt += propertyFlags.getEncodedLength();
     bytesRead += propertyFlags.getEncodedLength();
 
+    bool weOwnIt = false;
     if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_SIMULATION_OWNER) {
         // NOTE: the server is authoritative for changes to simOwnerID so we always unpack this data,
         // even when we would otherwise ignore the rest of the packet.  That said, we assert the priority
         // rules that we expect the server to be using, so it is possible that we'll sometimes ignore
         // the incoming _simulatorID data (e.g. we might know something that the server does not... yet).
 
-        // BOOKMARK TODO adebug: follow pattern where the class unpacks itself?
         if (propertyFlags.getHasProperty(PROP_SIMULATION_OWNER)) {
             QByteArray simOwnerData;
             int bytes = OctreePacketData::unpackDataFromBytes(dataAt, simOwnerData);
@@ -553,28 +553,27 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 _dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
             }
         }
+        auto nodeList = DependencyManager::get<NodeList>();
+        weOwnIt = _simulationOwner.matchesValidID(nodeList->getSessionUUID());
     }
 
+    bool oldOverwrite = overwriteLocalData;
+    overwriteLocalData = overwriteLocalData && !weOwnIt;
     READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
+    overwriteLocalData = oldOverwrite;
 
-    // Old bitstreams had PROP_RADIUS, new bitstreams have PROP_DIMENSIONS
-    if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_DIMENSIONS) {
-        if (propertyFlags.getHasProperty(PROP_RADIUS)) {
-            float fromBuffer;
-            memcpy(&fromBuffer, dataAt, sizeof(fromBuffer));
-            dataAt += sizeof(fromBuffer);
-            bytesRead += sizeof(fromBuffer);
-            if (overwriteLocalData) {
-                setRadius(fromBuffer);
-            }
-        }
-    } else {
-        READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensions);
-    }
+    READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensions);
 
+    overwriteLocalData = overwriteLocalData && !weOwnIt;
     READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotation);
+    overwriteLocalData = oldOverwrite;
+
     READ_ENTITY_PROPERTY(PROP_DENSITY, float, updateDensity);
+
+    overwriteLocalData = overwriteLocalData && !weOwnIt;
     READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocity);
+    overwriteLocalData = oldOverwrite;
+
     READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, updateGravity);
     if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
         READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, setAcceleration);
@@ -587,7 +586,11 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_SCRIPT, QString, setScript);
     READ_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
     READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
+
+    overwriteLocalData = overwriteLocalData && !weOwnIt;
     READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
+    overwriteLocalData = oldOverwrite;
+
     READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, updateAngularDamping);
     READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, setVisible);
     READ_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, bool, updateIgnoreForCollisions);
