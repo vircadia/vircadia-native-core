@@ -77,7 +77,7 @@ bool EntityMotionState::entityTreeIsLocked() const {
     }
 }
 #else
-bool EntityMotionState::entityTreeIsLocked() const {
+bool entityTreeIsLocked() {
     return true;
 }
 #endif
