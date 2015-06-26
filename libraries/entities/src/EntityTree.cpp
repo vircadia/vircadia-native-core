@@ -185,6 +185,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
         // else client accepts what the server says
 
         QString entityScriptBefore = entity->getScript();
+        quint64 entityScriptTimestampBefore = entity->getScriptTimestamp();
         QString collisionSoundURLBefore = entity->getCollisionSoundURL();
         uint32_t preFlags = entity->getDirtyFlags();
         UpdateEntityOperator theOperator(this, containingElement, entity, properties);
@@ -206,8 +207,10 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
         }
         
         QString entityScriptAfter = entity->getScript();
-        if (entityScriptBefore != entityScriptAfter) {
-            emitEntityScriptChanging(entity->getEntityItemID()); // the entity script has changed
+        quint64 entityScriptTimestampAfter = entity->getScriptTimestamp();
+        bool reload = entityScriptTimestampBefore != entityScriptTimestampAfter;
+        if (entityScriptBefore != entityScriptAfter || reload) {
+            emitEntityScriptChanging(entity->getEntityItemID(), reload); // the entity script has changed
         }
         maybeNotifyNewCollisionSoundURL(collisionSoundURLBefore, entity->getCollisionSoundURL());
      }
@@ -266,9 +269,10 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     return result;
 }
 
-void EntityTree::emitEntityScriptChanging(const EntityItemID& entityItemID) {
-    emit entityScriptChanging(entityItemID);
+void EntityTree::emitEntityScriptChanging(const EntityItemID& entityItemID, const bool reload) {
+    emit entityScriptChanging(entityItemID, reload);
 }
+
 void EntityTree::maybeNotifyNewCollisionSoundURL(const QString& previousCollisionSoundURL, const QString& nextCollisionSoundURL) {
     if (!nextCollisionSoundURL.isEmpty() && (nextCollisionSoundURL != previousCollisionSoundURL)) {
         emit newCollisionSoundURL(QUrl(nextCollisionSoundURL));
