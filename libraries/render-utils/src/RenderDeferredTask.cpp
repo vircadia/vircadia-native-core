@@ -175,11 +175,11 @@ void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
 }
 
-const gpu::PipelinePointer& DrawOverlay3D::getOpaquePipeline() const {
+gpu::PipelinePointer DrawOverlay3D::_opaquePipeline;
+const gpu::PipelinePointer& DrawOverlay3D::getOpaquePipeline() {
     if (!_opaquePipeline) {
         auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(overlay3D_vert)));
         auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(overlay3D_frag)));
-        
         auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
 
         auto state = gpu::StatePointer(new gpu::State());
@@ -239,4 +239,3 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
     args->_batch = nullptr;
     args->_whiteTexture.reset();
 }
-

@@ -79,6 +79,7 @@ public:
     bool isMouseCaptured() const { return _mouseCaptured; }
     bool isTouchCaptured() const { return _touchCaptured; }
     bool isWheelCaptured() const { return _wheelCaptured; }
+    bool areActionsCaptured() const { return _actionsCaptured; }
     bool isJoystickCaptured(int joystickIndex) const;
 
     void updateInputControllers();
@@ -123,6 +124,9 @@ public slots:
 
     virtual void captureWheelEvents() { _wheelCaptured = true; }
     virtual void releaseWheelEvents() { _wheelCaptured = false; }
+    
+    virtual void captureActionEvents() { _actionsCaptured = true; }
+    virtual void releaseActionEvents() { _actionsCaptured = false; }
 
     virtual void captureJoystick(int joystickIndex);
     virtual void releaseJoystick(int joystickIndex);
@@ -143,6 +147,7 @@ private:
     bool _mouseCaptured;
     bool _touchCaptured;
     bool _wheelCaptured;
+    bool _actionsCaptured;
     QMultiMap<int,KeyEvent> _capturedKeys;
     QSet<int> _capturedJoysticks;
 

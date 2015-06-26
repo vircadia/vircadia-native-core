@@ -73,7 +73,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketTypeEntityAdd:
         case PacketTypeEntityEdit:
         case PacketTypeEntityData:
-            return VERSION_ENTITIES_LINE_POINTS;
+            return VERSION_ENTITIES_SCRIPT_TIMESTAMP_FIX;
         case PacketTypeEntityErase:
             return 2;
         case PacketTypeAudioStreamStats:

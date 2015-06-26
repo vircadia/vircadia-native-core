@@ -8,12 +8,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include "Overlay.h"
 
 #include <NumericalConstants.h>
+#include <RegisteredMetaTypes.h>
+
+static const xColor DEFAULT_OVERLAY_COLOR = { 255, 255, 255 };
+static const float DEFAULT_ALPHA = 0.7f;
 
 Overlay::Overlay() :
     _renderItemID(render::Item::INVALID_ITEM_ID),
