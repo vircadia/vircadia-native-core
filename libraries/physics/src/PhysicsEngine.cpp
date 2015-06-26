@@ -436,12 +436,22 @@ int16_t PhysicsEngine::getCollisionMask(int16_t group) const {
     return mask ? *mask : COLLISION_MASK_DEFAULT;
 }
 
+EntityActionPointer PhysicsEngine::getActionByID(const QUuid& actionID) const {
+    if (_objectActions.contains(actionID)) {
+        return _objectActions[actionID];
+    }
+    return nullptr;
+}
+
+
 void PhysicsEngine::addAction(EntityActionPointer action) {
     assert(action);
     const QUuid& actionID = action->getID();
     if (_objectActions.contains(actionID)) {
-        assert(_objectActions[actionID] == action);
-        return;
+        if (_objectActions[actionID] == action) {
+            return;
+        }
+        removeAction(action->getID());
     }
 
     _objectActions[actionID] = action;
