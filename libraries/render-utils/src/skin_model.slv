@@ -34,17 +34,17 @@ void main(void) {
     vec4 position = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 interpolatedNormal = vec4(0.0, 0.0, 0.0, 0.0);
     for (int i = 0; i < INDICES_PER_VERTEX; i++) {
-        mat4 clusterMatrix = clusterMatrices[inSkinClusterIndex[i])];
+        mat4 clusterMatrix = clusterMatrices[inSkinClusterIndex[i]];
         float clusterWeight = inSkinClusterWeight[i].x;
         position += clusterMatrix * inPosition * clusterWeight;
         interpolatedNormal += clusterMatrix * vec4(inNormal.xyz, 0.0) * clusterWeight;
     }
 
     // pass along the diffuse color
-    _color = gl_Color.xyz;
+    _color = inColor.rgb;
 
     // and the texture coordinates
-    _texCoord0[0] = texcoordMatrices[0] * vec4(inTexCoord0.st, 0.0, 1.0);
+    _texCoord0 = (texcoordMatrices[0] * vec4(inTexCoord0.st, 0.0, 1.0)).st;
     
     // standard transform
     TransformCamera cam = getTransformCamera();
