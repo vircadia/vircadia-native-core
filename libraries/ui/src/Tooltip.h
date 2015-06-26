@@ -13,6 +13,8 @@
 #ifndef hifi_Tooltip_h
 #define hifi_Tooltip_h
 
+#include <QtNetwork/QNetworkReply>
+
 #include "OffscreenQmlDialog.h"
 
 class Tooltip : public QQuickItem
@@ -23,29 +25,40 @@ class Tooltip : public QQuickItem
 private:
     Q_PROPERTY(QString title READ getTitle WRITE setTitle NOTIFY titleChanged)
     Q_PROPERTY(QString description READ getDescription WRITE setDescription NOTIFY descriptionChanged)
+    Q_PROPERTY(QString imageURL READ getImageURL WRITE setImageURL NOTIFY imageURLChanged)
 
 public:
     Tooltip(QQuickItem* parent = 0);
     virtual ~Tooltip();
 
-    const QString& getTitle() const;
-    const QString& getDescription() const;
+    const QString& getTitle() const { return _title; }
+    const QString& getDescription() const { return _description; }
+    const QString& getImageURL() const { return _imageURL; }
 
     static QString showTip(const QString& title, const QString& description);
     static void closeTip(const QString& tipId);
 
 public slots:
     virtual void setVisible(bool v);
+
     void setTitle(const QString& title);
     void setDescription(const QString& description);
+    void setImageURL(const QString& imageURL);
 
 signals:
     void titleChanged();
     void descriptionChanged();
+    void imageURLChanged();
+
+private slots:
+    void handleAPIResponse(QNetworkReply& requestReply);
 
 private:
+    void requestHyperlinkImage();
+
     QString _title;
     QString _description;
+    QString _imageURL { "../images/NoPictureProvided.svg" };
 };
 
 #endif // hifi_Tooltip_h

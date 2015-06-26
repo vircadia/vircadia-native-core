@@ -55,7 +55,9 @@ Hifi.Tooltip {
 
             Image {
                 id: tooltipPic
-                source: "../images/NoPictureProvided.svg"
+                source: root.imageURL
+                height: 180
+                width: 320
                 anchors.left: parent.left
                 anchors.right: parent.right
                 verticalAlignment: Image.AlignVCenter

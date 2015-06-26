@@ -19,7 +19,7 @@
 #include <gpu/GLBackend.h>
 
 #include "CursorManager.h"
-#include "HyperLinkTooltip.h"
+#include "Tooltip.h"
 
 #include "Application.h"
 
