@@ -174,7 +174,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     Q_ASSERT(getType() == EntityTypes::Web);
     static const glm::vec2 texMin(0.0f);
     static const glm::vec2 texMax(1.0f);
-    glm::vec2 topLeft(-0.5f -0.5f);
+    glm::vec2 topLeft(-0.5f, -0.5f);
     glm::vec2 bottomRight(0.5f, 0.5f);
 
     Q_ASSERT(args->_batch);
