@@ -58,7 +58,7 @@ private:
 
     QString _title;
     QString _description;
-    QString _imageURL { "../images/NoPictureProvided.svg" };
+    QString _imageURL { "../images/no-picture-provided.svg" };
 };
 
 #endif // hifi_Tooltip_h
