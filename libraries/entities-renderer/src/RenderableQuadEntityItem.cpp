@@ -65,10 +65,7 @@ void RenderableQuadEntityItem::updateGeometry() {
     }
 //    qDebug() << "num points: " << _points.size();
 //    qDebug() << "num quad vertices" << _quadVertices.size();
-    int compactColor = ((int(.7 * 255.0f) & 0xFF)) |
-    ((int(0.1 * 255.0f) & 0xFF) << 8) |
-    ((int(0.9 * 255.0f) & 0xFF) << 16) |
-    ((int(1.0 * 255.0f) & 0xFF) << 24);
+
     if (_pointsChanged) {
         _numVertices = 0;
         _verticesBuffer.reset(new gpu::Buffer());
@@ -79,6 +76,14 @@ void RenderableQuadEntityItem::updateGeometry() {
 //        _numVertices = 4;
         glm::vec3 point, v1;
         for (int i = 1; i < _points.size(); i++) {
+            float c1 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+            float c2 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+            float c3 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+            
+            int compactColor = ((int(c1 * 255.0f) & 0xFF)) |
+            ((int(c2 * 255.0f) & 0xFF) << 8) |
+            ((int(c3 * 255.0f) & 0xFF) << 16) |
+            ((int(255.0f) & 0xFF) << 24);
             point = _points.at(i);
             if(i % 2 == 0) {
                 v1 = {point.x - _lineWidth, point.y, point.z};
