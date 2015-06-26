@@ -42,7 +42,7 @@ public:
         Mat4 _projectionViewUntranslated;
         Mat4 _projection;
         Mat4 _projectionInverse;
-        Vec4 _viewport;
+        Vec4i _viewport;
     };
 
     template< typename T >

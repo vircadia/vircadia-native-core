@@ -13,11 +13,13 @@
 #include "StandardShaderLib.h"
 
 #include "DrawTransformUnitQuad_vert.h"
+#include "DrawViewportQuadTransformTexcoord_vert.h"
 #include "DrawTexture_frag.h"
 
 using namespace gpu;
 
 ShaderPointer StandardShaderLib::_drawTransformUnitQuadVS;
+ShaderPointer StandardShaderLib::_drawViewportQuadTransformTexcoordVS;
 ShaderPointer StandardShaderLib::_drawTexturePS;
 
 ShaderPointer StandardShaderLib::getDrawTransformUnitQuadVS() {
@@ -25,6 +27,13 @@ ShaderPointer StandardShaderLib::getDrawTransformUnitQuadVS() {
         _drawTransformUnitQuadVS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(DrawTransformUnitQuad_vert)));
     }
     return _drawTransformUnitQuadVS;
+}
+
+ShaderPointer StandardShaderLib::getDrawViewportQuadTransformTexcoordVS() {
+    if (!_drawViewportQuadTransformTexcoordVS) {
+        _drawViewportQuadTransformTexcoordVS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(DrawViewportQuadTransformTexcoord_vert)));
+    }
+    return _drawViewportQuadTransformTexcoordVS;
 }
 
 ShaderPointer StandardShaderLib::getDrawTexturePS() {

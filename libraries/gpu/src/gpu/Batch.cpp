@@ -103,6 +103,23 @@ void Batch::clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, floa
     _params.push_back(targets);
 }
 
+void Batch::clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color) {
+    clearFramebuffer(targets & Framebuffer::BUFFER_COLORS, color, 1.0f, 0);
+}
+
+void Batch::clearDepthFramebuffer(float depth) {
+    clearFramebuffer(Framebuffer::BUFFER_DEPTH, Vec4(0.0f), depth, 0);
+}
+
+void Batch::clearStencilFramebuffer(int stencil) {
+    clearFramebuffer(Framebuffer::BUFFER_STENCIL, Vec4(0.0f), 1.0f, stencil);
+}
+
+void Batch::clearDepthStencilFramebuffer(float depth, int stencil) {
+    clearFramebuffer(Framebuffer::BUFFER_DEPTHSTENCIL, Vec4(0.0f), depth, stencil);
+}
+
+
 void Batch::setInputFormat(const Stream::FormatPointer& format) {
     ADD_COMMAND(setInputFormat);
 
@@ -141,6 +158,10 @@ void Batch::setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset
     _params.push_back(type);
 }
 
+void Batch::setIndexBuffer(const BufferView& buffer) {
+    setIndexBuffer(buffer._element.getType(), buffer._buffer, buffer._offset);
+}
+
 void Batch::setModelTransform(const Transform& model) {
     ADD_COMMAND(setModelTransform);
 
@@ -158,6 +179,13 @@ void Batch::setProjectionTransform(const Mat4& proj) {
 
     _params.push_back(cacheData(sizeof(Mat4), &proj));
 }
+
+void Batch::setViewportTransform(const Vec4i& viewport) {
+    ADD_COMMAND(setViewportTransform);
+
+    _params.push_back(cacheData(sizeof(Vec4i), &viewport));
+}
+
 
 void Batch::setPipeline(const PipelinePointer& pipeline) {
     ADD_COMMAND(setPipeline);

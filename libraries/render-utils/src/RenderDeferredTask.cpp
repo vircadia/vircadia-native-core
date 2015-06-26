@@ -38,8 +38,9 @@ void ResolveDeferred::run(const SceneContextPointer& sceneContext, const RenderC
 }
 
 RenderDeferredTask::RenderDeferredTask() : Task() {
-    _jobs.push_back(Job(new PrepareDeferred::JobModel("PrepareDeferred")));
     _jobs.push_back(Job(new DrawBackground::JobModel("DrawBackground")));
+
+    _jobs.push_back(Job(new PrepareDeferred::JobModel("PrepareDeferred")));
     _jobs.push_back(Job(new FetchItems::JobModel("FetchOpaque",
         FetchItems(
             [] (const RenderContextPointer& context, int count) {

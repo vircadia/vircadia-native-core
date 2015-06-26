@@ -22,13 +22,19 @@ namespace gpu {
 class StandardShaderLib {
 public:
 
+    // Shader draw the unit quad objectPos = ([(-1,-1),(1,1)]) and transform it by the full model transform stack (Model, View, Proj). 
+    // A texcoord attribute is also generated texcoord = [(0,0),(1,1)]
     static ShaderPointer getDrawTransformUnitQuadVS();
+
+    // Shader draws the unit quad in the full viewport clipPos = ([(-1,-1),(1,1)]) and transform the texcoord = [(0,0),(1,1)] by the model transform.
+    static ShaderPointer getDrawViewportQuadTransformTexcoordVS();
 
     static ShaderPointer getDrawTexturePS();
 
 protected:
 
     static ShaderPointer _drawTransformUnitQuadVS;
+    static ShaderPointer _drawViewportQuadTransformTexcoordVS;
     static ShaderPointer _drawTexturePS;
 };
 

@@ -21,6 +21,7 @@
 
 #include "model/Light.h"
 #include "model/Stage.h"
+#include "model/Geometry.h"
 
 class AbstractViewStateInterface;
 class RenderArgs;
@@ -95,9 +96,14 @@ private:
         int lightBufferUnit;
         int atmosphereBufferUnit;
         int invViewMat;
+        int texcoordMat;
     };
+
+    model::MeshPointer _spotLightMesh;
+    model::MeshPointer getSpotLightMesh();
     
-    static void loadLightProgram(const char* fragSource, bool limited, ProgramObject& program, LightLocations& locations);
+   // static void loadLightProgram(const char* fragSource, bool limited, ProgramObject& program, LightLocations& locations);
+    static void loadLightProgram(const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocations& locations);
     
     gpu::PipelinePointer _simpleProgram;
     gpu::PipelinePointer _simpleProgramCullNone;
@@ -106,6 +112,32 @@ private:
 
     gpu::PipelinePointer _blitLightBuffer;
 
+    gpu::PipelinePointer _directionalSkyboxLight;
+    LightLocations _directionalSkyboxLightLocations;
+    gpu::PipelinePointer _directionalSkyboxLightShadowMap;
+    LightLocations _directionalSkyboxLightShadowMapLocations;
+    gpu::PipelinePointer _directionalSkyboxLightCascadedShadowMap;
+    LightLocations _directionalSkyboxLightCascadedShadowMapLocations;
+
+    gpu::PipelinePointer _directionalAmbientSphereLight;
+    LightLocations _directionalAmbientSphereLightLocations;
+    gpu::PipelinePointer _directionalAmbientSphereLightShadowMap;
+    LightLocations _directionalAmbientSphereLightShadowMapLocations;
+    gpu::PipelinePointer _directionalAmbientSphereLightCascadedShadowMap;
+    LightLocations _directionalAmbientSphereLightCascadedShadowMapLocations;
+
+    gpu::PipelinePointer _directionalLight;
+    LightLocations _directionalLightLocations;
+    gpu::PipelinePointer _directionalLightShadowMap;
+    LightLocations _directionalLightShadowMapLocations;
+    gpu::PipelinePointer _directionalLightCascadedShadowMap;
+    LightLocations _directionalLightCascadedShadowMapLocations;
+
+    gpu::PipelinePointer _pointLight;
+    LightLocations _pointLightLocations;
+    gpu::PipelinePointer _spotLight;
+    LightLocations _spotLightLocations;
+/*
     ProgramObject _directionalSkyboxLight;
     LightLocations _directionalSkyboxLightLocations;
     ProgramObject _directionalSkyboxLightShadowMap;
@@ -131,7 +163,7 @@ private:
     LightLocations _pointLightLocations;
     ProgramObject _spotLight;
     LightLocations _spotLightLocations;
-    
+*/
     class PointLight {
     public:
         glm::vec4 position;

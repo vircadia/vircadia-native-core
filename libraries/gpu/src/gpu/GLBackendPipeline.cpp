@@ -73,6 +73,7 @@ void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
 
 #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
 #else
+        _pipeline._program_transformObject_model = -1;
         _pipeline._program_transformCamera_viewInverse = -1;
 #endif
 
@@ -91,6 +92,7 @@ void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
 
 #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
 #else
+            _pipeline._program_transformObject_model = pipelineObject->_program->_transformObject_model;
             _pipeline._program_transformCamera_viewInverse = pipelineObject->_program->_transformCamera_viewInverse;
 #endif
         }
@@ -143,6 +145,10 @@ void GLBackend::updatePipeline() {
 
 #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
 #else
+    // If shader program needs the model we need to provide it
+    if (_pipeline._program_transformObject_model >= 0) {
+        glUniformMatrix4fv(_pipeline._program_transformObject_model, 1, false, (const GLfloat*) &_transform._transformObject._model);
+    }
     // If shader program needs the inverseView we need to provide it
     if (_pipeline._program_transformCamera_viewInverse >= 0) {
         glUniformMatrix4fv(_pipeline._program_transformCamera_viewInverse, 1, false, (const GLfloat*) &_transform._transformCamera._viewInverse);

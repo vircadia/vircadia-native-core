@@ -96,6 +96,7 @@ public:
 
 #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
 #else
+        GLuint _transformObject_model = -1;
         GLuint _transformCamera_viewInverse = -1;
 #endif
 
@@ -179,6 +180,7 @@ public:
     class GLFramebuffer : public GPUObject {
     public:
         GLuint _fbo = 0;
+        std::vector<GLenum> _colorBuffers;
 
         GLFramebuffer();
         ~GLFramebuffer();
@@ -267,6 +269,7 @@ protected:
     void do_setModelTransform(Batch& batch, uint32 paramOffset);
     void do_setViewTransform(Batch& batch, uint32 paramOffset);
     void do_setProjectionTransform(Batch& batch, uint32 paramOffset);
+    void do_setViewportTransform(Batch& batch, uint32 paramOffset);
     
     void initTransform();
     void killTransform();
@@ -281,9 +284,11 @@ protected:
         Transform _model;
         Transform _view;
         Mat4 _projection;
+        Vec4i _viewport;
         bool _invalidModel;
         bool _invalidView;
         bool _invalidProj;
+        bool _invalidViewport;
 
         GLenum _lastMode;
 
@@ -293,9 +298,11 @@ protected:
             _model(),
             _view(),
             _projection(),
+            _viewport(0,0,1,1),
             _invalidModel(true),
             _invalidView(true),
             _invalidProj(false),
+            _invalidViewport(false),
             _lastMode(GL_TEXTURE) {}
     } _transform;
 
@@ -329,6 +336,7 @@ protected:
 
 #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
 #else
+        GLint _program_transformObject_model = -1;
         GLint _program_transformCamera_viewInverse = -1;
 #endif
 
