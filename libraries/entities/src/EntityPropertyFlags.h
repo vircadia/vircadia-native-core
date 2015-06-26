@@ -121,7 +121,7 @@ enum EntityPropertyList {
     // used by hyperlinks
     PROP_HREF,
     PROP_DESCRIPTION,
-
+    PROP_FACE_CAMERA,
     PROP_ACTION_DATA,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -27,6 +27,7 @@ const QString TextEntityItem::DEFAULT_TEXT("");
 const float TextEntityItem::DEFAULT_LINE_HEIGHT = 0.1f;
 const xColor TextEntityItem::DEFAULT_TEXT_COLOR = { 255, 255, 255 };
 const xColor TextEntityItem::DEFAULT_BACKGROUND_COLOR = { 0, 0, 0};
+const bool TextEntityItem::DEFAULT_FACE_CAMERA = false;
 
 EntityItemPointer TextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return EntityItemPointer(new TextEntityItem(entityID, properties));
@@ -54,6 +55,7 @@ EntityItemProperties TextEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lineHeight, getLineHeight);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textColor, getTextColorX);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(backgroundColor, getBackgroundColorX);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(faceCamera, getFaceCamera);
     return properties;
 }
 
@@ -65,6 +67,7 @@ bool TextEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lineHeight, setLineHeight);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textColor, setTextColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(backgroundColor, setBackgroundColor);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(faceCamera, setFaceCamera);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -91,7 +94,8 @@ int TextEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_LINE_HEIGHT, float, setLineHeight);
     READ_ENTITY_PROPERTY(PROP_TEXT_COLOR, rgbColor, setTextColor);
     READ_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, rgbColor, setBackgroundColor);
-
+    READ_ENTITY_PROPERTY(PROP_FACE_CAMERA, bool, setFaceCamera);
+    
     return bytesRead;
 }
 
@@ -103,6 +107,7 @@ EntityPropertyFlags TextEntityItem::getEntityProperties(EncodeBitstreamParams& p
     requestedProperties += PROP_LINE_HEIGHT;
     requestedProperties += PROP_TEXT_COLOR;
     requestedProperties += PROP_BACKGROUND_COLOR;
+    requestedProperties += PROP_FACE_CAMERA;
     return requestedProperties;
 }
 
@@ -120,6 +125,8 @@ void TextEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_LINE_HEIGHT, getLineHeight());
     APPEND_ENTITY_PROPERTY(PROP_TEXT_COLOR, getTextColor());
     APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, getBackgroundColor());
+    APPEND_ENTITY_PROPERTY(PROP_FACE_CAMERA, getFaceCamera());
+    
 }
 
 

@@ -43,7 +43,7 @@ namespace Setting {
         // set the associated application properties
         applicationInfo.beginGroup("INFO");
         QCoreApplication::setApplicationName(applicationInfo.value("name").toString());
-        QCoreApplication::setOrganizationName(applicationInfo.value("organizationName").toString());
+        // QCoreApplication::setOrganizationName(applicationInfo.value("organizationName").toString());
         QCoreApplication::setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
         
         // Let's set up the settings Private instance on its own thread

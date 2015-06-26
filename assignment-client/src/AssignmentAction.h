@@ -37,17 +37,9 @@ public:
 private:
     QUuid _id;
     EntityActionType _type;
-    // QReadWriteLock _lock;
-
     QByteArray _data;
 
 protected:
-
-    // bool tryLockForRead() { return _lock.tryLockForRead(); }
-    // void lockForWrite() { _lock.lockForWrite(); }
-    // bool tryLockForWrite() { return _lock.tryLockForWrite(); }
-    // void unlock() { _lock.unlock(); }
-
     virtual glm::vec3 getPosition() { assert(false); return glm::vec3(0.0f); }
     virtual void setPosition(glm::vec3 position) { assert(false); }
     virtual glm::quat getRotation() { assert(false); return glm::quat(); }
