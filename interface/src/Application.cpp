@@ -2496,24 +2496,45 @@ void Application::update(float deltaTime) {
 
         _entitySimulation.lock();
         _physicsEngine.deleteObjects(_entitySimulation.getObjectsToDelete());
+        _entitySimulation.unlock();
+
+        _entities.getTree()->lockForWrite();
+        _entitySimulation.lock();
         _physicsEngine.addObjects(_entitySimulation.getObjectsToAdd());
+        _entitySimulation.unlock();
+        _entities.getTree()->unlock();
+
+        _entities.getTree()->lockForWrite();
+        _entitySimulation.lock();
         _physicsEngine.changeObjects(_entitySimulation.getObjectsToChange());
+        _entitySimulation.unlock();
+        _entities.getTree()->unlock();
+
+        _entitySimulation.lock();
         _entitySimulation.applyActionChanges();
         _entitySimulation.unlock();
+
 
         AvatarManager* avatarManager = DependencyManager::get<AvatarManager>().data();
         _physicsEngine.deleteObjects(avatarManager->getObjectsToDelete());
         _physicsEngine.addObjects(avatarManager->getObjectsToAdd());
         _physicsEngine.changeObjects(avatarManager->getObjectsToChange());
 
+        _entities.getTree()->lockForWrite();
         _physicsEngine.stepSimulation();
+        _entities.getTree()->unlock();
 
         if (_physicsEngine.hasOutgoingChanges()) {
+            _entities.getTree()->lockForWrite();
             _entitySimulation.lock();
             _entitySimulation.handleOutgoingChanges(_physicsEngine.getOutgoingChanges(), _physicsEngine.getSessionID());
             _entitySimulation.unlock();
+            _entities.getTree()->unlock();
 
+            _entities.getTree()->lockForWrite();
             avatarManager->handleOutgoingChanges(_physicsEngine.getOutgoingChanges());
+            _entities.getTree()->unlock();
+
             auto collisionEvents = _physicsEngine.getCollisionEvents();
             avatarManager->handleCollisionEvents(collisionEvents);
 
