@@ -1268,6 +1268,8 @@ void EntityItemProperties::clearSimulationOwner() {
 }
 
 void EntityItemProperties::setSimulationOwner(const QUuid& id, uint8_t priority) {
-    _simulationOwner.set(id, priority);
-    _simulationOwnerChanged = true;
+    if (!_simulationOwner.matchesValidID(id) || _simulationOwner.getPriority() != priority) {
+        _simulationOwner.set(id, priority);
+        _simulationOwnerChanged = true;
+    }
 }

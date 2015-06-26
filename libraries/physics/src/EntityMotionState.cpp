@@ -422,7 +422,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
     _serverAcceleration = _entity->getAcceleration();
     _serverAngularVelocity = _entity->getAngularVelocity();
 
-    EntityItemProperties properties = _entity->getProperties();
+    EntityItemProperties properties;
 
     // explicitly set the properties that changed so that they will be packed
     properties.setPosition(_serverPosition);
@@ -449,10 +449,8 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
             // we own the simulation but the entity has stopped, so we tell the server that we're clearing simulatorID
             // but we remember that we do still own it...  and rely on the server to tell us that we don't
             properties.clearSimulationOwner();
-        } else {
-            // re-assert the simulation info
-            properties.setSimulationOwner(sessionID, _entity->getSimulatorPriority());
         }
+        // else the ownership is not changing so we don't bother to pack it
     } else {
         // we don't own the simulation for this entity yet, but we're sending a bid for it
         properties.setSimulationOwner(sessionID, glm::max<uint8_t>(_outgoingPriority, VOLUNTEER_SIMULATION_PRIORITY));
