@@ -155,7 +155,7 @@ public:
 
     void entityChanged(EntityItemPointer entity);
 
-    void emitEntityScriptChanging(const EntityItemID& entityItemID);
+    void emitEntityScriptChanging(const EntityItemID& entityItemID, const bool reload);
 
     void setSimulation(EntitySimulation* simulation);
     EntitySimulation* getSimulation() const { return _simulation; }
@@ -171,7 +171,7 @@ public:
 signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);
-    void entityScriptChanging(const EntityItemID& entityItemID);
+    void entityScriptChanging(const EntityItemID& entityItemID, const bool reload);
     void newCollisionSoundURL(const QUrl& url);
     void clearingEntities();
 

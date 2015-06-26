@@ -32,7 +32,8 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
     QWidget(parent, Qt::Window | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowMinMaxButtonsHint |
             Qt::WindowCloseButtonHint),
     ui(new Ui::RunningScriptsWidget),
-    _signalMapper(this),
+    _reloadSignalMapper(this),
+    _stopSignalMapper(this),
     _scriptsModelFilter(this),
     _scriptsModel(this) {
     ui->setupUi(this);
@@ -64,7 +65,8 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
             Application::getInstance(), &Application::loadDialog);
     connect(ui->loadScriptFromURLButton, &QPushButton::clicked,
             Application::getInstance(), &Application::loadScriptURLDialog);
-    connect(&_signalMapper, SIGNAL(mapped(QString)), Application::getInstance(), SLOT(stopScript(const QString&)));
+    connect(&_reloadSignalMapper, SIGNAL(mapped(QString)), Application::getInstance(), SLOT(reloadOneScript(const QString&)));
+    connect(&_stopSignalMapper, SIGNAL(mapped(QString)), Application::getInstance(), SLOT(stopScript(const QString&)));
 
     UIUtil::scaleWidgetFontSizes(this);
 }
@@ -115,6 +117,17 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
             name->setText(name->text() + "(" + QString::number(hash.find(list.at(i)).value()) + ")");
         }
         ++hash[list.at(i)];
+
+        QPushButton* reloadButton = new QPushButton(row);
+        reloadButton->setFlat(true);
+        reloadButton->setIcon(
+            QIcon(QPixmap(PathUtils::resourcesPath() + "images/reload-script.svg").scaledToHeight(CLOSE_ICON_HEIGHT)));
+        reloadButton->setSizePolicy(QSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred));
+        reloadButton->setStyleSheet("border: 0;");
+        reloadButton->setCursor(Qt::PointingHandCursor);
+        connect(reloadButton, SIGNAL(clicked()), &_reloadSignalMapper, SLOT(map()));
+        _reloadSignalMapper.setMapping(reloadButton, url.toString());
+
         QPushButton* closeButton = new QPushButton(row);
         closeButton->setFlat(true);
         closeButton->setIcon(
@@ -122,9 +135,8 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
         closeButton->setSizePolicy(QSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred));
         closeButton->setStyleSheet("border: 0;");
         closeButton->setCursor(Qt::PointingHandCursor);
-
-        connect(closeButton, SIGNAL(clicked()), &_signalMapper, SLOT(map()));
-        _signalMapper.setMapping(closeButton, url.toString());
+        connect(closeButton, SIGNAL(clicked()), &_stopSignalMapper, SLOT(map()));
+        _stopSignalMapper.setMapping(closeButton, url.toString());
 
         row->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed));
 
@@ -132,6 +144,7 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
         row->layout()->setSpacing(0);
 
         row->layout()->addWidget(name);
+        row->layout()->addWidget(reloadButton);
         row->layout()->addWidget(closeButton);
 
         row->setToolTip(url.toString());

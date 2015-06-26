@@ -260,6 +260,11 @@ table#properties-list {
     height: 1.2em;
 }
 
+#properties-list .label input[type=button] {
+    float: right;
+    padding: 0 5px 1px;
+}
+
 #properties-list .value > div{
     padding: 3pt 0;
 }
