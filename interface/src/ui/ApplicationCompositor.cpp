@@ -182,7 +182,8 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
 
     updateTooltips();
 
-    vec2 canvasSize = qApp->getCanvasSize();
+    auto deviceSize = qApp->getDeviceSize();
+    glViewport(0, 0, deviceSize.width(), deviceSize.height());
 
     //Handle fading and deactivation/activation of UI
     gpu::Batch batch;
@@ -204,6 +205,7 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
 
     //draw the mouse pointer
     // Get the mouse coordinates and convert to NDC [-1, 1]
+    vec2 canvasSize = qApp->getCanvasSize();
     vec2 mousePosition = toNormalizedDeviceScale(vec2(qApp->getMouse()), canvasSize);
     // Invert the Y axis
     mousePosition.y *= -1.0f;

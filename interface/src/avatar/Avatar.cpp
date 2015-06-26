@@ -445,10 +445,10 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
                 _skeletonModel.renderJointCollisionShapes(0.7f);
             }
 
-            if (renderHead && shouldRenderHead(renderArgs, cameraPosition)) {
+            if (renderHead && shouldRenderHead(renderArgs)) {
                 getHead()->getFaceModel().renderJointCollisionShapes(0.7f);
             }
-            if (renderBounding && shouldRenderHead(renderArgs, cameraPosition)) {
+            if (renderBounding && shouldRenderHead(renderArgs)) {
                 _skeletonModel.renderBoundingCollisionShapes(0.7f);
             }
 
@@ -533,6 +533,7 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 }
 
 void Avatar::fixupModelsInScene() {
+
     // check to see if when we added our models to the scene they were ready, if they were not ready, then
     // fix them up in the scene
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
@@ -581,7 +582,7 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool
     getHead()->render(renderArgs, 1.0f, renderFrustum, postLighting);
 }
 
-bool Avatar::shouldRenderHead(const RenderArgs* renderArgs, const glm::vec3& cameraPosition) const {
+bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {
     return true;
 }
 
