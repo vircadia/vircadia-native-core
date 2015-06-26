@@ -28,7 +28,7 @@ using glm::vec3;
 using glm::vec4;
 using glm::quat;
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
 #endif
@@ -37,7 +37,7 @@ using glm::quat;
 #include <QtGui/QMatrix4x4>
 #include <QtGui/QColor>
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
 

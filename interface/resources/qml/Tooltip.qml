@@ -18,7 +18,7 @@ Hifi.Tooltip {
         offsetX = (lastMousePosition.x > surfaceSize.width/2) ? -root.width : 0
         offsetY = (lastMousePosition.y > surfaceSize.height/2) ? -root.height : 0
     }
-    
+
     Rectangle {
         id: border
         color: "#7f000000"
@@ -42,10 +42,10 @@ Hifi.Tooltip {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 font.pixelSize: hifi.fonts.pixelSize / 2
-                text: root.text
+                text: root.title
                 wrapMode: Text.WrapAnywhere
-                
-                /* Uncomment for debugging to see the extent of the  
+
+                /* Uncomment for debugging to see the extent of the
                 Rectangle {
                     anchors.fill: parent
                     color: "#7fff00ff"
@@ -68,7 +68,7 @@ Hifi.Tooltip {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 font.pixelSize: hifi.fonts.pixelSize / 2
-                text: root.text
+                text: root.description
                 wrapMode: Text.WrapAnywhere
             }
         }

@@ -11,7 +11,7 @@
 
 #include <QByteArray>
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
 #endif
@@ -19,7 +19,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/string_cast.hpp>
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
 
@@ -458,7 +458,7 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
                                                               const glm::vec3& direction,
                                                               bool& keepSearching,
                                                               OctreeElement*& element,
-                                                              float& distance, BoxFace& face, 
+                                                              float& distance, BoxFace& face,
                                                               void** intersectedObject,
                                                               bool precisionPicking) const
 {

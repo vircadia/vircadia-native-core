@@ -18,14 +18,25 @@ Tooltip::Tooltip(QQuickItem* parent) : QQuickItem(parent) {
 Tooltip::~Tooltip() {
 }
 
-QString Tooltip::text() const {
-    return _text;
+const QString& Tooltip::getTitle() const {
+    return _title;
 }
 
-void Tooltip::setText(const QString& arg) {
-    if (arg != _text) {
-        _text = arg;
-        emit textChanged();
+const QString& Tooltip::getDescription() const {
+    return _description;
+}
+
+void Tooltip::setTitle(const QString& title) {
+    if (title != _title) {
+        _title = title;
+        emit titleChanged();
+    }
+}
+
+void Tooltip::setDescription(const QString& description) {
+    if (description != _description) {
+        _description = description;
+        emit descriptionChanged();
     }
 }
 
@@ -33,11 +44,14 @@ void Tooltip::setVisible(bool visible) {
     QQuickItem::setVisible(visible);
 }
 
-QString Tooltip::showTip(const QString& text) {
+QString Tooltip::showTip(const QString& title, const QString& description) {
     const QString newTipId = QUuid().createUuid().toString();
+
+    qDebug() << "THE NEW TIP ID IS" << newTipId;
     Tooltip::show([&](QQmlContext*, QObject* object) {
         object->setObjectName(newTipId);
-        object->setProperty("text", text);
+        object->setProperty("title", title);
+        object->setProperty("description", description);
     });
     return newTipId;
 }

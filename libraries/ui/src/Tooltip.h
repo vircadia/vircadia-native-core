@@ -20,26 +20,31 @@ class Tooltip : public QQuickItem
     HIFI_QML_DECL
 
 private:
-    Q_PROPERTY(QString text READ text WRITE setText NOTIFY textChanged)
+    Q_PROPERTY(QString title READ getTitle WRITE setTitle NOTIFY titleChanged)
+    Q_PROPERTY(QString description READ getDescription WRITE setDescription NOTIFY descriptionChanged)
 
 public:
     Tooltip(QQuickItem* parent = 0);
     virtual ~Tooltip();
 
-    QString text() const;
+    const QString& getTitle() const;
+    const QString& getDescription() const;
 
-    static QString showTip(const QString& text);
+    static QString showTip(const QString& title, const QString& description);
     static void closeTip(const QString& tipId);
 
 public slots:
     virtual void setVisible(bool v);
-    void setText(const QString& arg);
+    void setTitle(const QString& title);
+    void setDescription(const QString& description);
 
 signals:
-    void textChanged();
+    void titleChanged();
+    void descriptionChanged();
 
 private:
-    QString _text;
+    QString _title;
+    QString _description;
 };
 
 #endif // hifi_Tooltip_h
