@@ -78,6 +78,10 @@ public:
     void setGlobalAtmosphere(const model::AtmospherePointer& atmosphere) { _atmosphere = atmosphere; }
 
     void setGlobalSkybox(const model::SkyboxPointer& skybox);
+    
+    gpu::ShaderPointer getSimpleVertexShader() const;
+    gpu::ShaderPointer getSimplePixelShader() const;
+    
 private:
     DeferredLightingEffect() {}
     virtual ~DeferredLightingEffect() { }

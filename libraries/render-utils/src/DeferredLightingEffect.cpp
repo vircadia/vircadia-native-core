@@ -116,6 +116,22 @@ void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured)
     }
 }
 
+gpu::ShaderPointer DeferredLightingEffect::getSimpleVertexShader() const {
+    if (_simpleProgram) {
+        return _simpleProgram->getProgram()->getShaders()[gpu::Shader::VERTEX];
+    } else {
+        return gpu::ShaderPointer();
+    }
+}
+
+gpu::ShaderPointer DeferredLightingEffect::getSimplePixelShader() const {
+    if (_simpleProgram) {
+        return _simpleProgram->getProgram()->getShaders()[gpu::Shader::PIXEL];
+    } else {
+        return gpu::ShaderPointer();
+    }
+}
+
 void DeferredLightingEffect::releaseSimpleProgram(gpu::Batch& batch) {
   //  DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(batch, true, false, false);
 }

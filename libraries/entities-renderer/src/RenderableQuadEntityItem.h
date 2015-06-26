@@ -21,12 +21,14 @@
 class RenderableQuadEntityItem : public QuadEntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
-    
+    static void createPipeline();
     RenderableQuadEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     
     virtual void render(RenderArgs* args);
     
     SIMPLE_RENDERABLE();
+    
+    static gpu::PipelinePointer _pipeline;
     
 protected:
     void updateGeometry();

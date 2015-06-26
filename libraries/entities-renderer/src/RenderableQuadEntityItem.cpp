@@ -20,6 +20,9 @@
 #include "RenderableQuadEntityItem.h"
 
 
+
+
+
 EntityItemPointer RenderableQuadEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return EntityItemPointer(new RenderableQuadEntityItem(entityID, properties));
 }
@@ -29,6 +32,27 @@ QuadEntityItem(entityItemID, properties) {
     _format.reset(new gpu::Stream::Format());
     _format->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     _numVertices = 0;
+    
+
+}
+
+gpu::PipelinePointer RenderableQuadEntityItem::_pipeline;
+
+void RenderableQuadEntityItem::createPipeline() {
+    auto VS = DependencyManager::get<DeferredLightingEffect>()->getSimpleVertexShader();
+    auto PS = DependencyManager::get<DeferredLightingEffect>()->getSimplePixelShader();
+    gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PS));
+    
+    gpu::Shader::BindingSet slotBindings;
+    gpu::Shader::makeProgram(*program, slotBindings);
+    
+    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    //state->setCullMode(gpu::State::CULL_BACK);
+    state->setDepthTest(true, true, gpu::LESS_EQUAL);
+    state->setBlendFunction(false,
+                            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+   _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
 }
 
 
@@ -66,6 +90,11 @@ void RenderableQuadEntityItem::render(RenderArgs* args) {
     if (_quadVertices.size() < 4 ) {
         return;
     }
+    if (!_pipeline) {
+        createPipeline();
+    }
+    
+ 
     PerformanceTimer perfTimer("RenderableQuadEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Quad);
     
@@ -76,14 +105,13 @@ void RenderableQuadEntityItem::render(RenderArgs* args) {
     Transform transform = Transform();
     transform.setTranslation(getPosition());
     batch.setModelTransform(transform);
-    
 
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
+    batch.setPipeline(_pipeline);
+    
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);
-    batch.draw(gpu::TRIANGLE_STRIP, _numVertices, 0);
     
-
+    batch.draw(gpu::TRIANGLE_STRIP, _numVertices, 0);
     
     RenderableDebugableEntityItem::render(this, args);
 };
