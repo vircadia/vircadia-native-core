@@ -27,6 +27,34 @@ static const float ACCELERATION_EQUIVALENT_EPSILON_RATIO = 0.1f;
 static const quint8 STEPS_TO_DECIDE_BALLISTIC = 4;
 
 
+#ifdef WANT_DEBUG_ENTITY_TREE_LOCKS
+bool EntityMotionState::entityTreeIsLocked() const {
+    EntityTreeElement* element = _entity ? _entity->getElement() : nullptr;
+    EntityTree* tree = element ? element->getTree() : nullptr;
+    if (tree) {
+        bool readSuccess = tree->tryLockForRead();
+        if (readSuccess) {
+            tree->unlock();
+        }
+        bool writeSuccess = tree->tryLockForWrite();
+        if (writeSuccess) {
+            tree->unlock();
+        }
+        if (readSuccess && writeSuccess) {
+            return false;  // if we can take either kind of lock, there was no tree lock.
+        }
+        return true; // either read or write failed, so there is some lock in place.
+    } else {
+        return true;
+    }
+}
+#else
+bool entityTreeIsLocked() {
+    return true;
+}
+#endif
+
+
 EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer entity) :
     ObjectMotionState(shape),
     _entity(entity),
@@ -54,33 +82,6 @@ EntityMotionState::~EntityMotionState() {
     // be sure to clear _entity before calling the destructor
     assert(!_entity);
 }
-
-#ifdef WANT_DEBUG_ENTITY_TREE_LOCKS
-bool EntityMotionState::entityTreeIsLocked() const {
-    EntityTreeElement* element = _entity ? _entity->getElement() : nullptr;
-    EntityTree* tree = element ? element->getTree() : nullptr;
-    if (tree) {
-        bool readSuccess = tree->tryLockForRead();
-        if (readSuccess) {
-            tree->unlock();
-        }
-        bool writeSuccess = tree->tryLockForWrite();
-        if (writeSuccess) {
-            tree->unlock();
-        }
-        if (readSuccess && writeSuccess) {
-            return false;  // if we can take either kind of lock, there was no tree lock.
-        }
-        return true; // either read or write failed, so there is some lock in place.
-    } else {
-        return true;
-    }
-}
-#else
-bool entityTreeIsLocked() {
-    return true;
-}
-#endif
 
 void EntityMotionState::updateServerPhysicsVariables() {
     assert(entityTreeIsLocked());
