@@ -16,6 +16,9 @@
 #include <DeferredLightingEffect.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
+#include <Transform.h>
+
+
 
 #include "RenderableTextEntityItem.h"
 #include "GLMHelpers.h"
@@ -37,14 +40,22 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     transformToTopLeft.postTranslate(glm::vec3(-0.5f, 0.5f, 0.0f)); // Go to the top left
     transformToTopLeft.setScale(1.0f); // Use a scale of one so that the text is not deformed
     
+    // Render background
+    glm::vec3 minCorner = glm::vec3(0.0f, -dimensions.y, SLIGHTLY_BEHIND);
+    glm::vec3 maxCorner = glm::vec3(dimensions.x, 0.0f, SLIGHTLY_BEHIND);
+    
+    
     // Batch render calls
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
     batch.setModelTransform(transformToTopLeft);
     
-    // Render background
-    glm::vec3 minCorner = glm::vec3(0.0f, -dimensions.y, SLIGHTLY_BEHIND);
-    glm::vec3 maxCorner = glm::vec3(dimensions.x, 0.0f, SLIGHTLY_BEHIND);
+    //rotate about vertical to face the camera
+    if (getFaceCamera()) {
+        transformToTopLeft.postRotate(args->_viewFrustum->getOrientation());
+        batch.setModelTransform(transformToTopLeft);
+    }
+    
     DependencyManager::get<DeferredLightingEffect>()->renderQuad(batch, minCorner, maxCorner, backgroundColor);
     
     float scale = _lineHeight / _textRenderer->getFontSize();
@@ -55,6 +66,7 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     glm::vec2 bounds = glm::vec2(dimensions.x - 2.0f * leftMargin,
                                  dimensions.y - 2.0f * topMargin);
     _textRenderer->draw(batch, leftMargin / scale, -topMargin / scale, _text, textColor, bounds / scale);
+    
 }
 
 
