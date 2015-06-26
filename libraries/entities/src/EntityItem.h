@@ -378,7 +378,7 @@ public:
     bool addAction(EntitySimulation* simulation, EntityActionPointer action);
     bool updateAction(EntitySimulation* simulation, const QUuid& actionID, const QVariantMap& arguments);
     bool removeAction(EntitySimulation* simulation, const QUuid& actionID);
-    void clearActions(EntitySimulation* simulation);
+    bool clearActions(EntitySimulation* simulation);
     void setActionData(QByteArray actionData);
     const QByteArray getActionData() const;
     bool hasActions() { return !_objectActions.empty(); }
@@ -455,9 +455,10 @@ protected:
     void* _physicsInfo = nullptr; // set by EntitySimulation
     bool _simulated; // set by EntitySimulation
 
-    void serializeActionData();
+    bool serializeActionData();
     QReadWriteLock _objectActionsLock;
     QHash<QUuid, EntityActionPointer> _objectActions;
+    static int _maxActionDataSize;
     QByteArray _actionData;
 };
 

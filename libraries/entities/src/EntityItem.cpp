@@ -29,6 +29,7 @@
 #include "EntityActionFactoryInterface.h"
 
 bool EntityItem::_sendPhysicsUpdates = true;
+int EntityItem::_maxActionDataSize = 800;
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _type(EntityTypes::Unknown),
@@ -1373,8 +1374,11 @@ bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer act
     assert(action->getOwnerEntity().get() == this);
 
     simulation->addAction(action);
-    serializeActionData();
-    return true;
+    bool success = serializeActionData();
+    if (!success) {
+        removeAction(simulation, actionID);
+    }
+    return success;
 }
 
 bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionID, const QVariantMap& arguments) {
@@ -1387,7 +1391,7 @@ bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionI
     _objectActionsLock.unlock();
     bool success = action->updateArguments(arguments);
     if (success) {
-        serializeActionData();
+        success = serializeActionData();
     }
     return success;
 }
@@ -1400,14 +1404,13 @@ bool EntityItem::removeAction(EntitySimulation* simulation, const QUuid& actionI
         _objectActionsLock.unlock();
         action->setOwnerEntity(nullptr);
         action->removeFromSimulation(simulation);
-        serializeActionData();
-        return true;
+        return serializeActionData();
     }
     _objectActionsLock.unlock();
     return false;
 }
 
-void EntityItem::clearActions(EntitySimulation* simulation) {
+bool EntityItem::clearActions(EntitySimulation* simulation) {
     _objectActionsLock.lockForWrite();
     QHash<QUuid, EntityActionPointer>::iterator i = _objectActions.begin();
     while (i != _objectActions.end()) {
@@ -1418,7 +1421,7 @@ void EntityItem::clearActions(EntitySimulation* simulation) {
         action->removeFromSimulation(simulation);
     }
     _objectActionsLock.unlock();
-    serializeActionData();
+    return serializeActionData();
 }
 
 void EntityItem::setActionData(QByteArray actionData) {
@@ -1457,9 +1460,7 @@ void EntityItem::setActionData(QByteArray actionData) {
 
             if (entityTree) {
                 EntityItemPointer entity = entityTree->findEntityByEntityItemID(_id);
-                if (actionFactory->factoryBA(simulation, entity, serializedAction)) {
-                    // XXX something
-                }
+                actionFactory->factoryBA(simulation, entity, serializedAction);
             }
         }
     }
@@ -1486,7 +1487,7 @@ void EntityItem::setActionData(QByteArray actionData) {
 }
 
 
-void EntityItem::serializeActionData() {
+bool EntityItem::serializeActionData() {
     _objectActionsLock.lockForRead();
     if (_objectActions.size() == 0) {
         _objectActionsLock.unlock();
@@ -1508,7 +1509,12 @@ void EntityItem::serializeActionData() {
     QDataStream ds(&result, QIODevice::WriteOnly);
     ds << serializedActions;
 
+    if (result.size() >= _maxActionDataSize) {
+        return false;
+    }
+
     _actionData = result;
+    return true;
 }
 
 
