@@ -19,6 +19,8 @@ add_custom_target("test-extensions"
 list(APPEND ALL_TEST_TARGETS "test-extensions")
 set_target_properties("test-extensions" PROPERTIES FOLDER "Tests")
 
+message(STATUS "ALL_TEST_TARGETS = ${ALL_TEST_TARGETS}")
+
 # Create the all-tests build target.
 # The dependency list (ALL_TEST_TARGETS) is generated from setup_hifi_testcase invocations in the CMakeLists.txt
 # files in the test subdirs. Since variables normally do *not* persist into parent scope, we use a hack:
