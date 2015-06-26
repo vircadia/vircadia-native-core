@@ -178,6 +178,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     gpu::Batch& batch = *args->_batch;
     batch.setModelTransform(getTransformToCenter());
     if (_texture) {
+        batch._glActiveTexture(GL_TEXTURE0);
         batch._glBindTexture(GL_TEXTURE_2D, _texture);
         batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
