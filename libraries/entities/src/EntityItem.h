@@ -276,6 +276,10 @@ public:
 
     const QString& getScript() const { return _script; }
     void setScript(const QString& value) { _script = value; }
+
+    quint64 getScriptTimestamp() const { return _scriptTimestamp; }
+    void setScriptTimestamp(const quint64 value) { _scriptTimestamp = value; }
+
     const QString& getCollisionSoundURL() const { return _collisionSoundURL; }
     void setCollisionSoundURL(const QString& value) { _collisionSoundURL = value; }
 
@@ -412,6 +416,7 @@ protected:
     float _friction;
     float _lifetime;
     QString _script;
+    quint64 _scriptTimestamp;
     QString _collisionSoundURL;
     glm::vec3 _registrationPoint;
     glm::vec3 _angularVelocity;
