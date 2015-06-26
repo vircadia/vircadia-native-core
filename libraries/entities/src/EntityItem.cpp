@@ -1426,8 +1426,9 @@ bool EntityItem::clearActions(EntitySimulation* simulation) {
         action->setOwnerEntity(nullptr);
         action->removeFromSimulation(simulation);
     }
+    _actionData = QByteArray();
     _objectActionsLock.unlock();
-    return serializeActionData();
+    return true;
 }
 
 void EntityItem::setActionData(QByteArray actionData) {
@@ -1497,7 +1498,10 @@ bool EntityItem::serializeActionData() {
     _objectActionsLock.lockForRead();
     if (_objectActions.size() == 0) {
         _objectActionsLock.unlock();
+        _objectActionsLock.lockForWrite();
         _actionData = QByteArray();
+        _objectActionsLock.unlock();
+        return true;
     }
 
     QVector<QByteArray> serializedActions;
