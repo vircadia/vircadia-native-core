@@ -12,14 +12,11 @@
 #ifndef hifi_BillboardOverlay_h
 #define hifi_BillboardOverlay_h
 
-#include <QScopedPointer>
-#include <QUrl>
-
 #include <TextureCache.h>
 
-#include "Base3DOverlay.h"
+#include "Planar3DOverlay.h"
 
-class BillboardOverlay : public Base3DOverlay {
+class BillboardOverlay : public Planar3DOverlay {
     Q_OBJECT
 public:
     BillboardOverlay();
@@ -29,7 +26,6 @@ public:
 
     // setters
     void setURL(const QString& url);
-    void setScale(float scale) { _scale = scale; }
     void setIsFacingAvatar(bool isFacingAvatar) { _isFacingAvatar = isFacingAvatar; }
 
     virtual void setProperties(const QScriptValue& properties);
@@ -48,8 +44,7 @@ private:
     
     QRect _fromImage; // where from in the image to sample
 
-    float _scale;
-    bool _isFacingAvatar;
+    bool _isFacingAvatar = true;
 };
 
 #endif // hifi_BillboardOverlay_h

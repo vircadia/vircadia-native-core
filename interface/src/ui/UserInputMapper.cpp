@@ -8,8 +8,11 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "UserInputMapper.h"
 #include <algorithm>
+
+#include "Application.h"
+
+#include "UserInputMapper.h"
 
 
 // UserInputMapper Class
@@ -39,6 +42,22 @@ void UserInputMapper::resetAllDeviceBindings() {
     for (auto device : _registeredDevices) {
         device.second->resetDeviceBindings();
     }
+}
+
+void UserInputMapper::resetDevice(uint16 deviceID) {
+    auto device = _registeredDevices.find(deviceID);
+    if (device != _registeredDevices.end()) {
+        device->second->resetDeviceBindings();
+    }
+}
+
+int UserInputMapper::findDevice(QString name) {
+    for (auto device : _registeredDevices) {
+        if (device.second->_name.split(" (")[0] == name) {
+            return device.first;
+        }
+    }
+    return 0;
 }
 
 bool UserInputMapper::addInputChannel(Action action, const Input& input, float scale) {
@@ -191,6 +210,9 @@ void UserInputMapper::update(float deltaTime) {
     // Scale all the channel step with the scale
     for (auto i = 0; i < NUM_ACTIONS; i++) {
         _actionStates[i] *= _actionScales[i];
+        if (_actionStates[i] > 0) {
+            emit Application::getInstance()->getControllerScriptingInterface()->actionEvent(i, _actionStates[i]);
+        }
     }
 }
 
@@ -225,6 +247,9 @@ void UserInputMapper::assignDefaulActionScales() {
     _actionScales[PITCH_UP] = 1.0f; // 1 degree per unit
     _actionScales[BOOM_IN] = 1.0f; // 1m per unit
     _actionScales[BOOM_OUT] = 1.0f; // 1m per unit
+    _actionStates[SHIFT] = 1.0f; // on
+    _actionStates[ACTION1] = 1.0f; // default
+    _actionStates[ACTION2] = 1.0f; // default
 }
 
 // This is only necessary as long as the actions are hardcoded
@@ -242,4 +267,7 @@ void UserInputMapper::createActionNames() {
     _actionNames[PITCH_UP] = "PITCH_UP";
     _actionNames[BOOM_IN] = "BOOM_IN";
     _actionNames[BOOM_OUT] = "BOOM_OUT";
+    _actionNames[SHIFT] = "SHIFT";
+    _actionNames[ACTION1] = "ACTION1";
+    _actionNames[ACTION2] = "ACTION2";
 }

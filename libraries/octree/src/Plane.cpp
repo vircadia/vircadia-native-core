@@ -66,5 +66,6 @@ float Plane::distance(const glm::vec3 &point) const {
 
 void Plane::print() const {
     qCDebug(octree, "Plane - point (x=%f y=%f z=%f) normal (x=%f y=%f z=%f) d=%f",
-        _point.x, _point.y, _point.z, _normal.x, _normal.y, _normal.z, _dCoefficient);
+            (double)_point.x, (double)_point.y, (double)_point.z,
+            (double)_normal.x, (double)_normal.y, (double)_normal.z, (double)_dCoefficient);
 }

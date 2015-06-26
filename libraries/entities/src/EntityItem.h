@@ -317,7 +317,7 @@ public:
 
     const QString& getUserData() const { return _userData; }
     void setUserData(const QString& value) { _userData = value; }
-
+    
     QUuid getSimulatorID() const { return _simulatorID; }
     void setSimulatorID(const QUuid& value);
     void updateSimulatorID(const QUuid& value);

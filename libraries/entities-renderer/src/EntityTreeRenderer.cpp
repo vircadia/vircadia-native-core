@@ -27,10 +27,6 @@
 #include <SceneScriptingInterface.h>
 #include <ScriptEngine.h>
 #include <TextureCache.h>
-#include <SoundCache.h>
-#include <soxr.h>
-#include <AudioConstants.h>
-
 
 #include "EntityTreeRenderer.h"
 
@@ -47,8 +43,6 @@
 #include "RenderableLineEntityItem.h"
 #include "RenderablePolyVoxEntityItem.h"
 #include "EntitiesRendererLogging.h"
-
-#include "DependencyManager.h"
 #include "AddressManager.h"
 
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState, 
@@ -57,7 +51,6 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     _wantScripts(wantScripts),
     _entitiesScriptEngine(NULL),
     _sandboxScriptEngine(NULL),
-    _localAudioInterface(NULL),
     _lastMouseEventValid(false),
     _viewState(viewState),
     _scriptingServices(scriptingServices),
@@ -845,6 +838,14 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int device
     RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
     if (rayPickResult.intersects) {
         //qCDebug(entitiesrenderer) << "mousePressEvent over entity:" << rayPickResult.entityID;
+
+        QString urlString = rayPickResult.properties.getHref();
+        QUrl url = QUrl(urlString, QUrl::StrictMode);
+        if (url.isValid() && !url.isEmpty()){
+            DependencyManager::get<AddressManager>()->handleLookupString(urlString);
+
+        }
+
         emit mousePressOnEntity(rayPickResult, event, deviceID);
 
         QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
@@ -1058,7 +1059,6 @@ void EntityTreeRenderer::checkAndCallUnload(const EntityItemID& entityID) {
     }
 }
 
-
 void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityTree* entityTree, const EntityItemID& id, const Collision& collision) {
     EntityItemPointer entity = entityTree->findEntityByEntityItemID(id);
     if (!entity) {
@@ -1101,61 +1101,15 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
     if (energyFactorOfFull < COLLISION_MINIMUM_VOLUME) {
         return;
     }
-
-    auto soundCache = DependencyManager::get<SoundCache>();
-    if (soundCache.isNull()) {
-        return;
-    }
-    SharedSoundPointer sound = soundCache.data()->getSound(QUrl(collisionSoundURL));
-    if (sound.isNull() || !sound->isReady()) {
-        return;
-    }
-
-    // This is a hack. Quiet sound aren't really heard at all, so we compress everything to the range [1-c, 1], if we play it all.
+    // Quiet sound aren't really heard at all, so we can compress everything to the range [1-c, 1], if we play it all.
     const float COLLISION_SOUND_COMPRESSION_RANGE = 1.0f; // This section could be removed when the value is 1, but let's see how it goes.
-    float volume = energyFactorOfFull;
-    volume = (volume * COLLISION_SOUND_COMPRESSION_RANGE) + (1.0f - COLLISION_SOUND_COMPRESSION_RANGE);
-    
-    // This is quite similar to AudioScriptingInterface::playSound() and should probably be refactored.
-    AudioInjectorOptions options;
-    options.stereo = sound->isStereo();
-    options.position = position;
-    options.volume = volume;
+    const float volume = (energyFactorOfFull * COLLISION_SOUND_COMPRESSION_RANGE) + (1.0f - COLLISION_SOUND_COMPRESSION_RANGE);
+
 
     // Shift the pitch down by ln(1 + (size / COLLISION_SIZE_FOR_STANDARD_PITCH)) / ln(2)
     const float COLLISION_SIZE_FOR_STANDARD_PITCH = 0.2f;
-    QByteArray samples = sound->getByteArray();
-    soxr_io_spec_t spec = soxr_io_spec(SOXR_INT16_I, SOXR_INT16_I);
-    soxr_quality_spec_t qualitySpec = soxr_quality_spec(SOXR_MQ, 0);
-    const int channelCount = sound->isStereo() ? 2 : 1;
-    const float factor = log(1.0f + (entity->getMinimumAACube().getLargestDimension() / COLLISION_SIZE_FOR_STANDARD_PITCH)) / log(2);
-    const int standardRate = AudioConstants::SAMPLE_RATE;
-    const int resampledRate = standardRate * factor;
-    const int nInputSamples = samples.size() / sizeof(int16_t);
-    const int nOutputSamples = nInputSamples * factor;
-    QByteArray resampled(nOutputSamples * sizeof(int16_t), '\0');
-    const int16_t* receivedSamples = reinterpret_cast<const int16_t*>(samples.data());
-    soxr_error_t soxError = soxr_oneshot(standardRate, resampledRate, channelCount,
-                                         receivedSamples, nInputSamples, NULL,
-                                         reinterpret_cast<int16_t*>(resampled.data()), nOutputSamples, NULL,
-                                         &spec, &qualitySpec, 0);
-    if (soxError) {
-        qCDebug(entitiesrenderer) << "Unable to resample" << collisionSoundURL << "from" << nInputSamples << "@" << standardRate << "to" << nOutputSamples << "@" << resampledRate;
-        resampled = samples;
-    }
-
-    AudioInjector* injector = new AudioInjector(resampled, options);
-    injector->setLocalAudioInterface(_localAudioInterface);
-    injector->triggerDeleteAfterFinish();
-    QThread* injectorThread = new QThread();
-    injectorThread->setObjectName("Audio Injector Thread");
-    injector->moveToThread(injectorThread);
-    // start injecting when the injector thread starts
-    connect(injectorThread, &QThread::started, injector, &AudioInjector::injectAudio);
-    // connect the right slots and signals for AudioInjector and thread cleanup
-    connect(injector, &AudioInjector::destroyed, injectorThread, &QThread::quit);
-    connect(injectorThread, &QThread::finished, injectorThread, &QThread::deleteLater);
-    injectorThread->start();
+    const float stretchFactor = log(1.0f + (entity->getMinimumAACube().getLargestDimension() / COLLISION_SIZE_FOR_STANDARD_PITCH)) / log(2);
+    AudioInjector::playSound(collisionSoundURL, volume, stretchFactor, position);
 }
 
 void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB,

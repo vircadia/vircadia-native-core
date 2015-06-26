@@ -33,10 +33,19 @@
 #include <QtMultimedia/QAudioInput>
 #include <QtMultimedia/QAudioOutput>
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#endif
+
 extern "C" {
     #include <gverb/gverb.h>
     #include <gverb/gverbdsp.h>
 }
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 #include <soxr.h>
 
@@ -786,6 +795,11 @@ void AudioClient::handleAudioInput() {
 
             delete[] inputAudioSamples;
 
+            //  Remove DC offset 
+            if (!_isStereoInput && !_audioSourceInjectEnabled) {
+                _inputGate.removeDCOffset(networkAudioSamples, numNetworkSamples);
+            }
+            
             // only impose the noise gate and perform tone injection if we are sending mono audio
             if (!_isStereoInput && !_audioSourceInjectEnabled && _isNoiseGateEnabled) {
                 _inputGate.gateSamples(networkAudioSamples, numNetworkSamples);

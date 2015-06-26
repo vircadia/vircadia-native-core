@@ -21,6 +21,7 @@ public:
     Line3DOverlay(const Line3DOverlay* line3DOverlay);
     ~Line3DOverlay();
     virtual void render(RenderArgs* args);
+    virtual AABox getBounds() const;
 
     // getters
     const glm::vec3& getStart() const { return _start; }

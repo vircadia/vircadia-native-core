@@ -45,6 +45,10 @@ public:
     bool isLocalOnly() const { return _options.localOnly; }
     
     void setLocalAudioInterface(AbstractAudioInterface* localAudioInterface) { _localAudioInterface = localAudioInterface; }
+
+    static AudioInjector* playSound(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface);
+    static AudioInjector* playSound(const QString& soundUrl, const float volume, const float stretchFactor, const glm::vec3 position);
+
 public slots:
     void injectAudio();
     void restart();

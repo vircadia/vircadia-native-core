@@ -14,7 +14,7 @@
 
 #include <stdint.h>
 
-
+#include <QDebug>
 #include <QObject>
 #include <QHash>
 #include <QScriptEngine>

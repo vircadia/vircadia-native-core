@@ -49,7 +49,6 @@ selectionManager.addEventListener(function() {
     lightOverlayManager.updatePositions();
 });
 
-var windowDimensions = Controller.getViewportDimensions();
 var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
 var toolHeight = 50;
 var toolWidth = 50;
@@ -143,7 +142,12 @@ var toolBar = (function () {
         browseMarketplaceButton;
 
     function initialize() {
-        toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
+        toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.edit.toolbar", function (windowDimensions, toolbar) {
+            return {
+                x: windowDimensions.x - 8 - toolbar.width,
+                y: (windowDimensions.y - toolbar.height) / 2
+            };
+        });
 
         browseMarketplaceButton = toolBar.addTool({
             imageURL: toolIconUrl + "marketplace.svg",
@@ -320,38 +324,6 @@ var toolBar = (function () {
             print("Can't add model: Model would be out of bounds.");
         }
     }
-
-    const persistKey = "highfidelity.edit.toolbar.position";
-    that.move = function () {
-        var newViewPort,
-            toolsX,
-            toolsY;
-
-        newViewPort = Controller.getViewportDimensions();
-
-        if (toolBar === undefined) {
-            initialize();
-
-            toolBar.save = function () {
-                Settings.setValue(persistKey, JSON.stringify([toolBar.x, toolBar.y]));
-            };
-            var old = JSON.parse(Settings.getValue(persistKey) || '0');
-            if (old) {
-                windowDimensions = newViewPort;
-                toolBar.move(old[0], old[1]);
-                return;
-            }
-        } else if (windowDimensions.x === newViewPort.x &&
-                   windowDimensions.y === newViewPort.y) {
-            return;
-        }
-
-        windowDimensions = newViewPort;
-        toolsX = windowDimensions.x - 8 - toolBar.width;
-        toolsY = (windowDimensions.y - toolBar.height) / 2;
-
-        toolBar.move(toolsX, toolsY);
-    };
 
     var newModelButtonDown = false;
     var browseMarketplaceButtonDown = false;
@@ -552,6 +524,7 @@ var toolBar = (function () {
         toolBar.cleanup();
     };
 
+    initialize();
     return that;
 }());
 
@@ -931,7 +904,6 @@ var lastPosition = null;
 
 // Do some stuff regularly, like check for placement of various overlays
 Script.update.connect(function (deltaTime) {
-    toolBar.move();
     progressDialog.move();
     selectionDisplay.checkMove();
     var dOrientation = Math.abs(Quat.dot(Camera.orientation, lastOrientation) - 1);

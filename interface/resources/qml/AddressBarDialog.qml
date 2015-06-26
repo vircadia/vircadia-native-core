@@ -30,6 +30,7 @@ DialogContainer {
     property int maximumX: parent ? parent.width - width : 0
     property int maximumY: parent ? parent.height - height : 0
 
+
     AddressBarDialog {
         id: addressBarDialog
 
@@ -45,11 +46,40 @@ DialogContainer {
             property int inputAreaHeight: 56.0 * root.scale  // Height of the background's input area
             property int inputAreaStep: (height - inputAreaHeight) / 2
 
+            MouseArea {
+                // Drag the icon
+                width: parent.height
+                height: parent.height
+                x: 0
+                y: 0
+                drag {
+                    target: root
+                    minimumX: -parent.inputAreaStep
+                    minimumY: -parent.inputAreaStep
+                    maximumX: root.parent ? root.maximumX : 0
+                    maximumY: root.parent ? root.maximumY + parent.inputAreaStep : 0
+                }
+            }
+
+            MouseArea {
+                // Drag the input rectangle
+                width: parent.width - parent.height
+                height: parent.inputAreaHeight
+                x: parent.height
+                y: parent.inputAreaStep
+                drag {
+                    target: root
+                    minimumX: -parent.inputAreaStep
+                    minimumY: -parent.inputAreaStep
+                    maximumX: root.parent ? root.maximumX : 0
+                    maximumY: root.parent ? root.maximumY + parent.inputAreaStep : 0
+                }
+            }
+
             Image {
                 id: backArrow
 
-                source: "../images/left-arrow.svg"
-                scale: 0.9
+                source: addressBarDialog.backEnabled ? "../images/left-arrow.svg" : "../images/left-arrow-disabled.svg"
                 
                 anchors {
                     fill: parent
@@ -71,7 +101,7 @@ DialogContainer {
             Image {
                 id: forwardArrow
 
-                source: "../images/darkgreyarrow.svg"
+                source: addressBarDialog.forwardEnabled ? "../images/right-arrow.svg" : "../images/right-arrow-disabled.svg"
                 
                 anchors {
                     fill: parent
@@ -111,37 +141,7 @@ DialogContainer {
                     addressBarDialog.loadAddress(addressLine.text)
                 }
             }
- 
-            MouseArea {
-                // Drag the icon
-                width: parent.height
-                height: parent.height
-                x: 0
-                y: 0
-                drag {
-                    target: root
-                    minimumX: -parent.inputAreaStep
-                    minimumY: -parent.inputAreaStep
-                    maximumX: root.parent ? root.maximumX : 0
-                    maximumY: root.parent ? root.maximumY + parent.inputAreaStep : 0
-                }
-            }
 
-            /*
-            MouseArea {
-                // Drag the input rectangle
-                width: parent.width - parent.height
-                height: parent.inputAreaHeight
-                x: parent.height
-                y: parent.inputAreaStep
-                drag {
-                    target: root
-                    minimumX: -parent.inputAreaStep
-                    minimumY: -parent.inputAreaStep
-                    maximumX: root.parent ? root.maximumX : 0
-                    maximumY: root.parent ? root.maximumY + parent.inputAreaStep : 0
-                }
-            }*/
         }
     }
 

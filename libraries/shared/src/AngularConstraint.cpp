@@ -120,7 +120,7 @@ bool HingeConstraint::clamp(glm::quat& rotation) const {
     forward /= length;
     float sign = (glm::dot(glm::cross(_forwardAxis, forward), _rotationAxis) > 0.0f ? 1.0f : -1.0f);
     //float angle = sign * acos(glm::dot(forward, _forwardAxis) / length);
-    float angle = sign * acos(glm::dot(forward, _forwardAxis));
+    float angle = sign * acosf(glm::dot(forward, _forwardAxis));
     glm::quat newRotation = glm::angleAxis(clampAngle(angle, _minAngle, _maxAngle), _rotationAxis);
     if (fabsf(1.0f - glm::dot(newRotation, rotation)) > EPSILON * EPSILON) {
         rotation = newRotation;

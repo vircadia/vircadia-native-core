@@ -392,7 +392,8 @@ SelectionDisplay = (function () {
 
     var grabberSpotLightCircle = Overlays.addOverlay("circle3d", {
         color: lightOverlayColor,
-        isSolid: false
+        isSolid: false,
+        visible: false
     });
     var grabberSpotLightLineT = Overlays.addOverlay("line3d", spotLightLineProperties);
     var grabberSpotLightLineB = Overlays.addOverlay("line3d", spotLightLineProperties);
@@ -409,17 +410,20 @@ SelectionDisplay = (function () {
     var grabberPointLightCircleX = Overlays.addOverlay("circle3d", {
         rotation: Quat.fromPitchYawRollDegrees(0, 90, 0),
         color: lightOverlayColor,
-        isSolid: false
+        isSolid: false,
+        visible: false
     });
     var grabberPointLightCircleY = Overlays.addOverlay("circle3d", {
         rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
         color: lightOverlayColor,
-        isSolid: false
+        isSolid: false,
+        visible: false
     });
     var grabberPointLightCircleZ = Overlays.addOverlay("circle3d", {
         rotation: Quat.fromPitchYawRollDegrees(0, 0, 0),
         color: lightOverlayColor,
-        isSolid: false
+        isSolid: false,
+        visible: false
     });
     var grabberPointLightT = Overlays.addOverlay("cube", grabberPropertiesEdge);
     var grabberPointLightB = Overlays.addOverlay("cube", grabberPropertiesEdge);
@@ -546,7 +550,7 @@ SelectionDisplay = (function () {
 
     var rotateOverlayTarget = Overlays.addOverlay("circle3d", {
                     position: { x:0, y: 0, z: 0},
-                    size: rotateOverlayTargetSize * 2,
+                    size: rotateOverlayTargetSize,
                     color: { red: 0, green: 0, blue: 0 },
                     alpha: 0.0,
                     solid: true,
@@ -1186,7 +1190,7 @@ SelectionDisplay = (function () {
                 });
                 Overlays.editOverlay(grabberSpotLightCircle, {
                     position: NEAR,
-                    dimensions: { x: distance * 2, y: distance * 2, z: 1 },
+                    dimensions: { x: distance, y: distance, z: 1 },
                     lineWidth: 1.5,
                     rotation: rotation,
                     visible: true,
@@ -1258,19 +1262,19 @@ SelectionDisplay = (function () {
                 Overlays.editOverlay(grabberPointLightCircleX, {
                     position: position,
                     rotation: Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(0, 90, 0)),
-                    dimensions: { x: properties.dimensions.z, y: properties.dimensions.z, z: 1 },
+                    dimensions: { x: properties.dimensions.z / 2.0, y: properties.dimensions.z / 2.0, z: 1 },
                     visible: true,
                 });
                 Overlays.editOverlay(grabberPointLightCircleY, {
                     position: position,
                     rotation: Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(90, 0, 0)),
-                    dimensions: { x: properties.dimensions.z, y: properties.dimensions.z, z: 1 },
+                    dimensions: { x: properties.dimensions.z / 2.0, y: properties.dimensions.z / 2.0, z: 1 },
                     visible: true,
                 });
                 Overlays.editOverlay(grabberPointLightCircleZ, {
                     position: position,
                     rotation: rotation,
-                    dimensions: { x: properties.dimensions.z, y: properties.dimensions.z, z: 1 },
+                    dimensions: { x: properties.dimensions.z / 2.0, y: properties.dimensions.z / 2.0, z: 1 },
                     visible: true,
                 });
 
@@ -1966,7 +1970,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayInner, 
                 { 
                     visible: true,
-                    size: innerRadius * 2,
+                    size: innerRadius,
                     innerRadius: 0.9,
                     startAt: 0,
                     endAt: 360,
@@ -1976,7 +1980,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayOuter, 
                 { 
                     visible: true,
-                    size: outerRadius * 2,
+                    size: outerRadius,
                     innerRadius: 0.9,
                     startAt: 0,
                     endAt: 360,
@@ -1986,7 +1990,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayCurrent, 
                 { 
                     visible: true,
-                    size: outerRadius * 2,
+                    size: outerRadius,
                     startAt: 0,
                     endAt: 0,
                     innerRadius: 0.9,
@@ -2064,13 +2068,13 @@ SelectionDisplay = (function () {
                 if (snapToInner) {
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayInner, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius * 2,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius,
                                                                     majorTickMarksAngle: innerSnapAngle, minorTickMarksAngle: 0,
                                                                     majorTickMarksLength: -0.25, minorTickMarksLength: 0, });
                 } else {
                     Overlays.editOverlay(rotateOverlayInner, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius * 2,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius,
                                                                     majorTickMarksAngle: 45.0, minorTickMarksAngle: 5,
                                                                     majorTickMarksLength: 0.25, minorTickMarksLength: 0.1, });
                 }
@@ -2095,7 +2099,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayInner, 
                 { 
                     visible: true,
-                    size: innerRadius * 2,
+                    size: innerRadius,
                     innerRadius: 0.9,
                     startAt: 0,
                     endAt: 360,
@@ -2105,7 +2109,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayOuter, 
                 { 
                     visible: true,
-                    size: outerRadius * 2,
+                    size: outerRadius,
                     innerRadius: 0.9,
                     startAt: 0,
                     endAt: 360,
@@ -2115,7 +2119,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayCurrent, 
                 { 
                     visible: true,
-                    size: outerRadius * 2,
+                    size: outerRadius,
                     startAt: 0,
                     endAt: 0,
                     innerRadius: 0.9,
@@ -2186,13 +2190,13 @@ SelectionDisplay = (function () {
                 if (snapToInner) {
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayInner, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius * 2,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius,
                                                                     majorTickMarksAngle: innerSnapAngle, minorTickMarksAngle: 0,
                                                                     majorTickMarksLength: -0.25, minorTickMarksLength: 0, });
                 } else {
                     Overlays.editOverlay(rotateOverlayInner, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius * 2,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius,
                                                                     majorTickMarksAngle: 45.0, minorTickMarksAngle: 5,
                                                                     majorTickMarksLength: 0.25, minorTickMarksLength: 0.1, });
                 }
@@ -2216,7 +2220,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayInner, 
                 { 
                     visible: true,
-                    size: innerRadius * 2,
+                    size: innerRadius,
                     innerRadius: 0.9,
                     startAt: 0,
                     endAt: 360,
@@ -2226,7 +2230,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayOuter, 
                 { 
                     visible: true,
-                    size: outerRadius * 2,
+                    size: outerRadius,
                     innerRadius: 0.9,
                     startAt: 0,
                     endAt: 360,
@@ -2236,7 +2240,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayCurrent, 
                 { 
                     visible: true,
-                    size: outerRadius * 2,
+                    size: outerRadius,
                     startAt: 0,
                     endAt: 0,
                     innerRadius: 0.9,
@@ -2306,13 +2310,13 @@ SelectionDisplay = (function () {
                 if (snapToInner) {
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayInner, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius * 2,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius,
                                                                     majorTickMarksAngle: innerSnapAngle, minorTickMarksAngle: 0,
                                                                     majorTickMarksLength: -0.25, minorTickMarksLength: 0, });
                 } else {
                     Overlays.editOverlay(rotateOverlayInner, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius * 2,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius,
                                                                     majorTickMarksAngle: 45.0, minorTickMarksAngle: 5,
                                                                     majorTickMarksLength: 0.25, minorTickMarksLength: 0.1, });
                 }

@@ -28,6 +28,7 @@ ControllerScriptingInterface::ControllerScriptingInterface() :
 {
 
 }
+
 static int actionMetaTypeId = qRegisterMetaType<UserInputMapper::Action>();
 static int inputChannelMetaTypeId = qRegisterMetaType<UserInputMapper::InputChannel>();
 static int inputMetaTypeId = qRegisterMetaType<UserInputMapper::Input>();
@@ -455,6 +456,14 @@ QVector<UserInputMapper::InputPair> ControllerScriptingInterface::getAvailableIn
 
 void ControllerScriptingInterface::resetAllDeviceBindings() {
     Application::getUserInputMapper()->resetAllDeviceBindings();
+}
+
+void ControllerScriptingInterface::resetDevice(unsigned int device) {
+    Application::getUserInputMapper()->resetDevice(device);
+}
+
+int ControllerScriptingInterface::findDevice(QString name) {
+    return Application::getUserInputMapper()->findDevice(name);
 }
 
 InputController::InputController(int deviceTrackerId, int subTrackerId, QObject* parent) :

@@ -77,7 +77,7 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     const float AUDIO_LONG_TERM_AVERAGING_SECS = 30.0f;
     _averageLoudness = glm::mix(_averageLoudness, _audioLoudness, glm::min(deltaTime / AUDIO_AVERAGING_SECS, 1.0f));
 
-    if (_longTermAverageLoudness == -1.0) {
+    if (_longTermAverageLoudness == -1.0f) {
         _longTermAverageLoudness = _averageLoudness;
     } else {
         _longTermAverageLoudness = glm::mix(_longTermAverageLoudness, _averageLoudness, glm::min(deltaTime / AUDIO_LONG_TERM_AVERAGING_SECS, 1.0f));
@@ -124,18 +124,18 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
    
     if (!(_isFaceTrackerConnected || billboard)) {
         // Update eye saccades
-        const float AVERAGE_MICROSACCADE_INTERVAL = 0.50f;
-        const float AVERAGE_SACCADE_INTERVAL = 4.0f;
+        const float AVERAGE_MICROSACCADE_INTERVAL = 1.0f;
+        const float AVERAGE_SACCADE_INTERVAL = 6.0f;
         const float MICROSACCADE_MAGNITUDE = 0.002f;
         const float SACCADE_MAGNITUDE = 0.04f;
-        
+
         if (randFloat() < deltaTime / AVERAGE_MICROSACCADE_INTERVAL) {
             _saccadeTarget = MICROSACCADE_MAGNITUDE * randVector();
         } else if (randFloat() < deltaTime / AVERAGE_SACCADE_INTERVAL) {
             _saccadeTarget = SACCADE_MAGNITUDE * randVector();
         }
-        _saccade += (_saccadeTarget - _saccade) * 0.50f;
-        
+        _saccade += (_saccadeTarget - _saccade) * 0.5f;
+
         //  Detect transition from talking to not; force blink after that and a delay
         bool forceBlink = false;
         const float TALKING_LOUDNESS = 100.0f;
