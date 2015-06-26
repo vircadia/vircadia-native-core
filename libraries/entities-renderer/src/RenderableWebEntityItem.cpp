@@ -180,12 +180,10 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     if (_texture) {
         batch._glActiveTexture(GL_TEXTURE0);
         batch._glBindTexture(GL_TEXTURE_2D, _texture);
-        batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     }
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true, false);
+    static const bool textured = true, culled = false, emmissive = true;
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, textured, culled, emmissive);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f));
-    DependencyManager::get<DeferredLightingEffect>()->releaseSimpleProgram(batch);
 }
 
 void RenderableWebEntityItem::setSourceUrl(const QString& value) {
