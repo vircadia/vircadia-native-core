@@ -172,10 +172,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     Glower glow(0.0f);
     PerformanceTimer perfTimer("RenderableWebEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Web);
-    static const glm::vec2 texMin(0.0f);
-    static const glm::vec2 texMax(1.0f);
-    glm::vec2 topLeft(-0.5f, -0.5f);
-    glm::vec2 bottomRight(0.5f, 0.5f);
+    static const glm::vec2 texMin(0.0f), texMax(1.0f), topLeft(-0.5f), bottomRight(0.5f);
 
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
