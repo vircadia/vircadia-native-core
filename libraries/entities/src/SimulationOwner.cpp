@@ -173,7 +173,7 @@ SimulationOwner& SimulationOwner::operator=(const SimulationOwner& other) {
 }
 
 QDebug& operator<<(QDebug& d, const SimulationOwner& simOwner) {
-    d << "{ id : " << simOwner << ", priority : " << (int)simOwner._priority << " }";
+    d << "{ id : " << simOwner._id << ", priority : " << (int)simOwner._priority << " }";
     return d;
 }
 
