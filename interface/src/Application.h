@@ -444,6 +444,8 @@ public slots:
     void notifyPacketVersionMismatch();
 
     void domainConnectionDenied(const QString& reason);
+    
+    void cameraMenuChanged();
 
 private slots:
     void clearDomainOctreeDetails();
@@ -460,7 +462,7 @@ private slots:
     void setFullscreen(bool fullscreen);
     void setEnable3DTVMode(bool enable3DTVMode);
     void setEnableVRMode(bool enableVRMode);
-    void cameraMenuChanged();
+    
     void rotationModeChanged();
 
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);

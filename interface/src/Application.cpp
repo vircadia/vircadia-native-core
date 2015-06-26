@@ -891,8 +891,11 @@ void Application::paintGL() {
 
     glEnable(GL_LINE_SMOOTH);
     
-    Menu::getInstance()->setIsOptionChecked("First Person", _myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
-    Application::getInstance()->cameraMenuChanged();
+    if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+        Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, _myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
+        Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !(_myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN));
+        Application::getInstance()->cameraMenuChanged();
+    }
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         // Always use the default eye position, not the actual head eye position.
@@ -1384,11 +1387,17 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::Mirror);
                 } else {
-                    Menu::getInstance()->triggerOption(MenuOption::FullscreenMirror);
+                    Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror));
+                    if (!Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
+                        Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
+                    }
+                    cameraMenuChanged();
                 }
                 break;
             case Qt::Key_P:
-                 Menu::getInstance()->triggerOption(MenuOption::FirstPerson);
+                 Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, !Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson));
+                 Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson));
+                 cameraMenuChanged();
                  break;
             case Qt::Key_Slash:
                 Menu::getInstance()->triggerOption(MenuOption::Stats);
@@ -2351,12 +2360,16 @@ void Application::cameraMenuChanged() {
             _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
             _myAvatar->setBoomLength(MyAvatar::ZOOM_MIN);
         }
-    } else {
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::ThirdPerson)) {
         if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
             _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
             if (_myAvatar->getBoomLength() == MyAvatar::ZOOM_MIN) {
                 _myAvatar->setBoomLength(MyAvatar::ZOOM_DEFAULT);
             }
+        }
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::IndependentMode)) {
+        if (_myCamera.getMode() != CAMERA_MODE_INDEPENDENT) {
+            _myCamera.setMode(CAMERA_MODE_INDEPENDENT);
         }
     }
 }
@@ -2451,20 +2464,22 @@ void Application::update(float deltaTime) {
 
     // Transfer the user inputs to the driveKeys
     _myAvatar->clearDriveKeys();
-    if (!_controllerScriptingInterface.areActionsCaptured()) {
-        _myAvatar->setDriveKeys(FWD, _userInputMapper.getActionState(UserInputMapper::LONGITUDINAL_FORWARD));
-        _myAvatar->setDriveKeys(BACK, _userInputMapper.getActionState(UserInputMapper::LONGITUDINAL_BACKWARD));
-        _myAvatar->setDriveKeys(UP, _userInputMapper.getActionState(UserInputMapper::VERTICAL_UP));
-        _myAvatar->setDriveKeys(DOWN, _userInputMapper.getActionState(UserInputMapper::VERTICAL_DOWN));
-        _myAvatar->setDriveKeys(LEFT, _userInputMapper.getActionState(UserInputMapper::LATERAL_LEFT));
-        _myAvatar->setDriveKeys(RIGHT, _userInputMapper.getActionState(UserInputMapper::LATERAL_RIGHT));
-        _myAvatar->setDriveKeys(ROT_UP, _userInputMapper.getActionState(UserInputMapper::PITCH_UP));
-        _myAvatar->setDriveKeys(ROT_DOWN, _userInputMapper.getActionState(UserInputMapper::PITCH_DOWN));
-        _myAvatar->setDriveKeys(ROT_LEFT, _userInputMapper.getActionState(UserInputMapper::YAW_LEFT));
-        _myAvatar->setDriveKeys(ROT_RIGHT, _userInputMapper.getActionState(UserInputMapper::YAW_RIGHT));
+    if (_myCamera.getMode() != CAMERA_MODE_INDEPENDENT) {
+        if (!_controllerScriptingInterface.areActionsCaptured()) {
+            _myAvatar->setDriveKeys(FWD, _userInputMapper.getActionState(UserInputMapper::LONGITUDINAL_FORWARD));
+            _myAvatar->setDriveKeys(BACK, _userInputMapper.getActionState(UserInputMapper::LONGITUDINAL_BACKWARD));
+            _myAvatar->setDriveKeys(UP, _userInputMapper.getActionState(UserInputMapper::VERTICAL_UP));
+            _myAvatar->setDriveKeys(DOWN, _userInputMapper.getActionState(UserInputMapper::VERTICAL_DOWN));
+            _myAvatar->setDriveKeys(LEFT, _userInputMapper.getActionState(UserInputMapper::LATERAL_LEFT));
+            _myAvatar->setDriveKeys(RIGHT, _userInputMapper.getActionState(UserInputMapper::LATERAL_RIGHT));
+            _myAvatar->setDriveKeys(ROT_UP, _userInputMapper.getActionState(UserInputMapper::PITCH_UP));
+            _myAvatar->setDriveKeys(ROT_DOWN, _userInputMapper.getActionState(UserInputMapper::PITCH_DOWN));
+            _myAvatar->setDriveKeys(ROT_LEFT, _userInputMapper.getActionState(UserInputMapper::YAW_LEFT));
+            _myAvatar->setDriveKeys(ROT_RIGHT, _userInputMapper.getActionState(UserInputMapper::YAW_RIGHT));
+        }
+        _myAvatar->setDriveKeys(BOOM_IN, _userInputMapper.getActionState(UserInputMapper::BOOM_IN));
+        _myAvatar->setDriveKeys(BOOM_OUT, _userInputMapper.getActionState(UserInputMapper::BOOM_OUT));
     }
-    _myAvatar->setDriveKeys(BOOM_IN, _userInputMapper.getActionState(UserInputMapper::BOOM_IN));
-    _myAvatar->setDriveKeys(BOOM_OUT, _userInputMapper.getActionState(UserInputMapper::BOOM_OUT));
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
 

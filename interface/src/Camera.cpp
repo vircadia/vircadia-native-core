@@ -87,23 +87,25 @@ PickRay Camera::computePickRay(float x, float y) {
 
 void Camera::setModeString(const QString& mode) {
     CameraMode targetMode = stringToMode(mode);
-    
+        
     switch (targetMode) {
+        case CAMERA_MODE_FIRST_PERSON:
+            Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, true);
+            break;
         case CAMERA_MODE_THIRD_PERSON:
-            Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, false);
-            Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
+            Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
             break;
         case CAMERA_MODE_MIRROR:
             Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, true);
-            Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
             break;
         case CAMERA_MODE_INDEPENDENT:
-            Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, false);
-            Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
+            Menu::getInstance()->setIsOptionChecked(MenuOption::IndependentMode, true);
             break;
         default:
             break;
     }
+    
+    qApp->cameraMenuChanged();
     
     if (_mode != targetMode) {
         setMode(targetMode);
