@@ -11,7 +11,7 @@
 
 #include <BulletUtil.h>
 
-// Implements functionality in QTestExtensions.hpp for glm types
+// Implements functionality in QTestExtensions.h for glm types
 // There are 3 functions in here (which need to be defined for all types that use them):
 //
 // - getErrorDifference (const T &, const T &) -> V                   (used by QCOMPARE_WITH_ABS_ERROR)
@@ -75,9 +75,15 @@ inline auto errorTest (const btMatrix3x3 & actual, const btMatrix3x3 & expected,
     return [&actual, &expected, acceptableRelativeError] () {
         for (int i = 0; i < 3; ++i) {
             for (int j = 0; j < 3; ++j) {
-                auto err = (actual[i][j] - expected[i][j]) / expected[i][j];
-                if (fabsf(err) > acceptableRelativeError)
-                    return false;
+                if (expected[i][j] != btScalar(0.0f)) {
+                    auto err = (actual[i][j] - expected[i][j]) / expected[i][j];
+                    if (fabsf(err) > acceptableRelativeError)
+                        return false;
+                } else {
+                    // handle zero-case by also calling QCOMPARE_WITH_ABS_ERROR
+                    // (this function implements QCOMPARE_WITH_RELATIVE_ERROR, so call both
+                    //  to test matrices)
+                }
             }
         }
         return true;

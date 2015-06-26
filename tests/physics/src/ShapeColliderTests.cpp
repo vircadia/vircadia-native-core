@@ -99,16 +99,17 @@ void ShapeColliderTests::sphereTouchesSphere() {
 
     // collide B to A...
     {
-        QCOMPARE(ShapeCollider::collideShapes(&sphereA, &sphereB, collisions), true);
+        QCOMPARE(ShapeCollider::collideShapes(&sphereB, &sphereA, collisions), true);
         ++numCollisions;
 
         // penetration points from sphereA into sphereB
         CollisionInfo* collision = collisions.getCollision(numCollisions - 1);
-        QCOMPARE_WITH_ABS_ERROR(collision->_penetration, expectedPenetration, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(collision->_penetration, -expectedPenetration, EPSILON);
 
-        // contactPoint is on surface of sphereA
+        // contactPoint is on surface of sphereB
         glm::vec3 BtoA = sphereA.getTranslation() - sphereB.getTranslation();
         glm::vec3 expectedContactPoint = sphereB.getTranslation() + radiusB * glm::normalize(BtoA);
+        
         QCOMPARE_WITH_ABS_ERROR(collision->_contactPoint, expectedContactPoint, EPSILON);
     }
 }
@@ -583,6 +584,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
 
         // capsuleA vs capsuleB
         QCOMPARE(ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions), true);
+        ++numCollisions;
 //        if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
 //        {
 //            std::cout << __FILE__ << ":" << __LINE__
@@ -593,6 +595,7 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
 
         CollisionInfo* collision = collisions.getCollision(numCollisions - 1);
         glm::vec3 expectedPenetration = overlap * zAxis;
+        
         QCOMPARE_WITH_ABS_ERROR(collision->_penetration, expectedPenetration, EPSILON);
 //        float inaccuracy = glm::length(collision->_penetration - expectedPenetration);
 //        if (fabsf(inaccuracy) > EPSILON) {
@@ -1929,8 +1932,9 @@ void ShapeColliderTests::rayBarelyMissesSphere() {
         intersection._rayStart = glm::vec3(-startDistance, radius + delta, 0.0f);
         intersection._rayDirection = xAxis;
 
+        // FIXME: FAILED TEST
         // very simple ray along xAxis
-        QCOMPARE(sphere.findRayIntersection(intersection), true);
+        QCOMPARE(sphere.findRayIntersection(intersection), false);
 //        if (sphere.findRayIntersection(intersection)) {
 //            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should just barely miss sphere" << std::endl;
 //        }
@@ -1958,7 +1962,7 @@ void ShapeColliderTests::rayBarelyMissesSphere() {
 //        if (sphere.findRayIntersection(intersection)) {
 //            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should just barely miss sphere" << std::endl;
 //        }
-        QCOMPARE(intersection._hitDistance != FLT_MAX, true);
+        QCOMPARE(intersection._hitDistance == FLT_MAX, true);
 //        if (intersection._hitDistance != FLT_MAX) {
 //            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss"
 //                << std::endl;

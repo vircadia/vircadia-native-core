@@ -18,7 +18,7 @@
 // Add additional qtest functionality (the include order is important!)
 #include "BulletTestUtils.h"
 #include "GlmTestUtils.h"
-#include "../QTestExtensions.hpp"
+#include "../QTestExtensions.h"
 
 // Relative error macro (see errorTest in BulletTestUtils.h)
 #define QCOMPARE_WITH_RELATIVE_ERROR(actual, expected, relativeError) \

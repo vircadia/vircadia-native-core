@@ -16,7 +16,7 @@
 
 //// Add additional qtest functionality (the include order is important!)
 //#include "BulletTestUtils.h"
-//#include "../QTestExtensions.hpp"
+//#include "../QTestExtensions.h"
 
 // Enable this to manually run testHashCollisions
 // (NOT a regular unit test; takes ~17 secs to run on an i7)

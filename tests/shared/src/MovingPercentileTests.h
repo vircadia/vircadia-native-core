@@ -13,7 +13,7 @@
 #define hifi_MovingPercentileTests_h
 
 #include <QtTest/QtTest>
-#include <../QTestExtensions.hpp>
+#include <../QTestExtensions.h>
 
 class MovingPercentileTests : public QObject {
     Q_OBJECT

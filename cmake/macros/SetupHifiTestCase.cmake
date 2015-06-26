@@ -90,6 +90,9 @@ macro(SETUP_HIFI_TESTCASE)
 			
 				add_executable(${TARGET_NAME} ${TEST_FILE})
 				add_test(${TARGET_NAME}-test  ${TARGET_NAME})
+				set_target_properties(${TARGET_NAME} PROPERTIES 
+					EXCLUDE_FROM_DEFAULT_BUILD TRUE
+					EXCLUDE_FROM_ALL TRUE)
 
 				list (APPEND ${TEST_PROJ_NAME}_TARGETS ${TARGET_NAME})
 				#list (APPEND ALL_TEST_TARGETS ${TARGET_NAME})
@@ -117,10 +120,14 @@ macro(SETUP_HIFI_TESTCASE)
 			# Add a dummy target so that the project files are visible.
 			# This target will also build + run the other test targets using ctest when built.
 
-			add_custom_target(${TEST_TARGET} ALL
+			add_custom_target(${TEST_TARGET}
 				COMMAND ctest .
 				SOURCES ${TEST_PROJ_SRC_FILES} 		# display source files under the testcase target
 				DEPENDS ${${TEST_PROJ_NAME}_TARGETS})
+			set_target_properties(${TEST_TARGET} PROPERTIES
+				EXCLUDE_FROM_DEFAULT_BUILD TRUE
+				EXCLUDE_FROM_ALL TRUE)
+
 			set_target_properties(${TEST_TARGET} PROPERTIES FOLDER "Tests")
 
 			list (APPEND ALL_TEST_TARGETS ${TEST_TARGET})

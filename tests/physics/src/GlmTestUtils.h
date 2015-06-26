@@ -12,7 +12,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-// Implements functionality in QTestExtensions.hpp for glm types
+// Implements functionality in QTestExtensions.h for glm types
 
 inline float getErrorDifference(const glm::vec3 & a, const glm::vec3 & b) {
     return glm::distance(a, b);

@@ -18,8 +18,11 @@ class OctreeTests : public QObject {
     Q_OBJECT
     
 private slots:
+    // FIXME: These two tests are broken and need to be fixed / updated
     void propertyFlagsTests();
     void byteCountCodingTests();
+    
+    // This test is fine
     void modelItemTests();
 
     // TODO: Break these into separate test functions

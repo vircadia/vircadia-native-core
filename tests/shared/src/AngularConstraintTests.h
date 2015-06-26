@@ -25,6 +25,6 @@ private slots:
 #include <glm/glm.hpp>
 float getErrorDifference (const glm::quat & a, const glm::quat & b);
 QTextStream & operator << (QTextStream & stream, const glm::quat & q);
-#include "../QTestExtensions.hpp"
+#include "../QTestExtensions.h"
 
 #endif // hifi_AngularConstraintTests_h

@@ -259,12 +259,12 @@ void MeshMassPropertiesTests::testOpenTetrahedonMesh() {
 //        }
 //    }
 
-#ifdef VERBOSE_UNIT_TESTS
-    std::cout << "expected volume = " << expectedVolume << std::endl;
-    std::cout << "measured volume = " << mesh._volume << std::endl;
-    printMatrix("expected inertia", expectedInertia);
-    printMatrix("computed inertia", mesh._inertia);
-#endif // VERBOSE_UNIT_TESTS
+//#ifdef VERBOSE_UNIT_TESTS
+//    std::cout << "expected volume = " << expectedVolume << std::endl;
+//    std::cout << "measured volume = " << mesh._volume << std::endl;
+//    printMatrix("expected inertia", expectedInertia);
+//    printMatrix("computed inertia", mesh._inertia);
+//#endif // VERBOSE_UNIT_TESTS
 }
 
 void MeshMassPropertiesTests::testClosedTetrahedronMesh() {
@@ -304,9 +304,9 @@ void MeshMassPropertiesTests::testClosedTetrahedronMesh() {
 
     // compute mass properties
     MeshMassProperties mesh(points, triangles);
-
+    
     // verify
-    QCOMPARE_WITH_ABS_ERROR(mesh._volume, expectedVolume, acceptableRelativeError);
+    QCOMPARE_WITH_ABS_ERROR(mesh._volume, expectedVolume, acceptableRelativeError * expectedVolume);
 //    btScalar error;
 //    error = (mesh._volume - expectedVolume) / expectedVolume;
 //    if (fabsf(error) > acceptableRelativeError) {
@@ -388,11 +388,7 @@ void MeshMassPropertiesTests::testClosedTetrahedronMesh() {
 
 void MeshMassPropertiesTests::testBoxAsMesh() {
     // verify that a mesh box produces the same mass properties as the analytic box.
-//#ifdef VERBOSE_UNIT_TESTS
-//    std::cout << "\n" << __FUNCTION__ << std::endl;
-//#endif // VERBOSE_UNIT_TESTS
-
-
+    
     // build a box:
     //                            /
     //                           y
@@ -467,16 +463,17 @@ void MeshMassPropertiesTests::testBoxAsMesh() {
     // do this twice to avoid divide-by-zero?
     QCOMPARE_WITH_ABS_ERROR(mesh._inertia, expectedInertia, acceptableAbsoluteError);
     QCOMPARE_WITH_RELATIVE_ERROR(mesh._inertia, expectedInertia, acceptableRelativeError);
+//    float error;
 //    for (int i = 0; i < 3; ++i) {
 //        for (int j = 0; j < 3; ++j) {
 //            if (expectedInertia [i][j] == btScalar(0.0f)) {
-//                error = mesh._inertia[i][j] - expectedInertia[i][j];
+//                error = mesh._inertia[i][j] - expectedInertia[i][j];                                  // COMPARE_WITH_ABS_ERROR
 //                if (fabsf(error) > acceptableAbsoluteError) {
 //                    std::cout << __FILE__ << ":" << __LINE__ << " ERROR : inertia[" << i << "][" << j << "] off by "
 //                        << error << " absolute"<< std::endl;
 //                }
 //            } else {
-//                error = (mesh._inertia[i][j] - expectedInertia[i][j]) / expectedInertia[i][j];
+//                error = (mesh._inertia[i][j] - expectedInertia[i][j]) / expectedInertia[i][j];        // COMPARE_WITH_RELATIVE_ERROR
 //                if (fabsf(error) > acceptableRelativeError) {
 //                    std::cout << __FILE__ << ":" << __LINE__ << " ERROR : inertia[" << i << "][" << j << "] off by "
 //                        << error << std::endl;
@@ -484,19 +481,4 @@ void MeshMassPropertiesTests::testBoxAsMesh() {
 //            }
 //        }
 //    }
-
-//#ifdef VERBOSE_UNIT_TESTS
-//    std::cout << "expected volume = " << expectedVolume << std::endl;
-//    std::cout << "measured volume = " << mesh._volume << std::endl;
-//    std::cout << "expected center of mass = < "
-//        << expectedCenterOfMass[0] << ", "
-//        << expectedCenterOfMass[1] << ", "
-//        << expectedCenterOfMass[2] << "> " << std::endl;
-//    std::cout << "computed center of mass = < "
-//        << mesh._centerOfMass[0] << ", "
-//        << mesh._centerOfMass[1] << ", "
-//        << mesh._centerOfMass[2] << "> " << std::endl;
-//    printMatrix("expected inertia", expectedInertia);
-//    printMatrix("computed inertia", mesh._inertia);
-//#endif // VERBOSE_UNIT_TESTS
 }

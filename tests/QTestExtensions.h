@@ -1,5 +1,5 @@
 //
-//  QTestExtensions.hpp
+//  QTestExtensions.h
 //  tests/
 //
 //  Created by Seiji Emery on 6/20/15.

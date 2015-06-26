@@ -22,6 +22,9 @@ class EntityTests : public QObject {
     Q_OBJECT
 
 private slots:
+    void testsNotImplemented () {
+        qDebug() << "fixme: ModelTests are currently broken and need to be reimplemented";
+    }
 //    void entityTreeTests(bool verbose = false);
 //    void runAllTests(bool verbose = false);
 };

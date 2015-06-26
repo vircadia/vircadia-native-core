@@ -12,6 +12,13 @@ foreach(DIR ${TEST_SUBDIRS})
     endif()							# own variable scope copied from this scope (the parent scope)).
 endforeach()
 
+file(GLOB SHARED_TEST_HEADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}" "*.h" "*.hpp")
+
+add_custom_target("test-extensions" 
+	SOURCES "${SHARED_TEST_HEADER_FILES}")
+list(APPEND ALL_TEST_TARGETS "test-extensions")
+set_target_properties("test-extensions" PROPERTIES FOLDER "Tests")
+
 # Create the all-tests build target.
 # The dependency list (ALL_TEST_TARGETS) is generated from setup_hifi_testcase invocations in the CMakeLists.txt
 # files in the test subdirs. Since variables normally do *not* persist into parent scope, we use a hack:
@@ -21,7 +28,6 @@ endforeach()
 #
 add_custom_target("all-tests" ALL 
 	COMMAND ctest .
-	SOURCES ""
 	DEPENDS "${ALL_TEST_TARGETS}")
 set_target_properties("all-tests" PROPERTIES FOLDER "hidden/test-targets")
 
