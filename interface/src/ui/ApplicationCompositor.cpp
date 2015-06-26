@@ -17,8 +17,9 @@
 
 #include <avatar/AvatarManager.h>
 #include <gpu/GLBackend.h>
-#include <CursorManager.h>
-#include <Tooltip.h>
+
+#include "CursorManager.h"
+#include "HyperLinkTooltip.h"
 
 #include "Application.h"
 

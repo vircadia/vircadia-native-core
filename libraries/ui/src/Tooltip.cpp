@@ -1,5 +1,6 @@
 //
 //  Tooltip.cpp
+//  libraries/ui/src
 //
 //  Created by Bradley Austin Davis on 2015/04/14
 //  Copyright 2015 High Fidelity, Inc.
@@ -8,14 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "Tooltip.h"
-#include <QUuid>
+
+#include <QtCore/QUuid>
 
 HIFI_QML_DEF(Tooltip)
 
 Tooltip::Tooltip(QQuickItem* parent) : QQuickItem(parent) {
+
 }
 
 Tooltip::~Tooltip() {
+
 }
 
 const QString& Tooltip::getTitle() const {
@@ -47,7 +51,6 @@ void Tooltip::setVisible(bool visible) {
 QString Tooltip::showTip(const QString& title, const QString& description) {
     const QString newTipId = QUuid().createUuid().toString();
 
-    qDebug() << "THE NEW TIP ID IS" << newTipId;
     Tooltip::show([&](QQmlContext*, QObject* object) {
         object->setObjectName(newTipId);
         object->setProperty("title", title);
