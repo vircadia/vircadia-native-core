@@ -177,12 +177,14 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
     batch.setModelTransform(getTransformToCenter());
+    bool textured = false, culled = false, emissive = false;
     if (_texture) {
         batch._glActiveTexture(GL_TEXTURE0);
         batch._glBindTexture(GL_TEXTURE_2D, _texture);
+        textured = emissive = true;
     }
-    static const bool textured = true, culled = false, emmissive = true;
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, textured, culled, emmissive);
+    
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, textured, culled, emissive);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f));
 }
 

@@ -10,8 +10,6 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-<@include DeferredBufferWrite.slh@>
-
 uniform sampler2D Font;
 uniform bool Outline;
 uniform vec4 Color;
@@ -48,11 +46,7 @@ void main() {
     }
     
     // final color
-    packDeferredFragmentLightmap(
-         normalize(interpolatedNormal.xyz),
-         glowIntensity * texel.a,
-         gl_Color.rgb,
-         gl_FrontMaterial.specular.rgb,
-         gl_FrontMaterial.shininess,
-         Color.rgb);
+    gl_FragData[0] = vec4(Color.rgb, Color.a * a);
+    gl_FragData[1] = vec4(normalize(interpolatedNormal.xyz), 0.0) * 0.5 + vec4(0.5, 0.5, 0.5, 0.5);
+    gl_FragData[2] = vec4(Color.rgb, gl_FrontMaterial.shininess / 128.0);
 }
