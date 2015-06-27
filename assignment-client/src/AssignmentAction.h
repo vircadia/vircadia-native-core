@@ -27,7 +27,7 @@ public:
     const QUuid& getID() const { return _id; }
     virtual EntityActionType getType() { return _type; }
     virtual void removeFromSimulation(EntitySimulation* simulation) const;
-    virtual const EntityItemPointer& getOwnerEntity() const { return _ownerEntity; }
+    virtual const EntityItemWeakPointer getOwnerEntity() const { return _ownerEntity; }
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) { _ownerEntity = ownerEntity; }
     virtual bool updateArguments(QVariantMap arguments) { assert(false); return false; }
 
@@ -50,7 +50,7 @@ protected:
     virtual void setAngularVelocity(glm::vec3 angularVelocity) { assert(false); }
 
     bool _active;
-    EntityItemPointer _ownerEntity;
+    EntityItemWeakPointer _ownerEntity;
 };
 
 #endif // hifi_AssignmentAction_h

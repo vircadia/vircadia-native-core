@@ -461,7 +461,6 @@ protected:
     bool _simulated; // set by EntitySimulation
 
     bool serializeActionData();
-    QReadWriteLock _objectActionsLock;
     QHash<QUuid, EntityActionPointer> _objectActions;
     static int _maxActionDataSize;
     QByteArray _actionData;

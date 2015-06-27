@@ -32,7 +32,7 @@ public:
     const QUuid& getID() const { return _id; }
     virtual EntityActionType getType() { assert(false); return ACTION_TYPE_NONE; }
     virtual void removeFromSimulation(EntitySimulation* simulation) const;
-    virtual const EntityItemPointer& getOwnerEntity() const { return _ownerEntity; }
+    virtual const EntityItemWeakPointer getOwnerEntity() const { return _ownerEntity; }
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) { _ownerEntity = ownerEntity; }
     virtual bool updateArguments(QVariantMap arguments) { return false; }
 
@@ -68,7 +68,7 @@ protected:
     void unlock() { _lock.unlock(); }
 
     bool _active;
-    EntityItemPointer _ownerEntity;
+    EntityItemWeakPointer _ownerEntity;
 };
 
 #endif // hifi_ObjectAction_h

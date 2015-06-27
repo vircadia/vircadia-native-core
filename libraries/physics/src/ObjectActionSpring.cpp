@@ -33,7 +33,12 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
         return;
     }
 
-    void* physicsInfo = _ownerEntity->getPhysicsInfo();
+    auto ownerEntity = _ownerEntity.lock();
+    if (!ownerEntity) {
+        return;
+    }
+
+    void* physicsInfo = ownerEntity->getPhysicsInfo();
     if (!physicsInfo) {
         unlock();
         return;

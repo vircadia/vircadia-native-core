@@ -27,10 +27,6 @@ void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar delta
     if (!_active) {
         return;
     }
-    if (!_ownerEntity) {
-        qDebug() << "ObjectAction::updateAction no owner entity";
-        return;
-    }
     updateActionWorker(deltaTimeStep);
 }
 
@@ -42,10 +38,11 @@ void ObjectAction::removeFromSimulation(EntitySimulation* simulation) const {
 }
 
 btRigidBody* ObjectAction::getRigidBody() {
-    if (!_ownerEntity) {
+    auto ownerEntity = _ownerEntity.lock();
+    if (!ownerEntity) {
         return nullptr;
     }
-    void* physicsInfo = _ownerEntity->getPhysicsInfo();
+    void* physicsInfo = ownerEntity->getPhysicsInfo();
     if (!physicsInfo) {
         return nullptr;
     }
