@@ -403,15 +403,19 @@ public slots:
     bool acceptSnapshot(const QString& urlString);
     bool askToSetAvatarUrl(const QString& url);
     bool askToLoadScript(const QString& scriptFilenameOrURL);
+
     ScriptEngine* loadScript(const QString& scriptFilename = QString(), bool isUserLoaded = true, 
-        bool loadScriptFromEditor = false, bool activateMainWindow = false);
+        bool loadScriptFromEditor = false, bool activateMainWindow = false, bool reload = false);
+    void reloadScript(const QString& scriptName, bool isUserLoaded = true);
     void scriptFinished(const QString& scriptName);
     void stopAllScripts(bool restart = false);
-    void stopScript(const QString& scriptName);
+    void stopScript(const QString& scriptName, bool restart = false);
     void reloadAllScripts();
+    void reloadOneScript(const QString& scriptName);
     void loadDefaultScripts();
     void toggleRunningScriptsWidget();
     void saveScripts();
+
     void showFriendsWindow();
     void friendsWindowClosed();
 
@@ -438,6 +442,8 @@ public slots:
     void notifyPacketVersionMismatch();
 
     void domainConnectionDenied(const QString& reason);
+    
+    void cameraMenuChanged();
 
 private slots:
     void clearDomainOctreeDetails();
@@ -450,7 +456,6 @@ private slots:
 
     void connectedToDomain(const QString& hostname);
 
-    void cameraMenuChanged();
     void rotationModeChanged();
 
     void closeMirrorView();

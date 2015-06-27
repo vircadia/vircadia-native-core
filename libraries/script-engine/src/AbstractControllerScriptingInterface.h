@@ -83,6 +83,9 @@ public slots:
 
     virtual void captureWheelEvents() = 0;
     virtual void releaseWheelEvents() = 0;
+    
+    virtual void captureActionEvents() = 0;
+    virtual void releaseActionEvents() = 0;
 
     virtual void captureJoystick(int joystickIndex) = 0;
     virtual void releaseJoystick(int joystickIndex) = 0;
@@ -112,6 +115,8 @@ signals:
     void touchUpdateEvent(const TouchEvent& event);
     
     void wheelEvent(const WheelEvent& event);
+    
+    void actionEvent(int action, float state);
 
 };
 

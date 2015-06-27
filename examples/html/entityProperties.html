@@ -250,6 +250,8 @@
             var elCollisionSoundURL = document.getElementById("property-collision-sound-url");
             var elLifetime = document.getElementById("property-lifetime");
             var elScriptURL = document.getElementById("property-script-url");
+            var elScriptTimestamp = document.getElementById("property-script-timestamp");
+            var elReloadScriptButton = document.getElementById("reload-script-button");
             var elUserData = document.getElementById("property-user-data");
 
             var elColorSection = document.getElementById("color-section");
@@ -470,6 +472,7 @@
                             elCollisionSoundURL.value = properties.collisionSoundURL;
                             elLifetime.value = properties.lifetime;
                             elScriptURL.value = properties.script;
+                            elScriptTimestamp.value = properties.scriptTimestamp;
                             elUserData.value = properties.userData;
 
                             elHyperlinkHref.value = properties.href;
@@ -688,6 +691,7 @@
 
             elLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifetime'));
             elScriptURL.addEventListener('change', createEmitTextPropertyUpdateFunction('script'));
+            elScriptTimestamp.addEventListener('change', createEmitNumberPropertyUpdateFunction('scriptTimestamp'));
             elUserData.addEventListener('change', createEmitTextPropertyUpdateFunction('userData'));
 
             var colorChangeFunction = createEmitColorPropertyUpdateFunction(
@@ -889,6 +893,12 @@
                     percentage: parseInt(elRescaleDimensionsPct.value),
                 }));
             });
+            elReloadScriptButton.addEventListener("click", function() {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "action",
+                    action: "reloadScript"
+                }));
+            });
             elCenterAtmosphereToZone.addEventListener("click", function() {
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: "action",
@@ -932,6 +942,7 @@
 
     </script>
 </head>
+
 <body class="properties" onload='loaded();'>
     <div id="properties-list">
         <div id="type" class="property">
@@ -939,26 +950,18 @@
                 <label>Type: </label><span id="property-type"></span>
             </div>
         </div>
-        <div class="property">
+        <div id="id" class="property">
+            <span class="label" style="float: left; margin-right: 6px">
+                <label>ID: <label>
+            </span>
             <div class="value">
-                <label id="property-id" class="selectable"></label>
+                <span id="property-id" class="selectable"></span>
             </div>
         </div>
         <div class="property">
             <span class="label" style="float: left; margin-right: 6px">Name</span>
             <div class="value" style="overflow: hidden;">
                 <input type="text" id="property-name"></input>
-            </div>
-        </div>
-
-        <div class="property">
-            <div class="label">Hyperlink</div>
-            <div class="input-area">Href<br></div>
-            <div class="value">
-                <input id="property-hyperlink-href" class="url"></input>
-            </div>
-            <div class="input-area">Description<br></div> <div class="value">
-                <input id="property-hyperlink-description" class="url"></input>
             </div>
         </div>
 
@@ -974,6 +977,36 @@
             <span class="value">
                 <input type='checkbox' id="property-visible">
             </span>
+        </div>
+
+        <div class="property">
+            <div class="label">User Data</div>
+            <div class="value">
+                <textarea id="property-user-data"></textarea>
+            </div>
+        </div>
+
+
+        <div class="section-header">
+            <label>Hyperlink</label>
+        </div>
+
+        <div class="property">
+            <div class="label">Href</div>
+            <div class="value">
+                <input id="property-hyperlink-href" class="url"></input>
+            </div>
+        </div>
+        <div class="property">
+            <div class="label">Description</div>
+            <div class="value">
+                <input id="property-hyperlink-description" class="url"></input>
+            </div>
+        </div>
+
+
+        <div class="section-header">
+            <label>Spacial Properites</label>
         </div>
 
         <div class="property">
@@ -1043,6 +1076,11 @@
             </div>
         </div>
 
+
+        <div class="section-header">
+            <label>Physical Properites</label>
+        </div>
+
         <div class="property">
             <div class="label">Linear Velocity</div>
             <div class="value">
@@ -1109,6 +1147,21 @@
             </div>
         </div>
 
+        <div id="color-section" class="property">
+            <div class="label">Color</div>
+            <div class="value">
+                <div id="property-color" class='color-picker'></div>
+                <div class="input-area">R <input class="coord" type='number' id="property-color-red"></input></div>
+                <div class="input-area">G <input class="coord" type='number' id="property-color-green"></input></div>
+                <div class="input-area">B <input class="coord" type='number' id="property-color-blue"></input></div>
+            </div>
+        </div>
+
+
+        <div class="section-header">
+            <label>Behavior</label>
+        </div>
+
         <div class="property">
             <span class="label">Ignore For Collisions</span>
             <span class="value">
@@ -1138,80 +1191,18 @@
         </div>
 
         <div class="property">
-            <div class="label">Script URL</div>
+            <div class="label">Script URL
+                <input type="hidden" id="property-script-timestamp" class="value"></input>
+                <input type="button" id="reload-script-button" value="Reload"></input>
+            </div>
             <div class="value">
                 <input id="property-script-url" class="url"></input>
             </div>
         </div>
 
-        <div class="property">
-            <div class="label">User Data</div>
-            <div class="value">
-                <textarea id="property-user-data"></textarea>
-            </div>
-        </div>
 
-
-        <div id="color-section" class="property">
-            <div class="label">Color</div>
-            <div class="value">
-                <div id="property-color" class='color-picker'></div>
-                <div class="input-area">R <input class="coord" type='number' id="property-color-red"></input></div>
-                <div class="input-area">G <input class="coord" type='number' id="property-color-green"></input></div>
-                <div class="input-area">B <input class="coord" type='number' id="property-color-blue"></input></div>
-            </div>
-        </div>
-
-        <div class="web-section property">
-            <div class="label">Source URL</div>
-            <div class="value">
-                <input type="text" id="property-web-source-url" class="url"></input>
-            </div>
-        </div>
-
-        <div class="particle-section property">
-            <div class="label">Max Particles</div>
-            <div class="value">
-                <input type='number' id="property-particle-maxparticles" min="0" max="2048" step="1"></input>
-            </div>
-        </div>
-        <div class="particle-section property">
-            <div class="label">Particle Life Span</div>
-            <div class="value">
-                <input type='number' id="property-particle-lifespan" min="0" step="0.1"></input>
-            </div>
-        </div>
-        <div class="particle-section property">
-            <div class="label">Particle Emission Rate</div>
-            <div class="value">
-                <input type='number' id="property-particle-emit-rate" min="0" step="0.5"></input>
-            </div>
-        </div>
-        <div class="particle-section property">
-            <div class="label">Particle Emission Direction</div>
-            <div class="value">
-                <div class="input-area">X <input class="coord" type='number' id="property-particle-emit-direction-x"></input></div>
-                <div class="input-area">Y <input class="coord" type='number' id="property-particle-emit-direction-y"></input></div>
-                <div class="input-area">Z <input class="coord" type='number' id="property-particle-emit-direction-z"></input></div>
-            </div>
-        </div>
-        <div class="particle-section property">
-            <div class="label">Particle Emission Strength</div>
-            <div class="value">
-                <input type='number' id="property-particle-emit-strength" min="0" step="0.1"></input>
-            </div>
-        </div>
-        <div class="particle-section property">
-            <div class="label">Particle Local Gravity</div>
-            <div class="value">
-                <input class="coord" type='number' id="property-particle-localgravity" step="0.05"></input>
-            </div>
-        </div>
-        <div class="particle-section property">
-            <div class="label">Particle Radius</div>
-            <div class="value">
-                <input  class="coord" type='number' id="property-particle-radius" min="0" step="0.005"></input>
-            </div>
+        <div class="section-header model-section zone-section">
+            <label>Model</label>
         </div>
 
         <div class="model-section property">
@@ -1220,6 +1211,7 @@
                 <input type="text" id="property-model-url" class="url"></input>
             </div>
         </div>
+
         <div class="model-section zone-section property">
             <div class="label">Shape Type</div>
             <div class="value">
@@ -1280,8 +1272,75 @@
             </div>
         </div>
 
+
+        <div class="section-header web-section">
+            <label>Web</label>
+        </div>
+
+        <div class="web-section property">
+            <div class="label">Source URL</div>
+            <div class="value">
+                <input type="text" id="property-web-source-url" class="url"></input>
+            </div>
+        </div>
+
+
+        <div class="section-header particle-section">
+            <label>Particle</label>
+        </div>
+
+        <div class="particle-section property">
+            <div class="label">Max Particles</div>
+            <div class="value">
+                <input type='number' id="property-particle-maxparticles" min="0" max="2048" step="1"></input>
+            </div>
+        </div>
+        <div class="particle-section property">
+            <div class="label">Particle Life Span</div>
+            <div class="value">
+                <input type='number' id="property-particle-lifespan" min="0" step="0.1"></input>
+            </div>
+        </div>
+        <div class="particle-section property">
+            <div class="label">Particle Emission Rate</div>
+            <div class="value">
+                <input type='number' id="property-particle-emit-rate" min="0" step="0.5"></input>
+            </div>
+        </div>
+        <div class="particle-section property">
+            <div class="label">Particle Emission Direction</div>
+            <div class="value">
+                <div class="input-area">X <input class="coord" type='number' id="property-particle-emit-direction-x"></input></div>
+                <div class="input-area">Y <input class="coord" type='number' id="property-particle-emit-direction-y"></input></div>
+                <div class="input-area">Z <input class="coord" type='number' id="property-particle-emit-direction-z"></input></div>
+            </div>
+        </div>
+        <div class="particle-section property">
+            <div class="label">Particle Emission Strength</div>
+            <div class="value">
+                <input type='number' id="property-particle-emit-strength" min="0" step="0.1"></input>
+            </div>
+        </div>
+        <div class="particle-section property">
+            <div class="label">Particle Local Gravity</div>
+            <div class="value">
+                <input class="coord" type='number' id="property-particle-localgravity" step="0.05"></input>
+            </div>
+        </div>
+        <div class="particle-section property">
+            <div class="label">Particle Radius</div>
+            <div class="value">
+                <input  class="coord" type='number' id="property-particle-radius" min="0" step="0.005"></input>
+            </div>
+        </div>
+
+
+        <div class="section-header text-section">
+            <label>Text</label>
+        </div>
+
         <div class="text-section property">
-            <div class="label">Text</div>
+            <div class="label">Text Content</div>
             <div class="value">
                 <input type="text" id="property-text-text"></input>
             </div>
@@ -1311,6 +1370,11 @@
             </div>
         </div>
 
+
+        <div class="section-header light-section">
+            <label>Light</label>
+        </div>
+        
         <div class="light-section property">
             <span class="label">Spot Light</span>
             <span class="value">
@@ -1343,6 +1407,11 @@
             <div class="value">
                 <input class="coord" type='number' id="property-light-cutoff"></input>
             </div>
+        </div>
+
+
+        <div class="section-header zone-section">
+            <label>Zone</label>
         </div>
 
         <div class="zone-section property">
@@ -1431,6 +1500,12 @@
                 </select> 
             </div>
         </div>
+
+
+        <div class="sub-section-header zone-section skybox-section">
+            <label>Skybox</label>
+        </div>
+
         <div class="zone-section skybox-section property">
             <div class="label">Skybox Color</div>
             <div class="value">
@@ -1446,6 +1521,12 @@
                 <input type="text" id="property-zone-skybox-url" class="url"></input>
             </div>
         </div>
+
+
+        <div class="sub-section-header zone-section atmosphere-section">
+            <label>Atmosphere</label>
+        </div>
+
         <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Center</div>
             <div class="value">
@@ -1495,8 +1576,6 @@
                 <input type='checkbox' id="property-zone-atmosphere-has-stars">
             </span>
         </div>
-
     </div>
-
 </body>
 </html>

@@ -24,10 +24,6 @@ LocalModelsOverlay::LocalModelsOverlay(const LocalModelsOverlay* localModelsOver
     Volume3DOverlay(localModelsOverlay),
     _entityTreeRenderer(localModelsOverlay->_entityTreeRenderer)
 {
-
-}
-
-LocalModelsOverlay::~LocalModelsOverlay() {
 }
 
 void LocalModelsOverlay::update(float deltatime) {
@@ -47,7 +43,7 @@ void LocalModelsOverlay::render(RenderArgs* args) {
             Application* app = Application::getInstance();
 #if 0
             glm::vec3 oldTranslation = app->getViewMatrixTranslation();
-            app->setViewMatrixTranslation(oldTranslation + _position);
+            app->setViewMatrixTranslation(oldTranslation + getPosition());
             _entityTreeRenderer->render(args);
             Application::getInstance()->setViewMatrixTranslation(oldTranslation);
 #endif
