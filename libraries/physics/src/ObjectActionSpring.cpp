@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "QVariantGLM.h"
+
 #include "ObjectActionSpring.h"
 
 const uint16_t ObjectActionSpring::springVersion = 1;
@@ -148,6 +150,24 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
     _active = true;
     unlock();
     return true;
+}
+
+QVariantMap ObjectActionSpring::getArguments() {
+    QVariantMap arguments;
+    lockForRead();
+
+    if (_positionalTargetSet) {
+        arguments["linearTimeScale"] = _linearTimeScale;
+        arguments["targetPosition"] = glmToQMap(_positionalTarget);
+    }
+
+    if (_rotationalTargetSet) {
+        arguments["targetRotation"] = glmToQMap(_rotationalTarget);
+        arguments["angularTimeScale"] = _angularTimeScale;
+    }
+
+    unlock();
+    return arguments;
 }
 
 QByteArray ObjectActionSpring::serialize() {

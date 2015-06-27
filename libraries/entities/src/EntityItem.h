@@ -386,6 +386,8 @@ public:
     void setActionData(QByteArray actionData);
     const QByteArray getActionData() const;
     bool hasActions() { return !_objectActions.empty(); }
+    QList<QUuid> getActionIDs() { return _objectActions.keys(); }
+    QVariantMap getActionArguments(const QUuid& actionID);
 
 protected:
 

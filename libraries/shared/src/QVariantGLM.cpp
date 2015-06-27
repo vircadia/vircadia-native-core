@@ -24,6 +24,22 @@ QVariantList rgbColorToQList(rgbColor& v) {
     return QVariantList() << (int)(v[0]) << (int)(v[1]) << (int)(v[2]);
 }
 
+QVariantMap glmToQMap(const glm::vec3& g) {
+    QVariantMap p;
+    p["x"] = g.x;
+    p["y"] = g.y;
+    p["z"] = g.z;
+    return p;
+}
+
+QVariantMap glmToQMap(const glm::quat& g) {
+    QVariantMap q;
+    q["x"] = g.x;
+    q["y"] = g.y;
+    q["z"] = g.z;
+    q["w"] = g.w;
+    return q;
+}
 
 
 glm::vec3 qListToGlmVec3(const QVariant q) {

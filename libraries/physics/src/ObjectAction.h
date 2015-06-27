@@ -34,7 +34,9 @@ public:
     virtual void removeFromSimulation(EntitySimulation* simulation) const;
     virtual const EntityItemWeakPointer getOwnerEntity() const { return _ownerEntity; }
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) { _ownerEntity = ownerEntity; }
+
     virtual bool updateArguments(QVariantMap arguments) { return false; }
+    virtual QVariantMap getArguments() { return QVariantMap(); }
 
     // this is called from updateAction and should be overridden by subclasses
     virtual void updateActionWorker(float deltaTimeStep) {}
@@ -62,6 +64,7 @@ protected:
     virtual glm::vec3 getAngularVelocity();
     virtual void setAngularVelocity(glm::vec3 angularVelocity);
 
+    void lockForRead() { _lock.lockForRead(); }
     bool tryLockForRead() { return _lock.tryLockForRead(); }
     void lockForWrite() { _lock.lockForWrite(); }
     bool tryLockForWrite() { return _lock.tryLockForWrite(); }

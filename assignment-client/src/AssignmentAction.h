@@ -30,6 +30,7 @@ public:
     virtual const EntityItemWeakPointer getOwnerEntity() const { return _ownerEntity; }
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) { _ownerEntity = ownerEntity; }
     virtual bool updateArguments(QVariantMap arguments) { assert(false); return false; }
+    virtual QVariantMap getArguments() { assert(false); return QVariantMap(); }
 
     virtual QByteArray serialize();
     virtual void deserialize(QByteArray serializedArguments);

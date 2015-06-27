@@ -25,6 +25,8 @@ public:
     virtual EntityActionType getType() { return ACTION_TYPE_OFFSET; }
 
     virtual bool updateArguments(QVariantMap arguments);
+    virtual QVariantMap getArguments();
+
     virtual void updateActionWorker(float deltaTimeStep);
 
     virtual QByteArray serialize();

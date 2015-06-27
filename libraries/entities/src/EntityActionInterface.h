@@ -38,6 +38,7 @@ public:
     virtual const EntityItemWeakPointer getOwnerEntity() const = 0;
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) = 0;
     virtual bool updateArguments(QVariantMap arguments) = 0;
+    virtual QVariantMap getArguments() = 0;
 
     virtual QByteArray serialize() = 0;
     virtual void deserialize(QByteArray serializedArguments) = 0;

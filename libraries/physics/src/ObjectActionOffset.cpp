@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "QVariantGLM.h"
+
 #include "ObjectActionOffset.h"
 
 const uint16_t ObjectActionOffset::offsetVersion = 1;
@@ -113,6 +115,16 @@ bool ObjectActionOffset::updateArguments(QVariantMap arguments) {
     _active = true;
     unlock();
     return true;
+}
+
+QVariantMap ObjectActionOffset::getArguments() {
+    QVariantMap arguments;
+    lockForRead();
+    arguments["pointToOffsetFrom"] = glmToQMap(_pointToOffsetFrom);
+    arguments["linearTimeScale"] = _linearTimeScale;
+    arguments["linearDistance"] = _linearDistance;
+    unlock();
+    return arguments;
 }
 
 QByteArray ObjectActionOffset::serialize() {

@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "QVariantGLM.h"
 #include "avatar/MyAvatar.h"
 #include "avatar/AvatarManager.h"
 
@@ -117,6 +118,21 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
     unlock();
     return true;
 }
+
+
+QVariantMap AvatarActionHold::getArguments() {
+    QVariantMap arguments;
+    lockForRead();
+    if (_parametersSet) {
+        arguments["relativePosition"] = glmToQMap(_relativePosition);
+        arguments["relativeRotation"] = glmToQMap(_relativeRotation);
+        arguments["timeScale"] = _linearTimeScale;
+        arguments["hand"] = _hand;
+    }
+    unlock();
+    return arguments;
+}
+
 
 QByteArray AvatarActionHold::serialize() {
     QByteArray ba;

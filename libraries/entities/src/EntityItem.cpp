@@ -1492,7 +1492,6 @@ void EntityItem::setActionData(QByteArray actionData) {
     }
 }
 
-
 bool EntityItem::serializeActionData() {
     if (_objectActions.size() == 0) {
         _actionData = QByteArray();
@@ -1521,7 +1520,15 @@ bool EntityItem::serializeActionData() {
     return true;
 }
 
-
 const QByteArray EntityItem::getActionData() const {
     return _actionData;
+}
+
+QVariantMap EntityItem::getActionArguments(const QUuid& actionID) {
+    QVariantMap result;
+    if (_objectActions.contains(actionID)) {
+        EntityActionPointer action = _objectActions[actionID];
+        result = action->getArguments();
+    }
+    return result;
 }

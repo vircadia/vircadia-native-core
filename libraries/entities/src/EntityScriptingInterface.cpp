@@ -62,7 +62,7 @@ void EntityScriptingInterface::setEntityTree(EntityTree* modelTree) {
 }
 
 void bidForSimulationOwnership(EntityItemProperties& properties) {
-    // We make a bid for simulation ownership by declaring our sessionID as simulation owner 
+    // We make a bid for simulation ownership by declaring our sessionID as simulation owner
     // in the outgoing properties.  The EntityServer may accept the bid or might not.
     auto nodeList = DependencyManager::get<NodeList>();
     const QUuid myNodeID = nodeList->getSessionUUID();
@@ -113,7 +113,7 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
         if (entity) {
             results = entity->getProperties();
 
-            // TODO: improve sitting points and naturalDimensions in the future, 
+            // TODO: improve sitting points and naturalDimensions in the future,
             //       for now we've included the old sitting points model behavior for entity types that are models
             //        we've also added this hack for setting natural dimensions of models
             if (entity->getType() == EntityTypes::Model) {
@@ -149,15 +149,15 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties proper
                 if (properties.hasTerseUpdateChanges()) {
                     auto nodeList = DependencyManager::get<NodeList>();
                     const QUuid myNodeID = nodeList->getSessionUUID();
-    
+
                     if (entity->getSimulatorID() == myNodeID) {
                         // we think we already own the simulation, so make sure to send ALL TerseUpdate properties
                         entity->getAllTerseUpdateProperties(properties);
-                        // TODO: if we knew that ONLY TerseUpdate properties have changed in properties AND the object 
-                        // is dynamic AND it is active in the physics simulation then we could chose to NOT queue an update 
+                        // TODO: if we knew that ONLY TerseUpdate properties have changed in properties AND the object
+                        // is dynamic AND it is active in the physics simulation then we could chose to NOT queue an update
                         // and instead let the physics simulation decide when to send a terse update.  This would remove
                         // the "slide-no-rotate" glitch (and typical a double-update) that we see during the "poke rolling
-                        // balls" test.  However, even if we solve this problem we still need to provide a "slerp the visible 
+                        // balls" test.  However, even if we solve this problem we still need to provide a "slerp the visible
                         // proxy toward the true physical position" feature to hide the final glitches in the remote watcher's
                         // simulation.
                     }
@@ -204,7 +204,7 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
 }
 
 QUuid EntityScriptingInterface::findClosestEntity(const glm::vec3& center, float radius) const {
-    EntityItemID result; 
+    EntityItemID result;
     if (_entityTree) {
         _entityTree->lockForRead();
         EntityItemPointer closestEntity = _entityTree->findClosestEntity(center, radius);
@@ -264,8 +264,8 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionBlock
     return findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
 }
 
-RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorker(const PickRay& ray, 
-                                                                                    Octree::lockType lockType, 
+RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorker(const PickRay& ray,
+                                                                                    Octree::lockType lockType,
                                                                                     bool precisionPicking) {
 
 
@@ -273,8 +273,8 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
     if (_entityTree) {
         OctreeElement* element;
         EntityItemPointer intersectedEntity = NULL;
-        result.intersects = _entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face, 
-                                                                (void**)&intersectedEntity, lockType, &result.accurate, 
+        result.intersects = _entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face,
+                                                                (void**)&intersectedEntity, lockType, &result.accurate,
                                                                 precisionPicking);
         if (result.intersects && intersectedEntity) {
             result.entityID = intersectedEntity->getEntityItemID();
@@ -318,15 +318,15 @@ bool EntityScriptingInterface::getSendPhysicsUpdates() const {
 }
 
 
-RayToEntityIntersectionResult::RayToEntityIntersectionResult() : 
-    intersects(false), 
+RayToEntityIntersectionResult::RayToEntityIntersectionResult() :
+    intersects(false),
     accurate(true), // assume it's accurate
     entityID(),
     properties(),
     distance(0),
     face(),
     entity(NULL)
-{ 
+{
 }
 
 QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, const RayToEntityIntersectionResult& value) {
@@ -341,7 +341,7 @@ QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, c
 
     obj.setProperty("distance", value.distance);
 
-    QString faceName = "";    
+    QString faceName = "";
     // handle BoxFace
     switch (value.face) {
         case MIN_X_FACE:
@@ -446,35 +446,35 @@ bool EntityScriptingInterface::setPoints(QUuid entityID, std::function<bool(Line
     if (!_entityTree) {
         return false;
     }
-    
+
     EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
     if (!entity) {
         qCDebug(entities) << "EntityScriptingInterface::setPoints no entity with ID" << entityID;
     }
-    
+
     EntityTypes::EntityType entityType = entity->getType();
-    
+
     if (entityType != EntityTypes::Line) {
         return false;
     }
-    
+
     auto now = usecTimestampNow();
-    
+
     LineEntityItem* lineEntity = static_cast<LineEntityItem*>(entity.get());
     _entityTree->lockForWrite();
     bool success = actor(*lineEntity);
     entity->setLastEdited(now);
     entity->setLastBroadcast(now);
     _entityTree->unlock();
-    
+
     _entityTree->lockForRead();
     EntityItemProperties properties = entity->getProperties();
     _entityTree->unlock();
-    
+
     properties.setLinePointsDirty();
     properties.setLastEdited(now);
-    
-    
+
+
     queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
     return success;
 }
@@ -509,7 +509,6 @@ bool EntityScriptingInterface::appendPoint(QUuid entityID, const glm::vec3& poin
     {
         return lineEntity.appendPoint(point);
     });
-    
 }
 
 
@@ -585,9 +584,27 @@ bool EntityScriptingInterface::updateAction(const QUuid& entityID, const QUuid& 
         });
 }
 
-
 bool EntityScriptingInterface::deleteAction(const QUuid& entityID, const QUuid& actionID) {
     return actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
             return entity->removeAction(simulation, actionID);
         });
+}
+
+QVector<QUuid> EntityScriptingInterface::getActionIDs(const QUuid& entityID) {
+    QVector<QUuid> result;
+    actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
+            QList<QUuid> actionIDs = entity->getActionIDs();
+            result = QVector<QUuid>::fromList(actionIDs);
+            return true;
+        });
+    return result;
+}
+
+QVariantMap EntityScriptingInterface::getActionArguments(const QUuid& entityID, const QUuid& actionID) {
+    QVariantMap result;
+    actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
+            result = entity->getActionArguments(actionID);
+            return true;
+        });
+    return result;
 }
