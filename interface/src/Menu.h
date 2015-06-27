@@ -199,7 +199,6 @@ namespace MenuOption {
     const QString FrameTimer = "Show Timer";
     const QString FullscreenMirror = "Fullscreen Mirror";
     const QString GlowWhenSpeaking = "Glow When Speaking";
-    const QString NamesAboveHeads = "Names Above Heads";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IndependentMode = "Independent Mode";
     const QString KeyboardMotorControl = "Enable Keyboard Motor Control";
