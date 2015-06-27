@@ -162,7 +162,12 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                     // else: We assume the sender really did believe it was the simulation owner when it sent
                 } else if (submittedID == senderID) {
                     // the sender is trying to take or continue ownership
-                    if (entity->getSimulatorID().isNull() || entity->getSimulatorID() == senderID) {
+                    if (entity->getSimulatorID().isNull()) {
+                        // the sender it taking ownership
+                        properties.promoteSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
+                        simulationBlocked = false;
+                    } else if (entity->getSimulatorID() == senderID) {
+                        // the sender is asserting ownership
                         simulationBlocked = false;
                     } else {
                         // the sender is trying to steal ownership from another simulator
@@ -180,6 +185,8 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                     // the entire update is suspect --> ignore it
                     return false;
                 }
+            } else {
+                simulationBlocked = senderID != entity->getSimulatorID();
             }
             if (simulationBlocked) {
                 // squash ownership and physics-related changes.
@@ -208,10 +215,6 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                     _simulation->lock();
                     _simulation->changeEntity(entity);
                     _simulation->unlock();
-                    // always promote volunteer priority
-                    if (entity->getSimulationPriority() == VOLUNTEER_SIMULATION_PRIORITY) {
-                        entity->promoteSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
-                    }
                 }
             } else {
                 // normally the _simulation clears ALL updateFlags, but since there is none we do it explicitly

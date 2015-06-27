@@ -161,9 +161,11 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties proper
                         // proxy toward the true physical position" feature to hide the final glitches in the remote watcher's
                         // simulation.
 
-                        // we re-assert our simulation ownership
-                        properties.setSimulationOwner(myNodeID, 
-                                glm::max(entity->getSimulationPriority(), SCRIPT_EDIT_SIMULATION_PRIORITY));
+                        if (entity->getSimulationPriority() < SCRIPT_EDIT_SIMULATION_PRIORITY) {
+                            // we re-assert our simulation ownership at a higher priority
+                            properties.setSimulationOwner(myNodeID, 
+                                    glm::max(entity->getSimulationPriority(), SCRIPT_EDIT_SIMULATION_PRIORITY));
+                        }
                     } else {
                         // we make a bid for simulation ownership
                         properties.setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);

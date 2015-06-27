@@ -67,9 +67,7 @@ bool SimulationOwner::setID(const QUuid& id) {
         _id = id;
         updateExpiry();
         if (_id.isNull()) {
-            // when id is null we clear everything
             _priority = 0;
-            _expiry = 0;
         }
         return true;
     }

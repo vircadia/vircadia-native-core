@@ -118,7 +118,7 @@ void EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine)
         }
     }
     if (flags & EntityItem::DIRTY_SIMULATOR_OWNERSHIP) {
-        // also known as "bid for ownership with SCRIPT priority"
+        // (DIRTY_SIMULATOR_OWNERSHIP really means "we should bid for ownership with SCRIPT priority")
         // we're manipulating this object directly via script, so we artificially 
         // manipulate the logic to trigger an immediate bid for ownership
         setOutgoingPriority(SCRIPT_EDIT_SIMULATION_PRIORITY);
@@ -449,6 +449,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
             // we own the simulation but the entity has stopped, so we tell the server that we're clearing simulatorID
             // but we remember that we do still own it...  and rely on the server to tell us that we don't
             properties.clearSimulationOwner();
+            _outgoingPriority = 0;
         }
         // else the ownership is not changing so we don't bother to pack it
     } else {
@@ -512,8 +513,7 @@ QUuid EntityMotionState::getSimulatorID() const {
 // virtual
 void EntityMotionState::bump(quint8 priority) {
     if (_entity) {
-        quint8 inheritedPriority = VOLUNTEER_SIMULATION_PRIORITY;
-        setOutgoingPriority(inheritedPriority);
+        setOutgoingPriority(glm::max(VOLUNTEER_SIMULATION_PRIORITY, --priority));
     }
 }
 

@@ -121,10 +121,10 @@ enum EntityPropertyList {
     // used by hyperlinks
     PROP_HREF,
     PROP_DESCRIPTION,
-    PROP_SIMULATION_OWNER,
     
     PROP_FACE_CAMERA,
     PROP_SCRIPT_TIMESTAMP,
+    PROP_SIMULATION_OWNER,
     
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties ABOVE this line

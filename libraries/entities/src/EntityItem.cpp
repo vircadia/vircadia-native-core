@@ -349,12 +349,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         return 0;
     }
 
-    // if this bitstream indicates that this node is the simulation owner, ignore any physics-related updates.
-    glm::vec3 savePosition = getPosition();
-    glm::quat saveRotation = getRotation();
-    glm::vec3 saveVelocity = _velocity;
-    glm::vec3 saveAngularVelocity = _angularVelocity;
-
     int originalLength = bytesLeftToRead;
     // TODO: figure out a way to avoid the big deep copy below.
     QByteArray originalDataBuffer((const char*)data, originalLength); // big deep copy!
@@ -550,17 +544,14 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             dataAt += bytes;
             bytesRead += bytes;
 
-            if (overwriteLocalData) {
-                if (_simulationOwner.set(newSimOwner)) {
-                    _dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
-                }
+            if (_simulationOwner.set(newSimOwner)) {
+                _dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
             }
         }
-        {
+        {   // When we own the simulation we don't accept updates to the entity's transform/velocities
+            // but since we're using macros below we have to temporarily modify overwriteLocalData.
             auto nodeList = DependencyManager::get<NodeList>();
             bool weOwnIt = _simulationOwner.matchesValidID(nodeList->getSessionUUID());
-            // When we own the simulation we don't accept updates to the entity's transform/velocities
-            // but since we're using macros below we have to temporarily modify overwriteLocalData.
             bool oldOverwrite = overwriteLocalData;
             overwriteLocalData = overwriteLocalData && !weOwnIt;
             READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
@@ -665,15 +656,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     auto nodeList = DependencyManager::get<NodeList>();
     const QUuid& myNodeID = nodeList->getSessionUUID();
     if (overwriteLocalData) {
-        if (_simulationOwner.matchesValidID(myNodeID)) {
-            // we own the simulation, so we keep our transform+velocities and remove any related dirty flags
-            // rather than accept the values in the packet
-            setPosition(savePosition);
-            setRotation(saveRotation);
-            _velocity = saveVelocity;
-            _angularVelocity = saveAngularVelocity;
-            _dirtyFlags &= ~(EntityItem::DIRTY_TRANSFORM | EntityItem::DIRTY_VELOCITIES);
-        } else {
+        if (!_simulationOwner.matchesValidID(myNodeID)) {
+            
             _lastSimulated = now;
         }
     }
@@ -988,6 +972,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
 
     // these affect TerseUpdate properties
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulationOwner, setSimulationOwner);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, updatePosition);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, updateRotation);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, updateVelocity);
@@ -1009,7 +994,6 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, updateCollisionsWillMove);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(created, updateCreated);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, updateLifetime);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulationOwner, setSimulationOwner);
 
     // non-simulation properties below
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
@@ -1392,10 +1376,6 @@ void EntityItem::setSimulationOwner(const SimulationOwner& owner) {
     _simulationOwner.set(owner);
 }
 
-void EntityItem::promoteSimulationPriority(quint8 priority) {
-    _simulationOwner.promotePriority(priority);
-}
-
 void EntityItem::updateSimulatorID(const QUuid& value) {
     if (_simulationOwner.setID(value)) {
         _dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
@@ -1404,7 +1384,7 @@ void EntityItem::updateSimulatorID(const QUuid& value) {
 
 void EntityItem::clearSimulationOwnership() {
     _simulationOwner.clear();
-    // don't bother setting the DIRTY_SIMULATOR_ID flag because clearSimulatorOwnership() 
+    // don't bother setting the DIRTY_SIMULATOR_ID flag because clearSimulationOwnership() 
     // is only ever called entity-server-side and the flags are only used client-side
     //_dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
 

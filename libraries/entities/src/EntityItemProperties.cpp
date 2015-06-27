@@ -706,7 +706,6 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             //      PROP_PAGED_PROPERTY,
             //      PROP_CUSTOM_PROPERTIES_INCLUDED,
             
-            // adebug TODO: convert this to use APPEND_ENTITY_PROPERTY(P,V) macro?
             if (requestedProperties.getHasProperty(PROP_SIMULATION_OWNER)) {
                 LevelDetails propertyLevel = packetData->startLevel();
                 successPropertyFits = packetData->appendValue(properties._simulationOwner.toByteArray());
@@ -977,7 +976,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     dataAt += propertyFlags.getEncodedLength();
     processedBytes += propertyFlags.getEncodedLength();
 
-    // adebug TODO: convert this to use READ_ENTITY_PROPERTY_TO_PROPERTIES macro?
     if (propertyFlags.getHasProperty(PROP_SIMULATION_OWNER)) {
         QByteArray fromBuffer;
         int bytes = OctreePacketData::unpackDataFromBytes(dataAt, fromBuffer);
