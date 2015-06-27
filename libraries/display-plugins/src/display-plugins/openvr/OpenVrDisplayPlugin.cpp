@@ -113,7 +113,7 @@ void OpenVrDisplayPlugin::deactivate() {
 }
 
 QSize OpenVrDisplayPlugin::getRecommendedFramebufferSize() const {
-    return QSize(_renderTargetSize.x, _renderTargetSize.y);
+    return QSize(_renderTargetSize.x * 2, _renderTargetSize.y);
 }
 
 mat4 OpenVrDisplayPlugin::getProjection(Eye eye, const mat4& baseProjection) const {
