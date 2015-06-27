@@ -63,6 +63,10 @@ void vec4FromScriptValue(const QScriptValue& object, glm::vec4& vec4) {
 
 QScriptValue vec3toScriptValue(QScriptEngine* engine, const glm::vec3 &vec3) {
     QScriptValue obj = engine->newObject();
+    if (vec3.x != vec3.x || vec3.y != vec3.y || vec3.z != vec3.z) {
+        // if vec3 contains a NaN don't try to convert it
+        return obj;
+    }
     obj.setProperty("x", vec3.x);
     obj.setProperty("y", vec3.y);
     obj.setProperty("z", vec3.z);
