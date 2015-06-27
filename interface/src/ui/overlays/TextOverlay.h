@@ -23,7 +23,7 @@
 const xColor DEFAULT_BACKGROUND_COLOR = { 0, 0, 0 };
 const float DEFAULT_BACKGROUND_ALPHA = 0.7f;
 const int DEFAULT_MARGIN = 10;
-const int DEFAULT_FONTSIZE = 11;
+const int DEFAULT_FONTSIZE = 12;
 const int DEFAULT_FONT_WEIGHT = 50;
 
 class TextRenderer;
