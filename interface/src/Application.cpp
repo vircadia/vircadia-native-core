@@ -173,6 +173,22 @@ public:
 };
 
 
+template <typename F>
+void with_stable_stack_check(F f) {
+    GLint mvDepth, prDepth;
+    glGetIntegerv(GL_MODELVIEW_STACK_DEPTH, &mvDepth);
+    glGetIntegerv(GL_PROJECTION_STACK_DEPTH, &prDepth);
+    f();
+    GLint mvDepthFinal, prDepthFinal;
+    glGetIntegerv(GL_MODELVIEW_STACK_DEPTH, &mvDepthFinal);
+    glGetIntegerv(GL_PROJECTION_STACK_DEPTH, &prDepthFinal);
+    Q_ASSERT(mvDepth == mvDepthFinal);
+    Q_ASSERT(prDepth == prDepthFinal);
+    if (mvDepth != mvDepthFinal || prDepth != prDepthFinal) {
+        qFatal("Failed to preserve GL stack depth");
+    }
+}
+
 using namespace std;
 
 //  Starfield information
@@ -839,14 +855,12 @@ void Application::initializeUi() {
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_offscreenContext->getContext());
-    offscreenUi->resize(fromGlm(getActiveDisplayPlugin()->getCanvasSize()));
     offscreenUi->setProxyWindow(_window->windowHandle());
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     offscreenUi->load("Root.qml");
     offscreenUi->load("RootMenu.qml");
     VrMenu::load();
     VrMenu::executeQueuedLambdas();
-    offscreenUi->setMouseTranslator(getActiveDisplayPlugin()->getMouseTranslator());
     offscreenUi->resume();
     connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect & r){
         static qreal oldDevicePixelRatio = 0;
@@ -960,10 +974,11 @@ void Application::paintGL() {
     auto finalFbo = primaryFbo;
     glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFbo));
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glPushMatrix();
+    // Viewport is assigned to the size of the framebuffer
+    QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
+
+    // Primary scene rendering
     {
-        // Viewport is assigned to the size of the framebuffer
-        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
         if (displayPlugin->isStereo()) {
             QRect r(QPoint(0, 0), QSize(size.width() / 2, size.height()));
             glEnable(GL_SCISSOR_TEST);
@@ -978,14 +993,11 @@ void Application::paintGL() {
                 Camera eyeCamera;
                 eyeCamera.setTransform(displayPlugin->getModelview(eye, _myCamera.getTransform()));
                 eyeCamera.setProjection(displayPlugin->getProjection(eye, _myCamera.getProjection()));
-
                 displaySide(&renderArgs, eyeCamera);
-
                 if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && 
                     !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
                     renderRearViewMirror(&renderArgs, _mirrorViewRect);
                 }
-
             }, [&] {
                 r.moveLeft(r.width());
             });
@@ -998,8 +1010,11 @@ void Application::paintGL() {
                 renderRearViewMirror(&renderArgs, _mirrorViewRect);
             }
         }
-        finalFbo = DependencyManager::get<GlowEffect>()->render(&renderArgs);
+    }
 
+    // Overlay Composition
+    finalFbo = DependencyManager::get<GlowEffect>()->render(&renderArgs);
+    {
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
         if (displayPlugin->isStereo()) {
             QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
@@ -1008,7 +1023,7 @@ void Application::paintGL() {
             for_each_eye([&](Eye eye) {
                 glViewport(r.x(), r.y(), r.width(), r.height());
                 if (displayPlugin->isHmd()) {
-                    _compositor.displayOverlayTexture(&renderArgs);
+                    _compositor.displayOverlayTextureHmd(&renderArgs, eye);
                 } else {
                     _compositor.displayOverlayTexture(&renderArgs);
                 }
@@ -1020,7 +1035,6 @@ void Application::paintGL() {
             _compositor.displayOverlayTexture(&renderArgs);
         }
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        glFinish();
     }
 
 #if 0
@@ -1031,25 +1045,26 @@ void Application::paintGL() {
         renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
 #endif
 
-    // Ensure the rendering context commands are completed when rendering 
-    GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-    _offscreenContext->doneCurrent();
-    Q_ASSERT(!QOpenGLContext::currentContext());
-
-    GLuint finalTexture = gpu::GLBackend::getTextureID(finalFbo->getRenderBuffer(0));
-    displayPlugin->preDisplay();
-
-    Q_ASSERT(QOpenGLContext::currentContext());
-    glWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
-    glDeleteSync(sync);
-
-    displayPlugin->display(finalTexture, finalFbo->getSize());
-
-    displayPlugin->finishFrame();
-    Q_ASSERT(!QOpenGLContext::currentContext());
-    _offscreenContext->makeCurrent();
-    _frameCount++;
-    Stats::getInstance()->setRenderDetails(renderArgs._details);
+    // deliver final composited scene to the display plugin
+    {
+        GLuint finalTexture = gpu::GLBackend::getTextureID(finalFbo->getRenderBuffer(0));
+        uvec2 finalSize = toGlm(size);
+        // Ensure the rendering context commands are completed when rendering 
+        GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+        _offscreenContext->doneCurrent();
+        Q_ASSERT(!QOpenGLContext::currentContext());
+        displayPlugin->preDisplay();
+        Q_ASSERT(QOpenGLContext::currentContext());
+        // FIXME? make the sync a parameter to preDisplay and let the plugin manage this
+        glWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
+        glDeleteSync(sync);
+        displayPlugin->display(finalTexture, finalSize);
+        displayPlugin->finishFrame();
+        Q_ASSERT(!QOpenGLContext::currentContext());
+        _offscreenContext->makeCurrent();
+        _frameCount++;
+        Stats::getInstance()->setRenderDetails(renderArgs._details);
+    }
 }
 
 void Application::runTests() {
@@ -3338,16 +3353,18 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
     // Load the legacy GL stacks, used by entities (for now)
     glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
     glLoadMatrixf(glm::value_ptr(theCamera.getProjection()));
 
     glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
     glLoadMatrixf(glm::value_ptr(glm::inverse(theCamera.getTransform())));
 
     // FIXME just flip the texture coordinates
     // flip x if in mirror mode (also requires reversing winding order for backface culling)
     if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
-        //glScalef(-1.0f, 1.0f, 1.0f);
-        //glFrontFace(GL_CW);
+        glScalef(-1.0f, 1.0f, 1.0f);
+        glFrontFace(GL_CW);
     } else {
         glFrontFace(GL_CCW);
     }
@@ -3360,7 +3377,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     viewTransform.setTranslation(theCamera.getPosition());
     viewTransform.setRotation(rotation);
     if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
-//         viewTransform.setScale(Transform::Vec3(-1.0f, 1.0f, 1.0f));
+         viewTransform.setScale(Transform::Vec3(-1.0f, 1.0f, 1.0f));
     }
 
     setViewTransform(viewTransform);
@@ -3524,6 +3541,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             PerformanceTimer perfTimer("octreeFades");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... octree fades...");
+
             _octreeFadesLock.lockForWrite();
             for(std::vector<OctreeFade>::iterator fade = _octreeFades.begin(); fade != _octreeFades.end();) {
                 fade->render(renderArgs);
@@ -3547,6 +3565,12 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glLoadMatrixf(glm::value_ptr(theCamera.getProjection()));
+
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
     activeRenderingThread = nullptr;
 }
 
@@ -4755,7 +4779,10 @@ const DisplayPlugin * Application::getActiveDisplayPlugin() const {
 
 void Application::updateDisplayMode() {
     auto menu = Menu::getInstance();
-    DisplayPluginPointer newDisplayPlugin;
+    auto displayPlugins = getDisplayPlugins();
+
+    // Default to the first item on the list, in case none of the menu items match
+    DisplayPluginPointer newDisplayPlugin = displayPlugins.at(0);
     foreach(DisplayPluginPointer displayPlugin, getDisplayPlugins()) {
         QString name = displayPlugin->getName();
         QAction* action = menu->getActionForOption(name);
@@ -4764,30 +4791,40 @@ void Application::updateDisplayMode() {
             break;
         }
     }
-    if (_displayPlugin != newDisplayPlugin) {
-        DependencyManager::get<OffscreenUi>()->setProxyWindow(nullptr);
+
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    DisplayPluginPointer oldDisplayPlugin = _displayPlugin;
+    if (oldDisplayPlugin != newDisplayPlugin) {
+        if (oldDisplayPlugin) {
+            oldDisplayPlugin->removeEventFilter(offscreenUi.data());
+            oldDisplayPlugin->removeEventFilter(qApp);
+        }
 
         if (newDisplayPlugin) {
             _offscreenContext->makeCurrent();
             newDisplayPlugin->activate(this);
-            newDisplayPlugin->installEventFilter(DependencyManager::get<OffscreenUi>().data());
+
+            _offscreenContext->makeCurrent();
+            newDisplayPlugin->installEventFilter(offscreenUi.data());
             newDisplayPlugin->installEventFilter(qApp);
             QWindow* pluginWindow = newDisplayPlugin->getWindow();
             if (pluginWindow) {
                 DependencyManager::get<OffscreenUi>()->setProxyWindow(pluginWindow);
-            } 
-            _offscreenContext->makeCurrent();
-        } 
-
-        std::swap(newDisplayPlugin, _displayPlugin);
-        if (newDisplayPlugin) {
-            newDisplayPlugin->removeEventFilter(DependencyManager::get<OffscreenUi>().data());
-            newDisplayPlugin->deactivate();
+            } else {
+                DependencyManager::get<OffscreenUi>()->setProxyWindow(nullptr);
+            }
+            offscreenUi->setMouseTranslator(newDisplayPlugin->getMouseTranslator());
+            offscreenUi->resize(fromGlm(newDisplayPlugin->getCanvasSize()));
             _offscreenContext->makeCurrent();
         }
 
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        offscreenUi->setMouseTranslator(getActiveDisplayPlugin()->getMouseTranslator());
+        oldDisplayPlugin = _displayPlugin;
+        _displayPlugin = newDisplayPlugin;
+
+        if (oldDisplayPlugin) {
+            oldDisplayPlugin->deactivate();
+            _offscreenContext->makeCurrent();
+        }
     }
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
 }
