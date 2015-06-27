@@ -443,7 +443,6 @@ EntityActionPointer PhysicsEngine::getActionByID(const QUuid& actionID) const {
     return nullptr;
 }
 
-
 void PhysicsEngine::addAction(EntityActionPointer action) {
     assert(action);
     const QUuid& actionID = action->getID();

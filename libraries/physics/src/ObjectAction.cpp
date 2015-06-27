@@ -27,6 +27,13 @@ void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar delta
     if (!_active) {
         return;
     }
+    if (_ownerEntity.expired()) {
+        qDebug() << "warning -- action with no entity removing self from btCollisionWorld.";
+        btDynamicsWorld* dynamicsWorld = static_cast<btDynamicsWorld*>(collisionWorld);
+        dynamicsWorld->removeAction(this);
+        return;
+    }
+
     updateActionWorker(deltaTimeStep);
 }
 

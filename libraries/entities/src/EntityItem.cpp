@@ -88,6 +88,13 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
 }
 
 EntityItem::~EntityItem() {
+    // clear out any left-over actions
+    EntityTree* entityTree = _element ? _element->getTree() : nullptr;
+    EntitySimulation* simulation = entityTree ? entityTree->getSimulation() : nullptr;
+    if (simulation) {
+        clearActions(simulation);
+    }
+
     // these pointers MUST be correct at delete, else we probably have a dangling backpointer 
     // to this EntityItem in the corresponding data structure.
     assert(!_simulated);
@@ -1450,7 +1457,8 @@ void EntityItem::setActionData(QByteArray actionData) {
 
         if (_objectActions.contains(actionID)) {
             EntityActionPointer action = _objectActions[actionID];
-            // XXX make sure types match?
+            // TODO: make sure types match?  there isn't currently a way to
+            // change the type of an existing action.
             action->deserialize(serializedAction);
         } else {
             auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
