@@ -1432,9 +1432,10 @@ bool EntityItem::clearActions(EntitySimulation* simulation) {
 }
 
 void EntityItem::setActionData(QByteArray actionData) {
-    if (_actionData == actionData) {
-        return;
-    }
+    // it would be nice to take this shortcut, but a previous add may have failed
+    // if (_actionData == actionData) {
+    //     return;
+    // }
     _actionData = actionData;
     if (actionData.size() == 0) {
         return;
