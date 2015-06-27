@@ -399,6 +399,27 @@ void RenderablePolyVoxEntityItem::getModel() {
     _needsModelReload = false;
 }
 
+bool RenderablePolyVoxEntityItem::addToScene(EntityItemPointer self,
+                                             std::shared_ptr<render::Scene> scene,
+                                             render::PendingChanges& pendingChanges) {
+    _myItem = scene->allocateID();
+
+    auto renderData = RenderableEntityItemProxy::Pointer(new RenderableEntityItemProxy(self));
+    auto renderPayload = render::PayloadPointer(new RenderableEntityItemProxy::Payload(renderData));
+
+    pendingChanges.resetItem(_myItem, renderPayload);
+
+    return true;
+}
+
+void RenderablePolyVoxEntityItem::removeFromScene(EntityItemPointer self,
+                                                  std::shared_ptr<render::Scene> scene,
+                                                  render::PendingChanges& pendingChanges) {
+    pendingChanges.removeItem(_myItem);
+}
+
+
+
 void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderablePolyVoxEntityItem::render");
     assert(getType() == EntityTypes::PolyVox);
