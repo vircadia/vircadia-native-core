@@ -12,14 +12,14 @@
 #ifndef hifi_ProgramObject_h
 #define hifi_ProgramObject_h
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
 #endif
 
 #include <QGLShaderProgram>
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
 
