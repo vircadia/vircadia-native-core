@@ -13,14 +13,14 @@
 
 #include <QScriptEngine>
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
 #endif
 
 #include <glm/gtx/string_cast.hpp>
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
 
@@ -74,19 +74,19 @@ void AvatarManager::init() {
 
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
     render::PendingChanges pendingChanges;
-    _myAvatar->addToScene(_myAvatar, scene, pendingChanges);    
+    _myAvatar->addToScene(_myAvatar, scene, pendingChanges);
     scene->enqueuePendingChanges(pendingChanges);
 }
 
 void AvatarManager::updateMyAvatar(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "AvatarManager::updateMyAvatar()");
-    
+
     _myAvatar->update(deltaTime);
-    
+
     quint64 now = usecTimestampNow();
     quint64 dt = now - _lastSendAvatarDataTime;
-    
+
     if (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS) {
         // send head/hand data to the avatar mixer and voxel server
         PerformanceTimer perfTimer("send");
@@ -103,12 +103,12 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
 
     PerformanceTimer perfTimer("otherAvatars");
-    
+
     // simulate avatars
     AvatarHash::iterator avatarIterator = _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
         auto avatar = std::dynamic_pointer_cast<Avatar>(avatarIterator.value());
-        
+
         if (avatar == _myAvatar || !avatar->isInitialized()) {
             // DO NOT update _myAvatar!  Its update has already been done earlier in the main loop.
             // DO NOT update or fade out uninitialized Avatars
@@ -122,17 +122,17 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             ++avatarIterator;
         }
     }
-    
+
     // simulate avatar fades
     simulateAvatarFades(deltaTime);
 }
 
 void AvatarManager::simulateAvatarFades(float deltaTime) {
     QVector<AvatarSharedPointer>::iterator fadingIterator = _avatarFades.begin();
-    
+
     const float SHRINK_RATE = 0.9f;
     const float MIN_FADE_SCALE = 0.001f;
-    
+
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
     render::PendingChanges pendingChanges;
     while (fadingIterator != _avatarFades.end()) {
@@ -153,12 +153,12 @@ AvatarSharedPointer AvatarManager::newSharedAvatar() {
     return AvatarSharedPointer(std::make_shared<Avatar>());
 }
 
-// virtual 
+// virtual
 AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
     auto avatar = std::dynamic_pointer_cast<Avatar>(AvatarHashMap::addAvatar(sessionUUID, mixerWeakPointer));
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
     render::PendingChanges pendingChanges;
-    avatar->addToScene(avatar, scene, pendingChanges);    
+    avatar->addToScene(avatar, scene, pendingChanges);
     scene->enqueuePendingChanges(pendingChanges);
     return avatar;
 }
@@ -177,7 +177,7 @@ void AvatarManager::removeAvatarMotionState(AvatarSharedPointer avatar) {
     }
 }
 
-// virtual 
+// virtual
 void AvatarManager::removeAvatar(const QUuid& sessionUUID) {
     AvatarHash::iterator avatarIterator = _avatarHash.find(sessionUUID);
     if (avatarIterator != _avatarHash.end()) {
