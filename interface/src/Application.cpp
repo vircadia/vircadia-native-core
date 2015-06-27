@@ -885,12 +885,10 @@ void Application::paintGL() {
 
     {
         PerformanceTimer perfTimer("renderOverlay");
-        /*
         gpu::Context context(new gpu::GLBackend());
         RenderArgs renderArgs(&context, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
             lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
             RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
-            */
         _applicationOverlay.renderOverlay(&renderArgs);
     }
 
@@ -987,6 +985,7 @@ void Application::paintGL() {
                     !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
                     renderRearViewMirror(&renderArgs, _mirrorViewRect);
                 }
+
             }, [&] {
                 r.moveLeft(r.width());
             });
@@ -1000,6 +999,28 @@ void Application::paintGL() {
             }
         }
         finalFbo = DependencyManager::get<GlowEffect>()->render(&renderArgs);
+
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
+        if (displayPlugin->isStereo()) {
+            QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
+            QRect r(QPoint(0, 0), QSize(size.width() / 2, size.height()));
+            glClear(GL_DEPTH_BUFFER_BIT);
+            for_each_eye([&](Eye eye) {
+                glViewport(r.x(), r.y(), r.width(), r.height());
+                if (displayPlugin->isHmd()) {
+                    _compositor.displayOverlayTexture(&renderArgs);
+                } else {
+                    _compositor.displayOverlayTexture(&renderArgs);
+                }
+            }, [&] {
+                r.moveLeft(r.width());
+            });
+        } else {
+            glViewport(0, 0, size.width(), size.height());
+            _compositor.displayOverlayTexture(&renderArgs);
+        }
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glFinish();
     }
 
 #if 0
@@ -1007,39 +1028,23 @@ void Application::paintGL() {
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
             renderRearViewMirror(&renderArgs, _mirrorViewRect);       
         }
-
         renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
-
-        auto finalFbo = DependencyManager::get<GlowEffect>()->render(&renderArgs);
-
-
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
-        glBlitFramebuffer(0, 0, _renderResolution.x, _renderResolution.y,
-                          0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height(),
-                            GL_COLOR_BUFFER_BIT, GL_LINEAR);
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-
-        _compositor.displayOverlayTexture(&renderArgs);
-    }
-if (!OculusManager::isConnected() || OculusManager::allowSwap()) {
-    _glWidget->swapBuffers();
-}
 #endif
 
-    // This might not be needed *right now*.  We want to ensure that the FBO rendering
-    // has completed before we start trying to read from it in another context.  However
-    // once we have multi-threaded rendering, this will almost certainly be critical,
-    // but may be better handled with a fence object
+    // Ensure the rendering context commands are completed when rendering 
     GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     _offscreenContext->doneCurrent();
     Q_ASSERT(!QOpenGLContext::currentContext());
-    glWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
-    glDeleteSync(sync);
 
     GLuint finalTexture = gpu::GLBackend::getTextureID(finalFbo->getRenderBuffer(0));
     displayPlugin->preDisplay();
+
+    Q_ASSERT(QOpenGLContext::currentContext());
+    glWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
+    glDeleteSync(sync);
+
     displayPlugin->display(finalTexture, finalFbo->getSize());
+
     displayPlugin->finishFrame();
     Q_ASSERT(!QOpenGLContext::currentContext());
     _offscreenContext->makeCurrent();

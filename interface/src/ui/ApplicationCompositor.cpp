@@ -199,13 +199,14 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
 
     updateTooltips();
 
-    auto deviceSize = qApp->getDeviceSize();
-    glViewport(0, 0, deviceSize.width(), deviceSize.height());
+//    auto deviceSize = qApp->getDeviceSize();
+//    glViewport(0, 0, deviceSize.width(), deviceSize.height());
+
+    renderArgs->_context->syncCache();
 
     //Handle fading and deactivation/activation of UI
     gpu::Batch batch;
 
-    renderArgs->_context->syncCache();
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
     geometryCache->useSimpleDrawPipeline(batch);
