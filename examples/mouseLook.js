@@ -38,7 +38,7 @@ var mouseLook = (function () {
         keyboardID = 0;
 
     function onKeyPressEvent(event) {
-    	if (event.text == 'm' && event.isMeta) {
+    	if (event.text == 'M') {
     		active = !active;
     		updateMapping();
     	}
