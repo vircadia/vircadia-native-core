@@ -42,7 +42,7 @@ public:
 
     QPoint getPalmClickLocation(const PalmData *palm) const;
     bool calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const;
-    
+
     bool hasMagnifier() const { return _magnifier; }
     void toggleMagnifier() { _magnifier = !_magnifier; }
 
@@ -68,7 +68,7 @@ public:
     static glm::vec3 sphericalToDirection(const glm::vec2 & sphericalPos);
     static glm::vec2 screenToSpherical(const glm::vec2 & screenPos);
     static glm::vec2 sphericalToScreen(const glm::vec2 & sphericalPos);
-    
+
 private:
     void displayOverlayTextureStereo(RenderArgs* renderArgs, float aspectRatio, float fov);
     void bindCursorTexture(gpu::Batch& batch, uint8_t cursorId = 0);
@@ -83,9 +83,10 @@ private:
 
     // Support for hovering and tooltips
     static EntityItemID _noItemId;
-    EntityItemID _hoverItemId{ _noItemId };
-    QString _hoverItemHref;
-    quint64 _hoverItemEnterUsecs{ 0 };
+    EntityItemID _hoverItemId { _noItemId };
+    QString _hoverItemTitle;
+    QString _hoverItemDescription;
+    quint64 _hoverItemEnterUsecs { 0 };
 
     float _hmdUIAngularSize = DEFAULT_HMD_UI_ANGULAR_SIZE;
     float _textureFov{ glm::radians(DEFAULT_HMD_UI_ANGULAR_SIZE) };
