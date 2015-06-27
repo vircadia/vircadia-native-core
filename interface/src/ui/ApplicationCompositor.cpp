@@ -146,6 +146,8 @@ ApplicationCompositor::ApplicationCompositor() {
                 _hoverItemDescription = properties.getDescription();
                 cursor->setIcon(Cursor::Icon::LINK);
             } else {
+                _hoverItemTitle.clear();
+                _hoverItemDescription.clear();
                 cursor->setIcon(Cursor::Icon::DEFAULT);
             }
         }
