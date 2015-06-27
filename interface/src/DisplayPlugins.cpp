@@ -52,11 +52,11 @@ const DisplayPluginList& getDisplayPlugins() {
         init = true;
 
         DisplayPlugin* PLUGIN_POOL[] = {
-            new NullDisplayPlugin(),
             new Basic2DWindowOpenGLDisplayPlugin(),
+            new NullDisplayPlugin(),
             new SideBySideStereoDisplayPlugin(),
-            new InterleavedStereoDisplayPlugin(),
-//            new OculusWin32DisplayPlugin(),
+//            new InterleavedStereoDisplayPlugin(),
+            new OculusWin32DisplayPlugin(),
             new OpenVrDisplayPlugin(),
             nullptr
         };
