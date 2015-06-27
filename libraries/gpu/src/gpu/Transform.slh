@@ -129,7 +129,7 @@ uniform mat4 transformCamera_viewInverse;
         <$worldPos$> = (<$objectTransform$>._model * <$modelPos$>);
     }
 <@else@>
-    <$worldPos$> = vec3(transformObject_model * <$modelPos$>);
+    <$worldPos$> = (transformObject_model * <$modelPos$>);
 <@endif@>
 <@endfunc@>
 

@@ -649,7 +649,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                 model.postScale(glm::vec3(base, base, height));
 
                 batch.setModelTransform(model);
-                auto& mesh = getSpotLightMesh();
+                auto mesh = getSpotLightMesh();
 
                 
                 batch.setIndexBuffer(mesh->getIndexBuffer());
