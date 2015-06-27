@@ -35,14 +35,11 @@ QuadEntityItem::QuadEntityItem(const EntityItemID& entityItemID, const EntityIte
 EntityItem(entityItemID) ,
 _lineWidth(DEFAULT_LINE_WIDTH),
 _pointsChanged(true),
-_points(QVector<glm::vec3>(0)),
-_quadVertices(QVector<glm::vec3>(0))
+_points(QVector<glm::vec3>(0))
 {
     _type = EntityTypes::Quad;
     _created = properties.getCreated();
     setProperties(properties);
-    
-    
 }
 
 EntityItemProperties QuadEntityItem::getProperties() const {
@@ -122,8 +119,7 @@ bool QuadEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
     if (!_pointsChanged) {
         return false;
     }
-    
-    qDebug() << "POINTS CHANGED";
+
 
     for (int i = 0; i < points.size(); i++) {
         glm::vec3 point = points.at(i);
@@ -137,19 +133,7 @@ bool QuadEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
     }
     _points = points;
     //All our points are valid and at least one point has changed, now create quads from points
-    _quadVertices.clear();
-    for (int i = 0; i < points.size(); i++) {
-        glm::vec3 point = points.at(i);
-        
-        glm::vec3 p1 = glm::vec3(point.x - _lineWidth, point.y + _lineWidth, point.z);
-        glm::vec3 p2 = glm::vec3(point.x - _lineWidth, point.y - _lineWidth, point.z);
-        glm::vec3 p3 = glm::vec3(point.x + _lineWidth, point.y + _lineWidth, point.z);
-        glm::vec3 p4 = glm::vec3(point.x + _lineWidth, point.y - _lineWidth, point.z);
 
-        _quadVertices << p1 << p2 << p3 << p4;
-        
-        
-    }
     return true;
 }
 

@@ -57,50 +57,49 @@ void RenderableQuadEntityItem::createPipeline() {
                             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
    _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
 }
-
+int generateColor() {
+    float c1 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+    float c2 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+    float c3 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+    return ((int(c1 * 255.0f) & 0xFF)) |
+    ((int(c2 * 255.0f) & 0xFF) << 8) |
+    ((int(c3 * 255.0f) & 0xFF) << 16) |
+    ((int(255.0f) & 0xFF) << 24);
+}
 
 void RenderableQuadEntityItem::updateGeometry() {
-    if(_quadVertices.size() < 1) {
+    if(_points.size() < 1) {
         return;
     }
-//    qDebug() << "num points: " << _points.size();
-//    qDebug() << "num quad vertices" << _quadVertices.size();
-
+    int compactColor = generateColor();
     if (_pointsChanged) {
         _numVertices = 0;
         _verticesBuffer.reset(new gpu::Buffer());
-//        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(0));
-//        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(1));
-//        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(2));
-//        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_quadVertices.at(3));
-//        _numVertices = 4;
-        glm::vec3 point, v1;
-        for (int i = 1; i < _points.size(); i++) {
-            float c1 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-            float c2 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-            float c3 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+        glm::vec3 point, v1, v2;
+        for (int i = 0; i < _points.size(); i++) {
+       
             
-            int compactColor = ((int(c1 * 255.0f) & 0xFF)) |
-            ((int(c2 * 255.0f) & 0xFF) << 8) |
-            ((int(c3 * 255.0f) & 0xFF) << 16) |
-            ((int(255.0f) & 0xFF) << 24);
-            point = _points.at(i);
             if(i % 2 == 0) {
-                v1 = {point.x - _lineWidth, point.y, point.z};
-            } else {
-                v1 = {point.x + _lineWidth, point.y, point.z};
+                compactColor = generateColor();
             }
-
+            point = _points.at(i);
+            v1 = {point.x - _lineWidth, point.y, point.z};
+            v2 = {point.x + _lineWidth, point.y, point.z};
+            
             _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&v1);
             _verticesBuffer->append(sizeof(int), (gpu::Byte*)&compactColor);
-            _numVertices ++;
+            _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&v2);
+            _verticesBuffer->append(sizeof(int), (gpu::Byte*)&compactColor);
+            _numVertices +=2;
         }
         _pointsChanged = false;
     }
 }
 
+
+
 void RenderableQuadEntityItem::render(RenderArgs* args) {
-    if (_quadVertices.size() < 4 ) {
+    if (_points.size() < 2 ) {
         return;
     }
     if (!_pipeline) {

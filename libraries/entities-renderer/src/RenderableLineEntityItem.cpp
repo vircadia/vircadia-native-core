@@ -36,6 +36,9 @@ void RenderableLineEntityItem::updateGeometry() {
     }
 }
 
+
+
+
 void RenderableLineEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableLineEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Line);
