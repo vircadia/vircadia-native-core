@@ -16,41 +16,56 @@ var controllerID;
 var controllerActive;
 var stickID = null;
 var actionID = nullActionID;
-// sometimes if this is run immediately the stick doesn't get created?  use a timer.
-Script.setTimeout(function() {
-    stickID = Entities.addEntity({
-        type: "Model",
-        modelURL: "https://hifi-public.s3.amazonaws.com/eric/models/stick.fbx",
-        compoundShapeURL: "https://hifi-public.s3.amazonaws.com/eric/models/stick.obj",
-        dimensions: {x: .11, y: .11, z: 1.0},
-        position: MyAvatar.getRightPalmPosition(), // initial position doesn't matter, as long as it's close
-        rotation: MyAvatar.orientation,
-        damping: .1,
-        collisionSoundURL: "http://public.highfidelity.io/sounds/Collisions-hitsandslaps/67LCollision07.wav",
-        restitution: 0.01,
-        collisionsWillMove: true
-    });
-    actionID = Entities.addAction("hold", stickID, {relativePosition: {x: 0.0, y: 0.0, z: -0.9},
-                                                    hand: hand,
-                                                    timeScale: 0.15});
-}, 3000);
+var makingNewStick = false;
+
+function makeNewStick() {
+    if (makingNewStick) {
+        return;
+    }
+    makingNewStick = true;
+    cleanUp();
+    // sometimes if this is run immediately the stick doesn't get created?  use a timer.
+    Script.setTimeout(function() {
+        stickID = Entities.addEntity({
+            type: "Model",
+            modelURL: "https://hifi-public.s3.amazonaws.com/eric/models/stick.fbx",
+            compoundShapeURL: "https://hifi-public.s3.amazonaws.com/eric/models/stick.obj",
+            dimensions: {x: .11, y: .11, z: 1.0},
+            position: MyAvatar.getRightPalmPosition(), // initial position doesn't matter, as long as it's close
+            rotation: MyAvatar.orientation,
+            damping: .1,
+            collisionSoundURL: "http://public.highfidelity.io/sounds/Collisions-hitsandslaps/67LCollision07.wav",
+            restitution: 0.01,
+            collisionsWillMove: true
+        });
+        actionID = Entities.addAction("hold", stickID, {relativePosition: {x: 0.0, y: 0.0, z: -0.9},
+                                                        hand: hand,
+                                                        timeScale: 0.15});
+        makingNewStick = false;
+    }, 3000);
+}
 
 
 function cleanUp() {
-    Entities.deleteEntity(stickID);
+    if (stickID) {
+        Entities.deleteEntity(stickID);
+        stickID = null;
+    }
 }
 
 
 function positionStick(stickOrientation) {
     var baseOffset = {x: 0.0, y: 0.0, z: -0.9};
     var offset = Vec3.multiplyQbyV(stickOrientation, baseOffset);
-    Entities.updateAction(stickID, actionID, {relativePosition: offset,
-                                              relativeRotation: stickOrientation});
+    if (!Entities.updateAction(stickID, actionID, {relativePosition: offset, relativeRotation: stickOrientation})) {
+        makeNewStick();
+    }
 }
 
 
 function mouseMoveEvent(event) {
     if (!stickID || actionID == nullActionID) {
+        makeNewStick();
         return;
     }
     var windowCenterX = Window.innerWidth / 2;
@@ -89,6 +104,8 @@ function update(deltaTime){
 }
 
 
+
 Script.scriptEnding.connect(cleanUp);
 Controller.mouseMoveEvent.connect(mouseMoveEvent);
 Script.update.connect(update);
+makeNewStick();
