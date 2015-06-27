@@ -132,19 +132,18 @@ ApplicationCompositor::ApplicationCompositor() {
 
             // check the format of this href string before we parse it
             QString hrefString = properties.getHref();
-            if (!hrefString.startsWith("hifi:")) {
-                hrefString.prepend("hifi://");
-            }
-
-            // parse out a QUrl from the hrefString
-            QUrl href = QUrl(hrefString);
-
-            _hoverItemTitle = href.host();
-            _hoverItemDescription = properties.getDescription();
 
             auto cursor = Cursor::Manager::instance().getCursor();
+            if (!hrefString.isEmpty()) {
+                if (!hrefString.startsWith("hifi:")) {
+                    hrefString.prepend("hifi://");
+                }
 
-            if (!href.isEmpty()) {
+                // parse out a QUrl from the hrefString
+                QUrl href = QUrl(hrefString);
+
+                _hoverItemTitle = href.host();
+                _hoverItemDescription = properties.getDescription();
                 cursor->setIcon(Cursor::Icon::LINK);
             } else {
                 cursor->setIcon(Cursor::Icon::DEFAULT);
