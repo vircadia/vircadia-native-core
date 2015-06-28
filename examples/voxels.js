@@ -40,7 +40,6 @@ function mousePressEvent(event) {
     // or if we pick a non-PolyVox entity, we fall through to the next picking attempt.
     if (intersection.intersects) {
         if (attemptVoxelChange(intersection)) {
-            print("here0");
             return;
         }
     }
@@ -49,10 +48,8 @@ function mousePressEvent(event) {
     // bounding box, instead.
     intersection = Entities.findRayIntersection(pickRay, false); // bounding box picking
     if (intersection.intersects) {
-        print("here1");
         attemptVoxelChange(intersection);
     }
-    print("here2");
 }
 
 
