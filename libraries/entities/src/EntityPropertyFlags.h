@@ -125,6 +125,8 @@ enum EntityPropertyList {
     PROP_FACE_CAMERA,
     PROP_SCRIPT_TIMESTAMP,
     
+    //Used by quad entity
+    PROP_NORMALS,
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,

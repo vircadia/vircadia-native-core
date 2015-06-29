@@ -56,9 +56,11 @@ class QuadEntityItem : public EntityItem {
     
     bool setLinePoints(const QVector<glm::vec3>& points);
     bool appendPoint(const glm::vec3& point);
-    
-    
     const QVector<glm::vec3>& getLinePoints() const{ return _points; }
+    
+    bool setNormals(const QVector<glm::vec3>& normals);
+    const QVector<glm::vec3>& getNormals() const{ return _normals; }
+    
     
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_LINE; }
 
@@ -77,6 +79,8 @@ class QuadEntityItem : public EntityItem {
     float _lineWidth;
     bool _pointsChanged;
     QVector<glm::vec3> _points;
+    QVector<glm::vec3> _vertices;
+    QVector<glm::vec3> _normals;
 };
 
 #endif // hifi_QuadEntityItem_h

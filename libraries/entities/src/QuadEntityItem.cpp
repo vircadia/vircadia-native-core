@@ -35,7 +35,8 @@ QuadEntityItem::QuadEntityItem(const EntityItemID& entityItemID, const EntityIte
 EntityItem(entityItemID) ,
 _lineWidth(DEFAULT_LINE_WIDTH),
 _pointsChanged(true),
-_points(QVector<glm::vec3>(0))
+_points(QVector<glm::vec3>(0)),
+_vertices(QVector<glm::vec3>(0))
 {
     _type = EntityTypes::Quad;
     _created = properties.getCreated();
@@ -52,8 +53,8 @@ EntityItemProperties QuadEntityItem::getProperties() const {
     
     
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lineWidth, getLineWidth);
-    
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(linePoints, getLinePoints);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(normals, getNormals);
     
     
     properties._glowLevel = getGlowLevel();
@@ -69,6 +70,7 @@ bool QuadEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lineWidth, setLineWidth);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(linePoints, setLinePoints);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(normals, setNormals);
     
     
     if (somethingChanged) {
@@ -96,6 +98,36 @@ bool QuadEntityItem::appendPoint(const glm::vec3& point) {
     }
     _points << point;
     _pointsChanged = true;
+    return true;
+}
+
+bool QuadEntityItem::setNormals(const QVector<glm::vec3> &normals) {
+    if (_points.size () < 2) {
+        return false;
+    }
+    _normals = normals;
+    qDebug() << "NORMALS: " << normals;
+    _vertices.clear();
+    //Go through and create vertices for triangle strip based on normals
+    if (_normals.size() != _points.size()) {
+        return false;
+    }
+    glm::vec3 v1, v2, tangent, binormal, point;
+    for (int i = 0; i < _points.size()-1; i++) {
+        point = _points.at(i);
+        //Get tangent
+        tangent = _points.at(i+1) - point;
+        binormal = glm::normalize(glm::cross(tangent, normals.at(i))) * _lineWidth;
+        v1 = point + binormal;
+        v2 = point - binormal;
+        _vertices << v1 << v2;
+    }
+    //for last point we can just assume binormals are same since it represents last two vertices of quad
+    point = _points.at(_points.size() - 1);
+    v1 = point + binormal;
+    v2 = point - binormal;
+    _vertices << v1 << v2;
+    
     return true;
 }
 
@@ -147,6 +179,7 @@ int QuadEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
     READ_ENTITY_PROPERTY(PROP_LINE_WIDTH, float, setLineWidth);
     READ_ENTITY_PROPERTY(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
+    READ_ENTITY_PROPERTY(PROP_NORMALS, QVector<glm::vec3>,  setNormals);
     
     
     return bytesRead;
@@ -159,6 +192,7 @@ EntityPropertyFlags QuadEntityItem::getEntityProperties(EncodeBitstreamParams& p
     requestedProperties += PROP_COLOR;
     requestedProperties += PROP_LINE_WIDTH;
     requestedProperties += PROP_LINE_POINTS;
+    requestedProperties += PROP_NORMALS;
     return requestedProperties;
 }
 
@@ -175,6 +209,7 @@ void QuadEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
     APPEND_ENTITY_PROPERTY(PROP_LINE_WIDTH, getLineWidth());
     APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, getLinePoints());
+    APPEND_ENTITY_PROPERTY(PROP_NORMALS, getNormals());
 }
 
 void QuadEntityItem::debugDump() const {

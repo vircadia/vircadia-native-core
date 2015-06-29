@@ -153,6 +153,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_HREF, Href, href, QString);
     DEFINE_PROPERTY_REF(PROP_DESCRIPTION, Description, description, QString);
     DEFINE_PROPERTY(PROP_FACE_CAMERA, FaceCamera, faceCamera, bool);
+    DEFINE_PROPERTY(PROP_NORMALS, Normals, normals, QVector<glm::vec3>);
     
     static QString getBackgroundModeString(BackgroundMode mode);
 
