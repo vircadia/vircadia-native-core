@@ -692,13 +692,13 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
         _eyeRenderPoses[eye] = eyePoses[eye];
         // Set the camera rotation for this eye
 
-        vec3 eyePosition = toGlm(_eyeRenderPoses[eye].Position);
-        eyePosition = whichCamera.getRotation() * eyePosition;
+        _eyePositions[eye] = toGlm(_eyeRenderPoses[eye].Position);
+        _eyePositions[eye] = whichCamera.getRotation() * _eyePositions[eye];
         quat eyeRotation = toGlm(_eyeRenderPoses[eye].Orientation);
         
         // Update our camera to what the application camera is doing
         _camera->setRotation(whichCamera.getRotation() * eyeRotation);
-        _camera->setPosition(whichCamera.getPosition() + eyePosition);
+        _camera->setPosition(whichCamera.getPosition() + _eyePositions[eye]);
         configureCamera(*_camera);
         _camera->update(1.0f / Application::getInstance()->getFps());
 
