@@ -28,6 +28,7 @@ function makeNewStick() {
     Script.setTimeout(function() {
         stickID = Entities.addEntity({
             type: "Model",
+            name: "stick",
             modelURL: "https://hifi-public.s3.amazonaws.com/eric/models/stick.fbx",
             compoundShapeURL: "https://hifi-public.s3.amazonaws.com/eric/models/stick.obj",
             dimensions: {x: .11, y: .11, z: 1.0},
