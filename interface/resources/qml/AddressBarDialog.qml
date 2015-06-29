@@ -79,7 +79,7 @@ DialogContainer {
             Image {
                 id: backArrow
 
-                source: addressBarDialog.backEnabled ? "../images/left-arrow.svg" : "../images/redarrow_reversed.svg"
+                source: addressBarDialog.backEnabled ? "../images/left-arrow.svg" : "../images/left-arrow-disabled.svg"
                 
                 anchors {
                     fill: parent
@@ -101,7 +101,7 @@ DialogContainer {
             Image {
                 id: forwardArrow
 
-                source: addressBarDialog.forwardEnabled ? "../images/right-arrow.svg" : "../images/redarrow.svg"
+                source: addressBarDialog.forwardEnabled ? "../images/right-arrow.svg" : "../images/right-arrow-disabled.svg"
                 
                 anchors {
                     fill: parent

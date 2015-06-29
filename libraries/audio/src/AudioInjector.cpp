@@ -93,7 +93,6 @@ void AudioInjector::injectAudio() {
 }
 
 void AudioInjector::restart() {
-    qCDebug(audio) << "Restarting an AudioInjector by stopping and starting over.";
     connect(this, &AudioInjector::finished, this, &AudioInjector::restartPortionAfterFinished);
     if (!_isStarted || _isFinished) {
         emit finished();

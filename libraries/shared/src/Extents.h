@@ -20,6 +20,7 @@
 #include "StreamUtils.h"
 
 class AABox;
+class Transform;
 
 class Extents {
 public:
@@ -56,6 +57,13 @@ public:
     
     /// rotate the extents around orign by rotation
     void rotate(const glm::quat& rotation);
+    
+    /// scale the extents around orign by scale
+    void scale(float scale) { minimum *= scale; maximum *= scale; }
+    void scale(const glm::vec3& scale) { minimum *= scale; maximum *= scale; }
+    
+    // Transform the extents with transform
+    void transform(const Transform& transform);
 
     glm::vec3 size() const { return maximum - minimum; }
     float largestDimension() const {glm::vec3 s = size(); return glm::max(s[0], s[1], s[2]); }

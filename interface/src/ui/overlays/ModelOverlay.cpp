@@ -9,15 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ModelOverlay.h"
+
 #include <Application.h>
 #include <GlowEffect.h>
 
-#include "ModelOverlay.h"
 
 ModelOverlay::ModelOverlay()
     : _model(),
       _modelTextures(QVariantMap()),
-      _scale(1.0f),
       _updateModel(false)
 {
     _model.init();
@@ -25,12 +25,10 @@ ModelOverlay::ModelOverlay()
 }
 
 ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
-    Base3DOverlay(modelOverlay),
+    Volume3DOverlay(modelOverlay),
     _model(),
     _modelTextures(QVariantMap()),
     _url(modelOverlay->_url),
-    _rotation(modelOverlay->_rotation),
-    _scale(modelOverlay->_scale),
     _updateModel(false)
 {
     _model.init();
@@ -45,8 +43,9 @@ void ModelOverlay::update(float deltatime) {
         _updateModel = false;
         
         _model.setSnapModelToCenter(true);
-        _model.setRotation(_rotation);
-        _model.setTranslation(_position);
+        _model.setScale(getScale());
+        _model.setRotation(getRotation());
+        _model.setTranslation(getPosition());
         _model.setURL(_url);
         _model.simulate(deltatime, true);
     } else {
@@ -56,13 +55,13 @@ void ModelOverlay::update(float deltatime) {
 }
 
 bool ModelOverlay::addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
-    Base3DOverlay::addToScene(overlay, scene, pendingChanges);
+    Volume3DOverlay::addToScene(overlay, scene, pendingChanges);
     _model.addToScene(scene, pendingChanges);
     return true;
 }
 
 void ModelOverlay::removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
-    Base3DOverlay::removeFromScene(overlay, scene, pendingChanges);
+    Volume3DOverlay::removeFromScene(overlay, scene, pendingChanges);
     _model.removeFromScene(scene, pendingChanges);
 }
 
@@ -100,54 +99,26 @@ void ModelOverlay::render(RenderArgs* args) {
 }
 
 void ModelOverlay::setProperties(const QScriptValue &properties) {
-    Base3DOverlay::setProperties(properties);
+    auto position = getPosition();
+    auto rotation = getRotation();
+    auto scale = getDimensions();
+    
+    Volume3DOverlay::setProperties(properties);
+    
+    if (position != getPosition() || rotation != getRotation() || scale != getDimensions()) {
+        _model.setScaleToFit(true, getScale());
+        _updateModel = true;
+    }
     
     QScriptValue urlValue = properties.property("url");
-    if (urlValue.isValid()) {
-        _url = urlValue.toVariant().toString();
+    if (urlValue.isValid() && urlValue.isString()) {
+        _url = urlValue.toString();
         _updateModel = true;
         _isLoaded = false;
     }
     
-    QScriptValue scaleValue = properties.property("scale");
-    if (scaleValue.isValid()) {
-        _scale = scaleValue.toVariant().toFloat();
-        _model.setScaleToFit(true, _scale);
-        _updateModel = true;
-    }
-    
-    QScriptValue rotationValue = properties.property("rotation");
-    if (rotationValue.isValid()) {
-        QScriptValue x = rotationValue.property("x");
-        QScriptValue y = rotationValue.property("y");
-        QScriptValue z = rotationValue.property("z");
-        QScriptValue w = rotationValue.property("w");
-        if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) {
-            _rotation.x = x.toVariant().toFloat();
-            _rotation.y = y.toVariant().toFloat();
-            _rotation.z = z.toVariant().toFloat();
-            _rotation.w = w.toVariant().toFloat();
-        }
-        _updateModel = true;
-    }
-
-    QScriptValue dimensionsValue = properties.property("dimensions");
-    if (dimensionsValue.isValid()) {
-        QScriptValue x = dimensionsValue.property("x");
-        QScriptValue y = dimensionsValue.property("y");
-        QScriptValue z = dimensionsValue.property("z");
-        if (x.isValid() && y.isValid() && z.isValid()) {
-            glm::vec3 dimensions;
-            dimensions.x = x.toVariant().toFloat();
-            dimensions.y = y.toVariant().toFloat();
-            dimensions.z = z.toVariant().toFloat();
-            _model.setScaleToFit(true, dimensions);
-        }
-        _updateModel = true;
-    }
-    
     QScriptValue texturesValue = properties.property("textures");
-    if (texturesValue.isValid()) {
+    if (texturesValue.isValid() && texturesValue.toVariant().canConvert(QVariant::Map)) {
         QVariantMap textureMap = texturesValue.toVariant().toMap();
         foreach(const QString& key, textureMap.keys()) {
             
@@ -161,21 +132,11 @@ void ModelOverlay::setProperties(const QScriptValue &properties) {
             _modelTextures[key] = newTextureURL;  // Keep local track of textures for getProperty()
         }
     }
-
-    if (properties.property("position").isValid()) {
-        _updateModel = true;
-    }
 }
 
 QScriptValue ModelOverlay::getProperty(const QString& property) {
     if (property == "url") {
         return _url.toString();
-    }
-    if (property == "scale") {
-        return _scale;
-    }
-    if (property == "rotation") {
-        return quatToScriptValue(_scriptEngine, _rotation);
     }
     if (property == "dimensions") {
         return vec3toScriptValue(_scriptEngine, _model.getScaleToFitDimensions());
@@ -192,7 +153,7 @@ QScriptValue ModelOverlay::getProperty(const QString& property) {
         }
     }
 
-    return Base3DOverlay::getProperty(property);
+    return Volume3DOverlay::getProperty(property);
 }
 
 bool ModelOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,

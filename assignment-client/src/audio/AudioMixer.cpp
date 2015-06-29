@@ -852,9 +852,11 @@ void AudioMixer::run() {
 
         // since we're a while loop we need to help Qt's event processing
         QCoreApplication::processEvents();
-        QCoreApplication::sendPostedEvents(this, 0);
 
         if (_isFinished) {
+            // at this point the audio-mixer is done
+            // check if we have a deferred delete event to process (which we should once finished)
+            QCoreApplication::sendPostedEvents(this, QEvent::DeferredDelete);
             break;
         }
 
