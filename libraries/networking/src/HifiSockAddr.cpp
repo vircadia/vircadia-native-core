@@ -22,14 +22,14 @@ HifiSockAddr::HifiSockAddr() :
     _address(),
     _port(0)
 {
-    
+
 }
 
 HifiSockAddr::HifiSockAddr(const QHostAddress& address, quint16 port) :
     _address(address),
     _port(port)
 {
-    
+
 }
 
 HifiSockAddr::HifiSockAddr(const HifiSockAddr& otherSockAddr) :
@@ -37,7 +37,7 @@ HifiSockAddr::HifiSockAddr(const HifiSockAddr& otherSockAddr) :
     _address(otherSockAddr._address),
     _port(otherSockAddr._port)
 {
-    
+
 }
 
 HifiSockAddr& HifiSockAddr::operator=(const HifiSockAddr& rhsSockAddr) {
@@ -66,7 +66,7 @@ HifiSockAddr::HifiSockAddr(const QString& hostname, quint16 hostOrderPort, bool 
 
 HifiSockAddr::HifiSockAddr(const sockaddr* sockaddr) {
     _address = QHostAddress(sockaddr);
-    
+
     if (sockaddr->sa_family == AF_INET) {
         _port = ntohs(reinterpret_cast<const sockaddr_in*>(sockaddr)->sin_port);
     } else {
@@ -76,7 +76,7 @@ HifiSockAddr::HifiSockAddr(const sockaddr* sockaddr) {
 
 void HifiSockAddr::swap(HifiSockAddr& otherSockAddr) {
     using std::swap;
-    
+
     swap(_address, otherSockAddr._address);
     swap(_port, otherSockAddr._port);
 }
@@ -90,7 +90,7 @@ void HifiSockAddr::handleLookupResult(const QHostInfo& hostInfo) {
         qCDebug(networking) << "Lookup failed for" << hostInfo.lookupId() << ":" << hostInfo.errorString();
         emit lookupFailed();
     }
-    
+
     foreach(const QHostAddress& address, hostInfo.addresses()) {
         // just take the first IPv4 address
         if (address.protocol() == QAbstractSocket::IPv4Protocol) {
@@ -119,9 +119,9 @@ QDataStream& operator>>(QDataStream& dataStream, HifiSockAddr& sockAddr) {
 }
 
 QHostAddress getLocalAddress() {
-    
+
     QHostAddress localAddress;
-    
+
     foreach(const QNetworkInterface &networkInterface, QNetworkInterface::allInterfaces()) {
         if (networkInterface.flags() & QNetworkInterface::IsUp
             && networkInterface.flags() & QNetworkInterface::IsRunning
@@ -131,19 +131,19 @@ QHostAddress getLocalAddress() {
             foreach(const QNetworkAddressEntry &entry, networkInterface.addressEntries()) {
                 // make sure it's an IPv4 address that isn't the loopback
                 if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol && !entry.ip().isLoopback()) {
-                    
+
                     // set our localAddress and break out
                     localAddress = entry.ip();
                     break;
                 }
             }
         }
-        
+
         if (!localAddress.isNull()) {
             break;
         }
     }
-    
+
     // return the looked up local address
     return localAddress;
 }

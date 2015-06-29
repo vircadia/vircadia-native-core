@@ -340,8 +340,6 @@ void AddressManager::handleAPIError(QNetworkReply& errorReply) {
     emit lookupResultsFinished();
 }
 
-const QString GET_PLACE = "/api/v1/places/%1";
-
 void AddressManager::attemptPlaceNameLookup(const QString& lookupString, const QString& overridePath, LookupTrigger trigger) {
     // assume this is a place name and see if we can get any info on it
     QString placeName = QUrl::toPercentEncoding(lookupString);

@@ -44,16 +44,26 @@ body {
     border: 1.5pt solid black;
 }
 
-.section-header {
+.section-header, .sub-section-header {
     background: #AAA;
     border-bottom: 0.75pt solid #CCC;
     background-color: #333333;
     color: #999;
     padding: 3pt;
+    padding-top: 6pt;
 }
 
-.section-header label {
+.section-header label, .sub-section-header label {
     font-weight: bold;
+    font-size: 11pt;
+}
+
+.sub-section-header {
+    padding-top: 4px;
+}
+
+.sub-section-header label {
+    font-size: 9pt;
 }
 
 .multi-property-section {
@@ -183,11 +193,11 @@ div.input-area {
 input {
 }
 
-#type {
+#type, #id {
     font-size: 9.0pt;
 }
 
-#type label {
+#type label, #id label {
     color: rgb(150, 150, 150);
 }
 
@@ -248,6 +258,11 @@ table#properties-list {
     text-overflow: ellipsis;
     vertical-align: middle;
     height: 1.2em;
+}
+
+#properties-list .label input[type=button] {
+    float: right;
+    padding: 0 5px 1px;
 }
 
 #properties-list .value > div{
