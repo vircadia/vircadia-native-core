@@ -706,22 +706,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             //      PROP_PAGED_PROPERTY,
             //      PROP_CUSTOM_PROPERTIES_INCLUDED,
             
-            if (requestedProperties.getHasProperty(PROP_SIMULATION_OWNER)) {
-                LevelDetails propertyLevel = packetData->startLevel();
-                successPropertyFits = packetData->appendValue(properties._simulationOwner.toByteArray());
-                if (successPropertyFits) {
-                    propertyFlags |= PROP_SIMULATION_OWNER;
-                    propertiesDidntFit -= PROP_SIMULATION_OWNER;
-                    propertyCount++;
-                    packetData->endLevel(propertyLevel);
-                } else {
-                    packetData->discardLevel(propertyLevel);
-                    appendState = OctreeElement::PARTIAL;
-                }
-            } else {
-                propertiesDidntFit -= PROP_SIMULATION_OWNER;
-            }
-
+            APPEND_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, properties._simulationOwner.toByteArray());
             APPEND_ENTITY_PROPERTY(PROP_POSITION, properties.getPosition());
             APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, properties.getDimensions()); // NOTE: PROP_RADIUS obsolete
             APPEND_ENTITY_PROPERTY(PROP_ROTATION, properties.getRotation());
@@ -976,17 +961,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     dataAt += propertyFlags.getEncodedLength();
     processedBytes += propertyFlags.getEncodedLength();
 
-    if (propertyFlags.getHasProperty(PROP_SIMULATION_OWNER)) {
-        QByteArray fromBuffer;
-        int bytes = OctreePacketData::unpackDataFromBytes(dataAt, fromBuffer);
-
-        dataAt += bytes;
-        processedBytes += bytes;
-        SimulationOwner simOwner;
-        simOwner.fromByteArray(fromBuffer);
-        properties.setSimulationOwner(simOwner);
-    }
-
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SIMULATION_OWNER, QByteArray, setSimulationOwner);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POSITION, glm::vec3, setPosition);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DIMENSIONS, glm::vec3, setDimensions);  // NOTE: PROP_RADIUS obsolete
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ROTATION, glm::quat, setRotation);
@@ -1268,6 +1243,12 @@ void EntityItemProperties::clearSimulationOwner() {
 void EntityItemProperties::setSimulationOwner(const QUuid& id, uint8_t priority) {
     if (!_simulationOwner.matchesValidID(id) || _simulationOwner.getPriority() != priority) {
         _simulationOwner.set(id, priority);
+        _simulationOwnerChanged = true;
+    }
+}
+
+void EntityItemProperties::setSimulationOwner(const QByteArray& data) {
+    if (_simulationOwner.fromByteArray(data)) {
         _simulationOwnerChanged = true;
     }
 }
