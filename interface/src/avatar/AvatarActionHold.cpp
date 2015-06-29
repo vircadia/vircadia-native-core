@@ -54,6 +54,22 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
     if (!tryLockForWrite()) {
         return;
     }
+
+    // check for NaNs
+    if (position.x != position.x ||
+        position.y != position.y ||
+        position.z != position.z) {
+        qDebug() << "AvatarActionHold::updateActionWorker -- target position includes NaN";
+        return;
+    }
+    if (rotation.x != rotation.x ||
+        rotation.y != rotation.y ||
+        rotation.z != rotation.z ||
+        rotation.w != rotation.w) {
+        qDebug() << "AvatarActionHold::updateActionWorker -- target rotation includes NaN";
+        return;
+    }
+
     _positionalTarget = position;
     _rotationalTarget = rotation;
     unlock();
@@ -145,6 +161,7 @@ QByteArray AvatarActionHold::serialize() {
     dataStream << _relativePosition;
     dataStream << _relativeRotation;
     dataStream << _hand;
+    dataStream << _linearTimeScale;
 
     return ba;
 }
@@ -168,6 +185,9 @@ void AvatarActionHold::deserialize(QByteArray serializedArguments) {
     dataStream >> _relativePosition;
     dataStream >> _relativeRotation;
     dataStream >> _hand;
+    dataStream >> _linearTimeScale;
+    _angularTimeScale = _linearTimeScale;
+
     _parametersSet = true;
 
     _active = true;

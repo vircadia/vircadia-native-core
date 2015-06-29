@@ -55,6 +55,17 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
 
     // handle the linear part
     if (_positionalTargetSet) {
+        // check for NaN
+        if (_positionalTarget.x != _positionalTarget.x ||
+            _positionalTarget.y != _positionalTarget.y ||
+            _positionalTarget.z != _positionalTarget.z) {
+            qDebug() << "ObjectActionSpring::updateActionWorker -- target position includes NaN";
+            unlock();
+            lockForWrite();
+            _active = false;
+            unlock();
+            return;
+        }
         glm::vec3 offset = _positionalTarget - bulletToGLM(rigidBody->getCenterOfMassPosition());
         float offsetLength = glm::length(offset);
         float speed = offsetLength / _linearTimeScale;
@@ -70,6 +81,18 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
 
     // handle rotation
     if (_rotationalTargetSet) {
+        if (_rotationalTarget.x != _rotationalTarget.x ||
+            _rotationalTarget.y != _rotationalTarget.y ||
+            _rotationalTarget.z != _rotationalTarget.z ||
+            _rotationalTarget.w != _rotationalTarget.w) {
+            qDebug() << "AvatarActionHold::updateActionWorker -- target rotation includes NaN";
+            unlock();
+            lockForWrite();
+            _active = false;
+            unlock();
+            return;
+        }
+
         glm::quat bodyRotation = bulletToGLM(rigidBody->getOrientation());
         // if qZero and qOne are too close to each other, we can get NaN for angle.
         auto alignmentDot = glm::dot(bodyRotation, _rotationalTarget);
