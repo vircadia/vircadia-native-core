@@ -122,8 +122,11 @@ enum EntityPropertyList {
     PROP_HREF,
     PROP_DESCRIPTION,
     
+    PROP_FACE_CAMERA,
+    PROP_SCRIPT_TIMESTAMP,
+    
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-    // ATTENTION: add new properties ABOVE this line
+    // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -12,11 +12,6 @@ Item {
         implicitWidth: row.width
 
         anchors.horizontalCenter: parent.horizontalCenter
-
-        readonly property int sTATS_GENERAL_MIN_WIDTH: 165
-        readonly property int sTATS_PING_MIN_WIDTH: 190
-        readonly property int sTATS_GEO_MIN_WIDTH: 240
-        readonly property int sTATS_OCTREE_MIN_WIDTH: 410
         readonly property int fontSize: 12
         readonly property string fontColor: "white"
         readonly property string bgColor: "#99333333"
@@ -37,7 +32,6 @@ Item {
                 Column {
                     id: generalCol
                     spacing: 4; x: 4; y: 4;
-                    width: sTATS_GENERAL_MIN_WIDTH
                     Text { 
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
@@ -78,7 +72,6 @@ Item {
                 Column {
                     id: pingCol
                     spacing: 4; x: 4; y: 4;
-                    width: sTATS_PING_MIN_WIDTH
                     Text { 
                         color: root.fontColor
                         font.pixelSize: root.fontSize
@@ -114,7 +107,6 @@ Item {
                 Column {
                     id: geoCol
                     spacing: 4; x: 4; y: 4;
-                    width: sTATS_GEO_MIN_WIDTH
                     Text { 
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
@@ -157,7 +149,6 @@ Item {
                 Column {
                     id: octreeCol
                     spacing: 4; x: 4; y: 4;
-                    width: sTATS_OCTREE_MIN_WIDTH
                     Text { 
                         color: root.fontColor;
                         font.pixelSize: root.fontSize

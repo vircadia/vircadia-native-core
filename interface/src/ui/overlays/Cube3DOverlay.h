@@ -17,9 +17,9 @@ class Cube3DOverlay : public Volume3DOverlay {
     Q_OBJECT
     
 public:
-    Cube3DOverlay();
+    Cube3DOverlay() {}
     Cube3DOverlay(const Cube3DOverlay* cube3DOverlay);
-    ~Cube3DOverlay();
+    
     virtual void render(RenderArgs* args);
 
     virtual Cube3DOverlay* createClone() const;

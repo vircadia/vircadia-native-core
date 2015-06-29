@@ -17,8 +17,9 @@
 
 #include <avatar/AvatarManager.h>
 #include <gpu/GLBackend.h>
-#include <CursorManager.h>
-#include <Tooltip.h>
+
+#include "CursorManager.h"
+#include "Tooltip.h"
 
 #include "Application.h"
 
@@ -117,7 +118,7 @@ ApplicationCompositor::ApplicationCompositor() {
     memset(_magSizeMult, 0, sizeof(_magSizeMult));
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    
+
     _reticleQuad = geometryCache->allocateID();
     _magnifierQuad = geometryCache->allocateID();
     _magnifierBorder = geometryCache->allocateID();
@@ -128,11 +129,25 @@ ApplicationCompositor::ApplicationCompositor() {
             _hoverItemId = entityItemID;
             _hoverItemEnterUsecs = usecTimestampNow();
             auto properties = entityScriptingInterface->getEntityProperties(_hoverItemId);
-            _hoverItemHref = properties.getHref();
+
+            // check the format of this href string before we parse it
+            QString hrefString = properties.getHref();
+
             auto cursor = Cursor::Manager::instance().getCursor();
-            if (!_hoverItemHref.isEmpty()) {
+            if (!hrefString.isEmpty()) {
+                if (!hrefString.startsWith("hifi:")) {
+                    hrefString.prepend("hifi://");
+                }
+
+                // parse out a QUrl from the hrefString
+                QUrl href = QUrl(hrefString);
+
+                _hoverItemTitle = href.host();
+                _hoverItemDescription = properties.getDescription();
                 cursor->setIcon(Cursor::Icon::LINK);
             } else {
+                _hoverItemTitle.clear();
+                _hoverItemDescription.clear();
                 cursor->setIcon(Cursor::Icon::DEFAULT);
             }
         }
@@ -141,7 +156,10 @@ ApplicationCompositor::ApplicationCompositor() {
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity, [=](const EntityItemID& entityItemID, const MouseEvent& event) {
         if (_hoverItemId == entityItemID) {
             _hoverItemId = _noItemId;
-            _hoverItemHref.clear();
+
+            _hoverItemTitle.clear();
+            _hoverItemDescription.clear();
+
             auto cursor = Cursor::Manager::instance().getCursor();
             cursor->setIcon(Cursor::Icon::DEFAULT);
             if (!_tooltipId.isEmpty()) {
@@ -182,7 +200,8 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
 
     updateTooltips();
 
-    vec2 canvasSize = qApp->getCanvasSize();
+    auto deviceSize = qApp->getDeviceSize();
+    glViewport(0, 0, deviceSize.width(), deviceSize.height());
 
     //Handle fading and deactivation/activation of UI
     gpu::Batch batch;
@@ -204,6 +223,7 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
 
     //draw the mouse pointer
     // Get the mouse coordinates and convert to NDC [-1, 1]
+    vec2 canvasSize = qApp->getCanvasSize();
     vec2 mousePosition = toNormalizedDeviceScale(vec2(qApp->getMouse()), canvasSize);
     // Invert the Y axis
     mousePosition.y *= -1.0f;
@@ -312,7 +332,7 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
         batch.setModelTransform(reticleXfm);
         geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
     }
-    
+
     renderArgs->_context->render(batch);
 }
 
@@ -322,7 +342,7 @@ void ApplicationCompositor::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& or
     const glm::vec2 projection = screenToSpherical(cursorPos);
     // The overlay space orientation of the mouse coordinates
     const glm::quat orientation(glm::vec3(-projection.y, projection.x, 0.0f));
-    // FIXME We now have the direction of the ray FROM THE DEFAULT HEAD POSE.  
+    // FIXME We now have the direction of the ray FROM THE DEFAULT HEAD POSE.
     // Now we need to account for the actual camera position relative to the overlay
     glm::vec3 overlaySpaceDirection = glm::normalize(orientation * IDENTITY_FRONT);
 
@@ -375,7 +395,7 @@ QPoint ApplicationCompositor::getPalmClickLocation(const PalmData *palm) const {
 //Finds the collision point of a world space ray
 bool ApplicationCompositor::calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const {
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    
+
     glm::quat inverseOrientation = glm::inverse(myAvatar->getOrientation());
 
     glm::vec3 relativePosition = inverseOrientation * (position - myAvatar->getDefaultEyePosition());
@@ -407,7 +427,7 @@ void ApplicationCompositor::renderPointers(gpu::Batch& batch) {
         renderControllerPointers(batch);
     }
 }
-       
+
 
 void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
@@ -515,7 +535,7 @@ void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
 
         DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
                                                             glm::vec4(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], 1.0f));
-        
+
     }
 }
 
@@ -525,10 +545,10 @@ void ApplicationCompositor::renderMagnifier(gpu::Batch& batch, const glm::vec2& 
         return;
     }
     auto canvasSize = qApp->getCanvasSize();
-    
+
     const int widgetWidth = canvasSize.x;
     const int widgetHeight = canvasSize.y;
-    
+
     const float halfWidth = (MAGNIFY_WIDTH / _textureAspectRatio) * sizeMult / 2.0f;
     const float halfHeight = MAGNIFY_HEIGHT * sizeMult / 2.0f;
     // Magnification Texture Coordinates
@@ -536,7 +556,7 @@ void ApplicationCompositor::renderMagnifier(gpu::Batch& batch, const glm::vec2& 
     const float magnifyURight = (magPos.x + halfWidth) / (float)widgetWidth;
     const float magnifyVTop = 1.0f - (magPos.y - halfHeight) / (float)widgetHeight;
     const float magnifyVBottom = 1.0f - (magPos.y + halfHeight) / (float)widgetHeight;
-    
+
     const float newHalfWidth = halfWidth * MAGNIFY_MULT;
     const float newHalfHeight = halfHeight * MAGNIFY_MULT;
     //Get yaw / pitch value for the corners
@@ -544,7 +564,7 @@ void ApplicationCompositor::renderMagnifier(gpu::Batch& batch, const glm::vec2& 
                                                                    magPos.y - newHalfHeight));
     const glm::vec2 bottomRightYawPitch = overlayToSpherical(glm::vec2(magPos.x + newHalfWidth,
                                                                        magPos.y + newHalfHeight));
-    
+
     const glm::vec3 bottomLeft = getPoint(topLeftYawPitch.x, bottomRightYawPitch.y);
     const glm::vec3 bottomRight = getPoint(bottomRightYawPitch.x, bottomRightYawPitch.y);
     const glm::vec3 topLeft = getPoint(topLeftYawPitch.x, topLeftYawPitch.y);
@@ -567,7 +587,7 @@ void ApplicationCompositor::renderMagnifier(gpu::Batch& batch, const glm::vec2& 
         _previousMagnifierTopLeft = topLeft;
         _previousMagnifierTopRight = topRight;
     }
-    
+
     glPushMatrix(); {
         if (showBorder) {
             glDisable(GL_TEXTURE_2D);
@@ -579,12 +599,12 @@ void ApplicationCompositor::renderMagnifier(gpu::Batch& batch, const glm::vec2& 
         glm::vec4 magnifierColor = { 1.0f, 1.0f, 1.0f, _alpha };
 
         DependencyManager::get<GeometryCache>()->renderQuad(bottomLeft, bottomRight, topRight, topLeft,
-                                                    glm::vec2(magnifyULeft, magnifyVBottom), 
-                                                    glm::vec2(magnifyURight, magnifyVBottom), 
-                                                    glm::vec2(magnifyURight, magnifyVTop), 
+                                                    glm::vec2(magnifyULeft, magnifyVBottom),
+                                                    glm::vec2(magnifyURight, magnifyVBottom),
+                                                    glm::vec2(magnifyURight, magnifyVTop),
                                                     glm::vec2(magnifyULeft, magnifyVTop),
                                                     magnifierColor, _magnifierQuad);
-        
+
     } glPopMatrix();
 }
 
@@ -609,8 +629,8 @@ void ApplicationCompositor::buildHemiVertices(
     }
 
     //UV mapping source: http://www.mvps.org/directx/articles/spheremap.htm
-    
-    vec3 pos; 
+
+    vec3 pos;
     vec2 uv;
     // Compute vertices positions and texture UV coordinate
     // Create and write to buffer
@@ -629,13 +649,13 @@ void ApplicationCompositor::buildHemiVertices(
             _hemiVertices->append(sizeof(vec4), (gpu::Byte*)&color);
         }
     }
-    
+
     // Compute number of indices needed
     static const int VERTEX_PER_TRANGLE = 3;
     static const int TRIANGLE_PER_RECTANGLE = 2;
     int numberOfRectangles = (slices - 1) * (stacks - 1);
     _hemiIndexCount = numberOfRectangles * TRIANGLE_PER_RECTANGLE * VERTEX_PER_TRANGLE;
-    
+
     // Compute indices order
     std::vector<GLushort> indices;
     for (int i = 0; i < stacks - 1; i++) {
@@ -692,7 +712,7 @@ glm::vec2 ApplicationCompositor::directionToSpherical(const glm::vec3& direction
     }
     // Compute pitch
     result.y = angleBetween(IDENTITY_UP, direction) - PI_OVER_TWO;
-    
+
     return result;
 }
 
@@ -708,7 +728,7 @@ glm::vec2 ApplicationCompositor::screenToSpherical(const glm::vec2& screenPos) {
     result.y = (screenPos.y / screenSize.y - 0.5f);
     result.x *= MOUSE_YAW_RANGE;
     result.y *= MOUSE_PITCH_RANGE;
-    
+
     return result;
 }
 
@@ -718,7 +738,7 @@ glm::vec2 ApplicationCompositor::sphericalToScreen(const glm::vec2& sphericalPos
     result /= MOUSE_RANGE;
     result += 0.5f;
     result *= qApp->getCanvasSize();
-    return result; 
+    return result;
 }
 
 glm::vec2 ApplicationCompositor::sphericalToOverlay(const glm::vec2&  sphericalPos) const {
@@ -735,7 +755,7 @@ glm::vec2 ApplicationCompositor::overlayToSpherical(const glm::vec2&  overlayPos
     glm::vec2 result = overlayPos;
     result /= qApp->getCanvasSize();
     result -= 0.5f;
-    result *= _textureFov; 
+    result *= _textureFov;
     result.x *= _textureAspectRatio;
     result.x *= -1.0f;
     return result;
@@ -752,10 +772,10 @@ glm::vec2 ApplicationCompositor::overlayToScreen(const glm::vec2& overlayPos) co
 void ApplicationCompositor::updateTooltips() {
     if (_hoverItemId != _noItemId) {
         quint64 hoverDuration = usecTimestampNow() - _hoverItemEnterUsecs;
-        if (_hoverItemEnterUsecs != UINT64_MAX && !_hoverItemHref.isEmpty() && hoverDuration > TOOLTIP_DELAY) {
+        if (_hoverItemEnterUsecs != UINT64_MAX && !_hoverItemTitle.isEmpty() && hoverDuration > TOOLTIP_DELAY) {
             // TODO Enable and position the tooltip
             _hoverItemEnterUsecs = UINT64_MAX;
-            _tooltipId = Tooltip::showTip("URL: " + _hoverItemHref);
+            _tooltipId = Tooltip::showTip(_hoverItemTitle, _hoverItemDescription);
         }
     }
 }

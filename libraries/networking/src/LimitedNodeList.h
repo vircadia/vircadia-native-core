@@ -317,6 +317,7 @@ protected:
     }
 private slots:
     void flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp);
+    void possiblyTimeoutSTUNAddressLookup();
 };
 
 #endif // hifi_LimitedNodeList_h

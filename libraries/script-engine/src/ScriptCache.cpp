@@ -16,18 +16,22 @@
 #include <QNetworkReply>
 #include <QObject>
 
+#include <assert.h>
 #include <NetworkAccessManager.h>
 #include <SharedUtil.h>
-#include "ScriptEngineLogging.h"
+
 #include "ScriptCache.h"
+#include "ScriptEngineLogging.h"
 
 ScriptCache::ScriptCache(QObject* parent) {
     // nothing to do here...
 }
 
-QString ScriptCache::getScript(const QUrl& url, ScriptUser* scriptUser, bool& isPending) {
+QString ScriptCache::getScript(const QUrl& url, ScriptUser* scriptUser, bool& isPending, bool reload) {
+    assert(!_scriptCache.contains(url) || !reload);
+
     QString scriptContents;
-    if (_scriptCache.contains(url)) {
+    if (_scriptCache.contains(url) && !reload) {
         qCDebug(scriptengine) << "Found script in cache:" << url.toString();
         scriptContents = _scriptCache[url];
         scriptUser->scriptContentsAvailable(url, scriptContents);
@@ -43,13 +47,25 @@ QString ScriptCache::getScript(const QUrl& url, ScriptUser* scriptUser, bool& is
             QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
             QNetworkRequest networkRequest = QNetworkRequest(url);
             networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+            if (reload) {
+                networkRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
+                qCDebug(scriptengine) << "Redownloading script at:" << url.toString();
+            } else {
+                qCDebug(scriptengine) << "Downloading script at:" << url.toString();
+            }
 
-            qCDebug(scriptengine) << "Downloading script at" << url.toString();
             QNetworkReply* reply = networkAccessManager.get(networkRequest);
             connect(reply, &QNetworkReply::finished, this, &ScriptCache::scriptDownloaded);
         }
     }
     return scriptContents;
+}
+
+void ScriptCache::deleteScript(const QUrl& url) {
+    if (_scriptCache.contains(url)) {
+        qCDebug(scriptengine) << "Delete script from cache:" << url.toString();
+        _scriptCache.remove(url);
+    }
 }
 
 void ScriptCache::scriptDownloaded() {

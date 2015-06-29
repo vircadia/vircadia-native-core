@@ -131,7 +131,7 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
     this.x = x;
     this.y = y;
     this.width = 0;
-    this.height = 0;
+    this.height = ToolBar.TITLE_BAR_HEIGHT;
     this.back = this.back = Overlays.addOverlay("text", {
                     backgroundColor: { red: 255, green: 255, blue: 255 },
                     x: this.x,
@@ -371,13 +371,13 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
     // These are currently only doing that which is necessary for toolbar hover and toolbar drag.
     // They have not yet been extended to tool hover/click/release, etc.
     this.mousePressEvent = function (event) {
-        if (!that.contains(event)) {
+        if (Overlays.getOverlayAtPoint({ x: event.x, y: event.y }) == that.back) {
+            that.mightBeDragging = true;
+            that.dragOffsetX = that.x - event.x;
+            that.dragOffsetY = that.y - event.y;
+        } else {
             that.mightBeDragging = false;
-            return;
         }
-        that.mightBeDragging = true;
-        that.dragOffsetX = that.x - event.x;
-        that.dragOffsetY = that.y - event.y;
     };
     this.mouseMove  = function (event) {
         if (!that.mightBeDragging || !event.isLeftButton) {
@@ -437,3 +437,4 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
 ToolBar.SPACING = 4;
 ToolBar.VERTICAL = 0;
 ToolBar.HORIZONTAL = 1;
+ToolBar.TITLE_BAR_HEIGHT = 10;

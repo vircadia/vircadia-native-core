@@ -106,6 +106,9 @@ public:
     glm::quat computeParentRotation() const;
     glm::quat computeVisibleParentRotation() const;
 
+    void setTransform(const glm::mat4& transform) { _transform = transform; }
+    void setVisibleTransform(const glm::mat4& transform) { _visibleTransform = transform; }
+
 private:
     void setRotationInConstrainedFrameInternal(const glm::quat& targetRotation);
     /// debug helper function

@@ -11,11 +11,14 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
+#include "TextOverlay.h"
+
 #include <DependencyManager.h>
 #include <GeometryCache.h>
+#include <RegisteredMetaTypes.h>
 #include <SharedUtil.h>
+#include <TextRenderer.h>
 
-#include "TextOverlay.h"
 
 TextOverlay::TextOverlay() :
     _backgroundColor(DEFAULT_BACKGROUND_COLOR),
