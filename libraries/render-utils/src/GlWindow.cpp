@@ -41,7 +41,7 @@ GlWindow::~GlWindow() {
 
 
 bool GlWindow::makeCurrent() {
-	bool makeCurrentResult = _context->makeCurrent(this);
+  bool makeCurrentResult = _context->makeCurrent(this);
   Q_ASSERT(makeCurrentResult);
   QOpenGLContext * currentContext = QOpenGLContext::currentContext();
   Q_ASSERT(_context == currentContext);
@@ -50,12 +50,9 @@ bool GlWindow::makeCurrent() {
       _logger = new QOpenGLDebugLogger(this);
       if (_logger->initialize()) {
           connect(_logger, &QOpenGLDebugLogger::messageLogged, [](const QOpenGLDebugMessage& message) {
-              if (message.type() == QOpenGLDebugMessage::Type::ErrorType) {
-                  qDebug() << "Error";
-              }
               qDebug() << message;
           });
-          //_logger->disableMessages(QOpenGLDebugMessage::AnySource, QOpenGLDebugMessage::AnyType, QOpenGLDebugMessage::NotificationSeverity);
+          _logger->disableMessages(QOpenGLDebugMessage::AnySource, QOpenGLDebugMessage::AnyType, QOpenGLDebugMessage::NotificationSeverity);
           _logger->startLogging(QOpenGLDebugLogger::LoggingMode::SynchronousLogging);
       }
   }

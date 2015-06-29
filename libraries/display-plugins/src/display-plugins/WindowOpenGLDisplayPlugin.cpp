@@ -13,15 +13,11 @@
 WindowOpenGLDisplayPlugin::WindowOpenGLDisplayPlugin() {
 }
 
-glm::ivec2 WindowOpenGLDisplayPlugin::getTrueMousePosition() const {
-    return toGlm(_window->mapFromGlobal(QCursor::pos()));
+glm::uvec2 WindowOpenGLDisplayPlugin::getRecommendedRenderSize() const {
+    return toGlm(_window->geometry().size() * _window->devicePixelRatio());
 }
 
-QSize WindowOpenGLDisplayPlugin::getDeviceSize() const {
-    return _window->geometry().size() * _window->devicePixelRatio();
-}
-
-glm::ivec2 WindowOpenGLDisplayPlugin::getCanvasSize() const {
+glm::uvec2 WindowOpenGLDisplayPlugin::getRecommendedUiSize() const {
     return toGlm(_window->geometry().size());
 }
 

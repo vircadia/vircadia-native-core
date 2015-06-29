@@ -1121,11 +1121,11 @@ void Application::resizeGL() {
 
     // Set the desired FBO texture size. If it hasn't changed, this does nothing.
     // Otherwise, it must rebuild the FBOs
-    QSize framebufferSize = getActiveDisplayPlugin()->getRecommendedFramebufferSize();
-    QSize renderSize = framebufferSize * getRenderResolutionScale();
-    if (_renderResolution != toGlm(renderSize)) {
-        _renderResolution = toGlm(renderSize);
-        DependencyManager::get<TextureCache>()->setFrameBufferSize(renderSize);
+    uvec2 framebufferSize = getActiveDisplayPlugin()->getRecommendedRenderSize();
+    uvec2 renderSize = uvec2(vec2(framebufferSize) * getRenderResolutionScale());
+    if (_renderResolution != renderSize) {
+        _renderResolution = renderSize;
+        DependencyManager::get<TextureCache>()->setFrameBufferSize(fromGlm(renderSize));
 
         // Possible change in aspect ratio
         _myCamera.setProjection(glm::perspective(glm::radians(_fieldOfView.get()),
@@ -1134,7 +1134,7 @@ void Application::resizeGL() {
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
-    auto uiSize = displayPlugin->getCanvasSize();
+    auto uiSize = displayPlugin->getRecommendedUiSize();
     if (offscreenUi->getWindow()->geometry().size() != fromGlm(uiSize)) {
         offscreenUi->resize(fromGlm(uiSize));
         _offscreenContext->makeCurrent();
@@ -1974,11 +1974,16 @@ void Application::setLowVelocityFilter(bool lowVelocityFilter) {
 }
 
 bool Application::mouseOnScreen() const {
-    return getActiveDisplayPlugin()->isMouseOnScreen();
+    glm::ivec2 mousePosition = getTrueMouse();
+    return (glm::all(glm::greaterThanEqual(mousePosition, glm::ivec2(0))) &&
+        glm::all(glm::lessThanEqual(mousePosition, glm::ivec2(getCanvasSize()))));
 }
 
 ivec2 Application::getMouseDragStarted() const {
-    return getActiveDisplayPlugin()->trueMouseToUiMouse(getTrueMouseDragStarted());
+    if (isHMDMode()) {
+        return _compositor.screenToOverlay(getTrueMouseDragStarted());
+    }
+    return getTrueMouseDragStarted();
 }
 
 ivec2 Application::getMouse() const {
@@ -4740,11 +4745,11 @@ glm::quat Application::getHeadOrientation() const {
 }
 
 glm::uvec2 Application::getCanvasSize() const {
-    return getActiveDisplayPlugin()->getCanvasSize();
+    return getActiveDisplayPlugin()->getRecommendedUiSize();
 }
 
 QSize Application::getDeviceSize() const {
-    return getActiveDisplayPlugin()->getDeviceSize();
+    return fromGlm(getActiveDisplayPlugin()->getRecommendedRenderSize());
 }
 
 PickRay Application::computePickRay() const {
@@ -4756,7 +4761,7 @@ bool Application::isThrottleRendering() const {
 }
 
 ivec2 Application::getTrueMouse() const {
-    return getActiveDisplayPlugin()->getTrueMousePosition();
+    return toGlm(_glWindow->mapFromGlobal(QCursor::pos()));
 }
 
 bool Application::hasFocus() const {
@@ -4830,7 +4835,7 @@ void Application::updateDisplayMode() {
             } else {
                 DependencyManager::get<OffscreenUi>()->setProxyWindow(nullptr);
             }
-            offscreenUi->resize(fromGlm(newDisplayPlugin->getCanvasSize()));
+            offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
             _offscreenContext->makeCurrent();
         }
 

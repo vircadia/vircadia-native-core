@@ -134,6 +134,13 @@ void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
 
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+
+    renderArgs->_context->syncCache();
+    fboViewport(_overlayFramebuffer);
+}
+
+void ApplicationOverlay::renderRearViewToFbo(RenderArgs* renderArgs) {
 }
 
 void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {

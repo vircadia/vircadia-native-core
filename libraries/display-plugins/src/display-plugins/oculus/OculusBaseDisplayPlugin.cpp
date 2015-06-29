@@ -26,7 +26,7 @@ void OculusBaseDisplayPlugin::activate(PluginContainer * container) {
         _eyeOffsets[eye] = erd.HmdToEyeViewOffset;
         eyeSizes[eye] = toGlm(ovrHmd_GetFovTextureSize(_hmd, eye, erd.Fov, 1.0f));
     });
-    _desiredFramebufferSize = QSize(
+    _desiredFramebufferSize = uvec2(
         eyeSizes[0].x + eyeSizes[1].x,
         std::max(eyeSizes[0].y, eyeSizes[1].y));
 
@@ -38,7 +38,7 @@ void OculusBaseDisplayPlugin::activate(PluginContainer * container) {
     MainWindowOpenGLDisplayPlugin::activate(container);
 }
 
-QSize OculusBaseDisplayPlugin::getRecommendedFramebufferSize() const {
+uvec2 OculusBaseDisplayPlugin::getRecommendedRenderSize() const {
     return _desiredFramebufferSize;
 }
 

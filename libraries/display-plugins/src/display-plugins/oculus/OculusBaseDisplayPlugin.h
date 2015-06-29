@@ -19,9 +19,9 @@ public:
     virtual glm::mat4 getModelview(Eye eye, const glm::mat4& baseModelview) const override;
     virtual void activate(PluginContainer * container) override;
     virtual void preRender() override;
-    virtual QSize getRecommendedFramebufferSize() const override;
+    virtual glm::uvec2 getRecommendedRenderSize() const override;
+    virtual glm::uvec2 getRecommendedUiSize() const override { return uvec2(1920, 1080); }
     virtual void resetSensors() override;
-    virtual glm::ivec2 getCanvasSize() const override { return ivec2(1920, 1080); }
     virtual glm::mat4 getEyePose(Eye eye) const override;
     virtual glm::mat4 getHeadPose() const override;
 
@@ -34,5 +34,5 @@ protected:
     ovrVector3f _eyeOffsets[2];
     mat4 _eyeProjections[2];
     mat4 _compositeEyeProjections[2];
-    QSize _desiredFramebufferSize;
+    uvec2 _desiredFramebufferSize;
 };

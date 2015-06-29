@@ -17,9 +17,8 @@ class WindowOpenGLDisplayPlugin : public OpenGLDisplayPlugin {
 public:
     WindowOpenGLDisplayPlugin();
 
-    virtual glm::ivec2 getTrueMousePosition() const override;
-    virtual QSize getDeviceSize() const override;
-    virtual glm::ivec2 getCanvasSize() const override;
+    virtual glm::uvec2 getRecommendedRenderSize() const override;
+    virtual glm::uvec2 getRecommendedUiSize() const override;
     virtual bool hasFocus() const override;
     virtual QWindow* getWindow() const override;
     virtual void activate(PluginContainer * container) override;

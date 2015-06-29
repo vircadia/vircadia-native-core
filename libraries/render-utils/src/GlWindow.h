@@ -24,8 +24,8 @@ public:
     void doneCurrent();
     void swapBuffers();
 
-    QOpenGLContext* _context{ nullptr };
 private:
+    QOpenGLContext* _context{ nullptr };
 #ifdef DEBUG
     QOpenGLDebugLogger* _logger{ nullptr };
 #endif

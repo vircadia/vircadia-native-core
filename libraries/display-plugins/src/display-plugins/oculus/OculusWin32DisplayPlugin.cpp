@@ -209,10 +209,8 @@ void OculusWin32DisplayPlugin::customizeContext(PluginContainer * container) {
     _mirrorFbo = MirrorFboPtr(new MirrorFramebufferWrapper(_hmd));
     _mirrorFbo->Init(mirrorSize);
 
-
-    uvec2 swapSize = toGlm(getRecommendedFramebufferSize());
     _sceneFbo = SwapFboPtr(new SwapFramebufferWrapper(_hmd));
-    _sceneFbo->Init(swapSize);
+    _sceneFbo->Init(getRecommendedRenderSize());
 
     // We're rendering both eyes to the same texture, so only one of the 
     // pointers is populated
@@ -259,7 +257,7 @@ void OculusWin32DisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sc
         sceneLayer.RenderPose[eye] = _eyePoses[eye];
     });
 
-    auto windowSize = toGlm(getDeviceSize());
+    auto windowSize = toGlm(_window->size());
 
     /* 
        Two alternatives for mirroring to the screen, the first is to copy our own composited

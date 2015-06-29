@@ -15,27 +15,11 @@ const QString & NullDisplayPlugin::getName() const {
     return NAME;
 }
 
-QSize NullDisplayPlugin::getDeviceSize() const {
-    return QSize(100, 100);
-}
-
-glm::ivec2 NullDisplayPlugin::getCanvasSize() const {
-    return glm::ivec2(100, 100);
+glm::uvec2 NullDisplayPlugin::getRecommendedRenderSize() const {
+    return glm::uvec2(100, 100);
 }
 
 bool NullDisplayPlugin::hasFocus() const {
-    return false;
-}
-
-glm::ivec2 NullDisplayPlugin::getTrueMousePosition() const {
-    return glm::ivec2();
-}
-
-PickRay NullDisplayPlugin::computePickRay(const glm::vec2 & pos) const {
-    return PickRay();
-}
-
-bool NullDisplayPlugin::isMouseOnScreen() const {
     return false;
 }
 
