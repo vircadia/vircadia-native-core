@@ -859,6 +859,18 @@ void Application::initializeUi() {
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     offscreenUi->load("Root.qml");
     offscreenUi->load("RootMenu.qml");
+
+    offscreenUi->setMouseTranslator([=](const QPointF& pt) {
+        QPointF result = pt;
+        auto displayPlugin = getActiveDisplayPlugin();
+        if (displayPlugin->isHmd()) {
+            auto resultVec = _compositor.screenToOverlay(toGlm(pt));
+            result = QPointF(resultVec.x, resultVec.y);
+        } else if (displayPlugin->isStereo()) {
+        } 
+        return result;
+    });
+
     VrMenu::load();
     VrMenu::executeQueuedLambdas();
     offscreenUi->resume();
@@ -4813,7 +4825,6 @@ void Application::updateDisplayMode() {
             } else {
                 DependencyManager::get<OffscreenUi>()->setProxyWindow(nullptr);
             }
-            offscreenUi->setMouseTranslator(newDisplayPlugin->getMouseTranslator());
             offscreenUi->resize(fromGlm(newDisplayPlugin->getCanvasSize()));
             _offscreenContext->makeCurrent();
         }
