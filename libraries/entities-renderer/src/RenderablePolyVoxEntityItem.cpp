@@ -404,8 +404,11 @@ bool RenderablePolyVoxEntityItem::addToScene(EntityItemPointer self,
                                              render::PendingChanges& pendingChanges) {
     _myItem = scene->allocateID();
 
-    auto renderData = RenderableEntityItemProxy::Pointer(new RenderableEntityItemProxy(self));
-    auto renderPayload = render::PayloadPointer(new RenderableEntityItemProxy::Payload(renderData));
+    std::shared_ptr<RenderableEntityItemProxy> renderData =
+        RenderableEntityItemProxy::Pointer(new RenderableEntityItemProxy(self));
+    // render::PayloadPointer renderPayload =
+    std::shared_ptr<render::Item::PayloadInterface> renderPayload =
+        render::PayloadPointer(new RenderableEntityItemProxy::Payload(renderData));
 
     pendingChanges.resetItem(_myItem, renderPayload);
 
