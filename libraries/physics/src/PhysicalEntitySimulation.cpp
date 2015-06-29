@@ -251,16 +251,16 @@ void PhysicalEntitySimulation::addAction(EntityActionPointer action) {
 void PhysicalEntitySimulation::applyActionChanges() {
     if (_physicsEngine) {
         lock();
+        foreach (QUuid actionToRemove, _actionsToRemove) {
+            _physicsEngine->removeAction(actionToRemove);
+        }
+        _actionsToRemove.clear();
         foreach (EntityActionPointer actionToAdd, _actionsToAdd) {
             if (!_actionsToRemove.contains(actionToAdd->getID())) {
                 _physicsEngine->addAction(actionToAdd);
             }
         }
         _actionsToAdd.clear();
-        foreach (QUuid actionToRemove, _actionsToRemove) {
-            _physicsEngine->removeAction(actionToRemove);
-        }
-        _actionsToRemove.clear();
         unlock();
     }
 }

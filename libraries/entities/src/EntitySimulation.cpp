@@ -263,22 +263,6 @@ void EntitySimulation::moveSimpleKinematics(const quint64& now) {
 
 void EntitySimulation::addAction(EntityActionPointer action) {
     lock();
-
-    #if DEBUG
-    foreach (EntityActionPointer actionToAdd, _actionsToAdd) {
-        if (actionToAdd->getID() == action->getID()) {
-            qDebug() << "action added to add-list more than once";
-            assert(false);
-        }
-    }
-    foreach (QUuid actionToRemoveID, _actionsToRemove) {
-        if (actionToRemoveID == action->getID()) {
-            qDebug() << "action added to add-list and remove-list";
-            assert(false);
-        }
-    }
-    #endif
-
     _actionsToAdd += action;
     unlock();
 }
