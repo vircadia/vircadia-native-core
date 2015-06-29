@@ -45,6 +45,7 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
     gpu::Batch& batch = *args->_batch;
     Transform transform = Transform();
     transform.setTranslation(getPosition());
+    transform.setRotation(getRotation());
     batch.setModelTransform(transform);
     
     batch._glLineWidth(getLineWidth());
