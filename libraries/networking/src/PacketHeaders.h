@@ -187,5 +187,6 @@ const PacketVersion VERSION_ENTITIES_FACE_CAMERA = 30;
 const PacketVersion VERSION_ENTITIES_SCRIPT_TIMESTAMP = 31;
 const PacketVersion VERSION_ENTITIES_SCRIPT_TIMESTAMP_FIX = 32;
 const PacketVersion VERSION_ACTIONS_OVER_WIRE = 33;
+const PacketVersion VERSION_ENTITIES_HAVE_SIMULATION_OWNER = 34;
 
 #endif // hifi_PacketHeaders_h

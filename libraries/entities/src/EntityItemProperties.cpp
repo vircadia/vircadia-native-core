@@ -38,7 +38,7 @@ EntityPropertyList PROP_LAST_ITEM = (EntityPropertyList)(PROP_AFTER_LAST_ITEM - 
 EntityItemProperties::EntityItemProperties() :
 
 CONSTRUCT_PROPERTY(visible, ENTITY_ITEM_DEFAULT_VISIBLE),
-CONSTRUCT_PROPERTY(position, 0),
+CONSTRUCT_PROPERTY(position, 0.0f),
 CONSTRUCT_PROPERTY(dimensions, ENTITY_ITEM_DEFAULT_DIMENSIONS),
 CONSTRUCT_PROPERTY(rotation, ENTITY_ITEM_DEFAULT_ROTATION),
 CONSTRUCT_PROPERTY(density, ENTITY_ITEM_DEFAULT_DENSITY),
@@ -73,7 +73,7 @@ CONSTRUCT_PROPERTY(locked, ENTITY_ITEM_DEFAULT_LOCKED),
 CONSTRUCT_PROPERTY(textures, ""),
 CONSTRUCT_PROPERTY(animationSettings, ""),
 CONSTRUCT_PROPERTY(userData, ENTITY_ITEM_DEFAULT_USER_DATA),
-CONSTRUCT_PROPERTY(simulatorID, ENTITY_ITEM_DEFAULT_SIMULATOR_ID),
+CONSTRUCT_PROPERTY(simulationOwner, SimulationOwner()),
 CONSTRUCT_PROPERTY(text, TextEntityItem::DEFAULT_TEXT),
 CONSTRUCT_PROPERTY(lineHeight, TextEntityItem::DEFAULT_LINE_HEIGHT),
 CONSTRUCT_PROPERTY(textColor, TextEntityItem::DEFAULT_TEXT_COLOR),
@@ -288,8 +288,8 @@ void EntityItemProperties::setBackgroundModeFromString(const QString& background
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
     
-    CHECK_PROPERTY_CHANGE(PROP_DIMENSIONS, dimensions);
     CHECK_PROPERTY_CHANGE(PROP_POSITION, position);
+    CHECK_PROPERTY_CHANGE(PROP_DIMENSIONS, dimensions);
     CHECK_PROPERTY_CHANGE(PROP_ROTATION, rotation);
     CHECK_PROPERTY_CHANGE(PROP_DENSITY, density);
     CHECK_PROPERTY_CHANGE(PROP_VELOCITY, velocity);
@@ -323,7 +323,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_LOCKED, locked);
     CHECK_PROPERTY_CHANGE(PROP_TEXTURES, textures);
     CHECK_PROPERTY_CHANGE(PROP_USER_DATA, userData);
-    CHECK_PROPERTY_CHANGE(PROP_SIMULATOR_ID, simulatorID);
+    CHECK_PROPERTY_CHANGE(PROP_SIMULATION_OWNER, simulationOwner);
     CHECK_PROPERTY_CHANGE(PROP_TEXT, text);
     CHECK_PROPERTY_CHANGE(PROP_LINE_HEIGHT, lineHeight);
     CHECK_PROPERTY_CHANGE(PROP_TEXT_COLOR, textColor);
@@ -419,7 +419,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(locked);
     COPY_PROPERTY_TO_QSCRIPTVALUE(textures);
     COPY_PROPERTY_TO_QSCRIPTVALUE(userData);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(simulatorID, getSimulatorIDAsString());
+    //COPY_PROPERTY_TO_QSCRIPTVALUE(simulationOwner); // TODO: expose this for JSON saves?
     COPY_PROPERTY_TO_QSCRIPTVALUE(text);
     COPY_PROPERTY_TO_QSCRIPTVALUE(lineHeight);
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(textColor, getTextColor());
@@ -572,7 +572,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
                 auto result = QDateTime::fromMSecsSinceEpoch(_created / 1000, Qt::UTC); // usec per msec
                 return result;
             });
-        COPY_PROPERTY_FROM_QSCRIPTVALUE(simulatorID, QUuid, setSimulatorID);
+        // TODO: expose this to QScriptValue for JSON saves?
+        //COPY_PROPERTY_FROM_QSCRIPTVALUE(simulationOwner, ???, setSimulatorPriority);
     }
 
     _stage.copyFromScriptValue(object, _defaultSettings);
@@ -707,6 +708,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             //      PROP_PAGED_PROPERTY,
             //      PROP_CUSTOM_PROPERTIES_INCLUDED,
             
+            APPEND_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, properties._simulationOwner.toByteArray());
             APPEND_ENTITY_PROPERTY(PROP_POSITION, properties.getPosition());
             APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, properties.getDimensions()); // NOTE: PROP_RADIUS obsolete
             APPEND_ENTITY_PROPERTY(PROP_ROTATION, properties.getRotation());
@@ -729,7 +731,6 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, properties.getCollisionsWillMove());
             APPEND_ENTITY_PROPERTY(PROP_LOCKED, properties.getLocked());
             APPEND_ENTITY_PROPERTY(PROP_USER_DATA, properties.getUserData());
-            APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, properties.getSimulatorID());
             APPEND_ENTITY_PROPERTY(PROP_HREF, properties.getHref());
             APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, properties.getDescription());
             
@@ -962,7 +963,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     EntityPropertyFlags propertyFlags = encodedPropertyFlags;
     dataAt += propertyFlags.getEncodedLength();
     processedBytes += propertyFlags.getEncodedLength();
-    
+
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SIMULATION_OWNER, QByteArray, setSimulationOwner);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POSITION, glm::vec3, setPosition);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DIMENSIONS, glm::vec3, setDimensions);  // NOTE: PROP_RADIUS obsolete
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ROTATION, glm::quat, setRotation);
@@ -985,7 +987,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONS_WILL_MOVE, bool, setCollisionsWillMove);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_USER_DATA, QString, setUserData);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SIMULATOR_ID, QUuid, setSimulatorID);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HREF, QString, setHref);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DESCRIPTION, QString, setDescription);
     
@@ -1102,6 +1103,7 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
 }
 
 void EntityItemProperties::markAllChanged() {
+    _simulationOwnerChanged = true;
     _positionChanged = true;
     _dimensionsChanged = true;
     _rotationChanged = true;
@@ -1114,7 +1116,6 @@ void EntityItemProperties::markAllChanged() {
     _frictionChanged = true;
     _lifetimeChanged = true;
     _userDataChanged = true;
-    _simulatorIDChanged = true;
     _scriptChanged = true;
     _scriptTimestampChanged = true;
     _collisionSoundURLChanged = true;
@@ -1229,4 +1230,28 @@ AABox EntityItemProperties::getAABox() const {
 bool EntityItemProperties::hasTerseUpdateChanges() const {
     // a TerseUpdate includes the transform and its derivatives
     return _positionChanged || _velocityChanged || _rotationChanged || _angularVelocityChanged || _accelerationChanged;
+}
+
+bool EntityItemProperties::hasMiscPhysicsChanges() const {
+    return _gravityChanged || _dimensionsChanged || _densityChanged || _frictionChanged 
+        || _restitutionChanged || _dampingChanged || _angularDampingChanged || _registrationPointChanged ||
+        _compoundShapeURLChanged || _collisionsWillMoveChanged || _ignoreForCollisionsChanged;
+}
+
+void EntityItemProperties::clearSimulationOwner() {
+    _simulationOwner.clear();
+    _simulationOwnerChanged = true;
+}
+
+void EntityItemProperties::setSimulationOwner(const QUuid& id, uint8_t priority) {
+    if (!_simulationOwner.matchesValidID(id) || _simulationOwner.getPriority() != priority) {
+        _simulationOwner.set(id, priority);
+        _simulationOwnerChanged = true;
+    }
+}
+
+void EntityItemProperties::setSimulationOwner(const QByteArray& data) {
+    if (_simulationOwner.fromByteArray(data)) {
+        _simulationOwnerChanged = true;
+    }
 }

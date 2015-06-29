@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "EntityItem.h"
+
 #include <QtCore/QObject>
 
 #include <glm/gtx/transform.hpp>
@@ -22,11 +24,14 @@
 #include <SoundCache.h>
 
 #include "EntityScriptingInterface.h"
-#include "EntityItem.h"
 #include "EntitiesLogging.h"
 #include "EntityTree.h"
 #include "EntitySimulation.h"
 #include "EntityActionFactoryInterface.h"
+
+
+const quint64 DEFAULT_SIMULATOR_CHANGE_LOCKOUT_PERIOD = (quint64)(0.2f * USECS_PER_SECOND);
+const quint64 MAX_SIMULATOR_CHANGE_LOCKOUT_PERIOD = 2 * USECS_PER_SECOND;
 
 bool EntityItem::_sendPhysicsUpdates = true;
 int EntityItem::_maxActionDataSize = 800;
@@ -66,8 +71,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _collisionsWillMove(ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE),
     _locked(ENTITY_ITEM_DEFAULT_LOCKED),
     _userData(ENTITY_ITEM_DEFAULT_USER_DATA),
-    _simulatorID(ENTITY_ITEM_DEFAULT_SIMULATOR_ID),
-    _simulatorIDChangedTime(0),
+    _simulationOwner(),
     _marketplaceID(ENTITY_ITEM_DEFAULT_MARKETPLACE_ID),
     _name(ENTITY_ITEM_DEFAULT_NAME),
     _href(""),
@@ -105,13 +109,16 @@ EntityItem::~EntityItem() {
 EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties;
 
+    requestedProperties += PROP_SIMULATION_OWNER;
     requestedProperties += PROP_POSITION;
-    requestedProperties += PROP_DIMENSIONS; // NOTE: PROP_RADIUS obsolete
     requestedProperties += PROP_ROTATION;
-    requestedProperties += PROP_DENSITY;
     requestedProperties += PROP_VELOCITY;
-    requestedProperties += PROP_GRAVITY;
+    requestedProperties += PROP_ANGULAR_VELOCITY;
     requestedProperties += PROP_ACCELERATION;
+
+    requestedProperties += PROP_DIMENSIONS; // NOTE: PROP_RADIUS obsolete
+    requestedProperties += PROP_DENSITY;
+    requestedProperties += PROP_GRAVITY;
     requestedProperties += PROP_DAMPING;
     requestedProperties += PROP_RESTITUTION;
     requestedProperties += PROP_FRICTION;
@@ -120,7 +127,6 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_SCRIPT_TIMESTAMP;
     requestedProperties += PROP_COLLISION_SOUND_URL;
     requestedProperties += PROP_REGISTRATION_POINT;
-    requestedProperties += PROP_ANGULAR_VELOCITY;
     requestedProperties += PROP_ANGULAR_DAMPING;
     requestedProperties += PROP_VISIBLE;
     requestedProperties += PROP_IGNORE_FOR_COLLISIONS;
@@ -129,7 +135,6 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_USER_DATA;
     requestedProperties += PROP_MARKETPLACE_ID;
     requestedProperties += PROP_NAME;
-    requestedProperties += PROP_SIMULATOR_ID;
     requestedProperties += PROP_HREF;
     requestedProperties += PROP_DESCRIPTION;
     requestedProperties += PROP_ACTION_DATA;
@@ -238,13 +243,16 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         //      PROP_PAGED_PROPERTY,
         //      PROP_CUSTOM_PROPERTIES_INCLUDED,
 
+        APPEND_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, _simulationOwner.toByteArray());
         APPEND_ENTITY_PROPERTY(PROP_POSITION, getPosition());
-        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getDimensions()); // NOTE: PROP_RADIUS obsolete
         APPEND_ENTITY_PROPERTY(PROP_ROTATION, getRotation());
-        APPEND_ENTITY_PROPERTY(PROP_DENSITY, getDensity());
         APPEND_ENTITY_PROPERTY(PROP_VELOCITY, getVelocity());
-        APPEND_ENTITY_PROPERTY(PROP_GRAVITY, getGravity());
+        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, getAngularVelocity());
         APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, getAcceleration());
+
+        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getDimensions()); // NOTE: PROP_RADIUS obsolete
+        APPEND_ENTITY_PROPERTY(PROP_DENSITY, getDensity());
+        APPEND_ENTITY_PROPERTY(PROP_GRAVITY, getGravity());
         APPEND_ENTITY_PROPERTY(PROP_DAMPING, getDamping());
         APPEND_ENTITY_PROPERTY(PROP_RESTITUTION, getRestitution());
         APPEND_ENTITY_PROPERTY(PROP_FRICTION, getFriction());
@@ -252,14 +260,12 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_SCRIPT, getScript());
         APPEND_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, getScriptTimestamp());
         APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, getRegistrationPoint());
-        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, getAngularVelocity());
         APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, getAngularDamping());
         APPEND_ENTITY_PROPERTY(PROP_VISIBLE, getVisible());
         APPEND_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, getIgnoreForCollisions());
         APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, getCollisionsWillMove());
         APPEND_ENTITY_PROPERTY(PROP_LOCKED, getLocked());
         APPEND_ENTITY_PROPERTY(PROP_USER_DATA, getUserData());
-        APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, getSimulatorID());
         APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, getMarketplaceID());
         APPEND_ENTITY_PROPERTY(PROP_NAME, getName());
         APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, getCollisionSoundURL());
@@ -329,8 +335,8 @@ int EntityItem::expectedBytes() {
 }
 
 
+// clients use this method to unpack FULL updates from entity-server
 int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
-
     if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
     
         // NOTE: This shouldn't happen. The only versions of the bit stream that didn't support split mtu buffers should
@@ -354,14 +360,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         return 0;
     }
 
-    // if this bitstream indicates that this node is the simulation owner, ignore any physics-related updates.
-    glm::vec3 savePosition = getPosition();
-    glm::quat saveRotation = getRotation();
-    glm::vec3 saveVelocity = _velocity;
-    glm::vec3 saveAngularVelocity = _angularVelocity;
-
     int originalLength = bytesLeftToRead;
-    QByteArray originalDataBuffer((const char*)data, originalLength);
+    // TODO: figure out a way to avoid the big deep copy below.
+    QByteArray originalDataBuffer((const char*)data, originalLength); // big deep copy!
 
     int clockSkew = args.sourceNode ? args.sourceNode->getClockSkewUsec() : 0;
 
@@ -539,40 +540,70 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     EntityPropertyFlags propertyFlags = encodedPropertyFlags;
     dataAt += propertyFlags.getEncodedLength();
     bytesRead += propertyFlags.getEncodedLength();
-    READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
 
-    // Old bitstreams had PROP_RADIUS, new bitstreams have PROP_DIMENSIONS
-    if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_DIMENSIONS) {
-        if (propertyFlags.getHasProperty(PROP_RADIUS)) {
-            float fromBuffer;
-            memcpy(&fromBuffer, dataAt, sizeof(fromBuffer));
-            dataAt += sizeof(fromBuffer);
-            bytesRead += sizeof(fromBuffer);
-            if (overwriteLocalData) {
-                setRadius(fromBuffer);
+    if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_SIMULATION_OWNER) {
+        // pack SimulationOwner and terse update properties near each other
+
+        // NOTE: the server is authoritative for changes to simOwnerID so we always unpack ownership data
+        // even when we would otherwise ignore the rest of the packet.
+
+        if (propertyFlags.getHasProperty(PROP_SIMULATION_OWNER)) {
+            QByteArray simOwnerData;
+            int bytes = OctreePacketData::unpackDataFromBytes(dataAt, simOwnerData);
+            SimulationOwner newSimOwner;
+            newSimOwner.fromByteArray(simOwnerData);
+            dataAt += bytes;
+            bytesRead += bytes;
+
+            if (_simulationOwner.set(newSimOwner)) {
+                _dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
             }
         }
-    } else {
+        {   // When we own the simulation we don't accept updates to the entity's transform/velocities
+            // but since we're using macros below we have to temporarily modify overwriteLocalData.
+            auto nodeList = DependencyManager::get<NodeList>();
+            bool weOwnIt = _simulationOwner.matchesValidID(nodeList->getSessionUUID());
+            bool oldOverwrite = overwriteLocalData;
+            overwriteLocalData = overwriteLocalData && !weOwnIt;
+            READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
+            READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotation);
+            READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocity);
+            READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
+            READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, setAcceleration);
+            overwriteLocalData = oldOverwrite;
+        }
+
         READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensions);
-    }
-
-    READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotation);
-    READ_ENTITY_PROPERTY(PROP_DENSITY, float, updateDensity);
-    READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocity);
-    READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, updateGravity);
-    if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
+        READ_ENTITY_PROPERTY(PROP_DENSITY, float, updateDensity);
+        READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, updateGravity);
+    
+        READ_ENTITY_PROPERTY(PROP_DAMPING, float, updateDamping);
+        READ_ENTITY_PROPERTY(PROP_RESTITUTION, float, updateRestitution);
+        READ_ENTITY_PROPERTY(PROP_FRICTION, float, updateFriction);
+        READ_ENTITY_PROPERTY(PROP_LIFETIME, float, updateLifetime);
+        READ_ENTITY_PROPERTY(PROP_SCRIPT, QString, setScript);
+        READ_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
+        READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
+    } else {
+        // legacy order of packing here
+        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
+        READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensions);
+        READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotation);
+        READ_ENTITY_PROPERTY(PROP_DENSITY, float, updateDensity);
+        READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocity);
+        READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, updateGravity);
         READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, setAcceleration);
+
+        READ_ENTITY_PROPERTY(PROP_DAMPING, float, updateDamping);
+        READ_ENTITY_PROPERTY(PROP_RESTITUTION, float, updateRestitution);
+        READ_ENTITY_PROPERTY(PROP_FRICTION, float, updateFriction);
+        READ_ENTITY_PROPERTY(PROP_LIFETIME, float, updateLifetime);
+        READ_ENTITY_PROPERTY(PROP_SCRIPT, QString, setScript);
+        READ_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
+        READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
+        READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
     }
 
-    READ_ENTITY_PROPERTY(PROP_DAMPING, float, updateDamping);
-    READ_ENTITY_PROPERTY(PROP_RESTITUTION, float, updateRestitution);
-    READ_ENTITY_PROPERTY(PROP_FRICTION, float, updateFriction);
-    READ_ENTITY_PROPERTY(PROP_LIFETIME, float, updateLifetime);
-    READ_ENTITY_PROPERTY(PROP_SCRIPT, QString, setScript);
-    READ_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
-    READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
-    READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
-    //READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocityInDegrees);
     READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, updateAngularDamping);
     READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, setVisible);
     READ_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, bool, updateIgnoreForCollisions);
@@ -580,12 +611,14 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
 
-    if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
+    if (args.bitstreamVersion < VERSION_ENTITIES_HAVE_SIMULATION_OWNER) {
+        // this code for when there is only simulatorID and no simulation priority
+
         // we always accept the server's notion of simulatorID, so we fake overwriteLocalData as true
         // before we try to READ_ENTITY_PROPERTY it
         bool temp = overwriteLocalData;
         overwriteLocalData = true;
-        READ_ENTITY_PROPERTY(PROP_SIMULATOR_ID, QUuid, updateSimulatorID);
+        READ_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, QUuid, updateSimulatorID);
         overwriteLocalData = temp;
     }
 
@@ -628,7 +661,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             #ifdef WANT_DEBUG
                 qCDebug(entities) << "skipTimeForward:" << skipTimeForward;
             #endif
-
             // we want to extrapolate the motion forward to compensate for packet travel time, but
             // we don't want the side effect of flag setting.
             simulateKinematicMotion(skipTimeForward, false);
@@ -638,15 +670,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     auto nodeList = DependencyManager::get<NodeList>();
     const QUuid& myNodeID = nodeList->getSessionUUID();
     if (overwriteLocalData) {
-        if (_simulatorID == myNodeID && !_simulatorID.isNull()) {
-            // we own the simulation, so we keep our transform+velocities and remove any related dirty flags
-            // rather than accept the values in the packet
-            setPosition(savePosition);
-            setRotation(saveRotation);
-            _velocity = saveVelocity;
-            _angularVelocity = saveAngularVelocity;
-            _dirtyFlags &= ~(EntityItem::DIRTY_TRANSFORM | EntityItem::DIRTY_VELOCITIES);
-        } else {
+        if (!_simulationOwner.matchesValidID(myNodeID)) {
+            
             _lastSimulated = now;
         }
     }
@@ -910,6 +935,7 @@ EntityItemProperties EntityItem::getProperties() const {
 
     properties._type = getType();
     
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(simulationOwner, getSimulationOwner);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(position, getPosition);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(dimensions, getDimensions); // NOTE: radius is obsolete
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(rotation, getRotation);
@@ -935,7 +961,6 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionsWillMove, getCollisionsWillMove);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(locked, getLocked);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(userData, getUserData);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(simulatorID, getSimulatorID);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(marketplaceID, getMarketplaceID);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(name, getName);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(href, getHref);
@@ -966,6 +991,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
 
     // these affect TerseUpdate properties
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulationOwner, setSimulationOwner);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, updatePosition);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, updateRotation);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, updateVelocity);
@@ -987,7 +1013,6 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, updateCollisionsWillMove);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(created, updateCreated);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, updateLifetime);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulatorID, updateSimulatorID);
 
     // non-simulation properties below
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
@@ -1363,17 +1388,26 @@ void EntityItem::updateCreated(uint64_t value) {
     }
 }
 
-void EntityItem::setSimulatorID(const QUuid& value) {
-    _simulatorID = value;
-    _simulatorIDChangedTime = usecTimestampNow();
+void EntityItem::setSimulationOwner(const QUuid& id, quint8 priority) {
+    _simulationOwner.set(id, priority);
+}
+
+void EntityItem::setSimulationOwner(const SimulationOwner& owner) {
+    _simulationOwner.set(owner);
 }
 
 void EntityItem::updateSimulatorID(const QUuid& value) {
-    if (_simulatorID != value) {
-        _simulatorID = value;
-        _simulatorIDChangedTime = usecTimestampNow();
+    if (_simulationOwner.setID(value)) {
         _dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
     }
+}
+
+void EntityItem::clearSimulationOwnership() {
+    _simulationOwner.clear();
+    // don't bother setting the DIRTY_SIMULATOR_ID flag because clearSimulationOwnership() 
+    // is only ever called entity-server-side and the flags are only used client-side
+    //_dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
+
 }
 
 bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer action) {
