@@ -67,34 +67,25 @@ void MovingMinMaxAvgTests::testQuint64() {
         QCOMPARE_WITH_ABS_ERROR((float) stats.getAverage() / (float) average, 1.0f, EPSILON);
         QCOMPARE_WITH_ABS_ERROR((float) stats.getAverage(), (float) average, EPSILON);
         
-//        QCOMPARE(fabsf(
-//                       (float)stats.getAverage() / (float)average - 1.0f
-//                ) < EPSILON ||
-//               fabsf(
-//                     (float)stats.getAverage() - (float)average) < EPSILON);
-
         if ((i + 1) % INTERVAL_LENGTH == 0) {
-
-            assert(stats.getNewStatsAvailableFlag());
+            QVERIFY(stats.getNewStatsAvailableFlag());
             stats.clearNewStatsAvailableFlag();
 
             windowMin = std::numeric_limits<quint64>::max();
             windowMax = 0;
             windowAverage = 0.0;
-            foreach(quint64 s, windowSamples) {
+            for (quint64 s : windowSamples) {
                 windowMin = std::min(windowMin, s);
                 windowMax = std::max(windowMax, s);
                 windowAverage += (double)s;
             }
             windowAverage /= (double)windowSamples.size();
 
-            assert(stats.getWindowMin() == windowMin);
-            assert(stats.getWindowMax() == windowMax);
-            assert(fabsf((float)stats.getAverage() / (float)average - 1.0f) < EPSILON ||
-                   fabsf((float)stats.getAverage() - (float)average) < EPSILON);
-
+            QCOMPARE(stats.getWindowMin(), windowMin);
+            QCOMPARE(stats.getWindowMax(), windowMax);
+            QCOMPARE_WITH_ABS_ERROR((float)stats.getAverage(), (float)average, EPSILON);
         } else {
-            assert(!stats.getNewStatsAvailableFlag());
+            QVERIFY(!stats.getNewStatsAvailableFlag());
         }
     }
 }
@@ -134,31 +125,30 @@ void MovingMinMaxAvgTests::testInt() {
         average = (average * totalSamples + sample) / (totalSamples + 1);
         totalSamples++;
 
-        assert(stats.getMin() == min);
-        assert(stats.getMax() == max);
-        assert(fabsf((float)stats.getAverage() / (float)average - 1.0f) < EPSILON);
+        QCOMPARE(stats.getMin(), min);
+        QCOMPARE(stats.getMax(), max);
+        QCOMPARE_WITH_ABS_ERROR((float)stats.getAverage(), (float)average, EPSILON);
 
         if ((i + 1) % INTERVAL_LENGTH == 0) {
 
-            assert(stats.getNewStatsAvailableFlag());
+            QVERIFY(stats.getNewStatsAvailableFlag());
             stats.clearNewStatsAvailableFlag();
 
             windowMin = std::numeric_limits<int>::max();
             windowMax = 0;
             windowAverage = 0.0;
-            foreach(int s, windowSamples) {
+            for (int s : windowSamples) {
                 windowMin = std::min(windowMin, s);
                 windowMax = std::max(windowMax, s);
                 windowAverage += (double)s;
             }
             windowAverage /= (double)windowSamples.size();
 
-            assert(stats.getWindowMin() == windowMin);
-            assert(stats.getWindowMax() == windowMax);
-            assert(fabsf((float)stats.getAverage() / (float)average - 1.0f) < EPSILON);
-
+            QCOMPARE(stats.getWindowMin(), windowMin);
+            QCOMPARE(stats.getWindowMax(), windowMax);
+            QCOMPARE_WITH_ABS_ERROR((float)stats.getAverage(), (float)average, EPSILON);
         } else {
-            assert(!stats.getNewStatsAvailableFlag());
+            QVERIFY(!stats.getNewStatsAvailableFlag());
         }
     }
 }
@@ -198,31 +188,31 @@ void MovingMinMaxAvgTests::testFloat() {
         average = (average * totalSamples + (double)sample) / (totalSamples + 1);
         totalSamples++;
 
-        assert(stats.getMin() == min);
-        assert(stats.getMax() == max);
-        assert(fabsf((float)stats.getAverage() / (float)average - 1.0f) < EPSILON);
+        QCOMPARE(stats.getMin(), min);
+        QCOMPARE(stats.getMax(), max);
+        QCOMPARE_WITH_ABS_ERROR((float)stats.getAverage(), (float)average, EPSILON);
 
         if ((i + 1) % INTERVAL_LENGTH == 0) {
 
-            assert(stats.getNewStatsAvailableFlag());
+            QVERIFY(stats.getNewStatsAvailableFlag());
             stats.clearNewStatsAvailableFlag();
 
             windowMin = std::numeric_limits<float>::max();
             windowMax = 0;
             windowAverage = 0.0;
-            foreach(float s, windowSamples) {
+            for (float s : windowSamples) {
                 windowMin = std::min(windowMin, s);
                 windowMax = std::max(windowMax, s);
                 windowAverage += (double)s;
             }
             windowAverage /= (double)windowSamples.size();
 
-            assert(stats.getWindowMin() == windowMin);
-            assert(stats.getWindowMax() == windowMax);
-            assert(fabsf((float)stats.getAverage() / (float)average - 1.0f) < EPSILON);
+            QCOMPARE(stats.getWindowMin(), windowMin);
+            QCOMPARE(stats.getWindowMax(), windowMax);
+            QCOMPARE_WITH_ABS_ERROR((float)stats.getAverage(), (float)average, EPSILON);
 
         } else {
-            assert(!stats.getNewStatsAvailableFlag());
+            QVERIFY(!stats.getNewStatsAvailableFlag());
         }
     }
 }

@@ -160,7 +160,7 @@ inline void QTest_failWithMessage(
 template <typename T, typename V>
 inline bool QTest_compareWithAbsError(const T & actual, const T & expected, const char * actual_expr, const char * expected_expr, int line, const char * file, const V & epsilon)
 {
-    if (getErrorDifference(actual, expected) > epsilon) {
+    if (abs(getErrorDifference(actual, expected)) > abs(epsilon)) {
         QTest_failWithMessage(
             "Compared values are not the same (fuzzy compare)",
             actual, expected, actual_expr, expected_expr, line, file,
