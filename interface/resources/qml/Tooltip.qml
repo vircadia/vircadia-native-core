@@ -21,8 +21,8 @@ Hifi.Tooltip {
 
     Rectangle {
         id: border
-        color: "#7f000000"
-        width: 322
+        color: "#BF000000"
+        width: 330
         height: col.height + hifi.layout.spacing * 2
 
         Column {
@@ -40,6 +40,7 @@ Hifi.Tooltip {
                 color: "white"
                 anchors.left: parent.left
                 anchors.right: parent.right
+                horizontalAlignment: Text.AlignHCenter
                 font.pixelSize: hifi.fonts.pixelSize * 2
                 text: root.title
                 wrapMode: Text.WrapAnywhere
@@ -61,6 +62,12 @@ Hifi.Tooltip {
                 anchors.right: parent.right
             }
 
+            Item {
+                id: firstSpacer
+                width: col.width
+                height: 5
+            }
+
             Image {
                 id: tooltipPic
                 source: root.imageURL
@@ -68,7 +75,12 @@ Hifi.Tooltip {
                 width: 320
                 anchors.left: parent.left
                 anchors.right: parent.right
-                verticalAlignment: Image.AlignVCenter
+            }
+
+            Item {
+                id: secondSpacer
+                width: col.width
+                height: 5
             }
 
             Text {
@@ -78,8 +90,8 @@ Hifi.Tooltip {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 text: root.description
-                font.pixelSize: hifi.fonts.pixelSize
-                wrapMode: Text.WrapAnywhere
+                font.pixelSize: 16
+                wrapMode: Text.WordWrap
             }
         }
     }
