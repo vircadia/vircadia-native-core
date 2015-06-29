@@ -607,7 +607,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // before we try to READ_ENTITY_PROPERTY it 
         bool temp = overwriteLocalData;
         overwriteLocalData = true;
-        READ_ENTITY_PROPERTY(PROP_SIMULATOR_ID, QUuid, updateSimulatorID);
+        READ_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, QUuid, updateSimulatorID);
         overwriteLocalData = temp;
     }
 
