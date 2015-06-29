@@ -110,7 +110,7 @@ signals:
 public slots:
     void addingEntity(const EntityItemID& entityID);
     void deletingEntity(const EntityItemID& entityID);
-    void entitySciptChanging(const EntityItemID& entityID);
+    void entitySciptChanging(const EntityItemID& entityID, const bool reload);
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
     // optional slots that can be wired to menu items
@@ -127,7 +127,7 @@ private:
 
     void applyZonePropertiesToScene(std::shared_ptr<ZoneEntityItem> zone);
     void renderElementProxy(EntityTreeElement* entityTreeElement, RenderArgs* args);
-    void checkAndCallPreload(const EntityItemID& entityID);
+    void checkAndCallPreload(const EntityItemID& entityID, const bool reload = false);
     void checkAndCallUnload(const EntityItemID& entityID);
 
     QList<Model*> _releasedModels;
@@ -148,17 +148,16 @@ private:
     ScriptEngine* _entitiesScriptEngine;
     ScriptEngine* _sandboxScriptEngine;
 
-    QScriptValue loadEntityScript(EntityItemPointer entity, bool isPreload = false);
-    QScriptValue loadEntityScript(const EntityItemID& entityItemID, bool isPreload = false);
+    QScriptValue loadEntityScript(EntityItemPointer entity, bool isPreload = false, bool reload = false);
+    QScriptValue loadEntityScript(const EntityItemID& entityItemID, bool isPreload = false, bool reload = false);
     QScriptValue getPreviouslyLoadedEntityScript(const EntityItemID& entityItemID);
-    QString loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL, bool& isPending, QUrl& url);
+    QString loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL, bool& isPending, QUrl& url, bool& reload);
     QScriptValueList createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID);
     QScriptValueList createMouseEventArgs(const EntityItemID& entityID, const MouseEvent& mouseEvent);
     
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
 
     void playEntityCollisionSound(const QUuid& myNodeID, EntityTree* entityTree, const EntityItemID& id, const Collision& collision);
-    AbstractAudioInterface* _localAudioInterface; // So we can render collision sounds
 
     bool _lastMouseEventValid;
     MouseEvent _lastMouseEvent;

@@ -12,22 +12,31 @@
 #ifndef hifi_ProgramObject_h
 #define hifi_ProgramObject_h
 
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#endif
+
 #include <QGLShaderProgram>
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #include <glm/glm.hpp>
 
 class ProgramObject : public QGLShaderProgram {
 public:
-    
+
     ProgramObject(QObject* parent = 0);
-    
+
     void setUniform(int location, const glm::vec2& value);
     void setUniform(const char* name, const glm::vec2& value);
     void setUniform(int location, const glm::vec3& value);
     void setUniform(const char* name, const glm::vec3& value);
     void setUniform(int location, const glm::vec4& value);
     void setUniform(const char* name, const glm::vec4& value);
-    void setUniformArray(const char* name, const glm::vec3* values, int count); 
+    void setUniformArray(const char* name, const glm::vec3* values, int count);
 };
 
 #endif // hifi_ProgramObject_h

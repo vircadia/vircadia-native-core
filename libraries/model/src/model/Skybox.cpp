@@ -72,7 +72,7 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
 
                 thePipeline = gpu::PipelinePointer(gpu::Pipeline::create(skyShader, skyState));
         
-                const float CLIP = 1.0;
+                const float CLIP = 1.0f;
                 const glm::vec2 vertices[4] = { {-CLIP, -CLIP}, {CLIP, -CLIP}, {-CLIP, CLIP}, {CLIP, CLIP}};
                 theBuffer.reset(new gpu::Buffer(sizeof(vertices), (const gpu::Byte*) vertices));
         
@@ -110,7 +110,7 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
     } else {
         // skybox has no cubemap, just clear the color buffer
         auto color = skybox.getColor();
-        batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(color, 0.0f), 0.f, 0); 
+        batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(color, 0.0f), 0.0f, 0);
     }
 }
 

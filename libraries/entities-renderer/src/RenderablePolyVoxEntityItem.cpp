@@ -11,9 +11,17 @@
 
 #include <QByteArray>
 
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#endif
 
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/string_cast.hpp>
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #include <gpu/GPUConfig.h>
 
@@ -141,11 +149,7 @@ void RenderablePolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) 
     decompressVolumeData();
 }
 
-void RenderablePolyVoxEntityItem::setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) {
-    if (voxelSurfaceStyle == _voxelSurfaceStyle) {
-        return;
-    }
-
+void RenderablePolyVoxEntityItem::updateVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) {
     // if we are switching to or from "edged" we need to force a resize of _volData.
     if (voxelSurfaceStyle == SURFACE_EDGED_CUBIC ||
         _voxelSurfaceStyle == SURFACE_EDGED_CUBIC) {
@@ -153,10 +157,10 @@ void RenderablePolyVoxEntityItem::setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxel
             delete _volData;
         }
         _volData = nullptr;
-        PolyVoxEntityItem::setVoxelSurfaceStyle(voxelSurfaceStyle);
+        _voxelSurfaceStyle = voxelSurfaceStyle;
         setVoxelVolumeSize(_voxelVolumeSize);
     } else {
-        PolyVoxEntityItem::setVoxelSurfaceStyle(voxelSurfaceStyle);
+        _voxelSurfaceStyle = voxelSurfaceStyle;
     }
     _needsModelReload = true;
 }
@@ -454,7 +458,7 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
                                                               const glm::vec3& direction,
                                                               bool& keepSearching,
                                                               OctreeElement*& element,
-                                                              float& distance, BoxFace& face, 
+                                                              float& distance, BoxFace& face,
                                                               void** intersectedObject,
                                                               bool precisionPicking) const
 {

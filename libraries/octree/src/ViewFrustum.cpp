@@ -65,9 +65,10 @@ void ViewFrustum::setProjection(const glm::mat4& projection) {
     _farClip = -_corners[BOTTOM_LEFT_FAR].z;
     _aspectRatio = (_corners[TOP_RIGHT_NEAR].x - _corners[BOTTOM_LEFT_NEAR].x) /
         (_corners[TOP_RIGHT_NEAR].y - _corners[BOTTOM_LEFT_NEAR].y);
-    glm::vec3 right = glm::normalize(glm::vec3(_corners[TOP_RIGHT_NEAR]));
-    glm::vec3 left = glm::normalize(glm::vec3(_corners[TOP_LEFT_NEAR]));
-    _fieldOfView = abs(glm::degrees(glm::angle(right, left)));
+
+    glm::vec4 top = _inverseProjection * vec4(0, 1, -1, 1);
+    top /= top.w;
+    _fieldOfView = abs(glm::degrees(2.0f * abs(glm::angle(vec3(0, 0, -1), glm::normalize(vec3(top))))));
 }
 
 // ViewFrustum::calculateViewFrustum()
@@ -387,36 +388,36 @@ bool ViewFrustum::matches(const ViewFrustum& compareTo, bool debug) const {
     if (!result && debug) {
         qCDebug(octree, "ViewFrustum::matches()... result=%s", debug::valueOf(result));
         qCDebug(octree, "%s -- compareTo._position=%f,%f,%f _position=%f,%f,%f",
-            (testMatches(compareTo._position,_position) ? "MATCHES " : "NO MATCH"),
-            compareTo._position.x, compareTo._position.y, compareTo._position.z,
-            _position.x, _position.y, _position.z );
+                (testMatches(compareTo._position,_position) ? "MATCHES " : "NO MATCH"),
+                (double)compareTo._position.x, (double)compareTo._position.y, (double)compareTo._position.z,
+                (double)_position.x, (double)_position.y, (double)_position.z);
         qCDebug(octree, "%s -- compareTo._direction=%f,%f,%f _direction=%f,%f,%f",
-            (testMatches(compareTo._direction, _direction) ? "MATCHES " : "NO MATCH"),
-            compareTo._direction.x, compareTo._direction.y, compareTo._direction.z,
-            _direction.x, _direction.y, _direction.z );
+                (testMatches(compareTo._direction, _direction) ? "MATCHES " : "NO MATCH"),
+                (double)compareTo._direction.x, (double)compareTo._direction.y, (double)compareTo._direction.z,
+                (double)_direction.x, (double)_direction.y, (double)_direction.z );
         qCDebug(octree, "%s -- compareTo._up=%f,%f,%f _up=%f,%f,%f",
-            (testMatches(compareTo._up, _up) ? "MATCHES " : "NO MATCH"),
-            compareTo._up.x, compareTo._up.y, compareTo._up.z,
-            _up.x, _up.y, _up.z );
+                (testMatches(compareTo._up, _up) ? "MATCHES " : "NO MATCH"),
+                (double)compareTo._up.x, (double)compareTo._up.y, (double)compareTo._up.z,
+                (double)_up.x, (double)_up.y, (double)_up.z );
         qCDebug(octree, "%s -- compareTo._right=%f,%f,%f _right=%f,%f,%f",
-            (testMatches(compareTo._right, _right) ? "MATCHES " : "NO MATCH"),
-            compareTo._right.x, compareTo._right.y, compareTo._right.z,
-            _right.x, _right.y, _right.z );
+                (testMatches(compareTo._right, _right) ? "MATCHES " : "NO MATCH"),
+                (double)compareTo._right.x, (double)compareTo._right.y, (double)compareTo._right.z,
+                (double)_right.x, (double)_right.y, (double)_right.z );
         qCDebug(octree, "%s -- compareTo._fieldOfView=%f _fieldOfView=%f",
-            (testMatches(compareTo._fieldOfView, _fieldOfView) ? "MATCHES " : "NO MATCH"),
-            compareTo._fieldOfView, _fieldOfView);
+                (testMatches(compareTo._fieldOfView, _fieldOfView) ? "MATCHES " : "NO MATCH"),
+                (double)compareTo._fieldOfView, (double)_fieldOfView);
         qCDebug(octree, "%s -- compareTo._aspectRatio=%f _aspectRatio=%f",
-            (testMatches(compareTo._aspectRatio, _aspectRatio) ? "MATCHES " : "NO MATCH"),
-            compareTo._aspectRatio, _aspectRatio);
+                (testMatches(compareTo._aspectRatio, _aspectRatio) ? "MATCHES " : "NO MATCH"),
+                (double)compareTo._aspectRatio, (double)_aspectRatio);
         qCDebug(octree, "%s -- compareTo._nearClip=%f _nearClip=%f",
-            (testMatches(compareTo._nearClip, _nearClip) ? "MATCHES " : "NO MATCH"),
-            compareTo._nearClip, _nearClip);
+                (testMatches(compareTo._nearClip, _nearClip) ? "MATCHES " : "NO MATCH"),
+                (double)compareTo._nearClip, (double)_nearClip);
         qCDebug(octree, "%s -- compareTo._farClip=%f _farClip=%f",
-            (testMatches(compareTo._farClip, _farClip) ? "MATCHES " : "NO MATCH"),
-            compareTo._farClip, _farClip);
+                (testMatches(compareTo._farClip, _farClip) ? "MATCHES " : "NO MATCH"),
+                (double)compareTo._farClip, (double)_farClip);
         qCDebug(octree, "%s -- compareTo._focalLength=%f _focalLength=%f",
-            (testMatches(compareTo._focalLength, _focalLength) ? "MATCHES " : "NO MATCH"),
-            compareTo._focalLength, _focalLength);
+                (testMatches(compareTo._focalLength, _focalLength) ? "MATCHES " : "NO MATCH"),
+                (double)compareTo._focalLength, (double)_focalLength);
     }
     return result;
 }
@@ -448,33 +449,34 @@ bool ViewFrustum::isVerySimilar(const ViewFrustum& compareTo, bool debug) const 
     if (!result && debug) {
         qCDebug(octree, "ViewFrustum::isVerySimilar()... result=%s\n", debug::valueOf(result));
         qCDebug(octree, "%s -- compareTo._position=%f,%f,%f _position=%f,%f,%f",
-            (testMatches(compareTo._position,_position, POSITION_SIMILAR_ENOUGH) ? "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
-            compareTo._position.x, compareTo._position.y, compareTo._position.z,
-            _position.x, _position.y, _position.z );
+                (testMatches(compareTo._position,_position, POSITION_SIMILAR_ENOUGH) ?
+                     "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
+                (double)compareTo._position.x, (double)compareTo._position.y, (double)compareTo._position.z,
+                (double)_position.x, (double)_position.y, (double)_position.z );
 
         qCDebug(octree, "%s -- positionDistance=%f",
-            (testMatches(0,positionDistance, POSITION_SIMILAR_ENOUGH) ? "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
-            positionDistance);
+                (testMatches(0,positionDistance, POSITION_SIMILAR_ENOUGH) ? "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
+                (double)positionDistance);
 
         qCDebug(octree, "%s -- angleOrientation=%f",
-            (testMatches(0, angleOrientation, ORIENTATION_SIMILAR_ENOUGH) ? "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
-            angleOrientation);
-       
+                (testMatches(0, angleOrientation, ORIENTATION_SIMILAR_ENOUGH) ? "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
+                (double)angleOrientation);
+
         qCDebug(octree, "%s -- compareTo._fieldOfView=%f _fieldOfView=%f",
-            (testMatches(compareTo._fieldOfView, _fieldOfView) ? "MATCHES " : "NO MATCH"),
-            compareTo._fieldOfView, _fieldOfView);
+                (testMatches(compareTo._fieldOfView, _fieldOfView) ? "MATCHES " : "NO MATCH"),
+                (double)compareTo._fieldOfView, (double)_fieldOfView);
         qCDebug(octree, "%s -- compareTo._aspectRatio=%f _aspectRatio=%f",
-            (testMatches(compareTo._aspectRatio, _aspectRatio) ? "MATCHES " : "NO MATCH"),
-            compareTo._aspectRatio, _aspectRatio);
+                (testMatches(compareTo._aspectRatio, _aspectRatio) ? "MATCHES " : "NO MATCH"),
+                (double)compareTo._aspectRatio, (double)_aspectRatio);
         qCDebug(octree, "%s -- compareTo._nearClip=%f _nearClip=%f",
-            (testMatches(compareTo._nearClip, _nearClip) ? "MATCHES " : "NO MATCH"),
-            compareTo._nearClip, _nearClip);
+                (testMatches(compareTo._nearClip, _nearClip) ? "MATCHES " : "NO MATCH"),
+                (double)compareTo._nearClip, (double)_nearClip);
         qCDebug(octree, "%s -- compareTo._farClip=%f _farClip=%f",
-            (testMatches(compareTo._farClip, _farClip) ? "MATCHES " : "NO MATCH"),
-            compareTo._farClip, _farClip);
+                (testMatches(compareTo._farClip, _farClip) ? "MATCHES " : "NO MATCH"),
+                (double)compareTo._farClip, (double)_farClip);
         qCDebug(octree, "%s -- compareTo._focalLength=%f _focalLength=%f",
-            (testMatches(compareTo._focalLength, _focalLength) ? "MATCHES " : "NO MATCH"),
-            compareTo._focalLength, _focalLength);
+                (testMatches(compareTo._focalLength, _focalLength) ? "MATCHES " : "NO MATCH"),
+                (double)compareTo._focalLength, (double)_focalLength);
     }
     return result;
 }
@@ -531,23 +533,23 @@ void ViewFrustum::computeOffAxisFrustum(float& left, float& right, float& bottom
 
 void ViewFrustum::printDebugDetails() const {
     qCDebug(octree, "ViewFrustum::printDebugDetails()...");
-    qCDebug(octree, "_position=%f,%f,%f",  _position.x, _position.y, _position.z );
-    qCDebug(octree, "_direction=%f,%f,%f", _direction.x, _direction.y, _direction.z );
-    qCDebug(octree, "_up=%f,%f,%f", _up.x, _up.y, _up.z );
-    qCDebug(octree, "_right=%f,%f,%f", _right.x, _right.y, _right.z );
-    qCDebug(octree, "_fieldOfView=%f", _fieldOfView);
-    qCDebug(octree, "_aspectRatio=%f", _aspectRatio);
-    qCDebug(octree, "_keyHoleRadius=%f", _keyholeRadius);
-    qCDebug(octree, "_nearClip=%f", _nearClip);
-    qCDebug(octree, "_farClip=%f", _farClip);
-    qCDebug(octree, "_focalLength=%f", _focalLength);
+    qCDebug(octree, "_position=%f,%f,%f",  (double)_position.x, (double)_position.y, (double)_position.z );
+    qCDebug(octree, "_direction=%f,%f,%f", (double)_direction.x, (double)_direction.y, (double)_direction.z );
+    qCDebug(octree, "_up=%f,%f,%f", (double)_up.x, (double)_up.y, (double)_up.z );
+    qCDebug(octree, "_right=%f,%f,%f", (double)_right.x, (double)_right.y, (double)_right.z );
+    qCDebug(octree, "_fieldOfView=%f", (double)_fieldOfView);
+    qCDebug(octree, "_aspectRatio=%f", (double)_aspectRatio);
+    qCDebug(octree, "_keyHoleRadius=%f", (double)_keyholeRadius);
+    qCDebug(octree, "_nearClip=%f", (double)_nearClip);
+    qCDebug(octree, "_farClip=%f", (double)_farClip);
+    qCDebug(octree, "_focalLength=%f", (double)_focalLength);
 }
 
 glm::vec2 ViewFrustum::projectPoint(glm::vec3 point, bool& pointInView) const {
 
-    glm::vec4 pointVec4 = glm::vec4(point,1);
+    glm::vec4 pointVec4 = glm::vec4(point, 1.0f);
     glm::vec4 projectedPointVec4 = _ourModelViewProjectionMatrix * pointVec4;
-    pointInView = (projectedPointVec4.w > 0); // math! If the w result is negative then the point is behind the viewer
+    pointInView = (projectedPointVec4.w > 0.0f); // math! If the w result is negative then the point is behind the viewer
 
     // what happens with w is 0???
     float x = projectedPointVec4.x / projectedPointVec4.w;

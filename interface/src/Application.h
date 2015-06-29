@@ -62,12 +62,12 @@
 #include "ui/ModelsBrowser.h"
 #include "ui/NodeBounds.h"
 #include "ui/OctreeStatsDialog.h"
-#include "ui/RearMirrorTools.h"
 #include "ui/SnapshotShareDialog.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
 #include "ui/overlays/Overlays.h"
 #include "ui/ApplicationOverlay.h"
+#include "ui/ApplicationCompositor.h"
 #include "ui/RunningScriptsWidget.h"
 #include "ui/ToolWindow.h"
 #include "ui/UserInputMapper.h"
@@ -221,15 +221,21 @@ public:
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     bool mouseOnScreen() const;
-    int getMouseX() const;
-    int getMouseY() const;
-    glm::ivec2 getTrueMousePosition() const;
-    int getTrueMouseX() const;
-    int getTrueMouseY() const;
-    int getMouseDragStartedX() const;
-    int getMouseDragStartedY() const;
-    int getTrueMouseDragStartedX() const { return _mouseDragStartedX; }
-    int getTrueMouseDragStartedY() const { return _mouseDragStartedY; }
+
+    ivec2 getMouse() const;
+    ivec2 getTrueMouse() const;
+    ivec2 getMouseDragStarted() const;
+    ivec2 getTrueMouseDragStarted() const;
+
+    // TODO get rid of these and use glm types directly
+    int getMouseX() const { return getMouse().x; }
+    int getMouseY() const { return getMouse().y; }
+    int getTrueMouseX() const { return getTrueMouse().x; }
+    int getTrueMouseY() const { return getTrueMouse().y; }
+    int getMouseDragStartedX() const { return getMouseDragStarted().x; }
+    int getMouseDragStartedY() const { return getMouseDragStarted().y; }
+    int getTrueMouseDragStartedX() const { return getTrueMouseDragStarted().x; }
+    int getTrueMouseDragStartedY() const { return getTrueMouseDragStarted().y; }
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
     
     FaceTracker* getActiveFaceTracker();
@@ -238,6 +244,8 @@ public:
     QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
     const ApplicationOverlay& getApplicationOverlay() const { return _applicationOverlay; }
+    ApplicationCompositor& getApplicationCompositor() { return _compositor; }
+    const ApplicationCompositor& getApplicationCompositor() const { return _compositor; }
     Overlays& getOverlays() { return _overlays; }
 
     float getFps() const { return _fps; }
@@ -330,6 +338,9 @@ public:
     bool isHMDMode() const;
     glm::quat getHeadOrientation() const;
     glm::vec3 getHeadPosition() const;
+    glm::mat4 getHeadPose() const;
+    glm::mat4 getEyePose(int eye) const;
+    glm::mat4 getEyeProjection(int eye) const;
 
     QRect getDesirableApplicationGeometry();
     RunningScriptsWidget* getRunningScriptsWidget() { return _runningScriptsWidget; }
@@ -398,15 +409,19 @@ public slots:
     bool acceptSnapshot(const QString& urlString);
     bool askToSetAvatarUrl(const QString& url);
     bool askToLoadScript(const QString& scriptFilenameOrURL);
+
     ScriptEngine* loadScript(const QString& scriptFilename = QString(), bool isUserLoaded = true, 
-        bool loadScriptFromEditor = false, bool activateMainWindow = false);
+        bool loadScriptFromEditor = false, bool activateMainWindow = false, bool reload = false);
+    void reloadScript(const QString& scriptName, bool isUserLoaded = true);
     void scriptFinished(const QString& scriptName);
     void stopAllScripts(bool restart = false);
-    void stopScript(const QString& scriptName);
+    void stopScript(const QString& scriptName, bool restart = false);
     void reloadAllScripts();
+    void reloadOneScript(const QString& scriptName);
     void loadDefaultScripts();
     void toggleRunningScriptsWidget();
     void saveScripts();
+
     void showFriendsWindow();
     void friendsWindowClosed();
 
@@ -433,6 +448,8 @@ public slots:
     void notifyPacketVersionMismatch();
 
     void domainConnectionDenied(const QString& reason);
+    
+    void cameraMenuChanged();
 
 private slots:
     void clearDomainOctreeDetails();
@@ -449,7 +466,8 @@ private slots:
     void setFullscreen(bool fullscreen);
     void setEnable3DTVMode(bool enable3DTVMode);
     void setEnableVRMode(bool enableVRMode);
-    void cameraMenuChanged();
+    
+    void rotationModeChanged();
 
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
 
@@ -547,21 +565,17 @@ private:
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
 
-    KeyboardMouseDevice _keyboardMouseDevice; // Default input device, the good old keyboard mouse and maybe touchpad
-
-    UserInputMapper _userInputMapper; // User input mapper allowing to mapp different real devices to the action channels that the application has to offer
-
-    MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
-
-    Camera _myCamera;                  // My view onto the world
+    KeyboardMouseDevice _keyboardMouseDevice;   // Default input device, the good old keyboard mouse and maybe touchpad
+    UserInputMapper _userInputMapper;           // User input mapper allowing to mapp different real devices to the action channels that the application has to offer
+    MyAvatar* _myAvatar;                        // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
+    Camera _myCamera;                           // My view onto the world
     Camera _mirrorCamera;              // Cammera for mirror view
     QRect _mirrorViewRect;
-    RearMirrorTools* _rearMirrorTools;
     
-    Setting::Handle<bool> _firstRun;
-    Setting::Handle<QString> _previousScriptLocation;
-    Setting::Handle<QString> _scriptsLocationHandle;
-    Setting::Handle<float> _fieldOfView;
+    Setting::Handle<bool>       _firstRun;
+    Setting::Handle<QString>    _previousScriptLocation;
+    Setting::Handle<QString>    _scriptsLocationHandle;
+    Setting::Handle<float>      _fieldOfView;
 
     Transform _viewTransform;
     glm::mat4 _untranslatedViewMatrix;
@@ -579,18 +593,17 @@ private:
     Environment _environment;
 
     bool _cursorVisible;
-    int _mouseDragStartedX;
-    int _mouseDragStartedY;
+    ivec2 _mouseDragStarted;
+
     quint64 _lastMouseMove;
     bool _lastMouseMoveWasSimulated;
 
     glm::vec3 _mouseRayOrigin;
     glm::vec3 _mouseRayDirection;
 
-    float _touchAvgX;
-    float _touchAvgY;
-    float _touchDragStartedAvgX;
-    float _touchDragStartedAvgY;
+    vec2 _touchAvg;
+    vec2 _touchDragStartedAvg;
+
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
 
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
@@ -668,6 +681,7 @@ private:
 
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
+    ApplicationCompositor _compositor;
 };
 
 #endif // hifi_Application_h

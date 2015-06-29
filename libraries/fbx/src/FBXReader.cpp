@@ -506,7 +506,7 @@ FBXNode parseFBX(QIODevice* device) {
 
 QVector<glm::vec4> createVec4Vector(const QVector<double>& doubleVector) {
     QVector<glm::vec4> values;
-    for (const double* it = doubleVector.constData(), *end = it + (doubleVector.size() / 4 * 4); it != end; ) {
+    for (const double* it = doubleVector.constData(), *end = it + ((doubleVector.size() / 4) * 4); it != end; ) {
         float x = *it++;
         float y = *it++;
         float z = *it++;
@@ -516,9 +516,27 @@ QVector<glm::vec4> createVec4Vector(const QVector<double>& doubleVector) {
     return values;
 }
 
+
+QVector<glm::vec4> createVec4VectorRGBA(const QVector<double>& doubleVector, glm::vec4& average) {
+    QVector<glm::vec4> values;
+    for (const double* it = doubleVector.constData(), *end = it + ((doubleVector.size() / 4) * 4); it != end; ) {
+        float x = *it++;
+        float y = *it++;
+        float z = *it++;
+        float w = *it++;
+        auto val = glm::vec4(x, y, z, w);
+        values.append(val);
+        average += val;
+    }
+    if (!values.isEmpty()) {
+        average *= (1.0f / float(values.size()));
+    }
+    return values;
+}
+
 QVector<glm::vec3> createVec3Vector(const QVector<double>& doubleVector) {
     QVector<glm::vec3> values;
-    for (const double* it = doubleVector.constData(), *end = it + (doubleVector.size() / 3 * 3); it != end; ) {
+    for (const double* it = doubleVector.constData(), *end = it + ((doubleVector.size() / 3) * 3); it != end; ) {
         float x = *it++;
         float y = *it++;
         float z = *it++;
@@ -529,7 +547,7 @@ QVector<glm::vec3> createVec3Vector(const QVector<double>& doubleVector) {
 
 QVector<glm::vec2> createVec2Vector(const QVector<double>& doubleVector) {
     QVector<glm::vec2> values;
-    for (const double* it = doubleVector.constData(), *end = it + (doubleVector.size() / 2 * 2); it != end; ) {
+    for (const double* it = doubleVector.constData(), *end = it + ((doubleVector.size() / 2) * 2); it != end; ) {
         float s = *it++;
         float t = *it++;
         values.append(glm::vec2(s, -t));
@@ -799,6 +817,7 @@ public:
     QVector<int> normalIndices;
 
     bool colorsByVertex;
+    glm::vec4 averageColor{1.0f, 1.0f, 1.0f, 1.0f};
     QVector<glm::vec4> colors;
     QVector<int> colorIndices;
 
@@ -940,8 +959,7 @@ ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
             bool indexToDirect = false;
             foreach (const FBXNode& subdata, child.children) {
                 if (subdata.name == "Colors") {
-                    data.colors = createVec4Vector(getDoubleVector(subdata));
-
+                    data.colors = createVec4VectorRGBA(getDoubleVector(subdata), data.averageColor);
                 } else if (subdata.name == "ColorsIndex") {
                     data.colorIndices = getIntVector(subdata);
 
@@ -956,6 +974,19 @@ ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
                 // hack to work around wacky Makehuman exports
                 data.colorsByVertex = true;
             }
+
+#if defined(FBXREADER_KILL_BLACK_COLOR_ATTRIBUTE)
+            // Potential feature where we decide to kill the color attribute is to dark?
+            // Tested with the model:
+            // https://hifi-public.s3.amazonaws.com/ryan/gardenLight2.fbx
+            // let's check if we did have true data ?
+            if (glm::all(glm::lessThanEqual(data.averageColor, glm::vec4(0.09f)))) {
+                data.colors.clear();
+                data.colorIndices.clear();
+                data.colorsByVertex = false;
+                qCDebug(modelformat) << "LayerElementColor has an average value of 0.0f... let's forget it.";
+            }
+#endif
          
         } else if (child.name == "LayerElementUV") {
             if (child.properties.at(0).toInt() == 0) {
@@ -1251,7 +1282,7 @@ FBXLight extractLight(const FBXNode& object) {
                 if (property.name == "P") {
                     QString propname = property.properties.at(0).toString();
                     if (propname == "Intensity") {
-                        light.intensity = 0.01f * property.properties.at(valIndex).value<double>();
+                        light.intensity = 0.01f * property.properties.at(valIndex).value<float>();
                     } else if (propname == "Color") {
                         light.color = getVec3(property.properties, valIndex);
                     }

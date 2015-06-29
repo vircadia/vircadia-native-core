@@ -83,6 +83,10 @@ public:
     friend class PhysicalEntitySimulation;
 
 protected:
+    #ifdef WANT_DEBUG_ENTITY_TREE_LOCKS
+    bool entityTreeIsLocked() const;
+    #endif
+
     virtual btCollisionShape* computeNewShape();
     virtual void clearObjectBackPointer();
     virtual void setMotionType(MotionType motionType);

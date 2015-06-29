@@ -69,8 +69,8 @@ void OctreeElement::init(unsigned char * octalCode) {
     // set up the _children union
     _childBitmask = 0;
     _childrenExternal = false;
-    
-    
+
+
 #ifdef BLENDED_UNION_CHILDREN
     _children.external = NULL;
     _singleChildrenCount++;
@@ -662,7 +662,7 @@ void OctreeElement::deleteAllChildren() {
             delete childAt;
         }
     }
-    
+
     if (_childrenExternal) {
         // if the children_t union represents _children.external we need to delete it here
         delete[] _children.external;
@@ -764,7 +764,7 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
         memset(_children.external, 0, sizeof(OctreeElement*) * NUMBER_OF_CHILDREN);
         _children.external[firstIndex] = previousChild;
         _children.external[childIndex] = child;
-        
+
         _childrenExternal = true;
 
         _externalChildrenMemoryUsage += NUMBER_OF_CHILDREN * sizeof(OctreeElement*);
@@ -776,7 +776,7 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
 
         delete[] _children.external;
         _childrenExternal = false;
-        
+
         _externalChildrenMemoryUsage -= NUMBER_OF_CHILDREN * sizeof(OctreeElement*);
         if (childIndex == firstIndex) {
             _children.single = previousSecondChild;
@@ -1203,12 +1203,13 @@ void OctreeElement::printDebugDetails(const char* label) const {
             setAtBit(childBits,i);
         }
     }
-    
+
     QDebug elementDebug = qDebug().nospace();
 
     QString resultString;
     resultString.sprintf("%s - Voxel at corner=(%f,%f,%f) size=%f\n isLeaf=%s isDirty=%s shouldRender=%s\n children=", label,
-                         _cube.getCorner().x, _cube.getCorner().y, _cube.getCorner().z, _cube.getScale(),
+                         (double)_cube.getCorner().x, (double)_cube.getCorner().y, (double)_cube.getCorner().z,
+                         (double)_cube.getScale(),
                          debug::valueOf(isLeaf()), debug::valueOf(isDirty()), debug::valueOf(getShouldRender()));
     elementDebug << resultString;
 
@@ -1236,7 +1237,7 @@ ViewFrustum::location OctreeElement::inFrustum(const ViewFrustum& viewFrustum) c
 //    By doing this, we don't need to test each child voxel's position vs the LOD boundary
 bool OctreeElement::calculateShouldRender(const ViewFrustum* viewFrustum, float voxelScaleSize, int boundaryLevelAdjust) const {
     bool shouldRender = false;
-    
+
     if (hasContent()) {
         float furthestDistance = furthestDistanceToCamera(*viewFrustum);
         float childBoundary = boundaryDistanceForRenderLevel(getLevel() + 1 + boundaryLevelAdjust, voxelScaleSize);
@@ -1330,7 +1331,7 @@ void OctreeElement::notifyUpdateHooks() {
 }
 
 bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face,
                          void** intersectedObject, bool precisionPicking) {
 
     keepSearching = true; // assume that we will continue searching after this.
@@ -1354,7 +1355,7 @@ bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3
     // for any details inside the cube to be closer so we don't need to consider them.
     if (_cube.contains(origin) || distanceToElementCube < distance) {
 
-        if (findDetailedRayIntersection(origin, direction, keepSearching, element, distanceToElementDetails, 
+        if (findDetailedRayIntersection(origin, direction, keepSearching, element, distanceToElementDetails,
                                             face, intersectedObject, precisionPicking, distanceToElementCube)) {
 
             if (distanceToElementDetails < distance) {
@@ -1368,10 +1369,10 @@ bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3
 }
 
 bool OctreeElement::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face,
                          void** intersectedObject, bool precisionPicking, float distanceToElementCube) {
 
-    // we did hit this element, so calculate appropriate distances    
+    // we did hit this element, so calculate appropriate distances
     if (hasContent()) {
         element = this;
         distance = distanceToElementCube;
@@ -1399,7 +1400,8 @@ OctreeElement* OctreeElement::getOrCreateChildElementAt(float x, float y, float 
     float halfOurScale = ourScale / 2.0f;
 
     if(s > ourScale) {
-        qCDebug(octree, "UNEXPECTED -- OctreeElement::getOrCreateChildElementAt() s=[%f] > ourScale=[%f] ", s, ourScale);
+        qCDebug(octree, "UNEXPECTED -- OctreeElement::getOrCreateChildElementAt() s=[%f] > ourScale=[%f] ",
+                (double)s, (double)ourScale);
     }
 
     if (s > halfOurScale) {
@@ -1466,21 +1468,21 @@ OctreeElement* OctreeElement::getOrCreateChildElementAt(float x, float y, float 
 
 OctreeElement* OctreeElement::getOrCreateChildElementContaining(const AACube& cube) {
     OctreeElement* child = NULL;
-    
+
     int childIndex = getMyChildContaining(cube);
-    
+
     // If getMyChildContaining() returns CHILD_UNKNOWN then it means that our level
     // is the correct level for this cube
     if (childIndex == CHILD_UNKNOWN) {
         return this;
     }
-    
+
     // Now, check if we have a child at that location
     child = getChildAtIndex(childIndex);
     if (!child) {
         child = addChildAtIndex(childIndex);
     }
-    
+
     // if we've made a really small child, then go ahead and use that one.
     if (child->getScale() <= SMALLEST_REASONABLE_OCTREE_ELEMENT_SCALE) {
         return child;
@@ -1492,21 +1494,21 @@ OctreeElement* OctreeElement::getOrCreateChildElementContaining(const AACube& cu
 
 OctreeElement* OctreeElement::getOrCreateChildElementContaining(const AABox& box) {
     OctreeElement* child = NULL;
-    
+
     int childIndex = getMyChildContaining(box);
-    
+
     // If getMyChildContaining() returns CHILD_UNKNOWN then it means that our level
     // is the correct level for this cube
     if (childIndex == CHILD_UNKNOWN) {
         return this;
     }
-    
+
     // Now, check if we have a child at that location
     child = getChildAtIndex(childIndex);
     if (!child) {
         child = addChildAtIndex(childIndex);
     }
-    
+
     // if we've made a really small child, then go ahead and use that one.
     if (child->getScale() <= SMALLEST_REASONABLE_OCTREE_ELEMENT_SCALE) {
         return child;
@@ -1542,7 +1544,7 @@ int OctreeElement::getMyChildContaining(const AACube& cube) const {
         if (childIndexCubeMinimum != childIndexCubeMaximum) {
             return CHILD_UNKNOWN;
         }
-    
+
         return childIndexCubeMinimum; // either would do, they are the same
     }
     return CHILD_UNKNOWN; // since cube is not contained in our element, it can't be in one of our children
@@ -1555,7 +1557,7 @@ int OctreeElement::getMyChildContaining(const AABox& box) const {
     // TODO: consider changing this to assert()
     if(boxLargestScale > ourScale) {
         qCDebug(octree, "UNEXPECTED -- OctreeElement::getMyChildContaining() "
-                    "boxLargestScale=[%f] > ourScale=[%f] ", boxLargestScale, ourScale);
+                "boxLargestScale=[%f] > ourScale=[%f] ", (double)boxLargestScale, (double)ourScale);
     }
 
     // Determine which of our children the minimum and maximum corners of the cube live in...
@@ -1566,7 +1568,7 @@ int OctreeElement::getMyChildContaining(const AABox& box) const {
         int childIndexCubeMinimum = getMyChildContainingPoint(cubeCornerMinimum);
         int childIndexCubeMaximum = getMyChildContainingPoint(cubeCornerMaximum);
 
-        // If the minimum and maximum corners of the cube are in two different children's cubes, 
+        // If the minimum and maximum corners of the cube are in two different children's cubes,
         // then we are the containing element
         if (childIndexCubeMinimum != childIndexCubeMaximum) {
             return CHILD_UNKNOWN;
@@ -1579,12 +1581,12 @@ int OctreeElement::getMyChildContaining(const AABox& box) const {
 int OctreeElement::getMyChildContainingPoint(const glm::vec3& point) const {
     glm::vec3 ourCenter = _cube.calcCenter();
     int childIndex = CHILD_UNKNOWN;
-    
+
     // since point is not contained in our element, it can't be in one of our children
     if (!_cube.contains(point)) {
         return CHILD_UNKNOWN;
     }
-    
+
     // left half
     if (point.x > ourCenter.x) {
         if (point.y > ourCenter.y) {

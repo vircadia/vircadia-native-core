@@ -28,7 +28,7 @@ public slots:
     void restart() { _injector->restart(); }
     void stop() { _injector->stop(); }
     
-    void setOptions(AudioInjectorOptions& options) { _injector->setOptions(options); }
+    void setOptions(const AudioInjectorOptions& options) { _injector->setOptions(options); }
     
     float getLoudness() const { return _injector->getLoudness(); }
     bool isPlaying() const { return _injector->isPlaying(); }

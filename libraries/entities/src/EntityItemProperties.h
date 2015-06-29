@@ -99,6 +99,7 @@ public:
     DEFINE_PROPERTY(PROP_LIFETIME, Lifetime, lifetime, float);
     DEFINE_PROPERTY(PROP_CREATED, Created, created, quint64);
     DEFINE_PROPERTY_REF(PROP_SCRIPT, Script, script, QString);
+    DEFINE_PROPERTY(PROP_SCRIPT_TIMESTAMP, ScriptTimestamp, scriptTimestamp, quint64);
     DEFINE_PROPERTY_REF(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString);
     DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, xColor);
     DEFINE_PROPERTY_REF(PROP_MODEL_URL, ModelURL, modelURL, QString);
@@ -151,7 +152,8 @@ public:
     DEFINE_PROPERTY_REF(LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>);
     DEFINE_PROPERTY_REF(PROP_HREF, Href, href, QString);
     DEFINE_PROPERTY_REF(PROP_DESCRIPTION, Description, description, QString);
-
+    DEFINE_PROPERTY(PROP_FACE_CAMERA, FaceCamera, faceCamera, bool);
+    
     static QString getBackgroundModeString(BackgroundMode mode);
 
 
@@ -262,6 +264,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Friction, friction, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Lifetime, lifetime, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Script, script, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ScriptTimestamp, scriptTimestamp, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, CollisionSoundURL, collisionSoundURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Color, color, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ModelURL, modelURL, "");

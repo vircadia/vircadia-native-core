@@ -158,6 +158,7 @@ namespace MenuOption {
     const QString CascadedShadows = "Cascaded";
     const QString CachesSize = "RAM Caches Size";
     const QString CalibrateCamera = "Calibrate Camera";
+    const QString CenterPlayerInView = "Center Player In View";
     const QString Chat = "Chat...";
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
@@ -200,9 +201,9 @@ namespace MenuOption {
     const QString Fullscreen = "Fullscreen";
     const QString FullscreenMirror = "Fullscreen Mirror";
     const QString GlowWhenSpeaking = "Glow When Speaking";
-    const QString NamesAboveHeads = "Names Above Heads";
     const QString HMDTools = "HMD Tools";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
+    const QString IndependentMode = "Independent Mode";
     const QString KeyboardMotorControl = "Enable Keyboard Motor Control";
     const QString LeapMotionOnHMD = "Leap Motion on HMD";
     const QString LoadScript = "Open and Run Script File...";
@@ -216,6 +217,7 @@ namespace MenuOption {
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
     const QString MuteFaceTracking = "Mute Face Tracking";
+    const QString NamesAboveHeads = "Names Above Heads";
     const QString NoFaceTracking = "None";
     const QString OctreeStats = "Entity Statistics";
     const QString OnlyDisplayTopTen = "Only Display Top Ten";
@@ -276,6 +278,7 @@ namespace MenuOption {
     const QString StopAllScripts = "Stop All Scripts";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString TestPing = "Test Ping";
+    const QString ThirdPerson = "Third Person";
     const QString ToolWindow = "Tool Window";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString TurnWithHead = "Turn using Head";

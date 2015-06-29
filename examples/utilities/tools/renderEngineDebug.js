@@ -10,25 +10,7 @@
 
 Script.include("cookies.js");
 
-var panel = new Panel(10, 400);
-
-panel.newCheckbox("Enable Cull Opaque", 
-    function(value) { Scene.setEngineCullOpaque((value != 0)); },
-    function() { return Scene.doEngineCullOpaque(); },
-    function(value) { return (value); }
-);
-
-panel.newCheckbox("Enable Sort Opaque", 
-    function(value) { Scene.setEngineSortOpaque((value != 0)); },
-    function() { return Scene.doEngineSortOpaque(); },
-    function(value) { return (value); }
-);
-
-panel.newCheckbox("Enable Render Opaque", 
-    function(value) { Scene.setEngineRenderOpaque((value != 0)); },
-    function() { return Scene.doEngineRenderOpaque(); },
-    function(value) { return (value); }
-);
+var panel = new Panel(10, 800);
 
 panel.newSlider("Num Feed Opaques", 0, 1000, 
     function(value) { },
@@ -45,24 +27,6 @@ panel.newSlider("Num Drawn Opaques", 0, 1000,
 panel.newSlider("Max Drawn Opaques", -1, 1000, 
     function(value) { Scene.setEngineMaxDrawnOpaqueItems(value); },
     function() { return Scene.getEngineMaxDrawnOpaqueItems(); },
-    function(value) { return (value); }
-);
-
-panel.newCheckbox("Enable Cull Transparent", 
-    function(value) { Scene.setEngineCullTransparent((value != 0)); },
-    function() { return Scene.doEngineCullTransparent(); },
-    function(value) { return (value); }
-);
-
-panel.newCheckbox("Enable Sort Transparent", 
-    function(value) { Scene.setEngineSortTransparent((value != 0)); },
-    function() { return Scene.doEngineSortTransparent(); },
-    function(value) { return (value); }
-);
-
-panel.newCheckbox("Enable Render Transparent", 
-    function(value) { Scene.setEngineRenderTransparent((value != 0)); },
-    function() { return Scene.doEngineRenderTransparent(); },
     function(value) { return (value); }
 );
 
@@ -84,13 +48,52 @@ panel.newSlider("Max Drawn Transparents", -1, 100,
     function(value) { return (value); }
 );
 
+panel.newSlider("Num Feed Overlay3Ds", 0, 100, 
+    function(value) { },
+    function() { return Scene.getEngineNumFeedOverlay3DItems(); },
+    function(value) { return (value); }
+);
+
+panel.newSlider("Num Drawn Overlay3Ds", 0, 100, 
+    function(value) { },
+    function() { return Scene.getEngineNumDrawnOverlay3DItems(); },
+    function(value) { return (value); }
+);
+
+panel.newSlider("Max Drawn Overlay3Ds", -1, 100, 
+    function(value) { Scene.setEngineMaxDrawnOverlay3DItems(value); },
+    function() { return Scene.getEngineMaxDrawnOverlay3DItems(); },
+    function(value) { return (value); }
+);
+
 var tickTackPeriod = 500;
 
 function updateCounters() {
-        panel.set("Num Feed Opaques", panel.get("Num Feed Opaques"));
-        panel.set("Num Drawn Opaques", panel.get("Num Drawn Opaques"));
-        panel.set("Num Feed Transparents", panel.get("Num Feed Transparents"));
-        panel.set("Num Drawn Transparents", panel.get("Num Drawn Transparents"));
+    var numFeedOpaques = panel.get("Num Feed Opaques");
+    var numFeedTransparents = panel.get("Num Feed Transparents");
+    var numFeedOverlay3Ds = panel.get("Num Feed Overlay3Ds");
+
+    panel.set("Num Feed Opaques", numFeedOpaques);
+    panel.set("Num Drawn Opaques", panel.get("Num Drawn Opaques"));
+    panel.set("Num Feed Transparents", numFeedTransparents);
+    panel.set("Num Drawn Transparents", panel.get("Num Drawn Transparents"));
+    panel.set("Num Feed Overlay3Ds", numFeedOverlay3Ds);
+    panel.set("Num Drawn Overlay3Ds", panel.get("Num Drawn Overlay3Ds"));        
+
+    var numMax = Math.max(numFeedOpaques * 1.2, 1);
+    panel.getWidget("Num Feed Opaques").setMaxValue(numMax);
+    panel.getWidget("Num Drawn Opaques").setMaxValue(numMax);
+    panel.getWidget("Max Drawn Opaques").setMaxValue(numMax);
+
+    numMax = Math.max(numFeedTransparents * 1.2, 1);
+    panel.getWidget("Num Feed Transparents").setMaxValue(numMax);
+    panel.getWidget("Num Drawn Transparents").setMaxValue(numMax);
+    panel.getWidget("Max Drawn Transparents").setMaxValue(numMax);        
+
+    numMax = Math.max(numFeedOverlay3Ds * 1.2, 1);
+    panel.getWidget("Num Feed Overlay3Ds").setMaxValue(numMax);
+    panel.getWidget("Num Drawn Overlay3Ds").setMaxValue(numMax);
+    panel.getWidget("Max Drawn Overlay3Ds").setMaxValue(numMax);
 }
 Script.setInterval(updateCounters, tickTackPeriod);
 

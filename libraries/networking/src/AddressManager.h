@@ -26,6 +26,8 @@ const QString HIFI_URL_SCHEME = "hifi";
 const QString DEFAULT_HIFI_ADDRESS = "hifi://entry";
 const QString INDEX_PATH = "/";
 
+const QString GET_PLACE = "/api/v1/places/%1";
+
 typedef const glm::vec3& (*PositionGetter)();
 typedef glm::quat (*OrientationGetter)();
 
@@ -61,6 +63,9 @@ public:
     void setOrientationGetter(OrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
 
     void loadSettings(const QString& lookupString = QString());
+
+    const QStack<QUrl>& getBackStack() const { return _backStack; }
+    const QStack<QUrl>& getForwardStack() const { return _forwardStack; }
 
 public slots:
     void handleLookupString(const QString& lookupString);

@@ -13,6 +13,7 @@
 
 #include <GlowEffect.h>
 #include <GeometryCache.h>
+#include <RegisteredMetaTypes.h>
 
 #include "Line3DOverlay.h"
 
@@ -32,6 +33,15 @@ Line3DOverlay::Line3DOverlay(const Line3DOverlay* line3DOverlay) :
 Line3DOverlay::~Line3DOverlay() {
 }
 
+AABox Line3DOverlay::getBounds() const {
+    auto extents = Extents{};
+    extents.addPoint(_start);
+    extents.addPoint(_end);
+    extents.transform(_transform);
+    
+    return AABox(extents);
+}
+
 void Line3DOverlay::render(RenderArgs* args) {
     if (!_visible) {
         return; // do nothing if we're not visible
@@ -45,14 +55,11 @@ void Line3DOverlay::render(RenderArgs* args) {
     auto batch = args->_batch;
 
     if (batch) {
-        Transform transform;
-        transform.setTranslation(_position);
-        transform.setRotation(_rotation);
-        batch->setModelTransform(transform);
+        batch->setModelTransform(_transform);
 
         if (getIsDashedLine()) {
             // TODO: add support for color to renderDashedLine()
-            DependencyManager::get<GeometryCache>()->renderDashedLine(*batch, _position, _end, colorv4, _geometryCacheID);
+            DependencyManager::get<GeometryCache>()->renderDashedLine(*batch, _start, _end, colorv4, _geometryCacheID);
         } else {
             DependencyManager::get<GeometryCache>()->renderLine(*batch, _start, _end, colorv4, _geometryCacheID);
         }
@@ -77,7 +84,7 @@ void Line3DOverlay::render(RenderArgs* args) {
 
         if (getIsDashedLine()) {
             // TODO: add support for color to renderDashedLine()
-            DependencyManager::get<GeometryCache>()->renderDashedLine(_position, _end, colorv4, _geometryCacheID);
+            DependencyManager::get<GeometryCache>()->renderDashedLine(_start, _end, colorv4, _geometryCacheID);
         } else {
             DependencyManager::get<GeometryCache>()->renderLine(_start, _end, colorv4, _geometryCacheID);
         }

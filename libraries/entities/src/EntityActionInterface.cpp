@@ -19,8 +19,8 @@ EntityActionType EntityActionInterface::actionTypeFromString(QString actionTypeS
     if (normalizedActionTypeString == "none") {
         return ACTION_TYPE_NONE;
     }
-    if (normalizedActionTypeString == "pulltopoint") {
-        return ACTION_TYPE_PULL_TO_POINT;
+    if (normalizedActionTypeString == "offset") {
+        return ACTION_TYPE_OFFSET;
     }
     if (normalizedActionTypeString == "spring") {
         return ACTION_TYPE_SPRING;
@@ -37,8 +37,8 @@ QString EntityActionInterface::actionTypeToString(EntityActionType actionType) {
     switch(actionType) {
         case ACTION_TYPE_NONE:
             return "none";
-        case ACTION_TYPE_PULL_TO_POINT:
-            return "pullToPoint";
+        case ACTION_TYPE_OFFSET:
+            return "offset";
         case ACTION_TYPE_SPRING:
             return "spring";
         case ACTION_TYPE_HOLD:

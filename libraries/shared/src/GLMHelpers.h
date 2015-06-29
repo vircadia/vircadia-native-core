@@ -28,9 +28,18 @@ using glm::vec3;
 using glm::vec4;
 using glm::quat;
 
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#endif
+
 #include <QtCore/QByteArray>
 #include <QtGui/QMatrix4x4>
 #include <QtGui/QColor>
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #include "SharedUtil.h"
 
@@ -120,6 +129,21 @@ QRectF glmToRect(const glm::vec2 & pos, const glm::vec2 & size);
 template <typename T>
 float aspect(const T& t) {
     return (float)t.x / (float)t.y;
+}
+
+// Take values in an arbitrary range [0, size] and convert them to the range [0, 1]
+template <typename T>
+T toUnitScale(const T& value, const T& size) {
+    return value / size;
+}
+
+// Take values in an arbitrary range [0, size] and convert them to the range [0, 1]
+template <typename T>
+T toNormalizedDeviceScale(const T& value, const T& size) {
+    vec2 result = toUnitScale(value, size);
+    result *= 2.0f;
+    result -= 1.0f;
+    return result;
 }
 
 #define YAW(euler) euler.y

@@ -35,7 +35,7 @@
 
 const QString NO_SCRIPT("");
 
-const unsigned int SCRIPT_DATA_CALLBACK_USECS = floor(((1.0 / 60.0f) * 1000 * 1000) + 0.5);
+const unsigned int SCRIPT_DATA_CALLBACK_USECS = floor(((1.0f / 60.0f) * 1000 * 1000) + 0.5f);
 
 typedef QHash<QString, QScriptValueList> RegisteredEventHandlers;
 
@@ -104,7 +104,7 @@ public:
     Q_INVOKABLE void removeEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler);
 
 public slots:
-    void loadURL(const QUrl& scriptURL);
+    void loadURL(const QUrl& scriptURL, bool reload);
     void stop();
 
     QScriptValue evaluate(const QString& program, const QString& fileName = QString(), int lineNumber = 1);
@@ -132,6 +132,7 @@ signals:
     void runningStateChanged();
     void evaluationFinished(QScriptValue result, bool isException);
     void loadScript(const QString& scriptName, bool isUserLoaded);
+    void reloadScript(const QString& scriptName, bool isUserLoaded);
     void doneRunning();
 
 protected:
@@ -165,6 +166,7 @@ private:
     Vec3 _vec3Library;
     ScriptUUID _uuidLibrary;
     bool _isUserLoaded;
+    bool _isReloading;
 
     ArrayBufferClass* _arrayBufferClass;
 
