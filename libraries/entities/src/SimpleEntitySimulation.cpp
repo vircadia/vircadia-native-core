@@ -32,9 +32,6 @@ void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
             SharedNodePointer ownerNode = nodeList->nodeWithUUID(entity->getSimulatorID());
             if (ownerNode.isNull() || !ownerNode->isAlive()) {
                 qCDebug(entities) << "auto-removing simulation owner" << entity->getSimulatorID();
-                entity->setSimulatorID(QUuid());
-                itemItr = _hasSimulationOwnerEntities.erase(itemItr);
-                // TODO: zero velocities when we clear simulatorID?
                 entity->clearSimulationOwnership();
                 itemItr = _entitiesWithSimulator.erase(itemItr);
                 // zero the velocity on this entity so that it doesn't drift far away
