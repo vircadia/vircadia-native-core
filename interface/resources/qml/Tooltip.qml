@@ -21,7 +21,7 @@ Hifi.Tooltip {
 
     Rectangle {
         id: border
-        color: "#7f000000"
+        color: "#BF000000"
         width: 330
         height: col.height + hifi.layout.spacing * 2
 
