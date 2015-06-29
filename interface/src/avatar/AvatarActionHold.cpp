@@ -190,5 +190,6 @@ void AvatarActionHold::deserialize(QByteArray serializedArguments) {
 
     _parametersSet = true;
 
-    _active = true;
+    // XXX don't enable hold actions from remote nodes
+    // _active = true;
 }
