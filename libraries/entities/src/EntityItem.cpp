@@ -1563,6 +1563,7 @@ QVariantMap EntityItem::getActionArguments(const QUuid& actionID) {
     if (_objectActions.contains(actionID)) {
         EntityActionPointer action = _objectActions[actionID];
         result = action->getArguments();
+        result["type"] = EntityActionInterface::actionTypeToString(action->getType());
     }
     return result;
 }
