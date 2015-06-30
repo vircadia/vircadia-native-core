@@ -11,8 +11,11 @@
 
 #include "ViveControllerManager.h"
 
-#include "Application.h"
 #include <avatar/AvatarManager.h>
+#include <GLMHelpers.h>
+#include <PerfStat.h>
+
+#include "Application.h"
 #include "OpenVrDisplayPlugin.h"
 #include "OpenVrHelpers.h"
 #include "UserActivityLogger.h"
@@ -74,7 +77,7 @@ void ViveControllerManager::update() {
                 continue;
             }
             
-            const Matrix4 & mat = _trackedDevicePoseMat4[unTrackedDevice];
+            const mat4& mat = _trackedDevicePoseMat4[unTrackedDevice];
             
             PalmData* palm;
             bool foundHand = false;
@@ -92,14 +95,14 @@ void ViveControllerManager::update() {
                 palm = &(hand->getPalms()[hand->getNumPalms() - 1]);
                 palm->setSixenseID(unTrackedDevice);
                 _prevPalms[trackedControllerCount - 1] = palm;
-                qCDebug(interfaceapp, "Found new Vive hand controller, ID %i", unTrackedDevice);
+                //qDebug(interfaceapp, "Found new Vive hand controller, ID %i", unTrackedDevice);
             }
             
             palm->setActive(true);
             
             // handle inputs
             vr::VRControllerState_t* controllerState;
-            if(vr::GetControllerState(unTrackedDevice, controllerState)) {
+            if(_hmd->GetControllerState(unTrackedDevice, controllerState)) {
                 
             }
             
@@ -118,12 +121,8 @@ void ViveControllerManager::update() {
 //           position = _orbRotation * (position - neck);
 
 //           //  Rotation of Palm
-            float w = sqrt(1.0f + _trackedDevicePoseMat4[0][0] + _trackedDevicePoseMat4[1][1] + _trackedDevicePoseMat4[2][2]) / 2.0f;
-            float x = (_trackedDevicePoseMat4[2][1] - _trackedDevicePoseMat4[1][2])/(4.0f * w);
-            float y = (_trackedDevicePoseMat4[0][2] - _trackedDevicePoseMat4[2][0])/(4.0f * w);
-            float z = (_trackedDevicePoseMat4[1][0] - _trackedDevicePoseMat4[0][1])/(4.0f * w);
-            glm::quat rotation(w, x, y, z);
-            rotation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)) * rotation;
+            glm::quat rotation = glm::quat_cast(_trackedDevicePoseMat4[unTrackedDevice]);
+            //rotation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)) * rotation;
 
 //           //  Compute current velocity from position change
 //           glm::vec3 rawVelocity;

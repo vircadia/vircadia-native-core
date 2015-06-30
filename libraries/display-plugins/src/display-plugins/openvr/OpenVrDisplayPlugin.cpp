@@ -72,12 +72,12 @@ bool OpenVrDisplayPlugin::isSupported() const {
 }
 
 void OpenVrDisplayPlugin::activate(PluginContainer * container) {
+	vr::HmdError eError = vr::HmdError_None;
     if (!_hmd) {
-        vr::HmdError eError = vr::HmdError_None;
         _hmd = vr::VR_Init(&eError);
-        Q_ASSERT(eError == vr::HmdError_None);
-        Q_ASSERT(_hmd);
-    }
+		Q_ASSERT(eError == vr::HmdError_None);
+	}
+	Q_ASSERT(_hmd);
 
     _hmd->GetWindowBounds(&_windowPosition.x, &_windowPosition.y, &_windowSize.x, &_windowSize.y);
     _hmd->GetRecommendedRenderTargetSize(&_renderTargetSize.x, &_renderTargetSize.y);
