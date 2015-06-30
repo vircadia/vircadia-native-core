@@ -18,7 +18,13 @@ const float SPRING_MAX_SPEED = 10.0f;
 const uint16_t ObjectActionSpring::springVersion = 1;
 
 ObjectActionSpring::ObjectActionSpring(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) :
-    ObjectAction(type, id, ownerEntity) {
+    ObjectAction(type, id, ownerEntity),
+    _positionalTarget(glm::vec3(0.0f)),
+    _linearTimeScale(0.2f),
+    _positionalTargetSet(false),
+    _rotationalTarget(glm::quat()),
+    _angularTimeScale(0.2f),
+    _rotationalTargetSet(false) {
     #if WANT_DEBUG
     qDebug() << "ObjectActionSpring::ObjectActionSpring";
     #endif
