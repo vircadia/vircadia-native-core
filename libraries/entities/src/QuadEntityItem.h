@@ -81,6 +81,7 @@ class QuadEntityItem : public EntityItem {
     QVector<glm::vec3> _points;
     QVector<glm::vec3> _vertices;
     QVector<glm::vec3> _normals;
+    mutable QReadWriteLock _quadReadWriteLock;
 };
 
 #endif // hifi_QuadEntityItem_h

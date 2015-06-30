@@ -44,7 +44,7 @@ _vertices(QVector<glm::vec3>(0))
 }
 
 EntityItemProperties QuadEntityItem::getProperties() const {
-    
+    _quadReadWriteLock.lockForWrite();
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
     
     
@@ -59,11 +59,12 @@ EntityItemProperties QuadEntityItem::getProperties() const {
     
     properties._glowLevel = getGlowLevel();
     properties._glowLevelChanged = false;
-    
+    _quadReadWriteLock.unlock();
     return properties;
 }
 
 bool QuadEntityItem::setProperties(const EntityItemProperties& properties) {
+    _quadReadWriteLock.lockForWrite();
     bool somethingChanged = false;
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
     
@@ -83,7 +84,10 @@ bool QuadEntityItem::setProperties(const EntityItemProperties& properties) {
         }
         setLastEdited(properties._lastEdited);
     }
+    
+    _quadReadWriteLock.unlock();
     return somethingChanged;
+    
 }
 
 bool QuadEntityItem::appendPoint(const glm::vec3& point) {
@@ -106,7 +110,6 @@ bool QuadEntityItem::setNormals(const QVector<glm::vec3> &normals) {
         return false;
     }
     _normals = normals;
-    qDebug() << "NORMALS: " << normals;
     _vertices.clear();
     //Go through and create vertices for triangle strip based on normals
     if (_normals.size() != _points.size()) {
@@ -114,10 +117,11 @@ bool QuadEntityItem::setNormals(const QVector<glm::vec3> &normals) {
     }
     glm::vec3 v1, v2, tangent, binormal, point;
     for (int i = 0; i < _points.size()-1; i++) {
+        float width = (static_cast <float> (rand()) / static_cast <float> (RAND_MAX) * .1) + .02;
         point = _points.at(i);
         //Get tangent
         tangent = _points.at(i+1) - point;
-        binormal = glm::normalize(glm::cross(tangent, normals.at(i))) * _lineWidth;
+        binormal = glm::normalize(glm::cross(tangent, normals.at(i))) * width;
         v1 = point + binormal;
         v2 = point - binormal;
         _vertices << v1 << v2;
@@ -172,7 +176,7 @@ bool QuadEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
 int QuadEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                      ReadBitstreamToTreeParams& args,
                                                      EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
-    
+    _quadReadWriteLock.lockForWrite();
     int bytesRead = 0;
     const unsigned char* dataAt = data;
     
@@ -181,7 +185,7 @@ int QuadEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
     READ_ENTITY_PROPERTY(PROP_NORMALS, QVector<glm::vec3>,  setNormals);
     
-    
+    _quadReadWriteLock.unlock();
     return bytesRead;
 }
 

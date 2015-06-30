@@ -23,6 +23,8 @@
 
 
 
+
+
 EntityItemPointer RenderableQuadEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return EntityItemPointer(new RenderableQuadEntityItem(entityID, properties));
 }
@@ -70,25 +72,28 @@ int generateColor() {
 }
 
 void RenderableQuadEntityItem::updateGeometry() {
-    if (_pointsChanged) {
-        int compactColor = generateColor();
-        _numVertices = 0;
-        _verticesBuffer.reset(new gpu::Buffer());
-        int vertexIndex = 0;
-        for (int i = 0; i < _normals.size(); i++) {
-            compactColor = generateColor();
-            _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex++));
-            _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
-            _verticesBuffer->append(sizeof(int), (gpu::Byte*)&compactColor);
-            
-            _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex++));
-            _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
-            _verticesBuffer->append(sizeof(int), (gpu::Byte*)&compactColor);
-            
-            _numVertices +=2;
-        }
-        _pointsChanged = false;
+
+    int compactColor = generateColor();
+    _numVertices = 0;
+    _verticesBuffer.reset(new gpu::Buffer());
+    int vertexIndex = 0;
+    for (int i = 0; i < _normals.size(); i++) {
+        compactColor = generateColor();
+        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
+         vertexIndex++;
+        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
+        _verticesBuffer->append(sizeof(int), (gpu::Byte*)&compactColor);
+        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
+        vertexIndex++;
+        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
+        _verticesBuffer->append(sizeof(int), (gpu::Byte*)&compactColor);
+        
+        _numVertices +=2;
     }
+    _pointsChanged = false;
+    
+
+    
 }
 
 
@@ -101,13 +106,15 @@ void RenderableQuadEntityItem::render(RenderArgs* args) {
     if (!_pipeline) {
         createPipeline();
     }
-    
  
     PerformanceTimer perfTimer("RenderableQuadEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Quad);
     
     Q_ASSERT(args->_batch);
-    updateGeometry();
+    if (_pointsChanged) {
+        updateGeometry();
+    }
+
     
     gpu::Batch& batch = *args->_batch;
     Transform transform = Transform();
@@ -120,7 +127,7 @@ void RenderableQuadEntityItem::render(RenderArgs* args) {
     
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);
-    
+     
     batch.draw(gpu::TRIANGLE_STRIP, _numVertices, 0);
     
     RenderableDebugableEntityItem::render(this, args);

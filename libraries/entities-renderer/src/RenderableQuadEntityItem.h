@@ -17,6 +17,7 @@
 #include "RenderableDebugableEntityItem.h"
 #include "RenderableEntityItem.h"
 #include <GeometryCache.h>
+#include <QReadWriteLock>
 
 class RenderableQuadEntityItem : public QuadEntityItem {
 public:
@@ -35,6 +36,7 @@ protected:
     void updateGeometry();
     gpu::BufferPointer _verticesBuffer;
     unsigned int _numVertices;
+
 };
 
 
