@@ -73,7 +73,6 @@
 #include <gpu/GLBackend.h>
 #include <HFActionEvent.h>
 #include <HFBackEvent.h>
-#include <input-plugins/sixense/SixenseManager.h>
 #include <InfoView.h>
 #include <LogHandler.h>
 #include <MainWindow.h>

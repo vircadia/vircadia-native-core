@@ -54,7 +54,7 @@
 #include "Stars.h"
 #include "avatar/Avatar.h"
 #include "avatar/MyAvatar.h"
-//#include "devices/SixenseManager.h"
+#include "devices/SixenseManager.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/WebWindowClass.h"
 #include "ui/BandwidthDialog.h"
