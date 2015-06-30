@@ -71,7 +71,7 @@ const int SCRIPTED_MOTOR_AVATAR_FRAME = 1;
 const int SCRIPTED_MOTOR_WORLD_FRAME = 2;
 
 const float MyAvatar::ZOOM_MIN = 0.5f;
-const float MyAvatar::ZOOM_MAX = 10.0f;
+const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 
 MyAvatar::MyAvatar() :
@@ -1333,7 +1333,8 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
         }
     }
     
-    _boomLength += _driveKeys[BOOM_OUT] - _driveKeys[BOOM_IN];
+    float boomChange = _driveKeys[BOOM_OUT] - _driveKeys[BOOM_IN];
+    _boomLength += 2.0f * _boomLength * boomChange + boomChange * boomChange;
     _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);
 
     return newLocalVelocity;
