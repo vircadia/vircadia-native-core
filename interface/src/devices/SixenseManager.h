@@ -84,7 +84,6 @@ public:
     void registerToUserInputMapper(UserInputMapper& mapper);
     void assignDefaultInputMapping(UserInputMapper& mapper);
     
-    void update();
     void focusOutEvent();
     
 public slots:

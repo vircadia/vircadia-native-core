@@ -64,6 +64,7 @@
 #include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <display-plugins/DisplayPlugin.h>
+#include <display-plugins/openvr/ViveControllerManager.h>
 #include <EntityScriptingInterface.h>
 #include <ErrorDialog.h>
 #include <GlowEffect.h>
@@ -661,6 +662,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     ddeTracker->init();
     connect(ddeTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
 #endif
+    
+    ViveControllerManager::getInstance().activate();
     
     auto applicationUpdater = DependencyManager::get<AutoUpdater>();
     connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
@@ -1556,6 +1559,7 @@ void Application::focusOutEvent(QFocusEvent* event) {
     _keyboardMouseDevice.focusOutEvent(event);
     SixenseManager::getInstance().focusOutEvent();
     SDL2Manager::getInstance()->focusOutEvent();
+    ViveControllerManager::getInstance().focusOutEvent();
 
     // synthesize events for keys currently pressed, since we may not get their release events
     foreach (int key, _keysPressed) {
@@ -2498,6 +2502,7 @@ void Application::update(float deltaTime) {
 
         SixenseManager::getInstance().update(deltaTime);
         SDL2Manager::getInstance()->update();
+        ViveControllerManager::getInstance().update();
     }
 
     _userInputMapper.update(deltaTime);
