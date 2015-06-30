@@ -14,20 +14,19 @@
 
 #include <QObject>
 #include <unordered_set>
-#include "../UserInputMapper.h"
-
-#define HAVE_SIXENSE
 
 #ifdef HAVE_SIXENSE
     #include <glm/glm.hpp>
     #include <glm/gtc/quaternion.hpp>
-    #include <sixense.h>
+    #include "sixense.h"
 
 #ifdef __APPLE__
     #include <qlibrary.h>
 #endif
 
 #endif
+
+#include "ui/UserInputMapper.h"
 
 class PalmData;
 
