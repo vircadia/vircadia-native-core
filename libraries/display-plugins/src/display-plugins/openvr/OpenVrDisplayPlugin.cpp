@@ -33,6 +33,7 @@ static vr::IVRSystem *_hmd{ nullptr };
 static vr::IVRCompositor* _compositor{ nullptr };
 static vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 static mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
+static mat4 _sensorResetMat;
 static uvec2 _windowSize;
 static ivec2 _windowPosition;
 static uvec2 _renderTargetSize;
@@ -128,7 +129,24 @@ void OpenVrDisplayPlugin::preRender() {
 }
 
 void OpenVrDisplayPlugin::resetSensors() {
-    _hmd->ResetSeatedZeroPose();
+    // _hmd->ResetSeatedZeroPose(); AJT: not working
+
+    mat4 pose = _trackedDevicePoseMat4[0];
+    vec3 xAxis = vec3(pose[0]);
+    vec3 yAxis = vec3(pose[1]);
+    vec3 zAxis = vec3(pose[2]);
+
+    // cancel out the roll and pitch
+    vec3 newZ = glm::normalize(vec3(zAxis.x, 0, zAxis.z));
+    vec3 newX = glm::cross(vec3(0, 1, 0), newZ);
+    vec3 newY = glm::cross(newZ, newX);
+
+    mat4 m;
+    m[0] = vec4(newX, 0);
+    m[1] = vec4(newY, 0);
+    m[2] = vec4(newZ, 0);
+    m[3] = pose[3];
+    _sensorResetMat = glm::inverse(m);
 }
 
 glm::mat4 OpenVrDisplayPlugin::getEyePose(Eye eye) const {
@@ -136,7 +154,7 @@ glm::mat4 OpenVrDisplayPlugin::getEyePose(Eye eye) const {
 }
 
 glm::mat4 OpenVrDisplayPlugin::getHeadPose() const {
-    return _trackedDevicePoseMat4[0];
+    return _sensorResetMat * _trackedDevicePoseMat4[0];
 }
 
 void OpenVrDisplayPlugin::customizeContext(PluginContainer * container) {
@@ -158,7 +176,7 @@ void OpenVrDisplayPlugin::finishFrame() {
     _compositor->WaitGetPoses(_trackedDevicePose, vr::k_unMaxTrackedDeviceCount);
     _trackedDevicePoseMat4[0] = toGlm(_trackedDevicePose[0].mDeviceToAbsoluteTracking);
     openvr_for_each_eye([&](vr::Hmd_Eye eye) {
-        _eyesData[eye]._pose = _trackedDevicePoseMat4[0];
+        _eyesData[eye]._pose = _sensorResetMat * _trackedDevicePoseMat4[0];
     });
 };
 
