@@ -150,23 +150,11 @@ void ShapeInfoTests::testBoxShape() {
 
     btCollisionShape* shape = ShapeFactory::createShapeFromInfo(info);
     QCOMPARE(shape != nullptr, true);
-//    if (!shape) {
-//        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: NULL Box shape" << std::endl;
-//    }
-
+    
     ShapeInfo otherInfo = info;
     DoubleHashKey otherKey = otherInfo.getHash();
     QCOMPARE(key.getHash(), otherKey.getHash());
-//    if (key.getHash() != otherKey.getHash()) {
-//        std::cout << __FILE__ << ":" << __LINE__
-//            << " ERROR: expected Box shape hash = " << key.getHash() << " but found hash = " << otherKey.getHash() << std::endl;
-//    }
-
     QCOMPARE(key.getHash2(), otherKey.getHash2());
-//    if (key.getHash2() != otherKey.getHash2()) {
-//        std::cout << __FILE__ << ":" << __LINE__
-//            << " ERROR: expected Box shape hash2 = " << key.getHash2() << " but found hash2 = " << otherKey.getHash2() << std::endl;
-//    }
 
     delete shape;
 }
@@ -183,15 +171,7 @@ void ShapeInfoTests::testSphereShape() {
     ShapeInfo otherInfo = info;
     DoubleHashKey otherKey = otherInfo.getHash();
     QCOMPARE(key.getHash(), otherKey.getHash());
-//    if (key.getHash() != otherKey.getHash()) {
-//        std::cout << __FILE__ << ":" << __LINE__
-//            << " ERROR: expected Sphere shape hash = " << key.getHash() << " but found hash = " << otherKey.getHash() << std::endl;
-//    }
     QCOMPARE(key.getHash2(), otherKey.getHash2());
-//    if (key.getHash2() != otherKey.getHash2()) {
-//        std::cout << __FILE__ << ":" << __LINE__
-//            << " ERROR: expected Sphere shape hash2 = " << key.getHash2() << " but found hash2 = " << otherKey.getHash2() << std::endl;
-//    }
 
     delete shape;
 }
@@ -210,15 +190,7 @@ void ShapeInfoTests::testCylinderShape() {
     ShapeInfo otherInfo = info;
     DoubleHashKey otherKey = otherInfo.getHash();
     QCOMPARE(key.getHash(), otherKey.getHash());
-//    if (key.getHash() != otherKey.getHash()) {
-//        std::cout << __FILE__ << ":" << __LINE__
-//            << " ERROR: expected Cylinder shape hash = " << key.getHash() << " but found hash = " << otherKey.getHash() << std::endl;
-//    }
-     QCOMPARE(key.getHash2(), otherKey.getHash2());
-//    if (key.getHash2() != otherKey.getHash2()) {
-//        std::cout << __FILE__ << ":" << __LINE__
-//            << " ERROR: expected Cylinder shape hash2 = " << key.getHash2() << " but found hash2 = " << otherKey.getHash2() << std::endl;
-//    }
+    QCOMPARE(key.getHash2(), otherKey.getHash2());
 
     delete shape;
     */
@@ -238,27 +210,9 @@ void ShapeInfoTests::testCapsuleShape() {
     ShapeInfo otherInfo = info;
     DoubleHashKey otherKey = otherInfo.getHash();
     QCOMPARE(key.getHash(), otherKey.getHash());
-//    if (key.getHash() != otherKey.getHash()) {
-//        std::cout << __FILE__ << ":" << __LINE__
-//            << " ERROR: expected Capsule shape hash = " << key.getHash() << " but found hash = " << otherKey.getHash() << std::endl;
-//    }
-     QCOMPARE(key.getHash2(), otherKey.getHash2());
-//    if (key.getHash2() != otherKey.getHash2()) {
-//        std::cout << __FILE__ << ":" << __LINE__
-//            << " ERROR: expected Capsule shape hash2 = " << key.getHash2() << " but found hash2 = " << otherKey.getHash2() << std::endl;
-//    }
+    QCOMPARE(key.getHash2(), otherKey.getHash2());
 
     delete shape;
     */
 }
 
-//void ShapeInfoTests::runAllTests() {
-////#define MANUAL_TEST
-//#ifdef MANUAL_TEST
-//    testHashFunctions();
-//#endif // MANUAL_TEST
-//    testBoxShape();
-//    testSphereShape();
-//    testCylinderShape();
-//    testCapsuleShape();
-//}

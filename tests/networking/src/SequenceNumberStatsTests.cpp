@@ -1,5 +1,5 @@
 //
-//  AudioRingBufferTests.cpp
+//  SequenceNumberStatsTests.cpp
 //  tests/networking/src
 //
 //  Created by Yixin Wang on 6/24/2014

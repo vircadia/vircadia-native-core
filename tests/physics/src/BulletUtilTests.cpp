@@ -65,12 +65,3 @@ void BulletUtilTests::fromGLMToBullet() {
     QCOMPARE(gQ.z, bQ.getZ());
     QCOMPARE(gQ.w, bQ.getW());
 }
-
-//void BulletUtilTests::fooTest () {
-//    
-//    glm::vec3 a { 1, 0, 3 };
-//    glm::vec3 b { 2, 0, 5 };
-//    
-////    QCOMPARE(10, 22);
-//    QCOMPARE_WITH_ABS_ERROR(a, b, 1.0f);
-//}

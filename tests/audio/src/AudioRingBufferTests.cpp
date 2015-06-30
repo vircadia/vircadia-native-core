@@ -1,4 +1,4 @@
-    //
+//
 //  AudioRingBufferTests.cpp
 //  tests/audio/src
 //
@@ -124,6 +124,4 @@ void AudioRingBufferTests::runAllTests() {
         }
         assertBufferSize(ringBuffer, 0);
     }
-
-//    qDebug() << "PASSED";
 }

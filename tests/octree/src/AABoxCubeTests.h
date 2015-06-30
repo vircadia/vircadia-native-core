@@ -14,7 +14,6 @@
 
 #include <QtTest/QtTest>
 
-
 class AABoxCubeTests : public QObject {
     Q_OBJECT
     

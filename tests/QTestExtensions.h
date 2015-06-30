@@ -47,12 +47,12 @@
 // Additional messages (after actual/expected) can be written using the std::function callback.
 // If these messages span more than one line, wrap them with "\n\t" to get proper indentation / formatting)
 //
-template <typename T>
-inline QString QTest_generateCompareFailureMessage (
-    const char * failMessage,
-    const T & actual, const T & expected,
-    const char * actual_expr, const char * expected_expr,
-    std::function<QTextStream & (QTextStream &)> writeAdditionalMessages
+template <typename T> inline
+QString QTest_generateCompareFailureMessage (
+    const char* failMessage,
+    const T& actual, const T& expected,
+    const char* actual_expr, const char* expected_expr,
+    std::function<QTextStream& (QTextStream&)> writeAdditionalMessages
 ) {
     QString s1 = actual_expr, s2 = expected_expr;
     int pad1_ = qMax(s2.length() - s1.length(), 0);
@@ -79,11 +79,11 @@ inline QString QTest_generateCompareFailureMessage (
 //      Loc: [<file path....>(<linenum>)]
 // (no message callback)
 //
-template <typename T>
-inline QString QTest_generateCompareFailureMessage (
-    const char * failMessage,
-    const T & actual, const T & expected,
-    const char * actual_expr, const char * expected_expr
+template <typename T> inline
+QString QTest_generateCompareFailureMessage (
+    const char* failMessage,
+    const T& actual, const T& expected,
+    const char* actual_expr, const char* expected_expr
 ) {
     QString s1 = actual_expr, s2 = expected_expr;
     int pad1_ = qMax(s2.length() - s1.length(), 0);
@@ -102,15 +102,17 @@ inline QString QTest_generateCompareFailureMessage (
 
 // Hacky function that can assemble a QString from a QTextStream via a callback
 // (ie. stream operations w/out qDebug())
-inline QString makeMessageFromStream (std::function<void(QTextStream &)> writeMessage) {
+inline
+QString makeMessageFromStream (std::function<void(QTextStream&)> writeMessage) {
     QString msg;
     QTextStream stream(&msg);
     writeMessage(stream);
     return msg;
 }
 
-inline void QTest_failWithCustomMessage (
-    std::function<void(QTextStream &stream)> writeMessage, int line, const char *file
+inline
+void QTest_failWithCustomMessage (
+    std::function<void(QTextStream&)> writeMessage, int line, const char* file
 ) {
     QTest::qFail(qPrintable(makeMessageFromStream(writeMessage)), file, line);
 }
@@ -133,38 +135,44 @@ do { \
 
 // Calls qFail using QTest_generateCompareFailureMessage.
 // This is (usually) wrapped in macros, but if you call this directly you should return immediately to get QFAIL semantics.
-template <typename T>
-inline void QTest_failWithMessage(
-    const char * failMessage,
-    const T & actual, const T & expected,
-    const char * actualExpr, const char * expectedExpr,
-    int line, const char * file
+template <typename T> inline
+void QTest_failWithMessage(
+    const char* failMessage,
+    const T& actual, const T& expected,
+    const char* actualExpr, const char* expectedExpr,
+    int line, const char* file
 ) {
-    QTest::qFail(qPrintable(QTest_generateCompareFailureMessage(failMessage, actual, expected, actualExpr, expectedExpr)), file, line);
+    QTest::qFail(qPrintable(QTest_generateCompareFailureMessage(
+        failMessage, actual, expected, actualExpr, expectedExpr)), file, line);
 }
 
 // Calls qFail using QTest_generateCompareFailureMessage.
 // This is (usually) wrapped in macros, but if you call this directly you should return immediately to get QFAIL semantics.
-template <typename T>
-inline void QTest_failWithMessage(
-    const char * failMessage,
-    const T & actual, const T & expected,
-    const char * actualExpr, const char * expectedExpr,
-    int line, const char * file,
-    std::function<QTextStream &(QTextStream&)> writeAdditionalMessageLines
+template <typename T> inline
+void QTest_failWithMessage(
+    const char* failMessage,
+    const T& actual, const T& expected,
+    const char* actualExpr, const char* expectedExpr,
+    int line, const char* file,
+    std::function<QTextStream& (QTextStream&)> writeAdditionalMessageLines
 ) {
-    QTest::qFail(qPrintable(QTest_generateCompareFailureMessage(failMessage, actual, expected, actualExpr, expectedExpr, writeAdditionalMessageLines)), file, line);
+    QTest::qFail(qPrintable(QTest_generateCompareFailureMessage(
+        failMessage, actual, expected, actualExpr, expectedExpr, writeAdditionalMessageLines)), file, line);
 }
 
 // Implements QCOMPARE_WITH_ABS_ERROR
-template <typename T, typename V>
-inline bool QTest_compareWithAbsError(const T & actual, const T & expected, const char * actual_expr, const char * expected_expr, int line, const char * file, const V & epsilon)
-{
+template <typename T, typename V> inline
+bool QTest_compareWithAbsError(
+    const T& actual, const T& expected,
+    const char* actual_expr, const char* expected_expr,
+    int line, const char* file,
+    const V& epsilon
+) {
     if (abs(getErrorDifference(actual, expected)) > abs(epsilon)) {
         QTest_failWithMessage(
             "Compared values are not the same (fuzzy compare)",
             actual, expected, actual_expr, expected_expr, line, file,
-            [&] (QTextStream & stream) -> QTextStream & {
+            [&] (QTextStream& stream) -> QTextStream& {
                 return stream << "Err tolerance: " << getErrorDifference((actual), (expected)) << " > " << epsilon;
             });
         return false;
@@ -187,7 +195,7 @@ inline bool QTest_compareWithAbsError(const T & actual, const T & expected, cons
 //
 #define QCOMPARE_WITH_ABS_ERROR(actual, expected, epsilon) \
 do { \
-    if (!QTest_compareWithAbsError(actual, expected, #actual, #expected, __LINE__, __FILE__, epsilon)) \
+    if (!QTest_compareWithAbsError((actual), (expected), #actual, #expected, __LINE__, __FILE__, epsilon)) \
         return; \
 } while(0)
 
@@ -199,8 +207,8 @@ do { \
 //
 #define QCOMPARE_WITH_FUNCTION(actual, expected, testFunc) \
 do { \
-    if (!testFunc(actual, expected)) { \
-        QTest_failWithMessage("Compared values are not the same", actual, expected, #actual, #expected, __LINE__, __FILE__); \
+    if (!(testFunc((actual), (expected)))) { \
+        QTest_failWithMessage("Compared values are not the same", (actual), (expected), #actual, #expected, __LINE__, __FILE__); \
         return; \
     } \
 } while (0)
@@ -217,8 +225,8 @@ do { \
 //
 #define QCOMPARE_WITH_LAMBDA(actual, expected, testClosure) \
 do { \
-    if (!testClosure()) { \
-        QTest_failWithMessage("Compared values are not the same", actual, expected, #actual, #expected, __LINE__, __FILE__); \
+    if (!(testClosure())) { \
+        QTest_failWithMessage("Compared values are not the same", (actual), (expected), #actual, #expected, __LINE__, __FILE__); \
         return; \
     } \
 } while (0)
@@ -226,8 +234,8 @@ do { \
 // Same as QCOMPARE_WITH_FUNCTION, but with a custom fail message
 #define QCOMPARE_WITH_FUNCTION_AND_MESSAGE(actual, expected, testfunc, failMessage) \
 do { \
-    if (!testFunc(actual, expected)) { \
-        QTest_failWithMessage(failMessage, actual, expected, #actual, #expected, __LINE__, __FILE__); \
+    if (!(testFunc((actual), (expected)))) { \
+        QTest_failWithMessage((failMessage), (actual), (expected), #actual, #expected, __LINE__, __FILE__); \
         return; \
     } \
 } while (0)
@@ -235,8 +243,8 @@ do { \
 // Same as QCOMPARE_WITH_FUNCTION, but with a custom fail message
 #define QCOMPARE_WITH_LAMBDA_AND_MESSAGE(actual, expected, testClosure, failMessage) \
 do { \
-    if (!testClosure()) { \
-        QTest_failWithMessage(failMessage, actual, expected, #actual, #expected, __LINE__, __FILE__); \
+    if (!(testClosure())) { \
+        QTest_failWithMessage((failMessage), (actual), (expected), #actual, #expected, __LINE__, __FILE__); \
         return; \
     } \
 } while (0)

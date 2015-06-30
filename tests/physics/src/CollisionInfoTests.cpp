@@ -40,33 +40,12 @@ void CollisionInfoTests::rotateThenTranslate() {
 
     collision.rotateThenTranslate(rotation, translation);
     QCOMPARE(collision._penetration, xYxis);
-//    float error = glm::distance(collision._penetration, xYxis);
-//    if (error > EPSILON) {
-//        std::cout << __FILE__ << ":" << __LINE__ 
-//            << " ERROR: collision._penetration = " << collision._penetration
-//            << " but we expected " << xYxis
-//            << std::endl;
-//    } 
 
     glm::vec3 expectedContactPoint = -xAxis + translation;
     QCOMPARE(collision._contactPoint, expectedContactPoint);
-//    error = glm::distance(collision._contactPoint, expectedContactPoint);
-//    if (error > EPSILON) {
-//        std::cout << __FILE__ << ":" << __LINE__ 
-//            << " ERROR: collision._contactPoint = " << collision._contactPoint
-//            << " but we expected " << expectedContactPoint
-//            << std::endl;
-//    } 
 
     glm::vec3 expectedAddedVelocity = xYxis - xAxis + xZxis;
     QCOMPARE(collision._addedVelocity, expectedAddedVelocity);
-//    error = glm::distance(collision._addedVelocity, expectedAddedVelocity);
-//    if (error > EPSILON) {
-//        std::cout << __FILE__ << ":" << __LINE__ 
-//            << " ERROR: collision._addedVelocity = " << collision._contactPoint
-//            << " but we expected " << expectedAddedVelocity
-//            << std::endl;
-//    } 
 }
 
 void CollisionInfoTests::translateThenRotate() {
@@ -81,32 +60,11 @@ void CollisionInfoTests::translateThenRotate() {
 
     collision.translateThenRotate(translation, rotation);
     QCOMPARE(collision._penetration, -xYxis);
-//    float error = glm::distance(collision._penetration, -xYxis);
-//    if (error > EPSILON) {
-//        std::cout << __FILE__ << ":" << __LINE__ 
-//            << " ERROR: collision._penetration = " << collision._penetration
-//            << " but we expected " << -yAxis
-//            << std::endl;
-//    } 
 
     glm::vec3 expectedContactPoint = (1.0f + distance) * xAxis;
     QCOMPARE(collision._contactPoint, expectedContactPoint);
-//    error = glm::distance(collision._contactPoint, expectedContactPoint);
-//    if (error > EPSILON) {
-//        std::cout << __FILE__ << ":" << __LINE__
-//            << " ERROR: collision._contactPoint = " << collision._contactPoint
-//            << " but we expected " << expectedContactPoint
-//            << std::endl;
-//    } 
 
     glm::vec3 expectedAddedVelocity = - xYxis + xAxis + xYxis;
     QCOMPARE(collision._addedVelocity, expectedAddedVelocity);
-//    error = glm::distance(collision._addedVelocity, expectedAddedVelocity);
-//    if (error > EPSILON) {
-//        std::cout << __FILE__ << ":" << __LINE__
-//            << " ERROR: collision._addedVelocity = " << collision._contactPoint
-//            << " but we expected " << expectedAddedVelocity
-//            << std::endl;
-//    } 
 }*/
 

@@ -214,7 +214,6 @@ void OctreeTests::propertyFlagsTests() {
 //            testsFailed++;
 //            qDebug() << "FAILED - Test 3b: remove flag with -= EXAMPLE_PROP_PAUSE_SIMULATION";
 //        }
-        
     }
 
     {    
