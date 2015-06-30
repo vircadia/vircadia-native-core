@@ -88,7 +88,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
             }
 
             batch.setModelTransform(model);
-            batch.draw(gpu::LINE_STRIP, 13, 0);
+            batch.draw(gpu::LINES, 24, 0);
         }
     }
 

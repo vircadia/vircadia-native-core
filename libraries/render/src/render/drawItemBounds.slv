@@ -17,22 +17,31 @@
 <$declareStandardTransform()$>
 
 void main(void) {
-    const vec4 UNIT_BOX[13] = vec4[13](
+    const vec4 UNIT_BOX[8] = vec4[8](
         vec4(0.0, 0.0, 0.0, 1.0),
         vec4(1.0, 0.0, 0.0, 1.0),
+        vec4(0.0, 1.0, 0.0, 1.0),
         vec4(1.0, 1.0, 0.0, 1.0),
-        vec4(0.0, 1.0, 0.0, 1.0),
-        vec4(0.0, 0.0, 0.0, 1.0),
-        vec4(1.0, 0.0, 0.0, 1.0),
+        vec4(0.0, 0.0, 1.0, 1.0),
         vec4(1.0, 0.0, 1.0, 1.0),
-        vec4(0.0, 0.0, 1.0, 1.0),
-        vec4(0.0, 0.0, 0.0, 1.0),
-        vec4(0.0, 1.0, 0.0, 1.0),
         vec4(0.0, 1.0, 1.0, 1.0),
-        vec4(0.0, 0.0, 1.0, 1.0),
-        vec4(0.0, 0.0, 0.0, 1.0)
+        vec4(1.0, 1.0, 1.0, 1.0)
     );
-    vec4 pos = UNIT_BOX[gl_VertexID];
+    const int UNIT_BOX_LINE_INDICES[24] = int[24](
+        0, 1,
+        1, 3,
+        3, 2,
+        2, 0,
+        4, 5,
+        5, 7,
+        7, 6,
+        6, 4,
+        2, 6,
+        3, 7,
+        0, 4,
+        1, 5
+    );
+    vec4 pos = UNIT_BOX[UNIT_BOX_LINE_INDICES[gl_VertexID]];
 
     // standard transform
     TransformCamera cam = getTransformCamera();
