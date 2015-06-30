@@ -35,7 +35,7 @@ void MainWindowOpenGLDisplayPlugin::display(
 
     using namespace oglplus;
     glClearColor(0, 1, 0, 1);
-    uvec2 size = toGlm(getDeviceSize());
+    uvec2 size = toGlm(_window->size());
     Context::Viewport(size.x, size.y);
     Context::Clear().ColorBuffer();
     glEnable(GL_TEXTURE_2D);

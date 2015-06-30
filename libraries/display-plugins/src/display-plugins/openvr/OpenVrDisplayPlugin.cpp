@@ -81,6 +81,9 @@ void OpenVrDisplayPlugin::activate(PluginContainer * container) {
 
     _hmd->GetWindowBounds(&_windowPosition.x, &_windowPosition.y, &_windowSize.x, &_windowSize.y);
     _hmd->GetRecommendedRenderTargetSize(&_renderTargetSize.x, &_renderTargetSize.y);
+    // Recommended render target size is per-eye, so double the X size for 
+    // left + right eyes
+    _renderTargetSize.x *= 2;
     openvr_for_each_eye([&](vr::Hmd_Eye eye) {
         PerEyeData& eyeData = _eyesData[eye];
         _hmd->GetEyeOutputViewport(eye, 
@@ -114,19 +117,16 @@ void OpenVrDisplayPlugin::deactivate() {
     _compositor = nullptr;
 }
 
-QSize OpenVrDisplayPlugin::getRecommendedFramebufferSize() const {
-    return QSize(_renderTargetSize.x * 2, _renderTargetSize.y);
+uvec2 OpenVrDisplayPlugin::getRecommendedRenderSize() const {
+    return _renderTargetSize;
 }
 
 mat4 OpenVrDisplayPlugin::getProjection(Eye eye, const mat4& baseProjection) const {
     return _eyesData[eye]._projectionMatrix;
 }
 
-glm::mat4 OpenVrDisplayPlugin::getModelview(Eye eye, const mat4& baseModelview) const {
+mat4 OpenVrDisplayPlugin::getModelview(Eye eye, const mat4& baseModelview) const {
     return baseModelview * _eyesData[eye]._pose;
-}
-
-void OpenVrDisplayPlugin::preRender() {
 }
 
 void OpenVrDisplayPlugin::resetSensors() {

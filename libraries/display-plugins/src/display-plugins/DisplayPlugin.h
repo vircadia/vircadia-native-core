@@ -82,39 +82,14 @@ public:
 
     // Does the rendering surface have current focus?
     virtual bool hasFocus() const = 0;
-    // The size of the rendering surface
-    virtual QSize getDeviceSize() const = 0;
+
     // The size of the rendering target (may be larger than the device size due to distortion)
-    virtual QSize getRecommendedFramebufferSize() const { return getDeviceSize(); }
+    virtual glm::uvec2 getRecommendedRenderSize() const = 0;
 
-    // The size of the window (differs from the framebuffers size in instances like Retina macs)
-    virtual glm::ivec2 getCanvasSize() const = 0;
-
-    // The window for the surface, used for event interception.  May be null.
-    virtual QWindow* getWindow() const = 0;
-
-    virtual void installEventFilter(QObject* filter) {}
-    virtual void removeEventFilter(QObject* filter) {}
-
-    // The mouse position relative to the window (or proxy window) surface
-    virtual glm::ivec2 getTrueMousePosition() const = 0;
-
-    // The mouse position relative to the UI elements
-    virtual glm::ivec2 getUiMousePosition() const {
-        return trueMouseToUiMouse(getTrueMousePosition());
+    // The size of the UI
+    virtual glm::uvec2 getRecommendedUiSize() const {
+        return getRecommendedRenderSize();
     }
-
-    virtual std::function<QPointF(const QPointF&)> getMouseTranslator() { return [](const QPointF& p) { return p; }; };
-
-    // Convert from screen mouse coordinates to UI mouse coordinates
-    virtual glm::ivec2 trueMouseToUiMouse(const glm::ivec2 & position) const { return position; };
-
-    virtual PickRay computePickRay(const glm::vec2 & pos) const {
-        // FIXME make pure virtual
-        return PickRay();
-    };
-    virtual bool isMouseOnScreen() const;
-
 
     // Stereo specific methods
     virtual glm::mat4 getProjection(Eye eye, const glm::mat4& baseProjection) const {
@@ -138,7 +113,14 @@ public:
     virtual void abandonCalibration() {}
     virtual void resetSensors() {}
     virtual float devicePixelRatio() { return 1.0;  }
-    
+
+
+    // The window for the surface, used for event interception.  May be null.
+    virtual QWindow* getWindow() const = 0;
+
+    virtual void installEventFilter(QObject* filter) {}
+    virtual void removeEventFilter(QObject* filter) {}
+
 signals:
     void recommendedFramebufferSizeChanged(const QSize & size);
     void requestRender();

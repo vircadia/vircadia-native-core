@@ -105,7 +105,7 @@ void OpenGLDisplayPlugin::display(
     GLuint finalTexture, const glm::uvec2& sceneSize) {
     using namespace oglplus;
 
-    uvec2 size = toGlm(getDeviceSize());
+    uvec2 size = getRecommendedRenderSize();
     Context::Viewport(size.x, size.y);
     Context::Clear().ColorBuffer();
 

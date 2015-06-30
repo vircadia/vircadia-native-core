@@ -7,8 +7,3 @@
 //
 #include "DisplayPlugin.h"
 
-bool DisplayPlugin::isMouseOnScreen() const {
-    glm::ivec2 mousePosition = getTrueMousePosition();
-    return (glm::all(glm::greaterThanEqual(mousePosition, glm::ivec2(0))) &&
-        glm::all(glm::lessThanEqual(mousePosition, glm::ivec2(getCanvasSize()))));
-}

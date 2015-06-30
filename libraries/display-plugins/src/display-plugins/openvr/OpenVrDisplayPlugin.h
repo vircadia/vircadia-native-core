@@ -13,20 +13,19 @@ class OpenVrDisplayPlugin : public MainWindowOpenGLDisplayPlugin {
 public:
     virtual bool isSupported() const override;
     virtual const QString & getName() const override;
+    virtual bool isHmd() const override { return true; }
 
     virtual void activate(PluginContainer * container) override;
     virtual void deactivate() override;
 
+    virtual glm::uvec2 getRecommendedRenderSize() const override;
+    virtual glm::uvec2 getRecommendedUiSize() const override { return uvec2(1920, 1080); }
+
     // Stereo specific methods
-    virtual bool isHmd() const override { return true; }
     virtual glm::mat4 getProjection(Eye eye, const glm::mat4& baseProjection) const override;
     virtual glm::mat4 getModelview(Eye eye, const glm::mat4& baseModelview) const override;
-
-    virtual void preRender() override;
-    virtual QSize getRecommendedFramebufferSize() const override;
     virtual void resetSensors() override;
 
-    virtual glm::ivec2 getCanvasSize() const override { return ivec2(1920, 1080); }
     virtual glm::mat4 getEyePose(Eye eye) const override;
     virtual glm::mat4 getHeadPose() const override;
 
