@@ -107,6 +107,7 @@ protected:
     glm::vec3 _serverAngularVelocity; // radians per second
     glm::vec3 _serverGravity;
     glm::vec3 _serverAcceleration;
+    QByteArray _serverActionData;
 
     uint32_t _lastMeasureStep;
     glm::vec3 _lastVelocity;

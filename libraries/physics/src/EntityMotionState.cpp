@@ -69,6 +69,7 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer 
     _serverAngularVelocity(0.0f),
     _serverGravity(0.0f),
     _serverAcceleration(0.0f),
+    _serverActionData(QByteArray()),
     _lastMeasureStep(0),
     _lastVelocity(glm::vec3(0.0f)),
     _measuredAcceleration(glm::vec3(0.0f)),
@@ -95,6 +96,7 @@ void EntityMotionState::updateServerPhysicsVariables() {
     _serverVelocity = _entity->getVelocity();
     _serverAngularVelocity = _entity->getAngularVelocity();
     _serverAcceleration = _entity->getAcceleration();
+    _serverActionData = _entity->getActionData();
 }
 
 // virtual
@@ -250,6 +252,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         _serverVelocity = bulletToGLM(_body->getLinearVelocity());
         _serverAngularVelocity = bulletToGLM(_body->getAngularVelocity());
         _lastStep = simulationStep;
+        _serverActionData = _entity->getActionData();
         _sentInactive = true;
         return false;
     }
@@ -282,6 +285,10 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         _serverVelocity += _serverAcceleration * dt;
         _serverVelocity *= powf(1.0f - _body->getLinearDamping(), dt);
         _serverPosition += dt * _serverVelocity;
+    }
+
+    if (_serverActionData != _entity->getActionData()) {
+        return true;
     }
 
     // Else we measure the error between current and extrapolated transform (according to expected behavior
@@ -320,7 +327,8 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         // Bullet caps the effective rotation velocity inside its rotation integration step, therefore
         // we must integrate with the same algorithm and timestep in order achieve similar results.
         for (int i = 0; i < numSteps; ++i) {
-            _serverRotation = glm::normalize(computeBulletRotationStep(_serverAngularVelocity, PHYSICS_ENGINE_FIXED_SUBSTEP) * _serverRotation);
+            _serverRotation = glm::normalize(computeBulletRotationStep(_serverAngularVelocity,
+                                                                       PHYSICS_ENGINE_FIXED_SUBSTEP) * _serverRotation);
         }
     }
     const float MIN_ROTATION_DOT = 0.99999f; // This corresponds to about 0.5 degrees of rotation
@@ -363,8 +371,8 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep, const QUuid& s
             return usecTimestampNow() > _nextOwnershipBid;
         }
         return false;
-    } 
-   
+    }
+
     return remoteSimulationOutOfSync(simulationStep);
 }
 
@@ -405,9 +413,12 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
 
         const float DYNAMIC_LINEAR_VELOCITY_THRESHOLD = 0.05f;  // 5 cm/sec
         const float DYNAMIC_ANGULAR_VELOCITY_THRESHOLD = 0.087266f;  // ~5 deg/sec
-        bool movingSlowly = glm::length2(_entity->getVelocity()) < (DYNAMIC_LINEAR_VELOCITY_THRESHOLD * DYNAMIC_LINEAR_VELOCITY_THRESHOLD)
-            && glm::length2(_entity->getAngularVelocity()) < (DYNAMIC_ANGULAR_VELOCITY_THRESHOLD * DYNAMIC_ANGULAR_VELOCITY_THRESHOLD)
-            && _entity->getAcceleration() == glm::vec3(0.0f);
+
+        bool movingSlowlyLinear =
+            glm::length2(_entity->getVelocity()) < (DYNAMIC_LINEAR_VELOCITY_THRESHOLD * DYNAMIC_LINEAR_VELOCITY_THRESHOLD);
+        bool movingSlowlyAngular = glm::length2(_entity->getAngularVelocity()) <
+                (DYNAMIC_ANGULAR_VELOCITY_THRESHOLD * DYNAMIC_ANGULAR_VELOCITY_THRESHOLD);
+        bool movingSlowly = movingSlowlyLinear && movingSlowlyAngular && _entity->getAcceleration() == glm::vec3(0.0f);
 
         if (movingSlowly) {
             // velocities might not be zero, but we'll fake them as such, which will hopefully help convince
@@ -425,6 +436,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
     _serverVelocity = _entity->getVelocity();
     _serverAcceleration = _entity->getAcceleration();
     _serverAngularVelocity = _entity->getAngularVelocity();
+    _serverActionData = _entity->getActionData();
 
     EntityItemProperties properties;
 
@@ -434,6 +446,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
     properties.setVelocity(_serverVelocity);
     properties.setAcceleration(_serverAcceleration);
     properties.setAngularVelocity(_serverAngularVelocity);
+    properties.setActionData(_serverActionData);
 
     // set the LastEdited of the properties but NOT the entity itself
     quint64 now = usecTimestampNow();
