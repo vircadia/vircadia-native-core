@@ -23,6 +23,7 @@
 #include "QVariantGLM.h"
 #include "EntitiesLogging.h"
 #include "RecurseOctreeToMapOperator.h"
+#include "LogHandler.h"
 
 
 const quint64 SIMULATOR_CHANGE_LOCKOUT_PERIOD = (quint64)(0.2f * USECS_PER_SECOND);
@@ -632,6 +633,8 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                                           << "] attempted to add an entity.";
                     }
                 } else {
+                    static QString repeatedMessage =
+                        LogHandler::getInstance().addRepeatedMessageRegex("^Add or Edit failed.*");
                     qCDebug(entities) << "Add or Edit failed." << packetType << existingEntity.get();
                 }
             }
