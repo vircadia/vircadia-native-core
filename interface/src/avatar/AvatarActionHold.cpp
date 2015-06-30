@@ -18,7 +18,12 @@
 const uint16_t AvatarActionHold::holdVersion = 1;
 
 AvatarActionHold::AvatarActionHold(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) :
-    ObjectActionSpring(type, id, ownerEntity) {
+    ObjectActionSpring(type, id, ownerEntity),
+    _relativePosition(glm::vec3(0.0f)),
+    _relativeRotation(glm::quat()),
+    _hand("right"),
+    _mine(false)
+{
     #if WANT_DEBUG
     qDebug() << "AvatarActionHold::AvatarActionHold";
     #endif
@@ -31,6 +36,13 @@ AvatarActionHold::~AvatarActionHold() {
 }
 
 void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
+    if (!_mine) {
+        // if a local script isn't updating this, then we are just getting spring-action data over the wire.
+        // let the super-class handle it.
+        ObjectActionSpring::updateActionWorker(deltaTimeStep);
+        return;
+    }
+
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
     if (!tryLockForRead()) {
@@ -95,20 +107,20 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
     lockForWrite();
     if (rPOk) {
         _relativePosition = relativePosition;
-    } else if (!_parametersSet) {
+    } else {
         _relativePosition = glm::vec3(0.0f, 0.0f, 1.0f);
     }
 
     if (rROk) {
         _relativeRotation = relativeRotation;
-    } else if (!_parametersSet) {
+    } else {
         _relativeRotation = glm::quat(0.0f, 0.0f, 0.0f, 1.0f);
     }
 
     if (tSOk) {
         _linearTimeScale = timeScale;
         _angularTimeScale = timeScale;
-    } else if (!_parametersSet) {
+    } else {
         _linearTimeScale = 0.2f;
         _angularTimeScale = 0.2f;
     }
@@ -123,11 +135,11 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
             qDebug() << "hold action -- invalid hand argument:" << hand;
             _hand = "right";
         }
-    } else if (!_parametersSet) {
+    } else {
         _hand = "right";
     }
 
-    _parametersSet = true;
+    _mine = true;
     _positionalTargetSet = true;
     _rotationalTargetSet = true;
     _active = true;
@@ -139,57 +151,15 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
 QVariantMap AvatarActionHold::getArguments() {
     QVariantMap arguments;
     lockForRead();
-    if (_parametersSet) {
+    if (_mine) {
         arguments["relativePosition"] = glmToQMap(_relativePosition);
         arguments["relativeRotation"] = glmToQMap(_relativeRotation);
         arguments["timeScale"] = _linearTimeScale;
         arguments["hand"] = _hand;
+    } else {
+        unlock();
+        return ObjectActionSpring::getArguments();
     }
     unlock();
     return arguments;
-}
-
-
-QByteArray AvatarActionHold::serialize() {
-    QByteArray ba;
-    QDataStream dataStream(&ba, QIODevice::WriteOnly);
-
-    dataStream << getType();
-    dataStream << getID();
-    dataStream << AvatarActionHold::holdVersion;
-
-    dataStream << _relativePosition;
-    dataStream << _relativeRotation;
-    dataStream << _hand;
-    dataStream << _linearTimeScale;
-
-    return ba;
-}
-
-void AvatarActionHold::deserialize(QByteArray serializedArguments) {
-    QDataStream dataStream(serializedArguments);
-
-    EntityActionType type;
-    QUuid id;
-    uint16_t serializationVersion;
-
-    dataStream >> type;
-    assert(type == getType());
-    dataStream >> id;
-    assert(id == getID());
-    dataStream >> serializationVersion;
-    if (serializationVersion != AvatarActionHold::holdVersion) {
-        return;
-    }
-
-    dataStream >> _relativePosition;
-    dataStream >> _relativeRotation;
-    dataStream >> _hand;
-    dataStream >> _linearTimeScale;
-    _angularTimeScale = _linearTimeScale;
-
-    _parametersSet = true;
-
-    // XXX don't enable hold actions from remote nodes
-    // _active = true;
 }

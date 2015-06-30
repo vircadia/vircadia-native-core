@@ -13,6 +13,8 @@
 
 #include "ObjectActionSpring.h"
 
+const float SPRING_MAX_SPEED = 10.0f;
+
 const uint16_t ObjectActionSpring::springVersion = 1;
 
 ObjectActionSpring::ObjectActionSpring(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) :
@@ -69,6 +71,11 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
         glm::vec3 offset = _positionalTarget - bulletToGLM(rigidBody->getCenterOfMassPosition());
         float offsetLength = glm::length(offset);
         float speed = offsetLength / _linearTimeScale;
+
+        // cap speed
+        if (speed > SPRING_MAX_SPEED) {
+            speed = SPRING_MAX_SPEED;
+        }
 
         if (offsetLength > IGNORE_POSITION_DELTA) {
             glm::vec3 newVelocity = glm::normalize(offset) * speed;

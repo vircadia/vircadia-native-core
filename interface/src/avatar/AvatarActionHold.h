@@ -29,8 +29,8 @@ public:
 
     virtual void updateActionWorker(float deltaTimeStep);
 
-    virtual QByteArray serialize();
-    virtual void deserialize(QByteArray serializedArguments);
+    // virtual QByteArray serialize();
+    // virtual void deserialize(QByteArray serializedArguments);
 
 private:
     static const uint16_t holdVersion;
@@ -38,7 +38,7 @@ private:
     glm::vec3 _relativePosition;
     glm::quat _relativeRotation;
     QString _hand;
-    bool _parametersSet = false;
+    bool _mine = false;
 };
 
 #endif // hifi_AvatarActionHold_h
