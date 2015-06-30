@@ -137,7 +137,7 @@ void OpenVrDisplayPlugin::resetSensors() {
     vec3 zAxis = vec3(pose[2]);
 
     // cancel out the roll and pitch
-	vec3 newZ = (zAxis.x == 0 && zAxis.z == 0) ? vec3(1, 0, 0) : glm::normalize(vec3(zAxis.x, 0, zAxis.z));
+    vec3 newZ = (zAxis.x == 0 && zAxis.z == 0) ? vec3(1, 0, 0) : glm::normalize(vec3(zAxis.x, 0, zAxis.z));
     vec3 newX = glm::cross(vec3(0, 1, 0), newZ);
     vec3 newY = glm::cross(newZ, newX);
 
