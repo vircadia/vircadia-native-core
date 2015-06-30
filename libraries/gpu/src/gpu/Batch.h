@@ -105,6 +105,7 @@ public:
     void setModelTransform(const Transform& model);
     void setViewTransform(const Transform& view);
     void setProjectionTransform(const Mat4& proj);
+    void setViewportTransform(const Vec4i& viewport); // Viewport is xy = low left corner in the framebuffer, zw = width height of the viewport
 
     // Pipeline Stage
     void setPipeline(const PipelinePointer& pipeline);
@@ -177,6 +178,7 @@ public:
         COMMAND_setModelTransform,
         COMMAND_setViewTransform,
         COMMAND_setProjectionTransform,
+        COMMAND_setViewportTransform,
 
         COMMAND_setPipeline,
         COMMAND_setStateBlendFactor,

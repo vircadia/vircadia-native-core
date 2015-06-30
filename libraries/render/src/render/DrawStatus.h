@@ -14,12 +14,11 @@
 
 #include "DrawTask.h"
 #include "gpu/Batch.h"
-#include <PerfStat.h>
-
 
 namespace render {
     class DrawStatus {
         gpu::PipelinePointer _drawItemBoundsPipeline;
+        gpu::PipelinePointer _drawItemStatusPipeline;
 
     public:
 
@@ -28,6 +27,7 @@ namespace render {
         typedef Job::ModelI<DrawStatus, ItemIDsBounds> JobModel;
 
         const gpu::PipelinePointer& getDrawItemBoundsPipeline();
+        const gpu::PipelinePointer& getDrawItemStatusPipeline();
     };
 }
 

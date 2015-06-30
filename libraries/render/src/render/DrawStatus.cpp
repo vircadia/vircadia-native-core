@@ -26,6 +26,8 @@
 
 #include "drawItemBounds_vert.h"
 #include "drawItemBounds_frag.h"
+#include "drawItemStatus_vert.h"
+#include "drawItemStatus_frag.h"
 
 using namespace render;
 
@@ -53,6 +55,30 @@ const gpu::PipelinePointer& DrawStatus::getDrawItemBoundsPipeline() {
         _drawItemBoundsPipeline.reset(gpu::Pipeline::create(program, state));
     }
     return _drawItemBoundsPipeline;
+}
+
+const gpu::PipelinePointer& DrawStatus::getDrawItemStatusPipeline() {
+    if (!_drawItemStatusPipeline) {
+        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(drawItemStatus_vert)));
+        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(drawItemStatus_frag)));
+        gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+
+        gpu::Shader::BindingSet slotBindings;
+        gpu::Shader::makeProgram(*program, slotBindings);
+
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+
+        state->setDepthTest(false, false, gpu::LESS_EQUAL);
+
+        // Blend on transparent
+        state->setBlendFunction(true,
+            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+            gpu::State::DEST_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ZERO);
+
+        // Good to go add the brand new pipeline
+        _drawItemStatusPipeline.reset(gpu::Pipeline::create(program, state));
+    }
+    return _drawItemStatusPipeline;
 }
 
 void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
@@ -89,6 +115,21 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
 
             batch.setModelTransform(model);
             batch.draw(gpu::LINES, 24, 0);
+        }
+    }
+
+    batch.setPipeline(getDrawItemStatusPipeline());
+
+    for (auto& item : inItems) {
+        if (!item.bounds.isInvalid()) {
+            Transform model;
+            model.setTranslation(item.bounds.getCorner());
+            if (!item.bounds.isNull()) {
+                model.setScale(item.bounds.getDimensions());
+            }
+
+            batch.setModelTransform(model);
+            batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
         }
     }
 
