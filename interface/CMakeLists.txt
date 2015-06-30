@@ -2,7 +2,7 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 # set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "Faceshift" "Sixense" "LeapMotion" "RtMidi" "SDL2" "RSSDK")
+set(OPTIONAL_EXTERNALS "Faceshift" "LeapMotion" "RtMidi" "SDL2" "RSSDK")
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
@@ -128,7 +128,7 @@ target_include_directories(${TARGET_NAME} PRIVATE ${LIBOVR_INCLUDE_DIRS})
 # link required hifi libraries
 link_hifi_libraries(shared octree environment gpu model render fbx networking entities avatars 
                     audio audio-client auto-updater animation script-engine physics 
-                    render-utils entities-renderer ui plugins display-plugins)
+                    render-utils entities-renderer ui plugins display-plugins input-plugins)
 
 add_dependency_external_projects(sdl2)
 

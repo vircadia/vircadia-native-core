@@ -13,14 +13,17 @@
 #define hifi_UserInputMapper_h
 
 #include <glm/glm.hpp>
-#include <RegisteredMetaTypes.h>
 
 #include <unordered_set>
 #include <functional>
 #include <memory>
+#include <DependencyManager.h>
+#include <RegisteredMetaTypes.h>
+    
 
-class UserInputMapper : public QObject {
+class UserInputMapper : public QObject, public Dependency {
     Q_OBJECT
+    SINGLETON_DEPENDENCY
     Q_ENUMS(Action)
 public:
     typedef unsigned short uint16;
@@ -207,6 +210,10 @@ public:
     void update(float deltaTime);
     
     UserInputMapper();
+
+signals:
+    void actionEvent(int action, float state);
+
 
 protected:
     typedef std::map<int, DeviceProxy::Pointer> DevicesMap;

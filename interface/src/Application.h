@@ -54,7 +54,7 @@
 #include "Stars.h"
 #include "avatar/Avatar.h"
 #include "avatar/MyAvatar.h"
-#include "devices/SixenseManager.h"
+//#include "devices/SixenseManager.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/WebWindowClass.h"
 #include "ui/BandwidthDialog.h"
@@ -69,7 +69,6 @@
 #include "ui/ApplicationCompositor.h"
 #include "ui/RunningScriptsWidget.h"
 #include "ui/ToolWindow.h"
-#include "ui/UserInputMapper.h"
 #include "devices/KeyboardMouseDevice.h"
 #include "octree/OctreeFade.h"
 #include "octree/OctreePacketProcessor.h"
@@ -149,7 +148,6 @@ public:
     static glm::quat getOrientationForPath() { return getInstance()->_myAvatar->getOrientation(); }
     static glm::vec3 getPositionForAudio() { return getInstance()->_myAvatar->getHead()->getPosition(); }
     static glm::quat getOrientationForAudio() { return getInstance()->_myAvatar->getHead()->getFinalOrientationInWorldFrame(); }
-    static UserInputMapper* getUserInputMapper() { return &getInstance()->_userInputMapper; }
     static void initPlugins();
     static void shutdownPlugins();
 
@@ -556,7 +554,6 @@ private:
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
 
     KeyboardMouseDevice _keyboardMouseDevice;   // Default input device, the good old keyboard mouse and maybe touchpad
-    UserInputMapper _userInputMapper;           // User input mapper allowing to mapp different real devices to the action channels that the application has to offer
     MyAvatar* _myAvatar;                        // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
     Camera _myCamera;                           // My view onto the world
     Camera _mirrorCamera;              // Cammera for mirror view

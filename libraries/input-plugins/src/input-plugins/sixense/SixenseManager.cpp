@@ -10,14 +10,18 @@
 //
 
 #include <vector>
+#include <QLoggingCategory>
 
-#include <avatar/AvatarManager.h>
 #include <PerfStat.h>
+#include <NumericalConstants.h>
 
-#include "Application.h"
 #include "SixenseManager.h"
 #include "UserActivityLogger.h"
-#include "InterfaceLogging.h"
+#include "../UserInputMapper.h"
+
+Q_DECLARE_LOGGING_CATEGORY(sixense)
+Q_LOGGING_CATEGORY(sixense, "hifi.devices.sixense")
+
 
 // These bits aren't used for buttons, so they can be used as masks:
 const unsigned int LEFT_MASK = 0;
@@ -152,8 +156,10 @@ void SixenseManager::setFilter(bool filter) {
 }
 
 void SixenseManager::update(float deltaTime) {
+#if 0
 #ifdef HAVE_SIXENSE
     Hand* hand = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHand();
+    auto userInputMapper = DependencyManager::get<UserInputMapper>();
     if (_isInitialized && _isEnabled) {
         _buttonPressedMap.clear();
 #ifdef __APPLE__
@@ -164,7 +170,8 @@ void SixenseManager::update(float deltaTime) {
         if (sixenseGetNumActiveControllers() == 0) {
             _hydrasConnected = false;
             if (_deviceID != 0) {
-                Application::getUserInputMapper()->removeDevice(_deviceID);
+                
+                userInputMapper->removeDevice(_deviceID);
                 _deviceID = 0;
                 if (_prevPalms[0]) {
                     _prevPalms[0]->setActive(false);
@@ -179,8 +186,8 @@ void SixenseManager::update(float deltaTime) {
         PerformanceTimer perfTimer("sixense");
         if (!_hydrasConnected) {
             _hydrasConnected = true;
-            registerToUserInputMapper(*Application::getUserInputMapper());
-            getInstance().assignDefaultInputMapping(*Application::getUserInputMapper());
+            registerToUserInputMapper(*userInputMapper);
+            getInstance().assignDefaultInputMapping(*userInputMapper);
             UserActivityLogger::getInstance().connectedDevice("spatial_controller", "hydra");
         }
 
@@ -335,6 +342,7 @@ void SixenseManager::update(float deltaTime) {
         }
     }
 #endif  // HAVE_SIXENSE
+#endif
 }
 
 //Constants for getCursorPixelRangeMultiplier()
@@ -351,8 +359,10 @@ float SixenseManager::getCursorPixelRangeMult() const {
 void SixenseManager::toggleSixense(bool shouldEnable) {
     if (shouldEnable && !isInitialized()) {
         initialize();
+#if 0
         setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
         setLowVelocityFilter(Menu::getInstance()->isOptionChecked(MenuOption::LowVelocityFilter));
+#endif
     }
     setIsEnabled(shouldEnable);
 }
@@ -395,11 +405,11 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
                 glm::vec3 zAxis = glm::normalize(glm::cross(xAxis, yAxis));
                 xAxis = glm::normalize(glm::cross(yAxis, zAxis));
                 _orbRotation = glm::inverse(glm::quat_cast(glm::mat3(xAxis, yAxis, zAxis)));
-                qCDebug(interfaceapp, "succeess: sixense calibration");
+                qCDebug(sixense, "succeess: sixense calibration");
             }
             break;
             default:
-                qCDebug(interfaceapp, "failed: sixense calibration");
+                qCDebug(sixense, "failed: sixense calibration");
                 break;
         }
 
@@ -418,7 +428,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
     if (_calibrationState == CALIBRATION_STATE_IDLE) {
         float reach = glm::distance(positionLeft, positionRight);
         if (reach > 2.0f * MINIMUM_ARM_REACH) {
-            qCDebug(interfaceapp, "started: sixense calibration");
+            qCDebug(sixense, "started: sixense calibration");
             _averageLeft = positionLeft;
             _averageRight = positionRight;
             _reachLeft = _averageLeft;
@@ -451,7 +461,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
             _lastDistance = 0.0f;
             _reachUp = 0.5f * (_reachLeft + _reachRight);
             _calibrationState = CALIBRATION_STATE_Y;
-            qCDebug(interfaceapp, "success: sixense calibration: left");
+            qCDebug(sixense, "success: sixense calibration: left");
         }
     }
     else if (_calibrationState == CALIBRATION_STATE_Y) {
@@ -470,7 +480,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
                 _lastDistance = 0.0f;
                 _lockExpiry = now + LOCK_DURATION;
                 _calibrationState = CALIBRATION_STATE_Z;
-                qCDebug(interfaceapp, "success: sixense calibration: up");
+                qCDebug(sixense, "success: sixense calibration: up");
             }
         }
     }
@@ -492,7 +502,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
             if (fabsf(_lastDistance) > 0.05f * MINIMUM_ARM_REACH) {
                 // lock has expired so clamp the data and move on
                 _calibrationState = CALIBRATION_STATE_COMPLETE;
-                qCDebug(interfaceapp, "success: sixense calibration: forward");
+                qCDebug(sixense, "success: sixense calibration: forward");
                 // TODO: it is theoretically possible to detect that the controllers have been
                 // accidentally switched (left hand is holding right controller) and to swap the order.
             }
@@ -502,6 +512,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
 
 //Injecting mouse movements and clicks
 void SixenseManager::emulateMouse(PalmData* palm, int index) {
+#if 0
     MyAvatar* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     QPoint pos;
 
@@ -616,6 +627,7 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
 
         _triggerPressed[index] = false;
     }
+#endif
 }
 
 #endif  // HAVE_SIXENSE

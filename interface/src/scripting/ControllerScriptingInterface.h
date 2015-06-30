@@ -14,7 +14,7 @@
 
 #include <QtCore/QObject>
 
-#include "ui/UserInputMapper.h"
+#include <input-plugins/UserInputMapper.h>
 
 #include <AbstractControllerScriptingInterface.h>
 class PalmData;

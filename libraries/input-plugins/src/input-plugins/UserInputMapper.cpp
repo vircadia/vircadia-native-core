@@ -8,14 +8,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include <algorithm>
-
-#include "Application.h"
 
 #include "UserInputMapper.h"
-
-
-// UserInputMapper Class
 
 // Default contruct allocate the poutput size with the current hardcoded action channels
 UserInputMapper::UserInputMapper() {
@@ -211,7 +205,7 @@ void UserInputMapper::update(float deltaTime) {
     for (auto i = 0; i < NUM_ACTIONS; i++) {
         _actionStates[i] *= _actionScales[i];
         if (_actionStates[i] > 0) {
-            emit Application::getInstance()->getControllerScriptingInterface()->actionEvent(i, _actionStates[i]);
+            emit actionEvent(i, _actionStates[i]);
         }
     }
 }

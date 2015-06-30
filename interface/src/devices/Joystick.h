@@ -20,7 +20,7 @@
 #undef main
 #endif
 
-#include "ui/UserInputMapper.h"
+#include <input-plugins/UserInputMapper.h>
 
 class Joystick : public QObject {
     Q_OBJECT
