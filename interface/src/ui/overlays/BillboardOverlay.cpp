@@ -20,6 +20,9 @@
 #include "Application.h"
 #include "GeometryUtil.h"
 
+#include <GLMHelpers.h>
+
+
 BillboardOverlay::BillboardOverlay() {
       _isLoaded = false;
 }
@@ -45,9 +48,28 @@ void BillboardOverlay::render(RenderArgs* args) {
 
     glm::quat rotation;
     if (_isFacingAvatar) {
+        // LOL, quaternions are hard.
         // rotate about vertical to face the camera
+//        glm::vec3 dPos = getPosition() - args->_viewFrustum->getPosition();
+//        dPos = glm::normalize(dPos);
+//        rotation = glm::quat(0, dPos.x, dPos.y, dPos.z);
         rotation = args->_viewFrustum->getOrientation();
         rotation *= glm::angleAxis(glm::pi<float>(), IDENTITY_UP);
+//        float horizontal = glm::sqrt(dPos.x * dPos.x + dPos.y + dPos.y);
+//        glm::vec3 zAxis = glm::vec3(0, 0, 1);
+//        rotation = rotationBetween(zAxis, dPos);
+//        glm::vec3 euler = safeEulerAngles(rotationBetween(zAxis, dPos));
+//        rotation = glm::quat(glm::vec3(euler.x, euler.y, 0));
+//        float yaw = (dPos.x == 0.0f && dPos.z == 0.0f) ? 0.0f : glm::atan(dPos.x, dPos.z);
+//        glm::quat yawQuat = glm::quat(glm::vec3(0, yaw, 0));
+//        float pitch = (dPos.y == 0.0f && horizontal == 0.0f) ? 0.0f : glm::atan(dPos.y, horizontal);
+//        glm::quat pitchQuat = glm::quat(glm::vec3(pitch, 0, 0));
+//        glm::mat4x4 matrix = glm::lookAt(args->_viewFrustum->getPosition(), getPosition(),
+//                                         glm::vec3(0, 1, 0));
+//        rotation = glm::quat_cast(matrix);
+//        rotation = yawQuat * pitchQuat;
+//        glm::vec3 pitch = glm::vec3(dPos.x, dPos.y, 0);
+//        rotation = glm::quat(glm::vec3(pitch, yaw, 0));
         rotation *= getRotation();
     } else {
         rotation = getRotation();
