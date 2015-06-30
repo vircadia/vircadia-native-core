@@ -29,8 +29,7 @@ public:
 
     virtual void updateActionWorker(float deltaTimeStep);
 
-    // virtual QByteArray serialize();
-    // virtual void deserialize(QByteArray serializedArguments);
+    virtual void deserialize(QByteArray serializedArguments);
 
 private:
     static const uint16_t holdVersion;

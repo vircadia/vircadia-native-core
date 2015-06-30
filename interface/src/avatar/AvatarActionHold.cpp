@@ -163,3 +163,11 @@ QVariantMap AvatarActionHold::getArguments() {
     unlock();
     return arguments;
 }
+
+
+void AvatarActionHold::deserialize(QByteArray serializedArguments) {
+    if (_mine) {
+        return;
+    }
+    ObjectActionSpring::deserialize(serializedArguments);
+}
