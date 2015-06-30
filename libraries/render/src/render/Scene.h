@@ -196,12 +196,19 @@ public:
     // Bound is the AABBox fully containing this item
     typedef AABox Bound;
     
-    // Stats records the life history and performances of this item while performing at rendering and updating.
+    // Status records the life history and performances of this item while performing at rendering and updating.
     // This is Used for monitoring and dynamically adjust the quality 
-    class Stats {
+    class Status {
     public:
+        typedef glm::ivec2 Value;
+        typedef std::function<Value()> Getter;
+
         int _firstFrame;
+        std::vector<Getter> _values;
+
+        void addGetter(Getter& getter) { _values.push_back(getter); }
     };
+    typedef std::shared_ptr<Status> StatusPointer;
 
     // Update Functor
     class UpdateFunctorInterface {
@@ -222,7 +229,14 @@ public:
         virtual const model::MaterialKey getMaterialKey() const = 0;
 
         ~PayloadInterface() {}
+
+        // Status interface is local to the base class
+        const StatusPointer& getStatus() const { return _status; }
+        void addStatusGetter(Status::Getter& getter) { _status->addGetter(getter); }
+
     protected:
+        StatusPointer _status;
+
         friend class Item;
         virtual void update(const UpdateFunctorPointer& functor) = 0;
     };
@@ -252,6 +266,9 @@ public:
 
     // Shape Type Interface
     const model::MaterialKey getMaterialKey() const { return _payload->getMaterialKey(); }
+
+    // Access the status
+    const StatusPointer& getStatus() const { return _payload->getStatus(); }
 
 protected:
     PayloadPointer _payload;
