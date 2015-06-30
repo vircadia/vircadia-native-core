@@ -127,6 +127,7 @@ enum EntityPropertyList {
     
     //Used by quad entity
     PROP_NORMALS,
+    PROP_STROKE_WIDTHS,
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,

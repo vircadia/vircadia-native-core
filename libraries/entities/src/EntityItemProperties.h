@@ -154,6 +154,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_DESCRIPTION, Description, description, QString);
     DEFINE_PROPERTY(PROP_FACE_CAMERA, FaceCamera, faceCamera, bool);
     DEFINE_PROPERTY(PROP_NORMALS, Normals, normals, QVector<glm::vec3>);
+    DEFINE_PROPERTY(PROP_STROKE_WIDTHS, StrokeWidths, strokeWidths, QVector<float>);
     
     static QString getBackgroundModeString(BackgroundMode mode);
 
