@@ -1526,7 +1526,7 @@ void EntityItem::setActionData(QByteArray actionData) {
     }
 }
 
-bool EntityItem::serializeActionData() {
+bool EntityItem::serializeActionData() const {
     if (_objectActions.size() == 0) {
         _actionData = QByteArray();
         return true;
@@ -1555,6 +1555,7 @@ bool EntityItem::serializeActionData() {
 }
 
 const QByteArray EntityItem::getActionData() const {
+    serializeActionData();
     return _actionData;
 }
 
