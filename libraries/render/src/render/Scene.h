@@ -314,7 +314,7 @@ protected:
     DataPointer _data;
 
     // Update mechanics
-    virtual void update(const UpdateFunctorPointer& functor) { static_cast<Updater*>(functor.get())->_func((*_data)); }
+    virtual void update(const UpdateFunctorPointer& functor) { std::static_pointer_cast<Updater>(functor)->_func((*_data)); }
     friend class Item;
 };
 

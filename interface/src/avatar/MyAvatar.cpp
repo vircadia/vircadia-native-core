@@ -882,7 +882,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
 
     int howManyLookingAtMe = 0;
     foreach (const AvatarSharedPointer& avatarPointer, DependencyManager::get<AvatarManager>()->getAvatarHash()) {
-        Avatar* avatar = static_cast<Avatar*>(avatarPointer.get());
+        auto avatar = static_pointer_cast<Avatar>(avatarPointer);
         bool isCurrentTarget = avatar->getIsLookAtTarget();
         float distanceTo = glm::length(avatar->getHead()->getEyePosition() - cameraPosition);
         avatar->setIsLookAtTarget(false);
@@ -912,7 +912,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     }
     auto avatarPointer = _lookAtTargetAvatar.lock();
     if (avatarPointer) {
-        static_cast<Avatar*>(avatarPointer.get())->setIsLookAtTarget(true);
+        static_pointer_cast<Avatar>(avatarPointer)->setIsLookAtTarget(true);
     }
 }
 
