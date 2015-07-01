@@ -301,6 +301,8 @@ void ViveControllerManager::assignDefaultInputMapping(UserInputMapper& mapper) {
 //    mapper.addInputChannel(UserInputMapper::ACTION1, makeInput(BUTTON_4, 0));
 //    mapper.addInputChannel(UserInputMapper::ACTION2, makeInput(BUTTON_4, 1));
     
+    mapper.addInputChannel(UserInputMapper::LEFT_HAND, makeInput(LEFT_HAND));
+    mapper.addInputChannel(UserInputMapper::RIGHT_HAND, makeInput(RIGHT_HAND));
 }
 
 float ViveControllerManager::getButton(int channel) const {
@@ -340,4 +342,8 @@ UserInputMapper::Input ViveControllerManager::makeInput(unsigned int button, int
 UserInputMapper::Input ViveControllerManager::makeInput(ViveControllerManager::JoystickAxisChannel axis, int index) {
     return UserInputMapper::Input(0);
 //    return UserInputMapper::Input(_deviceID, axis | (index == 0 ? LEFT_MASK : RIGHT_MASK), UserInputMapper::ChannelType::AXIS);
+}
+
+UserInputMapper::Input ViveControllerManager::makeInput(JointChannel joint) {
+    return UserInputMapper::Input(_deviceID, joint, UserInputMapper::ChannelType::POSE);
 }

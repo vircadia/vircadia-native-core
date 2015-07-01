@@ -31,6 +31,11 @@ public:
         BACK_TRIGGER = 1U << 6,
     };
     
+    enum JointChannel {
+        LEFT_HAND = 0,
+        RIGHT_HAND,
+    };
+    
     void focusOutEvent();
     
     void update();
@@ -47,6 +52,7 @@ public:
     
     UserInputMapper::Input makeInput(unsigned int button, int index);
     UserInputMapper::Input makeInput(JoystickAxisChannel axis, int index);
+    UserInputMapper::Input makeInput(JointChannel joint);
     
     void registerToUserInputMapper(UserInputMapper& mapper);
     void assignDefaultInputMapping(UserInputMapper& mapper);
