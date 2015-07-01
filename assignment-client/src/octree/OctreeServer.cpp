@@ -627,6 +627,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         // display inbound packet stats
         statsString += QString().sprintf("<b>%s Edit Statistics... <a href='/resetStats'>[RESET]</a></b>\r\n",
                                          getMyServerName());
+        quint64 currentPacketsInQueue = _octreeInboundPacketProcessor->packetsToProcessCount();
         quint64 averageTransitTimePerPacket = _octreeInboundPacketProcessor->getAverageTransitTimePerPacket();
         quint64 averageProcessTimePerPacket = _octreeInboundPacketProcessor->getAverageProcessTimePerPacket();
         quint64 averageLockWaitTimePerPacket = _octreeInboundPacketProcessor->getAverageLockWaitTimePerPacket();
@@ -636,6 +637,9 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         quint64 totalPacketsProcessed = _octreeInboundPacketProcessor->getTotalPacketsProcessed();
 
         float averageElementsPerPacket = totalPacketsProcessed == 0 ? 0 : totalElementsProcessed / totalPacketsProcessed;
+
+        statsString += QString("   Current Inbound Packets Queue: %1 packets\r\n")
+            .arg(locale.toString((uint)currentPacketsInQueue).rightJustified(COLUMN_WIDTH, ' '));
 
         statsString += QString("           Total Inbound Packets: %1 packets\r\n")
             .arg(locale.toString((uint)totalPacketsProcessed).rightJustified(COLUMN_WIDTH, ' '));
@@ -1411,6 +1415,8 @@ void OctreeServer::sendStatsPacket() {
 
     static QJsonObject statsObject3;
 
+    statsObject3[baseName + QString(".3.inbound.data.1.packetQueue")] =
+        (double)_octreeInboundPacketProcessor->packetsToProcessCount();
     statsObject3[baseName + QString(".3.inbound.data.1.totalPackets")] =
         (double)_octreeInboundPacketProcessor->getTotalPacketsProcessed();
     statsObject3[baseName + QString(".3.inbound.data.2.totalElements")] =
