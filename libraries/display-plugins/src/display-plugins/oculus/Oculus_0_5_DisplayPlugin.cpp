@@ -104,37 +104,4 @@ void Oculus_0_5_DisplayPlugin::finishFrame() {
     doneCurrent();
 };
 
-
-#if 0
-/*
-An alternative way to render the UI is to pass it specifically as a composition layer to
-the Oculus SDK which should technically result in higher quality.  However, the SDK doesn't
-have a mechanism to present the image as a sphere section, which is our desired look.
-*/
-ovrLayerQuad& uiLayer = getUiLayer();
-if (nullptr == uiLayer.ColorTexture || overlaySize != _uiFbo->size) {
-    _uiFbo->Resize(overlaySize);
-    uiLayer.ColorTexture = _uiFbo->color;
-    uiLayer.Viewport.Size.w = overlaySize.x;
-    uiLayer.Viewport.Size.h = overlaySize.y;
-    float overlayAspect = aspect(overlaySize);
-    uiLayer.QuadSize.x = 1.0f;
-    uiLayer.QuadSize.y = 1.0f / overlayAspect;
-}
-
-_uiFbo->Bound([&] {
-    Q_ASSERT(0 == glGetError());
-    using namespace oglplus;
-    Context::Viewport(_uiFbo->size.x, _uiFbo->size.y);
-    glClearColor(0, 0, 0, 0);
-    Context::Clear().ColorBuffer();
-
-    _program->Bind();
-    glBindTexture(GL_TEXTURE_2D, overlayTexture);
-    _plane->Use();
-    _plane->Draw();
-    Q_ASSERT(0 == glGetError());
-});
-#endif    
-
 #endif
