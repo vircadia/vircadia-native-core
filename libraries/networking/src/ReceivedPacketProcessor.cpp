@@ -40,13 +40,13 @@ bool ReceivedPacketProcessor::process() {
     }
 
     preProcess();
-    QVector<NetworkPacket> currentPackets;
     if (!_packets.size()) {
         return isStillRunning();
     }
 
     lock();
-    std::swap(currentPackets, _packets);
+    QVector<NetworkPacket> currentPackets;
+    currentPackets.swap(_packets);
     unlock();
 
     foreach(auto& packet, currentPackets) {
