@@ -576,7 +576,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensions);
         READ_ENTITY_PROPERTY(PROP_DENSITY, float, updateDensity);
         READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, updateGravity);
-    
+
         READ_ENTITY_PROPERTY(PROP_DAMPING, float, updateDamping);
         READ_ENTITY_PROPERTY(PROP_RESTITUTION, float, updateRestitution);
         READ_ENTITY_PROPERTY(PROP_FRICTION, float, updateFriction);
@@ -1411,7 +1411,15 @@ void EntityItem::clearSimulationOwnership() {
 }
 
 bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer action) {
+    if (!_serializedActionsProcessed) {
+        setActionData(_serializedActions);
+        if (!_serializedActionsProcessed) {
+            return false;
+        }
+    }
+
     assert(action);
+    assert(simulation);
     auto actionOwnerEntity = action->getOwnerEntity().lock();
     assert(actionOwnerEntity);
     assert(actionOwnerEntity.get() == this);
@@ -1429,6 +1437,13 @@ bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer act
 }
 
 bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionID, const QVariantMap& arguments) {
+    if (!_serializedActionsProcessed) {
+        setActionData(_serializedActions);
+        if (!_serializedActionsProcessed) {
+            return false;
+        }
+    }
+
     if (!_objectActions.contains(actionID)) {
         return false;
     }
@@ -1441,6 +1456,13 @@ bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionI
 }
 
 bool EntityItem::removeAction(EntitySimulation* simulation, const QUuid& actionID) {
+    if (!_serializedActionsProcessed) {
+        setActionData(_serializedActions);
+        if (!_serializedActionsProcessed) {
+            return false;
+        }
+    }
+
     if (_objectActions.contains(actionID)) {
         EntityActionPointer action = _objectActions[actionID];
         _objectActions.remove(actionID);
@@ -1471,13 +1493,12 @@ void EntityItem::setActionData(QByteArray actionData) {
     //     return;
     // }
     _serializedActions = actionData;
-    if (_serializedActions.size() == 0) {
-        return;
-    }
 
     QVector<QByteArray> serializedActions;
-    QDataStream serializedActionsStream(actionData);
-    serializedActionsStream >> serializedActions;
+    if (_serializedActions.size() > 0) {
+        QDataStream serializedActionsStream(actionData);
+        serializedActionsStream >> serializedActions;
+    }
 
     // Keep track of which actions got added or updated by the new actionData
     QSet<QUuid> updated;
@@ -1500,10 +1521,13 @@ void EntityItem::setActionData(QByteArray actionData) {
 
             EntityTree* entityTree = _element ? _element->getTree() : nullptr;
             EntitySimulation* simulation = entityTree ? entityTree->getSimulation() : nullptr;
-
-            if (entityTree) {
+            if (simulation) {
+                _serializedActionsProcessed = true;
                 EntityItemPointer entity = entityTree->findEntityByEntityItemID(_id);
                 actionFactory->factoryBA(simulation, entity, serializedAction);
+            } else {
+                // we can't yet add the action.  This method will be called later.
+                _serializedActionsProcessed = false;
             }
         }
     }
@@ -1528,6 +1552,10 @@ void EntityItem::setActionData(QByteArray actionData) {
 }
 
 bool EntityItem::serializeActions() const {
+    if (!_serializedActionsProcessed) {
+        return false;
+    }
+
     if (_objectActions.size() == 0) {
         _serializedActions = QByteArray();
         return true;
@@ -1562,6 +1590,14 @@ const QByteArray EntityItem::getActionData() const {
 
 QVariantMap EntityItem::getActionArguments(const QUuid& actionID) {
     QVariantMap result;
+
+    if (!_serializedActionsProcessed) {
+        setActionData(_serializedActions);
+        if (!_serializedActionsProcessed) {
+            return result;
+        }
+    }
+
     if (_objectActions.contains(actionID)) {
         EntityActionPointer action = _objectActions[actionID];
         result = action->getArguments();

@@ -472,6 +472,10 @@ protected:
     QHash<QUuid, EntityActionPointer> _objectActions;
     static int _maxActionsDataSize;
     mutable QByteArray _serializedActions;
+    // when an entity-server starts up, EntityItem::setActionData is called before the entity-tree is
+    // ready.  This means we can't find our EntityItemPointer or add the action to the simulation.  This
+    // flag is used to keep track of and work around this situation.
+    bool _serializedActionsProcessed = false;
 };
 
 #endif // hifi_EntityItem_h
