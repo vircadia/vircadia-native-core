@@ -1784,9 +1784,23 @@ void Application::checkFPS() {
     DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
 }
 
-void Application::idle() {
-    PerformanceTimer perfTimer("idle");
+static SimpleMovingAverage interIdleDurations;
+static uint64_t lastIdleEnd{ 0 };
 
+void Application::idle() {
+    if (lastIdleEnd != 0) {
+        uint64_t now = usecTimestampNow();
+        interIdleDurations.updateAverage(now - lastIdleEnd);
+        static uint64_t lastReportTime = now;
+        if ((now - lastReportTime) >= (1000 * 1000)) {
+            int avgIdleDuration = (int)interIdleDurations.getAverage();
+            qDebug() << "Average inter-idle time: " << avgIdleDuration << "s for " << interIdleDurations.getSampleCount() << " samples";
+            interIdleDurations.reset();
+            lastReportTime = now;
+        }
+    }
+
+    PerformanceTimer perfTimer("idle");
     if (_aboutToQuit) {
         return; // bail early, nothing to do here.
     }
@@ -1830,12 +1844,13 @@ void Application::idle() {
             }
 
             // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
-            idleTimer->start(2);
         }
-    }
+        idleTimer->start(_glWidget->isThrottleRendering() ? 10 : 0);
+    } 
 
     // check for any requested background downloads.
     emit checkBackgroundDownloads();
+    lastIdleEnd = usecTimestampNow();
 }
 
 void Application::setFullscreen(bool fullscreen) {
