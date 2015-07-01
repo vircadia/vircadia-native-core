@@ -40,7 +40,7 @@ Avatar = function() {
     // settings
     this.headFree = true;
     this.armsFree = this.hydraCheck(); // automatically sets true to enable Hydra support - temporary fix
-    this.makesFootStepSounds = true;
+    this.makesFootStepSounds = false;
     this.blenderPreRotations = false; // temporary fix
     this.animationSet = undefined; // currently just one animation set
     this.setAnimationSet = function(animationSet) {
