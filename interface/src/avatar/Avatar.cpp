@@ -575,9 +575,9 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool
             return;
         }
 
-//        if (postLighting) {
+        if (postLighting) {
             getHand()->render(renderArgs, false);
-//        }
+        }
     }
     getHead()->render(renderArgs, 1.0f, renderFrustum, postLighting);
 }
