@@ -29,8 +29,8 @@ public:
     virtual void removeFromSimulation(EntitySimulation* simulation) const;
     virtual const EntityItemWeakPointer getOwnerEntity() const { return _ownerEntity; }
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) { _ownerEntity = ownerEntity; }
-    virtual bool updateArguments(QVariantMap arguments) { assert(false); return false; }
-    virtual QVariantMap getArguments() { assert(false); return QVariantMap(); }
+    virtual bool updateArguments(QVariantMap arguments);
+    virtual QVariantMap getArguments();
 
     virtual QByteArray serialize();
     virtual void deserialize(QByteArray serializedArguments);
@@ -41,14 +41,14 @@ private:
     QByteArray _data;
 
 protected:
-    virtual glm::vec3 getPosition() { assert(false); return glm::vec3(0.0f); }
-    virtual void setPosition(glm::vec3 position) { assert(false); }
-    virtual glm::quat getRotation() { assert(false); return glm::quat(); }
-    virtual void setRotation(glm::quat rotation) { assert(false); }
-    virtual glm::vec3 getLinearVelocity() { assert(false); return glm::vec3(0.0f); }
-    virtual void setLinearVelocity(glm::vec3 linearVelocity) { assert(false); }
-    virtual glm::vec3 getAngularVelocity() { assert(false); return glm::vec3(0.0f); }
-    virtual void setAngularVelocity(glm::vec3 angularVelocity) { assert(false); }
+    virtual glm::vec3 getPosition();
+    virtual void setPosition(glm::vec3 position);
+    virtual glm::quat getRotation();
+    virtual void setRotation(glm::quat rotation);
+    virtual glm::vec3 getLinearVelocity();
+    virtual void setLinearVelocity(glm::vec3 linearVelocity);
+    virtual glm::vec3 getAngularVelocity();
+    virtual void setAngularVelocity(glm::vec3 angularVelocity);
 
     bool _active;
     EntityItemWeakPointer _ownerEntity;

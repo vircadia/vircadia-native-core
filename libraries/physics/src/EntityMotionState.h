@@ -115,9 +115,9 @@ protected:
     float _measuredDeltaTime;
 
     quint8 _accelerationNearlyGravityCount;
-    quint64 _nextOwnershipBid = 0;
+    quint64 _nextOwnershipBid = NO_PRORITY;
     uint32_t _loopsWithoutOwner;
-    quint8 _outgoingPriority = 0;
+    quint8 _outgoingPriority = NO_PRORITY;
 };
 
 #endif // hifi_EntityMotionState_h

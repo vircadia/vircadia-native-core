@@ -234,7 +234,6 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     model.setScale(vec3(mouseSize, 1.0f));
     batch.setModelTransform(model);
     bindCursorTexture(batch);
-    // vec4 reticleColor = { RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], 1.0f };
     geometryCache->renderUnitQuad(batch, vec4(1));
     renderArgs->_context->render(batch);
 }

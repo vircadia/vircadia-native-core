@@ -55,12 +55,12 @@ EntityActionPointer InterfaceActionFactory::factory(EntitySimulation* simulation
 EntityActionPointer InterfaceActionFactory::factoryBA(EntitySimulation* simulation,
                                                       EntityItemPointer ownerEntity,
                                                       QByteArray data) {
-    QDataStream ds(data);
+    QDataStream serializedArgumentStream(data);
     EntityActionType type;
     QUuid id;
 
-    ds >> type;
-    ds >> id;
+    serializedArgumentStream >> type;
+    serializedArgumentStream >> id;
 
     EntityActionPointer action = interfaceActionFactory(type, id, ownerEntity);
 

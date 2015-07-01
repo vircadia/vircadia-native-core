@@ -34,7 +34,7 @@ const quint64 DEFAULT_SIMULATOR_CHANGE_LOCKOUT_PERIOD = (quint64)(0.2f * USECS_P
 const quint64 MAX_SIMULATOR_CHANGE_LOCKOUT_PERIOD = 2 * USECS_PER_SECOND;
 
 bool EntityItem::_sendPhysicsUpdates = true;
-int EntityItem::_maxActionDataSize = 800;
+int EntityItem::_maxActionsDataSize = 800;
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _type(EntityTypes::Unknown),
@@ -1421,7 +1421,7 @@ bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer act
     _objectActions[actionID] = action;
 
     simulation->addAction(action);
-    bool success = serializeActionData();
+    bool success = serializeActions();
     if (!success) {
         removeAction(simulation, actionID);
     }
@@ -1435,7 +1435,7 @@ bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionI
     EntityActionPointer action = _objectActions[actionID];
     bool success = action->updateArguments(arguments);
     if (success) {
-        success = serializeActionData();
+        success = serializeActions();
     }
     return success;
 }
@@ -1446,7 +1446,7 @@ bool EntityItem::removeAction(EntitySimulation* simulation, const QUuid& actionI
         _objectActions.remove(actionID);
         action->setOwnerEntity(nullptr);
         action->removeFromSimulation(simulation);
-        return serializeActionData();
+        return serializeActions();
     }
     return false;
 }
@@ -1460,33 +1460,34 @@ bool EntityItem::clearActions(EntitySimulation* simulation) {
         action->setOwnerEntity(nullptr);
         action->removeFromSimulation(simulation);
     }
-    _actionData = QByteArray();
+    // empty _serializedActions means no actions for the EntityItem
+    _serializedActions = QByteArray();
     return true;
 }
 
 void EntityItem::setActionData(QByteArray actionData) {
     // it would be nice to take this shortcut, but a previous add may have failed
-    // if (_actionData == actionData) {
+    // if (_serializedActions == actionData) {
     //     return;
     // }
-    _actionData = actionData;
-    if (actionData.size() == 0) {
+    _serializedActions = actionData;
+    if (_serializedActions.size() == 0) {
         return;
     }
 
     QVector<QByteArray> serializedActions;
-    QDataStream ds(actionData);
-    ds >> serializedActions;
+    QDataStream serializedActionsStream(actionData);
+    serializedActionsStream >> serializedActions;
 
     // Keep track of which actions got added or updated by the new actionData
     QSet<QUuid> updated;
 
     foreach(QByteArray serializedAction, serializedActions) {
-        QDataStream dsForAction(serializedAction);
+        QDataStream serializedActionStream(serializedAction);
         EntityActionType actionType;
         QUuid actionID;
-        dsForAction >> actionType;
-        dsForAction >> actionID;
+        serializedActionStream >> actionType;
+        serializedActionStream >> actionID;
         updated << actionID;
 
         if (_objectActions.contains(actionID)) {
@@ -1526,9 +1527,9 @@ void EntityItem::setActionData(QByteArray actionData) {
     }
 }
 
-bool EntityItem::serializeActionData() const {
+bool EntityItem::serializeActions() const {
     if (_objectActions.size() == 0) {
-        _actionData = QByteArray();
+        _serializedActions = QByteArray();
         return true;
     }
 
@@ -1543,20 +1544,20 @@ bool EntityItem::serializeActionData() const {
     }
 
     QByteArray result;
-    QDataStream ds(&result, QIODevice::WriteOnly);
-    ds << serializedActions;
+    QDataStream serializedActionsStream(&result, QIODevice::WriteOnly);
+    serializedActionsStream << serializedActions;
 
-    if (result.size() >= _maxActionDataSize) {
+    if (result.size() >= _maxActionsDataSize) {
         return false;
     }
 
-    _actionData = result;
+    _serializedActions = result;
     return true;
 }
 
 const QByteArray EntityItem::getActionData() const {
-    serializeActionData();
-    return _actionData;
+    serializeActions();
+    return _serializedActions;
 }
 
 QVariantMap EntityItem::getActionArguments(const QUuid& actionID) {

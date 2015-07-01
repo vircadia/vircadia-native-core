@@ -32,7 +32,7 @@ public:
     const QUuid& getID() const { return _id; }
     virtual EntityActionType getType() { assert(false); return ACTION_TYPE_NONE; }
     virtual void removeFromSimulation(EntitySimulation* simulation) const;
-    virtual const EntityItemWeakPointer getOwnerEntity() const { return _ownerEntity; }
+    virtual EntityItemWeakPointer getOwnerEntity() const { return _ownerEntity; }
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) { _ownerEntity = ownerEntity; }
 
     virtual bool updateArguments(QVariantMap arguments) { return false; }

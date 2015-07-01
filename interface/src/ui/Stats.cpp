@@ -136,7 +136,6 @@ void Stats::updateStats() {
         unsigned long totalPingOctree = 0;
         int octreeServerCount = 0;
         int pingOctreeMax = 0;
-        // int pingVoxel;
         nodeList->eachNode([&](const SharedNodePointer& node) {
             // TODO: this should also support entities
             if (node->getType() == NodeType::EntityServer) {
@@ -147,19 +146,6 @@ void Stats::updateStats() {
                 }
             }
         });
-
-        // if (octreeServerCount) {
-        //     pingVoxel = totalPingOctree / octreeServerCount;
-        // }
-
-        //STAT_UPDATE(entitiesPing, pingVoxel);
-        //if (_expanded) {
-        //    QString voxelMaxPing;
-        //    if (pingVoxel >= 0) {  // Average is only meaningful if pingVoxel is valid.
-        //        voxelMaxPing = QString("Voxel max ping: %1").arg(pingOctreeMax);
-        //    } else {
-        //        voxelMaxPing = QString("Voxel max ping: --");
-        //    }
     } else {
         // -2 causes the QML to hide the ping column
         STAT_UPDATE(audioPing, -2);

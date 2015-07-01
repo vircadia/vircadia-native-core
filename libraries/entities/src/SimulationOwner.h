@@ -18,6 +18,8 @@
 #include <SharedUtil.h>
 #include <UUID.h>
 
+const quint8 NO_PRORITY = 0x00;
+
 // Simulation observers will bid to simulate unowned active objects at the lowest possible priority
 // which is VOLUNTEER.  If the server accepts a VOLUNTEER bid it will automatically bump it 
 // to RECRUIT priority so that other volunteers don't accidentally take over.

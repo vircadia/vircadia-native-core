@@ -113,12 +113,12 @@ void EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine)
             flags &= ~EntityItem::DIRTY_PHYSICS_ACTIVATION;
             // hint to Bullet that the object is deactivating
             _body->setActivationState(WANTS_DEACTIVATION);
-            _outgoingPriority = 0;
+            _outgoingPriority = NO_PRORITY;
         } else  {
             _nextOwnershipBid = usecTimestampNow() + USECS_BETWEEN_OWNERSHIP_BIDS;
             if (engine->getSessionID() == _entity->getSimulatorID() || _entity->getSimulationPriority() > _outgoingPriority) {
                 // we own the simulation or our priority looses to remote
-                _outgoingPriority = 0;
+                _outgoingPriority = NO_PRORITY;
             }
         }
     }
@@ -238,7 +238,7 @@ bool EntityMotionState::isCandidateForOwnership(const QUuid& sessionID) const {
         return false;
     }
     assert(entityTreeIsLocked());
-    return _outgoingPriority > 0 || sessionID == _entity->getSimulatorID();
+    return _outgoingPriority != NO_PRORITY || sessionID == _entity->getSimulatorID();
 }
 
 bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
@@ -361,10 +361,10 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep, const QUuid& s
 
     if (_entity->getSimulatorID() != sessionID) {
         // we don't own the simulation, but maybe we should...
-        if (_outgoingPriority > 0) {
+        if (_outgoingPriority != NO_PRORITY) {
             if (_outgoingPriority < _entity->getSimulationPriority()) {
                 // our priority looses to remote, so we don't bother to bid
-                _outgoingPriority = 0;
+                _outgoingPriority = NO_PRORITY;
                 return false;
             }
             return usecTimestampNow() > _nextOwnershipBid;
@@ -465,7 +465,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
             // we own the simulation but the entity has stopped, so we tell the server that we're clearing simulatorID
             // but we remember that we do still own it...  and rely on the server to tell us that we don't
             properties.clearSimulationOwner();
-            _outgoingPriority = 0;
+            _outgoingPriority = NO_PRORITY;
         }
         // else the ownership is not changing so we don't bother to pack it
     } else {
@@ -514,7 +514,7 @@ quint8 EntityMotionState::getSimulationPriority() const {
     if (_entity) {
         return _entity->getSimulationPriority();
     }
-    return 0;
+    return NO_PRORITY;
 }
 
 // virtual
