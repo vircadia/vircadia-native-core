@@ -575,9 +575,9 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool
             return;
         }
 
-        if (postLighting) {
+//        if (postLighting) {
             getHand()->render(renderArgs, false);
-        }
+//        }
     }
     getHead()->render(renderArgs, 1.0f, renderFrustum, postLighting);
 }
@@ -1010,7 +1010,7 @@ int Avatar::parseDataAtOffset(const QByteArray& packet, int offset) {
 int Avatar::_jointConesID = GeometryCache::UNKNOWN_ID;
 
 // render a makeshift cone section that serves as a body part connecting joint spheres
-void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
+void Avatar::renderJointConnectingCone(gpu::Batch& batch, glm::vec3 position1, glm::vec3 position2,
                                             float radius1, float radius2, const glm::vec4& color) {
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -1057,7 +1057,7 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
         // TODO: this is really inefficient constantly recreating these vertices buffers. It would be
         // better if the avatars cached these buffers for each of the joints they are rendering
         geometryCache->updateVertices(_jointConesID, points, color);
-        geometryCache->renderVertices(gpu::TRIANGLES, _jointConesID);
+        geometryCache->renderVertices(batch, gpu::TRIANGLES, _jointConesID);
     }
 }
 

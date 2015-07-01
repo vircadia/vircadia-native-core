@@ -805,7 +805,7 @@ void SkeletonModel::renderBoundingCollisionShapes(float alpha) {
 
     // draw a green cylinder between the two points
     glm::vec3 origin(0.0f);
-    Avatar::renderJointConnectingCone( origin, axis, _boundingShape.getRadius(), _boundingShape.getRadius(), glm::vec4(0.6f, 0.8f, 0.6f, alpha));
+//    Avatar::renderJointConnectingCone( origin, axis, _boundingShape.getRadius(), _boundingShape.getRadius(), glm::vec4(0.6f, 0.8f, 0.6f, alpha));
 
     glPopMatrix();
 }

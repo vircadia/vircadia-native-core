@@ -3547,7 +3547,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     }
     //Render the sixense lasers
     if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
-        _myAvatar->renderLaserPointers();
+        _myAvatar->renderLaserPointers(*renderArgs->_batch);
     }
 
     if (!selfAvatarOnly) {

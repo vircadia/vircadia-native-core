@@ -157,7 +157,7 @@ public:
         bool allowDuplicates = false, bool useSaved = true);
         
     /// Renders a laser pointer for UI picking
-    void renderLaserPointers();
+    void renderLaserPointers(gpu::Batch& batch);
     glm::vec3 getLaserPointerTipPosition(const PalmData* palm);
     
     const RecorderPointer getRecorder() const { return _recorder; }
