@@ -17,8 +17,17 @@
 
 namespace render {
     class DrawStatus {
+        int _drawItemBoundPosLoc = -1;
+        int _drawItemBoundDimLoc = -1;
+        int _drawItemStatusPosLoc = -1;
+        int _drawItemStatusDimLoc = -1;
+        int _drawItemStatusValueLoc = -1;
+
+        gpu::Stream::FormatPointer _drawItemFormat;
         gpu::PipelinePointer _drawItemBoundsPipeline;
         gpu::PipelinePointer _drawItemStatusPipeline;
+        gpu::BufferPointer _itemBounds;
+        gpu::BufferPointer _itemStatus;
 
     public:
 

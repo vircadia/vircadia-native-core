@@ -2,8 +2,8 @@
 //  DrawStatus.cpp
 //  render/src/render
 //
-//  Created by Niraj Venkat on 5/21/15.
-//  Copyright 20154 High Fidelity, Inc.
+//  Created by Niraj Venkat on 6/29/15.
+//  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -42,6 +42,9 @@ const gpu::PipelinePointer& DrawStatus::getDrawItemBoundsPipeline() {
         gpu::Shader::BindingSet slotBindings;
         gpu::Shader::makeProgram(*program, slotBindings);
 
+        _drawItemBoundPosLoc = program->getUniforms().findLocation("inBoundPos");
+        _drawItemBoundDimLoc = program->getUniforms().findLocation("inBoundDim");
+
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
@@ -66,6 +69,10 @@ const gpu::PipelinePointer& DrawStatus::getDrawItemStatusPipeline() {
         gpu::Shader::BindingSet slotBindings;
         gpu::Shader::makeProgram(*program, slotBindings);
 
+        _drawItemStatusPosLoc = program->getUniforms().findLocation("inBoundPos");
+        _drawItemStatusDimLoc = program->getUniforms().findLocation("inBoundDim");
+        _drawItemStatusValueLoc = program->getUniforms().findLocation("inStatus");
+
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         state->setDepthTest(false, false, gpu::LESS_EQUAL);
@@ -85,7 +92,49 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
     RenderArgs* args = renderContext->args;
+    auto& scene = sceneContext->_scene;
 
+    // FIrst thing, we collect the bound and the status for all the items we want to render
+    int nbItems = 0;
+    {
+        if (!_itemBounds) {
+            _itemBounds.reset(new gpu::Buffer());
+        }
+        if (!_itemStatus) {
+            _itemStatus.reset(new gpu::Buffer());
+        }
+
+        _itemBounds->resize((inItems.size() * sizeof(AABox)));
+        _itemStatus->resize((inItems.size() * sizeof(glm::vec4)));
+        AABox* itemAABox = reinterpret_cast<AABox*> (_itemBounds->editData());
+        glm::vec4* itemStatus = reinterpret_cast<glm::vec4*> (_itemStatus->editData());
+        for (auto& item : inItems) {
+            if (!item.bounds.isInvalid()) {
+                if (!item.bounds.isNull()) {
+                    (*itemAABox) = item.bounds;
+                } else {
+                    (*itemAABox).setBox(item.bounds.getCorner(), 0.1f);
+                }
+                auto& itemScene = scene->getItem(item.id);
+                auto& status = itemScene.getStatus();
+                if (status) {
+                    status->getValue((*itemStatus));
+                } else {
+                    (*itemStatus) = glm::vec4(-1.0f);
+                }
+
+                nbItems++;
+                itemAABox++;
+                itemStatus++;
+            }
+        }
+    }
+
+    if (nbItems == 0) {
+        return;
+    }
+
+    // Allright, something to render let's do it
     gpu::Batch batch;
 
     glm::mat4 projMat;
@@ -97,46 +146,39 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
     }
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewMat);
+    batch.setModelTransform(Transform());
 
-    
-    // batch.setModelTransform(Transform());
-    // bind the unit cube geometry
+/*   if (!_drawItemFormat) {
+        _drawItemFormat.reset(new gpu::Stream::Format());
+        _drawItemFormat->setAttribute(0, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0, gpu::Stream::PER_INSTANCE);
+        _drawItemFormat->setAttribute(1, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), sizeof(glm::vec3), gpu::Stream::PER_INSTANCE);
+    }
+*/
 
     // bind the one gpu::Pipeline we need
     batch.setPipeline(getDrawItemBoundsPipeline());
 
-    for (auto& item : inItems) {
-        if (!item.bounds.isInvalid()) {
-            Transform model;
-            model.setTranslation(item.bounds.getCorner());
-            if (!item.bounds.isNull()) {
-                model.setScale(item.bounds.getDimensions());
-            }
+    AABox* itemAABox = reinterpret_cast<AABox*> (_itemBounds->editData());
+    glm::vec4* itemStatus = reinterpret_cast<glm::vec4*> (_itemStatus->editData());
 
-            batch.setModelTransform(model);
-            batch.draw(gpu::LINES, 24, 0);
-        }
+    for (int i = 0; i < nbItems; i++) {
+        batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const GLfloat*) (itemAABox + i));
+        batch._glUniform3fv(_drawItemBoundDimLoc, 1, ((const GLfloat*) (itemAABox + i)) + 3);
+
+        batch.draw(gpu::LINES, 24, 0);
     }
 
     batch.setPipeline(getDrawItemStatusPipeline());
+    for (int i = 0; i < nbItems; i++) {
+        batch._glUniform3fv(_drawItemStatusPosLoc, 1, (const GLfloat*) (itemAABox + i));
+        batch._glUniform3fv(_drawItemStatusDimLoc, 1, ((const GLfloat*) (itemAABox + i)) + 3);
+        batch._glUniform4fv(_drawItemStatusValueLoc, 1, (const GLfloat*) (itemStatus + i));
 
-    for (auto& item : inItems) {
-        if (!item.bounds.isInvalid()) {
-            Transform model;
-            model.setTranslation(item.bounds.getCorner());
-            if (!item.bounds.isNull()) {
-                model.setScale(item.bounds.getDimensions());
-            }
-
-            batch.setModelTransform(model);
-            batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
-        }
+        batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
     }
 
     // Before rendering the batch make sure we re in sync with gl state
     args->_context->syncCache();
     renderContext->args->_context->syncCache();
     args->_context->render((batch));
-    args->_batch = nullptr;
-
 }

@@ -16,6 +16,9 @@
 
 <$declareStandardTransform()$>
 
+uniform vec3 inBoundPos;
+uniform vec3 inBoundDim;
+
 void main(void) {
     const vec4 UNIT_BOX[8] = vec4[8](
         vec4(0.0, 0.0, 0.0, 1.0),
@@ -42,6 +45,8 @@ void main(void) {
         1, 5
     );
     vec4 pos = UNIT_BOX[UNIT_BOX_LINE_INDICES[gl_VertexID]];
+
+    pos.xyz = inBoundPos + inBoundDim * pos.xyz;
 
     // standard transform
     TransformCamera cam = getTransformCamera();

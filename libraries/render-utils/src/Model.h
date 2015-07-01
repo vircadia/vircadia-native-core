@@ -118,6 +118,7 @@ public:
     bool needsFixupInScene() { return !_readyWhenAdded && readyToAddToScene(); }
     bool readyToAddToScene(RenderArgs* renderArgs = nullptr) { return !_needsReload && isRenderable() && isActive() && isLoadedWithTextures(); }
     bool addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+    bool addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges, render::Item::Status::Getter& statusGetter);
     void removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
 
     /// Sets the URL of the model to render.
