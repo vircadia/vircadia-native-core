@@ -5,7 +5,9 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "OculusWin32DisplayPlugin.h"
+#include "Oculus_0_6_DisplayPlugin.h"
+
+#if (OVR_MAJOR_VERSION == 6)
 
 #include <memory>
 
@@ -144,13 +146,13 @@ private:
     }
 };
 
-const QString OculusWin32DisplayPlugin::NAME("Oculus Rift");
+const QString Oculus_0_6_DisplayPlugin::NAME("Oculus Rift");
 
-const QString & OculusWin32DisplayPlugin::getName() const {
+const QString & Oculus_0_6_DisplayPlugin::getName() const {
     return NAME;
 }
 
-bool OculusWin32DisplayPlugin::isSupported() const {
+bool Oculus_0_6_DisplayPlugin::isSupported() const {
     if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
         return false;
     }
@@ -162,13 +164,13 @@ bool OculusWin32DisplayPlugin::isSupported() const {
     return result;
 }
 
-ovrLayerEyeFov& OculusWin32DisplayPlugin::getSceneLayer() {
+ovrLayerEyeFov& Oculus_0_6_DisplayPlugin::getSceneLayer() {
     return _sceneLayer;
 }
 
 //static gpu::TexturePointer _texture;
 
-void OculusWin32DisplayPlugin::activate(PluginContainer * container) {
+void Oculus_0_6_DisplayPlugin::activate(PluginContainer * container) {
     if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
         Q_ASSERT(false);
         qFatal("Failed to Initialize SDK");
@@ -177,6 +179,8 @@ void OculusWin32DisplayPlugin::activate(PluginContainer * container) {
         Q_ASSERT(false);
         qFatal("Failed to acquire HMD");
     }
+
+    OculusBaseDisplayPlugin::activate(container);
 
     // Parent class relies on our _hmd intialization, so it must come after that.
     ovrLayerEyeFov& sceneLayer = getSceneLayer();
@@ -191,16 +195,14 @@ void OculusWin32DisplayPlugin::activate(PluginContainer * container) {
 
     PerformanceTimer::setActive(true);
 
-    //ovrLayerQuad& uiLayer = getUiLayer();
-    //memset(&uiLayer, 0, sizeof(ovrLayerQuad));
-    //uiLayer.Header.Type = ovrLayerType_QuadInWorld;
-    //uiLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft | ovrLayerFlag_HighQuality;
-    //uiLayer.QuadPoseCenter.Orientation = { 0, 0, 0, 1 };
-    //uiLayer.QuadPoseCenter.Position = { 0, 0, -1 };
-    OculusBaseDisplayPlugin::activate(container);
+    if (!OVR_SUCCESS(ovrHmd_ConfigureTracking(_hmd,
+        ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0))) {
+        qFatal("Could not attach to sensor device");
+    }
+
 }
 
-void OculusWin32DisplayPlugin::customizeContext(PluginContainer * container) {
+void Oculus_0_6_DisplayPlugin::customizeContext(PluginContainer * container) {
     OculusBaseDisplayPlugin::customizeContext(container);
     
     //_texture = DependencyManager::get<TextureCache>()->
@@ -220,7 +222,7 @@ void OculusWin32DisplayPlugin::customizeContext(PluginContainer * container) {
     sceneLayer.ColorTexture[1] = nullptr;
 }
 
-void OculusWin32DisplayPlugin::deactivate() {
+void Oculus_0_6_DisplayPlugin::deactivate() {
     makeCurrent();
     _sceneFbo.reset();
     _mirrorFbo.reset();
@@ -234,7 +236,7 @@ void OculusWin32DisplayPlugin::deactivate() {
     ovr_Shutdown();
 }
 
-void OculusWin32DisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {
+void Oculus_0_6_DisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {
     using namespace oglplus;
     // Need to make sure only the display plugin is responsible for 
     // controlling vsync
@@ -297,7 +299,7 @@ void OculusWin32DisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sc
 }
 
 // Pass input events on to the application
-bool OculusWin32DisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
+bool Oculus_0_6_DisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
     if (event->type() == QEvent::Resize) {
         QResizeEvent* resizeEvent = static_cast<QResizeEvent*>(event);
         qDebug() << resizeEvent->size().width() << " x " << resizeEvent->size().height();
@@ -314,7 +316,7 @@ bool OculusWin32DisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
     However, it should only be done if we can reliably disable v-sync on the mirror surface, 
     otherwise the swapbuffer delay will interefere with the framerate of the headset
 */
-void OculusWin32DisplayPlugin::finishFrame() {
+void Oculus_0_6_DisplayPlugin::finishFrame() {
     swapBuffers();
     doneCurrent();
 };
@@ -351,3 +353,5 @@ _uiFbo->Bound([&] {
     Q_ASSERT(0 == glGetError());
 });
 #endif    
+
+#endif

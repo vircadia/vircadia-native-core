@@ -30,11 +30,13 @@ void OculusBaseDisplayPlugin::activate(PluginContainer * container) {
         eyeSizes[0].x + eyeSizes[1].x,
         std::max(eyeSizes[0].y, eyeSizes[1].y));
 
+    _frameIndex = 0;
+
     if (!OVR_SUCCESS(ovrHmd_ConfigureTracking(_hmd,
         ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0))) {
         qFatal("Could not attach to sensor device");
     }
-    _frameIndex = 0;
+
     MainWindowOpenGLDisplayPlugin::activate(container);
 }
 

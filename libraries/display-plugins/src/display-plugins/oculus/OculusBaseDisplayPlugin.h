@@ -36,3 +36,7 @@ protected:
     mat4 _compositeEyeProjections[2];
     uvec2 _desiredFramebufferSize;
 };
+
+#if (OVR_MAJOR_VERSION < 6)
+#define OVR_SUCCESS(x) x
+#endif
