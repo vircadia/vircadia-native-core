@@ -200,13 +200,22 @@ public:
     // This is Used for monitoring and dynamically adjust the quality 
     class Status {
     public:
-        typedef glm::ivec2 Value;
+        typedef unsigned char Value;
         typedef std::function<Value()> Getter;
 
         int _firstFrame;
         std::vector<Getter> _values;
 
         void addGetter(Getter& getter) { _values.push_back(getter); }
+        void getValue(glm::vec4& value) {
+            for (unsigned int i = 0; i < value.length(); i++) {
+                if (i < _values.size()) {
+                    value[i] = _values[i]() / 256;
+                } else {
+                    value[i] = 0.0f;
+                }
+            }
+        }
     };
     typedef std::shared_ptr<Status> StatusPointer;
 
@@ -232,7 +241,7 @@ public:
 
         // Status interface is local to the base class
         const StatusPointer& getStatus() const { return _status; }
-        void addStatusGetter(Status::Getter& getter) { _status->addGetter(getter); }
+        void addStatusGetter(Status::Getter& getter) { if (!_status) { _status.reset(new Status());} _status->addGetter(getter); }
 
     protected:
         StatusPointer _status;

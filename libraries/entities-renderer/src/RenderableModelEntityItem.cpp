@@ -177,7 +177,22 @@ bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_p
     pendingChanges.resetItem(_myMetaItem, renderPayload);
     
     if (_model) {
-        return _model->addToScene(scene, pendingChanges);
+       // return _model->addToScene(scene, pendingChanges);
+
+        render::Item::Status::Getter statusGetter = [this] () -> render::Item::Status::Value {
+                quint64 now = usecTimestampNow();
+    /*        if (now - entity->getLastEditedFromRemote() < 0.1f * USECS_PER_SECOND) {
+               return  glm::vec4 redColor(1.0f, 0.0f, 0.0f, 1.0f);
+                renderBoundingBox(entity, args, 0.16f, redColor);
+            }
+            */
+            if (now - this->getLastBroadcast() < 0.2f * USECS_PER_SECOND) {
+                return 256;
+            }
+            return 0;
+        };
+        return _model->addToScene(scene, pendingChanges, statusGetter);
+        
     }
 
     return true;

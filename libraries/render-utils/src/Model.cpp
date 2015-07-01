@@ -910,6 +910,38 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
     return somethingAdded;
 }
 
+bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges, render::Item::Status::Getter& statusGetter) {
+    if (!_meshGroupsKnown && isLoadedWithTextures()) {
+        segregateMeshGroups();
+    }
+
+    bool somethingAdded = false;
+
+    foreach (auto renderItem, _transparentRenderItems) {
+        auto item = scene->allocateID();
+        auto renderData = MeshPartPayload::Pointer(renderItem);
+        auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
+        renderPayload->addStatusGetter(statusGetter);
+        pendingChanges.resetItem(item, renderPayload);
+        _renderItems.insert(item, renderPayload);
+        somethingAdded = true;
+    }
+
+    foreach (auto renderItem, _opaqueRenderItems) {
+        auto item = scene->allocateID();
+        auto renderData = MeshPartPayload::Pointer(renderItem);
+        auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
+        renderPayload->addStatusGetter(statusGetter);
+        pendingChanges.resetItem(item, renderPayload);
+        _renderItems.insert(item, renderPayload);
+        somethingAdded = true;
+    }
+    
+    _readyWhenAdded = readyToAddToScene();
+
+    return somethingAdded;
+}
+
 void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
     foreach (auto item, _renderItems.keys()) {
         pendingChanges.removeItem(item);
