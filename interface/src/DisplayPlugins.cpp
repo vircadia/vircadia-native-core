@@ -17,8 +17,9 @@
 #include <display-plugins/Basic2DWindowOpenGLDisplayPlugin.h>
 
 #ifdef Q_OS_WIN
-#include <display-plugins/oculus/OculusWin32DisplayPlugin.h>
+#include <display-plugins/oculus/Oculus_0_6_DisplayPlugin.h>
 #else
+#include <display-plugins/oculus/Oculus_0_5_DisplayPlugin.h>
 #endif
 
 #include <display-plugins/openvr/OpenVrDisplayPlugin.h>
@@ -56,7 +57,12 @@ const DisplayPluginList& getDisplayPlugins() {
             new NullDisplayPlugin(),
             new SideBySideStereoDisplayPlugin(),
 //            new InterleavedStereoDisplayPlugin(),
-            new OculusWin32DisplayPlugin(),
+#ifdef Q_OS_WIN
+            new Oculus_0_6_DisplayPlugin(),
+#else
+            new Oculus_0_5_DisplayPlugin(),
+#endif
+
             new OpenVrDisplayPlugin(),
             nullptr
         };
