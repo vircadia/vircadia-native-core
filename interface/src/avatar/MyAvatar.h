@@ -260,7 +260,8 @@ private:
     void updatePosition(float deltaTime);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void maybeUpdateBillboard();
-    
+    void updateRoomTracking(float deltaTime);
+
     // Avatar Preferences
     bool _useFullAvatar = false;
     QUrl _fullAvatarURLFromPreferences;
@@ -274,6 +275,8 @@ private:
     // used for rendering when in first person view or when in an HMD.
     SkeletonModel _firstPersonSkeletonModel;
     bool _prevShouldDrawHead;
+    glm::vec3 _prevRoomBodyPos;
+    glm::vec3 _currRoomBodyPos;
 };
 
 #endif // hifi_MyAvatar_h

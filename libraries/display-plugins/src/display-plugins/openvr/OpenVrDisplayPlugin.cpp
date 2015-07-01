@@ -22,6 +22,9 @@
 
 #include "OpenVrHelpers.h"
 
+#include <QLoggingCategory>
+Q_DECLARE_LOGGING_CATEGORY(displayplugins)
+Q_LOGGING_CATEGORY(displayplugins, "hifi.physics")
 
 const QString OpenVrDisplayPlugin::NAME("OpenVR (Vive)");
 
@@ -122,7 +125,46 @@ mat4 OpenVrDisplayPlugin::getProjection(Eye eye, const mat4& baseProjection) con
 }
 
 glm::mat4 OpenVrDisplayPlugin::getModelview(Eye eye, const mat4& baseModelview) const {
-    return baseModelview * _eyesData[eye]._pose;
+    /*
+    qCDebug(displayplugins, displayplugins, "getModelView(%d)\n", eye);
+    glm::mat4 m = baseModelview;
+    qCDebug(displayplugins, "\tbaseModelView = | %10.4f %10.4f %10.4f %10.4f |", m[0][0], m[1][0], m[2][0], m[3][0]);
+    qCDebug(displayplugins, "\t                | %10.4f %10.4f %10.4f %10.4f |", m[0][1], m[1][1], m[2][1], m[3][1]);
+    qCDebug(displayplugins, "\t                | %10.4f %10.4f %10.4f %10.4f |", m[0][2], m[1][2], m[2][2], m[3][2]);
+    qCDebug(displayplugins, "\t                | %10.4f %10.4f %10.4f %10.4f |", m[0][3], m[1][3], m[2][3], m[3][3]);
+
+    m = _eyesData[eye]._eyeOffset;
+    qCDebug(displayplugins, "\teyeOffset = | %10.4f %10.4f %10.4f %10.4f |", m[0][0], m[1][0], m[2][0], m[3][0]);
+    qCDebug(displayplugins, "\t           | %10.4f %10.4f %10.4f %10.4f |", m[0][1], m[1][1], m[2][1], m[3][1]);
+    qCDebug(displayplugins, "\t           | %10.4f %10.4f %10.4f %10.4f |", m[0][2], m[1][2], m[2][2], m[3][2]);
+    qCDebug(displayplugins, "\t           | %10.4f %10.4f %10.4f %10.4f |", m[0][3], m[1][3], m[2][3], m[3][3]);
+
+    m = glm::inverse(_eyesData[eye]._eyeOffset);
+    qCDebug(displayplugins, "\teyeOffsetInv = | %10.4f %10.4f %10.4f %10.4f |", m[0][0], m[1][0], m[2][0], m[3][0]);
+    qCDebug(displayplugins, "\t              | %10.4f %10.4f %10.4f %10.4f |", m[0][1], m[1][1], m[2][1], m[3][1]);
+    qCDebug(displayplugins, "\t              | %10.4f %10.4f %10.4f %10.4f |", m[0][2], m[1][2], m[2][2], m[3][2]);
+    qCDebug(displayplugins, "\t              | %10.4f %10.4f %10.4f %10.4f |", m[0][3], m[1][3], m[2][3], m[3][3]);
+
+    m = _eyesData[eye]._pose;
+    qCDebug(displayplugins, "\tpose = | %10.4f %10.4f %10.4f %10.4f |", m[0][0], m[1][0], m[2][0], m[3][0]);
+    qCDebug(displayplugins, "\t      | %10.4f %10.4f %10.4f %10.4f |", m[0][1], m[1][1], m[2][1], m[3][1]);
+    qCDebug(displayplugins, "\t      | %10.4f %10.4f %10.4f %10.4f |", m[0][2], m[1][2], m[2][2], m[3][2]);
+    qCDebug(displayplugins, "\t      | %10.4f %10.4f %10.4f %10.4f |", m[0][3], m[1][3], m[2][3], m[3][3]);
+
+    m = glm::inverse(_eyesData[eye]._eyeOffset) * baseModelview;
+    qCDebug(displayplugins, "\tbroken modelView = | %10.4f %10.4f %10.4f %10.4f |", m[0][0], m[1][0], m[2][0], m[3][0]);
+    qCDebug(displayplugins, "\t                   | %10.4f %10.4f %10.4f %10.4f |", m[0][1], m[1][1], m[2][1], m[3][1]);
+    qCDebug(displayplugins, "\t                   | %10.4f %10.4f %10.4f %10.4f |", m[0][2], m[1][2], m[2][2], m[3][2]);
+    qCDebug(displayplugins, "\t                   | %10.4f %10.4f %10.4f %10.4f |", m[0][3], m[1][3], m[2][3], m[3][3]);
+
+    m = baseModelview * _eyesData[eye]._pose;
+    qCDebug(displayplugins, "\tworking modelView = | %10.4f %10.4f %10.4f %10.4f |", m[0][0], m[1][0], m[2][0], m[3][0]);
+    qCDebug(displayplugins, "\t                    | %10.4f %10.4f %10.4f %10.4f |", m[0][1], m[1][1], m[2][1], m[3][1]);
+    qCDebug(displayplugins, "\t                    | %10.4f %10.4f %10.4f %10.4f |", m[0][2], m[1][2], m[2][2], m[3][2]);
+    qCDebug(displayplugins, "\t                    | %10.4f %10.4f %10.4f %10.4f |", m[0][3], m[1][3], m[2][3], m[3][3]);
+    */
+
+    return baseModelview * _eyesData[eye]._eyeOffset;
 }
 
 void OpenVrDisplayPlugin::preRender() {
@@ -150,7 +192,7 @@ void OpenVrDisplayPlugin::resetSensors() {
 }
 
 glm::mat4 OpenVrDisplayPlugin::getEyePose(Eye eye) const {
-    return _eyesData[eye]._pose;
+    return _eyesData[eye]._eyeOffset;
 }
 
 glm::mat4 OpenVrDisplayPlugin::getHeadPose() const {
