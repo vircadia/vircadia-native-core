@@ -2,8 +2,8 @@
 //  DrawStatus.cpp
 //  render/src/render
 //
-//  Created by Niraj Venkat on 5/21/15.
-//  Copyright 20154 High Fidelity, Inc.
+//  Created by Niraj Venkat on 6/29/15.
+//  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -162,11 +162,10 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
     glm::vec4* itemStatus = reinterpret_cast<glm::vec4*> (_itemStatus->editData());
 
     for (int i = 0; i < nbItems; i++) {
-
         batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const GLfloat*) (itemAABox + i));
         batch._glUniform3fv(_drawItemBoundDimLoc, 1, ((const GLfloat*) (itemAABox + i)) + 3);
 
-        batch.draw(gpu::LINE_STRIP, 13, 0);
+        batch.draw(gpu::LINES, 24, 0);
     }
 
     batch.setPipeline(getDrawItemStatusPipeline());
