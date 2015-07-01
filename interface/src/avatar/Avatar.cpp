@@ -449,7 +449,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
                 getHead()->getFaceModel().renderJointCollisionShapes(0.7f);
             }
             if (renderBounding && shouldRenderHead(renderArgs)) {
-                _skeletonModel.renderBoundingCollisionShapes(0.7f);
+                _skeletonModel.renderBoundingCollisionShapes(*renderArgs->_batch, 0.7f);
             }
 
             // If this is the avatar being looked at, render a little ball above their head
