@@ -482,6 +482,8 @@ private:
     void cleanupBeforeQuit();
 
     void update(float deltaTime);
+    
+    void setPalmData(Hand* hand, UserInputMapper::PoseValue pose, int index);
 
     // Various helper functions called during update()
     void updateLOD();

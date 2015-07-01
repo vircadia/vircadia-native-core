@@ -2537,6 +2537,11 @@ void Application::update(float deltaTime) {
             _myAvatar->setDriveKeys(ROT_LEFT, userInputMapper->getActionState(UserInputMapper::YAW_LEFT));
             _myAvatar->setDriveKeys(ROT_RIGHT, userInputMapper->getActionState(UserInputMapper::YAW_RIGHT));
             // TODO: set hand positions somehow
+            UserInputMapper::PoseValue leftHand = userInputMapper->getPoseState(UserInputMapper::LEFT_HAND);
+            UserInputMapper::PoseValue rightHand = userInputMapper->getPoseState(UserInputMapper::RIGHT_HAND);
+            Hand* hand = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHand();
+            setPalmData(hand, leftHand, LEFT_HAND_INDEX);
+            setPalmData(hand, rightHand, RIGHT_HAND_INDEX);
         }
         _myAvatar->setDriveKeys(BOOM_IN, userInputMapper->getActionState(UserInputMapper::BOOM_IN));
         _myAvatar->setDriveKeys(BOOM_OUT, userInputMapper->getActionState(UserInputMapper::BOOM_OUT));
@@ -2682,6 +2687,34 @@ void Application::update(float deltaTime) {
             QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
         }
     }
+}
+
+void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, int index) {
+    PalmData* palm;
+    bool foundHand = false;
+    for (size_t j = 0; j < hand->getNumPalms(); j++) {
+        if (hand->getPalms()[j].getSixenseID() == index) {
+            palm = &(hand->getPalms()[j]);
+            foundHand = true;
+        }
+    }
+    if (!foundHand) {
+        PalmData newPalm(hand);
+        hand->getPalms().push_back(newPalm);
+        palm = &(hand->getPalms()[hand->getNumPalms() - 1]);
+        palm->setSixenseID(index);
+    }
+    
+    if (foundHand) {
+        palm->setActive(pose.isValid());
+    } else {
+        palm->setActive(false); // if this isn't a Sixsense ID palm, always make it inactive
+    }
+    
+    // TODO: velocity filters, tip velocities, et.c
+    // see SixenseManager
+    palm->setRawPosition(pose.getTranslation());
+    palm->setRawRotation(pose.getRotation());
 }
 
 int Application::sendNackPackets() {

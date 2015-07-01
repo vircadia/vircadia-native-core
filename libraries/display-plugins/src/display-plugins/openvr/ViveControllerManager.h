@@ -15,9 +15,9 @@
 #include <QObject>
 #include <unordered_set>
 
-#include "ui/UserInputMapper.h"
+#include <GLMHelpers.h>
 
-class PalmData;
+#include <input-plugins/UserInputMapper.h>
 
 class ViveControllerManager : public QObject {
     Q_OBJECT
@@ -65,12 +65,11 @@ private:
     
     void handleButtonEvent(unsigned int buttons, int index);
     void handleAxisEvent(float x, float y, float trigger, int index);
+    void handlePoseEvent(const mat4& mat, int index);
     
     bool _isInitialized;
     bool _isEnabled;
     int _trackedControllers;
-
-    PalmData* _prevPalms[2];
     
 protected:
     int _deviceID = 0;

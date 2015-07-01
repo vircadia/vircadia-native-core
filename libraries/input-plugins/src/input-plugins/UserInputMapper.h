@@ -82,12 +82,19 @@ public:
 
     class PoseValue {
     public:
-        glm::vec3 translation{ 0.0f };
-        glm::quat rotation;
+        glm::vec3 _translation{ 0.0f };
+        glm::quat _rotation;
+        bool _valid;
 
-        PoseValue() {};
+        PoseValue() : _valid(false) {};
+        PoseValue(glm::vec3 translation, glm::quat rotation) : _translation(translation), _rotation(rotation), _valid(true) {}
         PoseValue(const PoseValue&) = default;
         PoseValue& operator = (const PoseValue&) = default;
+        bool operator ==(const PoseValue& right) const { return _translation == right.getTranslation() && _rotation == right.getRotation() && _valid == right.isValid(); }
+        
+        bool isValid() const { return _valid; }
+        glm::vec3 getTranslation() const { return _translation; }
+        glm::quat getRotation() const { return _rotation; }
     };
     
     typedef std::function<bool (const Input& input, int timestamp)> ButtonGetter;
@@ -160,7 +167,7 @@ public:
     QVector<Action> getAllActions();
     QString getActionName(Action action) { return UserInputMapper::_actionNames[(int) action]; }
     float getActionState(Action action) const { return _actionStates[action]; }
-    float getPoseState(Action action) const { return _poseStates[action]; }
+    PoseValue getPoseState(Action action) const { return _poseStates[action]; }
     void assignDefaulActionScales();
 
     // Add input channel to the mapper and check that all the used channels are registered.

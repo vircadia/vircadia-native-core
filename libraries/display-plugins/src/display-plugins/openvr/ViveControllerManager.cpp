@@ -12,15 +12,13 @@
 #include "ViveControllerManager.h"
 
 #include <avatar/AvatarManager.h>
-#include <GLMHelpers.h>
 #include <PerfStat.h>
 
-#include "Application.h"
 #include "OpenVrDisplayPlugin.h"
 #include "OpenVrHelpers.h"
 #include "UserActivityLogger.h"
 
-extern vr::IVRSystem *_hmd{ nullptr };
+extern vr::IVRSystem *_hmd;
 extern vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 extern mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
 
@@ -34,8 +32,7 @@ ViveControllerManager::ViveControllerManager() :
     _isEnabled(true),
     _trackedControllers(0)
 {
-    _prevPalms[0] = nullptr;
-    _prevPalms[1] = nullptr;
+    
 }
 
 ViveControllerManager::~ViveControllerManager() {
@@ -47,13 +44,12 @@ void ViveControllerManager::activate() {
         vr::HmdError eError = vr::HmdError_None;
         _hmd = vr::VR_Init(&eError);
         Q_ASSERT(eError == vr::HmdError_None);
-        Q_ASSERT(_hmd);
     }
+    Q_ASSERT(_hmd);
     _isInitialized = true;
 }
 
 void ViveControllerManager::update() {
-    Hand* hand = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHand();
     if (_isInitialized && _isEnabled) {
         
         PerformanceTimer perfTimer("Vive Controllers");
@@ -79,120 +75,32 @@ void ViveControllerManager::update() {
             
             const mat4& mat = _trackedDevicePoseMat4[unTrackedDevice];
             
-            PalmData* palm;
-            bool foundHand = false;
-            // FIXME: this shouldn't use SixenseID
-            for (size_t j = 0; j < hand->getNumPalms(); j++) {
-                if (hand->getPalms()[j].getSixenseID() == unTrackedDevice) {
-                    palm = &(hand->getPalms()[j]);
-                    _prevPalms[trackedControllerCount - 1] = palm;
-                    foundHand = true;
-                }
-            }
-            if (!foundHand) {
-                PalmData newPalm(hand);
-                hand->getPalms().push_back(newPalm);
-                palm = &(hand->getPalms()[hand->getNumPalms() - 1]);
-                palm->setSixenseID(unTrackedDevice);
-                _prevPalms[trackedControllerCount - 1] = palm;
-                //qDebug(interfaceapp, "Found new Vive hand controller, ID %i", unTrackedDevice);
-            }
-            
-            palm->setActive(true);
+            handlePoseEvent(mat, trackedControllerCount - 1);
             
             // handle inputs
             vr::VRControllerState_t* controllerState;
             if(_hmd->GetControllerState(unTrackedDevice, controllerState)) {
                 
             }
-            
-            // set position and rotation
-//          m.m[0][0], m.m[1][0], m.m[2][0], 0.0,
-//          m.m[0][1], m.m[1][1], m.m[2][1], 0.0,
-//          m.m[0][2], m.m[1][2], m.m[2][2], 0.0,
-//          m.m[0][3], m.m[1][3], m.m[2][3], 1.0f);
-            glm::vec3 position(_trackedDevicePoseMat4[3][0], _trackedDevicePoseMat4[3][1], _trackedDevicePoseMat4[3][2]);
-//           position *= METERS_PER_MILLIMETER;
 
-//           // Transform the measured position into body frame.
-//           glm::vec3 neck = _neckBase;
-//           // Zeroing y component of the "neck" effectively raises the measured position a little bit.
-//           neck.y = 0.0f;
-//           position = _orbRotation * (position - neck);
-
-//           //  Rotation of Palm
-            glm::quat rotation = glm::quat_cast(_trackedDevicePoseMat4[unTrackedDevice]);
-            //rotation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)) * rotation;
-
-//           //  Compute current velocity from position change
-//           glm::vec3 rawVelocity;
-//           if (deltaTime > 0.0f) {
-//               rawVelocity = (position - palm->getRawPosition()) / deltaTime;
-//           } else {
-//               rawVelocity = glm::vec3(0.0f);
-//           }
-//           palm->setRawVelocity(rawVelocity);   //  meters/sec
-//           
-//           // adjustment for hydra controllers fit into hands
-//           float sign = (i == 0) ? -1.0f : 1.0f;
-//           rotation *= glm::angleAxis(sign * PI/4.0f, glm::vec3(0.0f, 0.0f, 1.0f));
-//           
-//           //  Angular Velocity of Palm
-//           glm::quat deltaRotation = rotation * glm::inverse(palm->getRawRotation());
-//           glm::vec3 angularVelocity(0.0f);
-//           float rotationAngle = glm::angle(deltaRotation);
-//           if ((rotationAngle > EPSILON) && (deltaTime > 0.0f)) {
-//               angularVelocity = glm::normalize(glm::axis(deltaRotation));
-//               angularVelocity *= (rotationAngle / deltaTime);
-//               palm->setRawAngularVelocity(angularVelocity);
-//           } else {
-//               palm->setRawAngularVelocity(glm::vec3(0.0f));
-//           }
-//           
-//           if (_lowVelocityFilter) {
-//               //  Use a velocity sensitive filter to damp small motions and preserve large ones with
-//               //  no latency.
-//               float velocityFilter = glm::clamp(1.0f - glm::length(rawVelocity), 0.0f, 1.0f);
-//               position = palm->getRawPosition() * velocityFilter + position * (1.0f - velocityFilter);
-//               rotation = safeMix(palm->getRawRotation(), rotation, 1.0f - velocityFilter);
-//               palm->setRawPosition(position);
-//               palm->setRawRotation(rotation);
-//           } else {
-               palm->setRawPosition(position);
-               palm->setRawRotation(rotation);
-//           }
-//           
-//           // Store the one fingertip in the palm structure so we can track velocity
-//           const float FINGER_LENGTH = 0.3f;   //  meters
-//           const glm::vec3 FINGER_VECTOR(0.0f, 0.0f, FINGER_LENGTH);
-//           const glm::vec3 newTipPosition = position + rotation * FINGER_VECTOR;
-//           glm::vec3 oldTipPosition = palm->getTipRawPosition();
-//           if (deltaTime > 0.0f) {
-//               palm->setTipVelocity((newTipPosition - oldTipPosition) / deltaTime);
-//           } else {
-//               palm->setTipVelocity(glm::vec3(0.0f));
-//           }
-//           palm->setTipPosition(newTipPosition);
         }
+        
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
         
         if (trackedControllerCount == 0) {
             if (_deviceID != 0) {
-                Application::getUserInputMapper()->removeDevice(_deviceID);
+                userInputMapper->removeDevice(_deviceID);
                 _deviceID = 0;
-                if (_prevPalms[0]) {
-                    _prevPalms[0]->setActive(false);
-                }
-                if (_prevPalms[1]) {
-                    _prevPalms[1]->setActive(false);
-                }
+                _poseStateMap[makeInput(LEFT_HAND).getChannel()] = UserInputMapper::PoseValue();
+                _poseStateMap[makeInput(RIGHT_HAND).getChannel()] = UserInputMapper::PoseValue();
             }
             _trackedControllers = trackedControllerCount;
             return;
         }
         
         if (_trackedControllers == 0 && trackedControllerCount > 0) {
-            registerToUserInputMapper(*Application::getUserInputMapper());
-            assignDefaultInputMapping(*Application::getUserInputMapper());
+            registerToUserInputMapper(*userInputMapper);
+            assignDefaultInputMapping(*userInputMapper);
             UserActivityLogger::getInstance().connectedDevice("spatial_controller", "steamVR");
         }
         
@@ -217,6 +125,13 @@ void ViveControllerManager::handleButtonEvent(unsigned int buttons, int index) {
 //    if (buttons & BUTTON_0) {
 //        _buttonPressedMap.insert(makeInput(BUTTON_0, index).getChannel());
 //    }
+}
+
+void ViveControllerManager::handlePoseEvent(const mat4& mat, int index) {
+    glm::vec3 position(mat[3][0], mat[3][1], mat[3][2]);
+    glm::quat rotation = glm::quat_cast(mat);
+    rotation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)) * rotation;
+    _poseStateMap[makeInput(JointChannel(index)).getChannel()] = UserInputMapper::PoseValue(position, rotation);
 }
 
 void ViveControllerManager::registerToUserInputMapper(UserInputMapper& mapper) {
@@ -335,12 +250,12 @@ UserInputMapper::PoseValue ViveControllerManager::getPose(int channel) const {
 }
 
 UserInputMapper::Input ViveControllerManager::makeInput(unsigned int button, int index) {
-    return UserInputMapper::Input(0);
+    return UserInputMapper::Input();
 //    return UserInputMapper::Input(_deviceID, button | (index == 0 ? LEFT_MASK : RIGHT_MASK), UserInputMapper::ChannelType::BUTTON);
 }
 
 UserInputMapper::Input ViveControllerManager::makeInput(ViveControllerManager::JoystickAxisChannel axis, int index) {
-    return UserInputMapper::Input(0);
+    return UserInputMapper::Input();
 //    return UserInputMapper::Input(_deviceID, axis | (index == 0 ? LEFT_MASK : RIGHT_MASK), UserInputMapper::ChannelType::AXIS);
 }
 
