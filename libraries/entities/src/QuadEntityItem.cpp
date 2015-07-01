@@ -36,7 +36,9 @@ EntityItem(entityItemID) ,
 _lineWidth(DEFAULT_LINE_WIDTH),
 _pointsChanged(true),
 _points(QVector<glm::vec3>(0)),
-_vertices(QVector<glm::vec3>(0))
+_vertices(QVector<glm::vec3>(0)),
+_normals(QVector<glm::vec3>(0)),
+_strokeWidths(QVector<float>(0))
 {
     _type = EntityTypes::Quad;
     _created = properties.getCreated();
@@ -55,6 +57,7 @@ EntityItemProperties QuadEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lineWidth, getLineWidth);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(linePoints, getLinePoints);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(normals, getNormals);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(strokeWidths, getStrokeWidths);
     
     
     properties._glowLevel = getGlowLevel();
@@ -72,6 +75,8 @@ bool QuadEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lineWidth, setLineWidth);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(linePoints, setLinePoints);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(normals, setNormals);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(strokeWidths, setStrokeWidths);
+
     
     
     if (somethingChanged) {
@@ -105,7 +110,12 @@ bool QuadEntityItem::appendPoint(const glm::vec3& point) {
     return true;
 }
 
-bool QuadEntityItem::setNormals(const QVector<glm::vec3> &normals) {
+bool QuadEntityItem::setStrokeWidths(const QVector<float>& strokeWidths ) {
+    _strokeWidths = strokeWidths;
+    return true;
+}
+
+bool QuadEntityItem::setNormals(const QVector<glm::vec3>& normals) {
     if (_points.size () < 2) {
         return false;
     }
@@ -184,6 +194,7 @@ int QuadEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_LINE_WIDTH, float, setLineWidth);
     READ_ENTITY_PROPERTY(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
     READ_ENTITY_PROPERTY(PROP_NORMALS, QVector<glm::vec3>,  setNormals);
+    READ_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, QVector<float>, setStrokeWidths);
     
     _quadReadWriteLock.unlock();
     return bytesRead;
@@ -214,6 +225,7 @@ void QuadEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_LINE_WIDTH, getLineWidth());
     APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, getLinePoints());
     APPEND_ENTITY_PROPERTY(PROP_NORMALS, getNormals());
+    APPEND_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, getStrokeWidths());
 }
 
 void QuadEntityItem::debugDump() const {

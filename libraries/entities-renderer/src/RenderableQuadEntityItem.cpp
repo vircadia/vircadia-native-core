@@ -72,7 +72,7 @@ int generateColor() {
 }
 
 void RenderableQuadEntityItem::updateGeometry() {
-
+    QReadLocker lock(&_quadReadWriteLock);
     int compactColor = generateColor();
     _numVertices = 0;
     _verticesBuffer.reset(new gpu::Buffer());

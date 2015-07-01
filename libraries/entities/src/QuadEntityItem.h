@@ -61,6 +61,9 @@ class QuadEntityItem : public EntityItem {
     bool setNormals(const QVector<glm::vec3>& normals);
     const QVector<glm::vec3>& getNormals() const{ return _normals; }
     
+    bool setStrokeWidths(const QVector<float>& strokeWidths);
+    const QVector<float>& getStrokeWidths() const{ return _strokeWidths; }
+    
     
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_LINE; }
 
@@ -81,6 +84,7 @@ class QuadEntityItem : public EntityItem {
     QVector<glm::vec3> _points;
     QVector<glm::vec3> _vertices;
     QVector<glm::vec3> _normals;
+    QVector<float> _strokeWidths;
     mutable QReadWriteLock _quadReadWriteLock;
 };
 
