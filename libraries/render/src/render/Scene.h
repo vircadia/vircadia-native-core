@@ -210,7 +210,7 @@ public:
         void getValue(glm::vec4& value) {
             for (unsigned int i = 0; i < value.length(); i++) {
                 if (i < _values.size()) {
-                    value[i] = _values[i]() / 256;
+                    value[i] = _values[i]() / 256.0f;
                 } else {
                     value[i] = 0.0f;
                 }
