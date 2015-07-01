@@ -1503,6 +1503,7 @@ void EntityItem::setActionData(QByteArray actionData) {
     // Keep track of which actions got added or updated by the new actionData
     QSet<QUuid> updated;
 
+    _serializedActionsProcessed = true;
     foreach(QByteArray serializedAction, serializedActions) {
         QDataStream serializedActionStream(serializedAction);
         EntityActionType actionType;
@@ -1522,7 +1523,6 @@ void EntityItem::setActionData(QByteArray actionData) {
             EntityTree* entityTree = _element ? _element->getTree() : nullptr;
             EntitySimulation* simulation = entityTree ? entityTree->getSimulation() : nullptr;
             if (simulation) {
-                _serializedActionsProcessed = true;
                 EntityItemPointer entity = entityTree->findEntityByEntityItemID(_id);
                 actionFactory->factoryBA(simulation, entity, serializedAction);
             } else {
