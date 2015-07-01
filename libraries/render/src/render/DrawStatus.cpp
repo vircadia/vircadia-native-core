@@ -174,7 +174,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
         batch._glUniform3fv(_drawItemStatusDimLoc, 1, ((const GLfloat*) (itemAABox + i)) + 3);
         batch._glUniform4fv(_drawItemStatusValueLoc, 1, (const GLfloat*) (itemStatus + i));
 
-        batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
+        batch.draw(gpu::TRIANGLES, 24, 0);
     }
 
     // Before rendering the batch make sure we re in sync with gl state

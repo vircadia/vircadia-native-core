@@ -42,27 +42,44 @@ vec3 paintRainbow(float nv) {
 
 void main(void) {
     const vec2 ICON_PIXEL_SIZE = vec2(10, 10);
-    const vec4 UNIT_QUAD[4] = vec4[4](
+    const int NUM_VERTICES = 6;
+    const vec4 UNIT_QUAD[NUM_VERTICES] = vec4[NUM_VERTICES](
         vec4(-1.0, -1.0, 0.0, 1.0),
         vec4(1.0, -1.0, 0.0, 1.0),
         vec4(-1.0, 1.0, 0.0, 1.0),
+        vec4(-1.0, 1.0, 0.0, 1.0),
+        vec4(1.0, -1.0, 0.0, 1.0),
         vec4(1.0, 1.0, 0.0, 1.0)
     );
-
-    // Use the status for showing a color ?
-    varColor = vec4(paintRainbow(inStatus.x), 1.0);
-
 
     vec4 anchorPoint = vec4(inBoundPos, 1.0) + vec4(inBoundDim, 0.0) * vec4(0.5, 0.5, 0.5, 0.0);
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, anchorPoint, anchorPoint)$>
+    
+    int notifNum = gl_VertexID / NUM_VERTICES;
+    int twoTriID = gl_VertexID - notifNum * NUM_VERTICES;
+    vec4 pos = UNIT_QUAD[twoTriID];
 
-    vec4 pos = UNIT_QUAD[gl_VertexID];
+    // Use the status for showing a color ?
+    if(notifNum == 0) {
+        varColor = vec4(paintRainbow(inStatus.x), 1.0);
+    } else if(notifNum == 1) {
+        varColor = vec4(paintRainbow(inStatus.y), 1.0);
+    } else if(notifNum == 2) {
+        varColor = vec4(paintRainbow(inStatus.z), 1.0);
+    } else {
+        varColor = vec4(paintRainbow(inStatus.w), 1.0);
+    }
 
     vec4 viewport;
     <$transformCameraViewport(cam, viewport)$>;
     vec2 clipIconSize = vec2(ICON_PIXEL_SIZE.x / viewport.z, ICON_PIXEL_SIZE.y / viewport.w);
 
-    gl_Position = anchorPoint + anchorPoint.w * vec4(pos.xy * clipIconSize, 0.0, 0.0);
+    //Offset size in pixels
+    float offset = 3.5f;
+    pos.x += offset * notifNum;
+
+    gl_Position = anchorPoint + (anchorPoint.w * vec4(pos.xy * clipIconSize, 0.0, 0.0));
+
 }
