@@ -116,7 +116,7 @@ bool QuadEntityItem::setStrokeWidths(const QVector<float>& strokeWidths ) {
 }
 
 bool QuadEntityItem::setNormals(const QVector<glm::vec3>& normals) {
-    if (_points.size () < 2) {
+    if (_points.size () < 2 || _strokeWidths.size() < 2) {
         return false;
     }
     _normals = normals;
@@ -127,7 +127,7 @@ bool QuadEntityItem::setNormals(const QVector<glm::vec3>& normals) {
     }
     glm::vec3 v1, v2, tangent, binormal, point;
     for (int i = 0; i < _points.size()-1; i++) {
-        float width = (static_cast <float> (rand()) / static_cast <float> (RAND_MAX) * .1) + .02;
+        float width = _strokeWidths.at(i);
         point = _points.at(i);
         //Get tangent
         tangent = _points.at(i+1) - point;
