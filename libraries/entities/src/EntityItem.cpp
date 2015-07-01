@@ -541,7 +541,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     dataAt += propertyFlags.getEncodedLength();
     bytesRead += propertyFlags.getEncodedLength();
 
-    if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_SIMULATION_OWNER) {
+    if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_SIMULATION_OWNER_AND_ACTIONS_OVER_WIRE) {
         // pack SimulationOwner and terse update properties near each other
 
         // NOTE: the server is authoritative for changes to simOwnerID so we always unpack ownership data
@@ -611,7 +611,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
 
-    if (args.bitstreamVersion < VERSION_ENTITIES_HAVE_SIMULATION_OWNER) {
+    if (args.bitstreamVersion < VERSION_ENTITIES_HAVE_SIMULATION_OWNER_AND_ACTIONS_OVER_WIRE) {
         // this code for when there is only simulatorID and no simulation priority
 
         // we always accept the server's notion of simulatorID, so we fake overwriteLocalData as true

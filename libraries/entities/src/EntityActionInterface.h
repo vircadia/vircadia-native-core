@@ -35,7 +35,7 @@ public:
     virtual EntityActionType getType() { assert(false); return ACTION_TYPE_NONE; }
 
     virtual void removeFromSimulation(EntitySimulation* simulation) const = 0;
-    virtual const EntityItemWeakPointer getOwnerEntity() const = 0;
+    virtual EntityItemWeakPointer getOwnerEntity() const = 0;
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) = 0;
     virtual bool updateArguments(QVariantMap arguments) = 0;
     virtual QVariantMap getArguments() = 0;
