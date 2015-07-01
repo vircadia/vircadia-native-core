@@ -37,12 +37,12 @@ EntityActionPointer AssignmentActionFactory::factory(EntitySimulation* simulatio
 EntityActionPointer AssignmentActionFactory::factoryBA(EntitySimulation* simulation,
                                                        EntityItemPointer ownerEntity,
                                                        QByteArray data) {
-    QDataStream ds(data);
+    QDataStream serializedActionDataStream(data);
     EntityActionType type;
     QUuid id;
 
-    ds >> type;
-    ds >> id;
+    serializedActionDataStream >> type;
+    serializedActionDataStream >> id;
 
     EntityActionPointer action = assignmentActionFactory(type, id, ownerEntity);
 
