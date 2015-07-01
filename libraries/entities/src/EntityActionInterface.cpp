@@ -9,6 +9,78 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
+
+/*
+
+
+
+
+     +-----------------------+        +-------------------+      +------------------------------+
+     |                       |        |                   |      |                              |
+     | EntityActionInterface |        | btActionInterface |      | EntityActionFactoryInterface |
+     |     (entities)        |        |    (bullet)       |      |         (entities)           |
+     +-----------------------+        +-------------------+      +------------------------------+
+                  |       |                    |                      |                   |
+             +----+       +--+      +----------+                      |                   |
+             |               |      |                                 |                   |
+ +-------------------+    +--------------+         +------------------------+     +-------------------------+
+ |                   |    |              |         |                        |     |                         |
+ |  AssignmentAction |    | ObjectAction |         | InterfaceActionFactory |     | AssignmentActionFactory |
+ |(assignment client)|    |   (physics)  |         |       (interface)      |     |   (assignment client)   |
+ +-------------------+    +--------------+         +------------------------+     +-------------------------+
+                                 |
+                                 |
+                                 |
+                       +--------------------+
+                       |                    |
+                       | ObjectActionSpring |
+                       |     (physics)      |
+                       +--------------------+
+
+
+
+
+An action is a callback which is registered with bullet.  An action is called-back every physics
+simulation step and can do whatever it wants with the various datastructures it has available.  An
+action, for example, can pull an EntityItem toward a point as if that EntityItem were connected to that
+point by a spring.
+
+In this system, an action is a property of an EntityItem (rather, an EntityItem has a property which
+encodes a list of actions).  Each action has a type and some arguments.  Actions can be created by a
+script or when receiving information via an EntityTree data-stream (either over the network or from an
+svo file).
+
+In the interface, if an EntityItem has actions, this EntityItem will have pointers to ObjectAction
+subclass (like ObjectActionSpring) instantiations.  Code in the entities library affects an action object
+via the EntityActionInterface (which knows nothing about bullet).  When the ObjectAction subclass
+instance is created, it is registered as an action with bullet.  Bullet will call into code in this
+instance with the btActionInterface every physics-simulation step.
+
+Because the action can exist next to the interface's EntityTree or the entity-server's EntityTree,
+parallel versions of the factories and actions are needed.
+
+In an entity-server, any type of action is instantiated as an AssignmentAction.  This action isn't called
+by bullet (which isn't part of an assignment-client).  It does nothing but remember its type and its
+arguments.  This may change as we try to make the entity-server's simple physics simulation better, but
+right now the AssignmentAction class is a place-holder.
+
+The action-objects are instantiated by singleton (dependecy) subclasses of EntityActionFactoryInterface.
+In the interface, the subclass is an InterfaceActionFactory and it will produce things like
+ObjectActionSpring.  In an entity-server the subclass is an AssignmentActionFactory and it always
+produces AssignmentActions.
+
+Depending on the action's type, it will have various arguments.  When a script changes an argument of an
+action, the argument-holding member-variables of ObjectActionSpring (in this example) are updated and
+also serialized into _actionData in the EntityItem.  Each subclass of ObjectAction knows how to serialize
+and deserialize its own arguments.  _actionData is what gets sent over the wire or saved in an svo file.
+When a packet-reader receives data for _actionData, it will save it in the EntityItem; this causes the
+deserializer in the ObjectAction subclass to be called with the new data, thereby updating its argument
+variables.  These argument variables are used by the code which is run when bullet does a callback.
+
+
+ */
+
 #include "EntityItem.h"
 
 #include "EntityActionInterface.h"
