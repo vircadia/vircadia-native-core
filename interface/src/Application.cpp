@@ -179,7 +179,7 @@ using namespace std;
 //  Starfield information
 static unsigned STARFIELD_NUM_STARS = 50000;
 static unsigned STARFIELD_SEED = 1;
-static uint8_t THROTTLED_IDLE_TIMER_DELAY = 2;
+static uint8_t THROTTLED_IDLE_TIMER_DELAY = 10;
 
 const qint64 MAXIMUM_CACHE_SIZE = 10 * BYTES_PER_GIGABYTES;  // 10GB
 
@@ -1795,8 +1795,8 @@ void Application::idle() {
         interIdleDurations.update(now - lastIdleEnd);
         static uint64_t lastReportTime = now;
         if ((now - lastReportTime) >= (USECS_PER_SECOND)) {
-            int avgIdleDuration = (int)interIdleDurations.getAverage();
-            qCDebug(interfaceapp_timing) << "Average inter-idle time: " << avgIdleDuration << "s for " << interIdleDurations.getCount() << " samples";
+            static QString LOGLINE("Average inter-idle time: %1 us for %2 samples");
+            qCDebug(interfaceapp_timing) << LOGLINE.arg((int)interIdleDurations.getAverage()).arg(interIdleDurations.getCount());
             interIdleDurations.reset();
             lastReportTime = now;
         }
