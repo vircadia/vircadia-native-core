@@ -1212,9 +1212,7 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bo
     if (shouldRenderHead(renderArgs)) {
         getHead()->render(renderArgs, 1.0f, renderFrustum, postLighting);
     }
-//    if (postLighting) {
-        getHand()->render(renderArgs, true);
-//    }
+    getHand()->render(renderArgs, true);
 }
 
 void MyAvatar::setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visible) {
