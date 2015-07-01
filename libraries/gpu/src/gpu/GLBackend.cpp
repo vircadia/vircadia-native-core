@@ -202,7 +202,7 @@ void GLBackend::do_drawInstanced(Batch& batch, uint32 paramOffset) {
     uint32 startVertex = batch._params[paramOffset + 1]._uint;
     uint32 startInstance = batch._params[paramOffset + 0]._uint;
 
-    glDrawArraysInstanced(mode, startVertex, numVertices, numInstances);
+    glDrawArraysInstancedARB(mode, startVertex, numVertices, numInstances);
     (void) CHECK_GL_ERROR();
 }
 
