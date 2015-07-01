@@ -174,6 +174,7 @@ QSizeF TextOverlay::textSize(const QString& text) const {
 void TextOverlay::setFontSize(int fontSize) {
     _fontSize = fontSize;
 
-    delete _textRenderer;
+    auto oldTextRenderer = _textRenderer;
     _textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);
+    delete oldTextRenderer;
 }
