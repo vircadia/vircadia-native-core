@@ -327,6 +327,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             showStats = true;
         } else if (url.path() == "/resetStats") {
             _octreeInboundPacketProcessor->resetStats();
+            _tree->resetEditStats();
             resetSendingStats();
             showStats = true;
         }
@@ -636,6 +637,13 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         quint64 totalElementsProcessed = _octreeInboundPacketProcessor->getTotalElementsProcessed();
         quint64 totalPacketsProcessed = _octreeInboundPacketProcessor->getTotalPacketsProcessed();
 
+        quint64 averageDecodeTime = _tree->getAverageDecodeTime();
+        quint64 averageLookupTime = _tree->getAverageLookupTime();
+        quint64 averageUpdateTime = _tree->getAverageUpdateTime();
+        quint64 averageCreateTime = _tree->getAverageCreateTime();
+        quint64 averageLoggingTime = _tree->getAverageLoggingTime();
+
+
         float averageElementsPerPacket = totalPacketsProcessed == 0 ? 0 : totalElementsProcessed / totalPacketsProcessed;
 
         statsString += QString("   Current Inbound Packets Queue: %1 packets\r\n")
@@ -657,6 +665,17 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             .arg(locale.toString((uint)averageProcessTimePerElement).rightJustified(COLUMN_WIDTH, ' '));
         statsString += QString("  Average Wait Lock Time/Element: %1 usecs\r\n")
             .arg(locale.toString((uint)averageLockWaitTimePerElement).rightJustified(COLUMN_WIDTH, ' '));
+
+        statsString += QString("             Average Decode Time: %1 usecs\r\n")
+            .arg(locale.toString((uint)averageDecodeTime).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("             Average Lookup Time: %1 usecs\r\n")
+            .arg(locale.toString((uint)averageLookupTime).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("             Average Update Time: %1 usecs\r\n")
+            .arg(locale.toString((uint)averageUpdateTime).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("             Average Create Time: %1 usecs\r\n")
+            .arg(locale.toString((uint)averageCreateTime).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("            Average Logging Time: %1 usecs\r\n")
+            .arg(locale.toString((uint)averageLoggingTime).rightJustified(COLUMN_WIDTH, ' '));
 
 
         int senderNumber = 0;
