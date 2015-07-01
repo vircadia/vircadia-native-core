@@ -52,7 +52,7 @@ script or when receiving information via an EntityTree data-stream (either over 
 svo file).
 
 In the interface, if an EntityItem has actions, this EntityItem will have pointers to ObjectAction
-subclass (like ObjectActionSpring) instantiations.  Code in the entities library affects an action object
+subclass (like ObjectActionSpring) instantiations.  Code in the entities library affects an action-object
 via the EntityActionInterface (which knows nothing about bullet).  When the ObjectAction subclass
 instance is created, it is registered as an action with bullet.  Bullet will call into code in this
 instance with the btActionInterface every physics-simulation step.
@@ -254,8 +254,8 @@ QDataStream& operator<<(QDataStream& stream, const EntityActionType& entityActio
 
 QDataStream& operator>>(QDataStream& stream, EntityActionType& entityActionType)
 {
-    quint16 v;
-    stream >> v;
-    entityActionType = (EntityActionType)v;
+    quint16 actionTypeAsInt;
+    stream >> actionTypeAsInt;
+    entityActionType = (EntityActionType)actionTypeAsInt;
     return stream;
 }

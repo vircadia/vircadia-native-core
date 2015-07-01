@@ -207,8 +207,8 @@ QVariantMap ObjectActionSpring::getArguments() {
 }
 
 QByteArray ObjectActionSpring::serialize() {
-    QByteArray ba;
-    QDataStream dataStream(&ba, QIODevice::WriteOnly);
+    QByteArray serializedActionArguments;
+    QDataStream dataStream(&serializedActionArguments, QIODevice::WriteOnly);
 
     dataStream << getType();
     dataStream << getID();
@@ -222,7 +222,7 @@ QByteArray ObjectActionSpring::serialize() {
     dataStream << _angularTimeScale;
     dataStream << _rotationalTargetSet;
 
-    return ba;
+    return serializedActionArguments;
 }
 
 void ObjectActionSpring::deserialize(QByteArray serializedArguments) {
