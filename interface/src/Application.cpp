@@ -1845,8 +1845,9 @@ void Application::idle() {
                 _idleLoopStdev.reset();
             }
 
-            // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
         }
+        // After finishing all of the above work, ensure the idle timer is set to the proper interval,
+        // depending on whether we're throttling or not
         idleTimer->start(_glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : 0);
     } 
 
