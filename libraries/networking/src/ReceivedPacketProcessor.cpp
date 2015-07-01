@@ -23,7 +23,7 @@ void ReceivedPacketProcessor::queueReceivedPacket(const SharedNodePointer& sendi
 
     NetworkPacket networkPacket(sendingNode, packet);
     lock();
-    _packets.push_back(networkPacket);
+    _queuedPackets.push_back(networkPacket);
     _nodePacketCounts[sendingNode->getUUID()]++;
     unlock();
     
@@ -33,29 +33,28 @@ void ReceivedPacketProcessor::queueReceivedPacket(const SharedNodePointer& sendi
 
 bool ReceivedPacketProcessor::process() {
 
-    if (_packets.size() == 0) {
+    if (_queuedPackets.size() == 0) {
         _waitingOnPacketsMutex.lock();
         _hasPackets.wait(&_waitingOnPacketsMutex, getMaxWait());
         _waitingOnPacketsMutex.unlock();
     }
 
     preProcess();
-    QVector<NetworkPacket> currentPackets;
-    if (!_packets.size()) {
+    if (!_queuedPackets.size()) {
         return isStillRunning();
     }
 
     lock();
-    std::swap(currentPackets, _packets);
+    _processingPackets.swap(_queuedPackets);
     unlock();
 
-    foreach(auto& packet, currentPackets) {
+    foreach(auto& packet, _processingPackets) {
         processPacket(packet.getNode(), packet.getByteArray()); 
         midProcess();
     }
 
     lock();
-    foreach(auto& packet, currentPackets) {
+    foreach(auto& packet, _processingPackets) {
         _nodePacketCounts[packet.getNode()->getUUID()]--;
     }
     unlock();

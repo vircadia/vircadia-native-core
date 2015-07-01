@@ -75,7 +75,8 @@ protected:
 
 protected:
 
-    QVector<NetworkPacket> _packets;
+    QVector<NetworkPacket> _queuedPackets;
+    QVector<NetworkPacket> _processingPackets;
     QHash<QUuid, int> _nodePacketCounts;
 
     QWaitCondition _hasPackets;
