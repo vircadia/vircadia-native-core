@@ -296,7 +296,7 @@ public:
     virtual qreal getDevicePixelRatio();
 
     // Plugin container support
-    virtual void addMenuItem(const QString& path, std::function<void()> onClicked, bool checkable, bool checked, const QString& groupName);
+    virtual void addMenuItem(const QString& path, const QString& name, std::function<void()> onClicked, bool checkable, bool checked, const QString& groupName);
     virtual GlWindow* getVisibleWindow();
 
     private:
