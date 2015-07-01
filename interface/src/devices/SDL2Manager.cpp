@@ -46,8 +46,9 @@ _isInitialized(false)
                 if (!_openJoysticks.contains(id)) {
                     Joystick* joystick = new Joystick(id, SDL_GameControllerName(controller), controller);
                     _openJoysticks[id] = joystick;
-                    joystick->registerToUserInputMapper(*Application::getUserInputMapper());
-                    joystick->assignDefaultInputMapping(*Application::getUserInputMapper());
+                    auto userInputMapper = DependencyManager::get<UserInputMapper>();
+                    joystick->registerToUserInputMapper(*userInputMapper);
+                    joystick->assignDefaultInputMapping(*userInputMapper);
                     emit joystickAdded(joystick);
                 }
             }
@@ -84,6 +85,7 @@ void SDL2Manager::focusOutEvent() {
 void SDL2Manager::update() {
 #ifdef HAVE_SDL2
     if (_isInitialized) {
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
         for (auto joystick : _openJoysticks) {
             joystick->update();
         }
@@ -132,14 +134,14 @@ void SDL2Manager::update() {
                 if (!_openJoysticks.contains(id)) {
                     Joystick* joystick = new Joystick(id, SDL_GameControllerName(controller), controller);
                     _openJoysticks[id] = joystick;
-                    joystick->registerToUserInputMapper(*Application::getUserInputMapper());
-                    joystick->assignDefaultInputMapping(*Application::getUserInputMapper());
+                    joystick->registerToUserInputMapper(*userInputMapper);
+                    joystick->assignDefaultInputMapping(*userInputMapper);
                     emit joystickAdded(joystick);
                 }
             } else if (event.type == SDL_CONTROLLERDEVICEREMOVED) {
                 Joystick* joystick = _openJoysticks[event.cdevice.which];
                 _openJoysticks.remove(event.cdevice.which);
-                Application::getUserInputMapper()->removeDevice(joystick->getDeviceID());
+                userInputMapper->removeDevice(joystick->getDeviceID());
                 emit joystickRemoved(joystick);
             }
         }

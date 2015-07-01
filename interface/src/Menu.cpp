@@ -30,7 +30,7 @@
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/RealSense.h"
-#include "devices/SixenseManager.h"
+//#include "devices/SixenseManager.h"
 #include "MainWindow.h"
 #include "scripting/MenuScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -468,6 +468,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::ShowIKConstraints, 0, false);
 
+#if 0
     MenuWrapper* sixenseOptionsMenu = handOptionsMenu->addMenu("Sixense");
 #ifdef __APPLE__
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
@@ -490,6 +491,7 @@ Menu::Menu() {
                                            SLOT(setLowVelocityFilter(bool)));
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseMouseInput, 0, true);
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseLasers, 0, false);
+#endif
 
     MenuWrapper* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
     addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);

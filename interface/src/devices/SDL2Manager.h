@@ -16,7 +16,7 @@
 #include <SDL.h>
 #endif
 
-#include "ui/UserInputMapper.h"
+#include <input-plugins/UserInputMapper.h>
 
 #include "devices/Joystick.h"
 

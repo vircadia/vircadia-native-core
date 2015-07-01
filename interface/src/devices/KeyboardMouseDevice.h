@@ -14,7 +14,7 @@
 
 #include <QTouchEvent>
 #include <chrono>
-#include "ui/UserInputMapper.h"
+#include <input-plugins/UserInputMapper.h>
 
 class KeyboardMouseDevice {
 public:
