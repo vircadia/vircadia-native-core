@@ -91,6 +91,7 @@
 #include <SceneScriptingInterface.h>
 #include <ScriptCache.h>
 #include <SettingHandle.h>
+#include <SimpleAverage.h>
 #include <SoundCache.h>
 #include <TextRenderer.h>
 #include <Tooltip.h>
@@ -178,6 +179,7 @@ using namespace std;
 //  Starfield information
 static unsigned STARFIELD_NUM_STARS = 50000;
 static unsigned STARFIELD_SEED = 1;
+static uint8_t THROTTLED_IDLE_TIMER_DELAY = 2;
 
 const qint64 MAXIMUM_CACHE_SIZE = 10 * BYTES_PER_GIGABYTES;  // 10GB
 
@@ -1784,17 +1786,17 @@ void Application::checkFPS() {
     DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
 }
 
-static SimpleMovingAverage interIdleDurations;
-static uint64_t lastIdleEnd{ 0 };
-
 void Application::idle() {
+    static SimpleAverage<float> interIdleDurations;
+    static uint64_t lastIdleEnd{ 0 };
+
     if (lastIdleEnd != 0) {
         uint64_t now = usecTimestampNow();
-        interIdleDurations.updateAverage(now - lastIdleEnd);
+        interIdleDurations.update(now - lastIdleEnd);
         static uint64_t lastReportTime = now;
-        if ((now - lastReportTime) >= (1000 * 1000)) {
+        if ((now - lastReportTime) >= (USECS_PER_SECOND)) {
             int avgIdleDuration = (int)interIdleDurations.getAverage();
-            qDebug() << "Average inter-idle time: " << avgIdleDuration << "s for " << interIdleDurations.getSampleCount() << " samples";
+            qCDebug(interfaceapp_timing) << "Average inter-idle time: " << avgIdleDuration << "s for " << interIdleDurations.getCount() << " samples";
             interIdleDurations.reset();
             lastReportTime = now;
         }
@@ -1845,7 +1847,7 @@ void Application::idle() {
 
             // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
         }
-        idleTimer->start(_glWidget->isThrottleRendering() ? 10 : 0);
+        idleTimer->start(_glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : 0);
     } 
 
     // check for any requested background downloads.

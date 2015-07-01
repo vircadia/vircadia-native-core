@@ -12,3 +12,4 @@
 #include "InterfaceLogging.h"
 
 Q_LOGGING_CATEGORY(interfaceapp, "hifi.interface")
+Q_LOGGING_CATEGORY(interfaceapp_timing, "hifi.interface.timing")
