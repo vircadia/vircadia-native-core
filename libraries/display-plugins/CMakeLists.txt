@@ -14,7 +14,7 @@ find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
 
 add_dependency_external_projects(boostconfig)
-find_package(BOOSTCONFIG REQUIRED)
+find_package(BoostConfig REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${BOOSTCONFIG_INCLUDE_DIRS})
 
 add_dependency_external_projects(oglplus)
