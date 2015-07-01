@@ -152,6 +152,10 @@ void UserInputMapper::update(float deltaTime) {
     for (auto& channel : _actionStates) {
         channel = 0.0f;
     }
+    
+    for (auto& channel : _poseStates) {
+        channel = PoseValue();
+    }
 
     int currentTimestamp = 0;
 
@@ -187,8 +191,8 @@ void UserInputMapper::update(float deltaTime) {
                     _actionStates[channelInput.first] += inputMapping._scale * deviceProxy->getAxis(inputID, currentTimestamp);
                     break;
                 }
-                case ChannelType::JOINT: {
-                    // _channelStates[channelInput.first].jointVal = deviceProxy->getJoint(inputID, currentTimestamp);
+                case ChannelType::POSE: {
+                    _poseStates[channelInput.first] = deviceProxy->getPose(inputID, currentTimestamp);
                     break;
                 }
                 default: {
@@ -207,6 +211,7 @@ void UserInputMapper::update(float deltaTime) {
         if (_actionStates[i] > 0) {
             emit actionEvent(i, _actionStates[i]);
         }
+        // TODO: emit signal for pose changes
     }
 }
 
@@ -241,6 +246,8 @@ void UserInputMapper::assignDefaulActionScales() {
     _actionScales[PITCH_UP] = 1.0f; // 1 degree per unit
     _actionScales[BOOM_IN] = 1.0f; // 1m per unit
     _actionScales[BOOM_OUT] = 1.0f; // 1m per unit
+    _actionScales[LEFT_HAND] = 1.0f; // default
+    _actionScales[RIGHT_HAND] = 1.0f; // default
     _actionStates[SHIFT] = 1.0f; // on
     _actionStates[ACTION1] = 1.0f; // default
     _actionStates[ACTION2] = 1.0f; // default
@@ -261,6 +268,8 @@ void UserInputMapper::createActionNames() {
     _actionNames[PITCH_UP] = "PITCH_UP";
     _actionNames[BOOM_IN] = "BOOM_IN";
     _actionNames[BOOM_OUT] = "BOOM_OUT";
+    _actionNames[LEFT_HAND] = "LEFT_HAND";
+    _actionNames[RIGHT_HAND] = "RIGHT_HAND";
     _actionNames[SHIFT] = "SHIFT";
     _actionNames[ACTION1] = "ACTION1";
     _actionNames[ACTION2] = "ACTION2";

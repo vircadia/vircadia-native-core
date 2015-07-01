@@ -39,9 +39,11 @@ public:
     
     typedef std::unordered_set<int> ButtonPressedMap;
     typedef std::map<int, float> AxisStateMap;
+    typedef std::map<int, UserInputMapper::PoseValue> PoseStateMap;
     
     float getButton(int channel) const;
     float getAxis(int channel) const;
+    UserInputMapper::PoseValue getPose(int channel) const;
     
     UserInputMapper::Input makeInput(unsigned int button, int index);
     UserInputMapper::Input makeInput(JoystickAxisChannel axis, int index);
@@ -69,6 +71,7 @@ protected:
     
     ButtonPressedMap _buttonPressedMap;
     AxisStateMap _axisStateMap;
+    PoseStateMap _poseStateMap;
 };
 
 

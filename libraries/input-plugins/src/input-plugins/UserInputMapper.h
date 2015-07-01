@@ -33,7 +33,7 @@ public:
         UNKNOWN = 0,
         BUTTON = 1,
         AXIS,
-        JOINT,
+        POSE,
     };
 
     // Input is the unique identifier to find a n input channel of a particular device
@@ -64,7 +64,7 @@ public:
 
         bool isButton() const { return getType() == ChannelType::BUTTON; }
         bool isAxis() const { return getType() == ChannelType::AXIS; }
-        bool isJoint() const { return getType() == ChannelType::JOINT; }
+        bool isPose() const { return getType() == ChannelType::POSE; }
 
         // WORKAROUND: the explicit initializer here avoids a bug in GCC-4.8.2 (but not found in 4.9.2)
         // where the default initializer (a C++-11ism) for the union data above is not applied.
@@ -80,19 +80,19 @@ public:
     // Modifiers are just button inputID
     typedef std::vector< Input > Modifiers;
 
-    class JointValue {
+    class PoseValue {
     public:
         glm::vec3 translation{ 0.0f };
         glm::quat rotation;
 
-        JointValue() {};
-        JointValue(const JointValue&) = default;
-        JointValue& operator = (const JointValue&) = default;
+        PoseValue() {};
+        PoseValue(const PoseValue&) = default;
+        PoseValue& operator = (const PoseValue&) = default;
     };
     
     typedef std::function<bool (const Input& input, int timestamp)> ButtonGetter;
     typedef std::function<float (const Input& input, int timestamp)> AxisGetter;
-    typedef std::function<JointValue (const Input& input, int timestamp)> JointGetter;
+    typedef std::function<PoseValue (const Input& input, int timestamp)> PoseGetter;
     typedef QPair<Input, QString> InputPair;
     typedef std::function<QVector<InputPair> ()> AvailableInputGetter;
     typedef std::function<bool ()> ResetBindings;
@@ -105,8 +105,8 @@ public:
        
        QString _name;
        ButtonGetter getButton = [] (const Input& input, int timestamp) -> bool { return false; };
-       AxisGetter getAxis = [] (const Input& input, int timestamp) -> bool { return 0.0f; };
-       JointGetter getJoint = [] (const Input& input, int timestamp) -> JointValue { return JointValue(); };
+       AxisGetter getAxis = [] (const Input& input, int timestamp) -> float { return 0.0f; };
+       PoseGetter getPose = [] (const Input& input, int timestamp) -> PoseValue { return PoseValue(); };
        AvailableInputGetter getAvailabeInputs = [] () -> AvailableInput { return QVector<InputPair>(); };
        ResetBindings resetDeviceBindings = [] () -> bool { return true; };
        
@@ -143,6 +143,9 @@ public:
         BOOM_IN,
         BOOM_OUT,
         
+        LEFT_HAND,
+        RIGHT_HAND,
+        
         SHIFT,
         
         ACTION1,
@@ -157,6 +160,7 @@ public:
     QVector<Action> getAllActions();
     QString getActionName(Action action) { return UserInputMapper::_actionNames[(int) action]; }
     float getActionState(Action action) const { return _actionStates[action]; }
+    float getPoseState(Action action) const { return _poseStates[action]; }
     void assignDefaulActionScales();
 
     // Add input channel to the mapper and check that all the used channels are registered.
@@ -228,6 +232,7 @@ protected:
  
     std::vector<float> _actionStates = std::vector<float>(NUM_ACTIONS, 0.0f);
     std::vector<float> _actionScales = std::vector<float>(NUM_ACTIONS, 1.0f);
+    std::vector<PoseValue> _poseStates = std::vector<PoseValue>(NUM_ACTIONS);
 };
 
 Q_DECLARE_METATYPE(UserInputMapper::InputPair)

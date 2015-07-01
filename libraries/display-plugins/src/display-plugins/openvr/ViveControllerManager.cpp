@@ -226,6 +226,7 @@ void ViveControllerManager::registerToUserInputMapper(UserInputMapper& mapper) {
     auto proxy = UserInputMapper::DeviceProxy::Pointer(new UserInputMapper::DeviceProxy("SteamVR Controller"));
     proxy->getButton = [this] (const UserInputMapper::Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
     proxy->getAxis = [this] (const UserInputMapper::Input& input, int timestamp) -> float { return this->getAxis(input.getChannel()); };
+    proxy->getPose = [this] (const UserInputMapper::Input& input, int timestamp) -> UserInputMapper::PoseValue { return this->getPose(input.getChannel()); }
     proxy->getAvailabeInputs = [this] () -> QVector<UserInputMapper::InputPair> {
         QVector<UserInputMapper::InputPair> availableInputs;
 //        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_0, 0), "Left Start"));
@@ -319,6 +320,15 @@ float ViveControllerManager::getAxis(int channel) const {
         return (*axis).second;
     } else {
         return 0.0f;
+    }
+}
+
+UserInputMapper::PoseValue ViveControllerManager::getPose(int channel) const {
+    auto pose = _poseStateMap.find(channel);
+    if (pose != _poseStateMap.end()) {
+        return (*pose).second;
+    } else {
+        return UserInputMapper::PoseValue();
     }
 }
 
