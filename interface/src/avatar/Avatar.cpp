@@ -708,9 +708,10 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, floa
     glm::vec3 worldOffset = glm::vec3(screenOffset.x, screenOffset.y, 0.0f) / (float)pixelHeight;
     
     // Compute orientation
-    glm::vec3 eulerAngles = ::safeEulerAngles(frustum.getOrientation());
-    eulerAngles.z = 0.0f; // Cancel roll
-    glm::quat orientation(eulerAngles); // back to quaternions
+    glm::vec3 dPosition = frustum.getPosition() - getPosition();
+    // If x and z are 0, atan(x, z) is undefined, so default to 0 degrees
+    float yawRotation = dPosition.x == 0.0f && dPosition.z == 0.0f ? 0.0f : glm::atan(dPosition.x, dPosition.z);
+    glm::quat orientation = glm::quat(glm::vec3(0.0f, yawRotation, 0.0f));
     
     // Set transform (The order IS important)
     result.setTranslation(textPosition);
