@@ -64,7 +64,6 @@
 #include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <display-plugins/DisplayPlugin.h>
-#include <display-plugins/openvr/ViveControllerManager.h>
 #include <EntityScriptingInterface.h>
 #include <ErrorDialog.h>
 #include <GlowEffect.h>
@@ -124,6 +123,7 @@
 #include "devices/RealSense.h"
 #include "devices/SDL2Manager.h"
 #include "devices/MIDIManager.h"
+#include <input-plugins/ViveControllerManager.h>
 #include "RenderDeferredTask.h"
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"

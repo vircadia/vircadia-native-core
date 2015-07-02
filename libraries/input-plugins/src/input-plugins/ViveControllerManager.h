@@ -17,7 +17,7 @@
 
 #include <GLMHelpers.h>
 
-#include <input-plugins/UserInputMapper.h>
+#include "UserInputMapper.h"
 
 class ViveControllerManager : public QObject {
     Q_OBJECT

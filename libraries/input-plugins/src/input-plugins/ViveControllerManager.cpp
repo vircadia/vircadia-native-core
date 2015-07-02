@@ -11,11 +11,10 @@
 
 #include "ViveControllerManager.h"
 
-#include <avatar/AvatarManager.h>
 #include <PerfStat.h>
 
-#include "OpenVrDisplayPlugin.h"
-#include "OpenVrHelpers.h"
+//#include <display-plugins\openvr\OpenVrDisplayPlugin.h>
+#include <display-plugins\openvr\OpenVrHelpers.h>
 #include "UserActivityLogger.h"
 
 extern vr::IVRSystem *_hmd;
@@ -74,14 +73,14 @@ void ViveControllerManager::update() {
             }
             
             const mat4& mat = _trackedDevicePoseMat4[unTrackedDevice];
-            
+                        
             handlePoseEvent(mat, trackedControllerCount - 1);
             
             // handle inputs
-            vr::VRControllerState_t* controllerState;
-            if(_hmd->GetControllerState(unTrackedDevice, controllerState)) {
-                
-            }
+            //vr::VRControllerState_t* controllerState;
+            //if(_hmd->GetControllerState(unTrackedDevice, controllerState)) {
+            //    
+            //}
 
         }
         
@@ -130,7 +129,7 @@ void ViveControllerManager::handleButtonEvent(unsigned int buttons, int index) {
 void ViveControllerManager::handlePoseEvent(const mat4& mat, int index) {
     glm::vec3 position(mat[3][0], mat[3][1], mat[3][2]);
     glm::quat rotation = glm::quat_cast(mat);
-    rotation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)) * rotation;
+    //rotation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)) * rotation;
     _poseStateMap[makeInput(JointChannel(index)).getChannel()] = UserInputMapper::PoseValue(position, rotation);
 }
 
@@ -141,7 +140,7 @@ void ViveControllerManager::registerToUserInputMapper(UserInputMapper& mapper) {
     auto proxy = UserInputMapper::DeviceProxy::Pointer(new UserInputMapper::DeviceProxy("SteamVR Controller"));
     proxy->getButton = [this] (const UserInputMapper::Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
     proxy->getAxis = [this] (const UserInputMapper::Input& input, int timestamp) -> float { return this->getAxis(input.getChannel()); };
-    proxy->getPose = [this] (const UserInputMapper::Input& input, int timestamp) -> UserInputMapper::PoseValue { return this->getPose(input.getChannel()); }
+    proxy->getPose = [this](const UserInputMapper::Input& input, int timestamp) -> UserInputMapper::PoseValue { return this->getPose(input.getChannel()); };
     proxy->getAvailabeInputs = [this] () -> QVector<UserInputMapper::InputPair> {
         QVector<UserInputMapper::InputPair> availableInputs;
 //        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_0, 0), "Left Start"));

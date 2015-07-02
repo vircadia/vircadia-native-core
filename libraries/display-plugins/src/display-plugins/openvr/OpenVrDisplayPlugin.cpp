@@ -29,10 +29,10 @@ const QString & OpenVrDisplayPlugin::getName() const {
     return NAME;
 }
 
-static vr::IVRSystem *_hmd{ nullptr };
+vr::IVRSystem *_hmd{ nullptr };
 static vr::IVRCompositor* _compositor{ nullptr };
-static vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
-static mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
+vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
+mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
 static uvec2 _windowSize;
 static ivec2 _windowPosition;
 static uvec2 _renderTargetSize;
@@ -158,7 +158,9 @@ void OpenVrDisplayPlugin::finishFrame() {
 //    swapBuffers();
     doneCurrent();
     _compositor->WaitGetPoses(_trackedDevicePose, vr::k_unMaxTrackedDeviceCount);
-    _trackedDevicePoseMat4[0] = toGlm(_trackedDevicePose[0].mDeviceToAbsoluteTracking);
+    for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
+        _trackedDevicePoseMat4[i] = toGlm(_trackedDevicePose[i].mDeviceToAbsoluteTracking);
+    }
     openvr_for_each_eye([&](vr::Hmd_Eye eye) {
         _eyesData[eye]._pose = _trackedDevicePoseMat4[0];
     });
