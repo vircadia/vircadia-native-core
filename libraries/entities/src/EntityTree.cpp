@@ -1117,7 +1117,7 @@ void EntityTree::resetClientEditStats() {
 
 
 
-void EntityTree::trackIncomingEntityLastEdited(quint64 lastEditedTime) {
+void EntityTree::trackIncomingEntityLastEdited(quint64 lastEditedTime, int bytesRead) {
     // we don't want to track all edit deltas, just those edits that have happend
     // since we connected to this domain. This will filter out all previously created
     // content and only track new edits
@@ -1126,6 +1126,7 @@ void EntityTree::trackIncomingEntityLastEdited(quint64 lastEditedTime) {
         quint64 sinceEdit = now - lastEditedTime;
 
         _totalEditDeltas += sinceEdit;
+        _totalEditBytes += bytesRead;
         _totalTrackedEdits++;
         if (sinceEdit > _maxEditDelta) {
             _maxEditDelta = sinceEdit;

@@ -185,9 +185,11 @@ public:
     virtual quint64 getAverageCreateTime() const { return _totalCreates == 0 ? 0 : _totalCreateTime / _totalCreates; }
     virtual quint64 getAverageLoggingTime() const { return _totalEditMessages == 0 ? 0 : _totalLoggingTime / _totalEditMessages; }
 
-    void trackIncomingEntityLastEdited(quint64 lastEditedTime);
+    void trackIncomingEntityLastEdited(quint64 lastEditedTime, int bytesRead);
     quint64 getAverageEditDeltas() const 
         { return _totalTrackedEdits == 0 ? 0 : _totalEditDeltas / _totalTrackedEdits; }
+    quint64 getAverageEditBytes() const 
+        { return _totalTrackedEdits == 0 ? 0 : _totalEditBytes / _totalTrackedEdits; }
     quint64 getMaxEditDelta() const { return _maxEditDelta; }
     quint64 getTotalTrackedEdits() const { return _totalTrackedEdits; }
 
@@ -240,6 +242,7 @@ private:
     // these performance statistics are only used in the client
     void resetClientEditStats();
     int _totalTrackedEdits = 0;
+    quint64 _totalEditBytes = 0;
     quint64 _totalEditDeltas = 0;
     quint64 _maxEditDelta = 0;
     quint64 _treeResetTime = 0;

@@ -209,9 +209,9 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
 
     // Entity Edits update time
     label = _labels[_entityUpdateTime];
-    auto entites = Application::getInstance()->getEntities()->getTree();
-    auto averageEditDelta = entites->getAverageEditDeltas();
-    auto maxEditDelta = entites->getMaxEditDelta();
+    auto entities = Application::getInstance()->getEntities()->getTree();
+    auto averageEditDelta = entities->getAverageEditDeltas();
+    auto maxEditDelta = entities->getMaxEditDelta();
 
     QString averageEditDeltaString = locale.toString((uint)averageEditDelta);
     QString maxEditDeltaString = locale.toString((uint)maxEditDelta);
@@ -225,7 +225,8 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
 
     // Entity Edits
     label = _labels[_entityUpdates];
-    auto totalTrackedEdits = entites->getTotalTrackedEdits();
+    auto totalTrackedEdits = entities->getTotalTrackedEdits();
+    auto bytesPerEdit = entities->getAverageEditBytes();
     
     // track our updated per second
     const quint64 SAMPLING_WINDOW = USECS_PER_SECOND / SAMPLES_PER_SECOND;
@@ -247,11 +248,13 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
 
     QString totalTrackedEditsString = locale.toString((uint)totalTrackedEdits);
     QString updatesPerSecondString = locale.toString(updatesPerSecond);
+    QString bytesPerEditString = locale.toString(bytesPerEdit);
 
     statsValue.str("");
     statsValue << 
         "" << qPrintable(updatesPerSecondString) << " updates per second / " <<
-        "" << qPrintable(totalTrackedEditsString) << " total updates ";
+        "" << qPrintable(totalTrackedEditsString) << " total updates / " <<
+        "Average Size: " << qPrintable(bytesPerEditString) << " bytes ";
         
     label->setText(statsValue.str().c_str());
 
