@@ -26,11 +26,10 @@ EntityActionPointer AssignmentActionFactory::factory(EntitySimulation* simulatio
     if (action) {
         bool ok = action->updateArguments(arguments);
         if (ok) {
-            ownerEntity->addAction(simulation, action);
             return action;
         }
     }
-    return action;
+    return nullptr;
 }
 
 
@@ -46,7 +45,8 @@ EntityActionPointer AssignmentActionFactory::factoryBA(EntitySimulation* simulat
 
     EntityActionPointer action = assignmentActionFactory(type, id, ownerEntity);
 
-    action->deserialize(data);
-    ownerEntity->addAction(simulation, action);
+    if (action) {
+        action->deserialize(data);
+    }
     return action;
 }

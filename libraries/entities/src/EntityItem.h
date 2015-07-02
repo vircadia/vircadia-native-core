@@ -394,7 +394,7 @@ public:
     const QByteArray getActionData() const;
     bool hasActions() { return !_objectActions.empty(); }
     QList<QUuid> getActionIDs() { return _objectActions.keys(); }
-    QVariantMap getActionArguments(const QUuid& actionID);
+    QVariantMap getActionArguments(const QUuid& actionID) const;
 
 protected:
 
@@ -468,14 +468,20 @@ protected:
     void* _physicsInfo = nullptr; // set by EntitySimulation
     bool _simulated; // set by EntitySimulation
 
-    bool serializeActions() const;
+    bool addActionInternal(EntitySimulation* simulation, EntityActionPointer action);
+    bool removeActionInternal(const QUuid& actionID, EntitySimulation* simulation = nullptr);
+    bool deserializeActions(QByteArray allActionsData, EntitySimulation* simulation = nullptr) const;
+    QByteArray serializeActions(bool& success) const;
     QHash<QUuid, EntityActionPointer> _objectActions;
     static int _maxActionsDataSize;
-    mutable QByteArray _serializedActions;
+    mutable QByteArray _allActionsDataCache;
     // when an entity-server starts up, EntityItem::setActionData is called before the entity-tree is
-    // ready.  This means we can't find our EntityItemPointer or add the action to the simulation.  This
-    // flag is used to keep track of and work around this situation.
-    bool _serializedActionsProcessed = false;
+    // ready.  This means we can't find our EntityItemPointer or add the action to the simulation.  These
+    // are used to keep track of and work around this situation.
+    bool checkWaitingActionData(EntitySimulation* simulation = nullptr) const;
+    void checkWaitingToRemove(EntitySimulation* simulation = nullptr);
+    mutable QByteArray _waitingActionData;
+    mutable QSet<QUuid> _actionsToRemove;
 };
 
 #endif // hifi_EntityItem_h

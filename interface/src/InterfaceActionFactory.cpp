@@ -44,11 +44,10 @@ EntityActionPointer InterfaceActionFactory::factory(EntitySimulation* simulation
     if (action) {
         bool ok = action->updateArguments(arguments);
         if (ok) {
-            ownerEntity->addAction(simulation, action);
             return action;
         }
     }
-    return action;
+    return nullptr;
 }
 
 
@@ -64,7 +63,8 @@ EntityActionPointer InterfaceActionFactory::factoryBA(EntitySimulation* simulati
 
     EntityActionPointer action = interfaceActionFactory(type, id, ownerEntity);
 
-    action->deserialize(data);
-    ownerEntity->addAction(simulation, action);
+    if (action) {
+        action->deserialize(data);
+    }
     return action;
 }

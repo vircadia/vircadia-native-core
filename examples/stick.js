@@ -42,6 +42,9 @@ function makeNewStick() {
         actionID = Entities.addAction("hold", stickID, {relativePosition: {x: 0.0, y: 0.0, z: -0.9},
                                                         hand: hand,
                                                         timeScale: 0.15});
+        if (actionID == nullActionID) {
+            cleanUp();
+        }
         makingNewStick = false;
     }, 3000);
 }

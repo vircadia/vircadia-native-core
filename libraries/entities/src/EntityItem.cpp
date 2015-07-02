@@ -1404,20 +1404,26 @@ void EntityItem::updateSimulatorID(const QUuid& value) {
 
 void EntityItem::clearSimulationOwnership() {
     _simulationOwner.clear();
-    // don't bother setting the DIRTY_SIMULATOR_ID flag because clearSimulationOwnership() 
+    // don't bother setting the DIRTY_SIMULATOR_ID flag because clearSimulationOwnership()
     // is only ever called entity-server-side and the flags are only used client-side
     //_dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
 
 }
 
 bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer action) {
-    if (!_serializedActionsProcessed) {
-        setActionData(_serializedActions);
-        if (!_serializedActionsProcessed) {
-            return false;
-        }
+    checkWaitingToRemove(simulation);
+    if (!checkWaitingActionData(simulation)) {
+        return false;
     }
 
+    bool result = addActionInternal(simulation, action);
+    if (!result) {
+        removeAction(simulation, action->getID());
+    }
+    return result;
+}
+
+bool EntityItem::addActionInternal(EntitySimulation* simulation, EntityActionPointer action) {
     assert(action);
     assert(simulation);
     auto actionOwnerEntity = action->getOwnerEntity().lock();
@@ -1427,21 +1433,20 @@ bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer act
     const QUuid& actionID = action->getID();
     assert(!_objectActions.contains(actionID) || _objectActions[actionID] == action);
     _objectActions[actionID] = action;
-
     simulation->addAction(action);
-    bool success = serializeActions();
-    if (!success) {
-        removeAction(simulation, actionID);
+
+    bool success;
+    QByteArray newDataCache = serializeActions(success);
+    if (success) {
+        _allActionsDataCache = newDataCache;
     }
     return success;
 }
 
 bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionID, const QVariantMap& arguments) {
-    if (!_serializedActionsProcessed) {
-        setActionData(_serializedActions);
-        if (!_serializedActionsProcessed) {
-            return false;
-        }
+    checkWaitingToRemove(simulation);
+    if (!checkWaitingActionData(simulation)) {
+        return false;
     }
 
     if (!_objectActions.contains(actionID)) {
@@ -1449,31 +1454,49 @@ bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionI
     }
     EntityActionPointer action = _objectActions[actionID];
     bool success = action->updateArguments(arguments);
+
     if (success) {
-        success = serializeActions();
+        _allActionsDataCache = serializeActions(success);
+    } else {
+        qDebug() << "EntityItem::updateAction failed";
     }
+
     return success;
 }
 
 bool EntityItem::removeAction(EntitySimulation* simulation, const QUuid& actionID) {
-    if (!_serializedActionsProcessed) {
-        setActionData(_serializedActions);
-        if (!_serializedActionsProcessed) {
-            return false;
-        }
+    checkWaitingToRemove(simulation);
+    if (!checkWaitingActionData(simulation)) {
+        return false;;
     }
 
+    return removeActionInternal(actionID);
+}
+
+bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulation* simulation) {
     if (_objectActions.contains(actionID)) {
+        if (!simulation) {
+            EntityTree* entityTree = _element ? _element->getTree() : nullptr;
+            simulation = entityTree ? entityTree->getSimulation() : nullptr;
+        }
+
         EntityActionPointer action = _objectActions[actionID];
-        _objectActions.remove(actionID);
         action->setOwnerEntity(nullptr);
-        action->removeFromSimulation(simulation);
-        return serializeActions();
+        _objectActions.remove(actionID);
+
+        if (simulation) {
+            action->removeFromSimulation(simulation);
+        }
+
+        bool success = true;
+        _allActionsDataCache = serializeActions(success);
+        return success;
     }
     return false;
 }
 
 bool EntityItem::clearActions(EntitySimulation* simulation) {
+    _waitingActionData.clear();
     QHash<QUuid, EntityActionPointer>::iterator i = _objectActions.begin();
     while (i != _objectActions.end()) {
         const QUuid id = i.key();
@@ -1482,83 +1505,112 @@ bool EntityItem::clearActions(EntitySimulation* simulation) {
         action->setOwnerEntity(nullptr);
         action->removeFromSimulation(simulation);
     }
-    // empty _serializedActions means no actions for the EntityItem
-    _serializedActions = QByteArray();
+    _actionsToRemove.clear();
+    _allActionsDataCache.clear();
     return true;
 }
 
-void EntityItem::setActionData(QByteArray actionData) {
-    // it would be nice to take this shortcut, but a previous add may have failed
-    // if (_serializedActions == actionData) {
-    //     return;
-    // }
-    _serializedActions = actionData;
-
+bool EntityItem::deserializeActions(QByteArray allActionsData, EntitySimulation* simulation) const {
+    bool success = true;
     QVector<QByteArray> serializedActions;
-    if (_serializedActions.size() > 0) {
-        QDataStream serializedActionsStream(actionData);
+    if (allActionsData.size() > 0) {
+        QDataStream serializedActionsStream(allActionsData);
         serializedActionsStream >> serializedActions;
     }
 
     // Keep track of which actions got added or updated by the new actionData
     QSet<QUuid> updated;
 
-    _serializedActionsProcessed = true;
-    foreach(QByteArray serializedAction, serializedActions) {
-        QDataStream serializedActionStream(serializedAction);
-        EntityActionType actionType;
-        QUuid actionID;
-        serializedActionStream >> actionType;
-        serializedActionStream >> actionID;
-        updated << actionID;
-
-        if (_objectActions.contains(actionID)) {
-            EntityActionPointer action = _objectActions[actionID];
-            // TODO: make sure types match?  there isn't currently a way to
-            // change the type of an existing action.
-            action->deserialize(serializedAction);
-        } else {
-            auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
-
-            EntityTree* entityTree = _element ? _element->getTree() : nullptr;
-            EntitySimulation* simulation = entityTree ? entityTree->getSimulation() : nullptr;
-            if (simulation) {
-                EntityItemPointer entity = entityTree->findEntityByEntityItemID(_id);
-                actionFactory->factoryBA(simulation, entity, serializedAction);
-            } else {
-                // we can't yet add the action.  This method will be called later.
-                _serializedActionsProcessed = false;
-            }
-        }
+    EntityTree* entityTree = _element ? _element->getTree() : nullptr;
+    if (!simulation) {
+        simulation = entityTree ? entityTree->getSimulation() : nullptr;
     }
 
-    // remove any actions that weren't included in the new data.
-    EntityTree* entityTree = _element ? _element->getTree() : nullptr;
-    EntitySimulation* simulation = entityTree ? entityTree->getSimulation() : nullptr;
-    if (simulation) {
-        QHash<QUuid, EntityActionPointer>::iterator i = _objectActions.begin();
+    if (simulation && entityTree) {
+        foreach(QByteArray serializedAction, serializedActions) {
+            QDataStream serializedActionStream(serializedAction);
+            EntityActionType actionType;
+            QUuid actionID;
+            serializedActionStream >> actionType;
+            serializedActionStream >> actionID;
+            updated << actionID;
+
+            if (_objectActions.contains(actionID)) {
+                EntityActionPointer action = _objectActions[actionID];
+                // TODO: make sure types match?  there isn't currently a way to
+                // change the type of an existing action.
+                action->deserialize(serializedAction);
+            } else {
+                auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
+                if (simulation) {
+                    EntityItemPointer entity = entityTree->findEntityByEntityItemID(_id);
+                    EntityActionPointer action = actionFactory->factoryBA(simulation, entity, serializedAction);
+                    if (action) {
+                        entity->addActionInternal(simulation, action);
+                    }
+                } else {
+                    // we can't yet add the action.  This method will be called later.
+                    qDebug() << "\nCANT ADD ACTION YET";
+                    success = false;
+                }
+            }
+        }
+
+        // remove any actions that weren't included in the new data.
+        QHash<QUuid, EntityActionPointer>::const_iterator i = _objectActions.begin();
         while (i != _objectActions.end()) {
             const QUuid id = i.key();
-            if (updated.contains(id)) {
-                i++;
-                continue;
+            if (!updated.contains(id)) {
+                _actionsToRemove << id;
             }
-            EntityActionPointer action = _objectActions[id];
-            i = _objectActions.erase(i);
-            action->setOwnerEntity(nullptr);
-            action->removeFromSimulation(simulation);
+            i++;
         }
+    } else {
+        // no simulation
+        success = false;
+    }
+
+    return success;
+}
+
+bool EntityItem::checkWaitingActionData(EntitySimulation* simulation) const {
+    if (_waitingActionData.size() == 0) {
+        return true;
+    }
+    bool success = deserializeActions(_waitingActionData, simulation);
+    if (success) {
+        _waitingActionData.clear();
+    }
+    return success;
+}
+
+void EntityItem::checkWaitingToRemove(EntitySimulation* simulation) {
+    foreach(QUuid actionID, _actionsToRemove) {
+        removeActionInternal(actionID, simulation);
+    }
+    _actionsToRemove.clear();
+}
+
+void EntityItem::setActionData(QByteArray actionData) {
+    checkWaitingToRemove();
+    bool success = deserializeActions(actionData);
+    _allActionsDataCache = actionData;
+    if (success) {
+        _waitingActionData.clear();
+    } else {
+        _waitingActionData = actionData;
     }
 }
 
-bool EntityItem::serializeActions() const {
-    if (!_serializedActionsProcessed) {
-        return false;
+QByteArray EntityItem::serializeActions(bool& success) const {
+    QByteArray result;
+    if (!checkWaitingActionData()) {
+        return _waitingActionData;
     }
 
     if (_objectActions.size() == 0) {
-        _serializedActions = QByteArray();
-        return true;
+        success = true;
+        return QByteArray();
     }
 
     QVector<QByteArray> serializedActions;
@@ -1571,31 +1623,27 @@ bool EntityItem::serializeActions() const {
         i++;
     }
 
-    QByteArray result;
     QDataStream serializedActionsStream(&result, QIODevice::WriteOnly);
     serializedActionsStream << serializedActions;
 
     if (result.size() >= _maxActionsDataSize) {
-        return false;
+        success = false;
+        return result;
     }
 
-    _serializedActions = result;
-    return true;
+    success = true;
+    return result;
 }
 
 const QByteArray EntityItem::getActionData() const {
-    serializeActions();
-    return _serializedActions;
+    return _allActionsDataCache;
 }
 
-QVariantMap EntityItem::getActionArguments(const QUuid& actionID) {
+QVariantMap EntityItem::getActionArguments(const QUuid& actionID) const {
     QVariantMap result;
 
-    if (!_serializedActionsProcessed) {
-        setActionData(_serializedActions);
-        if (!_serializedActionsProcessed) {
-            return result;
-        }
+    if (!checkWaitingActionData()) {
+        return result;
     }
 
     if (_objectActions.contains(actionID)) {
