@@ -61,12 +61,19 @@ public:
     /// clears the tree
     virtual void clear();
 
+    float getAverageElementsPerPacket() const { return _elementsPerPacket.getAverage(); }
+    float getAverageEntitiesPerPacket() const { return _entitiesPerPacket.getAverage(); }
+    
 protected:
     virtual Octree* createTree() = 0;
 
     Octree* _tree;
     bool _managedTree;
     ViewFrustum* _viewFrustum;
+
+    SimpleMovingAverage _elementsPerPacket;
+    SimpleMovingAverage _entitiesPerPacket;
+
 };
 
 #endif // hifi_OctreeRenderer_h

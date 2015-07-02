@@ -101,6 +101,9 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
                    sequence, flightTime, packetLength, dataBytes);
         }
         
+        int elementsPerPacket = 0;
+        int entitiesPerPacket = 0;
+        
         int subsection = 1;
         while (dataBytes > 0) {
             if (packetIsCompressed) {
@@ -139,13 +142,21 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
                     qCDebug(octree) << "OctreeRenderer::processDatagram() ******* END _tree->readBitstreamToTree()...";
                 }
                 _tree->unlock();
-            
+                
                 dataBytes -= sectionLength;
                 dataAt += sectionLength;
+
+                elementsPerPacket += args.elementsPerPacket;
+                entitiesPerPacket += args.entitiesPerPacket;
+
             }
+            subsection++;
         }
-        subsection++;
+        _elementsPerPacket.updateAverage(elementsPerPacket);
+        _entitiesPerPacket.updateAverage(entitiesPerPacket);
     }
+
+
 }
 
 bool OctreeRenderer::renderOperation(OctreeElement* element, void* extraData) {

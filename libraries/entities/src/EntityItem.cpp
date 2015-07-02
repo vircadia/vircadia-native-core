@@ -346,6 +346,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         return 0;
     }
 
+    args.entitiesPerPacket++;
+
     // Header bytes
     //    object ID [16 bytes]
     //    ByteCountCoded(type code) [~1 byte]

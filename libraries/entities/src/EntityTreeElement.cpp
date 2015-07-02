@@ -702,6 +702,8 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
     int bytesRead = 0;
     uint16_t numberOfEntities = 0;
     int expectedBytesPerEntity = EntityItem::expectedBytes();
+    
+    args.elementsPerPacket++;
 
     if (bytesLeftToRead >= (int)sizeof(numberOfEntities)) {
         // read our entities in....

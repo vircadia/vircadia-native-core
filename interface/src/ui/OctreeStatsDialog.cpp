@@ -52,6 +52,8 @@ OctreeStatsDialog::OctreeStatsDialog(QWidget* parent, NodeToOctreeSceneStats* mo
     _localElements = AddStatItem("Local Elements");
     _localElementsMemory = AddStatItem("Elements Memory");
     _sendingMode = AddStatItem("Sending Mode");
+
+    _entityPackets = AddStatItem("Entity Packets");
     _entityUpdateTime = AddStatItem("Entity Update Time");
     _entityUpdates = AddStatItem("Entity Updates");
     
@@ -208,10 +210,26 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
     label->setText(statsValue.str().c_str());
 
     // Entity Edits update time
+    label = _labels[_entityPackets];
+    auto entities = Application::getInstance()->getEntities();
+    auto entitiesTree = entities->getTree();
+    auto averageElementsPerPacket = entities->getAverageElementsPerPacket();
+    auto averageEntitiesPerPacket = entities->getAverageEntitiesPerPacket();
+
+    QString averageElementsPerPacketString = locale.toString(averageElementsPerPacket);
+    QString averageEntitiesPerPacketString = locale.toString(averageEntitiesPerPacket);
+
+    statsValue.str("");
+    statsValue << 
+        "Elements: " << qPrintable(averageEntitiesPerPacketString) << " per packet / " <<
+        "Entities: " << qPrintable(averageEntitiesPerPacketString) << " per packet";
+        
+    label->setText(statsValue.str().c_str());
+
+    // Entity Edits update time
     label = _labels[_entityUpdateTime];
-    auto entities = Application::getInstance()->getEntities()->getTree();
-    auto averageEditDelta = entities->getAverageEditDeltas();
-    auto maxEditDelta = entities->getMaxEditDelta();
+    auto averageEditDelta = entitiesTree->getAverageEditDeltas();
+    auto maxEditDelta = entitiesTree->getMaxEditDelta();
 
     QString averageEditDeltaString = locale.toString((uint)averageEditDelta);
     QString maxEditDeltaString = locale.toString((uint)maxEditDelta);
@@ -225,8 +243,8 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
 
     // Entity Edits
     label = _labels[_entityUpdates];
-    auto totalTrackedEdits = entities->getTotalTrackedEdits();
-    auto bytesPerEdit = entities->getAverageEditBytes();
+    auto totalTrackedEdits = entitiesTree->getTotalTrackedEdits();
+    auto bytesPerEdit = entitiesTree->getAverageEditBytes();
     
     // track our updated per second
     const quint64 SAMPLING_WINDOW = USECS_PER_SECOND / SAMPLES_PER_SECOND;
