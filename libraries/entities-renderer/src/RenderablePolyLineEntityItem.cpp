@@ -67,28 +67,33 @@ int generateColor() {
 }
 
 void RenderablePolyLineEntityItem::updateGeometry() {
-    QReadLocker lock(&_quadReadWriteLock);
-    int compactColor = generateColor();
-    _numVertices = 0;
-    _verticesBuffer.reset(new gpu::Buffer());
-    int vertexIndex = 0;
-    for (int i = 0; i < _normals.size(); i++) {
-        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
-         vertexIndex++;
-        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
-        _verticesBuffer->append(sizeof(int), (gpu::Byte*)&compactColor);
-        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
-        vertexIndex++;
-        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
-        _verticesBuffer->append(sizeof(int), (gpu::Byte*)&compactColor);
-        
-        _numVertices +=2;
+    if (_pointsChanged) {
+        int compactColor = generateColor();
+        _numVertices = 0;
+        _verticesBuffer.reset(new gpu::Buffer());
+        int vertexIndex = 0;
+        for (int i = 0; i < _normals.size(); i++) {
+            compactColor = generateColor();
+            _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
+            vertexIndex++;
+            _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
+            _verticesBuffer->append(sizeof(int), (gpu::Byte*)&_color);
+            
+            _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
+            vertexIndex++;
+            _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
+            _verticesBuffer->append(sizeof(int), (gpu::Byte*)_color);
+            
+            _numVertices +=2;
+        }
+        _pointsChanged = false;
     }
     _pointsChanged = false;
     
 }
 
 void RenderablePolyLineEntityItem::render(RenderArgs* args) {
+    QWriteLocker lock(&_quadReadWriteLock);
     if (_points.size() < 2  || _vertices.size() != _normals.size() * 2) {
         return;
     }

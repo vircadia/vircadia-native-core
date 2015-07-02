@@ -46,7 +46,7 @@ _strokeWidths(QVector<float>(0))
 }
 
 EntityItemProperties PolyLineEntityItem::getProperties() const {
-    _quadReadWriteLock.lockForWrite();
+    QWriteLocker lock(&_quadReadWriteLock);
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
     
     
@@ -67,7 +67,7 @@ EntityItemProperties PolyLineEntityItem::getProperties() const {
 }
 
 bool PolyLineEntityItem::setProperties(const EntityItemProperties& properties) {
-    _quadReadWriteLock.lockForWrite();
+    QWriteLocker lock(&_quadReadWriteLock);
     bool somethingChanged = false;
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
     
@@ -121,7 +121,7 @@ bool PolyLineEntityItem::setNormals(const QVector<glm::vec3>& normals) {
     }
     _normals = normals;
     _vertices.clear();
-    //Go through and create vertices for triangle strip based on normals
+    //Go through and create vertices for triangle strip based on normalsa
     if (_normals.size() != _points.size()) {
         return false;
     }
@@ -130,8 +130,18 @@ bool PolyLineEntityItem::setNormals(const QVector<glm::vec3>& normals) {
         float width = _strokeWidths.at(i);
         point = _points.at(i);
         //Get tangent
+        
         tangent = _points.at(i+1) - point;
-        binormal = glm::normalize(glm::cross(tangent, normals.at(i))) * width;
+        glm::vec3 normal = normals.at(i);
+//        qDebug() << "next point" << _points.at(i+1) << "cur point" << point;
+        binormal = glm::normalize(glm::cross(tangent, normal)) * _lineWidth;
+//        qDebug() << "glm cross" << glm::cross(tangent, normal);
+//        qDebug()<< "binormal" << binormal;
+//        qDebug() <<"dot " << glm::dot(tangent, normals.at(i));
+        
+        if(binormal.x != binormal.x) {
+            
+        }
         v1 = point + binormal;
         v2 = point - binormal;
         _vertices << v1 << v2;
@@ -219,6 +229,7 @@ void PolyLineEntityItem::appendSubclassData(OctreePacketData* packetData, Encode
                                         int& propertyCount,
                                         OctreeElement::AppendState& appendState) const {
     
+    QWriteLocker lock(&_quadReadWriteLock);
     bool successPropertyFits = true;
     
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
