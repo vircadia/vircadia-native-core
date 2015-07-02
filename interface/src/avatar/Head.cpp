@@ -315,19 +315,6 @@ glm::quat Head::getFinalOrientationInLocalFrame() const {
     return glm::quat(glm::radians(glm::vec3(getFinalPitch(), getFinalYaw(), getFinalRoll() )));
 }
 
-glm::vec3 Head::getCorrectedLookAtPosition() {
-    if (_isLookingAtMe) {
-        return _correctedLookAtPosition;
-    } else {
-        return getLookAtPosition();
-    }
-}
-
-void Head::setCorrectedLookAtPosition(glm::vec3 correctedLookAtPosition) {
-    _isLookingAtMe = true; 
-    _correctedLookAtPosition = correctedLookAtPosition;
-}
-
 glm::quat Head::getCameraOrientation() const {
     // NOTE: Head::getCameraOrientation() is not used for orienting the camera "view" while in Oculus mode, so
     // you may wonder why this code is here. This method will be called while in Oculus mode to determine how

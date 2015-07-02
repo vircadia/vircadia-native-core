@@ -322,8 +322,6 @@ public:
     QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
     ScriptEngine* getScriptEngine(QString scriptHash) { return _scriptEnginesHash.contains(scriptHash) ? _scriptEnginesHash[scriptHash] : NULL; }
     
-    bool isLookingAtMyAvatar(Avatar* avatar);
-
     float getRenderResolutionScale() const;
     int getRenderAmbientLight() const;
 

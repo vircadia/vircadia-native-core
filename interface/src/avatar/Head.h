@@ -56,9 +56,6 @@ public:
     /// \return orientationBody * orientationBasePitch
     glm::quat getCameraOrientation () const;
     
-    void setCorrectedLookAtPosition(glm::vec3 correctedLookAtPosition);
-    glm::vec3 getCorrectedLookAtPosition();
-    void clearCorrectedLookAtPosition() { _isLookingAtMe = false; }
     bool getIsLookingAtMe() { return _isLookingAtMe; }
     
     float getScale() const { return _scale; }
@@ -146,8 +143,6 @@ private:
     bool _isCameraMoving;
     bool _isLookingAtMe;
     FaceModel _faceModel;
-    
-    glm::vec3 _correctedLookAtPosition;
     
     int _leftEyeLookAtID;
     int _rightEyeLookAtID;
