@@ -90,10 +90,16 @@ QScriptValue qVectorVec3ToScriptValue(QScriptEngine* engine, const QVector<glm::
 }
 
 QVector<float> qVectorFloatFromScriptValue(const QScriptValue& array) {
+    if(!array.isArray()) {
+        return QVector<float>();
+    }
     QVector<float> newVector;
     int length = array.property("length").toInteger();
+    newVector.reserve(length);
     for (int i = 0; i < length; i++) {
-        newVector << array.property(i).toVariant().toFloat();
+        if(array.property(i).isNumber()) {
+            newVector << array.property(i).toNumber();
+        }
     }
     
     return newVector;

@@ -129,15 +129,10 @@ bool PolyLineEntityItem::setNormals(const QVector<glm::vec3>& normals) {
     for (int i = 0; i < _points.size()-1; i++) {
         float width = _strokeWidths.at(i);
         point = _points.at(i);
-        //Get tangent
         
         tangent = _points.at(i+1) - point;
         glm::vec3 normal = normals.at(i);
-//        qDebug() << "next point" << _points.at(i+1) << "cur point" << point;
         binormal = glm::normalize(glm::cross(tangent, normal)) * _lineWidth;
-//        qDebug() << "glm cross" << glm::cross(tangent, normal);
-//        qDebug()<< "binormal" << binormal;
-//        qDebug() <<"dot " << glm::dot(tangent, normals.at(i));
         
         if(binormal.x != binormal.x) {
             
