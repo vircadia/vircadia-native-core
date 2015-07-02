@@ -26,7 +26,7 @@
 // NOTE: if adding a new packet packetType, you can replace one marked usable or add at the end
 // NOTE: if you want the name of the packet packetType to be available for debugging or logging, update nameForPacketType() as well
 
-namespace PacketType::Value {
+namespace PacketType {
    enum Value {
         Unknown, // 0
         StunResponse,
