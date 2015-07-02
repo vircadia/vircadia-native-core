@@ -34,6 +34,7 @@ EntityTree::EntityTree(bool shouldReaverage) :
     _simulation(NULL)
 {
     _rootElement = createNewElement();
+    resetClientEditStats();
 }
 
 EntityTree::~EntityTree() {
@@ -60,6 +61,8 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     }
     _entityToElementMap.clear();
     Octree::eraseAllOctreeElements(createNewRoot);
+    
+    resetClientEditStats();
 }
 
 bool EntityTree::handlesEditPacketType(PacketType packetType) const {
@@ -1103,4 +1106,29 @@ bool EntityTree::readFromMap(QVariantMap& map) {
     }
 
     return true;
+}
+
+void EntityTree::resetClientEditStats() {
+    _treeResetTime = usecTimestampNow();
+    _maxEditDelta = 0;
+    _totalEditDeltas = 0;
+    _totalTrackedEdits = 0;
+}
+
+
+
+void EntityTree::trackIncomingEntityLastEdited(quint64 lastEditedTime) {
+    // we don't want to track all edit deltas, just those edits that have happend
+    // since we connected to this domain. This will filter out all previously created
+    // content and only track new edits
+    if (lastEditedTime > _treeResetTime) {
+        quint64 now = usecTimestampNow();
+        quint64 sinceEdit = now - lastEditedTime;
+
+        _totalEditDeltas += sinceEdit;
+        _totalTrackedEdits++;
+        if (sinceEdit > _maxEditDelta) {
+            _maxEditDelta = sinceEdit;
+        }
+    }
 }

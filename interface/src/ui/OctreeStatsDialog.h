@@ -63,6 +63,10 @@ private:
     int _serverElements;
     int _localElements;
     int _localElementsMemory;
+
+    int _entityUpdateTime;
+
+
     int _octreeServerLables[MAX_VOXEL_SERVERS];
     int _octreeServerLabelsCount;
     details _extraServerDetails[MAX_VOXEL_SERVERS];

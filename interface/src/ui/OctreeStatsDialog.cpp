@@ -50,6 +50,7 @@ OctreeStatsDialog::OctreeStatsDialog(QWidget* parent, NodeToOctreeSceneStats* mo
     _localElements = AddStatItem("Local Elements");
     _localElementsMemory = AddStatItem("Elements Memory");
     _sendingMode = AddStatItem("Sending Mode");
+    _entityUpdateTime = AddStatItem("Entity Update Time");
     
     layout()->setSizeConstraint(QLayout::SetFixedSize); 
 }
@@ -202,6 +203,20 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
         "Internal: " << qPrintable(serversInternalString) << " / " <<
         "Leaves: " << qPrintable(serversLeavesString) << "";
     label->setText(statsValue.str().c_str());
+
+    label = _labels[_entityUpdateTime];
+    auto entites = Application::getInstance()->getEntities()->getTree();
+    quint64 averageEditDelta = entites->getAverageEditDeltas();
+    QString averageEditDeltaString = locale.toString((uint)averageEditDelta);
+    quint64 maxEditDelta = entites->getMaxEditDelta();
+    QString maxEditDeltaString = locale.toString((uint)maxEditDelta);
+
+    statsValue.str("");
+    statsValue << 
+        "Average: " << qPrintable(averageEditDeltaString) << " (usecs) / " <<
+        "Max: " << qPrintable(maxEditDeltaString) << " (usecs)";
+    label->setText(statsValue.str().c_str());
+
 
     showAllOctreeServers();
 
