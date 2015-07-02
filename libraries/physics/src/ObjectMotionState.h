@@ -40,7 +40,8 @@ enum MotionStateType {
 const uint32_t HARD_DIRTY_PHYSICS_FLAGS = (uint32_t)(EntityItem::DIRTY_MOTION_TYPE | EntityItem::DIRTY_SHAPE);
 const uint32_t EASY_DIRTY_PHYSICS_FLAGS = (uint32_t)(EntityItem::DIRTY_TRANSFORM | EntityItem::DIRTY_VELOCITIES |
                                                      EntityItem::DIRTY_MASS | EntityItem::DIRTY_COLLISION_GROUP |
-                                                     EntityItem::DIRTY_MATERIAL);
+                                                     EntityItem::DIRTY_MATERIAL | EntityItem::DIRTY_SIMULATOR_ID | 
+                                                     EntityItem::DIRTY_SIMULATOR_OWNERSHIP);
 
 // These are the set of incoming flags that the PhysicsEngine needs to hear about:
 const uint32_t DIRTY_PHYSICS_FLAGS = (uint32_t)(HARD_DIRTY_PHYSICS_FLAGS | EASY_DIRTY_PHYSICS_FLAGS |
@@ -70,7 +71,7 @@ public:
     ObjectMotionState(btCollisionShape* shape);
     ~ObjectMotionState();
 
-    virtual void handleEasyChanges(uint32_t flags);
+    virtual void handleEasyChanges(uint32_t flags, PhysicsEngine* engine);
     virtual void handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
 
     void updateBodyMaterialProperties();
@@ -118,8 +119,9 @@ public:
 
     virtual const QUuid& getObjectID() const = 0;
 
+    virtual quint8 getSimulationPriority() const { return 0; }
     virtual QUuid getSimulatorID() const = 0;
-    virtual void bump() = 0;
+    virtual void bump(quint8 priority) {}
 
     virtual QString getName() { return ""; }
 

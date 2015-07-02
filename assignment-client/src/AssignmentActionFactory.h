@@ -1,23 +1,24 @@
 //
-//  InterfaceActionFactory.cpp
-//  interface/src/
+//  AssignmentActionFactory.cpp
+//  assignment-client/src/
 //
-//  Created by Seth Alves on 2015-6-10
+//  Created by Seth Alves on 2015-6-19
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_InterfaceActionFactory_h
-#define hifi_InterfaceActionFactory_h
+#ifndef hifi_AssignmentActionFactory_h
+#define hifi_AssignmentActionFactory_h
 
 #include "EntityActionFactoryInterface.h"
+#include "AssignmentAction.h"
 
-class InterfaceActionFactory : public EntityActionFactoryInterface {
+class AssignmentActionFactory : public EntityActionFactoryInterface {
 public:
-    InterfaceActionFactory() : EntityActionFactoryInterface() { }
-    virtual ~InterfaceActionFactory() { }
+    AssignmentActionFactory() : EntityActionFactoryInterface() { }
+    virtual ~AssignmentActionFactory() { }
     virtual EntityActionPointer factory(EntitySimulation* simulation,
                                         EntityActionType type,
                                         QUuid id,
@@ -28,4 +29,4 @@ public:
                                           QByteArray data);
 };
 
-#endif // hifi_InterfaceActionFactory_h
+#endif // hifi_AssignmentActionFactory_h
