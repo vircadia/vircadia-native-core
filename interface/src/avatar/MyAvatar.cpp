@@ -72,7 +72,7 @@ const int SCRIPTED_MOTOR_AVATAR_FRAME = 1;
 const int SCRIPTED_MOTOR_WORLD_FRAME = 2;
 
 const float MyAvatar::ZOOM_MIN = 0.5f;
-const float MyAvatar::ZOOM_MAX = 10.0f;
+const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 
 MyAvatar::MyAvatar() :
@@ -1212,9 +1212,7 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bo
     if (shouldRenderHead(renderArgs)) {
         getHead()->render(renderArgs, 1.0f, renderFrustum, postLighting);
     }
-    if (postLighting) {
-        getHand()->render(renderArgs, true);
-    }
+    getHand()->render(renderArgs, true);
 }
 
 void MyAvatar::setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visible) {
@@ -1394,7 +1392,8 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
         }
     }
     
-    _boomLength += _driveKeys[BOOM_OUT] - _driveKeys[BOOM_IN];
+    float boomChange = _driveKeys[BOOM_OUT] - _driveKeys[BOOM_IN];
+    _boomLength += 2.0f * _boomLength * boomChange + boomChange * boomChange;
     _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);
 
     return newLocalVelocity;
@@ -1587,7 +1586,7 @@ void MyAvatar::updateMotionBehavior() {
 }
 
 //Renders sixense laser pointers for UI selection with controllers
-void MyAvatar::renderLaserPointers() {
+void MyAvatar::renderLaserPointers(gpu::Batch& batch) {
     const float PALM_TIP_ROD_RADIUS = 0.002f;
 
     //If the Oculus is enabled, we will draw a blue cursor ray
@@ -1600,8 +1599,10 @@ void MyAvatar::renderLaserPointers() {
 
             //Scale the root vector with the avatar scale
             scaleVectorRelativeToPosition(root);
-
-            Avatar::renderJointConnectingCone(root, tip, PALM_TIP_ROD_RADIUS, PALM_TIP_ROD_RADIUS, glm::vec4(0, 1, 1, 1));
+            Transform transform = Transform();
+            transform.setTranslation(glm::vec3());
+            batch.setModelTransform(transform);
+            Avatar::renderJointConnectingCone(batch, root, tip, PALM_TIP_ROD_RADIUS, PALM_TIP_ROD_RADIUS, glm::vec4(0, 1, 1, 1));
         }
     }
 }
