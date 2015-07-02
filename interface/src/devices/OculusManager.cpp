@@ -283,6 +283,7 @@ static ovrVector3f _eyeOffsets[ovrEye_Count];
 
 glm::vec3 OculusManager::getLeftEyePosition() { return _eyePositions[ovrEye_Left]; }
 glm::vec3 OculusManager::getRightEyePosition() { return _eyePositions[ovrEye_Right]; }
+glm::vec3 OculusManager::getMidEyePosition() { return (_eyePositions[ovrEye_Left] + _eyePositions[ovrEye_Right]) / 2.0f; }
 
 void OculusManager::connect(QOpenGLContext* shareContext) {
     qCDebug(interfaceapp) << "Oculus SDK" << OVR_VERSION_STRING;

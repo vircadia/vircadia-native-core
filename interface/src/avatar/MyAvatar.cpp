@@ -34,6 +34,9 @@
 #include <TextRenderer.h>
 #include <UserActivityLogger.h>
 
+#include "devices/Faceshift.h"
+#include "devices/OculusManager.h"
+
 #include "Application.h"
 #include "AvatarManager.h"
 #include "Environment.h"
@@ -42,7 +45,6 @@
 #include "MyAvatar.h"
 #include "Physics.h"
 #include "Recorder.h"
-#include "devices/Faceshift.h"
 #include "Util.h"
 #include "InterfaceLogging.h"
 
@@ -893,8 +895,22 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 smallestAngleTo = angleTo;
             }
             if (Application::getInstance()->isLookingAtMyAvatar(avatar)) {
-                // Alter their gaze to look directly at my camera; this looks more natural than looking at my avatar's face
-                avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition());
+                // Alter their gaze to look directly at my camera; this looks more natural than looking at my avatar's face.
+                // Offset their gaze according to whether they're looking at one of my eyes or my mouth.
+                glm::vec3 gazeOffset = avatar->getHead()->getLookAtPosition() - getHead()->getEyePosition();
+                const float HUMAN_EYE_SEPARATION = 0.065f;
+                float myEyeSeparation = glm::length(getHead()->getLeftEyePosition() - getHead()->getRightEyePosition());
+                gazeOffset = gazeOffset * HUMAN_EYE_SEPARATION / myEyeSeparation;
+
+                if (Application::getInstance()->isHMDMode()) {
+                    //avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getCamera()->getPosition()
+                    //    + OculusManager::getMidEyePosition() + gazeOffset);
+                    avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition()
+                        + OculusManager::getMidEyePosition() + gazeOffset);
+                } else {
+                    avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition()
+                        + gazeOffset);
+                }
             } else {
                 avatar->getHead()->clearCorrectedLookAtPosition();
             }

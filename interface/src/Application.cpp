@@ -2306,8 +2306,7 @@ void Application::updateMyAvatarLookAtPosition() {
         if (!OculusManager::isConnected()) {
             lookAtSpot = _myCamera.getPosition();
         } else {
-            lookAtSpot = _myCamera.getPosition() 
-                + (OculusManager::getLeftEyePosition() + OculusManager::getRightEyePosition()) / 2.0f;
+            lookAtSpot = _myCamera.getPosition() + OculusManager::getMidEyePosition();
         }
     } else {
         AvatarSharedPointer lookingAt = _myAvatar->getLookAtTargetAvatar().lock();
