@@ -767,7 +767,7 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum) co
     auto textTransform = calculateDisplayNameTransform(frustum, renderer->getFontSize());
     
     // Render background slightly behind to avoid z-fighting
-    auto backgroundTransform = textTransform;
+    auto backgroundTransform(textTransform);
     backgroundTransform.postTranslate(glm::vec3(0.0f, 0.0f, SLIGHTLY_BEHIND));
     batch.setModelTransform(backgroundTransform);
     DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
