@@ -3526,6 +3526,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         renderContext._maxDrawnTransparentItems = sceneInterface->getEngineMaxDrawnTransparentItems();
         renderContext._maxDrawnOverlay3DItems = sceneInterface->getEngineMaxDrawnOverlay3DItems();
 
+        renderContext._drawItemStatus = sceneInterface->doEngineDisplayItemStatus();
+
         renderArgs->_shouldRender = LODManager::shouldRender;
 
         renderContext.args = renderArgs;

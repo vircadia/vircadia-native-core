@@ -202,20 +202,12 @@ public:
     public:
         typedef unsigned char Value;
         typedef std::function<Value()> Getter;
+        typedef std::vector<Getter> Getters;
 
-        int _firstFrame;
-        std::vector<Getter> _values;
+        Getters _values;
 
         void addGetter(Getter& getter) { _values.push_back(getter); }
-        void getValue(glm::vec4& value) {
-            for (unsigned int i = 0; i < value.length(); i++) {
-                if (i < _values.size()) {
-                    value[i] = _values[i]() / 256.0f;
-                } else {
-                    value[i] = 0.0f;
-                }
-            }
-        }
+        void getValues(glm::vec4& values);
     };
     typedef std::shared_ptr<Status> StatusPointer;
 
@@ -278,6 +270,7 @@ public:
 
     // Access the status
     const StatusPointer& getStatus() const { return _payload->getStatus(); }
+    glm::vec4 getStatusValues() const { glm::vec4 values(-1.f); auto& status = getStatus(); if (status) { status->getValues(values); }; return values; }
 
 protected:
     PayloadPointer _payload;
