@@ -168,6 +168,23 @@ public:
 
     float getContentsLargestDimension();
 
+    virtual void resetEditStats() {    
+        _totalEditMessages = 0;
+        _totalUpdates = 0;
+        _totalCreates = 0;
+        _totalDecodeTime = 0;
+        _totalLookupTime = 0;
+        _totalUpdateTime = 0;
+        _totalCreateTime = 0;
+        _totalLoggingTime = 0;
+    }
+
+    virtual quint64 getAverageDecodeTime() const { return _totalEditMessages == 0 ? 0 : _totalDecodeTime / _totalEditMessages; }
+    virtual quint64 getAverageLookupTime() const { return _totalEditMessages == 0 ? 0 : _totalLookupTime / _totalEditMessages; }
+    virtual quint64 getAverageUpdateTime() const { return _totalUpdates == 0 ? 0 : _totalUpdateTime / _totalUpdates; }
+    virtual quint64 getAverageCreateTime() const { return _totalCreates == 0 ? 0 : _totalCreateTime / _totalCreates; }
+    virtual quint64 getAverageLoggingTime() const { return _totalEditMessages == 0 ? 0 : _totalLoggingTime / _totalEditMessages; }
+
 signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);
@@ -202,6 +219,17 @@ private:
 
     bool _wantEditLogging = false;
     void maybeNotifyNewCollisionSoundURL(const QString& oldCollisionSoundURL, const QString& newCollisionSoundURL);
+    
+    
+    // some performance tracking properties - only used in server trees
+    int _totalEditMessages = 0;
+    int _totalUpdates = 0;
+    int _totalCreates = 0;
+    quint64 _totalDecodeTime = 0;
+    quint64 _totalLookupTime = 0;
+    quint64 _totalUpdateTime = 0;
+    quint64 _totalCreateTime = 0;
+    quint64 _totalLoggingTime = 0;
 };
 
 #endif // hifi_EntityTree_h

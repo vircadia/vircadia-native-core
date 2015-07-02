@@ -122,8 +122,8 @@ void Stats::updateStats() {
     auto bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
     STAT_UPDATE(packetInCount, bandwidthRecorder->getCachedTotalAverageInputPacketsPerSecond());
     STAT_UPDATE(packetOutCount, bandwidthRecorder->getCachedTotalAverageOutputPacketsPerSecond());
-    STAT_UPDATE_FLOAT(mbpsIn, (float)bandwidthRecorder->getCachedTotalAverageOutputKilobitsPerSecond() / 1000.0f, 0.01f);
-    STAT_UPDATE_FLOAT(mbpsOut, (float)bandwidthRecorder->getCachedTotalAverageInputKilobitsPerSecond() / 1000.0f, 0.01f);
+    STAT_UPDATE_FLOAT(mbpsIn, (float)bandwidthRecorder->getCachedTotalAverageInputKilobitsPerSecond() / 1000.0f, 0.01f);
+    STAT_UPDATE_FLOAT(mbpsOut, (float)bandwidthRecorder->getCachedTotalAverageOutputKilobitsPerSecond() / 1000.0f, 0.01f);
 
     // Second column: ping
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {

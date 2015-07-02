@@ -574,41 +574,61 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
         
         case PacketTypeEntityAdd:
         case PacketTypeEntityEdit: {
+            quint64 startDecode = 0, endDecode = 0;
+            quint64 startLookup = 0, endLookup = 0;
+            quint64 startUpdate = 0, endUpdate = 0;
+            quint64 startCreate = 0, endCreate = 0;
+            quint64 startLogging = 0, endLogging = 0;
+
+            _totalEditMessages++;
+
             EntityItemID entityItemID;
             EntityItemProperties properties;
+            startDecode = usecTimestampNow();
             bool validEditPacket = EntityItemProperties::decodeEntityEditPacket(editData, maxLength,
                                                                                 processedBytes, entityItemID, properties);
+            endDecode = usecTimestampNow();
 
             // If we got a valid edit packet, then it could be a new entity or it could be an update to
             // an existing entity... handle appropriately
             if (validEditPacket) {
                 // search for the entity by EntityItemID
+                startLookup = usecTimestampNow();
                 EntityItemPointer existingEntity = findEntityByEntityItemID(entityItemID);
+                endLookup = usecTimestampNow();
                 if (existingEntity && packetType == PacketTypeEntityEdit) {
                     // if the EntityItem exists, then update it
+                    startLogging = usecTimestampNow();
                     if (wantEditLogging()) {
                         qCDebug(entities) << "User [" << senderNode->getUUID() << "] editing entity. ID:" << entityItemID;
                         qCDebug(entities) << "   properties:" << properties;
                     }
+                    endLogging = usecTimestampNow();
+
+                    startUpdate = usecTimestampNow();
                     updateEntity(entityItemID, properties, senderNode);
                     existingEntity->markAsChangedOnServer();
+                    endUpdate = usecTimestampNow();
+                    _totalUpdates++;
                 } else if (packetType == PacketTypeEntityAdd) {
                     if (senderNode->getCanRez()) {
                         // this is a new entity... assign a new entityID
-                        if (wantEditLogging()) {
-                            qCDebug(entities) << "User [" << senderNode->getUUID() << "] adding entity.";
-                            qCDebug(entities) << "   properties:" << properties;
-                        }
                         properties.setCreated(properties.getLastEdited());
+                        startCreate = usecTimestampNow();
                         EntityItemPointer newEntity = addEntity(entityItemID, properties);
+                        endCreate = usecTimestampNow();
+                        _totalCreates++;
                         if (newEntity) {
                             newEntity->markAsChangedOnServer();
                             notifyNewlyCreatedEntity(*newEntity, senderNode);
+
+                            startLogging = usecTimestampNow();
                             if (wantEditLogging()) {
                                 qCDebug(entities) << "User [" << senderNode->getUUID() << "] added entity. ID:" 
                                                 << newEntity->getEntityItemID();
                                 qCDebug(entities) << "   properties:" << properties;
                             }
+                            endLogging = usecTimestampNow();
 
                         }
                     } else {
@@ -619,6 +639,14 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     qCDebug(entities) << "Add or Edit failed." << packetType << existingEntity.get();
                 }
             }
+            
+
+            _totalDecodeTime += endDecode - startDecode;
+            _totalLookupTime += endLookup - startLookup;
+            _totalUpdateTime += endUpdate - startUpdate;
+            _totalCreateTime += endCreate - startCreate;
+            _totalLoggingTime += endLogging - startLogging;
+            
             break;
         }
 
