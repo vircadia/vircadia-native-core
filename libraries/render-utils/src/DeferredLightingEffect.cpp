@@ -117,6 +117,22 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset(_ambientLightMode % gpu::SphericalHarmonics::NUM_PRESET));
 }
 
+gpu::ShaderPointer DeferredLightingEffect::getSimpleVertexShader() const {
+    if (_simpleProgram) {
+        return _simpleProgram->getProgram()->getShaders()[gpu::Shader::VERTEX];
+    } else {
+        return gpu::ShaderPointer();
+    }
+}
+
+gpu::ShaderPointer DeferredLightingEffect::getSimplePixelShader() const {
+    if (_simpleProgram) {
+        return _simpleProgram->getProgram()->getShaders()[gpu::Shader::PIXEL];
+    } else {
+        return gpu::ShaderPointer();
+    }
+}
+
 void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled, bool emmisive) {
     if (emmisive) {
         if (culled) {
