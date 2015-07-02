@@ -451,24 +451,24 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
             if (renderBounding && shouldRenderHead(renderArgs)) {
                 _skeletonModel.renderBoundingCollisionShapes(*renderArgs->_batch, 0.7f);
             }
+        }
 
-            // If this is the avatar being looked at, render a little ball above their head
-            if (_isLookAtTarget && Menu::getInstance()->isOptionChecked(MenuOption::RenderFocusIndicator)) {
-                const float LOOK_AT_INDICATOR_RADIUS = 0.03f;
-                const float LOOK_AT_INDICATOR_OFFSET = 0.22f;
-                const glm::vec4 LOOK_AT_INDICATOR_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
-                glm::vec3 position;
-                if (_displayName.isEmpty() || _displayNameAlpha == 0.0f) {
-                    position = glm::vec3(_position.x, getDisplayNamePosition().y, _position.z);
-                } else {
-                    position = glm::vec3(_position.x, getDisplayNamePosition().y + LOOK_AT_INDICATOR_OFFSET, _position.z);
-                }
-                Transform transform;
-                transform.setTranslation(position);
-                batch.setModelTransform(transform);
-                DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, LOOK_AT_INDICATOR_RADIUS
-                                                                                    , 15, 15, LOOK_AT_INDICATOR_COLOR);
+        // If this is the avatar being looked at, render a little ball above their head
+        if (_isLookAtTarget && Menu::getInstance()->isOptionChecked(MenuOption::RenderFocusIndicator)) {
+            const float LOOK_AT_INDICATOR_RADIUS = 0.03f;
+            const float LOOK_AT_INDICATOR_OFFSET = 0.22f;
+            const glm::vec4 LOOK_AT_INDICATOR_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
+            glm::vec3 position;
+            if (_displayName.isEmpty() || _displayNameAlpha == 0.0f) {
+                position = glm::vec3(_position.x, getDisplayNamePosition().y, _position.z);
+            } else {
+                position = glm::vec3(_position.x, getDisplayNamePosition().y + LOOK_AT_INDICATOR_OFFSET, _position.z);
             }
+            Transform transform;
+            transform.setTranslation(position);
+            batch.setModelTransform(transform);
+            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, LOOK_AT_INDICATOR_RADIUS
+                                                                                , 15, 15, LOOK_AT_INDICATOR_COLOR);
         }
 
         // quick check before falling into the code below:
