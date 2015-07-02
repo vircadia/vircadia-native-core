@@ -167,6 +167,17 @@ namespace render {
     }
 }
 
+void makeEntityItemStatusGetters(RenderableModelEntityItem* entity, render::Item::Status::Getters& statusGetters) {
+    statusGetters.push_back([entity] () -> render::Item::Status::Value {
+        quint64 delta = usecTimestampNow() - entity->getLastEditedFromRemote();
+        return render::Item::Status::Value((delta / (0.01f * USECS_PER_SECOND)), 1.0f);
+    });
+    statusGetters.push_back([entity] () -> render::Item::Status::Value {
+        quint64 delta = usecTimestampNow() - entity->getLastBroadcast();
+        return render::Item::Status::Value((delta / (0.02f * USECS_PER_SECOND)), 0.5f);
+    });
+}
+
 bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
                                             render::PendingChanges& pendingChanges) {
     _myMetaItem = scene->allocateID();
@@ -177,20 +188,9 @@ bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_p
     pendingChanges.resetItem(_myMetaItem, renderPayload);
     
     if (_model) {
-       // return _model->addToScene(scene, pendingChanges);
-
         render::Item::Status::Getters statusGetters;
-        statusGetters.push_back([this] () -> render::Item::Status::Value {
-            quint64 delta = usecTimestampNow() - this->getLastEditedFromRemote();
-            return render::Item::Status::Value((delta < 0.1f * USECS_PER_SECOND), 1.0f);
-        });
-        statusGetters.push_back([this] () -> render::Item::Status::Value {
-            quint64 delta = usecTimestampNow() - this->getLastBroadcast();
-            return render::Item::Status::Value((delta < 0.2f * USECS_PER_SECOND), 0.5f);
-        });
-
+        makeEntityItemStatusGetters(this, statusGetters);
         return _model->addToScene(scene, pendingChanges, statusGetters);
-        
     }
 
     return true;
@@ -227,17 +227,9 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             render::PendingChanges pendingChanges;
             if (_model->needsFixupInScene()) {
                 _model->removeFromScene(scene, pendingChanges);
-                
-                render::Item::Status::Getters statusGetters;
-                statusGetters.push_back([this] () -> render::Item::Status::Value {
-                    quint64 delta = usecTimestampNow() - this->getLastEditedFromRemote();
-                    return render::Item::Status::Value((delta < 0.1f * USECS_PER_SECOND), 1.0f);
-                });
-                statusGetters.push_back([this] () -> render::Item::Status::Value {
-                    quint64 delta = usecTimestampNow() - this->getLastBroadcast();
-                    return render::Item::Status::Value((delta < 0.2f * USECS_PER_SECOND), 0.5f);
-                });
 
+                render::Item::Status::Getters statusGetters;
+                makeEntityItemStatusGetters(this, statusGetters);
                 _model->addToScene(scene, pendingChanges, statusGetters);
             }
             scene->enqueuePendingChanges(pendingChanges);
