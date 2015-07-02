@@ -823,6 +823,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_LINE_WIDTH, properties.getLineWidth());
                 APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, properties.getLinePoints());
                 APPEND_ENTITY_PROPERTY(PROP_NORMALS, properties.getNormals());
+                APPEND_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, properties.getStrokeWidths());
             }
             
             APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, properties.getMarketplaceID());

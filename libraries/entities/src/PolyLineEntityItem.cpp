@@ -116,10 +116,16 @@ bool PolyLineEntityItem::setStrokeWidths(const QVector<float>& strokeWidths ) {
 }
 
 bool PolyLineEntityItem::setNormals(const QVector<glm::vec3>& normals) {
+    
+    _normals = normals;
+    if( _normals.size() != _points.size()) {
+        qDebug() << "RETURN FALSE";
+        return false;
+    }
+    
     if (_points.size () < 2 || _strokeWidths.size() < 2) {
         return false;
     }
-    _normals = normals;
     _vertices.clear();
     //Go through and create vertices for triangle strip based on normalsa
     if (_normals.size() != _points.size()) {
@@ -132,11 +138,9 @@ bool PolyLineEntityItem::setNormals(const QVector<glm::vec3>& normals) {
         
         tangent = _points.at(i+1) - point;
         glm::vec3 normal = normals.at(i);
-        binormal = glm::normalize(glm::cross(tangent, normal)) * _lineWidth;
+        binormal = glm::normalize(glm::cross(tangent, normal)) * width;
         
-        if(binormal.x != binormal.x) {
-            
-        }
+        assert(binormal.x == binormal.x);
         v1 = point + binormal;
         v2 = point - binormal;
         _vertices << v1 << v2;
@@ -213,6 +217,7 @@ EntityPropertyFlags PolyLineEntityItem::getEntityProperties(EncodeBitstreamParam
     requestedProperties += PROP_LINE_WIDTH;
     requestedProperties += PROP_LINE_POINTS;
     requestedProperties += PROP_NORMALS;
+    requestedProperties += PROP_STROKE_WIDTHS;
     return requestedProperties;
 }
 
