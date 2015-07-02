@@ -53,12 +53,14 @@ void ItemBucketMap::allocateStandardOpaqueTranparentBuckets() {
     (*this)[ItemFilter::Builder::transparentShape().withLayered()];
 }
 
-void Item::Status::getValues(glm::vec4& values) {
+const Item::Status::Value Item::Status::Value::INVALID{ std::numeric_limits<short>::min(), std::numeric_limits<short>::min() };
+
+void Item::Status::getCompressedValues(glm::ivec4& values) {
     for (int i = 0; i < values.length(); i++) {
         if (i < _values.size()) {
-            values[i] = _values[i]() / 256.0f;
+            values[i] = _values[i]().getRaw();
         } else {
-            values[i] = -1.0f;
+            values[i] = Value::INVALID.getRaw();
         }
     }
 }

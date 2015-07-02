@@ -910,7 +910,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
     return somethingAdded;
 }
 
-bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges, render::Item::Status::Getter& statusGetter) {
+bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges, render::Item::Status::Getters& statusGetters) {
     if (!_meshGroupsKnown && isLoadedWithTextures()) {
         segregateMeshGroups();
     }
@@ -921,7 +921,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
         auto item = scene->allocateID();
         auto renderData = MeshPartPayload::Pointer(renderItem);
         auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
-        renderPayload->addStatusGetter(statusGetter);
+        renderPayload->addStatusGetters(statusGetters);
         pendingChanges.resetItem(item, renderPayload);
         _renderItems.insert(item, renderPayload);
         somethingAdded = true;
@@ -931,7 +931,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
         auto item = scene->allocateID();
         auto renderData = MeshPartPayload::Pointer(renderItem);
         auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
-        renderPayload->addStatusGetter(statusGetter);
+        renderPayload->addStatusGetters(statusGetters);
         pendingChanges.resetItem(item, renderPayload);
         _renderItems.insert(item, renderPayload);
         somethingAdded = true;

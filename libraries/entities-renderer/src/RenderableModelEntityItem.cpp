@@ -179,19 +179,17 @@ bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_p
     if (_model) {
        // return _model->addToScene(scene, pendingChanges);
 
-        render::Item::Status::Getter statusGetter = [this] () -> render::Item::Status::Value {
-                quint64 now = usecTimestampNow();
-    /*        if (now - entity->getLastEditedFromRemote() < 0.1f * USECS_PER_SECOND) {
-               return  glm::vec4 redColor(1.0f, 0.0f, 0.0f, 1.0f);
-                renderBoundingBox(entity, args, 0.16f, redColor);
-            }
-            */
-            if (now - this->getLastBroadcast() < 0.2f * USECS_PER_SECOND) {
-                return 256;
-            }
-            return 0;
-        };
-        return _model->addToScene(scene, pendingChanges, statusGetter);
+        render::Item::Status::Getters statusGetters;
+        statusGetters.push_back([this] () -> render::Item::Status::Value {
+            quint64 delta = usecTimestampNow() - this->getLastEditedFromRemote();
+            return render::Item::Status::Value((delta < 0.1f * USECS_PER_SECOND), 1.0f);
+        });
+        statusGetters.push_back([this] () -> render::Item::Status::Value {
+            quint64 delta = usecTimestampNow() - this->getLastBroadcast();
+            return render::Item::Status::Value((delta < 0.2f * USECS_PER_SECOND), 0.5f);
+        });
+
+        return _model->addToScene(scene, pendingChanges, statusGetters);
         
     }
 
@@ -230,24 +228,17 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             if (_model->needsFixupInScene()) {
                 _model->removeFromScene(scene, pendingChanges);
                 
-                
-                render::Item::Status::Getter statusGetter = [this] () -> render::Item::Status::Value {
-                        quint64 now = usecTimestampNow();
-            /*        if (now - entity->getLastEditedFromRemote() < 0.1f * USECS_PER_SECOND) {
-                       return  glm::vec4 redColor(1.0f, 0.0f, 0.0f, 1.0f);
-                        renderBoundingBox(entity, args, 0.16f, redColor);
-                    }
-                    */
-                    /*if (now - this->getLastBroadcast() < 0.2f * USECS_PER_SECOND) {
-                        return 256;
-                    }
-                    return 0;*/
-                    static int i = 0;
-                    return (i++)%256;
+                render::Item::Status::Getters statusGetters;
+                statusGetters.push_back([this] () -> render::Item::Status::Value {
+                    quint64 delta = usecTimestampNow() - this->getLastEditedFromRemote();
+                    return render::Item::Status::Value((delta < 0.1f * USECS_PER_SECOND), 1.0f);
+                });
+                statusGetters.push_back([this] () -> render::Item::Status::Value {
+                    quint64 delta = usecTimestampNow() - this->getLastBroadcast();
+                    return render::Item::Status::Value((delta < 0.2f * USECS_PER_SECOND), 0.5f);
+                });
 
-                };
-
-                _model->addToScene(scene, pendingChanges, statusGetter);
+                _model->addToScene(scene, pendingChanges, statusGetters);
             }
             scene->enqueuePendingChanges(pendingChanges);
 

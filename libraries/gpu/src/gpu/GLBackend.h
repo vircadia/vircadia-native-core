@@ -398,6 +398,7 @@ protected:
     void do_glUniform3f(Batch& batch, uint32 paramOffset);
     void do_glUniform3fv(Batch& batch, uint32 paramOffset);
     void do_glUniform4fv(Batch& batch, uint32 paramOffset);
+    void do_glUniform4iv(Batch& batch, uint32 paramOffset);
     void do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset);
 
     void do_glEnableVertexAttribArray(Batch& batch, uint32 paramOffset);

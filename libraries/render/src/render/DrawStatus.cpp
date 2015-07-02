@@ -107,7 +107,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
         _itemBounds->resize((inItems.size() * sizeof(AABox)));
         _itemStatus->resize((inItems.size() * sizeof(glm::vec4)));
         AABox* itemAABox = reinterpret_cast<AABox*> (_itemBounds->editData());
-        glm::vec4* itemStatus = reinterpret_cast<glm::vec4*> (_itemStatus->editData());
+        glm::ivec4* itemStatus = reinterpret_cast<glm::ivec4*> (_itemStatus->editData());
         for (auto& item : inItems) {
             if (!item.bounds.isInvalid()) {
                 if (!item.bounds.isNull()) {
@@ -116,7 +116,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
                     (*itemAABox).setBox(item.bounds.getCorner(), 0.1f);
                 }
                 auto& itemScene = scene->getItem(item.id);
-                (*itemStatus) = itemScene.getStatusValues();
+                (*itemStatus) = itemScene.getStatusCompressedValues();
 
                 nbItems++;
                 itemAABox++;
@@ -154,7 +154,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
     batch.setPipeline(getDrawItemBoundsPipeline());
 
     AABox* itemAABox = reinterpret_cast<AABox*> (_itemBounds->editData());
-    glm::vec4* itemStatus = reinterpret_cast<glm::vec4*> (_itemStatus->editData());
+    glm::ivec4* itemStatus = reinterpret_cast<glm::ivec4*> (_itemStatus->editData());
 
     for (int i = 0; i < nbItems; i++) {
         batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const GLfloat*) (itemAABox + i));
@@ -167,7 +167,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
     for (int i = 0; i < nbItems; i++) {
         batch._glUniform3fv(_drawItemStatusPosLoc, 1, (const GLfloat*) (itemAABox + i));
         batch._glUniform3fv(_drawItemStatusDimLoc, 1, ((const GLfloat*) (itemAABox + i)) + 3);
-        batch._glUniform4fv(_drawItemStatusValueLoc, 1, (const GLfloat*) (itemStatus + i));
+        batch._glUniform4iv(_drawItemStatusValueLoc, 1, (const GLint*) (itemStatus + i));
 
         batch.draw(gpu::TRIANGLES, 24, 0);
     }
