@@ -2311,14 +2311,13 @@ void Application::updateMyAvatarLookAtPosition() {
                 (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
         }
     }
-    //
-    //  Deflect the eyes a bit to match the detected Gaze from 3D camera if active
-    //
-    if (tracker && !tracker->isMuted()) {
+
+    // Deflect the eyes a bit to match the detected gaze from Faceshift if active.
+    // DDE doesn't track eyes.
+    if (tracker && typeid(*tracker) == typeid(Faceshift) && !tracker->isMuted()) {
         float eyePitch = tracker->getEstimatedEyePitch();
         float eyeYaw = tracker->getEstimatedEyeYaw();
         const float GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT = 0.1f;
-        // deflect using Faceshift gaze data
         glm::vec3 origin = _myAvatar->getHead()->getEyePosition();
         float pitchSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? -1.0f : 1.0f;
         float deflection = DependencyManager::get<Faceshift>()->getEyeDeflection();
