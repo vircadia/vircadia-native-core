@@ -41,7 +41,7 @@ vec3 paintRainbow(float nv) {
 }
 
 void main(void) {
-    const vec2 ICON_PIXEL_SIZE = vec2(10, 10);
+    vec2 ICON_PIXEL_SIZE = vec2(10, 10);
     const int NUM_VERTICES = 6;
     const vec4 UNIT_QUAD[NUM_VERTICES] = vec4[NUM_VERTICES](
         vec4(-1.0, -1.0, 0.0, 1.0),
@@ -61,15 +61,33 @@ void main(void) {
     int twoTriID = gl_VertexID - notifNum * NUM_VERTICES;
     vec4 pos = UNIT_QUAD[twoTriID];
 
+    bool isPixel = false;
     // Use the status for showing a color ?
+    // Also changes the size of the notification
     if(notifNum == 0) {
         varColor = vec4(paintRainbow(inStatus.x), 1.0);
+        if(inStatus.x == -1) {
+            isPixel = true;
+        }
     } else if(notifNum == 1) {
         varColor = vec4(paintRainbow(inStatus.y), 1.0);
+        if(inStatus.y == -1) {
+            isPixel = true;
+        }
     } else if(notifNum == 2) {
         varColor = vec4(paintRainbow(inStatus.z), 1.0);
+        if(inStatus.z == -1) {
+            isPixel = true;
+        }
     } else {
         varColor = vec4(paintRainbow(inStatus.w), 1.0);
+        if(inStatus.w == -1) {
+            isPixel = true;
+        }
+    }
+
+    if(isPixel) {
+        ICON_PIXEL_SIZE = vec2(1, 1);
     }
 
     vec4 viewport;
