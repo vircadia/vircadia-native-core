@@ -468,16 +468,16 @@ bool EntityScriptingInterface::setPoints(EntityItemPointer entity, std::function
     return success;
 }
 
-bool EntityScriptingInterface::setPoints(EntityItemPointer entity, std::function<bool(QuadEntityItem&)> actor) {
+bool EntityScriptingInterface::setPoints(EntityItemPointer entity, std::function<bool(PolyLineEntityItem&)> actor) {
     if (!_entityTree) {
         return false;
     }
     
     auto now = usecTimestampNow();
     
-    QuadEntityItem* quadEntity = static_cast<QuadEntityItem*>(entity.get());
+    PolyLineEntityItem* PolyLineEntity = static_cast<PolyLineEntityItem*>(entity.get());
     _entityTree->lockForWrite();
-    bool success = actor(*quadEntity);
+    bool success = actor(*PolyLineEntity);
     entity->setLastEdited(now);
     entity->setLastBroadcast(now);
     _entityTree->unlock();
@@ -527,10 +527,10 @@ bool EntityScriptingInterface::setAllPoints(QUuid entityID, const QVector<glm::v
         });
     }
     
-    if (entityType == EntityTypes::Quad) {
-        return setPoints(entity, [points](QuadEntityItem& quadEntity) -> bool
+    if (entityType == EntityTypes::PolyLine) {
+        return setPoints(entity, [points](PolyLineEntityItem& PolyLineEntity) -> bool
         {
-            return quadEntity.setLinePoints(points);
+            return PolyLineEntity.setLinePoints(points);
         });
     }
 
@@ -552,10 +552,10 @@ bool EntityScriptingInterface::appendPoint(QUuid entityID, const glm::vec3& poin
         });
     }
     
-    if (entityType == EntityTypes::Quad) {
-        return setPoints(entity, [point](QuadEntityItem& quadEntity) -> bool
+    if (entityType == EntityTypes::PolyLine) {
+        return setPoints(entity, [point](PolyLineEntityItem& PolyLineEntity) -> bool
         {
-            return quadEntity.appendPoint(point);
+            return PolyLineEntity.appendPoint(point);
         });
     }
     

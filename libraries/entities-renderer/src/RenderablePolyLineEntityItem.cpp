@@ -1,5 +1,5 @@
 //
-//  RenderableQuadEntityItem.cpp
+//  RenderablePolyLineEntityItem.cpp
 //  libraries/entities-renderer/src/
 //
 //  Created by Eric Levin on 6/22/15
@@ -17,7 +17,7 @@
 #include <DeferredLightingEffect.h>
 #include <PerfStat.h>
 
-#include "RenderableQuadEntityItem.h"
+#include "RenderablePolyLineEntityItem.h"
 
 
 
@@ -25,20 +25,20 @@
 
 
 
-EntityItemPointer RenderableQuadEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new RenderableQuadEntityItem(entityID, properties));
+EntityItemPointer RenderablePolyLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return EntityItemPointer(new RenderablePolyLineEntityItem(entityID, properties));
 }
 
-RenderableQuadEntityItem::RenderableQuadEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-QuadEntityItem(entityItemID, properties) {
+RenderablePolyLineEntityItem::RenderablePolyLineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+PolyLineEntityItem(entityItemID, properties) {
     _numVertices = 0;
 
 }
 
-gpu::PipelinePointer RenderableQuadEntityItem::_pipeline;
-gpu::Stream::FormatPointer RenderableQuadEntityItem::_format;
+gpu::PipelinePointer RenderablePolyLineEntityItem::_pipeline;
+gpu::Stream::FormatPointer RenderablePolyLineEntityItem::_format;
 
-void RenderableQuadEntityItem::createPipeline() {
+void RenderablePolyLineEntityItem::createPipeline() {
     static const int NORMAL_OFFSET = 12;
     static const int COLOR_OFFSET = 24;
     _format.reset(new gpu::Stream::Format());
@@ -71,7 +71,7 @@ int generateColor() {
     ((int(255.0f) & 0xFF) << 24);
 }
 
-void RenderableQuadEntityItem::updateGeometry() {
+void RenderablePolyLineEntityItem::updateGeometry() {
     QReadLocker lock(&_quadReadWriteLock);
     int compactColor = generateColor();
     _numVertices = 0;
@@ -98,7 +98,7 @@ void RenderableQuadEntityItem::updateGeometry() {
 
 
 
-void RenderableQuadEntityItem::render(RenderArgs* args) {
+void RenderablePolyLineEntityItem::render(RenderArgs* args) {
     if (_points.size() < 2  || _vertices.size() != _normals.size() * 2) {
         return;
     }
@@ -107,8 +107,8 @@ void RenderableQuadEntityItem::render(RenderArgs* args) {
         createPipeline();
     }
  
-    PerformanceTimer perfTimer("RenderableQuadEntityItem::render");
-    Q_ASSERT(getType() == EntityTypes::Quad);
+    PerformanceTimer perfTimer("RenderablePolyLineEntityItem::render");
+    Q_ASSERT(getType() == EntityTypes::PolyLine);
     
     Q_ASSERT(args->_batch);
     if (_pointsChanged) {

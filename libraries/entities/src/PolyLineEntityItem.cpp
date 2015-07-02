@@ -1,5 +1,5 @@
 //
-//  QuadEntityItem.cpp
+//  PolyLineEntityItem.cpp
 //  libraries/entities/src
 //
 //  Created by Eric Levin on 6/22/15.
@@ -14,7 +14,7 @@
 
 #include <ByteCountCoding.h>
 
-#include "QuadEntityItem.h"
+#include "PolyLineEntityItem.h"
 #include "EntityTree.h"
 #include "EntitiesLogging.h"
 #include "EntityTreeElement.h"
@@ -22,16 +22,16 @@
 
 
 
-const float QuadEntityItem::DEFAULT_LINE_WIDTH = 0.1f;
-const int QuadEntityItem::MAX_POINTS_PER_LINE = 70;
+const float PolyLineEntityItem::DEFAULT_LINE_WIDTH = 0.1f;
+const int PolyLineEntityItem::MAX_POINTS_PER_LINE = 70;
 
 
-EntityItemPointer QuadEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer result { new QuadEntityItem(entityID, properties) };
+EntityItemPointer PolyLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    EntityItemPointer result { new PolyLineEntityItem(entityID, properties) };
     return result;
 }
 
-QuadEntityItem::QuadEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+PolyLineEntityItem::PolyLineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
 EntityItem(entityItemID) ,
 _lineWidth(DEFAULT_LINE_WIDTH),
 _pointsChanged(true),
@@ -40,12 +40,12 @@ _vertices(QVector<glm::vec3>(0)),
 _normals(QVector<glm::vec3>(0)),
 _strokeWidths(QVector<float>(0))
 {
-    _type = EntityTypes::Quad;
+    _type = EntityTypes::PolyLine;
     _created = properties.getCreated();
     setProperties(properties);
 }
 
-EntityItemProperties QuadEntityItem::getProperties() const {
+EntityItemProperties PolyLineEntityItem::getProperties() const {
     _quadReadWriteLock.lockForWrite();
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
     
@@ -66,7 +66,7 @@ EntityItemProperties QuadEntityItem::getProperties() const {
     return properties;
 }
 
-bool QuadEntityItem::setProperties(const EntityItemProperties& properties) {
+bool PolyLineEntityItem::setProperties(const EntityItemProperties& properties) {
     _quadReadWriteLock.lockForWrite();
     bool somethingChanged = false;
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
@@ -84,7 +84,7 @@ bool QuadEntityItem::setProperties(const EntityItemProperties& properties) {
         if (wantDebug) {
             uint64_t now = usecTimestampNow();
             int elapsed = now - getLastEdited();
-            qCDebug(entities) << "QuadEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
+            qCDebug(entities) << "PolyLineEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
             "now=" << now << " getLastEdited()=" << getLastEdited();
         }
         setLastEdited(properties._lastEdited);
@@ -95,7 +95,7 @@ bool QuadEntityItem::setProperties(const EntityItemProperties& properties) {
     
 }
 
-bool QuadEntityItem::appendPoint(const glm::vec3& point) {
+bool PolyLineEntityItem::appendPoint(const glm::vec3& point) {
     if (_points.size() > MAX_POINTS_PER_LINE - 1) {
         qDebug() << "MAX POINTS REACHED!";
         return false;
@@ -110,12 +110,12 @@ bool QuadEntityItem::appendPoint(const glm::vec3& point) {
     return true;
 }
 
-bool QuadEntityItem::setStrokeWidths(const QVector<float>& strokeWidths ) {
+bool PolyLineEntityItem::setStrokeWidths(const QVector<float>& strokeWidths ) {
     _strokeWidths = strokeWidths;
     return true;
 }
 
-bool QuadEntityItem::setNormals(const QVector<glm::vec3>& normals) {
+bool PolyLineEntityItem::setNormals(const QVector<glm::vec3>& normals) {
     if (_points.size () < 2 || _strokeWidths.size() < 2) {
         return false;
     }
@@ -145,7 +145,7 @@ bool QuadEntityItem::setNormals(const QVector<glm::vec3>& normals) {
     return true;
 }
 
-bool QuadEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
+bool PolyLineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
     if (points.size() > MAX_POINTS_PER_LINE) {
         return false;
     }
@@ -183,7 +183,7 @@ bool QuadEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
     return true;
 }
 
-int QuadEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
+int PolyLineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                      ReadBitstreamToTreeParams& args,
                                                      EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
     _quadReadWriteLock.lockForWrite();
@@ -202,7 +202,7 @@ int QuadEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
 
 
 // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
-EntityPropertyFlags QuadEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
+EntityPropertyFlags PolyLineEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_COLOR;
     requestedProperties += PROP_LINE_WIDTH;
@@ -211,7 +211,7 @@ EntityPropertyFlags QuadEntityItem::getEntityProperties(EncodeBitstreamParams& p
     return requestedProperties;
 }
 
-void QuadEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
+void PolyLineEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                         EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
                                         EntityPropertyFlags& requestedProperties,
                                         EntityPropertyFlags& propertyFlags,
@@ -228,7 +228,7 @@ void QuadEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, getStrokeWidths());
 }
 
-void QuadEntityItem::debugDump() const {
+void PolyLineEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
     qCDebug(entities) << "   QUAD EntityItem id:" << getEntityItemID() << "---------------------------------------------";
     qCDebug(entities) << "               color:" << _color[0] << "," << _color[1] << "," << _color[2];

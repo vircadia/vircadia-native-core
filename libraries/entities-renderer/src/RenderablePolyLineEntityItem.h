@@ -9,21 +9,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_RenderableQuadEntityItem_h
-#define hifi_RenderableQuadEntityItem_h
+#ifndef hifi_RenderablePolyLineEntityItem_h
+#define hifi_RenderablePolyLineEntityItem_h
 
 #include <gpu/Batch.h>
-#include <QuadEntityItem.h>
+#include <PolyLineEntityItem.h>
 #include "RenderableDebugableEntityItem.h"
 #include "RenderableEntityItem.h"
 #include <GeometryCache.h>
 #include <QReadWriteLock>
 
-class RenderableQuadEntityItem : public QuadEntityItem {
+class RenderablePolyLineEntityItem : public PolyLineEntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     static void createPipeline();
-    RenderableQuadEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    RenderablePolyLineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     
     virtual void render(RenderArgs* args);
     
@@ -40,4 +40,4 @@ protected:
 };
 
 
-#endif // hifi_RenderableQuadEntityItem_h
+#endif // hifi_RenderablePolyLineEntityItem_h

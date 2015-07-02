@@ -1,5 +1,5 @@
 //
-//  QuadEntityItem.h
+//  PolyLineEntityItem.h
 //  libraries/entities/src
 //
 //  Created by Seth Alves on 5/11/15.
@@ -9,16 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_QuadEntityItem_h
-#define hifi_QuadEntityItem_h
+#ifndef hifi_PolyLineEntityItem_h
+#define hifi_PolyLineEntityItem_h
 
 #include "EntityItem.h" 
 
-class QuadEntityItem : public EntityItem {
+class PolyLineEntityItem : public EntityItem {
  public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    QuadEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    PolyLineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     
     ALLOW_INSTANTIATION // This class can be instantiated
     
@@ -67,7 +67,7 @@ class QuadEntityItem : public EntityItem {
     
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_LINE; }
 
-    // never have a ray intersection pick a QuadEntityItem.
+    // never have a ray intersection pick a PolyLineEntityItem.
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
@@ -88,4 +88,4 @@ class QuadEntityItem : public EntityItem {
     mutable QReadWriteLock _quadReadWriteLock;
 };
 
-#endif // hifi_QuadEntityItem_h
+#endif // hifi_PolyLineEntityItem_h
