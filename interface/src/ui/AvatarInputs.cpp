@@ -84,7 +84,7 @@ void AvatarInputs::update() {
     } else {
         audioLevel = (log2loudness - (LOG2_LOUDNESS_FLOOR - 1.0f)) * METER_LOUDNESS_SCALE;
     }
-    if (audioLevel > 1.0) {
+    if (audioLevel > 1.0f) {
         audioLevel = 1.0;
     }
     AI_UPDATE_FLOAT(audioLevel, audioLevel, 0.01);

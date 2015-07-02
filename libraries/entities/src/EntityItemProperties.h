@@ -34,6 +34,7 @@
 #include "EntityItemPropertiesMacros.h"
 #include "EntityTypes.h"
 #include "EntityPropertyFlags.h"
+#include "SimulationOwner.h"
 #include "SkyboxPropertyGroup.h"
 #include "StagePropertyGroup.h"
 
@@ -120,7 +121,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_TEXTURES, Textures, textures, QString);
     DEFINE_PROPERTY_REF_WITH_SETTER_AND_GETTER(PROP_ANIMATION_SETTINGS, AnimationSettings, animationSettings, QString);
     DEFINE_PROPERTY_REF(PROP_USER_DATA, UserData, userData, QString);
-    DEFINE_PROPERTY_REF(PROP_SIMULATOR_ID, SimulatorID, simulatorID, QUuid);
+    DEFINE_PROPERTY_REF(PROP_SIMULATION_OWNER, SimulationOwner, simulationOwner, SimulationOwner);
     DEFINE_PROPERTY_REF(PROP_TEXT, Text, text, QString);
     DEFINE_PROPERTY(PROP_LINE_HEIGHT, LineHeight, lineHeight, float);
     DEFINE_PROPERTY_REF(PROP_TEXT_COLOR, TextColor, textColor, xColor);
@@ -152,7 +153,8 @@ public:
     DEFINE_PROPERTY_REF(PROP_HREF, Href, href, QString);
     DEFINE_PROPERTY_REF(PROP_DESCRIPTION, Description, description, QString);
     DEFINE_PROPERTY(PROP_FACE_CAMERA, FaceCamera, faceCamera, bool);
-    
+    DEFINE_PROPERTY_REF(PROP_ACTION_DATA, ActionData, actionData, QByteArray);
+
     static QString getBackgroundModeString(BackgroundMode mode);
 
 
@@ -196,7 +198,7 @@ public:
     const QStringList& getTextureNames() const { return _textureNames; }
     void setTextureNames(const QStringList& value) { _textureNames = value; }
 
-    QString getSimulatorIDAsString() const { return _simulatorID.toString().mid(1,36).toUpper(); }
+    QString getSimulatorIDAsString() const { return _simulationOwner.getID().toString().mid(1,36).toUpper(); }
 
     void setVoxelDataDirty() { _voxelDataChanged = true; }
     
@@ -205,6 +207,14 @@ public:
     void setCreated(QDateTime& v);
 
     bool hasTerseUpdateChanges() const;
+    bool hasMiscPhysicsChanges() const;
+
+    void clearSimulationOwner();
+    void setSimulationOwner(const QUuid& id, uint8_t priority);
+    void setSimulationOwner(const QByteArray& data);
+    void promoteSimulationPriority(quint8 priority) { _simulationOwner.promotePriority(priority); }
+
+    void setActionDataDirty() { _actionDataChanged = true; }
 
 private:
     QUuid _id;
@@ -284,7 +294,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Locked, locked, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Textures, textures, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, UserData, userData, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, SimulatorID, simulatorID, QUuid());
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, SimulationOwner, simulationOwner, SimulationOwner());
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Text, text, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, LineHeight, lineHeight, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, TextColor, textColor, "");
@@ -304,7 +314,8 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelSurfaceStyle, voxelSurfaceStyle, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Href, href, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Description, description, "");
-    
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ActionData, actionData, "");
+
     properties.getStage().debugDump();
     properties.getAtmosphere().debugDump();
     properties.getSkybox().debugDump();

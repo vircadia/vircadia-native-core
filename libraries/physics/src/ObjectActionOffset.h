@@ -19,13 +19,21 @@
 
 class ObjectActionOffset : public ObjectAction {
 public:
-    ObjectActionOffset(QUuid id, EntityItemPointer ownerEntity);
+    ObjectActionOffset(EntityActionType type, QUuid id, EntityItemPointer ownerEntity);
     virtual ~ObjectActionOffset();
 
+    virtual EntityActionType getType() { return ACTION_TYPE_OFFSET; }
+
     virtual bool updateArguments(QVariantMap arguments);
+    virtual QVariantMap getArguments();
+
     virtual void updateActionWorker(float deltaTimeStep);
 
-private:
+    virtual QByteArray serialize();
+    virtual void deserialize(QByteArray serializedArguments);
+
+ private:
+    static const uint16_t offsetVersion;
     glm::vec3 _pointToOffsetFrom;
     float _linearDistance;
     float _linearTimeScale;

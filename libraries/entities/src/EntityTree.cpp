@@ -23,6 +23,7 @@
 #include "QVariantGLM.h"
 #include "EntitiesLogging.h"
 #include "RecurseOctreeToMapOperator.h"
+#include "LogHandler.h"
 
 
 const quint64 SIMULATOR_CHANGE_LOCKOUT_PERIOD = (quint64)(0.2f * USECS_PER_SECOND);
@@ -153,23 +154,34 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
     } else {
         if (getIsServer()) {
             bool simulationBlocked = !entity->getSimulatorID().isNull();
-            if (properties.simulatorIDChanged()) {
-                QUuid submittedID = properties.getSimulatorID();
+            if (properties.simulationOwnerChanged()) {
+                QUuid submittedID = properties.getSimulationOwner().getID();
                 // a legit interface will only submit their own ID or NULL:
                 if (submittedID.isNull()) {
                     if (entity->getSimulatorID() == senderID) {
                         // We only allow the simulation owner to clear their own simulationID's.
                         simulationBlocked = false;
+                        properties.clearSimulationOwner(); // clear everything
                     }
                     // else: We assume the sender really did believe it was the simulation owner when it sent
                 } else if (submittedID == senderID) {
                     // the sender is trying to take or continue ownership
-                    if (entity->getSimulatorID().isNull() || entity->getSimulatorID() == senderID) {
+                    if (entity->getSimulatorID().isNull()) {
+                        // the sender it taking ownership
+                        properties.promoteSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
+                        simulationBlocked = false;
+                    } else if (entity->getSimulatorID() == senderID) {
+                        // the sender is asserting ownership
                         simulationBlocked = false;
                     } else {
                         // the sender is trying to steal ownership from another simulator
-                        // so we apply the ownership change filter
-                        if (usecTimestampNow() - entity->getSimulatorIDChangedTime() > SIMULATOR_CHANGE_LOCKOUT_PERIOD) {
+                        // so we apply the rules for ownership change:
+                        // (1) higher priority wins
+                        // (2) equal priority wins if ownership filter has expired except...
+                        uint8_t oldPriority = entity->getSimulationPriority();
+                        uint8_t newPriority = properties.getSimulationOwner().getPriority();
+                        if (newPriority > oldPriority || 
+                             (newPriority == oldPriority && properties.getSimulationOwner().hasExpired())) {
                             simulationBlocked = false;
                         }
                     }
@@ -177,12 +189,17 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                     // the entire update is suspect --> ignore it
                     return false;
                 }
+            } else {
+                simulationBlocked = senderID != entity->getSimulatorID();
             }
             if (simulationBlocked) {
-                // squash the physics-related changes.
-                properties.setSimulatorIDChanged(false);
+                // squash ownership and physics-related changes.
+                properties.setSimulationOwnerChanged(false);
                 properties.setPositionChanged(false);
                 properties.setRotationChanged(false);
+                properties.setVelocityChanged(false);
+                properties.setAngularVelocityChanged(false);
+                properties.setAccelerationChanged(false);
             }
         }
         // else client accepts what the server says
@@ -639,6 +656,8 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                                           << "] attempted to add an entity.";
                     }
                 } else {
+                    static QString repeatedMessage =
+                        LogHandler::getInstance().addRepeatedMessageRegex("^Add or Edit failed.*");
                     qCDebug(entities) << "Add or Edit failed." << packetType << existingEntity.get();
                 }
             }
