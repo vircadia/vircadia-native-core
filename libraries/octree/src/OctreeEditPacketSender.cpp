@@ -159,7 +159,7 @@ void OctreeEditPacketSender::processPreServerExistsPackets() {
     }
 }
 
-void OctreeEditPacketSender::queuePendingPacketToNodes(PacketType type, unsigned char* buffer,
+void OctreeEditPacketSender::queuePendingPacketToNodes (PacketType::Value type, unsigned char* buffer,
                                                        size_t length, qint64 satoshiCost) {
     // If we're asked to save messages while waiting for voxel servers to arrive, then do so...
 
@@ -213,7 +213,7 @@ void OctreeEditPacketSender::queuePacketToNodes(unsigned char* buffer, size_t le
 
 
 // NOTE: editPacketBuffer - is JUST the octcode/color and does not contain the packet header!
-void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned char* editPacketBuffer,
+void OctreeEditPacketSender::queueOctreeEditMessage (PacketType::Value type, unsigned char* editPacketBuffer,
                                                     size_t length, qint64 satoshiCost) {
 
     if (!_shouldSend) {

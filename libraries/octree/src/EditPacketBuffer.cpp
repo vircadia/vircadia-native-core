@@ -20,7 +20,7 @@ EditPacketBuffer::EditPacketBuffer() :
     
 }
 
-EditPacketBuffer::EditPacketBuffer(PacketType type, unsigned char* buffer, size_t length, qint64 satoshiCost, QUuid nodeUUID) :
+EditPacketBuffer::EditPacketBuffer (PacketType::Value type, unsigned char* buffer, size_t length, qint64 satoshiCost, QUuid nodeUUID) :
     _nodeUUID(nodeUUID),
     _currentType(type),
     _currentSize(length),

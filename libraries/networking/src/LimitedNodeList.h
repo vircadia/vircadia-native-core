@@ -118,7 +118,7 @@ public:
 
     bool packetVersionAndHashMatch(const QByteArray& packet);
 
-    // QByteArray byteArrayWithPopulatedHeader(PacketType packetType)
+    // QByteArray byteArrayWithPopulatedHeader (PacketType::Value packetType)
     //     { return byteArrayWithUUIDPopulatedHeader(packetType, _sessionUUID); }
     // int populatePacketHeader(QByteArray& packet, PacketType::Value packetType)
     //     { return populatePacketHeaderWithUUID(packet, packetType, _sessionUUID); }
@@ -274,7 +274,7 @@ protected:
 
     void stopInitialSTUNUpdate(bool success);
 
-    void sendPacketToIceServer(PacketType packetType, const HifiSockAddr& iceServerSockAddr, const QUuid& headerID,
+    void sendPacketToIceServer (PacketType::Value packetType, const HifiSockAddr& iceServerSockAddr, const QUuid& headerID,
                                const QUuid& peerRequestID = QUuid());
 
     QUuid _sessionUUID;

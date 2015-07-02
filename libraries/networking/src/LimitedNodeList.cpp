@@ -835,7 +835,7 @@ void LimitedNodeList::sendPeerQueryToIceServer(const HifiSockAddr& iceServerSock
     sendPacketToIceServer(PacketTypeIceServerQuery, iceServerSockAddr, clientID, peerID);
 }
 
-void LimitedNodeList::sendPacketToIceServer(PacketType packetType, const HifiSockAddr& iceServerSockAddr,
+void LimitedNodeList::sendPacketToIceServer (PacketType::Value packetType, const HifiSockAddr& iceServerSockAddr,
                                             const QUuid& headerID, const QUuid& peerID) {
 
     QByteArray iceRequestByteArray = byteArrayWithUUIDPopulatedHeader(packetType, headerID);

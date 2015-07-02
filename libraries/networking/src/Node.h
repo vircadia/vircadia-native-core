@@ -67,7 +67,7 @@ public:
 
     void setLastSequenceNumberForPacketType(PacketSequenceNumber sequenceNumber, PacketType::Value packetType)
         { _lastSequenceNumbers[packetType] = sequenceNumber; }
-    PacketSequenceNumber getLastSequenceNumberForPacketType(PacketType packetType) const;
+    PacketSequenceNumber getLastSequenceNumberForPacketType(PacketType::Value packetType) const;
 
     friend QDataStream& operator<<(QDataStream& out, const Node& node);
     friend QDataStream& operator>>(QDataStream& in, Node& node);
