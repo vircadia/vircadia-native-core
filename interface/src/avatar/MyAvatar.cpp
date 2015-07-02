@@ -892,6 +892,12 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 _targetAvatarPosition = avatarPointer->getPosition();
                 smallestAngleTo = angleTo;
             }
+            if (Application::getInstance()->isLookingAtMyAvatar(avatar)) {
+                // Alter their gaze to look directly at my camera; this looks more natural than looking at my avatar's face
+                avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition());
+            } else {
+                avatar->getHead()->clearCorrectedLookAtPosition();
+            }
         }
     }
     auto avatarPointer = _lookAtTargetAvatar.lock();

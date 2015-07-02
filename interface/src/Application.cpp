@@ -2248,6 +2248,15 @@ void Application::shrinkMirrorView() {
 
 const float HEAD_SPHERE_RADIUS = 0.1f;
 
+bool Application::isLookingAtMyAvatar(Avatar* avatar) {
+    glm::vec3 theirLookAt = avatar->getHead()->getLookAtPosition();
+    glm::vec3 myEyePosition = _myAvatar->getHead()->getEyePosition();
+    if (pointInSphere(theirLookAt, myEyePosition, HEAD_SPHERE_RADIUS * _myAvatar->getScale())) {
+        return true;
+    }
+    return false;
+}
+
 void Application::updateLOD() {
     PerformanceTimer perfTimer("LOD");
     // adjust it unless we were asked to disable this feature, or if we're currently in throttleRendering mode

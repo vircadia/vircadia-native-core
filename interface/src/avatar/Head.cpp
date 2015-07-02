@@ -258,7 +258,7 @@ void Head::calculateMouthShapes() {
 void Head::applyEyelidOffset(glm::quat headOrientation) {
     // Adjusts the eyelid blendshape coefficients so that the eyelid follows the iris as the head pitches.
 
-    glm::quat eyeRotation = rotationBetween(headOrientation * IDENTITY_FRONT, getLookAtPosition() - _eyePosition);
+    glm::quat eyeRotation = rotationBetween(headOrientation * IDENTITY_FRONT, getCorrectedLookAtPosition() - _eyePosition);
     eyeRotation = eyeRotation * glm::angleAxis(safeEulerAngles(headOrientation).y, IDENTITY_UP);  // Rotation w.r.t. head
     float eyePitch = safeEulerAngles(eyeRotation).x;
 
@@ -295,8 +295,8 @@ void Head::relaxLean(float deltaTime) {
 }
 
 void Head::render(RenderArgs* renderArgs, float alpha, ViewFrustum* renderFrustum, bool postLighting) {
-    if (_renderLookatVectors) {
-            renderLookatVectors(renderArgs, _leftEyePosition, _rightEyePosition, getLookAtPosition());    
+    if (_renderLookatVectors && _isLookingAtMe) {
+        renderLookatVectors(renderArgs, _leftEyePosition, _rightEyePosition, getCorrectedLookAtPosition());
     }
 }
 
@@ -313,6 +313,19 @@ glm::quat Head::getFinalOrientationInWorldFrame() const {
 
 glm::quat Head::getFinalOrientationInLocalFrame() const {
     return glm::quat(glm::radians(glm::vec3(getFinalPitch(), getFinalYaw(), getFinalRoll() )));
+}
+
+glm::vec3 Head::getCorrectedLookAtPosition() {
+    if (_isLookingAtMe) {
+        return _correctedLookAtPosition;
+    } else {
+        return getLookAtPosition();
+    }
+}
+
+void Head::setCorrectedLookAtPosition(glm::vec3 correctedLookAtPosition) {
+    _isLookingAtMe = true;
+    _correctedLookAtPosition = correctedLookAtPosition;
 }
 
 glm::quat Head::getCameraOrientation() const {
