@@ -55,17 +55,16 @@ void Sphere3DOverlay::render(RenderArgs* args) {
             glower = new Glower(glowLevel);
         }
 
-        glPushMatrix();
-            glTranslatef(position.x, position.y, position.z);
-            glm::vec3 axis = glm::axis(rotation);
-            glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-            glPushMatrix();
-                glm::vec3 positionToCenter = center - position;
-                glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-                glScalef(dimensions.x, dimensions.y, dimensions.z);
-                DependencyManager::get<GeometryCache>()->renderSphere(1.0f, SLICES, SLICES, sphereColor, _isSolid);
-            glPopMatrix();
-        glPopMatrix();
+        Transform transform = Transform();
+        transform.setTranslation(position);
+        glm::vec3 axis = glm::axis(rotation);
+        transform.setRotation(glm::angleAxis(glm::angle(rotation), axis));
+    
+        glm::vec3 positionToCenter = center - position;
+        transform.setTranslation(positionToCenter);
+        transform.setScale(dimensions);
+        DependencyManager::get<GeometryCache>()->renderSphere(*batch, 1.0f, SLICES, SLICES, sphereColor, _isSolid);
+  
         
         if (glower) {
             delete glower;
