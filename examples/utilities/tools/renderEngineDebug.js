@@ -66,6 +66,12 @@ panel.newSlider("Max Drawn Overlay3Ds", -1, 100,
     function(value) { return (value); }
 );
 
+panel.newCheckbox("Display status",  
+    function(value) { Scene.setEngineDisplayItemStatus(value); },
+    function() { return Scene.doEngineDisplayItemStatus(); },
+    function(value) { return (value); }
+);
+
 var tickTackPeriod = 500;
 
 function updateCounters() {

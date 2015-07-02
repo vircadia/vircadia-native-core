@@ -229,7 +229,25 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             render::PendingChanges pendingChanges;
             if (_model->needsFixupInScene()) {
                 _model->removeFromScene(scene, pendingChanges);
-                _model->addToScene(scene, pendingChanges);
+                
+                
+                render::Item::Status::Getter statusGetter = [this] () -> render::Item::Status::Value {
+                        quint64 now = usecTimestampNow();
+            /*        if (now - entity->getLastEditedFromRemote() < 0.1f * USECS_PER_SECOND) {
+                       return  glm::vec4 redColor(1.0f, 0.0f, 0.0f, 1.0f);
+                        renderBoundingBox(entity, args, 0.16f, redColor);
+                    }
+                    */
+                    /*if (now - this->getLastBroadcast() < 0.2f * USECS_PER_SECOND) {
+                        return 256;
+                    }
+                    return 0;*/
+                    static int i = 0;
+                    return (i++)%256;
+
+                };
+
+                _model->addToScene(scene, pendingChanges, statusGetter);
             }
             scene->enqueuePendingChanges(pendingChanges);
 

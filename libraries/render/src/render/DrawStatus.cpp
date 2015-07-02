@@ -116,12 +116,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
                     (*itemAABox).setBox(item.bounds.getCorner(), 0.1f);
                 }
                 auto& itemScene = scene->getItem(item.id);
-                auto& status = itemScene.getStatus();
-                if (status) {
-                    status->getValue((*itemStatus));
-                } else {
-                    (*itemStatus) = glm::vec4(-1.0f);
-                }
+                (*itemStatus) = itemScene.getStatusValues();
 
                 nbItems++;
                 itemAABox++;

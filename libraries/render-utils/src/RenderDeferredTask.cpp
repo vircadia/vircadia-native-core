@@ -68,7 +68,11 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _jobs.push_back(Job(new CullItems::JobModel("CullTransparent", _jobs.back().getOutput())));
     _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortTransparent", _jobs.back().getOutput(), DepthSortItems(false))));
     _jobs.push_back(Job(new DrawTransparentDeferred::JobModel("TransparentDeferred", _jobs.back().getOutput())));
+    
     _jobs.push_back(Job(new render::DrawStatus::JobModel("DrawStatus", renderedOpaques)));
+    _jobs.back().setEnabled(false);
+    _drawStatusJobIndex = _jobs.size() - 1;
+
     _jobs.push_back(Job(new DrawOverlay3D::JobModel("DrawOverlay3D")));
     _jobs.push_back(Job(new ResetGLState::JobModel()));
 }
@@ -88,6 +92,9 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     if (!(renderContext->args && renderContext->args->_viewFrustum)) {
         return;
     }
+
+    // Make sure we turn the displayItemStatus on/off
+    setDrawItemStatus(renderContext->_drawItemStatus);
 
     renderContext->args->_context->syncCache();
 

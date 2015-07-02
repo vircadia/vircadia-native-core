@@ -53,6 +53,15 @@ void ItemBucketMap::allocateStandardOpaqueTranparentBuckets() {
     (*this)[ItemFilter::Builder::transparentShape().withLayered()];
 }
 
+void Item::Status::getValues(glm::vec4& values) {
+    for (int i = 0; i < values.length(); i++) {
+        if (i < _values.size()) {
+            values[i] = _values[i]() / 256.0f;
+        } else {
+            values[i] = -1.0f;
+        }
+    }
+}
 
 void Item::resetPayload(const PayloadPointer& payload) {
     if (!payload) {
