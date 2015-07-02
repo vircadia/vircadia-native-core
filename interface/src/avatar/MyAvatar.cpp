@@ -880,7 +880,6 @@ void MyAvatar::updateLookAtTargetAvatar() {
     const float KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR = 1.3f;
     const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;
 
-    int howManyLookingAtMe = 0;
     foreach (const AvatarSharedPointer& avatarPointer, DependencyManager::get<AvatarManager>()->getAvatarHash()) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.get());
         bool isCurrentTarget = avatar->getIsLookAtTarget();
@@ -892,21 +891,6 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 _lookAtTargetAvatar = avatarPointer;
                 _targetAvatarPosition = avatarPointer->getPosition();
                 smallestAngleTo = angleTo;
-            }
-            //  Check if this avatar is looking at me, and fix their gaze on my camera if so
-            if (Application::getInstance()->isLookingAtMyAvatar(avatar)) {
-                howManyLookingAtMe++;
-                //  Have that avatar look directly at my camera
-                //  Philip TODO: correct to look at left/right eye
-                if (qApp->isHMDMode()) {
-                    avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition());
-                    // FIXME what is the point of this?
-                    // avatar->getHead()->setCorrectedLookAtPosition(OculusManager::getLeftEyePosition());
-                } else {
-                    avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition());
-                }
-            } else {
-                avatar->getHead()->clearCorrectedLookAtPosition();
             }
         }
     }

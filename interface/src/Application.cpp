@@ -2294,22 +2294,34 @@ void Application::updateMyAvatarLookAtPosition() {
         AvatarSharedPointer lookingAt = _myAvatar->getLookAtTargetAvatar().lock();
         if (lookingAt && _myAvatar != lookingAt.get()) {
             isLookingAtSomeone = true;
+            Head* lookingAtHead = static_cast<Avatar*>(lookingAt.get())->getHead();
+
             //  If I am looking at someone else, look directly at one of their eyes
             if (tracker && !tracker->isMuted()) {
                 //  If a face tracker is active, look at the eye for the side my gaze is biased toward
                 if (tracker->getEstimatedEyeYaw() > _myAvatar->getHead()->getFinalYaw()) {
-                    // Look at their right eye
-                    lookAtSpot = static_cast<Avatar*>(lookingAt.get())->getHead()->getRightEyePosition();
+                    lookAtSpot = lookingAtHead->getRightEyePosition();
                 } else {
-                    // Look at their left eye
-                    lookAtSpot = static_cast<Avatar*>(lookingAt.get())->getHead()->getLeftEyePosition();
+                    lookAtSpot = lookingAtHead->getLeftEyePosition();
                 }
             } else {
-                //  Need to add randomly looking back and forth between left and right eye for case with no tracker
-                if (_myAvatar->isLookingAtLeftEye()) {
-                    lookAtSpot = static_cast<Avatar*>(lookingAt.get())->getHead()->getLeftEyePosition();
+
+                const float MAXIMUM_FACE_ANGLE = 65.0f * RADIANS_PER_DEGREE;
+                glm::vec3 lookingAtFaceOrientation = lookingAtHead->getFinalOrientationInWorldFrame() * IDENTITY_FRONT;
+                glm::vec3 fromLookingAtToMe = glm::normalize(_myAvatar->getHead()->getEyePosition()
+                    - lookingAtHead->getEyePosition());
+                float faceAngle = glm::angle(lookingAtFaceOrientation, fromLookingAtToMe);
+
+                if (faceAngle < MAXIMUM_FACE_ANGLE) {
+                    // Randomly look back and forth between left and right eyes
+                    if (_myAvatar->isLookingAtLeftEye()) {
+                        lookAtSpot = lookingAtHead->getLeftEyePosition();
+                    } else {
+                        lookAtSpot = lookingAtHead->getRightEyePosition();
+                    }
                 } else {
-                    lookAtSpot = static_cast<Avatar*>(lookingAt.get())->getHead()->getRightEyePosition();
+                    // Just look at their head (mid point between eyes)
+                    lookAtSpot = lookingAtHead->getEyePosition();
                 }
             }
         } else {
