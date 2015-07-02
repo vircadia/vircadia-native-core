@@ -449,26 +449,26 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
                 getHead()->getFaceModel().renderJointCollisionShapes(0.7f);
             }
             if (renderBounding && shouldRenderHead(renderArgs)) {
-                _skeletonModel.renderBoundingCollisionShapes(0.7f);
+                _skeletonModel.renderBoundingCollisionShapes(*renderArgs->_batch, 0.7f);
             }
+        }
 
-            // If this is the avatar being looked at, render a little ball above their head
-            if (_isLookAtTarget && Menu::getInstance()->isOptionChecked(MenuOption::RenderFocusIndicator)) {
-                const float LOOK_AT_INDICATOR_RADIUS = 0.03f;
-                const float LOOK_AT_INDICATOR_OFFSET = 0.22f;
-                const glm::vec4 LOOK_AT_INDICATOR_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
-                glm::vec3 position;
-                if (_displayName.isEmpty() || _displayNameAlpha == 0.0f) {
-                    position = glm::vec3(_position.x, getDisplayNamePosition().y, _position.z);
-                } else {
-                    position = glm::vec3(_position.x, getDisplayNamePosition().y + LOOK_AT_INDICATOR_OFFSET, _position.z);
-                }
-                Transform transform;
-                transform.setTranslation(position);
-                batch.setModelTransform(transform);
-                DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, LOOK_AT_INDICATOR_RADIUS
-                                                                                    , 15, 15, LOOK_AT_INDICATOR_COLOR);
+        // If this is the avatar being looked at, render a little ball above their head
+        if (_isLookAtTarget && Menu::getInstance()->isOptionChecked(MenuOption::RenderFocusIndicator)) {
+            const float LOOK_AT_INDICATOR_RADIUS = 0.03f;
+            const float LOOK_AT_INDICATOR_OFFSET = 0.22f;
+            const glm::vec4 LOOK_AT_INDICATOR_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
+            glm::vec3 position;
+            if (_displayName.isEmpty() || _displayNameAlpha == 0.0f) {
+                position = glm::vec3(_position.x, getDisplayNamePosition().y, _position.z);
+            } else {
+                position = glm::vec3(_position.x, getDisplayNamePosition().y + LOOK_AT_INDICATOR_OFFSET, _position.z);
             }
+            Transform transform;
+            transform.setTranslation(position);
+            batch.setModelTransform(transform);
+            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, LOOK_AT_INDICATOR_RADIUS
+                                                                                , 15, 15, LOOK_AT_INDICATOR_COLOR);
         }
 
         // quick check before falling into the code below:
@@ -694,9 +694,9 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, floa
     const float DESIRED_HIGHT_ON_SCREEN = 20; // In pixels (this is double on retinas)
     
     // Projected point are between -1.0f and 1.0f, hence 0.5f * windowSizeY
-    double pixelHeight = 0.5f * windowSizeY * glm::abs((p1.y / p1.w) - (p0.y / p0.w)); //
+    float pixelHeight = 0.5f * windowSizeY * glm::abs((p1.y / p1.w) - (p0.y / p0.w)); //
     // Handles pixel density (especially for macs retina displays)
-    double devicePixelRatio = qApp->getDevicePixelRatio() * qApp->getRenderResolutionScale(); // pixels / unit
+    float devicePixelRatio = (float)qApp->getDevicePixelRatio() * qApp->getRenderResolutionScale(); // pixels / unit
     
     // Compute correct scale to apply
     float scale = DESIRED_HIGHT_ON_SCREEN / (fontSize * pixelHeight) * devicePixelRatio;
@@ -708,9 +708,10 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, floa
     glm::vec3 worldOffset = glm::vec3(screenOffset.x, screenOffset.y, 0.0f) / (float)pixelHeight;
     
     // Compute orientation
-    glm::vec3 eulerAngles = ::safeEulerAngles(frustum.getOrientation());
-    eulerAngles.z = 0.0f; // Cancel roll
-    glm::quat orientation(eulerAngles); // back to quaternions
+    glm::vec3 dPosition = frustum.getPosition() - getPosition();
+    // If x and z are 0, atan(x, z) is undefined, so default to 0 degrees
+    float yawRotation = dPosition.x == 0.0f && dPosition.z == 0.0f ? 0.0f : glm::atan(dPosition.x, dPosition.z);
+    glm::quat orientation = glm::quat(glm::vec3(0.0f, yawRotation, 0.0f));
     
     // Set transform (The order IS important)
     result.setTranslation(textPosition);
@@ -1010,7 +1011,7 @@ int Avatar::parseDataAtOffset(const QByteArray& packet, int offset) {
 int Avatar::_jointConesID = GeometryCache::UNKNOWN_ID;
 
 // render a makeshift cone section that serves as a body part connecting joint spheres
-void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
+void Avatar::renderJointConnectingCone(gpu::Batch& batch, glm::vec3 position1, glm::vec3 position2,
                                             float radius1, float radius2, const glm::vec4& color) {
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -1057,7 +1058,7 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
         // TODO: this is really inefficient constantly recreating these vertices buffers. It would be
         // better if the avatars cached these buffers for each of the joints they are rendering
         geometryCache->updateVertices(_jointConesID, points, color);
-        geometryCache->renderVertices(gpu::TRIANGLES, _jointConesID);
+        geometryCache->renderVertices(batch, gpu::TRIANGLES, _jointConesID);
     }
 }
 

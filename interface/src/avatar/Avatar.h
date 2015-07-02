@@ -148,7 +148,7 @@ public:
     
     virtual int parseDataAtOffset(const QByteArray& packet, int offset);
 
-    static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, 
+    static void renderJointConnectingCone( gpu::Batch& batch, glm::vec3 position1, glm::vec3 position2,
                                                 float radius1, float radius2, const glm::vec4& color);
 
     virtual void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) { }
