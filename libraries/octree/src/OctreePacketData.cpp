@@ -629,6 +629,7 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVecto
     dataBytes += sizeof(length);
     result.resize(length);
     memcpy(result.data(), dataBytes, length * sizeof(float));
+    return sizeof(uint16_t) + length * sizeof(float);
 }
 
 int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QByteArray& result) { 

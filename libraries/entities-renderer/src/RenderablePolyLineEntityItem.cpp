@@ -20,11 +20,6 @@
 #include "RenderablePolyLineEntityItem.h"
 
 
-
-
-
-
-
 EntityItemPointer RenderablePolyLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return EntityItemPointer(new RenderablePolyLineEntityItem(entityID, properties));
 }
@@ -65,9 +60,9 @@ int generateColor() {
     float c1 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
     float c2 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
     float c3 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-    return ((int(c1 * 255.0f) & 0xFF)) |
-    ((int(c2 * 255.0f) & 0xFF) << 8) |
-    ((int(c3 * 255.0f) & 0xFF) << 16) |
+    return ((int(0.7 * 255.0f) & 0xFF)) |
+    ((int(0.3 * 255.0f) & 0xFF) << 8) |
+    ((int(0.6 * 255.0f) & 0xFF) << 16) |
     ((int(255.0f) & 0xFF) << 24);
 }
 
@@ -78,7 +73,6 @@ void RenderablePolyLineEntityItem::updateGeometry() {
     _verticesBuffer.reset(new gpu::Buffer());
     int vertexIndex = 0;
     for (int i = 0; i < _normals.size(); i++) {
-        compactColor = generateColor();
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
          vertexIndex++;
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
@@ -92,11 +86,7 @@ void RenderablePolyLineEntityItem::updateGeometry() {
     }
     _pointsChanged = false;
     
-
-    
 }
-
-
 
 void RenderablePolyLineEntityItem::render(RenderArgs* args) {
     if (_points.size() < 2  || _vertices.size() != _normals.size() * 2) {
