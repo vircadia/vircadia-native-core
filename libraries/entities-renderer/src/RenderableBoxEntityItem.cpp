@@ -23,7 +23,7 @@
 #include "RenderableDebugableEntityItem.h"
 
 EntityItemPointer RenderableBoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new RenderableBoxEntityItem(entityID, properties));
+    return std::make_shared<RenderableBoxEntityItem>(entityID, properties);
 }
 
 void RenderableBoxEntityItem::render(RenderArgs* args) {

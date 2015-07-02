@@ -62,7 +62,7 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     gpu::Shader::makeProgram(*program, slotBindings);
     gpu::Shader::makeProgram(*programTextured, slotBindings);
     
-    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    auto state = std::make_shared<gpu::State>();
     state->setCullMode(gpu::State::CULL_BACK);
     state->setDepthTest(true, true, gpu::LESS_EQUAL);
     state->setBlendFunction(false,
@@ -70,7 +70,7 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
                             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
     
     
-    gpu::StatePointer stateCullNone = gpu::StatePointer(new gpu::State());
+    auto stateCullNone = std::make_shared<gpu::State>();
     stateCullNone->setCullMode(gpu::State::CULL_NONE);
     stateCullNone->setDepthTest(true, true, gpu::LESS_EQUAL);
     stateCullNone->setBlendFunction(false,
@@ -106,7 +106,7 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
 
     // Allocate a global light representing the Global Directional light casting shadow (the sun) and the ambient light
     _globalLights.push_back(0);
-    _allocatedLights.push_back(model::LightPointer(new model::Light()));
+    _allocatedLights.push_back(std::make_shared<model::Light>());
 
     model::LightPointer lp = _allocatedLights[0];
 
@@ -187,7 +187,7 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
     
     unsigned int lightID = _pointLights.size() + _spotLights.size() + _globalLights.size();
     if (lightID >= _allocatedLights.size()) {
-        _allocatedLights.push_back(model::LightPointer(new model::Light()));
+        _allocatedLights.push_back(std::make_shared<model::Light>());
     }
     model::LightPointer lp = _allocatedLights[lightID];
 

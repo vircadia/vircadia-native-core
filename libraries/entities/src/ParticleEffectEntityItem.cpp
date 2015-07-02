@@ -56,7 +56,7 @@ const QString ParticleEffectEntityItem::DEFAULT_TEXTURES = "";
 
 
 EntityItemPointer ParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new ParticleEffectEntityItem(entityID, properties));
+    return std::make_shared<ParticleEffectEntityItem>(entityID, properties);
 }
 
 // our non-pure virtual subclass for now...

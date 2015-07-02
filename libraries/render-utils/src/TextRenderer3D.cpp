@@ -340,7 +340,7 @@ void Font3D::setupGPU() {
         _outlineLoc = program->getUniforms().findLocation("Outline");
         _colorLoc = program->getUniforms().findLocation("Color");
         
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_BACK);
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
         state->setBlendFunction(false,
@@ -356,7 +356,7 @@ void Font3D::setupGPU() {
         assert(sizeof(QuadBuilder) == 4 * sizeof(TextureVertex));
         
         // Setup rendering structures
-        _format.reset(new gpu::Stream::Format());
+        _format = std::make_shared<gpu::Stream::Format>();
         _format->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
         _format->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), OFFSET);
     }
@@ -369,7 +369,7 @@ void Font3D::drawString(gpu::Batch& batch, float x, float y, const QString& str,
     }
     
     if (str != _lastStringRendered || bounds != _lastBounds) {
-        _verticesBuffer.reset(new gpu::Buffer());
+        _verticesBuffer = std::make_shared<gpu::Buffer>();
         _numVertices = 0;
         _lastStringRendered = str;
         _lastBounds = bounds;

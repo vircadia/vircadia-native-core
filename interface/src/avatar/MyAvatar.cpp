@@ -434,7 +434,7 @@ void MyAvatar::startRecording() {
         return;
     }
     if (!_recorder) {
-        _recorder = RecorderPointer(new Recorder(this));
+        _recorder = QSharedPointer<Recorder>::create(this);
     }
     // connect to AudioClient's signal so we get input audio
     auto audioClient = DependencyManager::get<AudioClient>();
@@ -486,7 +486,7 @@ void MyAvatar::loadLastRecording() {
         return;
     }
     if (!_player) {
-        _player = PlayerPointer(new Player(this));
+        _player = QSharedPointer<Player>::create(this);
     }
 
     _player->loadRecording(_recorder->getRecording());

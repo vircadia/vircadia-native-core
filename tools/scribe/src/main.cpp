@@ -31,7 +31,7 @@ int main (int argc, char** argv) {
     bool showParseTree = false;
     bool makeCPlusPlus = false;
 
-    TextTemplate::Config::Pointer config(new TextTemplate::Config());
+    auto config = std::make_shared<TextTemplate::Config>();
 
     enum Mode {
         READY = 0,
@@ -165,7 +165,7 @@ int main (int argc, char** argv) {
         return 0;
     }
 
-    TextTemplate::Pointer scribe(new TextTemplate(srcFilename, config));
+    auto scribe = std::make_shared<TextTemplate>(srcFilename, config);
 
     // ready to parse and generate
     std::ostringstream destStringStream;

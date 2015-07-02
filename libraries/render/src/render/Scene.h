@@ -398,7 +398,7 @@ public:
     void removeItem(ItemID id);
 
     template <class T> void updateItem(ItemID id, std::function<void(T&)> func) {
-        updateItem(id, UpdateFunctorPointer(new UpdateFunctor<T>(func)));
+        updateItem(id, std::make_shared<UpdateFunctor<T>>(func));
     }
 
     void updateItem(ItemID id, const UpdateFunctorPointer& functor);

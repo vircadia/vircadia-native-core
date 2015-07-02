@@ -23,7 +23,7 @@
 const QString WebEntityItem::DEFAULT_SOURCE_URL("http://www.google.com");
 
 EntityItemPointer WebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new WebEntityItem(entityID, properties));
+    return std::make_shared<WebEntityItem>(entityID, properties);
 }
 
 WebEntityItem::WebEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :

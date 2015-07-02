@@ -216,7 +216,7 @@ static QHash<QUuid, BandwidthRecorderPtr> PEER_BANDWIDTH;
 
 BandwidthRecorder& getBandwidthRecorder(const QUuid & uuid) {
     if (!PEER_BANDWIDTH.count(uuid)) {
-        PEER_BANDWIDTH.insert(uuid, BandwidthRecorderPtr(new BandwidthRecorder()));
+        PEER_BANDWIDTH.insert(uuid, QSharedPointer<BandwidthRecorder>::create());
     }
     return *PEER_BANDWIDTH[uuid].data();
 }

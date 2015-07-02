@@ -23,7 +23,7 @@
 #include "RenderableDebugableEntityItem.h"
 
 EntityItemPointer RenderableSphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new RenderableSphereEntityItem(entityID, properties));
+    return std::make_shared<RenderableSphereEntityItem>(entityID, properties);
 }
 
 void RenderableSphereEntityItem::render(RenderArgs* args) {

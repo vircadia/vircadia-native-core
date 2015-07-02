@@ -156,8 +156,7 @@ protected:
     mutable Flags _flags;
 
     // Cached transform
-    // TODO: replace this auto ptr by a "unique ptr" as soon as we are compiling in C++11
-    mutable std::auto_ptr<Mat4> _matrix;
+    mutable std::unique_ptr<Mat4> _matrix;
 
     bool isCacheInvalid() const { return _flags[FLAG_CACHE_INVALID]; }
     void validCache() const { _flags.set(FLAG_CACHE_INVALID, false); }

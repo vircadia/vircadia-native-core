@@ -620,8 +620,8 @@ void ApplicationCompositor::buildHemiVertices(
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
-    _hemiVertices = gpu::BufferPointer(new gpu::Buffer());
-    _hemiIndices = gpu::BufferPointer(new gpu::Buffer());
+    _hemiVertices = std::make_shared<gpu::Buffer>();
+    _hemiIndices = std::make_shared<gpu::Buffer>();
 
 
     if (fov >= PI) {
@@ -683,7 +683,7 @@ void ApplicationCompositor::drawSphereSection(gpu::Batch& batch) {
     static const int VERTEX_DATA_SLOT = 0;
     static const int TEXTURE_DATA_SLOT = 1;
     static const int COLOR_DATA_SLOT = 2;
-    gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format()); // 1 for everyone
+    auto streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
     streamFormat->setAttribute(gpu::Stream::POSITION, VERTEX_DATA_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     streamFormat->setAttribute(gpu::Stream::TEXCOORD, TEXTURE_DATA_SLOT, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
     streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_DATA_SLOT, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::RGBA));
