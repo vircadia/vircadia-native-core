@@ -11,6 +11,8 @@
 
 #include <QTimer>
 
+#if (OVR_MAJOR_VERSION == 6)
+
 class OffscreenGlCanvas;
 struct SwapFramebufferWrapper;
 struct MirrorFramebufferWrapper;
@@ -18,7 +20,7 @@ struct MirrorFramebufferWrapper;
 using SwapFboPtr = QSharedPointer<SwapFramebufferWrapper>;
 using MirrorFboPtr = QSharedPointer<MirrorFramebufferWrapper>;
 
-class OculusWin32DisplayPlugin : public OculusBaseDisplayPlugin {
+class Oculus_0_6_DisplayPlugin : public OculusBaseDisplayPlugin {
 public:
     virtual bool isSupported() const override;
     virtual const QString & getName() const override;
@@ -45,3 +47,5 @@ private:
     MirrorFboPtr        _mirrorFbo;
     ovrLayerEyeFov      _sceneLayer;
 };
+
+#endif

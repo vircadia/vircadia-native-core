@@ -4844,6 +4844,8 @@ const DisplayPlugin * Application::getActiveDisplayPlugin() const {
     return ((Application*)this)->getActiveDisplayPlugin();
 }
 
+static QVector<QPair<QString, QString>> _currentDisplayPluginActions;
+
 void Application::updateDisplayMode() {
     auto menu = Menu::getInstance();
     auto displayPlugins = getDisplayPlugins();
@@ -4865,6 +4867,14 @@ void Application::updateDisplayMode() {
         if (oldDisplayPlugin) {
             oldDisplayPlugin->removeEventFilter(offscreenUi.data());
             oldDisplayPlugin->removeEventFilter(qApp);
+        }
+
+        if (!_currentDisplayPluginActions.isEmpty()) {
+            auto menu = Menu::getInstance();
+            foreach(auto itemInfo, _currentDisplayPluginActions) {
+                menu->removeMenuItem(itemInfo.first, itemInfo.second);
+            }
+            _currentDisplayPluginActions.clear();
         }
 
         if (newDisplayPlugin) {
@@ -4895,8 +4905,14 @@ void Application::updateDisplayMode() {
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
 }
 
-void Application::addMenuItem(const QString& path, std::function<void()> onClicked, bool checkable, bool checked, const QString& groupName) {
-
+void Application::addMenuItem(const QString& path, const QString& name, std::function<void()> onClicked, bool checkable, bool checked, const QString& groupName) {
+    auto menu = Menu::getInstance();
+    MenuWrapper* parentItem = menu->getMenu(path);
+    QAction* action = parentItem->addAction(name);
+    connect(action, &QAction::triggered, [=] {
+        onClicked();
+    });
+    _currentDisplayPluginActions.push_back({ path, name });
 }
 
 GlWindow* Application::getVisibleWindow() {

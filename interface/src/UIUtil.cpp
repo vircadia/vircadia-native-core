@@ -12,8 +12,6 @@
 #include <QStyle>
 #include <QStyleOptionTitleBar>
 
-#include "GLCanvas.h"
-
 #include "UIUtil.h"
 
 int UIUtil::getWindowTitleBarHeight(const QWidget* window) {

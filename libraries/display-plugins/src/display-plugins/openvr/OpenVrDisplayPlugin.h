@@ -7,6 +7,8 @@
 //
 #pragma once
 
+#if !defined(Q_OS_MAC)
+
 #include "../MainWindowOpenGLDisplayPlugin.h"
 
 class OpenVrDisplayPlugin : public MainWindowOpenGLDisplayPlugin {
@@ -38,3 +40,6 @@ protected:
 private:
     static const QString NAME;
 };
+
+#endif
+

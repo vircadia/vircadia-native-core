@@ -7,6 +7,8 @@
 //
 #include "OpenVrDisplayPlugin.h"
 
+#if !defined(Q_OS_MAC)
+
 #include <memory>
 
 #include <QMainWindow>
@@ -33,6 +35,7 @@ vr::IVRSystem *_hmd{ nullptr };
 static vr::IVRCompositor* _compositor{ nullptr };
 vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
+static mat4 _sensorResetMat;
 static uvec2 _windowSize;
 static ivec2 _windowPosition;
 static uvec2 _renderTargetSize;
@@ -130,7 +133,24 @@ mat4 OpenVrDisplayPlugin::getModelview(Eye eye, const mat4& baseModelview) const
 }
 
 void OpenVrDisplayPlugin::resetSensors() {
-    _hmd->ResetSeatedZeroPose();
+    // _hmd->ResetSeatedZeroPose(); AJT: not working
+
+    mat4 pose = _trackedDevicePoseMat4[0];
+    vec3 xAxis = vec3(pose[0]);
+    vec3 yAxis = vec3(pose[1]);
+    vec3 zAxis = vec3(pose[2]);
+
+    // cancel out the roll and pitch
+    vec3 newZ = (zAxis.x == 0 && zAxis.z == 0) ? vec3(1, 0, 0) : glm::normalize(vec3(zAxis.x, 0, zAxis.z));
+    vec3 newX = glm::cross(vec3(0, 1, 0), newZ);
+    vec3 newY = glm::cross(newZ, newX);
+
+    mat4 m;
+    m[0] = vec4(newX, 0);
+    m[1] = vec4(newY, 0);
+    m[2] = vec4(newZ, 0);
+    m[3] = pose[3];
+    _sensorResetMat = glm::inverse(m);
 }
 
 glm::mat4 OpenVrDisplayPlugin::getEyePose(Eye eye) const {
@@ -138,7 +158,7 @@ glm::mat4 OpenVrDisplayPlugin::getEyePose(Eye eye) const {
 }
 
 glm::mat4 OpenVrDisplayPlugin::getHeadPose() const {
-    return _trackedDevicePoseMat4[0];
+    return _sensorResetMat * _trackedDevicePoseMat4[0];
 }
 
 void OpenVrDisplayPlugin::customizeContext(PluginContainer * container) {
@@ -147,8 +167,8 @@ void OpenVrDisplayPlugin::customizeContext(PluginContainer * container) {
 
 void OpenVrDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {
     // Flip y-axis since GL UV coords are backwards.
-    static vr::Compositor_TextureBounds leftBounds{ 0, 1, 0.5f, 0 };
-    static vr::Compositor_TextureBounds rightBounds{ 0.5f, 1, 1, 0 };
+    static vr::VRTextureBounds_t leftBounds{ 0, 1, 0.5f, 0 };
+    static vr::VRTextureBounds_t rightBounds{ 0.5f, 1, 1, 0 };
     _compositor->Submit(vr::Eye_Left, (void*)finalTexture, &leftBounds);
     _compositor->Submit(vr::Eye_Right, (void*)finalTexture, &rightBounds);
     glFinish();
@@ -157,12 +177,14 @@ void OpenVrDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSi
 void OpenVrDisplayPlugin::finishFrame() {
 //    swapBuffers();
     doneCurrent();
-    _compositor->WaitGetPoses(_trackedDevicePose, vr::k_unMaxTrackedDeviceCount);
+    _compositor->WaitGetPoses(_trackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);
     for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
         _trackedDevicePoseMat4[i] = toGlm(_trackedDevicePose[i].mDeviceToAbsoluteTracking);
     }
     openvr_for_each_eye([&](vr::Hmd_Eye eye) {
-        _eyesData[eye]._pose = _trackedDevicePoseMat4[0];
+        _eyesData[eye]._pose = _sensorResetMat * _trackedDevicePoseMat4[0];
     });
 };
+
+#endif
 

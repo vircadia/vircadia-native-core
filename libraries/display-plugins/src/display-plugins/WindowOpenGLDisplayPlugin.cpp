@@ -39,30 +39,30 @@ void WindowOpenGLDisplayPlugin::initSurfaceFormat(QSurfaceFormat& format) {
 void WindowOpenGLDisplayPlugin::activate(PluginContainer * container) {
     OpenGLDisplayPlugin::activate(container);
     _window = createWindow(container);
-
-    QSurfaceFormat format;
-    initSurfaceFormat(format);
-    _window->setFormat(format);
-    _window->create();
-    _window->installEventFilter(this);
     customizeWindow(container);
 
-    makeCurrent();
+    _window->makeCurrent();
     customizeContext(container);
 }
 
 void WindowOpenGLDisplayPlugin::deactivate() {
     OpenGLDisplayPlugin::deactivate();
     destroyWindow();
+    _window = nullptr;
 }
 
 GlWindow* WindowOpenGLDisplayPlugin::createWindow(PluginContainer * container) {
-    return new GlWindow(QOpenGLContext::currentContext());
+    GlWindow* result = new GlWindow(QOpenGLContext::currentContext());
+    QSurfaceFormat format;
+    initSurfaceFormat(format);
+    result->setFormat(format);
+    result->create();
+    result->installEventFilter(this);
+    return result;
 }
 
 void WindowOpenGLDisplayPlugin::destroyWindow() {
     _window->deleteLater();
-    _window = nullptr;
 }
 
 
