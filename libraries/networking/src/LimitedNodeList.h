@@ -118,12 +118,12 @@ public:
 
     bool packetVersionAndHashMatch(const QByteArray& packet);
 
-    QByteArray byteArrayWithPopulatedHeader(PacketType packetType)
-        { return byteArrayWithUUIDPopulatedHeader(packetType, _sessionUUID); }
-    int populatePacketHeader(QByteArray& packet, PacketType packetType)
-        { return populatePacketHeaderWithUUID(packet, packetType, _sessionUUID); }
-    int populatePacketHeader(char* packet, PacketType packetType)
-        { return populatePacketHeaderWithUUID(packet, packetType, _sessionUUID); }
+    // QByteArray byteArrayWithPopulatedHeader(PacketType packetType)
+    //     { return byteArrayWithUUIDPopulatedHeader(packetType, _sessionUUID); }
+    // int populatePacketHeader(QByteArray& packet, PacketType packetType)
+    //     { return populatePacketHeaderWithUUID(packet, packetType, _sessionUUID); }
+    // int populatePacketHeader(char* packet, PacketType packetType)
+    //     { return populatePacketHeaderWithUUID(packet, packetType, _sessionUUID); }
 
     qint64 readDatagram(QByteArray& incomingPacket, QHostAddress* address, quint16 * port);
 
