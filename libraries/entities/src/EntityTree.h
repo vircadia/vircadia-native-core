@@ -188,8 +188,8 @@ public:
     void trackIncomingEntityLastEdited(quint64 lastEditedTime);
     quint64 getAverageEditDeltas() const 
         { return _totalTrackedEdits == 0 ? 0 : _totalEditDeltas / _totalTrackedEdits; }
-    quint64 getMaxEditDelta() const 
-        { return _maxEditDelta; }
+    quint64 getMaxEditDelta() const { return _maxEditDelta; }
+    quint64 getTotalTrackedEdits() const { return _totalTrackedEdits; }
 
 signals:
     void deletingEntity(const EntityItemID& entityID);

@@ -25,7 +25,9 @@
 
 OctreeStatsDialog::OctreeStatsDialog(QWidget* parent, NodeToOctreeSceneStats* model) :
     QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint),
-    _model(model) {
+    _model(model),
+     _averageUpdatesPerSecond(SAMPLES_PER_SECOND)
+{
     
     _statCount = 0;
     _octreeServerLabelsCount = 0;
@@ -51,6 +53,7 @@ OctreeStatsDialog::OctreeStatsDialog(QWidget* parent, NodeToOctreeSceneStats* mo
     _localElementsMemory = AddStatItem("Elements Memory");
     _sendingMode = AddStatItem("Sending Mode");
     _entityUpdateTime = AddStatItem("Entity Update Time");
+    _entityUpdates = AddStatItem("Entity Updates");
     
     layout()->setSizeConstraint(QLayout::SetFixedSize); 
 }
@@ -204,19 +207,53 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
         "Leaves: " << qPrintable(serversLeavesString) << "";
     label->setText(statsValue.str().c_str());
 
+    // Entity Edits update time
     label = _labels[_entityUpdateTime];
     auto entites = Application::getInstance()->getEntities()->getTree();
-    quint64 averageEditDelta = entites->getAverageEditDeltas();
+    auto averageEditDelta = entites->getAverageEditDeltas();
+    auto maxEditDelta = entites->getMaxEditDelta();
+
     QString averageEditDeltaString = locale.toString((uint)averageEditDelta);
-    quint64 maxEditDelta = entites->getMaxEditDelta();
     QString maxEditDeltaString = locale.toString((uint)maxEditDelta);
 
     statsValue.str("");
     statsValue << 
         "Average: " << qPrintable(averageEditDeltaString) << " (usecs) / " <<
         "Max: " << qPrintable(maxEditDeltaString) << " (usecs)";
+        
     label->setText(statsValue.str().c_str());
 
+    // Entity Edits
+    label = _labels[_entityUpdates];
+    auto totalTrackedEdits = entites->getTotalTrackedEdits();
+    
+    // track our updated per second
+    const quint64 SAMPLING_WINDOW = USECS_PER_SECOND / SAMPLES_PER_SECOND;
+    quint64 now = usecTimestampNow();
+    quint64 sinceLastWindow = now - _lastWindowAt;
+    auto editsInLastWindow = totalTrackedEdits - _lastKnownTrackedEdits;
+    float sinceLastWindowInSeconds = (float)sinceLastWindow / (float)USECS_PER_SECOND;
+    float recentUpdatesPerSecond = (float)editsInLastWindow / sinceLastWindowInSeconds;
+    if (sinceLastWindow > SAMPLING_WINDOW) {
+        _averageUpdatesPerSecond.updateAverage(recentUpdatesPerSecond);
+        _lastWindowAt = now;
+        _lastKnownTrackedEdits = totalTrackedEdits;
+    }
+
+    auto updatesPerSecond = _averageUpdatesPerSecond.getAverage();
+    if (updatesPerSecond < 1) {
+        updatesPerSecond = 0; // we don't really care about small updates per second so suppress those
+    }
+
+    QString totalTrackedEditsString = locale.toString((uint)totalTrackedEdits);
+    QString updatesPerSecondString = locale.toString(updatesPerSecond);
+
+    statsValue.str("");
+    statsValue << 
+        "" << qPrintable(updatesPerSecondString) << " updates per second / " <<
+        "" << qPrintable(totalTrackedEditsString) << " total updates ";
+        
+    label->setText(statsValue.str().c_str());
 
     showAllOctreeServers();
 

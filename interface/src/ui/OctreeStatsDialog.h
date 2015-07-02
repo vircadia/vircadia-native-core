@@ -65,7 +65,11 @@ private:
     int _localElementsMemory;
 
     int _entityUpdateTime;
-
+    int _entityUpdates;
+    const int SAMPLES_PER_SECOND = 10;
+    SimpleMovingAverage _averageUpdatesPerSecond;
+    quint64 _lastWindowAt = 0;
+    quint64 _lastKnownTrackedEdits = 0;
 
     int _octreeServerLables[MAX_VOXEL_SERVERS];
     int _octreeServerLabelsCount;
