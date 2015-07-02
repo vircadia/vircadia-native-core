@@ -795,11 +795,11 @@ void AudioClient::handleAudioInput() {
 
             delete[] inputAudioSamples;
 
-            //  Remove DC offset 
+            //  Remove DC offset
             if (!_isStereoInput && !_audioSourceInjectEnabled) {
                 _inputGate.removeDCOffset(networkAudioSamples, numNetworkSamples);
             }
-            
+
             // only impose the noise gate and perform tone injection if we are sending mono audio
             if (!_isStereoInput && !_audioSourceInjectEnabled && _isNoiseGateEnabled) {
                 _inputGate.gateSamples(networkAudioSamples, numNetworkSamples);
@@ -921,22 +921,23 @@ void AudioClient::processReceivedSamples(const QByteArray& inputBuffer, QByteArr
 void AudioClient::sendMuteEnvironmentPacket() {
     auto nodeList = DependencyManager::get<NodeList>();
 
-    QByteArray mutePacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeMuteEnvironment);
-    int headerSize = mutePacket.size();
+    int dataSize = sizeof(glm::vec3) + sizeof(float);
+
+    NodeList::Packet mutePacket = nodeList->makePacket(PacketType::MuteEnvironment, dataSize);
 
     const float MUTE_RADIUS = 50;
 
     glm::vec3 currentSourcePosition = _positionGetter();
-    mutePacket.resize(mutePacket.size() + sizeof(glm::vec3) + sizeof(float));
-    memcpy(mutePacket.data() + headerSize, &currentSourcePosition, sizeof(glm::vec3));
-    memcpy(mutePacket.data() + headerSize + sizeof(glm::vec3), &MUTE_RADIUS, sizeof(float));
+
+    memcpy(mutePacket.payload().data(), &currentSourcePosition, sizeof(glm::vec3));
+    memcpy(mutePacket.payload() + sizeof(glm::vec3), &MUTE_RADIUS, sizeof(float));
 
     // grab our audio mixer from the NodeList, if it exists
     SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
 
     if (audioMixer) {
         // send off this mute packet
-        nodeList->writeDatagram(mutePacket, audioMixer);
+        nodeList->sendPacket(mutePacket, audioMixer);
     }
 }
 

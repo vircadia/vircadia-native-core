@@ -26,60 +26,62 @@
 // NOTE: if adding a new packet packetType, you can replace one marked usable or add at the end
 // NOTE: if you want the name of the packet packetType to be available for debugging or logging, update nameForPacketType() as well
 
-enum PacketType {
-    PacketTypeUnknown, // 0
-    PacketTypeStunResponse,
-    PacketTypeDomainList,
-    PacketTypePing,
-    PacketTypePingReply,
-    PacketTypeKillAvatar, // 5
-    PacketTypeAvatarData,
-    PacketTypeInjectAudio,
-    PacketTypeMixedAudio,
-    PacketTypeMicrophoneAudioNoEcho,
-    PacketTypeMicrophoneAudioWithEcho, // 10
-    PacketTypeBulkAvatarData,
-    PacketTypeSilentAudioFrame,
-    PacketTypeEnvironmentData,
-    PacketTypeDomainListRequest,
-    PacketTypeRequestAssignment, // 15
-    PacketTypeCreateAssignment,
-    PacketTypeDomainConnectionDenied,
-    PacketTypeMuteEnvironment,
-    PacketTypeAudioStreamStats,
-    PacketTypeDataServerConfirm, // 20
-    PacketTypeDomainServerPathQuery,
-    PacketTypeDomainServerPathResponse,
-    PacketTypeDomainServerAddedNode,
-    PacketTypeIceServerPeerInformation,
-    PacketTypeIceServerQuery, // 25
-    PacketTypeOctreeStats,
-    PacketTypeJurisdiction,
-    PacketTypeJurisdictionRequest,
-    UNUSED_6,
-    UNUSED_7, // 30
-    UNUSED_8,
-    UNUSED_9,
-    PacketTypeNoisyMute,
-    UNUSED_10,
-    PacketTypeAvatarIdentity, // 35
-    PacketTypeAvatarBillboard,
-    PacketTypeDomainConnectRequest,
-    PacketTypeDomainServerRequireDTLS,
-    PacketTypeNodeJsonStats,
-    PacketTypeEntityQuery, // 40
-    PacketTypeEntityData,
-    PacketTypeEntityAdd,
-    PacketTypeEntityErase,
-    PacketTypeEntityEdit,
-    PacketTypeOctreeDataNack, // 45
-    PacketTypeStopNode,
-    PacketTypeAudioEnvironment,
-    PacketTypeEntityEditNack,
-    PacketTypeSignedTransactionPayment,
-    PacketTypeIceServerHeartbeat, // 50
-    PacketTypeUnverifiedPing,
-    PacketTypeUnverifiedPingReply
+namespace PacketType {
+   enum Value {
+        Unknown, // 0
+        StunResponse,
+        DomainList,
+        Ping,
+        PingReply,
+        KillAvatar, // 5
+        AvatarData,
+        InjectAudio,
+        MixedAudio,
+        MicrophoneAudioNoEcho,
+        MicrophoneAudioWithEcho, // 10
+        BulkAvatarData,
+        SilentAudioFrame,
+        EnvironmentData,
+        DomainListRequest,
+        RequestAssignment, // 15
+        CreateAssignment,
+        DomainConnectionDenied,
+        MuteEnvironment,
+        AudioStreamStats,
+        DataServerConfirm, // 20
+        DomainServerPathQuery,
+        DomainServerPathResponse,
+        DomainServerAddedNode,
+        IceServerPeerInformation,
+        IceServerQuery, // 25
+        OctreeStats,
+        Jurisdiction,
+        JurisdictionRequest,
+        UNUSED_6,
+        UNUSED_7, // 30
+        UNUSED_8,
+        UNUSED_9,
+        NoisyMute,
+        UNUSED_10,
+        AvatarIdentity, // 35
+        AvatarBillboard,
+        DomainConnectRequest,
+        DomainServerRequireDTLS,
+        NodeJsonStats,
+        EntityQuery, // 40
+        EntityData,
+        EntityAdd,
+        EntityErase,
+        EntityEdit,
+        OctreeDataNack, // 45
+        StopNode,
+        AudioEnvironment,
+        EntityEditNack,
+        SignedTransactionPayment,
+        IceServerHeartbeat, // 50
+        UnverifiedPing,
+        UnverifiedPingReply
+   };
 };
 
 typedef char PacketVersion;
