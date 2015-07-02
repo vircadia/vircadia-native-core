@@ -1188,10 +1188,10 @@ void MyAvatar::clearScriptableSettings() {
 }
 
 void MyAvatar::setCollisionSoundURL(const QString& url) {
+    _collisionSoundURL = url;
     if (!url.isEmpty() && (url != _collisionSoundURL)) {
         emit newCollisionSoundURL(QUrl(url));
     }
-    _collisionSoundURL = url;
 }
 
 void MyAvatar::attach(const QString& modelURL, const QString& jointName, const glm::vec3& translation,
