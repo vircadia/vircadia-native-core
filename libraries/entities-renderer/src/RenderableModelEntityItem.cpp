@@ -174,7 +174,8 @@ void makeEntityItemStatusGetters(RenderableModelEntityItem* entity, render::Item
     });
     statusGetters.push_back([entity] () -> render::Item::Status::Value {
         quint64 delta = usecTimestampNow() - entity->getLastBroadcast();
-        return render::Item::Status::Value((delta / (0.02f * USECS_PER_SECOND)), 0.5f);
+     //   return render::Item::Status::Value((delta / (0.02f * USECS_PER_SECOND)), 0.5f);
+        return render::Item::Status::Value(1.0f, 0.5f);
     });
 }
 
