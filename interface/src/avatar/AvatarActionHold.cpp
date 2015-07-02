@@ -9,13 +9,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "QVariantGLM.h"
 #include "avatar/MyAvatar.h"
 #include "avatar/AvatarManager.h"
 
 #include "AvatarActionHold.h"
 
-AvatarActionHold::AvatarActionHold(QUuid id, EntityItemPointer ownerEntity) :
-    ObjectActionSpring(id, ownerEntity) {
+const uint16_t AvatarActionHold::holdVersion = 1;
+
+AvatarActionHold::AvatarActionHold(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) :
+    ObjectActionSpring(type, id, ownerEntity),
+    _relativePosition(glm::vec3(0.0f)),
+    _relativeRotation(glm::quat()),
+    _hand("right"),
+    _mine(false)
+{
     #if WANT_DEBUG
     qDebug() << "AvatarActionHold::AvatarActionHold";
     #endif
@@ -28,6 +36,13 @@ AvatarActionHold::~AvatarActionHold() {
 }
 
 void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
+    if (!_mine) {
+        // if a local script isn't updating this, then we are just getting spring-action data over the wire.
+        // let the super-class handle it.
+        ObjectActionSpring::updateActionWorker(deltaTimeStep);
+        return;
+    }
+
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
     if (!tryLockForRead()) {
@@ -51,6 +66,22 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
     if (!tryLockForWrite()) {
         return;
     }
+
+    // check for NaNs
+    if (position.x != position.x ||
+        position.y != position.y ||
+        position.z != position.z) {
+        qDebug() << "AvatarActionHold::updateActionWorker -- target position includes NaN";
+        return;
+    }
+    if (rotation.x != rotation.x ||
+        rotation.y != rotation.y ||
+        rotation.z != rotation.z ||
+        rotation.w != rotation.w) {
+        qDebug() << "AvatarActionHold::updateActionWorker -- target rotation includes NaN";
+        return;
+    }
+
     _positionalTarget = position;
     _rotationalTarget = rotation;
     unlock();
@@ -76,22 +107,22 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
     lockForWrite();
     if (rPOk) {
         _relativePosition = relativePosition;
-    } else if (!_parametersSet) {
+    } else {
         _relativePosition = glm::vec3(0.0f, 0.0f, 1.0f);
     }
 
     if (rROk) {
         _relativeRotation = relativeRotation;
-    } else if (!_parametersSet) {
+    } else {
         _relativeRotation = glm::quat(0.0f, 0.0f, 0.0f, 1.0f);
     }
 
     if (tSOk) {
         _linearTimeScale = timeScale;
         _angularTimeScale = timeScale;
-    } else if (!_parametersSet) {
-        _linearTimeScale = 0.2;
-        _angularTimeScale = 0.2;
+    } else {
+        _linearTimeScale = 0.2f;
+        _angularTimeScale = 0.2f;
     }
 
     if (hOk) {
@@ -104,14 +135,39 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
             qDebug() << "hold action -- invalid hand argument:" << hand;
             _hand = "right";
         }
-    } else if (!_parametersSet) {
+    } else {
         _hand = "right";
     }
 
-    _parametersSet = true;
+    _mine = true;
     _positionalTargetSet = true;
     _rotationalTargetSet = true;
     _active = true;
     unlock();
     return true;
+}
+
+
+QVariantMap AvatarActionHold::getArguments() {
+    QVariantMap arguments;
+    lockForRead();
+    if (_mine) {
+        arguments["relativePosition"] = glmToQMap(_relativePosition);
+        arguments["relativeRotation"] = glmToQMap(_relativeRotation);
+        arguments["timeScale"] = _linearTimeScale;
+        arguments["hand"] = _hand;
+    } else {
+        unlock();
+        return ObjectActionSpring::getArguments();
+    }
+    unlock();
+    return arguments;
+}
+
+
+void AvatarActionHold::deserialize(QByteArray serializedArguments) {
+    if (_mine) {
+        return;
+    }
+    ObjectActionSpring::deserialize(serializedArguments);
 }

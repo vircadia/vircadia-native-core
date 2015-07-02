@@ -260,3 +260,28 @@ void EntitySimulation::moveSimpleKinematics(const quint64& now) {
         }
     }
 }
+
+void EntitySimulation::addAction(EntityActionPointer action) {
+    lock();
+    _actionsToAdd += action;
+    unlock();
+}
+
+void EntitySimulation::removeAction(const QUuid actionID) {
+    lock();
+    _actionsToRemove += actionID;
+    unlock();
+}
+
+void EntitySimulation::removeActions(QList<QUuid> actionIDsToRemove) {
+    lock();
+    _actionsToRemove += actionIDsToRemove;
+    unlock();
+}
+
+void EntitySimulation::applyActionChanges() {
+    lock();
+    _actionsToAdd.clear();
+    _actionsToRemove.clear();
+    unlock();
+}

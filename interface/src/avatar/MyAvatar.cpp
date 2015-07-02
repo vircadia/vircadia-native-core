@@ -70,6 +70,7 @@ float DEFAULT_SCRIPTED_MOTOR_TIMESCALE = 1.0e6f;
 const int SCRIPTED_MOTOR_CAMERA_FRAME = 0;
 const int SCRIPTED_MOTOR_AVATAR_FRAME = 1;
 const int SCRIPTED_MOTOR_WORLD_FRAME = 2;
+const QString& DEFAULT_AVATAR_COLLISION_SOUND_URL = "https://s3.amazonaws.com/hifi-public/sounds/Collisions-hitsandslaps/airhockey_hit1.wav";
 
 const float MyAvatar::ZOOM_MIN = 0.5f;
 const float MyAvatar::ZOOM_MAX = 25.0f;
@@ -90,6 +91,7 @@ MyAvatar::MyAvatar() :
     _scriptedMotorTimescale(DEFAULT_SCRIPTED_MOTOR_TIMESCALE),
     _scriptedMotorFrame(SCRIPTED_MOTOR_CAMERA_FRAME),
     _motionBehaviors(AVATAR_MOTION_DEFAULTS),
+    _collisionSoundURL(""),
     _characterController(this),
     _lookAtTargetAvatar(),
     _shouldRender(true),
@@ -664,6 +666,7 @@ void MyAvatar::saveData() {
     settings.endArray();
 
     settings.setValue("displayName", _displayName);
+    settings.setValue("collisionSoundURL", _collisionSoundURL);
 
     settings.endGroup();
 }
@@ -789,6 +792,7 @@ void MyAvatar::loadData() {
     settings.endArray();
 
     setDisplayName(settings.value("displayName").toString());
+    setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
 
     settings.endGroup();
 }
@@ -1181,6 +1185,13 @@ void MyAvatar::clearScriptableSettings() {
     clearJointAnimationPriorities();
     _scriptedMotorVelocity = glm::vec3(0.0f);
     _scriptedMotorTimescale = DEFAULT_SCRIPTED_MOTOR_TIMESCALE;
+}
+
+void MyAvatar::setCollisionSoundURL(const QString& url) {
+    _collisionSoundURL = url;
+    if (!url.isEmpty() && (url != _collisionSoundURL)) {
+        emit newCollisionSoundURL(QUrl(url));
+    }
 }
 
 void MyAvatar::attach(const QString& modelURL, const QString& jointName, const glm::vec3& translation,

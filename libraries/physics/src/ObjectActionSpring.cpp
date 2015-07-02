@@ -9,10 +9,22 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "QVariantGLM.h"
+
 #include "ObjectActionSpring.h"
 
-ObjectActionSpring::ObjectActionSpring(QUuid id, EntityItemPointer ownerEntity) :
-    ObjectAction(id, ownerEntity) {
+const float SPRING_MAX_SPEED = 10.0f;
+
+const uint16_t ObjectActionSpring::springVersion = 1;
+
+ObjectActionSpring::ObjectActionSpring(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) :
+    ObjectAction(type, id, ownerEntity),
+    _positionalTarget(glm::vec3(0.0f)),
+    _linearTimeScale(0.2f),
+    _positionalTargetSet(false),
+    _rotationalTarget(glm::quat()),
+    _angularTimeScale(0.2f),
+    _rotationalTargetSet(false) {
     #if WANT_DEBUG
     qDebug() << "ObjectActionSpring::ObjectActionSpring";
     #endif
@@ -31,7 +43,12 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
         return;
     }
 
-    void* physicsInfo = _ownerEntity->getPhysicsInfo();
+    auto ownerEntity = _ownerEntity.lock();
+    if (!ownerEntity) {
+        return;
+    }
+
+    void* physicsInfo = ownerEntity->getPhysicsInfo();
     if (!physicsInfo) {
         unlock();
         return;
@@ -46,9 +63,25 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
 
     // handle the linear part
     if (_positionalTargetSet) {
+        // check for NaN
+        if (_positionalTarget.x != _positionalTarget.x ||
+            _positionalTarget.y != _positionalTarget.y ||
+            _positionalTarget.z != _positionalTarget.z) {
+            qDebug() << "ObjectActionSpring::updateActionWorker -- target position includes NaN";
+            unlock();
+            lockForWrite();
+            _active = false;
+            unlock();
+            return;
+        }
         glm::vec3 offset = _positionalTarget - bulletToGLM(rigidBody->getCenterOfMassPosition());
         float offsetLength = glm::length(offset);
         float speed = offsetLength / _linearTimeScale;
+
+        // cap speed
+        if (speed > SPRING_MAX_SPEED) {
+            speed = SPRING_MAX_SPEED;
+        }
 
         if (offsetLength > IGNORE_POSITION_DELTA) {
             glm::vec3 newVelocity = glm::normalize(offset) * speed;
@@ -61,6 +94,18 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
 
     // handle rotation
     if (_rotationalTargetSet) {
+        if (_rotationalTarget.x != _rotationalTarget.x ||
+            _rotationalTarget.y != _rotationalTarget.y ||
+            _rotationalTarget.z != _rotationalTarget.z ||
+            _rotationalTarget.w != _rotationalTarget.w) {
+            qDebug() << "AvatarActionHold::updateActionWorker -- target rotation includes NaN";
+            unlock();
+            lockForWrite();
+            _active = false;
+            unlock();
+            return;
+        }
+
         glm::quat bodyRotation = bulletToGLM(rigidBody->getOrientation());
         // if qZero and qOne are too close to each other, we can get NaN for angle.
         auto alignmentDot = glm::dot(bodyRotation, _rotationalTarget);
@@ -108,7 +153,7 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
         EntityActionInterface::extractFloatArgument("spring action", arguments, "angularTimeScale", rscOk, false);
 
     if (!ptOk && !rtOk) {
-        qDebug() << "spring action requires either targetPosition or targetRotation argument";
+        qDebug() << "spring action requires at least one of targetPosition or targetRotation argument";
         return false;
     }
 
@@ -141,4 +186,68 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
     _active = true;
     unlock();
     return true;
+}
+
+QVariantMap ObjectActionSpring::getArguments() {
+    QVariantMap arguments;
+    lockForRead();
+
+    if (_positionalTargetSet) {
+        arguments["linearTimeScale"] = _linearTimeScale;
+        arguments["targetPosition"] = glmToQMap(_positionalTarget);
+    }
+
+    if (_rotationalTargetSet) {
+        arguments["targetRotation"] = glmToQMap(_rotationalTarget);
+        arguments["angularTimeScale"] = _angularTimeScale;
+    }
+
+    unlock();
+    return arguments;
+}
+
+QByteArray ObjectActionSpring::serialize() {
+    QByteArray serializedActionArguments;
+    QDataStream dataStream(&serializedActionArguments, QIODevice::WriteOnly);
+
+    dataStream << getType();
+    dataStream << getID();
+    dataStream << ObjectActionSpring::springVersion;
+
+    dataStream << _positionalTarget;
+    dataStream << _linearTimeScale;
+    dataStream << _positionalTargetSet;
+
+    dataStream << _rotationalTarget;
+    dataStream << _angularTimeScale;
+    dataStream << _rotationalTargetSet;
+
+    return serializedActionArguments;
+}
+
+void ObjectActionSpring::deserialize(QByteArray serializedArguments) {
+    QDataStream dataStream(serializedArguments);
+
+    EntityActionType type;
+    QUuid id;
+    uint16_t serializationVersion;
+
+    dataStream >> type;
+    assert(type == getType());
+    dataStream >> id;
+    assert(id == getID());
+    dataStream >> serializationVersion;
+    if (serializationVersion != ObjectActionSpring::springVersion) {
+        return;
+    }
+
+    dataStream >> _positionalTarget;
+    dataStream >> _linearTimeScale;
+    dataStream >> _positionalTargetSet;
+
+    dataStream >> _rotationalTarget;
+    dataStream >> _angularTimeScale;
+    dataStream >> _rotationalTargetSet;
+
+    _active = true;
 }
