@@ -104,7 +104,9 @@ void AutoUpdater::parseLatestVersionData() {
 }
 
 void AutoUpdater::checkVersionAndNotify() {
-    if (QCoreApplication::applicationVersion() == "dev" || _builds.empty()) {
+    if (QCoreApplication::applicationVersion() == "dev" ||
+        QCoreApplication::applicationVersion().contains("PR") ||
+        _builds.empty()) {
         // No version checking is required in dev builds or when no build
         // data was found for the platform
         return;
