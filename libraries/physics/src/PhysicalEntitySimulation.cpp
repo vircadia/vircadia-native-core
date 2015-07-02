@@ -235,14 +235,32 @@ void PhysicalEntitySimulation::handleCollisionEvents(CollisionEvents& collisionE
     }
 }
 
+
+void PhysicalEntitySimulation::addAction(EntityActionPointer action) {
+    if (_physicsEngine) {
+        lock();
+        const QUuid& actionID = action->getID();
+        if (_physicsEngine->getActionByID(actionID)) {
+            qDebug() << "warning -- PhysicalEntitySimulation::addAction -- adding an action that was already in _physicsEngine";
+        }
+        unlock();
+        EntitySimulation::addAction(action);
+    }
+}
+
 void PhysicalEntitySimulation::applyActionChanges() {
     if (_physicsEngine) {
-        foreach (EntityActionPointer actionToAdd, _actionsToAdd) {
-            _physicsEngine->addAction(actionToAdd);
-        }
+        lock();
         foreach (QUuid actionToRemove, _actionsToRemove) {
             _physicsEngine->removeAction(actionToRemove);
         }
+        _actionsToRemove.clear();
+        foreach (EntityActionPointer actionToAdd, _actionsToAdd) {
+            if (!_actionsToRemove.contains(actionToAdd->getID())) {
+                _physicsEngine->addAction(actionToAdd);
+            }
+        }
+        _actionsToAdd.clear();
+        unlock();
     }
-    EntitySimulation::applyActionChanges();
 }

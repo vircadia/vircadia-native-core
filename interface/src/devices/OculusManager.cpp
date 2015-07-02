@@ -249,7 +249,6 @@ static GlWindow* _outputWindow{ nullptr };
 static bool _isConnected = false;
 static ovrHmd _ovrHmd;
 static ovrFovPort _eyeFov[ovrEye_Count];
-static ovrVector3f _eyeOffset[ovrEye_Count];
 static ovrEyeRenderDesc _eyeRenderDesc[ovrEye_Count];
 static ovrSizei _renderTargetSize;
 static glm::mat4 _eyeProjection[ovrEye_Count];
@@ -280,6 +279,7 @@ static glm::mat4 _combinedProjection;
 static ovrPosef _eyeRenderPoses[ovrEye_Count];
 static ovrRecti _eyeViewports[ovrEye_Count];
 static ovrVector3f _eyeOffsets[ovrEye_Count];
+
 
 glm::vec3 OculusManager::getLeftEyePosition() { return _eyePositions[ovrEye_Left]; }
 glm::vec3 OculusManager::getRightEyePosition() { return _eyePositions[ovrEye_Right]; }

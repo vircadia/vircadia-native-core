@@ -48,6 +48,8 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     _localSockAddr(),
     _publicSockAddr(),
     _stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT),
+    _numCollectedPackets(0),
+    _numCollectedBytes(0),
     _packetStatTimer(),
     _thisNodeCanAdjustLocks(false),
     _thisNodeCanRez(true)

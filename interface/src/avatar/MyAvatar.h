@@ -31,6 +31,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(glm::vec3 motorVelocity READ getScriptedMotorVelocity WRITE setScriptedMotorVelocity)
     Q_PROPERTY(float motorTimescale READ getScriptedMotorTimescale WRITE setScriptedMotorTimescale)
     Q_PROPERTY(QString motorReferenceFrame READ getScriptedMotorFrame WRITE setScriptedMotorFrame)
+    Q_PROPERTY(QString collisionSoundURL READ getCollisionSoundURL WRITE setCollisionSoundURL)
     //TODO: make gravity feature work Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setGravity)
 
 public:
@@ -156,6 +157,9 @@ public:
     void setScriptedMotorTimescale(float timescale);
     void setScriptedMotorFrame(QString frame);
 
+    const QString& getCollisionSoundURL() {return _collisionSoundURL; }
+    void setCollisionSoundURL(const QString& url);
+
     void clearScriptableSettings();
 
     virtual void attach(const QString& modelURL, const QString& jointName = QString(),
@@ -210,6 +214,7 @@ public slots:
     
 signals:
     void transformChanged();
+    void newCollisionSoundURL(const QUrl& url);
 
 private:
 
@@ -239,6 +244,7 @@ private:
     float _scriptedMotorTimescale; // timescale for avatar to achieve its target velocity
     int _scriptedMotorFrame;
     quint32 _motionBehaviors;
+    QString _collisionSoundURL;
 
     DynamicCharacterController _characterController;
 

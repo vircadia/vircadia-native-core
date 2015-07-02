@@ -1796,7 +1796,9 @@ void Application::idle() {
         static uint64_t lastReportTime = now;
         if ((now - lastReportTime) >= (USECS_PER_SECOND)) {
             static QString LOGLINE("Average inter-idle time: %1 us for %2 samples");
-            qCDebug(interfaceapp_timing) << LOGLINE.arg((int)interIdleDurations.getAverage()).arg(interIdleDurations.getCount());
+            if (Menu::getInstance()->isOptionChecked(MenuOption::LogExtraTimings)) {
+                qCDebug(interfaceapp_timing) << LOGLINE.arg((int)interIdleDurations.getAverage()).arg(interIdleDurations.getCount());
+            }
             interIdleDurations.reset();
             lastReportTime = now;
         }
@@ -2226,6 +2228,7 @@ void Application::init() {
 
     // Make sure any new sounds are loaded as soon as know about them.
     connect(tree, &EntityTree::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
+    connect(_myAvatar, &MyAvatar::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
 }
 
 void Application::closeMirrorView() {

@@ -694,9 +694,9 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, floa
     const float DESIRED_HIGHT_ON_SCREEN = 20; // In pixels (this is double on retinas)
     
     // Projected point are between -1.0f and 1.0f, hence 0.5f * windowSizeY
-    double pixelHeight = 0.5f * windowSizeY * glm::abs((p1.y / p1.w) - (p0.y / p0.w)); //
+    float pixelHeight = 0.5f * windowSizeY * glm::abs((p1.y / p1.w) - (p0.y / p0.w)); //
     // Handles pixel density (especially for macs retina displays)
-    double devicePixelRatio = qApp->getDevicePixelRatio() * qApp->getRenderResolutionScale(); // pixels / unit
+    float devicePixelRatio = (float)qApp->getDevicePixelRatio() * qApp->getRenderResolutionScale(); // pixels / unit
     
     // Compute correct scale to apply
     float scale = DESIRED_HIGHT_ON_SCREEN / (fontSize * pixelHeight) * devicePixelRatio;
@@ -708,9 +708,10 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, floa
     glm::vec3 worldOffset = glm::vec3(screenOffset.x, screenOffset.y, 0.0f) / (float)pixelHeight;
     
     // Compute orientation
-    glm::vec3 eulerAngles = ::safeEulerAngles(frustum.getOrientation());
-    eulerAngles.z = 0.0f; // Cancel roll
-    glm::quat orientation(eulerAngles); // back to quaternions
+    glm::vec3 dPosition = frustum.getPosition() - getPosition();
+    // If x and z are 0, atan(x, z) is undefined, so default to 0 degrees
+    float yawRotation = dPosition.x == 0.0f && dPosition.z == 0.0f ? 0.0f : glm::atan(dPosition.x, dPosition.z);
+    glm::quat orientation = glm::quat(glm::vec3(0.0f, yawRotation, 0.0f));
     
     // Set transform (The order IS important)
     result.setTranslation(textPosition);
