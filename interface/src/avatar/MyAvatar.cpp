@@ -95,7 +95,7 @@ MyAvatar::MyAvatar() :
     _shouldRender(true),
     _billboardValid(false),
     _feetTouchFloor(true),
-    _isLookingAtLeftEye(true),
+    _eyeContactTarget(LEFT_EYE),
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
     _firstPersonSkeletonModel(this),
@@ -904,12 +904,24 @@ void MyAvatar::clearLookAtTargetAvatar() {
     _lookAtTargetAvatar.reset();
 }
 
-bool MyAvatar::isLookingAtLeftEye() {
-    float const CHANCE_OF_CHANGING_EYE = 0.01f;
-    if (randFloat() < CHANCE_OF_CHANGING_EYE) {
-        _isLookingAtLeftEye = !_isLookingAtLeftEye;
+eyeContactTarget MyAvatar::getEyeContactTarget() {
+    float const CHANCE_OF_CHANGING_TARGET = 0.01f;
+    if (randFloat() < CHANCE_OF_CHANGING_TARGET) {
+        float const FIFTY_FIFTY_CHANCE = 0.5f;
+        switch (_eyeContactTarget) {
+            case LEFT_EYE:
+                _eyeContactTarget = (randFloat() < FIFTY_FIFTY_CHANCE) ? MOUTH : RIGHT_EYE;
+                break;
+            case RIGHT_EYE:
+                _eyeContactTarget = (randFloat() < FIFTY_FIFTY_CHANCE) ? LEFT_EYE : MOUTH;
+                break;
+            case MOUTH:
+                _eyeContactTarget = (randFloat() < FIFTY_FIFTY_CHANCE) ? RIGHT_EYE : LEFT_EYE;
+                break;
+        }
     }
-    return _isLookingAtLeftEye;
+
+    return _eyeContactTarget;
 }
 
 glm::vec3 MyAvatar::getDefaultEyePosition() const {

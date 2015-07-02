@@ -2295,11 +2295,17 @@ void Application::updateMyAvatarLookAtPosition() {
             float faceAngle = glm::angle(lookingAtFaceOrientation, fromLookingAtToMe);
 
             if (faceAngle < MAXIMUM_FACE_ANGLE) {
-                // Randomly look back and forth between left and right eyes
-                if (_myAvatar->isLookingAtLeftEye()) {
-                    lookAtSpot = lookingAtHead->getLeftEyePosition();
-                } else {
-                    lookAtSpot = lookingAtHead->getRightEyePosition();
+                // Randomly look back and forth between look targets
+                switch (_myAvatar->getEyeContactTarget()) {
+                    case LEFT_EYE:
+                        lookAtSpot = lookingAtHead->getLeftEyePosition();
+                        break;
+                    case RIGHT_EYE:
+                        lookAtSpot = lookingAtHead->getRightEyePosition();
+                        break;
+                    case MOUTH:
+                        lookAtSpot = lookingAtHead->getMouthPosition();
+                        break;
                 }
             } else {
                 // Just look at their head (mid point between eyes)

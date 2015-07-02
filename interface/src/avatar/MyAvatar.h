@@ -19,6 +19,12 @@
 
 class ModelItemID;
 
+enum eyeContactTarget {
+    LEFT_EYE,
+    RIGHT_EYE,
+    MOUTH
+};
+
 class MyAvatar : public Avatar {
     Q_OBJECT
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
@@ -93,7 +99,7 @@ public:
 
     bool isMyAvatar() const { return true; }
     
-    bool isLookingAtLeftEye();
+    eyeContactTarget getEyeContactTarget();
 
     virtual int parseDataAtOffset(const QByteArray& packet, int offset);
     
@@ -245,7 +251,7 @@ private:
     QList<AnimationHandlePointer> _animationHandles;
     
     bool _feetTouchFloor;
-    bool _isLookingAtLeftEye;
+    eyeContactTarget _eyeContactTarget;
 
     RecorderPointer _recorder;
     
