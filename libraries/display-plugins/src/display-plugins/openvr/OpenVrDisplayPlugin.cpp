@@ -167,8 +167,8 @@ void OpenVrDisplayPlugin::customizeContext(PluginContainer * container) {
 
 void OpenVrDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {
     // Flip y-axis since GL UV coords are backwards.
-    static vr::VRTextureBounds_t leftBounds{ 0, 1, 0.5f, 0 };
-    static vr::VRTextureBounds_t rightBounds{ 0.5f, 1, 1, 0 };
+    static vr::Compositor_TextureBounds leftBounds{ 0, 1, 0.5f, 0 };
+    static vr::Compositor_TextureBounds rightBounds{ 0.5f, 1, 1, 0 };
     _compositor->Submit(vr::Eye_Left, (void*)finalTexture, &leftBounds);
     _compositor->Submit(vr::Eye_Right, (void*)finalTexture, &rightBounds);
     glFinish();
@@ -177,7 +177,7 @@ void OpenVrDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSi
 void OpenVrDisplayPlugin::finishFrame() {
 //    swapBuffers();
     doneCurrent();
-    _compositor->WaitGetPoses(_trackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);
+    _compositor->WaitGetPoses(_trackedDevicePose, vr::k_unMaxTrackedDeviceCount);
     for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
         _trackedDevicePoseMat4[i] = toGlm(_trackedDevicePose[i].mDeviceToAbsoluteTracking);
     }
