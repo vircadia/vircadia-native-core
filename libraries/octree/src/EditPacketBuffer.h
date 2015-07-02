@@ -25,7 +25,7 @@ public:
                      qint64 satoshiCost = 0, const QUuid nodeUUID = QUuid());
     
     QUuid _nodeUUID;
-    PacketType _currentType;
+    PacketType::Value _currentType;
     unsigned char _currentBuffer[MAX_PACKET_SIZE];
     size_t _currentSize;
     qint64 _satoshiCost;

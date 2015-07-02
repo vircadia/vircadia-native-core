@@ -54,7 +54,7 @@ void IceServer::processDatagrams() {
         _serverSocket.readDatagram(incomingPacket.data(), incomingPacket.size(),
                                    sendingSockAddr.getAddressPointer(), sendingSockAddr.getPortPointer());
 
-        PacketType packetType = packetTypeForPacket(incomingPacket);
+        PacketType::Value packetType = packetTypeForPacket(incomingPacket);
 
         if (packetType == PacketTypeIceServerHeartbeat) {
             SharedNetworkPeer peer = addOrUpdateHeartbeatingPeer(incomingPacket);

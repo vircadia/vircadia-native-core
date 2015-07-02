@@ -1390,7 +1390,7 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
     auto nodeList = DependencyManager::get<LimitedNodeList>();
 
     if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
-        PacketType requestType = packetTypeForPacket(receivedPacket);
+        PacketType::Value requestType = packetTypeForPacket(receivedPacket);
         switch (requestType) {
             case PacketTypeDomainConnectRequest:
                 handleConnectRequest(receivedPacket, senderSockAddr);

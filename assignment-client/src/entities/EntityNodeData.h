@@ -22,7 +22,7 @@ public:
         OctreeQueryNode(),
         _lastDeletedEntitiesSentAt(0) { }
 
-    virtual PacketType getMyPacketType() const { return PacketTypeEntityData; }
+    virtual PacketType::Value getMyPacketType() const { return PacketTypeEntityData; }
 
     quint64 getLastDeletedEntitiesSentAt() const { return _lastDeletedEntitiesSentAt; }
     void setLastDeletedEntitiesSentAt(quint64 sentAt) { _lastDeletedEntitiesSentAt = sentAt; }

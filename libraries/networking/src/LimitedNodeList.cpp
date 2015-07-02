@@ -164,12 +164,12 @@ void LimitedNodeList::changeSocketBufferSizes(int numBytes) {
 }
 
 bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
-    PacketType checkType = packetTypeForPacket(packet);
+    PacketType::Value checkType = packetTypeForPacket(packet);
     int numPacketTypeBytes = numBytesArithmeticCodingFromBuffer(packet.data());
 
     if (packet[numPacketTypeBytes] != versionForPacketType(checkType)
         && checkType != PacketTypeStunResponse) {
-        PacketType mismatchType = packetTypeForPacket(packet);
+        PacketType::Value mismatchType = packetTypeForPacket(packet);
 
         static QMultiMap<QUuid, PacketType> versionDebugSuppressMap;
 
@@ -254,7 +254,7 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram,
                                       const SharedNodePointer& destinationNode,
                                       const HifiSockAddr& overridenSockAddr) {
     if (destinationNode) {
-        PacketType packetType = packetTypeForPacket(datagram);
+        PacketType::Value packetType = packetTypeForPacket(datagram);
 
         if (NON_VERIFIED_PACKETS.contains(packetType)) {
             return writeUnverifiedDatagram(datagram, destinationNode, overridenSockAddr);
@@ -316,7 +316,7 @@ qint64 LimitedNodeList::writeUnverifiedDatagram(const QByteArray& datagram, cons
             }
         }
 
-        PacketType packetType = packetTypeForPacket(datagram);
+        PacketType::Value packetType = packetTypeForPacket(datagram);
 
         // optionally peform sequence number replacement in the header
         if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
@@ -351,7 +351,7 @@ qint64 LimitedNodeList::writeUnverifiedDatagram(const char* data, qint64 size, c
     return writeUnverifiedDatagram(QByteArray(data, size), destinationNode, overridenSockAddr);
 }
 
-PacketSequenceNumber LimitedNodeList::getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType packetType) {
+PacketSequenceNumber LimitedNodeList::getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType::Value packetType) {
     // Thanks to std::map and std::unordered_map this line either default constructs the
     // PacketTypeSequenceMap and the PacketSequenceNumber or returns the existing value.
     // We use the postfix increment so that the stored value is incremented and the next
@@ -376,7 +376,7 @@ int LimitedNodeList::updateNodeWithDataFromPacket(const SharedNodePointer& match
 
     // if this was a sequence numbered packet we should store the last seq number for
     // a packet of this type for this node
-    PacketType packetType = packetTypeForPacket(packet);
+    PacketType::Value packetType = packetTypeForPacket(packet);
     if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
         matchingNode->setLastSequenceNumberForPacketType(sequenceNumberFromHeader(packet, packetType), packetType);
     }
@@ -546,7 +546,7 @@ QByteArray LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacke
     quint64 timeFromOriginalPing;
     pingPacketStream >> timeFromOriginalPing;
 
-    PacketType replyType = (packetTypeForPacket(pingPacket) == PacketTypePing)
+    PacketType::Value replyType = (packetTypeForPacket(pingPacket) == PacketTypePing)
         ? PacketTypePingReply : PacketTypeUnverifiedPingReply;
 
     QUuid packetUUID = packetHeaderID.isNull() ? _sessionUUID : packetHeaderID;

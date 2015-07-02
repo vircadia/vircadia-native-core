@@ -26,7 +26,7 @@
 // NOTE: if adding a new packet packetType, you can replace one marked usable or add at the end
 // NOTE: if you want the name of the packet packetType to be available for debugging or logging, update nameForPacketType() as well
 
-namespace PacketType {
+namespace PacketType::Value {
    enum Value {
         Unknown, // 0
         StunResponse,
@@ -126,7 +126,7 @@ int sequenceNumberOffsetForPacketType(PacketType::Value packetType);
 QByteArray hashFromPacketHeader(const QByteArray& packet);
 QByteArray hashForPacketAndConnectionUUID(const QByteArray& packet, const QUuid& connectionUUID);
 
-// NOTE: The following four methods accept a PacketType which defaults to PacketType::Unknown.
+// NOTE: The following four methods accept a PacketType::Value which defaults to PacketType::Unknown.
 // If the caller has already looked at the packet type and can provide it then the methods below won't have to look it up.
 
 PacketSequenceNumber sequenceNumberFromHeader(const QByteArray& packet, PacketType::Value packetType = PacketType::Unknown);

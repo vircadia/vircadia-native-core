@@ -43,8 +43,8 @@ public:
     virtual ~EntityTreeRenderer();
 
     virtual char getMyNodeType() const { return NodeType::EntityServer; }
-    virtual PacketType getMyQueryMessageType() const { return PacketTypeEntityQuery; }
-    virtual PacketType getExpectedPacketType() const { return PacketTypeEntityData; }
+    virtual PacketType::Value getMyQueryMessageType() const { return PacketTypeEntityQuery; }
+    virtual PacketType::Value getExpectedPacketType() const { return PacketTypeEntityData; }
     virtual void renderElement(OctreeElement* element, RenderArgs* args);
     virtual float getSizeScale() const;
     virtual int getBoundaryLevelAdjust() const;

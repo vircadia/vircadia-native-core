@@ -31,8 +31,8 @@ public:
     virtual ~EntityTreeHeadlessViewer();
 
     virtual char getMyNodeType() const { return NodeType::EntityServer; }
-    virtual PacketType getMyQueryMessageType() const { return PacketTypeEntityQuery; }
-    virtual PacketType getExpectedPacketType() const { return PacketTypeEntityData; }
+    virtual PacketType::Value getMyQueryMessageType() const { return PacketTypeEntityQuery; }
+    virtual PacketType::Value getExpectedPacketType() const { return PacketTypeEntityData; }
 
     void update();
 

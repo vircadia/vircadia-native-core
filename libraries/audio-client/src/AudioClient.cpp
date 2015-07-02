@@ -844,7 +844,7 @@ void AudioClient::handleAudioInput() {
             glm::quat headOrientation = _orientationGetter();
             quint8 isStereo = _isStereoInput ? 1 : 0;
 
-            PacketType packetType;
+            PacketType::Value packetType;
             if (_lastInputLoudness == 0) {
                 packetType = PacketTypeSilentAudioFrame;
             } else {

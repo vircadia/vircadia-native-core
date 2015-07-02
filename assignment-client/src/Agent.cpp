@@ -56,7 +56,7 @@ void Agent::readPendingDatagrams() {
     
     while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
         if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
-            PacketType datagramPacketType = packetTypeForPacket(receivedPacket);
+            PacketType::Value datagramPacketType = packetTypeForPacket(receivedPacket);
             
             if (datagramPacketType == PacketTypeJurisdiction) {
                 int headerBytes = numBytesForPacketHeader(receivedPacket);

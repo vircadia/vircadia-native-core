@@ -120,9 +120,9 @@ public:
 
     // QByteArray byteArrayWithPopulatedHeader(PacketType packetType)
     //     { return byteArrayWithUUIDPopulatedHeader(packetType, _sessionUUID); }
-    // int populatePacketHeader(QByteArray& packet, PacketType packetType)
+    // int populatePacketHeader(QByteArray& packet, PacketType::Value packetType)
     //     { return populatePacketHeaderWithUUID(packet, packetType, _sessionUUID); }
-    // int populatePacketHeader(char* packet, PacketType packetType)
+    // int populatePacketHeader(char* packet, PacketType::Value packetType)
     //     { return populatePacketHeaderWithUUID(packet, packetType, _sessionUUID); }
 
     qint64 readDatagram(QByteArray& incomingPacket, QHostAddress* address, quint16 * port);
@@ -266,7 +266,7 @@ protected:
 
     qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr);
 
-    PacketSequenceNumber getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType packetType);
+    PacketSequenceNumber getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType::Value packetType);
 
     void changeSocketBufferSizes(int numBytes);
 

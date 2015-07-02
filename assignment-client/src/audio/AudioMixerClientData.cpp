@@ -50,7 +50,7 @@ AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() const {
 }
 
 int AudioMixerClientData::parseData(const QByteArray& packet) {
-    PacketType packetType = packetTypeForPacket(packet);
+    PacketType::Value packetType = packetTypeForPacket(packet);
     if (packetType == PacketTypeAudioStreamStats) {
 
         const char* dataAt = packet.data();
