@@ -56,7 +56,7 @@ private:
 
     Avatar*        _owningAvatar;
     
-    void renderHandTargets(bool isMine);
+    void renderHandTargets(RenderArgs* renderArgs, bool isMine);
 };
 
 #endif // hifi_Hand_h

@@ -1208,9 +1208,7 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bo
     if (shouldRenderHead(renderArgs)) {
         getHead()->render(renderArgs, 1.0f, renderFrustum, postLighting);
     }
-    if (postLighting) {
-        getHand()->render(renderArgs, true);
-    }
+    getHand()->render(renderArgs, true);
 }
 
 void MyAvatar::setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visible) {
@@ -1584,7 +1582,7 @@ void MyAvatar::updateMotionBehavior() {
 }
 
 //Renders sixense laser pointers for UI selection with controllers
-void MyAvatar::renderLaserPointers() {
+void MyAvatar::renderLaserPointers(gpu::Batch& batch) {
     const float PALM_TIP_ROD_RADIUS = 0.002f;
 
     //If the Oculus is enabled, we will draw a blue cursor ray
@@ -1597,8 +1595,10 @@ void MyAvatar::renderLaserPointers() {
 
             //Scale the root vector with the avatar scale
             scaleVectorRelativeToPosition(root);
-
-            Avatar::renderJointConnectingCone(root, tip, PALM_TIP_ROD_RADIUS, PALM_TIP_ROD_RADIUS, glm::vec4(0, 1, 1, 1));
+            Transform transform = Transform();
+            transform.setTranslation(glm::vec3());
+            batch.setModelTransform(transform);
+            Avatar::renderJointConnectingCone(batch, root, tip, PALM_TIP_ROD_RADIUS, PALM_TIP_ROD_RADIUS, glm::vec4(0, 1, 1, 1));
         }
     }
 }
