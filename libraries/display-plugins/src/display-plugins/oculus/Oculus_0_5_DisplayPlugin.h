@@ -22,9 +22,6 @@ using MirrorFboPtr = QSharedPointer<MirrorFramebufferWrapper>;
 
 class Oculus_0_5_DisplayPlugin : public OculusBaseDisplayPlugin {
 public:
-    virtual void init() override;
-    virtual void deinit() override;
-
     virtual bool isSupported() const override;
     virtual const QString & getName() const override;
 
@@ -36,7 +33,6 @@ public:
 
 protected:
     virtual void display(GLuint finalTexture, const glm::uvec2& sceneSize) override;
-    virtual void customizeContext(PluginContainer * container) override;
     // Do not perform swap in finish
     virtual void finishFrame() override;
 

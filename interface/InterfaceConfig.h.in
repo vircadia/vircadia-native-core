@@ -12,7 +12,6 @@
 #ifndef interface__InterfaceConfig__
 #define interface__InterfaceConfig__
 
-#define GL_GLEXT_PROTOTYPES 1
-@GL_HEADERS@
+#include <gpu/GPUConfig.h>
 
 #endif

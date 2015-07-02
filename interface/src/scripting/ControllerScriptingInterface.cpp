@@ -11,7 +11,6 @@
 
 #include <avatar/AvatarManager.h>
 #include <avatar/MyAvatar.h>
-#include <GLCanvas.h>
 #include <HandData.h>
 #include <HFBackEvent.h>
 

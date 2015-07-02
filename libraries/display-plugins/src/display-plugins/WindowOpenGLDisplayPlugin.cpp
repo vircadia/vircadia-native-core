@@ -39,6 +39,10 @@ void WindowOpenGLDisplayPlugin::initSurfaceFormat(QSurfaceFormat& format) {
 void WindowOpenGLDisplayPlugin::activate(PluginContainer * container) {
     OpenGLDisplayPlugin::activate(container);
     _window = createWindow(container);
+    customizeWindow(container);
+
+    _window->makeCurrent();
+    customizeContext(container);
 }
 
 void WindowOpenGLDisplayPlugin::deactivate() {
@@ -54,11 +58,6 @@ GlWindow* WindowOpenGLDisplayPlugin::createWindow(PluginContainer * container) {
     result->setFormat(format);
     result->create();
     result->installEventFilter(this);
-    customizeWindow(container);
-
-    result->makeCurrent();
-    customizeContext(container);
-
     return result;
 }
 

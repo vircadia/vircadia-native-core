@@ -7,8 +7,10 @@
 //
 #pragma once
 
+#if !defined(Q_OS_MAC)
 #include <openvr.h>
 #include <GLMHelpers.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#endif
 

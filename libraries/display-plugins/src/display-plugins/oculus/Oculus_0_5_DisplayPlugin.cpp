@@ -38,7 +38,7 @@ const QString Oculus_0_5_DisplayPlugin::NAME("Oculus Rift (0.5)");
 const QString & Oculus_0_5_DisplayPlugin::getName() const {
     return NAME;
 }
-
+    
 bool Oculus_0_5_DisplayPlugin::isSupported() const {
     if (!ovr_Initialize(nullptr)) {
         return false;
