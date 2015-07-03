@@ -12,10 +12,19 @@
 #ifndef hifi_AngularConstraintTests_h
 #define hifi_AngularConstraintTests_h
 
-namespace AngularConstraintTests {
+#include <QtTest/QtTest>
+
+class AngularConstraintTests : public QObject {
+    Q_OBJECT
+private slots:
     void testHingeConstraint();
     void testConeRollerConstraint();
-    void runAllTests(); 
-}
+};
+
+// Use QCOMPARE_WITH_ABS_ERROR and define it for glm::quat
+#include <glm/glm.hpp>
+float getErrorDifference (const glm::quat& a, const glm::quat& b);
+QTextStream & operator << (QTextStream& stream, const glm::quat& q);
+#include "../QTestExtensions.h"
 
 #endif // hifi_AngularConstraintTests_h
