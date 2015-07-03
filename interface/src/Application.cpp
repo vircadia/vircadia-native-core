@@ -1097,13 +1097,6 @@ void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum)
     glMatrixMode(GL_MODELVIEW);
 }
 
-void Application::controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {
-    foreach(NodeType_t type, destinationNodeTypes) {
-        // Perform the broadcast for one type
-        DependencyManager::get<NodeList>()->broadcastToNodes(packet, NodeSet() << type);
-    }
-}
-
 bool Application::importSVOFromURL(const QString& urlString) {
     QUrl url(urlString);
     emit svoImportRequested(url.url());
@@ -1763,10 +1756,21 @@ bool Application::acceptSnapshot(const QString& urlString) {
 }
 
 void Application::sendPingPackets() {
-    QByteArray pingPacket = DependencyManager::get<NodeList>()->constructPingPacket();
-    controlledBroadcastToNodes(pingPacket, NodeSet()
-                               << NodeType::EntityServer
-                               << NodeType::AudioMixer << NodeType::AvatarMixer);
+    
+    auto nodeList = DependencyManager::get<NodeList>();
+    
+    nodeList->eachMatchingNode([](const SharedNodePointer& node)->bool {
+        switch (node->getType()) {
+            case NodeType::AvatarMixer:
+            case NodeType::AudioMixer:
+            case NodeType::EntityServer:
+                return true;
+            default:
+                return false;
+        }
+    }, [nodeList](const SharedNodePointer& node) {
+        nodeList->sendPacket(std::move(nodeList->constructPingPacket()), node);
+    });
 }
 
 //  Every second, check the frame rates and other stuff

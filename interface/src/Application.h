@@ -271,8 +271,6 @@ public:
 
     void resetProfile(const QString& username);
 
-    void controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
-
     virtual void setupWorldLight();
     virtual bool shouldRenderMesh(float largestDimension, float distanceToCamera);
 
