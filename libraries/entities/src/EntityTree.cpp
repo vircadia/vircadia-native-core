@@ -26,9 +26,6 @@
 #include "LogHandler.h"
 
 
-const quint64 SIMULATOR_CHANGE_LOCKOUT_PERIOD = (quint64)(0.2f * USECS_PER_SECOND);
-
-
 EntityTree::EntityTree(bool shouldReaverage) : 
     Octree(shouldReaverage), 
     _fbxService(NULL),

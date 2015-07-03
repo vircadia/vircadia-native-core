@@ -30,9 +30,6 @@
 #include "EntityActionFactoryInterface.h"
 
 
-const quint64 DEFAULT_SIMULATOR_CHANGE_LOCKOUT_PERIOD = (quint64)(0.2f * USECS_PER_SECOND);
-const quint64 MAX_SIMULATOR_CHANGE_LOCKOUT_PERIOD = 2 * USECS_PER_SECOND;
-
 bool EntityItem::_sendPhysicsUpdates = true;
 int EntityItem::_maxActionsDataSize = 800;
 

@@ -36,9 +36,6 @@
 #include "ui/Stats.h"
 #include "ui/AvatarInputs.h"
 
-const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
-const int AUDIO_METER_GAP = 5;
-const int MUTE_ICON_PADDING = 10;
 const vec4 CONNECTION_STATUS_BORDER_COLOR{ 1.0f, 0.0f, 0.0f, 0.8f };
 const float CONNECTION_STATUS_BORDER_LINE_WIDTH = 4.0f;
 static const float ORTHO_NEAR_CLIP = -10000;
