@@ -1134,8 +1134,6 @@ void Application::resizeGL() {
             aspect(getCanvasSize()), DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
     }
 
-    resetCameras(_myCamera, _renderResolution);
-
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
     auto uiSize = displayPlugin->getRecommendedUiSize();
@@ -1241,6 +1239,54 @@ bool Application::eventFilter(QObject* object, QEvent* event) {
         if (_controllerScriptingInterface.isKeyCaptured(static_cast<QKeyEvent*>(event))) {
             event->accept();
             return true;
+        }
+    }
+
+    if (object == _glWindow) {
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        if (offscreenUi->eventFilter(object, event)) {
+            return true;
+        }
+        switch (event->type()) {
+        case QEvent::MouseMove:
+            mouseMoveEvent((QMouseEvent*)event);
+            return true;
+        case QEvent::MouseButtonPress:
+            mousePressEvent((QMouseEvent*)event);
+            return true;
+        case QEvent::MouseButtonDblClick:
+            mouseDoublePressEvent((QMouseEvent*)event);
+            return true;
+        case QEvent::MouseButtonRelease:
+            mouseReleaseEvent((QMouseEvent*)event);
+            return true;
+        case QEvent::KeyPress:
+            keyPressEvent((QKeyEvent*)event);
+            return true;
+        case QEvent::KeyRelease:
+            keyReleaseEvent((QKeyEvent*)event);
+            return true;
+        case QEvent::FocusOut:
+            focusOutEvent((QFocusEvent*)event);
+            return true;
+        case QEvent::TouchBegin:
+            touchBeginEvent(static_cast<QTouchEvent*>(event));
+            event->accept();
+            return true;
+        case QEvent::TouchEnd:
+            touchEndEvent(static_cast<QTouchEvent*>(event));
+            return true;
+        case QEvent::TouchUpdate:
+            touchUpdateEvent(static_cast<QTouchEvent*>(event));
+            return true;
+        case QEvent::Wheel:
+            wheelEvent(static_cast<QWheelEvent*>(event));
+            return true;
+        case QEvent::Drop:
+            dropEvent(static_cast<QDropEvent*>(event));
+            return true;
+        default:
+            break;
         }
     }
     return false;
@@ -1895,7 +1941,7 @@ void Application::idle() {
         }
         // After finishing all of the above work, ensure the idle timer is set to the proper interval,
         // depending on whether we're throttling or not
-        idleTimer->start(_glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : 0);
+        idleTimer->start(getActiveDisplayPlugin()->isThrottled() ? THROTTLED_IDLE_TIMER_DELAY : 0);
     } 
 
     // check for any requested background downloads.
@@ -4843,8 +4889,8 @@ void Application::updateDisplayMode() {
     DisplayPluginPointer oldDisplayPlugin = _displayPlugin;
     if (oldDisplayPlugin != newDisplayPlugin) {
         if (oldDisplayPlugin) {
-            oldDisplayPlugin->removeEventFilter(offscreenUi.data());
             oldDisplayPlugin->removeEventFilter(qApp);
+            oldDisplayPlugin->removeEventFilter(offscreenUi.data());
         }
 
         if (!_currentDisplayPluginActions.isEmpty()) {
@@ -4860,8 +4906,8 @@ void Application::updateDisplayMode() {
             newDisplayPlugin->activate(this);
 
             _offscreenContext->makeCurrent();
-            newDisplayPlugin->installEventFilter(offscreenUi.data());
             newDisplayPlugin->installEventFilter(qApp);
+            newDisplayPlugin->installEventFilter(offscreenUi.data());
             QWindow* pluginWindow = newDisplayPlugin->getWindow();
             if (pluginWindow) {
                 DependencyManager::get<OffscreenUi>()->setProxyWindow(pluginWindow);
