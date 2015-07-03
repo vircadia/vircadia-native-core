@@ -39,11 +39,24 @@ protected:
     virtual void finishFrame() override;
 
 private:
-#if RIFT_SDK_DISTORTION
     ovrTexture _eyeTextures[2];
+#if RIFT_SDK_DISTORTION
 #else
+    ovrVector2f     _offsetAndScale[2][2];
     ProgramPtr      _distortProgram;
+    BufferPtr       _eyeIndexBuffers[2];
     BufferPtr       _eyeVertexBuffers[2];
+    GLuint          _indexCount[2];
+
+    GLuint          _uniformScale{ -1 };
+    GLuint          _uniformOffset{ -1 };
+    GLuint          _uniformEyeRotStart{ -1 };
+    GLuint          _uniformEyeRotEnd{ -1 };
+    GLuint          _attrPosition{ -1 };
+    GLuint          _attrTexCoord0{ -1 };
+    GLuint          _attrTexCoord1{ -1 };
+    GLuint          _attrTexCoord2{ -1 };
+
 #endif
     static const QString NAME;
     GlWindow* _hmdWindow;

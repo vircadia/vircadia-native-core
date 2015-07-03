@@ -30,7 +30,7 @@
 #include <oglplus/opt/list_init.hpp>
 #include <oglplus/shapes/obj_mesh.hpp>
 
-#include "../OglplusHelpers.h"
+#include <OglplusHelpers.h>
 
 
 // A base class for FBO wrappers that need to use the Oculus C

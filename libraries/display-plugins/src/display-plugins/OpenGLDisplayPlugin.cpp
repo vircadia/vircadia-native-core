@@ -140,7 +140,8 @@ void OpenGLDisplayPlugin::display(
     glEnableVertexAttribArray(_texCoordAttribute);
     glVertexAttribPointer(_texCoordAttribute, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)(sizeof(float) * 2));
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    //glDisableVertexAttribArray(_positionAttribute);
-    //glDisableVertexAttribArray(_texCoordAttribute);
-    //glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glDisableVertexAttribArray(_positionAttribute);
+    glDisableVertexAttribArray(_texCoordAttribute);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glUseProgram(0);
 }
