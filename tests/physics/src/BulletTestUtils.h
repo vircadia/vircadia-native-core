@@ -32,7 +32,7 @@ inline btScalar getErrorDifference(const btVector3& a, const btVector3& b) {
     return (a - b).length();
 }
 // Matrices are compared element-wise -- if the error value for any element > epsilon, then fail
-inline btScalar getErrorDifference (const btMatrix3x3& a, const btMatrix3x3& b) {
+inline btScalar getErrorDifference(const btMatrix3x3& a, const btMatrix3x3& b) {
     btScalar maxDiff   = 0;
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 3; ++j) {
@@ -48,7 +48,7 @@ inline btScalar getErrorDifference (const btMatrix3x3& a, const btMatrix3x3& b) 
 //
 
 // btMatrix3x3 stream printing (not advised to use this outside of the test macros, due to formatting)
-inline QTextStream& operator << (QTextStream& stream, const btMatrix3x3& matrix) {
+inline QTextStream& operator<< (QTextStream& stream, const btMatrix3x3& matrix) {
     stream << "[\n\t\t";
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 3; ++j) {

@@ -134,7 +134,7 @@ if (APPLE)
 endif ()
 
 # Hide automoc folders (for IDEs)
-set(AUTOGEN_TARGETS_FOLDER "hidden/generated")  # Apparently this doesn't work... -.-
+set(AUTOGEN_TARGETS_FOLDER "hidden/generated")
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)

@@ -17,10 +17,10 @@
 
 // Implements functionality in QTestExtensions.h for glm types
 
-inline float getErrorDifference(const glm::vec3 & a, const glm::vec3 & b) {
+inline float getErrorDifference(const glm::vec3& a, const glm::vec3& b) {
     return glm::distance(a, b);
 }
-inline QTextStream & operator << (QTextStream & stream, const glm::vec3 & v) {
+inline QTextStream& operator<<(QTextStream& stream, const glm::vec3& v) {
     return stream << "glm::vec3 { " << v.x << ", " << v.y << ", " << v.z << " }";
 }
 

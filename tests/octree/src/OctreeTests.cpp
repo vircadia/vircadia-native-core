@@ -56,10 +56,6 @@ QTEST_MAIN(OctreeTests)
 void OctreeTests::propertyFlagsTests() {
     bool verbose = true;
     
-//    int testsTaken = 0;
-//    int testsPassed = 0;
-//    int testsFailed = 0;
-    
     qDebug() << "FIXME: this test is broken and needs to be fixed.";
     qDebug() << "We're disabling this so that ALL_BUILD works";
     return;
@@ -84,22 +80,7 @@ void OctreeTests::propertyFlagsTests() {
         props.setHasProperty(PROP_ROTATION);
     
         QByteArray encoded = props.encode();
-
-//        if (verbose) {
-//            qDebug() << "encoded=";
-//            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-//        }
-//        char expectedBytes[] = { 31 };
-//        QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
-//
-//        QCOMPARE(encoded, expectedResult);
         QCOMPARE(encoded, makeQByteArray({ (char) 13 }));
-//        if (encoded == expectedResult) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 1: EntityProperties: using setHasProperty()";
-//        }
 
     }
 
@@ -116,47 +97,14 @@ void OctreeTests::propertyFlagsTests() {
         props2.setHasProperty(PROP_ANIMATION_PLAYING);
     
         QByteArray encoded = props2.encode();
-
-//        if (verbose) {
-//            qDebug() << "encoded=";
-//            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-//        }
-//        char expectedBytes[] = { (char)196, (char)15, (char)2 };
-//        QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
-//
-//        QCOMPARE(encoded, expectedResult);
         QCOMPARE(encoded, makeQByteArray({ (char) 196, 15, 2 }));
 
-//        if (encoded == expectedResult) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 2: ExamplePropertyFlags: using setHasProperty()";
-//        }
-
-        
         if (verbose) {
             qDebug() << "Test 2b: remove flag with setHasProperty() PROP_PAUSE_SIMULATION";
         }
 
         encoded = props2.encode();
-
-//        if (verbose) {
-//            qDebug() << "encoded=";
-//            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-//        }
-//
-//        char expectedBytesB[] = { (char)136, (char)30 };
-//        QByteArray expectedResultB(expectedBytesB, sizeof(expectedBytesB)/sizeof(expectedBytesB[0]));
-        
-//        QCOMPARE(encoded, expectedResultB);
         QCOMPARE(encoded, makeQByteArray({ (char) 136, 30 }));
-//        if (encoded == expectedResultB) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 2b: remove flag with setHasProperty() EXAMPLE_PROP_PAUSE_SIMULATION";
-//        }
     }
 
     {    
@@ -174,20 +122,7 @@ void OctreeTests::propertyFlagsTests() {
                     | ExamplePropertyFlags(EXAMPLE_PROP_PAUSE_SIMULATION);
     
         QByteArray encoded = props.encode();
-
-//        if (verbose) {
-//            qDebug() << "encoded=";
-//            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-//        }
-//        char expectedBytes[] = { (char)196, (char)15, (char)2 };
-//        QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
-//        
-//        QCOMPARE(encoded, expectedResult);
         QCOMPARE(encoded, makeQByteArray({ (char) 196, 15, 2 }));
-//        if (encoded == expectedResult) {
-//        } else {
-//            qDebug() << "FAILED - Test 3: ExamplePropertyFlags: using | operator";
-//        }
 
 
         if (verbose) {
@@ -197,23 +132,7 @@ void OctreeTests::propertyFlagsTests() {
         props -= EXAMPLE_PROP_PAUSE_SIMULATION;
     
         encoded = props.encode();
-    
-//        if (verbose) {
-//            qDebug() << "encoded=";
-//            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-//        }
-//        
-//        char expectedBytesB[] = { (char)136, (char)30 };
-//        QByteArray expectedResultB(expectedBytesB, sizeof(expectedBytesB)/sizeof(expectedBytesB[0]));
-//        
-//        QCOMPARE(encoded, expectedResultB);
         QCOMPARE(encoded, makeQByteArray({ (char) 136, 30 }));
-//        if (encoded == expectedResultB) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 3b: remove flag with -= EXAMPLE_PROP_PAUSE_SIMULATION";
-//        }
     }
 
     {    
@@ -231,23 +150,7 @@ void OctreeTests::propertyFlagsTests() {
         props |= EXAMPLE_PROP_PAUSE_SIMULATION;
 
         QByteArray encoded = props.encode();
-
-//        if (verbose) {
-//            qDebug() << "encoded=";
-//            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-//        }
-//
-//        char expectedBytes[] = { (char)196, (char)15, (char)2 };
-//        QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
-//        
-//        QCOMPARE(encoded, expectedResult);
         QCOMPARE(encoded, makeQByteArray({ (char) 196, 15, 2 }));
-//        if (encoded == expectedResult) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - 3c: ExamplePropertyFlags: using |= operator";
-//        }
     }
 
     {    
@@ -265,23 +168,7 @@ void OctreeTests::propertyFlagsTests() {
                     + ExamplePropertyFlags(EXAMPLE_PROP_PAUSE_SIMULATION);
     
         QByteArray encoded = props.encode();
-
-//        if (verbose) {
-//            qDebug() << "encoded=";
-//            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-//        }
-//
-//        char expectedBytes[] = { (char)196, (char)15, (char)2 };
-//        QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
-//        
-//        QCOMPARE(encoded, expectedResult);
         QCOMPARE(encoded, makeQByteArray({ (char) 196, 15, 2 }));
-//        if (encoded == expectedResult) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 4: ExamplePropertyFlags: using + operator";
-//        }
     }
 
     {    
@@ -298,23 +185,7 @@ void OctreeTests::propertyFlagsTests() {
         props += EXAMPLE_PROP_PAUSE_SIMULATION;
     
         QByteArray encoded = props.encode();
-
-//        if (verbose) {
-//            qDebug() << "encoded=";
-//            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-//        }
-//
-//        char expectedBytes[] = { (char)196, (char)15, (char)2 };
-//        QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
-//        
-//        QCOMPARE(encoded, expectedResult);
         QCOMPARE(encoded, makeQByteArray({ (char) 196, 15, 2 }));
-//        if (encoded == expectedResult) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 5: ExamplePropertyFlags: using += operator";
-//        }
     }
 
     {    
@@ -332,23 +203,7 @@ void OctreeTests::propertyFlagsTests() {
                     << ExamplePropertyFlags(EXAMPLE_PROP_PAUSE_SIMULATION);
     
         QByteArray encoded = props.encode();
-
-//        if (verbose) {
-//            qDebug() << "encoded=";
-//            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-//        }
-//
-//        char expectedBytes[] = { (char)196, (char)15, (char)2 };
-//        QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
-//        
-//        QCOMPARE(encoded, expectedResult);
         QCOMPARE(encoded, makeQByteArray({ (char) 196, 15, 2 }));
-//        if (encoded == expectedResult) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 6: ExamplePropertyFlags: using = ... << operator";
-//        }
     }
 
     {
@@ -366,23 +221,7 @@ void OctreeTests::propertyFlagsTests() {
         props <<= EXAMPLE_PROP_PAUSE_SIMULATION;
     
         QByteArray encoded = props.encode();
-
-//        if (verbose) {
-//            qDebug() << "encoded=";
-//            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-//        }
-//
-//        char expectedBytes[] = { (char)196, (char)15, (char)2 };
-//        QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
-//        
-//        QCOMPARE(encoded, expectedResult);
         QCOMPARE(encoded, makeQByteArray({ (char) 196, 15, 2 }));
-//        if (encoded == expectedResult) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 7: ExamplePropertyFlags: using <<= operator";
-//        }
     }
 
     {
@@ -400,23 +239,7 @@ void OctreeTests::propertyFlagsTests() {
         props << EXAMPLE_PROP_PAUSE_SIMULATION;
 
         QByteArray encoded = props.encode();
-
-//        if (verbose) {
-//            qDebug() << "encoded=";
-//            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-//        }
-//
-//        char expectedBytes[] = { (char)196, (char)15, (char)2 };
-//        QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
-//        
-//        QCOMPARE(encoded, expectedResult);
         QCOMPARE(encoded, makeQByteArray({ (char) 196, 15, 2 }));
-//        if (encoded == expectedResult) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 8: ExamplePropertyFlags: using << enum operator";
-//        }
     }
 
     {
@@ -438,23 +261,7 @@ void OctreeTests::propertyFlagsTests() {
         props << props2;
 
         QByteArray encoded = props.encode();
-
-//        if (verbose) {
-//            qDebug() << "encoded=";
-//            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-//        }
-//
-//        char expectedBytes[] = { (char)196, (char)15, (char)2 };
-//        QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
-//        
-//        QCOMPARE(encoded, expectedResult);
         QCOMPARE(encoded, makeQByteArray({ (char) 196, 15, 2 }));
-//        if (encoded == expectedResult) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 9: ExamplePropertyFlags: using << flags operator";
-//        }
     }
   
     {
@@ -466,17 +273,7 @@ void OctreeTests::propertyFlagsTests() {
         if (verbose) {
             qDebug() << "!propsA:" << (!propsA) << "{ expect true }";
         }
-//        bool resultA = (!propsA);
-//        bool expectedA = true;
-//        
-//        QCOMPARE(resultA, expectedA);
         QCOMPARE(!propsA, true);
-//        if (resultA == expectedA) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 10a: ExamplePropertyFlags comparison, uninitialized !propsA";
-//        }
 
         propsA << EXAMPLE_PROP_VISIBLE;
         propsA << EXAMPLE_PROP_ANIMATION_URL;
@@ -485,19 +282,7 @@ void OctreeTests::propertyFlagsTests() {
         propsA << EXAMPLE_PROP_ANIMATION_PLAYING;
         propsA << EXAMPLE_PROP_PAUSE_SIMULATION;
 
-//        if (verbose) {
-//            qDebug() << "!propsA:" << (!propsA) << "{ expect false }";
-//        }
-//        bool resultB = (!propsA);
-//        bool expectedB = false;
-//        QCOMPARE(resultB, expectedB);
         QCOMPARE(!propsA, false);
-//        if (resultB == expectedB) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 10b: ExamplePropertyFlags comparison, initialized !propsA";
-//        }
 
         ExamplePropertyFlags propsB;
         propsB << EXAMPLE_PROP_VISIBLE;
@@ -511,28 +296,8 @@ void OctreeTests::propertyFlagsTests() {
             qDebug() << "propsA == propsB:" << (propsA == propsB) << "{ expect true }";
             qDebug() << "propsA != propsB:" << (propsA != propsB) << "{ expect false }";
         }
-//        bool resultC = (propsA == propsB);
-//        bool expectedC = true;
-//        QCOMPARE(resultC, expectedC);
         QCOMPARE(propsA == propsB, true);
-//        if (resultC == expectedC) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 10c: ExamplePropertyFlags comparison, propsA == propsB";
-//        }
-
-//        bool resultD = (propsA != propsB);
-//        bool expectedD = false;
-//        
-//        QCOMPARE(resultD, expectedD);
         QCOMPARE(propsA != propsB, false);
-//        if (resultD == expectedD) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 10d: ExamplePropertyFlags comparison, propsA != propsB";
-//        }
         
         if (verbose) {
             qDebug() << "AFTER propsB -= EXAMPLE_PROP_PAUSE_SIMULATION...";
@@ -540,39 +305,12 @@ void OctreeTests::propertyFlagsTests() {
         
         propsB -= EXAMPLE_PROP_PAUSE_SIMULATION;
 
-//        if (verbose) {
-//            qDebug() << "propsA == propsB:" << (propsA == propsB) << "{ expect false }";
-//            qDebug() << "propsA != propsB:" << (propsA != propsB) << "{ expect true }";
-//        }
-//        bool resultE = (propsA == propsB);
-//        bool expectedE = false;
-//        QCOMPARE(resultE, expectedE);
         QCOMPARE(propsA == propsB, false);
-//        if (resultE == expectedE) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 10e: ExamplePropertyFlags comparison, AFTER propsB -= EXAMPLE_PROP_PAUSE_SIMULATION";
-//        }
-        
         if (verbose) {
             qDebug() << "AFTER propsB = propsA...";
         }
         propsB = propsA;
-//        if (verbose) {
-//            qDebug() << "propsA == propsB:" << (propsA == propsB) << "{ expect true }";
-//            qDebug() << "propsA != propsB:" << (propsA != propsB) << "{ expect false }";
-//        }
-//        bool resultF = (propsA == propsB);
-//        bool expectedF = true;
-//        QCOMPARE(resultF, expectedF);
         QCOMPARE(propsA == propsB, true);
-//        if (resultF == expectedF) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 10f: ExamplePropertyFlags comparison, AFTER propsB = propsA";
-//        }
     }
 
     {
@@ -587,38 +325,11 @@ void OctreeTests::propertyFlagsTests() {
         
         QByteArray encoded = props.encode();
 
-//        if (verbose) {
-//            qDebug() << "props... encoded=";
-//            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-//        }
-//
-//        char expectedBytes[] = { 0 };
-//        QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
-//        
-//        QCOMPARE(encoded, expectedResult);
-        QCOMPARE(encoded, makeQByteArray({ (char) 0 }));
-//        if (encoded == expectedResult) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 11a: ExamplePropertyFlags testing individual properties";
-//        }
-
-
         if (verbose) {
             qDebug() << "Test 11b: props.getHasProperty(EXAMPLE_PROP_VISIBLE)" << (props.getHasProperty(EXAMPLE_PROP_VISIBLE)) 
                         << "{ expect false }";
         }
         QCOMPARE(props.getHasProperty(EXAMPLE_PROP_VISIBLE), false);
-//        bool resultB = props.getHasProperty(EXAMPLE_PROP_VISIBLE);
-//        bool expectedB = false;
-//        QCOMPARE(resultB, expectedB);
-//        if (resultB == expectedB) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 11b: props.getHasProperty(EXAMPLE_PROP_VISIBLE)";
-//        }
 
         if (verbose) {
             qDebug() << "props << EXAMPLE_PROP_VISIBLE;";
@@ -626,36 +337,8 @@ void OctreeTests::propertyFlagsTests() {
         props << EXAMPLE_PROP_VISIBLE;
         QCOMPARE(props.getHasProperty(EXAMPLE_PROP_VISIBLE), true);
 
-//        bool resultC = props.getHasProperty(EXAMPLE_PROP_VISIBLE);
-//        bool expectedC = true;
-//        QCOMPARE(resultC, expectedC);
-//        if (resultC == expectedC) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 11c: props.getHasProperty(EXAMPLE_PROP_VISIBLE) after props << EXAMPLE_PROP_VISIBLE";
-//        }
-
         encoded = props.encode();
         QCOMPARE(encoded, makeQByteArray({ (char) 16 }));
-//        if (verbose) {
-//            qDebug() << "props... encoded=";
-//            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-//            qDebug() << "props.getHasProperty(EXAMPLE_PROP_VISIBLE)" << (props.getHasProperty(EXAMPLE_PROP_VISIBLE)) 
-//                            << "{ expect true }";
-//        }
-//
-//        char expectedBytesC[] = { 16 };
-//        QByteArray expectedResultC(expectedBytesC, sizeof(expectedBytesC)/sizeof(expectedBytesC[0]));
-//        
-//        QCOMPARE(encoded, expectedResultC);
-//        if (encoded == expectedResultC) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 11c: ExamplePropertyFlags testing individual properties";
-//        }
-
         if (verbose) {
             qDebug() << "props << EXAMPLE_PROP_ANIMATION_URL;";
         }
@@ -663,33 +346,7 @@ void OctreeTests::propertyFlagsTests() {
     
         encoded = props.encode();
         QCOMPARE(encoded, makeQByteArray({ (char) 136, 16}));
-//        if (verbose) {
-//            qDebug() << "props... encoded=";
-//            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-//            qDebug() << "props.getHasProperty(EXAMPLE_PROP_VISIBLE)" << (props.getHasProperty(EXAMPLE_PROP_VISIBLE)) 
-//                            << "{ expect true }";
-//        }
-//        char expectedBytesD[] = { (char)136, (char)16 };
-//        QByteArray expectedResultD(expectedBytesD, sizeof(expectedBytesD)/sizeof(expectedBytesD[0]));
-//        
-//        QCOMPARE(encoded, expectedResultD);
-//        if (encoded == expectedResultD) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 11d: ExamplePropertyFlags testing individual properties";
-//        }
-//        bool resultE = props.getHasProperty(EXAMPLE_PROP_VISIBLE);
-//        bool expectedE = true;
-//        QCOMPARE(resultE, expectedE);
         QCOMPARE(props.getHasProperty(EXAMPLE_PROP_VISIBLE), true);
-//        if (resultE == expectedE) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 11e: props.getHasProperty(EXAMPLE_PROP_VISIBLE) after props << EXAMPLE_PROP_ANIMATION_URL";
-//        }
-
 
         if (verbose) {
             qDebug() << "props << ... more ...";
@@ -700,59 +357,17 @@ void OctreeTests::propertyFlagsTests() {
         props << EXAMPLE_PROP_PAUSE_SIMULATION;
 
         encoded = props.encode();
-//        if (verbose) {
-//            qDebug() << "props... encoded=";
-//            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-//            qDebug() << "props.getHasProperty(EXAMPLE_PROP_VISIBLE)" << (props.getHasProperty(EXAMPLE_PROP_VISIBLE)) 
-//                            << "{ expect true }";
-//        }
-//        bool resultF = props.getHasProperty(EXAMPLE_PROP_VISIBLE);
-//        bool expectedF = true;
-//        QCOMPARE(resultF, expectedF);
         QCOMPARE(props.getHasProperty(EXAMPLE_PROP_VISIBLE), true);
-//        if (resultF == expectedF) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 11f: props.getHasProperty(EXAMPLE_PROP_VISIBLE) after props << more";
-//        }
 
         if (verbose) {
             qDebug() << "ExamplePropertyFlags propsB = props & EXAMPLE_PROP_VISIBLE;";
         }
         ExamplePropertyFlags propsB = props & EXAMPLE_PROP_VISIBLE;
 
-//        if (verbose) {
-//            qDebug() << "propsB.getHasProperty(EXAMPLE_PROP_VISIBLE)" << (propsB.getHasProperty(EXAMPLE_PROP_VISIBLE)) 
-//                        << "{ expect true }";
-//        }
-//        bool resultG = propsB.getHasProperty(EXAMPLE_PROP_VISIBLE);
-//        bool expectedG = true;
-//        QCOMPARE(resultG, expectedG);
         QCOMPARE(propsB.getHasProperty(EXAMPLE_PROP_VISIBLE), true);
-//        if (resultG == expectedG) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 11g: propsB = props & EXAMPLE_PROP_VISIBLE";
-//        }
 
         encoded = propsB.encode();
-//        if (verbose) {
-//            qDebug() << "propsB... encoded=";
-//            outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-//        }
-//        char expectedBytesH[] = { 16 };
-//        QByteArray expectedResultH(expectedBytesC, sizeof(expectedBytesH)/sizeof(expectedBytesH[0]));
-//        
-//        QCOMPARE(encoded, expectedResultH);
         QCOMPARE(encoded, makeQByteArray({ (char) 16 }));
-//        if (encoded == expectedResultH) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 11h: ExamplePropertyFlags testing individual properties";
-//        }
 
         if (verbose) {
             qDebug() << "ExamplePropertyFlags propsC = ~propsB;";
@@ -760,19 +375,6 @@ void OctreeTests::propertyFlagsTests() {
         ExamplePropertyFlags propsC = ~propsB;
         
         QCOMPARE(propsC.getHasProperty(EXAMPLE_PROP_VISIBLE), false);
-//        if (verbose) {
-//            qDebug() << "propsC.getHasProperty(EXAMPLE_PROP_VISIBLE)" << (propsC.getHasProperty(EXAMPLE_PROP_VISIBLE))
-//                        << "{ expect false }";
-//        }
-//        bool resultI = propsC.getHasProperty(EXAMPLE_PROP_VISIBLE);
-//        bool expectedI = false;
-//        QCOMPARE(resultI, expectedI);
-//        if (resultI == expectedI) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 11i: propsC = ~propsB";
-//        }
 
         encoded = propsC.encode();
         if (verbose) {
@@ -805,35 +407,10 @@ void OctreeTests::propertyFlagsTests() {
         propsDecoded.decode(encoded);
         
         QCOMPARE(propsDecoded, props);
-//        if (verbose) {
-//            qDebug() << "propsDecoded == props:" << (propsDecoded == props) << "{ expect true }";
-//        }
-//        bool resultA = (propsDecoded == props);
-//        bool expectedA = true;
-//        QCOMPARE(resultA, expectedA);
-//        if (resultA == expectedA) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 12a: propsDecoded == props";
-//        }
 
         QByteArray encodedAfterDecoded = propsDecoded.encode();
 
         QCOMPARE(encoded, encodedAfterDecoded);
-//        if (verbose) {
-//            qDebug() << "encodedAfterDecoded=";
-//            outputBufferBits((const unsigned char*)encodedAfterDecoded.constData(), encodedAfterDecoded.size());
-//        }
-//        bool resultB = (encoded == encodedAfterDecoded);
-//        bool expectedB = true;
-//        QCOMPARE(resultB, expectedB);
-//        if (resultB == expectedB) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 12b: (encoded == encodedAfterDecoded)";
-//        }
 
         if (verbose) {
             qDebug() << "fill encoded byte array with extra garbage (as if it was bitstream with more content)";
@@ -850,18 +427,6 @@ void OctreeTests::propertyFlagsTests() {
         propsDecodedExtra.decode(encoded);
         
         QCOMPARE(propsDecodedExtra, props);
-//        if (verbose) {
-//            qDebug() << "propsDecodedExtra == props:" << (propsDecodedExtra == props) << "{ expect true }";
-//        }
-//        bool resultC = (propsDecodedExtra == props);
-//        bool expectedC = true;
-//        QCOMPARE(resultC, expectedC);
-//        if (resultC == expectedC) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 12c: (propsDecodedExtra == props)";
-//        }
 
         QByteArray encodedAfterDecodedExtra = propsDecodedExtra.encode();
 
@@ -902,19 +467,6 @@ void OctreeTests::propertyFlagsTests() {
         
         
         QCOMPARE(propsDecoded, props);
-//        if (verbose) {
-//            qDebug() << "propsDecoded==props" << (propsDecoded==props);
-//        }
-//
-//        bool resultA = (propsDecoded == props);
-//        bool expectedA = true;
-//        QCOMPARE(resultA, expectedA);
-//        if (resultA == expectedA) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 13: ExamplePropertyFlags: QByteArray << / >> tests";
-//        }
     }
 
     if (verbose) {
@@ -956,42 +508,11 @@ void OctreeTests::byteCountCodingTests() {
     decodedZero.decode(encoded);
     
     QCOMPARE(decodedZero.data, static_cast<decltype(decodedZero.data)>( 0 ));
-//    if (verbose) {
-//        qDebug() << "decodedZero=" << decodedZero.data;
-//        qDebug() << "decodedZero==zero" << (decodedZero == zero) << " { expected true } ";
-//    }
-//    bool result1 = (decodedZero.data == 0);
-//    bool expected1 = true;
-//    QCOMPARE(result1, expected1);
-//    if (result1 == expected1) {
-//        testsPassed++;
-//    } else {
-//        testsFailed++;
-//        qDebug() << "FAILED - Test 1: ByteCountCodedUINT zero(0) decodedZero.data == 0";
-//    }
     QCOMPARE(decodedZero, zero);
-//    if (result2 == expected2) {
-//        testsPassed++;
-//    } else {
-//        testsFailed++;
-//        qDebug() << "FAILED - Test 2: ByteCountCodedUINT zero(0) (decodedZero == zero)";
-//    }
 
     ByteCountCodedUINT decodedZeroB(encoded);
     
     QCOMPARE(decodedZeroB.data, (unsigned int) 0);
-//    if (verbose) {
-//        qDebug() << "decodedZeroB=" << decodedZeroB.data;
-//    }
-//    bool result3 = (decodedZeroB.data == 0);
-//    bool expected3 = true;
-//    QCOMPARE(result3, expected3);
-//    if (result3 == expected3) {
-//        testsPassed++;
-//    } else {
-//        testsFailed++;
-//        qDebug() << "FAILED - Test 3: (decodedZeroB.data == 0)";
-//    }
 
     if (verbose) {
         qDebug() << "ByteCountCodedUINT foo(259)";
@@ -1007,46 +528,11 @@ void OctreeTests::byteCountCodingTests() {
     decodedFoo.decode(encoded);
 
     QCOMPARE(decodedFoo.data, (unsigned int) 259);
-//    if (verbose) {
-//        qDebug() << "decodedFoo=" << decodedFoo.data;
-//        qDebug() << "decodedFoo==foo" << (decodedFoo == foo) << " { expected true } ";
-//    }
-//    bool result4 = (decodedFoo.data == 259);
-//    bool expected4 = true;
-//    QCOMPARE(result4, expected4);
-//    if (result4 == expected4) {
-//        testsPassed++;
-//    } else {
-//        testsFailed++;
-//        qDebug() << "FAILED - Test 4: ByteCountCodedUINT zero(0) (decodedFoo.data == 259)";
-//    }
 
     QCOMPARE(decodedFoo, foo);
-//    bool result5 = (decodedFoo == foo);
-//    bool expected5 = true;
-//    QCOMPARE(result5, expected5);
-//    if (result5 == expected5) {
-//        testsPassed++;
-//    } else {
-//        testsFailed++;
-//        qDebug() << "FAILED - Test 5: (decodedFoo == foo)";
-//    }
 
     ByteCountCodedUINT decodedFooB(encoded);
     QCOMPARE(decodedFooB.data, (unsigned int) 259);
-//    if (verbose) {
-//        qDebug() << "decodedFooB=" << decodedFooB.data;
-//    }
-//    bool result6 = (decodedFooB.data == 259);
-//    bool expected6 = true;
-//    QCOMPARE(result5, expected6);
-//    if (result6 == expected6) {
-//        testsPassed++;
-//    } else {
-//        testsFailed++;
-//        qDebug() << "FAILED - Test 6: (decodedFooB.data == 259)";
-//    }
-
 
     if (verbose) {
         qDebug() << "ByteCountCodedUINT bar(1000000)";
@@ -1060,30 +546,8 @@ void OctreeTests::byteCountCodingTests() {
     ByteCountCodedUINT decodedBar;
     decodedBar.decode(encoded);
     QCOMPARE(decodedBar.data, (unsigned int) 1000000);
-//    if (verbose) {
-//        qDebug() << "decodedBar=" << decodedBar.data;
-//        qDebug() << "decodedBar==bar" << (decodedBar == bar) << " { expected true } ";
-//    }
-//    bool result7 = (decodedBar.data == 1000000);
-//    bool expected7 = true;
-//    QCOMPARE(result7, expected7);
-//    if (result7 == expected7) {
-//        testsPassed++;
-//    } else {
-//        testsFailed++;
-//        qDebug() << "FAILED - Test 7: ByteCountCodedUINT zero(0) (decodedBar.data == 1000000)";
-//    }
 
     QCOMPARE(decodedBar, bar);
-//    bool result8 = (decodedBar == bar);
-//    bool expected8 = true;
-//    QCOMPARE(result8, expected8);
-//    if (result8 == expected8) {
-//        testsPassed++;
-//    } else {
-//        testsFailed++;
-//        qDebug() << "FAILED - Test 8: (decodedBar == bar)";
-//    }
 
     if (verbose) {
         qDebug() << "ByteCountCodedUINT spam(4294967295/2)";
@@ -1101,26 +565,8 @@ void OctreeTests::byteCountCodingTests() {
         qDebug() << "decodedSpam==spam" << (decodedSpam==spam) << " { expected true } ";
     }
     QCOMPARE(decodedSpam.data, (unsigned int) 4294967295/2);
-//    bool result9 = (decodedSpam.data == 4294967295/2);
-//    bool expected9 = true;
-//    QCOMPARE(result9, expected9);
-//    if (result9 == expected9) {
-//        testsPassed++;
-//    } else {
-//        testsFailed++;
-//        qDebug() << "FAILED - Test 9: (decodedSpam.data == 4294967295/2)";
-//    }
 
     QCOMPARE(decodedSpam, spam);
-//    bool result10 = (decodedSpam == spam);
-//    bool expected10 = true;
-//    QCOMPARE(result10, expected10);
-//    if (result10 == expected10) {
-//        testsPassed++;
-//    } else {
-//        testsFailed++;
-//        qDebug() << "FAILED - Test 10: (decodedSpam == spam)";
-//    }
 
     if (verbose) {
         qDebug() << "ByteCountCodedQUINT64 foo64(259)";
@@ -1140,16 +586,6 @@ void OctreeTests::byteCountCodingTests() {
     }
 
     QCOMPARE(foo64POD, (quint64) 259);
-//    bool result11 = (foo64POD == 259);
-//    bool expected11 = true;
-//    QCOMPARE(result11, expected11);
-//    if (result11 == expected11) {
-//        testsPassed++;
-//    } else {
-//        testsFailed++;
-//        qDebug() << "FAILED - Test 11: quint64 foo64POD = foo64";
-//    }
-
     if (verbose) {
         qDebug() << "testing... encoded = foo64;";
     }
@@ -1167,26 +603,8 @@ void OctreeTests::byteCountCodingTests() {
         qDebug() << "decodedFoo64==foo64" << (decodedFoo64==foo64) << " { expected true } ";
     }
     QCOMPARE(decodedFoo.data, (unsigned int) 259);
-//    bool result12 = (decodedFoo64.data == 259);
-//    bool expected12 = true;
-//    QCOMPARE(result12, expected12);
-//    if (result12 == expected12) {
-//        testsPassed++;
-//    } else {
-//        testsFailed++;
-//        qDebug() << "FAILED - Test 12: decodedFoo64.data == 259";
-//    }
     
     QCOMPARE(decodedFoo64, foo64);
-//    bool result13 = (decodedFoo64==foo64);
-//    bool expected13 = true;
-//    QCOMPARE(result13, expected13);
-//    if (result13 == expected13) {
-//        testsPassed++;
-//    } else {
-//        testsFailed++;
-//        qDebug() << "FAILED - Test 13: decodedFoo64==foo64";
-//    }
 
     if (verbose) {
         qDebug() << "ByteCountCodedQUINT64 bar64(1000000)";
@@ -1199,31 +617,9 @@ void OctreeTests::byteCountCodingTests() {
 
     ByteCountCodedQUINT64 decodedBar64;
     decodedBar64.decode(encoded);
-//    if (verbose) {
-//        qDebug() << "decodedBar64=" << decodedBar64.data;
-//        qDebug() << "decodedBar64==bar64" << (decodedBar64==bar64) << " { expected true } ";
-//    }
     QCOMPARE(decodedBar64.data, static_cast<decltype(decodedBar.data)>( 1000000 ));
-//    bool result14 = (decodedBar64.data == 1000000);
-//    bool expected14 = true;
-//    QCOMPARE(result14, expected14);
-//    if (result14 == expected14) {
-//        testsPassed++;
-//    } else {
-//        testsFailed++;
-//        qDebug() << "FAILED - Test 14: decodedBar64.data == 1000000";
-//    }
 
     QCOMPARE(decodedBar64, bar64);
-//    bool result15 = (decodedBar64==bar64);
-//    bool expected15 = true;
-//    QCOMPARE(result15, expected15);
-//    if (result15 == expected15) {
-//        testsPassed++;
-//    } else {
-//        testsFailed++;
-//        qDebug() << "FAILED - Test 15: decodedBar64==bar64";
-//    }
 
     if (verbose) {
         qDebug() << "ByteCountCodedQUINT64 spam64(4294967295/2)";
@@ -1236,32 +632,9 @@ void OctreeTests::byteCountCodingTests() {
 
     ByteCountCodedQUINT64 decodedSpam64;
     decodedSpam64.decode(encoded);
-//    if (verbose) {
-//        qDebug() << "decodedSpam64=" << decodedSpam64.data;
-//        qDebug() << "decodedSpam64==spam64" << (decodedSpam64==spam64) << " { expected true } ";
-//    }
     QCOMPARE(decodedSpam64.data, static_cast<decltype(decodedSpam64.data)>( 4294967295/2 ));
-//    bool result16 = (decodedSpam64.data == 4294967295/2);
-//    bool expected16 = true;
-//    QCOMPARE(result16, expected16);
-//    if (result16 == expected16) {
-//        testsPassed++;
-//    } else {
-//        testsFailed++;
-//        qDebug() << "FAILED - Test 16: decodedSpam64.data == 4294967295/2";
-//    }
 
     QCOMPARE(decodedSpam64, spam64);
-//    bool result17 = (decodedSpam64==spam64);
-//    bool expected17 = true;
-//    QCOMPARE(result17, expected17);
-//    if (result17 == expected17) {
-//        testsPassed++;
-//    } else {
-//        testsFailed++;
-//        qDebug() << "FAILED - Test 17: decodedSpam64==spam64";
-//    }
-
     if (verbose) {
         qDebug() << "testing encoded << spam64";
     }
@@ -1276,21 +649,7 @@ void OctreeTests::byteCountCodingTests() {
     }
     encoded >> decodedSpam64;
 
-//    if (verbose) {
-//        qDebug() << "decodedSpam64=" << decodedSpam64.data;
-//    }
     QCOMPARE(decodedSpam64, spam64);
-//    bool result18 = (decodedSpam64==spam64);
-//    bool expected18 = true;
-//    QCOMPARE(result18, expected18);
-//    if (result18 == expected18) {
-//        testsPassed++;
-//    } else {
-//        testsFailed++;
-//        qDebug() << "FAILED - Test 18: decodedSpam64==spam64";
-//    }
-
-    //ByteCountCodedINT shouldFail(-100);
     
     if (verbose) {
         qDebug() << "NOW...";
@@ -1299,20 +658,8 @@ void OctreeTests::byteCountCodingTests() {
     ByteCountCodedQUINT64 nowCoded = now;
     QByteArray nowEncoded = nowCoded;
 
-//    if (verbose) {
-//        outputBufferBits((const unsigned char*)nowEncoded.constData(), nowEncoded.size());
-//    }
     ByteCountCodedQUINT64 decodedNow = nowEncoded;
     QCOMPARE(decodedNow.data, static_cast<decltype(decodedNow.data)>( now ));
-//    bool result19 = (decodedNow.data==now);
-//    bool expected19 = true;
-//    QCOMPARE(result19, expected19);
-//    if (result19 == expected19) {
-//        testsPassed++;
-//    } else {
-//        testsFailed++;
-//        qDebug() << "FAILED - Test 19: now test...";
-//    }
     
     if (verbose) {
         qDebug() << "******************************************************************************************";
@@ -1368,30 +715,12 @@ void OctreeTests::modelItemTests() {
         }
 
         QCOMPARE(bytesRead, bytesWritten);
-//        testsTaken++;
-//        bool result1 = (bytesRead == bytesWritten);
-//        bool expected1 = true;
-//        if (result1 == expected1) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 1: bytesRead == bytesWritten...";
-//        }
 
         if (verbose) {
             qDebug() << "Test 2: modelItemFromBuffer.getModelURL() == 'http://foo.com/foo.fbx'";
         }
     
         QCOMPARE(modelItemFromBuffer.getModelURL(), "http://foo.com/foo.fbx");
-//        testsTaken++;
-//        bool result2 = (modelItemFromBuffer.getModelURL() == "http://foo.com/foo.fbx");
-//        bool expected2 = true;
-//        if (result2 == expected2) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 2: modelItemFromBuffer.getModelURL() == 'http://foo.com/foo.fbx' ...";
-//        }
     }
     
     // TEST 3:
@@ -1412,15 +741,6 @@ void OctreeTests::modelItemTests() {
         }
         QCOMPARE(appendResult, false);
         QCOMPARE(bytesWritten, 0);
-//        testsTaken++;
-//        bool result3 = (appendResult == false && bytesWritten == 0);
-//        bool expected3 = true;
-//        if (result3 == expected3) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 3: attempt to appendEntityData in nearly full packetData ...";
-//        }
     }
     
     // TEST 4:
@@ -1441,15 +761,6 @@ void OctreeTests::modelItemTests() {
         }
         
         QCOMPARE(appendResult, true);
-//        testsTaken++;
-//        bool result4 = (appendResult == true); // && bytesWritten == 0);
-//        bool expected4 = true;
-//        if (result4 == expected4) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 4: attempt to appendEntityData in nearly full packetData which some should fit ...";
-//        }
 
         ReadBitstreamToTreeParams args;
         EntityItem modelItemFromBuffer;
@@ -1465,30 +776,12 @@ void OctreeTests::modelItemTests() {
         }
 
         QCOMPARE(bytesRead, bytesWritten);
-//        testsTaken++;
-//        bool result5 = (bytesRead == bytesWritten);
-//        bool expected5 = true;
-//        if (result5 == expected5) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 5: partial EntityItem written ... bytesRead == bytesWritten...";
-//        }
 
         if (verbose) {
             qDebug() << "Test 6: partial EntityItem written ... getModelURL() NOT SET ...";
         }
     
         QCOMPARE(modelItemFromBuffer.getModelURL(), "");
-//        testsTaken++;
-//        bool result6 = (modelItemFromBuffer.getModelURL() == "");
-//        bool expected6 = true;
-//        if (result6 == expected6) {
-//            testsPassed++;
-//        } else {
-//            testsFailed++;
-//            qDebug() << "FAILED - Test 6: partial EntityItem written ... getModelURL() NOT SET ...";
-//        }
     }
     
     if (verbose) {
@@ -1496,18 +789,10 @@ void OctreeTests::modelItemTests() {
     }
     
     QCOMPARE(testsPassed, testsTaken);
-//    qDebug() << "   tests passed:" << testsPassed << "out of" << testsTaken;
     if (verbose) {
         qDebug() << "******************************************************************************************";
     }
     
 #endif 
 }
-
-
-//void OctreeTests::runAllTests(bool verbose) {
-//    propertyFlagsTests(verbose);
-//    byteCountCodingTests(verbose);
-//    modelItemTests(verbose);
-//}
 

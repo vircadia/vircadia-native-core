@@ -55,23 +55,6 @@ void MeshMassPropertiesTests::testParallelAxisTheorem() {
 
     btMatrix3x3 twoSmallBoxesInertia = smallBoxShiftedRight + smallBoxShiftedLeft;
 
-    // verify bigBox same as twoSmallBoxes
-//    btScalar error;
-//    for (int i = 0; i < 3; ++i) {
-//        for (int j = 0; j < 3; ++j) {
-//            QCOMPARE_WITH_ABS_ERROR(bitBoxInertia[i][j], twoSmallBoxesInertia[i][j], acceptableAbsoluteError);
-////            error = bitBoxInertia[i][j] - twoSmallBoxesInertia[i][j];
-////            if (fabsf(error) > acceptableAbsoluteError) {
-////                std::cout << __FILE__ << ":" << __LINE__ << " ERROR : box inertia[" << i << "][" << j << "] off by = "
-////                    << error << std::endl;
-////            }
-//        }
-//    }
-    
-    // Try commenting this out to see what happens when the test fails
-//    twoSmallBoxesInertia[0][2] += 10;
-    
-    // This now does the same as the above (using the maxDiff getErrorDifference impl for two btMatrices)
     QCOMPARE_WITH_ABS_ERROR(bitBoxInertia, twoSmallBoxesInertia, acceptableAbsoluteError);
 }
 

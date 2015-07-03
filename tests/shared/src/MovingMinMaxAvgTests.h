@@ -26,9 +26,9 @@ inline float getErrorDifference (float a, float b) {
 class MovingMinMaxAvgTests : public QObject {
     
 private slots:
-    void testQuint64 ();
-    void testInt     ();
-    void testFloat   ();
+    void testQuint64();
+    void testInt();
+    void testFloat();
     
 private:
     quint64 randQuint64();
