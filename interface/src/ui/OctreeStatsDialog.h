@@ -68,6 +68,7 @@ private:
     int _entityUpdates;
     int _processedPacketsElements;
     int _processedPacketsEntities;
+    int _processedPacketsTiming;
     
     const int SAMPLES_PER_SECOND = 10;
     SimpleMovingAverage _averageUpdatesPerSecond;

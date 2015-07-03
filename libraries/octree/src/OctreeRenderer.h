@@ -66,6 +66,10 @@ public:
 
     float getAverageElementsPerSecond() const { return _elementsPerSecond.getAverage(); }
     float getAverageEntitiesPerSecond() const { return _entitiesPerSecond.getAverage(); }
+
+    float getAverageWaitLockPerPacket() const { return _waitLockPerPacket.getAverage(); }
+    float getAverageUncompressPerPacket() const { return _uncompressPerPacket.getAverage(); }
+    float getAverageReadBitstreamPerPacket() const { return _readBitstreamPerPacket.getAverage(); }
     
 protected:
     virtual Octree* createTree() = 0;
@@ -78,6 +82,10 @@ protected:
     SimpleMovingAverage _entitiesPerPacket;
     SimpleMovingAverage _elementsPerSecond;
     SimpleMovingAverage _entitiesPerSecond;
+
+    SimpleMovingAverage _waitLockPerPacket;
+    SimpleMovingAverage _uncompressPerPacket;
+    SimpleMovingAverage _readBitstreamPerPacket;
 
     quint64 _lastWindowAt = 0;
     int _elementsInLastWindow = 0;

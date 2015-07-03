@@ -55,6 +55,8 @@ OctreeStatsDialog::OctreeStatsDialog(QWidget* parent, NodeToOctreeSceneStats* mo
 
     _processedPacketsElements = AddStatItem("Processed Packets Elements");
     _processedPacketsEntities = AddStatItem("Processed Packets Entities");
+    _processedPacketsTiming = AddStatItem("Processed Packets Timing");
+
     _entityUpdateTime = AddStatItem("Entity Update Time");
     _entityUpdates = AddStatItem("Entity Updates");
     
@@ -220,10 +222,18 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
     auto averageElementsPerSecond = entities->getAverageElementsPerSecond();
     auto averageEntitiesPerSecond = entities->getAverageEntitiesPerSecond();
 
+    auto averageWaitLockPerPacket = entities->getAverageWaitLockPerPacket();
+    auto averageUncompressPerPacket = entities->getAverageUncompressPerPacket();
+    auto averageReadBitstreamPerPacket = entities->getAverageReadBitstreamPerPacket();
+
     QString averageElementsPerPacketString = locale.toString(averageElementsPerPacket);
     QString averageEntitiesPerPacketString = locale.toString(averageEntitiesPerPacket);
     QString averageElementsPerSecondString = locale.toString(averageElementsPerSecond);
     QString averageEntitiesPerSecondString = locale.toString(averageEntitiesPerSecond);
+
+    QString averageWaitLockPerPacketString = locale.toString(averageWaitLockPerPacket);
+    QString averageUncompressPerPacketString = locale.toString(averageUncompressPerPacket);
+    QString averageReadBitstreamPerPacketString = locale.toString(averageReadBitstreamPerPacket);
 
     label = _labels[_processedPacketsElements];
     statsValue.str("");
@@ -238,6 +248,15 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
     statsValue << 
         "" << qPrintable(averageEntitiesPerPacketString) << " per packet / " <<
         "" << qPrintable(averageEntitiesPerSecondString) << " per second";
+        
+    label->setText(statsValue.str().c_str());
+
+    label = _labels[_processedPacketsTiming];
+    statsValue.str("");
+    statsValue << 
+        "Lock Wait:" << qPrintable(averageWaitLockPerPacketString) << " (usecs) / " <<
+        "Uncompress:" << qPrintable(averageUncompressPerPacketString) << " (usecs) / " <<
+        "Process:" << qPrintable(averageReadBitstreamPerPacketString) << " (usecs)";
         
     label->setText(statsValue.str().c_str());
 

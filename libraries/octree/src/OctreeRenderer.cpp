@@ -104,6 +104,10 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
         int elementsPerPacket = 0;
         int entitiesPerPacket = 0;
         
+        quint64 totalWaitingForLock = 0;
+        quint64 totalUncompress = 0;
+        quint64 totalReadBitsteam = 0;
+        
         int subsection = 1;
         while (dataBytes > 0) {
             if (packetIsCompressed) {
@@ -123,7 +127,9 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
                 // ask the VoxelTree to read the bitstream into the tree
                 ReadBitstreamToTreeParams args(packetIsColored ? WANT_COLOR : NO_COLOR, WANT_EXISTS_BITS, NULL, 
                                                 sourceUUID, sourceNode, false, packetVersion);
+                quint64 startLock = usecTimestampNow();
                 _tree->lockForWrite();
+                quint64 startUncompress = usecTimestampNow();
                 OctreePacketData packetData(packetIsCompressed);
                 packetData.loadFinalizedContent(dataAt, sectionLength);
                 if (extraDebugging) {
@@ -137,7 +143,9 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
                 if (extraDebugging) {
                     qCDebug(octree) << "OctreeRenderer::processDatagram() ******* START _tree->readBitstreamToTree()...";
                 }
+                quint64 startReadBitsteam = usecTimestampNow();
                 _tree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
+                quint64 endReadBitsteam = usecTimestampNow();
                 if (extraDebugging) {
                     qCDebug(octree) << "OctreeRenderer::processDatagram() ******* END _tree->readBitstreamToTree()...";
                 }
@@ -152,11 +160,19 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
                 _elementsInLastWindow += args.elementsPerPacket;
                 _entitiesInLastWindow += args.entitiesPerPacket;
 
+                totalWaitingForLock += (startUncompress - startLock);
+                totalUncompress += (startReadBitsteam - startUncompress);
+                totalReadBitsteam += (endReadBitsteam - startReadBitsteam);
+
             }
             subsection++;
         }
         _elementsPerPacket.updateAverage(elementsPerPacket);
         _entitiesPerPacket.updateAverage(entitiesPerPacket);
+
+        _waitLockPerPacket.updateAverage(totalWaitingForLock);
+        _uncompressPerPacket.updateAverage(totalUncompress);
+        _readBitstreamPerPacket.updateAverage(totalReadBitsteam);
         
         quint64 now = usecTimestampNow();
         if (_lastWindowAt == 0) {
