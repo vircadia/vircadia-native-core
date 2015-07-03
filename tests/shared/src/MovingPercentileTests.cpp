@@ -19,10 +19,6 @@
 
 QTEST_MAIN(MovingPercentileTests)
 
-//
-// THIS IS HOW YOU WRITE UNIT TESTS
-//
-
 // Defines the test values we use for n:
 static const QVector<int> testValues { 1, 2, 3, 4, 5, 10, 100 };
 

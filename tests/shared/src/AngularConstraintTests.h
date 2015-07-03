@@ -23,8 +23,8 @@ private slots:
 
 // Use QCOMPARE_WITH_ABS_ERROR and define it for glm::quat
 #include <glm/glm.hpp>
-float getErrorDifference (const glm::quat & a, const glm::quat & b);
-QTextStream & operator << (QTextStream & stream, const glm::quat & q);
+float getErrorDifference (const glm::quat& a, const glm::quat& b);
+QTextStream & operator << (QTextStream& stream, const glm::quat& q);
 #include "../QTestExtensions.h"
 
 #endif // hifi_AngularConstraintTests_h
