@@ -667,11 +667,6 @@ OctreeElement* Octree::getOctreeElementAt(float x, float y, float z, float s) co
         element = NULL;
     }
     delete[] octalCode; // cleanup memory
-#ifdef HAS_AUDIT_CHILDREN
-    if (element) {
-        element->auditChildren("Octree::getOctreeElementAt()");
-    }
-#endif // def HAS_AUDIT_CHILDREN
     return element;
 }
 
@@ -680,11 +675,6 @@ OctreeElement* Octree::getOctreeEnclosingElementAt(float x, float y, float z, fl
     OctreeElement* element = nodeForOctalCode(_rootElement, octalCode, NULL);
     
     delete[] octalCode; // cleanup memory
-#ifdef HAS_AUDIT_CHILDREN
-    if (element) {
-        element->auditChildren("Octree::getOctreeElementAt()");
-    }
-#endif // def HAS_AUDIT_CHILDREN
     return element;
 }
 
