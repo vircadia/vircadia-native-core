@@ -26,9 +26,6 @@
 #include "LogHandler.h"
 
 
-const quint64 SIMULATOR_CHANGE_LOCKOUT_PERIOD = (quint64)(0.2f * USECS_PER_SECOND);
-
-
 EntityTree::EntityTree(bool shouldReaverage) : 
     Octree(shouldReaverage), 
     _fbxService(NULL),
@@ -252,7 +249,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     if (getIsClient()) {
         // if our Node isn't allowed to create entities in this domain, don't try.
         auto nodeList = DependencyManager::get<NodeList>();
-        if (!nodeList->getThisNodeCanRez()) {
+        if (nodeList && !nodeList->getThisNodeCanRez()) {
             return NULL;
         }
     }

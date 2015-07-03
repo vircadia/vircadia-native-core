@@ -760,47 +760,6 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         statsString += QString("                    Total:      %1 nodes\r\n")
             .arg(locale.toString((uint)checkSum).rightJustified(16, ' '));
 
-#ifdef BLENDED_UNION_CHILDREN
-        statsString += "\r\n";
-        statsString += "OctreeElement Children Encoding Statistics...\r\n";
-
-        statsString += QString().sprintf("    Single or No Children:      %10.llu nodes (%5.2f%%)\r\n",
-             OctreeElement::getSingleChildrenCount(),
-             ((float)OctreeElement::getSingleChildrenCount() / (float)nodeCount) * AS_PERCENT));
-        statsString += QString().sprintf("    Two Children as Offset:     %10.llu nodes (%5.2f%%)\r\n",
-             OctreeElement::getTwoChildrenOffsetCount(),
-             ((float)OctreeElement::getTwoChildrenOffsetCount() / (float)nodeCount) * AS_PERCENT));
-        statsString += QString().sprintf("    Two Children as External:   %10.llu nodes (%5.2f%%)\r\n",
-             OctreeElement::getTwoChildrenExternalCount(),
-             ((float)OctreeElement::getTwoChildrenExternalCount() / (float)nodeCount) * AS_PERCENT);
-        statsString += QString().sprintf("    Three Children as Offset:   %10.llu nodes (%5.2f%%)\r\n",
-             OctreeElement::getThreeChildrenOffsetCount(),
-             ((float)OctreeElement::getThreeChildrenOffsetCount() / (float)nodeCount) * AS_PERCENT);
-        statsString += QString().sprintf("    Three Children as External: %10.llu nodes (%5.2f%%)\r\n",
-             OctreeElement::getThreeChildrenExternalCount(),
-             ((float)OctreeElement::getThreeChildrenExternalCount() / (float)nodeCount) * AS_PERCENT);
-        statsString += QString().sprintf("    Children as External Array: %10.llu nodes (%5.2f%%)\r\n",
-             OctreeElement::getExternalChildrenCount(),
-             ((float)OctreeElement::getExternalChildrenCount() / (float)nodeCount) * AS_PERCENT);
-
-        checkSum = OctreeElement::getSingleChildrenCount() +
-        OctreeElement::getTwoChildrenOffsetCount() + OctreeElement::getTwoChildrenExternalCount() +
-        OctreeElement::getThreeChildrenOffsetCount() + OctreeElement::getThreeChildrenExternalCount() +
-        OctreeElement::getExternalChildrenCount();
-
-        statsString += "                                ----------------\r\n";
-        statsString += QString().sprintf("                         Total: %10.llu nodes\r\n", checkSum);
-        statsString += QString().sprintf("                      Expected: %10.lu nodes\r\n", nodeCount);
-
-        statsString += "\r\n";
-        statsString += "In other news....\r\n";
-
-        statsString += QString().sprintf("could store 4 children internally:     %10.llu nodes\r\n",
-                                         OctreeElement::getCouldStoreFourChildrenInternally());
-        statsString += QString().sprintf("could NOT store 4 children internally: %10.llu nodes\r\n",
-                                         OctreeElement::getCouldNotStoreFourChildrenInternally());
-#endif
-
         statsString += "\r\n\r\n";
         statsString += "</pre>\r\n";
         statsString += "</doc></html>";
