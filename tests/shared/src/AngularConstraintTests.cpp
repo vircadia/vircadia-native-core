@@ -17,16 +17,15 @@
 
 #include "AngularConstraintTests.h"
 
-
-QTEST_MAIN(AngularConstraintTests)
-
 // Computes the error value between two quaternions (using glm::dot)
-float getErrorDifference(const glm::quat & a, const glm::quat & b) {
+float getErrorDifference(const glm::quat& a, const glm::quat& b) {
     return fabsf(glm::dot(a, b) - 1.0f);
 }
-QTextStream & operator << (QTextStream & stream, const glm::quat & q) {
+QTextStream& operator<<(QTextStream& stream, const glm::quat& q) {
     return stream << "glm::quat { " << q.x << ", " << q.y << ", " << q.z << ", " << q.w << " }";
 }
+
+QTEST_MAIN(AngularConstraintTests)
 
 void AngularConstraintTests::testHingeConstraint() {
     float minAngle = -PI;
