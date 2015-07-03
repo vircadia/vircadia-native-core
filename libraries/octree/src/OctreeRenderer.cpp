@@ -101,6 +101,8 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
                    sequence, flightTime, packetLength, dataBytes);
         }
         
+        _packetsInLastWindow++;
+        
         int elementsPerPacket = 0;
         int entitiesPerPacket = 0;
         
@@ -185,12 +187,15 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
         
         const quint64 USECS_PER_SECOND = 1000 * 1000;
         if (sinceLastWindow > USECS_PER_SECOND) {
+            float packetsPerSecondInWindow = (float)_packetsInLastWindow / (float)(sinceLastWindow / USECS_PER_SECOND);
             float elementsPerSecondInWindow = (float)_elementsInLastWindow / (float)(sinceLastWindow / USECS_PER_SECOND);
             float entitiesPerSecondInWindow = (float)_entitiesInLastWindow / (float)(sinceLastWindow / USECS_PER_SECOND);
+            _packetsPerSecond.updateAverage(packetsPerSecondInWindow);
             _elementsPerSecond.updateAverage(elementsPerSecondInWindow);
             _entitiesPerSecond.updateAverage(entitiesPerSecondInWindow);
 
             _lastWindowAt = now;
+            _packetsInLastWindow = 0;
             _elementsInLastWindow = 0;
             _entitiesInLastWindow = 0;
         }

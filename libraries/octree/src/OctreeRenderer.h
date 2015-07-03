@@ -64,6 +64,7 @@ public:
     float getAverageElementsPerPacket() const { return _elementsPerPacket.getAverage(); }
     float getAverageEntitiesPerPacket() const { return _entitiesPerPacket.getAverage(); }
 
+    float getAveragePacketsPerSecond() const { return _packetsPerSecond.getAverage(); }
     float getAverageElementsPerSecond() const { return _elementsPerSecond.getAverage(); }
     float getAverageEntitiesPerSecond() const { return _entitiesPerSecond.getAverage(); }
 
@@ -80,6 +81,8 @@ protected:
 
     SimpleMovingAverage _elementsPerPacket;
     SimpleMovingAverage _entitiesPerPacket;
+
+    SimpleMovingAverage _packetsPerSecond;
     SimpleMovingAverage _elementsPerSecond;
     SimpleMovingAverage _entitiesPerSecond;
 
@@ -88,6 +91,7 @@ protected:
     SimpleMovingAverage _readBitstreamPerPacket;
 
     quint64 _lastWindowAt = 0;
+    int _packetsInLastWindow = 0;
     int _elementsInLastWindow = 0;
     int _entitiesInLastWindow = 0;
 

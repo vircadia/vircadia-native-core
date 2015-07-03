@@ -66,6 +66,7 @@ private:
 
     int _entityUpdateTime;
     int _entityUpdates;
+    int _processedPackets;
     int _processedPacketsElements;
     int _processedPacketsEntities;
     int _processedPacketsTiming;

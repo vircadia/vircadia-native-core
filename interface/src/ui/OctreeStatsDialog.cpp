@@ -53,6 +53,7 @@ OctreeStatsDialog::OctreeStatsDialog(QWidget* parent, NodeToOctreeSceneStats* mo
     _localElementsMemory = AddStatItem("Elements Memory");
     _sendingMode = AddStatItem("Sending Mode");
 
+    _processedPackets = AddStatItem("Processed Packets");
     _processedPacketsElements = AddStatItem("Processed Packets Elements");
     _processedPacketsEntities = AddStatItem("Processed Packets Entities");
     _processedPacketsTiming = AddStatItem("Processed Packets Timing");
@@ -219,6 +220,8 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
     // Processed Packets Elements
     auto averageElementsPerPacket = entities->getAverageElementsPerPacket();
     auto averageEntitiesPerPacket = entities->getAverageEntitiesPerPacket();
+
+    auto averagePacketsPerSecond = entities->getAveragePacketsPerSecond();
     auto averageElementsPerSecond = entities->getAverageElementsPerSecond();
     auto averageEntitiesPerSecond = entities->getAverageEntitiesPerSecond();
 
@@ -228,12 +231,21 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
 
     QString averageElementsPerPacketString = locale.toString(averageElementsPerPacket);
     QString averageEntitiesPerPacketString = locale.toString(averageEntitiesPerPacket);
+
+    QString averagePacketsPerSecondString = locale.toString(averagePacketsPerSecond);
     QString averageElementsPerSecondString = locale.toString(averageElementsPerSecond);
     QString averageEntitiesPerSecondString = locale.toString(averageEntitiesPerSecond);
 
     QString averageWaitLockPerPacketString = locale.toString(averageWaitLockPerPacket);
     QString averageUncompressPerPacketString = locale.toString(averageUncompressPerPacket);
     QString averageReadBitstreamPerPacketString = locale.toString(averageReadBitstreamPerPacket);
+
+    label = _labels[_processedPackets];
+    statsValue.str("");
+    statsValue << 
+        "" << qPrintable(averagePacketsPerSecondString) << " per second";
+        
+    label->setText(statsValue.str().c_str());
 
     label = _labels[_processedPacketsElements];
     statsValue.str("");
