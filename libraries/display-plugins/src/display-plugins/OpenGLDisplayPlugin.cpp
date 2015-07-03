@@ -126,14 +126,15 @@ bool OpenGLDisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
 void OpenGLDisplayPlugin::display(
     GLuint finalTexture, const glm::uvec2& sceneSize) {
     using namespace oglplus;
-
     uvec2 size = getRecommendedRenderSize();
     Context::Viewport(size.x, size.y);
-    glClearColor(1, 0, 1, 1);
-    Context::Clear().ColorBuffer();
-
-    _program->Bind();
     glBindTexture(GL_TEXTURE_2D, finalTexture);
+    drawUnitQuad();
+}
+
+void OpenGLDisplayPlugin::drawUnitQuad() {
+    using namespace oglplus;
+    _program->Bind();
     _vertexBuffer->Bind(Buffer::Target::Array);
     glEnableVertexAttribArray(_positionAttribute);
     glVertexAttribPointer(_positionAttribute, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, 0);

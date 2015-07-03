@@ -245,13 +245,8 @@ void Oculus_0_6_DisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sc
     _sceneFbo->Bound([&] {
         auto size = _sceneFbo->size;
         Context::Viewport(size.x, size.y);
-
-        _program->Bind();
-        Mat4Uniform(*_program, "Projection").Set(mat4());
-        Mat4Uniform(*_program, "ModelView").Set(mat4());
         glBindTexture(GL_TEXTURE_2D, finalTexture);
-        _plane->Use();
-        _plane->Draw();
+        drawUnitQuad();
     });
 
     ovrLayerEyeFov& sceneLayer = getSceneLayer(); 
