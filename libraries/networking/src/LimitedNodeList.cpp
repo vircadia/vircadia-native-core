@@ -168,10 +168,10 @@ bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
     int numPacketTypeBytes = numBytesArithmeticCodingFromBuffer(packet.data());
 
     if (packet[numPacketTypeBytes] != versionForPacketType(checkType)
-        && checkType != PacketTypeStunResponse) {
+        && checkType != PacketType::StunResponse) {
         PacketType::Value mismatchType = packetTypeForPacket(packet);
 
-        static QMultiMap<QUuid, PacketType> versionDebugSuppressMap;
+        static QMultiMap<QUuid, PacketType::Value> versionDebugSuppressMap;
 
         QUuid senderUUID = uuidFromPacketHeader(packet);
         if (!versionDebugSuppressMap.contains(senderUUID, checkType)) {
@@ -195,7 +195,7 @@ bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
             if (hashFromPacketHeader(packet) == hashForPacketAndConnectionUUID(packet, sendingNode->getConnectionSecret())) {
                 return true;
             } else {
-                static QMultiMap<QUuid, PacketType> hashDebugSuppressMap;
+                static QMultiMap<QUuid, PacketType::Value> hashDebugSuppressMap;
 
                 QUuid senderUUID = uuidFromPacketHeader(packet);
                 if (!hashDebugSuppressMap.contains(senderUUID, checkType)) {
@@ -521,14 +521,11 @@ unsigned LimitedNodeList::broadcastToNodes(const QByteArray& packet, const NodeS
     return n;
 }
 
-QByteArray LimitedNodeList::constructPingPacket(PingType_t pingType, bool isVerified, const QUuid& packetHeaderID) {
+NodeListPacket&& LimitedNodeList::constructPingPacket(PingType_t pingType) {
+    int packetSize = sizeof(PingType_t) + sizeof(quint64);
+    NodeListPacket pingPacket = NodeListPacket::create(PacketType::Ping, packetSize);
 
-    QUuid packetUUID = packetHeaderID.isNull() ? _sessionUUID : packetHeaderID;
-
-    QByteArray pingPacket = byteArrayWithUUIDPopulatedHeader(isVerified ? PacketTypePing : PacketTypeUnverifiedPing,
-                                                             packetUUID);
-
-    QDataStream packetStream(&pingPacket, QIODevice::Append);
+    QDataStream packetStream(&pingPacket.payload(), QIODevice::Append);
 
     packetStream << pingType;
     packetStream << usecTimestampNow();
@@ -536,7 +533,7 @@ QByteArray LimitedNodeList::constructPingPacket(PingType_t pingType, bool isVeri
     return pingPacket;
 }
 
-QByteArray LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacket, const QUuid& packetHeaderID) {
+NodeListPacket&& LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
     QDataStream pingPacketStream(pingPacket);
     pingPacketStream.skipRawData(numBytesForPacketHeader(pingPacket));
 
@@ -545,18 +542,42 @@ QByteArray LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacke
 
     quint64 timeFromOriginalPing;
     pingPacketStream >> timeFromOriginalPing;
-
-    PacketType::Value replyType = (packetTypeForPacket(pingPacket) == PacketTypePing)
-        ? PacketTypePingReply : PacketTypeUnverifiedPingReply;
-
-    QUuid packetUUID = packetHeaderID.isNull() ? _sessionUUID : packetHeaderID;
-
-    QByteArray replyPacket = byteArrayWithUUIDPopulatedHeader(replyType, packetUUID);
+    
+    int packetSize = sizeof(PingType_t) + sizeof(quint64) + sizeof(quint64);
+    
+    NodeListPacket replyPacket = NodeListPacket::create(PacketType::Ping, packetSize);
+    
     QDataStream packetStream(&replyPacket, QIODevice::Append);
-
     packetStream << typeFromOriginalPing << timeFromOriginalPing << usecTimestampNow();
 
     return replyPacket;
+}
+
+NodeListPacket&& constructICEPingPacket(PingType_t pingType, const QUuid& iceID) {
+    int packetSize = NUM_BYTES_RFC4122_UUID + sizeof(PingType_t);
+    
+    NodeListPacket icePingPacket = NodeListPacket::create(PacketType::ICEPing, packetSize);
+    
+    icePingPacket.payload().replace(0, NUM_BYTES_RFC4122_UUID, iceID.toRfc4122().data());
+    memcpy(icePingPacket.payload() + NUM_BYTES_RFC4122_UUID, &pingType, sizeof(PingType_t));
+    
+    return icePingPacket;
+}
+
+NodeListPacket&& constructICEPingReplyPacket(const QByteArray& pingPacket, const QUuid& iceID) {
+    // pull out the ping type so we can reply back with that
+    PingType_t pingType;
+    
+    memcpy(&pingType, pingPacket.data() + NUM_BYTES_RFC4122_UUID, sizeof(PingType_t));
+    
+    int packetSize = NUM_BYTES_RFC4122_UUID + sizeof(PingType_t);
+    NodeListPacket icePingReplyPacket = NodeListPacket::create(PacketType::ICEPingReply, packetSize);
+    
+    // pack the ICE ID and then the ping type
+    memcpy(icePingReplyPacket.payload(), iceID.toRfc4122().data(), NUM_BYTES_RFC4122_UUID);
+    memcpy(icePingReplyPacket.payload() + NUM_BYTES_RFC4122_UUID, &pingType, sizeof(PingType_t));
+    
+    return icePingReplyPacket;
 }
 
 SharedNodePointer LimitedNodeList::soloNodeOfType(char nodeType) {
@@ -835,7 +856,7 @@ void LimitedNodeList::sendPeerQueryToIceServer(const HifiSockAddr& iceServerSock
     sendPacketToIceServer(PacketTypeIceServerQuery, iceServerSockAddr, clientID, peerID);
 }
 
-void LimitedNodeList::sendPacketToIceServer (PacketType::Value packetType, const HifiSockAddr& iceServerSockAddr,
+void LimitedNodeList::sendPacketToIceServer(PacketType::Value packetType, const HifiSockAddr& iceServerSockAddr,
                                             const QUuid& headerID, const QUuid& peerID) {
 
     QByteArray iceRequestByteArray = byteArrayWithUUIDPopulatedHeader(packetType, headerID);

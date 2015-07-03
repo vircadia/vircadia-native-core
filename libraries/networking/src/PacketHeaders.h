@@ -78,9 +78,9 @@ namespace PacketType {
         AudioEnvironment,
         EntityEditNack,
         SignedTransactionPayment,
-        IceServerHeartbeat, // 50
-        UnverifiedPing,
-        UnverifiedPingReply
+        ICEServerHeartbeat, // 50
+        ICEPing,
+        ICEPingReply
    };
 };
 
@@ -93,6 +93,7 @@ typedef std::map<PacketType::Value, PacketSequenceNumber> PacketTypeSequenceMap;
 
 extern const QSet<PacketType::Value> NON_VERIFIED_PACKETS;
 extern const QSet<PacketType::Value> SEQUENCE_NUMBERED_PACKETS;
+extern const QSet<PacketType::Value> NON_SOURCED_PACKETS;
 
 const int NUM_BYTES_MD5_HASH = 16;
 const int NUM_STATIC_HEADER_BYTES = sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
