@@ -149,14 +149,33 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
                 elementsPerPacket += args.elementsPerPacket;
                 entitiesPerPacket += args.entitiesPerPacket;
 
+                _elementsInLastWindow += args.elementsPerPacket;
+                _entitiesInLastWindow += args.entitiesPerPacket;
+
             }
             subsection++;
         }
         _elementsPerPacket.updateAverage(elementsPerPacket);
         _entitiesPerPacket.updateAverage(entitiesPerPacket);
+        
+        quint64 now = usecTimestampNow();
+        if (_lastWindowAt == 0) {
+            _lastWindowAt = now;
+        }
+        quint64 sinceLastWindow = now - _lastWindowAt;
+        
+        const quint64 USECS_PER_SECOND = 1000 * 1000;
+        if (sinceLastWindow > USECS_PER_SECOND) {
+            float elementsPerSecondInWindow = (float)_elementsInLastWindow / (float)(sinceLastWindow / USECS_PER_SECOND);
+            float entitiesPerSecondInWindow = (float)_entitiesInLastWindow / (float)(sinceLastWindow / USECS_PER_SECOND);
+            _elementsPerSecond.updateAverage(elementsPerSecondInWindow);
+            _entitiesPerSecond.updateAverage(entitiesPerSecondInWindow);
+
+            _lastWindowAt = now;
+            _elementsInLastWindow = 0;
+            _entitiesInLastWindow = 0;
+        }
     }
-
-
 }
 
 bool OctreeRenderer::renderOperation(OctreeElement* element, void* extraData) {

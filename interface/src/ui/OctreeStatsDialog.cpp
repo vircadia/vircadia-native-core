@@ -53,7 +53,8 @@ OctreeStatsDialog::OctreeStatsDialog(QWidget* parent, NodeToOctreeSceneStats* mo
     _localElementsMemory = AddStatItem("Elements Memory");
     _sendingMode = AddStatItem("Sending Mode");
 
-    _entityPackets = AddStatItem("Entity Packets");
+    _processedPacketsElements = AddStatItem("Processed Packets Elements");
+    _processedPacketsEntities = AddStatItem("Processed Packets Entities");
     _entityUpdateTime = AddStatItem("Entity Update Time");
     _entityUpdates = AddStatItem("Entity Updates");
     
@@ -209,20 +210,34 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
         "Leaves: " << qPrintable(serversLeavesString) << "";
     label->setText(statsValue.str().c_str());
 
-    // Entity Edits update time
-    label = _labels[_entityPackets];
+    // Processed Entities Related stats
     auto entities = Application::getInstance()->getEntities();
     auto entitiesTree = entities->getTree();
+
+    // Processed Packets Elements
     auto averageElementsPerPacket = entities->getAverageElementsPerPacket();
     auto averageEntitiesPerPacket = entities->getAverageEntitiesPerPacket();
+    auto averageElementsPerSecond = entities->getAverageElementsPerSecond();
+    auto averageEntitiesPerSecond = entities->getAverageEntitiesPerSecond();
 
     QString averageElementsPerPacketString = locale.toString(averageElementsPerPacket);
     QString averageEntitiesPerPacketString = locale.toString(averageEntitiesPerPacket);
+    QString averageElementsPerSecondString = locale.toString(averageElementsPerSecond);
+    QString averageEntitiesPerSecondString = locale.toString(averageEntitiesPerSecond);
 
+    label = _labels[_processedPacketsElements];
     statsValue.str("");
     statsValue << 
-        "Elements: " << qPrintable(averageEntitiesPerPacketString) << " per packet / " <<
-        "Entities: " << qPrintable(averageEntitiesPerPacketString) << " per packet";
+        "" << qPrintable(averageElementsPerPacketString) << " per packet / " <<
+        "" << qPrintable(averageElementsPerSecondString) << " per second";
+        
+    label->setText(statsValue.str().c_str());
+
+    label = _labels[_processedPacketsEntities];
+    statsValue.str("");
+    statsValue << 
+        "" << qPrintable(averageEntitiesPerPacketString) << " per packet / " <<
+        "" << qPrintable(averageEntitiesPerSecondString) << " per second";
         
     label->setText(statsValue.str().c_str());
 

@@ -63,6 +63,9 @@ public:
 
     float getAverageElementsPerPacket() const { return _elementsPerPacket.getAverage(); }
     float getAverageEntitiesPerPacket() const { return _entitiesPerPacket.getAverage(); }
+
+    float getAverageElementsPerSecond() const { return _elementsPerSecond.getAverage(); }
+    float getAverageEntitiesPerSecond() const { return _entitiesPerSecond.getAverage(); }
     
 protected:
     virtual Octree* createTree() = 0;
@@ -73,6 +76,12 @@ protected:
 
     SimpleMovingAverage _elementsPerPacket;
     SimpleMovingAverage _entitiesPerPacket;
+    SimpleMovingAverage _elementsPerSecond;
+    SimpleMovingAverage _entitiesPerSecond;
+
+    quint64 _lastWindowAt = 0;
+    int _elementsInLastWindow = 0;
+    int _entitiesInLastWindow = 0;
 
 };
 
