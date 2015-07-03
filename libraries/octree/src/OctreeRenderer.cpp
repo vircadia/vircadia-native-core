@@ -128,6 +128,9 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
                 ReadBitstreamToTreeParams args(packetIsColored ? WANT_COLOR : NO_COLOR, WANT_EXISTS_BITS, NULL, 
                                                 sourceUUID, sourceNode, false, packetVersion);
                 quint64 startLock = usecTimestampNow();
+
+                // FIXME STUTTER - there may be an opportunity to bump this lock outside of the
+                // loop to reduce the amount of locking/unlocking we're doing
                 _tree->lockForWrite();
                 quint64 startUncompress = usecTimestampNow();
                 OctreePacketData packetData(packetIsCompressed);
