@@ -32,12 +32,19 @@ public:
     virtual bool eventFilter(QObject* receiver, QEvent* event) override;
 
 protected:
+    virtual void preRender() override;
+    virtual void preDisplay() override;
     virtual void display(GLuint finalTexture, const glm::uvec2& sceneSize) override;
     // Do not perform swap in finish
     virtual void finishFrame() override;
 
 private:
-
+#if RIFT_SDK_DISTORTION
+    ovrTexture _eyeTextures[2];
+#else
+    ProgramPtr      _distortProgram;
+    BufferPtr       _eyeVertexBuffers[2];
+#endif
     static const QString NAME;
     GlWindow* _hmdWindow;
 };
