@@ -167,6 +167,19 @@ namespace render {
     }
 }
 
+void makeEntityItemStatusGetters(RenderableModelEntityItem* entity, render::Item::Status::Getters& statusGetters) {
+    statusGetters.push_back([entity] () -> render::Item::Status::Value {
+        quint64 delta = usecTimestampNow() - entity->getLastEditedFromRemote();
+        float ndelta = (delta / (0.2f * USECS_PER_SECOND));
+        return render::Item::Status::Value(1.0f - ndelta, (ndelta > 1.0f ? 0.01f : 0.5f));
+    });
+    statusGetters.push_back([entity] () -> render::Item::Status::Value {
+        quint64 delta = usecTimestampNow() - entity->getLastBroadcast();
+        float ndelta = (delta / (0.4f * USECS_PER_SECOND));
+        return render::Item::Status::Value(1.0f - ndelta, (ndelta > 1.0f ? 0.3f : 0.9f));
+    });
+}
+
 bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
                                             render::PendingChanges& pendingChanges) {
     _myMetaItem = scene->allocateID();
@@ -177,7 +190,9 @@ bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_p
     pendingChanges.resetItem(_myMetaItem, renderPayload);
     
     if (_model) {
-        return _model->addToScene(scene, pendingChanges);
+        render::Item::Status::Getters statusGetters;
+        makeEntityItemStatusGetters(this, statusGetters);
+        return _model->addToScene(scene, pendingChanges, statusGetters);
     }
 
     return true;
@@ -214,7 +229,10 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             render::PendingChanges pendingChanges;
             if (_model->needsFixupInScene()) {
                 _model->removeFromScene(scene, pendingChanges);
-                _model->addToScene(scene, pendingChanges);
+
+                render::Item::Status::Getters statusGetters;
+                makeEntityItemStatusGetters(this, statusGetters);
+                _model->addToScene(scene, pendingChanges, statusGetters);
             }
             scene->enqueuePendingChanges(pendingChanges);
 

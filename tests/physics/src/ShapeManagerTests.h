@@ -12,14 +12,18 @@
 #ifndef hifi_ShapeManagerTests_h
 #define hifi_ShapeManagerTests_h
 
-namespace ShapeManagerTests {
+#include <QtTest/QtTest>
+
+class ShapeManagerTests : public QObject {
+    Q_OBJECT
+    
+private slots:
     void testShapeAccounting();
     void addManyShapes();
     void addBoxShape();
     void addSphereShape();
     void addCylinderShape();
     void addCapsuleShape();
-    void runAllTests(); 
-}
+};
 
 #endif // hifi_ShapeManagerTests_h

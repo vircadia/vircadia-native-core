@@ -28,8 +28,8 @@
 #include "gpu/StandardShaderLib.h"
 
 #include "simple_vert.h"
-#include "simple_frag.h"
 #include "simple_textured_frag.h"
+#include "simple_textured_emisive_frag.h"
 
 #include "deferred_light_vert.h"
 #include "deferred_light_limited_vert.h"
@@ -53,15 +53,15 @@ static const std::string glowIntensityShaderHandle = "glowIntensity";
 
 void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     auto VS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(simple_vert)));
-    auto PS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(simple_frag)));
-    auto PSTextured = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(simple_textured_frag)));
+    auto PS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(simple_textured_frag)));
+    auto PSEmissive = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(simple_textured_emisive_frag)));
     
     gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PS));
-    gpu::ShaderPointer programTextured = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PSTextured));
+    gpu::ShaderPointer programEmissive = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PSEmissive));
     
     gpu::Shader::BindingSet slotBindings;
     gpu::Shader::makeProgram(*program, slotBindings);
-    gpu::Shader::makeProgram(*programTextured, slotBindings);
+    gpu::Shader::makeProgram(*programEmissive, slotBindings);
     
     gpu::StatePointer state = gpu::StatePointer(new gpu::State());
     state->setCullMode(gpu::State::CULL_BACK);
@@ -80,8 +80,8 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     
     _simpleProgram = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
     _simpleProgramCullNone = gpu::PipelinePointer(gpu::Pipeline::create(program, stateCullNone));
-    _simpleProgramTextured = gpu::PipelinePointer(gpu::Pipeline::create(programTextured, state));
-    _simpleProgramTexturedCullNone = gpu::PipelinePointer(gpu::Pipeline::create(programTextured, stateCullNone));
+    _simpleProgramEmissive = gpu::PipelinePointer(gpu::Pipeline::create(programEmissive, state));
+    _simpleProgramEmissiveCullNone = gpu::PipelinePointer(gpu::Pipeline::create(programEmissive, stateCullNone));
 
     _viewState = viewState;
     loadLightProgram(directional_light_frag, false, _directionalLight, _directionalLightLocations);
@@ -131,14 +131,12 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset(_ambientLightMode % gpu::SphericalHarmonics::NUM_PRESET));
 }
 
-void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled) {
-  // DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(batch, true, true, true);
-    
-    if (textured) {
+void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled, bool emmisive) {
+    if (emmisive) {
         if (culled) {
-            batch.setPipeline(_simpleProgramTextured);
+            batch.setPipeline(_simpleProgramEmissive);
         } else {
-            batch.setPipeline(_simpleProgramTexturedCullNone);
+            batch.setPipeline(_simpleProgramEmissiveCullNone);
         }
     } else {
         if (culled) {
@@ -147,48 +145,42 @@ void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured,
             batch.setPipeline(_simpleProgramCullNone);
         }
     }
-}
-
-void DeferredLightingEffect::releaseSimpleProgram(gpu::Batch& batch) {
-  //  DependencyManager::get<TextureCache>()->setPrimaryDrawBuffers(batch, true, false, false);
+    if (!textured) {
+        // If it is not textured, bind white texture and keep using textured pipeline
+        batch.setUniformTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
+    }
 }
 
 void DeferredLightingEffect::renderSolidSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color) {
     bindSimpleProgram(batch);
     DependencyManager::get<GeometryCache>()->renderSphere(batch, radius, slices, stacks, color);
-    releaseSimpleProgram(batch);
 }
 
 void DeferredLightingEffect::renderWireSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color) {
     bindSimpleProgram(batch);
     DependencyManager::get<GeometryCache>()->renderSphere(batch, radius, slices, stacks, color, false);
-    releaseSimpleProgram(batch);
 }
 
 void DeferredLightingEffect::renderSolidCube(gpu::Batch& batch, float size, const glm::vec4& color) {
     bindSimpleProgram(batch);
     DependencyManager::get<GeometryCache>()->renderSolidCube(batch, size, color);
-    releaseSimpleProgram(batch);
 }
 
 void DeferredLightingEffect::renderWireCube(gpu::Batch& batch, float size, const glm::vec4& color) {
     bindSimpleProgram(batch);
     DependencyManager::get<GeometryCache>()->renderWireCube(batch, size, color);
-    releaseSimpleProgram(batch);
 }
 
 void DeferredLightingEffect::renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, const glm::vec3& maxCorner,
                                         const glm::vec4& color) {
     bindSimpleProgram(batch);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, minCorner, maxCorner, color);
-    releaseSimpleProgram(batch);
 }
 
 void DeferredLightingEffect::renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2,
                                         const glm::vec4& color1, const glm::vec4& color2) {
     bindSimpleProgram(batch);
     DependencyManager::get<GeometryCache>()->renderLine(batch, p1, p2, color1, color2);
-    releaseSimpleProgram(batch);
 }
 
 void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radius, const glm::vec3& color,

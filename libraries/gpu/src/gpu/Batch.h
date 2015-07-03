@@ -148,6 +148,7 @@ public:
     void _glUniform3f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2);
     void _glUniform3fv(GLint location, GLsizei count, const GLfloat* value);
     void _glUniform4fv(GLint location, GLsizei count, const GLfloat* value);
+    void _glUniform4iv(GLint location, GLsizei count, const GLint* value);
     void _glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
 
     void _glEnableVertexAttribArray(GLint location);
@@ -212,6 +213,7 @@ public:
         COMMAND_glUniform3f,
         COMMAND_glUniform3fv,
         COMMAND_glUniform4fv,
+        COMMAND_glUniform4iv,
         COMMAND_glUniformMatrix4fv,
 
         COMMAND_glEnableVertexAttribArray,

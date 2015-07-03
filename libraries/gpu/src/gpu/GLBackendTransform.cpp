@@ -120,7 +120,7 @@ void GLBackend::updateTransform() {
         glBufferData(GL_ARRAY_BUFFER, sizeof(_transform._transformCamera), (const void*) &_transform._transformCamera, GL_DYNAMIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         CHECK_GL_ERROR();
-   }
+    }
 
     if (_transform._invalidModel) {
         glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_OBJECT_SLOT, 0);
@@ -177,6 +177,7 @@ void GLBackend::updateTransform() {
 
     // Flags are clean
     _transform._invalidView = _transform._invalidProj = _transform._invalidModel = _transform._invalidViewport = false;
+
     glMatrixMode(originalMatrixMode);
 }
 

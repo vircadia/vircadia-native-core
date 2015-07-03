@@ -28,7 +28,7 @@ protected:
     virtual void changeEntityInternal(EntityItemPointer entity);
     virtual void clearEntitiesInternal();
 
-    SetOfEntities _hasSimulationOwnerEntities;
+    SetOfEntities _entitiesWithSimulator;
 };
 
 #endif // hifi_SimpleEntitySimulation_h

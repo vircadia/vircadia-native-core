@@ -28,6 +28,9 @@ class EntityActionFactoryInterface : public QObject, public Dependency {
                                         QUuid id,
                                         EntityItemPointer ownerEntity,
                                         QVariantMap arguments) { assert(false); return nullptr; }
+    virtual EntityActionPointer factoryBA(EntitySimulation* simulation,
+                                          EntityItemPointer ownerEntity,
+                                          QByteArray data) { assert(false); return nullptr; }
 };
 
 #endif // hifi_EntityActionFactoryInterface_h

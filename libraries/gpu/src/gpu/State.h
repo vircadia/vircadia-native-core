@@ -118,7 +118,7 @@ public:
         uint8 _function = LESS;
         uint8 _writeMask = true;
         uint8 _enabled = false;
-        uint8 _spare;
+        uint8 _spare = 0;
     public:
         DepthTest(bool enabled = false, bool writeMask = true, ComparisonFunction func = LESS) :
             _function(func), _writeMask(writeMask), _enabled(enabled) {}

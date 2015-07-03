@@ -48,7 +48,7 @@ public:
     void setText(const QString& text) { _text = text; }
     void setLeftMargin(int margin) { _leftMargin = margin; }
     void setTopMargin(int margin) { _topMargin = margin; }
-    void setFontSize(int fontSize) { _fontSize = fontSize; }
+    void setFontSize(int fontSize);
 
     virtual void setProperties(const QScriptValue& properties);
     virtual TextOverlay* createClone() const;

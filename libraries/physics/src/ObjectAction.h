@@ -26,14 +26,17 @@
 
 class ObjectAction : public btActionInterface, public EntityActionInterface {
 public:
-    ObjectAction(QUuid id, EntityItemPointer ownerEntity);
+    ObjectAction(EntityActionType type, QUuid id, EntityItemPointer ownerEntity);
     virtual ~ObjectAction();
 
     const QUuid& getID() const { return _id; }
+    virtual EntityActionType getType() { assert(false); return ACTION_TYPE_NONE; }
     virtual void removeFromSimulation(EntitySimulation* simulation) const;
-    virtual const EntityItemPointer& getOwnerEntity() const { return _ownerEntity; }
+    virtual EntityItemWeakPointer getOwnerEntity() const { return _ownerEntity; }
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) { _ownerEntity = ownerEntity; }
+
     virtual bool updateArguments(QVariantMap arguments) { return false; }
+    virtual QVariantMap getArguments() { return QVariantMap(); }
 
     // this is called from updateAction and should be overridden by subclasses
     virtual void updateActionWorker(float deltaTimeStep) {}
@@ -42,11 +45,15 @@ public:
     virtual void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep);
     virtual void debugDraw(btIDebugDraw* debugDrawer);
 
+    virtual QByteArray serialize();
+    virtual void deserialize(QByteArray serializedArguments);
+
 private:
     QUuid _id;
     QReadWriteLock _lock;
 
 protected:
+
     virtual btRigidBody* getRigidBody();
     virtual glm::vec3 getPosition();
     virtual void setPosition(glm::vec3 position);
@@ -57,13 +64,14 @@ protected:
     virtual glm::vec3 getAngularVelocity();
     virtual void setAngularVelocity(glm::vec3 angularVelocity);
 
+    void lockForRead() { _lock.lockForRead(); }
     bool tryLockForRead() { return _lock.tryLockForRead(); }
     void lockForWrite() { _lock.lockForWrite(); }
     bool tryLockForWrite() { return _lock.tryLockForWrite(); }
     void unlock() { _lock.unlock(); }
 
     bool _active;
-    EntityItemPointer _ownerEntity;
+    EntityItemWeakPointer _ownerEntity;
 };
 
 #endif // hifi_ObjectAction_h

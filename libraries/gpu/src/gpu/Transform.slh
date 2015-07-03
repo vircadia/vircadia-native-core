@@ -88,10 +88,18 @@ TransformCamera getTransformCamera() {
 
 uniform mat4 transformObject_model;
 uniform mat4 transformCamera_viewInverse;
+uniform vec4 transformCamera_viewport;
 
 <@endif@>
 <@endfunc@>
 
+<@func transformCameraViewport(cameraTransform, viewport)@>
+<@if GPU_TRANSFORM_PROFILE == GPU_CORE@>
+     <$viewport$> = <$cameraTransform$>._viewport;
+<@else@>
+    <$viewport$> = transformCamera_viewport;
+<@endif@>
+<@endfunc@>
 
 <@func transformModelToClipPos(cameraTransform, objectTransform, modelPos, clipPos)@>
 <@if GPU_TRANSFORM_PROFILE == GPU_CORE@>

@@ -120,6 +120,11 @@ void makeBindings(GLBackend::GLShader* shader) {
     if (loc >= 0) {
         shader->_transformCamera_viewInverse = loc;
     }
+
+    loc = glGetUniformLocation(glprogram, "transformCamera_viewport");
+    if (loc >= 0) {
+        shader->_transformCamera_viewport = loc;
+    }
 #endif
 }
 

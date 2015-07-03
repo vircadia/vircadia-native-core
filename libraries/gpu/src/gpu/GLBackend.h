@@ -98,6 +98,7 @@ public:
 #else
         GLuint _transformObject_model = -1;
         GLuint _transformCamera_viewInverse = -1;
+        GLuint _transformCamera_viewport = -1;
 #endif
 
         GLShader();
@@ -270,7 +271,7 @@ protected:
     void do_setViewTransform(Batch& batch, uint32 paramOffset);
     void do_setProjectionTransform(Batch& batch, uint32 paramOffset);
     void do_setViewportTransform(Batch& batch, uint32 paramOffset);
-    
+
     void initTransform();
     void killTransform();
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
@@ -338,6 +339,7 @@ protected:
 #else
         GLint _program_transformObject_model = -1;
         GLint _program_transformCamera_viewInverse = -1;
+        GLint _program_transformCamera_viewport = -1;
 #endif
 
         State::Data _stateCache;
@@ -398,6 +400,7 @@ protected:
     void do_glUniform3f(Batch& batch, uint32 paramOffset);
     void do_glUniform3fv(Batch& batch, uint32 paramOffset);
     void do_glUniform4fv(Batch& batch, uint32 paramOffset);
+    void do_glUniform4iv(Batch& batch, uint32 paramOffset);
     void do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset);
 
     void do_glEnableVertexAttribArray(Batch& batch, uint32 paramOffset);
