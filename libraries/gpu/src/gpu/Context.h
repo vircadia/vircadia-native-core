@@ -42,7 +42,7 @@ public:
         Mat4 _projectionViewUntranslated;
         Mat4 _projection;
         Mat4 _projectionInverse;
-        Vec4i _viewport;
+        Vec4 _viewport; // Public value is int but float in the shader to stay in floats for all the transform computations.
     };
 
     template< typename T >

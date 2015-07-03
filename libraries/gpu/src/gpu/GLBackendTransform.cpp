@@ -86,7 +86,7 @@ void GLBackend::updateTransform() {
     glGetIntegerv(GL_MATRIX_MODE, &originalMatrixMode);
     // Check all the dirty flags and update the state accordingly
     if (_transform._invalidViewport) {
-        _transform._transformCamera._viewport = _transform._viewport;
+        _transform._transformCamera._viewport = glm::vec4(_transform._viewport);
 
         // Where we assign the GL viewport
         glViewport(_transform._viewport.x, _transform._viewport.y, _transform._viewport.z, _transform._viewport.w);
