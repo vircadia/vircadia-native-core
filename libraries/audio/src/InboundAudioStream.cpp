@@ -98,7 +98,7 @@ void InboundAudioStream::perSecondCallbackForUpdatingStats() {
 
 int InboundAudioStream::parseData(const QByteArray& packet) {
 
-    PacketType packetType = packetTypeForPacket(packet);
+    PacketType::Value packetType = packetTypeForPacket(packet);
     QUuid senderUUID = uuidFromPacketHeader(packet);
 
     // parse header 

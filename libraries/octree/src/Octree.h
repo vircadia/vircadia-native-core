@@ -226,7 +226,7 @@ public:
     // These methods will allow the OctreeServer to send your tree inbound edit packets of your
     // own definition. Implement these to allow your octree based server to support editing
     virtual bool getWantSVOfileVersions() const { return false; }
-    virtual PacketType expectedDataPacketType() const { return PacketTypeUnknown; }
+    virtual PacketType::Value expectedDataPacketType() const { return PacketTypeUnknown; }
     virtual bool canProcessVersion(PacketVersion thisVersion) const { 
                     return thisVersion == versionForPacketType(expectedDataPacketType()); }
     virtual PacketVersion expectedVersion() const { return versionForPacketType(expectedDataPacketType()); }

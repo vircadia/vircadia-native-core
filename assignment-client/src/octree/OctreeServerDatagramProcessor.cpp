@@ -43,7 +43,7 @@ void OctreeServerDatagramProcessor::readPendingDatagrams() {
         _nodeSocket.readDatagram(incomingPacket.data(), incomingPacket.size(),
                                   senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
                                   
-        PacketType packetType = packetTypeForPacket(incomingPacket);
+        PacketType::Value packetType = packetTypeForPacket(incomingPacket);
         if (packetType == PacketTypePing) {
             DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, incomingPacket);
             return; // don't emit

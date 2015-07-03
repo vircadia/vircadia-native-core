@@ -327,7 +327,7 @@ void OctreeEditPacketSender::releaseQueuedPacket(EditPacketBuffer& packetBuffer)
     _releaseQueuedPacketMutex.unlock();
 }
 
-void OctreeEditPacketSender::initializePacket(EditPacketBuffer& packetBuffer, PacketType type, int nodeClockSkew) {
+void OctreeEditPacketSender::initializePacket(EditPacketBuffer& packetBuffer, PacketType::Value type, int nodeClockSkew) {
     packetBuffer._currentSize =
         DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(&packetBuffer._currentBuffer[0]), type);
 

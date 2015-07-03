@@ -52,7 +52,7 @@ void DatagramProcessor::processDatagrams() {
 
         if (nodeList->packetVersionAndHashMatch(incomingPacket)) {
 
-            PacketType incomingType = packetTypeForPacket(incomingPacket);
+            PacketType::Value incomingType = packetTypeForPacket(incomingPacket);
             // only process this packet if we have a match on the packet version
             switch (incomingType) {
                 case PacketTypeAudioEnvironment:

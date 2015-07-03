@@ -33,7 +33,7 @@ void OctreeHeadlessViewer::init() {
 
 void OctreeHeadlessViewer::queryOctree() {
     char serverType = getMyNodeType();
-    PacketType packetType = getMyQueryMessageType();
+    PacketType::Value packetType = getMyQueryMessageType();
     NodeToJurisdictionMap& jurisdictions = *_jurisdictionListener->getJurisdictions();
 
     bool wantExtraDebugging = false;

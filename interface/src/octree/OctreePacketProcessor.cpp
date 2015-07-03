@@ -33,7 +33,7 @@ void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, 
     bool wasStatsPacket = false;
 
 
-    PacketType voxelPacketType = packetTypeForPacket(mutablePacket);
+    PacketType::Value voxelPacketType = packetTypeForPacket(mutablePacket);
     
     // note: PacketType_OCTREE_STATS can have PacketType_VOXEL_DATA
     // immediately following them inside the same packet. So, we process the PacketType_OCTREE_STATS first

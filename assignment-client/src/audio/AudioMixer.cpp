@@ -535,7 +535,7 @@ void AudioMixer::readPendingDatagram(const QByteArray& receivedPacket, const Hif
 
     if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
         // pull any new audio data from nodes off of the network stack
-        PacketType mixerPacketType = packetTypeForPacket(receivedPacket);
+        PacketType::Value mixerPacketType = packetTypeForPacket(receivedPacket);
         if (mixerPacketType == PacketTypeMicrophoneAudioNoEcho
             || mixerPacketType == PacketTypeMicrophoneAudioWithEcho
             || mixerPacketType == PacketTypeInjectAudio

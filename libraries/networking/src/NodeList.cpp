@@ -173,7 +173,7 @@ void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& 
 }
 
 void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
-    PacketType packetType = packetTypeForPacket(packet);
+    PacketType::Value packetType = packetTypeForPacket(packet);
     switch (packetType) {
         case PacketTypeDomainList:
         case PacketTypeDomainServerAddedNode: {
@@ -309,7 +309,7 @@ void NodeList::sendDomainServerCheckIn() {
     } else if (!_domainHandler.getIP().isNull()) {
         bool isUsingDTLS = false;
 
-        PacketType domainPacketType = !_domainHandler.isConnected()
+        PacketType::Value domainPacketType = !_domainHandler.isConnected()
             ? PacketTypeDomainConnectRequest : PacketTypeDomainListRequest;
 
         if (!_domainHandler.isConnected()) {
@@ -600,7 +600,7 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
 
 void NodeList::sendAssignment(Assignment& assignment) {
 
-    PacketType assignmentPacketType = assignment.getCommand() == Assignment::CreateCommand
+    PacketType::Value assignmentPacketType = assignment.getCommand() == Assignment::CreateCommand
         ? PacketTypeCreateAssignment
         : PacketTypeRequestAssignment;
 

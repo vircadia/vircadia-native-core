@@ -90,7 +90,7 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
 
 
     // Ask our tree subclass if it can handle the incoming packet...
-    PacketType packetType = packetTypeForPacket(packet);
+    PacketType::Value packetType = packetTypeForPacket(packet);
     if (_myServer->getOctree()->handlesEditPacketType(packetType)) {
         PerformanceWarning warn(debugProcessPacket, "processPacket KNOWN TYPE",debugProcessPacket);
         _receivedPacketCount++;
