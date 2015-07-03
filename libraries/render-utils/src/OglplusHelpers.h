@@ -12,17 +12,15 @@
 
 #include <QtGlobal>
 
-#ifdef Q_OS_WIN
 #include "GLMHelpers.h"
+#if defined(Q_OS_MAC)
 
 #define OGLPLUS_USE_GLCOREARB_H 0
-
-#if defined(__APPLE__)
-
 #define OGLPLUS_USE_GL3_H 1
 
-#elif defined(WIN32)
+#elif defined(Q_OS_WIN32)
 
+#define OGLPLUS_USE_GLCOREARB_H 0
 #define OGLPLUS_USE_GLEW 1
 #pragma warning(disable : 4068)
 
@@ -170,4 +168,3 @@ protected:
 };
 
 using BasicFramebufferWrapperPtr = std::shared_ptr<BasicFramebufferWrapper>;
-#endif

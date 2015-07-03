@@ -1,5 +1,3 @@
-#ifdef Q_OS_WIN
-
 //
 //  Created by Bradley Austin Davis on 2015/05/29
 //  Copyright 2015 High Fidelity, Inc.
@@ -12,37 +10,31 @@
 using namespace oglplus;
 using namespace oglplus::shapes;
 
-static const char * SIMPLE_TEXTURED_VS = R"VS(#version 410 core
+static const char * SIMPLE_TEXTURED_VS = R"VS(#version 120
 #pragma line __LINE__
 
-uniform mat4 Projection = mat4(1);
-uniform mat4 ModelView = mat4(1);
+attribute vec3 Position;
+attribute vec2 TexCoord;
 
-layout(location = 0) in vec3 Position;
-layout(location = 1) in vec2 TexCoord;
-
-out vec2 vTexCoord;
+varying vec2 vTexCoord;
 
 void main() {
-  gl_Position = Projection * ModelView * vec4(Position, 1);
+  gl_Position = vec4(Position, 1);
   vTexCoord = TexCoord;
 }
 
 )VS";
 
-static const char * SIMPLE_TEXTURED_FS = R"FS(#version 410 core
+static const char * SIMPLE_TEXTURED_FS = R"FS(#version 120
 #pragma line __LINE__
 
 uniform sampler2D sampler;
-uniform float Alpha = 1.0;
 
-in vec2 vTexCoord;
-out vec4 vFragColor;
+varying vec2 vTexCoord;
 
 void main() {
-    vec4 c = texture(sampler, vTexCoord);
-    c.a = min(Alpha, c.a);
-    vFragColor = c; 
+
+    gl_FragColor = texture2D(sampler, vTexCoord);
 }
 
 )FS";
@@ -72,6 +64,7 @@ void compileProgram(ProgramPtr & result, const std::string& vs, const std::strin
         result->Link();
     } catch (ProgramBuildError & err) {
         Q_UNUSED(err);
+        qWarning() << err.Log().c_str();
         Q_ASSERT_X(false, "compileProgram", "Failed to build shader program");
         qFatal((const char*)err.Message);
         result.reset();
@@ -322,4 +315,3 @@ ShapeWrapperPtr loadSphereSection(ProgramPtr program, float fov, float aspect, i
         new shapes::ShapeWrapper({ "Position", "TexCoord" }, SphereSection(fov, aspect, slices, stacks), *program)
     );
 }
-#endif

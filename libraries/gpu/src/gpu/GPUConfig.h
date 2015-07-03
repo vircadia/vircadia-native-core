@@ -12,7 +12,6 @@
 #ifndef gpu__GPUConfig__
 #define gpu__GPUConfig__
 
-#include <GL/glew.h>
 
 #define GL_GLEXT_PROTOTYPES 1
 
@@ -24,8 +23,12 @@
 #define GPU_FEATURE_PROFILE GPU_LEGACY
 #define GPU_TRANSFORM_PROFILE GPU_LEGACY
 
+#include <OpenGL/gl.h>
+#include <OpenGL/glext.h>
+
 #elif defined(WIN32)
 #include <windowshacks.h>
+#include <GL/glew.h>
 #include <GL/wglew.h>
 
 #define GPU_FEATURE_PROFILE GPU_CORE
@@ -35,8 +38,9 @@
 
 #else
 
-#define GPU_FEATURE_PROFILE GPU_LEGACY
-#define GPU_TRANSFORM_PROFILE GPU_LEGACY
+#define GPU_FEATURE_PROFILE GPU_CORE
+#define GPU_TRANSFORM_PROFILE GPU_CORE
+#include <GL/glew.h>
 #include <GL/glxew.h>
 
 #endif

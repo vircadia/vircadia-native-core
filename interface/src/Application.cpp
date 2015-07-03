@@ -1068,6 +1068,7 @@ void Application::paintGL() {
         uvec2 finalSize = toGlm(size);
         // Ensure the rendering context commands are completed when rendering 
         GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+        glFinish();
         _offscreenContext->doneCurrent();
         Q_ASSERT(!QOpenGLContext::currentContext());
         displayPlugin->preDisplay();
