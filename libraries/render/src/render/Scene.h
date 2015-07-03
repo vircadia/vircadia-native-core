@@ -202,15 +202,15 @@ public:
     class Status {
     public:
         class Value {
-            short _x = 0;
-            short _y = 0;
-            Value(short x, short y) : _x(x), _y(y) {}
+            unsigned short _x = 0xFFFF;
+            unsigned short _y = 0xFFFF;
+            Value() {}
         public:
             const static Value INVALID; // Invlaid value meanss the status won't show
 
             Value(float x, float y = 1.0f) { setX(x); setY(y); }
-            void setX(float x) { _x = std::numeric_limits<short>::max() * std::max(std::min(x, 1.0f), -1.0f); }
-            void setY(float y) { _y = std::numeric_limits<short>::max() * std::max(std::min(y, 1.0f), -1.0f); }
+            void setX(float x) { _x = (std::numeric_limits<unsigned short>::max() -1) * 0.5f * (1.0f + std::max(std::min(x, 1.0f), -1.0f)); }
+            void setY(float y) { _y = (std::numeric_limits<unsigned short>::max() - 1) * 0.5f * (1.0f + std::max(std::min(y, 1.0f), -1.0f)); }
             
             int getRaw() const { return *((const int*) this); }
         };

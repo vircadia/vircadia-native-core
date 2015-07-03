@@ -170,12 +170,13 @@ namespace render {
 void makeEntityItemStatusGetters(RenderableModelEntityItem* entity, render::Item::Status::Getters& statusGetters) {
     statusGetters.push_back([entity] () -> render::Item::Status::Value {
         quint64 delta = usecTimestampNow() - entity->getLastEditedFromRemote();
-        return render::Item::Status::Value((delta / (0.01f * USECS_PER_SECOND)), 1.0f);
+        float ndelta = (delta / (0.2f * USECS_PER_SECOND));
+        return render::Item::Status::Value(1.0f - ndelta, (ndelta > 1.0f ? 0.01f : 0.5f));
     });
     statusGetters.push_back([entity] () -> render::Item::Status::Value {
         quint64 delta = usecTimestampNow() - entity->getLastBroadcast();
-     //   return render::Item::Status::Value((delta / (0.02f * USECS_PER_SECOND)), 0.5f);
-        return render::Item::Status::Value(1.0f, 0.5f);
+        float ndelta = (delta / (0.4f * USECS_PER_SECOND));
+        return render::Item::Status::Value(1.0f - ndelta, (ndelta > 1.0f ? 0.01f : 0.5f));
     });
 }
 

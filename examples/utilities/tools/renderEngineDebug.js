@@ -10,7 +10,7 @@
 
 Script.include("cookies.js");
 
-var panel = new Panel(10, 800);
+var panel = new Panel(10, 100);
 
 panel.newSlider("Num Feed Opaques", 0, 1000, 
     function(value) { },

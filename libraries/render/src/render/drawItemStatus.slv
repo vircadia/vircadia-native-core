@@ -42,8 +42,10 @@ vec3 paintRainbow(float nv) {
 
 vec2 unpackStatus(int v) {
  //   return unpackSnorm2x16(uint(packed));
-    return vec2(clamp(float((v & 0xFFFF) - 32727) / 32727.0, -1.0, 1.0),
-                clamp(float(((v >> 16) & 0xFFFF) - 32727) / 32727.0, -1.0, 1.0));
+ //   return vec2(clamp(float((v & 0xFFFF) - 32727) / 32727.0, -1.0, 1.0),
+ //               clamp(float(((v >> 16) & 0xFFFF) - 32727) / 32727.0, -1.0, 1.0));
+    return vec2(clamp(float(int((v >> 0) & 0xFFFF) - 32727) / 32727.0, -1.0, 1.0),
+                clamp(float(int((v >> 16) & 0xFFFF) - 32727) / 32727.0, -1.0, 1.0));
 }
 
 void main(void) {
@@ -69,7 +71,7 @@ void main(void) {
     int iconNum = gl_VertexID / NUM_VERTICES;
 
     // if invalid, just kill
-    if (inStatus[iconNum] == 0x80008000) {
+    if (inStatus[iconNum] == 0xFFFFFFFF) {
         gl_Position = anchorPoint;
         varColor = vec4(1.0);
         return;
