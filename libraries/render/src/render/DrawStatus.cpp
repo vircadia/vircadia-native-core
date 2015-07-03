@@ -143,13 +143,6 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
     batch.setViewTransform(viewMat);
     batch.setModelTransform(Transform());
 
-/*   if (!_drawItemFormat) {
-        _drawItemFormat.reset(new gpu::Stream::Format());
-        _drawItemFormat->setAttribute(0, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0, gpu::Stream::PER_INSTANCE);
-        _drawItemFormat->setAttribute(1, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), sizeof(glm::vec3), gpu::Stream::PER_INSTANCE);
-    }
-*/
-
     // bind the one gpu::Pipeline we need
     batch.setPipeline(getDrawItemBoundsPipeline());
 
