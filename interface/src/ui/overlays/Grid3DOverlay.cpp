@@ -89,8 +89,6 @@ void Grid3DOverlay::render(RenderArgs* args) {
 
             DependencyManager::get<GeometryCache>()->renderGrid(*batch, MAJOR_GRID_DIVISIONS, MAJOR_GRID_DIVISIONS, gridColor);
         }
-    } else {
-        qDebug() << "NO NAKED GL CALLS ALLOWED HERE! PLEASE USE THE BATCHING SYSTEM NEXT TIME";
     }
 }
 

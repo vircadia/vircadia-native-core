@@ -93,8 +93,6 @@ void BillboardOverlay::render(RenderArgs* args) {
                                                             glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha));
     
         batch->setUniformTexture(0, args->_whiteTexture); // restore default white color after me
-    } else {
-        qDebug() << "NO NAKED GL CALLS ALLOWED HERE! PLEASE USE THE BATCHING SYSTEM NEXT TIME";
     }
 }
 

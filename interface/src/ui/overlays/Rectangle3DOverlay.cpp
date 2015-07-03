@@ -87,9 +87,6 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
                 geometryCache->renderVertices(*batch, gpu::LINE_STRIP, _geometryCacheID);
             }
         }
-    } else {
-        
-        qDebug() << "NO NAKED GL CALLS ALLOWED HERE! PLEASE USE THE BATCHING SYSTEM NEXT TIME";
     }
 }
 
