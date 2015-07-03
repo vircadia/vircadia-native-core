@@ -7,6 +7,7 @@
 
 #include "BulletUtil.h"
 #include "DynamicCharacterController.h"
+#include "PhysicsLogging.h"
 
 const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
 const float DEFAULT_GRAVITY = -5.0f;
@@ -356,6 +357,13 @@ void DynamicCharacterController::preSimulation(btScalar timeStep) {
         glm::vec3 position = _avatarData->getPosition() + rotation * _shapeLocalOffset;
         _rigidBody->setWorldTransform(btTransform(glmToBullet(rotation), glmToBullet(position)));
 
+        /*
+        qCDebug(physics, "preSimulation()");
+        qCDebug(physics, "\trigidbody position = (%.5f, %.5f, %.5f)", position.x, position.y, position.z);
+        glm::vec3 p = _avatarData->getPosition();
+        qCDebug(physics, "\tavatar position = (%.5f, %.5f, %.5f)", p.x, p.y, p.z);
+        */
+
         // the rotation is dictated by AvatarData
         btTransform xform = _rigidBody->getWorldTransform();
         xform.setRotation(glmToBullet(rotation));
@@ -411,6 +419,13 @@ void DynamicCharacterController::postSimulation() {
         _avatarData->setOrientation(rotation);
         _avatarData->setPosition(position - rotation * _shapeLocalOffset);
         _avatarData->setVelocity(bulletToGLM(_rigidBody->getLinearVelocity()));
+
+        /*
+        qCDebug(physics, "postSimulation()");
+        qCDebug(physics, "\trigidbody position = (%.5f, %.5f, %.5f)", position.x, position.y, position.z);
+        glm::vec3 p = position - rotation * _shapeLocalOffset;
+        qCDebug(physics, "\tavatar position = (%.5f, %.5f, %.5f)", p.x, p.y, p.z);
+        qCDebug(physics, "\t_shapeLocalOffset = (%.5f, %.5f, %.5f)", _shapeLocalOffset.x, _shapeLocalOffset.y, _shapeLocalOffset.z);
+        */
     }
 }
-

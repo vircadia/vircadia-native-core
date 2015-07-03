@@ -169,7 +169,9 @@ public:
     static const float ZOOM_MIN;
     static const float ZOOM_MAX;
     static const float ZOOM_DEFAULT;
-    
+
+    const glm::vec3& getRoomBodyPos() const { return _currRoomBodyPos; }
+
 public slots:
     void increaseSize();
     void decreaseSize();
@@ -260,7 +262,8 @@ private:
     void updatePosition(float deltaTime);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void maybeUpdateBillboard();
-    
+    void updateRoomTracking(float deltaTime);
+
     // Avatar Preferences
     bool _useFullAvatar = false;
     QUrl _fullAvatarURLFromPreferences;
@@ -274,6 +277,9 @@ private:
     // used for rendering when in first person view or when in an HMD.
     SkeletonModel _firstPersonSkeletonModel;
     bool _prevShouldDrawHead;
+    glm::vec3 _prevRoomBodyPos;
+    glm::vec3 _currRoomBodyPos;
+    glm::mat4 _headWorldTransformMat;
 };
 
 #endif // hifi_MyAvatar_h

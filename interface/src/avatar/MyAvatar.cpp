@@ -75,6 +75,8 @@ const float MyAvatar::ZOOM_MIN = 0.5f;
 const float MyAvatar::ZOOM_MAX = 10.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 
+static bool isRoomTracking = true;
+
 MyAvatar::MyAvatar() :
 	Avatar(),
     _gravity(0.0f, 0.0f, 0.0f),
@@ -99,7 +101,9 @@ MyAvatar::MyAvatar() :
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
     _firstPersonSkeletonModel(this),
-    _prevShouldDrawHead(true)
+    _prevShouldDrawHead(true),
+    _prevRoomBodyPos(0, 0, 0),
+    _currRoomBodyPos(0, 0, 0)
 {
     _firstPersonSkeletonModel.setIsFirstPerson(true);
 
@@ -149,6 +153,13 @@ void MyAvatar::reset() {
 }
 
 void MyAvatar::update(float deltaTime) {
+
+    /*
+    qCDebug(interfaceapp, "update()");
+    glm::vec3 pos = getPosition();
+    qCDebug(interfaceapp, "\tpos = (%.5f, %.5f, %.5f)", pos.x, pos.y, pos.z);
+    */
+
     if (_referential) {
         _referential->update();
     }
@@ -156,6 +167,9 @@ void MyAvatar::update(float deltaTime) {
     Head* head = getHead();
     head->relaxLean(deltaTime);
     updateFromTrackers(deltaTime);
+    if (qApp->isHMDMode() && isRoomTracking) {
+        updateRoomTracking(deltaTime);
+    }
     //  Get audio loudness data from audio input device
     auto audio = DependencyManager::get<AudioClient>();
     head->setAudioLoudness(audio->getLastInputLoudness());
@@ -312,10 +326,12 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         relativePosition.x = -relativePosition.x;
     }
 
-    head->setLeanSideways(glm::clamp(glm::degrees(atanf(relativePosition.x * _leanScale / TORSO_LENGTH)),
-        -MAX_LEAN, MAX_LEAN));
-    head->setLeanForward(glm::clamp(glm::degrees(atanf(relativePosition.z * _leanScale / TORSO_LENGTH)),
-        -MAX_LEAN, MAX_LEAN));
+    if (!(inHmd && isRoomTracking)) {
+        head->setLeanSideways(glm::clamp(glm::degrees(atanf(relativePosition.x * _leanScale / TORSO_LENGTH)),
+                                         -MAX_LEAN, MAX_LEAN));
+        head->setLeanForward(glm::clamp(glm::degrees(atanf(relativePosition.z * _leanScale / TORSO_LENGTH)),
+                                        -MAX_LEAN, MAX_LEAN));
+    }
 }
 
 
@@ -929,7 +945,14 @@ bool MyAvatar::isLookingAtLeftEye() {
 }
 
 glm::vec3 MyAvatar::getDefaultEyePosition() const {
-    return _position + getWorldAlignedOrientation() * _skeletonModel.getDefaultEyeModelPosition();
+    /*
+    qCDebug(interfaceapp, "getDefaultEyePosition()");
+    glm::vec3 e = _skeletonModel.getDefaultEyeModelPosition();
+    qCDebug(interfaceapp, "\teye pos = (%.5f, %.5f, %.5f)", e.x, e.y, e.z);
+    glm::vec3 p = getPosition() + getWorldAlignedOrientation() * _skeletonModel.getDefaultEyeModelPosition();
+    qCDebug(interfaceapp, "\tworld pos = (%.5f, %.5f, %.5f)", p.x, p.y, p.z);
+    */
+    return getPosition() + getWorldAlignedOrientation() * _skeletonModel.getDefaultEyeModelPosition();
 }
 
 const float SCRIPT_PRIORITY = DEFAULT_PRIORITY + 1.0f;
@@ -1299,6 +1322,23 @@ void MyAvatar::updateOrientation(float deltaTime) {
         head->setBaseYaw(YAW(euler));
         head->setBasePitch(PITCH(euler));
         head->setBaseRoll(ROLL(euler));
+
+        mat4 pose = glm::mat4_cast(qApp->getHeadOrientation());
+        vec3 xAxis = vec3(pose[0]);
+        vec3 yAxis = vec3(pose[1]);
+        vec3 zAxis = vec3(pose[2]);
+        // cancel out the roll and pitch
+        vec3 newZ = (zAxis.x == 0 && zAxis.z == 0) ? vec3(1, 0, 0) : glm::normalize(vec3(zAxis.x, 0, zAxis.z));
+        vec3 newX = glm::cross(vec3(0, 1, 0), newZ);
+        vec3 newY = glm::cross(newZ, newX);
+        mat4 m;
+        m[0] = vec4(newX, 0);
+        m[1] = vec4(newY, 0);
+        m[2] = vec4(newZ, 0);
+        m[3] = pose[3];
+
+        setOrientation(glm::quat(m));
+
     }
 }
 
@@ -1454,6 +1494,14 @@ void MyAvatar::updatePosition(float deltaTime) {
     const float MOVING_SPEED_THRESHOLD = 0.01f;
     _moving = speed > MOVING_SPEED_THRESHOLD;
 
+    if (qApp->isHMDMode() && isRoomTracking) {
+        glm::vec3 newPos = (_currRoomBodyPos - _prevRoomBodyPos) + getPosition();
+        /*
+        qCDebug(interfaceapp, "updatePosition");
+        qCDebug(interfaceapp, "\tnewPos = (%.5f, %.5f, %.5f)", newPos.x, newPos.y, newPos.z);
+        */
+        setPosition(newPos);
+    }
 }
 
 void MyAvatar::updateCollisionSound(const glm::vec3 &penetration, float deltaTime, float frequency) {
@@ -1517,6 +1565,26 @@ void MyAvatar::maybeUpdateBillboard() {
     _billboardValid = true;
 
     sendBillboardPacket();
+}
+
+void MyAvatar::updateRoomTracking(float deltaTime) {
+    vec3 localEyes = _skeletonModel.getDefaultEyeModelPosition();
+    vec3 localNeck;
+    if (_skeletonModel.getLocalNeckPosition(localNeck)) {
+        glm::vec3 eyeToNeck = qApp->getHeadOrientation() * (localNeck - localEyes);
+        glm::vec3 neckToRoot = qApp->getHeadOrientation() * localNeck;
+        glm::vec3 roomBodyPos = qApp->getHeadPosition() + eyeToNeck + neckToRoot;
+
+        _prevRoomBodyPos = _currRoomBodyPos;
+        _currRoomBodyPos = roomBodyPos;
+
+        //qCDebug(interfaceapp, "updateRoomTracking()");
+        //qCDebug(interfaceapp, "\troomBodyPos = (%.5f, %.5f, %.5f)", roomBodyPos.x, roomBodyPos.y, roomBodyPos.z);
+        glm::vec3 delta = _currRoomBodyPos - _prevRoomBodyPos;
+        //qCDebug(interfaceapp, "\tdelta = (%.5f, %.5f, %.5f)", delta.x, delta.y, delta.z);
+        glm::vec3 e = _skeletonModel.getDefaultEyeModelPosition();
+        //qCDebug(interfaceapp, "\teye pos = (%.5f, %.5f, %.5f)", e.x, e.y, e.z);
+    }
 }
 
 void MyAvatar::increaseSize() {

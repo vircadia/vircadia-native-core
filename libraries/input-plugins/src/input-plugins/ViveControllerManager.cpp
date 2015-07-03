@@ -17,6 +17,11 @@
 #include <display-plugins\openvr\OpenVrHelpers.h>
 #include "UserActivityLogger.h"
 
+#include <QLoggingCategory>
+Q_DECLARE_LOGGING_CATEGORY(inputplugins)
+Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
+
+
 extern vr::IVRSystem *_hmd;
 extern vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 extern mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
@@ -49,6 +54,9 @@ void ViveControllerManager::activate() {
 }
 
 void ViveControllerManager::update() {
+    if (!_hmd) {
+        return;
+    }
     if (_isInitialized && _isEnabled) {
         
         PerformanceTimer perfTimer("Vive Controllers");
@@ -127,7 +135,10 @@ void ViveControllerManager::handleButtonEvent(unsigned int buttons, int index) {
 }
 
 void ViveControllerManager::handlePoseEvent(const mat4& mat, int index) {
-    glm::vec3 position(mat[3][0], mat[3][1], mat[3][2]);
+    glm::vec4 p = _trackedDevicePoseMat4[vr::k_unTrackedDeviceIndex_Hmd][3];
+    glm::vec3 headPos(p.x, p.y, p.z);
+    glm::vec3 position = glm::vec3(mat[3][0], mat[3][1], mat[3][2]) - headPos;
+
     glm::quat rotation = glm::quat_cast(mat);
     //rotation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)) * rotation;
     _poseStateMap[makeInput(JointChannel(index)).getChannel()] = UserInputMapper::PoseValue(position, rotation);

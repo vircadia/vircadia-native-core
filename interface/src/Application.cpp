@@ -952,8 +952,19 @@ void Application::paintGL() {
             // per-eye HMD pose will be applied later.  So set the camera orientation
             // to only the yaw, excluding pitch and roll, i.e. an orientation that
             // is orthongonal to the (body's) Y axis
-            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
+            //_myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
+
+            // AJT: no actually we do want the roll and pitch
+            _myCamera.setRotation(getHeadOrientation());
         }
+
+        /*
+        qCDebug(interfaceapp, "paintGL");
+        glm::vec3 cameraPos = _myCamera.getPosition();
+        glm::quat cameraRot = _myCamera.getRotation();
+        qCDebug(interfaceapp, "\tcamera pos = (%.5f, %.5f, %.5f)", cameraPos.x, cameraPos.y, cameraPos.z);
+        qCDebug(interfaceapp, "\tcamera rot = (%.5f, %.5f, %.5f, %.5f)", cameraRot.x, cameraRot.y, cameraRot.z, cameraRot.w);
+        */
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         if (isHMDMode()) {
@@ -2713,6 +2724,7 @@ void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, int i
     
     // TODO: velocity filters, tip velocities, et.c
     // see SixenseManager
+
     palm->setRawPosition(pose.getTranslation());
     palm->setRawRotation(pose.getRotation());
 }
