@@ -776,7 +776,7 @@ void SkeletonModel::resetShapePositionsToDefaultPose() {
     _boundingShape.setRotation(_rotation);
 }
 
-void SkeletonModel::renderBoundingCollisionShapes(float alpha) {
+void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha) {
     const int BALL_SUBDIVISIONS = 10;
 #if 0
     if (_shapes.isEmpty()) {
@@ -784,17 +784,17 @@ void SkeletonModel::renderBoundingCollisionShapes(float alpha) {
         // so no need to render it
         return;
     }
-    glPushMatrix();
-
     Application::getInstance()->loadTranslatedViewMatrix(_translation);
 
     // draw a blue sphere at the capsule endpoint
     glm::vec3 endPoint;
     _boundingShape.getEndPoint(endPoint);
     endPoint = endPoint - _translation;
-    glTranslatef(endPoint.x, endPoint.y, endPoint.z);
+    Transform transform = Transform();
+    transform.setTranslation(endPoint);
+    batch.setModelTransform(transform);
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    geometryCache->renderSphere(_boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, glm::vec4(0.6f, 0.6f, 0.8f, alpha));
+    geometryCache->renderSphere(batch, _boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, glm::vec4(0.6f, 0.6f, 0.8f, alpha));
 
     // draw a yellow sphere at the capsule startpoint
     glm::vec3 startPoint;
@@ -806,9 +806,7 @@ void SkeletonModel::renderBoundingCollisionShapes(float alpha) {
 
     // draw a green cylinder between the two points
     glm::vec3 origin(0.0f);
-    Avatar::renderJointConnectingCone( origin, axis, _boundingShape.getRadius(), _boundingShape.getRadius(), glm::vec4(0.6f, 0.8f, 0.6f, alpha));
-
-    glPopMatrix();
+    Avatar::renderJointConnectingCone(batch,  origin, axis, _boundingShape.getRadius(), _boundingShape.getRadius(), glm::vec4(0.6f, 0.8f, 0.6f, alpha));
 #endif
 }
 

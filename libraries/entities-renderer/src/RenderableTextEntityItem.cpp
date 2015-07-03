@@ -56,7 +56,8 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
         batch.setModelTransform(transformToTopLeft);
     }
     
-    DependencyManager::get<DeferredLightingEffect>()->renderQuad(batch, minCorner, maxCorner, backgroundColor);
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, false, false);
+    DependencyManager::get<GeometryCache>()->renderQuad(batch, minCorner, maxCorner, backgroundColor);
     
     float scale = _lineHeight / _textRenderer->getFontSize();
     transformToTopLeft.setScale(scale); // Scale to have the correct line height

@@ -1,8 +1,10 @@
-set(TARGET_NAME networking-tests)
 
-setup_hifi_project()
+# Declare dependencies
+macro (setup_testcase_dependencies)
+  # link in the shared libraries
+  link_hifi_libraries(shared networking)
 
-# link in the shared libraries
-link_hifi_libraries(shared networking)
+  copy_dlls_beside_windows_executable()
+endmacro ()
 
-copy_dlls_beside_windows_executable()
+setup_hifi_testcase()

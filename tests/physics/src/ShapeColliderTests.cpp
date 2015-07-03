@@ -27,10 +27,17 @@
 
 #include "ShapeColliderTests.h"
 
+
 const glm::vec3 origin(0.0f);
 static const glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
 static const glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
 static const glm::vec3 zAxis(0.0f, 0.0f, 1.0f);
+
+QTEST_MAIN(ShapeColliderTests)
+
+void ShapeColliderTests::initTestCase() {
+    ShapeCollider::initDispatchTable();
+}
 
 void ShapeColliderTests::sphereMissesSphere() {
     // non-overlapping spheres of unequal size
@@ -45,37 +52,12 @@ void ShapeColliderTests::sphereMissesSphere() {
     SphereShape sphereB(radiusB, offsetDistance * offsetDirection);
     CollisionList collisions(16);
 
-    // collide A to B...
-    {
-        bool touching = ShapeCollider::collideShapes(&sphereA, &sphereB, collisions);
-        if (touching) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: sphereA and sphereB should NOT touch" << std::endl;
-        }
-    }
-
-    // collide B to A...
-    {
-        bool touching = ShapeCollider::collideShapes(&sphereB, &sphereA, collisions);
-        if (touching) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: sphereA and sphereB should NOT touch" << std::endl;
-        }
-    }
-
-    // also test shapeShape
-    {
-        bool touching = ShapeCollider::collideShapes(&sphereB, &sphereA, collisions);
-        if (touching) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: sphereA and sphereB should NOT touch" << std::endl;
-        }
-    }
-
-    if (collisions.size() > 0) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected empty collision list but size is " << collisions.size() << std::endl;
-    }
+    // collide A to B and vice versa
+    QCOMPARE(ShapeCollider::collideShapes(&sphereA, &sphereB, collisions), false);
+    QCOMPARE(ShapeCollider::collideShapes(&sphereB, &sphereA, collisions), false);
+    
+    // Collision list should be empty
+    QCOMPARE(collisions.size(), 0);
 }
 
 void ShapeColliderTests::sphereTouchesSphere() {
@@ -96,74 +78,39 @@ void ShapeColliderTests::sphereTouchesSphere() {
 
     // collide A to B...
     {
-        bool touching = ShapeCollider::collideShapes(&sphereA, &sphereB, collisions);
-        if (!touching) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: sphereA and sphereB should touch" << std::endl;
-        } else {
-            ++numCollisions;
-        }
-
+        QCOMPARE(ShapeCollider::collideShapes(&sphereA, &sphereB, collisions), true);
+        ++numCollisions;
+        
         // verify state of collisions
-        if (numCollisions != collisions.size()) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: expected collisions size of " << numCollisions << " but actual size is " << collisions.size()
-                << std::endl;
-        }
+        QCOMPARE(collisions.size(), numCollisions);
         CollisionInfo* collision = collisions.getCollision(numCollisions - 1);
-        if (!collision) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: null collision" << std::endl;
-            return;
-        }
+        QVERIFY(collision != nullptr);
 
         // penetration points from sphereA into sphereB
-        float inaccuracy = glm::length(collision->_penetration - expectedPenetration);
-        if (fabsf(inaccuracy) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration << std::endl;
-        }
+        QCOMPARE(collision->_penetration, expectedPenetration);
 
         // contactPoint is on surface of sphereA
         glm::vec3 AtoB = sphereB.getTranslation() - sphereA.getTranslation();
         glm::vec3 expectedContactPoint = sphereA.getTranslation() + radiusA * glm::normalize(AtoB);
-        inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
-        if (fabsf(inaccuracy) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint << std::endl;
-        }
+        QCOMPARE(collision->_contactPoint, expectedContactPoint);
+        
+        QCOMPARE_WITH_ABS_ERROR(collision->_contactPoint, expectedContactPoint, EPSILON);
     }
 
     // collide B to A...
     {
-        bool touching = ShapeCollider::collideShapes(&sphereB, &sphereA, collisions);
-        if (!touching) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: sphereA and sphereB should touch" << std::endl;
-        } else {
-            ++numCollisions;
-        }
+        QCOMPARE(ShapeCollider::collideShapes(&sphereB, &sphereA, collisions), true);
+        ++numCollisions;
 
         // penetration points from sphereA into sphereB
         CollisionInfo* collision = collisions.getCollision(numCollisions - 1);
-        float inaccuracy = glm::length(collision->_penetration + expectedPenetration);
-        if (fabsf(inaccuracy) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration << std::endl;
-        }
+        QCOMPARE_WITH_ABS_ERROR(collision->_penetration, -expectedPenetration, EPSILON);
 
-        // contactPoint is on surface of sphereA
+        // contactPoint is on surface of sphereB
         glm::vec3 BtoA = sphereA.getTranslation() - sphereB.getTranslation();
         glm::vec3 expectedContactPoint = sphereB.getTranslation() + radiusB * glm::normalize(BtoA);
-        inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
-        if (fabsf(inaccuracy) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint << std::endl;
-        }
+        
+        QCOMPARE_WITH_ABS_ERROR(collision->_contactPoint, expectedContactPoint, EPSILON);
     }
 }
 
@@ -198,25 +145,12 @@ void ShapeColliderTests::sphereMissesCapsule() {
         glm::vec3 localPosition = localStartPosition + ((float)i * delta) * yAxis;
         sphereA.setTranslation(rotation * localPosition + translation);
 
-        // sphereA agains capsuleB
-        if (ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions))
-        {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: sphere and capsule should NOT touch" << std::endl;
-        }
-
-        // capsuleB against sphereA
-        if (ShapeCollider::collideShapes(&capsuleB, &sphereA, collisions))
-        {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: sphere and capsule should NOT touch" << std::endl;
-        }
+        // sphereA agains capsuleB and vice versa
+        QCOMPARE(ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions), false);
+        QCOMPARE(ShapeCollider::collideShapes(&capsuleB, &sphereA, collisions), false);
     }
-
-    if (collisions.size() > 0) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected empty collision list but size is " << collisions.size() << std::endl;
-    }
+    
+    QCOMPARE(collisions.size(), 0);
 }
 
 void ShapeColliderTests::sphereTouchesCapsule() {
@@ -237,42 +171,22 @@ void ShapeColliderTests::sphereTouchesCapsule() {
 
     {   // sphereA collides with capsuleB's cylindrical wall
         sphereA.setTranslation(radialOffset * xAxis);
-
-        if (!ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions))
-        {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: sphere and capsule should touch" << std::endl;
-        } else {
-            ++numCollisions;
-        }
+        
+        QCOMPARE(ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions), true);
+        ++numCollisions;
 
         // penetration points from sphereA into capsuleB
         CollisionInfo* collision = collisions.getCollision(numCollisions - 1);
         glm::vec3 expectedPenetration = (radialOffset - totalRadius) * xAxis;
-        float inaccuracy = glm::length(collision->_penetration - expectedPenetration);
-        if (fabsf(inaccuracy) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration << std::endl;
-        }
+        QCOMPARE_WITH_ABS_ERROR(collision->_penetration, expectedPenetration, EPSILON);
 
         // contactPoint is on surface of sphereA
         glm::vec3 expectedContactPoint = sphereA.getTranslation() - radiusA * xAxis;
-        inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
-        if (fabsf(inaccuracy) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint << std::endl;
-        }
+        QCOMPARE_WITH_ABS_ERROR(collision->_contactPoint, expectedContactPoint, EPSILON);
 
         // capsuleB collides with sphereA
-        if (!ShapeCollider::collideShapes(&capsuleB, &sphereA, collisions))
-        {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and sphere should touch" << std::endl;
-        } else {
-            ++numCollisions;
-        }
+        QCOMPARE(ShapeCollider::collideShapes(&capsuleB, &sphereA, collisions), true);
+        ++numCollisions;
 
         // penetration points from sphereA into capsuleB
         collision = collisions.getCollision(numCollisions - 1);
@@ -281,13 +195,8 @@ void ShapeColliderTests::sphereTouchesCapsule() {
             // the ShapeCollider swapped the order of the shapes
             expectedPenetration *= -1.0f;
         }
-        inaccuracy = glm::length(collision->_penetration - expectedPenetration);
-        if (fabsf(inaccuracy) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration << std::endl;
-        }
-
+        QCOMPARE_WITH_ABS_ERROR(collision->_penetration, expectedPenetration, EPSILON);
+        
         // contactPoint is on surface of capsuleB
         glm::vec3 BtoA = sphereA.getTranslation() - capsuleB.getTranslation();
         glm::vec3 closestApproach = capsuleB.getTranslation() + glm::dot(BtoA, yAxis) * yAxis;
@@ -297,43 +206,24 @@ void ShapeColliderTests::sphereTouchesCapsule() {
             closestApproach = sphereA.getTranslation() - glm::dot(BtoA, yAxis) * yAxis;
             expectedContactPoint = closestApproach - radiusB * glm::normalize(BtoA - closestApproach);
         }
-        inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
-        if (fabsf(inaccuracy) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint << std::endl;
-        }
+        QCOMPARE_WITH_ABS_ERROR(collision->_contactPoint, expectedContactPoint, EPSILON);
     }
     {   // sphereA hits end cap at axis
         glm::vec3 axialOffset = (halfHeightB + alpha * radiusA + beta * radiusB) * yAxis;
         sphereA.setTranslation(axialOffset);
 
-        if (!ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions))
-        {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: sphere and capsule should touch" << std::endl;
-        } else {
-            ++numCollisions;
-        }
+        QCOMPARE(ShapeCollider::collideShapes(&sphereA, &capsuleB, collisions), true);
+        ++numCollisions;
 
         // penetration points from sphereA into capsuleB
         CollisionInfo* collision = collisions.getCollision(numCollisions - 1);
         glm::vec3 expectedPenetration = - ((1.0f - alpha) * radiusA + (1.0f - beta) * radiusB) * yAxis;
-        float inaccuracy = glm::length(collision->_penetration - expectedPenetration);
-        if (fabsf(inaccuracy) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration << std::endl;
-        }
+        QCOMPARE_WITH_ABS_ERROR(collision->_penetration, expectedPenetration, EPSILON);
 
         // contactPoint is on surface of sphereA
         glm::vec3 expectedContactPoint = sphereA.getTranslation() - radiusA * yAxis;
-        inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
-        if (fabsf(inaccuracy) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint << std::endl;
-        }
+        
+        QCOMPARE_WITH_ABS_ERROR(collision->_contactPoint, expectedContactPoint, EPSILON);
 
         // capsuleB collides with sphereA
         if (!ShapeCollider::collideShapes(&capsuleB, &sphereA, collisions))
@@ -351,12 +241,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
             // the ShapeCollider swapped the order of the shapes
             expectedPenetration *= -1.0f;
         }
-        inaccuracy = glm::length(collision->_penetration - expectedPenetration);
-        if (fabsf(inaccuracy) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration << std::endl;
-        }
+        QCOMPARE_WITH_ABS_ERROR(collision->_penetration, expectedPenetration, EPSILON);
 
         // contactPoint is on surface of capsuleB
         glm::vec3 endPoint;
@@ -366,12 +251,8 @@ void ShapeColliderTests::sphereTouchesCapsule() {
             // the ShapeCollider swapped the order of the shapes
             expectedContactPoint = axialOffset - radiusA * yAxis;
         }
-        inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
-        if (fabsf(inaccuracy) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint << std::endl;
-        }
+        
+        QCOMPARE_WITH_ABS_ERROR(collision->_contactPoint, expectedContactPoint, EPSILON);
     }
     {   // sphereA hits start cap at axis
         glm::vec3 axialOffset = - (halfHeightB + alpha * radiusA + beta * radiusB) * yAxis;
@@ -388,21 +269,12 @@ void ShapeColliderTests::sphereTouchesCapsule() {
         // penetration points from sphereA into capsuleB
         CollisionInfo* collision = collisions.getCollision(numCollisions - 1);
         glm::vec3 expectedPenetration = ((1.0f - alpha) * radiusA + (1.0f - beta) * radiusB) * yAxis;
-        float inaccuracy = glm::length(collision->_penetration - expectedPenetration);
-        if (fabsf(inaccuracy) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration << std::endl;
-        }
+        
+        QCOMPARE_WITH_ABS_ERROR(collision->_penetration, expectedPenetration, EPSILON);
 
         // contactPoint is on surface of sphereA
         glm::vec3 expectedContactPoint = sphereA.getTranslation() + radiusA * yAxis;
-        inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
-        if (fabsf(inaccuracy) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint << std::endl;
-        }
+        QCOMPARE_WITH_ABS_ERROR(collision->_contactPoint, expectedContactPoint, EPSILON);
 
         // capsuleB collides with sphereA
         if (!ShapeCollider::collideShapes(&capsuleB, &sphereA, collisions))
@@ -420,12 +292,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
             // the ShapeCollider swapped the order of the shapes
             expectedPenetration *= -1.0f;
         }
-        inaccuracy = glm::length(collision->_penetration - expectedPenetration);
-        if (fabsf(inaccuracy) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration << std::endl;
-        }
+        QCOMPARE_WITH_ABS_ERROR(collision->_penetration, expectedPenetration, EPSILON);
 
         // contactPoint is on surface of capsuleB
         glm::vec3 startPoint;
@@ -435,12 +302,7 @@ void ShapeColliderTests::sphereTouchesCapsule() {
             // the ShapeCollider swapped the order of the shapes
             expectedContactPoint = axialOffset + radiusA * yAxis;
         }
-        inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
-        if (fabsf(inaccuracy) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint << std::endl;
-        }
+        QCOMPARE_WITH_ABS_ERROR(collision->_contactPoint, expectedContactPoint, EPSILON);
     }
     if (collisions.size() != numCollisions) {
         std::cout << __FILE__ << ":" << __LINE__
@@ -466,49 +328,23 @@ void ShapeColliderTests::capsuleMissesCapsule() {
 
     // side by side
     capsuleB.setTranslation((1.01f * totalRadius) * xAxis);
-    if (ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
-    {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should NOT touch" << std::endl;
-    }
-    if (ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
-    {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should NOT touch" << std::endl;
-    }
+    QCOMPARE(ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions), false);
+    QCOMPARE(ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions), false);
 
     // end to end
     capsuleB.setTranslation((1.01f * totalHalfLength) * xAxis);
-    if (ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
-    {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should NOT touch" << std::endl;
-    }
-    if (ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
-    {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should NOT touch" << std::endl;
-    }
+    QCOMPARE(ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions), false);
+    QCOMPARE(ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions), false);
 
     // rotate B and move it to the side
     glm::quat rotation = glm::angleAxis(PI_OVER_TWO, zAxis);
     capsuleB.setRotation(rotation);
     capsuleB.setTranslation((1.01f * (totalRadius + capsuleB.getHalfHeight())) * xAxis);
-    if (ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
-    {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should NOT touch" << std::endl;
-    }
-    if (ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
-    {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: capsule and capsule should NOT touch" << std::endl;
-    }
+    
+    QCOMPARE(ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions), false);
+    QCOMPARE(ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions), false);
 
-    if (collisions.size() > 0) {
-        std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected empty collision list but size is " << collisions.size() << std::endl;
-    }
+    QCOMPARE(collisions.size(), 0);
 }
 
 void ShapeColliderTests::capsuleTouchesCapsule() {
@@ -529,39 +365,17 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
 
     { // side by side
         capsuleB.setTranslation((0.99f * totalRadius) * xAxis);
-        if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
-        {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch" << std::endl;
-        } else {
-            ++numCollisions;
-        }
-        if (!ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
-        {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch" << std::endl;
-        } else {
-            ++numCollisions;
-        }
+        QCOMPARE(ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions), true);
+        QCOMPARE(ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions), true);
+        numCollisions += 2;
     }
 
     { // end to end
         capsuleB.setTranslation((0.99f * totalHalfLength) * yAxis);
-
-        if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
-        {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch" << std::endl;
-        } else {
-            ++numCollisions;
-        }
-        if (!ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
-        {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch" << std::endl;
-        } else {
-            ++numCollisions;
-        }
+        
+        QCOMPARE(ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions), true);
+        QCOMPARE(ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions), true);
+        numCollisions += 2;
     }
 
     { // rotate B and move it to the side
@@ -569,20 +383,9 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
         capsuleB.setRotation(rotation);
         capsuleB.setTranslation((0.99f * (totalRadius + capsuleB.getHalfHeight())) * xAxis);
 
-        if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
-        {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch" << std::endl;
-        } else {
-            ++numCollisions;
-        }
-        if (!ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
-        {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch" << std::endl;
-        } else {
-            ++numCollisions;
-        }
+        QCOMPARE(ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions), true);
+        QCOMPARE(ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions), true);
+        numCollisions += 2;
     }
 
     { // again, but this time check collision details
@@ -591,58 +394,29 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
         capsuleB.setRotation(rotation);
         glm::vec3 positionB = ((totalRadius + capsuleB.getHalfHeight()) - overlap) * xAxis;
         capsuleB.setTranslation(positionB);
-
+    
         // capsuleA vs capsuleB
-        if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
-        {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch" << std::endl;
-        } else {
-            ++numCollisions;
-        }
+        QCOMPARE(ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions), true);
+        ++numCollisions;
 
         CollisionInfo* collision = collisions.getCollision(numCollisions - 1);
         glm::vec3 expectedPenetration = overlap * xAxis;
-        float inaccuracy = glm::length(collision->_penetration - expectedPenetration);
-        if (fabsf(inaccuracy) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration << std::endl;
-        }
+        
+        QCOMPARE_WITH_ABS_ERROR(collision->_penetration, expectedPenetration, EPSILON);
 
         glm::vec3 expectedContactPoint = capsuleA.getTranslation() + radiusA * xAxis;
-        inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
-        if (fabsf(inaccuracy) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint << std::endl;
-        }
+        QCOMPARE_WITH_ABS_ERROR(collision->_contactPoint, expectedContactPoint, EPSILON);
 
         // capsuleB vs capsuleA
-        if (!ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions))
-        {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch" << std::endl;
-        } else {
-            ++numCollisions;
-        }
+        QCOMPARE(ShapeCollider::collideShapes(&capsuleB, &capsuleA, collisions), true);
+        ++numCollisions;
 
         collision = collisions.getCollision(numCollisions - 1);
         expectedPenetration = - overlap * xAxis;
-        inaccuracy = glm::length(collision->_penetration - expectedPenetration);
-        if (fabsf(inaccuracy) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration << std::endl;
-        }
+        QCOMPARE_WITH_ABS_ERROR(collision->_penetration, expectedPenetration, EPSILON);
 
         expectedContactPoint = capsuleB.getTranslation() - (radiusB + halfHeightB) * xAxis;
-        inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
-        if (fabsf(inaccuracy) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint << std::endl;
-        }
+        QCOMPARE_WITH_ABS_ERROR(collision->_contactPoint, expectedContactPoint, EPSILON);
     }
 
     { // collide cylinder wall against cylinder wall
@@ -654,30 +428,16 @@ void ShapeColliderTests::capsuleTouchesCapsule() {
         capsuleB.setTranslation(positionB);
 
         // capsuleA vs capsuleB
-        if (!ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions))
-        {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: capsule and capsule should touch" << std::endl;
-        } else {
-            ++numCollisions;
-        }
+        QCOMPARE(ShapeCollider::collideShapes(&capsuleA, &capsuleB, collisions), true);
+        ++numCollisions;
 
         CollisionInfo* collision = collisions.getCollision(numCollisions - 1);
         glm::vec3 expectedPenetration = overlap * zAxis;
-        float inaccuracy = glm::length(collision->_penetration - expectedPenetration);
-        if (fabsf(inaccuracy) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: bad penetration: expected = " << expectedPenetration
-                << " actual = " << collision->_penetration << std::endl;
-        }
+        
+        QCOMPARE_WITH_ABS_ERROR(collision->_penetration, expectedPenetration, EPSILON);
 
         glm::vec3 expectedContactPoint = capsuleA.getTranslation() + radiusA * zAxis + shift * yAxis;
-        inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
-        if (fabsf(inaccuracy) > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__
-                << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                << " actual = " << collision->_contactPoint << std::endl;
-        }
+        QCOMPARE_WITH_ABS_ERROR(collision->_contactPoint, expectedContactPoint, EPSILON);
     }
 }
 
@@ -686,8 +446,9 @@ void ShapeColliderTests::sphereMissesAACube() {
 
     float sphereRadius = 1.0f;
     glm::vec3 sphereCenter(0.0f);
+    
+    glm::vec3 cubeCenter(1.5f, 0.0f, 0.0f);
 
-    glm::vec3 cubeCenter(1.23f, 4.56f, 7.89f);
     float cubeSide = 2.0f;
 
     glm::vec3 faceNormals[] = {xAxis, yAxis, zAxis};
@@ -706,8 +467,10 @@ void ShapeColliderTests::sphereMissesAACube() {
                     cubeCenter, cubeSide, collisions);
 
             if (collision) {
-                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube face."
-                    << "  faceNormal = " << faceNormal << std::endl;
+                QFAIL_WITH_MESSAGE("sphere should NOT collide with cube face.\n\t\t"
+                                   << "faceNormal = " << faceNormal);
+//                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube face."
+//                    << "  faceNormal = " << faceNormal << std::endl;
             }
         }
     }
@@ -744,10 +507,9 @@ void ShapeColliderTests::sphereMissesAACube() {
 
                         CollisionInfo* collision = ShapeCollider::sphereVsAACubeHelper(sphereCenter, sphereRadius,
                                 cubeCenter, cubeSide, collisions);
-
                         if (collision) {
-                            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube edge."
-                                << "  edgeNormal = " << edgeNormal << std::endl;
+                            QFAIL_WITH_MESSAGE("sphere should NOT collide with cube edge.\n\t\t"
+                                               << "edgeNormal = " << edgeNormal);
                         }
                     }
 
@@ -784,8 +546,9 @@ void ShapeColliderTests::sphereMissesAACube() {
                             cubeCenter, cubeSide, collisions);
 
                     if (collision) {
-                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should NOT collide with cube corner."
-                            << "  cornerNormal = " << cornerNormal << std::endl;
+                        
+                        QFAIL_WITH_MESSAGE("sphere should NOT collide with cube corner\n\t\t" <<
+                                           "cornerNormal = " << cornerNormal);
                         break;
                     }
                 }
@@ -832,29 +595,18 @@ void ShapeColliderTests::sphereTouchesAACubeFaces() {
                             cubeCenter, cubeSide, collisions);
 
                     if (!collision) {
-                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide outside cube face."
-                            << " faceNormal = " << faceNormal
-                            << std::endl;
+                        
+                        QFAIL_WITH_MESSAGE("sphere should collide outside cube face\n\t\t" <<
+                                           "faceNormal = " << faceNormal);
                         break;
                     }
 
-                    if (glm::distance(expectedPenetration, collision->_penetration) > EPSILON) {
-                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: penetration = " << collision->_penetration
-                            << "  expected " << expectedPenetration << "  faceNormal = " << faceNormal << std::endl;
-                    }
-
+                    QCOMPARE_WITH_ABS_ERROR(collision->_penetration, expectedPenetration, EPSILON);
+                    
                     glm::vec3 expectedContact = sphereCenter - sphereRadius * faceNormal;
-                    if (glm::distance(expectedContact, collision->_contactPoint) > EPSILON) {
-                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: contactaPoint = " << collision->_contactPoint
-                            << "  expected " << expectedContact << "  faceNormal = " << faceNormal << std::endl;
-                    }
-
-                    if (collision->getShapeA()) {
-                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: collision->_shapeA should be NULL" << std::endl;
-                    }
-                    if (collision->getShapeB()) {
-                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: collision->_shapeB should be NULL" << std::endl;
-                    }
+                    QCOMPARE_WITH_ABS_ERROR(collision->_contactPoint, expectedContact, EPSILON);
+                    QCOMPARE(collision->getShapeA(), (Shape*)nullptr);
+                    QCOMPARE(collision->getShapeB(), (Shape*)nullptr);
                 }
             }
 
@@ -869,22 +621,16 @@ void ShapeColliderTests::sphereTouchesAACubeFaces() {
                         cubeCenter, cubeSide, collisions);
 
                 if (!collision) {
-                    std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide inside cube face."
-                        << "  faceNormal = " << faceNormal << std::endl;
+                    QFAIL_WITH_MESSAGE("sphere should collide inside cube face.\n\t\t"
+                                       << "faceNormal = " << faceNormal);
                     break;
                 }
 
                 glm::vec3 expectedPenetration  = - overlap * faceNormal;
-                if (glm::distance(expectedPenetration, collision->_penetration) > EPSILON) {
-                    std::cout << __FILE__ << ":" << __LINE__ << " ERROR: penetration = " << collision->_penetration
-                        << "  expected " << expectedPenetration << "  faceNormal = " << faceNormal << std::endl;
-                }
-
+                QCOMPARE_WITH_ABS_ERROR(collision->_penetration, expectedPenetration, EPSILON);
+                
                 glm::vec3 expectedContact = sphereCenter - sphereRadius * faceNormal;
-                if (glm::distance(expectedContact, collision->_contactPoint) > EPSILON) {
-                    std::cout << __FILE__ << ":" << __LINE__ << " ERROR: contactaPoint = " << collision->_contactPoint
-                        << "  expected " << expectedContact << "  faceNormal = " << faceNormal << std::endl;
-                }
+                QCOMPARE_WITH_ABS_ERROR(collision->_contactPoint, expectedContact, EPSILON);
             }
         }
     }
@@ -937,23 +683,15 @@ void ShapeColliderTests::sphereTouchesAACubeEdges() {
 
                         CollisionInfo* collision = ShapeCollider::sphereVsAACubeHelper(sphereCenter, sphereRadius,
                                 cubeCenter, cubeSide, collisions);
-
                         if (!collision) {
-                            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube edge."
-                                << "  edgeNormal = " << edgeNormal << std::endl;
+                            QFAIL_WITH_MESSAGE("sphere should collide with cube edge.\n\t\t"
+                                               << "edgeNormal = " << edgeNormal);
                             break;
                         }
-
-                        if (glm::distance(expectedPenetration, collision->_penetration) > EPSILON) {
-                            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: penetration = " << collision->_penetration
-                                << "  expected " << expectedPenetration << "  edgeNormal = " << edgeNormal << std::endl;
-                        }
+                        QCOMPARE_WITH_ABS_ERROR(collision->_penetration, expectedPenetration, EPSILON);
 
                         glm::vec3 expectedContact = sphereCenter - sphereRadius * edgeNormal;
-                        if (glm::distance(expectedContact, collision->_contactPoint) > EPSILON) {
-                            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: contactaPoint = " << collision->_contactPoint
-                                << "  expected " << expectedContact << "  edgeNormal = " << edgeNormal << std::endl;
-                        }
+                        QCOMPARE_WITH_ABS_ERROR(collision->_contactPoint, expectedContact, EPSILON);
                     }
                 }
             }
@@ -1002,22 +740,16 @@ void ShapeColliderTests::sphereTouchesAACubeCorners() {
                             cubeCenter, cubeSide, collisions);
 
                     if (!collision) {
-                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: sphere should collide with cube corner."
-                            << "  cornerNormal = " << cornerNormal << std::endl;
+                        QFAIL_WITH_MESSAGE("sphere should collide with cube corner.\n\t\t"
+                            << "cornerNormal = " << cornerNormal);
                         break;
                     }
 
                     glm::vec3 expectedPenetration = - overlap * offsetAxis;
-                    if (glm::distance(expectedPenetration, collision->_penetration) > EPSILON) {
-                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: penetration = " << collision->_penetration
-                            << "  expected " << expectedPenetration << "  cornerNormal = " << cornerNormal << std::endl;
-                    }
+                    QCOMPARE_WITH_ABS_ERROR(collision->_penetration, expectedPenetration, EPSILON);
 
                     glm::vec3 expectedContact = sphereCenter - sphereRadius * offsetAxis;
-                    if (glm::distance(expectedContact, collision->_contactPoint) > EPSILON) {
-                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: contactaPoint = " << collision->_contactPoint
-                            << "  expected " << expectedContact << "  cornerNormal = " << cornerNormal << std::endl;
-                    }
+                    QCOMPARE_WITH_ABS_ERROR(collision->_contactPoint, expectedContact, EPSILON);
                 }
             }
         }
@@ -1066,10 +798,7 @@ void ShapeColliderTests::capsuleMissesAACube() {
             CapsuleShape capsule(capsuleRadius, startPoint, endPoint);
 
             // collide capsule with cube
-            if (ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions)) {
-                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: capsule should NOT collide with cube face."
-                    << "  faceNormal = " << faceNormal << std::endl;
-            }
+            QCOMPARE(ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions), false);
         }
     }
 
@@ -1115,11 +844,7 @@ void ShapeColliderTests::capsuleMissesAACube() {
                     CapsuleShape capsule(capsuleRadius, startPoint, endPoint);
 
                     // collide capsule with cube
-                    bool hit = ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions);
-                    if (hit) {
-                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: capsule should NOT collide with cube face."
-                            << "  edgeNormal = " << edgeNormal << std::endl;
-                    }
+                    QCOMPARE(ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions), false);
                 }
             }
         }
@@ -1157,10 +882,7 @@ void ShapeColliderTests::capsuleMissesAACube() {
                 CapsuleShape capsule(capsuleRadius, startPoint, endPoint);
 
                 // collide capsule with cube
-                if (ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions)) {
-                    std::cout << __FILE__ << ":" << __LINE__ << " ERROR: capsule should NOT collide with cube face."
-                        << "  cornerNormal = " << cornerNormal << std::endl;
-                }
+                QCOMPARE(ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions), false);
             }
         }
     }
@@ -1212,10 +934,7 @@ void ShapeColliderTests::capsuleMissesAACube() {
                     CapsuleShape capsule(capsuleRadius, startPoint, endPoint);
 
                     // collide capsule with cube
-                    if (ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions)) {
-                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: capsule should NOT collide with cube"
-                            << "  edgeNormal = " << edgeNormal << std::endl;
-                    }
+                    QCOMPARE(ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions), false);
                 }
             }
         }
@@ -1261,10 +980,7 @@ void ShapeColliderTests::capsuleMissesAACube() {
                 CapsuleShape capsule(capsuleRadius, startPoint, endPoint);
 
                 // collide capsule with cube
-                if (ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions)) {
-                    std::cout << __FILE__ << ":" << __LINE__ << " ERROR: capsule should NOT collide with cube"
-                        << "  cornerNormal = " << cornerNormal << std::endl;
-                }
+                QCOMPARE(ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions), false);
             }
         }
     }
@@ -1297,11 +1013,7 @@ void ShapeColliderTests::capsuleMissesAACube() {
                 CapsuleShape capsule(capsuleRadius, startPoint, endPoint);
 
                 // collide capsule with cube
-                if (ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions)) {
-                    std::cout << __FILE__ << ":" << __LINE__ << " ERROR: capsule should NOT collide with cube"
-                        << "  faceNormal = " << faceNormal << std::endl;
-                    break;
-                }
+                QCOMPARE(ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions), false);
             }
         }
     }
@@ -1353,40 +1065,17 @@ void ShapeColliderTests::capsuleTouchesAACube() {
             CapsuleShape capsule(capsuleRadius, startPoint, endPoint);
 
             // collide capsule with cube
-            if (!ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions)) {
-                std::cout << __FILE__ << ":" << __LINE__ << " ERROR: capsule should collide with cube"
-                    << "  faceNormal = " << faceNormal << std::endl;
-                break;
-            }
+            QCOMPARE(ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions), true);
 
             CollisionInfo* collision = collisions.getLastCollision();
-            if (!collision) {
-                std::cout << __FILE__ << ":" << __LINE__
-                    << " ERROR: null collision with faceNormal = " << faceNormal << std::endl;
-                return;
-            }
 
             // penetration points from capsule into cube
             glm::vec3 expectedPenetration = - overlap * faceNormal;
-            float inaccuracy = glm::length(collision->_penetration - expectedPenetration);
-            if (fabsf(inaccuracy) > allowableError) {
-                std::cout << __FILE__ << ":" << __LINE__
-                    << " ERROR: bad penetration: expected = " << expectedPenetration
-                    << " actual = " << collision->_penetration
-                    << " faceNormal = " << faceNormal
-                    << std::endl;
-            }
+            QCOMPARE_WITH_ABS_ERROR(collision->_penetration, expectedPenetration, allowableError);
 
             // contactPoint is on surface of capsule
             glm::vec3 expectedContactPoint = collidingPoint - capsuleRadius * faceNormal;
-            inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
-            if (fabsf(inaccuracy) > allowableError) {
-                std::cout << __FILE__ << ":" << __LINE__
-                    << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                    << " actual = " << collision->_contactPoint
-                    << " faceNormal = " << faceNormal
-                    << std::endl;
-            }
+            QCOMPARE_WITH_ABS_ERROR(collision->_contactPoint, expectedContactPoint, allowableError);
         }
     }
 
@@ -1433,39 +1122,18 @@ void ShapeColliderTests::capsuleTouchesAACube() {
                     CapsuleShape capsule(capsuleRadius, startPoint, endPoint);
 
                     // collide capsule with cube
-                    if (!ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions)) {
-                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: capsule should collide with cube"
-                            << "  edgeNormal = " << edgeNormal << std::endl;
-                    }
+                    QCOMPARE(ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions), true);
 
                     CollisionInfo* collision = collisions.getLastCollision();
-                    if (!collision) {
-                        std::cout << __FILE__ << ":" << __LINE__
-                            << " ERROR: null collision with edgeNormal = " << edgeNormal << std::endl;
-                        return;
-                    }
+                    QCOMPARE(collision != nullptr, true);
 
                     // penetration points from capsule into cube
                     glm::vec3 expectedPenetration = - overlap * edgeNormal;
-                    float inaccuracy = glm::length(collision->_penetration - expectedPenetration);
-                    if (fabsf(inaccuracy) > allowableError) {
-                        std::cout << __FILE__ << ":" << __LINE__
-                            << " ERROR: bad penetration: expected = " << expectedPenetration
-                            << " actual = " << collision->_penetration
-                            << " edgeNormal = " << edgeNormal
-                            << std::endl;
-                    }
+                    QCOMPARE_WITH_ABS_ERROR(collision->_penetration, expectedPenetration, allowableError);
 
                     // contactPoint is on surface of capsule
                     glm::vec3 expectedContactPoint = collidingPoint - capsuleRadius * edgeNormal;
-                    inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
-                    if (fabsf(inaccuracy) > allowableError) {
-                        std::cout << __FILE__ << ":" << __LINE__
-                            << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                            << " actual = " << collision->_contactPoint
-                            << " edgeNormal = " << edgeNormal
-                            << std::endl;
-                    }
+                    QCOMPARE_WITH_ABS_ERROR(collision->_contactPoint, expectedContactPoint, allowableError);
                 }
             }
         }
@@ -1504,39 +1172,18 @@ void ShapeColliderTests::capsuleTouchesAACube() {
                 CapsuleShape capsule(capsuleRadius, startPoint, endPoint);
 
                 // collide capsule with cube
-                if (!ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions)) {
-                    std::cout << __FILE__ << ":" << __LINE__ << " ERROR: capsule should collide with cube"
-                        << "  cornerNormal = " << cornerNormal << std::endl;
-                }
+                QCOMPARE(ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions), true);
 
                 CollisionInfo* collision = collisions.getLastCollision();
-                if (!collision) {
-                    std::cout << __FILE__ << ":" << __LINE__
-                        << " ERROR: null collision with cornerNormal = " << cornerNormal << std::endl;
-                    return;
-                }
+                QCOMPARE(collision != nullptr, true);
 
                 // penetration points from capsule into cube
                 glm::vec3 expectedPenetration = - overlap * cornerNormal;
-                float inaccuracy = glm::length(collision->_penetration - expectedPenetration);
-                if (fabsf(inaccuracy) > allowableError) {
-                    std::cout << __FILE__ << ":" << __LINE__
-                        << " ERROR: bad penetration: expected = " << expectedPenetration
-                        << " actual = " << collision->_penetration
-                        << " cornerNormal = " << cornerNormal
-                        << std::endl;
-                }
+                QCOMPARE_WITH_ABS_ERROR(collision->_penetration, expectedPenetration, allowableError);
 
                 // contactPoint is on surface of capsule
                 glm::vec3 expectedContactPoint = collidingPoint - capsuleRadius * cornerNormal;
-                inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
-                if (fabsf(inaccuracy) > allowableError) {
-                    std::cout << __FILE__ << ":" << __LINE__
-                        << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                        << " actual = " << collision->_contactPoint
-                        << " cornerNormal = " << cornerNormal
-                        << std::endl;
-                }
+                QCOMPARE_WITH_ABS_ERROR(collision->_contactPoint, expectedContactPoint, allowableError);
             }
         }
     }
@@ -1588,40 +1235,18 @@ void ShapeColliderTests::capsuleTouchesAACube() {
                     CapsuleShape capsule(capsuleRadius, startPoint, endPoint);
 
                     // collide capsule with cube
-                    if (!ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions)) {
-                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: capsule should collide with cube"
-                            << "  edgeNormal = " << edgeNormal << std::endl;
-                    }
+                    QCOMPARE(ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions), true);
 
                     CollisionInfo* collision = collisions.getLastCollision();
-                    if (!collision) {
-                        std::cout << __FILE__ << ":" << __LINE__
-                            << " ERROR: null collision with edgeNormal = " << edgeNormal << std::endl;
-                        return;
-                    }
+                    QCOMPARE(collision != nullptr, true);
 
                     // penetration points from capsule into cube
                     glm::vec3 expectedPenetration = - overlap * deflectedNormal;
-                    float inaccuracy = glm::length(collision->_penetration - expectedPenetration);
-                    if (fabsf(inaccuracy) > allowableError / capsuleLength) {
-                        std::cout << __FILE__ << ":" << __LINE__
-                            << " ERROR: bad penetration: expected = " << expectedPenetration
-                            << " actual = " << collision->_penetration
-                            << " edgeNormal = " << edgeNormal
-                            << std::endl;
-                    }
+                    QCOMPARE_WITH_ABS_ERROR(collision->_penetration, expectedPenetration, allowableError);
 
                     // contactPoint is on surface of capsule
                     glm::vec3 expectedContactPoint = axisPoint - capsuleRadius * deflectedNormal;
-                    inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
-                    if (fabsf(inaccuracy) > allowableError / capsuleLength) {
-                        std::cout << __FILE__ << ":" << __LINE__
-                            << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                            << " actual = " << collision->_contactPoint
-                            << " edgeNormal = " << edgeNormal
-                            << std::endl;
-                    }
-                }
+                    QCOMPARE_WITH_ABS_ERROR(collision->_contactPoint, expectedContactPoint, allowableError);                }
             }
         }
     }
@@ -1667,39 +1292,18 @@ void ShapeColliderTests::capsuleTouchesAACube() {
                 CapsuleShape capsule(capsuleRadius, startPoint, endPoint);
 
                 // collide capsule with cube
-                if (!ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions)) {
-                    std::cout << __FILE__ << ":" << __LINE__ << " ERROR: capsule should collide with cube"
-                        << "  cornerNormal = " << cornerNormal << std::endl;
-                }
+                QCOMPARE(ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions), true);
 
                 CollisionInfo* collision = collisions.getLastCollision();
-                if (!collision) {
-                    std::cout << __FILE__ << ":" << __LINE__
-                        << " ERROR: null collision with cornerNormal = " << cornerNormal << std::endl;
-                    return;
-                }
+                QCOMPARE(collision != nullptr, true);
 
                 // penetration points from capsule into cube
                 glm::vec3 expectedPenetration = overlap * penetrationNormal;
-                float inaccuracy = glm::length(collision->_penetration - expectedPenetration);
-                if (fabsf(inaccuracy) > allowableError) {
-                    std::cout << __FILE__ << ":" << __LINE__
-                        << " ERROR: bad penetration: expected = " << expectedPenetration
-                        << " actual = " << collision->_penetration
-                        << " cornerNormal = " << cornerNormal
-                        << std::endl;
-                }
+                QCOMPARE_WITH_ABS_ERROR(collision->_penetration, expectedPenetration, allowableError);
 
                 // contactPoint is on surface of capsule
                 glm::vec3 expectedContactPoint = collidingPoint + capsuleRadius * penetrationNormal;
-                inaccuracy = glm::length(collision->_contactPoint - expectedContactPoint);
-                if (fabsf(inaccuracy) > allowableError) {
-                    std::cout << __FILE__ << ":" << __LINE__
-                        << " ERROR: bad contactPoint: expected = " << expectedContactPoint
-                        << " actual = " << collision->_contactPoint
-                        << " cornerNormal = " << cornerNormal
-                        << std::endl;
-                }
+                QCOMPARE_WITH_ABS_ERROR(collision->_contactPoint, expectedContactPoint, allowableError);
             }
         }
     }
@@ -1732,20 +1336,8 @@ void ShapeColliderTests::capsuleTouchesAACube() {
                 CapsuleShape capsule(capsuleRadius, startPoint, endPoint);
 
                 // collide capsule with cube
-                if (!ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions)) {
-                    std::cout << __FILE__ << ":" << __LINE__ << " ERROR: capsule should collide with cube"
-                        << "  faceNormal = " << faceNormal << std::endl;
-                    break;
-                }
-
-                int numCollisions = collisions.size();
-                if (numCollisions != 2) {
-                    std::cout << __FILE__ << ":" << __LINE__
-                        << " ERROR: capsule should hit cube face at two spots."
-                        << " Expected collisions size of 2 but is actually " << numCollisions
-                        << ".  faceNormal = " << faceNormal << std::endl;
-                    break;
-                }
+                QCOMPARE(ShapeCollider::capsuleVsAACube(&capsule, &cube, collisions), true);
+                QCOMPARE(collisions.size(), 2);
 
                 // compute the expected contact points
                 // NOTE: whether the startPoint or endPoint are expected to collide depends the relative values
@@ -1770,14 +1362,7 @@ void ShapeColliderTests::capsuleTouchesAACube() {
                     CollisionInfo* collision = collisions.getCollision(k);
                     // penetration points from capsule into cube
                     glm::vec3 expectedPenetration = - overlap * faceNormal;
-                    float inaccuracy = glm::length(collision->_penetration - expectedPenetration);
-                    if (fabsf(inaccuracy) > allowableError) {
-                        std::cout << __FILE__ << ":" << __LINE__
-                            << " ERROR: bad penetration: expected = " << expectedPenetration
-                            << " actual = " << collision->_penetration
-                            << " faceNormal = " << faceNormal
-                            << std::endl;
-                    }
+                    QCOMPARE_WITH_ABS_ERROR(collision->_penetration, expectedPenetration, allowableError);
 
                     // the order of the final contact points is undefined, so we
                     // figure out which expected contact point is the closest to the real one
@@ -1786,14 +1371,7 @@ void ShapeColliderTests::capsuleTouchesAACube() {
                     float length1 = glm::length(collision->_contactPoint - expectedContactPoints[1]);
                     glm::vec3 expectedContactPoint = (length0 < length1) ? expectedContactPoints[0] : expectedContactPoints[1];
                     // contactPoint is on surface of capsule
-                    inaccuracy = (length0 < length1) ? length0 : length1;
-                    if (fabsf(inaccuracy) > allowableError) {
-                        std::cout << __FILE__ << ":" << __LINE__
-                            << " ERROR: bad contact: expectedContactPoint[" << k << "] = " << expectedContactPoint
-                            << " actual = " << collision->_contactPoint
-                            << " faceNormal = " << faceNormal
-                            << std::endl;
-                    }
+                    QCOMPARE_WITH_ABS_ERROR(collision->_contactPoint, expectedContactPoint, allowableError);
                 }
             }
         }
@@ -1814,19 +1392,11 @@ void ShapeColliderTests::rayHitsSphere() {
         intersection._rayStart = -startDistance * xAxis;
         intersection._rayDirection = xAxis;
 
-        if (!sphere.findRayIntersection(intersection)) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should intersect sphere" << std::endl;
-        }
-
+        QCOMPARE(sphere.findRayIntersection(intersection), true);
+        
         float expectedDistance = startDistance - radius;
-        float relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
-        if (relativeError > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray sphere intersection distance error = " << relativeError << std::endl;
-        }
-        if (intersection._hitShape != &sphere) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray intersection._hitShape should point at sphere"
-                << std::endl;
-        }
+        QCOMPARE_WITH_ABS_ERROR(intersection._hitDistance, expectedDistance, startDistance * EPSILON);
+        QCOMPARE(intersection._hitShape, &sphere);
     }
 
     // ray along a diagonal axis
@@ -1834,16 +1404,10 @@ void ShapeColliderTests::rayHitsSphere() {
         RayIntersectionInfo intersection;
         intersection._rayStart = glm::vec3(startDistance, startDistance, 0.0f);
         intersection._rayDirection = - glm::normalize(intersection._rayStart);
-
-        if (!sphere.findRayIntersection(intersection)) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should intersect sphere" << std::endl;
-        }
+        QCOMPARE(sphere.findRayIntersection(intersection), true);
 
         float expectedDistance = SQUARE_ROOT_OF_2 * startDistance - radius;
-        float relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
-        if (relativeError > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray sphere intersection distance error = " << relativeError << std::endl;
-        }
+        QCOMPARE_WITH_ABS_ERROR(intersection._hitDistance, expectedDistance, startDistance * EPSILON);
     }
 
     // rotated and displaced ray and sphere
@@ -1865,16 +1429,9 @@ void ShapeColliderTests::rayHitsSphere() {
         sphere.setRadius(radius);
         sphere.setTranslation(rotation * translation);
 
-        if (!sphere.findRayIntersection(intersection)) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should intersect sphere" << std::endl;
-        }
-
+        QCOMPARE(sphere.findRayIntersection(intersection), true);
         float expectedDistance = startDistance - radius;
-        float relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
-        if (relativeError > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray sphere intersection distance error = "
-                << relativeError << std::endl;
-        }
+        QCOMPARE_WITH_ABS_ERROR(intersection._hitDistance, expectedDistance, startDistance * EPSILON);
     }
 }
 
@@ -1892,13 +1449,8 @@ void ShapeColliderTests::rayBarelyHitsSphere() {
         intersection._rayDirection = xAxis;
 
         // very simple ray along xAxis
-        if (!sphere.findRayIntersection(intersection)) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should just barely hit sphere" << std::endl;
-        }
-        if (intersection._hitShape != &sphere) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray intersection._hitShape should point at sphere"
-                << std::endl;
-        }
+        QCOMPARE(sphere.findRayIntersection(intersection), true);
+        QCOMPARE(intersection._hitShape, &sphere);
     }
 
     {
@@ -1914,9 +1466,7 @@ void ShapeColliderTests::rayBarelyHitsSphere() {
         sphere.setTranslation(rotation * translation);
 
         // ...and test again
-        if (!sphere.findRayIntersection(intersection)) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should just barely hit sphere" << std::endl;
-        }
+        QCOMPARE(sphere.findRayIntersection(intersection), true);
     }
 }
 
@@ -1936,13 +1486,8 @@ void ShapeColliderTests::rayBarelyMissesSphere() {
         intersection._rayDirection = xAxis;
 
         // very simple ray along xAxis
-        if (sphere.findRayIntersection(intersection)) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should just barely miss sphere" << std::endl;
-        }
-        if (intersection._hitDistance != FLT_MAX) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss"
-                << std::endl;
-        }
+        QCOMPARE(sphere.findRayIntersection(intersection), false);
+        QCOMPARE(intersection._hitDistance, FLT_MAX);
     }
 
     {
@@ -1958,16 +1503,9 @@ void ShapeColliderTests::rayBarelyMissesSphere() {
         sphere.setTranslation(rotation * translation);
 
         // ...and test again
-        if (sphere.findRayIntersection(intersection)) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should just barely miss sphere" << std::endl;
-        }
-        if (intersection._hitDistance != FLT_MAX) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss"
-                << std::endl;
-        }
-        if (intersection._hitShape != NULL) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray intersection._hitShape should be NULL" << std::endl;
-        }
+        QCOMPARE(sphere.findRayIntersection(intersection), false);
+        QCOMPARE(intersection._hitDistance == FLT_MAX, true);
+        QCOMPARE(intersection._hitShape == nullptr, true);
     }
 }
 
@@ -1983,34 +1521,19 @@ void ShapeColliderTests::rayHitsCapsule() {
         RayIntersectionInfo intersection;
         intersection._rayStart = glm::vec3(startDistance, 0.0f, 0.0f);
         intersection._rayDirection = - xAxis;
-        if (!capsule.findRayIntersection(intersection)) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should hit capsule" << std::endl;
-        }
+        QCOMPARE(capsule.findRayIntersection(intersection), true);
         float expectedDistance = startDistance - radius;
-        float relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
-        if (relativeError > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = "
-                << relativeError << std::endl;
-        }
-        if (intersection._hitShape != &capsule) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray intersection._hitShape should point at capsule"
-                << std::endl;
-        }
+        QCOMPARE_WITH_ABS_ERROR(intersection._hitDistance, expectedDistance, startDistance * EPSILON);
+        QCOMPARE(intersection._hitShape, &capsule);
     }
 
     { // toward top of cylindrical wall
         RayIntersectionInfo intersection;
         intersection._rayStart = glm::vec3(startDistance, halfHeight, 0.0f);
         intersection._rayDirection = - xAxis;
-        if (!capsule.findRayIntersection(intersection)) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should hit capsule" << std::endl;
-        }
+        QCOMPARE(capsule.findRayIntersection(intersection), true);
         float expectedDistance = startDistance - radius;
-        float relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
-        if (relativeError > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = "
-                << relativeError << std::endl;
-        }
+        QCOMPARE_WITH_ABS_ERROR(intersection._hitDistance, expectedDistance, startDistance * EPSILON);
     }
 
     float delta = 2.0f * EPSILON;
@@ -2018,15 +1541,9 @@ void ShapeColliderTests::rayHitsCapsule() {
         RayIntersectionInfo intersection;
         intersection._rayStart = glm::vec3(startDistance, halfHeight + delta, 0.0f);
         intersection._rayDirection = - xAxis;
-        if (!capsule.findRayIntersection(intersection)) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should hit capsule" << std::endl;
-        }
+        QCOMPARE(capsule.findRayIntersection(intersection), true);
         float expectedDistance = startDistance - radius;
-        float relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
-        if (relativeError > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = "
-                << relativeError << std::endl;
-        }
+        QCOMPARE_WITH_ABS_ERROR(intersection._hitDistance, expectedDistance, startDistance * EPSILON);
     }
 
     const float EDGE_CASE_SLOP_FACTOR = 20.0f;
@@ -2034,48 +1551,33 @@ void ShapeColliderTests::rayHitsCapsule() {
         RayIntersectionInfo intersection;
         intersection._rayStart = glm::vec3(startDistance, halfHeight + radius - delta, 0.0f);
         intersection._rayDirection = - xAxis;
-        if (!capsule.findRayIntersection(intersection)) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should hit capsule" << std::endl;
-        }
+        QCOMPARE(capsule.findRayIntersection(intersection), true);
         float expectedDistance = startDistance - radius * sqrtf(2.0f * delta);    // using small angle approximation of cosine
-        float relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
+//        float relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
         // for edge cases we allow a LOT of error
-        if (relativeError > EDGE_CASE_SLOP_FACTOR * EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = "
-                << relativeError << std::endl;
-        }
+        QCOMPARE_WITH_ABS_ERROR(intersection._hitDistance, expectedDistance, startDistance * EDGE_CASE_SLOP_FACTOR * EPSILON);
     }
 
     { // toward tip of bottom cap
         RayIntersectionInfo intersection;
         intersection._rayStart = glm::vec3(startDistance, - halfHeight - radius + delta, 0.0f);
         intersection._rayDirection = - xAxis;
-        if (!capsule.findRayIntersection(intersection)) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should hit capsule" << std::endl;
-        }
+        QCOMPARE(capsule.findRayIntersection(intersection), true);
         float expectedDistance = startDistance - radius * sqrtf(2.0f * delta);    // using small angle approximation of cosine
-        float relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
+//        float relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
         // for edge cases we allow a LOT of error
-        if (relativeError > EDGE_CASE_SLOP_FACTOR * EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = "
-                << relativeError << std::endl;
-        }
+        QCOMPARE_WITH_ABS_ERROR(intersection._hitDistance, expectedDistance, startDistance * EPSILON * EDGE_CASE_SLOP_FACTOR);
     }
 
     { // toward edge of capsule cylindrical face
         RayIntersectionInfo intersection;
         intersection._rayStart = glm::vec3(startDistance, 0.0f, radius - delta);
         intersection._rayDirection = - xAxis;
-        if (!capsule.findRayIntersection(intersection)) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should hit capsule" << std::endl;
-        }
+        QCOMPARE(capsule.findRayIntersection(intersection), true);
         float expectedDistance = startDistance - radius * sqrtf(2.0f * delta);    // using small angle approximation of cosine
         float relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
         // for edge cases we allow a LOT of error
-        if (relativeError > EDGE_CASE_SLOP_FACTOR * EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = "
-                << relativeError << std::endl;
-        }
+        QCOMPARE_WITH_ABS_ERROR(intersection._hitDistance, expectedDistance, startDistance * EPSILON * EDGE_CASE_SLOP_FACTOR);
     }
     // TODO: test at steep angles near cylinder/cap junction
 }
@@ -2098,39 +1600,22 @@ void ShapeColliderTests::rayMissesCapsule() {
         // over top cap
         intersection._rayStart.y = halfHeight + radius + delta;
         intersection._hitDistance = FLT_MAX;
-        if (capsule.findRayIntersection(intersection)) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should miss capsule" << std::endl;
-        }
-        if (intersection._hitDistance != FLT_MAX) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss"
-                << std::endl;
-        }
+        QCOMPARE(capsule.findRayIntersection(intersection), false);
+        QCOMPARE(intersection._hitDistance, FLT_MAX);
 
         // below bottom cap
         intersection._rayStart.y = - halfHeight - radius - delta;
         intersection._hitDistance = FLT_MAX;
-        if (capsule.findRayIntersection(intersection)) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should miss capsule" << std::endl;
-        }
-        if (intersection._hitDistance != FLT_MAX) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss"
-                << std::endl;
-        }
+        QCOMPARE(capsule.findRayIntersection(intersection), false);
+        QCOMPARE(intersection._hitDistance, FLT_MAX);
 
         // past edge of capsule cylindrical face
         intersection._rayStart.y = 0.0f;
         intersection._rayStart.z = radius + delta;
         intersection._hitDistance = FLT_MAX;
-        if (capsule.findRayIntersection(intersection)) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should miss capsule" << std::endl;
-        }
-        if (intersection._hitDistance != FLT_MAX) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss"
-                << std::endl;
-        }
-        if (intersection._hitShape != NULL) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray intersection._hitShape should be NULL" << std::endl;
-        }
+        QCOMPARE(capsule.findRayIntersection(intersection), false);
+        QCOMPARE(intersection._hitDistance, FLT_MAX);
+        QCOMPARE(intersection._hitShape, (Shape*)nullptr);
     }
     // TODO: test at steep angles near edge
 }
@@ -2150,20 +1635,11 @@ void ShapeColliderTests::rayHitsPlane() {
         intersection._rayStart = -startDistance * xAxis;
         intersection._rayDirection = glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f));
 
-        if (!plane.findRayIntersection(intersection)) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should hit plane" << std::endl;
-        }
-
+        QCOMPARE(plane.findRayIntersection(intersection), true);
         float expectedDistance = SQUARE_ROOT_OF_3 * planeDistanceFromOrigin;
-        float relativeError = fabsf(intersection._hitDistance - expectedDistance) / planeDistanceFromOrigin;
-        if (relativeError > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray plane intersection distance error = "
-                << relativeError << std::endl;
-        }
-        if (intersection._hitShape != &plane) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray intersection._hitShape should point at plane"
-                << std::endl;
-        }
+        
+        QCOMPARE_WITH_ABS_ERROR(intersection._hitDistance, expectedDistance, planeDistanceFromOrigin * EPSILON);
+        QCOMPARE(intersection._hitShape, &plane);
     }
 
     { // rotate the whole system and try again
@@ -2177,16 +1653,10 @@ void ShapeColliderTests::rayHitsPlane() {
         intersection._rayStart = rotation * (-startDistance * xAxis);
         intersection._rayDirection = rotation * glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f));
 
-        if (!plane.findRayIntersection(intersection)) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should hit plane" << std::endl;
-        }
+        QCOMPARE(plane.findRayIntersection(intersection), true);
 
         float expectedDistance = SQUARE_ROOT_OF_3 * planeDistanceFromOrigin;
-        float relativeError = fabsf(intersection._hitDistance - expectedDistance) / planeDistanceFromOrigin;
-        if (relativeError > EPSILON) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray plane intersection distance error = "
-                << relativeError << std::endl;
-        }
+        QCOMPARE_WITH_ABS_ERROR(intersection._hitDistance, expectedDistance, planeDistanceFromOrigin * EPSILON);
     }
 }
 
@@ -2203,14 +1673,9 @@ void ShapeColliderTests::rayMissesPlane() {
         intersection._rayStart = glm::vec3(-startDistance, 0.0f, 0.0f);
         intersection._rayDirection = glm::normalize(glm::vec3(-1.0f, 0.0f, -1.0f));
 
-        if (plane.findRayIntersection(intersection)) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should miss plane" << std::endl;
-        }
-        if (intersection._hitDistance != FLT_MAX) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss"
-                << std::endl;
-        }
-
+        QCOMPARE(plane.findRayIntersection(intersection), false);
+        QCOMPARE(intersection._hitDistance, FLT_MAX);
+        
         // rotate the whole system and try again
         float angle = 37.8f;
         glm::vec3 axis = glm::normalize( glm::vec3(-7.0f, 2.8f, 9.3f) );
@@ -2223,16 +1688,9 @@ void ShapeColliderTests::rayMissesPlane() {
         intersection._rayDirection = rotation * intersection._rayDirection;
         intersection._hitDistance = FLT_MAX;
 
-        if (plane.findRayIntersection(intersection)) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should miss plane" << std::endl;
-        }
-        if (intersection._hitDistance != FLT_MAX) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss"
-                << std::endl;
-        }
-        if (intersection._hitShape != NULL) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray intersection._hitShape should be NULL" << std::endl;
-        }
+        QCOMPARE(plane.findRayIntersection(intersection), false);
+        QCOMPARE(intersection._hitDistance, FLT_MAX);
+        QCOMPARE(intersection._hitShape, (Shape*)nullptr);
     }
 
     { // make a simple ray that points away from plane
@@ -2243,13 +1701,8 @@ void ShapeColliderTests::rayMissesPlane() {
         intersection._rayDirection = glm::normalize(glm::vec3(-1.0f, -1.0f, -1.0f));
         intersection._hitDistance = FLT_MAX;
 
-        if (plane.findRayIntersection(intersection)) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should miss plane" << std::endl;
-        }
-        if (intersection._hitDistance != FLT_MAX) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss"
-                << std::endl;
-        }
+        QCOMPARE(plane.findRayIntersection(intersection), false);
+        QCOMPARE(intersection._hitDistance, FLT_MAX);
 
         // rotate the whole system and try again
         float angle = 37.8f;
@@ -2263,13 +1716,8 @@ void ShapeColliderTests::rayMissesPlane() {
         intersection._rayDirection = rotation * intersection._rayDirection;
         intersection._hitDistance = FLT_MAX;
 
-        if (plane.findRayIntersection(intersection)) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should miss plane" << std::endl;
-        }
-        if (intersection._hitDistance != FLT_MAX) {
-            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss"
-                << std::endl;
-        }
+        QCOMPARE(plane.findRayIntersection(intersection), false);
+        QCOMPARE(intersection._hitDistance, FLT_MAX);
     }
 }
 
@@ -2311,28 +1759,13 @@ void ShapeColliderTests::rayHitsAACube() {
                 intersection._rayLength = 1.0001f * glm::distance(rayStart, facePoint);
 
                 // cast the ray
-                bool hit = cube.findRayIntersection(intersection);
+//                bool hit = cube.findRayIntersection(intersection);
 
                 // validate
-                if (!hit) {
-                    std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should hit cube face" << std::endl;
-                    break;
-                }
-                if (glm::abs(1.0f - glm::dot(faceNormal, intersection._hitNormal)) > EPSILON) {
-                    std::cout << __FILE__ << ":" << __LINE__
-                        << " ERROR: ray should hit cube face with normal " << faceNormal
-                        << " but found different normal " << intersection._hitNormal << std::endl;
-                }
-                if (glm::distance(facePoint, intersection.getIntersectionPoint()) > EPSILON) {
-                    std::cout << __FILE__ << ":" << __LINE__
-                        << " ERROR: ray should hit cube face at " << facePoint
-                        << " but actually hit at " << intersection.getIntersectionPoint()
-                        << std::endl;
-                }
-                if (intersection._hitShape != &cube) {
-                    std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray intersection._hitShape should point at cube"
-                        << std::endl;
-                }
+                QCOMPARE(cube.findRayIntersection(intersection), true);
+                QCOMPARE_WITH_ABS_ERROR(glm::dot(faceNormal, intersection._hitNormal), 1.0f, EPSILON);
+                QCOMPARE_WITH_ABS_ERROR(facePoint, intersection.getIntersectionPoint(), EPSILON);
+                QCOMPARE(intersection._hitShape, &cube);
             }
         }
     }
@@ -2381,10 +1814,7 @@ void ShapeColliderTests::rayMissesAACube() {
                     intersection._rayLength = (1.0f - SOME_SMALL_NUMBER) * glm::distance(rayStart, facePoint);
 
                     // cast the ray
-                    if (cube.findRayIntersection(intersection)) {
-                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should NOT hit cube face "
-                            << faceNormal << std::endl;
-                    }
+                    QCOMPARE(cube.findRayIntersection(intersection), false);
                 }
             }
         }
@@ -2423,10 +1853,7 @@ void ShapeColliderTests::rayMissesAACube() {
                     intersection._rayDirection = glm::normalize(sidePoint - rayStart);
 
                     // cast the ray
-                    if (cube.findRayIntersection(intersection)) {
-                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should NOT hit cube face "
-                            << faceNormal << std::endl;
-                    }
+                    QCOMPARE(cube.findRayIntersection(intersection), false);
                 }
             }
         }
@@ -2466,10 +1893,7 @@ void ShapeColliderTests::rayMissesAACube() {
                     intersection._rayDirection = rayDirection;
 
                     // cast the ray
-                    if (cube.findRayIntersection(intersection)) {
-                        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should NOT hit cube face "
-                                  << faceNormal << std::endl;
-                    }
+                    QCOMPARE(cube.findRayIntersection(intersection), false);
                 }
             }
         }
@@ -2478,6 +1902,9 @@ void ShapeColliderTests::rayMissesAACube() {
 }
 
 void ShapeColliderTests::measureTimeOfCollisionDispatch() {
+    
+    // TODO: use QBENCHMARK for this
+    
     /* KEEP for future manual testing
     // create two non-colliding spheres
     float radiusA = 7.0f;
@@ -2507,36 +1934,3 @@ void ShapeColliderTests::measureTimeOfCollisionDispatch() {
     */
 }
 
-void ShapeColliderTests::runAllTests() {
-    ShapeCollider::initDispatchTable();
-
-    //measureTimeOfCollisionDispatch();
-
-    sphereMissesSphere();
-    sphereTouchesSphere();
-
-    sphereMissesCapsule();
-    sphereTouchesCapsule();
-
-    capsuleMissesCapsule();
-    capsuleTouchesCapsule();
-
-    sphereMissesAACube();
-    sphereTouchesAACubeFaces();
-    sphereTouchesAACubeEdges();
-    sphereTouchesAACubeCorners();
-
-    capsuleMissesAACube();
-    capsuleTouchesAACube();
-
-    rayHitsSphere();
-    rayBarelyHitsSphere();
-    rayBarelyMissesSphere();
-    rayHitsCapsule();
-    rayMissesCapsule();
-    rayHitsPlane();
-    rayMissesPlane();
-
-    rayHitsAACube();
-    rayMissesAACube();
-}

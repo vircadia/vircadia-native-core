@@ -36,6 +36,9 @@ ExternalProject_Add(
   LOG_BUILD 1
 )
 
+# Hide this external target (for ide users)
+set_target_properties(${EXTERNAL_NAME} PROPERTIES FOLDER "hidden/externals")
+
 ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
 
 if (CMAKE_GENERATOR STREQUAL Xcode)

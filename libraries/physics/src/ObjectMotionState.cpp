@@ -114,7 +114,7 @@ void ObjectMotionState::setRigidBody(btRigidBody* body) {
     }
 }
 
-void ObjectMotionState::handleEasyChanges(uint32_t flags) {
+void ObjectMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine) {
     if (flags & EntityItem::DIRTY_POSITION) {
         btTransform worldTrans;
         if (flags & EntityItem::DIRTY_ROTATION) {
@@ -159,7 +159,7 @@ void ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* 
             if ((flags & HARD_DIRTY_PHYSICS_FLAGS) == 0) {
                 // no HARD flags remain, so do any EASY changes
                 if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-                    handleEasyChanges(flags);
+                    handleEasyChanges(flags, engine);
                 }
                 return;
             }
@@ -174,7 +174,7 @@ void ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* 
         }
     }
     if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-        handleEasyChanges(flags);
+        handleEasyChanges(flags, engine);
     }
     // it is possible that there are no HARD flags at this point (if DIRTY_SHAPE was removed)
     // so we check again befoe we reinsert:

@@ -160,6 +160,10 @@ void GLBackend::do_setUniformBuffer(Batch& batch, uint32 paramOffset) {
     GLuint bo = getBufferID(*uniformBuffer);
     glBindBufferRange(GL_UNIFORM_BUFFER, slot, bo, rangeStart, rangeSize);
 #else
+    // because we rely on the program uniform mechanism we need to have
+    // the program bound, thank you MacOSX Legacy profile.
+    updatePipeline();
+    
     GLfloat* data = (GLfloat*) (uniformBuffer->getData() + rangeStart);
     glUniform4fv(slot, rangeSize / sizeof(GLfloat[4]), data);
  

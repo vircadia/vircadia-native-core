@@ -209,6 +209,7 @@ namespace MenuOption {
     const QString LodTools = "LOD Tools";
     const QString Login = "Login";
     const QString Log = "Log";
+    const QString LogExtraTimings = "Log Extra Timing Details";
     const QString LowVelocityFilter = "Low Velocity Filter";
     const QString Mirror = "Mirror";
     const QString MuteAudio = "Mute Microphone";
