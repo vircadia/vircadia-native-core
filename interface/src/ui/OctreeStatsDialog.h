@@ -76,6 +76,8 @@ private:
     quint64 _lastWindowAt = 0;
     quint64 _lastKnownTrackedEdits = 0;
 
+    quint64 _lastRefresh = 0;
+
     int _octreeServerLables[MAX_VOXEL_SERVERS];
     int _octreeServerLabelsCount;
     details _extraServerDetails[MAX_VOXEL_SERVERS];

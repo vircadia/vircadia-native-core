@@ -129,6 +129,34 @@ OctreeStatsDialog::~OctreeStatsDialog() {
 
 void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
 
+    // Processed Entities Related stats
+    auto entities = Application::getInstance()->getEntities();
+    auto entitiesTree = entities->getTree();
+
+    // Do this ever paint event... even if we don't update
+    auto totalTrackedEdits = entitiesTree->getTotalTrackedEdits();
+    
+    // track our updated per second
+    const quint64 SAMPLING_WINDOW = USECS_PER_SECOND / SAMPLES_PER_SECOND;
+    quint64 now = usecTimestampNow();
+    quint64 sinceLastWindow = now - _lastWindowAt;
+    auto editsInLastWindow = totalTrackedEdits - _lastKnownTrackedEdits;
+    float sinceLastWindowInSeconds = (float)sinceLastWindow / (float)USECS_PER_SECOND;
+    float recentUpdatesPerSecond = (float)editsInLastWindow / sinceLastWindowInSeconds;
+    if (sinceLastWindow > SAMPLING_WINDOW) {
+        _averageUpdatesPerSecond.updateAverage(recentUpdatesPerSecond);
+        _lastWindowAt = now;
+        _lastKnownTrackedEdits = totalTrackedEdits;
+    }
+
+    // Only refresh our stats every once in a while, unless asked for realtime
+    quint64 REFRESH_AFTER = Menu::getInstance()->isOptionChecked(MenuOption::ShowRealtimeEntityStats) ? 0 : USECS_PER_SECOND;
+    quint64 sinceLastRefresh = now - _lastRefresh;
+    if (sinceLastRefresh < REFRESH_AFTER) {
+        return QDialog::paintEvent(event);
+    }
+    _lastRefresh = now;
+
     // Update labels
 
     QLabel* label;
@@ -213,10 +241,6 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
         "Leaves: " << qPrintable(serversLeavesString) << "";
     label->setText(statsValue.str().c_str());
 
-    // Processed Entities Related stats
-    auto entities = Application::getInstance()->getEntities();
-    auto entitiesTree = entities->getTree();
-
     // Processed Packets Elements
     auto averageElementsPerPacket = entities->getAverageElementsPerPacket();
     auto averageEntitiesPerPacket = entities->getAverageEntitiesPerPacket();
@@ -289,22 +313,8 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
 
     // Entity Edits
     label = _labels[_entityUpdates];
-    auto totalTrackedEdits = entitiesTree->getTotalTrackedEdits();
     auto bytesPerEdit = entitiesTree->getAverageEditBytes();
     
-    // track our updated per second
-    const quint64 SAMPLING_WINDOW = USECS_PER_SECOND / SAMPLES_PER_SECOND;
-    quint64 now = usecTimestampNow();
-    quint64 sinceLastWindow = now - _lastWindowAt;
-    auto editsInLastWindow = totalTrackedEdits - _lastKnownTrackedEdits;
-    float sinceLastWindowInSeconds = (float)sinceLastWindow / (float)USECS_PER_SECOND;
-    float recentUpdatesPerSecond = (float)editsInLastWindow / sinceLastWindowInSeconds;
-    if (sinceLastWindow > SAMPLING_WINDOW) {
-        _averageUpdatesPerSecond.updateAverage(recentUpdatesPerSecond);
-        _lastWindowAt = now;
-        _lastKnownTrackedEdits = totalTrackedEdits;
-    }
-
     auto updatesPerSecond = _averageUpdatesPerSecond.getAverage();
     if (updatesPerSecond < 1) {
         updatesPerSecond = 0; // we don't really care about small updates per second so suppress those
@@ -324,7 +334,7 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
 
     showAllOctreeServers();
 
-    this->QDialog::paintEvent(event);
+    QDialog::paintEvent(event);
 }
 void OctreeStatsDialog::showAllOctreeServers() {
     int serverCount = 0;
