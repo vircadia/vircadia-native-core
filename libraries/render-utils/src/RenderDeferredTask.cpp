@@ -147,7 +147,6 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
 void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
-    auto& renderDetails = renderContext->args->_details;
 
     RenderArgs* args = renderContext->args;
     gpu::Batch batch;
