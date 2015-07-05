@@ -13,6 +13,7 @@
 
 #include "Text3DOverlay.h"
 
+#include <DeferredLightingEffect.h>
 #include <RenderDeferredTask.h>
 #include <TextRenderer3D.h>
 
@@ -110,10 +111,9 @@ void Text3DOverlay::render(RenderArgs* args) {
     glm::vec2 dimensions = getDimensions();
     glm::vec2 halfDimensions = dimensions * 0.5f;
     
-    const float SLIGHTLY_BEHIND = -0.005f;
-    
-    glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, SLIGHTLY_BEHIND);
-    glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
+    glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, 0.0f);
+    glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, 0.0f);
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, false, true, false, true);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, quadColor);
     
     // Same font properties as textSize()
