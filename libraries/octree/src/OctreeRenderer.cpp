@@ -12,9 +12,11 @@
 #include <glm/glm.hpp>
 #include <stdint.h>
 
-#include <SharedUtil.h>
+#include <NumericalConstants.h>
 #include <PerfStat.h>
 #include <RenderArgs.h>
+#include <SharedUtil.h>
+
 #include "OctreeLogging.h"
 #include "OctreeRenderer.h"
 
@@ -185,7 +187,6 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
         }
         quint64 sinceLastWindow = now - _lastWindowAt;
         
-        const quint64 USECS_PER_SECOND = 1000 * 1000;
         if (sinceLastWindow > USECS_PER_SECOND) {
             float packetsPerSecondInWindow = (float)_packetsInLastWindow / (float)(sinceLastWindow / USECS_PER_SECOND);
             float elementsPerSecondInWindow = (float)_elementsInLastWindow / (float)(sinceLastWindow / USECS_PER_SECOND);
