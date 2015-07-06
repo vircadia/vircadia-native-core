@@ -24,8 +24,8 @@ public:
     virtual bool isSequential() const  { return false; }
 
 protected:
-    virtual qint64 writeData(const char* data, qint64 maxSize) { return append(data, maxSize) };
-    virtual qint64 readData(const char* data, qint64 maxSize) { return readNext(data, maxSize) };
+    virtual qint64 writeData(const char* data, qint64 maxSize);
+    virtual qint64 readData(const char* data, qint64 maxSize);
 
 private:
     char* _data;
