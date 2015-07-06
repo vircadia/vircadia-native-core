@@ -11,9 +11,9 @@
 
 #include "PacketPayload.h"
 
-PacketPayload::PacketPayload(char* data, qint64 size) :
+PacketPayload::PacketPayload(char* data, qint64 capacity) :
     _data(data)
-    _size(size)
+    _capacity(capacity)
 {
 
 }
@@ -25,7 +25,7 @@ qint64 PacketPayload::writeData(const char* data, qint64 maxSize) {
     qint64 currentPos = pos();
 
     // make sure we have the space required to write this block
-    qint64 bytesAvailable = _size - currentPos;
+    qint64 bytesAvailable = _capacity - currentPos;
 
     if (bytesAvailable < srcBytes) {
         // good to go - write the data
@@ -35,7 +35,7 @@ qint64 PacketPayload::writeData(const char* data, qint64 maxSize) {
         seek(currentPos + srcBytes);
 
         // keep track of _maxWritten so we can just write the actual data when packet is about to be sent
-        _maxWritten = std::max(pos() + 1, _maxWritten);
+        _size = std::max(pos() + 1, _maxWritten);
 
         // return the number of bytes written
         return srcBytes;

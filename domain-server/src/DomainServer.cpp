@@ -927,15 +927,22 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
                                         const NodeSet& nodeInterestSet) {
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
-    auto listPacket = NodeListPacket::make(PacketType::DomainList);
+    PacketList domainListPackets(PacketType::DomainList);
 
     // always send the node their own UUID back
-    QDataStream broadcastDataStream(&listPacket.payload(), QIODevice::Append);
-    broadcastDataStream << node->getUUID();
-    broadcastDataStream << node->getCanAdjustLocks();
-    broadcastDataStream << node->getCanRez();
+    QDataStream domainListStream(&domainListPackets);
 
-    int numBroadcastPacketLeadBytes = broadcastDataStream.device()->pos();
+    const int NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES = NUM_BYTES_RFC4122_UUID + 2;
+
+    // setup the extended header for the domain list packets
+    // this data is at the beginning of each of the domain list packets
+    QByteArray extendedHeader(NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES, 0);
+    extendedHeader.replace(0, NUM_BYTES_RFC4122_UUID, node->getUUID().toRfc4122());
+
+    extendedHeader[NUM_BYTES_RFC4122_UUID] = (char) node->getCanAdjustLocks();
+    extendedHeader[NUM_BYTES_RFC4122_UUID + 1] = (char) node->getCanRez();
+
+    domainListPackets.setExtendedHeader(extendedHeader);
 
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
 
@@ -944,44 +951,29 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
 
     if (nodeInterestSet.size() > 0) {
 
-//        DTLSServerSession* dtlsSession = _isUsingDTLS ? _dtlsSessions[senderSockAddr] : NULL;
-        int dataMTU = MAX_PACKET_SIZE;
-
+        // DTLSServerSession* dtlsSession = _isUsingDTLS ? _dtlsSessions[senderSockAddr] : NULL;
         if (nodeData->isAuthenticated()) {
             // if this authenticated node has any interest types, send back those nodes as well
             limitedNodeList->eachNode([&](const SharedNodePointer& otherNode){
-                // reset our nodeByteArray and nodeDataStream
-                QByteArray nodeByteArray;
-                QDataStream nodeDataStream(&nodeByteArray, QIODevice::Append);
-
                 if (otherNode->getUUID() != node->getUUID() && nodeInterestSet.contains(otherNode->getType())) {
+                    // since we're about to add a node to the packet we start a segment
+                    domainListStream.startSegment();
 
                     // don't send avatar nodes to other avatars, that will come from avatar mixer
-                    nodeDataStream << *otherNode.data();
+                    domainListStream << *otherNode.data();
 
                     // pack the secret that these two nodes will use to communicate with each other
-                    nodeDataStream << connectionSecretForNodes(node, otherNode);
+                    domainListStream << connectionSecretForNodes(node, otherNode);
 
-                    if (broadcastPacket.size() +  nodeByteArray.size() > dataMTU) {
-                        // we need to break here and start a new packet
-                        // so send the current one
-
-                        limitedNodeList->writeUnverifiedDatagram(broadcastPacket, node, senderSockAddr);
-
-                        // reset the broadcastPacket structure
-                        broadcastPacket.resize(numBroadcastPacketLeadBytes);
-                        broadcastDataStream.device()->seek(numBroadcastPacketLeadBytes);
-                    }
-
-                    // append the nodeByteArray to the current state of broadcastDataStream
-                    broadcastPacket.append(nodeByteArray);
+                    // we've added the node we wanted so end the segment now
+                    domainListStream.endSegment();
                 }
             });
         }
     }
 
-    // always write the last broadcastPacket
-    limitedNodeList->writeUnverifiedDatagram(broadcastPacket, node);
+    // write the PacketList to this node
+    limitedNodeList->sendPacketList(domainListPackets, node);
 }
 
 QUuid DomainServer::connectionSecretForNodes(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB) {
