@@ -33,4 +33,4 @@ private:
     qint64 _maxWritten = 0;
 };
 
-#endif // hifi_PacketByteArray_h
+#endif // hifi_PacketPayload_h
