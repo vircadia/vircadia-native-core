@@ -36,6 +36,7 @@
 
 #include "DomainHandler.h"
 #include "Node.h"
+#include "Packet.h"
 #include "PacketHeaders.h"
 #include "UUIDHasher.h"
 
