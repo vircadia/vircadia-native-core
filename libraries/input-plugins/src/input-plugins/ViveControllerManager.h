@@ -24,11 +24,19 @@ class ViveControllerManager : public QObject {
     
 public:
     enum JoystickAxisChannel {
-        AXIS_Y_POS = 1U << 0,
-        AXIS_Y_NEG = 1U << 3,
-        AXIS_X_POS = 1U << 4,
-        AXIS_X_NEG = 1U << 5,
-        BACK_TRIGGER = 1U << 6,
+        AXIS_Y_POS = 1U << 1,
+        AXIS_Y_NEG = 1U << 2,
+        AXIS_X_POS = 1U << 3,
+        AXIS_X_NEG = 1U << 4,
+        BACK_TRIGGER = 1U << 5,
+    };
+
+    enum Axis {
+        TRACKPAD_AXIS = 0,
+        TRIGGER_AXIS,
+        AXIS_2,
+        AXIS_3,
+        AXIS_4,
     };
     
     enum JointChannel {
@@ -63,8 +71,8 @@ private:
     ViveControllerManager();
     ~ViveControllerManager();
     
-    void handleButtonEvent(unsigned int buttons, int index);
-    void handleAxisEvent(float x, float y, float trigger, int index);
+    void handleButtonEvent(uint64_t buttons, int index);
+    void handleAxisEvent(Axis axis, float x, float y, int index);
     void handlePoseEvent(const mat4& mat, int index);
     
     bool _isInitialized;
