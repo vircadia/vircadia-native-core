@@ -25,17 +25,12 @@
 
 
 // Used to animate the magnification windows
-static const float MAG_SPEED = 0.08f;
 
 static const quint64 MSECS_TO_USECS = 1000ULL;
 static const quint64 TOOLTIP_DELAY = 500 * MSECS_TO_USECS;
 
-static const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
 static const float RETICLE_COLOR[] = { 0.0f, 198.0f / 255.0f, 244.0f / 255.0f };
 static const float reticleSize = TWO_PI / 100.0f;
-
-static const float CONNECTION_STATUS_BORDER_COLOR[] = { 1.0f, 0.0f, 0.0f };
-static const float CONNECTION_STATUS_BORDER_LINE_WIDTH = 4.0f;
 
 static const float CURSOR_PIXEL_SIZE = 32.0f;
 static const float MOUSE_PITCH_RANGE = 1.0f * PI;

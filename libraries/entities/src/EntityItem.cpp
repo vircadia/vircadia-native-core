@@ -30,9 +30,6 @@
 #include "EntityActionFactoryInterface.h"
 
 
-const quint64 DEFAULT_SIMULATOR_CHANGE_LOCKOUT_PERIOD = (quint64)(0.2f * USECS_PER_SECOND);
-const quint64 MAX_SIMULATOR_CHANGE_LOCKOUT_PERIOD = 2 * USECS_PER_SECOND;
-
 bool EntityItem::_sendPhysicsUpdates = true;
 int EntityItem::_maxActionsDataSize = 800;
 
@@ -346,6 +343,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         return 0;
     }
 
+    args.entitiesPerPacket++;
+
     // Header bytes
     //    object ID [16 bytes]
     //    ByteCountCoded(type code) [~1 byte]
@@ -426,6 +425,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     dataAt += sizeof(lastEditedFromBuffer);
     bytesRead += sizeof(lastEditedFromBuffer);
     lastEditedFromBufferAdjusted = lastEditedFromBuffer - clockSkew;
+
     if (lastEditedFromBufferAdjusted > now) {
         lastEditedFromBufferAdjusted = now;
     }
@@ -498,6 +498,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             qCDebug(entities) << "           lastEditedFromBufferAdjusted:" << debugTime(lastEditedFromBufferAdjusted, now);
         #endif
     }
+
     encodedUpdateDelta = updateDeltaCoder; // determine true length
     dataAt += encodedUpdateDelta.size();
     bytesRead += encodedUpdateDelta.size();
@@ -675,6 +676,14 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             _lastSimulated = now;
         }
     }
+
+    // Tracking for editing roundtrips here. We will tell our EntityTree that we just got incoming data about
+    // and entity that was edited at some time in the past. The tree will determine how it wants to track this
+    // information.
+    if (_element && _element->getTree()) {
+        _element->getTree()->trackIncomingEntityLastEdited(lastEditedFromBufferAdjusted, bytesRead);
+    }
+
 
     return bytesRead;
 }

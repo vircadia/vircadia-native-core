@@ -25,7 +25,9 @@
 
 OctreeStatsDialog::OctreeStatsDialog(QWidget* parent, NodeToOctreeSceneStats* model) :
     QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint),
-    _model(model) {
+    _model(model),
+     _averageUpdatesPerSecond(SAMPLES_PER_SECOND)
+{
     
     _statCount = 0;
     _octreeServerLabelsCount = 0;
@@ -50,6 +52,14 @@ OctreeStatsDialog::OctreeStatsDialog(QWidget* parent, NodeToOctreeSceneStats* mo
     _localElements = AddStatItem("Local Elements");
     _localElementsMemory = AddStatItem("Elements Memory");
     _sendingMode = AddStatItem("Sending Mode");
+
+    _processedPackets = AddStatItem("Processed Packets");
+    _processedPacketsElements = AddStatItem("Processed Packets Elements");
+    _processedPacketsEntities = AddStatItem("Processed Packets Entities");
+    _processedPacketsTiming = AddStatItem("Processed Packets Timing");
+
+    _entityUpdateTime = AddStatItem("Entity Update Time");
+    _entityUpdates = AddStatItem("Entity Updates");
     
     layout()->setSizeConstraint(QLayout::SetFixedSize); 
 }
@@ -118,6 +128,34 @@ OctreeStatsDialog::~OctreeStatsDialog() {
 }
 
 void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
+
+    // Processed Entities Related stats
+    auto entities = Application::getInstance()->getEntities();
+    auto entitiesTree = entities->getTree();
+
+    // Do this ever paint event... even if we don't update
+    auto totalTrackedEdits = entitiesTree->getTotalTrackedEdits();
+    
+    // track our updated per second
+    const quint64 SAMPLING_WINDOW = USECS_PER_SECOND / SAMPLES_PER_SECOND;
+    quint64 now = usecTimestampNow();
+    quint64 sinceLastWindow = now - _lastWindowAt;
+    auto editsInLastWindow = totalTrackedEdits - _lastKnownTrackedEdits;
+    float sinceLastWindowInSeconds = (float)sinceLastWindow / (float)USECS_PER_SECOND;
+    float recentUpdatesPerSecond = (float)editsInLastWindow / sinceLastWindowInSeconds;
+    if (sinceLastWindow > SAMPLING_WINDOW) {
+        _averageUpdatesPerSecond.updateAverage(recentUpdatesPerSecond);
+        _lastWindowAt = now;
+        _lastKnownTrackedEdits = totalTrackedEdits;
+    }
+
+    // Only refresh our stats every once in a while, unless asked for realtime
+    quint64 REFRESH_AFTER = Menu::getInstance()->isOptionChecked(MenuOption::ShowRealtimeEntityStats) ? 0 : USECS_PER_SECOND;
+    quint64 sinceLastRefresh = now - _lastRefresh;
+    if (sinceLastRefresh < REFRESH_AFTER) {
+        return QDialog::paintEvent(event);
+    }
+    _lastRefresh = now;
 
     // Update labels
 
@@ -203,9 +241,100 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
         "Leaves: " << qPrintable(serversLeavesString) << "";
     label->setText(statsValue.str().c_str());
 
+    // Processed Packets Elements
+    auto averageElementsPerPacket = entities->getAverageElementsPerPacket();
+    auto averageEntitiesPerPacket = entities->getAverageEntitiesPerPacket();
+
+    auto averagePacketsPerSecond = entities->getAveragePacketsPerSecond();
+    auto averageElementsPerSecond = entities->getAverageElementsPerSecond();
+    auto averageEntitiesPerSecond = entities->getAverageEntitiesPerSecond();
+
+    auto averageWaitLockPerPacket = entities->getAverageWaitLockPerPacket();
+    auto averageUncompressPerPacket = entities->getAverageUncompressPerPacket();
+    auto averageReadBitstreamPerPacket = entities->getAverageReadBitstreamPerPacket();
+
+    QString averageElementsPerPacketString = locale.toString(averageElementsPerPacket);
+    QString averageEntitiesPerPacketString = locale.toString(averageEntitiesPerPacket);
+
+    QString averagePacketsPerSecondString = locale.toString(averagePacketsPerSecond);
+    QString averageElementsPerSecondString = locale.toString(averageElementsPerSecond);
+    QString averageEntitiesPerSecondString = locale.toString(averageEntitiesPerSecond);
+
+    QString averageWaitLockPerPacketString = locale.toString(averageWaitLockPerPacket);
+    QString averageUncompressPerPacketString = locale.toString(averageUncompressPerPacket);
+    QString averageReadBitstreamPerPacketString = locale.toString(averageReadBitstreamPerPacket);
+
+    label = _labels[_processedPackets];
+    statsValue.str("");
+    statsValue << 
+        "" << qPrintable(averagePacketsPerSecondString) << " per second";
+        
+    label->setText(statsValue.str().c_str());
+
+    label = _labels[_processedPacketsElements];
+    statsValue.str("");
+    statsValue << 
+        "" << qPrintable(averageElementsPerPacketString) << " per packet / " <<
+        "" << qPrintable(averageElementsPerSecondString) << " per second";
+        
+    label->setText(statsValue.str().c_str());
+
+    label = _labels[_processedPacketsEntities];
+    statsValue.str("");
+    statsValue << 
+        "" << qPrintable(averageEntitiesPerPacketString) << " per packet / " <<
+        "" << qPrintable(averageEntitiesPerSecondString) << " per second";
+        
+    label->setText(statsValue.str().c_str());
+
+    label = _labels[_processedPacketsTiming];
+    statsValue.str("");
+    statsValue << 
+        "Lock Wait:" << qPrintable(averageWaitLockPerPacketString) << " (usecs) / " <<
+        "Uncompress:" << qPrintable(averageUncompressPerPacketString) << " (usecs) / " <<
+        "Process:" << qPrintable(averageReadBitstreamPerPacketString) << " (usecs)";
+        
+    label->setText(statsValue.str().c_str());
+
+    // Entity Edits update time
+    label = _labels[_entityUpdateTime];
+    auto averageEditDelta = entitiesTree->getAverageEditDeltas();
+    auto maxEditDelta = entitiesTree->getMaxEditDelta();
+
+    QString averageEditDeltaString = locale.toString((uint)averageEditDelta);
+    QString maxEditDeltaString = locale.toString((uint)maxEditDelta);
+
+    statsValue.str("");
+    statsValue << 
+        "Average: " << qPrintable(averageEditDeltaString) << " (usecs) / " <<
+        "Max: " << qPrintable(maxEditDeltaString) << " (usecs)";
+        
+    label->setText(statsValue.str().c_str());
+
+    // Entity Edits
+    label = _labels[_entityUpdates];
+    auto bytesPerEdit = entitiesTree->getAverageEditBytes();
+    
+    auto updatesPerSecond = _averageUpdatesPerSecond.getAverage();
+    if (updatesPerSecond < 1) {
+        updatesPerSecond = 0; // we don't really care about small updates per second so suppress those
+    }
+
+    QString totalTrackedEditsString = locale.toString((uint)totalTrackedEdits);
+    QString updatesPerSecondString = locale.toString(updatesPerSecond);
+    QString bytesPerEditString = locale.toString(bytesPerEdit);
+
+    statsValue.str("");
+    statsValue << 
+        "" << qPrintable(updatesPerSecondString) << " updates per second / " <<
+        "" << qPrintable(totalTrackedEditsString) << " total updates / " <<
+        "Average Size: " << qPrintable(bytesPerEditString) << " bytes ";
+        
+    label->setText(statsValue.str().c_str());
+
     showAllOctreeServers();
 
-    this->QDialog::paintEvent(event);
+    QDialog::paintEvent(event);
 }
 void OctreeStatsDialog::showAllOctreeServers() {
     int serverCount = 0;

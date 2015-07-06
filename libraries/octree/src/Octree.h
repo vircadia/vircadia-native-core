@@ -195,6 +195,8 @@ public:
     SharedNodePointer sourceNode;
     bool wantImportProgress;
     PacketVersion bitstreamVersion;
+    int elementsPerPacket = 0;
+    int entitiesPerPacket = 0;
 
     ReadBitstreamToTreeParams(
         bool includeColor = WANT_COLOR,
