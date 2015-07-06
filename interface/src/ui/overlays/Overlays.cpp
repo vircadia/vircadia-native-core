@@ -16,6 +16,7 @@
 
 #include <Application.h>
 #include <render/Scene.h>
+#include <gpu/GLBackend.h>
 
 #include "BillboardOverlay.h"
 #include "Circle3DOverlay.h"
@@ -96,6 +97,10 @@ void Overlays::cleanupOverlaysToDelete() {
 
 void Overlays::renderHUD(RenderArgs* renderArgs) {
     QReadLocker lock(&_lock);
+    gpu::Batch batch;
+    renderArgs->_batch = &batch;
+    
+
     foreach(Overlay::Pointer thisOverlay, _overlaysHUD) {
         if (thisOverlay->is3D()) {
             glEnable(GL_DEPTH_TEST);
@@ -109,6 +114,7 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
             thisOverlay->render(renderArgs);
         }
     }
+    gpu::GLBackend::renderBatch(batch, true);
 }
 
 unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& properties) {
