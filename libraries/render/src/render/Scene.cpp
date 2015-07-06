@@ -10,6 +10,8 @@
 //
 #include "Scene.h"
 
+#include <numeric>
+
 using namespace render;
 
 void ItemBucketMap::insert(const ItemID& id, const ItemKey& key) {
@@ -55,13 +57,46 @@ void ItemBucketMap::allocateStandardOpaqueTranparentBuckets() {
 
 const Item::Status::Value Item::Status::Value::INVALID = Item::Status::Value();
 
-void Item::Status::getCompressedValues(glm::ivec4& values) {
-    for (int i = 0; i < values.length(); i++) {
+const float Item::Status::Value::RED = 0.0f;
+const float Item::Status::Value::YELLOW = 60.0f;
+const float Item::Status::Value::GREEN = 120.0f;
+const float Item::Status::Value::CYAN = 180.0f;
+const float Item::Status::Value::BLUE = 240.0f;
+const float Item::Status::Value::MAGENTA = 300.0f;
+
+void Item::Status::Value::setScale(float scale) {
+    _scale = (std::numeric_limits<unsigned short>::max() -1) * 0.5f * (1.0f + std::max(std::min(scale, 1.0f), 0.0f));
+ }
+
+void Item::Status::Value::setColor(float hue) {
+    // Convert the HUe from range [0, 360] to signed normalized value
+    const float HUE_MAX = 360.0f;
+    _color = (std::numeric_limits<unsigned short>::max() - 1) * 0.5f * (1.0f + std::max(std::min(hue, HUE_MAX), 0.0f) / HUE_MAX);
+}
+
+void Item::Status::getPackedValues(glm::ivec4& values) const {
+    for (unsigned int i = 0; i < values.length(); i++) {
         if (i < _values.size()) {
-            values[i] = _values[i]().getRaw();
+            values[i] = _values[i]().getPackedData();
         } else {
-            values[i] = Value::INVALID.getRaw();
+            values[i] = Value::INVALID.getPackedData();
         }
+    }
+}
+
+void Item::PayloadInterface::addStatusGetter(const Status::Getter& getter) {
+    if (!_status) {
+        _status.reset(new Status());
+    }
+    _status->addGetter(getter);
+}
+
+void Item::PayloadInterface::addStatusGetters(const Status::Getters& getters) {
+    if (!_status) {
+        _status.reset(new Status());
+    }
+    for (auto& g : getters) {
+        _status->addGetter(g);
     }
 }
 
@@ -72,6 +107,15 @@ void Item::resetPayload(const PayloadPointer& payload) {
         _payload = payload;
         _key = _payload->getKey();
     }
+}
+
+glm::ivec4 Item::getStatusPackedValues() const {
+    glm::ivec4 values(Status::Value::INVALID.getPackedData());
+    auto& status = getStatus();
+    if (status) {
+        status->getPackedValues(values);
+    };
+    return values;
 }
 
 void PendingChanges::resetItem(ItemID id, const PayloadPointer& payload) {
