@@ -617,11 +617,16 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     QString reason;
     if (!isAssignment && !shouldAllowConnectionFromNode(username, usernameSignature, senderSockAddr, reason)) {
         // this is an agent and we've decided we won't let them connect - send them a packet to deny connection
-        QByteArray connectionDeniedByteArray = limitedNodeList->byteArrayWithPopulatedHeader(PacketTypeDomainConnectionDenied);
-        QDataStream out(&connectionDeniedByteArray, QIODevice::WriteOnly | QIODevice::Append);
-        out << reason;
+
+        QByteArray utfString = reason.toUtf8();
+        int payloadSize = utfString.size();
+
+        auto connectionDeniedPacket = NodeListPacket::make(PacketType::DomainConnectionDenied, payloadSize);
+
+        memcpy(connectionDeniedPacket.payload().data(), utfString.data(), utfString.size());
+
         // tell client it has been refused.
-        DependencyManager::get<LimitedNodeList>()->writeUnverifiedDatagram(connectionDeniedByteArray, senderSockAddr);
+        limitedNodeList->sendPacket(std::move(connectionDeniedPacket, senderSockAddr);
 
         return;
     }
@@ -921,10 +926,11 @@ int DomainServer::parseNodeDataFromByteArray(QDataStream& packetStream, NodeType
 void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr &senderSockAddr,
                                         const NodeSet& nodeInterestSet) {
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-    QByteArray broadcastPacket = limitedNodeList->byteArrayWithPopulatedHeader(PacketTypeDomainList);
+
+    auto listPacket = NodeListPacket::make(PacketType::DomainList);
 
     // always send the node their own UUID back
-    QDataStream broadcastDataStream(&broadcastPacket, QIODevice::Append);
+    QDataStream broadcastDataStream(&listPacket.payload(), QIODevice::Append);
     broadcastDataStream << node->getUUID();
     broadcastDataStream << node->getCanAdjustLocks();
     broadcastDataStream << node->getCanRez();
