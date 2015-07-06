@@ -16,12 +16,21 @@
 
 template <class T> class PacketList : public QIODevice {
 public:
-    PacketList(PacketType::Value type, bool isOrdered = false);
+    PacketList(PacketType::Value packetType, bool isOrdered = false);
+
+    virtual bool isSequential() const { return true; }
+
 protected:
-    virtual qint64 writeData(const char* data, qint64 maxSize);
-    virtual qint64 readData(const char* data, qint64 maxSize);
+    qint64 writeData(const char* data, qint64 maxSize);
+    qint64 readData(const char* data, qint64 maxSize) { return 0 };
 private:
+    PacketType::Value _packetType;
+    bool isOrdered;
+
+    std::unique_ptr<T> _currentPacket;
     std::list<std::unique_ptr<T>> _packets;
+
+    int _segmentStartIndex = -1;
 }
 
 #endif // hifi_PacketList_h
