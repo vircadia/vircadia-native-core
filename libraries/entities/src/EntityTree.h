@@ -65,8 +65,8 @@ public:
     virtual PacketType::Value expectedDataPacketType() const { return PacketTypeEntityData; }
     virtual bool canProcessVersion(PacketVersion thisVersion) const
                     { return thisVersion >= VERSION_ENTITIES_USE_METERS_AND_RADIANS; }
-    virtual bool handlesEditPacketType(PacketType packetType) const;
-    virtual int processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
+    virtual bool handlesEditPacketType (PacketType::Value packetType) const;
+    virtual int processEditPacketData (PacketType::Value packetType, const unsigned char* packetData, int packetLength,
                     const unsigned char* editData, int maxLength, const SharedNodePointer& senderNode);
 
     virtual bool rootElementHasData() const { return true; }

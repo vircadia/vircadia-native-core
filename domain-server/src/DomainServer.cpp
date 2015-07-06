@@ -1322,14 +1322,14 @@ void DomainServer::pingPunchForConnectingPeer(const SharedNetworkPeer& peer) {
 
         _icePeers.remove(peer->getUUID());
     } else {
-        auto nodeList = DependencyManager::get<LimitedNodeList>();
+        auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
         // send the ping packet to the local and public sockets for this node
-        QByteArray localPingPacket = nodeList->constructPingPacket(PingType::Local, false);
-        nodeList->writeUnverifiedDatagram(localPingPacket, peer->getLocalSocket());
+        auto localPingPacket = nodeList->constructICEPingPacket(PingType::Local, limitedNodeList->getSessionUUID());
+        limitedNodeList->sendPacket(localPingPacket, peer->getLocalSocket());
 
-        QByteArray publicPingPacket = nodeList->constructPingPacket(PingType::Public, false);
-        nodeList->writeUnverifiedDatagram(publicPingPacket, peer->getPublicSocket());
+        auto publicPingPacket = nodeList->constructICEPingPacket(PingType::Public, limitedNodeList->getSessionUUID());
+        limitedNodeList->sendPacket(publicPingPacket, peer->getPublicSocket());
 
         peer->incrementConnectionAttempts();
     }

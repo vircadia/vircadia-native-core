@@ -230,8 +230,8 @@ public:
     virtual bool canProcessVersion(PacketVersion thisVersion) const { 
                     return thisVersion == versionForPacketType(expectedDataPacketType()); }
     virtual PacketVersion expectedVersion() const { return versionForPacketType(expectedDataPacketType()); }
-    virtual bool handlesEditPacketType(PacketType packetType) const { return false; }
-    virtual int processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
+    virtual bool handlesEditPacketType (PacketType::Value packetType) const { return false; }
+    virtual int processEditPacketData (PacketType::Value packetType, const unsigned char* packetData, int packetLength,
                     const unsigned char* editData, int maxLength, const SharedNodePointer& sourceNode) { return 0; }
                     
     virtual bool recurseChildrenWithData() const { return true; }

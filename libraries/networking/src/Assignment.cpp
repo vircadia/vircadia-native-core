@@ -68,9 +68,9 @@ Assignment::Assignment(const QByteArray& packet) :
 {
     PacketType::Value packetType = packetTypeForPacket(packet);
     
-    if (packetType == PacketTypeRequestAssignment) {
+    if (packetType == PacketType::RequestAssignment) {
         _command = Assignment::RequestCommand;
-    } else if (packetType == PacketTypeCreateAssignment) {
+    } else if (packetType == PacketType::CreateAssignment) {
         _command = Assignment::CreateCommand;
     }
     

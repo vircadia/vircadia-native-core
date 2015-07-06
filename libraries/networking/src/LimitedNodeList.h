@@ -118,28 +118,28 @@ public:
 
     bool packetVersionAndHashMatch(const QByteArray& packet);
 
-    // QByteArray byteArrayWithPopulatedHeader(PacketType packetType)
+    // QByteArray byteArrayWithPopulatedHeader (PacketType::Value packetType)
     //     { return byteArrayWithUUIDPopulatedHeader(packetType, _sessionUUID); }
     // int populatePacketHeader(QByteArray& packet, PacketType::Value packetType)
     //     { return populatePacketHeaderWithUUID(packet, packetType, _sessionUUID); }
     // int populatePacketHeader(char* packet, PacketType::Value packetType)
     //     { return populatePacketHeaderWithUUID(packet, packetType, _sessionUUID); }
 
-    qint64 readDatagram(QByteArray& incomingPacket, QHostAddress* address, quint16 * port);
-
-    qint64 writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
-                         const HifiSockAddr& overridenSockAddr = HifiSockAddr());
-
-    qint64 writeUnverifiedDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
-                               const HifiSockAddr& overridenSockAddr = HifiSockAddr());
-
-    qint64 writeUnverifiedDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr);
-
-    qint64 writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
-                         const HifiSockAddr& overridenSockAddr = HifiSockAddr());
-
-    qint64 writeUnverifiedDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
-                         const HifiSockAddr& overridenSockAddr = HifiSockAddr());
+//    qint64 readDatagram(QByteArray& incomingPacket, QHostAddress* address, quint16 * port);
+//
+//    qint64 writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
+//                         const HifiSockAddr& overridenSockAddr = HifiSockAddr());
+//
+//    qint64 writeUnverifiedDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
+//                               const HifiSockAddr& overridenSockAddr = HifiSockAddr());
+//
+//    qint64 writeUnverifiedDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr);
+//
+//    qint64 writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
+//                         const HifiSockAddr& overridenSockAddr = HifiSockAddr());
+//
+//    qint64 writeUnverifiedDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
+//                         const HifiSockAddr& overridenSockAddr = HifiSockAddr());
 
     void (*linkedDataCreateCallback)(Node *);
 
@@ -170,9 +170,11 @@ public:
     void getPacketStats(float &packetsPerSecond, float &bytesPerSecond);
     void resetPacketStats();
 
-    QByteArray constructPingPacket(PingType_t pingType = PingType::Agnostic, bool isVerified = true,
-                                   const QUuid& packetHeaderID = QUuid());
-    QByteArray constructPingReplyPacket(const QByteArray& pingPacket, const QUuid& packetHeaderID = QUuid());
+    NodeListPacket&& constructPingPacket(PingType_t pingType = PingType::Agnostic);
+    NodeListPacket&& constructPingReplyPacket(const QByteArray& pingPacket);
+    
+    NodeListPacket&& constructICEPingPacket(PingType_t pingType, const QUuid& iceID);
+    NodeListPacket&& constructICEPingReplyPacket(const QByteArray& pingPacket, const QUuid& iceID);
 
     virtual bool processSTUNResponse(const QByteArray& packet);
 
@@ -274,7 +276,7 @@ protected:
 
     void stopInitialSTUNUpdate(bool success);
 
-    void sendPacketToIceServer(PacketType packetType, const HifiSockAddr& iceServerSockAddr, const QUuid& headerID,
+    void sendPacketToIceServer (PacketType::Value packetType, const HifiSockAddr& iceServerSockAddr, const QUuid& headerID,
                                const QUuid& peerRequestID = QUuid());
 
     QUuid _sessionUUID;

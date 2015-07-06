@@ -614,7 +614,7 @@ void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object
 //
 // TODO: Implement support for script and visible properties.
 //
-bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
+bool EntityItemProperties::encodeEntityEditPacket (PacketType::Value command, EntityItemID id, const EntityItemProperties& properties,
                                                   unsigned char* bufferOut, int sizeIn, int& sizeOut) {
     OctreePacketData ourDataPacket(false, sizeIn); // create a packetData object to add out packet details too.
     OctreePacketData* packetData = &ourDataPacket; // we want a pointer to this so we can use our APPEND_ENTITY_PROPERTY macro

@@ -175,36 +175,36 @@ void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& 
 void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
     PacketType::Value packetType = packetTypeForPacket(packet);
     switch (packetType) {
-        case PacketTypeDomainList:
-        case PacketTypeDomainServerAddedNode: {
+        case PacketType::DomainList:
+        case PacketType::DomainServerAddedNode: {
             if (!_domainHandler.getSockAddr().isNull()) {
                 // only process a packet from domain-server if we're talking to a domain
                 // TODO: how do we make sure this is actually the domain we want the list from (DTLS probably)
-                if (packetType == PacketTypeDomainList) {
+                if (packetType == PacketType::DomainList) {
                     processDomainServerList(packet);
-                } else if (packetType == PacketTypeDomainServerAddedNode) {
+                } else if (packetType == PacketType::DomainServerAddedNode) {
                     processDomainServerAddedNode(packet);
                 }
             }
             break;
         }
-        case PacketTypeDomainServerRequireDTLS: {
+        case PacketType::DomainServerRequireDTLS: {
             _domainHandler.parseDTLSRequirementPacket(packet);
             break;
         }
-        case PacketTypeIceServerPeerInformation: {
+        case PacketType::IceServerPeerInformation: {
             if (!_domainHandler.getICEPeer().hasSockets()) {
                 _domainHandler.processICEResponsePacket(packet);
             }
             break;
         }
-        case PacketTypePing: {
+        case PacketType::Ping: {
             // send back a reply
             SharedNodePointer matchingNode = sendingNodeForPacket(packet);
             if (matchingNode) {
                 matchingNode->setLastHeardMicrostamp(usecTimestampNow());
-                QByteArray replyPacket = constructPingReplyPacket(packet);
-                writeDatagram(replyPacket, matchingNode, senderSockAddr);
+                auto replyPacket = constructPingReplyPacket(packet);
+                sendPacket(replyPacket, matchingNode, senderSockAddr);
 
                 // If we don't have a symmetric socket for this node and this socket doesn't match
                 // what we have for public and local then set it as the symmetric.
@@ -218,7 +218,7 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
 
             break;
         }
-        case PacketTypePingReply: {
+        case PacketType::PingReply: {
             SharedNodePointer sendingNode = sendingNodeForPacket(packet);
 
             if (sendingNode) {
@@ -233,13 +233,13 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
 
             break;
         }
-        case PacketTypeUnverifiedPing: {
+        case PacketType::ICEPing: {
             // send back a reply
-            QByteArray replyPacket = constructPingReplyPacket(packet, _domainHandler.getICEClientID());
-            writeUnverifiedDatagram(replyPacket, senderSockAddr);
+            auto replyPacket = constructICEPingReplyPacket(packet, _domainHandler.getICEClientID());
+            sendPacket(replyPacket, senderSockAddr);
             break;
         }
-        case PacketTypeUnverifiedPingReply: {
+        case PacketType::ICEPingReply: {
             qCDebug(networking) << "Received reply from domain-server on" << senderSockAddr;
 
             if (_domainHandler.getIP().isNull()) {
@@ -256,13 +256,13 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
 
             }
         }
-        case PacketTypeStunResponse: {
+        case PacketType::StunResponse: {
             // a STUN packet begins with 00, we've checked the second zero with packetVersionMatch
             // pass it along so it can be processed into our public address and port
             processSTUNResponse(packet);
             break;
         }
-        case PacketTypeDomainServerPathResponse: {
+        case PacketType::DomainServerPathResponse: {
             handleDSPathQueryResponse(packet);
             break;
         }
@@ -518,11 +518,11 @@ void NodeList::pingPunchForDomainServer() {
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendPingsToDS);
 
         // send the ping packet to the local and public sockets for this node
-        QByteArray localPingPacket = constructPingPacket(PingType::Local, false, _domainHandler.getICEClientID());
-        writeUnverifiedDatagram(localPingPacket, _domainHandler.getICEPeer().getLocalSocket());
+        auto localPingPacket = constructICEPingPacket(PingType::Local);
+        sendPacket(localPingPacket, _domainHandler.getICEPeer().getLocalSocket());
 
-        QByteArray publicPingPacket = constructPingPacket(PingType::Public, false, _domainHandler.getICEClientID());
-        writeUnverifiedDatagram(publicPingPacket, _domainHandler.getICEPeer().getPublicSocket());
+        auto publicPingPacket = constructICEPingPacket(PingType::Public);
+        sendPacket(publicPingPacket, _domainHandler.getICEPeer().getPublicSocket());
 
         _domainHandler.getICEPeer().incrementConnectionAttempts();
     }
@@ -625,15 +625,15 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
     }
 
     // send the ping packet to the local and public sockets for this node
-    QByteArray localPingPacket = constructPingPacket(PingType::Local);
-    writeDatagram(localPingPacket, node, node->getLocalSocket());
+    auto localPingPacket = constructPingPacket(PingType::Local);
+    sendPacket(localPingPacket, node, node->getLocalSocket());
 
-    QByteArray publicPingPacket = constructPingPacket(PingType::Public);
-    writeDatagram(publicPingPacket, node, node->getPublicSocket());
+    auto publicPingPacket = constructPingPacket(PingType::Public);
+    sendPacket(publicPingPacket, node, node->getPublicSocket());
 
     if (!node->getSymmetricSocket().isNull()) {
-        QByteArray symmetricPingPacket = constructPingPacket(PingType::Symmetric);
-        writeDatagram(symmetricPingPacket, node, node->getSymmetricSocket());
+        auto symmetricPingPacket = constructPingPacket(PingType::Symmetric);
+        sendPacket(symmetricPingPacket, node, node->getSymmetricSocket());
     }
 
     node->incrementConnectionAttempts();
