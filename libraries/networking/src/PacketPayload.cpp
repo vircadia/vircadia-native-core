@@ -31,8 +31,11 @@ qint64 PacketPayload::writeData(const char* data, qint64 maxSize) {
         // good to go - write the data
         memcpy(_data + currentPos, src, srcBytes);
 
-        // should this cause us to push our index (is this the farthest we've written in data)?
+        // seek to the new position based on where our write just finished
         seek(currentPos + srcBytes);
+
+        // keep track of _maxWritten so we can just write the actual data when packet is about to be sent
+        _maxWritten = std::max(pos() + 1, _maxWritten);
 
         // return the number of bytes written
         return srcBytes;

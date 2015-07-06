@@ -30,6 +30,7 @@ protected:
 private:
     char* _data;
     qint64 _size = 0;
+    qint64 _maxWritten = 0;
 };
 
 #endif // hifi_PacketByteArray_h
