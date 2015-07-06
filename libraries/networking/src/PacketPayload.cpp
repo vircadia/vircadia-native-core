@@ -11,43 +11,28 @@
 
 #include "PacketPayload.h"
 
-PacketPayload::PacketPayload(char* data, qint64 maxBytes) :
+PacketPayload::PacketPayload(char* data, qint64 size) :
     _data(data)
-    _maxBytes(maxBytes)
+    _size(size)
 {
 
 }
 
-qint64 PacketPayload::append(const char* src, qint64 srcBytes) {
-    // this is a call to write at the current index
-    qint64 numWrittenBytes = write(src, srcBytes, _index);
-
-    if (numWrittenBytes > 0) {
-        // we wrote some bytes, push the index
-        _index += numWrittenBytes;
-        return numWrittenBytes;
-    } else {
-        return numWrittenBytes;
-    }
-}
-
 const int PACKET_READ_ERROR = -1;
 
-qint64 PacketPayload::write(const char* src, qint64 srcBytes, qint64 index) {
-    if (index >= _maxBytes) {
-        // we were passed a bad index, return error
-        return PACKET_WRITE_ERROR;
-    }
+qint64 PacketPayload::writeData(const char* data, qint64 maxSize) {
+
+    qint64 currentPos = pos();
 
     // make sure we have the space required to write this block
-    qint64 bytesAvailable = _maxBytes - index;
+    qint64 bytesAvailable = _size - currentPos;
 
     if (bytesAvailable < srcBytes) {
         // good to go - write the data
-        memcpy(_data + index, src, srcBytes);
+        memcpy(_data + currentPos, src, srcBytes);
 
         // should this cause us to push our index (is this the farthest we've written in data)?
-        _writeIndex = std::max(_data + index + srcBytes, _writeIndex);
+        seek(currentPos + srcBytes);
 
         // return the number of bytes written
         return srcBytes;
@@ -57,32 +42,21 @@ qint64 PacketPayload::write(const char* src, qint64 srcBytes, qint64 index) {
     }
 }
 
-qint64 PacketPayload::readNext(char* dest, qint64 maxSize) {
-    // call read at the current _readIndex
-    int numBytesRead = read(dest, maxSize, _readIndex);
-
-    if (numBytesRead > 0) {
-        // we read some data, push the read index
-        _readIndex += numBytesRead;
-    }
-
-    return numBytesRead;
-}
-
 const qint64 PACKET_READ_ERROR = -1;
 
-qint64 PacketPayload::read(char* dest, qint64 maxSize, qint64 index) {
-    if (index >= _maxBytes) {
-        // we were passed a bad index, return error
-        return PACKET_READ_ERROR;
-    }
+qint64 PacketPayload::readData(char* dest, qint64 maxSize) {
 
-    // we're either reading what is left from the index or what was asked to be read
-    qint64 numBytesToRead = std::min(_maxSize - index, maxSize);
+    int currentPosition = pos();
+
+    // we're either reading what is left from the current position or what was asked to be read
+    qint64 numBytesToRead = std::min(_maxSize - currentPosition, maxSize);
 
     if (numBytesToRead > 0) {
         // read out the data
-        memcpy(dest, _data + index, numBytesToRead);
+        memcpy(dest, _data + currentPosition, numBytesToRead);
+
+        // seek to the end of the read
+        seek(_data + currentPosition + numBytesToRead);
     }
 
     return numBytesToRead;

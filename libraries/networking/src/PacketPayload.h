@@ -18,13 +18,10 @@
 
 class PacketPayload : public QIODevice {
 public:
-    PacketPayload(char* data, qint64 maxBytes);
+    PacketPayload(char* data, qint64 size);
 
-    qint64 write(const char* src, qint64 srcBytes, qint64 index = 0);
-    qint64 append(const char* src, qint64 srcBytes);
-
-    qint64 read(char* dest, qint64 maxSize, qint64 index = 0);
-    qint64 readNext(char* dest, qint64 maxSize);
+    virtual qint64 size() const { return _size; }
+    virtual bool isSequential() const  { return false; }
 
 protected:
     virtual qint64 writeData(const char* data, qint64 maxSize) { return append(data, maxSize) };
@@ -32,11 +29,7 @@ protected:
 
 private:
     char* _data;
-
-    qint64 _writeIndex = 0;
-    qint64 _readIndex = 0;
-
-    qint64 _maxBytes = 0;
+    qint64 _size = 0;
 };
 
 #endif // hifi_PacketByteArray_h
