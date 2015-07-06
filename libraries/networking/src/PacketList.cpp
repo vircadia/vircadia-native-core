@@ -77,6 +77,8 @@ qint64 writeData(const char* data, qint64 maxSize) {
             // set our current packet to the new packet
             _currentPacket = newPacket;
 
+            // return the number of bytes written to the new packet
+            return maxSize;
         } else {
             // we're an ordered PacketList - let's fit what we can into the current packet and then put the leftover
             // into a new packet
@@ -89,7 +91,7 @@ qint64 writeData(const char* data, qint64 maxSize) {
             _packets.insert(std::move(_currentPacket));
 
             // recursively call our writeData method for the remaining data to write to a new packet
-            writeData(data + numBytesToEnd, maxSize - numBytesToEnd);
+            return numBytesToEnd + writeData(data + numBytesToEnd, maxSize - numBytesToEnd);
         }
     }
 }

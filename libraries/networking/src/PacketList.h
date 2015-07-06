@@ -20,6 +20,8 @@ public:
 
     virtual bool isSequential() const { return true; }
 
+    void startSegment() { _segmentStartIndex = currentPacket->payload().pos(); }
+    void endSegment() { _segmentStartIndex = -1; }
 protected:
     qint64 writeData(const char* data, qint64 maxSize);
     qint64 readData(const char* data, qint64 maxSize) { return 0 };
