@@ -497,122 +497,73 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         batch._glUniform1f(_pointLightLocations.depthScale, depthScale);
         batch._glUniform2f(_pointLightLocations.depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
         batch._glUniform2f(_pointLightLocations.depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
-
-        //_pointLight.bind();
-        //_pointLight.setUniformValue(_pointLightLocations.nearLocation, nearVal);
-        //_pointLight.setUniformValue(_pointLightLocations.depthScale, depthScale);
-        //_pointLight.setUniformValue(_pointLightLocations.depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
-        //_pointLight.setUniformValue(_pointLightLocations.depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
-            
+        
         batch._glUniformMatrix4fv(_pointLightLocations.invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
 
-        //glUniformMatrix4fv(_pointLightLocations.invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
         batch._glUniformMatrix4fv(_pointLightLocations.texcoordMat, 1, false, reinterpret_cast< const GLfloat* >(&texcoordMat));
 
         for (auto lightID : _pointLights) {
             auto& light = _allocatedLights[lightID];
             light->setShowContour(true);
             if (_pointLightLocations.lightBufferUnit >= 0) {
-              //  gpu::Batch batch;
                 batch.setUniformBuffer(_pointLightLocations.lightBufferUnit, light->getSchemaBuffer());
-             //   gpu::GLBackend::renderBatch(batch);
             }
 
-
-          //  glPushMatrix();
-            
             float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
             if (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius) {
-
-           /*     glLoadIdentity();
-                glTranslatef(0.0f, 0.0f, -1.0f);
-                
-                glMatrixMode(GL_PROJECTION);
-                glPushMatrix();
-                glLoadIdentity();
-             */   
-               // renderFullscreenQuad();
                 Transform model;
                 model.setTranslation(glm::vec3(0.0f, 0.0f, -1.0f));
                 batch.setModelTransform(model);
+                batch.setViewTransform(Transform());
+                batch.setProjectionTransform(glm::mat4());
 
-                {
-                    glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
-                    glm::vec2 topLeft(-1.0f, -1.0f);
-                    glm::vec2 bottomRight(1.0f, 1.0f);
-                    glm::vec2 texCoordTopLeft(sMin, tMin);
-                    glm::vec2 texCoordBottomRight(sMin + sWidth, tMin + tHeight);
+                glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
+                glm::vec2 topLeft(-1.0f, -1.0f);
+                glm::vec2 bottomRight(1.0f, 1.0f);
+                glm::vec2 texCoordTopLeft(sMin, tMin);
+                glm::vec2 texCoordBottomRight(sMin + sWidth, tMin + tHeight);
 
-                    DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color);
-                }
-                /*
-                glPopMatrix();
-                glMatrixMode(GL_MODELVIEW);
-              */  
+                DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color);
+                
+                batch.setProjectionTransform(projMat);
+                batch.setViewTransform(viewMat);
             } else {
                 Transform model;
                 model.setTranslation(glm::vec3(light->getPosition().x, light->getPosition().y, light->getPosition().z));
                 batch.setModelTransform(model);
-                // glTranslatef(light->getPosition().x, light->getPosition().y, light->getPosition().z);   
-            
-               // geometryCache->renderSphere(expandedRadius, 32, 32, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
                 geometryCache->renderSphere(batch, expandedRadius, 32, 32, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
             }
-            
-        //    glPopMatrix();
         }
         _pointLights.clear();
-        
-       // _pointLight.release();
     }
     
     if (!_spotLights.empty()) {
-        batch.setPipeline(_pointLight);
+        batch.setPipeline(_spotLight);
         batch._glUniform1f(_spotLightLocations.nearLocation, nearVal);
         batch._glUniform1f(_spotLightLocations.depthScale, depthScale);
         batch._glUniform2f(_spotLightLocations.depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
         batch._glUniform2f(_spotLightLocations.depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
-
-/*        _spotLight.bind();
-        _spotLight.setUniformValue(_spotLightLocations.nearLocation, nearVal);
-        _spotLight.setUniformValue(_spotLightLocations.depthScale, depthScale);
-        _spotLight.setUniformValue(_spotLightLocations.depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
-        _spotLight.setUniformValue(_spotLightLocations.depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
-  */      
-
-            
+        
         batch._glUniformMatrix4fv(_spotLightLocations.invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
 
-        //glUniformMatrix4fv(_pointLightLocations.invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
         batch._glUniformMatrix4fv(_spotLightLocations.texcoordMat, 1, false, reinterpret_cast< const GLfloat* >(&texcoordMat));
 
         for (auto lightID : _spotLights) {
             auto light = _allocatedLights[lightID];
-
+            light->setShowContour(true);
             if (_spotLightLocations.lightBufferUnit >= 0) {
-            //    gpu::Batch batch;
                 batch.setUniformBuffer(_spotLightLocations.lightBufferUnit, light->getSchemaBuffer());
-             //   gpu::GLBackend::renderBatch(batch);
             }
-         //   glUniformMatrix4fv(_spotLightLocations.invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
-
-         //   glPushMatrix();
             
             float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
             float edgeRadius = expandedRadius / glm::cos(light->getSpotAngle());
             if (glm::distance(eyePoint, glm::vec3(light->getPosition())) < edgeRadius + nearRadius) {
-                /*glLoadIdentity();
-                glTranslatef(0.0f, 0.0f, -1.0f);
-                
-                glMatrixMode(GL_PROJECTION);
-                glPushMatrix();
-                glLoadIdentity();
-                
-                renderFullscreenQuad();*/
+
                 Transform model;
                 model.setTranslation(glm::vec3(0.0f, 0.0f, -1.0f));
                 batch.setModelTransform(model);
-
+                batch.setViewTransform(Transform());
+                batch.setProjectionTransform(glm::mat4());
                 {
                     glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
                     glm::vec2 topLeft(-1.0f, -1.0f);
@@ -621,10 +572,10 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                     glm::vec2 texCoordBottomRight(sMin + sWidth, tMin + tHeight);
 
                     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color);
+                    
+                    batch.setProjectionTransform(projMat);
+                    batch.setViewTransform(viewMat);
                 }
-
-              /*  glPopMatrix();
-                glMatrixMode(GL_MODELVIEW);*/
                 
             } else {
                 Transform model;
@@ -634,7 +585,6 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                 glm::vec3 axis = glm::axis(spotRotation);
 
                 model.postRotate(spotRotation);
-                model.postTranslate(glm::vec3(0.0f, 0.0f, -light->getMaximumRadius() * (1.0f + SCALE_EXPANSION * 0.5f)));
 
                 float base = expandedRadius * glm::tan(light->getSpotAngle());
                 float height = expandedRadius;
@@ -648,43 +598,14 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                 batch.setInputBuffer(0, mesh->getVertexBuffer());
                 batch.setInputFormat(mesh->getVertexFormat());
 
+                auto& part = mesh->getPartBuffer().get<model::Mesh::Part>();
 
-               auto& part = mesh->getPartBuffer().get<model::Mesh::Part>();
-
-               batch.drawIndexed(model::Mesh::topologyToPrimitive(part._topology), part._numIndices, part._startIndex);
-
-
-                //geometryCache->renderCone(batch, expandedRadius * glm::tan(light->getSpotAngle()), expandedRadius, 32, 1);
-
-                /*
-                glTranslatef(light->getPosition().x, light->getPosition().y, light->getPosition().z);
-                glm::quat spotRotation = rotationBetween(glm::vec3(0.0f, 0.0f, -1.0f), light->getDirection());
-                glm::vec3 axis = glm::axis(spotRotation);
-                glRotatef(glm::degrees(glm::angle(spotRotation)), axis.x, axis.y, axis.z);   
-                glTranslatef(0.0f, 0.0f, -light->getMaximumRadius() * (1.0f + SCALE_EXPANSION * 0.5f));  
-                geometryCache->renderCone(expandedRadius * glm::tan(light->getSpotAngle()), expandedRadius, 32, 1);
-                */
+                batch.drawIndexed(model::Mesh::topologyToPrimitive(part._topology), part._numIndices, part._startIndex);
             }
-            
-            glPopMatrix();
         }
         _spotLights.clear();
-        
-      //  _spotLight.release();
     }
-
-/*
-    glBindTexture(GL_TEXTURE_2D, 0);
-        
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, 0);
     
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-*/
     // Probably not necessary in the long run because the gpu layer would unbound this texture if used as render target
     batch.setUniformTexture(0, nullptr);
     batch.setUniformTexture(1, nullptr);
@@ -893,7 +814,7 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool light
     gpu::StatePointer state = gpu::StatePointer(new gpu::State());
     if (lightVolume) {
         state->setCullMode(gpu::State::CULL_BACK);
-    
+        
         // additive blending
         state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
     } else {
@@ -930,79 +851,56 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
     if (!_spotLightMesh) {
         _spotLightMesh.reset(new model::Mesh());
 
-        int slices = 32;
-        int stacks = 1;
-        int vertices = (stacks + 2) * slices;
-        int baseTriangles = slices - 2;
-        int indices = 6 * slices * stacks + 3 * baseTriangles;
+        int slices = 16;
+        int vertices = 2 + slices;
+        int originVertex = vertices - 2;
+        int capVertex = vertices - 1;
+        int verticesSize = vertices * 3 * sizeof(float);
+        int indices = 3 * slices * 2;
 
-        GLfloat* vertexData = new GLfloat[vertices * 3];
+        GLfloat* vertexData = new GLfloat[verticesSize];
         GLfloat* vertex = vertexData;
-        // cap
+        
         for (int i = 0; i < slices; i++) {
             float theta = TWO_PI * i / slices;
             
-            //normals
-          /*  *(vertex++) = 0.0f;
-            *(vertex++) = 0.0f;
-            *(vertex++) = -1.0f;
-            */
-            // vertices
             *(vertex++) = cosf(theta);
             *(vertex++) = sinf(theta);
-            *(vertex++) = 0.0f;
+            *(vertex++) = -1.0f;
         }
-        // body
-        for (int i = 0; i <= stacks; i++) {
-            float z = (float)i / stacks;
-            float radius = 1.0f - z;
-            
-            for (int j = 0; j < slices; j++) {
-                float theta = TWO_PI * j / slices;
-
-                //normals
-            /*    *(vertex++) = cosf(theta) / SQUARE_ROOT_OF_2;
-                *(vertex++) = sinf(theta) / SQUARE_ROOT_OF_2;
-                *(vertex++) = 1.0f / SQUARE_ROOT_OF_2;
-                */
-                // vertices
-                *(vertex++) = radius * cosf(theta);
-                *(vertex++) = radius * sinf(theta);
-                *(vertex++) = z;
-            }
-        }
-
-        _spotLightMesh->setVertexBuffer(gpu::BufferView(new gpu::Buffer(sizeof(GLfloat) * vertices, (gpu::Byte*) vertexData), gpu::Element::VEC3F_XYZ));
+        
+        *(vertex++) = 0.0f;
+        *(vertex++) = 0.0f;
+        *(vertex++) = 0.0f;
+        
+        *(vertex++) = 0.0f;
+        *(vertex++) = 0.0f;
+        *(vertex++) = -1.0f;
+        
+        _spotLightMesh->setVertexBuffer(gpu::BufferView(new gpu::Buffer(verticesSize, (gpu::Byte*) vertexData), gpu::Element::VEC3F_XYZ));
         delete[] vertexData;
 
-
-        GLushort* indexData = new GLushort[indices];
-        GLushort* index = indexData;
-        for (int i = 0; i < baseTriangles; i++) {
-            *(index++) = 0;
-            *(index++) = i + 2;
-            *(index++) = i + 1;
-        }
-        for (int i = 1; i <= stacks; i++) {
-            GLushort bottom = i * slices;
-            GLushort top = bottom + slices;
-            for (int j = 0; j < slices; j++) {
-                int next = (j + 1) % slices;
-                
-                *(index++) = bottom + j;
-                *(index++) = top + next;
-                *(index++) = top + j;
-                
-                *(index++) = bottom + j;
-                *(index++) = bottom + next;
-                *(index++) = top + next;
-            }
+        gpu::uint16* indexData = new gpu::uint16[indices];
+        gpu::uint16* index = indexData;
+        for (int i = 0; i < slices; i++) {
+            *(index++) = originVertex;
+            
+            int s0 = i;
+            int s1 = ((i + 1) % slices);
+            *(index++) = s0;
+            *(index++) = s1;
+            *(index++) = s1;
+            *(index++) = s0;
+            
+            *(index++) = capVertex;
         }
 
         _spotLightMesh->setIndexBuffer(gpu::BufferView(new gpu::Buffer(sizeof(GLushort) * indices, (gpu::Byte*) indexData), gpu::Element::INDEX_UINT16));
         delete[] indexData;
 
-        model::Mesh::Part part(0, vertices - 1, 0, model::Mesh::TRIANGLES);
+        model::Mesh::Part part(0, indices, 0, model::Mesh::TRIANGLES);
+        //model::Mesh::Part part(0, indices, 0, model::Mesh::LINE_STRIP);
+        
         
         _spotLightMesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(sizeof(part), (gpu::Byte*) &part), gpu::Element::PART_DRAWCALL));
 

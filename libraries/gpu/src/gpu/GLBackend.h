@@ -199,7 +199,7 @@ public:
     void do_setStateFillMode(int32 mode);
     void do_setStateCullMode(int32 mode);
     void do_setStateFrontFaceClockwise(bool isClockwise);
-    void do_setStateDepthClipEnable(bool enable);
+    void do_setStateDepthClampEnable(bool enable);
     void do_setStateScissorEnable(bool enable);
     void do_setStateMultisampleEnable(bool enable);
     void do_setStateAntialiasedLineEnable(bool enable);

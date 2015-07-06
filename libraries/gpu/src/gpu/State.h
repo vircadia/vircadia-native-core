@@ -249,7 +249,7 @@ public:
         uint8 colorWriteMask = WRITE_ALL;
 
         bool frontFaceClockwise : 1;
-        bool depthClipEnable : 1;
+        bool depthClampEnable : 1;
         bool scissorEnable : 1;
         bool multisampleEnable : 1;
         bool antialisedLineEnable : 1;
@@ -257,7 +257,7 @@ public:
 
         Data() :
             frontFaceClockwise(false),
-            depthClipEnable(false),
+            depthClampEnable(false),
             scissorEnable(false),
             multisampleEnable(false),
             antialisedLineEnable(false),
@@ -276,8 +276,8 @@ public:
     void setFrontFaceClockwise(bool isClockwise) { SET_FIELD(FRONT_FACE_CLOCKWISE, DEFAULT.frontFaceClockwise, isClockwise, _values.frontFaceClockwise); }
     bool isFrontFaceClockwise() const { return _values.frontFaceClockwise; }
     
-    void setDepthClipEnable(bool enable) { SET_FIELD(DEPTH_CLIP_ENABLE, DEFAULT.depthClipEnable, enable, _values.depthClipEnable); }
-    bool isDepthClipEnable() const { return _values.depthClipEnable; }
+    void setDepthClampEnable(bool enable) { SET_FIELD(DEPTH_CLAMP_ENABLE, DEFAULT.depthClampEnable, enable, _values.depthClampEnable); }
+    bool isDepthClampEnable() const { return _values.depthClampEnable; }
     
     void setScissorEnable(bool enable) { SET_FIELD(SCISSOR_ENABLE, DEFAULT.scissorEnable, enable, _values.scissorEnable); }
     bool isScissorEnable() const { return _values.scissorEnable; }
@@ -349,7 +349,7 @@ public:
         FILL_MODE,
         CULL_MODE,
         FRONT_FACE_CLOCKWISE,
-        DEPTH_CLIP_ENABLE,
+        DEPTH_CLAMP_ENABLE,
         SCISSOR_ENABLE,
         MULTISAMPLE_ENABLE,
         ANTIALISED_LINE_ENABLE,
