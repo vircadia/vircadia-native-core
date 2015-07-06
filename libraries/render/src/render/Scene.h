@@ -203,7 +203,7 @@ public:
 
         // Status::Value class is the data used to represent the transient information of a status as a square icon
         // The "icon" is a square displayed in the 3D scene over the render::Item AABB center.
-        // It can be scaled in the range [0, 1] and the color hue can 
+        // It can be scaled in the range [0, 1] and the color hue  in the range [0, 360] representing the color wheel hue
         class Value {
             unsigned short _scale = 0xFFFF;
             unsigned short _color = 0xFFFF;
@@ -213,7 +213,9 @@ public:
             Value() {}
             Value(float scale, float hue) { setScale(scale); setColor(hue); }
 
+            // It can be scaled in the range [0, 1] 
             void setScale(float scale);
+            // the color hue  in the range [0, 360] representing the color wheel hue
             void setColor(float hue);
 
             // Retreive the Value data tightely packed as an int

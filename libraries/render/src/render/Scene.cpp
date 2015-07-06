@@ -59,11 +59,12 @@ const Item::Status::Value Item::Status::Value::INVALID = Item::Status::Value();
 
 
 void Item::Status::Value::setScale(float scale) {
-    _scale = (std::numeric_limits<unsigned short>::max() -1) * 0.5f * (1.0f + std::max(std::min(scale, 1.0f), -1.0f));
+    _scale = (std::numeric_limits<unsigned short>::max() -1) * 0.5f * (1.0f + std::max(std::min(scale, 1.0f), 0.0f));
  }
 
 void Item::Status::Value::setColor(float hue) {
-    _color = (std::numeric_limits<unsigned short>::max() - 1) * 0.5f * (1.0f + std::max(std::min(hue, 1.0f), -1.0f));
+    // Convert the HUe from range [0, 360] to signed normalized value
+    _color = (std::numeric_limits<unsigned short>::max() - 1) * 0.5f * (1.0f + std::max(std::min(hue, 360.0f), 0.0f));
 }
 
 void Item::Status::getPackedValues(glm::ivec4& values) const {

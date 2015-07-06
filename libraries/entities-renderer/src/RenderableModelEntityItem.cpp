@@ -170,13 +170,19 @@ namespace render {
 void makeEntityItemStatusGetters(RenderableModelEntityItem* entity, render::Item::Status::Getters& statusGetters) {
     statusGetters.push_back([entity] () -> render::Item::Status::Value {
         quint64 delta = usecTimestampNow() - entity->getLastEditedFromRemote();
-        float ndelta = (delta / (0.2f * USECS_PER_SECOND));
-        return render::Item::Status::Value(1.0f - ndelta, (ndelta > 1.0f ? 0.01f : 0.5f));
+        const float WAIT_THRESHOLD_INV = 1.0f / (0.2f * USECS_PER_SECOND);
+        float normalizedDelta = delta * WAIT_THRESHOLD_INV;
+        // Status icon will scale from 1.0f down to 0.0f after WAIT_THRESHOLD
+        // Color is red if last update is after WAIT_THRESHOLD, green otherwise (120 deg is green)
+        return render::Item::Status::Value(1.0f - normalizedDelta, (normalizedDelta > 1.0f ? 0.0f : 120.0f));
     });
     statusGetters.push_back([entity] () -> render::Item::Status::Value {
         quint64 delta = usecTimestampNow() - entity->getLastBroadcast();
-        float ndelta = (delta / (0.4f * USECS_PER_SECOND));
-        return render::Item::Status::Value(1.0f - ndelta, (ndelta > 1.0f ? 0.3f : 0.9f));
+        const float WAIT_THRESHOLD_INV = 1.0f / (0.4f * USECS_PER_SECOND);
+        float normalizedDelta = delta * WAIT_THRESHOLD_INV;
+        // Status icon will scale from 1.0f down to 0.0f after WAIT_THRESHOLD
+        // Color is Magenta if last update is after WAIT_THRESHOLD, cyan otherwise (180 deg is green)
+        return render::Item::Status::Value(1.0f - normalizedDelta, (normalizedDelta > 1.0f ? 300.0f : 180.0f));
     });
 }
 

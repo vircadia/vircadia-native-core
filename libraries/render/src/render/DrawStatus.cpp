@@ -149,9 +149,11 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
     AABox* itemAABox = reinterpret_cast<AABox*> (_itemBounds->editData());
     glm::ivec4* itemStatus = reinterpret_cast<glm::ivec4*> (_itemStatus->editData());
 
+    const unsigned int VEC3_ADRESS_OFFSET = 3;
+
     for (int i = 0; i < nbItems; i++) {
         batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const GLfloat*) (itemAABox + i));
-        batch._glUniform3fv(_drawItemBoundDimLoc, 1, ((const GLfloat*) (itemAABox + i)) + 3);
+        batch._glUniform3fv(_drawItemBoundDimLoc, 1, ((const GLfloat*) (itemAABox + i)) + VEC3_ADRESS_OFFSET);
 
         batch.draw(gpu::LINES, 24, 0);
     }
@@ -159,7 +161,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
     batch.setPipeline(getDrawItemStatusPipeline());
     for (int i = 0; i < nbItems; i++) {
         batch._glUniform3fv(_drawItemStatusPosLoc, 1, (const GLfloat*) (itemAABox + i));
-        batch._glUniform3fv(_drawItemStatusDimLoc, 1, ((const GLfloat*) (itemAABox + i)) + 3);
+        batch._glUniform3fv(_drawItemStatusDimLoc, 1, ((const GLfloat*) (itemAABox + i)) + VEC3_ADRESS_OFFSET);
         batch._glUniform4iv(_drawItemStatusValueLoc, 1, (const GLint*) (itemStatus + i));
 
         batch.draw(gpu::TRIANGLES, 24, 0);
