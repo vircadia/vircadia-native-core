@@ -20,7 +20,6 @@
 #include <queue>
 #include <set>
 #include <vector>
-#include <numeric>
 
 #include <AABox.h>
 #include <RenderArgs.h>
@@ -201,18 +200,24 @@ public:
     // This is Used for monitoring and dynamically adjust the quality 
     class Status {
     public:
-        class Value {
-            unsigned short _x = 0xFFFF;
-            unsigned short _y = 0xFFFF;
-            Value() {}
-        public:
-            const static Value INVALID; // Invlaid value meanss the status won't show
 
-            Value(float x, float y = 1.0f) { setX(x); setY(y); }
-            void setX(float x) { _x = (std::numeric_limits<unsigned short>::max() -1) * 0.5f * (1.0f + std::max(std::min(x, 1.0f), -1.0f)); }
-            void setY(float y) { _y = (std::numeric_limits<unsigned short>::max() - 1) * 0.5f * (1.0f + std::max(std::min(y, 1.0f), -1.0f)); }
-            
-            int getRaw() const { return *((const int*) this); }
+        // Status::Value class is the data used to represent the transient information of a status as a square icon
+        // The "icon" is a square displayed in the 3D scene over the render::Item AABB center.
+        // It can be scaled in the range [0, 1] and the color hue can 
+        class Value {
+            unsigned short _scale = 0xFFFF;
+            unsigned short _color = 0xFFFF;
+        public:
+            const static Value INVALID; // Invalid value meanss the status won't show
+
+            Value() {}
+            Value(float scale, float hue) { setScale(scale); setColor(hue); }
+
+            void setScale(float scale);
+            void setColor(float hue);
+
+            // Retreive the Value data tightely packed as an int
+            int getPackedData() const { return *((const int*) this); }
         };
 
         typedef std::function<Value()> Getter;
@@ -221,7 +226,8 @@ public:
         Getters _values;
 
         void addGetter(const Getter& getter) { _values.push_back(getter); }
-        void getCompressedValues(glm::ivec4& values);
+
+        void getPackedValues(glm::ivec4& values) const;
     };
     typedef std::shared_ptr<Status> StatusPointer;
 
@@ -247,15 +253,8 @@ public:
 
         // Status interface is local to the base class
         const StatusPointer& getStatus() const { return _status; }
-        void addStatusGetter(const Status::Getter& getter) { if (!_status) { _status.reset(new Status());} _status->addGetter(getter); }
-        void addStatusGetters(const Status::Getters& getters) {
-            if (!_status) {
-                _status.reset(new Status());
-            }
-            for (auto& g : getters) {
-                _status->addGetter(g);
-            }
-        }
+        void addStatusGetter(const Status::Getter& getter);
+        void addStatusGetters(const Status::Getters& getters);
 
     protected:
         StatusPointer _status;
@@ -292,7 +291,7 @@ public:
 
     // Access the status
     const StatusPointer& getStatus() const { return _payload->getStatus(); }
-    glm::ivec4 getStatusCompressedValues() const { glm::ivec4 values(Status::Value::INVALID.getRaw()); auto& status = getStatus(); if (status) { status->getCompressedValues(values); }; return values; }
+    glm::ivec4 getStatusPackedValues() const;
 
 protected:
     PayloadPointer _payload;

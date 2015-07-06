@@ -116,7 +116,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
                     (*itemAABox).setBox(item.bounds.getCorner(), 0.1f);
                 }
                 auto& itemScene = scene->getItem(item.id);
-                (*itemStatus) = itemScene.getStatusCompressedValues();
+                (*itemStatus) = itemScene.getStatusPackedValues();
 
                 nbItems++;
                 itemAABox++;
