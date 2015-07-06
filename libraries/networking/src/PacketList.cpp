@@ -18,10 +18,21 @@ PacketList::PacketList(PacketType::Value packetType, bool isOrdered) :
 
 }
 
+void PacketList::createPacketWithExtendedHeader() {
+    // use the static create method to create a new packet
+    _currentPacket = T::create(_packetType);
+
+    // add the extended header to the front of the packet
+    if (_currentPacket.write(_extendedHeader) == -1) {
+        qDebug() << "Could not write extendedHeader in PacketList::createPacketWithExtendedHeader"
+            << "- make sure that _extendedHeader is not larger than the payload capacity.";
+    }
+}
+
 qint64 writeData(const char* data, qint64 maxSize) {
     if (!_currentPacket) {
         // we don't have a current packet, time to set one up
-        _currentPacket = T::create(_packetType);
+        createPacketWithExtendedHeader();
     }
 
     // check if this block of data can fit into the currentPacket
@@ -36,13 +47,13 @@ qint64 writeData(const char* data, qint64 maxSize) {
 
         if (!_isOrdered) {
             auto newPacket = T::create(_packetType);
-            PacketPayload& newPayload = newPacket.payload();
+            PacketPayload& newPayload = newPacket.getPayload();
 
             if (_segmentStartIndex >= 0) {
                 // We in the process of writing a segment for an unordered PacketList.
                 // We need to try and pull the first part of the segment out to our new packet
 
-                PacketPayload& currentPayload = _currentPacket->payload();
+                PacketPayload& currentPayload = _currentPacket->getPayload();
 
                 // check now to see if this is an unsupported write
                 int numBytesToEnd = currentPayload.size() - _segmentStartIndex;
@@ -82,7 +93,7 @@ qint64 writeData(const char* data, qint64 maxSize) {
         } else {
             // we're an ordered PacketList - let's fit what we can into the current packet and then put the leftover
             // into a new packet
-            PacketPayload& currentPayload = _currentPacket.payload();
+            PacketPayload& currentPayload = _currentPacket.getPayload();
 
             int numBytesToEnd = _currentPayload.size() - _currentPayload.pos();
             _currentPacket.write(data, numBytesToEnd);
@@ -94,5 +105,13 @@ qint64 writeData(const char* data, qint64 maxSize) {
             return numBytesToEnd + writeData(data + numBytesToEnd, maxSize - numBytesToEnd);
         }
     }
+}
+
+void PacketList::closeCurrentPacket() {
+    // shrink the current payload to the actual size of the packet
+    _currentPacket.getPayload().trim();
+
+    // move the current packet to our list of packets
+    _packets.insert(std::move(_currentPacket));
 }
 

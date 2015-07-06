@@ -22,10 +22,16 @@ public:
 
     void startSegment() { _segmentStartIndex = currentPacket->payload().pos(); }
     void endSegment() { _segmentStartIndex = -1; }
+
+    void closeCurrentPacket();
+
+    void setExtendedHeader(const QByteArray& extendedHeader) { _extendedHeader = extendedHeader; }
 protected:
     qint64 writeData(const char* data, qint64 maxSize);
     qint64 readData(const char* data, qint64 maxSize) { return 0 };
 private:
+    void createPacketWithExtendedHeader();
+
     PacketType::Value _packetType;
     bool isOrdered;
 
@@ -33,6 +39,8 @@ private:
     std::list<std::unique_ptr<T>> _packets;
 
     int _segmentStartIndex = -1;
+
+    QByteArray _extendedHeader = extendedHeader;
 }
 
 #endif // hifi_PacketList_h
