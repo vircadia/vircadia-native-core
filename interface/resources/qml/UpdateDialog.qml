@@ -1,5 +1,6 @@
 import Hifi 1.0
 import QtQuick 2.3
+import QtQuick.Controls 1.3
 import QtQuick.Controls.Styles 1.3
 import QtGraphicalEffects 1.0
 import "controls"
@@ -85,33 +86,31 @@ DialogContainer {
                     }
                 }
                 
-                Flickable {
+                ScrollView {
                     id: scrollArea
                     anchors {
                         top: dialogTitle.bottom
+                        topMargin: updateDialog.closeMargin
+                        left: dialogTitle.left
                     }
-                    contentWidth: updateDialog.inputWidth
-                    contentHeight: backgroundRectangle.height - (dialogTitle.height * 2.5)
                     width: updateDialog.inputWidth
-                    height: backgroundRectangle.height - (dialogTitle.height * 2.5)
-                    flickableDirection: Flickable.VerticalFlick
-                    clip: true
-                    
-                    TextEdit {
+                    height: backgroundRectangle.height - (dialogTitle.height * 2.5) - updateDialog.closeMargin
+                    horizontalScrollBarPolicy: Qt.ScrollBarAlwaysOff
+                    verticalScrollBarPolicy: Qt.ScrollBarAsNeeded
+
+                    Text {
                         id: releaseNotes
-                        wrapMode: TextEdit.Wrap
-                        width: parent.width
-                        readOnly: true
+                        wrapMode: Text.Wrap
+                        width: parent.width - updateDialog.closeMargin
                         text: updateDialog.releaseNotes
                         font.pixelSize: 14
-                        color: hifi.colors.text
+                        color: "#000000"
                         anchors {
                             left: parent.left
-                            leftMargin: updateDialog.borderWidth
                         }
                     }
                 }
-                
+
                 Rectangle {
                     id: downloadButton
                     width: updateDialog.buttonWidth
@@ -122,7 +121,7 @@ DialogContainer {
                         top: scrollArea.bottom
                         topMargin: 10
                         right: backgroundRectangle.right
-                        rightMargin: 15
+                        rightMargin: updateDialog.borderWidth
                     }
                     Text {
                         text: "Upgrade"
