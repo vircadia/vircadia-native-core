@@ -1,5 +1,5 @@
 //
-//  PacketByteArray.cpp
+//  PacketPayload.cpp
 //  libraries/networking/src
 //
 //  Created by Stephen Birarda on 07/06/15.
@@ -9,16 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "PacketByteArray.h"
+#include "PacketPayload.h"
 
-PacketByteArray::PacketByteArray(char* data, int maxBytes) :
+PacketPayload::PacketPayload(char* data, int maxBytes) :
     _data(data)
     _maxBytes(maxBytes)
 {
 
 }
 
-int PacketByteArray::append(const char* src, int srcBytes) {
+int PacketPayload::append(const char* src, int srcBytes) {
     // this is a call to write at the current index
     int numWrittenBytes = write(src, srcBytes, _index);
 
@@ -33,7 +33,7 @@ int PacketByteArray::append(const char* src, int srcBytes) {
 
 const int PACKET_WRITE_ERROR = -1;
 
-int PacketByteArray::write(const char* src, int srcBytes, int index) {
+int PacketPayload::write(const char* src, int srcBytes, int index) {
     if (index >= _maxBytes) {
         // we were passed a bad index, return -1
         return PACKET_WRITE_ERROR;
