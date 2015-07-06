@@ -57,6 +57,12 @@ void ItemBucketMap::allocateStandardOpaqueTranparentBuckets() {
 
 const Item::Status::Value Item::Status::Value::INVALID = Item::Status::Value();
 
+const float Item::Status::Value::RED = 0.0f;
+const float Item::Status::Value::YELLOW = 60.0f;
+const float Item::Status::Value::GREEN = 120.0f;
+const float Item::Status::Value::CYAN = 180.0f;
+const float Item::Status::Value::BLUE = 240.0f;
+const float Item::Status::Value::MAGENTA = 300.0f;
 
 void Item::Status::Value::setScale(float scale) {
     _scale = (std::numeric_limits<unsigned short>::max() -1) * 0.5f * (1.0f + std::max(std::min(scale, 1.0f), 0.0f));
@@ -64,7 +70,8 @@ void Item::Status::Value::setScale(float scale) {
 
 void Item::Status::Value::setColor(float hue) {
     // Convert the HUe from range [0, 360] to signed normalized value
-    _color = (std::numeric_limits<unsigned short>::max() - 1) * 0.5f * (1.0f + std::max(std::min(hue, 360.0f), 0.0f));
+    const float HUE_MAX = 360.0f;
+    _color = (std::numeric_limits<unsigned short>::max() - 1) * 0.5f * (1.0f + std::max(std::min(hue, HUE_MAX), 0.0f) / HUE_MAX);
 }
 
 void Item::Status::getPackedValues(glm::ivec4& values) const {

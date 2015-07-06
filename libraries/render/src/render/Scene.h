@@ -218,6 +218,14 @@ public:
             // the color hue  in the range [0, 360] representing the color wheel hue
             void setColor(float hue);
 
+            // Standard color Hue
+            static const float RED; // 0.0f;
+            static const float YELLOW; // 60.0f;
+            static const float GREEN; // 120.0f;
+            static const float CYAN; // 180.0f;
+            static const float BLUE; // 240.0f;
+            static const float MAGENTA; // 300.0f;
+
             // Retreive the Value data tightely packed as an int
             int getPackedData() const { return *((const int*) this); }
         };
