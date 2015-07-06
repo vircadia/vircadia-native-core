@@ -73,10 +73,7 @@ qint64 writeData(const char* data, qint64 maxSize) {
                 _segmentStartIndex = 0;
 
                 // shrink the current payload to the actual size of the packet
-                currentPayload.setActualSize(_segmentStartIndex);
-            } else {
-                // shrink the current payload to the actual size of the packet
-                currentPayload.trim();
+                currentPayload.setSizeUsed(_segmentStartIndex);
             }
 
             // move the current packet to our list of packets
@@ -108,9 +105,6 @@ qint64 writeData(const char* data, qint64 maxSize) {
 }
 
 void PacketList::closeCurrentPacket() {
-    // shrink the current payload to the actual size of the packet
-    _currentPacket.getPayload().trim();
-
     // move the current packet to our list of packets
     _packets.insert(std::move(_currentPacket));
 }
