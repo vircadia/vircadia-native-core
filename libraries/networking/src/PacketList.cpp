@@ -64,7 +64,7 @@ qint64 writeData(const char* data, qint64 maxSize) {
                 }
 
                 // copy from currentPacket where the segment started to the beginning of the newPacket
-                newPacket.write(currentPacket.constData() + _segmentStartIndex, numBytesToEnd);
+                newPacket.write(currentPacket->getPayload() + _segmentStartIndex, numBytesToEnd);
 
                 // the current segment now starts at the beginning of the new packet
                 _segmentStartIndex = 0;
@@ -89,7 +89,7 @@ qint64 writeData(const char* data, qint64 maxSize) {
             // into a new packet
 
             int numBytesToEnd = _currentPacket.size() - _currentPacket.sizeUsed();
-            _currentPacket.write(data, numBytesToEnd);
+            _currentPacket->write(data, numBytesToEnd);
 
             // move the current packet to our list of packets
             _packets.insert(std::move(_currentPacket));
