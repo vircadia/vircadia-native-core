@@ -7,11 +7,14 @@ import "controls"
 import "styles"
 
 DialogContainer {
-    HifiConstants { id: hifi }
     id: root
+    HifiConstants { id: hifi }
+
     objectName: "UpdateDialog"
-    implicitWidth: updateDialog.width
-    implicitHeight: updateDialog.height
+
+    implicitWidth: updateDialog.implicitWidth
+    implicitHeight: updateDialog.implicitHeight
+
     x: parent ? parent.width / 2 - width / 2 : 0
     y: parent ? parent.height / 2 - height / 2 : 0
     
@@ -33,6 +36,16 @@ DialogContainer {
         signal triggerBuildDownload
         signal closeUpdateDialog
         
+        Rectangle {
+            id: backgroundRectangle
+            color: "#2c86b1"
+            opacity: 0.85
+            radius: updateDialog.closeMargin * 2
+
+            width: updateDialog.inputWidth + updateDialog.borderWidth * 2
+            height: updateDialog.inputHeight * 6 + updateDialog.closeMargin * 2
+        }
+
         Column {
             id: mainContent
             width: updateDialog.inputWidth
@@ -43,71 +56,75 @@ DialogContainer {
             }
             
             Rectangle {
-                id: backgroundRectangle
-                color: "#2c86b1"
-                opacity: 0.85
-                radius: updateDialog.closeMargin * 2
-                
-                width: updateDialog.inputWidth + updateDialog.borderWidth * 2
-                height: updateDialog.inputHeight * 6 + updateDialog.closeMargin * 2
-                
-                Rectangle {
-                    id: dialogTitle
-                    width: updateDialog.inputWidth
-                    height: updateDialog.inputHeight
-                    radius: height / 2
-                    color: "#ebebeb"
-                    
+                id: dialogTitle
+                width: updateDialog.inputWidth
+                height: updateDialog.inputHeight
+                radius: height / 2
+                color: "#ebebeb"
+
+                Text {
+                    id: updateAvailableText
+                    text: "Update Available"
                     anchors {
-                        top: parent.top
-                        topMargin: updateDialog.inputSpacing
-                        horizontalCenter: parent.horizontalCenter
-                    }
-                    
-                    Text {
-                        id: updateAvailableText
-                        text: "Update Available"
-                        anchors {
-                            verticalCenter: parent.verticalCenter
-                            left: parent.left
-                            leftMargin: updateDialog.inputSpacing
-                        }
-                    }
-                    
-                    Text {
-                        text: updateDialog.updateAvailableDetails
-                        font.pixelSize: 14
-                        color: hifi.colors.text
-                        anchors {
-                            verticalCenter: parent.verticalCenter
-                            left: updateAvailableText.right
-                            leftMargin: 13
-                        }
+                        verticalCenter: parent.verticalCenter
+                        left: parent.left
+                        leftMargin: updateDialog.inputSpacing
                     }
                 }
-                
-                ScrollView {
-                    id: scrollArea
+
+                Text {
+                    text: updateDialog.updateAvailableDetails
+                    font.pixelSize: 14
+                    color: hifi.colors.text
                     anchors {
-                        top: dialogTitle.bottom
-                        topMargin: updateDialog.closeMargin
-                        left: dialogTitle.left
+                        verticalCenter: parent.verticalCenter
+                        left: updateAvailableText.right
+                        leftMargin: 13
                     }
-                    width: updateDialog.inputWidth
-                    height: backgroundRectangle.height - (dialogTitle.height * 2.5) - updateDialog.closeMargin
-                    horizontalScrollBarPolicy: Qt.ScrollBarAlwaysOff
-                    verticalScrollBarPolicy: Qt.ScrollBarAsNeeded
+                }
+            }
+
+            ScrollView {
+                id: scrollArea
+                width: updateDialog.inputWidth
+                height: backgroundRectangle.height - (dialogTitle.height * 2.5) - updateDialog.closeMargin
+                horizontalScrollBarPolicy: Qt.ScrollBarAlwaysOff
+                verticalScrollBarPolicy: Qt.ScrollBarAsNeeded
+
+                Text {
+                    id: releaseNotes
+                    wrapMode: Text.Wrap
+                    width: parent.width - updateDialog.closeMargin
+                    text: updateDialog.releaseNotes
+                    font.pixelSize: 14
+                    color: "#000000"
+                }
+            }
+
+            Row {
+                anchors.right: parent.right
+                spacing: updateDialog.inputSpacing
+
+                Rectangle {
+                    id: cancelButton
+                    width: updateDialog.buttonWidth
+                    height: updateDialog.buttonHeight
+                    radius: updateDialog.buttonRadius
+                    color: "red"
 
                     Text {
-                        id: releaseNotes
-                        wrapMode: Text.Wrap
-                        width: parent.width - updateDialog.closeMargin
-                        text: updateDialog.releaseNotes
-                        font.pixelSize: 14
-                        color: "#000000"
+                        text: "Cancel"
                         anchors {
-                            left: parent.left
+                            verticalCenter: parent.verticalCenter
+                            horizontalCenter: parent.horizontalCenter
                         }
+                    }
+
+                    MouseArea {
+                        id: cancelButtonAction
+                        anchors.fill: parent
+                        onClicked: updateDialog.closeDialog()
+                        cursorShape: "PointingHandCursor"
                     }
                 }
 
@@ -117,12 +134,7 @@ DialogContainer {
                     height: updateDialog.buttonHeight
                     radius: updateDialog.buttonRadius
                     color: "green"
-                    anchors {
-                        top: scrollArea.bottom
-                        topMargin: 10
-                        right: backgroundRectangle.right
-                        rightMargin: updateDialog.borderWidth
-                    }
+
                     Text {
                         text: "Upgrade"
                         anchors {
@@ -130,38 +142,11 @@ DialogContainer {
                             horizontalCenter: parent.horizontalCenter
                         }
                     }
+
                     MouseArea {
                         id: downloadButtonAction
                         anchors.fill: parent
                         onClicked: updateDialog.triggerUpgrade()
-                        cursorShape: "PointingHandCursor"
-                    }
-                }
-                
-                Rectangle {
-                    id: cancelButton
-                    width: updateDialog.buttonWidth
-                    height: updateDialog.buttonHeight
-                    radius: updateDialog.buttonRadius
-                    color: "red"
-                    anchors {
-                        top: scrollArea.bottom
-                        topMargin: 10
-                        right: downloadButton.left
-                        rightMargin: 15
-                    }
-                    
-                    Text {
-                        text: "Cancel"
-                        anchors {
-                            verticalCenter: parent.verticalCenter
-                            horizontalCenter: parent.horizontalCenter
-                        }
-                    }
-                    MouseArea {
-                        id: cancelButtonAction
-                        anchors.fill: parent
-                        onClicked: updateDialog.closeDialog()
                         cursorShape: "PointingHandCursor"
                     }
                 }
