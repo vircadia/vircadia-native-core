@@ -64,7 +64,7 @@ DialogContainer {
 
         Image {
             id: logo
-            source: "../images/hifi-logo.svg"
+            source: "../images/interface-logo.svg"
             width: updateDialog.logoSize
             height: updateDialog.logoSize
             anchors {
