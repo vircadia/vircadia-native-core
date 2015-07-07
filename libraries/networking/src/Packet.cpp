@@ -64,6 +64,41 @@ Packet::Packet(PacketType::Value type, qint64 size) :
         }
 }
 
+Packet::Packet(const Packet& other) {
+    *this = other;
+}
+
+Packet& Packet::operator=(const Packet& other) {
+    _packetSize = other._packetSize;
+    _packet = std::unique_ptr<char>(new char(_packetSize));
+    memcpy(_packet.get(), other._packet.get(), _packetSize);
+    
+    _payloadStart = _packet.get() + (other._payloadStart - other._packet.get());
+    _position = other._position;
+    _capacity = other._capacity;
+    
+    _sizeUsed = other._sizeUsed;
+    
+    return *this;
+}
+
+Packet::Packet(Packet&& other) {
+    *this = std::move(other);
+}
+
+Packet& Packet::operator=(Packet&& other) {
+    _packetSize = other._packetSize;
+    _packet = std::move(other._packet);
+    
+    _payloadStart = other._payloadStart;
+    _position = other._position;
+    _capacity = other._capacity;
+    
+    _sizeUsed = other._sizeUsed;
+    
+    return *this;
+}
+
 PacketType::Value Packet::getPacketType() const {
     return (PacketType::Value)arithmeticCodingValueFromBuffer(_packet.get());
 }

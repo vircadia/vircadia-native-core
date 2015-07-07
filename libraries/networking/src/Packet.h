@@ -20,9 +20,9 @@
 
 class Packet : public QIODevice {
 public:
-    static std::unique_ptr<Packet> create(PacketType::Value type, int64_t size = -1);
-    
     using SequenceNumber = uint16_t;
+    
+    static std::unique_ptr<Packet> create(PacketType::Value type, int64_t size = -1);
     
     static qint64 localHeaderSize(PacketType::Value type);
     static qint64 maxPayloadSize(PacketType::Value type);
@@ -57,10 +57,10 @@ public:
     
 protected:
     Packet(PacketType::Value type, int64_t size);
-    Packet(Packet&&) = delete;
-    Packet(const Packet&) = delete;
-    Packet& operator=(Packet&&) = delete;
-    Packet& operator=(const Packet&) = delete;
+    Packet(const Packet& other);
+    Packet& operator=(const Packet& other);
+    Packet(Packet&& other);
+    Packet& operator=(Packet&& other);
 
     // QIODevice virtual functions
     virtual qint64 writeData(const char* data, qint64 maxSize);
