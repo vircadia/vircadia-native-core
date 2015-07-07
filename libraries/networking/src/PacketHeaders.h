@@ -118,6 +118,7 @@ int numBytesForPacketHeader(const QByteArray& packet);
 int numBytesForPacketHeader(const char* packet);
 int numBytesForArithmeticCodedPacketType(PacketType::Value packetType);
 int numBytesForPacketHeaderGivenPacketType(PacketType::Value packetType);
+int packArithmeticallyCodedValue(int value, char* destination);
 
 QUuid uuidFromPacketHeader(const QByteArray& packet);
 
