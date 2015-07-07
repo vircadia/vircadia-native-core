@@ -145,8 +145,8 @@ public:
 
     qint64 sendUnreliablePacket(NLPacket& packet, const SharedNodePointer& destinationNode) {};
     qint64 sendUnreliablePacket(NLPacket& packet, const HifiSockAddr& sockAddr) {};
-    qint64 sendPacket(std::unique_ptr<NLPacket>&& packet, const SharedNodePointer& destinationNode) {};
-    qint64 sendPacket(std::unique_ptr<NLPacket>&& packet, const HifiSockAddr& sockAddr) {};
+    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const SharedNodePointer& destinationNode) {};
+    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr) {};
     qint64 sendPacketList(PacketList& packetList, const SharedNodePointer& destinationNode) {};
     qint64 sendPacketList(PacketList& packetList, const HifiSockAddr& sockAddr) {};
 
@@ -179,11 +179,11 @@ public:
     void getPacketStats(float &packetsPerSecond, float &bytesPerSecond);
     void resetPacketStats();
 
-    NLPacket&& constructPingPacket(PingType_t pingType = PingType::Agnostic);
-    NLPacket&& constructPingReplyPacket(const QByteArray& pingPacket);
+    std::unique_ptr<NLPacket> constructPingPacket(PingType_t pingType = PingType::Agnostic);
+    std::unique_ptr<NLPacket> constructPingReplyPacket(const QByteArray& pingPacket);
 
-    NLPacket&& constructICEPingPacket(PingType_t pingType, const QUuid& iceID);
-    NLPacket&& constructICEPingReplyPacket(const QByteArray& pingPacket, const QUuid& iceID);
+    std::unique_ptr<NLPacket> constructICEPingPacket(PingType_t pingType, const QUuid& iceID);
+    std::unique_ptr<NLPacket> constructICEPingReplyPacket(const QByteArray& pingPacket, const QUuid& iceID);
 
     virtual bool processSTUNResponse(const QByteArray& packet);
 
