@@ -13,17 +13,17 @@
 
 #include "LimitedNodeList.h"
 
-int64_t Packet::headerSize(PacketType::Value type) {
-    int64_t size = numBytesForArithmeticCodedPacketType(type) + sizeof(PacketVersion) +
+qint64 Packet::localHeaderSize(PacketType::Value type) {
+    qint64 size = numBytesForArithmeticCodedPacketType(type) + sizeof(PacketVersion) +
                         ((SEQUENCE_NUMBERED_PACKETS.contains(type)) ? sizeof(SequenceNumber) : 0);
     return size;
 }
 
-int64_t Packet::maxPayloadSize(PacketType::Value type) {
-    return MAX_PACKET_SIZE - headerSize(type);
+qint64 Packet::maxPayloadSize(PacketType::Value type) {
+    return MAX_PACKET_SIZE - localHeaderSize(type);
 }
 
-std::unique_ptr<Packet> Packet::create(PacketType::Value type, int64_t size) {
+std::unique_ptr<Packet> Packet::create(PacketType::Value type, qint64 size) {
     auto maxPayload = maxPayloadSize(type);
     if (size == -1) {
         // default size of -1, means biggest packet possible
@@ -38,12 +38,20 @@ std::unique_ptr<Packet> Packet::create(PacketType::Value type, int64_t size) {
     return std::unique_ptr<Packet>(new Packet(type, size));
 }
 
-Packet::Packet(PacketType::Value type, int64_t size) :
-    _packetSize(headerSize(type) + size),
+qint64 Packet::totalHeadersSize() const {
+    return localHeaderSize();
+}
+
+qint64 Packet::localHeaderSize() const {
+    return localHeaderSize(_type);
+}
+
+Packet::Packet(PacketType::Value type, qint64 size) :
+    _type(type),
+    _packetSize(localHeaderSize(_type) + size),
     _packet(new char(_packetSize)),
-    _payloadStart(_packet.get() + headerSize(type)),
+    _payloadStart(_packet.get() + localHeaderSize(_type)),
     _capacity(size) {
-        
         // Sanity check
         Q_ASSERT(size <= maxPayloadSize(type));
         
@@ -57,18 +65,17 @@ Packet::Packet(PacketType::Value type, int64_t size) :
 }
 
 PacketType::Value Packet::getPacketType() const {
-    return *reinterpret_cast<PacketType::Value*>(_packet.get());
+    return (PacketType::Value)arithmeticCodingValueFromBuffer(_packet.get());
 }
 
 PacketVersion Packet::getPacketTypeVersion() const {
-    return *reinterpret_cast<PacketVersion*>(_packet.get() + numBytesForArithmeticCodedPacketType(getPacketType()));
+    return *reinterpret_cast<PacketVersion*>(_packet.get() + numBytesForArithmeticCodedPacketType(_type));
 }
 
 Packet::SequenceNumber Packet::getSequenceNumber() const {
-    PacketType::Value type{ getPacketType() };
-    if (SEQUENCE_NUMBERED_PACKETS.contains(type)) {
+    if (SEQUENCE_NUMBERED_PACKETS.contains(_type)) {
         SequenceNumber seqNum = *reinterpret_cast<SequenceNumber*>(_packet.get() +
-                                                                   numBytesForArithmeticCodedPacketType(type) +
+                                                                   numBytesForArithmeticCodedPacketType(_type) +
                                                                    sizeof(PacketVersion));
         return seqNum & ~(1 << 15); // remove control bit
     }
@@ -76,10 +83,9 @@ Packet::SequenceNumber Packet::getSequenceNumber() const {
 }
 
 bool Packet::isControlPacket() const {
-    auto type = getPacketType();
-    if (SEQUENCE_NUMBERED_PACKETS.contains(type)) {
+    if (SEQUENCE_NUMBERED_PACKETS.contains(_type)) {
         SequenceNumber seqNum = *reinterpret_cast<SequenceNumber*>(_packet.get() +
-                                                                   numBytesForArithmeticCodedPacketType(type) +
+                                                                   numBytesForArithmeticCodedPacketType(_type) +
                                                                    sizeof(PacketVersion));
         return seqNum & (1 << 15); // Only keep control bit
     }
@@ -96,11 +102,10 @@ void Packet::setPacketTypeAndVersion(PacketType::Value type) {
 }
 
 void Packet::setSequenceNumber(SequenceNumber seqNum) {
-    auto type = getPacketType();
     // Here we are overriding the control bit to 0.
     // But that is not an issue since we should only ever set the seqNum
     // for data packets going out
-    memcpy(_packet.get() + numBytesForArithmeticCodedPacketType(type) + sizeof(PacketVersion),
+    memcpy(_packet.get() + numBytesForArithmeticCodedPacketType(_type) + sizeof(PacketVersion),
            &seqNum, sizeof(seqNum));
 }
 

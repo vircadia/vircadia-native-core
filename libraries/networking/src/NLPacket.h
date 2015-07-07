@@ -16,17 +16,19 @@
 
 class NLPacket : public Packet {
 public:
-    static int64_t headerSize(PacketType::Value type);
+    static std::unique_ptr<NLPacket> create(PacketType::Value type, int64_t size = -1);
+    
+    static int64_t localHeaderSize(PacketType::Value type);
     static int64_t maxPayloadSize(PacketType::Value type);
     
-    static std::unique_ptr<NLPacket> create(PacketType::Value type, int64_t size = -1);
+    virtual qint64 totalHeadersSize() const; // Cumulated size of all the headers
+    virtual qint64 localHeaderSize() const;  // Current level's header size
     
 protected:
     NLPacket(PacketType::Value type, int64_t size);
     
     void setSourceUuid(QUuid sourceUuid);
     void setConnectionUuid(QUuid connectionUuid);
-    
 };
 
 #endif // hifi_NLPacket_h
