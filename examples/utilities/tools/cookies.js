@@ -1,19 +1,18 @@
 //
 //  cookies.js
 //
-//  version 1.0
+//  version 2.0
 //
 //  Created by Sam Gateau, 4/1/2015
 //  A simple ui panel that present a list of porperties and the proper widget to edit it
-//
+//  
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
 // The Slider class
 Slider = function(x,y,width,thumbSize) {
     this.background = Overlays.addOverlay("text", {
-                    backgroundColor: { red: 125, green: 125, blue: 255 },
+                    backgroundColor: { red: 200, green: 200, blue: 255 },
                     x: x,
                     y: y,
                     width: width,
@@ -93,8 +92,8 @@ Slider = function(x,y,width,thumbSize) {
         this.isMoving = false;
     };
 
-    // Public members:
 
+    // Public members:
     this.setNormalizedValue = function(value) {
         if (value < 0.0) {
             this.thumbX = this.minThumbX;
@@ -119,23 +118,6 @@ Slider = function(x,y,width,thumbSize) {
     };
 
     this.onValueChanged = function(value) {};
-
-    this.setMaxValue = function(maxValue) {
-        if (this.maxValue == maxValue) {
-            return;
-        }
-        var currentVal = this.getValue();
-        this.maxValue = maxValue;
-        this.setValue(currentVal);
-    }
-    this.setMinValue = function(minValue) {
-        if (this.minValue == minValue) {
-            return;
-        }
-        var currentVal = this.getValue();
-        this.minValue = minValue;
-        this.setValue(currentVal);
-    }    
 
     this.destroy = function() {
         Overlays.deleteOverlay(this.background);
@@ -151,10 +133,22 @@ Slider = function(x,y,width,thumbSize) {
 }
 
 // The Checkbox class
-Checkbox = function(x,y,thumbSize) {
+Checkbox = function(x,y,width,thumbSize) {
+
+    this.background = Overlays.addOverlay("text", {
+                    backgroundColor: { red: 125, green: 125, blue: 255 },
+                    x: x,
+                    y: y,
+                    width: width,
+                    height: thumbSize,
+                    alpha: 1.0,
+                    backgroundAlpha: 0.5,
+                    visible: true
+                });
 
     this.thumb = Overlays.addOverlay("text", {
                     backgroundColor: { red: 255, green: 255, blue: 255 },
+                    textFontSize: 10,
                     x: x,
                     y: y,
                     width: thumbSize,
@@ -163,99 +157,83 @@ Checkbox = function(x,y,thumbSize) {
                     backgroundAlpha: 1.0,
                     visible: true
                 });
-    this.background = Overlays.addOverlay("text", {
-                    backgroundColor: { red: 125, green: 125, blue: 255 },
-                    x: x,
-                    y: y,
-                    width: thumbSize * 2,
-                    height: thumbSize,
+
+    
+    this.thumbSize = thumbSize;
+    var checkX = x + (0.25 * thumbSize);
+    var checkY = y + (0.25 * thumbSize);
+
+    
+    var checkMark = Overlays.addOverlay("text", {
+                    backgroundColor: { red: 0, green: 255, blue: 0 },
+                    x: checkX,
+                    y: checkY,
+                    width: thumbSize / 2.0,
+                    height: thumbSize / 2.0,
                     alpha: 1.0,
-                    backgroundAlpha: 0.5,
                     visible: true
                 });
 
-    this.thumbSize = thumbSize;
-    this.thumbHalfSize = 0.5 * thumbSize;
+    var unCheckMark = Overlays.addOverlay("image", {
+                    backgroundColor: { red: 255, green: 255, blue: 255 },
+                    x: checkX + 1.0,
+                    y: checkY + 1.0,
+                    width: thumbSize / 2.5,
+                    height: thumbSize / 2.5,
+                    alpha: 1.0,
+                    visible: boxCheckStatus
+                });
 
-    this.minThumbX = x + this.thumbHalfSize;
-    this.maxThumbX = x + thumbSize * 2 - this.thumbHalfSize;
-    this.thumbX = this.minThumbX;
+    
+    var boxCheckStatus;
+    var clickedBox = false;
 
-    this.minValue = 0.0;
-    this.maxValue = 1.0;
-
-    this.clickOffsetX = 0;
-    this.isMoving = false;
-
-    this.updateThumb = function() { 
-        thumbTruePos = this.thumbX - 0.5 * this.thumbSize;
-        Overlays.editOverlay(this.thumb, { x: thumbTruePos } );
+    this.updateThumb = function() {   
+        if (clickedBox) {
+            boxCheckStatus = !boxCheckStatus;
+            if (boxCheckStatus) {
+                Overlays.editOverlay(unCheckMark, { visible: false });
+            } else {
+                Overlays.editOverlay(unCheckMark, { visible: true });
+            }
+        }
     };
 
     this.isClickableOverlayItem = function(item) {
-        return item == this.background;
+        return (item == this.thumb) || (item == checkMark) || (item == unCheckMark);
     };
-
-    this.onMouseMoveEvent = function(event) { 
-        if (this.isMoving) {
-            newThumbX = event.x - this.clickOffsetX;
-            if (newThumbX < this.minThumbX) {
-                newThumbX = this.minThumbX;
-            }
-            if (newThumbX > this.maxThumbX) {
-                newThumbX = this.maxThumbX;
-            }
-            this.thumbX = newThumbX;
-            this.updateThumb();
-            this.onValueChanged(this.getValue());
-        }
-    };
-
+    
     this.onMousePressEvent = function(event, clickedOverlay) {
-        if (this.background != clickedOverlay) {
+        if (!this.isClickableOverlayItem(clickedOverlay)) {
             this.isMoving = false;
+            clickedBox = false;
             return;
         }
-        this.isMoving = true;
-        var clickOffset = event.x - this.thumbX;
-        if ((clickOffset > -this.thumbHalfSize) && (clickOffset < this.thumbHalfSize)) {
-            this.clickOffsetX = clickOffset;
-        } else {
-            this.clickOffsetX = 0;
-            this.thumbX = event.x;
-            this.updateThumb();
-            this.onValueChanged(this.getValue());
-        }
-
+        
+        clickedBox = true;
+        this.updateThumb();
+        this.onValueChanged(this.getValue());
     };
 
     this.onMouseReleaseEvent = function(event) {
-        this.isMoving = false;
+        this.clickedBox = false;
     };
 
     // Public members:
-
     this.setNormalizedValue = function(value) {
-        if (value < 0.0) {
-            this.thumbX = this.minThumbX;
-        } else if (value > 1.0) {
-            this.thumbX = this.maxThumbX;
-        } else {
-            this.thumbX = value * (this.maxThumbX - this.minThumbX) + this.minThumbX;
-        }
-        this.updateThumb();
+        boxCheckStatus = value;
     };
+
     this.getNormalizedValue = function() {
-        return (this.thumbX - this.minThumbX) / (this.maxThumbX - this.minThumbX);
+        return boxCheckStatus; 
     };
 
     this.setValue = function(value) {
-        var normValue = (value - this.minValue) / (this.maxValue - this.minValue);
-        this.setNormalizedValue(normValue);
+        this.setNormalizedValue(value);
     };
 
     this.getValue = function() {
-        return this.getNormalizedValue() * (this.maxValue - this.minValue) + this.minValue;
+        return boxCheckStatus;
     };
 
     this.onValueChanged = function(value) {};
@@ -263,7 +241,17 @@ Checkbox = function(x,y,thumbSize) {
     this.destroy = function() {
         Overlays.deleteOverlay(this.background);
         Overlays.deleteOverlay(this.thumb);
+        Overlays.deleteOverlay(checkMark);
+        Overlays.deleteOverlay(unCheckMark);
     };
+
+    this.setThumbColor = function(color) {
+        Overlays.editOverlay(this.thumb, { red: 255, green: 255, blue: 255 } );
+    };
+    this.setBackgroundColor = function(color) {
+        Overlays.editOverlay(this.background, { red: 125, green: 125, blue: 255  });
+    };
+
 }
 
 // The ColorBox class
@@ -428,13 +416,21 @@ DirectionBox = function(x,y,width,thumbSize) {
     this.onValueChanged = function(value) {};
 }
 
-var textFontSize = 16;
+var textFontSize = 12;
 
 function PanelItem(name, setter, getter, displayer, x, y, textWidth, valueWidth, height) {
+    //print("creating panel item: " + name);
+    
     this.name = name;
 
-
-    this.displayer = typeof displayer !== 'undefined' ? displayer : function(value) { return value.toFixed(2); };
+    this.displayer = typeof displayer !== 'undefined' ? displayer : function(value) { 
+        if(value == true) { 
+            return "On";
+        } else if (value == false) {
+            return "Off";
+        }
+        return value.toFixed(2); 
+    };
 
     var topMargin = (height - textFontSize);
     this.title = Overlays.addOverlay("text", {
@@ -463,21 +459,28 @@ function PanelItem(name, setter, getter, displayer, x, y, textWidth, valueWidth,
                     text: this.displayer(getter()),
                     font: {size: textFontSize},
                     topMargin: topMargin
-
                 });
+
     this.getter = getter;
+    this.resetValue = getter();
 
     this.setter = function(value) {
+        
         setter(value);
+
         Overlays.editOverlay(this.value, {text: this.displayer(getter())});
+
         if (this.widget) {
             this.widget.setValue(value);
-        }    
+        } 
+
+        //print("successfully set value of widget to " + value);
     };
     this.setterFromWidget = function(value) {
         setter(value);
         // ANd loop back the value after the final setter has been called
         var value = getter();
+
         if (this.widget) {
             this.widget.setValue(value);
         }        
@@ -519,7 +522,6 @@ Panel = function(x, y) {
         }
     };
 
-    // we also handle click detection in our mousePressEvent()
     this.mousePressEvent = function(event) {
         // Make sure we quitted previous widget
         if (this.activeWidget) {
@@ -536,11 +538,27 @@ Panel = function(x, y) {
             if (widget.isClickableOverlayItem(clickedOverlay)) {
                 this.activeWidget = widget;
                 this.activeWidget.onMousePressEvent(event, clickedOverlay);        
-              //  print("clicked... widget=" + i);        
+              
                 break;
             }    
         }  
     };
+
+    // Reset panel item upon double-clicking
+    this.mouseDoublePressEvent = function(event) {
+        var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
+        for (var i in this.items) {
+
+            var item = this.items[i]; 
+            var widget = item.widget;
+            
+            if (item.title == clickedOverlay || item.value == clickedOverlay) {
+                widget.updateThumb();
+                widget.onValueChanged(item.resetValue);
+                break;
+            }    
+        }  
+    }
 
     this.mouseReleaseEvent = function(event) {
         if (this.activeWidget) {
@@ -557,27 +575,31 @@ Panel = function(x, y) {
         slider.minValue = minValue;
         slider.maxValue = maxValue;
 
-
         item.widget = slider;
         item.widget.onValueChanged = function(value) { item.setterFromWidget(value); };
-        item.setter(getValue());        
+        item.setter(getValue());      
         this.items[name] = item;
-        this.nextY += rawYDelta;
-      //  print("created Item... slider=" + name);     
+        this.nextY += rawYDelta; 
     };
 
     this.newCheckbox = function(name, setValue, getValue, displayValue) {
+        var display;
+        if (displayValue == true) {
+            display = function() {return "On";};
+        } else if (displayValue == false) {
+            display = function() {return "Off";};
+        }
+ 
+        var item = new PanelItem(name, setValue, getValue, display, this.x, this.nextY, textWidth, valueWidth, rawHeight);
 
-        var item = new PanelItem(name, setValue, getValue, displayValue, this.x, this.nextY, textWidth, valueWidth, rawHeight);
-
-        var checkbox = new Checkbox(this.widgetX, this.nextY, rawHeight);
+        var checkbox = new Checkbox(this.widgetX, this.nextY, widgetWidth, rawHeight);
  
         item.widget = checkbox;
         item.widget.onValueChanged = function(value) { item.setterFromWidget(value); };
-        item.setter(getValue());        
+        item.setter(getValue()); 
         this.items[name] = item;
         this.nextY += rawYDelta;
-      //  print("created Item... slider=" + name);     
+        //print("created Item... checkbox=" + name);     
     };
 
     this.newColorBox = function(name, setValue, getValue, displayValue) {
@@ -626,14 +648,6 @@ Panel = function(x, y) {
         var item = this.items[name];
         if (item != null) {
             return item.getter();
-        }
-        return null;
-    }
-
-    this.getWidget = function(name) {
-        var item = this.items[name];
-        if (item != null) {
-            return item.widget;
         }
         return null;
     }

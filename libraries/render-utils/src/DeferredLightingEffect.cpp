@@ -51,37 +51,44 @@
 
 static const std::string glowIntensityShaderHandle = "glowIntensity";
 
+gpu::PipelinePointer DeferredLightingEffect::getPipeline(SimpleProgramKey config) {
+    auto it = _simplePrograms.find(config);
+    if (it != _simplePrograms.end()) {
+        return it.value();
+    }
+    
+    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    if (config.isCulled()) {
+        state->setCullMode(gpu::State::CULL_BACK);
+    } else {
+        state->setCullMode(gpu::State::CULL_NONE);
+    }
+    state->setDepthTest(true, true, gpu::LESS_EQUAL);
+    if (config.hasDepthBias()) {
+        state->setDepthBias(1.0f);
+        state->setDepthBiasSlopeScale(1.0f);
+    }
+    state->setBlendFunction(false,
+                            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+    
+    gpu::ShaderPointer program = (config.isEmissive()) ? _emissiveShader : _simpleShader;
+    gpu::PipelinePointer pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+    _simplePrograms.insert(config, pipeline);
+    return pipeline;
+}
+
 void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     auto VS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(simple_vert)));
     auto PS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(simple_textured_frag)));
     auto PSEmissive = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(simple_textured_emisive_frag)));
     
-    gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PS));
-    gpu::ShaderPointer programEmissive = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PSEmissive));
+    _simpleShader = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PS));
+    _emissiveShader = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PSEmissive));
     
     gpu::Shader::BindingSet slotBindings;
-    gpu::Shader::makeProgram(*program, slotBindings);
-    gpu::Shader::makeProgram(*programEmissive, slotBindings);
-    
-    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-    state->setCullMode(gpu::State::CULL_BACK);
-    state->setDepthTest(true, true, gpu::LESS_EQUAL);
-    state->setBlendFunction(false,
-                            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-    
-    
-    gpu::StatePointer stateCullNone = gpu::StatePointer(new gpu::State());
-    stateCullNone->setCullMode(gpu::State::CULL_NONE);
-    stateCullNone->setDepthTest(true, true, gpu::LESS_EQUAL);
-    stateCullNone->setBlendFunction(false,
-                            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-    
-    _simpleProgram = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
-    _simpleProgramCullNone = gpu::PipelinePointer(gpu::Pipeline::create(program, stateCullNone));
-    _simpleProgramEmissive = gpu::PipelinePointer(gpu::Pipeline::create(programEmissive, state));
-    _simpleProgramEmissiveCullNone = gpu::PipelinePointer(gpu::Pipeline::create(programEmissive, stateCullNone));
+    gpu::Shader::makeProgram(*_simpleShader, slotBindings);
+    gpu::Shader::makeProgram(*_emissiveShader, slotBindings);
 
     _viewState = viewState;
     loadLightProgram(directional_light_frag, false, _directionalLight, _directionalLightLocations);
@@ -131,21 +138,12 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset(_ambientLightMode % gpu::SphericalHarmonics::NUM_PRESET));
 }
 
-void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled, bool emmisive) {
-    if (emmisive) {
-        if (culled) {
-            batch.setPipeline(_simpleProgramEmissive);
-        } else {
-            batch.setPipeline(_simpleProgramEmissiveCullNone);
-        }
-    } else {
-        if (culled) {
-            batch.setPipeline(_simpleProgram);
-        } else {
-            batch.setPipeline(_simpleProgramCullNone);
-        }
-    }
-    if (!textured) {
+void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled,
+                                               bool emmisive, bool depthBias) {
+    SimpleProgramKey config{textured, culled, emmisive, depthBias};
+    batch.setPipeline(getPipeline(config));
+    
+    if (!config.isTextured()) {
         // If it is not textured, bind white texture and keep using textured pipeline
         batch.setUniformTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
     }
@@ -220,8 +218,7 @@ void DeferredLightingEffect::prepare(RenderArgs* args) {
 
     auto textureCache = DependencyManager::get<TextureCache>();
     gpu::Batch batch;
- //   batch.setFramebuffer(textureCache->getPrimaryFramebuffer());
-
+    
     // clear the normal and specular buffers
     batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR1, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
     const float MAX_SPECULAR_EXPONENT = 128.0f;
@@ -229,60 +226,28 @@ void DeferredLightingEffect::prepare(RenderArgs* args) {
 
     args->_context->syncCache();
     args->_context->render(batch);
-/*
-    textureCache->setPrimaryDrawBuffers(false, true, false);
-    glClear(GL_COLOR_BUFFER_BIT);
-    textureCache->setPrimaryDrawBuffers(false, false, true);
-    // clearing to zero alpha for specular causes problems on my Nvidia card; clear to lowest non-zero value instead
-    const float MAX_SPECULAR_EXPONENT = 128.0f;
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f / MAX_SPECULAR_EXPONENT);
-    glClear(GL_COLOR_BUFFER_BIT);*/
-  /*  glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    textureCache->setPrimaryDrawBuffers(true, false, false);
-*/}
+}
 
 void DeferredLightingEffect::render(RenderArgs* args) {
     gpu::Batch batch;
 
     // perform deferred lighting, rendering to free fbo
-   /* glDisable(GL_BLEND);
-    glDisable(GL_LIGHTING);
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_COLOR_MATERIAL);
-    glDepthMask(false);
-    */
     auto textureCache = DependencyManager::get<TextureCache>();
     
-   // glBindFramebuffer(GL_FRAMEBUFFER, 0 );
-
     QSize framebufferSize = textureCache->getFrameBufferSize();
     
     // binding the first framebuffer
     auto freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebuffer();
-
     batch.setFramebuffer(freeFBO);
-
-    //glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(freeFBO));
  
     batch.clearColorFramebuffer(freeFBO->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
-
-   // glClear(GL_COLOR_BUFFER_BIT);
-
-   // glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
-   // glBindTexture(GL_TEXTURE_2D, textureCache->getPrimaryColorTextureID());
     
     batch.setUniformTexture(0, textureCache->getPrimaryColorTexture());
 
-   // glActiveTexture(GL_TEXTURE1);
-   // glBindTexture(GL_TEXTURE_2D, textureCache->getPrimaryNormalTextureID());
     batch.setUniformTexture(1, textureCache->getPrimaryNormalTexture());
     
-  //  glActiveTexture(GL_TEXTURE2);
-   // glBindTexture(GL_TEXTURE_2D, textureCache->getPrimarySpecularTextureID());
     batch.setUniformTexture(2, textureCache->getPrimarySpecularTexture());
     
-  //  glActiveTexture(GL_TEXTURE3);
-  //  glBindTexture(GL_TEXTURE_2D, textureCache->getPrimaryDepthTextureID());
     batch.setUniformTexture(3, textureCache->getPrimaryDepthTexture());
         
     // get the viewport side (left, right, both)
@@ -304,14 +269,10 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     glm::mat4 invViewMat;
     _viewState->getViewTransform().getMatrix(invViewMat);
 
-  //  ProgramObject* program = &_directionalLight;
     auto& program = _directionalLight;
     const LightLocations* locations = &_directionalLightLocations;
     bool shadowsEnabled = _viewState->getShadowsEnabled();
     if (shadowsEnabled) {
-        
-      //  glActiveTexture(GL_TEXTURE4);
-     //   glBindTexture(GL_TEXTURE_2D, textureCache->getShadowDepthTextureID());
         batch.setUniformTexture(4, textureCache->getShadowFramebuffer()->getDepthStencilBuffer());
         
         program = _directionalLightShadowMap;
@@ -327,8 +288,6 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                 locations = &_directionalAmbientSphereLightCascadedShadowMapLocations;
             }
             batch.setPipeline(program);
-            //program->bind();
-           // program->setUniform(locations->shadowDistances, _viewState->getShadowDistances());
             batch._glUniform3fv(locations->shadowDistances, 1, (const GLfloat*) &_viewState->getShadowDistances());
         
         } else {
@@ -341,7 +300,6 @@ void DeferredLightingEffect::render(RenderArgs* args) {
             }
             batch.setPipeline(program);
         }
-      //  program->setUniformValue(locations->shadowScale, 1.0f / textureCache->getShadowFramebuffer()->getWidth());
         batch._glUniform1f(locations->shadowScale, 1.0f / textureCache->getShadowFramebuffer()->getWidth());
         
     } else {
@@ -355,7 +313,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         batch.setPipeline(program);
     }
 
-    {
+    { // Setup the global lighting
         auto globalLight = _allocatedLights[_globalLights.front()];
     
         if (locations->ambientSphere >= 0) {
@@ -363,45 +321,31 @@ void DeferredLightingEffect::render(RenderArgs* args) {
             if (useSkyboxCubemap && _skybox->getCubemap()->getIrradiance()) {
                 sh = (*_skybox->getCubemap()->getIrradiance());
             }
-          //  batch._glUniform4fv(locations->ambientSphere, gpu::SphericalHarmonics::NUM_COEFFICIENTS, (const GLfloat*) (&sh));
-            
-             for (int i =0; i <gpu::SphericalHarmonics::NUM_COEFFICIENTS; i++) {
-                batch._glUniform4fv(locations->ambientSphere + i, 1, (const GLfloat*) (&sh) + i * 4);
-             }
-        /*    for (int i =0; i <gpu::SphericalHarmonics::NUM_COEFFICIENTS; i++) {
-                program->setUniformValue(locations->ambientSphere + i, *(((QVector4D*) &sh) + i)); 
-            }*/
+            for (int i =0; i <gpu::SphericalHarmonics::NUM_COEFFICIENTS; i++) {
+               batch._glUniform4fv(locations->ambientSphere + i, 1, (const GLfloat*) (&sh) + i * 4);
+            }
         }
     
         if (useSkyboxCubemap) {
-         //   glActiveTexture(GL_TEXTURE5);
-           // glBindTexture(GL_TEXTURE_CUBE_MAP, gpu::GLBackend::getTextureID(_skybox->getCubemap()));
             batch.setUniformTexture(5, _skybox->getCubemap());
         }
 
         if (locations->lightBufferUnit >= 0) {
-            //gpu::Batch batch;
             batch.setUniformBuffer(locations->lightBufferUnit, globalLight->getSchemaBuffer());
-            //gpu::GLBackend::renderBatch(batch);
         }
         
         if (_atmosphere && (locations->atmosphereBufferUnit >= 0)) {
-            //gpu::Batch batch;
             batch.setUniformBuffer(locations->atmosphereBufferUnit, _atmosphere->getDataBuffer());
-            //gpu::GLBackend::renderBatch(batch);
         }
-       // glUniformMatrix4fv(locations->invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
         batch._glUniformMatrix4fv(locations->invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
     }
 
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
     _viewState->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
-  //  program->setUniformValue(locations->nearLocation, nearVal);
     batch._glUniform1f(locations->nearLocation, nearVal);
 
     float depthScale = (farVal - nearVal) / farVal;
-   // program->setUniformValue(locations->depthScale, depthScale);
     batch._glUniform1f(locations->depthScale, depthScale);
 
     float nearScale = -1.0f / nearVal;
@@ -409,20 +353,18 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     float depthTexCoordScaleT = (top - bottom) * nearScale / tHeight;
     float depthTexCoordOffsetS = left * nearScale - sMin * depthTexCoordScaleS;
     float depthTexCoordOffsetT = bottom * nearScale - tMin * depthTexCoordScaleT;
-   // program->setUniformValue(locations->depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
-   // program->setUniformValue(locations->depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
     batch._glUniform2f(locations->depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
     batch._glUniform2f(locations->depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
     
-    Transform model;
-    model.setTranslation(glm::vec3(sMin, tMin, 0.0));
-    model.setScale(glm::vec3(sWidth, tHeight, 1.0));
-    batch.setModelTransform(model);
-
-    batch.setProjectionTransform(glm::mat4());
-    batch.setViewTransform(Transform());
-
     {
+        Transform model;
+        model.setTranslation(glm::vec3(sMin, tMin, 0.0));
+        model.setScale(glm::vec3(sWidth, tHeight, 1.0));
+        batch.setModelTransform(model);
+
+        batch.setProjectionTransform(glm::mat4());
+        batch.setViewTransform(Transform());
+
         glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
         glm::vec2 topLeft(-1.0f, -1.0f);
         glm::vec2 bottomRight(1.0f, 1.0f);
@@ -432,41 +374,16 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color);
     }
 
-   // renderFullscreenQuad(sMin, sMin + sWidth, tMin, tMin + tHeight);
-   // batch.draw(gpu::TRIANGLE_STRIP, 4); // full screen quad
-
-   // args->_context->syncCache();
-   // args->_context->render(batch);
-    //program->release();
-
     if (useSkyboxCubemap) {
         batch.setUniformTexture(5, nullptr);
-    
-      //  glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-      //  if (!shadowsEnabled) {
-      //      glActiveTexture(GL_TEXTURE3);
-      //  }
     }
 
     if (shadowsEnabled) {
         batch.setUniformTexture(4, nullptr);
- //       glBindTexture(GL_TEXTURE_2D, 0);        
-  //      glActiveTexture(GL_TEXTURE3);
     }
-
-
-    // additive blending
-  //  glEnable(GL_BLEND);
-  //  glBlendFunc(GL_ONE, GL_ONE);
-    
-  //  glEnable(GL_CULL_FACE);
-    
 
     glm::vec4 sCoefficients(sWidth / 2.0f, 0.0f, 0.0f, sMin + sWidth / 2.0f);
     glm::vec4 tCoefficients(0.0f, tHeight / 2.0f, 0.0f, tMin + tHeight / 2.0f);
-   // glTexGenfv(GL_S, GL_OBJECT_PLANE, (const GLfloat*)&sCoefficients);
-   // glTexGenfv(GL_T, GL_OBJECT_PLANE, (const GLfloat*)&tCoefficients);
-  //  texcoordMat
     auto texcoordMat = glm::mat4();
     texcoordMat[0] = glm::vec4(sWidth / 2.0f, 0.0f, 0.0f, sMin + sWidth / 2.0f);
     texcoordMat[1] = glm::vec4(0.0f, tHeight / 2.0f, 0.0f, tMin + tHeight / 2.0f);
@@ -550,40 +467,33 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
         for (auto lightID : _spotLights) {
             auto light = _allocatedLights[lightID];
-            light->setShowContour(true);
-            if (_spotLightLocations.lightBufferUnit >= 0) {
-                batch.setUniformBuffer(_spotLightLocations.lightBufferUnit, light->getSchemaBuffer());
-            }
+            // IN DEBUG: light->setShowContour(true);
+            batch.setUniformBuffer(_spotLightLocations.lightBufferUnit, light->getSchemaBuffer());
             
             float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
             float edgeRadius = expandedRadius / glm::cos(light->getSpotAngle());
             if (glm::distance(eyePoint, glm::vec3(light->getPosition())) < edgeRadius + nearRadius) {
-
                 Transform model;
                 model.setTranslation(glm::vec3(0.0f, 0.0f, -1.0f));
                 batch.setModelTransform(model);
                 batch.setViewTransform(Transform());
                 batch.setProjectionTransform(glm::mat4());
-                {
-                    glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
-                    glm::vec2 topLeft(-1.0f, -1.0f);
-                    glm::vec2 bottomRight(1.0f, 1.0f);
-                    glm::vec2 texCoordTopLeft(sMin, tMin);
-                    glm::vec2 texCoordBottomRight(sMin + sWidth, tMin + tHeight);
-
-                    DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color);
-                    
-                    batch.setProjectionTransform(projMat);
-                    batch.setViewTransform(viewMat);
-                }
                 
+                glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
+                glm::vec2 topLeft(-1.0f, -1.0f);
+                glm::vec2 bottomRight(1.0f, 1.0f);
+                glm::vec2 texCoordTopLeft(sMin, tMin);
+                glm::vec2 texCoordBottomRight(sMin + sWidth, tMin + tHeight);
+
+                DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color);
+                
+                batch.setProjectionTransform(projMat);
+                batch.setViewTransform(viewMat);
             } else {
                 Transform model;
                 model.setTranslation(glm::vec3(light->getPosition().x, light->getPosition().y, light->getPosition().z));
 
                 glm::quat spotRotation = rotationBetween(glm::vec3(0.0f, 0.0f, -1.0f), light->getDirection());
-                glm::vec3 axis = glm::axis(spotRotation);
-
                 model.postRotate(spotRotation);
 
                 float base = expandedRadius * glm::tan(light->getSpotAngle());
@@ -619,46 +529,19 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 }
 
 void DeferredLightingEffect::copyBack(RenderArgs* args) {
-
     gpu::Batch batch;
-
     auto textureCache = DependencyManager::get<TextureCache>();
     QSize framebufferSize = textureCache->getFrameBufferSize();
 
     auto freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebuffer();
 
-    //freeFBO->release();
-  //  glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    
-  //  glDisable(GL_CULL_FACE);
-    
-    // now transfer the lit region to the primary fbo
-  //  glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
-  //  glColorMask(true, true, true, false);
-    
-    auto primaryFBO = gpu::GLBackend::getFramebufferID(textureCache->getPrimaryFramebuffer());
-//    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, primaryFBO);
     batch.setFramebuffer(textureCache->getPrimaryFramebuffer());
     batch.setPipeline(_blitLightBuffer);
-
-    //primaryFBO->bind();
-    
-   // glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(freeFBO->getRenderBuffer(0)));
-   // glEnable(GL_TEXTURE_2D);
     
     batch.setUniformTexture(0, freeFBO->getRenderBuffer(0));
 
-   /* glPushMatrix();
-    glLoadIdentity();
-    
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    */
-
-     batch.setProjectionTransform(glm::mat4());
-     batch.setViewTransform(Transform());
+    batch.setProjectionTransform(glm::mat4());
+    batch.setViewTransform(Transform());
 
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
@@ -685,92 +568,12 @@ void DeferredLightingEffect::copyBack(RenderArgs* args) {
 
     args->_context->syncCache();
     args->_context->render(batch);
-//    renderFullscreenQuad(sMin, sMin + sWidth, tMin, tMin + tHeight);
-    
-  //  glBindTexture(GL_TEXTURE_2D, 0);
-  //  glDisable(GL_TEXTURE_2D);
-    
- /*   glColorMask(true, true, true, true);
-    glEnable(GL_LIGHTING);
-    glEnable(GL_COLOR_MATERIAL);
-    glEnable(GL_DEPTH_TEST);
-    glDepthMask(true);
-    
-    glPopMatrix();
-    
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();*/
 }
 
 void DeferredLightingEffect::setupTransparent(RenderArgs* args, int lightBufferUnit) {
     auto globalLight = _allocatedLights[_globalLights.front()];
     args->_batch->setUniformBuffer(lightBufferUnit, globalLight->getSchemaBuffer());
 }
-/*
-void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool limited, ProgramObject& program, LightLocations& locations) {
-    program.addShaderFromSourceCode(QGLShader::Vertex, (limited ? deferred_light_limited_vert : deferred_light_vert));
-    program.addShaderFromSourceCode(QGLShader::Fragment, fragSource);
-    program.link();
-    
-    program.bind();
-    program.setUniformValue("diffuseMap", 0);
-    program.setUniformValue("normalMap", 1);
-    program.setUniformValue("specularMap", 2);
-    program.setUniformValue("depthMap", 3);
-    program.setUniformValue("shadowMap", 4);
-    program.setUniformValue("skyboxMap", 5);
-    locations.shadowDistances = program.uniformLocation("shadowDistances");
-    locations.shadowScale = program.uniformLocation("shadowScale");
-    locations.nearLocation = program.uniformLocation("near");
-    locations.depthScale = program.uniformLocation("depthScale");
-    locations.depthTexCoordOffset = program.uniformLocation("depthTexCoordOffset");
-    locations.depthTexCoordScale = program.uniformLocation("depthTexCoordScale");
-    locations.radius = program.uniformLocation("radius");
-    locations.ambientSphere = program.uniformLocation("ambientSphere.L00");
-    locations.invViewMat = program.uniformLocation("invViewMat");
-
-    GLint loc = -1;
-
-#if (GPU_FEATURE_PROFILE == GPU_CORE)
-    const GLint LIGHT_GPU_SLOT = 3;
-    loc = glGetUniformBlockIndex(program.programId(), "lightBuffer");
-    if (loc >= 0) {
-        glUniformBlockBinding(program.programId(), loc, LIGHT_GPU_SLOT);
-        locations.lightBufferUnit = LIGHT_GPU_SLOT;
-    } else {
-        locations.lightBufferUnit = -1;
-    }
-#else
-    loc = program.uniformLocation("lightBuffer");
-    if (loc >= 0) {
-        locations.lightBufferUnit = loc;
-    } else {
-        locations.lightBufferUnit = -1;
-    }
-#endif
-
-#if (GPU_FEATURE_PROFILE == GPU_CORE)
-    const GLint ATMOSPHERE_GPU_SLOT = 4;
-    loc = glGetUniformBlockIndex(program.programId(), "atmosphereBufferUnit");
-    if (loc >= 0) {
-        glUniformBlockBinding(program.programId(), loc, ATMOSPHERE_GPU_SLOT);
-        locations.atmosphereBufferUnit = ATMOSPHERE_GPU_SLOT;
-    } else {
-        locations.atmosphereBufferUnit = -1;
-    }
-#else
-    loc = program.uniformLocation("atmosphereBufferUnit");
-    if (loc >= 0) {
-        locations.atmosphereBufferUnit = loc;
-    } else {
-        locations.atmosphereBufferUnit = -1;
-    }
-#endif
-
-    program.release();
-}
-*/
-
 
 void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool lightVolume, gpu::PipelinePointer& pipeline, LightLocations& locations) {
     auto VS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string((lightVolume ? deferred_light_limited_vert : deferred_light_vert))));
@@ -814,6 +617,10 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool light
     gpu::StatePointer state = gpu::StatePointer(new gpu::State());
     if (lightVolume) {
         state->setCullMode(gpu::State::CULL_BACK);
+        
+        // No need for z test since the depth buffer is not bound state->setDepthTest(true, false, gpu::LESS_EQUAL);
+        // TODO: We should bind the true depth buffer both as RT and texture for the depth test
+        // TODO: We should use DepthClamp and avoid changing geometry for inside /outside cases
         
         // additive blending
         state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
@@ -899,8 +706,6 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
         delete[] indexData;
 
         model::Mesh::Part part(0, indices, 0, model::Mesh::TRIANGLES);
-        //model::Mesh::Part part(0, indices, 0, model::Mesh::LINE_STRIP);
-        
         
         _spotLightMesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(sizeof(part), (gpu::Byte*) &part), gpu::Element::PART_DRAWCALL));
 
