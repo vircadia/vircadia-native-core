@@ -63,7 +63,7 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     Octree::eraseAllOctreeElements(createNewRoot);
 }
 
-bool EntityTree::handlesEditPacketType (PacketType::Value packetType) const {
+bool EntityTree::handlesEditPacketType(PacketType::Value packetType) const {
     // we handle these types of "edit" packets
     switch (packetType) {
         case PacketTypeEntityAdd:
@@ -572,7 +572,7 @@ EntityItemPointer EntityTree::findEntityByEntityItemID(const EntityItemID& entit
     return foundEntity;
 }
 
-int EntityTree::processEditPacketData (PacketType::Value packetType, const unsigned char* packetData, int packetLength,
+int EntityTree::processEditPacketData(PacketType::Value packetType, const unsigned char* packetData, int packetLength,
                                       const unsigned char* editData, int maxLength, const SharedNodePointer& senderNode) {
 
     if (!getIsServer()) {

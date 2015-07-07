@@ -18,7 +18,7 @@
 #include "EntityItem.h"
 
 
-void EntityEditPacketSender::adjustEditPacketForClockSkew (PacketType::Value type, 
+void EntityEditPacketSender::adjustEditPacketForClockSkew(PacketType::Value type, 
                                         unsigned char* editBuffer, size_t length, int clockSkew) {
                                         
     if (type == PacketTypeEntityAdd || type == PacketTypeEntityEdit) {
@@ -26,7 +26,7 @@ void EntityEditPacketSender::adjustEditPacketForClockSkew (PacketType::Value typ
     }
 }
 
-void EntityEditPacketSender::queueEditEntityMessage (PacketType::Value type, EntityItemID modelID, 
+void EntityEditPacketSender::queueEditEntityMessage(PacketType::Value type, EntityItemID modelID, 
                                                                 const EntityItemProperties& properties) {
     if (!_shouldSend) {
         return; // bail early
