@@ -12,8 +12,7 @@
 #include "PacketList.h"
 
 PacketList::PacketList(PacketType::Value packetType) :
-    _packetType(packetType),
-    _isOrdered(false)
+    _packetType(packetType)
 {
 
 }
