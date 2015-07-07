@@ -127,7 +127,7 @@ SharedNetworkPeer IceServer::addOrUpdateHeartbeatingPeer(const QByteArray& incom
 }
 
 void IceServer::sendPeerInformationPacket(const NetworkPeer& peer, const HifiSockAddr* destinationSockAddr) {
-    auto peerPacket { NLPacket::create(PacketType::IceServerPeerInformation); }
+    auto peerPacket = Packet::create(PacketType::IceServerPeerInformation);
 
     // get the byte array for this peer
     peerPacket->write(peer.toByteArray());
