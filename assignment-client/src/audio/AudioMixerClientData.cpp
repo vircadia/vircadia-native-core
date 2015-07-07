@@ -111,7 +111,7 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend() {
     QHash<QUuid, PositionalAudioStream*>::ConstIterator i;
     for (i = _audioStreams.constBegin(); i != _audioStreams.constEnd(); i++) {
         PositionalAudioStream* stream = i.value();
-        
+
         if (stream->popFrames(1, true) > 0) {
             stream->updateLastPopOutputLoudnessAndTrailingLoudness();
         }
@@ -147,53 +147,46 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
     // since audio stream stats packets are sent periodically, this is a good place to remove our dead injected streams.
     removeDeadInjectedStreams();
 
-    char packet[MAX_PACKET_SIZE];
     auto nodeList = DependencyManager::get<NodeList>();
 
-    // The append flag is a boolean value that will be packed right after the header.  The first packet sent 
+    // The append flag is a boolean value that will be packed right after the header.  The first packet sent
     // inside this method will have 0 for this flag, while every subsequent packet will have 1 for this flag.
     // The sole purpose of this flag is so the client can clear its map of injected audio stream stats when
     // it receives a packet with an appendFlag of 0. This prevents the buildup of dead audio stream stats in the client.
     quint8 appendFlag = 0;
-
-    // pack header
-    int numBytesPacketHeader = nodeList->populatePacketHeader(packet, PacketTypeAudioStreamStats);
-    char* headerEndAt = packet + numBytesPacketHeader;
-
-    // calculate how many stream stat structs we can fit in each packet
-    const int numStreamStatsRoomFor = (MAX_PACKET_SIZE - numBytesPacketHeader - sizeof(quint8) - sizeof(quint16)) / sizeof(AudioStreamStats);
 
     // pack and send stream stats packets until all audio streams' stats are sent
     int numStreamStatsRemaining = _audioStreams.size();
     QHash<QUuid, PositionalAudioStream*>::ConstIterator audioStreamsIterator = _audioStreams.constBegin();
     while (numStreamStatsRemaining > 0) {
 
-        char* dataAt = headerEndAt;
+        auto statsPacket { NLPacket::create(PacketType::AudioStreamStats); }
 
-        // pack the append flag
-        memcpy(dataAt, &appendFlag, sizeof(quint8));
+        // pack the append flag in this packet
+        statsPacket.write(&appendFlag, sizeof(quint8));
         appendFlag = 1;
-        dataAt += sizeof(quint8);
+
+        int numStreamStatsRoomFor = (statsPacket.size() - sizeof(quint8) - sizeof(quint16)) / sizeof(AudioStreamStats);
 
         // calculate and pack the number of stream stats to follow
         quint16 numStreamStatsToPack = std::min(numStreamStatsRemaining, numStreamStatsRoomFor);
-        memcpy(dataAt, &numStreamStatsToPack, sizeof(quint16));
-        dataAt += sizeof(quint16);
+        statsPacket.write(&numStreamStatsToPack, sizeof(quint16));
 
         // pack the calculated number of stream stats
         for (int i = 0; i < numStreamStatsToPack; i++) {
             PositionalAudioStream* stream = audioStreamsIterator.value();
+
             stream->perSecondCallbackForUpdatingStats();
+
             AudioStreamStats streamStats = stream->getAudioStreamStats();
-            memcpy(dataAt, &streamStats, sizeof(AudioStreamStats));
-            dataAt += sizeof(AudioStreamStats);
+            statsPacket.write(&streamStats, sizeof(AudioStreamStats));
 
             audioStreamsIterator++;
         }
         numStreamStatsRemaining -= numStreamStatsToPack;
 
         // send the current packet
-        nodeList->writeDatagram(packet, dataAt - packet, destinationNode);
+        nodeList->sendPacket(statsPacket, destinationNode);
     }
 }
 
@@ -220,7 +213,7 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() const {
     result["downstream"] = downstreamStats;
 
     AvatarAudioStream* avatarAudioStream = getAvatarAudioStream();
- 
+
     if (avatarAudioStream) {
         QJsonObject upstreamStats;
 
@@ -246,7 +239,7 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() const {
     } else {
         result["upstream"] = "mic unknown";
     }
-    
+
     QHash<QUuid, PositionalAudioStream*>::ConstIterator i;
     QJsonArray injectorArray;
     for (i = _audioStreams.constBegin(); i != _audioStreams.constEnd(); i++) {
@@ -270,7 +263,7 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() const {
             upstreamStats["min_gap_30s"] = formatUsecTime(streamStats._timeGapWindowMin);
             upstreamStats["max_gap_30s"] = formatUsecTime(streamStats._timeGapWindowMax);
             upstreamStats["avg_gap_30s"] = formatUsecTime(streamStats._timeGapWindowAverage);
-            
+
             injectorArray.push_back(upstreamStats);
         }
     }
@@ -304,7 +297,7 @@ void AudioMixerClientData::printAudioStreamStats(const AudioStreamStats& streamS
         streamStats._desiredJitterBufferFrames,
         streamStats._framesAvailableAverage,
         streamStats._framesAvailable);
-    
+
     printf("                 Ringbuffer stats | starves: %u, prev_starve_lasted: %u, frames_dropped: %u, overflows: %u\n",
         streamStats._starveCount,
         streamStats._consecutiveNotMixedCount,
@@ -323,10 +316,10 @@ void AudioMixerClientData::printAudioStreamStats(const AudioStreamStats& streamS
 }
 
 
-PerListenerSourcePairData* AudioMixerClientData::getListenerSourcePairData(const QUuid& sourceUUID) { 
+PerListenerSourcePairData* AudioMixerClientData::getListenerSourcePairData(const QUuid& sourceUUID) {
     if (!_listenerSourcePairData.contains(sourceUUID)) {
         PerListenerSourcePairData* newData = new PerListenerSourcePairData();
         _listenerSourcePairData[sourceUUID] = newData;
     }
-    return _listenerSourcePairData[sourceUUID]; 
+    return _listenerSourcePairData[sourceUUID];
 }
