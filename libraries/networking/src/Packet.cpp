@@ -87,7 +87,7 @@ bool Packet::isControlPacket() const {
 
 void Packet::setPacketTypeAndVersion(PacketType::Value type) {
     // Pack the packet type
-    auto offset = packArithmeticallyCodedValue(type, _packet.get());
+    auto offset = packArithmeticallyCodedValue((int)type, _packet.get());
     
     // Pack the packet version
     auto version { versionForPacketType(type) };
