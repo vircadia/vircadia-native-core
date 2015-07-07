@@ -21,6 +21,7 @@
 
 #include "Application.h"
 
+#include "../octree/OctreePacketProcessor.h"
 #include "ui/OctreeStatsDialog.h"
 
 OctreeStatsDialog::OctreeStatsDialog(QWidget* parent, NodeToOctreeSceneStats* model) :
@@ -53,7 +54,7 @@ OctreeStatsDialog::OctreeStatsDialog(QWidget* parent, NodeToOctreeSceneStats* mo
     _localElementsMemory = AddStatItem("Elements Memory");
     _sendingMode = AddStatItem("Sending Mode");
 
-    _processedPackets = AddStatItem("Processed Packets");
+    _processedPackets = AddStatItem("Entity Packets");
     _processedPacketsElements = AddStatItem("Processed Packets Elements");
     _processedPacketsEntities = AddStatItem("Processed Packets Entities");
     _processedPacketsTiming = AddStatItem("Processed Packets Timing");
@@ -155,6 +156,8 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
     if (sinceLastRefresh < REFRESH_AFTER) {
         return QDialog::paintEvent(event);
     }
+    const int FLOATING_POINT_PRECISION = 3;
+
     _lastRefresh = now;
 
     // Update labels
@@ -245,7 +248,6 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
     auto averageElementsPerPacket = entities->getAverageElementsPerPacket();
     auto averageEntitiesPerPacket = entities->getAverageEntitiesPerPacket();
 
-    auto averagePacketsPerSecond = entities->getAveragePacketsPerSecond();
     auto averageElementsPerSecond = entities->getAverageElementsPerSecond();
     auto averageEntitiesPerSecond = entities->getAverageEntitiesPerSecond();
 
@@ -253,21 +255,32 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
     auto averageUncompressPerPacket = entities->getAverageUncompressPerPacket();
     auto averageReadBitstreamPerPacket = entities->getAverageReadBitstreamPerPacket();
 
-    QString averageElementsPerPacketString = locale.toString(averageElementsPerPacket);
-    QString averageEntitiesPerPacketString = locale.toString(averageEntitiesPerPacket);
+    QString averageElementsPerPacketString = locale.toString(averageElementsPerPacket, 'f', FLOATING_POINT_PRECISION);
+    QString averageEntitiesPerPacketString = locale.toString(averageEntitiesPerPacket, 'f', FLOATING_POINT_PRECISION);
 
-    QString averagePacketsPerSecondString = locale.toString(averagePacketsPerSecond);
-    QString averageElementsPerSecondString = locale.toString(averageElementsPerSecond);
-    QString averageEntitiesPerSecondString = locale.toString(averageEntitiesPerSecond);
+    QString averageElementsPerSecondString = locale.toString(averageElementsPerSecond, 'f', FLOATING_POINT_PRECISION);
+    QString averageEntitiesPerSecondString = locale.toString(averageEntitiesPerSecond, 'f', FLOATING_POINT_PRECISION);
 
     QString averageWaitLockPerPacketString = locale.toString(averageWaitLockPerPacket);
     QString averageUncompressPerPacketString = locale.toString(averageUncompressPerPacket);
     QString averageReadBitstreamPerPacketString = locale.toString(averageReadBitstreamPerPacket);
 
     label = _labels[_processedPackets];
+    const OctreePacketProcessor& entitiesPacketProcessor =  Application::getInstance()->getOctreePacketProcessor();
+
+    auto incomingPPS = entitiesPacketProcessor.getIncomingPPS();
+    auto processedPPS = entitiesPacketProcessor.getProcessedPPS();
+    auto treeProcessedPPS = entities->getAveragePacketsPerSecond();
+
+    QString incomingPPSString = locale.toString(incomingPPS, 'f', FLOATING_POINT_PRECISION);
+    QString processedPPSString = locale.toString(processedPPS, 'f', FLOATING_POINT_PRECISION);
+    QString treeProcessedPPSString = locale.toString(treeProcessedPPS, 'f', FLOATING_POINT_PRECISION);
+
     statsValue.str("");
     statsValue << 
-        "" << qPrintable(averagePacketsPerSecondString) << " per second";
+        "Network IN: " << qPrintable(incomingPPSString) << " PPS / " <<
+        "Queue OUT: " << qPrintable(processedPPSString) << " PPS / " <<
+        "Tree IN: " << qPrintable(treeProcessedPPSString) << " PPS";
         
     label->setText(statsValue.str().c_str());
 
@@ -321,7 +334,7 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
     }
 
     QString totalTrackedEditsString = locale.toString((uint)totalTrackedEdits);
-    QString updatesPerSecondString = locale.toString(updatesPerSecond);
+    QString updatesPerSecondString = locale.toString(updatesPerSecond, 'f', FLOATING_POINT_PRECISION);
     QString bytesPerEditString = locale.toString(bytesPerEdit);
 
     statsValue.str("");
