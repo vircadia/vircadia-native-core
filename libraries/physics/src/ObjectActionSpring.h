@@ -12,14 +12,11 @@
 #ifndef hifi_ObjectActionSpring_h
 #define hifi_ObjectActionSpring_h
 
-#include <QUuid>
-
-#include <EntityItem.h>
 #include "ObjectAction.h"
 
 class ObjectActionSpring : public ObjectAction {
 public:
-    ObjectActionSpring(EntityActionType type, QUuid id, EntityItemPointer ownerEntity);
+    ObjectActionSpring(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~ObjectActionSpring();
 
     virtual EntityActionType getType() const { return ACTION_TYPE_SPRING; }

@@ -17,7 +17,7 @@
 
 const uint16_t AvatarActionHold::holdVersion = 1;
 
-AvatarActionHold::AvatarActionHold(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) :
+AvatarActionHold::AvatarActionHold(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity) :
     ObjectActionSpring(type, id, ownerEntity),
     _relativePosition(glm::vec3(0.0f)),
     _relativeRotation(glm::quat()),

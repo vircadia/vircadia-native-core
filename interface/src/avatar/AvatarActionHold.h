@@ -19,7 +19,7 @@
 
 class AvatarActionHold : public ObjectActionSpring {
 public:
-    AvatarActionHold(EntityActionType type, QUuid id, EntityItemPointer ownerEntity);
+    AvatarActionHold(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~AvatarActionHold();
 
     virtual EntityActionType getType() const { return ACTION_TYPE_HOLD; }

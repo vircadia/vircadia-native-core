@@ -15,7 +15,7 @@
 
 const uint16_t ObjectActionOffset::offsetVersion = 1;
 
-ObjectActionOffset::ObjectActionOffset(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) :
+ObjectActionOffset::ObjectActionOffset(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity) :
     ObjectAction(type, id, ownerEntity) {
     #if WANT_DEBUG
     qDebug() << "ObjectActionOffset::ObjectActionOffset";

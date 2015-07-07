@@ -18,7 +18,7 @@
 #include "InterfaceActionFactory.h"
 
 
-EntityActionPointer interfaceActionFactory(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) {
+EntityActionPointer interfaceActionFactory(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity) {
     switch (type) {
         case ACTION_TYPE_NONE:
             return nullptr;
@@ -37,7 +37,7 @@ EntityActionPointer interfaceActionFactory(EntityActionType type, QUuid id, Enti
 
 EntityActionPointer InterfaceActionFactory::factory(EntitySimulation* simulation,
                                                     EntityActionType type,
-                                                    QUuid id,
+                                                    const QUuid& id,
                                                     EntityItemPointer ownerEntity,
                                                     QVariantMap arguments) {
     EntityActionPointer action = interfaceActionFactory(type, id, ownerEntity);

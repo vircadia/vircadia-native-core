@@ -13,7 +13,7 @@
 
 #include "ObjectAction.h"
 
-ObjectAction::ObjectAction(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) :
+ObjectAction::ObjectAction(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity) :
     btActionInterface(),
     _id(id),
     _active(false),

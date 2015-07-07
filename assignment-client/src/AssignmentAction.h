@@ -21,7 +21,7 @@
 
 class AssignmentAction : public EntityActionInterface {
 public:
-    AssignmentAction(EntityActionType type, QUuid id, EntityItemPointer ownerEntity);
+    AssignmentAction(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~AssignmentAction();
 
     const QUuid& getID() const { return _id; }

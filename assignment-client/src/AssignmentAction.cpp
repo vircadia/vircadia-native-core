@@ -13,7 +13,7 @@
 
 #include "AssignmentAction.h"
 
-AssignmentAction::AssignmentAction(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) :
+AssignmentAction::AssignmentAction(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity) :
     _id(id),
     _type(type),
     _data(QByteArray()),

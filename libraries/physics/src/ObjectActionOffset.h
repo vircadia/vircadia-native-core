@@ -19,7 +19,7 @@
 
 class ObjectActionOffset : public ObjectAction {
 public:
-    ObjectActionOffset(EntityActionType type, QUuid id, EntityItemPointer ownerEntity);
+    ObjectActionOffset(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~ObjectActionOffset();
 
     virtual EntityActionType getType() const { return ACTION_TYPE_OFFSET; }

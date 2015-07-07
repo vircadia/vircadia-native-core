@@ -17,8 +17,6 @@
 
 #include <btBulletDynamicsCommon.h>
 
-#include <EntityItem.h>
-
 #include "ObjectMotionState.h"
 #include "BulletUtil.h"
 #include "EntityActionInterface.h"
@@ -26,7 +24,7 @@
 
 class ObjectAction : public btActionInterface, public EntityActionInterface {
 public:
-    ObjectAction(EntityActionType type, QUuid id, EntityItemPointer ownerEntity);
+    ObjectAction(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~ObjectAction();
 
     const QUuid& getID() const { return _id; }
