@@ -94,7 +94,7 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
     if (_myServer->getOctree()->handlesEditPacketType(packetType)) {
         PerformanceWarning warn(debugProcessPacket, "processPacket KNOWN TYPE",debugProcessPacket);
         _receivedPacketCount++;
-        
+
         const unsigned char* packetData = reinterpret_cast<const unsigned char*>(packet.data());
 
         unsigned short int sequence = (*((unsigned short int*)(packetData + numBytesPacketHeader)));
@@ -120,16 +120,16 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
             qDebug() << "        arrivedAt=" << arrivedAt << " usecs";
             qDebug() << "      transitTime=" << transitTime << " usecs";
             qDebug() << "      sendingNode->getClockSkewUsec()=" << sendingNode->getClockSkewUsec() << " usecs";
-            
-            
+
+
         }
-        
+
         if (debugProcessPacket) {
             qDebug() << "    numBytesPacketHeader=" << numBytesPacketHeader;
             qDebug() << "    sizeof(sequence)=" << sizeof(sequence);
             qDebug() << "    sizeof(sentAt)=" << sizeof(sentAt);
         }
-        
+
         int atByte = numBytesPacketHeader + sizeof(sequence) + sizeof(sentAt);
 
         if (debugProcessPacket) {
@@ -139,11 +139,11 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
                 qDebug() << "    ----- UNEXPECTED ---- got a packet without any edit details!!!! --------";
             }
         }
-        
+
 
         unsigned char* editData = (unsigned char*)&packetData[atByte];
         while (atByte < packet.size()) {
-        
+
             int maxSize = packet.size() - atByte;
 
             if (debugProcessPacket) {
@@ -242,8 +242,8 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
         return packetsSent;
     }
 
-    char packet[MAX_PACKET_SIZE];
-    
+    auto nackPacket { NLPacket::create(_myServer->getMyEditNackType(); }
+
     NodeToSenderStatsMapIterator i = _singleSenderStats.begin();
     while (i != _singleSenderStats.end()) {
 
@@ -268,44 +268,36 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
         // retrieve sequence number stats of node, prune its missing set
         SequenceNumberStats& sequenceNumberStats = nodeStats.getIncomingEditSequenceNumberStats();
         sequenceNumberStats.pruneMissingSet();
-        
+
         // construct nack packet(s) for this node
         const QSet<unsigned short int>& missingSequenceNumbers = sequenceNumberStats.getMissingSet();
         int numSequenceNumbersAvailable = missingSequenceNumbers.size();
         QSet<unsigned short int>::const_iterator missingSequenceNumberIterator = missingSequenceNumbers.constBegin();
         while (numSequenceNumbersAvailable > 0) {
 
-            char* dataAt = packet;
-            int bytesRemaining = MAX_PACKET_SIZE;
-            
             auto nodeList = DependencyManager::get<NodeList>();
 
-            // pack header
-            int numBytesPacketHeader = nodeList->populatePacketHeader(packet, _myServer->getMyEditNackType());
-            dataAt += numBytesPacketHeader;
-            bytesRemaining -= numBytesPacketHeader;
+            nackPacket->reset();
 
             // calculate and pack the number of sequence numbers to nack
-            int numSequenceNumbersRoomFor = (bytesRemaining - sizeof(uint16_t)) / sizeof(unsigned short int);
+            int numSequenceNumbersRoomFor = (nackPacket->getCapacity() - sizeof(uint16_t)) / sizeof(unsigned short int);
             uint16_t numSequenceNumbers = std::min(numSequenceNumbersAvailable, numSequenceNumbersRoomFor);
-            uint16_t* numSequenceNumbersAt = (uint16_t*)dataAt;
-            *numSequenceNumbersAt = numSequenceNumbers;
-            dataAt += sizeof(uint16_t);
+
+            nackPacket->write(&numSequenceNumbers, sizeof(numSequenceNumbers));
 
             // pack sequence numbers to nack
             for (uint16_t i = 0; i < numSequenceNumbers; i++) {
-                unsigned short int* sequenceNumberAt = (unsigned short int*)dataAt;
-                *sequenceNumberAt = *missingSequenceNumberIterator;
-                dataAt += sizeof(unsigned short int);
+                unsigned short int sequenceNumber = *missingSequenceNumberIterator;
+                nackPacket->write(&sequenceNumber, sizeof(sequenceNumber));
 
                 missingSequenceNumberIterator++;
             }
             numSequenceNumbersAvailable -= numSequenceNumbers;
 
             // send it
-            nodeList->writeUnverifiedDatagram(packet, dataAt - packet, destinationNode);
+            nodeList->sendUnreliablePacket(nackPacket, destinationNode);
             packetsSent++;
-            
+
             qDebug() << "NACK Sent back to editor/client... destinationNode=" << nodeUUID;
         }
         i++;
