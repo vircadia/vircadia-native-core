@@ -140,6 +140,12 @@ public:
 //
 //    qint64 writeUnverifiedDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
 //                         const HifiSockAddr& overridenSockAddr = HifiSockAddr());
+//
+
+    qint64 sendPacket(NLPacket&& packet, const SharedNodePointer& destinationNode) {};
+    qint64 sendPacket(NLPacket&& packet, const HifiSockAddr& sockAddr) {};
+    qint64 sendPacketList(PacketList& packetList, const SharedNodePointer& destinationNode) {};
+    qint64 sendPacketList(PacketList& packetList, const HifiSockAddr& sockAddr) {};
 
     void (*linkedDataCreateCallback)(Node *);
 
@@ -164,7 +170,7 @@ public:
     int updateNodeWithDataFromPacket(const SharedNodePointer& matchingNode, const QByteArray& packet);
     int findNodeAndUpdateWithDataFromPacket(const QByteArray& packet);
 
-    unsigned broadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
+    unsigned broadcastToNodes(PacketList& packetList, const NodeSet& destinationNodeTypes) {};
     SharedNodePointer soloNodeOfType(char nodeType);
 
     void getPacketStats(float &packetsPerSecond, float &bytesPerSecond);

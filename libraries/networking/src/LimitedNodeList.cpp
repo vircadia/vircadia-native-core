@@ -508,18 +508,18 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
     }
 }
 
-unsigned LimitedNodeList::broadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {
-    unsigned n = 0;
-
-    eachNode([&](const SharedNodePointer& node){
-        if (destinationNodeTypes.contains(node->getType())) {
-            writeDatagram(packet, node);
-            ++n;
-        }
-    });
-
-    return n;
-}
+// unsigned LimitedNodeList::broadcastToNodes(PacketList& packetList, const NodeSet& destinationNodeTypes) {
+    // unsigned n = 0;
+    //
+    // eachNode([&](const SharedNodePointer& node){
+    //     if (destinationNodeTypes.contains(node->getType())) {
+    //         writeDatagram(packet, node);
+    //         ++n;
+    //     }
+    // });
+    //
+    // return n;
+// }
 
 NLPacket&& LimitedNodeList::constructPingPacket(PingType_t pingType) {
     int packetSize = sizeof(PingType_t) + sizeof(quint64);
