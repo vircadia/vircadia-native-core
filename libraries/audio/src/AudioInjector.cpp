@@ -153,54 +153,56 @@ void AudioInjector::injectToMixer() {
     // make sure we actually have samples downloaded to inject
     if (_audioData.size()) {
 
+        auto audioPacket { NLPacket::create(PacketType::InjectAudio); }
+
         // setup the packet for injected audio
-        QByteArray injectAudioPacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeInjectAudio);
-        QDataStream packetStream(&injectAudioPacket, QIODevice::Append);
+        QDataStream audioPacketStream(&audioPacket);
 
         // pack some placeholder sequence number for now
-        int numPreSequenceNumberBytes = injectAudioPacket.size();
-        packetStream << (quint16)0;
+        audioPacketStream << (quint16) 0;
 
         // pack stream identifier (a generated UUID)
-        packetStream << QUuid::createUuid();
+        audioPacketStream << QUuid::createUuid();
 
         // pack the stereo/mono type of the stream
-        packetStream << _options.stereo;
+        audioPacketStream << _options.stereo;
 
         // pack the flag for loopback
         uchar loopbackFlag = (uchar) true;
-        packetStream << loopbackFlag;
+        audioPacketStream << loopbackFlag;
 
         // pack the position for injected audio
-        int positionOptionOffset = injectAudioPacket.size();
-        packetStream.writeRawData(reinterpret_cast<const char*>(&_options.position),
+        int positionOptionOffset = audioPacket.pos();
+        audioPacketStream.writeRawData(reinterpret_cast<const char*>(&_options.position),
                                   sizeof(_options.position));
 
         // pack our orientation for injected audio
-        int orientationOptionOffset = injectAudioPacket.size();
-        packetStream.writeRawData(reinterpret_cast<const char*>(&_options.orientation),
+        int orientationOptionOffset = audioPacket.pos();
+        audioPacketStream.writeRawData(reinterpret_cast<const char*>(&_options.orientation),
                                   sizeof(_options.orientation));
 
         // pack zero for radius
         float radius = 0;
-        packetStream << radius;
+        audioPacketStream << radius;
 
         // pack 255 for attenuation byte
-        int volumeOptionOffset = injectAudioPacket.size();
+        int volumeOptionOffset = audioPacket.pos();
         quint8 volume = MAX_INJECTOR_VOLUME * _options.volume;
-        packetStream << volume;
+        audioPacketStream << volume;
 
-        packetStream << _options.ignorePenumbra;
+        audioPacketStream << _options.ignorePenumbra;
+
+        int audioDataOffset = audioPacket.pos();
 
         QElapsedTimer timer;
         timer.start();
         int nextFrame = 0;
 
-        int numPreAudioDataBytes = injectAudioPacket.size();
         bool shouldLoop = _options.loop;
 
         // loop to send off our audio in NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL byte chunks
         quint16 outgoingInjectedAudioSequenceNumber = 0;
+
         while (_currentSendPosition < _audioData.size() && !_shouldStop) {
 
             int bytesToCopy = std::min(((_options.stereo) ? 2 : 1) * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL,
@@ -214,31 +216,29 @@ void AudioInjector::injectToMixer() {
             }
             _loudness /= (float)(bytesToCopy / sizeof(int16_t));
 
-            memcpy(injectAudioPacket.data() + positionOptionOffset,
-                   &_options.position,
-                   sizeof(_options.position));
-            memcpy(injectAudioPacket.data() + orientationOptionOffset,
-                   &_options.orientation,
-                   sizeof(_options.orientation));
-            volume = MAX_INJECTOR_VOLUME * _options.volume;
-            memcpy(injectAudioPacket.data() + volumeOptionOffset, &volume, sizeof(volume));
+            audioPacket.seek(positionOptionOffset);
+            audioPacket.write(&_options.position, sizeof(_options.position));
 
-            // resize the QByteArray to the right size
-            injectAudioPacket.resize(numPreAudioDataBytes + bytesToCopy);
+            audioPacket.seek(orientationOptionOffset);
+            audioPacket.write(&_options.orientation, sizeof(_options.orientation));
+
+            volume = MAX_INJECTOR_VOLUME * _options.volume;
+            audioPacket.seek(volumeOptionOffset);
+            audioPacket.write(&volume, sizeof(volume));
+
+            audioPacket.seek(audioDataOffset);
 
             // pack the sequence number
-            memcpy(injectAudioPacket.data() + numPreSequenceNumberBytes,
-                   &outgoingInjectedAudioSequenceNumber, sizeof(quint16));
+            audioPacket.write(&outgoingInjectedAudioSequenceNumber, sizeof(quint16));
 
             // copy the next NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL bytes to the packet
-            memcpy(injectAudioPacket.data() + numPreAudioDataBytes,
-                   _audioData.data() + _currentSendPosition, bytesToCopy);
+            audioPacket.write(_audioData.data() + _currentSendPosition, bytesToCopy);
 
             // grab our audio mixer from the NodeList, if it exists
             SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
 
             // send off this audio packet
-            nodeList->writeDatagram(injectAudioPacket, audioMixer);
+            nodeList->sendUnreliablePacket(audioPacket, audioMixer);
             outgoingInjectedAudioSequenceNumber++;
 
             _currentSendPosition += bytesToCopy;
