@@ -144,111 +144,84 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
     // If we've got a stats message ready to send, then see if we can piggyback them together
     if (nodeData->stats.isReadyToSend() && !nodeData->isShuttingDown()) {
         // Send the stats message to the client
-        unsigned char* statsMessage = nodeData->stats.getStatsMessage();
-        int statsMessageLength = nodeData->stats.getStatsMessageLength();
-        int piggyBackSize = nodeData->getPacketLength() + statsMessageLength;
+        NLPacket& statsPacket = nodeData->stats.getStatsMessage();
 
         // If the size of the stats message and the octree message will fit in a packet, then piggyback them
-        if (piggyBackSize < MAX_PACKET_SIZE) {
+        if (nodeData->getPacket()->getSizeUsed() < statsPacket->bytesAvailable()) {
 
             // copy octree message to back of stats message
-            memcpy(statsMessage + statsMessageLength, nodeData->getPacket(), nodeData->getPacketLength());
-            statsMessageLength += nodeData->getPacketLength();
+            statsPacket->write(nodeData->getPacket()->getData(), nodeData->getPacket()->getSizeWithHeader());
 
             // since a stats message is only included on end of scene, don't consider any of these bytes "wasted", since
             // there was nothing else to send.
             int thisWastedBytes = 0;
             _totalWastedBytes += thisWastedBytes;
-            _totalBytes += nodeData->getPacketLength();
+            _totalBytes += statsPacket->getSizeWithHeader();
             _totalPackets++;
+
             if (debug) {
-                const unsigned char* messageData = nodeData->getPacket();
-                int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<const char*>(messageData));
-                const unsigned char* dataAt = messageData + numBytesPacketHeader;
-                dataAt += sizeof(OCTREE_PACKET_FLAGS);
-                OCTREE_PACKET_SEQUENCE sequence = (*(OCTREE_PACKET_SEQUENCE*)dataAt);
-                dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
-                OCTREE_PACKET_SENT_TIME timestamp = (*(OCTREE_PACKET_SENT_TIME*)dataAt);
-                dataAt += sizeof(OCTREE_PACKET_SENT_TIME);
+                NLPacket& sentPacket = nodeData->getPacket();
+
+                sentPacket->seek(sizeof(OCTREE_PACKET_FLAGS));
+
+                OCTREE_PACKET_SEQUENCE sequence;
+                sentPacket->read(&sequence, sizeof(sequence));
+
+                OCTREE_PACKET_SENT_TIME timestamp;
+                sentPacket->read(&timestamp, sizeof(timestamp));
 
                 qDebug() << "Adding stats to packet at " << now << " [" << _totalPackets <<"]: sequence: " << sequence <<
                         " timestamp: " << timestamp <<
-                        " statsMessageLength: " << statsMessageLength <<
-                        " original size: " << nodeData->getPacketLength() << " [" << _totalBytes <<
+                        " statsMessageLength: " << statsPacket->getSizeWithHeader() <<
+                        " original size: " << nodeData->getPacket()->getSizeWithHeader() << " [" << _totalBytes <<
                         "] wasted bytes:" << thisWastedBytes << " [" << _totalWastedBytes << "]";
             }
 
             // actually send it
             OctreeServer::didCallWriteDatagram(this);
-            DependencyManager::get<NodeList>()->writeDatagram((char*) statsMessage, statsMessageLength, _node);
+            DependencyManager::get<NodeList>()->sendUnreliablePacket(statsPacket, _node);
             packetSent = true;
         } else {
             // not enough room in the packet, send two packets
             OctreeServer::didCallWriteDatagram(this);
-            DependencyManager::get<NodeList>()->writeDatagram((char*) statsMessage, statsMessageLength, _node);
+            DependencyManager::get<NodeList>()-sendUnreliablePacket(statsPacket, _node);
 
             // since a stats message is only included on end of scene, don't consider any of these bytes "wasted", since
             // there was nothing else to send.
             int thisWastedBytes = 0;
             _totalWastedBytes += thisWastedBytes;
-            _totalBytes += statsMessageLength;
+            _totalBytes += statsPacket->getSizeWithHeader();
             _totalPackets++;
+
             if (debug) {
-                const unsigned char* messageData = nodeData->getPacket();
-                int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<const char*>(messageData));
-                const unsigned char* dataAt = messageData + numBytesPacketHeader;
-                dataAt += sizeof(OCTREE_PACKET_FLAGS);
-                OCTREE_PACKET_SEQUENCE sequence = (*(OCTREE_PACKET_SEQUENCE*)dataAt);
-                dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
-                OCTREE_PACKET_SENT_TIME timestamp = (*(OCTREE_PACKET_SENT_TIME*)dataAt);
-                dataAt += sizeof(OCTREE_PACKET_SENT_TIME);
+                NLPacket& sentPacket = nodeData->getPacket();
+
+                sentPacket->seek(sizeof(OCTREE_PACKET_FLAGS));
+
+                OCTREE_PACKET_SEQUENCE sequence;
+                sentPacket->read(&sequence, sizeof(sequence));
+
+                OCTREE_PACKET_SENT_TIME timestamp;
+                sentPacket->read(&timestamp, sizeof(timestamp));
 
                 qDebug() << "Sending separate stats packet at " << now << " [" << _totalPackets <<"]: sequence: " << sequence <<
                         " timestamp: " << timestamp <<
-                        " size: " << statsMessageLength << " [" << _totalBytes <<
+                        " size: " << statsPacket->getSizeWithHeader() << " [" << _totalBytes <<
                         "] wasted bytes:" << thisWastedBytes << " [" << _totalWastedBytes << "]";
             }
 
-            trueBytesSent += statsMessageLength;
+            trueBytesSent += statsPacket->getSizeWithHeader();
             truePacketsSent++;
             packetsSent++;
 
             OctreeServer::didCallWriteDatagram(this);
-            DependencyManager::get<NodeList>()->writeDatagram((char*)nodeData->getPacket(), nodeData->getPacketLength(), _node);
-            packetSent = true;
-
-            thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
-            _totalWastedBytes += thisWastedBytes;
-            _totalBytes += nodeData->getPacketLength();
-            _totalPackets++;
-            if (debug) {
-                const unsigned char* messageData = nodeData->getPacket();
-                int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<const char*>(messageData));
-                const unsigned char* dataAt = messageData + numBytesPacketHeader;
-                dataAt += sizeof(OCTREE_PACKET_FLAGS);
-                OCTREE_PACKET_SEQUENCE sequence = (*(OCTREE_PACKET_SEQUENCE*)dataAt);
-                dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
-                OCTREE_PACKET_SENT_TIME timestamp = (*(OCTREE_PACKET_SENT_TIME*)dataAt);
-                dataAt += sizeof(OCTREE_PACKET_SENT_TIME);
-
-                qDebug() << "Sending packet at " << now << " [" << _totalPackets <<"]: sequence: " << sequence <<
-                        " timestamp: " << timestamp <<
-                        " size: " << nodeData->getPacketLength() << " [" << _totalBytes <<
-                        "] wasted bytes:" << thisWastedBytes << " [" << _totalWastedBytes << "]";
-            }
-        }
-        nodeData->stats.markAsSent();
-    } else {
-        // If there's actually a packet waiting, then send it.
-        if (nodeData->isPacketWaiting() && !nodeData->isShuttingDown()) {
-            // just send the octree packet
-            OctreeServer::didCallWriteDatagram(this);
             DependencyManager::get<NodeList>()->sendUnreliablePacket(nodeData->getPacket(), _node);
             packetSent = true;
 
-            int thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
+            int packetSizeWithHeader = nodeData->getPacket()->getSizeWithHeader();
+            thisWastedBytes = MAX_PACKET_SIZE - packetSizeWithHeader;
             _totalWastedBytes += thisWastedBytes;
-            _totalBytes += nodeData->getPacketLength();
+            _totalBytes += nodeData->getPacket()->getSizeWithHeader();
             _totalPackets++;
 
             if (debug) {
@@ -264,7 +237,39 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
 
                 qDebug() << "Sending packet at " << now << " [" << _totalPackets <<"]: sequence: " << sequence <<
                         " timestamp: " << timestamp <<
-                        " size: " << nodeData->getPacketLength() << " [" << _totalBytes <<
+                        " size: " << nodeData->getPacket()->getSizeWithHeader() << " [" << _totalBytes <<
+                        "] wasted bytes:" << thisWastedBytes << " [" << _totalWastedBytes << "]";
+            }
+        }
+        nodeData->stats.markAsSent();
+    } else {
+        // If there's actually a packet waiting, then send it.
+        if (nodeData->isPacketWaiting() && !nodeData->isShuttingDown()) {
+            // just send the octree packet
+            OctreeServer::didCallWriteDatagram(this);
+            DependencyManager::get<NodeList>()->sendUnreliablePacket(nodeData->getPacket(), _node);
+            packetSent = true;
+
+            int packetSizeWithHeader = nodeData->getPacket()->getSizeWithHeader();
+            int thisWastedBytes = MAX_PACKET_SIZE -;
+            _totalWastedBytes += thisWastedBytes;
+            _totalBytes += packetSizeWithHeader;
+            _totalPackets++;
+
+            if (debug) {
+                NLPacket& sentPacket = nodeData->getPacket();
+
+                sentPacket->seek(sizeof(OCTREE_PACKET_FLAGS));
+
+                OCTREE_PACKET_SEQUENCE sequence;
+                sentPacket->read(&sequence, sizeof(sequence));
+
+                OCTREE_PACKET_SENT_TIME timestamp;
+                sentPacket->read(&timestamp, sizeof(timestamp));
+
+                qDebug() << "Sending packet at " << now << " [" << _totalPackets <<"]: sequence: " << sequence <<
+                        " timestamp: " << timestamp <<
+                        " size: " << packetSizeWithHeader << " [" << _totalBytes <<
                         "] wasted bytes:" << thisWastedBytes << " [" << _totalWastedBytes << "]";
             }
         }

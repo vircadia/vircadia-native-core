@@ -91,7 +91,7 @@ public:
     void childBitsRemoved(bool includesExistsBits, bool includesColors);
 
     /// Pack the details of the statistics into a buffer for sending as a network packet
-    int packIntoMessage(unsigned char* destinationBuffer, int availableBytes);
+    int packIntoPacket();
 
     /// Unpack the details of the statistics from a buffer typically received as a network packet
     int unpackFromMessage(const unsigned char* sourceBuffer, int availableBytes);
@@ -102,8 +102,7 @@ public:
     /// Mark that the scene statistics have been sent
     void markAsSent() { _isReadyToSend = false; }
 
-    unsigned char* getStatsMessage() { return &_statsMessage[0]; }
-    int getStatsMessageLength() const { return _statsMessageLength; }
+    NLPacket& getStatsMessage() { return *_statsPacket; }
 
     /// List of various items tracked by OctreeSceneStats which can be accessed via getItemInfo() and getItemValue()
     enum Item {
@@ -176,9 +175,8 @@ private:
     void copyFromOther(const OctreeSceneStats& other);
 
     bool _isReadyToSend;
-    unsigned char _statsMessage[MAX_PACKET_SIZE];
 
-    qint32 _statsMessageLength;
+    std::unique_ptr<NLPacket> _statsPacket { NLPacket::create(PacketType::OctreeStats); }
 
     // scene timing data in usecs
     bool _isStarted;
