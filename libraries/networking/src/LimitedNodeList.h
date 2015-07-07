@@ -141,6 +141,14 @@ public:
 //
 //    qint64 writeUnverifiedDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
 //                         const HifiSockAddr& overridenSockAddr = HifiSockAddr());
+//
+
+    qint64 sendUnreliablePacket(NLPacket& packet, const SharedNodePointer& destinationNode) {};
+    qint64 sendUnreliablePacket(NLPacket& packet, const HifiSockAddr& sockAddr) {};
+    qint64 sendPacket(NLPacket&& packet, const SharedNodePointer& destinationNode) {};
+    qint64 sendPacket(NLPacket&& packet, const HifiSockAddr& sockAddr) {};
+    qint64 sendPacketList(PacketList& packetList, const SharedNodePointer& destinationNode) {};
+    qint64 sendPacketList(PacketList& packetList, const HifiSockAddr& sockAddr) {};
 
     void (*linkedDataCreateCallback)(Node *);
 
@@ -165,17 +173,17 @@ public:
     int updateNodeWithDataFromPacket(const SharedNodePointer& matchingNode, const QByteArray& packet);
     int findNodeAndUpdateWithDataFromPacket(const QByteArray& packet);
 
-    unsigned broadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
+    unsigned broadcastToNodes(PacketList& packetList, const NodeSet& destinationNodeTypes) {};
     SharedNodePointer soloNodeOfType(char nodeType);
 
     void getPacketStats(float &packetsPerSecond, float &bytesPerSecond);
     void resetPacketStats();
 
-    NodeListPacket&& constructPingPacket(PingType_t pingType = PingType::Agnostic);
-    NodeListPacket&& constructPingReplyPacket(const QByteArray& pingPacket);
-    
-    NodeListPacket&& constructICEPingPacket(PingType_t pingType, const QUuid& iceID);
-    NodeListPacket&& constructICEPingReplyPacket(const QByteArray& pingPacket, const QUuid& iceID);
+    NLPacket&& constructPingPacket(PingType_t pingType = PingType::Agnostic);
+    NLPacket&& constructPingReplyPacket(const QByteArray& pingPacket);
+
+    NLPacket&& constructICEPingPacket(PingType_t pingType, const QUuid& iceID);
+    NLPacket&& constructICEPingReplyPacket(const QByteArray& pingPacket, const QUuid& iceID);
 
     virtual bool processSTUNResponse(const QByteArray& packet);
 

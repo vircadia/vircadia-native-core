@@ -508,22 +508,22 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
     }
 }
 
-unsigned LimitedNodeList::broadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {
-    unsigned n = 0;
+// unsigned LimitedNodeList::broadcastToNodes(PacketList& packetList, const NodeSet& destinationNodeTypes) {
+    // unsigned n = 0;
+    //
+    // eachNode([&](const SharedNodePointer& node){
+    //     if (destinationNodeTypes.contains(node->getType())) {
+    //         writeDatagram(packet, node);
+    //         ++n;
+    //     }
+    // });
+    //
+    // return n;
+// }
 
-    eachNode([&](const SharedNodePointer& node){
-        if (destinationNodeTypes.contains(node->getType())) {
-            writeDatagram(packet, node);
-            ++n;
-        }
-    });
-
-    return n;
-}
-
-NodeListPacket&& LimitedNodeList::constructPingPacket(PingType_t pingType) {
+NLPacket&& LimitedNodeList::constructPingPacket(PingType_t pingType) {
     int packetSize = sizeof(PingType_t) + sizeof(quint64);
-    NodeListPacket pingPacket = NodeListPacket::create(PacketType::Ping, packetSize);
+    auto pingPacket { NLPacket::create(PacketType::Ping, packetSize); }
 
     QDataStream packetStream(&pingPacket.payload(), QIODevice::Append);
 
@@ -533,7 +533,7 @@ NodeListPacket&& LimitedNodeList::constructPingPacket(PingType_t pingType) {
     return pingPacket;
 }
 
-NodeListPacket&& LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
+NLPacket&& LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
     QDataStream pingPacketStream(pingPacket);
     pingPacketStream.skipRawData(numBytesForPacketHeader(pingPacket));
 
@@ -542,41 +542,41 @@ NodeListPacket&& LimitedNodeList::constructPingReplyPacket(const QByteArray& pin
 
     quint64 timeFromOriginalPing;
     pingPacketStream >> timeFromOriginalPing;
-    
+
     int packetSize = sizeof(PingType_t) + sizeof(quint64) + sizeof(quint64);
-    
-    NodeListPacket replyPacket = NodeListPacket::create(PacketType::Ping, packetSize);
-    
+
+    auto replyPacket { NLPacket::create(PacketType::Ping, packetSize); }
+
     QDataStream packetStream(&replyPacket, QIODevice::Append);
     packetStream << typeFromOriginalPing << timeFromOriginalPing << usecTimestampNow();
 
     return replyPacket;
 }
 
-NodeListPacket&& constructICEPingPacket(PingType_t pingType, const QUuid& iceID) {
+NLPacket&& constructICEPingPacket(PingType_t pingType, const QUuid& iceID) {
     int packetSize = NUM_BYTES_RFC4122_UUID + sizeof(PingType_t);
-    
-    NodeListPacket icePingPacket = NodeListPacket::create(PacketType::ICEPing, packetSize);
-    
+
+    auto icePingPacket { NLPacket::create(PacketType::ICEPing, packetSize); }
+
     icePingPacket.payload().replace(0, NUM_BYTES_RFC4122_UUID, iceID.toRfc4122().data());
     memcpy(icePingPacket.payload() + NUM_BYTES_RFC4122_UUID, &pingType, sizeof(PingType_t));
-    
+
     return icePingPacket;
 }
 
-NodeListPacket&& constructICEPingReplyPacket(const QByteArray& pingPacket, const QUuid& iceID) {
+NLPacket&& constructICEPingReplyPacket(const QByteArray& pingPacket, const QUuid& iceID) {
     // pull out the ping type so we can reply back with that
     PingType_t pingType;
-    
+
     memcpy(&pingType, pingPacket.data() + NUM_BYTES_RFC4122_UUID, sizeof(PingType_t));
-    
+
     int packetSize = NUM_BYTES_RFC4122_UUID + sizeof(PingType_t);
-    NodeListPacket icePingReplyPacket = NodeListPacket::create(PacketType::ICEPingReply, packetSize);
-    
+    auto icePingReplyPacket { NLPacket::create(PacketType::ICEPingReply, packetSize); }
+
     // pack the ICE ID and then the ping type
     memcpy(icePingReplyPacket.payload(), iceID.toRfc4122().data(), NUM_BYTES_RFC4122_UUID);
     memcpy(icePingReplyPacket.payload() + NUM_BYTES_RFC4122_UUID, &pingType, sizeof(PingType_t));
-    
+
     return icePingReplyPacket;
 }
 

@@ -310,7 +310,7 @@ void NodeList::sendDomainServerCheckIn() {
         bool isUsingDTLS = false;
 
         PacketType::Value domainPacketType = !_domainHandler.isConnected()
-            ? PacketTypeDomainConnectRequest : PacketTypeDomainListRequest;
+            ? PacketType::DomainConnectRequest : PacketType::DomainListRequest;
 
         if (!_domainHandler.isConnected()) {
             qCDebug(networking) << "Sending connect request to domain-server at" << _domainHandler.getHostname();
@@ -329,24 +329,26 @@ void NodeList::sendDomainServerCheckIn() {
 
         }
 
-        // construct the DS check in packet
-        QUuid packetUUID = _sessionUUID;
+        auto domainPacket { NLPacket::create(domainPacketType); }
+        QDataStream packetStream(&domainPacket->getPayload);
 
-        if (domainPacketType == PacketTypeDomainConnectRequest) {
+        if (domainPacketType == PacketType::DomainConnectRequest) {
+            QUuid connectUUID;
+
             if (!_domainHandler.getAssignmentUUID().isNull()) {
                 // this is a connect request and we're an assigned node
                 // so set our packetUUID as the assignment UUID
-                packetUUID = _domainHandler.getAssignmentUUID();
+                connectUUID = _domainHandler.getAssignmentUUID();
             } else if (_domainHandler.requiresICE()) {
                 // this is a connect request and we're an interface client
                 // that used ice to discover the DS
                 // so send our ICE client UUID with the connect request
-                packetUUID = _domainHandler.getICEClientID();
+                connectUUID = _domainHandler.getICEClientID();
             }
-        }
 
-        QByteArray domainServerPacket = byteArrayWithUUIDPopulatedHeader(domainPacketType, packetUUID);
-        QDataStream packetStream(&domainServerPacket, QIODevice::Append);
+            // pack the connect UUID for this connect request
+            packetStream << connectUUID;
+        }
 
         // pack our data to send to the domain-server
         packetStream << _ownerType << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList();
@@ -367,7 +369,7 @@ void NodeList::sendDomainServerCheckIn() {
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendDSCheckIn);
 
         if (!isUsingDTLS) {
-            writeUnverifiedDatagram(domainServerPacket, _domainHandler.getSockAddr());
+            sendPacket(domainPacket, _domainHandler.getSockAddr());
         }
 
         if (_numNoReplyDomainCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
@@ -410,7 +412,7 @@ void NodeList::sendDSPathQuery(const QString& newPath) {
     // only send a path query if we know who our DS is or is going to be
     if (_domainHandler.isSocketKnown()) {
         // construct the path query packet
-        QByteArray pathQueryPacket = byteArrayWithPopulatedHeader(PacketTypeDomainServerPathQuery);
+        auto pathQueryPacket = NLPacket::create(PacketType::DomainServerPathQuery);
 
         // get the UTF8 representation of path query
         QByteArray pathQueryUTF8 = newPath.toUtf8();
@@ -418,18 +420,18 @@ void NodeList::sendDSPathQuery(const QString& newPath) {
         // get the size of the UTF8 representation of the desired path
         quint16 numPathBytes = pathQueryUTF8.size();
 
-        if (pathQueryPacket.size() + numPathBytes + sizeof(numPathBytes) < MAX_PACKET_SIZE) {
+        if (numPathBytes + sizeof(numPathBytes) < pathQueryPacket.size() ) {
             // append the size of the path to the query packet
-            pathQueryPacket.append(reinterpret_cast<char*>(&numPathBytes), sizeof(numPathBytes));
+            pathQueryPacket.write(&numPathBytes, sizeof(numPathBytes));
 
             // append the path itself to the query packet
-            pathQueryPacket.append(pathQueryUTF8);
+            pathQueryPacket.write(pathQueryUTF8);
 
             qCDebug(networking) << "Sending a path query packet for path" << newPath << "to domain-server at"
                 << _domainHandler.getSockAddr();
 
             // send off the path query
-            writeUnverifiedDatagram(pathQueryPacket, _domainHandler.getSockAddr());
+            sendPacket(pathQueryPacket, _domainHandler.getSockAddr());
         } else {
             qCDebug(networking) << "Path" << newPath << "would make PacketTypeDomainServerPathQuery packet > MAX_PACKET_SIZE." <<
                 "Will not send query.";

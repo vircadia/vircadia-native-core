@@ -31,7 +31,8 @@ const QSet<PacketType::Value> NON_VERIFIED_PACKETS = QSet<PacketType::Value>()
 
 const QSet<PacketType::Value> SEQUENCE_NUMBERED_PACKETS = QSet<PacketType::Value>() << AvatarData;
 
-const QSet<PacketType::Value> NON_SOURCED_PACKETS = QSet<PacketType::Value>() << ICEPing << ICEPingReply;
+const QSet<PacketType::Value> NON_SOURCED_PACKETS = QSet<PacketType::Value>()
+    << ICEPing << ICEPingReply << DomainConnectRequest;
 
 int arithmeticCodingValueFromBuffer(const char* checkValue) {
     if (((uchar) *checkValue) < 255) {
