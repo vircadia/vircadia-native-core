@@ -42,7 +42,10 @@ Packet::Packet(PacketType::Value type, int64_t size) :
     _packetSize(headerSize(type) + size),
     _packet(new char(_packetSize)),
     _payload(_packet.get() + headerSize(type), size) {
-    Q_ASSERT(size <= maxPayloadSize(type));
+        
+        Q_ASSERT(size <= maxPayloadSize(type));
+        auto offset = packArithmeticallyCodedValue(type, _packet);
+        _packet[offset] = versionForPacketType(type);
 }
 
 PacketType::Value Packet::getPacketType() const {
