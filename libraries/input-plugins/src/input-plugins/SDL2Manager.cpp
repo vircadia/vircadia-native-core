@@ -15,8 +15,6 @@
 #include <HFBackEvent.h>
 #include <PerfStat.h>
 
-#include "Application.h"
-
 #include "SDL2Manager.h"
 
 #ifdef HAVE_SDL2

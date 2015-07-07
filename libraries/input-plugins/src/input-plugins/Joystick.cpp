@@ -13,8 +13,6 @@
 
 #include <glm/glm.hpp>
 
-#include "Application.h"
-
 #include "Joystick.h"
 
 const float CONTROLLER_THRESHOLD = 0.3f;

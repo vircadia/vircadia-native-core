@@ -16,9 +16,9 @@
 #include <SDL.h>
 #endif
 
-#include <input-plugins/UserInputMapper.h>
+#include "UserInputMapper.h"
 
-#include "devices/Joystick.h"
+#include "Joystick.h"
 
 class SDL2Manager : public QObject {
     Q_OBJECT

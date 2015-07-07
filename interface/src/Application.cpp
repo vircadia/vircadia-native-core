@@ -122,8 +122,8 @@
 #include "devices/Faceshift.h"
 #include "devices/Leapmotion.h"
 #include "devices/RealSense.h"
-#include "devices/SDL2Manager.h"
 #include "devices/MIDIManager.h"
+#include <input-plugins/SDL2Manager.h>
 #include <input-plugins/ViveControllerManager.h>
 #include "RenderDeferredTask.h"
 #include "scripting/AccountScriptingInterface.h"
