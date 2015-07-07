@@ -37,6 +37,8 @@ const quint64 DOMAIN_SERVER_CHECK_IN_MSECS = 1 * 1000;
 
 const int MAX_SILENT_DOMAIN_SERVER_CHECK_INS = 5;
 
+using std::pair<SharedNodePointer, std::unique_ptr<NLPacket>> NodePacketPair;
+
 class Application;
 class Assignment;
 

@@ -15,9 +15,8 @@
 #include <QWaitCondition>
 
 #include "GenericThread.h"
-#include "NetworkPacket.h"
 
-/// Generalized threaded processor for handling received inbound packets. 
+/// Generalized threaded processor for handling received inbound packets.
 class ReceivedPacketProcessor : public GenericThread {
     Q_OBJECT
 public:
@@ -74,8 +73,7 @@ protected:
     virtual void postProcess() { }
 
 protected:
-
-    QVector<NetworkPacket> _packets;
+    std::list<NodePacketPair> _packets;
     QHash<QUuid, int> _nodePacketCounts;
 
     QWaitCondition _hasPackets;
