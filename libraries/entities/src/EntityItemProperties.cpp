@@ -38,7 +38,7 @@ EntityPropertyList PROP_LAST_ITEM = (EntityPropertyList)(PROP_AFTER_LAST_ITEM - 
 EntityItemProperties::EntityItemProperties() :
 
 CONSTRUCT_PROPERTY(visible, ENTITY_ITEM_DEFAULT_VISIBLE),
-CONSTRUCT_PROPERTY(position, 0),
+CONSTRUCT_PROPERTY(position, 0.0f),
 CONSTRUCT_PROPERTY(dimensions, ENTITY_ITEM_DEFAULT_DIMENSIONS),
 CONSTRUCT_PROPERTY(rotation, ENTITY_ITEM_DEFAULT_ROTATION),
 CONSTRUCT_PROPERTY(density, ENTITY_ITEM_DEFAULT_DENSITY),
@@ -51,6 +51,7 @@ CONSTRUCT_PROPERTY(friction, ENTITY_ITEM_DEFAULT_FRICTION),
 CONSTRUCT_PROPERTY(lifetime, ENTITY_ITEM_DEFAULT_LIFETIME),
 CONSTRUCT_PROPERTY(created, UNKNOWN_CREATED_TIME),
 CONSTRUCT_PROPERTY(script, ENTITY_ITEM_DEFAULT_SCRIPT),
+CONSTRUCT_PROPERTY(scriptTimestamp, ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP),
 CONSTRUCT_PROPERTY(collisionSoundURL, ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL),
 CONSTRUCT_PROPERTY(color, ),
 CONSTRUCT_PROPERTY(modelURL, ""),
@@ -72,7 +73,7 @@ CONSTRUCT_PROPERTY(locked, ENTITY_ITEM_DEFAULT_LOCKED),
 CONSTRUCT_PROPERTY(textures, ""),
 CONSTRUCT_PROPERTY(animationSettings, ""),
 CONSTRUCT_PROPERTY(userData, ENTITY_ITEM_DEFAULT_USER_DATA),
-CONSTRUCT_PROPERTY(simulatorID, ENTITY_ITEM_DEFAULT_SIMULATOR_ID),
+CONSTRUCT_PROPERTY(simulationOwner, SimulationOwner()),
 CONSTRUCT_PROPERTY(text, TextEntityItem::DEFAULT_TEXT),
 CONSTRUCT_PROPERTY(lineHeight, TextEntityItem::DEFAULT_LINE_HEIGHT),
 CONSTRUCT_PROPERTY(textColor, TextEntityItem::DEFAULT_TEXT_COLOR),
@@ -98,7 +99,8 @@ CONSTRUCT_PROPERTY(backgroundMode, BACKGROUND_MODE_INHERIT),
 CONSTRUCT_PROPERTY(sourceUrl, ""),
 CONSTRUCT_PROPERTY(lineWidth, LineEntityItem::DEFAULT_LINE_WIDTH),
 CONSTRUCT_PROPERTY(linePoints, QVector<glm::vec3>()),
-
+CONSTRUCT_PROPERTY(faceCamera, TextEntityItem::DEFAULT_FACE_CAMERA),
+CONSTRUCT_PROPERTY(actionData, QByteArray()),
 
 _id(UNKNOWN_ENTITY_ID),
 _idSet(false),
@@ -181,7 +183,6 @@ QString EntityItemProperties::getAnimationSettings() const {
 
 void EntityItemProperties::setCreated(QDateTime &v) {
     _created = v.toMSecsSinceEpoch() * 1000; // usec per msec
-    qDebug() << "EntityItemProperties::setCreated QDateTime" << v << _created;
 }
 
 void EntityItemProperties::debugDump() const {
@@ -287,8 +288,8 @@ void EntityItemProperties::setBackgroundModeFromString(const QString& background
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
     
-    CHECK_PROPERTY_CHANGE(PROP_DIMENSIONS, dimensions);
     CHECK_PROPERTY_CHANGE(PROP_POSITION, position);
+    CHECK_PROPERTY_CHANGE(PROP_DIMENSIONS, dimensions);
     CHECK_PROPERTY_CHANGE(PROP_ROTATION, rotation);
     CHECK_PROPERTY_CHANGE(PROP_DENSITY, density);
     CHECK_PROPERTY_CHANGE(PROP_VELOCITY, velocity);
@@ -299,6 +300,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_FRICTION, friction);
     CHECK_PROPERTY_CHANGE(PROP_LIFETIME, lifetime);
     CHECK_PROPERTY_CHANGE(PROP_SCRIPT, script);
+    CHECK_PROPERTY_CHANGE(PROP_SCRIPT_TIMESTAMP, scriptTimestamp);
     CHECK_PROPERTY_CHANGE(PROP_COLLISION_SOUND_URL, collisionSoundURL);
     CHECK_PROPERTY_CHANGE(PROP_COLOR, color);
     CHECK_PROPERTY_CHANGE(PROP_MODEL_URL, modelURL);
@@ -321,7 +323,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_LOCKED, locked);
     CHECK_PROPERTY_CHANGE(PROP_TEXTURES, textures);
     CHECK_PROPERTY_CHANGE(PROP_USER_DATA, userData);
-    CHECK_PROPERTY_CHANGE(PROP_SIMULATOR_ID, simulatorID);
+    CHECK_PROPERTY_CHANGE(PROP_SIMULATION_OWNER, simulationOwner);
     CHECK_PROPERTY_CHANGE(PROP_TEXT, text);
     CHECK_PROPERTY_CHANGE(PROP_LINE_HEIGHT, lineHeight);
     CHECK_PROPERTY_CHANGE(PROP_TEXT_COLOR, textColor);
@@ -349,6 +351,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_LINE_POINTS, linePoints);
     CHECK_PROPERTY_CHANGE(PROP_HREF, href);
     CHECK_PROPERTY_CHANGE(PROP_DESCRIPTION, description);
+    CHECK_PROPERTY_CHANGE(PROP_FACE_CAMERA, faceCamera);
+    CHECK_PROPERTY_CHANGE(PROP_ACTION_DATA, actionData);
 
     changedProperties += _stage.getChangedProperties();
     changedProperties += _atmosphere.getChangedProperties();
@@ -391,6 +395,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(created, created.toString(Qt::ISODate));
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(script);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(scriptTimestamp);
     COPY_PROPERTY_TO_QSCRIPTVALUE(registrationPoint);
     COPY_PROPERTY_TO_QSCRIPTVALUE(angularVelocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(angularDamping);
@@ -414,7 +419,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(locked);
     COPY_PROPERTY_TO_QSCRIPTVALUE(textures);
     COPY_PROPERTY_TO_QSCRIPTVALUE(userData);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(simulatorID, getSimulatorIDAsString());
+    //COPY_PROPERTY_TO_QSCRIPTVALUE(simulationOwner); // TODO: expose this for JSON saves?
     COPY_PROPERTY_TO_QSCRIPTVALUE(text);
     COPY_PROPERTY_TO_QSCRIPTVALUE(lineHeight);
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(textColor, getTextColor());
@@ -444,6 +449,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(linePoints);
     COPY_PROPERTY_TO_QSCRIPTVALUE(href);
     COPY_PROPERTY_TO_QSCRIPTVALUE(description);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(faceCamera);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(actionData);
 
     // Sitting properties support
     if (!skipDefaults) {
@@ -503,6 +510,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(friction, float, setFriction);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lifetime, float, setLifetime);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(script, QString, setScript);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(scriptTimestamp, quint64, setScriptTimestamp);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(registrationPoint, glmVec3, setRegistrationPoint);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(angularVelocity, glmVec3, setAngularVelocity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(angularDamping, float, setAngularDamping);
@@ -555,7 +563,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(linePoints, qVectorVec3, setLinePoints);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(href, QString, setHref);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(description, QString, setDescription);
-
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(faceCamera, bool, setFaceCamera);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(actionData, QByteArray, setActionData);
 
     if (!honorReadOnly) {
         // this is used by the json reader to set things that we don't want javascript to able to affect.
@@ -563,7 +572,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
                 auto result = QDateTime::fromMSecsSinceEpoch(_created / 1000, Qt::UTC); // usec per msec
                 return result;
             });
-        COPY_PROPERTY_FROM_QSCRIPTVALUE(simulatorID, QUuid, setSimulatorID);
+        // TODO: expose this to QScriptValue for JSON saves?
+        //COPY_PROPERTY_FROM_QSCRIPTVALUE(simulationOwner, ???, setSimulatorPriority);
     }
 
     _stage.copyFromScriptValue(object, _defaultSettings);
@@ -698,6 +708,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             //      PROP_PAGED_PROPERTY,
             //      PROP_CUSTOM_PROPERTIES_INCLUDED,
             
+            APPEND_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, properties._simulationOwner.toByteArray());
             APPEND_ENTITY_PROPERTY(PROP_POSITION, properties.getPosition());
             APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, properties.getDimensions()); // NOTE: PROP_RADIUS obsolete
             APPEND_ENTITY_PROPERTY(PROP_ROTATION, properties.getRotation());
@@ -710,6 +721,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_FRICTION, properties.getFriction());
             APPEND_ENTITY_PROPERTY(PROP_LIFETIME, properties.getLifetime());
             APPEND_ENTITY_PROPERTY(PROP_SCRIPT, properties.getScript());
+            APPEND_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, properties.getScriptTimestamp());
             APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
             APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, properties.getRegistrationPoint());
             APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, properties.getAngularVelocity());
@@ -719,9 +731,9 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, properties.getCollisionsWillMove());
             APPEND_ENTITY_PROPERTY(PROP_LOCKED, properties.getLocked());
             APPEND_ENTITY_PROPERTY(PROP_USER_DATA, properties.getUserData());
-            APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, properties.getSimulatorID());
             APPEND_ENTITY_PROPERTY(PROP_HREF, properties.getHref());
             APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, properties.getDescription());
+            
             
             if (properties.getType() == EntityTypes::Web) {
                 APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, properties.getSourceUrl());
@@ -732,6 +744,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_LINE_HEIGHT, properties.getLineHeight());
                 APPEND_ENTITY_PROPERTY(PROP_TEXT_COLOR, properties.getTextColor());
                 APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, properties.getBackgroundColor());
+                APPEND_ENTITY_PROPERTY(PROP_FACE_CAMERA, properties.getFaceCamera());
             }
             
             if (properties.getType() == EntityTypes::Model) {
@@ -804,6 +817,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, properties.getMarketplaceID());
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
             APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, properties.getCollisionSoundURL());
+            APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, properties.getActionData());
         }
         if (propertyCount > 0) {
             int endOfEntityItemData = packetData->getUncompressedByteOffset();
@@ -949,7 +963,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     EntityPropertyFlags propertyFlags = encodedPropertyFlags;
     dataAt += propertyFlags.getEncodedLength();
     processedBytes += propertyFlags.getEncodedLength();
-    
+
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SIMULATION_OWNER, QByteArray, setSimulationOwner);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POSITION, glm::vec3, setPosition);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DIMENSIONS, glm::vec3, setDimensions);  // NOTE: PROP_RADIUS obsolete
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ROTATION, glm::quat, setRotation);
@@ -961,7 +976,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RESTITUTION, float, setRestitution);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FRICTION, float, setFriction);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFETIME, float, setLifetime);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SCRIPT,QString, setScript);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SCRIPT, QString, setScript);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, xColor, setColor);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_VELOCITY, glm::vec3, setAngularVelocity);
@@ -971,9 +987,9 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONS_WILL_MOVE, bool, setCollisionsWillMove);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_USER_DATA, QString, setUserData);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SIMULATOR_ID, QUuid, setSimulatorID);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HREF, QString, setHref);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DESCRIPTION, QString, setDescription);
+    
     
     if (properties.getType() == EntityTypes::Web) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SOURCE_URL, QString, setSourceUrl);
@@ -984,6 +1000,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_HEIGHT, float, setLineHeight);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT_COLOR, xColor, setTextColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BACKGROUND_COLOR, xColor, setBackgroundColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FACE_CAMERA, bool, setFaceCamera);
     }
     
     if (properties.getType() == EntityTypes::Model) {
@@ -1051,6 +1068,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NAME, QString, setName);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACTION_DATA, QByteArray, setActionData);
 
     return valid;
 }
@@ -1085,6 +1103,7 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
 }
 
 void EntityItemProperties::markAllChanged() {
+    _simulationOwnerChanged = true;
     _positionChanged = true;
     _dimensionsChanged = true;
     _rotationChanged = true;
@@ -1097,8 +1116,8 @@ void EntityItemProperties::markAllChanged() {
     _frictionChanged = true;
     _lifetimeChanged = true;
     _userDataChanged = true;
-    _simulatorIDChanged = true;
     _scriptChanged = true;
+    _scriptTimestampChanged = true;
     _collisionSoundURLChanged = true;
     _registrationPointChanged = true;
     _angularVelocityChanged = true;
@@ -1161,7 +1180,8 @@ void EntityItemProperties::markAllChanged() {
 
     _hrefChanged = true;
     _descriptionChanged = true;
-
+    _faceCameraChanged = true;
+    _actionDataChanged = true;
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.
@@ -1210,4 +1230,28 @@ AABox EntityItemProperties::getAABox() const {
 bool EntityItemProperties::hasTerseUpdateChanges() const {
     // a TerseUpdate includes the transform and its derivatives
     return _positionChanged || _velocityChanged || _rotationChanged || _angularVelocityChanged || _accelerationChanged;
+}
+
+bool EntityItemProperties::hasMiscPhysicsChanges() const {
+    return _gravityChanged || _dimensionsChanged || _densityChanged || _frictionChanged 
+        || _restitutionChanged || _dampingChanged || _angularDampingChanged || _registrationPointChanged ||
+        _compoundShapeURLChanged || _collisionsWillMoveChanged || _ignoreForCollisionsChanged;
+}
+
+void EntityItemProperties::clearSimulationOwner() {
+    _simulationOwner.clear();
+    _simulationOwnerChanged = true;
+}
+
+void EntityItemProperties::setSimulationOwner(const QUuid& id, uint8_t priority) {
+    if (!_simulationOwner.matchesValidID(id) || _simulationOwner.getPriority() != priority) {
+        _simulationOwner.set(id, priority);
+        _simulationOwnerChanged = true;
+    }
+}
+
+void EntityItemProperties::setSimulationOwner(const QByteArray& data) {
+    if (_simulationOwner.fromByteArray(data)) {
+        _simulationOwnerChanged = true;
+    }
 }

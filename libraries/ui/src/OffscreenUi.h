@@ -59,7 +59,7 @@ private:
     void x::load(std::function<void(QQmlContext*, QObject*)> f) { \
         auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
         offscreenUi->load(QML, f); \
-    } 
+    }
 
 #define HIFI_QML_DEF_LAMBDA(x, f) \
     const QUrl x::QML = QUrl(#x ".qml"); \
@@ -79,7 +79,7 @@ private:
     void x::load() { \
         auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
         offscreenUi->load(QML, f); \
-    } 
+    }
 
 class OffscreenUi : public OffscreenQmlSurface, public Dependency {
     Q_OBJECT
@@ -97,7 +97,7 @@ public:
 
     static void messageBox(const QString& title, const QString& text,
         ButtonCallback f,
-        QMessageBox::Icon icon, 
+        QMessageBox::Icon icon,
         QMessageBox::StandardButtons buttons);
 
     static void information(const QString& title, const QString& text,

@@ -18,11 +18,11 @@ Hifi.Tooltip {
         offsetX = (lastMousePosition.x > surfaceSize.width/2) ? -root.width : 0
         offsetY = (lastMousePosition.y > surfaceSize.height/2) ? -root.height : 0
     }
-    
+
     Rectangle {
         id: border
-        color: "#7f000000"
-        width: 322
+        color: "#BF000000"
+        width: 330
         height: col.height + hifi.layout.spacing * 2
 
         Column {
@@ -38,14 +38,14 @@ Hifi.Tooltip {
             Text {
                 id: textPlace
                 color: "white"
-                font.underline: true
                 anchors.left: parent.left
                 anchors.right: parent.right
-                font.pixelSize: hifi.fonts.pixelSize / 2
-                text: root.text
+                horizontalAlignment: Text.AlignHCenter
+                font.pixelSize: hifi.fonts.pixelSize * 2
+                text: root.title
                 wrapMode: Text.WrapAnywhere
-                
-                /* Uncomment for debugging to see the extent of the  
+
+                /* Uncomment for debugging to see the extent of the
                 Rectangle {
                     anchors.fill: parent
                     color: "#7fff00ff"
@@ -53,12 +53,34 @@ Hifi.Tooltip {
                 */
             }
 
-            Image {
-                id: tooltipPic
-                source: "../images/NoPictureProvided.svg"
+            Rectangle {
+                id: seperator
+                color: "white"
+                width: col.width
+                height: hifi.layout.spacing / 3
                 anchors.left: parent.left
                 anchors.right: parent.right
-                verticalAlignment: Image.AlignVCenter
+            }
+
+            Item {
+                id: firstSpacer
+                width: col.width
+                height: 5
+            }
+
+            Image {
+                id: tooltipPic
+                source: root.imageURL
+                height: 180
+                width: 320
+                anchors.left: parent.left
+                anchors.right: parent.right
+            }
+
+            Item {
+                id: secondSpacer
+                width: col.width
+                height: 5
             }
 
             Text {
@@ -67,9 +89,9 @@ Hifi.Tooltip {
                 width: border.implicitWidth
                 anchors.left: parent.left
                 anchors.right: parent.right
-                font.pixelSize: hifi.fonts.pixelSize / 2
-                text: root.text
-                wrapMode: Text.WrapAnywhere
+                text: root.description
+                font.pixelSize: 16
+                wrapMode: Text.WordWrap
             }
         }
     }

@@ -159,6 +159,12 @@ void Batch::setProjectionTransform(const Mat4& proj) {
     _params.push_back(cacheData(sizeof(Mat4), &proj));
 }
 
+void Batch::setViewportTransform(const Vec4i& viewport) {
+    ADD_COMMAND(setViewportTransform);
+
+    _params.push_back(cacheData(sizeof(Vec4i), &viewport));
+}
+
 void Batch::setPipeline(const PipelinePointer& pipeline) {
     ADD_COMMAND(setPipeline);
 

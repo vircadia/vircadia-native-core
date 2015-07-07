@@ -9,9 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <NumericalConstants.h>
+
 #include "NodeList.h"
 #include "ReceivedPacketProcessor.h"
 #include "SharedUtil.h"
+
+ReceivedPacketProcessor::ReceivedPacketProcessor() {
+    _lastWindowAt = usecTimestampNow();
+}
+
 
 void ReceivedPacketProcessor::terminating() {
     _hasPackets.wakeAll();
@@ -25,6 +32,7 @@ void ReceivedPacketProcessor::queueReceivedPacket(const SharedNodePointer& sendi
     lock();
     _packets.push_back(networkPacket);
     _nodePacketCounts[sendingNode->getUUID()]++;
+    _lastWindowIncomingPackets++;
     unlock();
     
     // Make sure to wake our actual processing thread because we now have packets for it to process.
@@ -32,25 +40,53 @@ void ReceivedPacketProcessor::queueReceivedPacket(const SharedNodePointer& sendi
 }
 
 bool ReceivedPacketProcessor::process() {
+    quint64 now = usecTimestampNow();
+    quint64 sinceLastWindow = now - _lastWindowAt;
+
+    
+    if (sinceLastWindow > USECS_PER_SECOND) {
+        lock();
+        float secondsSinceLastWindow = sinceLastWindow / USECS_PER_SECOND;
+        float incomingPacketsPerSecondInWindow = (float)_lastWindowIncomingPackets / secondsSinceLastWindow;
+        _incomingPPS.updateAverage(incomingPacketsPerSecondInWindow);
+
+        float processedPacketsPerSecondInWindow = (float)_lastWindowIncomingPackets / secondsSinceLastWindow;
+        _processedPPS.updateAverage(processedPacketsPerSecondInWindow);
+
+        _lastWindowAt = now;
+        _lastWindowIncomingPackets = 0;
+        _lastWindowProcessedPackets = 0;
+        unlock();
+    }
 
     if (_packets.size() == 0) {
         _waitingOnPacketsMutex.lock();
         _hasPackets.wait(&_waitingOnPacketsMutex, getMaxWait());
         _waitingOnPacketsMutex.unlock();
     }
+
     preProcess();
-    while (_packets.size() > 0) {
-        lock(); // lock to make sure nothing changes on us
-        NetworkPacket& packet = _packets.front(); // get the oldest packet
-        NetworkPacket temporary = packet; // make a copy of the packet in case the vector is resized on us
-        _packets.erase(_packets.begin()); // remove the oldest packet
-        if (!temporary.getNode().isNull()) {
-            _nodePacketCounts[temporary.getNode()->getUUID()]--;
-        }
-        unlock(); // let others add to the packets
-        processPacket(temporary.getNode(), temporary.getByteArray()); // process our temporary copy
+    if (!_packets.size()) {
+        return isStillRunning();
+    }
+
+    lock();
+    QVector<NetworkPacket> currentPackets;
+    currentPackets.swap(_packets);
+    unlock();
+
+    foreach(auto& packet, currentPackets) {
+        processPacket(packet.getNode(), packet.getByteArray()); 
+        _lastWindowProcessedPackets++;
         midProcess();
     }
+
+    lock();
+    foreach(auto& packet, currentPackets) {
+        _nodePacketCounts[packet.getNode()->getUUID()]--;
+    }
+    unlock();
+
     postProcess();
     return isStillRunning();  // keep running till they terminate us
 }

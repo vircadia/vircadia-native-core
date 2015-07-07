@@ -91,6 +91,7 @@
 #include <SceneScriptingInterface.h>
 #include <ScriptCache.h>
 #include <SettingHandle.h>
+#include <SimpleAverage.h>
 #include <SoundCache.h>
 #include <TextRenderer.h>
 #include <Tooltip.h>
@@ -178,6 +179,7 @@ using namespace std;
 //  Starfield information
 static unsigned STARFIELD_NUM_STARS = 50000;
 static unsigned STARFIELD_SEED = 1;
+static uint8_t THROTTLED_IDLE_TIMER_DELAY = 10;
 
 const qint64 MAXIMUM_CACHE_SIZE = 10 * BYTES_PER_GIGABYTES;  // 10GB
 
@@ -604,6 +606,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _settingsTimer.setSingleShot(false);
     _settingsTimer.setInterval(SAVE_SETTINGS_INTERVAL);
     _settingsThread.start();
+    
+    if (Menu::getInstance()->isOptionChecked(MenuOption::IndependentMode)) {
+        Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
+        cameraMenuChanged();
+    }
 
     _trayIcon->show();
 
@@ -1032,7 +1039,7 @@ void Application::showEditEntitiesHelp() {
     InfoView::show(INFO_EDIT_ENTITIES_PATH);
 }
 
-void Application::resetCamerasOnResizeGL(Camera& camera, const glm::uvec2& size) {
+void Application::resetCameras(Camera& camera, const glm::uvec2& size) {
     if (OculusManager::isConnected()) {
         OculusManager::configureCamera(camera);
     } else if (TV3DManager::isConnected()) {
@@ -1055,13 +1062,14 @@ void Application::resizeGL() {
     if (_renderResolution != toGlm(renderSize)) {
         _renderResolution = toGlm(renderSize);
         DependencyManager::get<TextureCache>()->setFrameBufferSize(renderSize);
-        resetCamerasOnResizeGL(_myCamera, _renderResolution);
 
         glViewport(0, 0, _renderResolution.x, _renderResolution.y); // shouldn't this account for the menu???
 
         updateProjectionMatrix();
         glLoadIdentity();
     }
+
+    resetCameras(_myCamera, _renderResolution);
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
@@ -1779,8 +1787,24 @@ void Application::checkFPS() {
 }
 
 void Application::idle() {
-    PerformanceTimer perfTimer("idle");
+    static SimpleAverage<float> interIdleDurations;
+    static uint64_t lastIdleEnd{ 0 };
 
+    if (lastIdleEnd != 0) {
+        uint64_t now = usecTimestampNow();
+        interIdleDurations.update(now - lastIdleEnd);
+        static uint64_t lastReportTime = now;
+        if ((now - lastReportTime) >= (USECS_PER_SECOND)) {
+            static QString LOGLINE("Average inter-idle time: %1 us for %2 samples");
+            if (Menu::getInstance()->isOptionChecked(MenuOption::LogExtraTimings)) {
+                qCDebug(interfaceapp_timing) << LOGLINE.arg((int)interIdleDurations.getAverage()).arg(interIdleDurations.getCount());
+            }
+            interIdleDurations.reset();
+            lastReportTime = now;
+        }
+    }
+
+    PerformanceTimer perfTimer("idle");
     if (_aboutToQuit) {
         return; // bail early, nothing to do here.
     }
@@ -1823,13 +1847,15 @@ void Application::idle() {
                 _idleLoopStdev.reset();
             }
 
-            // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
-            idleTimer->start(2);
         }
-    }
+        // After finishing all of the above work, ensure the idle timer is set to the proper interval,
+        // depending on whether we're throttling or not
+        idleTimer->start(_glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : 0);
+    } 
 
     // check for any requested background downloads.
     emit checkBackgroundDownloads();
+    lastIdleEnd = usecTimestampNow();
 }
 
 void Application::setFullscreen(bool fullscreen) {
@@ -2202,6 +2228,7 @@ void Application::init() {
 
     // Make sure any new sounds are loaded as soon as know about them.
     connect(tree, &EntityTree::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
+    connect(_myAvatar, &MyAvatar::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
 }
 
 void Application::closeMirrorView() {
@@ -3521,6 +3548,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         renderContext._maxDrawnTransparentItems = sceneInterface->getEngineMaxDrawnTransparentItems();
         renderContext._maxDrawnOverlay3DItems = sceneInterface->getEngineMaxDrawnOverlay3DItems();
 
+        renderContext._drawItemStatus = sceneInterface->doEngineDisplayItemStatus();
+
         renderArgs->_shouldRender = LODManager::shouldRender;
 
         renderContext.args = renderArgs;
@@ -3542,7 +3571,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     }
     //Render the sixense lasers
     if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
-        _myAvatar->renderLaserPointers();
+        _myAvatar->renderLaserPointers(*renderArgs->_batch);
     }
 
     if (!selfAvatarOnly) {
@@ -4048,6 +4077,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     connect(scriptEngine, SIGNAL(finished(const QString&)), this, SLOT(scriptFinished(const QString&)));
 
     connect(scriptEngine, SIGNAL(loadScript(const QString&, bool)), this, SLOT(loadScript(const QString&, bool)));
+    connect(scriptEngine, SIGNAL(reloadScript(const QString&, bool)), this, SLOT(reloadScript(const QString&, bool)));
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
     qScriptRegisterMetaType(scriptEngine, OverlayPropertyResultToScriptValue, OverlayPropertyResultFromScriptValue);
@@ -4263,7 +4293,7 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
 }
 
 ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,
-                                        bool loadScriptFromEditor, bool activateMainWindow) {
+                                        bool loadScriptFromEditor, bool activateMainWindow, bool reload) {
 
     if (isAboutToQuit()) {
         return NULL;
@@ -4292,7 +4322,7 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
         connect(scriptEngine, &ScriptEngine::errorLoadingScript, this, &Application::handleScriptLoadError);
 
         // get the script engine object to load the script at the designated script URL
-        scriptEngine->loadURL(scriptUrl);
+        scriptEngine->loadURL(scriptUrl, reload);
     }
 
     // restore the main window's active state
@@ -4301,6 +4331,10 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     }
 
     return scriptEngine;
+}
+
+void Application::reloadScript(const QString& scriptName, bool isUserLoaded) {
+    loadScript(scriptName, isUserLoaded, false, false, true);
 }
 
 void Application::handleScriptEngineLoaded(const QString& scriptFilename) {
@@ -4330,14 +4364,25 @@ void Application::scriptFinished(const QString& scriptName) {
 }
 
 void Application::stopAllScripts(bool restart) {
-    // stops all current running scripts
+    if (restart) {
+        // Delete all running scripts from cache so that they are re-downloaded when they are restarted
+        auto scriptCache = DependencyManager::get<ScriptCache>();
+        for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
+            it != _scriptEnginesHash.constEnd(); it++) {
+            if (!it.value()->isFinished()) {
+                scriptCache->deleteScript(it.key());
+            }
+        }
+    }
+
+    // Stop and possibly restart all currently running scripts
     for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
             it != _scriptEnginesHash.constEnd(); it++) {
         if (it.value()->isFinished()) {
             continue;
         }
         if (restart && it.value()->isUserLoaded()) {
-            connect(it.value(), SIGNAL(finished(const QString&)), SLOT(loadScript(const QString&)));
+            connect(it.value(), SIGNAL(finished(const QString&)), SLOT(reloadScript(const QString&)));
         }
         it.value()->stop();
         qCDebug(interfaceapp) << "stopping script..." << it.key();
@@ -4345,13 +4390,20 @@ void Application::stopAllScripts(bool restart) {
     // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
     // whenever a script stops in case it happened to have been setting joint rotations.
     // TODO: expose animation priorities and provide a layered animation control system.
+    _myAvatar->clearJointAnimationPriorities();
     _myAvatar->clearScriptableSettings();
 }
 
-void Application::stopScript(const QString &scriptName) {
+void Application::stopScript(const QString &scriptName, bool restart) {
     const QString& scriptURLString = QUrl(scriptName).toString();
     if (_scriptEnginesHash.contains(scriptURLString)) {
-        _scriptEnginesHash.value(scriptURLString)->stop();
+        ScriptEngine* scriptEngine = _scriptEnginesHash[scriptURLString];
+        if (restart) {
+            auto scriptCache = DependencyManager::get<ScriptCache>();
+            scriptCache->deleteScript(scriptName);
+            connect(scriptEngine, SIGNAL(finished(const QString&)), SLOT(reloadScript(const QString&)));
+        }
+        scriptEngine->stop();
         qCDebug(interfaceapp) << "stopping script..." << scriptName;
         // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
         // whenever a script stops in case it happened to have been setting joint rotations.
@@ -4365,6 +4417,10 @@ void Application::stopScript(const QString &scriptName) {
 
 void Application::reloadAllScripts() {
     stopAllScripts(true);
+}
+
+void Application::reloadOneScript(const QString& scriptName) {
+    stopScript(scriptName, true);
 }
 
 void Application::loadDefaultScripts() {

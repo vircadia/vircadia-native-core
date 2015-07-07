@@ -101,7 +101,7 @@ public:
     const glm::vec3& getStandingOffset() const { return _standingOffset; }
 
     void computeBoundingShape(const FBXGeometry& geometry);
-    void renderBoundingCollisionShapes(float alpha);
+    void renderBoundingCollisionShapes(gpu::Batch& batch, float alpha);
     float getBoundingShapeRadius() const { return _boundingShape.getRadius(); }
     const CapsuleShape& getBoundingShape() const { return _boundingShape; }
     const glm::vec3 getBoundingShapeOffset() const { return _boundingShapeLocalOffset; }

@@ -127,6 +127,8 @@ void PreferencesDialog::loadPreferences() {
     _displayNameString = myAvatar->getDisplayName();
     ui.displayNameEdit->setText(_displayNameString);
 
+    ui.collisionSoundURLEdit->setText(myAvatar->getCollisionSoundURL());
+
     ui.sendDataCheckBox->setChecked(!menuInstance->isOptionChecked(MenuOption::DisableActivityLogger));
 
     ui.snapshotLocationEdit->setText(Snapshot::snapshotsLocation.get());
@@ -204,6 +206,8 @@ void PreferencesDialog::savePreferences() {
         myAvatar->sendIdentityPacket();
     }
     
+    myAvatar->setCollisionSoundURL(ui.collisionSoundURLEdit->text());
+
     if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableActivityLogger)
         != ui.sendDataCheckBox->isChecked()) {
         Menu::getInstance()->triggerOption(MenuOption::DisableActivityLogger);
@@ -221,8 +225,6 @@ void PreferencesDialog::savePreferences() {
     myAvatar->setLeanScale(ui.leanScaleSpin->value());
     myAvatar->setClampedTargetScale(ui.avatarScaleSpin->value());
     
-    Application::getInstance()->resizeGL();
-
     DependencyManager::get<AvatarManager>()->getMyAvatar()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
     
     qApp->setFieldOfView(ui.fieldOfViewSpin->value());

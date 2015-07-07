@@ -23,9 +23,7 @@
 #include "QVariantGLM.h"
 #include "EntitiesLogging.h"
 #include "RecurseOctreeToMapOperator.h"
-
-
-const quint64 SIMULATOR_CHANGE_LOCKOUT_PERIOD = (quint64)(0.2f * USECS_PER_SECOND);
+#include "LogHandler.h"
 
 
 EntityTree::EntityTree(bool shouldReaverage) : 
@@ -34,6 +32,7 @@ EntityTree::EntityTree(bool shouldReaverage) :
     _simulation(NULL)
 {
     _rootElement = createNewElement();
+    resetClientEditStats();
 }
 
 EntityTree::~EntityTree() {
@@ -60,6 +59,8 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     }
     _entityToElementMap.clear();
     Octree::eraseAllOctreeElements(createNewRoot);
+    
+    resetClientEditStats();
 }
 
 bool EntityTree::handlesEditPacketType(PacketType packetType) const {
@@ -150,23 +151,34 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
     } else {
         if (getIsServer()) {
             bool simulationBlocked = !entity->getSimulatorID().isNull();
-            if (properties.simulatorIDChanged()) {
-                QUuid submittedID = properties.getSimulatorID();
+            if (properties.simulationOwnerChanged()) {
+                QUuid submittedID = properties.getSimulationOwner().getID();
                 // a legit interface will only submit their own ID or NULL:
                 if (submittedID.isNull()) {
                     if (entity->getSimulatorID() == senderID) {
                         // We only allow the simulation owner to clear their own simulationID's.
                         simulationBlocked = false;
+                        properties.clearSimulationOwner(); // clear everything
                     }
                     // else: We assume the sender really did believe it was the simulation owner when it sent
                 } else if (submittedID == senderID) {
                     // the sender is trying to take or continue ownership
-                    if (entity->getSimulatorID().isNull() || entity->getSimulatorID() == senderID) {
+                    if (entity->getSimulatorID().isNull()) {
+                        // the sender it taking ownership
+                        properties.promoteSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
+                        simulationBlocked = false;
+                    } else if (entity->getSimulatorID() == senderID) {
+                        // the sender is asserting ownership
                         simulationBlocked = false;
                     } else {
                         // the sender is trying to steal ownership from another simulator
-                        // so we apply the ownership change filter
-                        if (usecTimestampNow() - entity->getSimulatorIDChangedTime() > SIMULATOR_CHANGE_LOCKOUT_PERIOD) {
+                        // so we apply the rules for ownership change:
+                        // (1) higher priority wins
+                        // (2) equal priority wins if ownership filter has expired except...
+                        uint8_t oldPriority = entity->getSimulationPriority();
+                        uint8_t newPriority = properties.getSimulationOwner().getPriority();
+                        if (newPriority > oldPriority || 
+                             (newPriority == oldPriority && properties.getSimulationOwner().hasExpired())) {
                             simulationBlocked = false;
                         }
                     }
@@ -174,17 +186,23 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                     // the entire update is suspect --> ignore it
                     return false;
                 }
+            } else {
+                simulationBlocked = senderID != entity->getSimulatorID();
             }
             if (simulationBlocked) {
-                // squash the physics-related changes.
-                properties.setSimulatorIDChanged(false);
+                // squash ownership and physics-related changes.
+                properties.setSimulationOwnerChanged(false);
                 properties.setPositionChanged(false);
                 properties.setRotationChanged(false);
+                properties.setVelocityChanged(false);
+                properties.setAngularVelocityChanged(false);
+                properties.setAccelerationChanged(false);
             }
         }
         // else client accepts what the server says
 
         QString entityScriptBefore = entity->getScript();
+        quint64 entityScriptTimestampBefore = entity->getScriptTimestamp();
         QString collisionSoundURLBefore = entity->getCollisionSoundURL();
         uint32_t preFlags = entity->getDirtyFlags();
         UpdateEntityOperator theOperator(this, containingElement, entity, properties);
@@ -206,8 +224,10 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
         }
         
         QString entityScriptAfter = entity->getScript();
-        if (entityScriptBefore != entityScriptAfter) {
-            emitEntityScriptChanging(entity->getEntityItemID()); // the entity script has changed
+        quint64 entityScriptTimestampAfter = entity->getScriptTimestamp();
+        bool reload = entityScriptTimestampBefore != entityScriptTimestampAfter;
+        if (entityScriptBefore != entityScriptAfter || reload) {
+            emitEntityScriptChanging(entity->getEntityItemID(), reload); // the entity script has changed
         }
         maybeNotifyNewCollisionSoundURL(collisionSoundURLBefore, entity->getCollisionSoundURL());
      }
@@ -229,7 +249,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     if (getIsClient()) {
         // if our Node isn't allowed to create entities in this domain, don't try.
         auto nodeList = DependencyManager::get<NodeList>();
-        if (!nodeList->getThisNodeCanRez()) {
+        if (nodeList && !nodeList->getThisNodeCanRez()) {
             return NULL;
         }
     }
@@ -266,9 +286,10 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     return result;
 }
 
-void EntityTree::emitEntityScriptChanging(const EntityItemID& entityItemID) {
-    emit entityScriptChanging(entityItemID);
+void EntityTree::emitEntityScriptChanging(const EntityItemID& entityItemID, const bool reload) {
+    emit entityScriptChanging(entityItemID, reload);
 }
+
 void EntityTree::maybeNotifyNewCollisionSoundURL(const QString& previousCollisionSoundURL, const QString& nextCollisionSoundURL) {
     if (!nextCollisionSoundURL.isEmpty() && (nextCollisionSoundURL != previousCollisionSoundURL)) {
         emit newCollisionSoundURL(QUrl(nextCollisionSoundURL));
@@ -570,41 +591,61 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
         
         case PacketTypeEntityAdd:
         case PacketTypeEntityEdit: {
+            quint64 startDecode = 0, endDecode = 0;
+            quint64 startLookup = 0, endLookup = 0;
+            quint64 startUpdate = 0, endUpdate = 0;
+            quint64 startCreate = 0, endCreate = 0;
+            quint64 startLogging = 0, endLogging = 0;
+
+            _totalEditMessages++;
+
             EntityItemID entityItemID;
             EntityItemProperties properties;
+            startDecode = usecTimestampNow();
             bool validEditPacket = EntityItemProperties::decodeEntityEditPacket(editData, maxLength,
                                                                                 processedBytes, entityItemID, properties);
+            endDecode = usecTimestampNow();
 
             // If we got a valid edit packet, then it could be a new entity or it could be an update to
             // an existing entity... handle appropriately
             if (validEditPacket) {
                 // search for the entity by EntityItemID
+                startLookup = usecTimestampNow();
                 EntityItemPointer existingEntity = findEntityByEntityItemID(entityItemID);
+                endLookup = usecTimestampNow();
                 if (existingEntity && packetType == PacketTypeEntityEdit) {
                     // if the EntityItem exists, then update it
+                    startLogging = usecTimestampNow();
                     if (wantEditLogging()) {
                         qCDebug(entities) << "User [" << senderNode->getUUID() << "] editing entity. ID:" << entityItemID;
                         qCDebug(entities) << "   properties:" << properties;
                     }
+                    endLogging = usecTimestampNow();
+
+                    startUpdate = usecTimestampNow();
                     updateEntity(entityItemID, properties, senderNode);
                     existingEntity->markAsChangedOnServer();
+                    endUpdate = usecTimestampNow();
+                    _totalUpdates++;
                 } else if (packetType == PacketTypeEntityAdd) {
                     if (senderNode->getCanRez()) {
                         // this is a new entity... assign a new entityID
-                        if (wantEditLogging()) {
-                            qCDebug(entities) << "User [" << senderNode->getUUID() << "] adding entity.";
-                            qCDebug(entities) << "   properties:" << properties;
-                        }
                         properties.setCreated(properties.getLastEdited());
+                        startCreate = usecTimestampNow();
                         EntityItemPointer newEntity = addEntity(entityItemID, properties);
+                        endCreate = usecTimestampNow();
+                        _totalCreates++;
                         if (newEntity) {
                             newEntity->markAsChangedOnServer();
                             notifyNewlyCreatedEntity(*newEntity, senderNode);
+
+                            startLogging = usecTimestampNow();
                             if (wantEditLogging()) {
                                 qCDebug(entities) << "User [" << senderNode->getUUID() << "] added entity. ID:" 
                                                 << newEntity->getEntityItemID();
                                 qCDebug(entities) << "   properties:" << properties;
                             }
+                            endLogging = usecTimestampNow();
 
                         }
                     } else {
@@ -612,9 +653,19 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                                           << "] attempted to add an entity.";
                     }
                 } else {
+                    static QString repeatedMessage =
+                        LogHandler::getInstance().addRepeatedMessageRegex("^Add or Edit failed.*");
                     qCDebug(entities) << "Add or Edit failed." << packetType << existingEntity.get();
                 }
             }
+            
+
+            _totalDecodeTime += endDecode - startDecode;
+            _totalLookupTime += endLookup - startLookup;
+            _totalUpdateTime += endUpdate - startUpdate;
+            _totalCreateTime += endCreate - startCreate;
+            _totalLoggingTime += endLogging - startLogging;
+            
             break;
         }
 
@@ -1071,4 +1122,30 @@ bool EntityTree::readFromMap(QVariantMap& map) {
     }
 
     return true;
+}
+
+void EntityTree::resetClientEditStats() {
+    _treeResetTime = usecTimestampNow();
+    _maxEditDelta = 0;
+    _totalEditDeltas = 0;
+    _totalTrackedEdits = 0;
+}
+
+
+
+void EntityTree::trackIncomingEntityLastEdited(quint64 lastEditedTime, int bytesRead) {
+    // we don't want to track all edit deltas, just those edits that have happend
+    // since we connected to this domain. This will filter out all previously created
+    // content and only track new edits
+    if (lastEditedTime > _treeResetTime) {
+        quint64 now = usecTimestampNow();
+        quint64 sinceEdit = now - lastEditedTime;
+
+        _totalEditDeltas += sinceEdit;
+        _totalEditBytes += bytesRead;
+        _totalTrackedEdits++;
+        if (sinceEdit > _maxEditDelta) {
+            _maxEditDelta = sinceEdit;
+        }
+    }
 }

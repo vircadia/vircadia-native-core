@@ -86,7 +86,7 @@ enum EntityPropertyList {
 
     // available to all entities
     PROP_LOCKED,
-    
+
     PROP_TEXTURES,  // used by Model entities
     PROP_ANIMATION_SETTINGS,  // used by Model entities
     PROP_USER_DATA,  // all entities
@@ -100,11 +100,11 @@ enum EntityPropertyList {
     PROP_EMIT_STRENGTH,
     PROP_LOCAL_GRAVITY,
     PROP_PARTICLE_RADIUS,
-    
+
     PROP_COMPOUND_SHAPE_URL, // used by Model + zones entities
     PROP_MARKETPLACE_ID, // all entities
     PROP_ACCELERATION, // all entities
-    PROP_SIMULATOR_ID, // all entities
+    PROP_SIMULATION_OWNER, // formerly known as PROP_SIMULATOR_ID
     PROP_NAME, // all entities
     PROP_COLLISION_SOUND_URL,
     PROP_RESTITUTION,
@@ -121,9 +121,13 @@ enum EntityPropertyList {
     // used by hyperlinks
     PROP_HREF,
     PROP_DESCRIPTION,
-    
+
+    PROP_FACE_CAMERA,
+    PROP_SCRIPT_TIMESTAMP,
+    PROP_ACTION_DATA,
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-    // ATTENTION: add new properties ABOVE this line
+    // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 

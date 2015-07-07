@@ -15,9 +15,9 @@
 
 #include "StreamUtils.h"
 
-const char* hex_digits = "0123456789abcdef";
 
 void StreamUtil::dump(std::ostream& s, const QByteArray& buffer) {
+    const char* hex_digits = "0123456789abcdef";
     int row_size = 32;
     int i = 0;
     while (i < buffer.size()) {

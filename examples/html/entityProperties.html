@@ -250,6 +250,8 @@
             var elCollisionSoundURL = document.getElementById("property-collision-sound-url");
             var elLifetime = document.getElementById("property-lifetime");
             var elScriptURL = document.getElementById("property-script-url");
+            var elScriptTimestamp = document.getElementById("property-script-timestamp");
+            var elReloadScriptButton = document.getElementById("reload-script-button");
             var elUserData = document.getElementById("property-user-data");
 
             var elColorSection = document.getElementById("color-section");
@@ -470,6 +472,7 @@
                             elCollisionSoundURL.value = properties.collisionSoundURL;
                             elLifetime.value = properties.lifetime;
                             elScriptURL.value = properties.script;
+                            elScriptTimestamp.value = properties.scriptTimestamp;
                             elUserData.value = properties.userData;
 
                             elHyperlinkHref.value = properties.href;
@@ -688,6 +691,7 @@
 
             elLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifetime'));
             elScriptURL.addEventListener('change', createEmitTextPropertyUpdateFunction('script'));
+            elScriptTimestamp.addEventListener('change', createEmitNumberPropertyUpdateFunction('scriptTimestamp'));
             elUserData.addEventListener('change', createEmitTextPropertyUpdateFunction('userData'));
 
             var colorChangeFunction = createEmitColorPropertyUpdateFunction(
@@ -887,6 +891,12 @@
                     type: "action",
                     action: "rescaleDimensions",
                     percentage: parseInt(elRescaleDimensionsPct.value),
+                }));
+            });
+            elReloadScriptButton.addEventListener("click", function() {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "action",
+                    action: "reloadScript"
                 }));
             });
             elCenterAtmosphereToZone.addEventListener("click", function() {
@@ -1181,7 +1191,10 @@
         </div>
 
         <div class="property">
-            <div class="label">Script URL</div>
+            <div class="label">Script URL
+                <input type="hidden" id="property-script-timestamp" class="value"></input>
+                <input type="button" id="reload-script-button" value="Reload"></input>
+            </div>
             <div class="value">
                 <input id="property-script-url" class="url"></input>
             </div>
