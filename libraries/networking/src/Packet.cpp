@@ -41,7 +41,8 @@ std::unique_ptr<Packet> Packet::create(PacketType::Value type, int64_t size) {
 Packet::Packet(PacketType::Value type, int64_t size) :
     _packetSize(headerSize(type) + size),
     _packet(new char(_packetSize)),
-    _payload(_packet.get() + headerSize(type), size) {
+    _payloadStart(_packet.get() + headerSize(type)),
+    _capacity(size) {
         
         // Sanity check
         Q_ASSERT(size <= maxPayloadSize(type));
@@ -87,7 +88,7 @@ bool Packet::isControlPacket() const {
 
 void Packet::setPacketTypeAndVersion(PacketType::Value type) {
     // Pack the packet type
-    auto offset = packArithmeticallyCodedValue((int)type, _packet.get());
+    auto offset = packArithmeticallyCodedValue(type, _packet.get());
     
     // Pack the packet version
     auto version { versionForPacketType(type) };
@@ -101,4 +102,52 @@ void Packet::setSequenceNumber(SequenceNumber seqNum) {
     // for data packets going out
     memcpy(_packet.get() + numBytesForArithmeticCodedPacketType(type) + sizeof(PacketVersion),
            &seqNum, sizeof(seqNum));
+}
+
+bool Packet::seek(qint64 pos) {
+    bool valid = (pos >= 0) && (pos < size());
+    if (valid) {
+        _position = pos;
+    }
+    return valid;
+}
+
+static const qint64 PACKET_WRITE_ERROR = -1;
+qint64 Packet::writeData(const char* data, qint64 maxSize) {
+    // make sure we have the space required to write this block
+    if (maxSize <= bytesAvailable()) {
+        qint64 currentPos = pos();
+        
+        // good to go - write the data
+        memcpy(_payloadStart + currentPos, data, maxSize);
+        
+        // seek to the new position based on where our write just finished
+        seek(currentPos + maxSize);
+        
+        // keep track of _sizeUsed so we can just write the actual data when packet is about to be sent
+        _sizeUsed = std::max(pos() + 1, _sizeUsed);
+        
+        // return the number of bytes written
+        return maxSize;
+    } else {
+        // not enough space left for this write - return an error
+        return PACKET_WRITE_ERROR;
+    }
+}
+
+qint64 Packet::readData(char* dest, qint64 maxSize) {
+    // we're either reading what is left from the current position or what was asked to be read
+    qint64 numBytesToRead = std::min(bytesAvailable(), maxSize);
+    
+    if (numBytesToRead > 0) {
+        int currentPosition = pos();
+        
+        // read out the data
+        memcpy(dest, _payloadStart + currentPosition, numBytesToRead);
+        
+        // seek to the end of the read
+        seek(currentPosition + numBytesToRead);
+    }
+    
+    return numBytesToRead;
 }
