@@ -23,7 +23,7 @@ public:
     SentPacketHistory(int size = MAX_REASONABLE_SEQUENCE_GAP);
 
     void packetSent(uint16_t sequenceNumber, const NLPacket& packet);
-    const QByteArray* getPacket(uint16_t sequenceNumber) const;
+    const NLPacket* getPacket(uint16_t sequenceNumber) const;
 
 private:
     RingBufferHistory<NLPacket*> _sentPackets;    // circular buffer
