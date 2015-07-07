@@ -159,7 +159,7 @@ void ViveControllerManager::handleButtonEvent(uint64_t buttons, int index) {
 void ViveControllerManager::handlePoseEvent(const mat4& mat, int index) {
     glm::vec4 p = _trackedDevicePoseMat4[vr::k_unTrackedDeviceIndex_Hmd][3];
     glm::vec3 headPos(p.x, p.y, p.z);
-    glm::vec3 position = glm::vec3(mat[3][0], mat[3][1], mat[3][2]) - headPos;
+    glm::vec3 position = glm::vec3(mat[3][0], mat[3][1], mat[3][2]) - headPos + vec3(0, 0.6f, 0); // figure out why this offset is necessary
 
     glm::quat rotation = glm::quat_cast(mat);
 
