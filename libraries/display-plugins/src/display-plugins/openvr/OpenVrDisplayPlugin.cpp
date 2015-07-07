@@ -27,7 +27,7 @@
 
 #include <QLoggingCategory>
 Q_DECLARE_LOGGING_CATEGORY(displayplugins)
-Q_LOGGING_CATEGORY(displayplugins, "hifi.physics")
+Q_LOGGING_CATEGORY(displayplugins, "hifi.displayplugins")
 
 const QString OpenVrDisplayPlugin::NAME("OpenVR (Vive)");
 
@@ -210,6 +210,9 @@ void OpenVrDisplayPlugin::finishFrame() {
     openvr_for_each_eye([&](vr::Hmd_Eye eye) {
         _eyesData[eye]._pose = _trackedDevicePoseMat4[0];
     });
+
+    glm::vec3 p(_trackedDevicePoseMat4[0][3]);
+    qCDebug(displayplugins, "trackPos = (%.5f, %.5f, %.5f)", p.x, p.y, p.z);
 };
 
 #endif

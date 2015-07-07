@@ -2670,6 +2670,10 @@ void Application::update(float deltaTime) {
         _physicsEngine.stepSimulation();
         _entities.getTree()->unlock();
 
+        // AJT: delay the head pose until after the physics step.
+        _headPosition = glm::vec3(getActiveDisplayPlugin()->getHeadPose()[3]);
+        _headOrientation = glm::quat_cast(getActiveDisplayPlugin()->getHeadPose());
+
         if (_physicsEngine.hasOutgoingChanges()) {
             _entities.getTree()->lockForWrite();
             _entitySimulation.lock();
@@ -4865,11 +4869,11 @@ void Application::shutdownPlugins() {
 }
 
 glm::vec3 Application::getHeadPosition() const {
-    return glm::vec3(getActiveDisplayPlugin()->getHeadPose()[3]);
+    return _headPosition;
 }
 
 glm::quat Application::getHeadOrientation() const {
-    return glm::quat_cast(getActiveDisplayPlugin()->getHeadPose());
+    return _headOrientation;
 }
 
 glm::uvec2 Application::getCanvasSize() const {

@@ -27,6 +27,8 @@
 
 using namespace std;
 
+static bool isRoomTracking = true;
+
 Head::Head(Avatar* owningAvatar) :
     HeadData((AvatarData*)owningAvatar),
     _returnHeadToCenter(false),
@@ -116,12 +118,15 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
                 }
             }
         }
-        //  Twist the upper body to follow the rotation of the head, but only do this with my avatar,
-        //  since everyone else will see the full joint rotations for other people.  
-        const float BODY_FOLLOW_HEAD_YAW_RATE = 0.1f;
-        const float BODY_FOLLOW_HEAD_FACTOR = 0.66f;
-        float currentTwist = getTorsoTwist();
-        setTorsoTwist(currentTwist + (getFinalYaw() * BODY_FOLLOW_HEAD_FACTOR - currentTwist) * BODY_FOLLOW_HEAD_YAW_RATE);
+
+        if (!isRoomTracking) {
+            //  Twist the upper body to follow the rotation of the head, but only do this with my avatar,
+            //  since everyone else will see the full joint rotations for other people.  
+            const float BODY_FOLLOW_HEAD_YAW_RATE = 0.1f;
+            const float BODY_FOLLOW_HEAD_FACTOR = 0.66f;
+            float currentTwist = getTorsoTwist();
+            setTorsoTwist(currentTwist + (getFinalYaw() * BODY_FOLLOW_HEAD_FACTOR - currentTwist) * BODY_FOLLOW_HEAD_YAW_RATE);
+        }
     }
    
     if (!(_isFaceTrackerConnected || billboard)) {

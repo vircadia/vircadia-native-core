@@ -668,6 +668,9 @@ private:
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
     ApplicationCompositor _compositor;
+
+    glm::vec3 _headPosition;
+    glm::quat _headOrientation;
 };
 
 #endif // hifi_Application_h

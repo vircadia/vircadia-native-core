@@ -207,8 +207,8 @@ public slots:
     virtual void rebuildSkeletonBody();
 
     // these are overriden, because they must move the sensor mat, such that the avatar will be at the given location.
-    virtual void setPosition(const glm::vec3 position, bool overideReferential) override;
-    virtual void setOrientation(const glm::quat& orientation, bool overideReferential) overide;
+    virtual void setPosition(const glm::vec3 position, bool overideReferential = false) override;
+    virtual void setOrientation(const glm::quat& orientation, bool overideReferential = false) override;
 
     glm::mat4 getSensorToWorldMat() const { return _sensorToWorldMat; }
 
@@ -221,6 +221,9 @@ private:
     // these set the avatars position in world space without effecting the sensor location.
     void setAvatarPosition(glm::vec3 pos);
     void setAvatarOrientation(glm::quat quat);
+
+    glm::vec3 calcBodyPositionFromSensors() const;
+    glm::quat calcBodyOrientationFromSensors() const;
 
     bool cameraInsideHead() const;
 
