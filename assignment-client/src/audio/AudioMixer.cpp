@@ -530,7 +530,7 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
             envPacket.write(&reverbTime, sizeof(reverb));
             envPacket.write(&wetLevel, sizeof(wetLevel));
         }
-        nodeList->sendPacket(envPacket, node);
+        nodeList->sendPacket(std::move(envPacket), node);
     }
 }
 
@@ -794,7 +794,7 @@ void AudioMixer::run() {
                 if (nodeData->getAvatarAudioStream()
                     && shouldMute(nodeData->getAvatarAudioStream()->getQuietestFrameLoudness())) {
                     auto mutePacket = NLPacket::create(PacketType::NoisyMute, 0);
-                    nodeList->sendPacket(mutePacket, node);
+                    nodeList->sendPacket(std::move(mutePacket), node);
                 }
 
                 if (node->getType() == NodeType::Agent && node->getActiveSocket()

@@ -196,7 +196,7 @@ void AssignmentClientMonitor::checkSpares() {
             childNode->activateLocalSocket();
 
             auto diePacket = NLPacket::create(PacketType::StopNode, 0);
-            nodeList->sendPacket(diePacket, childNode);
+            nodeList->sendPacket(std::move(diePacket), childNode);
         }
     }
 }
@@ -231,7 +231,7 @@ void AssignmentClientMonitor::readPendingDatagrams() {
                             qDebug() << "asking unknown child to exit.";
 
                             auto diePacket = NL::create(PacketType::StopNode, 0);
-                            nodeList->sendPacket(diePacket, childNode);
+                            nodeList->sendPacket(std::move(diePacket), childNode);
                         }
                     }
                 }

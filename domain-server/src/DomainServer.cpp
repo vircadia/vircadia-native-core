@@ -1324,10 +1324,10 @@ void DomainServer::pingPunchForConnectingPeer(const SharedNetworkPeer& peer) {
 
         // send the ping packet to the local and public sockets for this node
         auto localPingPacket = nodeList->constructICEPingPacket(PingType::Local, limitedNodeList->getSessionUUID());
-        limitedNodeList->sendPacket(localPingPacket, peer->getLocalSocket());
+        limitedNodeList->sendPacket(std::move(localPingPacket), peer->getLocalSocket());
 
         auto publicPingPacket = nodeList->constructICEPingPacket(PingType::Public, limitedNodeList->getSessionUUID());
-        limitedNodeList->sendPacket(publicPingPacket, peer->getPublicSocket());
+        limitedNodeList->sendPacket(std::move(publicPingPacket), peer->getPublicSocket());
 
         peer->incrementConnectionAttempts();
     }
