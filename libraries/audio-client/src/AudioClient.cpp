@@ -854,6 +854,7 @@ void AudioClient::handleAudioInput() {
             }
 
             // reset the audio packet so we can start writing
+            _audioPacket->reset();
 
             // write sequence number
             _audioPacket->write(&_outgoingAvatarAudioSequenceNumber, sizeof(quint16));
