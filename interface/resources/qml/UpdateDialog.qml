@@ -31,9 +31,8 @@ DialogContainer {
         readonly property int borderWidth: 30
         readonly property int closeMargin: 16
         readonly property int inputSpacing: 16
-        readonly property int buttonWidth: 150
-        readonly property int buttonHeight: 50
-        readonly property int buttonRadius: 15
+        readonly property int buttonWidth: 100
+        readonly property int buttonHeight: 30
         readonly property int noticeHeight: 15 * inputSpacing
 
         signal triggerBuildDownload
@@ -140,11 +139,10 @@ DialogContainer {
                     id: cancelButton
                     width: updateDialog.buttonWidth
                     height: updateDialog.buttonHeight
-                    radius: updateDialog.buttonRadius
-                    color: "red"
 
                     Text {
                         text: "Cancel"
+                        font.weight: Font.DemiBold
                         anchors {
                             verticalCenter: parent.verticalCenter
                             horizontalCenter: parent.horizontalCenter
@@ -160,14 +158,13 @@ DialogContainer {
                 }
 
                 Rectangle {
-                    id: downloadButton
+                    id: updateButton
                     width: updateDialog.buttonWidth
                     height: updateDialog.buttonHeight
-                    radius: updateDialog.buttonRadius
-                    color: "green"
 
                     Text {
-                        text: "Upgrade"
+                        text: "Update"
+                        font.weight: Font.DemiBold
                         anchors {
                             verticalCenter: parent.verticalCenter
                             horizontalCenter: parent.horizontalCenter
@@ -175,7 +172,7 @@ DialogContainer {
                     }
 
                     MouseArea {
-                        id: downloadButtonAction
+                        id: updateButtonAction
                         anchors.fill: parent
                         onClicked: updateDialog.triggerUpgrade()
                         cursorShape: "PointingHandCursor"
