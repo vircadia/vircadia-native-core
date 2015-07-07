@@ -422,10 +422,10 @@ void NodeList::sendDSPathQuery(const QString& newPath) {
 
         if (numPathBytes + sizeof(numPathBytes) < pathQueryPacket.size() ) {
             // append the size of the path to the query packet
-            pathQueryPacket.write(&numPathBytes, sizeof(numPathBytes));
+            pathQueryPacket->write(&numPathBytes, sizeof(numPathBytes));
 
             // append the path itself to the query packet
-            pathQueryPacket.write(pathQueryUTF8);
+            pathQueryPacket->write(pathQueryUTF8);
 
             qCDebug(networking) << "Sending a path query packet for path" << newPath << "to domain-server at"
                 << _domainHandler.getSockAddr();

@@ -52,8 +52,8 @@ namespace PacketType {
         DomainServerPathQuery,
         DomainServerPathResponse,
         DomainServerAddedNode,
-        IceServerPeerInformation,
-        IceServerQuery, // 25
+        ICEServerPeerInformation,
+        ICEServerQuery, // 25
         OctreeStats,
         Jurisdiction,
         JurisdictionRequest,

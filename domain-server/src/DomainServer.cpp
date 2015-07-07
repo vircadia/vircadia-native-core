@@ -1448,7 +1448,7 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
                 processICEPingReply(receivedPacket, senderSockAddr);
                 break;
             }
-            case PacketTypeIceServerPeerInformation:
+            case PacketType::ICEServerPeerInformation:
                 processICEPeerInformation(receivedPacket);
                 break;
             default:
