@@ -195,7 +195,7 @@ void AssignmentClientMonitor::checkSpares() {
             SharedNodePointer childNode = nodeList->nodeWithUUID(aSpareId);
             childNode->activateLocalSocket();
 
-            NodeListPacket diePacket = NodeListPacket::create(PacketType::StopNode);
+            auto diePacket { NLPacket::create(PacketType::StopNode); }
             nodeList->sendPacket(diePacket, childNode);
         }
     }
@@ -230,7 +230,7 @@ void AssignmentClientMonitor::readPendingDatagrams() {
                             // tell unknown assignment-client child to exit.
                             qDebug() << "asking unknown child to exit.";
 
-                            NodeListPacket diePacket = NodeListPacket::create(PacketType::StopNode);
+                            auto diePacket { NL::create(PacketType::StopNode); }
                             nodeList->sendPacket(diePacket, childNode);
                         }
                     }

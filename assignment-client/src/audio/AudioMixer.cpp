@@ -785,7 +785,7 @@ void AudioMixer::run() {
                 // if the stream should be muted, send mute packet
                 if (nodeData->getAvatarAudioStream()
                     && shouldMute(nodeData->getAvatarAudioStream()->getQuietestFrameLoudness())) {
-                    auto mutePacket = NodeListPacket::create(PacketType::NoisyMute);
+                    auto mutePacket { NLPacket::create(PacketType::NoisyMute); }
                     nodeList->sendPacket(mutePacket, node);
                 }
 
@@ -794,11 +794,11 @@ void AudioMixer::run() {
 
                     int streamsMixed = prepareMixForListeningNode(node.data());
 
-                    std::unique_ptr<NodeListPacket> mixPacket;
+                    std::unique_ptr<NLPacket> mixPacket;
 
                     if (streamsMixed > 0) {
                         int mixPacketBytes = sizeof(quint16) + AudioConstants::NETWORK_FRAME_BYTES_STEREO;
-                        mixPacket = NodeListPacket::create(PacketType::MixedAudio);
+                        mixPacket = NLPacket::create(PacketType::MixedAudio);
 
                         // pack sequence number
                         quint16 sequence = nodeData->getOutgoingSequenceNumber();
@@ -808,7 +808,7 @@ void AudioMixer::run() {
                         mixPacket.write(mixSamples, AudioConstants::NETWORK_FRAME_BYTES_STEREO);
                     } else {
                         int silentPacketBytes = sizeof(quint16) + sizeof(quint16);
-                        mixPacket = NodeListPacket::create(PacketType::SilentAudioFrame);
+                        mixPacket = NLPacket::create(PacketType::SilentAudioFrame);
 
                         // pack sequence number
                         quint16 sequence = nodeData->getOutgoingSequenceNumber();
