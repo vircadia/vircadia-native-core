@@ -108,9 +108,9 @@ bool OctreeQueryNode::packetIsDuplicate() const {
     // since our packets now include header information, like sequence number, and createTime, we can't just do a memcmp
     // of the entire packet, we need to compare only the packet content...
 
-    if (_lastOctreePacketLength == getPacketLength()) {
+    if (_lastOctreePacketLength == _octreePacket->getSizeUsed()) {
         if (memcmp(_lastOctreePayload + OCTREE_PACKET_EXTRA_HEADERS_SIZE,
-                _octreePacket->getPayload() + OCTREE_PACKET_EXTRA_HEADERS_SIZE,
+                   _octreePacket->getPayload() + OCTREE_PACKET_EXTRA_HEADERS_SIZE,
                    _octreePacket->getSizeUsed() - OCTREE_PACKET_EXTRA_HEADERS_SIZE) == 0) {
             return true;
         }
