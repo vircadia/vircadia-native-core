@@ -39,7 +39,7 @@ public:
     ~PacketSender();
 
     /// Add packet to outbound queue.
-    void queuePacketForSending(const SharedNodePointer& destinationNode, const QByteArray& packet);
+    void queuePacketForSending(const SharedNodePointer& destinationNode, const NLPacket& packet);
 
     void setPacketsPerSecond(int packetsPerSecond);
     int getPacketsPerSecond() const { return _packetsPerSecond; }
