@@ -26,14 +26,15 @@ DialogContainer {
         implicitWidth: backgroundRectangle.width
         implicitHeight: backgroundRectangle.height
         
-        readonly property int inputWidth: 500
-        readonly property int inputHeight: 60
+        readonly property int contentWidth: 500
+        readonly property int logoSize: 60
         readonly property int borderWidth: 30
         readonly property int closeMargin: 16
         readonly property int inputSpacing: 16
         readonly property int buttonWidth: 150
         readonly property int buttonHeight: 50
         readonly property int buttonRadius: 15
+        readonly property int noticeHeight: 15 * inputSpacing
 
         signal triggerBuildDownload
         signal closeUpdateDialog
@@ -42,8 +43,8 @@ DialogContainer {
             id: backgroundRectangle
             color: "#ffffff"
 
-            width: updateDialog.inputWidth + updateDialog.borderWidth * 2
-            height: updateDialog.inputHeight * 6 + updateDialog.closeMargin * 2
+            width: updateDialog.contentWidth + updateDialog.borderWidth * 2
+            height: mainContent.height + updateDialog.borderWidth * 2
 
             MouseArea {
                 width: parent.width
@@ -62,9 +63,20 @@ DialogContainer {
             }
         }
 
+        Image {
+            id: logo
+            source: "../images/hifi-logo.svg"
+            width: updateDialog.logoSize
+            height: updateDialog.logoSize
+            anchors {
+                top: mainContent.top
+                right: mainContent.right
+            }
+        }
+
         Column {
             id: mainContent
-            width: updateDialog.inputWidth
+            width: updateDialog.contentWidth
             spacing: updateDialog.inputSpacing
             anchors {
                 horizontalCenter: parent.horizontalCenter
@@ -72,36 +84,30 @@ DialogContainer {
             }
             
             Rectangle {
-                id: dialogTitle
-                width: updateDialog.inputWidth
-                height: updateDialog.inputHeight
+                id: header
+                width: parent.width - updateDialog.logoSize - updateDialog.inputSpacing
+                height: updateAvailable.height + versionDetails.height
 
                 Text {
-                    id: updateAvailableText
+                    id: updateAvailable
                     text: "Update Available"
-                    anchors {
-                        verticalCenter: parent.verticalCenter
-                        left: parent.left
-                        leftMargin: updateDialog.inputSpacing
-                    }
                 }
 
                 Text {
+                    id: versionDetails
                     text: updateDialog.updateAvailableDetails
                     font.pixelSize: 14
                     color: hifi.colors.text
                     anchors {
-                        verticalCenter: parent.verticalCenter
-                        left: updateAvailableText.right
-                        leftMargin: 13
+                        top: updateAvailable.bottom
                     }
                 }
             }
 
             ScrollView {
                 id: scrollArea
-                width: updateDialog.inputWidth
-                height: backgroundRectangle.height - (dialogTitle.height * 2.5) - updateDialog.closeMargin
+                width: parent.width
+                height: updateDialog.noticeHeight
                 horizontalScrollBarPolicy: Qt.ScrollBarAlwaysOff
                 verticalScrollBarPolicy: Qt.ScrollBarAsNeeded
 
