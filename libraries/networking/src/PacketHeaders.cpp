@@ -89,6 +89,8 @@ PacketVersion versionForPacketType(PacketType::Value packetType) {
             return 2;
         case OctreeStats:
             return 1;
+        case OctreeDataNack:
+            return 1;
         case StopNode:
             return 1;
         case EntityAdd:
