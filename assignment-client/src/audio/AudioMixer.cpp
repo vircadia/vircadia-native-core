@@ -793,7 +793,7 @@ void AudioMixer::run() {
                 // if the stream should be muted, send mute packet
                 if (nodeData->getAvatarAudioStream()
                     && shouldMute(nodeData->getAvatarAudioStream()->getQuietestFrameLoudness())) {
-                    auto mutePacket { NLPacket::create(PacketType::NoisyMute); }
+                    auto mutePacket = NLPacket::create(PacketType::NoisyMute, 0);
                     nodeList->sendPacket(mutePacket, node);
                 }
 
