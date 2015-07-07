@@ -831,7 +831,7 @@ void AudioMixer::run() {
                     sendAudioEnvironmentPacket(node);
 
                     // send mixed audio packet
-                    nodeList->sendPacket(mixPacket, node);
+                    nodeList->sendPacket(std::move(mixPacket), node);
                     nodeData->incrementOutgoingMixedAudioSequenceNumber();
 
                     // send an audio stream stats packet if it's time
