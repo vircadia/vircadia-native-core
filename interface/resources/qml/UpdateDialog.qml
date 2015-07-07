@@ -17,7 +17,9 @@ DialogContainer {
 
     x: parent ? parent.width / 2 - width / 2 : 0
     y: parent ? parent.height / 2 - height / 2 : 0
-    
+    property int maximumX: parent ? parent.width - width : 0
+    property int maximumY: parent ? parent.height - height : 0
+
     UpdateDialog {
         id: updateDialog
         
@@ -32,18 +34,32 @@ DialogContainer {
         readonly property int buttonWidth: 150
         readonly property int buttonHeight: 50
         readonly property int buttonRadius: 15
-        
+
         signal triggerBuildDownload
         signal closeUpdateDialog
         
         Rectangle {
             id: backgroundRectangle
-            color: "#2c86b1"
-            opacity: 0.85
-            radius: updateDialog.closeMargin * 2
+            color: "#ffffff"
 
             width: updateDialog.inputWidth + updateDialog.borderWidth * 2
             height: updateDialog.inputHeight * 6 + updateDialog.closeMargin * 2
+
+            MouseArea {
+                width: parent.width
+                height: parent.height
+                anchors {
+                    horizontalCenter: parent.horizontalCenter
+                    verticalCenter: parent.verticalCenter
+                }
+                drag {
+                    target: root
+                    minimumX: 0
+                    minimumY: 0
+                    maximumX: root.parent ? root.maximumX : 0
+                    maximumY: root.parent ? root.maximumY : 0
+                }
+            }
         }
 
         Column {
@@ -59,8 +75,6 @@ DialogContainer {
                 id: dialogTitle
                 width: updateDialog.inputWidth
                 height: updateDialog.inputHeight
-                radius: height / 2
-                color: "#ebebeb"
 
                 Text {
                     id: updateAvailableText
