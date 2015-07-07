@@ -30,7 +30,7 @@ protected:
     qint64 writeData(const char* data, qint64 maxSize);
     qint64 readData(const char* data, qint64 maxSize) { return 0 };
 private:
-    void createPacketWithExtendedHeader();
+    std::unique_ptr<NLPacket> createPacketWithExtendedHeader();
 
     PacketType::Value _packetType;
     bool isOrdered;
@@ -41,6 +41,6 @@ private:
     int _segmentStartIndex = -1;
 
     QByteArray _extendedHeader = extendedHeader;
-}
+};
 
 #endif // hifi_PacketList_h
