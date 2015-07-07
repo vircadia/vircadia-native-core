@@ -573,33 +573,34 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     QDataStream packetStream(packet);
     packetStream.skipRawData(numBytesForPacketHeader(packet));
 
+    QUuid connectUUID;
+    packetStream >> connectUUID;
+
     parseNodeDataFromByteArray(packetStream, nodeType, publicSockAddr, localSockAddr, senderSockAddr);
 
-    QUuid packetUUID = uuidFromPacketHeader(packet);
-
     // check if this connect request matches an assignment in the queue
-    bool isAssignment = _pendingAssignedNodes.contains(packetUUID);
+    bool isAssignment = _pendingAssignedNodes.contains(connectUUID);
     SharedAssignmentPointer matchingQueuedAssignment = SharedAssignmentPointer();
     PendingAssignedNodeData* pendingAssigneeData = NULL;
 
     if (isAssignment) {
-        pendingAssigneeData = _pendingAssignedNodes.value(packetUUID);
+        pendingAssigneeData = _pendingAssignedNodes.value(connectUUID);
 
         if (pendingAssigneeData) {
             matchingQueuedAssignment = matchingQueuedAssignmentForCheckIn(pendingAssigneeData->getAssignmentUUID(), nodeType);
 
             if (matchingQueuedAssignment) {
-                qDebug() << "Assignment deployed with" << uuidStringWithoutCurlyBraces(packetUUID)
+                qDebug() << "Assignment deployed with" << uuidStringWithoutCurlyBraces(connectUUID)
                     << "matches unfulfilled assignment"
                     << uuidStringWithoutCurlyBraces(matchingQueuedAssignment->getUUID());
 
                 // remove this unique assignment deployment from the hash of pending assigned nodes
                 // cleanup of the PendingAssignedNodeData happens below after the node has been added to the LimitedNodeList
-                _pendingAssignedNodes.remove(packetUUID);
+                _pendingAssignedNodes.remove(connectUUID);
             } else {
                 // this is a node connecting to fulfill an assignment that doesn't exist
                 // don't reply back to them so they cycle back and re-request an assignment
-                qDebug() << "No match for assignment deployed with" << uuidStringWithoutCurlyBraces(packetUUID);
+                qDebug() << "No match for assignment deployed with" << uuidStringWithoutCurlyBraces(connectUUID);
                 return;
             }
         }
@@ -638,18 +639,18 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         QUuid nodeUUID;
 
         HifiSockAddr discoveredSocket = senderSockAddr;
-        SharedNetworkPeer connectedPeer = _icePeers.value(packetUUID);
+        SharedNetworkPeer connectedPeer = _icePeers.value(connectUUID);
 
         if (connectedPeer) {
             //  this user negotiated a connection with us via ICE, so re-use their ICE client ID
-            nodeUUID = packetUUID;
+            nodeUUID = connectUUID;
 
             if (connectedPeer->getActiveSocket()) {
                 // set their discovered socket to whatever the activated socket on the network peer object was
                 discoveredSocket = *connectedPeer->getActiveSocket();
             }
         } else {
-            // we got a packetUUID we didn't recognize, just add the node
+            // we got a connectUUID we didn't recognize, just add the node with a new UUID
             nodeUUID = QUuid::createUuid();
         }
 

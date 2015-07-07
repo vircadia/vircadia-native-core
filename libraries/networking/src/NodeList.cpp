@@ -310,7 +310,7 @@ void NodeList::sendDomainServerCheckIn() {
         bool isUsingDTLS = false;
 
         PacketType::Value domainPacketType = !_domainHandler.isConnected()
-            ? PacketTypeDomainConnectRequest : PacketTypeDomainListRequest;
+            ? PacketType::DomainConnectRequest : PacketType::DomainListRequest;
 
         if (!_domainHandler.isConnected()) {
             qCDebug(networking) << "Sending connect request to domain-server at" << _domainHandler.getHostname();
@@ -329,24 +329,26 @@ void NodeList::sendDomainServerCheckIn() {
 
         }
 
-        // construct the DS check in packet
-        QUuid packetUUID = _sessionUUID;
+        auto domainPacket = NodeListPacket::create(domainPacketType);
+        QDataStream packetStream(&domainPacket->getPayload);
 
-        if (domainPacketType == PacketTypeDomainConnectRequest) {
+        if (domainPacketType == PacketType::DomainConnectRequest) {
+            QUuid connectUUID;
+
             if (!_domainHandler.getAssignmentUUID().isNull()) {
                 // this is a connect request and we're an assigned node
                 // so set our packetUUID as the assignment UUID
-                packetUUID = _domainHandler.getAssignmentUUID();
+                connectUUID = _domainHandler.getAssignmentUUID();
             } else if (_domainHandler.requiresICE()) {
                 // this is a connect request and we're an interface client
                 // that used ice to discover the DS
                 // so send our ICE client UUID with the connect request
-                packetUUID = _domainHandler.getICEClientID();
+                connectUUID = _domainHandler.getICEClientID();
             }
-        }
 
-        QByteArray domainServerPacket = byteArrayWithUUIDPopulatedHeader(domainPacketType, packetUUID);
-        QDataStream packetStream(&domainServerPacket, QIODevice::Append);
+            // pack the connect UUID for this connect request
+            packetStream << connectUUID;
+        }
 
         // pack our data to send to the domain-server
         packetStream << _ownerType << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList();
@@ -367,7 +369,7 @@ void NodeList::sendDomainServerCheckIn() {
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendDSCheckIn);
 
         if (!isUsingDTLS) {
-            writeUnverifiedDatagram(domainServerPacket, _domainHandler.getSockAddr());
+            sendPacket(domainPacket, _domainHandler.getSockAddr());
         }
 
         if (_numNoReplyDomainCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
