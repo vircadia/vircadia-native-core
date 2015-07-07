@@ -34,7 +34,6 @@ public:
     const NLPacket& getPacket() const { return _nlPacket; }
 
 private:
-    void copyContents(const SharedNodePointer& node, const NLPacket& nlPacket);
 
     SharedNodePointer _node;
     NLPacket _nlPacket;
