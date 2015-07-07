@@ -213,7 +213,7 @@ void AvatarMixer::broadcastAvatarData() {
             }
 
             // setup a PacketList for the avatarPackets
-            PacketList avatarPacketList(PacketType::AvatarData);
+            NLPacketList avatarPacketList(PacketType::AvatarData);
 
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
@@ -305,9 +305,9 @@ void AvatarMixer::broadcastAvatarData() {
                             || otherNodeData->getBillboardChangeTimestamp() > _lastFrameTimestamp
                             || randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
 
-                        auto billboardPacket { NLPacket::create(PacketType::AvatarBillboard); }
-                        billboardPacket.write(otherNode->getUUID().toRfc4122());
-                        billboardPacket.write(otherNodeData->getAvatar().getBillboard());
+                        auto billboardPacket = NLPacket::create(PacketType::AvatarBillboard);
+                        billboardPacket->write(otherNode->getUUID().toRfc4122());
+                        billboardPacket->write(otherNodeData->getAvatar().getBillboard());
 
                         nodeList->sendPacket(std::move(billboardPacket), node);
 
@@ -319,12 +319,12 @@ void AvatarMixer::broadcastAvatarData() {
                             || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
                             || randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
 
-                        auto identityPacket { NLPacket::create(PacketType::AvatarIdentity); }
+                        auto identityPacket = NLPacket::create(PacketType::AvatarIdentity);
 
                         QByteArray individualData = otherNodeData->getAvatar().identityByteArray();
                         individualData.replace(0, NUM_BYTES_RFC4122_UUID, otherNode->getUUID().toRfc4122());
 
-                        identityPacket.write(individualData);
+                        identityPacket->write(individualData);
 
                         nodeList->sendPacket(std::move(identityPacket), node);
 
@@ -361,8 +361,8 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
 
         // this was an avatar we were sending to other people
         // send a kill packet for it to our other nodes
-        auto killPacket { NLPacket::create(PacketType::KillAvatar); }
-        killPacket.write(killedNode->getUUID().toRfc4122());
+        auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID);
+        killPacket->write(killedNode->getUUID().toRfc4122());
 
         nodeList->broadcastToNodes(killPacket, NodeSet() << NodeType::Agent);
 

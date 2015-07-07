@@ -12,18 +12,17 @@
 #include "PacketList.h"
 
 PacketList::PacketList(PacketType::Value packetType) :
-    _packetType(packetType),
-    _isOrdered(false)
+    _packetType(packetType)
 {
 
 }
 
 void PacketList::createPacketWithExtendedHeader() {
     // use the static create method to create a new packet
-    _currentPacket = T::create(_packetType);
+    auto packet = T::create(_packetType);
 
     // add the extended header to the front of the packet
-    if (_currentPacket.write(_extendedHeader) == -1) {
+    if (packet->write(_extendedHeader) == -1) {
         qDebug() << "Could not write extendedHeader in PacketList::createPacketWithExtendedHeader"
             << "- make sure that _extendedHeader is not larger than the payload capacity.";
     }
@@ -32,7 +31,7 @@ void PacketList::createPacketWithExtendedHeader() {
 qint64 writeData(const char* data, qint64 maxSize) {
     if (!_currentPacket) {
         // we don't have a current packet, time to set one up
-        createPacketWithExtendedHeader();
+        _currentPacket = createPacketWithExtendedHeader();
     }
 
     // check if this block of data can fit into the currentPacket
@@ -46,7 +45,7 @@ qint64 writeData(const char* data, qint64 maxSize) {
         // it does not fit - this may need to be in the next packet
 
         if (!_isOrdered) {
-            auto newPacket = T::create(_packetType);
+            auto newPacket = createPacketWithExtendedHeader();
 
             if (_segmentStartIndex >= 0) {
                 // We in the process of writing a segment for an unordered PacketList.
@@ -64,7 +63,7 @@ qint64 writeData(const char* data, qint64 maxSize) {
                 }
 
                 // copy from currentPacket where the segment started to the beginning of the newPacket
-                newPacket.write(currentPacket.constData() + _segmentStartIndex, numBytesToEnd);
+                newPacket.write(currentPacket->getPayload() + _segmentStartIndex, numBytesToEnd);
 
                 // the current segment now starts at the beginning of the new packet
                 _segmentStartIndex = 0;
@@ -89,7 +88,7 @@ qint64 writeData(const char* data, qint64 maxSize) {
             // into a new packet
 
             int numBytesToEnd = _currentPacket.size() - _currentPacket.sizeUsed();
-            _currentPacket.write(data, numBytesToEnd);
+            _currentPacket->write(data, numBytesToEnd);
 
             // move the current packet to our list of packets
             _packets.insert(std::move(_currentPacket));

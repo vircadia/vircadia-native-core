@@ -82,10 +82,14 @@ PacketVersion versionForPacketType(PacketType::Value packetType) {
         case DomainList:
         case DomainListRequest:
             return 5;
+        case DomainConnectRequest:
+            return 1;
         case CreateAssignment:
         case RequestAssignment:
             return 2;
         case OctreeStats:
+            return 1;
+        case OctreeDataNack:
             return 1;
         case StopNode:
             return 1;
@@ -93,6 +97,8 @@ PacketVersion versionForPacketType(PacketType::Value packetType) {
         case EntityEdit:
         case EntityData:
             return VERSION_ENTITIES_HAVE_SIMULATION_OWNER_AND_ACTIONS_OVER_WIRE;
+        case EntityEditNack:
+            return 1;
         case EntityErase:
             return 2;
         case AudioStreamStats:

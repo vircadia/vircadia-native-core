@@ -38,6 +38,7 @@
 #include "Node.h"
 #include "NLPacket.h"
 #include "PacketHeaders.h"
+#include "PacketList.h"
 #include "UUIDHasher.h"
 
 const int MAX_PACKET_SIZE = 1450;
@@ -67,6 +68,7 @@ Q_DECLARE_METATYPE(SharedNodePointer)
 using namespace tbb;
 typedef std::pair<QUuid, SharedNodePointer> UUIDNodePair;
 typedef concurrent_unordered_map<QUuid, SharedNodePointer, UUIDHasher> NodeHash;
+using NLPacketList = PacketList<NLPacket>;
 
 typedef quint8 PingType_t;
 namespace PingType {
@@ -143,12 +145,12 @@ public:
 //                         const HifiSockAddr& overridenSockAddr = HifiSockAddr());
 //
 
-    qint64 sendUnreliablePacket(NLPacket& packet, const SharedNodePointer& destinationNode) {};
-    qint64 sendUnreliablePacket(NLPacket& packet, const HifiSockAddr& sockAddr) {};
-    qint64 sendPacket(NLPacket&& packet, const SharedNodePointer& destinationNode) {};
-    qint64 sendPacket(NLPacket&& packet, const HifiSockAddr& sockAddr) {};
-    qint64 sendPacketList(PacketList& packetList, const SharedNodePointer& destinationNode) {};
-    qint64 sendPacketList(PacketList& packetList, const HifiSockAddr& sockAddr) {};
+    qint64 sendUnreliablePacket(std::unique_ptr<NLPacket>& packet, const SharedNodePointer& destinationNode) {};
+    qint64 sendUnreliablePacket(std::unique_ptr<NLPacket>& packet, const HifiSockAddr& sockAddr) {};
+    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const SharedNodePointer& destinationNode) {};
+    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr) {};
+    qint64 sendPacketList(NLPacketList& packetList, const SharedNodePointer& destinationNode) {};
+    qint64 sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr) {};
 
     void (*linkedDataCreateCallback)(Node *);
 
@@ -173,17 +175,17 @@ public:
     int updateNodeWithDataFromPacket(const SharedNodePointer& matchingNode, const QByteArray& packet);
     int findNodeAndUpdateWithDataFromPacket(const QByteArray& packet);
 
-    unsigned broadcastToNodes(PacketList& packetList, const NodeSet& destinationNodeTypes) {};
+    unsigned broadcastToNodes(std::unique_ptr<NLPacket> packet, const NodeSet& destinationNodeTypes) {};
     SharedNodePointer soloNodeOfType(char nodeType);
 
     void getPacketStats(float &packetsPerSecond, float &bytesPerSecond);
     void resetPacketStats();
 
-    NLPacket&& constructPingPacket(PingType_t pingType = PingType::Agnostic);
-    NLPacket&& constructPingReplyPacket(const QByteArray& pingPacket);
+    std::unique_ptr<NLPacket> constructPingPacket(PingType_t pingType = PingType::Agnostic);
+    std::unique_ptr<NLPacket> constructPingReplyPacket(const QByteArray& pingPacket);
 
-    NLPacket&& constructICEPingPacket(PingType_t pingType, const QUuid& iceID);
-    NLPacket&& constructICEPingReplyPacket(const QByteArray& pingPacket, const QUuid& iceID);
+    std::unique_ptr<NLPacket> constructICEPingPacket(PingType_t pingType, const QUuid& iceID);
+    std::unique_ptr<NLPacket> constructICEPingReplyPacket(const QByteArray& pingPacket, const QUuid& iceID);
 
     virtual bool processSTUNResponse(const QByteArray& packet);
 

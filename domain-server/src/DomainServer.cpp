@@ -622,8 +622,8 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         QByteArray utfString = reason.toUtf8();
         int payloadSize = utfString.size();
 
-        auto connectionDeniedPacket = NLPacket::make(PacketType::DomainConnectionDenied, payloadSize);
-        connectionDeniedPacket.write(utfString);
+        auto connectionDeniedPacket = NLPacket::create(PacketType::DomainConnectionDenied, payloadSize);
+        connectionDeniedPacket->write(utfString);
 
         // tell client it has been refused.
         limitedNodeList->sendPacket(std::move(connectionDeniedPacket, senderSockAddr);
@@ -927,7 +927,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
                                         const NodeSet& nodeInterestSet) {
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
-    PacketList domainListPackets(PacketType::DomainList);
+    NLPacketList domainListPackets(PacketType::DomainList);
 
     // always send the node their own UUID back
     QDataStream domainListStream(&domainListPackets);
@@ -1448,7 +1448,7 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
                 processICEPingReply(receivedPacket, senderSockAddr);
                 break;
             }
-            case PacketTypeIceServerPeerInformation:
+            case PacketType::ICEServerPeerInformation:
                 processICEPeerInformation(receivedPacket);
                 break;
             default:

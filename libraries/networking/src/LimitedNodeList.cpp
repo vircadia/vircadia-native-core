@@ -521,11 +521,11 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
     // return n;
 // }
 
-NLPacket&& LimitedNodeList::constructPingPacket(PingType_t pingType) {
+std::unique_ptr<NLPacket> LimitedNodeList::constructPingPacket(PingType_t pingType) {
     int packetSize = sizeof(PingType_t) + sizeof(quint64);
-    auto pingPacket { NLPacket::create(PacketType::Ping, packetSize); }
+    auto pingPacket = NLPacket::create(PacketType::Ping, packetSize);
 
-    QDataStream packetStream(&pingPacket.payload(), QIODevice::Append);
+    QDataStream packetStream(&pingPacket);
 
     packetStream << pingType;
     packetStream << usecTimestampNow();
@@ -533,7 +533,7 @@ NLPacket&& LimitedNodeList::constructPingPacket(PingType_t pingType) {
     return pingPacket;
 }
 
-NLPacket&& LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
+std::unique_ptr<NLPacket> LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
     QDataStream pingPacketStream(pingPacket);
     pingPacketStream.skipRawData(numBytesForPacketHeader(pingPacket));
 
@@ -545,37 +545,37 @@ NLPacket&& LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacke
 
     int packetSize = sizeof(PingType_t) + sizeof(quint64) + sizeof(quint64);
 
-    auto replyPacket { NLPacket::create(PacketType::Ping, packetSize); }
+    auto replyPacket = NLPacket::create(PacketType::Ping, packetSize);
 
-    QDataStream packetStream(&replyPacket, QIODevice::Append);
+    QDataStream packetStream(&replyPacket);
     packetStream << typeFromOriginalPing << timeFromOriginalPing << usecTimestampNow();
 
     return replyPacket;
 }
 
-NLPacket&& constructICEPingPacket(PingType_t pingType, const QUuid& iceID) {
+std::unique_ptr<NLPacket> constructICEPingPacket(PingType_t pingType, const QUuid& iceID) {
     int packetSize = NUM_BYTES_RFC4122_UUID + sizeof(PingType_t);
 
-    auto icePingPacket { NLPacket::create(PacketType::ICEPing, packetSize); }
+    auto icePingPacket = NLPacket::create(PacketType::ICEPing, packetSize);
 
-    icePingPacket.payload().replace(0, NUM_BYTES_RFC4122_UUID, iceID.toRfc4122().data());
-    memcpy(icePingPacket.payload() + NUM_BYTES_RFC4122_UUID, &pingType, sizeof(PingType_t));
+    icePingPacket->write(iceID.toRfc4122());
+    icePingPacket->write(&pingType, sizeof(pingType));
 
     return icePingPacket;
 }
 
-NLPacket&& constructICEPingReplyPacket(const QByteArray& pingPacket, const QUuid& iceID) {
+std::unique_ptr<NLPacket> constructICEPingReplyPacket(const QByteArray& pingPacket, const QUuid& iceID) {
     // pull out the ping type so we can reply back with that
     PingType_t pingType;
 
     memcpy(&pingType, pingPacket.data() + NUM_BYTES_RFC4122_UUID, sizeof(PingType_t));
 
     int packetSize = NUM_BYTES_RFC4122_UUID + sizeof(PingType_t);
-    auto icePingReplyPacket { NLPacket::create(PacketType::ICEPingReply, packetSize); }
+    auto icePingReplyPacket = NLPacket::create(PacketType::ICEPingReply, packetSize);
 
     // pack the ICE ID and then the ping type
-    memcpy(icePingReplyPacket.payload(), iceID.toRfc4122().data(), NUM_BYTES_RFC4122_UUID);
-    memcpy(icePingReplyPacket.payload() + NUM_BYTES_RFC4122_UUID, &pingType, sizeof(PingType_t));
+    icePingReplyPacket->write(iceID.toRfc4122());
+    icePingReplyPacket->write(&pingType, sizeof(pingType));
 
     return icePingReplyPacket;
 }

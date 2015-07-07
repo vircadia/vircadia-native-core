@@ -30,7 +30,7 @@ void SentPacketHistory::packetSent(uint16_t sequenceNumber, const NLPacket& pack
             << "Expected:" << expectedSequenceNumber << "Actual:" << sequenceNumber;
     }
     _newestSequenceNumber = sequenceNumber;
-    _sentPackets.insert(new NLPacket(packet));
+    _sentPackets.insert(NLPacket::createCopy(packet));
 }
 
 const QByteArray* SentPacketHistory::getPacket(uint16_t sequenceNumber) const {
