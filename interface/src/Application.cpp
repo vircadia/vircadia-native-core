@@ -2804,7 +2804,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType::Value packetTyp
         qCDebug(interfaceapp, "perServerPPS: %d perUnknownServer: %d", perServerPPS, perUnknownServer);
     }
 
-    auto queryPacket { NLPacket::create(packetType); }
+    auto queryPacket = NLPacket::create(packetType);
 
     nodeList->eachNode([&](const SharedNodePointer& node){
         // only send to the NodeTypes that are serverType
@@ -2883,7 +2883,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType::Value packetTyp
 
             // encode the query data
             int packetSize = _octreeQuery.getBroadcastData(queryPacket.payload());
-            queryPacket.setSizeUsed(packetSize);
+            queryPacket->setSizeUsed(packetSize);
 
             // make sure we still have an active socket
             nodeList->sendUnreliablePacket(queryPacket, node);
