@@ -53,6 +53,18 @@ public:
             _numEntries++;
         }
     }
+    
+    // std::unique_ptr need to be passed as an rvalue ref and moved into the vector
+    void insert(T&& entry) {
+        // increment newest entry index cyclically
+        _newestEntryAtIndex = (_newestEntryAtIndex == _size - 1) ? 0 : _newestEntryAtIndex + 1;
+        
+        // insert new entry
+        _buffer[_newestEntryAtIndex] = std::move(entry);
+        if (_numEntries < _capacity) {
+            _numEntries++;
+        }
+    }
 
     // 0 retrieves the most recent entry, _numEntries - 1 retrieves the oldest.
     // returns NULL if entryAge not within [0, _numEntries-1]
@@ -88,7 +100,7 @@ private:
     int _capacity;
     int _newestEntryAtIndex;
     int _numEntries;
-    QVector<T> _buffer;
+    std::vector<T> _buffer;
 
 public:
     class Iterator : public std::iterator < std::random_access_iterator_tag, T > {
