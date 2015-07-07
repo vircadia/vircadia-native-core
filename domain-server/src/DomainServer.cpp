@@ -622,9 +622,8 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         QByteArray utfString = reason.toUtf8();
         int payloadSize = utfString.size();
 
-        auto connectionDeniedPacket = NodeListPacket::make(PacketType::DomainConnectionDenied, payloadSize);
-
-        memcpy(connectionDeniedPacket.payload().data(), utfString.data(), utfString.size());
+        auto connectionDeniedPacket = NLPacket::make(PacketType::DomainConnectionDenied, payloadSize);
+        connectionDeniedPacket.write(utfString);
 
         // tell client it has been refused.
         limitedNodeList->sendPacket(std::move(connectionDeniedPacket, senderSockAddr);
