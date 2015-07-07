@@ -309,7 +309,7 @@ void AvatarMixer::broadcastAvatarData() {
                         billboardPacket.write(otherNode->getUUID().toRfc4122());
                         billboardPacket.write(otherNodeData->getAvatar().getBillboard());
 
-                        nodeList->sendPacket(billboardPacket, node);
+                        nodeList->sendPacket(std::move(billboardPacket), node);
 
                         ++_sumBillboardPackets;
                     }
@@ -326,7 +326,7 @@ void AvatarMixer::broadcastAvatarData() {
 
                         identityPacket.write(individualData);
 
-                        nodeList->sendPacket(identityPacket, node);
+                        nodeList->sendPacket(std::move(identityPacket), node);
 
                         ++_sumIdentityPackets;
                     }

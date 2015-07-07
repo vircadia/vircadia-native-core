@@ -927,7 +927,7 @@ void AudioClient::sendMuteEnvironmentPacket() {
 
     if (audioMixer) {
         // send off this mute packet
-        nodeList->sendPacket(mutePacket, audioMixer);
+        nodeList->sendPacket(std::move(mutePacket), audioMixer);
     }
 }
 

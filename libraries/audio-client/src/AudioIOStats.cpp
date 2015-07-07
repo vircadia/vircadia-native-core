@@ -124,5 +124,5 @@ void AudioIOStats::sendDownstreamAudioStatsPacket() {
 
     // send packet
     SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
-    nodeList->sendPacket(packet, audioMixer);
+    nodeList->sendPacket(std::move(statsPacket), audioMixer);
 }
