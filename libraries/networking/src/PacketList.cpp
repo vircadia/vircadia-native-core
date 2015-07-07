@@ -11,13 +11,17 @@
 
 #include "PacketList.h"
 
-PacketList::PacketList(PacketType::Value packetType) :
+#include <QDebug>
+
+#include "NLPacket.h"
+
+template <class T> PacketList<T>::PacketList(PacketType::Value packetType) :
     _packetType(packetType)
 {
 
 }
 
-void PacketList::createPacketWithExtendedHeader() {
+template <class T> std::unique_ptr<NLPacket> PacketList<T>::createPacketWithExtendedHeader() {
     // use the static create method to create a new packet
     auto packet = T::create(_packetType);
 
@@ -28,7 +32,7 @@ void PacketList::createPacketWithExtendedHeader() {
     }
 }
 
-qint64 writeData(const char* data, qint64 maxSize) {
+template <class T> qint64 PacketList<T>::writeData(const char* data, qint64 maxSize) {
     if (!_currentPacket) {
         // we don't have a current packet, time to set one up
         _currentPacket = createPacketWithExtendedHeader();
@@ -63,13 +67,13 @@ qint64 writeData(const char* data, qint64 maxSize) {
                 }
 
                 // copy from currentPacket where the segment started to the beginning of the newPacket
-                newPacket.write(currentPacket->getPayload() + _segmentStartIndex, numBytesToEnd);
+                newPacket.write(_currentPacket->getPayload() + _segmentStartIndex, numBytesToEnd);
 
                 // the current segment now starts at the beginning of the new packet
                 _segmentStartIndex = 0;
 
                 // shrink the current payload to the actual size of the packet
-                currentPacket.setSizeUsed(_segmentStartIndex);
+                _currentPacket.setSizeUsed(_segmentStartIndex);
             }
 
             // move the current packet to our list of packets
@@ -99,7 +103,7 @@ qint64 writeData(const char* data, qint64 maxSize) {
     }
 }
 
-void PacketList::closeCurrentPacket() {
+template <class T> void PacketList<T>::closeCurrentPacket() {
     // move the current packet to our list of packets
     _packets.insert(std::move(_currentPacket));
 }

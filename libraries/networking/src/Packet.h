@@ -61,6 +61,10 @@ public:
     
 protected:
     Packet(PacketType::Value type, int64_t size);
+    Packet(const Packet& other);
+    Packet& operator=(const Packet& other);
+    Packet(Packet&& other);
+    Packet& operator=(Packet&& other);
 
     // QIODevice virtual functions
     virtual qint64 writeData(const char* data, qint64 maxSize);
@@ -79,12 +83,6 @@ protected:
     qint64 _capacity = 0;          // Total capacity of the payload
     
     qint64 _sizeUsed = 0;          // How much of the payload is actually used
-    
-private:
-    Packet(const Packet& other);
-    Packet& operator=(const Packet& other);
-    Packet(Packet&& other);
-    Packet& operator=(Packet&& other);
 };
 
 #endif // hifi_Packet_h

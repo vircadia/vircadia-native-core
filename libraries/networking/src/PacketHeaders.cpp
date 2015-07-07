@@ -23,9 +23,9 @@ const QSet<PacketType::Value> NON_VERIFIED_PACKETS = QSet<PacketType::Value>()
     << CreateAssignment << RequestAssignment << StunResponse
     << NodeJsonStats << EntityQuery
     << OctreeDataNack << EntityEditNack
-    << IceServerHeartbeat << IceServerPeerInformation
-    << IceServerQuery << UnverifiedPing
-    << UnverifiedPingReply << StopNode
+    << ICEServerHeartbeat << ICEServerPeerInformation
+    << ICEServerQuery << Ping
+    << PingReply << StopNode
     << DomainServerPathQuery << DomainServerPathResponse
     << DomainServerAddedNode;
 
@@ -103,8 +103,8 @@ PacketVersion versionForPacketType(PacketType::Value packetType) {
             return 2;
         case AudioStreamStats:
             return 1;
-        case IceServerHeartbeat:
-        case IceServerQuery:
+        case ICEServerHeartbeat:
+        case ICEServerQuery:
             return 1;
         default:
             return 0;
@@ -152,12 +152,12 @@ QString nameForPacketType(PacketType::Value packetType) {
             PACKET_TYPE_NAME_LOOKUP(AudioEnvironment);
             PACKET_TYPE_NAME_LOOKUP(EntityEditNack);
             PACKET_TYPE_NAME_LOOKUP(SignedTransactionPayment);
-            PACKET_TYPE_NAME_LOOKUP(IceServerHeartbeat);
+            PACKET_TYPE_NAME_LOOKUP(ICEServerHeartbeat);
             PACKET_TYPE_NAME_LOOKUP(DomainServerAddedNode);
-            PACKET_TYPE_NAME_LOOKUP(IceServerQuery);
-            PACKET_TYPE_NAME_LOOKUP(IceServerPeerInformation);
-            PACKET_TYPE_NAME_LOOKUP(UnverifiedPing);
-            PACKET_TYPE_NAME_LOOKUP(UnverifiedPingReply);
+            PACKET_TYPE_NAME_LOOKUP(ICEServerQuery);
+            PACKET_TYPE_NAME_LOOKUP(ICEServerPeerInformation);
+            PACKET_TYPE_NAME_LOOKUP(ICEPing);
+            PACKET_TYPE_NAME_LOOKUP(ICEPingReply);
             PACKET_TYPE_NAME_LOOKUP(EntityAdd);
             PACKET_TYPE_NAME_LOOKUP(EntityEdit);
         default:
