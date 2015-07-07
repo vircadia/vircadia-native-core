@@ -32,10 +32,10 @@ NetworkPacket::NetworkPacket(const SharedNodePointer& node, const NLPacket& pack
     }
 };
 
-// copy assignment 
+// copy assignment
 NetworkPacket& NetworkPacket::operator=(NetworkPacket const& other) {
     _node = other._node;
-    _nlPacket = other._nlPacket;
+    _nlPacket = NLPacket::createCopy(other._nlPacket);
     return *this;
 }
 
