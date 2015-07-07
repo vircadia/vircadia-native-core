@@ -199,6 +199,8 @@ namespace MenuOption {
     const QString FrameTimer = "Show Timer";
     const QString FullscreenMirror = "Fullscreen Mirror";
     const QString GlowWhenSpeaking = "Glow When Speaking";
+    const QString HandMouseInput = "Enable Hand Mouse Input";
+    const QString HandLasers = "Enable Hand UI Lasers";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IndependentMode = "Independent Mode";
     const QString KeyboardMotorControl = "Enable Keyboard Motor Control";
@@ -270,8 +272,6 @@ namespace MenuOption {
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
     const QString SimpleShadows = "Simple";
     const QString SixenseEnabled = "Enable Hydra Support";
-    const QString SixenseMouseInput = "Enable Sixense Mouse Input";
-    const QString SixenseLasers = "Enable Sixense UI Lasers";
     const QString ShiftHipsForIdleAnimations = "Shift hips for idle animations";
     const QString Stars = "Stars";
     const QString Stats = "Stats";

@@ -482,8 +482,9 @@ private:
     void cleanupBeforeQuit();
 
     void update(float deltaTime);
-    
+
     void setPalmData(Hand* hand, UserInputMapper::PoseValue pose, int index);
+    void emulateMouse(Hand* hand, float click, float shift, int index);
 
     // Various helper functions called during update()
     void updateLOD();
@@ -671,6 +672,11 @@ private:
 
     glm::vec3 _headPosition;
     glm::quat _headOrientation;
+
+    int _oldHandMouseX[2];
+    int _oldHandMouseY[2];
+    bool _oldHandLeftClick[2];
+    bool _oldHandRightClick[2];
 };
 
 #endif // hifi_Application_h

@@ -415,7 +415,7 @@ void ApplicationCompositor::renderPointers(gpu::Batch& batch) {
         _magActive[MOUSE] = _magnifier;
         _reticleActive[LEFT_CONTROLLER] = false;
         _reticleActive[RIGHT_CONTROLLER] = false;
-    } else if (qApp->getLastMouseMoveWasSimulated() && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
+    } else if (qApp->getLastMouseMoveWasSimulated() && Menu::getInstance()->isOptionChecked(MenuOption::HandMouseInput)) {
         //only render controller pointer if we aren't already rendering a mouse pointer
         _reticleActive[MOUSE] = false;
         _magActive[MOUSE] = false;
@@ -490,7 +490,7 @@ void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
 
         auto canvasSize = qApp->getCanvasSize();
         int mouseX, mouseY;
-        if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::HandLasers)) {
             QPoint res = getPalmClickLocation(palmData);
             mouseX = res.x();
             mouseY = res.y();

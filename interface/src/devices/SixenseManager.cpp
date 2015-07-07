@@ -248,7 +248,7 @@ void SixenseManager::update(float deltaTime) {
             handleAxisEvent(data->joystick_x, data->joystick_y, data->trigger, numActiveControllers - 1);
 
             // Emulate the mouse so we can use scripts
-            if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput) && !_controllersAtBase) {
+            if (Menu::getInstance()->isOptionChecked(MenuOption::HandMouseInput) && !_controllersAtBase) {
                 emulateMouse(palm, numActiveControllers - 1);
             }
 
@@ -518,7 +518,7 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         triggerButton = Qt::LeftButton;
     }
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers) || qApp->isHMDMode()) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::HandLasers) || qApp->isHMDMode()) {
         pos = qApp->getApplicationCompositor().getPalmClickLocation(palm);
     } else {
         // Get directon relative to avatar orientation

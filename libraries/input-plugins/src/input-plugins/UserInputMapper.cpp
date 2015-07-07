@@ -248,6 +248,8 @@ void UserInputMapper::assignDefaulActionScales() {
     _actionScales[BOOM_OUT] = 0.5f; // .5m per unit
     _actionScales[LEFT_HAND] = 1.0f; // default
     _actionScales[RIGHT_HAND] = 1.0f; // default
+    _actionScales[LEFT_HAND_CLICK] = 1.0f; // on
+    _actionScales[RIGHT_HAND_CLICK] = 1.0f; // on
     _actionStates[SHIFT] = 1.0f; // on
     _actionStates[ACTION1] = 1.0f; // default
     _actionStates[ACTION2] = 1.0f; // default
@@ -270,6 +272,8 @@ void UserInputMapper::createActionNames() {
     _actionNames[BOOM_OUT] = "BOOM_OUT";
     _actionNames[LEFT_HAND] = "LEFT_HAND";
     _actionNames[RIGHT_HAND] = "RIGHT_HAND";
+    _actionNames[LEFT_HAND_CLICK] = "LEFT_HAND_CLICK";
+    _actionNames[RIGHT_HAND_CLICK] = "RIGHT_HAND_CLICK";
     _actionNames[SHIFT] = "SHIFT";
     _actionNames[ACTION1] = "ACTION1";
     _actionNames[ACTION2] = "ACTION2";

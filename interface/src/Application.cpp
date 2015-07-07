@@ -671,6 +671,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 #endif
     
     ViveControllerManager::getInstance().activate();
+
+    _oldHandMouseX[0] = -1;
+    _oldHandMouseY[0] = -1;
+    _oldHandMouseX[1] = -1;
+    _oldHandMouseY[1] = -1;
+    _oldHandLeftClick[0] = false;
+    _oldHandRightClick[0] = false;
+    _oldHandLeftClick[1] = false;
+    _oldHandRightClick[1] = false;
     
     auto applicationUpdater = DependencyManager::get<AutoUpdater>();
     connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
@@ -2622,6 +2631,12 @@ void Application::update(float deltaTime) {
             Hand* hand = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHand();
             setPalmData(hand, leftHand, LEFT_HAND_INDEX);
             setPalmData(hand, rightHand, RIGHT_HAND_INDEX);
+            if (Menu::getInstance()->isOptionChecked(MenuOption::HandMouseInput)) {
+                emulateMouse(hand, userInputMapper->getActionState(UserInputMapper::LEFT_HAND_CLICK),
+                             userInputMapper->getActionState(UserInputMapper::SHIFT), LEFT_HAND_INDEX);
+                emulateMouse(hand, userInputMapper->getActionState(UserInputMapper::RIGHT_HAND_CLICK),
+                             userInputMapper->getActionState(UserInputMapper::SHIFT), RIGHT_HAND_INDEX);
+            }
         }
         _myAvatar->setDriveKeys(BOOM_IN, userInputMapper->getActionState(UserInputMapper::BOOM_IN));
         _myAvatar->setDriveKeys(BOOM_OUT, userInputMapper->getActionState(UserInputMapper::BOOM_OUT));
@@ -2800,6 +2815,121 @@ void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, int i
 
     palm->setRawPosition(pose.getTranslation());
     palm->setRawRotation(pose.getRotation());
+}
+
+void Application::emulateMouse(Hand* hand, float click, float shift, int index) {
+    // Locate the palm, if it exists and is active
+    PalmData* palm;
+    bool foundHand = false;
+    for (size_t j = 0; j < hand->getNumPalms(); j++) {
+        if (hand->getPalms()[j].getSixenseID() == index) {
+            palm = &(hand->getPalms()[j]);
+            foundHand = true;
+        }
+    }
+    if (!foundHand || !palm->isActive()) {
+        return;
+    }
+
+    // Process the mouse events
+    QPoint pos;
+
+    unsigned int deviceID = index == 0 ? CONTROLLER_0_EVENT : CONTROLLER_1_EVENT;
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::HandLasers) || qApp->isHMDMode()) {
+        pos = qApp->getApplicationCompositor().getPalmClickLocation(palm);
+    }
+    else {
+        // Get directon relative to avatar orientation
+        glm::vec3 direction = glm::inverse(_myAvatar->getOrientation()) * palm->getFingerDirection();
+
+        // Get the angles, scaled between (-0.5,0.5)
+        float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
+        float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)M_PI_2));
+        auto canvasSize = qApp->getCanvasSize();
+        // Get the pixel range over which the xAngle and yAngle are scaled
+        // TODO: move this from SixenseManager
+        float cursorRange = canvasSize.x * SixenseManager::getInstance().getCursorPixelRangeMult();
+
+        pos.setX(canvasSize.x / 2.0f + cursorRange * xAngle);
+        pos.setY(canvasSize.y / 2.0f + cursorRange * yAngle);
+
+    }
+
+    //If we are off screen then we should stop processing, and if a trigger or bumper is pressed,
+    //we should unpress them.
+    if (pos.x() == INT_MAX) {
+        if (_oldHandLeftClick[index]) {
+            QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::LeftButton, Qt::LeftButton, 0);
+
+            qApp->mouseReleaseEvent(&mouseEvent, deviceID);
+
+            _oldHandLeftClick[index] = false;
+        }
+        if (_oldHandRightClick[index]) {
+            QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::RightButton, Qt::RightButton, 0);
+
+            qApp->mouseReleaseEvent(&mouseEvent, deviceID);
+
+            _oldHandRightClick[index] = false;
+        }
+        return;
+    }
+
+    //If position has changed, emit a mouse move to the application
+    if (pos.x() != _oldHandMouseX[index] || pos.y() != _oldHandMouseY[index]) {
+        QMouseEvent mouseEvent(QEvent::MouseMove, pos, Qt::NoButton, Qt::NoButton, 0);
+
+        // Only send the mouse event if the opposite left button isnt held down.
+        // Is this check necessary?
+        if (!_oldHandLeftClick[(int)(!index)]) {
+            qApp->mouseMoveEvent(&mouseEvent, deviceID);
+        }
+    }
+    _oldHandMouseX[index] = pos.x();
+    _oldHandMouseY[index] = pos.y();
+
+    //We need separate coordinates for clicks, since we need to check if
+    //a magnification window was clicked on
+    int clickX = pos.x();
+    int clickY = pos.y();
+    //Set pos to the new click location, which may be the same if no magnification window is open
+    pos.setX(clickX);
+    pos.setY(clickY);
+
+    // Right click
+    if (shift == 1.0f && click == 1.0f) {
+        if (!_oldHandRightClick[index]) {
+            _oldHandRightClick[index] = true;
+
+            QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, Qt::RightButton, Qt::RightButton, 0);
+
+            qApp->mousePressEvent(&mouseEvent, deviceID);
+        }
+    } else if (_oldHandRightClick[index]) {
+        QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::RightButton, Qt::RightButton, 0);
+
+        qApp->mouseReleaseEvent(&mouseEvent, deviceID);
+
+        _oldHandRightClick[index] = false;
+    }
+
+    // Left click
+    if (shift != 1.0f && click == 1.0f) {
+        if (!_oldHandLeftClick[index]) {
+            _oldHandLeftClick[index] = true;
+
+            QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, Qt::LeftButton, Qt::LeftButton, 0);
+
+            qApp->mousePressEvent(&mouseEvent, deviceID);
+        }
+    } else if (_oldHandLeftClick[index]) {
+        QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::LeftButton, Qt::LeftButton, 0);
+
+        qApp->mouseReleaseEvent(&mouseEvent, deviceID);
+
+        _oldHandLeftClick[index] = false;
+    }
 }
 
 int Application::sendNackPackets() {
@@ -3683,7 +3813,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         sceneInterface->setEngineDrawnOverlay3DItems(engineRC->_numDrawnOverlay3DItems);
     }
     //Render the sixense lasers
-    if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::HandLasers)) {
         _myAvatar->renderLaserPointers(*renderArgs->_batch);
     }
 

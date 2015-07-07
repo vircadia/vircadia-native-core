@@ -152,7 +152,10 @@ public:
         
         LEFT_HAND,
         RIGHT_HAND,
-        
+
+        LEFT_HAND_CLICK,
+        RIGHT_HAND_CLICK,
+
         SHIFT,
         
         ACTION1,
