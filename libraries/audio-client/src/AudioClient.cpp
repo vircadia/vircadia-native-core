@@ -853,11 +853,7 @@ void AudioClient::handleAudioInput() {
                 }
             }
 
-            // seek to the beginning of the audio packet payload
-            _audioPacket->seek(0);
-
-            // reset the size used in this packet so it will be correct once we are done writing
-            _audioPacket->setSizeUsed(0);
+            // reset the audio packet so we can start writing
 
             // write sequence number
             _audioPacket->write(&_outgoingAvatarAudioSequenceNumber, sizeof(quint16));
@@ -913,21 +909,21 @@ void AudioClient::sendMuteEnvironmentPacket() {
 
     int dataSize = sizeof(glm::vec3) + sizeof(float);
 
-    NodeList::Packet mutePacket = nodeList->makePacket(PacketType::MuteEnvironment, dataSize);
+    auto mutePacket = NLPacket::create(PacketType::MuteEnvironment, dataSize);
 
     const float MUTE_RADIUS = 50;
 
     glm::vec3 currentSourcePosition = _positionGetter();
 
-    memcpy(mutePacket.payload().data(), &currentSourcePosition, sizeof(glm::vec3));
-    memcpy(mutePacket.payload() + sizeof(glm::vec3), &MUTE_RADIUS, sizeof(float));
+    mutePacket->write(&currentSourcePosition, sizeof(currentSourcePosition));
+    mutePacket->write(&MUTE_RADIUS, sizeof(MUTE_RADIUS));
 
     // grab our audio mixer from the NodeList, if it exists
     SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
 
     if (audioMixer) {
         // send off this mute packet
-        nodeList->sendPacket(mutePacket, audioMixer);
+        nodeList->sendPacket(std::move(mutePacket), audioMixer);
     }
 }
 
