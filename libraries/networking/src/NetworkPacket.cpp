@@ -24,7 +24,7 @@ NetworkPacket::NetworkPacket(const NetworkPacket& other) :
 }
 
 NetworkPacket::NetworkPacket(const SharedNodePointer& node, const NLPacket& packet) {
-    if (packet.getSizeWitHeader() && packet.getSizeWithHeader() <= MAX_nlPacket_SIZE) {
+    if (packet.getSizeWithHeader() && packet.getSizeWithHeader() <= MAX_PACKET_SIZE) {
         _node = node;
         _nlPacket = packet;
     } else {
