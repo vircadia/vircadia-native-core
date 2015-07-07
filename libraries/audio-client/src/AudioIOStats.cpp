@@ -106,18 +106,20 @@ void AudioIOStats::sendDownstreamAudioStatsPacket() {
 
     auto nodeList = DependencyManager::get<NodeList>();
 
-    auto statsPacket { NLPacket::create(PacketType::AudioStreamStats); }
+    quint8 appendFlag = 0;
+    quint16 numStreamStatsToPack = 1;
+    AudioStreamStats stats = _receivedAudioStream->getAudioStreamStats();
+
+    int statsPacketSize = sizeof(appendFlag) + sizeof(numStreamStatsToPack) + sizeof(stats);
+    auto statsPacket { NLPacket::create(PacketType::AudioStreamStats, statsPacketSize); }
 
     // pack append flag
-    quint8 appendFlag = 0;
     statsPacket->write(&appendFlag, sizeof(appendFlag));
 
     // pack number of stats packed
-    quint16 numStreamStatsToPack = 1;
     statsPacket->write(&numStreamStatsToPack, sizeof(numStreamStatsToPack));
 
     // pack downstream audio stream stats
-    AudioStreamStats stats = _receivedAudioStream->getAudioStreamStats();
     statsPacket->write(&stats, sizeof(stats));
 
     // send packet
