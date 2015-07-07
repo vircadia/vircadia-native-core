@@ -16,6 +16,8 @@
 
 #include "PacketHeaders.h"
 
+class NLPacket;
+
 template <class T> class PacketList : public QIODevice {
 public:
     PacketList(PacketType::Value packetType);
@@ -37,7 +39,7 @@ private:
     std::unique_ptr<NLPacket> createPacketWithExtendedHeader();
 
     PacketType::Value _packetType;
-    bool isOrdered = false;
+    bool _isOrdered = false;
 
     std::unique_ptr<T> _currentPacket;
     std::list<std::unique_ptr<T>> _packets;

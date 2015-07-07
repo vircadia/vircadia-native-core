@@ -17,6 +17,8 @@
 
 #include "SequenceNumberStats.h"
 
+class NLPacket;
+
 class SentPacketHistory {
 
 public:
