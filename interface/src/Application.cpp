@@ -2674,7 +2674,7 @@ int Application::sendNackPackets() {
             // if there are octree packets from this node that are waiting to be processed,
             // don't send a NACK since the missing packets may be among those waiting packets.
             if (_octreeProcessor.hasPacketsToProcessFrom(nodeUUID)) {
-                return;
+                return 0;
             }
 
             _octreeSceneStatsLock.lockForRead();
@@ -2682,7 +2682,7 @@ int Application::sendNackPackets() {
             // retreive octree scene stats of this node
             if (_octreeServerSceneStats.find(nodeUUID) == _octreeServerSceneStats.end()) {
                 _octreeSceneStatsLock.unlock();
-                return;
+                return 0;
             }
 
             // get sequence number stats of node, prune its missing set, and make a copy of the missing set

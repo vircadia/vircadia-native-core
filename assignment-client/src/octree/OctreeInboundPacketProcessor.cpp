@@ -235,11 +235,9 @@ void OctreeInboundPacketProcessor::trackInboundPacket(const QUuid& nodeUUID, uns
 }
 
 int OctreeInboundPacketProcessor::sendNackPackets() {
-    int packetsSent = 0;
-
     if (_shuttingDown) {
         qDebug() << "OctreeInboundPacketProcessor::sendNackPackets() while shutting down... ignore";
-        return packetsSent;
+        return 0;
     }
 
     PacketList nackPacketList = PacketList(_myServer->getMyEditNackType();
@@ -284,7 +282,7 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
 
     nackPacketList.closeCurrentPacket();
 
-    packetsSent = nackPacketList.getNumPackets();
+    int packetsSent = nackPacketList.getNumPackets();
 
     if (packetsSent) {
         qDebug() << "NACK Sent back to editor/client... destinationNode=" << nodeUUID;
