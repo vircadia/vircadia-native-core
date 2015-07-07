@@ -93,6 +93,8 @@ PacketVersion versionForPacketType(PacketType::Value packetType) {
         case EntityEdit:
         case EntityData:
             return VERSION_ENTITIES_HAVE_SIMULATION_OWNER_AND_ACTIONS_OVER_WIRE;
+        case EntityEditNack:
+            return 1;
         case EntityErase:
             return 2;
         case AudioStreamStats:

@@ -242,7 +242,8 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
         return packetsSent;
     }
 
-    auto nackPacket { NLPacket::create(_myServer->getMyEditNackType(); }
+    PacketList nackPacketList = PacketList(_myServer->getMyEditNackType();
+    auto nodeList = DependencyManager::get<NodeList>();
 
     NodeToSenderStatsMapIterator i = _singleSenderStats.begin();
     while (i != _singleSenderStats.end()) {
@@ -271,37 +272,27 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
 
         // construct nack packet(s) for this node
         const QSet<unsigned short int>& missingSequenceNumbers = sequenceNumberStats.getMissingSet();
-        int numSequenceNumbersAvailable = missingSequenceNumbers.size();
-        QSet<unsigned short int>::const_iterator missingSequenceNumberIterator = missingSequenceNumbers.constBegin();
-        while (numSequenceNumbersAvailable > 0) {
 
-            auto nodeList = DependencyManager::get<NodeList>();
+        auto it = missingSequenceNumbers.constBegin();
 
-            nackPacket->reset();
-
-            // calculate and pack the number of sequence numbers to nack
-            int numSequenceNumbersRoomFor = (nackPacket->getCapacity() - sizeof(uint16_t)) / sizeof(unsigned short int);
-            uint16_t numSequenceNumbers = std::min(numSequenceNumbersAvailable, numSequenceNumbersRoomFor);
-
-            nackPacket->write(&numSequenceNumbers, sizeof(numSequenceNumbers));
-
-            // pack sequence numbers to nack
-            for (uint16_t i = 0; i < numSequenceNumbers; i++) {
-                unsigned short int sequenceNumber = *missingSequenceNumberIterator;
-                nackPacket->write(&sequenceNumber, sizeof(sequenceNumber));
-
-                missingSequenceNumberIterator++;
-            }
-            numSequenceNumbersAvailable -= numSequenceNumbers;
-
-            // send it
-            nodeList->sendUnreliablePacket(nackPacket, destinationNode);
-            packetsSent++;
-
-            qDebug() << "NACK Sent back to editor/client... destinationNode=" << nodeUUID;
+        while (it != missingSequenceNumbers.constEnd()) {
+            unsigned short int sequenceNumber = *it;
+            nackPacketList->write(&sequenceNumber, sizeof(sequenceNumber));
+            ++it;
         }
-        i++;
     }
+
+    nackPacketList.closeCurrentPacket();
+
+    packetsSent = nackPacketList.getNumPackets();
+
+    if (packetsSent) {
+        qDebug() << "NACK Sent back to editor/client... destinationNode=" << nodeUUID;
+    }
+
+    // send the list of nack packets
+    nodeList->sendPacketList(nackPacketList, destinationNode);
+
     return packetsSent;
 }
 
