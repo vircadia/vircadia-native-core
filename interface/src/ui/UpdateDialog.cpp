@@ -33,11 +33,8 @@ UpdateDialog::UpdateDialog(QQuickItem* parent) :
     for (int i = latestVersion; i > currentVersion; i--) {
         QString releaseNotes = applicationUpdater.data()->getBuildData()[i]["releaseNotes"];
         releaseNotes.remove("<br />");
-        releaseNotes.remove(QRegExp("^\n"));
-        _releaseNotes += releaseNotes;
-        if (i > currentVersion + 1) {
-            _releaseNotes += "\n\n";
-        }
+        releaseNotes.remove(QRegExp("^\n+"));
+        _releaseNotes += "\n" + QString().sprintf("%d", i) + "\n" + releaseNotes + "\n";
     }
 }
 
