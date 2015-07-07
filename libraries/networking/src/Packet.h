@@ -40,15 +40,18 @@ public:
     char* getData() { return _packet.get(); }
     const char* getData() const { return _packet.get(); }
     
+    PacketType::Value getPacketType() const { return _type; }
+    void setPacketType(PacketType::Value type);
+    
     qint64 getSizeWithHeader() const { return localHeaderSize() + getSizeUsed(); }
     qint64 getSizeUsed() const { return _sizeUsed; }
     void setSizeUsed(qint64 sizeUsed) { _sizeUsed = sizeUsed; }
 
     // Header readers
-    PacketType::Value getPacketType() const;
-    PacketVersion getPacketTypeVersion() const;
-    SequenceNumber getSequenceNumber() const;
-    bool isControlPacket() const;
+    PacketType::Value readPacketType() const;
+    PacketVersion readPacketTypeVersion() const;
+    SequenceNumber readSequenceNumber() const;
+    bool readIsControlPacket() const;
     
     // QIODevice virtual functions
     // WARNING: Those methods all refer to the payload ONLY and NOT the entire packet
@@ -64,8 +67,8 @@ protected:
     virtual qint64 readData(char* data, qint64 maxSize);
     
     // Header writers
-    void setPacketTypeAndVersion(PacketType::Value type);
-    void setSequenceNumber(SequenceNumber seqNum);
+    void writePacketTypeAndVersion(PacketType::Value type);
+    void writeSequenceNumber(SequenceNumber seqNum);
     
     PacketType::Value _type;       // Packet type
     

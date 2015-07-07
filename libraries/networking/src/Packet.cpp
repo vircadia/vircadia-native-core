@@ -62,11 +62,11 @@ Packet::Packet(PacketType::Value type, qint64 size) :
         Q_ASSERT(size <= maxPayloadSize(type));
         
         // copy packet type and version in header
-        setPacketTypeAndVersion(type);
+        writePacketTypeAndVersion(type);
         
         // Set control bit and sequence number to 0 if necessary
         if (SEQUENCE_NUMBERED_PACKETS.contains(type)) {
-            setSequenceNumber(0);
+            writeSequenceNumber(0);
         }
 }
 
@@ -103,15 +103,24 @@ Packet& Packet::operator=(Packet&& other) {
     return *this;
 }
 
-PacketType::Value Packet::getPacketType() const {
+void Packet::setPacketType(PacketType::Value type) {
+    auto currentHeaderSize = totalHeadersSize();
+    _type = type;
+    writePacketTypeAndVersion(_type);
+    
+    // Setting new packet type with a different header size not currently supported
+    Q_ASSERT(currentHeaderSize == totalHeadersSize());
+}
+
+PacketType::Value Packet::readPacketType() const {
     return (PacketType::Value)arithmeticCodingValueFromBuffer(_packet.get());
 }
 
-PacketVersion Packet::getPacketTypeVersion() const {
+PacketVersion Packet::readPacketTypeVersion() const {
     return *reinterpret_cast<PacketVersion*>(_packet.get() + numBytesForArithmeticCodedPacketType(_type));
 }
 
-Packet::SequenceNumber Packet::getSequenceNumber() const {
+Packet::SequenceNumber Packet::readSequenceNumber() const {
     if (SEQUENCE_NUMBERED_PACKETS.contains(_type)) {
         SequenceNumber seqNum = *reinterpret_cast<SequenceNumber*>(_packet.get() +
                                                                    numBytesForArithmeticCodedPacketType(_type) +
@@ -121,7 +130,7 @@ Packet::SequenceNumber Packet::getSequenceNumber() const {
     return -1;
 }
 
-bool Packet::isControlPacket() const {
+bool Packet::readIsControlPacket() const {
     if (SEQUENCE_NUMBERED_PACKETS.contains(_type)) {
         SequenceNumber seqNum = *reinterpret_cast<SequenceNumber*>(_packet.get() +
                                                                    numBytesForArithmeticCodedPacketType(_type) +
@@ -131,7 +140,7 @@ bool Packet::isControlPacket() const {
     return false;
 }
 
-void Packet::setPacketTypeAndVersion(PacketType::Value type) {
+void Packet::writePacketTypeAndVersion(PacketType::Value type) {
     // Pack the packet type
     auto offset = packArithmeticallyCodedValue(type, _packet.get());
     
@@ -140,7 +149,7 @@ void Packet::setPacketTypeAndVersion(PacketType::Value type) {
     memcpy(_packet.get() + offset, &version, sizeof(version));
 }
 
-void Packet::setSequenceNumber(SequenceNumber seqNum) {
+void Packet::writeSequenceNumber(SequenceNumber seqNum) {
     // Here we are overriding the control bit to 0.
     // But that is not an issue since we should only ever set the seqNum
     // for data packets going out
