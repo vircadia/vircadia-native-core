@@ -47,18 +47,15 @@ qint64 writeData(const char* data, qint64 maxSize) {
 
         if (!_isOrdered) {
             auto newPacket = T::create(_packetType);
-            PacketPayload& newPayload = newPacket.getPayload();
 
             if (_segmentStartIndex >= 0) {
                 // We in the process of writing a segment for an unordered PacketList.
                 // We need to try and pull the first part of the segment out to our new packet
 
-                PacketPayload& currentPayload = _currentPacket->getPayload();
-
                 // check now to see if this is an unsupported write
-                int numBytesToEnd = currentPayload.size() - _segmentStartIndex;
+                int numBytesToEnd = _currentPacket.size() - _segmentStartIndex;
 
-                if ((newPayload.size() - numBytesToEnd) < maxSize) {
+                if ((newPacket.size() - numBytesToEnd) < maxSize) {
                     // this is an unsupported case - the segment is bigger than the size of an individual packet
                     // but the PacketList is not going to be sent ordered
                     qDebug() << "Error in PacketList::writeData - attempted to write a segment to an unordered packet that is"
@@ -67,20 +64,20 @@ qint64 writeData(const char* data, qint64 maxSize) {
                 }
 
                 // copy from currentPacket where the segment started to the beginning of the newPacket
-                newPayload.write(currentPacket.constData() + _segmentStartIndex, numBytesToEnd);
+                newPacket.write(currentPacket.constData() + _segmentStartIndex, numBytesToEnd);
 
                 // the current segment now starts at the beginning of the new packet
                 _segmentStartIndex = 0;
 
                 // shrink the current payload to the actual size of the packet
-                currentPayload.setSizeUsed(_segmentStartIndex);
+                currentPacket.setSizeUsed(_segmentStartIndex);
             }
 
             // move the current packet to our list of packets
             _packets.insert(std::move(_currentPacket));
 
             // write the data to the newPacket
-            newPayload.write(data, maxSize);
+            newPacket.write(data, maxSize);
 
             // set our current packet to the new packet
             _currentPacket = newPacket;
@@ -90,9 +87,8 @@ qint64 writeData(const char* data, qint64 maxSize) {
         } else {
             // we're an ordered PacketList - let's fit what we can into the current packet and then put the leftover
             // into a new packet
-            PacketPayload& currentPayload = _currentPacket.getPayload();
 
-            int numBytesToEnd = _currentPayload.size() - _currentPayload.pos();
+            int numBytesToEnd = _currentPacket.size() - _currentPacket.sizeUsed();
             _currentPacket.write(data, numBytesToEnd);
 
             // move the current packet to our list of packets
