@@ -229,6 +229,7 @@ QScriptValue collisionToScriptValue(QScriptEngine* engine, const Collision& coll
     obj.setProperty("idB", quuidToScriptValue(engine, collision.idB));
     obj.setProperty("penetration", vec3toScriptValue(engine, collision.penetration));
     obj.setProperty("contactPoint", vec3toScriptValue(engine, collision.contactPoint));
+    obj.setProperty("velocityChange", vec3toScriptValue(engine, collision.velocityChange));
     return obj;
 }
 
