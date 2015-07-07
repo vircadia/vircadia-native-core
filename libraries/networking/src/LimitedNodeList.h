@@ -38,6 +38,7 @@
 #include "Node.h"
 #include "NLPacket.h"
 #include "PacketHeaders.h"
+#include "PacketList.h"
 #include "UUIDHasher.h"
 
 const int MAX_PACKET_SIZE = 1450;
@@ -67,6 +68,7 @@ Q_DECLARE_METATYPE(SharedNodePointer)
 using namespace tbb;
 typedef std::pair<QUuid, SharedNodePointer> UUIDNodePair;
 typedef concurrent_unordered_map<QUuid, SharedNodePointer, UUIDHasher> NodeHash;
+using NLPacketList = PacketList<NLPacket>;
 
 typedef quint8 PingType_t;
 namespace PingType {
@@ -147,8 +149,8 @@ public:
     qint64 sendUnreliablePacket(std::unique_ptr<NLPacket>& packet, const HifiSockAddr& sockAddr) {};
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const SharedNodePointer& destinationNode) {};
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr) {};
-    qint64 sendPacketList(PacketList& packetList, const SharedNodePointer& destinationNode) {};
-    qint64 sendPacketList(PacketList& packetList, const HifiSockAddr& sockAddr) {};
+    qint64 sendPacketList(NLPacketList& packetList, const SharedNodePointer& destinationNode) {};
+    qint64 sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr) {};
 
     void (*linkedDataCreateCallback)(Node *);
 

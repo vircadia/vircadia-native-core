@@ -38,6 +38,12 @@ std::unique_ptr<Packet> Packet::create(PacketType::Value type, qint64 size) {
     return std::unique_ptr<Packet>(new Packet(type, size));
 }
 
+
+std::unique_ptr<Packet> Packet::createCopy(const std::unique_ptr<Packet>& other) {
+    Q_ASSERT(other);
+    return std::unique_ptr<Packet>(new Packet(*other));
+}
+
 qint64 Packet::totalHeadersSize() const {
     return localHeaderSize();
 }
@@ -56,11 +62,11 @@ Packet::Packet(PacketType::Value type, qint64 size) :
         Q_ASSERT(size <= maxPayloadSize(type));
         
         // copy packet type and version in header
-        setPacketTypeAndVersion(type);
+        writePacketTypeAndVersion(type);
         
         // Set control bit and sequence number to 0 if necessary
         if (SEQUENCE_NUMBERED_PACKETS.contains(type)) {
-            setSequenceNumber(0);
+            writeSequenceNumber(0);
         }
 }
 
@@ -74,7 +80,6 @@ Packet& Packet::operator=(const Packet& other) {
     memcpy(_packet.get(), other._packet.get(), _packetSize);
     
     _payloadStart = _packet.get() + (other._payloadStart - other._packet.get());
-    _position = other._position;
     _capacity = other._capacity;
     
     _sizeUsed = other._sizeUsed;
@@ -91,7 +96,6 @@ Packet& Packet::operator=(Packet&& other) {
     _packet = std::move(other._packet);
     
     _payloadStart = other._payloadStart;
-    _position = other._position;
     _capacity = other._capacity;
     
     _sizeUsed = other._sizeUsed;
@@ -99,15 +103,24 @@ Packet& Packet::operator=(Packet&& other) {
     return *this;
 }
 
-PacketType::Value Packet::getPacketType() const {
+void Packet::setPacketType(PacketType::Value type) {
+    auto currentHeaderSize = totalHeadersSize();
+    _type = type;
+    writePacketTypeAndVersion(_type);
+    
+    // Setting new packet type with a different header size not currently supported
+    Q_ASSERT(currentHeaderSize == totalHeadersSize());
+}
+
+PacketType::Value Packet::readPacketType() const {
     return (PacketType::Value)arithmeticCodingValueFromBuffer(_packet.get());
 }
 
-PacketVersion Packet::getPacketTypeVersion() const {
+PacketVersion Packet::readPacketTypeVersion() const {
     return *reinterpret_cast<PacketVersion*>(_packet.get() + numBytesForArithmeticCodedPacketType(_type));
 }
 
-Packet::SequenceNumber Packet::getSequenceNumber() const {
+Packet::SequenceNumber Packet::readSequenceNumber() const {
     if (SEQUENCE_NUMBERED_PACKETS.contains(_type)) {
         SequenceNumber seqNum = *reinterpret_cast<SequenceNumber*>(_packet.get() +
                                                                    numBytesForArithmeticCodedPacketType(_type) +
@@ -117,7 +130,7 @@ Packet::SequenceNumber Packet::getSequenceNumber() const {
     return -1;
 }
 
-bool Packet::isControlPacket() const {
+bool Packet::readIsControlPacket() const {
     if (SEQUENCE_NUMBERED_PACKETS.contains(_type)) {
         SequenceNumber seqNum = *reinterpret_cast<SequenceNumber*>(_packet.get() +
                                                                    numBytesForArithmeticCodedPacketType(_type) +
@@ -127,29 +140,21 @@ bool Packet::isControlPacket() const {
     return false;
 }
 
-void Packet::setPacketTypeAndVersion(PacketType::Value type) {
+void Packet::writePacketTypeAndVersion(PacketType::Value type) {
     // Pack the packet type
     auto offset = packArithmeticallyCodedValue(type, _packet.get());
     
     // Pack the packet version
-    auto version { versionForPacketType(type) };
+    auto version = versionForPacketType(type);
     memcpy(_packet.get() + offset, &version, sizeof(version));
 }
 
-void Packet::setSequenceNumber(SequenceNumber seqNum) {
+void Packet::writeSequenceNumber(SequenceNumber seqNum) {
     // Here we are overriding the control bit to 0.
     // But that is not an issue since we should only ever set the seqNum
     // for data packets going out
     memcpy(_packet.get() + numBytesForArithmeticCodedPacketType(_type) + sizeof(PacketVersion),
            &seqNum, sizeof(seqNum));
-}
-
-bool Packet::seek(qint64 pos) {
-    bool valid = (pos >= 0) && (pos < size());
-    if (valid) {
-        _position = pos;
-    }
-    return valid;
 }
 
 static const qint64 PACKET_WRITE_ERROR = -1;

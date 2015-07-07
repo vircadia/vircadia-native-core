@@ -12,7 +12,9 @@
 #ifndef hifi_PacketList_h
 #define hifi_PacketList_h
 
-#pragma once
+#include <QIODevice>
+
+#include "PacketHeaders.h"
 
 template <class T> class PacketList : public QIODevice {
 public:
@@ -20,7 +22,7 @@ public:
 
     virtual bool isSequential() const { return true; }
 
-    void startSegment() { _segmentStartIndex = currentPacket->payload().pos(); }
+    void startSegment() { _segmentStartIndex = _currentPacket->payload().pos(); }
     void endSegment() { _segmentStartIndex = -1; }
 
     void closeCurrentPacket();
@@ -28,7 +30,7 @@ public:
     void setExtendedHeader(const QByteArray& extendedHeader) { _extendedHeader = extendedHeader; }
 protected:
     qint64 writeData(const char* data, qint64 maxSize);
-    qint64 readData(const char* data, qint64 maxSize) { return 0 };
+    qint64 readData(const char* data, qint64 maxSize) { return 0; };
 private:
     std::unique_ptr<NLPacket> createPacketWithExtendedHeader();
 
@@ -40,7 +42,7 @@ private:
 
     int _segmentStartIndex = -1;
 
-    QByteArray _extendedHeader = extendedHeader;
+    QByteArray _extendedHeader;
 };
 
 #endif // hifi_PacketList_h
