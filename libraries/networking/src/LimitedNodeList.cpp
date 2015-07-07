@@ -523,7 +523,7 @@ unsigned LimitedNodeList::broadcastToNodes(const QByteArray& packet, const NodeS
 
 NLPacket&& LimitedNodeList::constructPingPacket(PingType_t pingType) {
     int packetSize = sizeof(PingType_t) + sizeof(quint64);
-    NodeListPacket pingPacket = NodeListPacket::create(PacketType::Ping, packetSize);
+    auto pingPacket { NLPacket::create(PacketType::Ping, packetSize); }
 
     QDataStream packetStream(&pingPacket.payload(), QIODevice::Append);
 
@@ -545,7 +545,7 @@ NLPacket&& LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacke
 
     int packetSize = sizeof(PingType_t) + sizeof(quint64) + sizeof(quint64);
 
-    NodeListPacket replyPacket = NodeListPacket::create(PacketType::Ping, packetSize);
+    auto replyPacket { NLPacket::create(PacketType::Ping, packetSize); }
 
     QDataStream packetStream(&replyPacket, QIODevice::Append);
     packetStream << typeFromOriginalPing << timeFromOriginalPing << usecTimestampNow();
@@ -556,7 +556,7 @@ NLPacket&& LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacke
 NLPacket&& constructICEPingPacket(PingType_t pingType, const QUuid& iceID) {
     int packetSize = NUM_BYTES_RFC4122_UUID + sizeof(PingType_t);
 
-    NodeListPacket icePingPacket = NodeListPacket::create(PacketType::ICEPing, packetSize);
+    auto icePingPacket { NLPacket::create(PacketType::ICEPing, packetSize); }
 
     icePingPacket.payload().replace(0, NUM_BYTES_RFC4122_UUID, iceID.toRfc4122().data());
     memcpy(icePingPacket.payload() + NUM_BYTES_RFC4122_UUID, &pingType, sizeof(PingType_t));
@@ -571,7 +571,7 @@ NLPacket&& constructICEPingReplyPacket(const QByteArray& pingPacket, const QUuid
     memcpy(&pingType, pingPacket.data() + NUM_BYTES_RFC4122_UUID, sizeof(PingType_t));
 
     int packetSize = NUM_BYTES_RFC4122_UUID + sizeof(PingType_t);
-    NodeListPacket icePingReplyPacket = NodeListPacket::create(PacketType::ICEPingReply, packetSize);
+    auto icePingReplyPacket { NLPacket::create(PacketType::ICEPingReply, packetSize); }
 
     // pack the ICE ID and then the ping type
     memcpy(icePingReplyPacket.payload(), iceID.toRfc4122().data(), NUM_BYTES_RFC4122_UUID);
