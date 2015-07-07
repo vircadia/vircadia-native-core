@@ -552,6 +552,7 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
     packetStream >> newUUID;
     setSessionUUID(newUUID);
 
+    // TODO: when fixing this read these are actually chars now, not bools
     bool thisNodeCanAdjustLocks;
     packetStream >> thisNodeCanAdjustLocks;
     setThisNodeCanAdjustLocks(thisNodeCanAdjustLocks);

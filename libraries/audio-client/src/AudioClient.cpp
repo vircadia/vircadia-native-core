@@ -724,19 +724,17 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
 }
 
 void AudioClient::handleAudioInput() {
-    static char audioDataPacket[MAX_PACKET_SIZE];
-
-    static int numBytesPacketHeader = numBytesForPacketHeaderGivenPacketType(PacketTypeMicrophoneAudioNoEcho);
-
-    // NOTE: we assume PacketTypeMicrophoneAudioWithEcho has same size headers as
-    // PacketTypeMicrophoneAudioNoEcho.  If not, then networkAudioSamples will be pointing to the wrong place for writing
-    // audio samples with echo.
-    static int leadingBytes = numBytesPacketHeader + sizeof(quint16) + sizeof(glm::vec3) + sizeof(glm::quat) + sizeof(quint8);
-    static int16_t* networkAudioSamples = (int16_t*)(audioDataPacket + leadingBytes);
+    if (!_audioPacket) {
+        // we don't have an audioPacket yet - set that up now
+        _audioPacket = NLPacket::create(PacketType::MicrophoneAudioNoEcho);
+    }
 
     float inputToNetworkInputRatio = calculateDeviceToNetworkInputRatio();
 
     int inputSamplesRequired = (int)((float)AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio);
+
+    static int leadingBytes = sizeof(quint16) + sizeof(glm::vec3) + sizeof(glm::quat) + sizeof(quint8);
+    int16_t* networkAudioSamples = (int16_t*)(_audioPacket->payload() + leadingBytes);
 
     QByteArray inputByteArray = _inputDevice->readAll();
 
@@ -769,7 +767,7 @@ void AudioClient::handleAudioInput() {
     while (_inputRingBuffer.samplesAvailable() >= inputSamplesRequired) {
 
         const int numNetworkBytes = _isStereoInput
-            ? AudioConstants::NETWORK_FRAME_BYTES_STEREO
+            ? AudioConstants::NETWORK_FRAME_BYTES_STEREO`
             : AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
         const int numNetworkSamples = _isStereoInput
             ? AudioConstants::NETWORK_FRAME_SAMPLES_STEREO
@@ -846,57 +844,49 @@ void AudioClient::handleAudioInput() {
 
             PacketType::Value packetType;
             if (_lastInputLoudness == 0) {
-                packetType = PacketTypeSilentAudioFrame;
+                _audioPacket->setType(PacketType::SilentAudioFrame);
             } else {
                 if (_shouldEchoToServer) {
-                    packetType = PacketTypeMicrophoneAudioWithEcho;
+                    _audioPacket->setType(PacketType::MicrophoneAudioWithEcho);
                 } else {
-                    packetType = PacketTypeMicrophoneAudioNoEcho;
+                    _audioPacket->setType(PacketType::MicrophoneAudioNoEcho);
                 }
             }
 
-            char* currentPacketPtr = audioDataPacket + nodeList->populatePacketHeader(audioDataPacket, packetType);
+            // seek to the beginning of the audio packet payload
+            _audioPacket->seek(0);
 
-            // pack sequence number
-            memcpy(currentPacketPtr, &_outgoingAvatarAudioSequenceNumber, sizeof(quint16));
-            currentPacketPtr += sizeof(quint16);
+            // reset the size used in this packet so it will be correct once we are done writing
+            _audioPacket->setSizeUsed(0);
 
-            if (packetType == PacketTypeSilentAudioFrame) {
+            // write sequence number
+            _audioPacket->write(&_outgoingAvatarAudioSequenceNumber, sizeof(quint16));
+
+            if (packetType == PacketType::SilentAudioFrame) {
                 // pack num silent samples
-                quint16 numSilentSamples = numNetworkSamples;
-                memcpy(currentPacketPtr, &numSilentSamples, sizeof(quint16));
-                currentPacketPtr += sizeof(quint16);
-
-                // memcpy the three float positions
-                memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
-                currentPacketPtr += (sizeof(headPosition));
-
-                // memcpy our orientation
-                memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
-                currentPacketPtr += sizeof(headOrientation);
-
+                _audioPacket->write(&numSilentSamples, sizeof(quint16));
             } else {
                 // set the mono/stereo byte
-                *currentPacketPtr++ = isStereo;
+                _audioPacket->write(&isStereo, sizeof(isStereo));
+            }
 
-                // memcpy the three float positions
-                memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
-                currentPacketPtr += (sizeof(headPosition));
+            // pack the three float positions
+            _audioPacket->write(&headPosition, sizeof(headPosition));
 
-                // memcpy our orientation
-                memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
-                currentPacketPtr += sizeof(headOrientation);
+            // pack the orientation
+            _audioPacket->write(&headOrientation, sizeof(headOrientation));
 
+            if (packetType != PacketType::SilentAudioFrame) {
                 // audio samples have already been packed (written to networkAudioSamples)
-                currentPacketPtr += numNetworkBytes;
+                _audioPacket->setSizeUsed(_audioPacket->getSizeUsed() + numNetworkBytes);
             }
 
             _stats.sentPacket();
 
             nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendAudioPacket);
 
-            int packetBytes = currentPacketPtr - audioDataPacket;
-            nodeList->writeDatagram(audioDataPacket, packetBytes, audioMixer);
+            nodeList->sendUnreliablePacket(_audioPacket, audioMixer);
+
             _outgoingAvatarAudioSequenceNumber++;
         }
     }

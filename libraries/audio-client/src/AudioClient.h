@@ -308,6 +308,8 @@ private:
     void checkDevices();
 
     bool _hasReceivedFirstPacket = false;
+
+    std::unique_ptr<NLPacket> _audioPacket;
 };
 
 
