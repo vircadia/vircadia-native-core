@@ -31,13 +31,14 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableTextEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Text);
     
+    static const float SLIGHTLY_BEHIND = -0.005f;
     glm::vec4 textColor = glm::vec4(toGlm(getTextColorX()), 1.0f);
     glm::vec4 backgroundColor = glm::vec4(toGlm(getBackgroundColorX()), 1.0f);
     glm::vec3 dimensions = getDimensions();
     
     // Render background
-    glm::vec3 minCorner = glm::vec3(0.0f, -dimensions.y, 0.0f);
-    glm::vec3 maxCorner = glm::vec3(dimensions.x, 0.0f, 0.0f);
+    glm::vec3 minCorner = glm::vec3(0.0f, -dimensions.y, SLIGHTLY_BEHIND);
+    glm::vec3 maxCorner = glm::vec3(dimensions.x, 0.0f, SLIGHTLY_BEHIND);
     
     
     // Batch render calls
