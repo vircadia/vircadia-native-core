@@ -143,8 +143,8 @@ public:
 //                         const HifiSockAddr& overridenSockAddr = HifiSockAddr());
 //
 
-    qint64 sendUnreliablePacket(NLPacket& packet, const SharedNodePointer& destinationNode) {};
-    qint64 sendUnreliablePacket(NLPacket& packet, const HifiSockAddr& sockAddr) {};
+    qint64 sendUnreliablePacket(std::unique_ptr<NLPacket>& packet, const SharedNodePointer& destinationNode) {};
+    qint64 sendUnreliablePacket(std::unique_ptr<NLPacket>& packet, const HifiSockAddr& sockAddr) {};
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const SharedNodePointer& destinationNode) {};
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr) {};
     qint64 sendPacketList(PacketList& packetList, const SharedNodePointer& destinationNode) {};
