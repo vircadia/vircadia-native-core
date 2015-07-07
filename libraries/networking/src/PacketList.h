@@ -16,7 +16,7 @@
 
 template <class T> class PacketList : public QIODevice {
 public:
-    PacketList(PacketType::Value packetType, bool isOrdered = false);
+    PacketList(PacketType::Value packetType);
 
     virtual bool isSequential() const { return true; }
 
