@@ -18,12 +18,14 @@
 
 template <class T> class PacketList : public QIODevice {
 public:
-    PacketList(PacketType::Value packetType, bool isOrdered = false);
+    PacketList(PacketType::Value packetType);
 
     virtual bool isSequential() const { return true; }
 
     void startSegment() { _segmentStartIndex = _currentPacket->payload().pos(); }
     void endSegment() { _segmentStartIndex = -1; }
+
+    int getNumPackets() const { return _packets.size() + (_currentPacket ? 1 : 0); }
 
     void closeCurrentPacket();
 

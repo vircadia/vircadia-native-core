@@ -11,9 +11,9 @@
 
 #include "PacketList.h"
 
-PacketList::PacketList(PacketType::Value packetType, bool isOrdered) :
+PacketList::PacketList(PacketType::Value packetType) :
     _packetType(packetType),
-    _isOrdered(isOrdered)
+    _isOrdered(false)
 {
 
 }
