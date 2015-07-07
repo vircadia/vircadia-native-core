@@ -38,6 +38,12 @@ std::unique_ptr<Packet> Packet::create(PacketType::Value type, qint64 size) {
     return std::unique_ptr<Packet>(new Packet(type, size));
 }
 
+
+std::unique_ptr<Packet> Packet::createCopy(const std::unique_ptr<Packet>& other) {
+    Q_ASSERT(other);
+    return std::unique_ptr<Packet>(new Packet(*other));
+}
+
 qint64 Packet::totalHeadersSize() const {
     return localHeaderSize();
 }
@@ -74,7 +80,6 @@ Packet& Packet::operator=(const Packet& other) {
     memcpy(_packet.get(), other._packet.get(), _packetSize);
     
     _payloadStart = _packet.get() + (other._payloadStart - other._packet.get());
-    _position = other._position;
     _capacity = other._capacity;
     
     _sizeUsed = other._sizeUsed;
@@ -91,7 +96,6 @@ Packet& Packet::operator=(Packet&& other) {
     _packet = std::move(other._packet);
     
     _payloadStart = other._payloadStart;
-    _position = other._position;
     _capacity = other._capacity;
     
     _sizeUsed = other._sizeUsed;
@@ -132,7 +136,7 @@ void Packet::setPacketTypeAndVersion(PacketType::Value type) {
     auto offset = packArithmeticallyCodedValue(type, _packet.get());
     
     // Pack the packet version
-    auto version { versionForPacketType(type) };
+    auto version = versionForPacketType(type);
     memcpy(_packet.get() + offset, &version, sizeof(version));
 }
 
@@ -142,14 +146,6 @@ void Packet::setSequenceNumber(SequenceNumber seqNum) {
     // for data packets going out
     memcpy(_packet.get() + numBytesForArithmeticCodedPacketType(_type) + sizeof(PacketVersion),
            &seqNum, sizeof(seqNum));
-}
-
-bool Packet::seek(qint64 pos) {
-    bool valid = (pos >= 0) && (pos < size());
-    if (valid) {
-        _position = pos;
-    }
-    return valid;
 }
 
 static const qint64 PACKET_WRITE_ERROR = -1;
