@@ -40,6 +40,8 @@ var size;
 var pieces = [];
 var ground = false;
 var layerRotated = false;
+var button;
+var cogButton;
 
 SettingsWindow = function() {
     this.webWindow = null;
@@ -217,25 +219,38 @@ function getCogButtonPosX() {
     return getButtonPosX() - (BUTTON_DIMENSIONS.width * 1.1);
 }
 
-var button = Overlays.addOverlay('image', {
+print(JSON.stringify({
     x: getButtonPosX(),
     y: 10,
     width: BUTTON_DIMENSIONS.width,
     height: BUTTON_DIMENSIONS.height,
     imageURL: HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/planky_button.svg',
     alpha: 0.8
-});
+}));
 
-var cogButton = Overlays.addOverlay('image', {
-    x: getCogButtonPosX(),
-    y: 10,
-    width: BUTTON_DIMENSIONS.width,
-    height: BUTTON_DIMENSIONS.height,
-    imageURL: HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/cog.svg',
-    alpha: 0.8
-});
+function createButtons() {
+    button = Overlays.addOverlay('image', {
+        x: getButtonPosX(),
+        y: 10,
+        width: BUTTON_DIMENSIONS.width,
+        height: BUTTON_DIMENSIONS.height,
+        imageURL: HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/planky_button.svg',
+        alpha: 0.8
+    });
 
-function mousePressEvent(event) {
+    cogButton = Overlays.addOverlay('image', {
+        x: getCogButtonPosX(),
+        y: 10,
+        width: BUTTON_DIMENSIONS.width,
+        height: BUTTON_DIMENSIONS.height,
+        imageURL: HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/cog.svg',
+        alpha: 0.8
+    });
+}
+// Fixes bug of not showing buttons on startup
+Script.setTimeout(createButtons, 1000);
+
+Controller.mousePressEvent.connect(function(event) {
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
     if (clickedOverlay === button) {
         if (!plankyStack.isFound()) {
@@ -247,9 +262,7 @@ function mousePressEvent(event) {
     } else if (clickedOverlay === cogButton) {
         settingsWindow.webWindow.setVisible(true);
     }
-}
-
-Controller.mousePressEvent.connect(mousePressEvent);
+});
                    
 function cleanup() {
     Overlays.deleteOverlay(button);
