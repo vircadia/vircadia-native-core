@@ -2660,9 +2660,7 @@ int Application::sendNackPackets() {
         return 0;
     }
 
-    int packetsSent = 0;
-
-    auto nackPacket { NLPacket::create(PacketType::OctreeDataNack); }
+    NLPacketList nackPacketList(PacketType::OctreeDataNack);
 
     // iterates thru all nodes in NodeList
     auto nodeList = DependencyManager::get<NodeList>();
@@ -2676,7 +2674,7 @@ int Application::sendNackPackets() {
             // if there are octree packets from this node that are waiting to be processed,
             // don't send a NACK since the missing packets may be among those waiting packets.
             if (_octreeProcessor.hasPacketsToProcessFrom(nodeUUID)) {
-                return;
+                return 0;
             }
 
             _octreeSceneStatsLock.lockForRead();
@@ -2684,7 +2682,7 @@ int Application::sendNackPackets() {
             // retreive octree scene stats of this node
             if (_octreeServerSceneStats.find(nodeUUID) == _octreeServerSceneStats.end()) {
                 _octreeSceneStatsLock.unlock();
-                return;
+                return 0;
             }
 
             // get sequence number stats of node, prune its missing set, and make a copy of the missing set
@@ -2696,33 +2694,22 @@ int Application::sendNackPackets() {
 
             // construct nack packet(s) for this node
             int numSequenceNumbersAvailable = missingSequenceNumbers.size();
-            QSet<OCTREE_PACKET_SEQUENCE>::const_iterator missingSequenceNumbersIterator = missingSequenceNumbers.constBegin();
-            while (numSequenceNumbersAvailable > 0) {
 
-                // reset the position we are writing at and the size we have used
-                nackPacket->seek(0);
-                nackPacket->setSizeUsed(0);
-
-                // calculate and pack the number of sequence numbers
-                int numSequenceNumbersRoomFor = (nackPacket->size() - sizeof(uint16_t)) / sizeof(OCTREE_PACKET_SEQUENCE);
-                uint16_t numSequenceNumbers = min(numSequenceNumbersAvailable, numSequenceNumbersRoomFor);
-
-                nackPacket->write(&numSequenceNumbers, sizeof(numSequenceNumbers));
-
-                // pack sequence numbers
-                for (int i = 0; i < numSequenceNumbers; i++) {
-                    OCTREE_PACKET_SEQUENCE missingNumber = *missingSequenceNumbersIterator;
-                    nackPacket->write(&missingNumber, sizeof(OCTREE_PACKET_SEQUENCE));
-                    missingSequenceNumbersIterator++;
-                }
-                numSequenceNumbersAvailable -= numSequenceNumbers;
-
-                // send the packet
-                nodeList->sendUnreliablePacket(packet, node);
-                packetsSent++;
+            auto it = missingSequenceNumbers.constBegin();
+            while (it != missingSequenceNumbers.constEnd()) {
+                OCTREE_PACKET_SEQUENCE missingNumber = *it;
+                nackPacketList->write(&missingNumber, sizeof(OCTREE_PACKET_SEQUENCE));
+                ++it;
             }
         }
     });
+
+    int packetsSent = nackPacketList.getNumPackets();
+
+    if (packetsSent) {
+        // send the packet list
+        nodeList->sendPacketList(nackPacketList, node);
+    }
 
     return packetsSent;
 }
@@ -2817,7 +2804,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType::Value packetTyp
         qCDebug(interfaceapp, "perServerPPS: %d perUnknownServer: %d", perServerPPS, perUnknownServer);
     }
 
-    auto queryPacket { NLPacket::create(packetType); }
+    auto queryPacket = NLPacket::create(packetType);
 
     nodeList->eachNode([&](const SharedNodePointer& node){
         // only send to the NodeTypes that are serverType
@@ -2896,7 +2883,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType::Value packetTyp
 
             // encode the query data
             int packetSize = _octreeQuery.getBroadcastData(queryPacket.payload());
-            queryPacket.setSizeUsed(packetSize);
+            queryPacket->setSizeUsed(packetSize);
 
             // make sure we still have an active socket
             nodeList->sendUnreliablePacket(queryPacket, node);

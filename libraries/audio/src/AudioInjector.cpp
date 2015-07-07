@@ -153,7 +153,7 @@ void AudioInjector::injectToMixer() {
     // make sure we actually have samples downloaded to inject
     if (_audioData.size()) {
 
-        auto audioPacket { NLPacket::create(PacketType::InjectAudio); }
+        auto audioPacket = NLPacket::create(PacketType::InjectAudio);
 
         // setup the packet for injected audio
         QDataStream audioPacketStream(&audioPacket);
@@ -177,7 +177,6 @@ void AudioInjector::injectToMixer() {
                                   sizeof(_options.position));
 
         // pack our orientation for injected audio
-        int orientationOptionOffset = audioPacket.pos();
         audioPacketStream.writeRawData(reinterpret_cast<const char*>(&_options.orientation),
                                   sizeof(_options.orientation));
 
@@ -216,23 +215,24 @@ void AudioInjector::injectToMixer() {
             }
             _loudness /= (float)(bytesToCopy / sizeof(int16_t));
 
-            audioPacket.seek(positionOptionOffset);
-            audioPacket.write(&_options.position, sizeof(_options.position));
-
-            audioPacket.seek(orientationOptionOffset);
+            audioPacket->seek(positionOptionOffset);
+            audioPacket->write(&_options.position, sizeof(_options.position));
             audioPacket.write(&_options.orientation, sizeof(_options.orientation));
 
             volume = MAX_INJECTOR_VOLUME * _options.volume;
-            audioPacket.seek(volumeOptionOffset);
-            audioPacket.write(&volume, sizeof(volume));
+            audioPacket->seek(volumeOptionOffset);
+            audioPacket->write(&volume, sizeof(volume));
 
-            audioPacket.seek(audioDataOffset);
+            audioPacket->seek(audioDataOffset);
 
             // pack the sequence number
-            audioPacket.write(&outgoingInjectedAudioSequenceNumber, sizeof(quint16));
+            audioPacket->write(&outgoingInjectedAudioSequenceNumber, sizeof(quint16));
 
             // copy the next NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL bytes to the packet
-            audioPacket.write(_audioData.data() + _currentSendPosition, bytesToCopy);
+            audioPacket->write(_audioData.data() + _currentSendPosition, bytesToCopy);
+
+            // set the correct size used for this packet
+            audioPacket->setSizeUsed(audioPacket->pos());
 
             // grab our audio mixer from the NodeList, if it exists
             SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);

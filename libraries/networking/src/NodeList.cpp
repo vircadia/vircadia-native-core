@@ -204,7 +204,7 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             if (matchingNode) {
                 matchingNode->setLastHeardMicrostamp(usecTimestampNow());
                 auto replyPacket = constructPingReplyPacket(packet);
-                sendPacket(replyPacket, matchingNode, senderSockAddr);
+                sendPacket(std::move(replyPacket), matchingNode, senderSockAddr);
 
                 // If we don't have a symmetric socket for this node and this socket doesn't match
                 // what we have for public and local then set it as the symmetric.
@@ -236,7 +236,7 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
         case PacketType::ICEPing: {
             // send back a reply
             auto replyPacket = constructICEPingReplyPacket(packet, _domainHandler.getICEClientID());
-            sendPacket(replyPacket, senderSockAddr);
+            sendPacket(std::move(replyPacket), senderSockAddr);
             break;
         }
         case PacketType::ICEPingReply: {
@@ -369,7 +369,7 @@ void NodeList::sendDomainServerCheckIn() {
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendDSCheckIn);
 
         if (!isUsingDTLS) {
-            sendPacket(domainPacket, _domainHandler.getSockAddr());
+            sendPacket(std::move(domainPacket), _domainHandler.getSockAddr());
         }
 
         if (_numNoReplyDomainCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
@@ -422,16 +422,16 @@ void NodeList::sendDSPathQuery(const QString& newPath) {
 
         if (numPathBytes + sizeof(numPathBytes) < pathQueryPacket.size() ) {
             // append the size of the path to the query packet
-            pathQueryPacket.write(&numPathBytes, sizeof(numPathBytes));
+            pathQueryPacket->write(&numPathBytes, sizeof(numPathBytes));
 
             // append the path itself to the query packet
-            pathQueryPacket.write(pathQueryUTF8);
+            pathQueryPacket->write(pathQueryUTF8);
 
             qCDebug(networking) << "Sending a path query packet for path" << newPath << "to domain-server at"
                 << _domainHandler.getSockAddr();
 
             // send off the path query
-            sendPacket(pathQueryPacket, _domainHandler.getSockAddr());
+            sendPacket(std::move(pathQueryPacket), _domainHandler.getSockAddr());
         } else {
             qCDebug(networking) << "Path" << newPath << "would make PacketTypeDomainServerPathQuery packet > MAX_PACKET_SIZE." <<
                 "Will not send query.";
@@ -521,10 +521,10 @@ void NodeList::pingPunchForDomainServer() {
 
         // send the ping packet to the local and public sockets for this node
         auto localPingPacket = constructICEPingPacket(PingType::Local);
-        sendPacket(localPingPacket, _domainHandler.getICEPeer().getLocalSocket());
+        sendPacket(std::move(localPingPacket), _domainHandler.getICEPeer().getLocalSocket());
 
         auto publicPingPacket = constructICEPingPacket(PingType::Public);
-        sendPacket(publicPingPacket, _domainHandler.getICEPeer().getPublicSocket());
+        sendPacket(std::move(publicPingPacket), _domainHandler.getICEPeer().getPublicSocket());
 
         _domainHandler.getICEPeer().incrementConnectionAttempts();
     }
@@ -629,10 +629,10 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
 
     // send the ping packet to the local and public sockets for this node
     auto localPingPacket = constructPingPacket(PingType::Local);
-    sendPacket(localPingPacket, node, node->getLocalSocket());
+    sendPacket(std::move(localPingPacket), node, node->getLocalSocket());
 
     auto publicPingPacket = constructPingPacket(PingType::Public);
-    sendPacket(publicPingPacket, node, node->getPublicSocket());
+    sendPacket(std::move(publicPingPacket), node, node->getPublicSocket());
 
     if (!node->getSymmetricSocket().isNull()) {
         auto symmetricPingPacket = constructPingPacket(PingType::Symmetric);

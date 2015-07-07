@@ -108,9 +108,9 @@ bool OctreeQueryNode::packetIsDuplicate() const {
     // since our packets now include header information, like sequence number, and createTime, we can't just do a memcmp
     // of the entire packet, we need to compare only the packet content...
 
-    if (_lastOctreePacketLength == getPacketLength()) {
+    if (_lastOctreePacketLength == _octreePacket->getSizeUsed()) {
         if (memcmp(_lastOctreePayload + OCTREE_PACKET_EXTRA_HEADERS_SIZE,
-                _octreePacket->getPayload() + OCTREE_PACKET_EXTRA_HEADERS_SIZE,
+                   _octreePacket->getPayload() + OCTREE_PACKET_EXTRA_HEADERS_SIZE,
                    _octreePacket->getSizeUsed() - OCTREE_PACKET_EXTRA_HEADERS_SIZE) == 0) {
             return true;
         }
@@ -378,6 +378,8 @@ void OctreeQueryNode::parseNackPacket(const QByteArray& packet) {
 
     int numBytesPacketHeader = numBytesForPacketHeader(packet);
     const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data()) + numBytesPacketHeader;
+
+    // TODO: This no longer has the number of sequence numbers - just read to the end of the packet in sequence number blocks
 
     // read number of sequence numbers
     uint16_t numSequenceNumbers = (*(uint16_t*)dataAt);

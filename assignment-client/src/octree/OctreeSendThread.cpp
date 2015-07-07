@@ -147,7 +147,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         NLPacket& statsPacket = nodeData->stats.getStatsMessage();
 
         // If the size of the stats message and the octree message will fit in a packet, then piggyback them
-        if (nodeData->getPacket()->getSizeUsed() < statsPacket->bytesAvailable()) {
+        if (nodeData->getPacket()->getSizeWithHeader() <= statsPacket->bytesAvailable()) {
 
             // copy octree message to back of stats message
             statsPacket->write(nodeData->getPacket()->getData(), nodeData->getPacket()->getSizeWithHeader());
