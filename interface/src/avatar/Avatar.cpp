@@ -750,7 +750,7 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum) co
     const int text_y = -nameDynamicRect.height() / 2;
 
     // Compute background position/size
-    static const float SLIGHTLY_BEHIND = -0.05f;
+    static const float SLIGHTLY_IN_FRONT = 0.1f;
     const int border = 0.1f * nameDynamicRect.height();
     const int left = text_x - border;
     const int bottom = text_y - border;
@@ -765,16 +765,16 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum) co
     
     // Compute display name transform
     auto textTransform = calculateDisplayNameTransform(frustum, renderer->getFontSize());
-    
-    // Render background slightly behind to avoid z-fighting
-    auto backgroundTransform = textTransform;
-    backgroundTransform.postTranslate(glm::vec3(0.0f, 0.0f, SLIGHTLY_BEHIND));
-    batch.setModelTransform(backgroundTransform);
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
+    batch.setModelTransform(textTransform);
+
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, false, true, true, true);
     DependencyManager::get<GeometryCache>()->renderBevelCornersRect(batch, left, bottom, width, height,
                                                                     bevelDistance, backgroundColor);
     // Render actual name
     QByteArray nameUTF8 = renderedDisplayName.toLocal8Bit();
+    
+    // Render text slightly in front to avoid z-fighting
+    textTransform.postTranslate(glm::vec3(0.0f, 0.0f, SLIGHTLY_IN_FRONT * renderer->getFontSize()));
     batch.setModelTransform(textTransform);
     renderer->draw(batch, text_x, -text_y, nameUTF8.data(), textColor);
 }
