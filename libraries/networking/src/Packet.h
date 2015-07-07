@@ -40,7 +40,9 @@ protected:
     Packet& operator=(Packet&&) = delete;
     Packet& operator=(const Packet&) = delete;
     
-private:
+    void setPacketTypeAndVersion(PacketType::Value type);
+    void setSequenceNumber(SequenceNumber seqNum);
+    
     int64_t _packetSize;
     std::unique_ptr<char> _packet;
     

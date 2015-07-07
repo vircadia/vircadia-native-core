@@ -43,9 +43,16 @@ Packet::Packet(PacketType::Value type, int64_t size) :
     _packet(new char(_packetSize)),
     _payload(_packet.get() + headerSize(type), size) {
         
+        // Sanity check
         Q_ASSERT(size <= maxPayloadSize(type));
-        auto offset = packArithmeticallyCodedValue(type, _packet);
-        _packet[offset] = versionForPacketType(type);
+        
+        // copy packet type and version in header
+        setPacketTypeAndVersion(type);
+        
+        // Set control bit and sequence number to 0 if necessary
+        if (SEQUENCE_NUMBERED_PACKETS.contains(type)) {
+            setSequenceNumber(0);
+        }
 }
 
 PacketType::Value Packet::getPacketType() const {
@@ -59,21 +66,39 @@ PacketVersion Packet::getPacketTypeVersion() const {
 Packet::SequenceNumber Packet::getSequenceNumber() const {
     PacketType::Value type{ getPacketType() };
     if (SEQUENCE_NUMBERED_PACKETS.contains(type)) {
-        SequenceNumber seqNum = *reinterpret_cast<SequenceNumber*>(_packet.get() + numBytesForArithmeticCodedPacketType(type) +
+        SequenceNumber seqNum = *reinterpret_cast<SequenceNumber*>(_packet.get() +
+                                                                   numBytesForArithmeticCodedPacketType(type) +
                                                                    sizeof(PacketVersion));
-        
         return seqNum & ~(1 << 15); // remove control bit
     }
     return -1;
 }
 
 bool Packet::isControlPacket() const {
-    PacketType::Value type{ getPacketType() };
+    auto type = getPacketType();
     if (SEQUENCE_NUMBERED_PACKETS.contains(type)) {
-        SequenceNumber seqNum = *reinterpret_cast<SequenceNumber*>(_packet.get() + numBytesForArithmeticCodedPacketType(type) +
+        SequenceNumber seqNum = *reinterpret_cast<SequenceNumber*>(_packet.get() +
+                                                                   numBytesForArithmeticCodedPacketType(type) +
                                                                    sizeof(PacketVersion));
-        
         return seqNum & (1 << 15); // Only keep control bit
     }
     return false;
+}
+
+void Packet::setPacketTypeAndVersion(PacketType::Value type) {
+    // Pack the packet type
+    auto offset = packArithmeticallyCodedValue(type, _packet.get());
+    
+    // Pack the packet version
+    auto version { versionForPacketType(type) };
+    memcpy(_packet.get() + offset, &version, sizeof(version));
+}
+
+void Packet::setSequenceNumber(SequenceNumber seqNum) {
+    auto type = getPacketType();
+    // Here we are overriding the control bit to 0.
+    // But that is not an issue since we should only ever set the seqNum
+    // for data packets going out
+    memcpy(_packet.get() + numBytesForArithmeticCodedPacketType(type) + sizeof(PacketVersion),
+           &seqNum, sizeof(seqNum));
 }
