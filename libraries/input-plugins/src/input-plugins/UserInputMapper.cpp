@@ -244,8 +244,8 @@ void UserInputMapper::assignDefaulActionScales() {
     _actionScales[YAW_RIGHT] = 1.0f; // 1 degree per unit
     _actionScales[PITCH_DOWN] = 1.0f; // 1 degree per unit
     _actionScales[PITCH_UP] = 1.0f; // 1 degree per unit
-    _actionScales[BOOM_IN] = 1.0f; // 1m per unit
-    _actionScales[BOOM_OUT] = 1.0f; // 1m per unit
+    _actionScales[BOOM_IN] = 0.5f; // .5m per unit
+    _actionScales[BOOM_OUT] = 0.5f; // .5m per unit
     _actionScales[LEFT_HAND] = 1.0f; // default
     _actionScales[RIGHT_HAND] = 1.0f; // default
     _actionStates[SHIFT] = 1.0f; // on

@@ -10,6 +10,8 @@
 #ifndef hifi_GlWindow_h
 #define hifi_GlWindow_h
 
+#include <mutex>
+
 #include <QWindow>
 
 class QOpenGLContext;
@@ -25,6 +27,7 @@ public:
     void swapBuffers();
 
 private:
+    std::once_flag _reportOnce;
     QOpenGLContext* _context{ nullptr };
 #ifdef DEBUG
     QOpenGLDebugLogger* _logger{ nullptr };

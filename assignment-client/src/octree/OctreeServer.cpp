@@ -327,6 +327,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             showStats = true;
         } else if (url.path() == "/resetStats") {
             _octreeInboundPacketProcessor->resetStats();
+            _tree->resetEditStats();
             resetSendingStats();
             showStats = true;
         }
@@ -627,6 +628,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         // display inbound packet stats
         statsString += QString().sprintf("<b>%s Edit Statistics... <a href='/resetStats'>[RESET]</a></b>\r\n",
                                          getMyServerName());
+        quint64 currentPacketsInQueue = _octreeInboundPacketProcessor->packetsToProcessCount();
         quint64 averageTransitTimePerPacket = _octreeInboundPacketProcessor->getAverageTransitTimePerPacket();
         quint64 averageProcessTimePerPacket = _octreeInboundPacketProcessor->getAverageProcessTimePerPacket();
         quint64 averageLockWaitTimePerPacket = _octreeInboundPacketProcessor->getAverageLockWaitTimePerPacket();
@@ -635,7 +637,17 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         quint64 totalElementsProcessed = _octreeInboundPacketProcessor->getTotalElementsProcessed();
         quint64 totalPacketsProcessed = _octreeInboundPacketProcessor->getTotalPacketsProcessed();
 
+        quint64 averageDecodeTime = _tree->getAverageDecodeTime();
+        quint64 averageLookupTime = _tree->getAverageLookupTime();
+        quint64 averageUpdateTime = _tree->getAverageUpdateTime();
+        quint64 averageCreateTime = _tree->getAverageCreateTime();
+        quint64 averageLoggingTime = _tree->getAverageLoggingTime();
+
+
         float averageElementsPerPacket = totalPacketsProcessed == 0 ? 0 : totalElementsProcessed / totalPacketsProcessed;
+
+        statsString += QString("   Current Inbound Packets Queue: %1 packets\r\n")
+            .arg(locale.toString((uint)currentPacketsInQueue).rightJustified(COLUMN_WIDTH, ' '));
 
         statsString += QString("           Total Inbound Packets: %1 packets\r\n")
             .arg(locale.toString((uint)totalPacketsProcessed).rightJustified(COLUMN_WIDTH, ' '));
@@ -653,6 +665,17 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             .arg(locale.toString((uint)averageProcessTimePerElement).rightJustified(COLUMN_WIDTH, ' '));
         statsString += QString("  Average Wait Lock Time/Element: %1 usecs\r\n")
             .arg(locale.toString((uint)averageLockWaitTimePerElement).rightJustified(COLUMN_WIDTH, ' '));
+
+        statsString += QString("             Average Decode Time: %1 usecs\r\n")
+            .arg(locale.toString((uint)averageDecodeTime).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("             Average Lookup Time: %1 usecs\r\n")
+            .arg(locale.toString((uint)averageLookupTime).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("             Average Update Time: %1 usecs\r\n")
+            .arg(locale.toString((uint)averageUpdateTime).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("             Average Create Time: %1 usecs\r\n")
+            .arg(locale.toString((uint)averageCreateTime).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("            Average Logging Time: %1 usecs\r\n")
+            .arg(locale.toString((uint)averageLoggingTime).rightJustified(COLUMN_WIDTH, ' '));
 
 
         int senderNumber = 0;
@@ -736,47 +759,6 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         statsString += "                                ----------------------\r\n";
         statsString += QString("                    Total:      %1 nodes\r\n")
             .arg(locale.toString((uint)checkSum).rightJustified(16, ' '));
-
-#ifdef BLENDED_UNION_CHILDREN
-        statsString += "\r\n";
-        statsString += "OctreeElement Children Encoding Statistics...\r\n";
-
-        statsString += QString().sprintf("    Single or No Children:      %10.llu nodes (%5.2f%%)\r\n",
-             OctreeElement::getSingleChildrenCount(),
-             ((float)OctreeElement::getSingleChildrenCount() / (float)nodeCount) * AS_PERCENT));
-        statsString += QString().sprintf("    Two Children as Offset:     %10.llu nodes (%5.2f%%)\r\n",
-             OctreeElement::getTwoChildrenOffsetCount(),
-             ((float)OctreeElement::getTwoChildrenOffsetCount() / (float)nodeCount) * AS_PERCENT));
-        statsString += QString().sprintf("    Two Children as External:   %10.llu nodes (%5.2f%%)\r\n",
-             OctreeElement::getTwoChildrenExternalCount(),
-             ((float)OctreeElement::getTwoChildrenExternalCount() / (float)nodeCount) * AS_PERCENT);
-        statsString += QString().sprintf("    Three Children as Offset:   %10.llu nodes (%5.2f%%)\r\n",
-             OctreeElement::getThreeChildrenOffsetCount(),
-             ((float)OctreeElement::getThreeChildrenOffsetCount() / (float)nodeCount) * AS_PERCENT);
-        statsString += QString().sprintf("    Three Children as External: %10.llu nodes (%5.2f%%)\r\n",
-             OctreeElement::getThreeChildrenExternalCount(),
-             ((float)OctreeElement::getThreeChildrenExternalCount() / (float)nodeCount) * AS_PERCENT);
-        statsString += QString().sprintf("    Children as External Array: %10.llu nodes (%5.2f%%)\r\n",
-             OctreeElement::getExternalChildrenCount(),
-             ((float)OctreeElement::getExternalChildrenCount() / (float)nodeCount) * AS_PERCENT);
-
-        checkSum = OctreeElement::getSingleChildrenCount() +
-        OctreeElement::getTwoChildrenOffsetCount() + OctreeElement::getTwoChildrenExternalCount() +
-        OctreeElement::getThreeChildrenOffsetCount() + OctreeElement::getThreeChildrenExternalCount() +
-        OctreeElement::getExternalChildrenCount();
-
-        statsString += "                                ----------------\r\n";
-        statsString += QString().sprintf("                         Total: %10.llu nodes\r\n", checkSum);
-        statsString += QString().sprintf("                      Expected: %10.lu nodes\r\n", nodeCount);
-
-        statsString += "\r\n";
-        statsString += "In other news....\r\n";
-
-        statsString += QString().sprintf("could store 4 children internally:     %10.llu nodes\r\n",
-                                         OctreeElement::getCouldStoreFourChildrenInternally());
-        statsString += QString().sprintf("could NOT store 4 children internally: %10.llu nodes\r\n",
-                                         OctreeElement::getCouldNotStoreFourChildrenInternally());
-#endif
 
         statsString += "\r\n\r\n";
         statsString += "</pre>\r\n";
@@ -1411,6 +1393,8 @@ void OctreeServer::sendStatsPacket() {
 
     static QJsonObject statsObject3;
 
+    statsObject3[baseName + QString(".3.inbound.data.1.packetQueue")] =
+        (double)_octreeInboundPacketProcessor->packetsToProcessCount();
     statsObject3[baseName + QString(".3.inbound.data.1.totalPackets")] =
         (double)_octreeInboundPacketProcessor->getTotalPacketsProcessed();
     statsObject3[baseName + QString(".3.inbound.data.2.totalElements")] =

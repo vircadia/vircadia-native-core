@@ -36,15 +36,36 @@ void OpenGLDisplayPlugin::finishFrame() {
     doneCurrent();
 };
 
+static float PLANE_VERTICES[] = {
+    -1, -1, 0, 0,
+    -1, +1, 0, 1,
+    +1, -1, 1, 0,
+    +1, +1, 1, 1,
+};
+
 void OpenGLDisplayPlugin::customizeContext(PluginContainer * container) {
     using namespace oglplus;
     Context::BlendFunc(BlendFunction::SrcAlpha, BlendFunction::OneMinusSrcAlpha);
     Context::Disable(Capability::Blend);
     Context::Disable(Capability::DepthTest);
     Context::Disable(Capability::CullFace);
+    glEnable(GL_TEXTURE_2D);
+    
     _program = loadDefaultShader();
-    _plane = loadPlane(_program);
-    Context::ClearColor(0, 0, 0, 1);
+    auto attribs = _program->ActiveAttribs();
+    for(size_t i = 0; i < attribs.Size(); ++i) {
+        auto attrib = attribs.At(i);
+        if (String("Position") == attrib.Name()) {
+            _positionAttribute = attrib.Index();
+        } else if (String("TexCoord") == attrib.Name()) {
+            _texCoordAttribute = attrib.Index();
+        }
+        qDebug() << attrib.Name().c_str();
+    }
+    _vertexBuffer.reset(new oglplus::Buffer());
+    _vertexBuffer->Bind(Buffer::Target::Array);
+    _vertexBuffer->Data(Buffer::Target::Array, BufferData(PLANE_VERTICES));
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void OpenGLDisplayPlugin::activate(PluginContainer * container) {
@@ -56,8 +77,9 @@ void OpenGLDisplayPlugin::deactivate() {
 
     makeCurrent();
     Q_ASSERT(0 == glGetError());
-    _plane.reset();
-    _program.reset();
+    _vertexBuffer.reset();
+ //   glDeleteBuffers(1, &_vertexBuffer);
+//    _vertexBuffer = 0;
     doneCurrent();
 }
 
@@ -104,13 +126,23 @@ bool OpenGLDisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
 void OpenGLDisplayPlugin::display(
     GLuint finalTexture, const glm::uvec2& sceneSize) {
     using namespace oglplus;
-
     uvec2 size = getRecommendedRenderSize();
     Context::Viewport(size.x, size.y);
-    Context::Clear().ColorBuffer();
-
-    _program->Bind();
     glBindTexture(GL_TEXTURE_2D, finalTexture);
-    _plane->Use();
-    _plane->Draw();
+    drawUnitQuad();
+}
+
+void OpenGLDisplayPlugin::drawUnitQuad() {
+    using namespace oglplus;
+    _program->Bind();
+    _vertexBuffer->Bind(Buffer::Target::Array);
+    glEnableVertexAttribArray(_positionAttribute);
+    glVertexAttribPointer(_positionAttribute, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, 0);
+    glEnableVertexAttribArray(_texCoordAttribute);
+    glVertexAttribPointer(_texCoordAttribute, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)(sizeof(float) * 2));
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glDisableVertexAttribArray(_positionAttribute);
+    glDisableVertexAttribArray(_texCoordAttribute);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glUseProgram(0);
 }

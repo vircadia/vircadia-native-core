@@ -25,17 +25,12 @@
 
 
 // Used to animate the magnification windows
-static const float MAG_SPEED = 0.08f;
 
 static const quint64 MSECS_TO_USECS = 1000ULL;
 static const quint64 TOOLTIP_DELAY = 500 * MSECS_TO_USECS;
 
-static const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
 static const float RETICLE_COLOR[] = { 0.0f, 198.0f / 255.0f, 244.0f / 255.0f };
 static const float reticleSize = TWO_PI / 100.0f;
-
-static const float CONNECTION_STATUS_BORDER_COLOR[] = { 1.0f, 0.0f, 0.0f };
-static const float CONNECTION_STATUS_BORDER_LINE_WIDTH = 4.0f;
 
 static const float CURSOR_PIXEL_SIZE = 32.0f;
 static const float MOUSE_PITCH_RANGE = 1.0f * PI;
@@ -235,7 +230,6 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     model.setScale(vec3(mouseSize, 1.0f));
     batch.setModelTransform(model);
     bindCursorTexture(batch);
-    vec4 reticleColor = { RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], 1.0f };
     geometryCache->renderUnitQuad(batch, vec4(1));
     renderArgs->_context->render(batch);
 }
@@ -387,8 +381,8 @@ QPoint ApplicationCompositor::getPalmClickLocation(const PalmData *palm) const {
             ndcSpacePos = glm::vec3(clipSpacePos) / clipSpacePos.w;
         }
 
-        rv.setX(((ndcSpacePos.x + 1.0) / 2.0) * canvasSize.x);
-        rv.setY((1.0 - ((ndcSpacePos.y + 1.0) / 2.0)) * canvasSize.y);
+        rv.setX(((ndcSpacePos.x + 1.0f) / 2.0f) * canvasSize.x);
+        rv.setY((1.0f - ((ndcSpacePos.y + 1.0f) / 2.0f)) * canvasSize.y);
     }
     return rv;
 }
@@ -506,7 +500,7 @@ void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
 
             // Get the angles, scaled between (-0.5,0.5)
             float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
-            float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
+            float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)M_PI_2));
 
             // Get the pixel range over which the xAngle and yAngle are scaled
             float cursorRange = canvasSize.x * SixenseManager::getInstance().getCursorPixelRangeMult();
@@ -735,7 +729,7 @@ glm::vec2 ApplicationCompositor::screenToSpherical(const glm::vec2& screenPos) {
 
 glm::vec2 ApplicationCompositor::sphericalToScreen(const glm::vec2& sphericalPos) {
     glm::vec2 result = sphericalPos;
-    result.x *= -1.0;
+    result.x *= -1.0f;
     result /= MOUSE_RANGE;
     result += 0.5f;
     result *= qApp->getCanvasSize();
@@ -744,7 +738,7 @@ glm::vec2 ApplicationCompositor::sphericalToScreen(const glm::vec2& sphericalPos
 
 glm::vec2 ApplicationCompositor::sphericalToOverlay(const glm::vec2&  sphericalPos) const {
     glm::vec2 result = sphericalPos;
-    result.x *= -1.0;
+    result.x *= -1.0f;
     result /= _textureFov;
     result.x /= _textureAspectRatio;
     result += 0.5f;

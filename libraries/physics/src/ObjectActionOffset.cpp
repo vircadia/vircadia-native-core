@@ -9,10 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "QVariantGLM.h"
+
 #include "ObjectActionOffset.h"
 
-ObjectActionOffset::ObjectActionOffset(QUuid id, EntityItemPointer ownerEntity) :
-    ObjectAction(id, ownerEntity) {
+const uint16_t ObjectActionOffset::offsetVersion = 1;
+
+ObjectActionOffset::ObjectActionOffset(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) :
+    ObjectAction(type, id, ownerEntity) {
     #if WANT_DEBUG
     qDebug() << "ObjectActionOffset::ObjectActionOffset";
     #endif
@@ -30,7 +34,12 @@ void ObjectActionOffset::updateActionWorker(btScalar deltaTimeStep) {
         return;
     }
 
-    void* physicsInfo = _ownerEntity->getPhysicsInfo();
+    auto ownerEntity = _ownerEntity.lock();
+    if (!ownerEntity) {
+        return;
+    }
+
+    void* physicsInfo = ownerEntity->getPhysicsInfo();
     if (!physicsInfo) {
         unlock();
         return;
@@ -106,4 +115,53 @@ bool ObjectActionOffset::updateArguments(QVariantMap arguments) {
     _active = true;
     unlock();
     return true;
+}
+
+QVariantMap ObjectActionOffset::getArguments() {
+    QVariantMap arguments;
+    lockForRead();
+    arguments["pointToOffsetFrom"] = glmToQMap(_pointToOffsetFrom);
+    arguments["linearTimeScale"] = _linearTimeScale;
+    arguments["linearDistance"] = _linearDistance;
+    unlock();
+    return arguments;
+}
+
+QByteArray ObjectActionOffset::serialize() {
+    QByteArray ba;
+    QDataStream dataStream(&ba, QIODevice::WriteOnly);
+    dataStream << getType();
+    dataStream << getID();
+    dataStream << ObjectActionOffset::offsetVersion;
+
+    dataStream << _pointToOffsetFrom;
+    dataStream << _linearDistance;
+    dataStream << _linearTimeScale;
+    dataStream << _positionalTargetSet;
+
+    return ba;
+}
+
+void ObjectActionOffset::deserialize(QByteArray serializedArguments) {
+    QDataStream dataStream(serializedArguments);
+
+    EntityActionType type;
+    QUuid id;
+    uint16_t serializationVersion;
+
+    dataStream >> type;
+    assert(type == getType());
+    dataStream >> id;
+    assert(id == getID());
+    dataStream >> serializationVersion;
+    if (serializationVersion != ObjectActionOffset::offsetVersion) {
+        return;
+    }
+
+    dataStream >> _pointToOffsetFrom;
+    dataStream >> _linearDistance;
+    dataStream >> _linearTimeScale;
+    dataStream >> _positionalTargetSet;
+
+    _active = true;
 }

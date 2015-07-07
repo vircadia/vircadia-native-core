@@ -16,6 +16,8 @@ find_package(Qt5LinguistToolsMacros)
 
 if (DEFINED ENV{JOB_ID})
   set(BUILD_SEQ $ENV{JOB_ID})
+elseif (DEFINED ENV{ghprbPullId})
+  set(BUILD_SEQ "PR: $ENV{ghprbPullId} - Commit: $ENV{ghprbActualCommit}")
 else ()
   set(BUILD_SEQ "dev")
 endif ()

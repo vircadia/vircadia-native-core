@@ -17,6 +17,8 @@
 #include "RenderArgs.h"
 #include "TextureCache.h"
 
+#include "render/DrawStatus.h"
+
 #include <PerfStat.h>
 
 #include "overlay3D_vert.h"
@@ -49,6 +51,7 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     )));
     _jobs.push_back(Job(new CullItems::JobModel("CullOpaque", _jobs.back().getOutput())));
     _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortOpaque", _jobs.back().getOutput())));
+    auto& renderedOpaques = _jobs.back().getOutput();
     _jobs.push_back(Job(new DrawOpaqueDeferred::JobModel("DrawOpaqueDeferred", _jobs.back().getOutput())));
     _jobs.push_back(Job(new DrawLight::JobModel("DrawLight")));
     _jobs.push_back(Job(new ResetGLState::JobModel()));
@@ -65,6 +68,11 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _jobs.push_back(Job(new CullItems::JobModel("CullTransparent", _jobs.back().getOutput())));
     _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortTransparent", _jobs.back().getOutput(), DepthSortItems(false))));
     _jobs.push_back(Job(new DrawTransparentDeferred::JobModel("TransparentDeferred", _jobs.back().getOutput())));
+    
+    _jobs.push_back(Job(new render::DrawStatus::JobModel("DrawStatus", renderedOpaques)));
+    _jobs.back().setEnabled(false);
+    _drawStatusJobIndex = _jobs.size() - 1;
+
     _jobs.push_back(Job(new DrawOverlay3D::JobModel("DrawOverlay3D")));
     _jobs.push_back(Job(new ResetGLState::JobModel()));
 }
@@ -84,6 +92,9 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     if (!(renderContext->args && renderContext->args->_viewFrustum)) {
         return;
     }
+
+    // Make sure we turn the displayItemStatus on/off
+    setDrawItemStatus(renderContext->_drawItemStatus);
 
     renderContext->args->_context->syncCache();
 
@@ -135,7 +146,6 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
 void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
-    auto& renderDetails = renderContext->args->_details;
 
     RenderArgs* args = renderContext->args;
     gpu::Batch batch;

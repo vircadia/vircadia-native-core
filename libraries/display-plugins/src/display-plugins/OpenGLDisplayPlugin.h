@@ -35,14 +35,16 @@ protected:
     // Needs to be called by the activate method after the GL context has been created to 
     // initialize OpenGL context settings needed by the plugin
     virtual void customizeContext(PluginContainer * container);
-
+    virtual void drawUnitQuad();
     virtual void makeCurrent() = 0;
     virtual void doneCurrent() = 0;
     virtual void swapBuffers() = 0;
 
     QTimer          _timer;
     ProgramPtr      _program;
-    ShapeWrapperPtr _plane;
+    BufferPtr       _vertexBuffer;
+    GLint           _positionAttribute{0};
+    GLint           _texCoordAttribute{0};
 };
 
 

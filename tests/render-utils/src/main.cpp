@@ -10,11 +10,6 @@
 
 #include "TextRenderer.h"
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdouble-promotion"
-#endif
-
 #include <QWindow>
 #include <QFile>
 #include <QTime>
@@ -30,10 +25,6 @@
 #include <QOpenGLVertexArrayObject>
 #include <QApplication>
 #include <QOpenGLDebugLogger>
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
 
 #include <unordered_map>
 #include <memory>

@@ -14,7 +14,8 @@
 void OculusBaseDisplayPlugin::activate(PluginContainer * container) {
     glm::uvec2 eyeSizes[2];
     ovr_for_each_eye([&](ovrEyeType eye) {
-        ovrEyeRenderDesc& erd = _eyeRenderDescs[eye] = ovrHmd_GetRenderDesc(_hmd, eye, _hmd->MaxEyeFov[eye]);
+        _eyeFovs[eye] = _hmd->MaxEyeFov[eye];
+        ovrEyeRenderDesc& erd = _eyeRenderDescs[eye] = ovrHmd_GetRenderDesc(_hmd, eye, _eyeFovs[eye]);
         ovrMatrix4f ovrPerspectiveProjection =
             ovrMatrix4f_Projection(erd.Fov, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded);
         _eyeProjections[eye] = toGlm(ovrPerspectiveProjection);

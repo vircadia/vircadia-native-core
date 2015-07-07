@@ -195,6 +195,8 @@ public:
     SharedNodePointer sourceNode;
     bool wantImportProgress;
     PacketVersion bitstreamVersion;
+    int elementsPerPacket = 0;
+    int entitiesPerPacket = 0;
 
     ReadBitstreamToTreeParams(
         bool includeColor = WANT_COLOR,
@@ -367,8 +369,16 @@ public:
     bool getIsClient() const { return !_isServer; } /// Is this a client based tree. Allows guards for certain operations
     void setIsClient(bool isClient) { _isServer = !isClient; }
     
-    virtual void dumpTree() { };
-    virtual void pruneTree() { };
+    virtual void dumpTree() { }
+    virtual void pruneTree() { }
+
+    virtual void resetEditStats() { }
+    virtual quint64 getAverageDecodeTime() const { return 0; }
+    virtual quint64 getAverageLookupTime() const { return 0;  }
+    virtual quint64 getAverageUpdateTime() const { return 0;  }
+    virtual quint64 getAverageCreateTime() const { return 0;  }
+    virtual quint64 getAverageLoggingTime() const { return 0;  }
+
 
 signals:
     void importSize(float x, float y, float z);
