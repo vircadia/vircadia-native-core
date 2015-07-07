@@ -379,6 +379,8 @@ void OctreeQueryNode::parseNackPacket(const QByteArray& packet) {
     int numBytesPacketHeader = numBytesForPacketHeader(packet);
     const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data()) + numBytesPacketHeader;
 
+    // TODO: This no longer has the number of sequence numbers - just read to the end of the packet in sequence number blocks
+
     // read number of sequence numbers
     uint16_t numSequenceNumbers = (*(uint16_t*)dataAt);
     dataAt += sizeof(uint16_t);
