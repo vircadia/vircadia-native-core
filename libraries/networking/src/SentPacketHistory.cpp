@@ -13,13 +13,11 @@
 #include "SentPacketHistory.h"
 #include <qdebug.h>
 
-
-
-
 SentPacketHistory::SentPacketHistory(int size)
     : _sentPackets(size),
     _newestSequenceNumber(std::numeric_limits<uint16_t>::max())
 {
+
 }
 
 void SentPacketHistory::packetSent(uint16_t sequenceNumber, const QByteArray& packet) {

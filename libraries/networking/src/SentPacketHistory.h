@@ -22,11 +22,11 @@ class SentPacketHistory {
 public:
     SentPacketHistory(int size = MAX_REASONABLE_SEQUENCE_GAP);
 
-    void packetSent(uint16_t sequenceNumber, const QByteArray& packet);
+    void packetSent(uint16_t sequenceNumber, const NLPacket& packet);
     const QByteArray* getPacket(uint16_t sequenceNumber) const;
 
 private:
-    RingBufferHistory<QByteArray> _sentPackets;    // circular buffer
+    RingBufferHistory<NLPacket> _sentPackets;    // circular buffer
 
     uint16_t _newestSequenceNumber;
 };
