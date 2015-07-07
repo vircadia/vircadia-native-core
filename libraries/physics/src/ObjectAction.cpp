@@ -24,13 +24,13 @@ ObjectAction::~ObjectAction() {
 }
 
 void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep) {
-    if (!_active) {
-        return;
-    }
     if (_ownerEntity.expired()) {
         qDebug() << "warning -- action with no entity removing self from btCollisionWorld.";
         btDynamicsWorld* dynamicsWorld = static_cast<btDynamicsWorld*>(collisionWorld);
         dynamicsWorld->removeAction(this);
+        return;
+    }
+    if (!_active) {
         return;
     }
 
@@ -129,7 +129,7 @@ void ObjectAction::setAngularVelocity(glm::vec3 angularVelocity) {
     rigidBody->activate();
 }
 
-QByteArray ObjectAction::serialize() {
+QByteArray ObjectAction::serialize() const {
     assert(false);
     return QByteArray();
 }

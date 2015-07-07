@@ -30,7 +30,7 @@ public:
     virtual ~ObjectAction();
 
     const QUuid& getID() const { return _id; }
-    virtual EntityActionType getType() { assert(false); return ACTION_TYPE_NONE; }
+    virtual EntityActionType getType() const { assert(false); return ACTION_TYPE_NONE; }
     virtual void removeFromSimulation(EntitySimulation* simulation) const;
     virtual EntityItemWeakPointer getOwnerEntity() const { return _ownerEntity; }
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) { _ownerEntity = ownerEntity; }
@@ -45,7 +45,7 @@ public:
     virtual void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep);
     virtual void debugDraw(btIDebugDraw* debugDrawer);
 
-    virtual QByteArray serialize();
+    virtual QByteArray serialize() const;
     virtual void deserialize(QByteArray serializedArguments);
 
 private:

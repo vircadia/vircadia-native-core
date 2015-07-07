@@ -22,7 +22,7 @@ public:
     AvatarActionHold(EntityActionType type, QUuid id, EntityItemPointer ownerEntity);
     virtual ~AvatarActionHold();
 
-    virtual EntityActionType getType() { return ACTION_TYPE_HOLD; }
+    virtual EntityActionType getType() const { return ACTION_TYPE_HOLD; }
 
     virtual bool updateArguments(QVariantMap arguments);
     virtual QVariantMap getArguments();

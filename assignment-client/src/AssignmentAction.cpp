@@ -28,7 +28,7 @@ void AssignmentAction::removeFromSimulation(EntitySimulation* simulation) const 
     simulation->removeAction(_id);
 }
 
-QByteArray AssignmentAction::serialize() {
+QByteArray AssignmentAction::serialize() const {
     return _data;
 }
 

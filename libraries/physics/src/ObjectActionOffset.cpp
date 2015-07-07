@@ -127,7 +127,7 @@ QVariantMap ObjectActionOffset::getArguments() {
     return arguments;
 }
 
-QByteArray ObjectActionOffset::serialize() {
+QByteArray ObjectActionOffset::serialize() const {
     QByteArray ba;
     QDataStream dataStream(&ba, QIODevice::WriteOnly);
     dataStream << getType();

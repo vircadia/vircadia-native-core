@@ -32,7 +32,7 @@ public:
     EntityActionInterface() { }
     virtual ~EntityActionInterface() { }
     virtual const QUuid& getID() const = 0;
-    virtual EntityActionType getType() { assert(false); return ACTION_TYPE_NONE; }
+    virtual EntityActionType getType() const { assert(false); return ACTION_TYPE_NONE; }
 
     virtual void removeFromSimulation(EntitySimulation* simulation) const = 0;
     virtual EntityItemWeakPointer getOwnerEntity() const = 0;
@@ -40,7 +40,7 @@ public:
     virtual bool updateArguments(QVariantMap arguments) = 0;
     virtual QVariantMap getArguments() = 0;
 
-    virtual QByteArray serialize() = 0;
+    virtual QByteArray serialize() const = 0;
     virtual void deserialize(QByteArray serializedArguments) = 0;
 
     static EntityActionType actionTypeFromString(QString actionTypeString);

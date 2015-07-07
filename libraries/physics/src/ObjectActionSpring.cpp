@@ -206,7 +206,7 @@ QVariantMap ObjectActionSpring::getArguments() {
     return arguments;
 }
 
-QByteArray ObjectActionSpring::serialize() {
+QByteArray ObjectActionSpring::serialize() const {
     QByteArray serializedActionArguments;
     QDataStream dataStream(&serializedActionArguments, QIODevice::WriteOnly);
 

@@ -166,8 +166,7 @@ QVariantMap AvatarActionHold::getArguments() {
 
 
 void AvatarActionHold::deserialize(QByteArray serializedArguments) {
-    if (_mine) {
-        return;
+    if (!_mine) {
+        ObjectActionSpring::deserialize(serializedArguments);
     }
-    ObjectActionSpring::deserialize(serializedArguments);
 }

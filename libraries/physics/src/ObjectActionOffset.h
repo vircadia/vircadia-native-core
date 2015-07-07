@@ -22,14 +22,14 @@ public:
     ObjectActionOffset(EntityActionType type, QUuid id, EntityItemPointer ownerEntity);
     virtual ~ObjectActionOffset();
 
-    virtual EntityActionType getType() { return ACTION_TYPE_OFFSET; }
+    virtual EntityActionType getType() const { return ACTION_TYPE_OFFSET; }
 
     virtual bool updateArguments(QVariantMap arguments);
     virtual QVariantMap getArguments();
 
     virtual void updateActionWorker(float deltaTimeStep);
 
-    virtual QByteArray serialize();
+    virtual QByteArray serialize() const;
     virtual void deserialize(QByteArray serializedArguments);
 
  private:
