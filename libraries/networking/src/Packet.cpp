@@ -1,6 +1,6 @@
 //
 //  Packet.cpp
-//
+//  libraries/networking/src
 //
 //  Created by Clement on 7/2/15.
 //  Copyright 2015 High Fidelity, Inc.
@@ -11,60 +11,66 @@
 
 #include "Packet.h"
 
-int64_t Packet::headerSize() {
-    return sizeof(Packet::Header);
+#include "LimitedNodeList.h"
+
+int64_t Packet::headerSize(PacketType::Value type) {
+    int64_t size = numBytesForArithmeticCodedPacketType(type) + sizeof(PacketVersion) +
+                        ((SEQUENCE_NUMBERED_PACKETS.contains(type)) ? sizeof(SequenceNumber) : 0);
+    return size;
 }
 
-int64_t Packet::maxPayloadSize() {
-    return MAX_PACKET_SIZE - Packet::headerSize();
+int64_t Packet::maxPayloadSize(PacketType::Value type) {
+    return MAX_PACKET_SIZE - headerSize(type);
 }
 
 std::unique_ptr<Packet> Packet::create(PacketType::Value type, int64_t size) {
+    auto maxPayload = maxPayloadSize(type);
     if (size == -1) {
-        size = maxPayloadSize();
+        // default size of -1, means biggest packet possible
+        size = maxPayload;
     }
-    if (size <= 0 || size > maxPayloadSize()) {
+    if (size <= 0 || size > maxPayload) {
+        // Invalid size, return null pointer
         return std::unique_ptr<Packet>();
     }
     
+    // allocate memory
     return std::unique_ptr<Packet>(new Packet(type, size));
 }
 
-Packet::Packet(PacketType::Value type, int64_t size) {
-    _packetSize = headerSize() + size;
-    _packet = std::unique_ptr<char>(new char(_packetSize));
-    _payloadStart = _packet.get() + headerSize();
+Packet::Packet(PacketType::Value type, int64_t size) :
+    _packetSize(headerSize(type) + size),
+    _packet(new char(_packetSize)),
+    _payload(_packet.get() + headerSize(type), size) {
+    Q_ASSERT(size <= maxPayloadSize(type));
 }
 
-const Packet::Header& Packet::getHeader() const {
-    return *reinterpret_cast<const Header*>(_packet.get());
+PacketType::Value Packet::getPacketType() const {
+    return *reinterpret_cast<PacketType::Value*>(_packet.get());
 }
 
-Packet::Header& Packet::getHeader() {
-    return *reinterpret_cast<Header*>(_packet.get());
+PacketVersion Packet::getPacketTypeVersion() const {
+    return *reinterpret_cast<PacketVersion*>(_packet.get() + numBytesForArithmeticCodedPacketType(getPacketType()));
 }
 
-char* Packet::getPayload() {
-    return _payloadStart;
-}
-
-
-int64_t NodeListPacket::headerSize() {
-    return sizeof(NodeListPacket::Header);
-}
-
-int64_t NodeListPacket::maxPayloadSize() {
-    return Packet::maxPayloadSize() - NodeListPacket::headerSize();
-}
-
-std::unique_ptr<NodeListPacket> NodeListPacket::create(PacketType::Value type, int64_t size) {
-    if (size > maxPayloadSize()) {
-        return std::unique_ptr<NodeListPacket>();
+Packet::SequenceNumber Packet::getSequenceNumber() const {
+    PacketType::Value type{ getPacketType() };
+    if (SEQUENCE_NUMBERED_PACKETS.contains(type)) {
+        SequenceNumber seqNum = *reinterpret_cast<SequenceNumber*>(_packet.get() + numBytesForArithmeticCodedPacketType(type) +
+                                                                   sizeof(PacketVersion));
+        
+        return seqNum & ~(1 << 15); // remove control bit
     }
-    
-    return std::unique_ptr<NodeListPacket>(new NodeListPacket(type, size));
+    return -1;
 }
 
-NodeListPacket::NodeListPacket(PacketType::Value type, int64_t size) : Packet(type, headerSize() + size) {
-    
+bool Packet::isControlPacket() const {
+    PacketType::Value type{ getPacketType() };
+    if (SEQUENCE_NUMBERED_PACKETS.contains(type)) {
+        SequenceNumber seqNum = *reinterpret_cast<SequenceNumber*>(_packet.get() + numBytesForArithmeticCodedPacketType(type) +
+                                                                   sizeof(PacketVersion));
+        
+        return seqNum & (1 << 15); // Only keep control bit
+    }
+    return false;
 }

@@ -1,6 +1,6 @@
 //
 //  Packet.h
-//
+//  libraries/networking/src
 //
 //  Created by Clement on 7/2/15.
 //  Copyright 2015 High Fidelity, Inc.
@@ -14,30 +14,24 @@
 
 #include <memory>
 
-#include "LimitedNodeList.h"
 #include "PacketHeaders.h"
+#include "PacketPayload.h"
 
 class Packet {
 public:
-    struct Header {
-        // Required
-        uint8_t _type;
-        uint8_t _version;
-        
-        // Optionnal
-        uint16_t _messageNumber;
-        //   1st bit is the data/control bit, rest is the sequence number
-        uint32_t _controlBitAndSequenceNumber;
-    };
-    // TODO sanity check Header struct size
+    using SequenceNumber = uint16_t;
     
-    static int64_t headerSize();
-    static int64_t maxPayloadSize();
+    static int64_t headerSize(PacketType::Value type);
+    static int64_t maxPayloadSize(PacketType::Value type);
     
     static std::unique_ptr<Packet> create(PacketType::Value type, int64_t size = -1);
     
-    virtual const Header& getHeader() const;
-    virtual char* getPayload();
+    PacketType::Value getPacketType() const;
+    PacketVersion getPacketTypeVersion() const;
+    SequenceNumber getSequenceNumber() const;
+    bool isControlPacket() const;
+    
+    PacketPayload& payload() { return _payload; }
     
 protected:
     Packet(PacketType::Value type, int64_t size);
@@ -46,29 +40,11 @@ protected:
     Packet& operator=(Packet&&) = delete;
     Packet& operator=(const Packet&) = delete;
     
-    Header& getHeader();
-    
 private:
     int64_t _packetSize;
     std::unique_ptr<char> _packet;
     
-    char* _payloadStart;
-};
-
-class NodeListPacket : public Packet {
-public:
-    struct Header {
-        // Required
-        char _sourceUuid[NUM_BYTES_RFC4122_UUID];
-        char _connectionUuid[NUM_BYTES_RFC4122_UUID];
-    };
-    static int64_t headerSize();
-    static int64_t maxPayloadSize();
-    
-    static std::unique_ptr<NodeListPacket> create(PacketType::Value type, int64_t size = -1);
-    
-protected:
-    NodeListPacket(PacketType::Value type, int64_t size);
+    PacketPayload _payload;
 };
 
 #endif // hifi_Packet_h
