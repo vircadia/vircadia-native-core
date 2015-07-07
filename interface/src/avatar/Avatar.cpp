@@ -750,7 +750,7 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum) co
     const int text_y = -nameDynamicRect.height() / 2;
 
     // Compute background position/size
-    static const float SLIGHTLY_IN_FRONT = 0.05f;
+    static const float SLIGHTLY_IN_FRONT = 0.1f;
     const int border = 0.1f * nameDynamicRect.height();
     const int left = text_x - border;
     const int bottom = text_y - border;
