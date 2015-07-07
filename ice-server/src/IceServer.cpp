@@ -127,18 +127,13 @@ SharedNetworkPeer IceServer::addOrUpdateHeartbeatingPeer(const QByteArray& incom
 }
 
 void IceServer::sendPeerInformationPacket(const NetworkPeer& peer, const HifiSockAddr* destinationSockAddr) {
-    QByteArray outgoingPacket(MAX_PACKET_SIZE, 0);
-    int currentPacketSize = populatePacketHeaderWithUUID(outgoingPacket, PacketTypeIceServerPeerInformation, _id);
-    int numHeaderBytes = currentPacketSize;
+    auto peerPacket { NLPacket::create(PacketType::IceServerPeerInformation); }
 
     // get the byte array for this peer
-    QByteArray peerBytes = peer.toByteArray();
-    outgoingPacket.replace(numHeaderBytes, peerBytes.size(), peerBytes);
-
-    currentPacketSize += peerBytes.size();
+    peerPacket->write(peer.toByteArray());
 
     // write the current packet
-    _serverSocket.writeDatagram(outgoingPacket.data(), outgoingPacket.size(),
+    _serverSocket.writeDatagram(peerPacket.constData(), peerPacket.sizeUsed(),
                                 destinationSockAddr->getAddress(), destinationSockAddr->getPort());
 }
 

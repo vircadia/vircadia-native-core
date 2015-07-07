@@ -378,7 +378,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _runningScriptsWidget = new RunningScriptsWidget(_window);
     _renderEngine->addTask(render::TaskPointer(new RenderDeferredTask()));
     _renderEngine->registerScene(_main3DScene);
-      
+
     // start the nodeThread so its event loop is running
     QThread* nodeThread = new QThread(this);
     nodeThread->setObjectName("Datagram Processor Thread");
@@ -537,7 +537,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // the GL surface
     _glWidget->setCursor(Qt::BlankCursor);
 #endif
-    
+
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
 
@@ -606,7 +606,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _settingsTimer.setSingleShot(false);
     _settingsTimer.setInterval(SAVE_SETTINGS_INTERVAL);
     _settingsThread.start();
-    
+
     if (Menu::getInstance()->isOptionChecked(MenuOption::IndependentMode)) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
         cameraMenuChanged();
@@ -637,7 +637,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     ddeTracker->init();
     connect(ddeTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
 #endif
-    
+
     auto applicationUpdater = DependencyManager::get<AutoUpdater>();
     connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
     applicationUpdater->checkForUpdate();
@@ -879,7 +879,7 @@ void Application::paintGL() {
         OculusManager::beginFrameTiming();
     }
 
-  
+
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
@@ -897,7 +897,7 @@ void Application::paintGL() {
     }
 
     glEnable(GL_LINE_SMOOTH);
-    
+
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, _myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
         Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !(_myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN));
@@ -982,7 +982,7 @@ void Application::paintGL() {
 
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            renderRearViewMirror(&renderArgs, _mirrorViewRect);       
+            renderRearViewMirror(&renderArgs, _mirrorViewRect);
         }
 
         renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
@@ -1756,9 +1756,9 @@ bool Application::acceptSnapshot(const QString& urlString) {
 }
 
 void Application::sendPingPackets() {
-    
+
     auto nodeList = DependencyManager::get<NodeList>();
-    
+
     nodeList->eachMatchingNode([](const SharedNodePointer& node)->bool {
         switch (node->getType()) {
             case NodeType::AvatarMixer:
@@ -1855,7 +1855,7 @@ void Application::idle() {
         // After finishing all of the above work, ensure the idle timer is set to the proper interval,
         // depending on whether we're throttling or not
         idleTimer->start(_glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : 0);
-    } 
+    }
 
     // check for any requested background downloads.
     emit checkBackgroundDownloads();
@@ -2661,7 +2661,8 @@ int Application::sendNackPackets() {
     }
 
     int packetsSent = 0;
-    char packet[MAX_PACKET_SIZE];
+
+    auto nackPacket { NLPacket::create(PacketType::OctreeDataNack); }
 
     // iterates thru all nodes in NodeList
     auto nodeList = DependencyManager::get<NodeList>();
@@ -2698,33 +2699,26 @@ int Application::sendNackPackets() {
             QSet<OCTREE_PACKET_SEQUENCE>::const_iterator missingSequenceNumbersIterator = missingSequenceNumbers.constBegin();
             while (numSequenceNumbersAvailable > 0) {
 
-                char* dataAt = packet;
-                int bytesRemaining = MAX_PACKET_SIZE;
-
-                // pack header
-                int numBytesPacketHeader = nodeList->populatePacketHeader(packet, PacketTypeOctreeDataNack);
-                dataAt += numBytesPacketHeader;
-                bytesRemaining -= numBytesPacketHeader;
+                // reset the position we are writing at and the size we have used
+                nackPacket->seek(0);
+                nackPacket->setSizeUsed(0);
 
                 // calculate and pack the number of sequence numbers
-                int numSequenceNumbersRoomFor = (bytesRemaining - sizeof(uint16_t)) / sizeof(OCTREE_PACKET_SEQUENCE);
+                int numSequenceNumbersRoomFor = (nackPacket->size() - sizeof(uint16_t)) / sizeof(OCTREE_PACKET_SEQUENCE);
                 uint16_t numSequenceNumbers = min(numSequenceNumbersAvailable, numSequenceNumbersRoomFor);
-                uint16_t* numSequenceNumbersAt = (uint16_t*)dataAt;
-                *numSequenceNumbersAt = numSequenceNumbers;
-                dataAt += sizeof(uint16_t);
+
+                nackPacket->write(&numSequenceNumbers, sizeof(numSequenceNumbers));
 
                 // pack sequence numbers
                 for (int i = 0; i < numSequenceNumbers; i++) {
-                    OCTREE_PACKET_SEQUENCE* sequenceNumberAt = (OCTREE_PACKET_SEQUENCE*)dataAt;
-                    *sequenceNumberAt = *missingSequenceNumbersIterator;
-                    dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
-
+                    OCTREE_PACKET_SEQUENCE missingNumber = *missingSequenceNumbersIterator;
+                    nackPacket->write(&missingNumber, sizeof(OCTREE_PACKET_SEQUENCE));
                     missingSequenceNumbersIterator++;
                 }
                 numSequenceNumbersAvailable -= numSequenceNumbers;
 
-                // send it
-                nodeList->writeUnverifiedDatagram(packet, dataAt - packet, node);
+                // send the packet
+                nodeList->sendUnreliablePacket(packet, node);
                 packetsSent++;
             }
         }
@@ -2756,9 +2750,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType::Value packetTyp
     _octreeQuery.setOctreeSizeScale(lodManager->getOctreeSizeScale());
     _octreeQuery.setBoundaryLevelAdjust(lodManager->getBoundaryLevelAdjust());
 
-    unsigned char queryPacket[MAX_PACKET_SIZE];
-
-    // Iterate all of the nodes, and get a count of how many voxel servers we have...
+    // Iterate all of the nodes, and get a count of how many octree servers we have...
     int totalServers = 0;
     int inViewServers = 0;
     int unknownJurisdictionServers = 0;
@@ -2824,6 +2816,8 @@ void Application::queryOctree(NodeType_t serverType, PacketType::Value packetTyp
     if (wantExtraDebugging) {
         qCDebug(interfaceapp, "perServerPPS: %d perUnknownServer: %d", perServerPPS, perUnknownServer);
     }
+
+    auto queryPacket { NLPacket::create(packetType); }
 
     nodeList->eachNode([&](const SharedNodePointer& node){
         // only send to the NodeTypes that are serverType
@@ -2899,19 +2893,13 @@ void Application::queryOctree(NodeType_t serverType, PacketType::Value packetTyp
             } else {
                 _octreeQuery.setMaxQueryPacketsPerSecond(0);
             }
-            // set up the packet for sending...
-            unsigned char* endOfQueryPacket = queryPacket;
 
-            // insert packet type/version and node UUID
-            endOfQueryPacket += nodeList->populatePacketHeader(reinterpret_cast<char*>(endOfQueryPacket), packetType);
-
-            // encode the query data...
-            endOfQueryPacket += _octreeQuery.getBroadcastData(endOfQueryPacket);
-
-            int packetLength = endOfQueryPacket - queryPacket;
+            // encode the query data
+            int packetSize = _octreeQuery.getBroadcastData(queryPacket.payload());
+            queryPacket.setSizeUsed(packetSize);
 
             // make sure we still have an active socket
-            nodeList->writeUnverifiedDatagram(reinterpret_cast<const char*>(queryPacket), packetLength, node);
+            nodeList->sendUnreliablePacket(queryPacket, node);
         }
     });
 }
@@ -3310,7 +3298,7 @@ namespace render {
                         const float APPROXIMATE_DISTANCE_FROM_HORIZON = 0.1f;
                         const float DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON = 0.2f;
 
-                        glm::vec3 sunDirection = (args->_viewFrustum->getPosition()/*getAvatarPosition()*/ - closestData.getSunLocation()) 
+                        glm::vec3 sunDirection = (args->_viewFrustum->getPosition()/*getAvatarPosition()*/ - closestData.getSunLocation())
                                                         / closestData.getAtmosphereOuterRadius();
                         float height = glm::distance(args->_viewFrustum->getPosition()/*theCamera.getPosition()*/, closestData.getAtmosphereCenter());
                         if (height < closestData.getAtmosphereInnerRadius()) {
@@ -3318,20 +3306,20 @@ namespace render {
                             alpha = 0.0f;
 
                             if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
-                                float directionY = glm::clamp(sunDirection.y, 
-                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
+                                float directionY = glm::clamp(sunDirection.y,
+                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
                                                     + APPROXIMATE_DISTANCE_FROM_HORIZON;
                                 alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
                             }
-                        
+
 
                         } else if (height < closestData.getAtmosphereOuterRadius()) {
                             alpha = (height - closestData.getAtmosphereInnerRadius()) /
                                 (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
 
                             if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
-                                float directionY = glm::clamp(sunDirection.y, 
-                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
+                                float directionY = glm::clamp(sunDirection.y,
+                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
                                                     + APPROXIMATE_DISTANCE_FROM_HORIZON;
                                 alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
                             }
@@ -3358,7 +3346,7 @@ namespace render {
             }
         } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
             PerformanceTimer perfTimer("skybox");
-            
+
             skybox = skyStage->getSkybox();
             if (skybox) {
                 model::Skybox::render(batch, *(Application::getInstance()->getDisplayViewFrustum()), *skybox);
@@ -3465,7 +3453,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
-    
+
    // Assuming nothing get's rendered through that
 
     if (!selfAvatarOnly) {
@@ -3508,8 +3496,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         pendingChanges.resetItem(WorldBoxRenderData::_item, worldBoxRenderPayload);
     } else {
 
-        pendingChanges.updateItem<WorldBoxRenderData>(WorldBoxRenderData::_item,  
-                [](WorldBoxRenderData& payload) { 
+        pendingChanges.updateItem<WorldBoxRenderData>(WorldBoxRenderData::_item,
+                [](WorldBoxRenderData& payload) {
                     payload._val++;
                 });
     }
@@ -3528,7 +3516,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     }
 
     {
-        PerformanceTimer perfTimer("SceneProcessPendingChanges"); 
+        PerformanceTimer perfTimer("SceneProcessPendingChanges");
         _main3DScene->enqueuePendingChanges(pendingChanges);
 
         _main3DScene->processPendingChangesQueue();
@@ -3560,7 +3548,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
         // Before the deferred pass, let's try to use the render engine
         _renderEngine->run();
-        
+
         auto engineRC = _renderEngine->getRenderContext();
         sceneInterface->setEngineFeedOpaqueItems(engineRC->_numFeedOpaqueItems);
         sceneInterface->setEngineDrawnOpaqueItems(engineRC->_numDrawnOpaqueItems);
@@ -4835,8 +4823,8 @@ qreal Application::getDevicePixelRatio() {
 mat4 Application::getEyeProjection(int eye) const {
     if (isHMDMode()) {
         return OculusManager::getEyeProjection(eye);
-    } 
-      
+    }
+
     return _viewFrustum.getProjection();
 }
 
