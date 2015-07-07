@@ -174,8 +174,6 @@ public:
     static const float ZOOM_MAX;
     static const float ZOOM_DEFAULT;
 
-    const glm::vec3& getRoomBodyPos() const { return _currRoomBodyPos; }
-
 public slots:
     void increaseSize();
     void decreaseSize();
@@ -207,12 +205,22 @@ public slots:
     void loadLastRecording();
 
     virtual void rebuildSkeletonBody();
-    
+
+    // these are overriden, because they must move the sensor mat, such that the avatar will be at the given location.
+    virtual void setPosition(const glm::vec3 position, bool overideReferential) override;
+    virtual void setOrientation(const glm::quat& orientation, bool overideReferential) overide;
+
+    glm::mat4 getSensorToWorldMat() const { return _sensorToWorldMat; }
+
 signals:
     void transformChanged();
     void newCollisionSoundURL(const QUrl& url);
 
 private:
+
+    // these set the avatars position in world space without effecting the sensor location.
+    void setAvatarPosition(glm::vec3 pos);
+    void setAvatarOrientation(glm::quat quat);
 
     bool cameraInsideHead() const;
 
@@ -268,7 +276,6 @@ private:
     void updatePosition(float deltaTime);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void maybeUpdateBillboard();
-    void updateRoomTracking(float deltaTime);
 
     // Avatar Preferences
     bool _useFullAvatar = false;
@@ -283,9 +290,8 @@ private:
     // used for rendering when in first person view or when in an HMD.
     SkeletonModel _firstPersonSkeletonModel;
     bool _prevShouldDrawHead;
-    glm::vec3 _prevRoomBodyPos;
-    glm::vec3 _currRoomBodyPos;
-    glm::mat4 _headWorldTransformMat;
+
+    glm::mat4 _sensorToWorldMat;
 };
 
 #endif // hifi_MyAvatar_h

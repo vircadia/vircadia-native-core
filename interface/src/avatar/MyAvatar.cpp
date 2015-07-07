@@ -104,8 +104,7 @@ MyAvatar::MyAvatar() :
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
     _firstPersonSkeletonModel(this),
     _prevShouldDrawHead(true),
-    _prevRoomBodyPos(0, 0, 0),
-    _currRoomBodyPos(0, 0, 0)
+    _sensorToWorldMat()
 {
     _firstPersonSkeletonModel.setIsFirstPerson(true);
 
@@ -169,9 +168,7 @@ void MyAvatar::update(float deltaTime) {
     Head* head = getHead();
     head->relaxLean(deltaTime);
     updateFromTrackers(deltaTime);
-    if (qApp->isHMDMode() && isRoomTracking) {
-        updateRoomTracking(deltaTime);
-    }
+
     //  Get audio loudness data from audio input device
     auto audio = DependencyManager::get<AudioClient>();
     head->setAudioLoudness(audio->getLastInputLoudness());
@@ -1505,12 +1502,24 @@ void MyAvatar::updatePosition(float deltaTime) {
     _moving = speed > MOVING_SPEED_THRESHOLD;
 
     if (qApp->isHMDMode() && isRoomTracking) {
-        glm::vec3 newPos = (_currRoomBodyPos - _prevRoomBodyPos) + getPosition();
-        /*
-        qCDebug(interfaceapp, "updatePosition");
-        qCDebug(interfaceapp, "\tnewPos = (%.5f, %.5f, %.5f)", newPos.x, newPos.y, newPos.z);
-        */
-        setPosition(newPos);
+        // hmd is in sensor space.
+        const glm::vec3 hmdPosition = qApp->getHeadPosition();
+        const glm::quat hmdOrientation = qApp->getHeadOrientation();
+        const glm::quat hmdOrientationYawOnly = cancelOutRollAndPitch(hmdOrientation);
+
+        // In sensor space, figure out where the avatar body should be,
+        // by applying offsets from the avatar's neck & head joints.
+        vec3 localEyes = _skeletonModel.getDefaultEyeModelPosition();
+        vec3 localNeck;
+        if (_skeletonModel.getLocalNeckPosition(localNeck)) {
+            glm::vec3 eyeToNeck = hmdOrientation * (localNeck - localEyes);
+            glm::vec3 neckToRoot = hmdOrientationYawOnly * -localNeck;
+            glm::vec3 roomBodyPos = hmdPosition + eyeToNeck + neckToRoot;
+
+            // now convert from sensor space into world coordinates
+            glm::vec3 worldBodyPos = _sensorToWorldMat * roomBodyPos;
+            setAvatarPosition(worldBodyPos);
+        }
     }
 }
 
@@ -1577,26 +1586,6 @@ void MyAvatar::maybeUpdateBillboard() {
     sendBillboardPacket();
 }
 
-void MyAvatar::updateRoomTracking(float deltaTime) {
-    vec3 localEyes = _skeletonModel.getDefaultEyeModelPosition();
-    vec3 localNeck;
-    if (_skeletonModel.getLocalNeckPosition(localNeck)) {
-        glm::vec3 eyeToNeck = qApp->getHeadOrientation() * (localNeck - localEyes);
-        glm::vec3 neckToRoot = qApp->getHeadOrientation() * localNeck;
-        glm::vec3 roomBodyPos = qApp->getHeadPosition() + eyeToNeck + neckToRoot;
-
-        _prevRoomBodyPos = _currRoomBodyPos;
-        _currRoomBodyPos = roomBodyPos;
-
-        //qCDebug(interfaceapp, "updateRoomTracking()");
-        //qCDebug(interfaceapp, "\troomBodyPos = (%.5f, %.5f, %.5f)", roomBodyPos.x, roomBodyPos.y, roomBodyPos.z);
-        glm::vec3 delta = _currRoomBodyPos - _prevRoomBodyPos;
-        //qCDebug(interfaceapp, "\tdelta = (%.5f, %.5f, %.5f)", delta.x, delta.y, delta.z);
-        glm::vec3 e = _skeletonModel.getDefaultEyeModelPosition();
-        //qCDebug(interfaceapp, "\teye pos = (%.5f, %.5f, %.5f)", e.x, e.y, e.z);
-    }
-}
-
 void MyAvatar::increaseSize() {
     if ((1.0f + SCALING_RATIO) * _targetScale < MAX_AVATAR_SCALE) {
         _targetScale *= (1.0f + SCALING_RATIO);
@@ -1623,6 +1612,20 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
     qCDebug(interfaceapp).nospace() << "MyAvatar goToLocation - moving to " << newPosition.x << ", "
         << newPosition.y << ", " << newPosition.z;
 
+    glm::mat4 m;
+
+    // Set the orientation of the sensor room, not the avatar itself.
+    if (hasOrientation) {
+        qCDebug(interfaceapp).nospace() << "MyAvatar goToLocation - new orientation is "
+            << newOrientation.x << ", " << newOrientation.y << ", " << newOrientation.z << ", " << newOrientation.w;
+
+        // TODO: FIXME: add support for shouldFaceLocation
+        m = mat4_cast(newOrientation);
+    }
+    m[3] = glm::vec4(newPosition, 1);
+    _sensorToWorldMat = m;
+
+    /*
     glm::vec3 shiftedPosition = newPosition;
 
     if (hasOrientation) {
@@ -1645,6 +1648,7 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
     }
 
     slamPosition(shiftedPosition);
+    */
     emit transformChanged();
 }
 
@@ -1715,3 +1719,25 @@ void MyAvatar::relayDriveKeysToCharacterController() {
         _characterController.jump();
     }
 }
+
+void MyAvatar::setAvatarPosition(glm::vec3 pos) {
+    AvatarData::setPosition(pos);
+}
+
+void MyAvatar::setAvatarOrientation(glm::quat quat) {
+    AvatarData::setOrientation(quat);
+}
+
+// these are overriden, because they must move the sensor mat, such that the avatar will be at the given location.
+void MyAvatar::setPosition(const glm::vec3 position, bool overideReferential) {
+    glm::vec3 sensorPos = qApp->getHeadPosition();
+    _sensorToWorldMat[3] = glm::vec3(position - sensorPos, 1);
+}
+
+void MyAvatar::setOrientation(const glm::quat& orientation, bool overideReferential) {
+    glm::mat4 sensorMat = cancelOutRollAndPitch(createMatFromQuatAndPos(qApp->getHeadOrientation(), qApp->getHeadPosition()));
+    gmm::mat4 worldMat = createMatFromQuatAndPos(_orientation, _position);
+    _sensorToWorldMat = worldMat * inverse(sensorMat);
+}
+
+

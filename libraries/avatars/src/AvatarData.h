@@ -192,7 +192,7 @@ public:
     void setBodyRoll(float bodyRoll) { _bodyRoll = bodyRoll; }
 
     glm::quat getOrientation() const;
-    void setOrientation(const glm::quat& orientation, bool overideReferential = false);
+    virtual void setOrientation(const glm::quat& orientation, bool overideReferential = false);
 
     glm::quat getHeadOrientation() const { return _headData->getOrientation(); }
     void setHeadOrientation(const glm::quat& orientation) { _headData->setOrientation(orientation); }

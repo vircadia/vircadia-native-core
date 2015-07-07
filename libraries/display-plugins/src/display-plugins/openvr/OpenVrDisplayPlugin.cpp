@@ -23,6 +23,7 @@
 #include <ViewFrustum.h>
 
 #include "OpenVrHelpers.h"
+#include "GLMHelpers.h"
 
 #include <QLoggingCategory>
 Q_DECLARE_LOGGING_CATEGORY(displayplugins)
@@ -175,24 +176,7 @@ glm::mat4 OpenVrDisplayPlugin::getModelview(Eye eye, const mat4& baseModelview) 
 }
 
 void OpenVrDisplayPlugin::resetSensors() {
-    // _hmd->ResetSeatedZeroPose(); AJT: not working
-
-    mat4 pose = _trackedDevicePoseMat4[0];
-    vec3 xAxis = vec3(pose[0]);
-    vec3 yAxis = vec3(pose[1]);
-    vec3 zAxis = vec3(pose[2]);
-
-    // cancel out the roll and pitch
-    vec3 newZ = (zAxis.x == 0 && zAxis.z == 0) ? vec3(1, 0, 0) : glm::normalize(vec3(zAxis.x, 0, zAxis.z));
-    vec3 newX = glm::cross(vec3(0, 1, 0), newZ);
-    vec3 newY = glm::cross(newZ, newX);
-
-    mat4 m;
-    m[0] = vec4(newX, 0);
-    m[1] = vec4(newY, 0);
-    m[2] = vec4(newZ, 0);
-    m[3] = pose[3];
-    _sensorResetMat = glm::inverse(m);
+    _sensorResetMat = glm::inverse(cancelOutRollAndPitch(_trackedDevicePoseMat4[0]));
 }
 
 glm::mat4 OpenVrDisplayPlugin::getEyePose(Eye eye) const {
