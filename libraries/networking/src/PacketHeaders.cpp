@@ -82,6 +82,8 @@ PacketVersion versionForPacketType(PacketType::Value packetType) {
         case DomainList:
         case DomainListRequest:
             return 5;
+        case DomainConnectRequest:
+            return 1;
         case CreateAssignment:
         case RequestAssignment:
             return 2;
