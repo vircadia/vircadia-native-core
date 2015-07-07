@@ -412,7 +412,7 @@ void NodeList::sendDSPathQuery(const QString& newPath) {
     // only send a path query if we know who our DS is or is going to be
     if (_domainHandler.isSocketKnown()) {
         // construct the path query packet
-        QByteArray pathQueryPacket = byteArrayWithPopulatedHeader(PacketTypeDomainServerPathQuery);
+        auto pathQueryPacket = NLPacket::create(PacketType::DomainServerPathQuery);
 
         // get the UTF8 representation of path query
         QByteArray pathQueryUTF8 = newPath.toUtf8();
@@ -420,18 +420,18 @@ void NodeList::sendDSPathQuery(const QString& newPath) {
         // get the size of the UTF8 representation of the desired path
         quint16 numPathBytes = pathQueryUTF8.size();
 
-        if (pathQueryPacket.size() + numPathBytes + sizeof(numPathBytes) < MAX_PACKET_SIZE) {
+        if (numPathBytes + sizeof(numPathBytes) < pathQueryPacket.size() ) {
             // append the size of the path to the query packet
-            pathQueryPacket.append(reinterpret_cast<char*>(&numPathBytes), sizeof(numPathBytes));
+            pathQueryPacket.write(&numPathBytes, sizeof(numPathBytes));
 
             // append the path itself to the query packet
-            pathQueryPacket.append(pathQueryUTF8);
+            pathQueryPacket.write(pathQueryUTF8);
 
             qCDebug(networking) << "Sending a path query packet for path" << newPath << "to domain-server at"
                 << _domainHandler.getSockAddr();
 
             // send off the path query
-            writeUnverifiedDatagram(pathQueryPacket, _domainHandler.getSockAddr());
+            sendPacket(pathQueryPacket, _domainHandler.getSockAddr());
         } else {
             qCDebug(networking) << "Path" << newPath << "would make PacketTypeDomainServerPathQuery packet > MAX_PACKET_SIZE." <<
                 "Will not send query.";
