@@ -927,7 +927,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
                                         const NodeSet& nodeInterestSet) {
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
-    PacketList domainListPackets(PacketType::DomainList);
+    NLPacketList domainListPackets(PacketType::DomainList);
 
     // always send the node their own UUID back
     QDataStream domainListStream(&domainListPackets);

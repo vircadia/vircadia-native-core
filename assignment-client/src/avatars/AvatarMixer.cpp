@@ -213,7 +213,7 @@ void AvatarMixer::broadcastAvatarData() {
             }
 
             // setup a PacketList for the avatarPackets
-            PacketList avatarPacketList(PacketType::AvatarData);
+            NLPacketList avatarPacketList(PacketType::AvatarData);
 
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node

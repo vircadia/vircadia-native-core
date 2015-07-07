@@ -2660,7 +2660,7 @@ int Application::sendNackPackets() {
         return 0;
     }
 
-    PacketList nackPacketList = PacketList(PacketType::OctreeDataNack);
+    NLPacketList nackPacketList(PacketType::OctreeDataNack);
 
     // iterates thru all nodes in NodeList
     auto nodeList = DependencyManager::get<NodeList>();

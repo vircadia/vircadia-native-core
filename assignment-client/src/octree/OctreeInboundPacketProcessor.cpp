@@ -240,7 +240,7 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
         return 0;
     }
 
-    PacketList nackPacketList = PacketList(_myServer->getMyEditNackType();
+    NLPacketList nackPacketList(_myServer->getMyEditNackType();
     auto nodeList = DependencyManager::get<NodeList>();
 
     NodeToSenderStatsMapIterator i = _singleSenderStats.begin();
