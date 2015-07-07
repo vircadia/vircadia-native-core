@@ -104,20 +104,31 @@ DialogContainer {
                 }
             }
 
-            ScrollView {
-                id: scrollArea
+            Rectangle {
                 width: parent.width
                 height: updateDialog.noticeHeight
-                horizontalScrollBarPolicy: Qt.ScrollBarAlwaysOff
-                verticalScrollBarPolicy: Qt.ScrollBarAsNeeded
 
-                Text {
-                    id: releaseNotes
-                    wrapMode: Text.Wrap
+                border {
+                    width: 1
+                    color: "#808080"
+                }
+
+                ScrollView {
+                    id: scrollArea
                     width: parent.width - updateDialog.closeMargin
-                    text: updateDialog.releaseNotes
-                    font.pixelSize: 14
-                    color: "#000000"
+                    height: parent.height
+                    horizontalScrollBarPolicy: Qt.ScrollBarAlwaysOff
+                    verticalScrollBarPolicy: Qt.ScrollBarAsNeeded
+                    anchors.right: parent.right
+
+                    Text {
+                        id: releaseNotes
+                        wrapMode: Text.Wrap
+                        width: parent.width - updateDialog.closeMargin
+                        text: updateDialog.releaseNotes
+                        font.pixelSize: 14
+                        color: "#000000"
+                    }
                 }
             }
 
