@@ -24,20 +24,19 @@ public:
     NetworkPacket& operator= (const NetworkPacket& other);    // copy assignment
 
 #ifdef HAS_MOVE_SEMANTICS
-    NetworkPacket(NetworkPacket&& packet); // move?? // same as copy, but other packet won't be used further
+    NetworkPacket(NetworkPacket&& other); // move?? // same as copy, but other packet won't be used further
     NetworkPacket& operator= (NetworkPacket&& other);         // move assignment
 #endif
 
-    NetworkPacket(const SharedNodePointer& node, const QByteArray& byteArray);
+    NetworkPacket(const SharedNodePointer& node, const NLPacket& nlPacket);
 
     const SharedNodePointer& getNode() const { return _node; }
-    const QByteArray& getByteArray() const { return _byteArray; }
+    const NLPacket& getPacket() const { return _nlPacket; }
 
 private:
-    void copyContents(const SharedNodePointer& node, const QByteArray& byteArray);
 
     SharedNodePointer _node;
-    QByteArray _byteArray;
+    NLPacket _nlPacket;
 };
 
 #endif // hifi_NetworkPacket_h

@@ -48,13 +48,13 @@ PacketSender::~PacketSender() {
 }
 
 
-void PacketSender::queuePacketForSending(const SharedNodePointer& destinationNode, const QByteArray& packet) {
+void PacketSender::queuePacketForSending(const SharedNodePointer& destinationNode, const NLPacket& packet) {
     NetworkPacket networkPacket(destinationNode, packet);
     lock();
     _packets.push_back(networkPacket);
     unlock();
     _totalPacketsQueued++;
-    _totalBytesQueued += packet.size();
+    _totalBytesQueued += packet.getSizeWithHeader();
 
     // Make sure to  wake our actual processing thread because we  now have packets for it to process.
     _hasPackets.wakeAll();
@@ -271,13 +271,13 @@ bool PacketSender::nonThreadedProcess() {
         unlock();
 
         // send the packet through the NodeList...
-        DependencyManager::get<NodeList>()->writeDatagram(temporary.getByteArray(), temporary.getNode());
+        DependencyManager::get<NodeList>()->sendUnreliablePacket(temporary.getPacket(), temporary.getNode());
         packetsSentThisCall++;
         _packetsOverCheckInterval++;
         _totalPacketsSent++;
-        _totalBytesSent += temporary.getByteArray().size();
+        _totalBytesSent += temporary.getPacket().getSizeWithHeader();
         
-        emit packetSent(temporary.getByteArray().size());
+        emit packetSent(temporary.getPacket().getSizeWithHeader());
         
         _lastSendTime = now;
     }
