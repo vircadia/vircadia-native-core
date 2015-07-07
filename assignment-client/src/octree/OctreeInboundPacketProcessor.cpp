@@ -280,8 +280,6 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
         }
     }
 
-    nackPacketList.closeCurrentPacket();
-
     int packetsSent = nackPacketList.getNumPackets();
 
     if (packetsSent) {
