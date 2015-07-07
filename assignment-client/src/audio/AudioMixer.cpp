@@ -509,18 +509,26 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
 
     if (sendData) {
         auto nodeList = DependencyManager::get<NodeList>();
-        auto envPacket = NLPacket::create(PacketType::AudioEnvironment);
 
         unsigned char bitset = 0;
+
+        int packetSize = sizeof(bitset);
+
+        if (hasReverb) {
+            packetSize += sizeof(reverbTime) + sizeof(wetLevel);
+        }
+
+        auto envPacket = NLPacket::create(PacketType::AudioEnvironment, packetSize);
+
         if (hasReverb) {
             setAtBit(bitset, HAS_REVERB_BIT);
         }
 
-        envPacket.write(&bitset, sizeof(unsigned char));
+        envPacket.write(&bitset, sizeof(bitset));
 
         if (hasReverb) {
-            envPacket.write(&reverbTime, sizeof(float));
-            envPacket.write(&wetLevel, sizeof(float));
+            envPacket.write(&reverbTime, sizeof(reverb));
+            envPacket.write(&wetLevel, sizeof(wetLevel));
         }
         nodeList->sendPacket(envPacket, node);
     }
