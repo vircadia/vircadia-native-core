@@ -734,7 +734,7 @@ void AudioClient::handleAudioInput() {
     int inputSamplesRequired = (int)((float)AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio);
 
     static int leadingBytes = sizeof(quint16) + sizeof(glm::vec3) + sizeof(glm::quat) + sizeof(quint8);
-    int16_t* networkAudioSamples = (int16_t*)(_audioPacket->payload() + leadingBytes);
+    int16_t* networkAudioSamples = (int16_t*)(_audioPacket->getPayload() + leadingBytes);
 
     QByteArray inputByteArray = _inputDevice->readAll();
 
