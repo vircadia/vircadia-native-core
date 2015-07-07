@@ -133,45 +133,6 @@ mat4 OpenVrDisplayPlugin::getProjection(Eye eye, const mat4& baseProjection) con
 }
 
 glm::mat4 OpenVrDisplayPlugin::getModelview(Eye eye, const mat4& baseModelview) const {
-    /*
-    qCDebug(displayplugins, displayplugins, "getModelView(%d)\n", eye);
-    glm::mat4 m = baseModelview;
-    qCDebug(displayplugins, "\tbaseModelView = | %10.4f %10.4f %10.4f %10.4f |", m[0][0], m[1][0], m[2][0], m[3][0]);
-    qCDebug(displayplugins, "\t                | %10.4f %10.4f %10.4f %10.4f |", m[0][1], m[1][1], m[2][1], m[3][1]);
-    qCDebug(displayplugins, "\t                | %10.4f %10.4f %10.4f %10.4f |", m[0][2], m[1][2], m[2][2], m[3][2]);
-    qCDebug(displayplugins, "\t                | %10.4f %10.4f %10.4f %10.4f |", m[0][3], m[1][3], m[2][3], m[3][3]);
-
-    m = _eyesData[eye]._eyeOffset;
-    qCDebug(displayplugins, "\teyeOffset = | %10.4f %10.4f %10.4f %10.4f |", m[0][0], m[1][0], m[2][0], m[3][0]);
-    qCDebug(displayplugins, "\t           | %10.4f %10.4f %10.4f %10.4f |", m[0][1], m[1][1], m[2][1], m[3][1]);
-    qCDebug(displayplugins, "\t           | %10.4f %10.4f %10.4f %10.4f |", m[0][2], m[1][2], m[2][2], m[3][2]);
-    qCDebug(displayplugins, "\t           | %10.4f %10.4f %10.4f %10.4f |", m[0][3], m[1][3], m[2][3], m[3][3]);
-
-    m = glm::inverse(_eyesData[eye]._eyeOffset);
-    qCDebug(displayplugins, "\teyeOffsetInv = | %10.4f %10.4f %10.4f %10.4f |", m[0][0], m[1][0], m[2][0], m[3][0]);
-    qCDebug(displayplugins, "\t              | %10.4f %10.4f %10.4f %10.4f |", m[0][1], m[1][1], m[2][1], m[3][1]);
-    qCDebug(displayplugins, "\t              | %10.4f %10.4f %10.4f %10.4f |", m[0][2], m[1][2], m[2][2], m[3][2]);
-    qCDebug(displayplugins, "\t              | %10.4f %10.4f %10.4f %10.4f |", m[0][3], m[1][3], m[2][3], m[3][3]);
-
-    m = _eyesData[eye]._pose;
-    qCDebug(displayplugins, "\tpose = | %10.4f %10.4f %10.4f %10.4f |", m[0][0], m[1][0], m[2][0], m[3][0]);
-    qCDebug(displayplugins, "\t      | %10.4f %10.4f %10.4f %10.4f |", m[0][1], m[1][1], m[2][1], m[3][1]);
-    qCDebug(displayplugins, "\t      | %10.4f %10.4f %10.4f %10.4f |", m[0][2], m[1][2], m[2][2], m[3][2]);
-    qCDebug(displayplugins, "\t      | %10.4f %10.4f %10.4f %10.4f |", m[0][3], m[1][3], m[2][3], m[3][3]);
-
-    m = glm::inverse(_eyesData[eye]._eyeOffset) * baseModelview;
-    qCDebug(displayplugins, "\tbroken modelView = | %10.4f %10.4f %10.4f %10.4f |", m[0][0], m[1][0], m[2][0], m[3][0]);
-    qCDebug(displayplugins, "\t                   | %10.4f %10.4f %10.4f %10.4f |", m[0][1], m[1][1], m[2][1], m[3][1]);
-    qCDebug(displayplugins, "\t                   | %10.4f %10.4f %10.4f %10.4f |", m[0][2], m[1][2], m[2][2], m[3][2]);
-    qCDebug(displayplugins, "\t                   | %10.4f %10.4f %10.4f %10.4f |", m[0][3], m[1][3], m[2][3], m[3][3]);
-
-    m = baseModelview * _eyesData[eye]._pose;
-    qCDebug(displayplugins, "\tworking modelView = | %10.4f %10.4f %10.4f %10.4f |", m[0][0], m[1][0], m[2][0], m[3][0]);
-    qCDebug(displayplugins, "\t                    | %10.4f %10.4f %10.4f %10.4f |", m[0][1], m[1][1], m[2][1], m[3][1]);
-    qCDebug(displayplugins, "\t                    | %10.4f %10.4f %10.4f %10.4f |", m[0][2], m[1][2], m[2][2], m[3][2]);
-    qCDebug(displayplugins, "\t                    | %10.4f %10.4f %10.4f %10.4f |", m[0][3], m[1][3], m[2][3], m[3][3]);
-    */
-
     return baseModelview * _eyesData[eye]._eyeOffset;
 }
 
@@ -210,9 +171,6 @@ void OpenVrDisplayPlugin::finishFrame() {
     openvr_for_each_eye([&](vr::Hmd_Eye eye) {
         _eyesData[eye]._pose = _trackedDevicePoseMat4[0];
     });
-
-    glm::vec3 p(_trackedDevicePoseMat4[0][3]);
-    qCDebug(displayplugins, "trackPos = (%.5f, %.5f, %.5f)", p.x, p.y, p.z);
 };
 
 #endif

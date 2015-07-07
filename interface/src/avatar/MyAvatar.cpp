@@ -155,13 +155,6 @@ void MyAvatar::reset() {
 
 void MyAvatar::update(float deltaTime) {
 
-    qCDebug(interfaceapp, "update() *************");
-    glm::vec3 pos = getPosition();
-    qCDebug(interfaceapp, "\tpos = (%.5f, %.5f, %.5f)", pos.x, pos.y, pos.z);
-    glm::vec3 axis = glm::axis(getOrientation());
-    float angle = glm::angle(getOrientation());
-    qCDebug(interfaceapp, "\trot = axis = (%.5f, %.5f, %.5f), angle = %.5f", axis.x, axis.y, axis.z, angle);
-
     if (_referential) {
         _referential->update();
     }
@@ -947,13 +940,6 @@ bool MyAvatar::isLookingAtLeftEye() {
 }
 
 glm::vec3 MyAvatar::getDefaultEyePosition() const {
-    /*
-    qCDebug(interfaceapp, "getDefaultEyePosition()");
-    glm::vec3 e = _skeletonModel.getDefaultEyeModelPosition();
-    qCDebug(interfaceapp, "\teye pos = (%.5f, %.5f, %.5f)", e.x, e.y, e.z);
-    glm::vec3 p = getPosition() + getWorldAlignedOrientation() * _skeletonModel.getDefaultEyeModelPosition();
-    qCDebug(interfaceapp, "\tworld pos = (%.5f, %.5f, %.5f)", p.x, p.y, p.z);
-    */
     return getPosition() + getWorldAlignedOrientation() * _skeletonModel.getDefaultEyeModelPosition();
 }
 
@@ -1300,12 +1286,13 @@ void MyAvatar::updateOrientation(float deltaTime) {
     _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_SPEED * deltaTime;
     getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
 
-    // AJT: disable arrow key movement.
-/*
-    // update body orientation by movement inputs
-    setOrientation(getOrientation() *
-                   glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta, 0.0f) * deltaTime)));
-*/
+    glm::quat twist = glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta, 0.0f) * deltaTime));
+
+    glm::vec3 bodyPosition = calcBodyPositionFromSensors();
+    glm::quat bodyOrientation = calcBodyOrientationFromSensors();
+    glm::mat4 bodyMat = createMatFromQuatAndPos(bodyOrientation, bodyPosition);
+    glm::mat4 sensorOffset = bodyMat * glm::mat4_cast(twist) * glm::inverse(bodyMat);
+    _sensorToWorldMat = sensorOffset * _sensorToWorldMat;
 
     // decay body rotation momentum
     const float BODY_SPIN_FRICTION = 7.5f;
@@ -1586,6 +1573,8 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
         << newPosition.y << ", " << newPosition.z;
 
     glm::mat4 m;
+    m[3] = glm::vec4(newPosition, 1);
+    _sensorToWorldMat = m;
 
     // AJT: FIXME, goToLocation doens't work with orientation.
     /*
@@ -1602,13 +1591,6 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
         m = glm::mat4_cast(newOrientation);
     }
     */
-    m[3] = glm::vec4(newPosition, 1);
-    _sensorToWorldMat = m;
-
-    qCDebug(interfaceapp, "\tsensorMat = | %10.4f %10.4f %10.4f %10.4f |", m[0][0], m[1][0], m[2][0], m[3][0]);
-    qCDebug(interfaceapp, "\t            | %10.4f %10.4f %10.4f %10.4f |", m[0][1], m[1][1], m[2][1], m[3][1]);
-    qCDebug(interfaceapp, "\t            | %10.4f %10.4f %10.4f %10.4f |", m[0][2], m[1][2], m[2][2], m[3][2]);
-    qCDebug(interfaceapp, "\t            | %10.4f %10.4f %10.4f %10.4f |", m[0][3], m[1][3], m[2][3], m[3][3]);
 
     /*
     glm::vec3 shiftedPosition = newPosition;
@@ -1706,20 +1688,15 @@ void MyAvatar::relayDriveKeysToCharacterController() {
 }
 
 void MyAvatar::setAvatarPosition(glm::vec3 pos) {
-    qCDebug(interfaceapp, "setAvatarPosition = (%.5f, %.5f, %.5f)", pos.x, pos.y, pos.z);
     Avatar::setPosition(pos);
 }
 
 void MyAvatar::setAvatarOrientation(glm::quat quat) {
-    glm::vec3 axis = glm::axis(quat);
-    float angle = glm::angle(quat);
-    qCDebug(interfaceapp, "setAvatarOrientation axis = (%.5f, %.5f, %.5f), theta = %.5f", axis.x, axis.y, axis.z, angle);
     Avatar::setOrientation(quat);
 }
 
 // these are overriden, because they must move the sensor mat, such that the avatar will be at the given location.
 void MyAvatar::setPosition(const glm::vec3 position, bool overideReferential) {
-    qCDebug(interfaceapp, "setPosition = (%.5f, %.5f, %.5f)", position.x, position.y, position.z);
     glm::vec3 bodyPos = calcBodyPositionFromSensors();
     glm::vec3 desiredPos = position;
     glm::vec3 sensorPos(_sensorToWorldMat[3]);
@@ -1728,10 +1705,6 @@ void MyAvatar::setPosition(const glm::vec3 position, bool overideReferential) {
 }
 
 void MyAvatar::setOrientation(const glm::quat& orientation, bool overideReferential) {
-    glm::vec3 axis = glm::axis(orientation);
-    float angle = glm::angle(orientation);
-    qCDebug(interfaceapp, "setOrientation axis = (%.5f, %.5f, %.5f), theta = %.5f", axis.x, axis.y, axis.z, angle);
-
     glm::vec3 bodyPos = calcBodyPositionFromSensors();
     glm::quat bodyOrientation = calcBodyOrientationFromSensors();
     glm::mat4 bodyMat = createMatFromQuatAndPos(bodyOrientation, bodyPos);

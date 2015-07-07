@@ -33,6 +33,13 @@
 
 using namespace std;
 
+// AJT HACK, I'm using these markers for debugging.
+// extern them and set them in other cpp files and they will be rendered
+// with the world box.
+const int NUM_MARKERS = 4;
+glm::mat4 markerMats[NUM_MARKERS];
+glm::vec4 markerColors[NUM_MARKERS] = {{1, 0, 0, 1}, {0, 1, 0, 1}, {0, 0, 1, 1}, {0, 1, 1, 1}};
+
 void renderWorldBox(gpu::Batch& batch) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
@@ -71,6 +78,26 @@ void renderWorldBox(gpu::Batch& batch) {
     transform.setTranslation(glm::vec3(MARKER_DISTANCE, 0.0f, MARKER_DISTANCE));
     batch.setModelTransform(transform);
     geometryCache->renderSphere(batch, MARKER_RADIUS, 10, 10, grey);
+
+    // draw marker spheres
+    for (int i = 0; i < NUM_MARKERS; i++) {
+        transform.setTranslation(extractTranslation(markerMats[i]));
+        batch.setModelTransform(transform);
+        geometryCache->renderSphere(batch, 0.02f, 10, 10, markerColors[i]);
+    }
+
+    // draw marker axes
+    auto identity = Transform{};
+    batch.setModelTransform(identity);
+    for (int i = 0; i < NUM_MARKERS; i++) {
+        glm::vec3 base = extractTranslation(markerMats[i]);
+        glm::vec3 xAxis = transformPoint(markerMats[i], glm::vec3(1, 0, 0));
+        glm::vec3 yAxis = transformPoint(markerMats[i], glm::vec3(0, 1, 0));
+        glm::vec3 zAxis = transformPoint(markerMats[i], glm::vec3(0, 0, 1));
+        geometryCache->renderLine(batch, base, xAxis, red);
+        geometryCache->renderLine(batch, base, yAxis, green);
+        geometryCache->renderLine(batch, base, zAxis, blue);
+    }
 }
 
 //  Return a random vector of average length 1

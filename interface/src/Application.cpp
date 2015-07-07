@@ -966,7 +966,7 @@ void Application::paintGL() {
             //_myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
 
             // AJT: no actually we do want the roll and pitch
-            _myCamera.setRotation(getHeadOrientation());
+            _myCamera.setRotation(glm::quat_cast(_myAvatar->getSensorToWorldMat()) * getHeadOrientation());
         }
 
         /*
@@ -2788,6 +2788,11 @@ void Application::update(float deltaTime) {
     }
 }
 
+// AJT: hack
+extern const int NUM_MARKERS;
+extern glm::mat4 markerMats[];
+extern glm::vec4 markerColors[];
+
 void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, int index) {
     PalmData* palm;
     bool foundHand = false;
@@ -2813,8 +2818,16 @@ void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, int i
     // TODO: velocity filters, tip velocities, et.c
     // see SixenseManager
 
-    palm->setRawPosition(pose.getTranslation());
-    palm->setRawRotation(pose.getRotation());
+    // transform from sensor space, to world space, to avatar model space.
+    glm::mat4 poseMat = createMatFromQuatAndPos(pose.getRotation(), pose.getTranslation());
+    glm::mat4 sensorToWorldMat = _myAvatar->getSensorToWorldMat();
+    glm::mat4 modelMat = createMatFromQuatAndPos(_myAvatar->getOrientation(), _myAvatar->getPosition());
+    glm::mat4 objectPose = glm::inverse(modelMat) * sensorToWorldMat * poseMat;
+
+    palm->setRawPosition(extractTranslation(objectPose));
+    palm->setRawRotation(glm::quat_cast(objectPose));
+
+    markerMats[index] = sensorToWorldMat * poseMat;
 }
 
 void Application::emulateMouse(Hand* hand, float click, float shift, int index) {

@@ -134,6 +134,7 @@ void ViveControllerManager::focusOutEvent() {
 };
 
 void ViveControllerManager::handleAxisEvent(Axis axis, float x, float y, int index) {
+    /*
     if (axis == TRACKPAD_AXIS) {
         _axisStateMap[makeInput(AXIS_Y_POS, index).getChannel()] = (y > 0.0f) ? y : 0.0f;
         _axisStateMap[makeInput(AXIS_Y_NEG, index).getChannel()] = (y < 0.0f) ? -y : 0.0f;
@@ -142,9 +143,11 @@ void ViveControllerManager::handleAxisEvent(Axis axis, float x, float y, int ind
     } else if (axis == TRIGGER_AXIS) {
         _axisStateMap[makeInput(BACK_TRIGGER, index).getChannel()] = x;
     }
+    */
 }
 
 void ViveControllerManager::handleButtonEvent(uint64_t buttons, int index) {
+    /*
     if (buttons & VR_BUTTON_A) {
         _buttonPressedMap.insert(makeInput(BUTTON_A, index).getChannel());
     }
@@ -157,13 +160,11 @@ void ViveControllerManager::handleButtonEvent(uint64_t buttons, int index) {
     if (buttons & VR_TRIGGER_BUTTON) {
         _buttonPressedMap.insert(makeInput(TRIGGER_BUTTON, index).getChannel());
     }
+    */
 }
 
 void ViveControllerManager::handlePoseEvent(const mat4& mat, int index) {
-    glm::vec4 p = _trackedDevicePoseMat4[vr::k_unTrackedDeviceIndex_Hmd][3];
-    glm::vec3 headPos(p.x, p.y, p.z);
-    glm::vec3 position = glm::vec3(mat[3][0], mat[3][1], mat[3][2]) - headPos + vec3(0, 0.6f, 0); // figure out why this offset is necessary
-
+    glm::vec3 position = extractTranslation(mat);
     glm::quat rotation = glm::quat_cast(mat);
 
     // Flip the rotation appropriately for each hand
@@ -173,7 +174,7 @@ void ViveControllerManager::handlePoseEvent(const mat4& mat, int index) {
         rotation = rotation * glm::angleAxis(PI, glm::vec3(1.0f, 0.0f, 0.0f)) * glm::angleAxis(PI + PI_OVER_TWO, glm::vec3(0.0f, 0.0f, 1.0f));
     }
 
-    _poseStateMap[makeInput(JointChannel(index)).getChannel()] = UserInputMapper::PoseValue(position, - rotation);
+    _poseStateMap[makeInput(JointChannel(index)).getChannel()] = UserInputMapper::PoseValue(position, rotation);
 }
 
 void ViveControllerManager::registerToUserInputMapper(UserInputMapper& mapper) {
