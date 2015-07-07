@@ -329,7 +329,7 @@ void NodeList::sendDomainServerCheckIn() {
 
         }
 
-        auto domainPacket = NodeListPacket::create(domainPacketType);
+        auto domainPacket { NLPacket::create(domainPacketType); }
         QDataStream packetStream(&domainPacket->getPayload);
 
         if (domainPacketType == PacketType::DomainConnectRequest) {
