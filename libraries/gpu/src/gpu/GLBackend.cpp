@@ -29,6 +29,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_setModelTransform),
     (&::gpu::GLBackend::do_setViewTransform),
     (&::gpu::GLBackend::do_setProjectionTransform),
+    (&::gpu::GLBackend::do_setViewportTransform),
 
     (&::gpu::GLBackend::do_setPipeline),
     (&::gpu::GLBackend::do_setStateBlendFactor),
@@ -67,6 +68,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_glUniform3f),
     (&::gpu::GLBackend::do_glUniform3fv),
     (&::gpu::GLBackend::do_glUniform4fv),
+    (&::gpu::GLBackend::do_glUniform4iv),
     (&::gpu::GLBackend::do_glUniformMatrix4fv),
 
     (&::gpu::GLBackend::do_glEnableVertexAttribArray),
@@ -190,6 +192,18 @@ void GLBackend::do_drawIndexed(Batch& batch, uint32 paramOffset) {
 }
 
 void GLBackend::do_drawInstanced(Batch& batch, uint32 paramOffset) {
+    updateInput();
+    updateTransform();
+    updatePipeline();
+
+    GLint numInstances = batch._params[paramOffset + 4]._uint;
+    Primitive primitiveType = (Primitive)batch._params[paramOffset + 3]._uint;
+    GLenum mode = _primitiveToGLmode[primitiveType];
+    uint32 numVertices = batch._params[paramOffset + 2]._uint;
+    uint32 startVertex = batch._params[paramOffset + 1]._uint;
+    uint32 startInstance = batch._params[paramOffset + 0]._uint;
+
+    glDrawArraysInstancedARB(mode, startVertex, numVertices, numInstances);
     (void) CHECK_GL_ERROR();
 }
 
@@ -588,6 +602,31 @@ void GLBackend::do_glUniform4fv(Batch& batch, uint32 paramOffset) {
         batch._params[paramOffset + 2]._int,
         batch._params[paramOffset + 1]._uint,
         (const GLfloat*)batch.editData(batch._params[paramOffset + 0]._uint));
+
+    (void) CHECK_GL_ERROR();
+}
+
+void Batch::_glUniform4iv(GLint location, GLsizei count, const GLint* value) {
+    ADD_COMMAND_GL(glUniform4iv);
+
+    const int VEC4_SIZE = 4 * sizeof(int);
+    _params.push_back(cacheData(count * VEC4_SIZE, value));
+    _params.push_back(count);
+    _params.push_back(location);
+
+    DO_IT_NOW(_glUniform4iv, 3);
+}
+void GLBackend::do_glUniform4iv(Batch& batch, uint32 paramOffset) {
+    if (_pipeline._program == 0) {
+        // We should call updatePipeline() to bind the program but we are not doing that
+        // because these uniform setters are deprecated and we don;t want to create side effect
+        return;
+    }
+    updatePipeline();
+    glUniform4iv(
+        batch._params[paramOffset + 2]._int,
+        batch._params[paramOffset + 1]._uint,
+        (const GLint*)batch.editData(batch._params[paramOffset + 0]._uint));
 
     (void) CHECK_GL_ERROR();
 }

@@ -18,11 +18,13 @@
 <@elif GLPROFILE == MAC_GL @>
     <@def GPU_FEATURE_PROFILE GPU_LEGACY@>
     <@def GPU_TRANSFORM_PROFILE GPU_LEGACY@>
-    <@def VERSION_HEADER #version 120@>
+    <@def VERSION_HEADER #version 120
+#extension GL_EXT_gpu_shader4 : enable@>
 <@else@>
     <@def GPU_FEATURE_PROFILE GPU_LEGACY@>
     <@def GPU_TRANSFORM_PROFILE GPU_LEGACY@>
-    <@def VERSION_HEADER #version 120@>
+    <@def VERSION_HEADER #version 120
+#extension GL_EXT_gpu_shader4 : enable@>
 <@endif@>
 
 <@endif@>

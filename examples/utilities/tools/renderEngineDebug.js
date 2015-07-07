@@ -10,7 +10,7 @@
 
 Script.include("cookies.js");
 
-var panel = new Panel(10, 800);
+var panel = new Panel(10, 100);
 
 panel.newSlider("Num Feed Opaques", 0, 1000, 
     function(value) { },
@@ -63,6 +63,12 @@ panel.newSlider("Num Drawn Overlay3Ds", 0, 100,
 panel.newSlider("Max Drawn Overlay3Ds", -1, 100, 
     function(value) { Scene.setEngineMaxDrawnOverlay3DItems(value); },
     function() { return Scene.getEngineMaxDrawnOverlay3DItems(); },
+    function(value) { return (value); }
+);
+
+panel.newCheckbox("Display status",  
+    function(value) { Scene.setEngineDisplayItemStatus(value); },
+    function() { return Scene.doEngineDisplayItemStatus(); },
     function(value) { return (value); }
 );
 
