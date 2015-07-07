@@ -158,19 +158,22 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
     // pack and send stream stats packets until all audio streams' stats are sent
     int numStreamStatsRemaining = _audioStreams.size();
     QHash<QUuid, PositionalAudioStream*>::ConstIterator audioStreamsIterator = _audioStreams.constBegin();
+
+    PacketList statsPacketList(PacketType::AudioStreamStats);
+
     while (numStreamStatsRemaining > 0) {
 
-        auto statsPacket { NLPacket::create(PacketType::AudioStreamStats); }
+        auto statsPacket = NLPacket::create(PacketType::AudioStreamStats);
 
         // pack the append flag in this packet
-        statsPacket.write(&appendFlag, sizeof(quint8));
+        statsPacket->write(&appendFlag, sizeof(quint8));
         appendFlag = 1;
 
         int numStreamStatsRoomFor = (statsPacket.size() - sizeof(quint8) - sizeof(quint16)) / sizeof(AudioStreamStats);
 
         // calculate and pack the number of stream stats to follow
         quint16 numStreamStatsToPack = std::min(numStreamStatsRemaining, numStreamStatsRoomFor);
-        statsPacket.write(&numStreamStatsToPack, sizeof(quint16));
+        statsPacket->write(&numStreamStatsToPack, sizeof(quint16));
 
         // pack the calculated number of stream stats
         for (int i = 0; i < numStreamStatsToPack; i++) {
@@ -179,10 +182,11 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
             stream->perSecondCallbackForUpdatingStats();
 
             AudioStreamStats streamStats = stream->getAudioStreamStats();
-            statsPacket.write(&streamStats, sizeof(AudioStreamStats));
+            statsPacket->write(&streamStats, sizeof(AudioStreamStats));
 
             audioStreamsIterator++;
         }
+
         numStreamStatsRemaining -= numStreamStatsToPack;
 
         // send the current packet
