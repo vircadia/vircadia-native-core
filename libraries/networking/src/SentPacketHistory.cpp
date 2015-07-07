@@ -20,7 +20,7 @@ SentPacketHistory::SentPacketHistory(int size)
 
 }
 
-void SentPacketHistory::packetSent(uint16_t sequenceNumber, const QByteArray& packet) {
+void SentPacketHistory::packetSent(uint16_t sequenceNumber, const NLPacket& packet) {
 
     // check if given seq number has the expected value.  if not, something's wrong with
     // the code calling this function
@@ -30,7 +30,7 @@ void SentPacketHistory::packetSent(uint16_t sequenceNumber, const QByteArray& pa
             << "Expected:" << expectedSequenceNumber << "Actual:" << sequenceNumber;
     }
     _newestSequenceNumber = sequenceNumber;
-    _sentPackets.insert(packet);
+    _sentPackets.insert(new NLPacket(packet));
 }
 
 const QByteArray* SentPacketHistory::getPacket(uint16_t sequenceNumber) const {

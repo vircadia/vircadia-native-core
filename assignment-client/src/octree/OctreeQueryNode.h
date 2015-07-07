@@ -111,7 +111,7 @@ public:
 
     void parseNackPacket(const QByteArray& packet);
     bool hasNextNackedPacket() const;
-    NLPacket&& getNextNackedPacket();
+    NLPacket* getNextNackedPacket();
 
 private slots:
     void sendThreadFinished();

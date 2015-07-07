@@ -365,10 +365,10 @@ bool OctreeQueryNode::hasNextNackedPacket() const {
     return !_nackedSequenceNumbers.isEmpty();
 }
 
-NLPacket&& OctreeQueryNode::getNextNackedPacket() {
+NLPacket* OctreeQueryNode::getNextNackedPacket() {
     if (!_nackedSequenceNumbers.isEmpty()) {
         // could return null if packet is not in the history
-        return std::move(_sentPacketHistory.getPacket(_nackedSequenceNumbers.dequeue()));
+        return _sentPacketHistory.getPacket(_nackedSequenceNumbers.dequeue());
     }
 
     return nullptr;

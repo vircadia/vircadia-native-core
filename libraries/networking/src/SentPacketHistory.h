@@ -26,7 +26,7 @@ public:
     const QByteArray* getPacket(uint16_t sequenceNumber) const;
 
 private:
-    RingBufferHistory<NLPacket> _sentPackets;    // circular buffer
+    RingBufferHistory<NLPacket*> _sentPackets;    // circular buffer
 
     uint16_t _newestSequenceNumber;
 };
