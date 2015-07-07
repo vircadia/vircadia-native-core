@@ -23,6 +23,8 @@ public:
     void startSegment() { _segmentStartIndex = currentPacket->payload().pos(); }
     void endSegment() { _segmentStartIndex = -1; }
 
+    int getNumPackets() const { return _packets.size() + (_currentPacket ? 1 : 0); }
+
     void closeCurrentPacket();
 
     void setExtendedHeader(const QByteArray& extendedHeader) { _extendedHeader = extendedHeader; }
