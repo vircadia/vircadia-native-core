@@ -111,7 +111,7 @@ void AudioIOStats::sendDownstreamAudioStatsPacket() {
     AudioStreamStats stats = _receivedAudioStream->getAudioStreamStats();
 
     int statsPacketSize = sizeof(appendFlag) + sizeof(numStreamStatsToPack) + sizeof(stats);
-    auto statsPacket { NLPacket::create(PacketType::AudioStreamStats, statsPacketSize); }
+    auto statsPacket = NLPacket::create(PacketType::AudioStreamStats, statsPacketSize);
 
     // pack append flag
     statsPacket->write(&appendFlag, sizeof(appendFlag));

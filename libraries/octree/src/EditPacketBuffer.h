@@ -21,7 +21,7 @@
 class EditPacketBuffer {
 public:
     EditPacketBuffer();
-    EditPacketBuffer (PacketType::Value type, unsigned char* codeColorBuffer, size_t length,
+    EditPacketBuffer(PacketType::Value type, unsigned char* codeColorBuffer, size_t length,
                      qint64 satoshiCost = 0, const QUuid nodeUUID = QUuid());
     
     QUuid _nodeUUID;

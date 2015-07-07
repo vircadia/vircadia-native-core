@@ -509,18 +509,26 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
 
     if (sendData) {
         auto nodeList = DependencyManager::get<NodeList>();
-        auto envPacket = NLPacket::create(PacketType::AudioEnvironment);
 
         unsigned char bitset = 0;
+
+        int packetSize = sizeof(bitset);
+
+        if (hasReverb) {
+            packetSize += sizeof(reverbTime) + sizeof(wetLevel);
+        }
+
+        auto envPacket = NLPacket::create(PacketType::AudioEnvironment, packetSize);
+
         if (hasReverb) {
             setAtBit(bitset, HAS_REVERB_BIT);
         }
 
-        envPacket.write(&bitset, sizeof(unsigned char));
+        envPacket.write(&bitset, sizeof(bitset));
 
         if (hasReverb) {
-            envPacket.write(&reverbTime, sizeof(float));
-            envPacket.write(&wetLevel, sizeof(float));
+            envPacket.write(&reverbTime, sizeof(reverb));
+            envPacket.write(&wetLevel, sizeof(wetLevel));
         }
         nodeList->sendPacket(envPacket, node);
     }
@@ -785,7 +793,7 @@ void AudioMixer::run() {
                 // if the stream should be muted, send mute packet
                 if (nodeData->getAvatarAudioStream()
                     && shouldMute(nodeData->getAvatarAudioStream()->getQuietestFrameLoudness())) {
-                    auto mutePacket { NLPacket::create(PacketType::NoisyMute); }
+                    auto mutePacket = NLPacket::create(PacketType::NoisyMute, 0);
                     nodeList->sendPacket(mutePacket, node);
                 }
 
@@ -798,7 +806,7 @@ void AudioMixer::run() {
 
                     if (streamsMixed > 0) {
                         int mixPacketBytes = sizeof(quint16) + AudioConstants::NETWORK_FRAME_BYTES_STEREO;
-                        mixPacket = NLPacket::create(PacketType::MixedAudio);
+                        mixPacket = NLPacket::create(PacketType::MixedAudio, mixPacketBytes);
 
                         // pack sequence number
                         quint16 sequence = nodeData->getOutgoingSequenceNumber();
@@ -808,7 +816,7 @@ void AudioMixer::run() {
                         mixPacket.write(mixSamples, AudioConstants::NETWORK_FRAME_BYTES_STEREO);
                     } else {
                         int silentPacketBytes = sizeof(quint16) + sizeof(quint16);
-                        mixPacket = NLPacket::create(PacketType::SilentAudioFrame);
+                        mixPacket = NLPacket::create(PacketType::SilentAudioFrame, silentPacketBytes);
 
                         // pack sequence number
                         quint16 sequence = nodeData->getOutgoingSequenceNumber();

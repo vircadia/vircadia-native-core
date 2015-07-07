@@ -168,7 +168,7 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
     return readBytes;
 }
 
-int InboundAudioStream::parseStreamProperties (PacketType::Value type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
+int InboundAudioStream::parseStreamProperties(PacketType::Value type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
     if (type == PacketTypeSilentAudioFrame) {
         quint16 numSilentSamples = 0;
         memcpy(&numSilentSamples, packetAfterSeqNum.constData(), sizeof(quint16));
@@ -181,7 +181,7 @@ int InboundAudioStream::parseStreamProperties (PacketType::Value type, const QBy
     }
 }
 
-int InboundAudioStream::parseAudioData (PacketType::Value type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
+int InboundAudioStream::parseAudioData(PacketType::Value type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
     return _ringBuffer.writeData(packetAfterStreamProperties.data(), numAudioSamples * sizeof(int16_t));
 }
 
