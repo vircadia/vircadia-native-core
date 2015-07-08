@@ -268,49 +268,35 @@ bool JurisdictionMap::writeToFile(const char* filename) {
     return true;
 }
 
-int JurisdictionMap::packEmptyJurisdictionIntoMessage(NodeType_t type, unsigned char* destinationBuffer, int availableBytes) {
-    unsigned char* bufferStart = destinationBuffer;
-
-    int headerLength = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(destinationBuffer),
-                                                                                PacketType::Jurisdiction);
-    destinationBuffer += headerLength;
+std::unique_ptr<NLPacket> JurisdictionMap::packEmptyJurisdictionIntoMessage(NodeType_t type) {
+    int bytes = 0;
+    auto packet = NLPacket::create(PacketType::Jurisdiction);
 
     // Pack the Node Type in first byte
-    memcpy(destinationBuffer, &type, sizeof(type));
-    destinationBuffer += sizeof(type);
-
+    packet->write(reinterpret_cast<char*>(&type), sizeof(type));
     // No root or end node details to pack!
-    int bytes = 0;
-    memcpy(destinationBuffer, &bytes, sizeof(bytes));
-    destinationBuffer += sizeof(bytes);
+    packet->write(reinterpret_cast<char*>(&bytes), sizeof(bytes));
     
-    return destinationBuffer - bufferStart; // includes header!
+    return std::move(packet); // includes header!
 }
 
-int JurisdictionMap::packIntoMessage(unsigned char* destinationBuffer, int availableBytes) {
-    unsigned char* bufferStart = destinationBuffer;
-    
-    int headerLength = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(destinationBuffer),
-                                                                                PacketType::Jurisdiction);
-    destinationBuffer += headerLength;
+std::unique_ptr<NLPacket> JurisdictionMap::packIntoMessage() {
+    auto packet = NLPacket::create(PacketType::Jurisdiction);
 
     // Pack the Node Type in first byte
     NodeType_t type = getNodeType();
-    memcpy(destinationBuffer, &type, sizeof(type));
-    destinationBuffer += sizeof(type);
+    packet->write(reinterpret_cast<char*>(&type), sizeof(type));
 
     // add the root jurisdiction
     if (_rootOctalCode) {
         size_t bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_rootOctalCode));
-        memcpy(destinationBuffer, &bytes, sizeof(bytes));
-        destinationBuffer += sizeof(bytes);
-        memcpy(destinationBuffer, _rootOctalCode, bytes);
-        destinationBuffer += bytes;
+        // No root or end node details to pack!
+        packet->write(reinterpret_cast<char*>(&bytes), sizeof(bytes));
+        packet->write(reinterpret_cast<char*>(_rootOctalCode), bytes);
         
         // if and only if there's a root jurisdiction, also include the end nodes
         int endNodeCount = _endNodes.size(); 
-        memcpy(destinationBuffer, &endNodeCount, sizeof(endNodeCount));
-        destinationBuffer += sizeof(endNodeCount);
+        packet->write(reinterpret_cast<char*>(&endNodeCount), sizeof(endNodeCount));
 
         for (int i=0; i < endNodeCount; i++) {
             unsigned char* endNodeCode = _endNodes[i];
@@ -318,18 +304,15 @@ int JurisdictionMap::packIntoMessage(unsigned char* destinationBuffer, int avail
             if (endNodeCode) {
                 bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
             }
-            memcpy(destinationBuffer, &bytes, sizeof(bytes));
-            destinationBuffer += sizeof(bytes);
-            memcpy(destinationBuffer, endNodeCode, bytes);
-            destinationBuffer += bytes;
+            packet->write(reinterpret_cast<char*>(&bytes), sizeof(bytes));
+            packet->write(reinterpret_cast<char*>(endNodeCode), bytes);
         }
     } else {
         int bytes = 0;
-        memcpy(destinationBuffer, &bytes, sizeof(bytes));
-        destinationBuffer += sizeof(bytes);
+        packet->write(reinterpret_cast<char*>(&bytes), sizeof(bytes));
     }
     
-    return destinationBuffer - bufferStart; // includes header!
+    return std::move(packet); // includes header!
 }
 
 int JurisdictionMap::unpackFromMessage(const unsigned char* sourceBuffer, int availableBytes) {

@@ -75,6 +75,8 @@ typedef struct ty_gverb ty_gverb;
 typedef glm::vec3 (*AudioPositionGetter)();
 typedef glm::quat (*AudioOrientationGetter)();
 
+class NLPacket;
+
 class AudioClient : public AbstractAudioInterface, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
