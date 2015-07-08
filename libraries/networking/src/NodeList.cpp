@@ -584,15 +584,17 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
 void NodeList::sendAssignment(Assignment& assignment) {
 
     PacketType::Value assignmentPacketType = assignment.getCommand() == Assignment::CreateCommand
-        ? PacketTypeCreateAssignment
-        : PacketTypeRequestAssignment;
+        ? PacketType::CreateAssignment
+        : PacketType::RequestAssignment;
 
-    QByteArray packet = byteArrayWithPopulatedHeader(assignmentPacketType);
-    QDataStream packetStream(&packet, QIODevice::Append);
+    auto assignmentPacket = NLPacket::create(assignmentPacketType);
+
+    QDataStream packetStream(assignmentPacket.get());
 
     packetStream << assignment;
 
-    _nodeSocket.writeDatagram(packet, _assignmentServerSocket.getAddress(), _assignmentServerSocket.getPort());
+    // TODO: should this be a non sourced packet?
+    sendPacket(assignmentPacket, _assignmentServerSocket);
 }
 
 void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
