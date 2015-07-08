@@ -147,8 +147,10 @@ public:
 
     qint64 sendUnreliablePacket(std::unique_ptr<NLPacket>& packet, const SharedNodePointer& destinationNode) {};
     qint64 sendUnreliablePacket(std::unique_ptr<NLPacket>& packet, const HifiSockAddr& sockAddr) {};
+
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const SharedNodePointer& destinationNode) {};
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr) {};
+
     qint64 sendPacketList(NLPacketList& packetList, const SharedNodePointer& destinationNode) {};
     qint64 sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr) {};
 
@@ -289,6 +291,10 @@ protected:
 
     void sendPacketToIceServer(PacketType::Value packetType, const HifiSockAddr& iceServerSockAddr, const QUuid& clientID,
                                const QUuid& peerRequestID = QUuid());
+
+    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const SharedNodePointer& destinationNode,
+                      const HifiSockAddr& overridenSockAddr) {};
+
 
     QUuid _sessionUUID;
     NodeHash _nodeHash;
