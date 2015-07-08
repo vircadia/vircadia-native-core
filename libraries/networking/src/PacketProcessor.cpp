@@ -21,26 +21,28 @@
 #include "Menu.h"
 #include "InterfaceLogging.h"
 
-#include "DatagramProcessor.h"
+#include "PacketProcessor.h"
 
-DatagramProcessor::DatagramProcessor(QObject* parent) :
+PacketProcessor::PacketProcessor(QObject* parent) :
     QObject(parent),
     _packetListenerMap()
 {
 
 }
 
-void DatagramProcessor::registerPacketListener(Packet::Type type, QObject* object, QString methodName) {
+void PacketProcessor::registerPacketListener(Packet::Type type, QObject* object, QString methodName) {
+    packetListenerLock.lock();
     if (packetListenerMap.contains(type)) {
         qDebug() << "Warning: Registering a packet listener for packet type " << type
             << " that will remove a previously registered listener";
     }
     packetListenerMap[type] = QPair<QObject*, QString>(object, methodName);
+    packetListenerLock.unlock();
 }
 
-void DatagramProcessor::processDatagrams() {
+void PacketProcessor::processDatagrams() {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                            "DatagramProcessor::processDatagrams()");
+                            "PacketProcessor::processDatagrams()");
 
     if (_isShuttingDown) {
         return; // bail early... we're shutting down.
@@ -171,6 +173,11 @@ void DatagramProcessor::processDatagrams() {
                     break;
                 default:
                     //nodeList->processNodeData(senderSockAddr, incomingPacket);
+                    
+                    packetListenerLock.lock();
+                    auto& listener = packetListenerMap[incomingType];
+                    packetListenerLock.unlock();
+
                     if (packetListenerMap.contains(incomingType)) {
                         auto& listener = packetListenerMap[incomingType];
                         NLPacket packet;

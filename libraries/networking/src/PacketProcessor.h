@@ -10,15 +10,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_DatagramProcessor_h
-#define hifi_DatagramProcessor_h
+#ifndef hifi_PacketProcessor_h
+#define hifi_PacketProcessor_h
 
 #include <QtCore/QObject>
 
-class DatagramProcessor : public QObject {
+class PacketProcessor : public QObject {
     Q_OBJECT
 public:
-    DatagramProcessor(QObject* parent = 0);
+    PacketProcessor(QObject* parent = 0);
     
     int getInPacketCount() const { return _inPacketCount; }
     int getOutPacketCount() const { return _outPacketCount; }
@@ -35,6 +35,7 @@ public slots:
     void processDatagrams();
     
 private:
+    QMutex packetListenerLock;
     QMap<Packet::Type, QPair<QObject*, QString>> packetListenerMap;
     int _inPacketCount = 0;
     int _outPacketCount = 0;
@@ -43,4 +44,4 @@ private:
     bool _isShuttingDown = false;
 };
 
-#endif // hifi_DatagramProcessor_h
+#endif // hifi_PacketProcessor_h
