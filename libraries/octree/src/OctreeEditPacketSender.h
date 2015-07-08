@@ -29,7 +29,7 @@ public:
     /// Queues a single edit message. Will potentially send a pending multi-command packet. Determines which server
     /// node or nodes the packet should be sent to. Can be called even before servers are known, in which case up to
     /// MaxPendingMessages will be buffered and processed when servers are known.
-    void queueOctreeEditMessage(PacketType::Value type, unsigned char* editPacketBuffer, size_t length);
+    void queueOctreeEditMessage(PacketType::Value type, QByteArray& editMessage);
 
     /// Releases all queued messages even if those messages haven't filled an MTU packet. This will move the packed message
     /// packets onto the send queue. If running in threaded mode, the caller does not need to do any further processing to
@@ -74,8 +74,7 @@ public:
 
     // you must override these...
     virtual char getMyNodeType() const = 0;
-    virtual void adjustEditPacketForClockSkew(PacketType::Value type,
-                        unsigned char* editPacketBuffer, size_t length, int clockSkew) { }
+    virtual void adjustEditPacketForClockSkew(PacketType::Value type, QByteArray& buffer, int clockSkew) { }
 
     void processNackPacket(const QByteArray& packet);
 
@@ -83,7 +82,7 @@ public slots:
     void nodeKilled(SharedNodePointer node);
 
 protected:
-    using EditMessageTuple = std::tuple<PacketType::Value, unsigned char*, int>;
+    using EditMessagePair = std::pair<PacketType::Value, QByteArray>;
 
     bool _shouldSend;
     void queuePacketToNode(const QUuid& nodeID, std::unique_ptr<NLPacket> packet);
@@ -102,7 +101,7 @@ protected:
     bool _releaseQueuedMessagesPending;
     QMutex _pendingPacketsLock;
     QMutex _packetsQueueLock; // don't let different threads release the queue while another thread is writing to it
-    std::list<EditMessageTuple> _preServerEdits; // these will get packed into other larger packets
+    std::list<EditMessagePair> _preServerEdits; // these will get packed into other larger packets
     std::list<std::unique_ptr<NLPacket>> _preServerSingleMessagePackets; // these will go out as is
 
     NodeToJurisdictionMap* _serverJurisdictions;

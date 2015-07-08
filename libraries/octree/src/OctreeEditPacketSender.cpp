@@ -128,8 +128,8 @@ void OctreeEditPacketSender::processPreServerExistsPackets() {
 
     // Then "process" all the packable messages...
     while (!_preServerEdits.empty()) {
-        EditMessageTuple editMessage = std::move(_preServerEdits.front());
-        queueOctreeEditMessage(std::get<0>(editMessage), std::get<1>(editMessage), std::get<2>(editMessage));
+        EditMessagePair& editMessage = _preServerEdits.front();
+        queueOctreeEditMessage(editMessage.first, editMessage.second);
         _preServerEdits.pop_front();
     }
 
@@ -194,8 +194,8 @@ void OctreeEditPacketSender::queuePacketToNodes(std::unique_ptr<NLPacket> packet
 }
 
 
-// NOTE: editPacketBuffer - is JUST the octcode/color and does not contain the packet header!
-void OctreeEditPacketSender::queueOctreeEditMessage(PacketType::Value type, unsigned char* editPacketBuffer, size_t length) {
+// NOTE: editMessage - is JUST the octcode/color and does not contain the packet header
+void OctreeEditPacketSender::queueOctreeEditMessage(PacketType::Value type, QByteArray& editMessage) {
 
     if (!_shouldSend) {
         return; // bail early
@@ -205,9 +205,10 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType::Value type, unsi
     // jurisdictions for processing
     if (!serversExist()) {
         if (_maxPendingMessages > 0) {
-            EditMessageTuple messageTuple { type, editPacketBuffer, length };
+            EditMessagePair messagePair { type, QByteArray(editMessage) };
+
             _pendingPacketsLock.lock();
-            _preServerEdits.push_back(messageTuple);
+            _preServerEdits.push_back(messagePair);
 
             // if we've saved MORE than out max, then clear out the oldest packet...
             int allPendingMessages = _preServerSingleMessagePackets.size() + _preServerEdits.size();
@@ -239,7 +240,8 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType::Value type, unsi
                 _serverJurisdictions->lockForRead();
                 if ((*_serverJurisdictions).find(nodeUUID) != (*_serverJurisdictions).end()) {
                     const JurisdictionMap& map = (*_serverJurisdictions)[nodeUUID];
-                    isMyJurisdiction = (map.isMyJurisdiction(editPacketBuffer, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
+                    isMyJurisdiction = (map.isMyJurisdiction(reinterpret_cast<const unsigned char*>(editMessage.data()),
+                                                             CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
                 } else {
                     isMyJurisdiction = false;
                 }
@@ -253,7 +255,7 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType::Value type, unsi
                 } else {
                     // If we're switching type, then we send the last one and start over
                     if ((type != bufferedPacket->readType() && bufferedPacket->getSizeUsed() > 0) ||
-                        (length >= bufferedPacket->bytesAvailable())) {
+                        (editMessage.size() >= bufferedPacket->bytesAvailable())) {
 
                         // create the new packet and swap it with the packet in _pendingEditPackets
                         auto packetToRelease = initializePacket(type, node->getClockSkewUsec());
@@ -269,10 +271,10 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType::Value type, unsi
                 // We call this virtual function that allows our specific type of EditPacketSender to
                 // fixup the buffer for any clock skew
                 if (node->getClockSkewUsec() != 0) {
-                    adjustEditPacketForClockSkew(type, editPacketBuffer, length, node->getClockSkewUsec());
+                    adjustEditPacketForClockSkew(type, editMessage, node->getClockSkewUsec());
                 }
 
-                bufferedPacket->write(reinterpret_cast<char*>(editPacketBuffer), length);
+                bufferedPacket->write(editMessage);
             }
         }
     });
