@@ -29,8 +29,8 @@
 const quint64 SIMULATOR_CHANGE_LOCKOUT_PERIOD = (quint64)(0.2f * USECS_PER_SECOND);
 
 
-EntityTree::EntityTree(bool shouldReaverage) : 
-    Octree(shouldReaverage), 
+EntityTree::EntityTree(bool shouldReaverage) :
+    Octree(shouldReaverage),
     _fbxService(NULL),
     _simulation(NULL)
 {
@@ -63,7 +63,7 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     Octree::eraseAllOctreeElements(createNewRoot);
 }
 
-bool EntityTree::handlesEditPacketType::(PacketType::Value packetType) const {
+bool EntityTree::handlesEditPacketType(PacketType::Value packetType) const {
     // we handle these types of "edit" packets
     switch (packetType) {
         case PacketType::EntityAdd:
@@ -108,14 +108,14 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
 bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
     EntityTreeElement* containingElement = getContainingElement(entity->getEntityItemID());
     if (!containingElement) {
-        qCDebug(entities) << "UNEXPECTED!!!!  EntityTree::updateEntity() entity-->element lookup failed!!! entityID=" 
+        qCDebug(entities) << "UNEXPECTED!!!!  EntityTree::updateEntity() entity-->element lookup failed!!! entityID="
             << entity->getEntityItemID();
         return false;
     }
     return updateEntityWithElement(entity, properties, containingElement, senderNode);
 }
 
-bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityItemProperties& origProperties, 
+bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityItemProperties& origProperties,
                                          EntityTreeElement* containingElement, const SharedNodePointer& senderNode) {
     EntityItemProperties properties = origProperties;
 
@@ -177,7 +177,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                         // (2) equal priority wins if ownership filter has expired except...
                         uint8_t oldPriority = entity->getSimulationPriority();
                         uint8_t newPriority = properties.getSimulationOwner().getPriority();
-                        if (newPriority > oldPriority || 
+                        if (newPriority > oldPriority ||
                              (newPriority == oldPriority && properties.getSimulationOwner().hasExpired())) {
                             simulationBlocked = false;
                         }
@@ -222,7 +222,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                 entity->clearDirtyFlags();
             }
         }
-        
+
         QString entityScriptAfter = entity->getScript();
         quint64 entityScriptTimestampAfter = entity->getScriptTimestamp();
         bool reload = entityScriptTimestampBefore != entityScriptTimestampAfter;
@@ -231,15 +231,15 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
         }
         maybeNotifyNewCollisionSoundURL(collisionSoundURLBefore, entity->getCollisionSoundURL());
      }
-    
+
     // TODO: this final containingElement check should eventually be removed (or wrapped in an #ifdef DEBUG).
     containingElement = getContainingElement(entity->getEntityItemID());
     if (!containingElement) {
-        qCDebug(entities) << "UNEXPECTED!!!! after updateEntity() we no longer have a containing element??? entityID=" 
+        qCDebug(entities) << "UNEXPECTED!!!! after updateEntity() we no longer have a containing element??? entityID="
                 << entity->getEntityItemID();
         return false;
     }
-    
+
     return true;
 }
 
@@ -264,7 +264,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     // You should not call this on existing entities that are already part of the tree! Call updateEntity()
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (containingElement) {
-        qCDebug(entities) << "UNEXPECTED!!! ----- don't call addEntity() on existing entity items. entityID=" << entityID 
+        qCDebug(entities) << "UNEXPECTED!!! ----- don't call addEntity() on existing entity items. entityID=" << entityID
                     << "containingElement=" << containingElement;
         return result;
     }
@@ -272,7 +272,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     // construct the instance of the entity
     EntityTypes::EntityType type = properties.getType();
     result = EntityTypes::constructEntityItem(type, entityID, properties);
-    
+
     if (result) {
         if (recordCreationTime) {
             result->recordCreationTime();
@@ -502,7 +502,7 @@ void EntityTree::findEntities(const glm::vec3& center, float radius, QVector<Ent
 
 class FindEntitiesInCubeArgs {
 public:
-    FindEntitiesInCubeArgs(const AACube& cube) 
+    FindEntitiesInCubeArgs(const AACube& cube)
         : _cube(cube), _foundEntities() {
     }
 
@@ -534,7 +534,7 @@ public:
     FindEntitiesInBoxArgs(const AABox& box)
     : _box(box), _foundEntities() {
     }
-    
+
     AABox _box;
     QVector<EntityItemPointer> _foundEntities;
 };
@@ -588,7 +588,7 @@ int EntityTree::processEditPacketData(PacketType::Value packetType, const unsign
             processedBytes = processEraseMessageDetails(dataByteArray, senderNode);
             break;
         }
-        
+
         case PacketType::EntityAdd:
         case PacketType::EntityEdit: {
             quint64 startDecode = 0, endDecode = 0;
@@ -641,7 +641,7 @@ int EntityTree::processEditPacketData(PacketType::Value packetType, const unsign
 
                             startLogging = usecTimestampNow();
                             if (wantEditLogging()) {
-                                qCDebug(entities) << "User [" << senderNode->getUUID() << "] added entity. ID:" 
+                                qCDebug(entities) << "User [" << senderNode->getUUID() << "] added entity. ID:"
                                                 << newEntity->getEntityItemID();
                                 qCDebug(entities) << "   properties:" << properties;
                             }
@@ -658,14 +658,14 @@ int EntityTree::processEditPacketData(PacketType::Value packetType, const unsign
                     qCDebug(entities) << "Add or Edit failed." << packetType << existingEntity.get();
                 }
             }
-            
+
 
             _totalDecodeTime += endDecode - startDecode;
             _totalLookupTime += endLookup - startLookup;
             _totalUpdateTime += endUpdate - startUpdate;
             _totalCreateTime += endCreate - startCreate;
             _totalLoggingTime += endLogging - startLogging;
-            
+
             break;
         }
 
@@ -731,11 +731,11 @@ void EntityTree::update() {
         if (pendingDeletes.size() > 0) {
             // translate into list of ID's
             QSet<EntityItemID> idsToDelete;
-            
+
             for (auto entity : pendingDeletes) {
                 idsToDelete.insert(entity->getEntityItemID());
             }
-            
+
             // delete these things the roundabout way
             deleteEntities(idsToDelete, true);
         }
@@ -765,7 +765,7 @@ bool EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumbe
     bool hasMoreToSend = true;
 
     unsigned char* copyAt = outputBuffer;
-    size_t numBytesPacketHeader = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(outputBuffer), 
+    size_t numBytesPacketHeader = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(outputBuffer),
                                                                                            PacketType::EntityErase);
     copyAt += numBytesPacketHeader;
     outputLength = numBytesPacketHeader;
@@ -795,7 +795,7 @@ bool EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumbe
     memcpy(copyAt, &numberOfIds, sizeof(numberOfIds));
     copyAt += sizeof(numberOfIds);
     outputLength += sizeof(numberOfIds);
-    
+
     // we keep a multi map of entity IDs to timestamps, we only want to include the entity IDs that have been
     // deleted since we last sent to this node
     _recentlyDeletedEntitiesLock.lockForRead();
@@ -839,7 +839,7 @@ bool EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumbe
 
     // replace the correct count for ids included
     memcpy(numberOfIDsAt, &numberOfIds, sizeof(numberOfIds));
-    
+
     return hasMoreToSend;
 }
 
@@ -863,7 +863,7 @@ void EntityTree::forgetEntitiesDeletedBefore(quint64 sinceTime) {
     foreach (quint64 value, keysToRemove) {
         _recentlyDeletedEntityItemIDs.remove(value);
     }
-    
+
     _recentlyDeletedEntitiesLock.unlock();
 }
 
@@ -907,7 +907,7 @@ int EntityTree::processEraseMessage(const QByteArray& dataByteArray, const Share
             QUuid entityID = QUuid::fromRfc4122(encodedID);
             dataAt += encodedID.size();
             processedBytes += encodedID.size();
-            
+
             EntityItemID entityItemID(entityID);
             entityItemIDsToDelete << entityItemID;
 
@@ -951,7 +951,7 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
             QUuid entityID = QUuid::fromRfc4122(encodedID);
             dataAt += encodedID.size();
             processedBytes += encodedID.size();
-            
+
             EntityItemID entityItemID(entityID);
             entityItemIDsToDelete << entityItemID;
 
