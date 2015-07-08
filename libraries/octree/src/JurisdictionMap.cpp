@@ -273,9 +273,9 @@ std::unique_ptr<NLPacket> JurisdictionMap::packEmptyJurisdictionIntoMessage(Node
     auto packet = NLPacket::create(PacketType::Jurisdiction, sizeof(type) + sizeof(bytes));
 
     // Pack the Node Type in first byte
-    packet->write(type);
+    packet->writePrimitive(type);
     // No root or end node details to pack!
-    packet->write(bytes);
+    packet->writePrimitive(bytes);
 
     return std::move(packet); // includes header!
 }
@@ -285,18 +285,18 @@ std::unique_ptr<NLPacket> JurisdictionMap::packIntoMessage() {
 
     // Pack the Node Type in first byte
     NodeType_t type = getNodeType();
-    packet->write(type);
+    packet->writePrimitive(type);
 
     // add the root jurisdiction
     if (_rootOctalCode) {
         size_t bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_rootOctalCode));
         // No root or end node details to pack!
-        packet->write(bytes);
+        packet->writePrimitive(bytes);
         packet->write(reinterpret_cast<char*>(_rootOctalCode), bytes);
 
         // if and only if there's a root jurisdiction, also include the end nodes
         int endNodeCount = _endNodes.size();
-        packet->write(endNodeCount);
+        packet->writePrimitive(endNodeCount);
 
         for (int i=0; i < endNodeCount; i++) {
             unsigned char* endNodeCode = _endNodes[i];
@@ -304,12 +304,12 @@ std::unique_ptr<NLPacket> JurisdictionMap::packIntoMessage() {
             if (endNodeCode) {
                 bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
             }
-            packet->write(bytes);
+            packet->writePrimitive(bytes);
             packet->write(reinterpret_cast<char*>(endNodeCode), bytes);
         }
     } else {
         int bytes = 0;
-        packet->write(bytes);
+        packet->writePrimitive(bytes);
     }
 
     return std::move(packet);
