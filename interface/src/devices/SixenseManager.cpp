@@ -481,6 +481,7 @@ void SixenseManager::handleButtonEvent(unsigned int buttons, int index) {
 }
 
 void SixenseManager::handlePoseEvent(glm::vec3 position, glm::quat rotation, int index) {
+#if HAS_SIXENSE
     // Transform the measured position into body frame.
     glm::vec3 neck = _neckBase;
     // Zeroing y component of the "neck" effectively raises the measured position a little bit.
@@ -538,6 +539,7 @@ void SixenseManager::handlePoseEvent(glm::vec3 position, glm::quat rotation, int
 //    palm->setTipPosition(newTipPosition);
     
     _poseStateMap[makeInput(JointChannel(index)).getChannel()] = UserInputMapper::PoseValue(position, rotation);
+#endif
 }
 
 void SixenseManager::registerToUserInputMapper(UserInputMapper& mapper) {

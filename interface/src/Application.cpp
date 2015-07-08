@@ -669,8 +669,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     ddeTracker->init();
     connect(ddeTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
 #endif
-    
-    ViveControllerManager::getInstance().activate();
+
+    ViveControllerManager::getInstance().init();
+    if (ViveControllerManager::getInstance().isSupported()) {
+        ViveControllerManager::getInstance().activate();
+    }
 
     _oldHandMouseX[0] = -1;
     _oldHandMouseY[0] = -1;

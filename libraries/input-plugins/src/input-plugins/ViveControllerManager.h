@@ -18,11 +18,30 @@
 #include <GLMHelpers.h>
 
 #include "UserInputMapper.h"
+#include "plugins/Plugin.h"
 
-class ViveControllerManager : public QObject {
-    Q_OBJECT
-    
+class ViveControllerManager : public Plugin {
 public:
+    virtual const QString& getName() const override;
+    virtual bool isSupported() const override;
+
+    /// Called when plugin is initially loaded, typically at application start
+    virtual void init() override;
+    /// Called when application is shutting down
+    virtual void deinit() override ;
+
+    /// Called when a plugin is being activated for use.  May be called multiple times.
+    virtual void activate(PluginContainer * container) override;
+    /// Called when a plugin is no longer being used.  May be called multiple times.
+    virtual void deactivate() override;
+
+    /**
+     * Called by the application during it's idle phase.  If the plugin needs to do
+     * CPU intensive work, it should launch a thread for that, rather than trying to
+     * do long operations in the idle call
+     */
+    virtual void idle() override;
+
     enum JoystickAxisChannel {
         AXIS_Y_POS = 1U << 1,
         AXIS_Y_NEG = 1U << 2,
@@ -78,7 +97,9 @@ private:
     bool _isInitialized;
     bool _isEnabled;
     int _trackedControllers;
-    
+
+    static const QString NAME;
+
 protected:
     int _deviceID = 0;
     

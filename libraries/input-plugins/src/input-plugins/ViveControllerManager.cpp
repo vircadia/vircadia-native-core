@@ -21,6 +21,8 @@
 Q_DECLARE_LOGGING_CATEGORY(inputplugins)
 Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
 
+const QString ViveControllerManager::NAME("OpenVR (Vive) Hand Controllers");
+
 extern vr::IVRSystem *_hmd;
 extern vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 extern mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
@@ -53,6 +55,40 @@ ViveControllerManager::ViveControllerManager() :
 
 ViveControllerManager::~ViveControllerManager() {
 
+}
+
+const QString& ViveControllerManager::getName() const {
+    return NAME;
+}
+
+bool ViveControllerManager::isSupported() const {
+    return vr::VR_IsHmdPresent();
+}
+
+void ViveControllerManager::init() {
+    ;
+}
+
+void ViveControllerManager::deinit() {
+    ;
+}
+
+void ViveControllerManager::activate(PluginContainer * container) {
+    activate();
+}
+
+/// Called when a plugin is no longer being used.  May be called multiple times.
+void ViveControllerManager::deactivate() {
+    ;
+}
+
+/**
+ * Called by the application during it's idle phase.  If the plugin needs to do
+ * CPU intensive work, it should launch a thread for that, rather than trying to
+ * do long operations in the idle call
+ */
+void ViveControllerManager::idle() {
+    update();
 }
 
 void ViveControllerManager::activate() {
