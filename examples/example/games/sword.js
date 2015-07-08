@@ -11,7 +11,8 @@
 //
 "use strict";
 /*jslint vars: true*/
-var Script, Entities, MyAvatar, Window, Overlays, Controller, Vec3, Quat, print; // Referenced globals provided by High Fidelity.
+var Script, Entities, MyAvatar, Window, Overlays, Controller, Vec3, Quat, print, ToolBar; // Referenced globals provided by High Fidelity.
+Script.include(["../../libraries/toolBars.js"]);
 
 var hand = "right";
 var nullActionID = "00000000-0000-0000-0000-000000000000";
@@ -19,25 +20,61 @@ var controllerID;
 var controllerActive;
 var stickID = null;
 var actionID = nullActionID;
+var targetIDs = [];
 var dimensions = { x: 0.3, y: 0.1, z: 2.0 };
 var AWAY_ORIENTATION =  Quat.fromPitchYawRollDegrees(-90, 0, 0);
+var BUTTON_SIZE = 32;
 
 var stickModel = "https://hifi-public.s3.amazonaws.com/eric/models/stick.fbx";
 var swordModel = "https://hifi-public.s3.amazonaws.com/ozan/props/sword/sword.fbx";
 var whichModel = "sword";
-var rezButton = Overlays.addOverlay("image", {
-    x: 100,
-    y: 380,
-    width: 32,
-    height: 32,
-    imageURL: "http://s3.amazonaws.com/hifi-public/images/delete.png",
-    color: {
-        red: 255,
-        green: 255,
-        blue: 255
-    },
+var toolBar = new ToolBar(0, 0, ToolBar.vertical, "highfidelity.sword.toolbar", function () {
+    return {x: 100, y: 380};
+});
+
+var SWORD_IMAGE = "http://s3.amazonaws.com/hifi-public/images/billiardsReticle.png";  // Toggle between brandishing/sheathing sword (creating if necessary)
+var TARGET_IMAGE = "http://s3.amazonaws.com/hifi-public/images/puck.png"; // Create a target dummy
+var CLEANUP_IMAGE = "http://s3.amazonaws.com/hifi-public/images/delete.png"; // Remove sword and all target dummies.f
+var swordButton = toolBar.addOverlay("image", {
+    width: BUTTON_SIZE,
+    height: BUTTON_SIZE,
+    imageURL: SWORD_IMAGE,
     alpha: 1
 });
+var targetButton = toolBar.addOverlay("image", {
+    width: BUTTON_SIZE,
+    height: BUTTON_SIZE,
+    imageURL: TARGET_IMAGE,
+    alpha: 1
+});
+var cleanupButton = toolBar.addOverlay("image", {
+    width: BUTTON_SIZE,
+    height: BUTTON_SIZE,
+    imageURL: CLEANUP_IMAGE,
+    alpha: 1
+});
+
+var flasher;
+function clearFlash() {
+    if (!flasher) {
+        return;
+    }
+    Script.clearTimeout(flasher.timer);
+    Overlays.deleteOverlay(flasher.overlay);
+    flasher = null;
+}
+function flash(color) {
+    clearFlash();
+    flasher = {};
+    flasher.overlay = Overlays.addOverlay("text", {
+        backgroundColor: color,
+        backgroundAlpha: 0.7,
+        width: Window.innerWidth,
+        height: Window.innerHeight
+    });
+    flasher.timer = Script.setTimeout(clearFlash, 500);
+}
+
 
 var health = 100;
 var display;
@@ -66,15 +103,22 @@ function removeDisplay() {
     }
 }
 
-function cleanUp() {
+function cleanUp(leaveButtons) {
     if (stickID) {
         Entities.deleteAction(stickID, actionID);
         Entities.deleteEntity(stickID);
         stickID = null;
         actionID = null;
     }
+    targetIDs.forEach(function (id) {
+        Entities.deleteAction(id.entity, id.action);
+        Entities.deleteEntity(id.entity);
+    });
+    targetIDs = [];
     removeDisplay();
-    Overlays.deleteOverlay(rezButton);
+    if (!leaveButtons) {
+        toolBar.cleanup();
+    }
 }
 
 function computeEnergy(collision, entityID) {
@@ -89,12 +133,14 @@ function gotHit(collision) {
     if (isAway) { return; }
     var energy = computeEnergy(collision);
     health -= energy;
+    flash({red: 255, green: 0, blue: 0});
     updateDisplay();
 }
 function scoreHit(idA, idB, collision) {
     if (isAway) { return; }
     var energy = computeEnergy(collision, idA);
     health += energy;
+    flash({red: 0, green: 255, blue: 0});
     updateDisplay();
 }
 
@@ -156,9 +202,10 @@ function toggleAway() {
 }
 
 function onClick(event) {
-    switch (Overlays.getOverlayAtPoint({x: event.x, y: event.y})) {
-    case rezButton:
+    switch (Overlays.getOverlayAtPoint(event)) {
+    case swordButton:
         if (!stickID) {
+            initControls();
             stickID = Entities.addEntity({
                 type: "Model",
                 modelURL: (whichModel === "sword") ? swordModel : stickModel,
@@ -184,6 +231,29 @@ function onClick(event) {
         } else {
             toggleAway();
         }
+        break;
+    case targetButton:
+        var position = Vec3.sum(MyAvatar.position, {x: 1.0, y: 0.4, z: 0.0});
+        var boxId = Entities.addEntity({
+            type: "Box",
+            name: "dummy",
+            position: position,
+            dimensions: {x: 0.3, y: 0.7, z: 0.3},
+            gravity: {x: 0.0, y: -3.0, z: 0.0},
+            damping: 0.2,
+            collisionsWillMove: true
+        });
+
+        var pointToOffsetFrom = Vec3.sum(position, {x: 0.0, y: 2.0, z: 0.0});
+        var action = Entities.addAction("offset", boxId, {pointToOffsetFrom: pointToOffsetFrom,
+                                             linearDistance: 2.0,
+                                             // linearTimeScale: 0.005
+                                             linearTimeScale: 0.1
+                                            });
+        targetIDs.push({entity: boxId, action: action});
+        break;
+    case cleanupButton:
+        cleanUp('leaveButtons');
         break;
     }
 }
