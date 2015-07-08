@@ -167,4 +167,3 @@ void GLBackend::do_setFramebuffer(Batch& batch, uint32 paramOffset) {
         _output._framebuffer = framebuffer;
     }
 }
-

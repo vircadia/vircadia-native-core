@@ -39,6 +39,9 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
 
     (&::gpu::GLBackend::do_setFramebuffer),
 
+    (&::gpu::GLBackend::do_beginQuery),
+    (&::gpu::GLBackend::do_endQuery),
+    (&::gpu::GLBackend::do_getQuery),
 
     (&::gpu::GLBackend::do_glEnable),
     (&::gpu::GLBackend::do_glDisable),
@@ -242,7 +245,6 @@ void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
 
     (void) CHECK_GL_ERROR();
 }
-
 
 // TODO: As long as we have gl calls explicitely issued from interface
 // code, we need to be able to record and batch these calls. THe long 
