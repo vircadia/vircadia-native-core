@@ -618,7 +618,7 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
 
     if (!node->getSymmetricSocket().isNull()) {
         auto symmetricPingPacket = constructPingPacket(PingType::Symmetric);
-        sendPacket(symmetricPingPacket, node, node->getSymmetricSocket());
+        sendPacket(std::move(symmetricPingPacket), node, node->getSymmetricSocket());
     }
 
     node->incrementConnectionAttempts();
