@@ -322,6 +322,8 @@ std::unique_ptr<NLPacket> OctreeEditPacketSender::initializePacket(PacketType::V
     // pack in timestamp
     quint64 now = usecTimestampNow() + nodeClockSkew;
     newPacket->write(now);
+
+    return newPacket;
 }
 
 bool OctreeEditPacketSender::process() {
