@@ -216,7 +216,7 @@ public:
         if (endAtIndex < 0) {
             endAtIndex += _size;
         }
-        return Iterator(&_buffer.first(), &_buffer.last(), &_buffer[_newestEntryAtIndex], &_buffer[endAtIndex]);
+        return Iterator(&_buffer.front(), &_buffer.back(), &_buffer[_newestEntryAtIndex], &_buffer[endAtIndex]);
     }
 };
 

@@ -583,9 +583,8 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
 
 void NodeList::sendAssignment(Assignment& assignment) {
 
-    PacketType::Value assignmentPacketType = assignment.getCommand() == Assignment::CreateCommand
-        ? PacketTypeCreateAssignment
-        : PacketTypeRequestAssignment;
+    PacketType::Value assignmentPacketType = assignment.getCommand() == Assignment::CreateCommand ?
+                                                        PacketType::CreateAssignment : PacketType::RequestAssignment;
 
     QByteArray packet = byteArrayWithPopulatedHeader(assignmentPacketType);
     QDataStream packetStream(&packet, QIODevice::Append);
