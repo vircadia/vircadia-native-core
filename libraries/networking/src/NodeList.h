@@ -61,6 +61,7 @@ public:
     void addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes);
     void resetNodeInterestSet() { _nodeTypesOfInterest.clear(); }
 
+    void processReceivedPacket(std::unique_ptr<NLPacket>, HifiSockAddr senderSockAddr);
     void processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
 
     void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }

@@ -90,6 +90,18 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
 
     // we definitely want STUN to update our public socket, so call the LNL to kick that off
     startSTUNPublicSocketUpdate();
+
+    auto packetReceiver = getPacketReceiver();
+    packetReceiver.registerPacketListener(PacketType::DomainList, this, "processReceivedPacket");
+    packetReceiver.registerPacketListener(PacketType::DomainServerAddedNode, this, "processReceivedPacket");
+    packetReceiver.registerPacketListener(PacketType::DomainServerRequireDTLS, this, "processReceivedPacket");
+    packetReceiver.registerPacketListener(PacketType::ICEServerPeerInformation, this, "processReceivedPacket");
+    packetReceiver.registerPacketListener(PacketType::Ping, this, "processReceivedPacket");
+    packetReceiver.registerPacketListener(PacketType::PingReply, this, "processReceivedPacket");
+    packetReceiver.registerPacketListener(PacketType::ICEPing, this, "processReceivedPacket");
+    packetReceiver.registerPacketListener(PacketType::ICEPingReply, this, "processReceivedPacket");
+    packetReceiver.registerPacketListener(PacketType::StunResponse, this, "processReceivedPacket");
+    packetReceiver.registerPacketListener(PacketType::DomainServerPathResponse, this, "processReceivedPacket");
 }
 
 qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination) {
@@ -150,6 +162,11 @@ void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& 
         "               clockSkew: " << clockSkew  << "\n" <<
         "       average clockSkew: " << sendingNode->getClockSkewUsec();
     }
+}
+
+// TODO: Break this out into individual packet types
+void NodeList::processReceivedPacket(std::unique_ptr<NLPacket>, HifiSockAddr senderSockAddr) {
+    qDebug() << "Got packet!";
 }
 
 void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
