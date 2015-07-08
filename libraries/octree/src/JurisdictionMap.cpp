@@ -24,7 +24,7 @@
 
 
 // standard assignment
-// copy assignment 
+// copy assignment
 JurisdictionMap& JurisdictionMap::operator=(const JurisdictionMap& other) {
     copyContents(other);
     return *this;
@@ -63,7 +63,7 @@ void JurisdictionMap::copyContents(unsigned char* rootCodeIn, const std::vector<
         rootCode = new unsigned char[1];
         *rootCode = 0;
     }
-    
+
     for (size_t i = 0; i < endNodesIn.size(); i++) {
         if (endNodesIn[i]) {
             size_t bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodesIn[i]));
@@ -89,7 +89,7 @@ void JurisdictionMap::clear() {
         delete[] _rootOctalCode;
         _rootOctalCode = NULL;
     }
-    
+
     for (size_t i = 0; i < _endNodes.size(); i++) {
         if (_endNodes[i]) {
             delete[] _endNodes[i];
@@ -102,7 +102,7 @@ JurisdictionMap::JurisdictionMap(NodeType_t type) : _rootOctalCode(NULL) {
     _nodeType = type;
     unsigned char* rootCode = new unsigned char[1];
     *rootCode = 0;
-    
+
     std::vector<unsigned char*> emptyEndNodes;
     init(rootCode, emptyEndNodes);
 }
@@ -112,7 +112,7 @@ JurisdictionMap::JurisdictionMap(const char* filename) : _rootOctalCode(NULL) {
     readFromFile(filename);
 }
 
-JurisdictionMap::JurisdictionMap(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes)  
+JurisdictionMap::JurisdictionMap(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes)
     : _rootOctalCode(NULL) {
     init(rootOctalCode, endNodes);
 }
@@ -123,12 +123,12 @@ void myDebugoutputBits(unsigned char byte, bool withNewLine) {
     } else {
         printf("[ %d (0x%x): ", byte, byte);
     }
-    
+
     for (int i = 0; i < 8; i++) {
         printf("%d", byte >> (7 - i) & 1);
     }
     printf(" ] ");
-    
+
     if (withNewLine) {
         printf("\n");
     }
@@ -158,7 +158,7 @@ JurisdictionMap::JurisdictionMap(const char* rootHexCode, const char* endNodesHe
 
     qCDebug(octree, "JurisdictionMap::JurisdictionMap() _rootOctalCode=%p octalCode=", _rootOctalCode);
     myDebugPrintOctalCode(_rootOctalCode, true);
-    
+
     QString endNodesHexStrings(endNodesHexCodes);
     QString delimiterPattern(",");
     QStringList endNodeList = endNodesHexStrings.split(delimiterPattern);
@@ -167,17 +167,17 @@ JurisdictionMap::JurisdictionMap(const char* rootHexCode, const char* endNodesHe
         QString endNodeHexString = endNodeList.at(i);
 
         unsigned char* endNodeOctcode = hexStringToOctalCode(endNodeHexString);
-        
+
         qCDebug(octree, "JurisdictionMap::JurisdictionMap()  endNodeList(%d)=%s",
             i, endNodeHexString.toLocal8Bit().constData());
-        
+
         //printOctalCode(endNodeOctcode);
         _endNodes.push_back(endNodeOctcode);
 
         qCDebug(octree, "JurisdictionMap::JurisdictionMap() endNodeOctcode=%p octalCode=", endNodeOctcode);
         myDebugPrintOctalCode(endNodeOctcode, true);
 
-    }    
+    }
 }
 
 
@@ -194,7 +194,7 @@ JurisdictionMap::Area JurisdictionMap::isMyJurisdiction(const unsigned char* nod
     if (isAncestorOf(nodeOctalCode, _rootOctalCode)) {
         return ABOVE;
     }
-    
+
     // otherwise...
     bool isInJurisdiction = isAncestorOf(_rootOctalCode, nodeOctalCode, childIndex);
     // if we're under the root, then we can't be under any of the endpoints
@@ -230,7 +230,7 @@ bool JurisdictionMap::readFromFile(const char* filename) {
 
         unsigned char* octcode = hexStringToOctalCode(childValue);
         printOctalCode(octcode);
-        
+
         _endNodes.push_back(octcode);
     }
     settings.endGroup();
@@ -241,7 +241,7 @@ void JurisdictionMap::displayDebugDetails() const {
     QString rootNodeValue = octalCodeToHexString(_rootOctalCode);
 
     qCDebug(octree) << "root:" << rootNodeValue;
-    
+
     for (size_t i = 0; i < _endNodes.size(); i++) {
         QString value = octalCodeToHexString(_endNodes[i]);
         qCDebug(octree) << "End node[" << i << "]: " << rootNodeValue;
@@ -257,7 +257,7 @@ bool JurisdictionMap::writeToFile(const char* filename) {
     QString rootNodeValue = octalCodeToHexString(_rootOctalCode);
 
     settings.setValue("root", rootNodeValue);
-    
+
     settings.beginGroup("endNodes");
     for (size_t i = 0; i < _endNodes.size(); i++) {
         QString key = QString("endnode%1").arg(i);
@@ -270,13 +270,13 @@ bool JurisdictionMap::writeToFile(const char* filename) {
 
 std::unique_ptr<NLPacket> JurisdictionMap::packEmptyJurisdictionIntoMessage(NodeType_t type) {
     int bytes = 0;
-    auto packet = NLPacket::create(PacketType::Jurisdiction);
+    auto packet = NLPacket::create(PacketType::Jurisdiction, sizeof(type) + sizeof(bytes));
 
     // Pack the Node Type in first byte
-    packet->write(reinterpret_cast<char*>(&type), sizeof(type));
+    packet->write(type);
     // No root or end node details to pack!
-    packet->write(reinterpret_cast<char*>(&bytes), sizeof(bytes));
-    
+    packet->write(bytes);
+
     return std::move(packet); // includes header!
 }
 
@@ -285,18 +285,18 @@ std::unique_ptr<NLPacket> JurisdictionMap::packIntoMessage() {
 
     // Pack the Node Type in first byte
     NodeType_t type = getNodeType();
-    packet->write(reinterpret_cast<char*>(&type), sizeof(type));
+    packet->write(type);
 
     // add the root jurisdiction
     if (_rootOctalCode) {
         size_t bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_rootOctalCode));
         // No root or end node details to pack!
-        packet->write(reinterpret_cast<char*>(&bytes), sizeof(bytes));
+        packet->write(bytes);
         packet->write(reinterpret_cast<char*>(_rootOctalCode), bytes);
-        
+
         // if and only if there's a root jurisdiction, also include the end nodes
-        int endNodeCount = _endNodes.size(); 
-        packet->write(reinterpret_cast<char*>(&endNodeCount), sizeof(endNodeCount));
+        int endNodeCount = _endNodes.size();
+        packet->write(endNodeCount);
 
         for (int i=0; i < endNodeCount; i++) {
             unsigned char* endNodeCode = _endNodes[i];
@@ -304,15 +304,15 @@ std::unique_ptr<NLPacket> JurisdictionMap::packIntoMessage() {
             if (endNodeCode) {
                 bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
             }
-            packet->write(reinterpret_cast<char*>(&bytes), sizeof(bytes));
+            packet->write(bytes);
             packet->write(reinterpret_cast<char*>(endNodeCode), bytes);
         }
     } else {
         int bytes = 0;
-        packet->write(reinterpret_cast<char*>(&bytes), sizeof(bytes));
+        packet->write(bytes);
     }
-    
-    return std::move(packet); // includes header!
+
+    return std::move(packet);
 }
 
 int JurisdictionMap::unpackFromMessage(const unsigned char* sourceBuffer, int availableBytes) {
@@ -323,7 +323,7 @@ int JurisdictionMap::unpackFromMessage(const unsigned char* sourceBuffer, int av
     int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<const char*>(sourceBuffer));
     sourceBuffer += numBytesPacketHeader;
     int remainingBytes = availableBytes - numBytesPacketHeader;
-    
+
     // read the root jurisdiction
     int bytes = 0;
     memcpy(&bytes, sourceBuffer, sizeof(bytes));
@@ -335,7 +335,7 @@ int JurisdictionMap::unpackFromMessage(const unsigned char* sourceBuffer, int av
         memcpy(_rootOctalCode, sourceBuffer, bytes);
         sourceBuffer += bytes;
         remainingBytes -= bytes;
-        
+
         // if and only if there's a root jurisdiction, also include the end nodes
         int endNodeCount = 0;
         memcpy(&endNodeCount, sourceBuffer, sizeof(endNodeCount));
@@ -345,13 +345,13 @@ int JurisdictionMap::unpackFromMessage(const unsigned char* sourceBuffer, int av
             memcpy(&bytes, sourceBuffer, sizeof(bytes));
             sourceBuffer += sizeof(bytes);
             remainingBytes -= sizeof(bytes);
-            
+
             if (bytes <= remainingBytes) {
                 unsigned char* endNodeCode = new unsigned char[bytes];
                 memcpy(endNodeCode, sourceBuffer, bytes);
                 sourceBuffer += bytes;
                 remainingBytes -= bytes;
-            
+
                 // if the endNodeCode was 0 length then don't add it
                 if (bytes > 0) {
                     _endNodes.push_back(endNodeCode);
@@ -359,6 +359,6 @@ int JurisdictionMap::unpackFromMessage(const unsigned char* sourceBuffer, int av
             }
         }
     }
-    
+
     return sourceBuffer - startPosition; // includes header!
 }

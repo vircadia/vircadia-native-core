@@ -400,9 +400,9 @@ void NodeList::sendDSPathQuery(const QString& newPath) {
         // get the size of the UTF8 representation of the desired path
         qint64 numPathBytes = pathQueryUTF8.size();
 
-        if (numPathBytes + sizeof(numPathBytes) < pathQueryPacket->bytesAvailable()) {
+        if (numPathBytes + ((qint64) sizeof(numPathBytes)) < pathQueryPacket->bytesAvailable()) {
             // append the size of the path to the query packet
-            pathQueryPacket->write(reinterpret_cast<char*>(&numPathBytes), sizeof(numPathBytes));
+            pathQueryPacket->write(numPathBytes);
 
             // append the path itself to the query packet
             pathQueryPacket->write(pathQueryUTF8);
