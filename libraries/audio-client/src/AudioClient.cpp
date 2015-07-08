@@ -856,7 +856,7 @@ void AudioClient::handleAudioInput() {
             _audioPacket->reset();
 
             // write sequence number
-            _audioPacket->write(_outgoingAvatarAudioSequenceNumber);
+            _audioPacket->writePrimitive(_outgoingAvatarAudioSequenceNumber);
 
             if (_audioPacket->getPacketType() == PacketType::SilentAudioFrame) {
                 // pack num silent samples
