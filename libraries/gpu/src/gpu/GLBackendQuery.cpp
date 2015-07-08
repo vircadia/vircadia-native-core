@@ -82,7 +82,7 @@ void GLBackend::do_getQuery(Batch& batch, uint32 paramOffset) {
     auto query = batch._queries.get(batch._params[paramOffset]._uint);
     GLQuery* glquery = syncGPUObject(*query);
     if (glquery) { 
-        glGetQueryObjectui64v(glquery->_qo, GL_QUERY_RESULT, &glquery->_result);
+        glGetQueryObjectuiv(glquery->_qo, GL_QUERY_RESULT, &glquery->_result);
         (void)CHECK_GL_ERROR();
     }
 }
