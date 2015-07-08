@@ -156,7 +156,7 @@ void AudioInjector::injectToMixer() {
         auto audioPacket = NLPacket::create(PacketType::InjectAudio);
 
         // setup the packet for injected audio
-        QDataStream audioPacketStream(&audioPacket);
+        QDataStream audioPacketStream(audioPacket.get());
 
         // pack some placeholder sequence number for now
         audioPacketStream << (quint16) 0;
