@@ -1,8 +1,9 @@
 //
-//  DatagramProcessor.cpp
+//  PacketProcessor.cpp
 //  interface/src
 //
 //  Created by Stephen Birarda on 1/23/2014.
+//  Update by Ryan Huffman on 7/8/2015.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
