@@ -858,7 +858,7 @@ void LimitedNodeList::sendPeerQueryToIceServer(const HifiSockAddr& iceServerSock
 
 void LimitedNodeList::sendPacketToIceServer(PacketType::Value packetType, const HifiSockAddr& iceServerSockAddr,
                                             const QUuid& clientID, const QUuid& peerID) {
-    auto icePacket = Packet::create(packetType);
+    auto icePacket = NLPacket::create(packetType);
 
     QDataStream iceDataStream(icePacket.get());
     iceDataStream << clientID << _publicSockAddr << _localSockAddr;

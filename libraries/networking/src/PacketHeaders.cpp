@@ -23,8 +23,7 @@ const QSet<PacketType::Value> NON_VERIFIED_PACKETS = QSet<PacketType::Value>()
     << CreateAssignment << RequestAssignment << StunResponse
     << NodeJsonStats << EntityQuery
     << OctreeDataNack << EntityEditNack
-    << ICEServerHeartbeat << ICEServerPeerInformation
-    << ICEServerQuery << Ping
+    << Ping
     << PingReply << StopNode
     << DomainServerPathQuery << DomainServerPathResponse
     << DomainServerAddedNode;
@@ -32,6 +31,7 @@ const QSet<PacketType::Value> NON_VERIFIED_PACKETS = QSet<PacketType::Value>()
 const QSet<PacketType::Value> SEQUENCE_NUMBERED_PACKETS = QSet<PacketType::Value>() << AvatarData;
 
 const QSet<PacketType::Value> NON_SOURCED_PACKETS = QSet<PacketType::Value>()
+    << ICEServerPeerInformation << ICEServerQuery << ICEServerHeartbeat
     << ICEPing << ICEPingReply << DomainConnectRequest;
 
 int arithmeticCodingValueFromBuffer(const char* checkValue) {
