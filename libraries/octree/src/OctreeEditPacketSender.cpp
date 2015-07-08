@@ -86,7 +86,7 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, std::uniqu
 
             // pack sequence number
             quint16 sequence = _outgoingSequenceNumbers[nodeUUID]++;
-            packet->write(sequence);
+            packet->writePrimitive(sequence);
 
             // debugging output...
             if (wantDebug) {
@@ -96,8 +96,8 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, std::uniqu
                 packet->seek(0);
 
                 // read the sequence number and createdAt
-                packet->read(&sequence);
-                packet->read(&createdAt);
+                packet->readPrimitive(&sequence);
+                packet->readPrimitive(&createdAt);
 
                 quint64 queuedAt = usecTimestampNow();
                 quint64 transitTime = queuedAt - createdAt;
@@ -321,7 +321,7 @@ std::unique_ptr<NLPacket> OctreeEditPacketSender::initializePacket(PacketType::V
 
     // pack in timestamp
     quint64 now = usecTimestampNow() + nodeClockSkew;
-    newPacket->write(now);
+    newPacket->writePrimitive(now);
 
     return newPacket;
 }
