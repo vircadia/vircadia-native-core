@@ -109,6 +109,7 @@ void Packet::setType(PacketType::Value type) {
 
     // Setting new packet type with a different header size not currently supported
     Q_ASSERT(currentHeaderSize == totalHeadersSize());
+    Q_UNUSED(currentHeaderSize);
 }
 
 PacketType::Value Packet::readType() const {
