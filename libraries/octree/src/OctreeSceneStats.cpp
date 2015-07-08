@@ -384,59 +384,59 @@ void OctreeSceneStats::childBitsRemoved(bool includesExistsBits, bool includesCo
 int OctreeSceneStats::packIntoPacket() {
     _statsPacket->reset();
 
-    _statsPacket->write(_start);
-    _statsPacket->write(_end);
-    _statsPacket->write(_elapsed);
-    _statsPacket->write(_totalEncodeTime);
-    _statsPacket->write(_isFullScene);
-    _statsPacket->write(_isMoving);
-    _statsPacket->write(_packets);
-    _statsPacket->write(_bytes);
+    _statsPacket->writePrimitive(_start);
+    _statsPacket->writePrimitive(_end);
+    _statsPacket->writePrimitive(_elapsed);
+    _statsPacket->writePrimitive(_totalEncodeTime);
+    _statsPacket->writePrimitive(_isFullScene);
+    _statsPacket->writePrimitive(_isMoving);
+    _statsPacket->writePrimitive(_packets);
+    _statsPacket->writePrimitive(_bytes);
 
-    _statsPacket->write(_totalInternal);
-    _statsPacket->write(_totalLeaves);
-    _statsPacket->write(_internal);
-    _statsPacket->write(_leaves);
-    _statsPacket->write(_internalSkippedDistance);
-    _statsPacket->write(_leavesSkippedDistance);
-    _statsPacket->write(_internalSkippedOutOfView);
-    _statsPacket->write(_leavesSkippedOutOfView);
-    _statsPacket->write(_internalSkippedWasInView);
-    _statsPacket->write(_leavesSkippedWasInView);
-    _statsPacket->write(_internalSkippedNoChange);
-    _statsPacket->write(_leavesSkippedNoChange);
-    _statsPacket->write(_internalSkippedOccluded);
-    _statsPacket->write(_leavesSkippedOccluded);
-    _statsPacket->write(_internalColorSent);
-    _statsPacket->write(_leavesColorSent);
-    _statsPacket->write(_internalDidntFit);
-    _statsPacket->write(_leavesDidntFit);
-    _statsPacket->write(_colorBitsWritten);
-    _statsPacket->write(_existsBitsWritten);
-    _statsPacket->write(_existsInPacketBitsWritten);
-    _statsPacket->write(_treesRemoved);
+    _statsPacket->writePrimitive(_totalInternal);
+    _statsPacket->writePrimitive(_totalLeaves);
+    _statsPacket->writePrimitive(_internal);
+    _statsPacket->writePrimitive(_leaves);
+    _statsPacket->writePrimitive(_internalSkippedDistance);
+    _statsPacket->writePrimitive(_leavesSkippedDistance);
+    _statsPacket->writePrimitive(_internalSkippedOutOfView);
+    _statsPacket->writePrimitive(_leavesSkippedOutOfView);
+    _statsPacket->writePrimitive(_internalSkippedWasInView);
+    _statsPacket->writePrimitive(_leavesSkippedWasInView);
+    _statsPacket->writePrimitive(_internalSkippedNoChange);
+    _statsPacket->writePrimitive(_leavesSkippedNoChange);
+    _statsPacket->writePrimitive(_internalSkippedOccluded);
+    _statsPacket->writePrimitive(_leavesSkippedOccluded);
+    _statsPacket->writePrimitive(_internalColorSent);
+    _statsPacket->writePrimitive(_leavesColorSent);
+    _statsPacket->writePrimitive(_internalDidntFit);
+    _statsPacket->writePrimitive(_leavesDidntFit);
+    _statsPacket->writePrimitive(_colorBitsWritten);
+    _statsPacket->writePrimitive(_existsBitsWritten);
+    _statsPacket->writePrimitive(_existsInPacketBitsWritten);
+    _statsPacket->writePrimitive(_treesRemoved);
 
     // add the root jurisdiction
     if (_jurisdictionRoot) {
         // copy the
         int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_jurisdictionRoot));
-        _statsPacket->write(bytes);
+        _statsPacket->writePrimitive(bytes);
         _statsPacket->write(reinterpret_cast<char*>(_jurisdictionRoot), bytes);
 
         // if and only if there's a root jurisdiction, also include the end elements
         int endNodeCount = _jurisdictionEndNodes.size();
 
-        _statsPacket->write(endNodeCount);
+        _statsPacket->writePrimitive(endNodeCount);
 
         for (int i=0; i < endNodeCount; i++) {
             unsigned char* endNodeCode = _jurisdictionEndNodes[i];
             int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
-            _statsPacket->write(bytes);
+            _statsPacket->writePrimitive(bytes);
             _statsPacket->write(reinterpret_cast<char*>(endNodeCode), bytes);
         }
     } else {
         int bytes = 0;
-        _statsPacket->write(bytes);
+        _statsPacket->writePrimitive(bytes);
     }
 
     return _statsPacket->getSizeUsed();
