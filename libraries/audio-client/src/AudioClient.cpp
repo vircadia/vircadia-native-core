@@ -843,12 +843,12 @@ void AudioClient::handleAudioInput() {
             quint8 isStereo = _isStereoInput ? 1 : 0;
 
             if (_lastInputLoudness == 0) {
-                _audioPacket->setPacketType(PacketType::SilentAudioFrame);
+                _audioPacket->setType(PacketType::SilentAudioFrame);
             } else {
                 if (_shouldEchoToServer) {
-                    _audioPacket->setPacketType(PacketType::MicrophoneAudioWithEcho);
+                    _audioPacket->setType(PacketType::MicrophoneAudioWithEcho);
                 } else {
-                    _audioPacket->setPacketType(PacketType::MicrophoneAudioNoEcho);
+                    _audioPacket->setType(PacketType::MicrophoneAudioNoEcho);
                 }
             }
 
@@ -861,17 +861,17 @@ void AudioClient::handleAudioInput() {
             if (_audioPacket->getPacketType() == PacketType::SilentAudioFrame) {
                 // pack num silent samples
                 quint16 numSilentSamples = numNetworkSamples;
-                _audioPacket->write(numSilentSamples);
+                _audioPacket->writePrimitive(numSilentSamples);
             } else {
                 // set the mono/stereo byte
-                _audioPacket->write(isStereo);
+                _audioPacket->writePrimitive(isStereo);
             }
 
             // pack the three float positions
-            _audioPacket->write(headPosition);
+            _audioPacket->writePrimitive(headPosition);
 
             // pack the orientation
-            _audioPacket->write(headOrientation);
+            _audioPacket->writePrimitive(headOrientation);
 
             if (_audioPacket->getPacketType() != PacketType::SilentAudioFrame) {
                 // audio samples have already been packed (written to networkAudioSamples)
