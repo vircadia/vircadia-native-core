@@ -98,8 +98,6 @@ qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& d
     // get a QStringList using JSONBreakableMarshal
     QStringList statsStringList = JSONBreakableMarshal::toStringList(statsObject, "");
 
-    int numBytesWritten = numBytesForPacketHeader;
-
     // enumerate the resulting strings - pack them and send off packets via NLPacketList
     foreach(const QString& statsItem, statsStringList) {
         QByteArray utf8String = statsItem.toUtf8();
