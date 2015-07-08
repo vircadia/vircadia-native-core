@@ -11,6 +11,7 @@
 #include <QCommandLineParser>
 #include <QDebug>
 #include <QDir>
+#include <QProcess>
 #include <QSettings>
 #include <QTranslator>
 
@@ -116,5 +117,14 @@ int main(int argc, const char* argv[]) {
 #endif
 
     qCDebug(interfaceapp, "Normal exit.");
+    
+    if (exitCode == RESTART_CODE) {
+        qCDebug(interfaceapp, "Interface restarting.");
+        QStringList arguments;
+        for (int i = 0; i < argc; ++i) {
+            arguments << argv[i];
+        }
+        QProcess::startDetached(arguments[0], arguments);
+    }
     return exitCode;
 }   

@@ -160,6 +160,7 @@ namespace MenuOption {
     const QString CalibrateCamera = "Calibrate Camera";
     const QString CenterPlayerInView = "Center Player In View";
     const QString Chat = "Chat...";
+    const QString ClearCacheAndQuit = "Clear Cache and Quit";
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
     const QString ControlWithSpeech = "Control With Speech";

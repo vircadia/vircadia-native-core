@@ -91,6 +91,9 @@ class Node;
 class ProgramObject;
 class ScriptEngine;
 
+
+static int RESTART_CODE = 1000;
+
 static const float NODE_ADDED_RED   = 0.0f;
 static const float NODE_ADDED_GREEN = 1.0f;
 static const float NODE_ADDED_BLUE  = 0.0f;
@@ -450,6 +453,8 @@ public slots:
     void domainConnectionDenied(const QString& reason);
     
     void cameraMenuChanged();
+    
+    void clearCacheAndQuit();
 
 private slots:
     void clearDomainOctreeDetails();
@@ -495,6 +500,8 @@ private:
     void init();
     
     void cleanupBeforeQuit();
+    
+    void emptyLocalCache();
 
     void update(float deltaTime);
 

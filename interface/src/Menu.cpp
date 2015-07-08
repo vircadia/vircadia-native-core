@@ -127,6 +127,7 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyPath, 0,
                                   addressManager.data(), SLOT(copyPath()));
 
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::ClearCacheAndQuit, 0, qApp, SLOT(clearCacheAndQuit()));
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::Quit,
                                   Qt::CTRL | Qt::Key_Q,
