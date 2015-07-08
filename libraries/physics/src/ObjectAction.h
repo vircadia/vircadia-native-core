@@ -65,7 +65,7 @@ protected:
 private:
     QReadWriteLock _lock;
 
-protected: 
+protected:
     bool _active;
     EntityItemWeakPointer _ownerEntity;
 };
