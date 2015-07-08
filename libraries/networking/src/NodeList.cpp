@@ -594,7 +594,7 @@ void NodeList::sendAssignment(Assignment& assignment) {
     packetStream << assignment;
 
     // TODO: should this be a non sourced packet?
-    sendPacket(assignmentPacket, _assignmentServerSocket);
+    sendPacket(std::move(assignmentPacket), _assignmentServerSocket);
 }
 
 void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
