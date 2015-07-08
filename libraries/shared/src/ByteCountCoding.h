@@ -21,6 +21,8 @@
 #include <climits>
 #include <limits>
 
+#include <QDebug>
+
 #include <QBitArray>
 #include <QByteArray>
 
@@ -111,12 +113,12 @@ template<typename T> inline QByteArray ByteCountCoded<T>::encode() const {
 }
 
 template<typename T> inline void ByteCountCoded<T>::decode(const QByteArray& fromEncodedBytes) {
-
     // first convert the ByteArray into a BitArray...
     QBitArray encodedBits;
     int bitCount = BITS_IN_BYTE * fromEncodedBytes.count();
     encodedBits.resize(bitCount);
     
+    // copies the QByteArray into a QBitArray
     for(int byte = 0; byte < fromEncodedBytes.count(); byte++) {
         char originalByte = fromEncodedBytes.at(byte);
         for(int bit = 0; bit < BITS_IN_BYTE; bit++) {
@@ -128,8 +130,8 @@ template<typename T> inline void ByteCountCoded<T>::decode(const QByteArray& fro
     }
     
     // next, read the leading bits to determine the correct number of bytes to decode (may not match the QByteArray)
-    int encodedByteCount = 0;
-    int leadBits = 1;
+    int encodedByteCount = 1; // there is at least 1 byte (after the leadBits)
+    int leadBits = 1; // there is always at least 1 lead bit
     int bitAt;
     for (bitAt = 0; bitAt < bitCount; bitAt++) {
         if (encodedBits.at(bitAt)) {
@@ -139,16 +141,15 @@ template<typename T> inline void ByteCountCoded<T>::decode(const QByteArray& fro
             break;
         }
     }
-    encodedByteCount++; // always at least one byte
-    int expectedBitCount = encodedByteCount * BITS_IN_BYTE;
+    int expectedBitCount = (encodedByteCount * BITS_IN_BYTE) - leadBits;
 
     T value = 0;
-    
+
     if (expectedBitCount <= (encodedBits.size() - leadBits)) {
         // Now, keep reading...
         int valueStartsAt = bitAt + 1; 
         T bitValue = 1;
-        for (bitAt = valueStartsAt; bitAt < expectedBitCount; bitAt++) {
+        for (bitAt = valueStartsAt; bitAt < (expectedBitCount + leadBits); bitAt++) {
             if(encodedBits.at(bitAt)) {
                 value += bitValue;
             }
