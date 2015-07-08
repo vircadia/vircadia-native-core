@@ -61,7 +61,7 @@ GLuint GLBackend::getQueryID(const QueryPointer& query) {
 }
 
 void GLBackend::do_beginQuery(Batch& batch, uint32 paramOffset) {
-    auto& query = batch._queries.get(batch._params[paramOffset]._uint);
+    auto query = batch._queries.get(batch._params[paramOffset]._uint);
     GLQuery* glquery = syncGPUObject(*query);
     if (glquery) {
         glBeginQuery(GL_TIME_ELAPSED, glquery->_qo);
@@ -70,7 +70,7 @@ void GLBackend::do_beginQuery(Batch& batch, uint32 paramOffset) {
 }
 
 void GLBackend::do_endQuery(Batch& batch, uint32 paramOffset) {
-    auto& query = batch._queries.get(batch._params[paramOffset]._uint);
+    auto query = batch._queries.get(batch._params[paramOffset]._uint);
     GLQuery* glquery = syncGPUObject(*query);
     if (glquery) {
         glEndQuery(GL_TIME_ELAPSED);
@@ -79,14 +79,9 @@ void GLBackend::do_endQuery(Batch& batch, uint32 paramOffset) {
 }
 
 void GLBackend::do_getQuery(Batch& batch, uint32 paramOffset) {
-    auto& query = batch._queries.get(batch._params[paramOffset]._uint);
+    auto query = batch._queries.get(batch._params[paramOffset]._uint);
     GLQuery* glquery = syncGPUObject(*query);
-    if (glquery) {
-        GLint available = 0;
-        while (!available) {
-            glGetQueryObjectiv(glquery->_qo, GL_QUERY_RESULT_AVAILABLE, &available);
-        }
-
+    if (glquery) { 
         glGetQueryObjectui64v(glquery->_qo, GL_QUERY_RESULT, &glquery->_result);
         (void)CHECK_GL_ERROR();
     }
