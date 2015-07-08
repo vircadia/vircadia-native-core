@@ -83,35 +83,60 @@ var puck_name_index = 2;
 var light_name_index = 3;
 var floor_name_index = 4;
 
+//Create Spawn and Del. Button Vars.
+
+function updateButtonPosition() {
+    Overlays.editOverlay(spawnButton, {
+        x: screenSize.x / 2 + PADDING,
+        y: screenSize.y - (BUTTON_SIZE * 2 + PADDING),
+    });
+    Overlays.editOverlay(deleteButton, {
+        x: screenSize.x / 2 - BUTTON_SIZE,
+        y: screenSize.y - (BUTTON_SIZE * 2 + PADDING),
+    });
+}
+
+function onScriptUpdate() {
+    var oldScreenSize = screenSize;
+
+    screenSize = Controller.getViewportDimensions();
+
+    if (screenSize.x !== oldScreenSize.x || screenSize.y !== oldScreenSize.y) {
+        updateButtonPosition();
+    }
+}
+
+screenSize = Controller.getViewportDimensions();
 
 var deleteButton = Overlays.addOverlay("image", {
-  x: screenSize.x / 2 - BUTTON_SIZE,
-  y: screenSize.y - (BUTTON_SIZE * 2 + PADDING),
-  width: BUTTON_SIZE,
-  height: BUTTON_SIZE,
-  imageURL: HIFI_PUBLIC_BUCKET + "images/delete.png",
-  color: {
-    red: 255,
-    green: 255,
-    blue: 255
-  },
-  alpha: 1
+    x: screenSize.x / 2 - BUTTON_SIZE,
+    y: screenSize.y - (BUTTON_SIZE * 2 + PADDING),
+    width: BUTTON_SIZE,
+    height: BUTTON_SIZE,
+    imageURL: HIFI_PUBLIC_BUCKET + "images/delete.png",
+    color: {
+        red: 255,
+        green: 255,
+        blue: 255
+    },
+    alpha: 1
 });
 
 var spawnButton = Overlays.addOverlay("image", {
-  x: screenSize.x / 2 + PADDING,
-  y: screenSize.y - (BUTTON_SIZE * 2 + PADDING),
-  width: BUTTON_SIZE,
-  height: BUTTON_SIZE,
-  imageURL: HIFI_PUBLIC_BUCKET + "images/puck.png",
-  color: {
-    red: 255,
-    green: 255,
-    blue: 255
-  },
-  alpha: 1
+    x: screenSize.x / 2 + PADDING,
+    y: screenSize.y - (BUTTON_SIZE * 2 + PADDING),
+    width: BUTTON_SIZE,
+    height: BUTTON_SIZE,
+    imageURL: HIFI_PUBLIC_BUCKET + "images/puck.png",
+    color: {
+        red: 255,
+        green: 255,
+        blue: 255
+    },
+    alpha: 1
 });
 
+Script.update.connect(onScriptUpdate);
 
 
 var floor, edge1, edge2, edge3a, edge3b, edge4a, edge4b, light;
