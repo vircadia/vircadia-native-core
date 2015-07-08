@@ -66,6 +66,12 @@ AvatarManager::AvatarManager(QObject* parent) :
     // register a meta type for the weak pointer we'll use for the owning avatar mixer for each avatar
     qRegisterMetaType<QWeakPointer<Node> >("NodeWeakPointer");
     _myAvatar = std::make_shared<MyAvatar>();
+
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerPacketListener(PacketType::BulkAvatarData, this, ...);
+    packetReceiver.registerPacketListener(PacketType::KillAvatar, this, ...);
+    packetReceiver.registerPacketListener(PacketType::AvatarIdentity, this, ...);
+    packetReceiver.registerPacketListener(PacketType::AvatarBillboard, this, ...);
 }
 
 void AvatarManager::init() {
