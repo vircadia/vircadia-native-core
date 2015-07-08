@@ -11,10 +11,6 @@
 #include "GPULogging.h"
 #include "GLBackendShared.h"
 
-#ifndef GL_ARB_timer_query
-#define GL_TIME_ELAPSED 0x88BF
-#define GL_TIMESTAMP 0x8E28
-#endif 
 
 using namespace gpu;
 
@@ -70,6 +66,12 @@ void GLBackend::do_beginQuery(Batch& batch, uint32 paramOffset) {
     GLQuery* glquery = syncGPUObject(*query);
     if (glquery) {
         glBeginQuery(GL_TIME_ELAPSED, glquery->_qo);
+        #if (GPU_FEATURE_PROFILE == GPU_LEGACY)
+            // (EXT_TIMER_QUERY)
+            glBeginQuery(TIME_ELAPSED_EXT, glquery->_qo);
+        #else
+            glBeginQuery(GL_TIME_ELAPSED, glquery->_qo);
+        #endif
         (void)CHECK_GL_ERROR();
     }
 }
@@ -78,7 +80,12 @@ void GLBackend::do_endQuery(Batch& batch, uint32 paramOffset) {
     auto query = batch._queries.get(batch._params[paramOffset]._uint);
     GLQuery* glquery = syncGPUObject(*query);
     if (glquery) {
-        glEndQuery(GL_TIME_ELAPSED);
+        #if (GPU_FEATURE_PROFILE == GPU_LEGACY)
+            // (EXT_TIMER_QUERY)
+            glEndQuery(TIME_ELAPSED_EXT);
+        #else
+            glEndQuery(GL_TIME_ELAPSED);
+        #endif
         (void)CHECK_GL_ERROR();
     }
 }
@@ -87,7 +94,12 @@ void GLBackend::do_getQuery(Batch& batch, uint32 paramOffset) {
     auto query = batch._queries.get(batch._params[paramOffset]._uint);
     GLQuery* glquery = syncGPUObject(*query);
     if (glquery) { 
-        glGetQueryObjectuiv(glquery->_qo, GL_QUERY_RESULT, &glquery->_result);
+        #if (GPU_FEATURE_PROFILE == GPU_LEGACY)
+            // (EXT_TIMER_QUERY)
+            GetQueryObjectui64vEXT(glquery->_qo, GL_QUERY_RESULT, &glquery->_result);
+        #else
+            glGetQueryObjectui64v(glquery->_qo, GL_QUERY_RESULT, &glquery->_result);
+        #endif
         (void)CHECK_GL_ERROR();
     }
 }

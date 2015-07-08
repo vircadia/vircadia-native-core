@@ -104,27 +104,10 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
 
     renderContext->args->_context->syncCache();
 
-    // start the current timer query
-    auto& currentQuery = _timerQueries[_currentTimerQueryIndex];
-    {
-        gpu::Batch batch;
-        batch.beginQuery(currentQuery);
-        renderContext->args->_context->render(batch);
-    }
-
     for (auto job : _jobs) {
         job.run(sceneContext, renderContext);
     }
 
-    // End the current timer query
-    {
-        gpu::Batch batch;
-        batch.endQuery(currentQuery);
-        batch.getQuery(currentQuery);
-        renderContext->args->_context->render(batch);
-        (_currentTimerQueryIndex++);
-        _currentTimerQueryIndex = _currentTimerQueryIndex% _timerQueries.size();
-    }
 };
 
 void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
