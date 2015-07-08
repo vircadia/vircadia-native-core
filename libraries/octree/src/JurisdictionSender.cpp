@@ -44,16 +44,8 @@ bool JurisdictionSender::process() {
 
     // call our ReceivedPacketProcessor base class process so we'll get any pending packets
     if (continueProcessing && (continueProcessing = ReceivedPacketProcessor::process())) {
-        // add our packet to our own queue, then let the PacketSender class do the rest of the work.
-        static unsigned char buffer[MAX_PACKET_SIZE];
-        unsigned char* bufferOut = &buffer[0];
-        int sizeOut = 0;
-
-        if (_jurisdictionMap) {
-            sizeOut = _jurisdictionMap->packIntoMessage(bufferOut, MAX_PACKET_SIZE);
-        } else {
-            sizeOut = JurisdictionMap::packEmptyJurisdictionIntoMessage(getNodeType(), bufferOut, MAX_PACKET_SIZE);
-        }
+        auto packet = (_jurisdictionMap) ? _jurisdictionMap->packIntoMessage()
+                                         : JurisdictionMap::packEmptyJurisdictionIntoMessage(getNodeType());
         int nodeCount = 0;
 
         lockRequestingNodes();
@@ -64,7 +56,7 @@ bool JurisdictionSender::process() {
             SharedNodePointer node = DependencyManager::get<NodeList>()->nodeWithUUID(nodeUUID);
 
             if (node && node->getActiveSocket()) {
-                _packetSender.queuePacketForSending(node, QByteArray(reinterpret_cast<char *>(bufferOut), sizeOut));
+                _packetSender.queuePacketForSending(node, packet);
                 nodeCount++;
             }
         }

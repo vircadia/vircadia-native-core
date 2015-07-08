@@ -61,10 +61,10 @@ public:
     void copyContents(unsigned char* rootCodeIn, const std::vector<unsigned char*>& endNodesIn);
 
     int unpackFromMessage(const unsigned char* sourceBuffer, int availableBytes);
-    int packIntoMessage(unsigned char* destinationBuffer, int availableBytes);
+    std::unique_ptr<NLPacket> packIntoMessage();
     
     /// Available to pack an empty or unknown jurisdiction into a network packet, used when no JurisdictionMap is available
-    static int packEmptyJurisdictionIntoMessage(NodeType_t type, unsigned char* destinationBuffer, int availableBytes);
+    static std::unique_ptr<NLPacket> packEmptyJurisdictionIntoMessage(NodeType_t type);
 
     void displayDebugDetails() const;
     
