@@ -103,7 +103,7 @@ qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& d
         QByteArray utf8String = statsItem.toUtf8();
         utf8String.append('\0');
 
-        statsStringList->write(utfString);
+        statsPacketList.write(utf8String);
     }
 
     sendPacketList(statsPacketList, destination);
@@ -172,7 +172,7 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             _domainHandler.parseDTLSRequirementPacket(packet);
             break;
         }
-        case PacketType::IceServerPeerInformation: {
+        case PacketType::ICEServerPeerInformation: {
             if (!_domainHandler.getICEPeer().hasSockets()) {
                 _domainHandler.processICEResponsePacket(packet);
             }
