@@ -24,6 +24,7 @@
 #include "Util.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
+#include "InterfaceLogging.h"
 
 using namespace std;
 
@@ -339,8 +340,13 @@ glm::quat Head::getCameraOrientation() const {
     // to change the driving direction while in Oculus mode. It is used to support driving toward where you're 
     // head is looking. Note that in oculus mode, your actual camera view and where your head is looking is not
     // always the same.
-    if (qApp->isHMDMode()) {
-        return getOrientation();
+    MyAvatar* myAvatar = dynamic_cast<MyAvatar*>(_owningAvatar);
+    if (qApp->isHMDMode() && myAvatar) {
+        if (isRoomTracking) {
+            return glm::quat_cast(myAvatar->getSensorToWorldMat()) * qApp->getHeadOrientation();
+        } else {
+            return getOrientation();
+        }
     }
     Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
     return owningAvatar->getWorldAlignedOrientation() * glm::quat(glm::radians(glm::vec3(_basePitch, 0.0f, 0.0f)));

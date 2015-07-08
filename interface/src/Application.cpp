@@ -2685,7 +2685,8 @@ void Application::update(float deltaTime) {
         _physicsEngine.stepSimulation();
         _entities.getTree()->unlock();
 
-        // AJT: delay the head pose until after the physics step.
+        // AJT: FIXME due to sensitve order of operations, within MyAvatar,
+        // delay the head pose until after the physics step.
         _headPosition = glm::vec3(getActiveDisplayPlugin()->getHeadPose()[3]);
         _headOrientation = glm::quat_cast(getActiveDisplayPlugin()->getHeadPose());
 
@@ -2788,7 +2789,7 @@ void Application::update(float deltaTime) {
     }
 }
 
-// AJT: hack
+// AJT: hack for debug drawing.
 extern const int NUM_MARKERS;
 extern glm::mat4 markerMats[];
 extern glm::vec4 markerColors[];
@@ -2827,7 +2828,8 @@ void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, int i
     palm->setRawPosition(extractTranslation(objectPose));
     palm->setRawRotation(glm::quat_cast(objectPose));
 
-    markerMats[index] = sensorToWorldMat * poseMat;
+    // AJT: Hack for debug drawing.
+    //markerMats[index] = sensorToWorldMat * poseMat;
 }
 
 void Application::emulateMouse(Hand* hand, float click, float shift, int index) {

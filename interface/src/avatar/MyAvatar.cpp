@@ -1288,11 +1288,16 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
     glm::quat twist = glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta, 0.0f) * deltaTime));
 
+    // update sensor mat, so that rotation will take effect when room tracking.
     glm::vec3 bodyPosition = calcBodyPositionFromSensors();
     glm::quat bodyOrientation = calcBodyOrientationFromSensors();
     glm::mat4 bodyMat = createMatFromQuatAndPos(bodyOrientation, bodyPosition);
     glm::mat4 sensorOffset = bodyMat * glm::mat4_cast(twist) * glm::inverse(bodyMat);
     _sensorToWorldMat = sensorOffset * _sensorToWorldMat;
+
+    if (!(qApp->isHMDMode() && isRoomTracking)) {
+        setOrientation(twist * getOrientation());
+    }
 
     // decay body rotation momentum
     const float BODY_SPIN_FRICTION = 7.5f;
@@ -1373,6 +1378,8 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
         glm::vec3 direction = front + right + up;
         float directionLength = glm::length(direction);
 
+        qCDebug(interfaceapp, "direction = (%.5f, %.5f, %.5f)", direction.x, direction.y, direction.z);
+
         // Compute motor magnitude
         if (directionLength > EPSILON) {
             direction /= directionLength;
@@ -1448,7 +1455,7 @@ glm::vec3 MyAvatar::applyScriptedMotor(float deltaTime, const glm::vec3& localVe
 
 void MyAvatar::updatePosition(float deltaTime) {
     // rotate velocity into camera frame
-    glm::quat rotation = glm::quat_cast(_sensorToWorldMat) * qApp->getHeadOrientation(); /* getHead()->getCameraOrientation() */;
+    glm::quat rotation = getHead()->getCameraOrientation();
     glm::vec3 localVelocity = glm::inverse(rotation) * _targetVelocity;
 
     bool isHovering = _characterController.isHovering();
@@ -1572,50 +1579,35 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
     qCDebug(interfaceapp).nospace() << "MyAvatar goToLocation - moving to " << newPosition.x << ", "
         << newPosition.y << ", " << newPosition.z;
 
-    glm::mat4 m;
-    m[3] = glm::vec4(newPosition, 1);
-    _sensorToWorldMat = m;
+    if (qApp->isHMDMode() && isRoomTracking) {
+        // AJT: FIXME, does not work with orientation.
+        // AJT: FIXME, does not work with shouldFaceLocation flag.
+        // Set the orientation of the sensor room, not the avatar itself.
+        glm::mat4 m;
+        m[3] = glm::vec4(newPosition, 1);
+        _sensorToWorldMat = m;
+    } else {
+        glm::vec3 shiftedPosition = newPosition;
+        if (hasOrientation) {
+            qCDebug(interfaceapp).nospace() << "MyAvatar goToLocation - new orientation is "
+                                            << newOrientation.x << ", " << newOrientation.y << ", " << newOrientation.z << ", " << newOrientation.w;
 
-    // AJT: FIXME, goToLocation doens't work with orientation.
-    /*
-    // Set the orientation of the sensor room, not the avatar itself.
-    if (hasOrientation) {
-        qCDebug(interfaceapp).nospace() << "MyAvatar goToLocation - new orientation is "
-            << newOrientation.x << ", " << newOrientation.y << ", " << newOrientation.z << ", " << newOrientation.w;
+            // orient the user to face the target
+            glm::quat quatOrientation = newOrientation;
 
-        glm::vec3 axis = glm::axis(newOrientation);
-        qCDebug(interfaceapp).nospace() << "MyAvatar goToLocation - new orientation is axis = ("
-                                        << axis.x << ", " << axis.y << ", " << axis.z << "), theta = " << glm::angle(newOrientation);
+            if (shouldFaceLocation) {
+                quatOrientation = newOrientation * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
 
-        // TODO: FIXME: add support for shouldFaceLocation
-        m = glm::mat4_cast(newOrientation);
-    }
-    */
+                // move the user a couple units away
+                const float DISTANCE_TO_USER = 2.0f;
+                shiftedPosition = newPosition - quatOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
+            }
 
-    /*
-    glm::vec3 shiftedPosition = newPosition;
-
-    if (hasOrientation) {
-        qCDebug(interfaceapp).nospace() << "MyAvatar goToLocation - new orientation is "
-            << newOrientation.x << ", " << newOrientation.y << ", " << newOrientation.z << ", " << newOrientation.w;
-
-        // orient the user to face the target
-        glm::quat quatOrientation = newOrientation;
-
-        if (shouldFaceLocation) {
-
-            quatOrientation = newOrientation * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-
-            // move the user a couple units away
-            const float DISTANCE_TO_USER = 2.0f;
-            shiftedPosition = newPosition - quatOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
+            setOrientation(quatOrientation);
         }
 
-        setOrientation(quatOrientation);
+        slamPosition(shiftedPosition);
     }
-
-    slamPosition(shiftedPosition);
-    */
     emit transformChanged();
 }
 
@@ -1695,21 +1687,28 @@ void MyAvatar::setAvatarOrientation(glm::quat quat) {
     Avatar::setOrientation(quat);
 }
 
-// these are overriden, because they must move the sensor mat, such that the avatar will be at the given location.
+// overriden, because they must move the sensor mat, so that the avatar will be at the given location.
 void MyAvatar::setPosition(const glm::vec3 position, bool overideReferential) {
+    // update the sensor mat so that the body position will end up in the desired
+    // position when driven from the head.
     glm::vec3 bodyPos = calcBodyPositionFromSensors();
     glm::vec3 desiredPos = position;
     glm::vec3 sensorPos(_sensorToWorldMat[3]);
     _sensorToWorldMat[3] = glm::vec4(desiredPos - bodyPos + sensorPos, 1);
+
     setAvatarPosition(position);
 }
 
+// overriden, because they must move the sensor mat, so that the avatar will face the given orienation.
 void MyAvatar::setOrientation(const glm::quat& orientation, bool overideReferential) {
+    // update the sensor mat so that the body orientation will end up in the desired
+    // location when driven from the head.
     glm::vec3 bodyPos = calcBodyPositionFromSensors();
     glm::quat bodyOrientation = calcBodyOrientationFromSensors();
     glm::mat4 bodyMat = createMatFromQuatAndPos(bodyOrientation, bodyPos);
     glm::mat4 desiredMat = createMatFromQuatAndPos(orientation, bodyPos);
     _sensorToWorldMat = desiredMat * glm::inverse(bodyMat) * _sensorToWorldMat;
+
     setAvatarOrientation(orientation);
 }
 
