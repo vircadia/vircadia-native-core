@@ -121,6 +121,8 @@ public:
 
     bool packetVersionAndHashMatch(const QByteArray& packet);
 
+    PacketReceiver& getPacketReceiver() { return _packetReceiver; }
+
     // QByteArray byteArrayWithPopulatedHeader(PacketType::Value packetType)
     //     { return byteArrayWithUUIDPopulatedHeader(packetType, _sessionUUID); }
     // int populatePacketHeader(QByteArray& packet, PacketType::Value packetType)
@@ -304,6 +306,8 @@ protected:
     HifiSockAddr _localSockAddr;
     HifiSockAddr _publicSockAddr;
     HifiSockAddr _stunSockAddr;
+
+    PacketReceiver _packetReceiver;
 
     // XXX can BandwidthRecorder be used for this?
     int _numCollectedPackets;

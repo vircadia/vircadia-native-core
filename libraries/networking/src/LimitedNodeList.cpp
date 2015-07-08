@@ -48,6 +48,7 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     _localSockAddr(),
     _publicSockAddr(),
     _stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT),
+    _packetReceiver(this),
     _numCollectedPackets(0),
     _numCollectedBytes(0),
     _packetStatTimer(),
@@ -91,6 +92,8 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
 
     // check the local socket right now
     updateLocalSockAddr();
+
+    connect(_nodeSocket, &QUdpSocket::readyRead, _packetReceiver, &PacketReceiver::processDatagrams);
 
     _packetStatTimer.start();
 }
