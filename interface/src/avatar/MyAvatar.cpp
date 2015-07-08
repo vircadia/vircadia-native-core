@@ -1448,7 +1448,7 @@ glm::vec3 MyAvatar::applyScriptedMotor(float deltaTime, const glm::vec3& localVe
 
 void MyAvatar::updatePosition(float deltaTime) {
     // rotate velocity into camera frame
-    glm::quat rotation = getHead()->getCameraOrientation();
+    glm::quat rotation = glm::quat_cast(_sensorToWorldMat) * qApp->getHeadOrientation(); /* getHead()->getCameraOrientation() */;
     glm::vec3 localVelocity = glm::inverse(rotation) * _targetVelocity;
 
     bool isHovering = _characterController.isHovering();

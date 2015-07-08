@@ -100,6 +100,9 @@ void ViveControllerManager::update() {
             // handle inputs
             vr::VRControllerState_t controllerState = vr::VRControllerState_t();
             if (_hmd->GetControllerState(device, &controllerState)) {
+                //qDebug() << (numTrackedControllers == 1 ? "Left: " : "Right: ");
+                //qDebug() << "Trackpad: " << controllerState.rAxis[0].x << " " << controllerState.rAxis[0].y;
+                //qDebug() << "Trigger: " << controllerState.rAxis[1].x << " " << controllerState.rAxis[1].y;
                 handleButtonEvent(controllerState.ulButtonPressed, numTrackedControllers - 1);
                 for (int i = 0; i < 5; i++) {
                     handleAxisEvent(Axis(i), controllerState.rAxis[i].x, controllerState.rAxis[i].y, numTrackedControllers - 1);
@@ -134,7 +137,6 @@ void ViveControllerManager::focusOutEvent() {
 };
 
 void ViveControllerManager::handleAxisEvent(Axis axis, float x, float y, int index) {
-    /*
     if (axis == TRACKPAD_AXIS) {
         _axisStateMap[makeInput(AXIS_Y_POS, index).getChannel()] = (y > 0.0f) ? y : 0.0f;
         _axisStateMap[makeInput(AXIS_Y_NEG, index).getChannel()] = (y < 0.0f) ? -y : 0.0f;
@@ -143,11 +145,9 @@ void ViveControllerManager::handleAxisEvent(Axis axis, float x, float y, int ind
     } else if (axis == TRIGGER_AXIS) {
         _axisStateMap[makeInput(BACK_TRIGGER, index).getChannel()] = x;
     }
-    */
 }
 
 void ViveControllerManager::handleButtonEvent(uint64_t buttons, int index) {
-    /*
     if (buttons & VR_BUTTON_A) {
         _buttonPressedMap.insert(makeInput(BUTTON_A, index).getChannel());
     }
@@ -160,7 +160,6 @@ void ViveControllerManager::handleButtonEvent(uint64_t buttons, int index) {
     if (buttons & VR_TRIGGER_BUTTON) {
         _buttonPressedMap.insert(makeInput(TRIGGER_BUTTON, index).getChannel());
     }
-    */
 }
 
 void ViveControllerManager::handlePoseEvent(const mat4& mat, int index) {
@@ -224,16 +223,16 @@ void ViveControllerManager::assignDefaultInputMapping(UserInputMapper& mapper) {
     const float BOOM_SPEED = 0.1f;
     
     // Left Trackpad: Movement, strafing
-    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_FORWARD, makeInput(AXIS_Y_POS, 0), JOYSTICK_MOVE_SPEED);
-    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_BACKWARD, makeInput(AXIS_Y_NEG, 0), JOYSTICK_MOVE_SPEED);
-    mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(AXIS_X_POS, 0), JOYSTICK_MOVE_SPEED);
-    mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(AXIS_X_NEG, 0), JOYSTICK_MOVE_SPEED);
+    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_FORWARD, makeInput(AXIS_Y_POS, 0), makeInput(TRACKPAD_BUTTON, 0), JOYSTICK_MOVE_SPEED);
+    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_BACKWARD, makeInput(AXIS_Y_NEG, 0), makeInput(TRACKPAD_BUTTON, 0), JOYSTICK_MOVE_SPEED);
+    mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(AXIS_X_POS, 0), makeInput(TRACKPAD_BUTTON, 0), JOYSTICK_MOVE_SPEED);
+    mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(AXIS_X_NEG, 0), makeInput(TRACKPAD_BUTTON, 0), JOYSTICK_MOVE_SPEED);
 
     // Right Trackpad: Vertical movement, zooming
-    mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(AXIS_Y_POS, 1), JOYSTICK_MOVE_SPEED);
-    mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(AXIS_Y_NEG, 1), JOYSTICK_MOVE_SPEED);
-    mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(AXIS_X_POS, 1), BOOM_SPEED);
-    mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(AXIS_X_NEG, 1), BOOM_SPEED);
+    mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(AXIS_Y_POS, 1), makeInput(TRACKPAD_BUTTON, 1), JOYSTICK_MOVE_SPEED);
+    mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(AXIS_Y_NEG, 1), makeInput(TRACKPAD_BUTTON, 1), JOYSTICK_MOVE_SPEED);
+    mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(AXIS_X_POS, 1), makeInput(TRACKPAD_BUTTON, 1), BOOM_SPEED);
+    mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(AXIS_X_NEG, 1), makeInput(TRACKPAD_BUTTON, 1), BOOM_SPEED);
     
     // Buttons
     mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(GRIP_BUTTON, 0));
