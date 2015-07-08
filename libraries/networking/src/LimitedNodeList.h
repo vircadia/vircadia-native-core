@@ -287,7 +287,7 @@ protected:
 
     void stopInitialSTUNUpdate(bool success);
 
-    void sendPacketToIceServer(PacketType::Value packetType, const HifiSockAddr& iceServerSockAddr, const QUuid& headerID,
+    void sendPacketToIceServer(PacketType::Value packetType, const HifiSockAddr& iceServerSockAddr, const QUuid& clientID,
                                const QUuid& peerRequestID = QUuid());
 
     QUuid _sessionUUID;

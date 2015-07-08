@@ -848,23 +848,22 @@ void LimitedNodeList::updateLocalSockAddr() {
 }
 
 void LimitedNodeList::sendHeartbeatToIceServer(const HifiSockAddr& iceServerSockAddr) {
-    sendPacketToIceServer(PacketTypeIceServerHeartbeat, iceServerSockAddr, _sessionUUID);
+    sendPacketToIceServer(PacketType::ICEServerHeartbeat, iceServerSockAddr, _sessionUUID);
 }
 
 void LimitedNodeList::sendPeerQueryToIceServer(const HifiSockAddr& iceServerSockAddr, const QUuid& clientID,
                                                const QUuid& peerID) {
-    sendPacketToIceServer(PacketTypeIceServerQuery, iceServerSockAddr, clientID, peerID);
+    sendPacketToIceServer(PacketType::ICEServerQuery, iceServerSockAddr, clientID, peerID);
 }
 
 void LimitedNodeList::sendPacketToIceServer(PacketType::Value packetType, const HifiSockAddr& iceServerSockAddr,
-                                            const QUuid& headerID, const QUuid& peerID) {
+                                            const QUuid& clientID, const QUuid& peerID) {
+    auto icePacket = Packet::create(packetType);
 
-    QByteArray iceRequestByteArray = byteArrayWithUUIDPopulatedHeader(packetType, headerID);
-    QDataStream iceDataStream(&iceRequestByteArray, QIODevice::Append);
+    QDataStream iceDataStream(icePacket.get());
+    iceDataStream << clientID << _publicSockAddr << _localSockAddr;
 
-    iceDataStream << _publicSockAddr << _localSockAddr;
-
-    if (packetType == PacketTypeIceServerQuery) {
+    if (packetType == PacketType::ICEServerQuery) {
         assert(!peerID.isNull());
 
         iceDataStream << peerID;
@@ -873,7 +872,7 @@ void LimitedNodeList::sendPacketToIceServer(PacketType::Value packetType, const 
             << uuidStringWithoutCurlyBraces(peerID);
     }
 
-    writeUnverifiedDatagram(iceRequestByteArray, iceServerSockAddr);
+    sendPacket(icePacket, iceServerSockAddr);
 }
 
 void LimitedNodeList::putLocalPortIntoSharedMemory(const QString key, QObject* parent, quint16 localPort) {

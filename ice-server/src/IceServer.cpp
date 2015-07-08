@@ -62,21 +62,22 @@ void IceServer::processDatagrams() {
             // so that we can send packets to the heartbeating peer when we need, we need to activate a socket now
             peer->activateMatchingOrNewSymmetricSocket(sendingSockAddr);
         } else if (packetType == PacketTypeIceServerQuery) {
+            QDataStream heartbeatStream(incomingPacket);
 
             // this is a node hoping to connect to a heartbeating peer - do we have the heartbeating peer?
-            QUuid senderUUID = uuidFromPacketHeader(incomingPacket);
+            QUuid senderUUID;
+            heartbeatStream >> senderUUID;
 
             // pull the public and private sock addrs for this peer
             HifiSockAddr publicSocket, localSocket;
 
-            QDataStream hearbeatStream(incomingPacket);
-            hearbeatStream.skipRawData(numBytesForPacketHeader(incomingPacket));
+            heartbeatStream.skipRawData(numBytesForPacketHeader(incomingPacket));
 
-            hearbeatStream >> publicSocket >> localSocket;
+            heartbeatStream >> publicSocket >> localSocket;
 
             // check if this node also included a UUID that they would like to connect to
             QUuid connectRequestID;
-            hearbeatStream >> connectRequestID;
+            heartbeatStream >> connectRequestID;
 
             SharedNetworkPeer matchingPeer = _activePeers.value(connectRequestID);
 
