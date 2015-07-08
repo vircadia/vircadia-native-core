@@ -109,31 +109,31 @@ function onScriptUpdate() {
 screenSize = Controller.getViewportDimensions();
 
 var deleteButton = Overlays.addOverlay("image", {
-    x: screenSize.x / 2 - BUTTON_SIZE,
-    y: screenSize.y - (BUTTON_SIZE * 2 + PADDING),
-    width: BUTTON_SIZE,
-    height: BUTTON_SIZE,
-    imageURL: HIFI_PUBLIC_BUCKET + "images/delete.png",
-    color: {
-        red: 255,
-        green: 255,
-        blue: 255
-    },
-    alpha: 1
+  x: screenSize.x / 2 - BUTTON_SIZE,
+  y: screenSize.y - (BUTTON_SIZE * 2 + PADDING),
+  width: BUTTON_SIZE,
+  height: BUTTON_SIZE,
+  imageURL: HIFI_PUBLIC_BUCKET + "images/delete.png",
+  color: {
+    red: 255,
+    green: 255,
+    blue: 255
+  },
+  alpha: 1
 });
 
 var spawnButton = Overlays.addOverlay("image", {
-    x: screenSize.x / 2 + PADDING,
-    y: screenSize.y - (BUTTON_SIZE * 2 + PADDING),
-    width: BUTTON_SIZE,
-    height: BUTTON_SIZE,
-    imageURL: HIFI_PUBLIC_BUCKET + "images/puck.png",
-    color: {
-        red: 255,
-        green: 255,
-        blue: 255
-    },
-    alpha: 1
+  x: screenSize.x / 2 + PADDING,
+  y: screenSize.y - (BUTTON_SIZE * 2 + PADDING),
+  width: BUTTON_SIZE,
+  height: BUTTON_SIZE,
+  imageURL: HIFI_PUBLIC_BUCKET + "images/puck.png",
+  color: {
+    red: 255,
+    green: 255,
+    blue: 255
+  },
+  alpha: 1
 });
 
 Script.update.connect(onScriptUpdate);
