@@ -49,10 +49,8 @@ PacketSender::~PacketSender() {
 
 
 void PacketSender::queuePacketForSending(const SharedNodePointer& destinationNode, std::unique_ptr<NLPacket> packet) {
-    NodePacketPair networkPacket(destinationNode, packet);
-
     lock();
-    _packets.push_back(networkPacket);
+    _packets.push_back({destinationNode, std::move(packet)});
     unlock();
 
     _totalPacketsQueued++;

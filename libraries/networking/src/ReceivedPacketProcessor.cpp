@@ -25,7 +25,7 @@ void ReceivedPacketProcessor::queueReceivedPacket(const SharedNodePointer& sendi
     NodePacketPair networkPacket(sendingNode, NLPacket::create(PacketType::OctreeStats));
 
     lock();
-    _packets.push_back(networkPacket);
+    _packets.push_back(std::move(networkPacket));
     _nodePacketCounts[sendingNode->getUUID()]++;
     unlock();
 
@@ -51,14 +51,14 @@ bool ReceivedPacketProcessor::process() {
     currentPackets.swap(_packets);
     unlock();
 
-    foreach(auto& packetPair, currentPackets) {
+    for(auto& packetPair : currentPackets) {
         // TODO: Replace QByteArray() once NLPacket is coming through on receive side
         processPacket(packetPair.first, QByteArray());
         midProcess();
     }
 
     lock();
-    foreach(auto& packetPair, currentPackets) {
+    for(auto& packetPair : currentPackets) {
         _nodePacketCounts[packetPair.first->getUUID()]--;
     }
     unlock();
