@@ -236,8 +236,6 @@ void ViveControllerManager::assignDefaultInputMapping(UserInputMapper& mapper) {
     // Right Trackpad: Vertical movement, zooming
     mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(AXIS_Y_POS, 1), makeInput(TRACKPAD_BUTTON, 1), JOYSTICK_MOVE_SPEED);
     mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(AXIS_Y_NEG, 1), makeInput(TRACKPAD_BUTTON, 1), JOYSTICK_MOVE_SPEED);
-    mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(AXIS_X_POS, 1), makeInput(TRACKPAD_BUTTON, 1), BOOM_SPEED);
-    mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(AXIS_X_NEG, 1), makeInput(TRACKPAD_BUTTON, 1), BOOM_SPEED);
     
     // Buttons
     mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(GRIP_BUTTON, 0));
