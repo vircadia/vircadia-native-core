@@ -106,7 +106,7 @@ qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& d
         statsStringList->write(utfString);
     }
 
-    sendPacketList(statsStringList, destination);
+    sendPacketList(statsPacketList, destination);
 
     // enumerate the resulting strings, breaking them into MTU sized packets
     return 0;
