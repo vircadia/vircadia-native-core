@@ -309,8 +309,8 @@ void NodeList::sendDomainServerCheckIn() {
 
         }
 
-        auto domainPacket { NLPacket::create(domainPacketType); }
-        QDataStream packetStream(&domainPacket->getPayload);
+        auto domainPacket = NLPacket::create(domainPacketType);
+        QDataStream packetStream(domainPacket.get());
 
         if (domainPacketType == PacketType::DomainConnectRequest) {
             QUuid connectUUID;
