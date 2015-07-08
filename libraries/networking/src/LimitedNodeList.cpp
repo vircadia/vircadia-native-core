@@ -525,7 +525,7 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructPingPacket(PingType_t pingTy
     int packetSize = sizeof(PingType_t) + sizeof(quint64);
     auto pingPacket = NLPacket::create(PacketType::Ping, packetSize);
 
-    QDataStream packetStream(pingPacket->get());
+    QDataStream packetStream(pingPacket.get());
 
     packetStream << pingType;
     packetStream << usecTimestampNow();
@@ -547,7 +547,7 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructPingReplyPacket(const QByteA
 
     auto replyPacket = NLPacket::create(PacketType::Ping, packetSize);
 
-    QDataStream packetStream(&replyPacket);
+    QDataStream packetStream(replyPacket.get());
     packetStream << typeFromOriginalPing << timeFromOriginalPing << usecTimestampNow();
 
     return replyPacket;
