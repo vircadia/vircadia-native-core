@@ -28,6 +28,8 @@ var BUTTON_SIZE = 32;
 var stickModel = "https://hifi-public.s3.amazonaws.com/eric/models/stick.fbx";
 var swordModel = "https://hifi-public.s3.amazonaws.com/ozan/props/sword/sword.fbx";
 var whichModel = "sword";
+var attachmentOffset, MOUSE_CONTROLLER_OFFSET = {x: 0.5, y: 0.4, z: 0.0}; // A fudge when using mouse rather than hand-controller, to hit yourself less often.
+
 var toolBar = new ToolBar(0, 0, ToolBar.vertical, "highfidelity.sword.toolbar", function () {
     return {x: 100, y: 380};
 });
@@ -104,6 +106,7 @@ function removeDisplay() {
 }
 
 function cleanUp(leaveButtons) {
+    attachmentOffset = {x: 0, y: 0, z: 0};
     if (stickID) {
         Entities.deleteAction(stickID, actionID);
         Entities.deleteEntity(stickID);
@@ -145,7 +148,7 @@ function scoreHit(idA, idB, collision) {
 }
 
 function positionStick(stickOrientation) {
-    var baseOffset = {x: 0.3, y: 0.0, z: -dimensions.z / 2}; // FIXME: don't move yourself by colliding with your own capsule. Fudge of 0.3 in x.
+    var baseOffset = Vec3.sum(attachmentOffset, {x: 0.0, y: 0.0, z: -dimensions.z / 2});
     var offset = Vec3.multiplyQbyV(stickOrientation, baseOffset);
     Entities.updateAction(stickID, actionID, {relativePosition: offset,
                                               relativeRotation: stickOrientation});
@@ -153,6 +156,7 @@ function positionStick(stickOrientation) {
 
 
 function mouseMoveEvent(event) {
+    attachmentOffset = MOUSE_CONTROLLER_OFFSET;
     if (!stickID || actionID === nullActionID || isAway) {
         return;
     }
