@@ -209,7 +209,7 @@ public:
         T* _at;
     };
 
-    Iterator begin() { return Iterator(&_buffer.first(), &_buffer.last(), &_buffer[_newestEntryAtIndex], &_buffer[_newestEntryAtIndex]); }
+    Iterator begin() { return Iterator(&_buffer.front(), &_buffer.back(), &_buffer[_newestEntryAtIndex], &_buffer[_newestEntryAtIndex]); }
 
     Iterator end() {
         int endAtIndex = _newestEntryAtIndex - _numEntries;

@@ -172,7 +172,7 @@ void AudioInjector::injectToMixer() {
         audioPacketStream << loopbackFlag;
 
         // pack the position for injected audio
-        int positionOptionOffset = audioPacket.pos();
+        int positionOptionOffset = audioPacket->pos();
         audioPacketStream.writeRawData(reinterpret_cast<const char*>(&_options.position),
                                   sizeof(_options.position));
 
@@ -185,13 +185,13 @@ void AudioInjector::injectToMixer() {
         audioPacketStream << radius;
 
         // pack 255 for attenuation byte
-        int volumeOptionOffset = audioPacket.pos();
+        int volumeOptionOffset = audioPacket->pos();
         quint8 volume = MAX_INJECTOR_VOLUME * _options.volume;
         audioPacketStream << volume;
 
         audioPacketStream << _options.ignorePenumbra;
 
-        int audioDataOffset = audioPacket.pos();
+        int audioDataOffset = audioPacket->pos();
 
         QElapsedTimer timer;
         timer.start();
@@ -216,17 +216,17 @@ void AudioInjector::injectToMixer() {
             _loudness /= (float)(bytesToCopy / sizeof(int16_t));
 
             audioPacket->seek(positionOptionOffset);
-            audioPacket->write(&_options.position, sizeof(_options.position));
-            audioPacket.write(&_options.orientation, sizeof(_options.orientation));
+            audioPacket->write(reinterpret_cast<char*>(&_options.position), sizeof(_options.position));
+            audioPacket->write(reinterpret_cast<char*>(&_options.orientation), sizeof(_options.orientation));
 
             volume = MAX_INJECTOR_VOLUME * _options.volume;
             audioPacket->seek(volumeOptionOffset);
-            audioPacket->write(&volume, sizeof(volume));
+            audioPacket->write(reinterpret_cast<char*>(&volume), sizeof(volume));
 
             audioPacket->seek(audioDataOffset);
 
             // pack the sequence number
-            audioPacket->write(&outgoingInjectedAudioSequenceNumber, sizeof(quint16));
+            audioPacket->write(reinterpret_cast<char*>(&outgoingInjectedAudioSequenceNumber), sizeof(quint16));
 
             // copy the next NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL bytes to the packet
             audioPacket->write(_audioData.data() + _currentSendPosition, bytesToCopy);
