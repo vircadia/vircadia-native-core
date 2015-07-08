@@ -384,59 +384,59 @@ void OctreeSceneStats::childBitsRemoved(bool includesExistsBits, bool includesCo
 int OctreeSceneStats::packIntoPacket() {
     _statsPacket->reset();
 
-    _statsPacket->write(&_start, sizeof(_start));
-    _statsPacket->write(&_end, sizeof(_end));
-    _statsPacket->write(&_elapsed, sizeof(_elapsed));
-    _statsPacket->write(&_totalEncodeTime, sizeof(_totalEncodeTime));
-    _statsPacket->write(&_isFullScene, sizeof(_isFullScene));
-    _statsPacket->write(&_isMoving, sizeof(_isMoving));
-    _statsPacket->write(&_packets, sizeof(_packets));
-    _statsPacket->write(&_bytes, sizeof(_bytes));
+    _statsPacket->write(_start);
+    _statsPacket->write(_end);
+    _statsPacket->write(_elapsed);
+    _statsPacket->write(totalEncodeTime);
+    _statsPacket->write(_isFullScene);
+    _statsPacket->write(_isMoving);
+    _statsPacket->write(_packets);
+    _statsPacket->write(_bytes);
 
-    _statsPacket->write(&_totalInternal, sizeof(_totalInternal));
-    _statsPacket->write(&_totalLeaves, sizeof(_totalLeaves));
-    _statsPacket->write(&_internal, sizeof(_internal));
-    _statsPacket->write(&_leaves, sizeof(_leaves));
-    _statsPacket->write(&_internalSkippedDistance, sizeof(_internalSkippedDistance));
-    _statsPacket->write(&_leavesSkippedDistance, sizeof(_leavesSkippedDistance));
-    _statsPacket->write(&_internalSkippedOutOfView, sizeof(_internalSkippedOutOfView));
-    _statsPacket->write(&_leavesSkippedOutOfView, sizeof(_leavesSkippedOutOfView));
-    _statsPacket->write(&_internalSkippedWasInView, sizeof(_internalSkippedWasInView));
-    _statsPacket->write(&_leavesSkippedWasInView, sizeof(_leavesSkippedWasInView));
-    _statsPacket->write(&_internalSkippedNoChange, sizeof(_internalSkippedNoChange));
-    _statsPacket->write(&_leavesSkippedNoChange, sizeof(_leavesSkippedNoChange));
-    _statsPacket->write(&_internalSkippedOccluded, sizeof(_internalSkippedOccluded));
-    _statsPacket->write(&_leavesSkippedOccluded, sizeof(_leavesSkippedOccluded));
-    _statsPacket->write(&_internalColorSent, sizeof(_internalColorSent));
-    _statsPacket->write(&_leavesColorSent, sizeof(_leavesColorSent));
-    _statsPacket->write(&_internalDidntFit, sizeof(_internalDidntFit));
-    _statsPacket->write(&_leavesDidntFit, sizeof(_leavesDidntFit));
-    _statsPacket->write(&_colorBitsWritten, sizeof(_colorBitsWritten));
-    _statsPacket->write(&_existsBitsWritten, sizeof(_existsBitsWritten));
-    _statsPacket->write(&_existsInPacketBitsWritten, sizeof(_existsInPacketBitsWritten));
-    _statsPacket->write(&_treesRemoved, sizeof(_treesRemoved));
+    _statsPacket->write(_totalInternal);
+    _statsPacket->write(_totalLeaves);
+    _statsPacket->write(_internal);
+    _statsPacket->write(_leaves);
+    _statsPacket->write(_internalSkippedDistance);
+    _statsPacket->write(_leavesSkippedDistance);
+    _statsPacket->write(_internalSkippedOutOfView);
+    _statsPacket->write(_leavesSkippedOutOfView);
+    _statsPacket->write(_internalSkippedWasInView);
+    _statsPacket->write(_leavesSkippedWasInView);
+    _statsPacket->write(_internalSkippedNoChange);
+    _statsPacket->write(_leavesSkippedNoChange);
+    _statsPacket->write(_internalSkippedOccluded);
+    _statsPacket->write(_leavesSkippedOccluded);
+    _statsPacket->write(_internalColorSent);
+    _statsPacket->write(_leavesColorSent);
+    _statsPacket->write(_internalDidntFit);
+    _statsPacket->write(_leavesDidntFit);
+    _statsPacket->write(_colorBitsWritten);
+    _statsPacket->write(_existsBitsWritten);
+    _statsPacket->write(_existsInPacketBitsWritten);
+    _statsPacket->write(_treesRemoved);
 
     // add the root jurisdiction
     if (_jurisdictionRoot) {
         // copy the
         int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_jurisdictionRoot));
-        _statsPacket->write(&bytes, sizeof(bytes));
+        _statsPacket->write(bytes);
         _statsPacket->write(_jurisdictionRoot, bytes);
 
         // if and only if there's a root jurisdiction, also include the end elements
         int endNodeCount = _jurisdictionEndNodes.size();
 
-        _statsPacket->write(&endNodeCount, sizeof(endNodeCount));
+        _statsPacket->write(endNodeCount);
 
         for (int i=0; i < endNodeCount; i++) {
             unsigned char* endNodeCode = _jurisdictionEndNodes[i];
             int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
-            _statsPacket->write(&bytes, sizeof(bytes));
+            _statsPacket->write(bytes);
             _statsPacket->write(endNodeCode, bytes);
         }
     } else {
         int bytes = 0;
-        _statsPacket->write(&bytes, sizeof(bytes));
+        _statsPacket->write(bytes);
     }
 
     return _statsPacket->getSizeUsed();
