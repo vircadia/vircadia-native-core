@@ -47,19 +47,19 @@ bool ReceivedPacketProcessor::process() {
     }
 
     lock();
-    QVector<NetworkPacket> currentPackets;
+    std::list<NodePacketPair> currentPackets;
     currentPackets.swap(_packets);
     unlock();
 
-    foreach(auto& packet, currentPackets) {
+    foreach(auto& packetPair, currentPackets) {
         // TODO: Replace QByteArray() once NLPacket is coming through on receive side
-        processPacket(packet->first(), QByteArray());
+        processPacket(packetPair.first, QByteArray());
         midProcess();
     }
 
     lock();
-    foreach(auto& packet, currentPackets) {
-        _nodePacketCounts[packet.getNode()->getUUID()]--;
+    foreach(auto& packetPair, currentPackets) {
+        _nodePacketCounts[packetPair.first->getUUID()]--;
     }
     unlock();
 

@@ -267,19 +267,20 @@ bool PacketSender::nonThreadedProcess() {
     while ((packetsSentThisCall < packetsToSendThisCall) && (packetsLeft > 0)) {
         lock();
 
-        NodePacketPair& packetPair = _packets.pop_front();
+        NodePacketPair packetPair = std::move(_packets.front());
+        _packets.pop_front();
         packetsLeft = _packets.size();
 
         unlock();
 
         // send the packet through the NodeList...
-        DependencyManager::get<NodeList>()->sendUnreliablePacket(packetPair->second(), packetPair->first());
+        DependencyManager::get<NodeList>()->sendUnreliablePacket(packetPair.second, packetPair.first);
 
         packetsSentThisCall++;
         _packetsOverCheckInterval++;
         _totalPacketsSent++;
 
-        int packetSize = packetPair->second()->getSizeWithHeader();
+        int packetSize = packetPair.second->getSizeWithHeader();
 
         _totalBytesSent += packetSize;
         emit packetSent(packetSize);
