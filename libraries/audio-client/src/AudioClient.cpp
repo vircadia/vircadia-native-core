@@ -856,22 +856,22 @@ void AudioClient::handleAudioInput() {
             _audioPacket->reset();
 
             // write sequence number
-            _audioPacket->write(reinterpret_cast<char*>(&_outgoingAvatarAudioSequenceNumber), sizeof(quint16));
+            _audioPacket->write(_outgoingAvatarAudioSequenceNumber);
 
             if (_audioPacket->getPacketType() == PacketType::SilentAudioFrame) {
                 // pack num silent samples
                 quint16 numSilentSamples = numNetworkSamples;
-                _audioPacket->write(reinterpret_cast<char*>(&numSilentSamples), sizeof(quint16));
+                _audioPacket->write(numSilentSamples);
             } else {
                 // set the mono/stereo byte
-                _audioPacket->write(reinterpret_cast<char*>(&isStereo), sizeof(isStereo));
+                _audioPacket->write(isStereo);
             }
 
             // pack the three float positions
-            _audioPacket->write(reinterpret_cast<char*>(&headPosition), sizeof(headPosition));
+            _audioPacket->write(headPosition);
 
             // pack the orientation
-            _audioPacket->write(reinterpret_cast<char*>(&headOrientation), sizeof(headOrientation));
+            _audioPacket->write(headOrientation);
 
             if (_audioPacket->getPacketType() != PacketType::SilentAudioFrame) {
                 // audio samples have already been packed (written to networkAudioSamples)
@@ -912,12 +912,12 @@ void AudioClient::sendMuteEnvironmentPacket() {
 
     auto mutePacket = NLPacket::create(PacketType::MuteEnvironment, dataSize);
 
-    float MUTE_RADIUS = 50;
+    const float MUTE_RADIUS = 50;
 
     glm::vec3 currentSourcePosition = _positionGetter();
 
-    mutePacket->write(reinterpret_cast<char*>(&currentSourcePosition), sizeof(currentSourcePosition));
-    mutePacket->write(reinterpret_cast<char*>(&MUTE_RADIUS), sizeof(MUTE_RADIUS));
+    mutePacket->write(currentSourcePosition);
+    mutePacket->write(MUTE_RADIUS);
 
     // grab our audio mixer from the NodeList, if it exists
     SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);

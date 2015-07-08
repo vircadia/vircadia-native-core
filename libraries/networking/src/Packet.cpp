@@ -156,6 +156,14 @@ void Packet::writeSequenceNumber(SequenceNumber seqNum) {
            &seqNum, sizeof(seqNum));
 }
 
+template<typename T> qint64 Packet::read(T* data) {
+    return QIODevice::read(reinterpret_cast<char*>(data), sizeof(T));
+}
+
+template<typename T> qint64 Packet::write(const T& data) {
+    return QIODevice::write(reinterpret_cast<const char*>(&data), sizeof(T));
+}
+
 static const qint64 PACKET_WRITE_ERROR = -1;
 qint64 Packet::writeData(const char* data, qint64 maxSize) {
     // make sure we have the space required to write this block

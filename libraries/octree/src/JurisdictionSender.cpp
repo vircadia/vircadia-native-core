@@ -28,7 +28,6 @@ JurisdictionSender::JurisdictionSender(JurisdictionMap* map, NodeType_t type) :
 JurisdictionSender::~JurisdictionSender() {
 }
 
-
 void JurisdictionSender::processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) {
     if (packetTypeForPacket(packet) == PacketType::JurisdictionRequest) {
         if (sendingNode) {
