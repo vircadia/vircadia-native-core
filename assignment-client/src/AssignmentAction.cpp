@@ -14,8 +14,7 @@
 #include "AssignmentAction.h"
 
 AssignmentAction::AssignmentAction(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity) :
-    _id(id),
-    _type(type),
+    EntityActionInterface(type, id),
     _data(QByteArray()),
     _active(false),
     _ownerEntity(ownerEntity) {

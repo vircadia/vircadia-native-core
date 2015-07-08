@@ -19,10 +19,8 @@
 
 class ObjectActionOffset : public ObjectAction {
 public:
-    ObjectActionOffset(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity);
+    ObjectActionOffset(const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~ObjectActionOffset();
-
-    virtual EntityActionType getType() const { return ACTION_TYPE_OFFSET; }
 
     virtual bool updateArguments(QVariantMap arguments);
     virtual QVariantMap getArguments();

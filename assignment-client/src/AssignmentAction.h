@@ -24,8 +24,6 @@ public:
     AssignmentAction(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~AssignmentAction();
 
-    const QUuid& getID() const { return _id; }
-    virtual EntityActionType getType() const { return _type; }
     virtual void removeFromSimulation(EntitySimulation* simulation) const;
     virtual EntityItemWeakPointer getOwnerEntity() const { return _ownerEntity; }
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) { _ownerEntity = ownerEntity; }
@@ -36,8 +34,6 @@ public:
     virtual void deserialize(QByteArray serializedArguments);
 
 private:
-    QUuid _id;
-    EntityActionType _type;
     QByteArray _data;
 
 protected:

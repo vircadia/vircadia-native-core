@@ -27,28 +27,22 @@ public:
     ObjectAction(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~ObjectAction();
 
-    const QUuid& getID() const { return _id; }
-    virtual EntityActionType getType() const { assert(false); return ACTION_TYPE_NONE; }
     virtual void removeFromSimulation(EntitySimulation* simulation) const;
     virtual EntityItemWeakPointer getOwnerEntity() const { return _ownerEntity; }
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) { _ownerEntity = ownerEntity; }
 
-    virtual bool updateArguments(QVariantMap arguments) { return false; }
-    virtual QVariantMap getArguments() { return QVariantMap(); }
+    virtual bool updateArguments(QVariantMap arguments) = 0;
+    virtual QVariantMap getArguments() = 0;
 
     // this is called from updateAction and should be overridden by subclasses
-    virtual void updateActionWorker(float deltaTimeStep) {}
+    virtual void updateActionWorker(float deltaTimeStep) = 0;
 
     // these are from btActionInterface
     virtual void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep);
     virtual void debugDraw(btIDebugDraw* debugDrawer);
 
-    virtual QByteArray serialize() const;
-    virtual void deserialize(QByteArray serializedArguments);
-
-private:
-    QUuid _id;
-    QReadWriteLock _lock;
+    virtual QByteArray serialize() const = 0;
+    virtual void deserialize(QByteArray serializedArguments) = 0;
 
 protected:
 
@@ -68,6 +62,10 @@ protected:
     bool tryLockForWrite() { return _lock.tryLockForWrite(); }
     void unlock() { _lock.unlock(); }
 
+private:
+    QReadWriteLock _lock;
+
+protected: 
     bool _active;
     EntityItemWeakPointer _ownerEntity;
 };

@@ -15,7 +15,7 @@
 
 ObjectAction::ObjectAction(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity) :
     btActionInterface(),
-    _id(id),
+    EntityActionInterface(type, id),
     _active(false),
     _ownerEntity(ownerEntity) {
 }
@@ -129,11 +129,3 @@ void ObjectAction::setAngularVelocity(glm::vec3 angularVelocity) {
     rigidBody->activate();
 }
 
-QByteArray ObjectAction::serialize() const {
-    assert(false);
-    return QByteArray();
-}
-
-void ObjectAction::deserialize(QByteArray serializedArguments) {
-    assert(false);
-}

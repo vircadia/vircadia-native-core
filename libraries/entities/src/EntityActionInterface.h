@@ -29,10 +29,10 @@ enum EntityActionType {
 
 class EntityActionInterface {
 public:
-    EntityActionInterface() { }
+    EntityActionInterface(EntityActionType type, const QUuid& id) : _id(id), _type(type) { }
     virtual ~EntityActionInterface() { }
-    virtual const QUuid& getID() const = 0;
-    virtual EntityActionType getType() const { assert(false); return ACTION_TYPE_NONE; }
+    const QUuid& getID() const { return _id; }
+    EntityActionType getType() const { return _type; }
 
     virtual void removeFromSimulation(EntitySimulation* simulation) const = 0;
     virtual EntityItemWeakPointer getOwnerEntity() const = 0;
@@ -68,6 +68,8 @@ protected:
     static QString extractStringArgument(QString objectName, QVariantMap arguments,
                                          QString argumentName, bool& ok, bool required = true);
 
+    QUuid _id;
+    EntityActionType _type;
 };
 
 

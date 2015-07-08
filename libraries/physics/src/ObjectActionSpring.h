@@ -16,10 +16,8 @@
 
 class ObjectActionSpring : public ObjectAction {
 public:
-    ObjectActionSpring(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity);
+    ObjectActionSpring(const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~ObjectActionSpring();
-
-    virtual EntityActionType getType() const { return ACTION_TYPE_SPRING; }
 
     virtual bool updateArguments(QVariantMap arguments);
     virtual QVariantMap getArguments();

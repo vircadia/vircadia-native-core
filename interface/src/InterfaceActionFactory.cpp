@@ -23,11 +23,11 @@ EntityActionPointer interfaceActionFactory(EntityActionType type, const QUuid& i
         case ACTION_TYPE_NONE:
             return nullptr;
         case ACTION_TYPE_OFFSET:
-            return (EntityActionPointer) new ObjectActionOffset(type, id, ownerEntity);
+            return (EntityActionPointer) new ObjectActionOffset(id, ownerEntity);
         case ACTION_TYPE_SPRING:
-            return (EntityActionPointer) new ObjectActionSpring(type, id, ownerEntity);
+            return (EntityActionPointer) new ObjectActionSpring(id, ownerEntity);
         case ACTION_TYPE_HOLD:
-            return (EntityActionPointer) new AvatarActionHold(type, id, ownerEntity);
+            return (EntityActionPointer) new AvatarActionHold(id, ownerEntity);
     }
 
     assert(false);
