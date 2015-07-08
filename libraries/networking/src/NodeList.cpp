@@ -400,9 +400,9 @@ void NodeList::sendDSPathQuery(const QString& newPath) {
         // get the size of the UTF8 representation of the desired path
         quint16 numPathBytes = pathQueryUTF8.size();
 
-        if (numPathBytes + sizeof(numPathBytes) < pathQueryPacket.size() ) {
+        if (numPathBytes + sizeof(numPathBytes) < pathQueryPacket->bytesAvailable() ) {
             // append the size of the path to the query packet
-            pathQueryPacket->write(&numPathBytes, sizeof(numPathBytes));
+            pathQueryPacket->write(reinterpret_cast<char*>(&numPathBytes), sizeof(numPathBytes));
 
             // append the path itself to the query packet
             pathQueryPacket->write(pathQueryUTF8);
@@ -423,7 +423,7 @@ void NodeList::handleDSPathQueryResponse(const QByteArray& packet) {
     // This is a response to a path query we theoretically made.
     // In the future we may want to check that this was actually from our DS and for a query we actually made.
 
-    int numHeaderBytes = numBytesForPacketHeaderGivenPacketType(PacketTypeDomainServerPathResponse);
+    int numHeaderBytes = numBytesForPacketHeaderGivenPacketType(PacketType::DomainServerPathResponse);
     const char* startPosition = packet.data() + numHeaderBytes;
     const char* currentPosition = startPosition;
 
@@ -500,10 +500,10 @@ void NodeList::pingPunchForDomainServer() {
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendPingsToDS);
 
         // send the ping packet to the local and public sockets for this node
-        auto localPingPacket = constructICEPingPacket(PingType::Local);
+        auto localPingPacket = constructICEPingPacket(PingType::Local, _sessionUUID);
         sendPacket(std::move(localPingPacket), _domainHandler.getICEPeer().getLocalSocket());
 
-        auto publicPingPacket = constructICEPingPacket(PingType::Public);
+        auto publicPingPacket = constructICEPingPacket(PingType::Public, _sessionUUID);
         sendPacket(std::move(publicPingPacket), _domainHandler.getICEPeer().getPublicSocket());
 
         _domainHandler.getICEPeer().incrementConnectionAttempts();
