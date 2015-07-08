@@ -12,12 +12,19 @@
 #ifndef hifi_OctreeEditPacketSender_h
 #define hifi_OctreeEditPacketSender_h
 
-#include <qqueue.h>
 #include <PacketSender.h>
 #include <PacketHeaders.h>
 
 #include "JurisdictionMap.h"
 #include "SentPacketHistory.h"
+
+namespace std {
+  template <> struct hash<QUuid> {
+    size_t operator()(const QUuid& uuid) const {
+      return qHash(uuid);
+    }
+  };
+}
 
 /// Utility for processing, packing, queueing and sending of outbound edit messages.
 class OctreeEditPacketSender :  public PacketSender {
@@ -94,7 +101,7 @@ protected:
     void processPreServerExistsPackets();
 
     // These are packets which are destined from know servers but haven't been released because they're still too small
-    QHash<QUuid, std::unique_ptr<NLPacket>> _pendingEditPackets;
+    std::unordered_map<QUuid, std::unique_ptr<NLPacket>> _pendingEditPackets;
 
     // These are packets that are waiting to be processed because we don't yet know if there are servers
     int _maxPendingMessages;
@@ -109,7 +116,7 @@ protected:
     QMutex _releaseQueuedPacketMutex;
 
     // TODO: add locks for this and _pendingEditPackets
-    QHash<QUuid, SentPacketHistory> _sentPacketHistories;
-    QHash<QUuid, quint16> _outgoingSequenceNumbers;
+    std::unordered_map<QUuid, SentPacketHistory> _sentPacketHistories;
+    std::unordered_map<QUuid, quint16> _outgoingSequenceNumbers;
 };
 #endif // hifi_OctreeEditPacketSender_h
