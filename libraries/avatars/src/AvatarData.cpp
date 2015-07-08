@@ -1089,10 +1089,10 @@ void AvatarData::sendAvatarDataPacket() {
 void AvatarData::sendIdentityPacket() {
     auto nodeList = DependencyManager::get<NodeList>();
 
-    QByteArray identityByteArray = identityByteArray();
+    QByteArray identityData = identityByteArray();
 
-    auto identityPacket = NLPacket::create(PacketType::AvatarIdentity, identityByteArray.size());
-    identityPacket->write(identityByteArray);
+    auto identityPacket = NLPacket::create(PacketType::AvatarIdentity, identityData.size());
+    identityPacket->write(identityData);
 
     nodeList->broadcastToNodes(std::move(identityPacket), NodeSet() << NodeType::AvatarMixer);
 }

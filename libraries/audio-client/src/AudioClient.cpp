@@ -858,7 +858,7 @@ void AudioClient::handleAudioInput() {
             // write sequence number
             _audioPacket->writePrimitive(_outgoingAvatarAudioSequenceNumber);
 
-            if (_audioPacket->getPacketType() == PacketType::SilentAudioFrame) {
+            if (_audioPacket->getType() == PacketType::SilentAudioFrame) {
                 // pack num silent samples
                 quint16 numSilentSamples = numNetworkSamples;
                 _audioPacket->writePrimitive(numSilentSamples);
@@ -873,7 +873,7 @@ void AudioClient::handleAudioInput() {
             // pack the orientation
             _audioPacket->writePrimitive(headOrientation);
 
-            if (_audioPacket->getPacketType() != PacketType::SilentAudioFrame) {
+            if (_audioPacket->getType() != PacketType::SilentAudioFrame) {
                 // audio samples have already been packed (written to networkAudioSamples)
                 _audioPacket->setSizeUsed(_audioPacket->getSizeUsed() + numNetworkBytes);
             }
