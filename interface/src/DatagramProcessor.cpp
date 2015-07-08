@@ -23,9 +23,18 @@
 #include "DatagramProcessor.h"
 
 DatagramProcessor::DatagramProcessor(QObject* parent) :
-    QObject(parent)
+    QObject(parent),
+    _packetListenerMap()
 {
 
+}
+
+void DatagramProcessor::registerPacketListener(Packet::Type type, QObject* object, QString methodName) {
+    if (packetListenerMap.contains(type)) {
+        qDebug() << "Warning: Registering a packet listener for packet type " << type
+            << " that will remove a previously registered listener";
+    }
+    packetListenerMap[type] = QPair<QObject*, QString>(object, methodName);
 }
 
 void DatagramProcessor::processDatagrams() {
@@ -160,7 +169,20 @@ void DatagramProcessor::processDatagrams() {
                     }
                     break;
                 default:
-                    nodeList->processNodeData(senderSockAddr, incomingPacket);
+                    //nodeList->processNodeData(senderSockAddr, incomingPacket);
+                    if (packetListenerMap.contains(incomingType)) {
+                        auto& listener = packetListenerMap[incomingType];
+                        NLPacket packet;
+                        bool success = QMetaObject::invokeMethod(listener.first, listener.second,
+                                Q_ARG(std::unique_ptr<NLPacket>, packet),
+                                Q_ARG(HifiSockAddr, senderSockAddr));
+                        if (!success) {
+                            qDebug() << "Error sending packet " << incomingType << " to listener: " << listener.first.name() << "::" << listener.second;
+                        }
+                    } else {
+                        QDebug() << "No listener found for packet type: " << incomingType;
+                    }
+
                     break;
             }
         }

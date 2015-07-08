@@ -27,10 +27,14 @@ public:
     void resetCounters() { _inPacketCount = 0; _outPacketCount = 0; _inByteCount = 0; _outByteCount = 0; }
 
     void shutdown() { _isShuttingDown = true; }
+
+    void registerPacketListener(Packet::Type type, QObject* object, QString methodName);
+
 public slots:
     void processDatagrams();
     
 private:
+    QMap<Packet::Type, QPair<QObject*, QString>> packetListenerMap;
     int _inPacketCount = 0;
     int _outPacketCount = 0;
     int _inByteCount = 0;
