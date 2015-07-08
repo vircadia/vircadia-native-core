@@ -86,7 +86,7 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, std::uniqu
 
             // pack sequence number
             quint16 sequence = _outgoingSequenceNumbers[nodeUUID]++;
-            packet->write(reinterpret_cast<char*>(&sequence), sizeof(sequence));
+            packet->write(sequence);
 
             // debugging output...
             if (wantDebug) {
