@@ -56,7 +56,7 @@ void PacketSender::queuePacketForSending(const SharedNodePointer& destinationNod
     unlock();
 
     _totalPacketsQueued++;
-    _totalBytesQueued += packet.getSizeWithHeader();
+    _totalBytesQueued += packet->getSizeWithHeader();
 
     // Make sure to  wake our actual processing thread because we  now have packets for it to process.
     _hasPackets.wakeAll();
@@ -279,7 +279,7 @@ bool PacketSender::nonThreadedProcess() {
         _packetsOverCheckInterval++;
         _totalPacketsSent++;
 
-        int packetSize = packetPair->second().getSizeWithHeader();
+        int packetSize = packetPair->second()->getSizeWithHeader();
 
         _totalBytesSent += packetSize;
         emit packetSent(packetSize);
