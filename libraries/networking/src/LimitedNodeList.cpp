@@ -872,7 +872,7 @@ void LimitedNodeList::sendPacketToIceServer(PacketType::Value packetType, const 
             << uuidStringWithoutCurlyBraces(peerID);
     }
 
-    sendPacket(icePacket, iceServerSockAddr);
+    sendPacket(std::move(icePacket), iceServerSockAddr);
 }
 
 void LimitedNodeList::putLocalPortIntoSharedMemory(const QString key, QObject* parent, quint16 localPort) {
