@@ -34,7 +34,7 @@ public:
     void setExtendedHeader(const QByteArray& extendedHeader) { _extendedHeader = extendedHeader; }
 protected:
     qint64 writeData(const char* data, qint64 maxSize);
-    qint64 readData(const char* data, qint64 maxSize) { return 0; };
+    qint64 readData(char* data, qint64 maxSize) { return 0; }
 private:
     std::unique_ptr<NLPacket> createPacketWithExtendedHeader();
 

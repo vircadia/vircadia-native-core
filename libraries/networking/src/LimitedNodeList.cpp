@@ -575,7 +575,7 @@ std::unique_ptr<NLPacket> constructICEPingReplyPacket(const QByteArray& pingPack
 
     // pack the ICE ID and then the ping type
     icePingReplyPacket->write(iceID.toRfc4122());
-    icePingReplyPacket->write(&pingType, sizeof(pingType));
+    icePingReplyPacket->write(reinterpret_cast<char *>(&pingType), sizeof(pingType));
 
     return icePingReplyPacket;
 }
