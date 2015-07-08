@@ -93,7 +93,7 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     // check the local socket right now
     updateLocalSockAddr();
 
-    connect(_nodeSocket, &QUdpSocket::readyRead, _packetReceiver, &PacketReceiver::processDatagrams);
+    connect(&_nodeSocket, &QUdpSocket::readyRead, &_packetReceiver, &PacketReceiver::processDatagrams);
 
     _packetStatTimer.start();
 }

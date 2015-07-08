@@ -29,14 +29,14 @@ public:
 
     void shutdown() { _isShuttingDown = true; }
 
-    void registerPacketListener(Packet::Type type, QObject* object, QString methodName);
+    void registerPacketListener(PacketType::Value type, QObject* object, QString methodName);
 
 public slots:
     void processDatagrams();
     
 private:
     QMutex packetListenerLock;
-    QMap<Packet::Type, QPair<QObject*, QString>> packetListenerMap;
+    QMap<PacketType::Value, QPair<QObject*, QString>> packetListenerMap;
     int _inPacketCount = 0;
     int _outPacketCount = 0;
     int _inByteCount = 0;

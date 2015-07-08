@@ -39,6 +39,7 @@
 #include "NLPacket.h"
 #include "PacketHeaders.h"
 #include "PacketList.h"
+#include "PacketReceiver.h"
 #include "UUIDHasher.h"
 
 const int MAX_PACKET_SIZE = 1450;

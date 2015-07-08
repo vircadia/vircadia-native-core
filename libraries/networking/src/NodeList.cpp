@@ -91,7 +91,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     // we definitely want STUN to update our public socket, so call the LNL to kick that off
     startSTUNPublicSocketUpdate();
 
-    auto packetReceiver = getPacketReceiver();
+    auto& packetReceiver = getPacketReceiver();
     packetReceiver.registerPacketListener(PacketType::DomainList, this, "processReceivedPacket");
     packetReceiver.registerPacketListener(PacketType::DomainServerAddedNode, this, "processReceivedPacket");
     packetReceiver.registerPacketListener(PacketType::DomainServerRequireDTLS, this, "processReceivedPacket");
