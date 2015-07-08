@@ -11,6 +11,11 @@
 #include "GPULogging.h"
 #include "GLBackendShared.h"
 
+#ifndef GL_ARB_timer_query
+#define GL_TIME_ELAPSED 0x88BF
+#define GL_TIMESTAMP 0x8E28
+#endif 
+
 using namespace gpu;
 
 GLBackend::GLQuery::GLQuery() {}
