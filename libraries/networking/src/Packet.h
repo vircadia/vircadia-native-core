@@ -40,8 +40,8 @@ public:
     char* getData() { return _packet.get(); }
     const char* getData() const { return _packet.get(); }
 
-    PacketType::Value getPacketType() const { return _type; }
-    void setPacketType(PacketType::Value type);
+    PacketType::Value getType() const { return _type; }
+    void setType(PacketType::Value type);
 
     qint64 getSizeWithHeader() const { return localHeaderSize() + getSizeUsed(); }
     qint64 getSizeUsed() const { return _sizeUsed; }

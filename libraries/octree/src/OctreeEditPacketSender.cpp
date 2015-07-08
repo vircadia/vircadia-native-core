@@ -102,7 +102,7 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, std::uniqu
                 quint64 queuedAt = usecTimestampNow();
                 quint64 transitTime = queuedAt - createdAt;
 
-                qCDebug(octree) << "OctreeEditPacketSender::queuePacketToNode() queued " << packet->readType()
+                qCDebug(octree) << "OctreeEditPacketSender::queuePacketToNode() queued " << packet->getType()
                     << " - command to node bytes=" << packet->getSizeWithHeader()
                     << " sequence=" << sequence << " transitTimeSoFar=" << transitTime << " usecs";
             }
@@ -148,7 +148,7 @@ void OctreeEditPacketSender::queuePendingPacketToNodes(std::unique_ptr<NLPacket>
 
     if (_maxPendingMessages > 0) {
         _pendingPacketsLock.lock();
-        _preServerSingleMessagePackets.push_back(packet);
+        _preServerSingleMessagePackets.push_back(std::move(packet));
         // if we've saved MORE than our max, then clear out the oldest packet...
         int allPendingMessages = _preServerSingleMessagePackets.size() + _preServerEdits.size();
         if (allPendingMessages > _maxPendingMessages) {
@@ -254,7 +254,7 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType::Value type, QByt
                     bufferedPacket = NLPacket::create(type);
                 } else {
                     // If we're switching type, then we send the last one and start over
-                    if ((type != bufferedPacket->readType() && bufferedPacket->getSizeUsed() > 0) ||
+                    if ((type != bufferedPacket->getType() && bufferedPacket->getSizeUsed() > 0) ||
                         (editMessage.size() >= bufferedPacket->bytesAvailable())) {
 
                         // create the new packet and swap it with the packet in _pendingEditPackets
@@ -307,7 +307,7 @@ void OctreeEditPacketSender::releaseQueuedMessages() {
 
 void OctreeEditPacketSender::releaseQueuedPacket(const QUuid& nodeID, std::unique_ptr<NLPacket> packet) {
     _releaseQueuedPacketMutex.lock();
-    if (packet->getSizeUsed() > 0 && packet->readType() != PacketType::Unknown) {
+    if (packet->getSizeUsed() > 0 && packet->getType() != PacketType::Unknown) {
         queuePacketToNode(nodeID, std::move(packet));
     }
     _releaseQueuedPacketMutex.unlock();
