@@ -308,7 +308,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _window(new MainWindow(desktop())),
         _toolWindow(NULL),
         _friendsWindow(NULL),
-        _datagramProcessor(),
         _undoStack(),
         _undoStackScriptingInterface(&_undoStack),
         _frameCount(0),
@@ -387,8 +386,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // make sure the node thread is given highest priority
     nodeThread->setPriority(QThread::TimeCriticalPriority);
 
-    _datagramProcessor = new DatagramProcessor(nodeList.data());
-
     // have the NodeList use deleteLater from DM customDeleter
     nodeList->setCustomDeleter([](Dependency* dependency) {
         static_cast<NodeList*>(dependency)->deleteLater();
@@ -403,9 +400,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     QSharedPointer<GeometryCache> geometryCacheP = DependencyManager::get<GeometryCache>();
     ResourceCache* geometryCache = geometryCacheP.data();
     connect(this, &Application::checkBackgroundDownloads, geometryCache, &ResourceCache::checkAsynchronousGets);
-
-    // connect the DataProcessor processDatagrams slot to the QUDPSocket readyRead() signal
-    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, _datagramProcessor, &DatagramProcessor::processDatagrams);
 
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread();
@@ -641,6 +635,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     auto applicationUpdater = DependencyManager::get<AutoUpdater>();
     connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
     applicationUpdater->checkForUpdate();
+
+    auto& packetReceiver = nodeList->getPacketReceiver();
+    packetReceiver.registerPacketListener(PacketType::DomainConnectionDenied, this, "handleDomainConnectionDeniedPacket");
 }
 
 void Application::aboutToQuit() {
@@ -654,7 +651,7 @@ void Application::cleanupBeforeQuit() {
 
     _entities.clear(); // this will allow entity scripts to properly shutdown
 
-    _datagramProcessor->shutdown(); // tell the datagram processor we're shutting down, so it can short circuit
+    //_datagramProcessor->shutdown(); // tell the datagram processor we're shutting down, so it can short circuit
     _entities.shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
     ScriptEngine::stopAllScripts(this); // stop all currently running global scripts
 
@@ -1783,7 +1780,7 @@ void Application::checkFPS() {
 
     _fps = (float)_frameCount / diffTime;
     _frameCount = 0;
-    _datagramProcessor->resetCounters();
+    //_datagramProcessor->resetCounters();
     _timerStart.start();
 
     // ask the node list to check in with the domain server
