@@ -34,6 +34,7 @@ DialogContainer {
         readonly property int buttonWidth: 100
         readonly property int buttonHeight: 30
         readonly property int noticeHeight: 15 * inputSpacing
+        readonly property string fontFamily: "Futura"
 
         signal triggerBuildDownload
         signal closeUpdateDialog
@@ -90,12 +91,22 @@ DialogContainer {
                 Text {
                     id: updateAvailable
                     text: "Update Available"
+                    font {
+                        family: updateDialog.fontFamily
+                        pixelSize: hifi.fonts.pixelSize * 1.5
+                        weight: Font.DemiBold
+                    }
+                    color: "#303030"
                 }
 
                 Text {
                     id: versionDetails
                     text: updateDialog.updateAvailableDetails
-                    font.pixelSize: 14
+                    font {
+                        family: updateDialog.fontFamily
+                        pixelSize: hifi.fonts.pixelSize * 0.6
+                        letterSpacing: -0.5
+                    }
                     color: hifi.colors.text
                     anchors {
                         top: updateAvailable.bottom
@@ -109,7 +120,7 @@ DialogContainer {
 
                 border {
                     width: 1
-                    color: "#808080"
+                    color: "#a0a0a0"
                 }
 
                 ScrollView {
@@ -125,8 +136,11 @@ DialogContainer {
                         wrapMode: Text.Wrap
                         width: parent.width - updateDialog.closeMargin
                         text: updateDialog.releaseNotes
-                        font.pixelSize: 14
-                        color: "#000000"
+                        color: hifi.colors.text
+                        font {
+                            family: updateDialog.fontFamily
+                            pixelSize: hifi.fonts.pixelSize * 0.7
+                        }
                     }
                 }
             }
@@ -142,7 +156,12 @@ DialogContainer {
 
                     Text {
                         text: "Cancel"
-                        font.weight: Font.DemiBold
+                        color: "#0c9ab4"  // Same as logo
+                        font {
+                            family: updateDialog.fontFamily
+                            pixelSize: hifi.fonts.pixelSize * 1.2
+                            weight: Font.DemiBold
+                        }
                         anchors {
                             verticalCenter: parent.verticalCenter
                             horizontalCenter: parent.horizontalCenter
@@ -164,7 +183,12 @@ DialogContainer {
 
                     Text {
                         text: "Update"
-                        font.weight: Font.DemiBold
+                        color: "#0c9ab4"  // Same as logo
+                        font {
+                            family: updateDialog.fontFamily
+                            pixelSize: hifi.fonts.pixelSize * 1.2
+                            weight: Font.DemiBold
+                        }
                         anchors {
                             verticalCenter: parent.verticalCenter
                             horizontalCenter: parent.horizontalCenter

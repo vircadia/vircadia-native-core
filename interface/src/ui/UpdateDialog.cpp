@@ -24,8 +24,8 @@ UpdateDialog::UpdateDialog(QQuickItem* parent) :
     int currentVersion = QCoreApplication::applicationVersion().toInt();
     int latestVersion = applicationUpdater.data()->getBuildData().lastKey();
     int versionsBehind = latestVersion - currentVersion;
-    _updateAvailableDetails = "v" + QString::number(latestVersion) + " released on " 
-        + applicationUpdater.data()->getBuildData()[latestVersion]["releaseTime"];
+    _updateAvailableDetails = "v" + QString::number(latestVersion) + " released on "
+        + QString(applicationUpdater.data()->getBuildData()[latestVersion]["releaseTime"]).replace("  ", " ");
     _updateAvailableDetails += "\nYou are " + QString::number(versionsBehind) + " version" 
         + (versionsBehind > 1 ? "s" : "") + " behind";
 
