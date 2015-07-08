@@ -186,6 +186,8 @@ void ViveControllerManager::registerToUserInputMapper(UserInputMapper& mapper) {
     proxy->getPose = [this](const UserInputMapper::Input& input, int timestamp) -> UserInputMapper::PoseValue { return this->getPose(input.getChannel()); };
     proxy->getAvailabeInputs = [this] () -> QVector<UserInputMapper::InputPair> {
         QVector<UserInputMapper::InputPair> availableInputs;
+        availableInputs.append(UserInputMapper::InputPair(makeInput(LEFT_HAND), "Left Hand"));
+        
         availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_A, 0), "Left Button A"));
         availableInputs.append(UserInputMapper::InputPair(makeInput(GRIP_BUTTON, 0), "Left Grip Button"));
         availableInputs.append(UserInputMapper::InputPair(makeInput(TRACKPAD_BUTTON, 0), "Left Trackpad Button"));
@@ -196,6 +198,9 @@ void ViveControllerManager::registerToUserInputMapper(UserInputMapper& mapper) {
         availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_X_POS, 0), "Left Trackpad Right"));
         availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_X_NEG, 0), "Left Trackpad Left"));
         availableInputs.append(UserInputMapper::InputPair(makeInput(BACK_TRIGGER, 0), "Left Back Trigger"));
+
+        
+        availableInputs.append(UserInputMapper::InputPair(makeInput(RIGHT_HAND), "Right Hand"));
 
         availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_A, 1), "Right Button A"));
         availableInputs.append(UserInputMapper::InputPair(makeInput(GRIP_BUTTON, 1), "Right Grip Button"));

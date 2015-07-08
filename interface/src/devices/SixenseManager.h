@@ -28,8 +28,6 @@
 
 #include <input-plugins/UserInputMapper.h>
 
-class PalmData;
-
 const unsigned int BUTTON_0 = 1U << 0; // the skinny button between 1 and 2
 const unsigned int BUTTON_1 = 1U << 5;
 const unsigned int BUTTON_2 = 1U << 6;
@@ -57,6 +55,11 @@ public:
         BACK_TRIGGER = 1U << 6,
     };
     
+    enum JointChannel {
+        LEFT_HAND = 0,
+        RIGHT_HAND,
+    };
+    
     static SixenseManager& getInstance();
     
     void initialize();
@@ -74,12 +77,15 @@ public:
     
     typedef std::unordered_set<int> ButtonPressedMap;
     typedef std::map<int, float> AxisStateMap;
+    typedef std::map<int, UserInputMapper::PoseValue> PoseStateMap;
     
     float getButton(int channel) const;
     float getAxis(int channel) const;
+    UserInputMapper::PoseValue getPose(int channel) const;
     
     UserInputMapper::Input makeInput(unsigned int button, int index);
     UserInputMapper::Input makeInput(JoystickAxisChannel axis, int index);
+    UserInputMapper::Input makeInput(JointChannel joint);
     
     void registerToUserInputMapper(UserInputMapper& mapper);
     void assignDefaultInputMapping(UserInputMapper& mapper);
@@ -97,10 +103,11 @@ private:
     
     void handleButtonEvent(unsigned int buttons, int index);
     void handleAxisEvent(float x, float y, float trigger, int index);
+    void handlePoseEvent(glm::vec3 position, glm::quat rotation, int index);
+
 #ifdef HAVE_SIXENSE
     void updateCalibration(const sixenseControllerData* controllers);
-    void emulateMouse(PalmData* palm, int index);
-
+    
     int _calibrationState;
 
     // these are calibration results
@@ -126,13 +133,6 @@ private:
     bool _isInitialized;
     bool _isEnabled;
     bool _hydrasConnected;
-
-    // for mouse emulation with the two controllers
-    bool _triggerPressed[2];
-    bool _bumperPressed[2];
-    int _oldX[2];
-    int _oldY[2];
-    PalmData* _prevPalms[2];
     
     bool _lowVelocityFilter;
     bool _controllersAtBase;
@@ -145,6 +145,7 @@ protected:
     
     ButtonPressedMap _buttonPressedMap;
     AxisStateMap _axisStateMap;
+    PoseStateMap _poseStateMap;
 };
 
 #endif // hifi_SixenseManager_h

@@ -59,16 +59,7 @@ SixenseManager::SixenseManager() :
     _isEnabled(true),
     _hydrasConnected(false)
 {
-    _triggerPressed[0] = false;
-    _bumperPressed[0] = false;
-    _oldX[0] = -1;
-    _oldY[0] = -1;
-    _triggerPressed[1] = false;
-    _bumperPressed[1] = false;
-    _oldX[1] = -1;
-    _oldY[1] = -1;
-    _prevPalms[0] = nullptr;
-    _prevPalms[1] = nullptr;
+
 }
 
 SixenseManager::~SixenseManager() {
@@ -166,12 +157,12 @@ void SixenseManager::update(float deltaTime) {
             if (_deviceID != 0) {
                 Application::getUserInputMapper()->removeDevice(_deviceID);
                 _deviceID = 0;
-                if (_prevPalms[0]) {
-                    _prevPalms[0]->setActive(false);
-                }
-                if (_prevPalms[1]) {
-                    _prevPalms[1]->setActive(false);
-                }
+//                if (_prevPalms[0]) {
+//                    _prevPalms[0]->setActive(false);
+//                }
+//                if (_prevPalms[1]) {
+//                    _prevPalms[1]->setActive(false);
+//                }
             }
             return;
         }
@@ -213,114 +204,64 @@ void SixenseManager::update(float deltaTime) {
 
             //  Set palm position and normal based on Hydra position/orientation
 
-            // Either find a palm matching the sixense controller, or make a new one
-            PalmData* palm;
-            bool foundHand = false;
-            for (size_t j = 0; j < hand->getNumPalms(); j++) {
-                if (hand->getPalms()[j].getSixenseID() == data->controller_index) {
-                    palm = &(hand->getPalms()[j]);
-                    _prevPalms[numActiveControllers - 1] = palm;
-                    foundHand = true;
-                }
-            }
-            if (!foundHand) {
-                PalmData newPalm(hand);
-                hand->getPalms().push_back(newPalm);
-                palm = &(hand->getPalms()[hand->getNumPalms() - 1]);
-                palm->setSixenseID(data->controller_index);
-                _prevPalms[numActiveControllers - 1] = palm;
-                qCDebug(interfaceapp, "Found new Sixense controller, ID %i", data->controller_index);
-            }
-
-            // Disable the hands (and return to default pose) if both controllers are at base station
-            if (foundHand) {
-                palm->setActive(!_controllersAtBase);
-            } else {
-                palm->setActive(false); // if this isn't a Sixsense ID palm, always make it inactive
-            }
-
-            //  Read controller buttons and joystick into the hand
-            palm->setControllerButtons(data->buttons);
-            palm->setTrigger(data->trigger);
-            palm->setJoystick(data->joystick_x, data->joystick_y);
-
-            handleButtonEvent(data->buttons, numActiveControllers - 1);
-            handleAxisEvent(data->joystick_x, data->joystick_y, data->trigger, numActiveControllers - 1);
-
-            // Emulate the mouse so we can use scripts
-            if (Menu::getInstance()->isOptionChecked(MenuOption::HandMouseInput) && !_controllersAtBase) {
-                emulateMouse(palm, numActiveControllers - 1);
-            }
-
+//            // Either find a palm matching the sixense controller, or make a new one
+//            PalmData* palm;
+//            bool foundHand = false;
+//            for (size_t j = 0; j < hand->getNumPalms(); j++) {
+//                if (hand->getPalms()[j].getSixenseID() == data->controller_index) {
+//                    palm = &(hand->getPalms()[j]);
+//                    _prevPalms[numActiveControllers - 1] = palm;
+//                    foundHand = true;
+//                }
+//            }
+//            if (!foundHand) {
+//                PalmData newPalm(hand);
+//                hand->getPalms().push_back(newPalm);
+//                palm = &(hand->getPalms()[hand->getNumPalms() - 1]);
+//                palm->setSixenseID(data->controller_index);
+//                _prevPalms[numActiveControllers - 1] = palm;
+//                qCDebug(interfaceapp, "Found new Sixense controller, ID %i", data->controller_index);
+//            }
+            
             // NOTE: Sixense API returns pos data in millimeters but we IMMEDIATELY convert to meters.
             glm::vec3 position(data->pos[0], data->pos[1], data->pos[2]);
             position *= METERS_PER_MILLIMETER;
-
+            
             // Check to see if this hand/controller is on the base
             const float CONTROLLER_AT_BASE_DISTANCE = 0.075f;
             if (glm::length(position) < CONTROLLER_AT_BASE_DISTANCE) {
                 numControllersAtBase++;
             }
-
-            // Transform the measured position into body frame.
-            glm::vec3 neck = _neckBase;
-            // Zeroing y component of the "neck" effectively raises the measured position a little bit.
-            neck.y = 0.0f;
-            position = _orbRotation * (position - neck);
-
-            //  Rotation of Palm
-            glm::quat rotation(data->rot_quat[3], -data->rot_quat[0], data->rot_quat[1], -data->rot_quat[2]);
-            rotation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)) * _orbRotation * rotation;
-
-            //  Compute current velocity from position change
-            glm::vec3 rawVelocity;
-            if (deltaTime > 0.0f) {
-                rawVelocity = (position - palm->getRawPosition()) / deltaTime;
+            
+            if (!_controllersAtBase) {
+                //  Rotation of Palm
+                glm::quat rotation(data->rot_quat[3], -data->rot_quat[0], data->rot_quat[1], -data->rot_quat[2]);
+                rotation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)) * _orbRotation * rotation;
+                
+                handlePoseEvent(position, rotation, numActiveControlers - 1);
             } else {
-                rawVelocity = glm::vec3(0.0f);
-            }
-            palm->setRawVelocity(rawVelocity);   //  meters/sec
-
-            // adjustment for hydra controllers fit into hands
-            float sign = (i == 0) ? -1.0f : 1.0f;
-            rotation *= glm::angleAxis(sign * PI/4.0f, glm::vec3(0.0f, 0.0f, 1.0f));
-
-            //  Angular Velocity of Palm
-            glm::quat deltaRotation = rotation * glm::inverse(palm->getRawRotation());
-            glm::vec3 angularVelocity(0.0f);
-            float rotationAngle = glm::angle(deltaRotation);
-            if ((rotationAngle > EPSILON) && (deltaTime > 0.0f)) {
-                angularVelocity = glm::normalize(glm::axis(deltaRotation));
-                angularVelocity *= (rotationAngle / deltaTime);
-                palm->setRawAngularVelocity(angularVelocity);
-            } else {
-                palm->setRawAngularVelocity(glm::vec3(0.0f));
+                _poseStateMap.clear();
             }
 
-            if (_lowVelocityFilter) {
-                //  Use a velocity sensitive filter to damp small motions and preserve large ones with
-                //  no latency.
-                float velocityFilter = glm::clamp(1.0f - glm::length(rawVelocity), 0.0f, 1.0f);
-                position = palm->getRawPosition() * velocityFilter + position * (1.0f - velocityFilter);
-                rotation = safeMix(palm->getRawRotation(), rotation, 1.0f - velocityFilter);
-                palm->setRawPosition(position);
-                palm->setRawRotation(rotation);
-            } else {
-                palm->setRawPosition(position);
-                palm->setRawRotation(rotation);
-            }
+//            // Disable the hands (and return to default pose) if both controllers are at base station
+//            if (foundHand) {
+//                palm->setActive(!_controllersAtBase);
+//            } else {
+//                palm->setActive(false); // if this isn't a Sixsense ID palm, always make it inactive
+//            }
 
-            // Store the one fingertip in the palm structure so we can track velocity
-            const float FINGER_LENGTH = 0.3f;   //  meters
-            const glm::vec3 FINGER_VECTOR(0.0f, 0.0f, FINGER_LENGTH);
-            const glm::vec3 newTipPosition = position + rotation * FINGER_VECTOR;
-            glm::vec3 oldTipPosition = palm->getTipRawPosition();
-            if (deltaTime > 0.0f) {
-                palm->setTipVelocity((newTipPosition - oldTipPosition) / deltaTime);
-            } else {
-                palm->setTipVelocity(glm::vec3(0.0f));
-            }
-            palm->setTipPosition(newTipPosition);
+//            //  Read controller buttons and joystick into the hand
+//            palm->setControllerButtons(data->buttons);
+//            palm->setTrigger(data->trigger);
+//            palm->setJoystick(data->joystick_x, data->joystick_y);
+
+            handleButtonEvent(data->buttons, numActiveControllers - 1);
+            handleAxisEvent(data->joystick_x, data->joystick_y, data->trigger, numActiveControllers - 1);
+
+//            // Emulate the mouse so we can use scripts
+//            if (Menu::getInstance()->isOptionChecked(MenuOption::HandMouseInput) && !_controllersAtBase) {
+//                emulateMouse(palm, numActiveControllers - 1);
+//            }
         }
 
         if (numActiveControllers == 2) {
@@ -500,124 +441,6 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
     }
 }
 
-//Injecting mouse movements and clicks
-void SixenseManager::emulateMouse(PalmData* palm, int index) {
-    MyAvatar* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    QPoint pos;
-
-    Qt::MouseButton bumperButton;
-    Qt::MouseButton triggerButton;
-
-    unsigned int deviceID = index == 0 ? CONTROLLER_0_EVENT : CONTROLLER_1_EVENT;
-
-    if (_invertButtons) {
-        bumperButton = Qt::LeftButton;
-        triggerButton = Qt::RightButton;
-    } else {
-        bumperButton = Qt::RightButton;
-        triggerButton = Qt::LeftButton;
-    }
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::HandLasers) || qApp->isHMDMode()) {
-        pos = qApp->getApplicationCompositor().getPalmClickLocation(palm);
-    } else {
-        // Get directon relative to avatar orientation
-        glm::vec3 direction = glm::inverse(avatar->getOrientation()) * palm->getFingerDirection();
-
-        // Get the angles, scaled between (-0.5,0.5)
-        float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
-        float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)M_PI_2));
-        auto canvasSize = qApp->getCanvasSize();
-        // Get the pixel range over which the xAngle and yAngle are scaled
-        float cursorRange = canvasSize.x * getCursorPixelRangeMult();
-
-        pos.setX(canvasSize.x / 2.0f + cursorRange * xAngle);
-        pos.setY(canvasSize.y / 2.0f + cursorRange * yAngle);
-
-    }
-
-    //If we are off screen then we should stop processing, and if a trigger or bumper is pressed,
-    //we should unpress them.
-    if (pos.x() == INT_MAX) {
-        if (_bumperPressed[index]) {
-            QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, bumperButton, bumperButton, 0);
-
-            qApp->mouseReleaseEvent(&mouseEvent, deviceID);
-
-            _bumperPressed[index] = false;
-        }
-        if (_triggerPressed[index]) {
-            QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, triggerButton, triggerButton, 0);
-
-            qApp->mouseReleaseEvent(&mouseEvent, deviceID);
-
-            _triggerPressed[index] = false;
-        }
-        return;
-    }
-
-    //If position has changed, emit a mouse move to the application
-    if (pos.x() != _oldX[index] || pos.y() != _oldY[index]) {
-        QMouseEvent mouseEvent(QEvent::MouseMove, pos, Qt::NoButton, Qt::NoButton, 0);
-
-        //Only send the mouse event if the opposite left button isnt held down.
-        if (triggerButton == Qt::LeftButton) {
-            if (!_triggerPressed[(int)(!index)]) {
-                qApp->mouseMoveEvent(&mouseEvent, deviceID);
-            }
-        } else {
-            if (!_bumperPressed[(int)(!index)]) {
-                qApp->mouseMoveEvent(&mouseEvent, deviceID);
-            }
-        }
-    }
-    _oldX[index] = pos.x();
-    _oldY[index] = pos.y();
-
-
-    //We need separate coordinates for clicks, since we need to check if
-    //a magnification window was clicked on
-    int clickX = pos.x();
-    int clickY = pos.y();
-    //Set pos to the new click location, which may be the same if no magnification window is open
-    pos.setX(clickX);
-    pos.setY(clickY);
-
-    //Check for bumper press ( Right Click )
-    if (palm->getControllerButtons() & BUTTON_FWD) {
-        if (!_bumperPressed[index]) {
-            _bumperPressed[index] = true;
-
-            QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, bumperButton, bumperButton, 0);
-
-            qApp->mousePressEvent(&mouseEvent, deviceID);
-        }
-    } else if (_bumperPressed[index]) {
-        QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, bumperButton, bumperButton, 0);
-
-        qApp->mouseReleaseEvent(&mouseEvent, deviceID);
-
-        _bumperPressed[index] = false;
-    }
-
-    //Check for trigger press ( Left Click )
-    if (palm->getTrigger() == 1.0f) {
-        if (!_triggerPressed[index]) {
-            _triggerPressed[index] = true;
-
-            QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, triggerButton, triggerButton, 0);
-
-            qApp->mousePressEvent(&mouseEvent, deviceID);
-        }
-    } else if (_triggerPressed[index]) {
-        QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, triggerButton, triggerButton, 0);
-
-        qApp->mouseReleaseEvent(&mouseEvent, deviceID);
-
-        _triggerPressed[index] = false;
-    }
-}
-
 #endif  // HAVE_SIXENSE
 
 void SixenseManager::focusOutEvent() {
@@ -657,6 +480,66 @@ void SixenseManager::handleButtonEvent(unsigned int buttons, int index) {
     }
 }
 
+void SixenseManager::handlePoseEvent(glm::vec3 position, glm::quat rotation, int index) {
+    // Transform the measured position into body frame.
+    glm::vec3 neck = _neckBase;
+    // Zeroing y component of the "neck" effectively raises the measured position a little bit.
+    neck.y = 0.0f;
+    position = _orbRotation * (position - neck);
+    
+//    //  Compute current velocity from position change
+//    glm::vec3 rawVelocity;
+//    if (deltaTime > 0.0f) {
+//        rawVelocity = (position - palm->getRawPosition()) / deltaTime;
+//    } else {
+//        rawVelocity = glm::vec3(0.0f);
+//    }
+//    palm->setRawVelocity(rawVelocity);   //  meters/sec
+    
+    // adjustment for hydra controllers fit into hands
+    float sign = (index == 0) ? -1.0f : 1.0f;
+    rotation *= glm::angleAxis(sign * PI/4.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+    
+//    //  Angular Velocity of Palm
+//    glm::quat deltaRotation = rotation * glm::inverse(palm->getRawRotation());
+//    glm::vec3 angularVelocity(0.0f);
+//    float rotationAngle = glm::angle(deltaRotation);
+//    if ((rotationAngle > EPSILON) && (deltaTime > 0.0f)) {
+//        angularVelocity = glm::normalize(glm::axis(deltaRotation));
+//        angularVelocity *= (rotationAngle / deltaTime);
+//        palm->setRawAngularVelocity(angularVelocity);
+//    } else {
+//        palm->setRawAngularVelocity(glm::vec3(0.0f));
+//    }
+    
+//    if (_lowVelocityFilter) {
+//        //  Use a velocity sensitive filter to damp small motions and preserve large ones with
+//        //  no latency.
+//        float velocityFilter = glm::clamp(1.0f - glm::length(rawVelocity), 0.0f, 1.0f);
+//        position = palm->getRawPosition() * velocityFilter + position * (1.0f - velocityFilter);
+//        rotation = safeMix(palm->getRawRotation(), rotation, 1.0f - velocityFilter);
+//        palm->setRawPosition(position);
+//        palm->setRawRotation(rotation);
+//    } else {
+//        palm->setRawPosition(position);
+//        palm->setRawRotation(rotation);
+//    }
+    
+//    // Store the one fingertip in the palm structure so we can track velocity
+//    const float FINGER_LENGTH = 0.3f;   //  meters
+//    const glm::vec3 FINGER_VECTOR(0.0f, 0.0f, FINGER_LENGTH);
+//    const glm::vec3 newTipPosition = position + rotation * FINGER_VECTOR;
+//    glm::vec3 oldTipPosition = palm->getTipRawPosition();
+//    if (deltaTime > 0.0f) {
+//        palm->setTipVelocity((newTipPosition - oldTipPosition) / deltaTime);
+//    } else {
+//        palm->setTipVelocity(glm::vec3(0.0f));
+//    }
+//    palm->setTipPosition(newTipPosition);
+    
+    _poseStateMap[makeInput(JointChannel(index)).getChannel()] = UserInputMapper::PoseValue(position, rotation);
+}
+
 void SixenseManager::registerToUserInputMapper(UserInputMapper& mapper) {
     // Grab the current free device ID
     _deviceID = mapper.getFreeDeviceID();
@@ -664,6 +547,7 @@ void SixenseManager::registerToUserInputMapper(UserInputMapper& mapper) {
     auto proxy = UserInputMapper::DeviceProxy::Pointer(new UserInputMapper::DeviceProxy("Hydra"));
     proxy->getButton = [this] (const UserInputMapper::Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
     proxy->getAxis = [this] (const UserInputMapper::Input& input, int timestamp) -> float { return this->getAxis(input.getChannel()); };
+    proxy->getPose = [this](const UserInputMapper::Input& input, int timestamp) -> UserInputMapper::PoseValue { return this->getPose(input.getChannel()); };
     proxy->getAvailabeInputs = [this] () -> QVector<UserInputMapper::InputPair> {
         QVector<UserInputMapper::InputPair> availableInputs;
         availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_0, 0), "Left Start"));
@@ -737,6 +621,12 @@ void SixenseManager::assignDefaultInputMapping(UserInputMapper& mapper) {
     
     mapper.addInputChannel(UserInputMapper::ACTION1, makeInput(BUTTON_4, 0));
     mapper.addInputChannel(UserInputMapper::ACTION2, makeInput(BUTTON_4, 1));
+    
+    mapper.addInputChannel(UserInputMapper::LEFT_HAND, makeInput(LEFT_HAND));
+    mapper.addInputChannel(UserInputMapper::RIGHT_HAND, makeInput(RIGHT_HAND));
+    
+    mapper.addInputChannel(UserInputMapper::LEFT_HAND_CLICK, makeInput(BUTTON_FWD, 0));
+    mapper.addInputChannel(UserInputMapper::LEFT_HAND_CLICK, makeInput(BUTTON_FWD, 1));
 
 }
 
@@ -760,10 +650,23 @@ float SixenseManager::getAxis(int channel) const {
     }
 }
 
+UserInputMapper::PoseValue SixenseManager::getPose(int channel) const {
+    auto pose = _poseStateMap.find(channel);
+    if (pose != _poseStateMap.end()) {
+        return (*pose).second;
+    } else {
+        return UserInputMapper::PoseValue();
+    }
+}
+
 UserInputMapper::Input SixenseManager::makeInput(unsigned int button, int index) {
     return UserInputMapper::Input(_deviceID, button | (index == 0 ? LEFT_MASK : RIGHT_MASK), UserInputMapper::ChannelType::BUTTON);
 }
 
 UserInputMapper::Input SixenseManager::makeInput(SixenseManager::JoystickAxisChannel axis, int index) {
     return UserInputMapper::Input(_deviceID, axis | (index == 0 ? LEFT_MASK : RIGHT_MASK), UserInputMapper::ChannelType::AXIS);
+}
+
+UserInputMapper::Input SixenseManager::makeInput(JointChannel joint) {
+    return UserInputMapper::Input(_deviceID, joint, UserInputMapper::ChannelType::POSE);
 }
