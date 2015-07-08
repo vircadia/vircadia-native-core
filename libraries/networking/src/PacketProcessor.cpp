@@ -1,5 +1,5 @@
 //
-//  PacketProcessor.cpp
+//  PacketReceiver.cpp
 //  interface/src
 //
 //  Created by Stephen Birarda on 1/23/2014.
@@ -21,16 +21,16 @@
 #include "Menu.h"
 #include "InterfaceLogging.h"
 
-#include "PacketProcessor.h"
+#include "PacketReceiver.h"
 
-PacketProcessor::PacketProcessor(QObject* parent) :
+PacketReceiver::PacketReceiver(QObject* parent) :
     QObject(parent),
     _packetListenerMap()
 {
 
 }
 
-void PacketProcessor::registerPacketListener(Packet::Type type, QObject* object, QString methodName) {
+void PacketReceiver::registerPacketListener(Packet::Type type, QObject* object, QString methodName) {
     packetListenerLock.lock();
     if (packetListenerMap.contains(type)) {
         qDebug() << "Warning: Registering a packet listener for packet type " << type
@@ -40,9 +40,9 @@ void PacketProcessor::registerPacketListener(Packet::Type type, QObject* object,
     packetListenerLock.unlock();
 }
 
-void PacketProcessor::processDatagrams() {
+void PacketReceiver::processDatagrams() {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                            "PacketProcessor::processDatagrams()");
+                            "PacketReceiver::processDatagrams()");
 
     if (_isShuttingDown) {
         return; // bail early... we're shutting down.

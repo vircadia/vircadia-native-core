@@ -1,5 +1,5 @@
 //
-//  PacketProcessor.h
+//  PacketReceiver.h
 //  interface/src
 //
 //  Created by Stephen Birarda on 1/23/2014.
@@ -10,15 +10,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_PacketProcessor_h
-#define hifi_PacketProcessor_h
+#ifndef hifi_PacketReceiver_h
+#define hifi_PacketReceiver_h
 
 #include <QtCore/QObject>
 
-class PacketProcessor : public QObject {
+class PacketReceiver : public QObject {
     Q_OBJECT
 public:
-    PacketProcessor(QObject* parent = 0);
+    PacketReceiver(QObject* parent = 0);
     
     int getInPacketCount() const { return _inPacketCount; }
     int getOutPacketCount() const { return _outPacketCount; }
@@ -44,4 +44,4 @@ private:
     bool _isShuttingDown = false;
 };
 
-#endif // hifi_PacketProcessor_h
+#endif // hifi_PacketReceiver_h
