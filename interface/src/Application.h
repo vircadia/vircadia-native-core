@@ -445,6 +445,7 @@ public slots:
     void notifyPacketVersionMismatch();
 
     void domainConnectionDenied(const QString& reason);
+    void handleDomainConnectionDeniedPacket(std::unique_ptr<NLPacket>, HifiSockAddr senderSockAddr);
 
     void cameraMenuChanged();
 
@@ -527,8 +528,6 @@ private:
 
     ToolWindow* _toolWindow;
     WebWindowClass* _friendsWindow;
-
-    DatagramProcessor* _datagramProcessor;
 
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;
