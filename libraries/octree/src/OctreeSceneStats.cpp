@@ -387,7 +387,7 @@ int OctreeSceneStats::packIntoPacket() {
     _statsPacket->write(_start);
     _statsPacket->write(_end);
     _statsPacket->write(_elapsed);
-    _statsPacket->write(totalEncodeTime);
+    _statsPacket->write(_totalEncodeTime);
     _statsPacket->write(_isFullScene);
     _statsPacket->write(_isMoving);
     _statsPacket->write(_packets);
