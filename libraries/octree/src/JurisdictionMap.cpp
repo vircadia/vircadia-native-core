@@ -271,8 +271,8 @@ bool JurisdictionMap::writeToFile(const char* filename) {
 int JurisdictionMap::packEmptyJurisdictionIntoMessage(NodeType_t type, unsigned char* destinationBuffer, int availableBytes) {
     unsigned char* bufferStart = destinationBuffer;
 
-    int headerLength = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(destinationBuffer), 
-                                                                                 PacketType::Jurisdiction);
+    int headerLength = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(destinationBuffer),
+                                                                                PacketType::Jurisdiction);
     destinationBuffer += headerLength;
 
     // Pack the Node Type in first byte
@@ -290,7 +290,7 @@ int JurisdictionMap::packEmptyJurisdictionIntoMessage(NodeType_t type, unsigned 
 int JurisdictionMap::packIntoMessage(unsigned char* destinationBuffer, int availableBytes) {
     unsigned char* bufferStart = destinationBuffer;
     
-    int headerLength = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(destinationBuffer), 
+    int headerLength = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(destinationBuffer),
                                                                                 PacketType::Jurisdiction);
     destinationBuffer += headerLength;
 

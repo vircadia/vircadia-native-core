@@ -217,7 +217,7 @@ void AudioInjector::injectToMixer() {
 
             audioPacket->seek(positionOptionOffset);
             audioPacket->write(reinterpret_cast<char*>(&_options.position), sizeof(_options.position));
-            audioPacket.write(reinterpret_cast<char*>(&_options.orientation), sizeof(_options.orientation));
+            audioPacket->write(reinterpret_cast<char*>(&_options.orientation), sizeof(_options.orientation));
 
             volume = MAX_INJECTOR_VOLUME * _options.volume;
             audioPacket->seek(volumeOptionOffset);

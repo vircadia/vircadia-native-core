@@ -41,7 +41,7 @@ bool JurisdictionListener::queueJurisdictionRequest() {
 
     nodeList->eachNode([&](const SharedNodePointer& node) {
         if (node->getType() == getNodeType() && node->getActiveSocket()) {
-            _packetSender.queuePacketForSending(node, packet);
+            _packetSender.queuePacketForSending(node, std::move(packet));
             nodeCount++;
         }
     });
