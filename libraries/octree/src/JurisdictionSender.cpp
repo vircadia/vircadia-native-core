@@ -56,7 +56,7 @@ bool JurisdictionSender::process() {
             SharedNodePointer node = DependencyManager::get<NodeList>()->nodeWithUUID(nodeUUID);
 
             if (node && node->getActiveSocket()) {
-                _packetSender.queuePacketForSending(node, packet);
+                _packetSender.queuePacketForSending(node, std::move(packet));
                 nodeCount++;
             }
         }

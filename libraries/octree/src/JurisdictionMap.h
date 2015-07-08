@@ -20,6 +20,7 @@
 #include <QtCore/QUuid>
 #include <QReadWriteLock>
 
+#include <NLPacket.h>
 #include <Node.h>
 
 class JurisdictionMap {
@@ -29,7 +30,7 @@ public:
         WITHIN,
         BELOW
     };
-    
+
     // standard constructors
     JurisdictionMap(NodeType_t type = NodeType::EntityServer); // default constructor
     JurisdictionMap(const JurisdictionMap& other); // copy constructor
@@ -42,8 +43,8 @@ public:
     JurisdictionMap(JurisdictionMap&& other); // move constructor
     JurisdictionMap& operator= (JurisdictionMap&& other);         // move assignment
 #endif
-    
-    // application constructors    
+
+    // application constructors
     JurisdictionMap(const char* filename);
     JurisdictionMap(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes);
     JurisdictionMap(const char* rootHextString, const char* endNodesHextString);
@@ -62,15 +63,15 @@ public:
 
     int unpackFromMessage(const unsigned char* sourceBuffer, int availableBytes);
     std::unique_ptr<NLPacket> packIntoMessage();
-    
+
     /// Available to pack an empty or unknown jurisdiction into a network packet, used when no JurisdictionMap is available
     static std::unique_ptr<NLPacket> packEmptyJurisdictionIntoMessage(NodeType_t type);
 
     void displayDebugDetails() const;
-    
+
     NodeType_t getNodeType() const { return _nodeType; }
     void setNodeType(NodeType_t type) { _nodeType = type; }
-    
+
 private:
     void copyContents(const JurisdictionMap& other); // use assignment instead
     void clear();
@@ -81,7 +82,7 @@ private:
     NodeType_t _nodeType;
 };
 
-/// Map between node IDs and their reported JurisdictionMap. Typically used by classes that need to know which nodes are 
+/// Map between node IDs and their reported JurisdictionMap. Typically used by classes that need to know which nodes are
 /// managing which jurisdictions.
 class NodeToJurisdictionMap : public QMap<QUuid, JurisdictionMap>, public QReadWriteLock {};
 typedef QMap<QUuid, JurisdictionMap>::iterator NodeToJurisdictionMapIterator;
