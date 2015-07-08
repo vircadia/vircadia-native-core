@@ -24,7 +24,7 @@ SentPacketHistory::SentPacketHistory(int size)
 
 }
 
-void SentPacketHistory::packetSent(uint16_t sequenceNumber, const NLPacket& packet) {
+void SentPacketHistory::packetSent(uint16_t sequenceNumber, const std::unique_ptr<NLPacket>& packet) {
 
     // check if given seq number has the expected value.  if not, something's wrong with
     // the code calling this function
@@ -34,10 +34,8 @@ void SentPacketHistory::packetSent(uint16_t sequenceNumber, const NLPacket& pack
             << "Expected:" << expectedSequenceNumber << "Actual:" << sequenceNumber;
     }
     _newestSequenceNumber = sequenceNumber;
-    
-    auto temp = std::unique_ptr<NLPacket>(const_cast<NLPacket*>(&packet));
-    _sentPackets.insert(NLPacket::createCopy(temp));
-    temp.release();
+
+    _sentPackets.insert(NLPacket::createCopy(packet));
 }
 
 const std::unique_ptr<NLPacket>& SentPacketHistory::getPacket(uint16_t sequenceNumber) const {

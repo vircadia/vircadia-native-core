@@ -24,7 +24,7 @@ class SentPacketHistory {
 public:
     SentPacketHistory(int size = MAX_REASONABLE_SEQUENCE_GAP);
 
-    void packetSent(uint16_t sequenceNumber, const NLPacket& packet);
+    void packetSent(uint16_t sequenceNumber, const std::unique_ptr<NLPacket>& packet);
     const std::unique_ptr<NLPacket>& getPacket(uint16_t sequenceNumber) const;
 
 private:
