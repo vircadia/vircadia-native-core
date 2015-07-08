@@ -102,7 +102,7 @@ Packet& Packet::operator=(Packet&& other) {
     return *this;
 }
 
-void Packet::setPacketType(PacketType::Value type) {
+void Packet::setType(PacketType::Value type) {
     auto currentHeaderSize = totalHeadersSize();
     _type = type;
     writePacketTypeAndVersion(_type);
