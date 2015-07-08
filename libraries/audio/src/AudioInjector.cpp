@@ -172,7 +172,7 @@ void AudioInjector::injectToMixer() {
         audioPacketStream << loopbackFlag;
 
         // pack the position for injected audio
-        int positionOptionOffset = audioPacket.pos();
+        int positionOptionOffset = audioPacket->pos();
         audioPacketStream.writeRawData(reinterpret_cast<const char*>(&_options.position),
                                   sizeof(_options.position));
 
