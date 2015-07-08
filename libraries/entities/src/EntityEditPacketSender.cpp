@@ -21,7 +21,7 @@
 void EntityEditPacketSender::adjustEditPacketForClockSkew(PacketType::Value type, 
                                         unsigned char* editBuffer, size_t length, int clockSkew) {
                                         
-    if (type == PacketTypeEntityAdd || type == PacketTypeEntityEdit) {
+    if (type == PacketType::EntityAdd || type == PacketType::EntityEdit) {
         EntityItem::adjustEditPacketForClockSkew(editBuffer, length, clockSkew);
     }
 }
@@ -54,6 +54,6 @@ void EntityEditPacketSender::queueEraseEntityMessage(const EntityItemID& entityI
     unsigned char bufferOut[MAX_PACKET_SIZE];
     size_t sizeOut = 0;
     if (EntityItemProperties::encodeEraseEntityMessage(entityItemID, &bufferOut[0], _maxPacketSize, sizeOut)) {
-        queueOctreeEditMessage(PacketTypeEntityErase, bufferOut, sizeOut);
+        queueOctreeEditMessage(PacketType::EntityErase, bufferOut, sizeOut);
     }
 }

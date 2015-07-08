@@ -866,7 +866,7 @@ int MyAvatar::parseDataAtOffset(const QByteArray& packet, int offset) {
 
 void MyAvatar::sendKillAvatar() {
     auto nodeList = DependencyManager::get<NodeList>();
-    QByteArray killPacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeKillAvatar);
+    QByteArray killPacket = nodeList->byteArrayWithPopulatedHeader(PacketType::KillAvatar);
     nodeList->broadcastToNodes(killPacket, NodeSet() << NodeType::AvatarMixer);
 }
 

@@ -540,18 +540,18 @@ void AudioMixer::readPendingDatagram(const QByteArray& receivedPacket, const Hif
     if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
         // pull any new audio data from nodes off of the network stack
         PacketType::Value mixerPacketType = packetTypeForPacket(receivedPacket);
-        if (mixerPacketType == PacketTypeMicrophoneAudioNoEcho
-            || mixerPacketType == PacketTypeMicrophoneAudioWithEcho
-            || mixerPacketType == PacketTypeInjectAudio
-            || mixerPacketType == PacketTypeSilentAudioFrame
-            || mixerPacketType == PacketTypeAudioStreamStats) {
+        if (mixerPacketType == PacketType::MicrophoneAudioNoEcho
+            || mixerPacketType == PacketType::MicrophoneAudioWithEcho
+            || mixerPacketType == PacketType::InjectAudio
+            || mixerPacketType == PacketType::SilentAudioFrame
+            || mixerPacketType == PacketType::AudioStreamStats) {
 
             nodeList->findNodeAndUpdateWithDataFromPacket(receivedPacket);
-        } else if (mixerPacketType == PacketTypeMuteEnvironment) {
+        } else if (mixerPacketType == PacketType::MuteEnvironment) {
             SharedNodePointer sendingNode = nodeList->sendingNodeForPacket(receivedPacket);
             if (sendingNode->getCanAdjustLocks()) {
                 QByteArray packet = receivedPacket;
-                nodeList->populatePacketHeader(packet, PacketTypeMuteEnvironment);
+                nodeList->populatePacketHeader(packet, PacketType::MuteEnvironment);
 
                 nodeList->eachNode([&](const SharedNodePointer& node){
                     if (node->getType() == NodeType::Agent && node->getActiveSocket() &&

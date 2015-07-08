@@ -214,7 +214,7 @@ void AssignmentClientMonitor::readPendingDatagrams() {
                                                senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
 
         if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
-            if (packetTypeForPacket(receivedPacket) == PacketTypeNodeJsonStats) {
+            if (packetTypeForPacket(receivedPacket) == PacketType::NodeJsonStats) {
                 QUuid packetUUID = uuidFromPacketHeader(receivedPacket);
                 SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
                 if (!matchingNode) {

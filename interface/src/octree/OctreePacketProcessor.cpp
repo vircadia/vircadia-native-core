@@ -38,7 +38,7 @@ void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, 
     // note: PacketType_OCTREE_STATS can have PacketType_VOXEL_DATA
     // immediately following them inside the same packet. So, we process the PacketType_OCTREE_STATS first
     // then process any remaining bytes as if it was another packet
-    if (voxelPacketType == PacketTypeOctreeStats) {
+    if (voxelPacketType == PacketType::OctreeStats) {
         int statsMessageLength = app->parseOctreeStats(mutablePacket, sendingNode);
         wasStatsPacket = true;
         if (messageLength > statsMessageLength) {
@@ -81,19 +81,19 @@ void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, 
     if (sendingNode) {
 
         switch(voxelPacketType) {
-            case PacketTypeEntityErase: {
+            case PacketType::EntityErase: {
                 if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
                     app->_entities.processEraseMessage(mutablePacket, sendingNode);
                 }
             } break;
 
-            case PacketTypeEntityData: {
+            case PacketType::EntityData: {
                 if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
                     app->_entities.processDatagram(mutablePacket, sendingNode);
                 }
             } break;
 
-            case PacketTypeEnvironmentData: {
+            case PacketType::EnvironmentData: {
                 app->_environment.parseData(*sendingNode->getActiveSocket(), mutablePacket);
             } break;
 

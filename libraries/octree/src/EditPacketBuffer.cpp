@@ -13,7 +13,7 @@
 
 EditPacketBuffer::EditPacketBuffer() :
     _nodeUUID(),
-    _currentType(PacketTypeUnknown),
+    _currentType(PacketType::Unknown),
     _currentSize(0),
     _satoshiCost(0)
 {

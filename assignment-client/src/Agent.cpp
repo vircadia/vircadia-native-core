@@ -58,7 +58,7 @@ void Agent::readPendingDatagrams() {
         if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
             PacketType::Value datagramPacketType = packetTypeForPacket(receivedPacket);
             
-            if (datagramPacketType == PacketTypeJurisdiction) {
+            if (datagramPacketType == PacketType::Jurisdiction) {
                 int headerBytes = numBytesForPacketHeader(receivedPacket);
                 
                 SharedNodePointer matchedNode = nodeList->sendingNodeForPacket(receivedPacket);
@@ -73,9 +73,9 @@ void Agent::readPendingDatagrams() {
                     }
                 }
                 
-            } else if (datagramPacketType == PacketTypeOctreeStats
-                        || datagramPacketType == PacketTypeEntityData
-                        || datagramPacketType == PacketTypeEntityErase
+            } else if (datagramPacketType == PacketType::OctreeStats
+                        || datagramPacketType == PacketType::EntityData
+                        || datagramPacketType == PacketType::EntityErase
             ) {
                 // Make sure our Node and NodeList knows we've heard from this node.
                 SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);
@@ -84,7 +84,7 @@ void Agent::readPendingDatagrams() {
                 QByteArray mutablePacket = receivedPacket;
                 int messageLength = mutablePacket.size();
 
-                if (datagramPacketType == PacketTypeOctreeStats) {
+                if (datagramPacketType == PacketType::OctreeStats) {
 
                     int statsMessageLength = OctreeHeadlessViewer::parseOctreeStats(mutablePacket, sourceNode);
                     if (messageLength > statsMessageLength) {
@@ -103,11 +103,11 @@ void Agent::readPendingDatagrams() {
                     datagramPacketType = packetTypeForPacket(mutablePacket);
                 } // fall through to piggyback message
 
-                if (datagramPacketType == PacketTypeEntityData || datagramPacketType == PacketTypeEntityErase) {
+                if (datagramPacketType == PacketType::EntityData || datagramPacketType == PacketType::EntityErase) {
                     _entityViewer.processDatagram(mutablePacket, sourceNode);
                 }
                 
-            } else if (datagramPacketType == PacketTypeMixedAudio || datagramPacketType == PacketTypeSilentAudioFrame) {
+            } else if (datagramPacketType == PacketType::MixedAudio || datagramPacketType == PacketType::SilentAudioFrame) {
 
                 _receivedAudioStream.parseData(receivedPacket);
 
@@ -118,10 +118,10 @@ void Agent::readPendingDatagrams() {
                 // let this continue through to the NodeList so it updates last heard timestamp
                 // for the sending audio mixer
                 DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, receivedPacket);
-            } else if (datagramPacketType == PacketTypeBulkAvatarData
-                       || datagramPacketType == PacketTypeAvatarIdentity
-                       || datagramPacketType == PacketTypeAvatarBillboard
-                       || datagramPacketType == PacketTypeKillAvatar) {
+            } else if (datagramPacketType == PacketType::BulkAvatarData
+                       || datagramPacketType == PacketType::AvatarIdentity
+                       || datagramPacketType == PacketType::AvatarBillboard
+                       || datagramPacketType == PacketType::KillAvatar) {
                 // let the avatar hash map process it
                 DependencyManager::get<AvatarHashMap>()->processAvatarMixerDatagram(receivedPacket, nodeList->sendingNodeForPacket(receivedPacket));
                 

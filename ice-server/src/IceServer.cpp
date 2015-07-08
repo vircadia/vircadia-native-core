@@ -56,12 +56,12 @@ void IceServer::processDatagrams() {
 
         PacketType::Value packetType = packetTypeForPacket(incomingPacket);
 
-        if (packetType == PacketTypeIceServerHeartbeat) {
+        if (packetType == PacketType::IceServerHeartbeat) {
             SharedNetworkPeer peer = addOrUpdateHeartbeatingPeer(incomingPacket);
 
             // so that we can send packets to the heartbeating peer when we need, we need to activate a socket now
             peer->activateMatchingOrNewSymmetricSocket(sendingSockAddr);
-        } else if (packetType == PacketTypeIceServerQuery) {
+        } else if (packetType == PacketType::IceServerQuery) {
             QDataStream heartbeatStream(incomingPacket);
 
             // this is a node hoping to connect to a heartbeating peer - do we have the heartbeating peer?

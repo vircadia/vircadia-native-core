@@ -272,7 +272,7 @@ int JurisdictionMap::packEmptyJurisdictionIntoMessage(NodeType_t type, unsigned 
     unsigned char* bufferStart = destinationBuffer;
 
     int headerLength = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(destinationBuffer), 
-                                                                                 PacketTypeJurisdiction);
+                                                                                 PacketType::Jurisdiction);
     destinationBuffer += headerLength;
 
     // Pack the Node Type in first byte
@@ -291,7 +291,7 @@ int JurisdictionMap::packIntoMessage(unsigned char* destinationBuffer, int avail
     unsigned char* bufferStart = destinationBuffer;
     
     int headerLength = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(destinationBuffer), 
-                                                                                PacketTypeJurisdiction);
+                                                                                PacketType::Jurisdiction);
     destinationBuffer += headerLength;
 
     // Pack the Node Type in first byte

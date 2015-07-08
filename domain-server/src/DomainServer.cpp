@@ -706,7 +706,7 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
 
         nodeData->setSendingSockAddr(senderSockAddr);
 
-        // reply back to the user with a PacketTypeDomainList
+        // reply back to the user with a PacketType::DomainList
         sendDomainListToNode(newNode, senderSockAddr, nodeInterestList.toSet());
 
         // send out this node to our other connected nodes
@@ -1002,7 +1002,7 @@ void DomainServer::broadcastNewNode(const SharedNodePointer& addedNode) {
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
     // setup the add packet for this new node
-    QByteArray addNodePacket = limitedNodeList->byteArrayWithPopulatedHeader(PacketTypeDomainServerAddedNode);
+    QByteArray addNodePacket = limitedNodeList->byteArrayWithPopulatedHeader(PacketType::DomainServerAddedNode);
     QDataStream addNodeStream(&addNodePacket, QIODevice::Append);
 
     addNodeStream << *addedNode.data();
@@ -1037,14 +1037,14 @@ void DomainServer::readAvailableDatagrams() {
     HifiSockAddr senderSockAddr;
     QByteArray receivedPacket;
 
-    static QByteArray assignmentPacket = limitedNodeList->byteArrayWithPopulatedHeader(PacketTypeCreateAssignment);
+    static QByteArray assignmentPacket = limitedNodeList->byteArrayWithPopulatedHeader(PacketType::CreateAssignment);
     static int numAssignmentPacketHeaderBytes = assignmentPacket.size();
 
     while (limitedNodeList->getNodeSocket().hasPendingDatagrams()) {
         receivedPacket.resize(limitedNodeList->getNodeSocket().pendingDatagramSize());
         limitedNodeList->getNodeSocket().readDatagram(receivedPacket.data(), receivedPacket.size(),
                                                senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
-        if (packetTypeForPacket(receivedPacket) == PacketTypeRequestAssignment
+        if (packetTypeForPacket(receivedPacket) == PacketType::RequestAssignment
             && limitedNodeList->packetVersionAndHashMatch(receivedPacket)) {
 
             // construct the requested assignment from the packet data
@@ -1108,8 +1108,8 @@ void DomainServer::readAvailableDatagrams() {
             processDatagram(receivedPacket, senderSockAddr);
         } else {
             // we're using DTLS, so tell the sender to get back to us using DTLS
-            static QByteArray dtlsRequiredPacket = limitedNodeList->byteArrayWithPopulatedHeader(PacketTypeDomainServerRequireDTLS);
-            static int numBytesDTLSHeader = numBytesForPacketHeaderGivenPacketType(PacketTypeDomainServerRequireDTLS);
+            static QByteArray dtlsRequiredPacket = limitedNodeList->byteArrayWithPopulatedHeader(PacketType::DomainServerRequireDTLS);
+            static int numBytesDTLSHeader = numBytesForPacketHeaderGivenPacketType::(PacketTypeDomainServerRequireDTLS);
 
             if (dtlsRequiredPacket.size() == numBytesDTLSHeader) {
                 // pack the port that we accept DTLS traffic on
@@ -1390,10 +1390,10 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
     if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
         PacketType::Value requestType = packetTypeForPacket(receivedPacket);
         switch (requestType) {
-            case PacketTypeDomainConnectRequest:
+            case PacketType::DomainConnectRequest:
                 handleConnectRequest(receivedPacket, senderSockAddr);
                 break;
-            case PacketTypeDomainListRequest: {
+            case PacketType::DomainListRequest: {
                 QUuid nodeUUID = uuidFromPacketHeader(receivedPacket);
 
                 if (!nodeUUID.isNull() && nodeList->nodeWithUUID(nodeUUID)) {
@@ -1422,12 +1422,12 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
 
                 break;
             }
-            case PacketTypeDomainServerPathQuery: {
+            case PacketType::DomainServerPathQuery: {
                 // have our private method attempt to respond to this path query
                 respondToPathQuery(receivedPacket, senderSockAddr);
                 break;
             }
-            case PacketTypeNodeJsonStats: {
+            case PacketType::NodeJsonStats: {
                 SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
                 if (matchingNode) {
                     reinterpret_cast<DomainServerNodeData*>(matchingNode->getLinkedData())->parseJSONStatsPacket(receivedPacket);
@@ -1435,16 +1435,16 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
 
                 break;
             }
-            case PacketTypeStunResponse:
+            case PacketType::StunResponse:
                 nodeList->processSTUNResponse(receivedPacket);
                 break;
-            case PacketTypeUnverifiedPing: {
+            case PacketType::UnverifiedPing: {
                 QByteArray pingReplyPacket = nodeList->constructPingReplyPacket(receivedPacket);
                 nodeList->writeUnverifiedDatagram(pingReplyPacket, senderSockAddr);
 
                 break;
             }
-            case PacketTypeUnverifiedPingReply: {
+            case PacketType::UnverifiedPingReply: {
                 processICEPingReply(receivedPacket, senderSockAddr);
                 break;
             }
@@ -2225,7 +2225,7 @@ void DomainServer::respondToPathQuery(const QByteArray& receivedPacket, const Hi
     // this is a query for the viewpoint resulting from a path
     // first pull the query path from the packet
 
-    int numHeaderBytes = numBytesForPacketHeaderGivenPacketType(PacketTypeDomainServerPathQuery);
+    int numHeaderBytes = numBytesForPacketHeaderGivenPacketType::(PacketTypeDomainServerPathQuery);
     const char* packetDataStart = receivedPacket.data() + numHeaderBytes;
 
     // figure out how many bytes the sender said this path is
@@ -2257,7 +2257,7 @@ void DomainServer::respondToPathQuery(const QByteArray& receivedPacket, const Hi
                 QByteArray viewpointUTF8 = responseViewpoint.toUtf8();
 
                 // prepare a packet for the response
-                QByteArray pathResponsePacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeDomainServerPathResponse);
+                QByteArray pathResponsePacket = nodeList->byteArrayWithPopulatedHeader(PacketType::DomainServerPathResponse);
 
                 // check the number of bytes the viewpoint is
                 quint16 numViewpointBytes = responseViewpoint.toUtf8().size();

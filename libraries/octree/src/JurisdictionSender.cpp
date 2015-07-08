@@ -30,7 +30,7 @@ JurisdictionSender::~JurisdictionSender() {
 
 
 void JurisdictionSender::processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) {
-    if (packetTypeForPacket(packet) == PacketTypeJurisdictionRequest) {
+    if (packetTypeForPacket(packet) == PacketType::JurisdictionRequest) {
         if (sendingNode) {
             lockRequestingNodes();
             _nodesRequestingJurisdictions.push(sendingNode->getUUID());

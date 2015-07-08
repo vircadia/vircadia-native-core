@@ -1916,7 +1916,7 @@ bool Octree::readFromStream(unsigned long streamLength, QDataStream& inputStream
     device->getChar(&firstChar);
     device->ungetChar(firstChar);
 
-    if (firstChar == (char) PacketTypeEntityData) {
+    if (firstChar == (char) PacketType::EntityData) {
         qCDebug(octree) << "Reading from SVO Stream length:" << streamLength;
         return readSVOFromStream(streamLength, inputStream);
     } else {

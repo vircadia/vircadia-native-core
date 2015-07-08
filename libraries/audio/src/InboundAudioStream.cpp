@@ -132,7 +132,7 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
         }
         case SequenceNumberStats::OnTime: {
             // Packet is on time; parse its data to the ringbuffer
-            if (packetType == PacketTypeSilentAudioFrame) {
+            if (packetType == PacketType::SilentAudioFrame) {
                 writeDroppableSilentSamples(networkSamples);
             } else {
                 readBytes += parseAudioData(packetType, packet.mid(readBytes), networkSamples);
@@ -169,7 +169,7 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
 }
 
 int InboundAudioStream::parseStreamProperties(PacketType::Value type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
-    if (type == PacketTypeSilentAudioFrame) {
+    if (type == PacketType::SilentAudioFrame) {
         quint16 numSilentSamples = 0;
         memcpy(&numSilentSamples, packetAfterSeqNum.constData(), sizeof(quint16));
         numAudioSamples = numSilentSamples;

@@ -252,7 +252,7 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType::Value type, unsi
             QUuid nodeUUID = node->getUUID();
             bool isMyJurisdiction = true;
 
-            if (type == PacketTypeEntityErase) {
+            if (type == PacketType::EntityErase) {
                 isMyJurisdiction = true; // send erase messages to all servers
             } else if (_serverJurisdictions) {
                 // we need to get the jurisdiction for this
@@ -318,11 +318,11 @@ void OctreeEditPacketSender::releaseQueuedMessages() {
 
 void OctreeEditPacketSender::releaseQueuedPacket(EditPacketBuffer& packetBuffer) {
     _releaseQueuedPacketMutex.lock();
-    if (packetBuffer._currentSize > 0 && packetBuffer._currentType != PacketTypeUnknown) {
+    if (packetBuffer._currentSize > 0 && packetBuffer._currentType != PacketType::Unknown) {
         queuePacketToNode(packetBuffer._nodeUUID, &packetBuffer._currentBuffer[0],
                           packetBuffer._currentSize, packetBuffer._satoshiCost);
         packetBuffer._currentSize = 0;
-        packetBuffer._currentType = PacketTypeUnknown;
+        packetBuffer._currentType = PacketType::Unknown;
     }
     _releaseQueuedPacketMutex.unlock();
 }

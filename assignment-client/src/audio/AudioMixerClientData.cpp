@@ -51,7 +51,7 @@ AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() const {
 
 int AudioMixerClientData::parseData(const QByteArray& packet) {
     PacketType::Value packetType = packetTypeForPacket(packet);
-    if (packetType == PacketTypeAudioStreamStats) {
+    if (packetType == PacketType::AudioStreamStats) {
 
         const char* dataAt = packet.data();
 
@@ -67,9 +67,9 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
     } else {
         PositionalAudioStream* matchingStream = NULL;
 
-        if (packetType == PacketTypeMicrophoneAudioWithEcho
-            || packetType == PacketTypeMicrophoneAudioNoEcho
-            || packetType == PacketTypeSilentAudioFrame) {
+        if (packetType == PacketType::MicrophoneAudioWithEcho
+            || packetType == PacketType::MicrophoneAudioNoEcho
+            || packetType == PacketType::SilentAudioFrame) {
 
             QUuid nullUUID = QUuid();
             if (!_audioStreams.contains(nullUUID)) {
@@ -84,7 +84,7 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
             } else {
                 matchingStream = _audioStreams.value(nullUUID);
             }
-        } else if (packetType == PacketTypeInjectAudio) {
+        } else if (packetType == PacketType::InjectAudio) {
             // this is injected audio
 
             // grab the stream identifier for this injected audio

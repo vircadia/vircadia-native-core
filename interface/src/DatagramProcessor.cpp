@@ -55,15 +55,15 @@ void DatagramProcessor::processDatagrams() {
             PacketType::Value incomingType = packetTypeForPacket(incomingPacket);
             // only process this packet if we have a match on the packet version
             switch (incomingType) {
-                case PacketTypeAudioEnvironment:
-                case PacketTypeAudioStreamStats:
-                case PacketTypeMixedAudio:
-                case PacketTypeSilentAudioFrame: {
-                    if (incomingType == PacketTypeAudioStreamStats) {
+                case PacketType::AudioEnvironment:
+                case PacketType::AudioStreamStats:
+                case PacketType::MixedAudio:
+                case PacketType::SilentAudioFrame: {
+                    if (incomingType == PacketType::AudioStreamStats) {
                         QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "parseAudioStreamStatsPacket",
                                                   Qt::QueuedConnection,
                                                   Q_ARG(QByteArray, incomingPacket));
-                    } else if (incomingType == PacketTypeAudioEnvironment) {
+                    } else if (incomingType == PacketType::AudioEnvironment) {
                         QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "parseAudioEnvironmentData",
                                                   Qt::QueuedConnection,
                                                   Q_ARG(QByteArray, incomingPacket));
@@ -82,10 +82,10 @@ void DatagramProcessor::processDatagrams() {
 
                     break;
                 }
-                case PacketTypeEntityData:
-                case PacketTypeEntityErase:
-                case PacketTypeOctreeStats:
-                case PacketTypeEnvironmentData: {
+                case PacketType::EntityData:
+                case PacketType::EntityErase:
+                case PacketType::OctreeStats:
+                case PacketType::EnvironmentData: {
                     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                                             "Application::networkReceive()... _octreeProcessor.queueReceivedPacket()");
                     SharedNodePointer matchedNode = DependencyManager::get<NodeList>()->sendingNodeForPacket(incomingPacket);
@@ -96,10 +96,10 @@ void DatagramProcessor::processDatagrams() {
                     }
                     break;
                 }
-                case PacketTypeBulkAvatarData:
-                case PacketTypeKillAvatar:
-                case PacketTypeAvatarIdentity:
-                case PacketTypeAvatarBillboard: {
+                case PacketType::BulkAvatarData:
+                case PacketType::KillAvatar:
+                case PacketType::AvatarIdentity:
+                case PacketType::AvatarBillboard: {
                     // update having heard from the avatar-mixer and record the bytes received
                     SharedNodePointer avatarMixer = nodeList->sendingNodeForPacket(incomingPacket);
 
@@ -112,8 +112,8 @@ void DatagramProcessor::processDatagrams() {
                     }
                     break;
                 }
-                case PacketTypeDomainConnectionDenied: {
-                    int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeDomainConnectionDenied);
+                case PacketType::DomainConnectionDenied: {
+                    int headerSize = numBytesForPacketHeaderGivenPacketType::(PacketTypeDomainConnectionDenied);
                     QDataStream packetStream(QByteArray(incomingPacket.constData() + headerSize,
                                                         incomingPacket.size() - headerSize));
                     QString reason;
@@ -127,15 +127,15 @@ void DatagramProcessor::processDatagrams() {
                     AccountManager::getInstance().checkAndSignalForAccessToken();
                     break;
                 }
-                case PacketTypeNoisyMute:
-                case PacketTypeMuteEnvironment: {
+                case PacketType::NoisyMute:
+                case PacketType::MuteEnvironment: {
                     bool mute = !DependencyManager::get<AudioClient>()->isMuted();
 
-                    if (incomingType == PacketTypeMuteEnvironment) {
+                    if (incomingType == PacketType::MuteEnvironment) {
                         glm::vec3 position;
                         float radius;
 
-                        int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeMuteEnvironment);
+                        int headerSize = numBytesForPacketHeaderGivenPacketType::(PacketTypeMuteEnvironment);
                         memcpy(&position, incomingPacket.constData() + headerSize, sizeof(glm::vec3));
                         memcpy(&radius, incomingPacket.constData() + headerSize + sizeof(glm::vec3), sizeof(float));
                         float distance = glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(),
@@ -146,7 +146,7 @@ void DatagramProcessor::processDatagrams() {
 
                     if (mute) {
                         DependencyManager::get<AudioClient>()->toggleMute();
-                        if (incomingType == PacketTypeMuteEnvironment) {
+                        if (incomingType == PacketType::MuteEnvironment) {
                             AudioScriptingInterface::getInstance().environmentMuted();
                         } else {
                             AudioScriptingInterface::getInstance().mutedByMixer();
@@ -154,7 +154,7 @@ void DatagramProcessor::processDatagrams() {
                     }
                     break;
                 }
-                case PacketTypeEntityEditNack:
+                case PacketType::EntityEditNack:
                     if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
                         application->_entityEditSender.processNackPacket(incomingPacket);
                     }

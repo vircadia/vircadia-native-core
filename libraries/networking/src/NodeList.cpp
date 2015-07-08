@@ -413,7 +413,7 @@ void NodeList::sendDSPathQuery(const QString& newPath) {
             // send off the path query
             sendPacket(std::move(pathQueryPacket), _domainHandler.getSockAddr());
         } else {
-            qCDebug(networking) << "Path" << newPath << "would make PacketTypeDomainServerPathQuery packet > MAX_PACKET_SIZE." <<
+            qCDebug(networking) << "Path" << newPath << "would make PacketType::DomainServerPathQuery packet > MAX_PACKET_SIZE." <<
                 "Will not send query.";
         }
     }

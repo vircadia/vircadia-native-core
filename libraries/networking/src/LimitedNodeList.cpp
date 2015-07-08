@@ -353,7 +353,7 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSock
 
 PacketSequenceNumber LimitedNodeList::getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType::Value packetType) {
     // Thanks to std::map and std::unordered_map this line either default constructs the
-    // PacketTypeSequenceMap and the PacketSequenceNumber or returns the existing value.
+    // PacketType::SequenceMap and the PacketSequenceNumber or returns the existing value.
     // We use the postfix increment so that the stored value is incremented and the next
     // return gives the correct value.
 

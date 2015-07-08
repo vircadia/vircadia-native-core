@@ -93,7 +93,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
 
     // queue the packet
     if (success) {
-        queueEntityMessage(PacketTypeEntityAdd, id, propertiesWithSimID);
+        queueEntityMessage(PacketType::EntityAdd, id, propertiesWithSimID);
     }
 
     return id;
@@ -175,13 +175,13 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties proper
                 entity->setLastBroadcast(usecTimestampNow());
             }
             _entityTree->unlock();
-            queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
+            queueEntityMessage(PacketType::EntityEdit, entityID, properties);
             return id;
         }
         return QUuid();
     }
 
-    queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
+    queueEntityMessage(PacketType::EntityEdit, entityID, properties);
     return id;
 }
 
@@ -446,7 +446,7 @@ bool EntityScriptingInterface::setVoxels(QUuid entityID,
     properties.setVoxelDataDirty();
     properties.setLastEdited(now);
 
-    queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
+    queueEntityMessage(PacketType::EntityEdit, entityID, properties);
     return true;
 }
 
@@ -483,7 +483,7 @@ bool EntityScriptingInterface::setPoints(QUuid entityID, std::function<bool(Line
     properties.setLastEdited(now);
 
 
-    queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
+    queueEntityMessage(PacketType::EntityEdit, entityID, properties);
     return success;
 }
 
@@ -552,7 +552,7 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
     properties.setActionDataDirty();
     auto now = usecTimestampNow();
     properties.setLastEdited(now);
-    queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
+    queueEntityMessage(PacketType::EntityEdit, entityID, properties);
 
     return success;
 }

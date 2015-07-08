@@ -63,12 +63,12 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     Octree::eraseAllOctreeElements(createNewRoot);
 }
 
-bool EntityTree::handlesEditPacketType(PacketType::Value packetType) const {
+bool EntityTree::handlesEditPacketType::(PacketType::Value packetType) const {
     // we handle these types of "edit" packets
     switch (packetType) {
-        case PacketTypeEntityAdd:
-        case PacketTypeEntityEdit:
-        case PacketTypeEntityErase:
+        case PacketType::EntityAdd:
+        case PacketType::EntityEdit:
+        case PacketType::EntityErase:
             return true;
         default:
             return false;
@@ -583,14 +583,14 @@ int EntityTree::processEditPacketData(PacketType::Value packetType, const unsign
     int processedBytes = 0;
     // we handle these types of "edit" packets
     switch (packetType) {
-        case PacketTypeEntityErase: {
+        case PacketType::EntityErase: {
             QByteArray dataByteArray((const char*)editData, maxLength);
             processedBytes = processEraseMessageDetails(dataByteArray, senderNode);
             break;
         }
         
-        case PacketTypeEntityAdd:
-        case PacketTypeEntityEdit: {
+        case PacketType::EntityAdd:
+        case PacketType::EntityEdit: {
             quint64 startDecode = 0, endDecode = 0;
             quint64 startLookup = 0, endLookup = 0;
             quint64 startUpdate = 0, endUpdate = 0;
@@ -613,7 +613,7 @@ int EntityTree::processEditPacketData(PacketType::Value packetType, const unsign
                 startLookup = usecTimestampNow();
                 EntityItemPointer existingEntity = findEntityByEntityItemID(entityItemID);
                 endLookup = usecTimestampNow();
-                if (existingEntity && packetType == PacketTypeEntityEdit) {
+                if (existingEntity && packetType == PacketType::EntityEdit) {
                     // if the EntityItem exists, then update it
                     startLogging = usecTimestampNow();
                     if (wantEditLogging()) {
@@ -627,7 +627,7 @@ int EntityTree::processEditPacketData(PacketType::Value packetType, const unsign
                     existingEntity->markAsChangedOnServer();
                     endUpdate = usecTimestampNow();
                     _totalUpdates++;
-                } else if (packetType == PacketTypeEntityAdd) {
+                } else if (packetType == PacketType::EntityAdd) {
                     if (senderNode->getCanRez()) {
                         // this is a new entity... assign a new entityID
                         properties.setCreated(properties.getLastEdited());
@@ -766,7 +766,7 @@ bool EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumbe
 
     unsigned char* copyAt = outputBuffer;
     size_t numBytesPacketHeader = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(outputBuffer), 
-                                                                                           PacketTypeEntityErase);
+                                                                                           PacketType::EntityErase);
     copyAt += numBytesPacketHeader;
     outputLength = numBytesPacketHeader;
 
@@ -1072,7 +1072,7 @@ bool EntityTree::sendEntitiesOperation(OctreeElement* element, void* extraData) 
         properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
 
         // queue the packet to send to the server
-        args->packetSender->queueEditEntityMessage(PacketTypeEntityAdd, newID, properties);
+        args->packetSender->queueEditEntityMessage(PacketType::EntityAdd, newID, properties);
 
         // also update the local tree instantly (note: this is not our tree, but an alternate tree)
         if (args->localTree) {

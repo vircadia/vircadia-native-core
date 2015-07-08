@@ -1078,7 +1078,7 @@ void AvatarData::setJointMappingsFromNetworkReply() {
 void AvatarData::sendAvatarDataPacket() {
     auto nodeList = DependencyManager::get<NodeList>();
 
-    QByteArray dataPacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeAvatarData);
+    QByteArray dataPacket = nodeList->byteArrayWithPopulatedHeader(PacketType::AvatarData);
     dataPacket.append(toByteArray());
     
     nodeList->broadcastToNodes(dataPacket, NodeSet() << NodeType::AvatarMixer);
@@ -1087,7 +1087,7 @@ void AvatarData::sendAvatarDataPacket() {
 void AvatarData::sendIdentityPacket() {
     auto nodeList = DependencyManager::get<NodeList>();
 
-    QByteArray identityPacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeAvatarIdentity);
+    QByteArray identityPacket = nodeList->byteArrayWithPopulatedHeader(PacketType::AvatarIdentity);
     identityPacket.append(identityByteArray());
     
     nodeList->broadcastToNodes(identityPacket, NodeSet() << NodeType::AvatarMixer);
@@ -1097,7 +1097,7 @@ void AvatarData::sendBillboardPacket() {
     if (!_billboard.isEmpty()) {
         auto nodeList = DependencyManager::get<NodeList>();
 
-        QByteArray billboardPacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeAvatarBillboard);
+        QByteArray billboardPacket = nodeList->byteArrayWithPopulatedHeader(PacketType::AvatarBillboard);
         billboardPacket.append(_billboard);
         
         nodeList->broadcastToNodes(billboardPacket, NodeSet() << NodeType::AvatarMixer);
