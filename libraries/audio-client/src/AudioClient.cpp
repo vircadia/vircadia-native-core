@@ -916,8 +916,8 @@ void AudioClient::sendMuteEnvironmentPacket() {
 
     glm::vec3 currentSourcePosition = _positionGetter();
 
-    mutePacket->write(currentSourcePosition);
-    mutePacket->write(MUTE_RADIUS);
+    mutePacket->writePrimitive(currentSourcePosition);
+    mutePacket->writePrimitive(MUTE_RADIUS);
 
     // grab our audio mixer from the NodeList, if it exists
     SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
