@@ -2412,7 +2412,7 @@ void Application::cameraMenuChanged() {
     }
 }
 
-void Application::clearCacheAndQuit() {
+void Application::clearCacheAndRestart() {
     emptyLocalCache();
     exit(RESTART_CODE);
 }
