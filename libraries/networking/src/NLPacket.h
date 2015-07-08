@@ -25,6 +25,8 @@ public:
     
     virtual qint64 totalHeadersSize() const; // Cumulated size of all the headers
     virtual qint64 localHeaderSize() const;  // Current level's header size
+
+    QUuid getSourceID() const { return QUuid(); }
     
 protected:
     NLPacket(PacketType::Value type, int64_t size);

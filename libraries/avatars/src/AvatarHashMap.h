@@ -38,6 +38,10 @@ public slots:
     
 private slots:
     void sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID);
+    void processAvatarDataPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void processAvatarIdentityPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void processAvatarBillboardPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void processKillAvatar(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
     
 protected:
     AvatarHashMap();
@@ -49,11 +53,6 @@ protected:
     AvatarHash _avatarHash;
 
 private:
-    void processAvatarDataPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
-    void processAvatarIdentityPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
-    void processAvatarBillboardPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
-    void processKillAvatar(const QByteArray& datagram);
-
     QUuid _lastOwnerSessionUUID;
 };
 
