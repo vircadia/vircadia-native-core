@@ -463,8 +463,6 @@ int AudioMixer::prepareMixForListeningNode(Node* node) {
 }
 
 void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
-    static char clientEnvBuffer[MAX_PACKET_SIZE];
-
     // Send stream properties
     bool hasReverb = false;
     float reverbTime, wetLevel;
