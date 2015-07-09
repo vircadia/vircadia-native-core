@@ -2699,8 +2699,6 @@ int Application::sendNackPackets() {
             _octreeSceneStatsLock.unlock();
 
             // construct nack packet(s) for this node
-            int numSequenceNumbersAvailable = missingSequenceNumbers.size();
-
             auto it = missingSequenceNumbers.constBegin();
             while (it != missingSequenceNumbers.constEnd()) {
                 OCTREE_PACKET_SEQUENCE missingNumber = *it;
