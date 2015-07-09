@@ -1479,6 +1479,7 @@ void MyAvatar::updatePosition(float deltaTime) {
         // update position ourselves
         applyPositionDelta(deltaTime * _targetVelocity);
         measureMotionDerivatives(deltaTime);
+        setPosition(getPosition()); // seems redundant, but we should do this to update the sensorMat.
     } // else physics will move avatar later
 
     // update _moving flag based on speed
