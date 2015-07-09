@@ -11,7 +11,7 @@
 
 #include <QtCore/QObject>
 #include <QDebug>
-
+#include <BufferParser.h>
 #include <PacketHeaders.h>
 
 #include "RegisteredMetaTypes.h"
@@ -33,11 +33,8 @@ EntityItemID::EntityItemID(const QUuid& id) : QUuid(id)
 
 EntityItemID EntityItemID::readEntityItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead) {
     EntityItemID result;
-
     if (bytesLeftToRead >= NUM_BYTES_RFC4122_UUID) {
-        // id
-        QByteArray encodedID((const char*)data, NUM_BYTES_RFC4122_UUID);
-        result = QUuid::fromRfc4122(encodedID);
+        BufferParser(data, bytesLeftToRead).readUuid(result);
     }
     return result;
 }
