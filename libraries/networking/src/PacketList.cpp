@@ -30,6 +30,8 @@ template <typename T> std::unique_ptr<T> PacketList<T>::createPacketWithExtended
         qDebug() << "Could not write extendedHeader in PacketList::createPacketWithExtendedHeader"
             << "- make sure that _extendedHeader is not larger than the payload capacity.";
     }
+
+    return packet;
 }
 
 template <typename T> qint64 PacketList<T>::writeData(const char* data, qint64 maxSize) {
