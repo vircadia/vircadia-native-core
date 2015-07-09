@@ -38,19 +38,6 @@
 
 namespace gpu {
 
-enum Primitive {
-    POINTS = 0,
-    LINES,
-    LINE_STRIP,
-    TRIANGLES,
-    TRIANGLE_STRIP,
-    TRIANGLE_FAN,
-    QUADS,
-    QUAD_STRIP,
-
-    NUM_PRIMITIVES,
-};
-
 enum ReservedSlot {
 /*    TRANSFORM_OBJECT_SLOT = 6,
     TRANSFORM_CAMERA_SLOT = 7,
@@ -76,7 +63,12 @@ public:
     void drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0, uint32 startInstance = 0);
 
     // Clear framebuffer layers
+    // Targets can be any of the render buffers contained in the Framebuffer
     void clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil);
+    void clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color); // not a command, just a shortcut for clearFramebuffer, mask out targets to make sure it touches only color targets
+    void clearDepthFramebuffer(float depth); // not a command, just a shortcut for clearFramebuffer, it touches only depth target
+    void clearStencilFramebuffer(int stencil); // not a command, just a shortcut for clearFramebuffer, it touches only stencil target
+    void clearDepthStencilFramebuffer(float depth, int stencil); // not a command, just a shortcut for clearFramebuffer, it touches depth and stencil target
     
     // Input Stage
     // InputFormat
@@ -89,6 +81,7 @@ public:
     void setInputStream(Slot startChannel, const BufferStream& stream); // not a command, just unroll into a loop of setInputBuffer
 
     void setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset);
+    void setIndexBuffer(const BufferView& buffer); // not a command, just a shortcut from a BufferView
 
     // Transform Stage
     // Vertex position is transformed by ModelTransform from object space to world space

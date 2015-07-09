@@ -401,7 +401,6 @@ void GeometryCache::renderCone(float base, float height, int slices, int stacks)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-
 void GeometryCache::renderGrid(int xDivisions, int yDivisions, const glm::vec4& color) {
     gpu::Batch batch;
     renderGrid(batch, xDivisions, yDivisions, color);
