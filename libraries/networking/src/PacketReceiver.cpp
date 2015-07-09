@@ -68,7 +68,7 @@ void PacketReceiver::processDatagrams() {
                 //TODO Update packet
                 std::unique_ptr<NLPacket> packet;
                 bool success = QMetaObject::invokeMethod(listener.first, listener.second,
-                        Q_ARG(std::unique_ptr<NLPacket>, packet),
+                        Q_ARG(NLPacket&, *packet),
                         Q_ARG(HifiSockAddr, senderSockAddr));
                 if (!success) {
                     qDebug() << "Error sending packet " << incomingType << " to listener: " << listener.first->objectName() << "::" << listener.second;
