@@ -96,13 +96,13 @@ private:
         int atmosphereBufferUnit;
         int invViewMat;
         int texcoordMat;
+        int coneParam;
     };
 
     model::MeshPointer _spotLightMesh;
     model::MeshPointer getSpotLightMesh();
 
-    // static void loadLightProgram(const char* fragSource, bool limited, ProgramObject& program, LightLocations& locations);
-    static void loadLightProgram(const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocations& locations);
+    static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocations& locations);
   
     gpu::PipelinePointer getPipeline(SimpleProgramKey config);
     
@@ -137,33 +137,7 @@ private:
     LightLocations _pointLightLocations;
     gpu::PipelinePointer _spotLight;
     LightLocations _spotLightLocations;
-/*
-    ProgramObject _directionalSkyboxLight;
-    LightLocations _directionalSkyboxLightLocations;
-    ProgramObject _directionalSkyboxLightShadowMap;
-    LightLocations _directionalSkyboxLightShadowMapLocations;
-    ProgramObject _directionalSkyboxLightCascadedShadowMap;
-    LightLocations _directionalSkyboxLightCascadedShadowMapLocations;
 
-    ProgramObject _directionalAmbientSphereLight;
-    LightLocations _directionalAmbientSphereLightLocations;
-    ProgramObject _directionalAmbientSphereLightShadowMap;
-    LightLocations _directionalAmbientSphereLightShadowMapLocations;
-    ProgramObject _directionalAmbientSphereLightCascadedShadowMap;
-    LightLocations _directionalAmbientSphereLightCascadedShadowMapLocations;
-
-    ProgramObject _directionalLight;
-    LightLocations _directionalLightLocations;
-    ProgramObject _directionalLightShadowMap;
-    LightLocations _directionalLightShadowMapLocations;
-    ProgramObject _directionalLightCascadedShadowMap;
-    LightLocations _directionalLightCascadedShadowMapLocations;
-
-    ProgramObject _pointLight;
-    LightLocations _pointLightLocations;
-    ProgramObject _spotLight;
-    LightLocations _spotLightLocations;
-*/
     class PointLight {
     public:
         glm::vec4 position;
