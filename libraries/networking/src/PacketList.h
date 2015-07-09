@@ -18,7 +18,7 @@
 
 class NLPacket;
 
-template <class T> class PacketList : public QIODevice {
+template <typename T> class PacketList : public QIODevice {
 public:
     PacketList(PacketType::Value packetType);
 
