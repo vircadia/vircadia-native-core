@@ -38,7 +38,7 @@ void SentPacketHistory::packetSent(uint16_t sequenceNumber, const NLPacket& pack
     _sentPackets.insert(NLPacket::createCopy(packet));
 }
 
-const NLPacket& SentPacketHistory::getPacket(uint16_t sequenceNumber) const {
+const NLPacket* SentPacketHistory::getPacket(uint16_t sequenceNumber) const {
 
     const int UINT16_RANGE = std::numeric_limits<uint16_t>::max() + 1;
 
@@ -48,6 +48,10 @@ const NLPacket& SentPacketHistory::getPacket(uint16_t sequenceNumber) const {
     if (seqDiff < 0) {
         seqDiff += UINT16_RANGE;
     }
-
-    return *_sentPackets.get(seqDiff)->get();
+    auto packet = _sentPackets.get(seqDiff);
+    if (packet) {
+        return packet->get();
+    } else {
+        return nullptr;
+    }
 }
