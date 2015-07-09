@@ -24,16 +24,6 @@ qint64 Packet::maxPayloadSize(PacketType::Value type) {
 }
 
 std::unique_ptr<Packet> Packet::create(PacketType::Value type, qint64 size) {
-    auto maxPayload = maxPayloadSize(type);
-    if (size == -1) {
-        // default size of -1, means biggest packet possible
-        size = maxPayload;
-    }
-    
-    // Fail with invalid size
-    Q_ASSERT(size >= 0 || size < maxPayload);
-
-    // allocate memory
     return std::unique_ptr<Packet>(new Packet(type, size));
 }
 
@@ -55,8 +45,14 @@ Packet::Packet(PacketType::Value type, qint64 size) :
     _packet(new char(_packetSize)),
     _payloadStart(_packet.get() + localHeaderSize(_type)),
     _capacity(size) {
+        auto maxPayload = maxPayloadSize(type);
+        if (size == -1) {
+            // default size of -1, means biggest packet possible
+            size = maxPayload;
+        }
+        
         // Sanity check
-        Q_ASSERT(size <= maxPayloadSize(type));
+        Q_ASSERT(size >= 0 || size < maxPayload);
 
         // copy packet type and version in header
         writePacketTypeAndVersion(type);
@@ -72,6 +68,8 @@ Packet::Packet(const Packet& other) {
 }
 
 Packet& Packet::operator=(const Packet& other) {
+    _type = other._type;
+    
     _packetSize = other._packetSize;
     _packet = std::unique_ptr<char>(new char(_packetSize));
     memcpy(_packet.get(), other._packet.get(), _packetSize);
@@ -89,6 +87,8 @@ Packet::Packet(Packet&& other) {
 }
 
 Packet& Packet::operator=(Packet&& other) {
+    _type = other._type;
+    
     _packetSize = other._packetSize;
     _packet = std::move(other._packet);
 

@@ -108,7 +108,7 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, std::uniqu
             }
 
             // add packet to history
-            _sentPacketHistories[nodeUUID].packetSent(sequence, *packet.get());
+            _sentPacketHistories[nodeUUID].packetSent(sequence, *packet);
 
             queuePacketForSending(node, std::move(packet));
         }
@@ -186,7 +186,7 @@ void OctreeEditPacketSender::queuePacketToNodes(std::unique_ptr<NLPacket> packet
 
             if (isMyJurisdiction) {
                 // make a copy of this packet for this node and queue
-                auto packetCopy = NLPacket::createCopy(*packet.get());
+                auto packetCopy = NLPacket::createCopy(*packet);
                 queuePacketToNode(nodeUUID, std::move(packetCopy));
             }
         }
