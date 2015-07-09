@@ -82,7 +82,7 @@ void ObjectActionOffset::updateActionWorker(btScalar deltaTimeStep) {
             if (blend > 1.0f) {
                 blend = 1.0f;
             }
-            rigidBody->setLinearVelocity(glmToBullet(currentVelocity + blend * (targetVelocity - parallelVelocity));
+            rigidBody->setLinearVelocity(glmToBullet(currentVelocity + blend * (targetVelocity - parallelVelocity)));
         }
     }
 
