@@ -588,7 +588,7 @@ void ScriptEngine::run() {
             const int SCRIPT_AUDIO_BUFFER_BYTES = SCRIPT_AUDIO_BUFFER_SAMPLES * sizeof(int16_t);
 
             QByteArray avatarByteArray = _avatarData->toByteArray();
-            auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size());
+            auto avatarPacket = NLPacket::create(PacketType::AvatarData);
 
             avatarPacket->write(avatarByteArray);
 
@@ -675,7 +675,7 @@ void ScriptEngine::run() {
                         audioPacket->writePrimitive(sequence);
 
                         // send audio packet
-                        nodeList->sendPacket(std::move(audioPacket), node);
+                        nodeList->sendUnreliablePacket(audioPacket, node);
                     }
                 });
             }
