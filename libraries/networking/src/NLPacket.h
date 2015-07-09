@@ -29,7 +29,7 @@ public:
 
 protected:
     NLPacket(PacketType::Value type, int64_t size);
-    NLPacket(NLPacket& other);
+    NLPacket(const NLPacket& other);
 
     void setSourceUuid(QUuid sourceUuid);
     void setConnectionUuid(QUuid connectionUuid);

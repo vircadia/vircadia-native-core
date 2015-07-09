@@ -44,7 +44,7 @@ std::unique_ptr<NLPacket> NLPacket::createCopy(const NLPacket& other) {
 NLPacket::NLPacket(PacketType::Value type, int64_t size) : Packet(type, localHeaderSize(type) + size) {
 }
 
-NLPacket::NLPacket(NLPacket& other) : Packet(other) {
+NLPacket::NLPacket(const NLPacket& other) : Packet(other) {
 }
 
 void NLPacket::setSourceUuid(QUuid sourceUuid) {

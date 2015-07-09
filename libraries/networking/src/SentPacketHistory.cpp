@@ -49,5 +49,5 @@ const NLPacket& SentPacketHistory::getPacket(uint16_t sequenceNumber) const {
         seqDiff += UINT16_RANGE;
     }
 
-    return *_sentPackets.get(seqDiff).get();
+    return *_sentPackets.get(seqDiff)->get();
 }
