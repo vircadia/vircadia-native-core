@@ -1183,7 +1183,6 @@ bool Application::event(QEvent* event) {
 }
 
 bool Application::eventFilter(QObject* object, QEvent* event) {
-
     if (event->type() == QEvent::ShortcutOverride) {
         if (DependencyManager::get<OffscreenUi>()->shouldSwallowShortcut(event)) {
             event->accept();
@@ -1788,6 +1787,7 @@ void Application::checkFPS() {
 }
 
 void Application::idle() {
+    PROFILE_RANGE(__FUNCTION__);
     static SimpleAverage<float> interIdleDurations;
     static uint64_t lastIdleEnd{ 0 };
 
