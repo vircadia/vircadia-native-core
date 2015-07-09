@@ -962,7 +962,7 @@ void Application::paintGL() {
     } else if (TV3DManager::isConnected()) {
         TV3DManager::display(&renderArgs, _myCamera);
     } else {
-        PROFILE_RANGE(__function__ "/mainRender");
+        PROFILE_RANGE(__FUNCTION__ "/mainRender");
 
         DependencyManager::get<GlowEffect>()->prepare(&renderArgs);
 
