@@ -2700,7 +2700,7 @@ int Application::sendNackPackets() {
             auto it = missingSequenceNumbers.constBegin();
             while (it != missingSequenceNumbers.constEnd()) {
                 OCTREE_PACKET_SEQUENCE missingNumber = *it;
-                nackPacketList->writePrimitive(missingNumber);
+                nackPacketList.writePrimitive(missingNumber);
                 ++it;
             }
 
@@ -2885,7 +2885,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType::Value packetTyp
             }
 
             // encode the query data
-            int packetSize = _octreeQuery.getBroadcastData(queryPacket.payload());
+            int packetSize = _octreeQuery.getBroadcastData(queryPacket->getPayload());
             queryPacket->setSizeUsed(packetSize);
 
             // make sure we still have an active socket
