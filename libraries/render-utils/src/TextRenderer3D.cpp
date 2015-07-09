@@ -343,7 +343,7 @@ void Font3D::setupGPU() {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         state->setCullMode(gpu::State::CULL_BACK);
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
-        state->setBlendFunction(false,
+        state->setBlendFunction(true,
                                 gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
         _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
