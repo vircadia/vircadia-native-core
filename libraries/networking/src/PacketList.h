@@ -18,7 +18,7 @@
 
 class NLPacket;
 
-template <class T> class PacketList : public QIODevice {
+template <typename T> class PacketList : public QIODevice {
 public:
     PacketList(PacketType::Value packetType);
 
@@ -35,8 +35,14 @@ public:
 
     void setExtendedHeader(const QByteArray& extendedHeader) { _extendedHeader = extendedHeader; }
 
-    template<typename U> qint64 readPrimitive(U* data);
-    template<typename U> qint64 writePrimitive(const U& data);
+    template<typename U> qint64 readPrimitive(U* data) {
+        return QIODevice::read(reinterpret_cast<char*>(data), sizeof(U));
+    }
+
+    template<typename U> qint64 writePrimitive(const U& data) {
+        static_assert(!std::is_pointer<U>::value, "T must not be a pointer");
+        return QIODevice::write(reinterpret_cast<const char*>(&data), sizeof(U));
+    }
 protected:
     qint64 writeData(const char* data, qint64 maxSize);
     qint64 readData(char* data, qint64 maxSize) { return 0; }

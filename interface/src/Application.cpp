@@ -2664,7 +2664,7 @@ int Application::sendNackPackets() {
         return 0;
     }
 
-    // iterates thru all nodes in NodeList
+    // iterates through all nodes in NodeList
     auto nodeList = DependencyManager::get<NodeList>();
 
     int packetsSent = 0;
@@ -2680,7 +2680,7 @@ int Application::sendNackPackets() {
             // if there are octree packets from this node that are waiting to be processed,
             // don't send a NACK since the missing packets may be among those waiting packets.
             if (_octreeProcessor.hasPacketsToProcessFrom(nodeUUID)) {
-                return 0;
+                packetsSent = 0;
             }
 
             _octreeSceneStatsLock.lockForRead();
@@ -2688,7 +2688,7 @@ int Application::sendNackPackets() {
             // retreive octree scene stats of this node
             if (_octreeServerSceneStats.find(nodeUUID) == _octreeServerSceneStats.end()) {
                 _octreeSceneStatsLock.unlock();
-                return 0;
+                packetsSent = 0;
             }
 
             // get sequence number stats of node, prune its missing set, and make a copy of the missing set

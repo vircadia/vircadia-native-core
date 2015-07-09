@@ -15,13 +15,13 @@
 
 #include "NLPacket.h"
 
-template <class T> PacketList<T>::PacketList(PacketType::Value packetType) :
+template <typename T> PacketList<T>::PacketList(PacketType::Value packetType) :
     _packetType(packetType)
 {
 
 }
 
-template <class T> std::unique_ptr<NLPacket> PacketList<T>::createPacketWithExtendedHeader() {
+template <typename T> std::unique_ptr<NLPacket> PacketList<T>::createPacketWithExtendedHeader() {
     // use the static create method to create a new packet
     auto packet = T::create(_packetType);
 
@@ -32,16 +32,7 @@ template <class T> std::unique_ptr<NLPacket> PacketList<T>::createPacketWithExte
     }
 }
 
-template<class T> template<typename U> qint64 PacketList<T>::readPrimitive(U* data) {
-    return QIODevice::read(reinterpret_cast<char*>(data), sizeof(U));
-}
-
-template<class T> template<typename U> qint64 PacketList<T>::writePrimitive(const U& data) {
-    static_assert(!std::is_pointer<U>::value, "T must not be a pointer");
-    return QIODevice::write(reinterpret_cast<const char*>(&data), sizeof(U));
-}
-
-template <class T> qint64 PacketList<T>::writeData(const char* data, qint64 maxSize) {
+template <typename T> qint64 PacketList<T>::writeData(const char* data, qint64 maxSize) {
     if (!_currentPacket) {
         // we don't have a current packet, time to set one up
         _currentPacket = createPacketWithExtendedHeader();
@@ -112,7 +103,7 @@ template <class T> qint64 PacketList<T>::writeData(const char* data, qint64 maxS
     }
 }
 
-template <class T> void PacketList<T>::closeCurrentPacket() {
+template <typename T> void PacketList<T>::closeCurrentPacket() {
     // move the current packet to our list of packets
     _packets.insert(std::move(_currentPacket));
 }
