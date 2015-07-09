@@ -53,11 +53,9 @@ public:
     template<typename T>
     inline void readCompressedCount(T& result) {
         // FIXME switch to a heapless implementation as soon as Brad provides it.
-        QByteArray encoded((const char*)(_data + _offset), std::min(sizeof(T) << 1, remaining()));
-        ByteCountCoded<T> codec = encoded;
+        ByteCountCoded<T> codec;
+        _offset += codec.decode(reinterpret_cast<const char*>(_data + _offset), remaining());
         result = codec.data;
-        encoded = codec;
-        _offset += encoded.size();
     }
 
     inline size_t remaining() const {
