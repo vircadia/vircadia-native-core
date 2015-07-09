@@ -88,9 +88,11 @@ void Light::setSpotAngle(float angle) {
         dangle = glm::half_pi<double>();
     }
 
-    editSchema()._spot.x = (float)abs(cos(dangle));
-    editSchema()._spot.y = (float)abs(sin(dangle));
-    editSchema()._spot.z = (float)dangle;
+    auto cosAngle = cos(dangle);
+    auto sinAngle = sin(dangle);
+    editSchema()._spot.x = (float) std::abs(cosAngle);
+    editSchema()._spot.y = (float) std::abs(sinAngle);
+    editSchema()._spot.z = (float) angle;
 }
 
 void Light::setSpotExponent(float exponent) {

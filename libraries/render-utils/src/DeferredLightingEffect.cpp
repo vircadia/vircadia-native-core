@@ -509,15 +509,9 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                 batch._glUniform4fv(_spotLightLocations.coneParam, 1, reinterpret_cast< const GLfloat* >(&coneParam));
 
                 Transform model;
-                model.setTranslation(glm::vec3(light->getPosition().x, light->getPosition().y, light->getPosition().z));
-
-                glm::quat spotRotation = rotationBetween(glm::vec3(0.0f, 0.0f, -1.0f), light->getDirection());
-                spotRotation = light->getOrientation();
-                model.postRotate(spotRotation);
-
-                float base = expandedRadius * glm::tan(light->getSpotAngle());
-                float height = expandedRadius;
-                model.postScale(glm::vec3(height, height, height));
+                model.setTranslation(light->getPosition());
+                model.postRotate(light->getOrientation());
+                model.postScale(glm::vec3(expandedRadius, expandedRadius, expandedRadius));
 
                 batch.setModelTransform(model);
                 auto mesh = getSpotLightMesh();
@@ -679,7 +673,7 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
     if (!_spotLightMesh) {
         _spotLightMesh.reset(new model::Mesh());
 
-        int slices = 16;
+        int slices = 32;
         int rings = 3;
         int vertices = 2 + rings * slices;
         int originVertex = vertices - 2;
@@ -762,7 +756,8 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
         delete[] indexData;
 
         model::Mesh::Part part(0, indices, 0, model::Mesh::TRIANGLES);
-
+        //DEBUG: model::Mesh::Part part(0, indices, 0, model::Mesh::LINE_STRIP);
+        
         _spotLightMesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(sizeof(part), (gpu::Byte*) &part), gpu::Element::PART_DRAWCALL));
 
         _spotLightMesh->makeBufferStream();
