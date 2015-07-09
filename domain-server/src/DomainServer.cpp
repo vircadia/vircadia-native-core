@@ -1118,7 +1118,7 @@ void DomainServer::readAvailableDatagrams() {
             static std::unique_ptr<NLPacket> dtlsRequiredPacket;
 
             if (!dtlsRequiredPacket) {
-                dtlsRequiredPacket = NLPacket::create(PacketType::DomainServerRequireDTLS);
+                dtlsRequiredPacket = NLPacket::create(PacketType::DomainServerRequireDTLS, sizeof(unsigned short));
 
                 // pack the port that we accept DTLS traffic on
                 unsigned short dtlsPort = limitedNodeList->getDTLSSocket().localPort();
