@@ -166,49 +166,6 @@ QString nameForPacketType(PacketType::Value packetType) {
     return QString("unexpected");
 }
 
-
-
-QByteArray byteArrayWithUUIDPopulatedHeader(PacketType::Value packetType, const QUuid& connectionUUID) {
-    QByteArray freshByteArray(MAX_PACKET_HEADER_BYTES, 0);
-    freshByteArray.resize(populatePacketHeaderWithUUID(freshByteArray, packetType, connectionUUID));
-    return freshByteArray;
-}
-
-int populatePacketHeaderWithUUID(QByteArray& packet, PacketType::Value packetType, const QUuid& connectionUUID) {
-    if (packet.size() < numBytesForPacketHeaderGivenPacketType(packetType)) {
-        packet.resize(numBytesForPacketHeaderGivenPacketType(packetType));
-    }
-
-    return populatePacketHeaderWithUUID(packet.data(), packetType, connectionUUID);
-}
-
-int populatePacketHeaderWithUUID(char* packet, PacketType::Value packetType, const QUuid& connectionUUID) {
-    int numTypeBytes = packArithmeticallyCodedValue(packetType, packet);
-    packet[numTypeBytes] = versionForPacketType(packetType);
-
-    char* position = packet + numTypeBytes + sizeof(PacketVersion);
-
-    QByteArray rfcUUID = connectionUUID.toRfc4122();
-    memcpy(position, rfcUUID.constData(), NUM_BYTES_RFC4122_UUID);
-    position += NUM_BYTES_RFC4122_UUID;
-
-    if (!NON_VERIFIED_PACKETS.contains(packetType)) {
-        // pack 16 bytes of zeros where the md5 hash will be placed once data is packed
-        memset(position, 0, NUM_BYTES_MD5_HASH);
-        position += NUM_BYTES_MD5_HASH;
-    }
-
-    if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
-        // Pack zeros for the number of bytes that the sequence number requires.
-        // The LimitedNodeList will handle packing in the sequence number when sending out the packet.
-        memset(position, 0, sizeof(PacketSequenceNumber));
-        position += sizeof(PacketSequenceNumber);
-    }
-
-    // return the number of bytes written for pointer pushing
-    return position - packet;
-}
-
 int numBytesForPacketHeader(const QByteArray& packet) {
     PacketType::Value packetType = packetTypeForPacket(packet);
     return numBytesForPacketHeaderGivenPacketType(packetType);

@@ -272,7 +272,7 @@ bool PacketSender::nonThreadedProcess() {
         unlock();
 
         // send the packet through the NodeList...
-        DependencyManager::get<NodeList>()->sendUnreliablePacket(packetPair.second, packetPair.first);
+        DependencyManager::get<NodeList>()->sendUnreliablePacket(*(packetPair.second), packetPair.first);
 
         packetsSentThisCall++;
         _packetsOverCheckInterval++;

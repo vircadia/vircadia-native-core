@@ -107,10 +107,6 @@ QString nameForPacketType(PacketType::Value packetType);
 
 const QUuid nullUUID = QUuid();
 
-QByteArray byteArrayWithUUIDPopulatedHeader(PacketType::Value packetType, const QUuid& connectionUUID);
-int populatePacketHeaderWithUUID(QByteArray& packet, PacketType::Value packetType, const QUuid& connectionUUID);
-int populatePacketHeaderWithUUID(char* packet, PacketType::Value packetType, const QUuid& connectionUUID);
-
 int numHashBytesForType(PacketType::Value packetType);
 int numSequenceNumberBytesForType(PacketType::Value packetType);
 

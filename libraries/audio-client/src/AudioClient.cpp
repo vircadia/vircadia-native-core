@@ -882,7 +882,7 @@ void AudioClient::handleAudioInput() {
 
             nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendAudioPacket);
 
-            nodeList->sendUnreliablePacket(_audioPacket, audioMixer);
+            nodeList->sendUnreliablePacket(*_audioPacket, audioMixer);
 
             _outgoingAvatarAudioSequenceNumber++;
         }

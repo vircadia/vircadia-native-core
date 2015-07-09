@@ -121,49 +121,16 @@ public:
 
     bool packetVersionAndHashMatch(const QByteArray& packet);
 
-    // QByteArray byteArrayWithPopulatedHeader(PacketType::Value packetType)
-    //     { return byteArrayWithUUIDPopulatedHeader(packetType, _sessionUUID); }
-    // int populatePacketHeader(QByteArray& packet, PacketType::Value packetType)
-    //     { return populatePacketHeaderWithUUID(packet, packetType, _sessionUUID); }
-    // int populatePacketHeader(char* packet, PacketType::Value packetType)
-    //     { return populatePacketHeaderWithUUID(packet, packetType, _sessionUUID); }
-
     qint64 readDatagram(QByteArray& incomingPacket, QHostAddress* address, quint16 * port);
-//
-//    qint64 writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
-//                         const HifiSockAddr& overridenSockAddr = HifiSockAddr());
-//
-//    qint64 writeUnverifiedDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
-//                               const HifiSockAddr& overridenSockAddr = HifiSockAddr());
-//
-//    qint64 writeUnverifiedDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr);
-//
-//    qint64 writeDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
-//                         const HifiSockAddr& overridenSockAddr = HifiSockAddr());
-//
-//    qint64 writeUnverifiedDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
-//                         const HifiSockAddr& overridenSockAddr = HifiSockAddr());
-//
-    
-    qint64 sendUnreliablePacket(const NLPacket& packet, const SharedNodePointer& destinationNode)
-    { assert(false); return 0; }
-    qint64 sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr)
-    { assert(false); return 0; }
-    // TODO remove those
-    qint64 sendUnreliablePacket(std::unique_ptr<NLPacket>& packet, const SharedNodePointer& destinationNode)
-    { assert(false); return 0; }
-    qint64 sendUnreliablePacket(std::unique_ptr<NLPacket>& packet, const HifiSockAddr& sockAddr)
-    { assert(false); return 0; }
 
-    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const SharedNodePointer& destinationNode)
-         { assert(false); return 0; }
-    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr)
-         { assert(false); return 0; }
+    qint64 sendUnreliablePacket(const NLPacket& packet, const SharedNodePointer& destinationNode) { assert(false); return 0; }
+    qint64 sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr) { assert(false); return 0; }
 
-    qint64 sendPacketList(NLPacketList& packetList, const SharedNodePointer& destinationNode)
-         { assert(false); return 0; }
-    qint64 sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr)
-         { assert(false); return 0; }
+    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const SharedNodePointer& destinationNode) { assert(false); return 0; }
+    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr) { assert(false); return 0; }
+
+    qint64 sendPacketList(NLPacketList& packetList, const SharedNodePointer& destinationNode) { assert(false); return 0; }
+    qint64 sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr) { assert(false); return 0; }
 
     void (*linkedDataCreateCallback)(Node *);
 
@@ -188,8 +155,7 @@ public:
     int updateNodeWithDataFromPacket(const SharedNodePointer& matchingNode, const QByteArray& packet);
     int findNodeAndUpdateWithDataFromPacket(const QByteArray& packet);
 
-    unsigned broadcastToNodes(std::unique_ptr<NLPacket> packet, const NodeSet& destinationNodeTypes)
-         { assert(false); return 0; }
+    unsigned broadcastToNodes(std::unique_ptr<NLPacket> packet, const NodeSet& destinationNodeTypes) { assert(false); return 0; }
     SharedNodePointer soloNodeOfType(char nodeType);
 
     void getPacketStats(float &packetsPerSecond, float &bytesPerSecond);
