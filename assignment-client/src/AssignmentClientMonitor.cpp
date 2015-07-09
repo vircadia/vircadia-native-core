@@ -230,8 +230,8 @@ void AssignmentClientMonitor::readPendingDatagrams() {
                             // tell unknown assignment-client child to exit.
                             qDebug() << "asking unknown child to exit.";
 
-                            auto diePacket = NL::create(PacketType::StopNode, 0);
-                            nodeList->sendPacket(std::move(diePacket), childNode);
+                            auto diePacket = NLPacket::create(PacketType::StopNode, 0);
+                            nodeList->sendPacket(std::move(diePacket), senderSockAddr);
                         }
                     }
                 }
