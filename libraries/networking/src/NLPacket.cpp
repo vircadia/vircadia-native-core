@@ -11,13 +11,13 @@
 
 #include "NLPacket.h"
 
-int64_t NLPacket::localHeaderSize(PacketType::Value type) {
-    int64_t size = ((NON_SOURCED_PACKETS.contains(type)) ? 0 : NUM_BYTES_RFC4122_UUID) +
+qint64 NLPacket::localHeaderSize(PacketType::Value type) {
+    qint64 size = ((NON_SOURCED_PACKETS.contains(type)) ? 0 : NUM_BYTES_RFC4122_UUID) +
                     ((NON_VERIFIED_PACKETS.contains(type)) ? 0 : NUM_BYTES_RFC4122_UUID);
     return size;
 }
 
-int64_t NLPacket::maxPayloadSize(PacketType::Value type) {
+qint64 NLPacket::maxPayloadSize(PacketType::Value type) {
     return Packet::maxPayloadSize(type) - localHeaderSize(type);
 }
 
@@ -47,7 +47,7 @@ std::unique_ptr<NLPacket> NLPacket::createCopy(const NLPacket& other) {
     return std::unique_ptr<NLPacket>(new NLPacket(other));
 }
 
-NLPacket::NLPacket(PacketType::Value type, int64_t size) : Packet(type, localHeaderSize(type) + size) {
+NLPacket::NLPacket(PacketType::Value type, qint64 size) : Packet(type, localHeaderSize(type) + size) {
 }
 
 NLPacket::NLPacket(const NLPacket& other) : Packet(other) {
