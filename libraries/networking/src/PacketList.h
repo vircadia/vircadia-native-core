@@ -40,7 +40,7 @@ public:
     }
 
     template<typename U> qint64 writePrimitive(const U& data) {
-        static_assert(!std::is_pointer<U>::value, "T must not be a pointer");
+        static_assert(!std::is_pointer<U>::value, "U must not be a pointer");
         return QIODevice::write(reinterpret_cast<const char*>(&data), sizeof(U));
     }
 protected:
