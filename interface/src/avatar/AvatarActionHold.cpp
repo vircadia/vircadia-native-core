@@ -85,14 +85,16 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
         return;
     }
 
+    if (_positionalTarget != position || _rotationalTarget != rotation) {
+        auto ownerEntity = _ownerEntity.lock();
+        if (ownerEntity) {
+            ownerEntity->setActionDataDirty(true);
+        }
+    }
+
     _positionalTarget = position;
     _rotationalTarget = rotation;
     unlock();
-
-    auto ownerEntity = _ownerEntity.lock();
-    if (ownerEntity) {
-        ownerEntity->setActionDataDirty(true);
-    }
 
     ObjectActionSpring::updateActionWorker(deltaTimeStep);
 }
@@ -152,10 +154,6 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
     _rotationalTargetSet = true;
     _active = true;
     unlock();
-    auto ownerEntity = _ownerEntity.lock();
-    if (ownerEntity) {
-        ownerEntity->setActionDataDirty(true);
-    }
     return true;
 }
 
