@@ -34,7 +34,7 @@ DialogContainer {
         readonly property int buttonWidth: 100
         readonly property int buttonHeight: 30
         readonly property int noticeHeight: 15 * inputSpacing
-        readonly property string fontFamily: "Futura"
+        readonly property string fontFamily: Qt.platform.os === "windows" ? "Trebuchet MS" : "Trebuchet"
 
         signal triggerBuildDownload
         signal closeUpdateDialog
@@ -139,7 +139,7 @@ DialogContainer {
                         color: hifi.colors.text
                         font {
                             family: updateDialog.fontFamily
-                            pixelSize: hifi.fonts.pixelSize * 0.7
+                            pixelSize: hifi.fonts.pixelSize * 0.65
                         }
                     }
                 }
