@@ -113,7 +113,7 @@ void DatagramProcessor::processDatagrams() {
                     break;
                 }
                 case PacketType::DomainConnectionDenied: {
-                    int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeDomainConnectionDenied);
+                    int headerSize = 0;
                     QDataStream packetStream(QByteArray(incomingPacket.constData() + headerSize,
                                                         incomingPacket.size() - headerSize));
                     QString reason;

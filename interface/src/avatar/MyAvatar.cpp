@@ -865,9 +865,8 @@ int MyAvatar::parseDataAtOffset(const QByteArray& packet, int offset) {
 }
 
 void MyAvatar::sendKillAvatar() {
-    auto nodeList = DependencyManager::get<NodeList>();
-    QByteArray killPacket = nodeList->byteArrayWithPopulatedHeader(PacketType::KillAvatar);
-    nodeList->broadcastToNodes(killPacket, NodeSet() << NodeType::AvatarMixer);
+    auto killPacket = NLPacket::create(PacketType::KillAvatar, 0);
+    DependencyManager::get<NodeList>()->broadcastToNodes(killPacket, NodeSet() << NodeType::AvatarMixer);
 }
 
 void MyAvatar::updateLookAtTargetAvatar() {
@@ -1402,7 +1401,7 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
             }
         }
     }
-    
+
     float boomChange = _driveKeys[BOOM_OUT] - _driveKeys[BOOM_IN];
     _boomLength += 2.0f * _boomLength * boomChange + boomChange * boomChange;
     _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);
