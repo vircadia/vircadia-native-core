@@ -68,6 +68,8 @@ Packet::Packet(const Packet& other) {
 }
 
 Packet& Packet::operator=(const Packet& other) {
+    _type = other._type;
+    
     _packetSize = other._packetSize;
     _packet = std::unique_ptr<char>(new char(_packetSize));
     memcpy(_packet.get(), other._packet.get(), _packetSize);
@@ -85,6 +87,8 @@ Packet::Packet(Packet&& other) {
 }
 
 Packet& Packet::operator=(Packet&& other) {
+    _type = other._type;
+    
     _packetSize = other._packetSize;
     _packet = std::move(other._packet);
 
