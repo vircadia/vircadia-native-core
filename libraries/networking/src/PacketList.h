@@ -16,8 +16,6 @@
 
 #include "PacketHeaders.h"
 
-class NLPacket;
-
 template <typename T> class PacketList : public QIODevice {
 public:
     PacketList(PacketType::Value packetType);

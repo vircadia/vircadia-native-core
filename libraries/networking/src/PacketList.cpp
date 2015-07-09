@@ -13,8 +13,6 @@
 
 #include <QDebug>
 
-#include "NLPacket.h"
-
 template <typename T> PacketList<T>::PacketList(PacketType::Value packetType) :
     _packetType(packetType)
 {
