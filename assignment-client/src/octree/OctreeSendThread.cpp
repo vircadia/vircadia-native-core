@@ -580,9 +580,9 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         // Here's where we can/should allow the server to send other data...
         // send the environment packet
         // TODO: should we turn this into a while loop to better handle sending multiple special packets
-        if (_myServer->hasSpecialPacketToSend(_node) && !nodeData->isShuttingDown()) {
+        if (_myServer->hasSpecialPacketsToSend(_node) && !nodeData->isShuttingDown()) {
             int specialPacketsSent;
-            trueBytesSent += _myServer->sendSpecialPacket(_node, nodeData, specialPacketsSent);
+            trueBytesSent += _myServer->sendSpecialPackets(_node, nodeData, specialPacketsSent);
             nodeData->resetOctreePacket();   // because nodeData's _sequenceNumber has changed
             truePacketsSent += specialPacketsSent;
             packetsSentThisInterval += specialPacketsSent;
