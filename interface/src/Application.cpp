@@ -395,7 +395,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     });
 
     // setup a timer for domain-server check ins
-    QTimer* domainCheckInTimer = new QTimer(nodeList);
+    QTimer* domainCheckInTimer = new QTimer(nodeList.data());
     connect(domainCheckInTimer, &QTimer::timeout, nodeList.data(), &NodeList::sendDomainServerCheckIn);
     domainCheckInTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
 
