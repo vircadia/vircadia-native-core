@@ -45,7 +45,7 @@ public:
 
     void insert(const T& entry) {
         // increment newest entry index cyclically
-        _newestEntryAtIndex = (_newestEntryAtIndex == _size - 1) ? 0 : _newestEntryAtIndex + 1;
+        _newestEntryAtIndex = (_newestEntryAtIndex + 1) % _size;
 
         // insert new entry
         _buffer[_newestEntryAtIndex] = entry;
@@ -57,7 +57,7 @@ public:
     // std::unique_ptr need to be passed as an rvalue ref and moved into the vector
     void insert(T&& entry) {
         // increment newest entry index cyclically
-        _newestEntryAtIndex = (_newestEntryAtIndex == _size - 1) ? 0 : _newestEntryAtIndex + 1;
+        _newestEntryAtIndex = (_newestEntryAtIndex + 1) % _size;
         
         // insert new entry
         _buffer[_newestEntryAtIndex] = std::move(entry);
