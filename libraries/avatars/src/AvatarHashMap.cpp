@@ -19,7 +19,6 @@
 AvatarHashMap::AvatarHashMap() {
     connect(DependencyManager::get<NodeList>().data(), &NodeList::uuidChanged, this, &AvatarHashMap::sessionUUIDChanged);
 
-
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerPacketListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
     packetReceiver.registerPacketListener(PacketType::KillAvatar, this, "processKillAvatar");
@@ -58,6 +57,10 @@ void AvatarHashMap::processAvatarDataPacket(std::unique_ptr<NLPacket> packet, Hi
     int bytesRead = 0;
 
     SharedNodePointer avatarMixer = DependencyManager::get<NodeList>()->nodeWithUUID(packet->getSourceID());
+    if (avatarMixer) {
+        avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
+    }
+
     // enumerate over all of the avatars in this packet
     // only add them if mixerWeakPointer points to something (meaning that mixer is still around)
     while (bytesRead < data.size() && avatarMixer.data()) {
@@ -86,6 +89,11 @@ void AvatarHashMap::processAvatarIdentityPacket(std::unique_ptr<NLPacket> packet
 
     QUuid sessionUUID;
 
+    SharedNodePointer avatarMixer = DependencyManager::get<NodeList>()->nodeWithUUID(packet->getSourceID());
+    if (avatarMixer) {
+        avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
+    }
+
     while (!identityStream.atEnd()) {
 
         QUrl faceMeshURL, skeletonURL;
@@ -96,7 +104,6 @@ void AvatarHashMap::processAvatarIdentityPacket(std::unique_ptr<NLPacket> packet
         // mesh URL for a UUID, find avatar in our list
         AvatarSharedPointer avatar = _avatarHash.value(sessionUUID);
         if (!avatar) {
-            SharedNodePointer avatarMixer = DependencyManager::get<NodeList>()->nodeWithUUID(packet->getSourceID());
             avatar = addAvatar(sessionUUID, avatarMixer);
         }
         if (avatar->getFaceModelURL() != faceMeshURL) {
@@ -121,9 +128,13 @@ void AvatarHashMap::processAvatarBillboardPacket(std::unique_ptr<NLPacket> packe
     const auto data = QByteArray::fromRawData(packet->getPayload(), packet->size);
     QUuid sessionUUID = QUuid::fromRfc4122(QByteArray::fromRawData(data, NUM_BYTES_RFC4122_UUID));
 
+    SharedNodePointer avatarMixer = DependencyManager::get<NodeList>()->nodeWithUUID(packet->getSourceID());
+    if (avatarMixer) {
+        avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
+    }
+
     AvatarSharedPointer avatar = _avatarHash.value(sessionUUID);
     if (!avatar) {
-        SharedNodePointer avatarMixer = DependencyManager::get<NodeList>()->nodeWithUUID(packet->getSourceID());
         avatar = addAvatar(sessionUUID, avatarMixer);
     }
 
@@ -134,6 +145,11 @@ void AvatarHashMap::processAvatarBillboardPacket(std::unique_ptr<NLPacket> packe
 }
 
 void AvatarHashMap::processKillAvatar(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
+    SharedNodePointer avatarMixer = DependencyManager::get<NodeList>()->nodeWithUUID(packet->getSourceID());
+    if (avatarMixer) {
+        avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
+    }
+
     // read the node id
     QUuid sessionUUID = QUuid::fromRfc4122(QByteArray(packet->getPayload(), NUM_BYTES_RFC4122_UUID));
     removeAvatar(sessionUUID);

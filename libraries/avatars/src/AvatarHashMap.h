@@ -27,29 +27,29 @@
 class AvatarHashMap : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
-    
+
 public:
     const AvatarHash& getAvatarHash() { return _avatarHash; }
     int size() { return _avatarHash.size(); }
-    
+
 public slots:
     void processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer);
     bool isAvatarInRange(const glm::vec3 & position, const float range);
-    
+
 private slots:
     void sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID);
     void processAvatarDataPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
     void processAvatarIdentityPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
     void processAvatarBillboardPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
     void processKillAvatar(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
-    
+
 protected:
     AvatarHashMap();
-    
+
     virtual AvatarSharedPointer newSharedAvatar();
     virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
     virtual void removeAvatar(const QUuid& sessionUUID);
-    
+
     AvatarHash _avatarHash;
 
 private:
