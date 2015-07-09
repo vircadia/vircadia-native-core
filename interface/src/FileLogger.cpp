@@ -45,8 +45,7 @@ private:
 static FilePersistThread* _persistThreadInstance;
 
 FileLogger::FileLogger(QObject* parent) :
-    AbstractLoggerInterface(parent),
-    _logData("")
+    AbstractLoggerInterface(parent)
 {
     _persistThreadInstance = new FilePersistThread(*this);
     _persistThreadInstance->initialize(true, QThread::LowestPriority);
@@ -64,9 +63,17 @@ FileLogger::~FileLogger() {
 void FileLogger::addMessage(const QString& message) {
     _persistThreadInstance->queueItem(message);
     emit logReceived(message);
-    //_logData += message;
 }
 
 void FileLogger::locateLog() {
     FileUtils::locateFile(_fileName);
+}
+
+QString FileLogger::getLogData() {
+    QString result;
+    QFile f(_fileName);
+    if (f.open(QFile::ReadOnly | QFile::Text)) {
+        result = QTextStream(&f).readAll();
+    }
+    return result;
 }

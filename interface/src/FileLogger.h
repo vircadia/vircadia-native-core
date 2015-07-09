@@ -22,12 +22,11 @@ public:
     FileLogger(QObject* parent = NULL);
     virtual ~FileLogger();
 
-    virtual void addMessage(const QString&);
-    virtual QString getLogData() { return _logData; }
-    virtual void locateLog();
+    virtual void addMessage(const QString&) override;
+    virtual QString getLogData() override;
+    virtual void locateLog() override;
 
 private:
-    QString _logData;
     QString _fileName;
     friend class FilePersistThread;
 };
