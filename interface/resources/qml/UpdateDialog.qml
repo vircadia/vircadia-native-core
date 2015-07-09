@@ -44,7 +44,7 @@ DialogContainer {
             color: "#ffffff"
 
             width: updateDialog.contentWidth + updateDialog.borderWidth * 2
-            height: mainContent.height + updateDialog.borderWidth * 2
+            height: mainContent.height + updateDialog.borderWidth * 2 - updateDialog.closeMargin / 2
 
             MouseArea {
                 width: parent.width
@@ -80,7 +80,8 @@ DialogContainer {
             spacing: updateDialog.inputSpacing
             anchors {
                 horizontalCenter: parent.horizontalCenter
-                verticalCenter: parent.verticalCenter
+                topMargin: updateDialog.borderWidth
+                top: parent.top
             }
             
             Rectangle {
@@ -148,11 +149,13 @@ DialogContainer {
             Row {
                 anchors.right: parent.right
                 spacing: updateDialog.inputSpacing
+                height: updateDialog.buttonHeight + updateDialog.closeMargin / 2
 
                 Rectangle {
                     id: cancelButton
                     width: updateDialog.buttonWidth
                     height: updateDialog.buttonHeight
+                    anchors.bottom: parent.bottom
 
                     Text {
                         text: "Cancel"
@@ -180,6 +183,7 @@ DialogContainer {
                     id: updateButton
                     width: updateDialog.buttonWidth
                     height: updateDialog.buttonHeight
+                    anchors.bottom: parent.bottom
 
                     Text {
                         text: "Update"
