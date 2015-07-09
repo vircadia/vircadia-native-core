@@ -431,7 +431,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
             float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
             // TODO: We shouldn;t have to do that test and use a different volume geometry for when inside the vlight volume,
             // we should be able to draw thre same geometry use DepthClamp but for unknown reason it's s not working...
-           /* if (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius) {
+            if (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius) {
                 Transform model;
                 model.setTranslation(glm::vec3(0.0f, 0.0f, -1.0f));
                 batch.setModelTransform(model);
@@ -448,7 +448,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                 
                 batch.setProjectionTransform(projMat);
                 batch.setViewTransform(viewMat);
-            } else*/ {
+            } else {
                 Transform model;
                 model.setTranslation(glm::vec3(light->getPosition().x, light->getPosition().y, light->getPosition().z));
                 batch.setModelTransform(model);
