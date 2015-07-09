@@ -144,11 +144,16 @@ public:
 //    qint64 writeUnverifiedDatagram(const char* data, qint64 size, const SharedNodePointer& destinationNode,
 //                         const HifiSockAddr& overridenSockAddr = HifiSockAddr());
 //
-
+    
+    qint64 sendUnreliablePacket(const NLPacket& packet, const SharedNodePointer& destinationNode)
+    { assert(false); return 0; }
+    qint64 sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr)
+    { assert(false); return 0; }
+    // TODO remove those
     qint64 sendUnreliablePacket(std::unique_ptr<NLPacket>& packet, const SharedNodePointer& destinationNode)
-        { assert(false); return 0; }
+    { assert(false); return 0; }
     qint64 sendUnreliablePacket(std::unique_ptr<NLPacket>& packet, const HifiSockAddr& sockAddr)
-         { assert(false); return 0; }
+    { assert(false); return 0; }
 
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const SharedNodePointer& destinationNode)
          { assert(false); return 0; }
