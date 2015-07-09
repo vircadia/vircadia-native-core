@@ -528,7 +528,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                 }
 
                 // If we're not running compressed, then we know we can just send now. Or if we're running compressed, but
-                // the packet doesn't have enough space to bother attempting to pack more...packet
+                // the packet doesn't have enough space to bother attempting to pack more...
                 bool sendNow = true;
 
                 if (nodeData->getCurrentPacketIsCompressed() &&
