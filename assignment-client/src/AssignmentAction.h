@@ -21,23 +21,19 @@
 
 class AssignmentAction : public EntityActionInterface {
 public:
-    AssignmentAction(EntityActionType type, QUuid id, EntityItemPointer ownerEntity);
+    AssignmentAction(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~AssignmentAction();
 
-    const QUuid& getID() const { return _id; }
-    virtual EntityActionType getType() { return _type; }
     virtual void removeFromSimulation(EntitySimulation* simulation) const;
     virtual EntityItemWeakPointer getOwnerEntity() const { return _ownerEntity; }
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) { _ownerEntity = ownerEntity; }
     virtual bool updateArguments(QVariantMap arguments);
     virtual QVariantMap getArguments();
 
-    virtual QByteArray serialize();
+    virtual QByteArray serialize() const;
     virtual void deserialize(QByteArray serializedArguments);
 
 private:
-    QUuid _id;
-    EntityActionType _type;
     QByteArray _data;
 
 protected:
