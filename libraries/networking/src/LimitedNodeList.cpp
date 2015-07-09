@@ -220,16 +220,16 @@ bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
 }
 
 qint64 LimitedNodeList::readDatagram(QByteArray& incomingPacket, QHostAddress* address = 0, quint16* port = 0) {
-   qint64 result = getNodeSocket().readDatagram(incomingPacket.data(), incomingPacket.size(), address, port);
+    qint64 result = getNodeSocket().readDatagram(incomingPacket.data(), incomingPacket.size(), address, port);
 
-   SharedNodePointer sendingNode = sendingNodeForPacket(incomingPacket);
-   if (sendingNode) {
-       emit dataReceived(sendingNode->getType(), incomingPacket.size());
-   } else {
-       emit dataReceived(NodeType::Unassigned, incomingPacket.size());
-   }
+    SharedNodePointer sendingNode = sendingNodeForPacket(incomingPacket);
+    if (sendingNode) {
+        emit dataReceived(sendingNode->getType(), incomingPacket.size());
+    } else {
+        emit dataReceived(NodeType::Unassigned, incomingPacket.size());
+    }
 
-   return result;
+    return result;
 }
 
 qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr) {
