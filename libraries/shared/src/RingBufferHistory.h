@@ -21,7 +21,7 @@ template <typename T>
 class RingBufferHistory {
 
 public:
-    
+
     RingBufferHistory(int capacity = 10)
         : _size(capacity + 1),
         _capacity(capacity),
@@ -53,12 +53,12 @@ public:
             _numEntries++;
         }
     }
-    
+
     // std::unique_ptr need to be passed as an rvalue ref and moved into the vector
     void insert(T&& entry) {
         // increment newest entry index cyclically
         _newestEntryAtIndex = (_newestEntryAtIndex + 1) % _size;
-        
+
         // insert new entry
         _buffer[_newestEntryAtIndex] = std::move(entry);
         if (_numEntries < _capacity) {
