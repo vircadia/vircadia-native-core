@@ -24,14 +24,13 @@
 
 
 const int samples = 100;
-OctreeSceneStats::OctreeSceneStats() : 
+OctreeSceneStats::OctreeSceneStats() :
     _isReadyToSend(false),
     _isStarted(false),
     _lastFullElapsed(0),
     _lastFullTotalEncodeTime(0),
     _lastFullTotalPackets(0),
     _lastFullTotalBytes(0),
-
     _elapsedAverage(samples),
     _bitsPerOctreeAverage(samples),
     _incomingPacket(0),
@@ -121,8 +120,8 @@ void OctreeSceneStats::copyFromOther(const OctreeSceneStats& other) {
         }
     }
     _jurisdictionEndNodes.clear();
-    
-    // Now copy the values from the other    
+
+    // Now copy the values from the other
     if (other._jurisdictionRoot) {
         int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(other._jurisdictionRoot));
         _jurisdictionRoot = new unsigned char[bytes];
@@ -154,14 +153,14 @@ void OctreeSceneStats::sceneStarted(bool isFullScene, bool isMoving, OctreeEleme
     reset(); // resets packet and octree stats
     _isStarted = true;
     _start = usecTimestampNow();
-    
+
     _totalElements = OctreeElement::getNodeCount();
     _totalInternal = OctreeElement::getInternalNodeCount();
     _totalLeaves   = OctreeElement::getLeafNodeCount();
-    
+
     _isFullScene = isFullScene;
     _isMoving = isMoving;
-    
+
     if (_jurisdictionRoot) {
         delete[] _jurisdictionRoot;
         _jurisdictionRoot = NULL;
@@ -201,13 +200,13 @@ void OctreeSceneStats::sceneCompleted() {
         _end = usecTimestampNow();
         _elapsed = _end - _start;
         _elapsedAverage.updateAverage((float)_elapsed);
-        
+
         if (_isFullScene) {
             _lastFullElapsed = _elapsed;
             _lastFullTotalEncodeTime = _totalEncodeTime;
         }
 
-        _statsMessageLength = packIntoMessage(_statsMessage, sizeof(_statsMessage));
+        packIntoPacket();
         _isReadyToSend = true;
         _isStarted = false;
     }
@@ -382,105 +381,65 @@ void OctreeSceneStats::childBitsRemoved(bool includesExistsBits, bool includesCo
     _treesRemoved++;
 }
 
-int OctreeSceneStats::packIntoMessage(unsigned char* destinationBuffer, int availableBytes) {
-    unsigned char* bufferStart = destinationBuffer;
-    
-    int headerLength = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(destinationBuffer), 
-                                                                                PacketTypeOctreeStats);
-    destinationBuffer += headerLength;
-    
-    memcpy(destinationBuffer, &_start, sizeof(_start));
-    destinationBuffer += sizeof(_start);
-    memcpy(destinationBuffer, &_end, sizeof(_end));
-    destinationBuffer += sizeof(_end);
-    memcpy(destinationBuffer, &_elapsed, sizeof(_elapsed));
-    destinationBuffer += sizeof(_elapsed);
-    memcpy(destinationBuffer, &_totalEncodeTime, sizeof(_totalEncodeTime));
-    destinationBuffer += sizeof(_totalEncodeTime);
-    memcpy(destinationBuffer, &_isFullScene, sizeof(_isFullScene));
-    destinationBuffer += sizeof(_isFullScene);
-    memcpy(destinationBuffer, &_isMoving, sizeof(_isMoving));
-    destinationBuffer += sizeof(_isMoving);
-    memcpy(destinationBuffer, &_packets, sizeof(_packets));
-    destinationBuffer += sizeof(_packets);
-    memcpy(destinationBuffer, &_bytes, sizeof(_bytes));
-    destinationBuffer += sizeof(_bytes);
+int OctreeSceneStats::packIntoPacket() {
+    _statsPacket->reset();
 
-    memcpy(destinationBuffer, &_totalInternal, sizeof(_totalInternal));
-    destinationBuffer += sizeof(_totalInternal);
-    memcpy(destinationBuffer, &_totalLeaves, sizeof(_totalLeaves));
-    destinationBuffer += sizeof(_totalLeaves);
-    memcpy(destinationBuffer, &_internal, sizeof(_internal));
-    destinationBuffer += sizeof(_internal);
-    memcpy(destinationBuffer, &_leaves, sizeof(_leaves));
-    destinationBuffer += sizeof(_leaves);
-    memcpy(destinationBuffer, &_internalSkippedDistance, sizeof(_internalSkippedDistance));
-    destinationBuffer += sizeof(_internalSkippedDistance);
-    memcpy(destinationBuffer, &_leavesSkippedDistance, sizeof(_leavesSkippedDistance));
-    destinationBuffer += sizeof(_leavesSkippedDistance);
-    memcpy(destinationBuffer, &_internalSkippedOutOfView, sizeof(_internalSkippedOutOfView));
-    destinationBuffer += sizeof(_internalSkippedOutOfView);
-    memcpy(destinationBuffer, &_leavesSkippedOutOfView, sizeof(_leavesSkippedOutOfView));
-    destinationBuffer += sizeof(_leavesSkippedOutOfView);
-    memcpy(destinationBuffer, &_internalSkippedWasInView, sizeof(_internalSkippedWasInView));
-    destinationBuffer += sizeof(_internalSkippedWasInView);
-    memcpy(destinationBuffer, &_leavesSkippedWasInView, sizeof(_leavesSkippedWasInView));
-    destinationBuffer += sizeof(_leavesSkippedWasInView);
-    memcpy(destinationBuffer, &_internalSkippedNoChange, sizeof(_internalSkippedNoChange));
-    destinationBuffer += sizeof(_internalSkippedNoChange);
-    memcpy(destinationBuffer, &_leavesSkippedNoChange, sizeof(_leavesSkippedNoChange));
-    destinationBuffer += sizeof(_leavesSkippedNoChange);
-    memcpy(destinationBuffer, &_internalSkippedOccluded, sizeof(_internalSkippedOccluded));
-    destinationBuffer += sizeof(_internalSkippedOccluded);
-    memcpy(destinationBuffer, &_leavesSkippedOccluded, sizeof(_leavesSkippedOccluded));
-    destinationBuffer += sizeof(_leavesSkippedOccluded);
-    memcpy(destinationBuffer, &_internalColorSent, sizeof(_internalColorSent));
-    destinationBuffer += sizeof(_internalColorSent);
-    memcpy(destinationBuffer, &_leavesColorSent, sizeof(_leavesColorSent));
-    destinationBuffer += sizeof(_leavesColorSent);
-    memcpy(destinationBuffer, &_internalDidntFit, sizeof(_internalDidntFit));
-    destinationBuffer += sizeof(_internalDidntFit);
-    memcpy(destinationBuffer, &_leavesDidntFit, sizeof(_leavesDidntFit));
-    destinationBuffer += sizeof(_leavesDidntFit);
-    memcpy(destinationBuffer, &_colorBitsWritten, sizeof(_colorBitsWritten));
-    destinationBuffer += sizeof(_colorBitsWritten);
-    memcpy(destinationBuffer, &_existsBitsWritten, sizeof(_existsBitsWritten));
-    destinationBuffer += sizeof(_existsBitsWritten);
-    memcpy(destinationBuffer, &_existsInPacketBitsWritten, sizeof(_existsInPacketBitsWritten));
-    destinationBuffer += sizeof(_existsInPacketBitsWritten);
-    memcpy(destinationBuffer, &_treesRemoved, sizeof(_treesRemoved));
-    destinationBuffer += sizeof(_treesRemoved);
+    _statsPacket->writePrimitive(_start);
+    _statsPacket->writePrimitive(_end);
+    _statsPacket->writePrimitive(_elapsed);
+    _statsPacket->writePrimitive(_totalEncodeTime);
+    _statsPacket->writePrimitive(_isFullScene);
+    _statsPacket->writePrimitive(_isMoving);
+    _statsPacket->writePrimitive(_packets);
+    _statsPacket->writePrimitive(_bytes);
+
+    _statsPacket->writePrimitive(_totalInternal);
+    _statsPacket->writePrimitive(_totalLeaves);
+    _statsPacket->writePrimitive(_internal);
+    _statsPacket->writePrimitive(_leaves);
+    _statsPacket->writePrimitive(_internalSkippedDistance);
+    _statsPacket->writePrimitive(_leavesSkippedDistance);
+    _statsPacket->writePrimitive(_internalSkippedOutOfView);
+    _statsPacket->writePrimitive(_leavesSkippedOutOfView);
+    _statsPacket->writePrimitive(_internalSkippedWasInView);
+    _statsPacket->writePrimitive(_leavesSkippedWasInView);
+    _statsPacket->writePrimitive(_internalSkippedNoChange);
+    _statsPacket->writePrimitive(_leavesSkippedNoChange);
+    _statsPacket->writePrimitive(_internalSkippedOccluded);
+    _statsPacket->writePrimitive(_leavesSkippedOccluded);
+    _statsPacket->writePrimitive(_internalColorSent);
+    _statsPacket->writePrimitive(_leavesColorSent);
+    _statsPacket->writePrimitive(_internalDidntFit);
+    _statsPacket->writePrimitive(_leavesDidntFit);
+    _statsPacket->writePrimitive(_colorBitsWritten);
+    _statsPacket->writePrimitive(_existsBitsWritten);
+    _statsPacket->writePrimitive(_existsInPacketBitsWritten);
+    _statsPacket->writePrimitive(_treesRemoved);
 
     // add the root jurisdiction
     if (_jurisdictionRoot) {
-        // copy the 
+        // copy the
         int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_jurisdictionRoot));
-        memcpy(destinationBuffer, &bytes, sizeof(bytes));
-        destinationBuffer += sizeof(bytes);
-        memcpy(destinationBuffer, _jurisdictionRoot, bytes);
-        destinationBuffer += bytes;
-        
-        // if and only if there's a root jurisdiction, also include the end elements
-        int endNodeCount = _jurisdictionEndNodes.size(); 
+        _statsPacket->writePrimitive(bytes);
+        _statsPacket->write(reinterpret_cast<char*>(_jurisdictionRoot), bytes);
 
-        memcpy(destinationBuffer, &endNodeCount, sizeof(endNodeCount));
-        destinationBuffer += sizeof(endNodeCount);
+        // if and only if there's a root jurisdiction, also include the end elements
+        int endNodeCount = _jurisdictionEndNodes.size();
+
+        _statsPacket->writePrimitive(endNodeCount);
 
         for (int i=0; i < endNodeCount; i++) {
             unsigned char* endNodeCode = _jurisdictionEndNodes[i];
             int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
-            memcpy(destinationBuffer, &bytes, sizeof(bytes));
-            destinationBuffer += sizeof(bytes);
-            memcpy(destinationBuffer, endNodeCode, bytes);
-            destinationBuffer += bytes;
+            _statsPacket->writePrimitive(bytes);
+            _statsPacket->write(reinterpret_cast<char*>(endNodeCode), bytes);
         }
     } else {
         int bytes = 0;
-        memcpy(destinationBuffer, &bytes, sizeof(bytes));
-        destinationBuffer += sizeof(bytes);
+        _statsPacket->writePrimitive(bytes);
     }
-    
-    return destinationBuffer - bufferStart; // includes header!
+
+    return _statsPacket->getSizeUsed();
 }
 
 int OctreeSceneStats::unpackFromMessage(const unsigned char* sourceBuffer, int availableBytes) {
@@ -489,7 +448,7 @@ int OctreeSceneStats::unpackFromMessage(const unsigned char* sourceBuffer, int a
     // increment to push past the packet header
     int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<const char*>(sourceBuffer));
     sourceBuffer += numBytesPacketHeader;
-    
+
     memcpy(&_start, sourceBuffer, sizeof(_start));
     sourceBuffer += sizeof(_start);
     memcpy(&_end, sourceBuffer, sizeof(_end));
@@ -526,13 +485,13 @@ int OctreeSceneStats::unpackFromMessage(const unsigned char* sourceBuffer, int a
     memcpy(&_leaves, sourceBuffer, sizeof(_leaves));
     sourceBuffer += sizeof(_leaves);
     _traversed = _internal + _leaves;
-  
+
     memcpy(&_internalSkippedDistance, sourceBuffer, sizeof(_internalSkippedDistance));
     sourceBuffer += sizeof(_internalSkippedDistance);
     memcpy(&_leavesSkippedDistance, sourceBuffer, sizeof(_leavesSkippedDistance));
     sourceBuffer += sizeof(_leavesSkippedDistance);
     _skippedDistance = _internalSkippedDistance + _leavesSkippedDistance;
-    
+
     memcpy(&_internalSkippedOutOfView, sourceBuffer, sizeof(_internalSkippedOutOfView));
     sourceBuffer += sizeof(_internalSkippedOutOfView);
     memcpy(&_leavesSkippedOutOfView, sourceBuffer, sizeof(_leavesSkippedOutOfView));
@@ -619,7 +578,7 @@ int OctreeSceneStats::unpackFromMessage(const unsigned char* sourceBuffer, int a
             _jurisdictionEndNodes.push_back(endNodeCode);
         }
     }
-    
+
     // running averages
     _elapsedAverage.updateAverage((float)_elapsed);
     unsigned long total = _existsInPacketBitsWritten + _colorSent;
@@ -732,75 +691,75 @@ const char* OctreeSceneStats::getItemValue(Item item) {
             unsigned long total = _existsInPacketBitsWritten + _colorSent;
             float calculatedBPV = total == 0 ? 0 : (_bytes * 8) / total;
             float averageBPV = _bitsPerOctreeAverage.getAverage();
-            sprintf(_itemValueBuffer, "%lu (%.2f bits/octree Average: %.2f bits/octree) %lu internal %lu leaves", 
+            sprintf(_itemValueBuffer, "%lu (%.2f bits/octree Average: %.2f bits/octree) %lu internal %lu leaves",
                     total, (double)calculatedBPV, (double)averageBPV,
                     (long unsigned int)_existsInPacketBitsWritten,
                     (long unsigned int)_colorSent);
             break;
         }
         case ITEM_TRAVERSED: {
-            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
+            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves",
                     (long unsigned int)_traversed, (long unsigned int)_internal, (long unsigned int)_leaves);
             break;
         }
         case ITEM_SKIPPED: {
-            unsigned long total    = _skippedDistance + _skippedOutOfView + 
+            unsigned long total    = _skippedDistance + _skippedOutOfView +
                                      _skippedWasInView + _skippedNoChange + _skippedOccluded;
-                                     
-            unsigned long internal = _internalSkippedDistance + _internalSkippedOutOfView + 
+
+            unsigned long internal = _internalSkippedDistance + _internalSkippedOutOfView +
                                      _internalSkippedWasInView + _internalSkippedNoChange + _internalSkippedOccluded;
-                                     
-            unsigned long leaves   = _leavesSkippedDistance + _leavesSkippedOutOfView + 
+
+            unsigned long leaves   = _leavesSkippedDistance + _leavesSkippedOutOfView +
                                      _leavesSkippedWasInView + _leavesSkippedNoChange + _leavesSkippedOccluded;
 
-            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
+            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves",
                     total, internal, leaves);
             break;
         }
         case ITEM_SKIPPED_DISTANCE: {
-            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
+            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves",
                     (long unsigned int)_skippedDistance,
                     (long unsigned int)_internalSkippedDistance,
                     (long unsigned int)_leavesSkippedDistance);
             break;
         }
         case ITEM_SKIPPED_OUT_OF_VIEW: {
-            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
+            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves",
                     (long unsigned int)_skippedOutOfView,
                     (long unsigned int)_internalSkippedOutOfView,
                     (long unsigned int)_leavesSkippedOutOfView);
             break;
         }
         case ITEM_SKIPPED_WAS_IN_VIEW: {
-            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
+            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves",
                     (long unsigned int)_skippedWasInView,
                     (long unsigned int)_internalSkippedWasInView,
                     (long unsigned int)_leavesSkippedWasInView);
             break;
         }
         case ITEM_SKIPPED_NO_CHANGE: {
-            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
+            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves",
                     (long unsigned int)_skippedNoChange,
                     (long unsigned int)_internalSkippedNoChange,
                     (long unsigned int)_leavesSkippedNoChange);
             break;
         }
         case ITEM_SKIPPED_OCCLUDED: {
-            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
+            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves",
                     (long unsigned int)_skippedOccluded,
                     (long unsigned int)_internalSkippedOccluded,
                     (long unsigned int)_leavesSkippedOccluded);
             break;
         }
         case ITEM_COLORS: {
-            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
+            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves",
                     (long unsigned int)_colorSent,
                     (long unsigned int)_internalColorSent,
                     (long unsigned int)_leavesColorSent);
             break;
         }
         case ITEM_DIDNT_FIT: {
-            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves (removed: %lu)", 
+            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves (removed: %lu)",
                     (long unsigned int)_didntFit,
                     (long unsigned int)_internalDidntFit,
                     (long unsigned int)_leavesDidntFit,
@@ -808,14 +767,14 @@ const char* OctreeSceneStats::getItemValue(Item item) {
             break;
         }
         case ITEM_BITS: {
-            sprintf(_itemValueBuffer, "colors: %lu, exists: %lu, in packets: %lu", 
+            sprintf(_itemValueBuffer, "colors: %lu, exists: %lu, in packets: %lu",
                     (long unsigned int)_colorBitsWritten,
                     (long unsigned int)_existsBitsWritten,
                     (long unsigned int)_existsInPacketBitsWritten);
             break;
         }
         case ITEM_MODE: {
-            sprintf(_itemValueBuffer, "%s - %s", (_isFullScene ? "Full Scene" : "Partial Scene"), 
+            sprintf(_itemValueBuffer, "%s - %s", (_isFullScene ? "Full Scene" : "Partial Scene"),
                     (_isMoving ? "Moving" : "Stationary"));
             break;
         }
@@ -842,7 +801,7 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
 
     //bool packetIsColored = oneAtBit(flags, PACKET_IS_COLOR_BIT);
     //bool packetIsCompressed = oneAtBit(flags, PACKET_IS_COMPRESSED_BIT);
-    
+
     OCTREE_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
     qint64 flightTime = arrivedAt - sentAt + nodeClockSkewUsec;
 
@@ -865,7 +824,7 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
                     << "nodeClockSkewUsec:" << nodeClockSkewUsec << "usecs";;
         return; // ignore any packets that are unreasonable
     }
-    
+
     _incomingOctreeSequenceNumberStats.sequenceNumberReceived(sequence);
 
     // track packets here...

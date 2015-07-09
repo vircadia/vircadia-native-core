@@ -33,17 +33,15 @@ void JurisdictionListener::nodeKilled(SharedNodePointer node) {
 }
 
 bool JurisdictionListener::queueJurisdictionRequest() {
-    static unsigned char buffer[MAX_PACKET_SIZE];
-    unsigned char* bufferOut = &buffer[0];
+    auto packet = NLPacket::create(PacketType::JurisdictionRequest, 0);
 
     auto nodeList = DependencyManager::get<NodeList>();
 
-    int sizeOut = nodeList->populatePacketHeader(reinterpret_cast<char*>(bufferOut), PacketTypeJurisdictionRequest);
     int nodeCount = 0;
 
     nodeList->eachNode([&](const SharedNodePointer& node) {
         if (node->getType() == getNodeType() && node->getActiveSocket()) {
-            _packetSender.queuePacketForSending(node, QByteArray(reinterpret_cast<char*>(bufferOut), sizeOut));
+            _packetSender.queuePacketForSending(node, std::move(packet));
             nodeCount++;
         }
     });
@@ -59,7 +57,7 @@ bool JurisdictionListener::queueJurisdictionRequest() {
 }
 
 void JurisdictionListener::processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) {
-    if (packetTypeForPacket(packet) == PacketTypeJurisdiction && sendingNode) {
+    if (packetTypeForPacket(packet) == PacketType::Jurisdiction && sendingNode) {
         QUuid nodeUUID = sendingNode->getUUID();
         JurisdictionMap map;
         map.unpackFromMessage(reinterpret_cast<const unsigned char*>(packet.data()), packet.size());

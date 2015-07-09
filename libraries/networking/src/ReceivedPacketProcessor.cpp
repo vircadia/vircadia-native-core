@@ -28,13 +28,15 @@ void ReceivedPacketProcessor::queueReceivedPacket(const SharedNodePointer& sendi
     // Make sure our Node and NodeList knows we've heard from this node.
     sendingNode->setLastHeardMicrostamp(usecTimestampNow());
 
-    NetworkPacket networkPacket(sendingNode, packet);
+    // TODO: fix the NodePacketPair once we've figured out receive API
+    NodePacketPair networkPacket(sendingNode, NLPacket::create(PacketType::OctreeStats));
+
     lock();
-    _packets.push_back(networkPacket);
+    _packets.push_back(std::move(networkPacket));
     _nodePacketCounts[sendingNode->getUUID()]++;
     _lastWindowIncomingPackets++;
     unlock();
-    
+
     // Make sure to wake our actual processing thread because we now have packets for it to process.
     _hasPackets.wakeAll();
 }
@@ -43,7 +45,7 @@ bool ReceivedPacketProcessor::process() {
     quint64 now = usecTimestampNow();
     quint64 sinceLastWindow = now - _lastWindowAt;
 
-    
+
     if (sinceLastWindow > USECS_PER_SECOND) {
         lock();
         float secondsSinceLastWindow = sinceLastWindow / USECS_PER_SECOND;
@@ -71,19 +73,20 @@ bool ReceivedPacketProcessor::process() {
     }
 
     lock();
-    QVector<NetworkPacket> currentPackets;
+    std::list<NodePacketPair> currentPackets;
     currentPackets.swap(_packets);
     unlock();
 
-    foreach(auto& packet, currentPackets) {
-        processPacket(packet.getNode(), packet.getByteArray()); 
+    for(auto& packetPair : currentPackets) {
+        // TODO: Replace QByteArray() once NLPacket is coming through on receive side
+        processPacket(packetPair.first, QByteArray());
         _lastWindowProcessedPackets++;
         midProcess();
     }
 
     lock();
-    foreach(auto& packet, currentPackets) {
-        _nodePacketCounts[packet.getNode()->getUUID()]--;
+    for(auto& packetPair : currentPackets) {
+        _nodePacketCounts[packetPair.first->getUUID()]--;
     }
     unlock();
 
