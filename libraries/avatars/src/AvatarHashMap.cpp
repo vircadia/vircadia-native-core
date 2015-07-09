@@ -53,7 +53,7 @@ AvatarSharedPointer AvatarHashMap::addAvatar(const QUuid& sessionUUID, const QWe
 }
 
 void AvatarHashMap::processAvatarDataPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
-    const auto data = QByteArray::fromRawData(packet->getPayload(), packet->size);
+    const auto data = QByteArray::fromRawData(packet->getPayload(), packet->size());
     int bytesRead = 0;
 
     SharedNodePointer avatarMixer = DependencyManager::get<NodeList>()->nodeWithUUID(packet->getSourceID());
@@ -125,7 +125,7 @@ void AvatarHashMap::processAvatarIdentityPacket(std::unique_ptr<NLPacket> packet
 }
 
 void AvatarHashMap::processAvatarBillboardPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
-    const auto data = QByteArray::fromRawData(packet->getPayload(), packet->size);
+    const auto data = QByteArray::fromRawData(packet->getPayload(), packet->size());
     QUuid sessionUUID = QUuid::fromRfc4122(QByteArray::fromRawData(data, NUM_BYTES_RFC4122_UUID));
 
     SharedNodePointer avatarMixer = DependencyManager::get<NodeList>()->nodeWithUUID(packet->getSourceID());

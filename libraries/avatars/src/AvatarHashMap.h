@@ -19,6 +19,7 @@
 #include <memory>
 
 #include <DependencyManager.h>
+#include <NLPacket.h>
 #include <Node.h>
 
 #include "AvatarData.h"
