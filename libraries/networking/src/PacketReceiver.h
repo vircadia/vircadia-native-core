@@ -1,6 +1,6 @@
 //
 //  PacketReceiver.h
-//  interface/src
+//  libraries/networking/src
 //
 //  Created by Stephen Birarda on 1/23/2014.
 //  Update by Ryan Huffman on 7/8/2015.

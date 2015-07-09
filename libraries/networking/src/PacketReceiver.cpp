@@ -1,6 +1,6 @@
 //
 //  PacketReceiver.cpp
-//  interface/src
+//  libraries/networking/src
 //
 //  Created by Stephen Birarda on 1/23/2014.
 //  Update by Ryan Huffman on 7/8/2015.
@@ -48,136 +48,41 @@ void PacketReceiver::processDatagrams() {
         return; // bail early... we're shutting down.
     }
 
-    HifiSockAddr senderSockAddr;
-
     static QByteArray incomingPacket;
 
-    Application* application = Application::getInstance();
     auto nodeList = DependencyManager::get<NodeList>();
 
     while (DependencyManager::get<NodeList>()->getNodeSocket().hasPendingDatagrams()) {
         incomingPacket.resize(nodeList->getNodeSocket().pendingDatagramSize());
+        HifiSockAddr senderSockAddr;
         nodeList->readDatagram(incomingPacket, senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
 
         _inPacketCount++;
         _inByteCount += incomingPacket.size();
 
         if (nodeList->packetVersionAndHashMatch(incomingPacket)) {
-
             PacketType::Value incomingType = packetTypeForPacket(incomingPacket);
-            // only process this packet if we have a match on the packet version
-            switch (incomingType) {
-                case PacketType::AudioEnvironment:
-                case PacketType::AudioStreamStats:
-                case PacketType::MixedAudio:
-                case PacketType::SilentAudioFrame: {
-                    if (incomingType == PacketType::AudioStreamStats) {
-                        QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "parseAudioStreamStatsPacket",
-                                                  Qt::QueuedConnection,
-                                                  Q_ARG(QByteArray, incomingPacket));
-                    } else if (incomingType == PacketType::AudioEnvironment) {
-                        QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "parseAudioEnvironmentData",
-                                                  Qt::QueuedConnection,
-                                                  Q_ARG(QByteArray, incomingPacket));
-                    } else {
-                        QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "addReceivedAudioToStream",
-                                                  Qt::QueuedConnection,
-                                                  Q_ARG(QByteArray, incomingPacket));
-                    }
 
-                    // update having heard from the audio-mixer and record the bytes received
-                    SharedNodePointer audioMixer = nodeList->sendingNodeForPacket(incomingPacket);
+            // TODO What do we do about this?
+            //nodeList->processNodeData(senderSockAddr, incomingPacket);
 
-                    if (audioMixer) {
-                        audioMixer->setLastHeardMicrostamp(usecTimestampNow());
-                    }
+            packetListenerLock.lock();
+            auto& listener = packetListenerMap[incomingType];
+            packetListenerLock.unlock();
 
-                    break;
+            if (packetListenerMap.contains(incomingType)) {
+                auto& listener = packetListenerMap[incomingType];
+                NLPacket packet;
+                bool success = QMetaObject::invokeMethod(listener.first, listener.second,
+                        Q_ARG(std::unique_ptr<NLPacket>, packet),
+                        Q_ARG(HifiSockAddr, senderSockAddr));
+                if (!success) {
+                    qDebug() << "Error sending packet " << incomingType << " to listener: " << listener.first.name() << "::" << listener.second;
                 }
-                case PacketType::EntityData:
-                case PacketType::EntityErase:
-                case PacketType::OctreeStats:
-                case PacketType::EnvironmentData: {
-                    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                                            "Application::networkReceive()... _octreeProcessor.queueReceivedPacket()");
-                    SharedNodePointer matchedNode = DependencyManager::get<NodeList>()->sendingNodeForPacket(incomingPacket);
-
-                    if (matchedNode) {
-                        // add this packet to our list of octree packets and process them on the octree data processing
-                        application->_octreeProcessor.queueReceivedPacket(matchedNode, incomingPacket);
-                    }
-                    break;
-                }
-                case PacketType::BulkAvatarData:
-                case PacketType::KillAvatar:
-                case PacketType::AvatarIdentity:
-                case PacketType::AvatarBillboard: {
-                    // update having heard from the avatar-mixer and record the bytes received
-                    SharedNodePointer avatarMixer = nodeList->sendingNodeForPacket(incomingPacket);
-
-                    if (avatarMixer) {
-                        avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
-
-                        QMetaObject::invokeMethod(DependencyManager::get<AvatarManager>().data(), "processAvatarMixerDatagram",
-                                                  Q_ARG(const QByteArray&, incomingPacket),
-                                                  Q_ARG(const QWeakPointer<Node>&, avatarMixer));
-                    }
-                    break;
-                }
-                case PacketType::NoisyMute:
-                case PacketType::MuteEnvironment: {
-                    bool mute = !DependencyManager::get<AudioClient>()->isMuted();
-
-                    if (incomingType == PacketType::MuteEnvironment) {
-                        glm::vec3 position;
-                        float radius;
-
-                        int headerSize = numBytesForPacketHeaderGivenPacketType(PacketType::MuteEnvironment);
-                        memcpy(&position, incomingPacket.constData() + headerSize, sizeof(glm::vec3));
-                        memcpy(&radius, incomingPacket.constData() + headerSize + sizeof(glm::vec3), sizeof(float));
-                        float distance = glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(),
-                                                 position);
-
-                        mute = mute && (distance < radius);
-                    }
-
-                    if (mute) {
-                        DependencyManager::get<AudioClient>()->toggleMute();
-                        if (incomingType == PacketType::MuteEnvironment) {
-                            AudioScriptingInterface::getInstance().environmentMuted();
-                        } else {
-                            AudioScriptingInterface::getInstance().mutedByMixer();
-                        }
-                    }
-                    break;
-                }
-                case PacketType::EntityEditNack:
-                    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
-                        application->_entityEditSender.processNackPacket(incomingPacket);
-                    }
-                    break;
-                default:
-                    //nodeList->processNodeData(senderSockAddr, incomingPacket);
-                    
-                    packetListenerLock.lock();
-                    auto& listener = packetListenerMap[incomingType];
-                    packetListenerLock.unlock();
-
-                    if (packetListenerMap.contains(incomingType)) {
-                        auto& listener = packetListenerMap[incomingType];
-                        NLPacket packet;
-                        bool success = QMetaObject::invokeMethod(listener.first, listener.second,
-                                Q_ARG(std::unique_ptr<NLPacket>, packet),
-                                Q_ARG(HifiSockAddr, senderSockAddr));
-                        if (!success) {
-                            qDebug() << "Error sending packet " << incomingType << " to listener: " << listener.first.name() << "::" << listener.second;
-                        }
-                    } else {
-                        QDebug() << "No listener found for packet type: " << incomingType;
-                    }
-
-                    break;
+            } else {
+                QDebug() << "No listener found for packet type: " << incomingType;
             }
+
         }
     }
 }
