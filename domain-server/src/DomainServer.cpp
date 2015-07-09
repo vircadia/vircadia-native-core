@@ -620,9 +620,10 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         // this is an agent and we've decided we won't let them connect - send them a packet to deny connection
 
         QByteArray utfString = reason.toUtf8();
-        int payloadSize = utfString.size();
+        qint16 payloadSize = utfString.size();
 
-        auto connectionDeniedPacket = NLPacket::create(PacketType::DomainConnectionDenied, payloadSize);
+        auto connectionDeniedPacket = NLPacket::create(PacketType::DomainConnectionDenied, payloadSize + sizeof(payloadSize));
+        connectionDeniedPacket->write(payloadSize);
         connectionDeniedPacket->write(utfString);
 
         // tell client it has been refused.
