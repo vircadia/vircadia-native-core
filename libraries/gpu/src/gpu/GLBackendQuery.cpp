@@ -65,10 +65,9 @@ void GLBackend::do_beginQuery(Batch& batch, uint32 paramOffset) {
     auto query = batch._queries.get(batch._params[paramOffset]._uint);
     GLQuery* glquery = syncGPUObject(*query);
     if (glquery) {
-        glBeginQuery(GL_TIME_ELAPSED, glquery->_qo);
         #if (GPU_FEATURE_PROFILE == GPU_LEGACY)
             // (EXT_TIMER_QUERY)
-            glBeginQuery(TIME_ELAPSED_EXT, glquery->_qo);
+            glBeginQuery(GL_TIME_ELAPSED_EXT, glquery->_qo);
         #else
             glBeginQuery(GL_TIME_ELAPSED, glquery->_qo);
         #endif
@@ -82,7 +81,7 @@ void GLBackend::do_endQuery(Batch& batch, uint32 paramOffset) {
     if (glquery) {
         #if (GPU_FEATURE_PROFILE == GPU_LEGACY)
             // (EXT_TIMER_QUERY)
-            glEndQuery(TIME_ELAPSED_EXT);
+            glEndQuery(GL_TIME_ELAPSED_EXT);
         #else
             glEndQuery(GL_TIME_ELAPSED);
         #endif
@@ -96,7 +95,7 @@ void GLBackend::do_getQuery(Batch& batch, uint32 paramOffset) {
     if (glquery) { 
         #if (GPU_FEATURE_PROFILE == GPU_LEGACY)
             // (EXT_TIMER_QUERY)
-            GetQueryObjectui64vEXT(glquery->_qo, GL_QUERY_RESULT, &glquery->_result);
+            glGetQueryObjectui64vEXT(glquery->_qo, GL_QUERY_RESULT, &glquery->_result);
         #else
             glGetQueryObjectui64v(glquery->_qo, GL_QUERY_RESULT, &glquery->_result);
         #endif

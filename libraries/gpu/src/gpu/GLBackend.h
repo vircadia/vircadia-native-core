@@ -191,7 +191,7 @@ public:
     class GLQuery : public GPUObject {
     public:
         GLuint _qo = 0;
-        GLuint _result = 0;
+        GLuint64 _result = 0;
 
         GLQuery();
         ~GLQuery();
