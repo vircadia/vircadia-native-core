@@ -19,10 +19,8 @@
 
 class AvatarActionHold : public ObjectActionSpring {
 public:
-    AvatarActionHold(EntityActionType type, QUuid id, EntityItemPointer ownerEntity);
+    AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~AvatarActionHold();
-
-    virtual EntityActionType getType() { return ACTION_TYPE_HOLD; }
 
     virtual bool updateArguments(QVariantMap arguments);
     virtual QVariantMap getArguments();
