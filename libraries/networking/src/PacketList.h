@@ -29,13 +29,21 @@ public:
 
     int getNumPackets() const { return _packets.size() + (_currentPacket ? 1 : 0); }
 
+    void getCurrentPacketCapacity() const { return _currentPacket->bytesAvailable(); }
+
     void closeCurrentPacket();
 
     void setExtendedHeader(const QByteArray& extendedHeader) { _extendedHeader = extendedHeader; }
+
+    template<typename U> qint64 readPrimitive(U* data);
+    template<typename U> qint64 writePrimitive(const U& data);
 protected:
     qint64 writeData(const char* data, qint64 maxSize);
     qint64 readData(char* data, qint64 maxSize) { return 0; }
 private:
+    PacketList(const PacketList& other) = delete;
+    PacketList& operator=(const PacketList& other) = delete;
+
     std::unique_ptr<NLPacket> createPacketWithExtendedHeader();
 
     PacketType::Value _packetType;

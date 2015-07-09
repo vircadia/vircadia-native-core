@@ -760,87 +760,65 @@ bool EntityTree::hasEntitiesDeletedSince(quint64 sinceTime) {
 }
 
 // sinceTime is an in/out parameter - it will be side effected with the last time sent out
-bool EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime, unsigned char* outputBuffer,
-                                            size_t maxLength, size_t& outputLength) {
-    bool hasMoreToSend = true;
+std::unique_ptr<NLPacket> EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime,
+                                                                 bool& hasMore) {
 
-    unsigned char* copyAt = outputBuffer;
-    size_t numBytesPacketHeader = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(outputBuffer),
-                                                                                           PacketType::EntityErase);
-    copyAt += numBytesPacketHeader;
-    outputLength = numBytesPacketHeader;
+    auto deletesPacket = NLPacket::create(PacketType::EntityErase);
 
     // pack in flags
     OCTREE_PACKET_FLAGS flags = 0;
-    OCTREE_PACKET_FLAGS* flagsAt = (OCTREE_PACKET_FLAGS*)copyAt;
-    *flagsAt = flags;
-    copyAt += sizeof(OCTREE_PACKET_FLAGS);
-    outputLength += sizeof(OCTREE_PACKET_FLAGS);
+    deletesPacket->writePrimitive(flags);
 
     // pack in sequence number
-    OCTREE_PACKET_SEQUENCE* sequenceAt = (OCTREE_PACKET_SEQUENCE*)copyAt;
-    *sequenceAt = sequenceNumber;
-    copyAt += sizeof(OCTREE_PACKET_SEQUENCE);
-    outputLength += sizeof(OCTREE_PACKET_SEQUENCE);
+    deletesPacket->writePrimitive(sequenceNumber);
 
     // pack in timestamp
     OCTREE_PACKET_SENT_TIME now = usecTimestampNow();
-    OCTREE_PACKET_SENT_TIME* timeAt = (OCTREE_PACKET_SENT_TIME*)copyAt;
-    *timeAt = now;
-    copyAt += sizeof(OCTREE_PACKET_SENT_TIME);
-    outputLength += sizeof(OCTREE_PACKET_SENT_TIME);
-
-    uint16_t numberOfIds = 0; // placeholder for now
-    unsigned char* numberOfIDsAt = copyAt;
-    memcpy(copyAt, &numberOfIds, sizeof(numberOfIds));
-    copyAt += sizeof(numberOfIds);
-    outputLength += sizeof(numberOfIds);
+    deletesPacket->writePrimitive(now);
 
     // we keep a multi map of entity IDs to timestamps, we only want to include the entity IDs that have been
     // deleted since we last sent to this node
     _recentlyDeletedEntitiesLock.lockForRead();
 
-    QMultiMap<quint64, QUuid>::const_iterator iterator = _recentlyDeletedEntityItemIDs.constBegin();
-    while (iterator != _recentlyDeletedEntityItemIDs.constEnd()) {
-        QList<QUuid> values = _recentlyDeletedEntityItemIDs.values(iterator.key());
+    bool hasFilledPacket = false;
+
+    auto it = _recentlyDeletedEntityItemIDs.constBegin();
+    while (it != _recentlyDeletedEntityItemIDs.constEnd()) {
+        QList<QUuid> values = _recentlyDeletedEntityItemIDs.values(it.key());
         for (int valueItem = 0; valueItem < values.size(); ++valueItem) {
 
             // if the timestamp is more recent then out last sent time, include it
-            if (iterator.key() > sinceTime) {
+            if (it.key() > sinceTime) {
                 QUuid entityID = values.at(valueItem);
-                QByteArray encodedEntityID = entityID.toRfc4122();
-                memcpy(copyAt, encodedEntityID.constData(), NUM_BYTES_RFC4122_UUID);
-                copyAt += NUM_BYTES_RFC4122_UUID;
-                outputLength += NUM_BYTES_RFC4122_UUID;
-                numberOfIds++;
+                deletesPacket->write(entityID.toRfc4122());
 
-                // check to make sure we have room for one more id...
-                if (outputLength + NUM_BYTES_RFC4122_UUID > maxLength) {
+                // check to make sure we have room for one more ID
+                if (NUM_BYTES_RFC4122_UUID > deletesPacket->bytesAvailable()) {
+                    hasFilledPacket = true;
                     break;
                 }
             }
         }
 
-        // check to make sure we have room for one more id...
-        if (outputLength + NUM_BYTES_RFC4122_UUID > maxLength) {
-
+        // check to see if we're about to return
+        if (hasFilledPacket) {
             // let our caller know how far we got
-            sinceTime = iterator.key();
+            sinceTime = it.key();
+
             break;
         }
-        ++iterator;
+
+        ++it;
     }
 
     // if we got to the end, then we're done sending
-    if (iterator == _recentlyDeletedEntityItemIDs.constEnd()) {
-        hasMoreToSend = false;
+    if (it == _recentlyDeletedEntityItemIDs.constEnd()) {
+        hasMore = false;
     }
+
     _recentlyDeletedEntitiesLock.unlock();
 
-    // replace the correct count for ids included
-    memcpy(numberOfIDsAt, &numberOfIds, sizeof(numberOfIds));
-
-    return hasMoreToSend;
+    return std::move(deletesPacket);
 }
 
 

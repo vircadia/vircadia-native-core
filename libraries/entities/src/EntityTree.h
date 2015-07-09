@@ -129,8 +129,8 @@ public:
 
     bool hasAnyDeletedEntities() const { return _recentlyDeletedEntityItemIDs.size() > 0; }
     bool hasEntitiesDeletedSince(quint64 sinceTime);
-    bool encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime,
-                                    unsigned char* packetData, size_t maxLength, size_t& outputLength);
+    std::unique_ptr<NLPacket> encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime,
+                                                         bool& hasMore);
     void forgetEntitiesDeletedBefore(quint64 sinceTime);
 
     int processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
