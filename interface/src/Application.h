@@ -43,7 +43,6 @@
 #include "AudioClient.h"
 #include "Bookmarks.h"
 #include "Camera.h"
-#include "DatagramProcessor.h"
 #include "Environment.h"
 #include "FileLogger.h"
 #include "GLCanvas.h"
