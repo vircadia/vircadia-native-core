@@ -623,7 +623,7 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         qint16 payloadSize = utfString.size();
 
         auto connectionDeniedPacket = NLPacket::create(PacketType::DomainConnectionDenied, payloadSize + sizeof(payloadSize));
-        connectionDeniedPacket->write(payloadSize);
+        connectionDeniedPacket->writePrimitive(payloadSize);
         connectionDeniedPacket->write(utfString);
 
         // tell client it has been refused.
