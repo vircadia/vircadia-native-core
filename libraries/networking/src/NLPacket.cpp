@@ -21,11 +21,11 @@ int64_t NLPacket::maxPayloadSize(PacketType::Value type) {
     return Packet::maxPayloadSize(type) - localHeaderSize(type);
 }
 
-qint64 Packet::totalHeadersSize() const {
+qint64 NLPacket::totalHeadersSize() const {
     return localHeaderSize() + Packet::localHeaderSize();
 }
 
-qint64 Packet::localHeaderSize() const {
+qint64 NLPacket::localHeaderSize() const {
     return localHeaderSize(_type);
 }
 

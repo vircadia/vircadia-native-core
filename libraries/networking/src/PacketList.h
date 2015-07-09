@@ -38,8 +38,9 @@ public:
     template<typename U> qint64 readPrimitive(U* data);
     template<typename U> qint64 writePrimitive(const U& data);
 protected:
-    qint64 writeData(const char* data, qint64 maxSize);
-    qint64 readData(char* data, qint64 maxSize) { return 0; }
+    virtual qint64 writeData(const char* data, qint64 maxSize);
+    virtual qint64 readData(char* data, qint64 maxSize) { return 0; }
+    
 private:
     PacketList(const PacketList& other) = delete;
     PacketList& operator=(const PacketList& other) = delete;
