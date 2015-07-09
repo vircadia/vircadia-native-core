@@ -97,6 +97,8 @@ public:
     const Vec3& getScale() const;
     void setScale(float scale);
     void setScale(const Vec3& scale);  // [new this] = [this.translation] * [this.rotation] * [scale]
+    void preScale(float scale);
+    void preScale(const Vec3& scale);
     void postScale(float scale);       // [new this] = [this] * [scale] equivalent to glScale
     void postScale(const Vec3& scale); // [new this] = [this] * [scale] equivalent to glScale
 
@@ -320,6 +322,14 @@ inline void Transform::setScale(const Vec3& scale) {
         flagNonUniform();
         _scale = scale;
     }
+}
+
+inline void Transform::preScale(float scale) {
+    setScale(getScale() * scale);
+}
+
+inline void Transform::preScale(const Vec3& scale) {
+    setScale(getScale() * scale);
 }
 
 inline void Transform::postScale(float scale) {
