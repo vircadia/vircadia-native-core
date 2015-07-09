@@ -25,7 +25,7 @@ class EntityActionFactoryInterface : public QObject, public Dependency {
     virtual ~EntityActionFactoryInterface() { }
     virtual EntityActionPointer factory(EntitySimulation* simulation,
                                         EntityActionType type,
-                                        QUuid id,
+                                        const QUuid& id,
                                         EntityItemPointer ownerEntity,
                                         QVariantMap arguments) { assert(false); return nullptr; }
     virtual EntityActionPointer factoryBA(EntitySimulation* simulation,

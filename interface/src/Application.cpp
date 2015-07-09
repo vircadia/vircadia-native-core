@@ -1022,6 +1022,7 @@ void Application::paintGL() {
 
 void Application::runTests() {
     runTimingTests();
+    runUnitTests();
 }
 
 void Application::audioMuteToggled() {
@@ -1190,7 +1191,6 @@ bool Application::event(QEvent* event) {
 }
 
 bool Application::eventFilter(QObject* object, QEvent* event) {
-
     if (event->type() == QEvent::ShortcutOverride) {
         if (DependencyManager::get<OffscreenUi>()->shouldSwallowShortcut(event)) {
             event->accept();
@@ -1795,6 +1795,7 @@ void Application::checkFPS() {
 }
 
 void Application::idle() {
+    PROFILE_RANGE(__FUNCTION__);
     static SimpleAverage<float> interIdleDurations;
     static uint64_t lastIdleEnd{ 0 };
 
@@ -3403,14 +3404,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     // load the view frustum
     loadViewFrustum(theCamera, _displayViewFrustum);
 
-    // flip x if in mirror mode (also requires reversing winding order for backface culling)
-    if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
-        //glScalef(-1.0f, 1.0f, 1.0f);
-        //glFrontFace(GL_CW);
-    } else {
-        glFrontFace(GL_CCW);
-    }
-
     // transform view according to theCamera
     // could be myCamera (if in normal mode)
     // or could be viewFrustumOffsetCamera if in offset mode
@@ -3428,9 +3421,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     Transform viewTransform;
     viewTransform.setTranslation(theCamera.getPosition());
     viewTransform.setRotation(rotation);
-    if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
-//         viewTransform.setScale(Transform::Vec3(-1.0f, 1.0f, 1.0f));
-    }
     if (renderArgs->_renderSide != RenderArgs::MONO) {
         glm::mat4 invView = glm::inverse(_untranslatedViewMatrix);
 

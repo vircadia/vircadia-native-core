@@ -181,6 +181,7 @@ public:
     class GLFramebuffer : public GPUObject {
     public:
         GLuint _fbo = 0;
+        std::vector<GLenum> _colorBuffers;
 
         GLFramebuffer();
         ~GLFramebuffer();
@@ -198,7 +199,7 @@ public:
     void do_setStateFillMode(int32 mode);
     void do_setStateCullMode(int32 mode);
     void do_setStateFrontFaceClockwise(bool isClockwise);
-    void do_setStateDepthClipEnable(bool enable);
+    void do_setStateDepthClampEnable(bool enable);
     void do_setStateScissorEnable(bool enable);
     void do_setStateMultisampleEnable(bool enable);
     void do_setStateAntialiasedLineEnable(bool enable);
@@ -298,6 +299,7 @@ protected:
             _model(),
             _view(),
             _projection(),
+            _viewport(0,0,1,1),
             _invalidModel(true),
             _invalidView(true),
             _invalidProj(false),

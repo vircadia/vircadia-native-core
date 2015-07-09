@@ -58,6 +58,7 @@ void GLCanvas::initializeGL() {
 }
 
 void GLCanvas::paintGL() {
+    PROFILE_RANGE(__FUNCTION__);
     if (!_throttleRendering && !Application::getInstance()->getWindow()->isMinimized()) {
         Application::getInstance()->paintGL();
     }

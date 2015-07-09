@@ -86,6 +86,7 @@ TransformCamera getTransformCamera() {
     return camera;
 }
 
+uniform mat4 transformObject_model;
 uniform mat4 transformCamera_viewInverse;
 uniform vec4 transformCamera_viewport;
 
@@ -127,6 +128,16 @@ uniform vec4 transformCamera_viewport;
 <@else@>
     <$eyePos$> = gl_ModelViewMatrix * <$modelPos$>;
     <$clipPos$> = gl_ModelViewProjectionMatrix * <$modelPos$>;
+<@endif@>
+<@endfunc@>
+
+<@func transformModelToWorldPos(objectTransform, modelPos, worldPos)@>
+<@if GPU_TRANSFORM_PROFILE == GPU_CORE@>
+    { // transformModelToWorldPos
+        <$worldPos$> = (<$objectTransform$>._model * <$modelPos$>);
+    }
+<@else@>
+    <$worldPos$> = (transformObject_model * <$modelPos$>);
 <@endif@>
 <@endfunc@>
 

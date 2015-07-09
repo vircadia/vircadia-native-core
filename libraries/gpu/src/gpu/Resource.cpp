@@ -15,6 +15,9 @@
 using namespace gpu;
 
 const Element Element::COLOR_RGBA_32 = Element(VEC4, UINT8, RGBA);
+const Element Element::VEC3F_XYZ = Element(VEC3, FLOAT, XYZ);
+const Element Element::INDEX_UINT16 = Element(SCALAR, UINT16, INDEX);
+const Element Element::PART_DRAWCALL = Element(VEC4, UINT32, PART);
 
 Resource::Size Resource::Sysmem::allocateMemory(Byte** dataAllocated, Size size) {
     if ( !dataAllocated ) { 

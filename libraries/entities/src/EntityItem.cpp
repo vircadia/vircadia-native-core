@@ -12,9 +12,11 @@
 #include "EntityItem.h"
 
 #include <QtCore/QObject>
+#include <QtEndian>
 
 #include <glm/gtx/transform.hpp>
 
+#include <BufferParser.h>
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
 #include <Octree.h>
@@ -354,50 +356,78 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     // ~27-35 bytes...
     const int MINIMUM_HEADER_BYTES = 27;
 
-    int bytesRead = 0;
     if (bytesLeftToRead < MINIMUM_HEADER_BYTES) {
         return 0;
     }
 
+    int clockSkew = args.sourceNode ? args.sourceNode->getClockSkewUsec() : 0;
+
+    BufferParser parser(data, bytesLeftToRead);
+
+#ifdef DEBUG
+#define VALIDATE_ENTITY_ITEM_PARSER 1
+#endif
+
+#ifdef VALIDATE_ENTITY_ITEM_PARSER
+    int bytesRead = 0;
     int originalLength = bytesLeftToRead;
     // TODO: figure out a way to avoid the big deep copy below.
     QByteArray originalDataBuffer((const char*)data, originalLength); // big deep copy!
-
-    int clockSkew = args.sourceNode ? args.sourceNode->getClockSkewUsec() : 0;
-
     const unsigned char* dataAt = data;
+#endif
 
     // id
-    QByteArray encodedID = originalDataBuffer.mid(bytesRead, NUM_BYTES_RFC4122_UUID); // maximum possible size
-    _id = QUuid::fromRfc4122(encodedID);
-    dataAt += encodedID.size();
-    bytesRead += encodedID.size();
-    
+    parser.readUuid(_id);
+#ifdef VALIDATE_ENTITY_ITEM_PARSER
+    {
+        QByteArray encodedID = originalDataBuffer.mid(bytesRead, NUM_BYTES_RFC4122_UUID); // maximum possible size
+        QUuid id = QUuid::fromRfc4122(encodedID);
+        dataAt += encodedID.size();
+        bytesRead += encodedID.size();
+        Q_ASSERT(id == _id);
+        Q_ASSERT(parser.offset() == bytesRead);
+    }
+#endif
+
     // type
+    parser.readCompressedCount<quint32>((quint32&)_type);
+#ifdef VALIDATE_ENTITY_ITEM_PARSER
     QByteArray encodedType = originalDataBuffer.mid(bytesRead); // maximum possible size
     ByteCountCoded<quint32> typeCoder = encodedType;
     encodedType = typeCoder; // determine true length
     dataAt += encodedType.size();
     bytesRead += encodedType.size();
     quint32 type = typeCoder;
-    _type = (EntityTypes::EntityType)type;
+    EntityTypes::EntityType oldType = (EntityTypes::EntityType)type;
+    Q_ASSERT(oldType == _type);
+    Q_ASSERT(parser.offset() == bytesRead);
+#endif    
 
     bool overwriteLocalData = true; // assume the new content overwrites our local data
+    quint64 now = usecTimestampNow();
 
     // _created
-    quint64 createdFromBuffer = 0;
-    memcpy(&createdFromBuffer, dataAt, sizeof(createdFromBuffer));
-    dataAt += sizeof(createdFromBuffer);
-    bytesRead += sizeof(createdFromBuffer);
-
-    quint64 now = usecTimestampNow();
-    if (_created == UNKNOWN_CREATED_TIME) {
-        // we don't yet have a _created timestamp, so we accept this one
-        createdFromBuffer -= clockSkew;
-        if (createdFromBuffer > now || createdFromBuffer == UNKNOWN_CREATED_TIME) {
-            createdFromBuffer = now;
+    {
+        quint64 createdFromBuffer = 0;
+        parser.readValue(createdFromBuffer);
+#ifdef VALIDATE_ENTITY_ITEM_PARSER
+        {
+            quint64 createdFromBuffer2 = 0;
+            memcpy(&createdFromBuffer2, dataAt, sizeof(createdFromBuffer2));
+            dataAt += sizeof(createdFromBuffer2);
+            bytesRead += sizeof(createdFromBuffer2);
+            Q_ASSERT(createdFromBuffer2 == createdFromBuffer);
+            Q_ASSERT(parser.offset() == bytesRead);
         }
-        _created = createdFromBuffer;
+#endif        
+        if (_created == UNKNOWN_CREATED_TIME) {
+            // we don't yet have a _created timestamp, so we accept this one
+            createdFromBuffer -= clockSkew;
+            if (createdFromBuffer > now || createdFromBuffer == UNKNOWN_CREATED_TIME) {
+                createdFromBuffer = now;
+            }
+            _created = createdFromBuffer;
+        }
     }
 
     #ifdef WANT_DEBUG
@@ -417,15 +447,21 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     #endif
 
     quint64 lastEditedFromBuffer = 0;
-    quint64 lastEditedFromBufferAdjusted = 0;
 
     // TODO: we could make this encoded as a delta from _created
     // _lastEdited
-    memcpy(&lastEditedFromBuffer, dataAt, sizeof(lastEditedFromBuffer));
-    dataAt += sizeof(lastEditedFromBuffer);
-    bytesRead += sizeof(lastEditedFromBuffer);
-    lastEditedFromBufferAdjusted = lastEditedFromBuffer - clockSkew;
-
+    parser.readValue(lastEditedFromBuffer);
+#ifdef VALIDATE_ENTITY_ITEM_PARSER
+    {
+        quint64 lastEditedFromBuffer2 = 0;
+        memcpy(&lastEditedFromBuffer2, dataAt, sizeof(lastEditedFromBuffer2));
+        dataAt += sizeof(lastEditedFromBuffer2);
+        bytesRead += sizeof(lastEditedFromBuffer2);
+        Q_ASSERT(lastEditedFromBuffer2 == lastEditedFromBuffer);
+        Q_ASSERT(parser.offset() == bytesRead);
+    }
+#endif        
+    quint64 lastEditedFromBufferAdjusted = lastEditedFromBuffer - clockSkew;
     if (lastEditedFromBufferAdjusted > now) {
         lastEditedFromBufferAdjusted = now;
     }
@@ -487,9 +523,21 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     }
 
     // last updated is stored as ByteCountCoded delta from lastEdited
-    QByteArray encodedUpdateDelta = originalDataBuffer.mid(bytesRead); // maximum possible size
-    ByteCountCoded<quint64> updateDeltaCoder = encodedUpdateDelta;
-    quint64 updateDelta = updateDeltaCoder;
+    quint64 updateDelta;
+    parser.readCompressedCount(updateDelta);
+#ifdef VALIDATE_ENTITY_ITEM_PARSER
+    {
+        QByteArray encodedUpdateDelta = originalDataBuffer.mid(bytesRead); // maximum possible size
+        ByteCountCoded<quint64> updateDeltaCoder = encodedUpdateDelta;
+        quint64 updateDelta2 = updateDeltaCoder;
+        Q_ASSERT(updateDelta == updateDelta2);
+        encodedUpdateDelta = updateDeltaCoder; // determine true length
+        dataAt += encodedUpdateDelta.size();
+        bytesRead += encodedUpdateDelta.size();
+        Q_ASSERT(parser.offset() == bytesRead);
+    }
+#endif        
+    
     if (overwriteLocalData) {
         _lastUpdated = lastEditedFromBufferAdjusted + updateDelta; // don't adjust for clock skew since we already did that
         #ifdef WANT_DEBUG
@@ -499,17 +547,25 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         #endif
     }
 
-    encodedUpdateDelta = updateDeltaCoder; // determine true length
-    dataAt += encodedUpdateDelta.size();
-    bytesRead += encodedUpdateDelta.size();
-
     // Newer bitstreams will have a last simulated and a last updated value
     quint64 lastSimulatedFromBufferAdjusted = now;
     if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_LAST_SIMULATED_TIME) {
         // last simulated is stored as ByteCountCoded delta from lastEdited
-        QByteArray encodedSimulatedDelta = originalDataBuffer.mid(bytesRead); // maximum possible size
-        ByteCountCoded<quint64> simulatedDeltaCoder = encodedSimulatedDelta;
-        quint64 simulatedDelta = simulatedDeltaCoder;
+        quint64 simulatedDelta;
+        parser.readCompressedCount(simulatedDelta);
+#ifdef VALIDATE_ENTITY_ITEM_PARSER
+        {
+            QByteArray encodedSimulatedDelta = originalDataBuffer.mid(bytesRead); // maximum possible size
+            ByteCountCoded<quint64> simulatedDeltaCoder = encodedSimulatedDelta;
+            quint64 simulatedDelta2 = simulatedDeltaCoder;
+            Q_ASSERT(simulatedDelta2 == simulatedDelta);
+            encodedSimulatedDelta = simulatedDeltaCoder; // determine true length
+            dataAt += encodedSimulatedDelta.size();
+            bytesRead += encodedSimulatedDelta.size();
+            Q_ASSERT(parser.offset() == bytesRead);
+        }
+#endif
+
         if (overwriteLocalData) {
             lastSimulatedFromBufferAdjusted = lastEditedFromBufferAdjusted + simulatedDelta; // don't adjust for clock skew since we already did that
             if (lastSimulatedFromBufferAdjusted > now) {
@@ -521,9 +577,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 qCDebug(entities) << "        lastSimulatedFromBufferAdjusted:" << debugTime(lastSimulatedFromBufferAdjusted, now);
             #endif
         }
-        encodedSimulatedDelta = simulatedDeltaCoder; // determine true length
-        dataAt += encodedSimulatedDelta.size();
-        bytesRead += encodedSimulatedDelta.size();
     }
 
     #ifdef WANT_DEBUG
@@ -537,10 +590,26 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
 
     // Property Flags
-    QByteArray encodedPropertyFlags = originalDataBuffer.mid(bytesRead); // maximum possible size
-    EntityPropertyFlags propertyFlags = encodedPropertyFlags;
-    dataAt += propertyFlags.getEncodedLength();
-    bytesRead += propertyFlags.getEncodedLength();
+    EntityPropertyFlags propertyFlags;
+    parser.readFlags(propertyFlags);
+#ifdef VALIDATE_ENTITY_ITEM_PARSER
+    {
+        QByteArray encodedPropertyFlags = originalDataBuffer.mid(bytesRead); // maximum possible size
+        EntityPropertyFlags propertyFlags2 = encodedPropertyFlags;
+        dataAt += propertyFlags.getEncodedLength();
+        bytesRead += propertyFlags.getEncodedLength();
+        Q_ASSERT(propertyFlags2 == propertyFlags);
+        Q_ASSERT(parser.offset() == bytesRead);
+    }
+#endif
+
+#ifdef VALIDATE_ENTITY_ITEM_PARSER
+    Q_ASSERT(parser.data() + parser.offset() == dataAt);
+#else
+    const unsigned char* dataAt = parser.data() + parser.offset();
+    int bytesRead = parser.offset();
+#endif
+
 
     if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_SIMULATION_OWNER_AND_ACTIONS_OVER_WIRE) {
         // pack SimulationOwner and terse update properties near each other
@@ -549,6 +618,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // even when we would otherwise ignore the rest of the packet.
 
         if (propertyFlags.getHasProperty(PROP_SIMULATION_OWNER)) {
+
             QByteArray simOwnerData;
             int bytes = OctreePacketData::unpackDataFromBytes(dataAt, simOwnerData);
             SimulationOwner newSimOwner;

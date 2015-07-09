@@ -15,7 +15,6 @@
 using namespace gpu;
 
 // Transform Stage
-
 void GLBackend::do_setModelTransform(Batch& batch, uint32 paramOffset) {
     _transform._model = batch._transforms.get(batch._params[paramOffset]._uint);
     _transform._invalidModel = true;
@@ -35,7 +34,6 @@ void GLBackend::do_setViewportTransform(Batch& batch, uint32 paramOffset) {
     memcpy(&_transform._viewport, batch.editData(batch._params[paramOffset]._uint), sizeof(Vec4i));
     _transform._invalidViewport = true;
 }
-
 
 void GLBackend::initTransform() {
  #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
@@ -68,7 +66,7 @@ void GLBackend::syncTransformStateCache() {
     _transform._invalidView = true;
     _transform._invalidModel = true;
 
-     glGetIntegerv(GL_VIEWPORT, (GLint*) &_transform._viewport);
+    glGetIntegerv(GL_VIEWPORT, (GLint*) &_transform._viewport);
 
     GLint currentMode;
     glGetIntegerv(GL_MATRIX_MODE, &currentMode);
@@ -116,13 +114,13 @@ void GLBackend::updateTransform() {
     }
  
  #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
-   if (_transform._invalidView || _transform._invalidProj || _transform._invalidViewport) {
+    if (_transform._invalidView || _transform._invalidProj || _transform._invalidViewport) {
         glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT, 0);
         glBindBuffer(GL_ARRAY_BUFFER, _transform._transformCameraBuffer);
         glBufferData(GL_ARRAY_BUFFER, sizeof(_transform._transformCamera), (const void*) &_transform._transformCamera, GL_DYNAMIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         CHECK_GL_ERROR();
-   }
+    }
 
     if (_transform._invalidModel) {
         glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_OBJECT_SLOT, 0);

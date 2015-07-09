@@ -11,6 +11,7 @@
 #include "Scene.h"
 
 #include <numeric>
+#include "gpu/Batch.h"
 
 using namespace render;
 
@@ -167,6 +168,7 @@ void consolidateChangeQueue(PendingChangesQueue& queue, PendingChanges& singleBa
 }
  
 void Scene::processPendingChangesQueue() {
+    PROFILE_RANGE(__FUNCTION__);
     _changeQueueMutex.lock();
     PendingChanges consolidatedPendingChanges;
     consolidateChangeQueue(_changeQueue, consolidatedPendingChanges);

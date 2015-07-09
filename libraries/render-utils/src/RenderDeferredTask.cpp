@@ -40,8 +40,9 @@ void ResolveDeferred::run(const SceneContextPointer& sceneContext, const RenderC
 }
 
 RenderDeferredTask::RenderDeferredTask() : Task() {
-    _jobs.push_back(Job(new PrepareDeferred::JobModel("PrepareDeferred")));
     _jobs.push_back(Job(new DrawBackground::JobModel("DrawBackground")));
+
+    _jobs.push_back(Job(new PrepareDeferred::JobModel("PrepareDeferred")));
     _jobs.push_back(Job(new FetchItems::JobModel("FetchOpaque",
         FetchItems(
             [] (const RenderContextPointer& context, int count) {
@@ -118,7 +119,7 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
     args->_viewFrustum->evalProjectionMatrix(projMat);
     args->_viewFrustum->evalViewTransform(viewMat);
     if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-        viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
+        viewMat.preScale(glm::vec3(-1.0f, 1.0f, 1.0f));
     }
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewMat);

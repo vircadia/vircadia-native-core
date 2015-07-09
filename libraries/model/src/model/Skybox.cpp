@@ -51,7 +51,7 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
             static gpu::BufferPointer theBuffer;
             static gpu::Stream::FormatPointer theFormat;
             static gpu::BufferPointer theConstants;
-            int SKYBOX_CONSTANTS_SLOT = 0; // need to be defined by the compilation of the shader
+            static int SKYBOX_CONSTANTS_SLOT = 0; // need to be defined by the compilation of the shader
             if (!thePipeline) {
                 auto skyVS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(Skybox_vert)));
                 auto skyFS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(Skybox_frag)));
