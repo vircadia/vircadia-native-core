@@ -114,13 +114,13 @@ void AudioIOStats::sendDownstreamAudioStatsPacket() {
     auto statsPacket = NLPacket::create(PacketType::AudioStreamStats, statsPacketSize);
 
     // pack append flag
-    statsPacket->write(&appendFlag, sizeof(appendFlag));
+    statsPacket->writePrimitive(appendFlag);
 
     // pack number of stats packed
-    statsPacket->write(&numStreamStatsToPack, sizeof(numStreamStatsToPack));
+    statsPacket->writePrimitive(numStreamStatsToPack);
 
     // pack downstream audio stream stats
-    statsPacket->write(&stats, sizeof(stats));
+    statsPacket->writePrimitive(stats);
 
     // send packet
     SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);

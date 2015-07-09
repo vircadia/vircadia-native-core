@@ -863,7 +863,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType::Value command, Ent
     if (success) {
         packetData->endSubTree();
 
-        const unsigned char* finalizedData = packetData->getFinalizedData();
+        const char* finalizedData = reinterpret_cast<const char*>(packetData->getFinalizedData());
         int finalizedSize = packetData->getFinalizedSize();
 
         if (finalizedSize <= buffer.size()) {
@@ -1084,7 +1084,7 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
 
     int outputLength = 0;
 
-    if (buffer.size() < sizeof(numberOfIds) + NUM_BYTES_RFC4122_UUID) {
+    if (buffer.size() < (int) (sizeof(numberOfIds) + NUM_BYTES_RFC4122_UUID)) {
         qCDebug(entities) << "ERROR - encodeEraseEntityMessage() called with buffer that is too small!";
         return false;
     }

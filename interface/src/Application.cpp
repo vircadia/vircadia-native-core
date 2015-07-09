@@ -2660,14 +2660,16 @@ int Application::sendNackPackets() {
         return 0;
     }
 
-    NLPacketList nackPacketList(PacketType::OctreeDataNack);
-
     // iterates thru all nodes in NodeList
     auto nodeList = DependencyManager::get<NodeList>();
+
+    int packetsSent = 0;
 
     nodeList->eachNode([&](const SharedNodePointer& node){
 
         if (node->getActiveSocket() && node->getType() == NodeType::EntityServer) {
+
+            NLPacketList nackPacketList(PacketType::OctreeDataNack);
 
             QUuid nodeUUID = node->getUUID();
 
@@ -2698,18 +2700,19 @@ int Application::sendNackPackets() {
             auto it = missingSequenceNumbers.constBegin();
             while (it != missingSequenceNumbers.constEnd()) {
                 OCTREE_PACKET_SEQUENCE missingNumber = *it;
-                nackPacketList->write(&missingNumber, sizeof(OCTREE_PACKET_SEQUENCE));
+                nackPacketList.writePrimitive(missingNumber);
                 ++it;
+            }
+
+            if (nackPacketList.getNumPackets()) {
+                packetsSent += nackPacketList.getNumPackets();
+
+                // send the packet list
+                nodeList->sendPacketList(nackPacketList, node);
             }
         }
     });
 
-    int packetsSent = nackPacketList.getNumPackets();
-
-    if (packetsSent) {
-        // send the packet list
-        nodeList->sendPacketList(nackPacketList, node);
-    }
 
     return packetsSent;
 }
@@ -2882,7 +2885,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType::Value packetTyp
             }
 
             // encode the query data
-            int packetSize = _octreeQuery.getBroadcastData(queryPacket.payload());
+            int packetSize = _octreeQuery.getBroadcastData(reinterpret_cast<unsigned char*>(queryPacket->getPayload()));
             queryPacket->setSizeUsed(packetSize);
 
             // make sure we still have an active socket

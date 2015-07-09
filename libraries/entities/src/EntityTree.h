@@ -65,7 +65,7 @@ public:
     virtual PacketType::Value expectedDataPacketType() const { return PacketType::EntityData; }
     virtual bool canProcessVersion(PacketVersion thisVersion) const
                     { return thisVersion >= VERSION_ENTITIES_USE_METERS_AND_RADIANS; }
-    virtual bool handlesEditPacketType::(PacketType::Value packetType) const;
+    virtual bool handlesEditPacketType(PacketType::Value packetType) const;
     virtual int processEditPacketData(PacketType::Value packetType, const unsigned char* packetData, int packetLength,
                     const unsigned char* editData, int maxLength, const SharedNodePointer& senderNode);
 
@@ -129,8 +129,8 @@ public:
 
     bool hasAnyDeletedEntities() const { return _recentlyDeletedEntityItemIDs.size() > 0; }
     bool hasEntitiesDeletedSince(quint64 sinceTime);
-    bool encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime,
-                                    unsigned char* packetData, size_t maxLength, size_t& outputLength);
+    std::unique_ptr<NLPacket> encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime,
+                                                         bool& hasMore);
     void forgetEntitiesDeletedBefore(quint64 sinceTime);
 
     int processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
@@ -168,7 +168,7 @@ public:
 
     float getContentsLargestDimension();
 
-    virtual void resetEditStats() {    
+    virtual void resetEditStats() {
         _totalEditMessages = 0;
         _totalUpdates = 0;
         _totalCreates = 0;
@@ -227,8 +227,8 @@ private:
 
     bool _wantEditLogging = false;
     void maybeNotifyNewCollisionSoundURL(const QString& oldCollisionSoundURL, const QString& newCollisionSoundURL);
-    
-    
+
+
     // some performance tracking properties - only used in server trees
     int _totalEditMessages = 0;
     int _totalUpdates = 0;

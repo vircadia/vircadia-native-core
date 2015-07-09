@@ -59,8 +59,8 @@ public:
     virtual bool reset() { setSizeUsed(0); return QIODevice::reset(); }
     virtual qint64 size() const { return _capacity; }
 
-    template<typename T> qint64 read(T* data);
-    template<typename T> qint64 write(const T& data);
+    template<typename T> qint64 readPrimitive(T* data);
+    template<typename T> qint64 writePrimitive(const T& data);
 
 protected:
     Packet(PacketType::Value type, int64_t size);

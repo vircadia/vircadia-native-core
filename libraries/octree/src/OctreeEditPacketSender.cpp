@@ -86,7 +86,7 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, std::uniqu
 
             // pack sequence number
             quint16 sequence = _outgoingSequenceNumbers[nodeUUID]++;
-            packet->write(sequence);
+            packet->writePrimitive(sequence);
 
             // debugging output...
             if (wantDebug) {
@@ -96,8 +96,8 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, std::uniqu
                 packet->seek(0);
 
                 // read the sequence number and createdAt
-                packet->read(&sequence);
-                packet->read(&createdAt);
+                packet->readPrimitive(&sequence);
+                packet->readPrimitive(&createdAt);
 
                 quint64 queuedAt = usecTimestampNow();
                 quint64 transitTime = queuedAt - createdAt;
@@ -296,10 +296,10 @@ void OctreeEditPacketSender::releaseQueuedMessages() {
             std::unique_ptr<NLPacket> releasedPacket;
 
             // swap the null ptr with the packet we want to release
-            i.value().swap(releasedPacket);
+            i->second.swap(releasedPacket);
 
             // move and release the queued packet
-            releaseQueuedPacket(i.key(), std::move(releasedPacket));
+            releaseQueuedPacket(i->first, std::move(releasedPacket));
         }
         _packetsQueueLock.unlock();
     }
@@ -321,7 +321,7 @@ std::unique_ptr<NLPacket> OctreeEditPacketSender::initializePacket(PacketType::V
 
     // pack in timestamp
     quint64 now = usecTimestampNow() + nodeClockSkew;
-    newPacket->write(now);
+    newPacket->writePrimitive(now);
 
     return newPacket;
 }
@@ -342,10 +342,10 @@ void OctreeEditPacketSender::processNackPacket(const QByteArray& packet) {
     QUuid sendingNodeUUID = uuidFromPacketHeader(packet);
 
     // if packet history doesn't exist for the sender node (somehow), bail
-    if (!_sentPacketHistories.contains(sendingNodeUUID)) {
+    if (_sentPacketHistories.count(sendingNodeUUID) == 0) {
         return;
     }
-    const SentPacketHistory& sentPacketHistory = _sentPacketHistories.value(sendingNodeUUID);
+    const SentPacketHistory& sentPacketHistory = _sentPacketHistories[sendingNodeUUID];
 
     // TODO: these NAK packets no longer send the number of sequence numbers - just read out sequence numbers in blocks
 
@@ -373,7 +373,7 @@ void OctreeEditPacketSender::processNackPacket(const QByteArray& packet) {
 void OctreeEditPacketSender::nodeKilled(SharedNodePointer node) {
     // TODO: add locks
     QUuid nodeUUID = node->getUUID();
-    _pendingEditPackets.remove(nodeUUID);
-    _outgoingSequenceNumbers.remove(nodeUUID);
-    _sentPacketHistories.remove(nodeUUID);
+    _pendingEditPackets.erase(nodeUUID);
+    _outgoingSequenceNumbers.erase(nodeUUID);
+    _sentPacketHistories.erase(nodeUUID);
 }

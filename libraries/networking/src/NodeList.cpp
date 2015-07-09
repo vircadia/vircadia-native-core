@@ -402,7 +402,7 @@ void NodeList::sendDSPathQuery(const QString& newPath) {
 
         if (numPathBytes + ((qint64) sizeof(numPathBytes)) < pathQueryPacket->bytesAvailable()) {
             // append the size of the path to the query packet
-            pathQueryPacket->write(numPathBytes);
+            pathQueryPacket->writePrimitive(numPathBytes);
 
             // append the path itself to the query packet
             pathQueryPacket->write(pathQueryUTF8);

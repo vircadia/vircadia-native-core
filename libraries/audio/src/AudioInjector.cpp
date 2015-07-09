@@ -216,17 +216,17 @@ void AudioInjector::injectToMixer() {
             _loudness /= (float)(bytesToCopy / sizeof(int16_t));
 
             audioPacket->seek(positionOptionOffset);
-            audioPacket->write(_options.position);
-            audioPacket->write(_options.orientation);
+            audioPacket->writePrimitive(_options.position);
+            audioPacket->writePrimitive(_options.orientation);
 
             volume = MAX_INJECTOR_VOLUME * _options.volume;
             audioPacket->seek(volumeOptionOffset);
-            audioPacket->write(volume);
+            audioPacket->writePrimitive(volume);
 
             audioPacket->seek(audioDataOffset);
 
             // pack the sequence number
-            audioPacket->write(outgoingInjectedAudioSequenceNumber);
+            audioPacket->writePrimitive(outgoingInjectedAudioSequenceNumber);
 
             // copy the next NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL bytes to the packet
             audioPacket->write(_audioData.data() + _currentSendPosition, bytesToCopy);

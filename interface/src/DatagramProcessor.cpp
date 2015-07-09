@@ -113,7 +113,7 @@ void DatagramProcessor::processDatagrams() {
                     break;
                 }
                 case PacketType::DomainConnectionDenied: {
-                    int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeDomainConnectionDenied);
+                    int headerSize = 0;
                     QDataStream packetStream(QByteArray(incomingPacket.constData() + headerSize,
                                                         incomingPacket.size() - headerSize));
                     QString reason;
@@ -135,7 +135,7 @@ void DatagramProcessor::processDatagrams() {
                         glm::vec3 position;
                         float radius;
 
-                        int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeMuteEnvironment);
+                        int headerSize = 0;
                         memcpy(&position, incomingPacket.constData() + headerSize, sizeof(glm::vec3));
                         memcpy(&radius, incomingPacket.constData() + headerSize + sizeof(glm::vec3), sizeof(float));
                         float distance = glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(),

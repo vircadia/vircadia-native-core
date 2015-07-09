@@ -32,6 +32,15 @@ template <class T> std::unique_ptr<NLPacket> PacketList<T>::createPacketWithExte
     }
 }
 
+template<typename T> qint64 Packet::readPrimitive(T* data) {
+    return QIODevice::read(reinterpret_cast<char*>(data), sizeof(T));
+}
+
+template<typename T> qint64 Packet::writePrimitive(const T& data) {
+    static_assert(!std::is_pointer<T>::value, "T must not be a pointer");
+    return QIODevice::write(reinterpret_cast<const char*>(&data), sizeof(T));
+}
+
 template <class T> qint64 PacketList<T>::writeData(const char* data, qint64 maxSize) {
     if (!_currentPacket) {
         // we don't have a current packet, time to set one up
