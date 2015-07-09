@@ -21,6 +21,7 @@
 
 #include <QThread>
 
+#include <ByteCountCoding.h>
 #include <SharedUtil.h>
 #include <TextRenderer.h>
 
@@ -229,6 +230,43 @@ void runTimingTests() {
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
     qCDebug(interfaceapp, "vec3 assign and dot() usecs: %f, last result:%f",
             (double)(elapsedUsecs / numTests), (double)result);
+
+
+    quint64 BYTE_CODE_MAX_VALUE = 99999999;
+    quint64 BYTE_CODE_TESTS_SKIP = 999;
+
+    QByteArray extraJunk;
+    const int EXTRA_JUNK_SIZE = 200;
+    extraJunk.append((unsigned char)255);
+    for (int i = 0; i < EXTRA_JUNK_SIZE; i++) {
+        extraJunk.append(QString("junk"));
+    }
+
+    {
+        startTime.start();
+        quint64 tests = 0;
+        quint64 failed = 0;
+        for (quint64 value = 0; value < BYTE_CODE_MAX_VALUE; value += BYTE_CODE_TESTS_SKIP) {
+            quint64 valueA = value; // usecTimestampNow();
+            ByteCountCoded<quint64> codedValueA = valueA;
+            QByteArray codedValueABuffer = codedValueA;
+            codedValueABuffer.append(extraJunk);
+            ByteCountCoded<quint64> decodedValueA;
+            decodedValueA.decode(codedValueABuffer);
+            quint64 valueADecoded = decodedValueA;
+            tests++;
+            if (valueA != valueADecoded) {
+                qDebug() << "FAILED! value:" << valueA << "decoded:" << valueADecoded;
+                failed++;
+            }
+
+        }
+        elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+        qCDebug(interfaceapp) << "ByteCountCoded<quint64> usecs: " << elapsedUsecs
+                                << "per test:" << (double) (elapsedUsecs / tests)
+                                << "tests:" << tests
+                                << "failed:" << failed;
+    }
 }
 
 bool rayIntersectsSphere(const glm::vec3& rayStarting, const glm::vec3& rayNormalizedDirection,
@@ -271,3 +309,37 @@ bool pointInSphere(glm::vec3& point, glm::vec3& sphereCenter, double sphereRadiu
     }
     return false;
 }
+
+void runUnitTests() {
+
+    quint64 LAST_TEST = 10;
+    quint64 SKIP_BY = 1;
+    
+    for (quint64 value = 0; value <= LAST_TEST; value += SKIP_BY) {
+        qDebug() << "value:" << value;
+
+        ByteCountCoded<quint64> codedValue = value;
+    
+        QByteArray codedValueBuffer = codedValue;
+        
+        codedValueBuffer.append((unsigned char)255);
+        codedValueBuffer.append(QString("junk"));
+        
+        qDebug() << "codedValueBuffer:";
+        outputBufferBits((const unsigned char*)codedValueBuffer.constData(), codedValueBuffer.size());
+
+        ByteCountCoded<quint64> valueDecoder = codedValueBuffer;
+        quint64 valueDecoded = valueDecoder;
+        qDebug() << "valueDecoded:" << valueDecoded;
+        
+
+        if (value == valueDecoded) {
+            qDebug() << "SUCCESS!";
+        } else {
+            qDebug() << "FAILED!";
+        }
+
+    }
+}
+
+

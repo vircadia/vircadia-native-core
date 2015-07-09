@@ -26,6 +26,8 @@
 #include <QBitArray>
 #include <QByteArray>
 
+#include "SharedUtil.h"
+
 #include "NumericalConstants.h"
 
 template<typename T> class ByteCountCoded {
@@ -40,6 +42,7 @@ public:
 
     QByteArray encode() const;
     void decode(const QByteArray& fromEncoded);
+    void decode(const char* encodedBuffer, int encodedSize);
 
     bool operator==(const ByteCountCoded& other) const { return data == other.data; }
     bool operator!=(const ByteCountCoded& other) const { return data != other.data; }
@@ -113,50 +116,57 @@ template<typename T> inline QByteArray ByteCountCoded<T>::encode() const {
 }
 
 template<typename T> inline void ByteCountCoded<T>::decode(const QByteArray& fromEncodedBytes) {
-    // first convert the ByteArray into a BitArray...
-    QBitArray encodedBits;
-    int bitCount = BITS_IN_BYTE * fromEncodedBytes.count();
-    encodedBits.resize(bitCount);
-    
-    // copies the QByteArray into a QBitArray
-    for(int byte = 0; byte < fromEncodedBytes.count(); byte++) {
-        char originalByte = fromEncodedBytes.at(byte);
-        for(int bit = 0; bit < BITS_IN_BYTE; bit++) {
-            int shiftBy = BITS_IN_BYTE - (bit + 1);
-            char maskBit = ( 1 << shiftBy);
-            bool bitValue = originalByte & maskBit;
-            encodedBits.setBit(byte * BITS_IN_BYTE + bit, bitValue);
-        }
-    }
-    
-    // next, read the leading bits to determine the correct number of bytes to decode (may not match the QByteArray)
+    decode(fromEncodedBytes.constData(), fromEncodedBytes.size());
+}
+
+template<typename T> inline void ByteCountCoded<T>::decode(const char* encodedBuffer, int encodedSize) {
+    data = 0; // reset data
+    int bitCount = BITS_IN_BYTE * encodedSize;
+
     int encodedByteCount = 1; // there is at least 1 byte (after the leadBits)
     int leadBits = 1; // there is always at least 1 lead bit
-    int bitAt;
-    for (bitAt = 0; bitAt < bitCount; bitAt++) {
-        if (encodedBits.at(bitAt)) {
-            encodedByteCount++;
-            leadBits++;
-        } else {
-            break;
-        }
-    }
-    int expectedBitCount = (encodedByteCount * BITS_IN_BYTE) - leadBits;
-
-    T value = 0;
-
-    if (expectedBitCount <= (encodedBits.size() - leadBits)) {
-        // Now, keep reading...
-        int valueStartsAt = bitAt + 1; 
-        T bitValue = 1;
-        for (bitAt = valueStartsAt; bitAt < (expectedBitCount + leadBits); bitAt++) {
-            if(encodedBits.at(bitAt)) {
-                value += bitValue;
+    bool inLeadBits = true;
+    int bitAt = 0;
+    int expectedBitCount; // unknown at this point
+    int lastValueBit;
+    T bitValue = 1;
+    
+    for(int byte = 0; byte < encodedSize; byte++) {
+        char originalByte = encodedBuffer[byte];
+        unsigned char maskBit = 128;
+        for(int bit = 0; bit < BITS_IN_BYTE; bit++) {
+            //int shiftBy = BITS_IN_BYTE - (bit + 1);
+            //char maskBit = (1 << shiftBy);
+            bool bitIsSet = originalByte & maskBit;
+            
+            // Processing of the lead bits
+            if (inLeadBits) {
+                if (bitIsSet) {
+                    encodedByteCount++;
+                    leadBits++;
+                } else {
+                    inLeadBits = false; // once we hit our first 0, we know we're out of the lead bits
+                    expectedBitCount = (encodedByteCount * BITS_IN_BYTE) - leadBits;
+                    lastValueBit = expectedBitCount + bitAt;
+                    // check to see if the remainder of our buffer is sufficient
+                    if (expectedBitCount > (bitCount - leadBits)) {
+                        break;
+                    }
+                }
+            } else {
+                if (bitAt > lastValueBit) {
+                    break;
+                }
+                
+                if(bitIsSet) {
+                    data += bitValue;
+                }
+                bitValue *= 2;
             }
-            bitValue *= 2;
+            bitAt++;
+            maskBit = maskBit >> 1;
         }
     }
-    data = value;
 }
 #endif // hifi_ByteCountCoding_h
 
