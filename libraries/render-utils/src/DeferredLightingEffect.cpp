@@ -540,7 +540,6 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     batch.setUniformTexture(2, nullptr);
     batch.setUniformTexture(3, nullptr);
 
-    glDepthRange(0.0, 1.0);
     args->_context->syncCache();
     args->_context->render(batch);
 
@@ -762,8 +761,7 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
         delete[] indexData;
 
         model::Mesh::Part part(0, indices, 0, model::Mesh::TRIANGLES);
-       // model::Mesh::Part part(0, indices, 0, model::Mesh::LINE_STRIP);
-        
+
         _spotLightMesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(sizeof(part), (gpu::Byte*) &part), gpu::Element::PART_DRAWCALL));
 
         _spotLightMesh->makeBufferStream();
