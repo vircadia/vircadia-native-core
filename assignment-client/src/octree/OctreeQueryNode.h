@@ -105,7 +105,7 @@ public:
     bool isShuttingDown() const { return _isShuttingDown; }
 
     void octreePacketSent() { packetSent(_octreePacket); }
-    void packetSent(const std::unique_ptr<NLPacket>& packet);
+    void packetSent(const NLPacket& packet);
 
     OCTREE_PACKET_SEQUENCE getSequenceNumber() const { return _sequenceNumber; }
 

@@ -24,7 +24,7 @@ SentPacketHistory::SentPacketHistory(int size)
 
 }
 
-void SentPacketHistory::packetSent(uint16_t sequenceNumber, const std::unique_ptr<NLPacket>& packet) {
+void SentPacketHistory::packetSent(uint16_t sequenceNumber, const NLPacket& packet) {
 
     // check if given seq number has the expected value.  if not, something's wrong with
     // the code calling this function
@@ -38,7 +38,7 @@ void SentPacketHistory::packetSent(uint16_t sequenceNumber, const std::unique_pt
     _sentPackets.insert(NLPacket::createCopy(packet));
 }
 
-const std::unique_ptr<NLPacket>& SentPacketHistory::getPacket(uint16_t sequenceNumber) const {
+const NLPacket& SentPacketHistory::getPacket(uint16_t sequenceNumber) const {
 
     const int UINT16_RANGE = std::numeric_limits<uint16_t>::max() + 1;
 
@@ -49,5 +49,5 @@ const std::unique_ptr<NLPacket>& SentPacketHistory::getPacket(uint16_t sequenceN
         seqDiff += UINT16_RANGE;
     }
 
-    return *_sentPackets.get(seqDiff);
+    return *_sentPackets.get(seqDiff).get();
 }
