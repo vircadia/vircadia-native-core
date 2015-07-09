@@ -129,14 +129,6 @@ QByteArray hashForPacketAndConnectionUUID(const QByteArray& packet, const QUuid&
 
 PacketSequenceNumber sequenceNumberFromHeader(const QByteArray& packet, PacketType::Value packetType = PacketType::Unknown);
 
-void replaceHashInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketType::Value packetType = PacketType::Unknown);
-
-void replaceSequenceNumberInPacket(QByteArray& packet, PacketSequenceNumber sequenceNumber,
-                                   PacketType::Value packetType = PacketType::Unknown);
-
-void replaceHashAndSequenceNumberInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketSequenceNumber sequenceNumber,
-                                          PacketType::Value packetType = PacketType::Unknown);
-
 int arithmeticCodingValueFromBuffer(const char* checkValue);
 int numBytesArithmeticCodingFromBuffer(const char* checkValue);
 
