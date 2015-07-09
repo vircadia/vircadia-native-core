@@ -24,7 +24,7 @@ EntityEditPacketSender::EntityEditPacketSender() {
 
 void EntityEditPacketSender::processEntityEditNackPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
     if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
-        processNackPacket(QByteArray::fromRawData(packet->getData()));
+        processNackPacket(QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
     }
 }
 
