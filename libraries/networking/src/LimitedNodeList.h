@@ -129,7 +129,7 @@ public:
     // int populatePacketHeader(char* packet, PacketType::Value packetType)
     //     { return populatePacketHeaderWithUUID(packet, packetType, _sessionUUID); }
 
-//    qint64 readDatagram(QByteArray& incomingPacket, QHostAddress* address, quint16 * port);
+    qint64 readDatagram(QByteArray& incomingPacket, QHostAddress* address, quint16 * port);
 //
 //    qint64 writeDatagram(const QByteArray& datagram, const SharedNodePointer& destinationNode,
 //                         const HifiSockAddr& overridenSockAddr = HifiSockAddr());
