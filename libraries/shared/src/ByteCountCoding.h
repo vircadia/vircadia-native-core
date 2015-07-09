@@ -133,10 +133,8 @@ template<typename T> inline void ByteCountCoded<T>::decode(const char* encodedBu
     
     for(int byte = 0; byte < encodedSize; byte++) {
         char originalByte = encodedBuffer[byte];
-        unsigned char maskBit = 128;
+        unsigned char maskBit = 128; // LEFT MOST BIT set
         for(int bit = 0; bit < BITS_IN_BYTE; bit++) {
-            //int shiftBy = BITS_IN_BYTE - (bit + 1);
-            //char maskBit = (1 << shiftBy);
             bool bitIsSet = originalByte & maskBit;
             
             // Processing of the lead bits
@@ -148,6 +146,7 @@ template<typename T> inline void ByteCountCoded<T>::decode(const char* encodedBu
                     inLeadBits = false; // once we hit our first 0, we know we're out of the lead bits
                     expectedBitCount = (encodedByteCount * BITS_IN_BYTE) - leadBits;
                     lastValueBit = expectedBitCount + bitAt;
+
                     // check to see if the remainder of our buffer is sufficient
                     if (expectedBitCount > (bitCount - leadBits)) {
                         break;
