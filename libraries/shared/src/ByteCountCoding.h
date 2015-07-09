@@ -41,8 +41,8 @@ public:
     ByteCountCoded(const QByteArray& fromEncoded) : data(0) { decode(fromEncoded); }
 
     QByteArray encode() const;
-    void decode(const QByteArray& fromEncoded);
-    void decode(const char* encodedBuffer, int encodedSize);
+    size_t decode(const QByteArray& fromEncoded);
+    size_t decode(const char* encodedBuffer, int encodedSize);
 
     bool operator==(const ByteCountCoded& other) const { return data == other.data; }
     bool operator!=(const ByteCountCoded& other) const { return data != other.data; }
@@ -115,12 +115,13 @@ template<typename T> inline QByteArray ByteCountCoded<T>::encode() const {
     return output;
 }
 
-template<typename T> inline void ByteCountCoded<T>::decode(const QByteArray& fromEncodedBytes) {
-    decode(fromEncodedBytes.constData(), fromEncodedBytes.size());
+template<typename T> inline size_t ByteCountCoded<T>::decode(const QByteArray& fromEncodedBytes) {
+    return decode(fromEncodedBytes.constData(), fromEncodedBytes.size());
 }
 
-template<typename T> inline void ByteCountCoded<T>::decode(const char* encodedBuffer, int encodedSize) {
+template<typename T> inline size_t ByteCountCoded<T>::decode(const char* encodedBuffer, int encodedSize) {
     data = 0; // reset data
+    size_t bytesConsumed = 0;
     int bitCount = BITS_IN_BYTE * encodedSize;
 
     int encodedByteCount = 1; // there is at least 1 byte (after the leadBits)
@@ -133,6 +134,7 @@ template<typename T> inline void ByteCountCoded<T>::decode(const char* encodedBu
     
     for(int byte = 0; byte < encodedSize; byte++) {
         char originalByte = encodedBuffer[byte];
+        bytesConsumed++;
         unsigned char maskBit = 128; // LEFT MOST BIT set
         for(int bit = 0; bit < BITS_IN_BYTE; bit++) {
             bool bitIsSet = originalByte & maskBit;
@@ -165,7 +167,11 @@ template<typename T> inline void ByteCountCoded<T>::decode(const char* encodedBu
             bitAt++;
             maskBit = maskBit >> 1;
         }
+        if (!inLeadBits && bitAt > lastValueBit) {
+            break;
+        }
     }
+    return bytesConsumed;
 }
 #endif // hifi_ByteCountCoding_h
 

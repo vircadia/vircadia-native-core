@@ -232,7 +232,7 @@ void runTimingTests() {
             (double)(elapsedUsecs / numTests), (double)result);
 
 
-    quint64 BYTE_CODE_MAX_VALUE = 99999999;
+    quint64 BYTE_CODE_MAX_TEST_VALUE = 99999999;
     quint64 BYTE_CODE_TESTS_SKIP = 999;
 
     QByteArray extraJunk;
@@ -246,7 +246,7 @@ void runTimingTests() {
         startTime.start();
         quint64 tests = 0;
         quint64 failed = 0;
-        for (quint64 value = 0; value < BYTE_CODE_MAX_VALUE; value += BYTE_CODE_TESTS_SKIP) {
+        for (quint64 value = 0; value < BYTE_CODE_MAX_TEST_VALUE; value += BYTE_CODE_TESTS_SKIP) {
             quint64 valueA = value; // usecTimestampNow();
             ByteCountCoded<quint64> codedValueA = valueA;
             QByteArray codedValueABuffer = codedValueA;
@@ -328,9 +328,11 @@ void runUnitTests() {
         qDebug() << "codedValueBuffer:";
         outputBufferBits((const unsigned char*)codedValueBuffer.constData(), codedValueBuffer.size());
 
-        ByteCountCoded<quint64> valueDecoder = codedValueBuffer;
+        ByteCountCoded<quint64> valueDecoder;
+        size_t bytesConsumed =  valueDecoder.decode(codedValueBuffer);
         quint64 valueDecoded = valueDecoder;
         qDebug() << "valueDecoded:" << valueDecoded;
+        qDebug() << "bytesConsumed:" << bytesConsumed;
         
 
         if (value == valueDecoded) {
