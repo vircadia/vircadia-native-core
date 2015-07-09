@@ -231,34 +231,6 @@ PacketSequenceNumber sequenceNumberFromHeader(const QByteArray& packet, PacketTy
     return result;
 }
 
-void replaceHashInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketType::Value packetType) {
-    if (packetType == PacketType::Unknown) {
-        packetType = packetTypeForPacket(packet);
-    }
-
-    packet.replace(hashOffsetForPacketType(packetType), NUM_BYTES_MD5_HASH,
-                   hashForPacketAndConnectionUUID(packet, connectionUUID));
-}
-
-void replaceSequenceNumberInPacket(QByteArray& packet, PacketSequenceNumber sequenceNumber, PacketType::Value packetType) {
-    if (packetType == PacketType::Unknown) {
-        packetType = packetTypeForPacket(packet);
-    }
-
-    packet.replace(sequenceNumberOffsetForPacketType(packetType),
-                   sizeof(PacketSequenceNumber), reinterpret_cast<char*>(&sequenceNumber), sizeof(PacketSequenceNumber));
-}
-
-void replaceHashAndSequenceNumberInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketSequenceNumber sequenceNumber,
-                                          PacketType::Value packetType) {
-    if (packetType == PacketType::Unknown) {
-        packetType = packetTypeForPacket(packet);
-    }
-
-    replaceHashInPacket(packet, connectionUUID, packetType);
-    replaceSequenceNumberInPacket(packet, sequenceNumber, packetType);
-}
-
 PacketType::Value packetTypeForPacket(const QByteArray& packet) {
     return (PacketType::Value) arithmeticCodingValueFromBuffer(packet.data());
 }
