@@ -524,11 +524,11 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
             setAtBit(bitset, HAS_REVERB_BIT);
         }
 
-        envPacket.write(&bitset, sizeof(bitset));
+        envPacket->writePrimitive(bitset);
 
         if (hasReverb) {
-            envPacket.write(&reverbTime, sizeof(reverb));
-            envPacket.write(&wetLevel, sizeof(wetLevel));
+            envPacket->writePrimitive(reverbTime);
+            envPacket->writePrimitive(wetLevel);
         }
         nodeList->sendPacket(std::move(envPacket), node);
     }
@@ -550,13 +550,14 @@ void AudioMixer::readPendingDatagram(const QByteArray& receivedPacket, const Hif
         } else if (mixerPacketType == PacketType::MuteEnvironment) {
             SharedNodePointer sendingNode = nodeList->sendingNodeForPacket(receivedPacket);
             if (sendingNode->getCanAdjustLocks()) {
-                QByteArray packet = receivedPacket;
-                nodeList->populatePacketHeader(packet, PacketType::MuteEnvironment);
+                auto packet = NLPacket::create(PacketType::MuteEnvironment);
+                // Copy payload
+                packet->write(receivedPacket.mid(numBytesForPacketHeader(receivedPacket)));
 
                 nodeList->eachNode([&](const SharedNodePointer& node){
                     if (node->getType() == NodeType::Agent && node->getActiveSocket() &&
                         node->getLinkedData() && node != sendingNode) {
-                        nodeList->writeDatagram(packet, packet.size(), node);
+                        nodeList->sendPacket(std::move(packet), node);
                     }
                 });
             }
@@ -805,26 +806,27 @@ void AudioMixer::run() {
                     std::unique_ptr<NLPacket> mixPacket;
 
                     if (streamsMixed > 0) {
-                        int mixPacketBytes = sizeof(quint16) + AudioConstants::NETWORK_FRAME_BYTES_STEREO;
+                        int mixPacketBytes = sizeof(quint16) + AudioConstants::NETWORK_FRAME_BYTES_STEREO * sizeof(int16_t);
                         mixPacket = NLPacket::create(PacketType::MixedAudio, mixPacketBytes);
 
                         // pack sequence number
                         quint16 sequence = nodeData->getOutgoingSequenceNumber();
-                        mixPacket.write(&sequence, sizeof(quint16));
+                        mixPacket->writePrimitive(sequence);
 
                         // pack mixed audio samples
-                        mixPacket.write(mixSamples, AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+                        mixPacket->write(reinterpret_cast<char*>(_mixSamples),
+                                         AudioConstants::NETWORK_FRAME_BYTES_STEREO * sizeof(int16_t));
                     } else {
                         int silentPacketBytes = sizeof(quint16) + sizeof(quint16);
                         mixPacket = NLPacket::create(PacketType::SilentAudioFrame, silentPacketBytes);
 
                         // pack sequence number
                         quint16 sequence = nodeData->getOutgoingSequenceNumber();
-                        mixPacket.write(&sequence, sizeof(quint16));
+                        mixPacket->writePrimitive(sequence);
 
                         // pack number of silent audio samples
                         quint16 numSilentSamples = AudioConstants::NETWORK_FRAME_SAMPLES_STEREO;
-                        mixPacket.write(&numSilentSamples, sizeof(quint16));
+                        mixPacket->writePrimitive(numSilentSamples);
                     }
 
                     // Send audio environment

@@ -42,7 +42,7 @@ OctreeQueryNode::OctreeQueryNode() :
     _lodInitialized(false),
     _sequenceNumber(0),
     _lastRootTimestamp(0),
-    _myPacketType(PacketTypeUnknown),
+    _myPacketType(PacketType::Unknown),
     _isShuttingDown(false),
     _sentPacketHistory()
 {
@@ -194,14 +194,14 @@ void OctreeQueryNode::resetOctreePacket() {
     _octreePacket->reset();
 
     // pack in flags
-    _octreePacket->write(&flags, sizeof(flags));
+    _octreePacket->writePrimitive(flags);
 
     // pack in sequence number
-    _octreePacket->write(&_sequenceNumber, sizeof(_sequenceNumber));
+    _octreePacket->writePrimitive(_sequenceNumber);
 
     // pack in timestamp
     OCTREE_PACKET_SENT_TIME now = usecTimestampNow();
-    _octreePacket->write(&now, sizeof(now));
+    _octreePacket->writePrimitive(now);
 
     _octreePacketWaiting = false;
 }
@@ -216,10 +216,10 @@ void OctreeQueryNode::writeToPacket(const unsigned char* buffer, unsigned int by
     // multiple compressed portions together
     if (_currentPacketIsCompressed) {
         OCTREE_PACKET_INTERNAL_SECTION_SIZE sectionSize = bytes;
-        _octreePacket->write(&sectionSize, sizeof(sectionSize));
+        _octreePacket->writePrimitive(sectionSize);
     }
     if (bytes <= _octreePacket->bytesAvailable()) {
-        _octreePacket->write(buffer, bytes);
+        _octreePacket->write(reinterpret_cast<const char*>(buffer), bytes);
         _octreePacketWaiting = true;
     }
 }
@@ -368,7 +368,7 @@ bool OctreeQueryNode::hasNextNackedPacket() const {
 const NLPacket* OctreeQueryNode::getNextNackedPacket() {
     if (!_nackedSequenceNumbers.isEmpty()) {
         // could return null if packet is not in the history
-        return _sentPacketHistory.getPacket(_nackedSequenceNumbers.dequeue());
+        return _sentPacketHistory.getPacket(_nackedSequenceNumbers.dequeue()).get();
     }
 
     return nullptr;

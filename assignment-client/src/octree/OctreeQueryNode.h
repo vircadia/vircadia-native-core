@@ -41,13 +41,12 @@ public:
 
     void writeToPacket(const unsigned char* buffer, unsigned int bytes); // writes to end of packet
 
-    NLPacket& getPacket() const { return _octreePacket; }
+    NLPacket& getPacket() const { return *_octreePacket; }
     bool isPacketWaiting() const { return _octreePacketWaiting; }
 
     bool packetIsDuplicate() const;
     bool shouldSuppressDuplicatePacket();
 
-    unsigned int getAvailable() const { return _octreePacketAvailableBytes; }
     int getMaxSearchLevel() const { return _maxSearchLevel; }
     void resetMaxSearchLevel() { _maxSearchLevel = 1; }
     void incrementMaxSearchLevel() { _maxSearchLevel++; }

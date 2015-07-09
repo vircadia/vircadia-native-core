@@ -368,7 +368,7 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
         auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID);
         killPacket->write(killedNode->getUUID().toRfc4122());
 
-        nodeList->broadcastToNodes(killPacket, NodeSet() << NodeType::Agent);
+        nodeList->broadcastToNodes(std::move(killPacket), NodeSet() << NodeType::Agent);
 
         // we also want to remove sequence number data for this avatar on our other avatars
         // so invoke the appropriate method on the AvatarMixerClientData for other avatars
