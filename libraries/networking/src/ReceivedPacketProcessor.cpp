@@ -9,9 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <NumericalConstants.h>
+
 #include "NodeList.h"
 #include "ReceivedPacketProcessor.h"
 #include "SharedUtil.h"
+
+ReceivedPacketProcessor::ReceivedPacketProcessor() {
+    _lastWindowAt = usecTimestampNow();
+}
+
 
 void ReceivedPacketProcessor::terminating() {
     _hasPackets.wakeAll();
@@ -27,6 +34,7 @@ void ReceivedPacketProcessor::queueReceivedPacket(const SharedNodePointer& sendi
     lock();
     _packets.push_back(std::move(networkPacket));
     _nodePacketCounts[sendingNode->getUUID()]++;
+    _lastWindowIncomingPackets++;
     unlock();
 
     // Make sure to wake our actual processing thread because we now have packets for it to process.
@@ -34,6 +42,24 @@ void ReceivedPacketProcessor::queueReceivedPacket(const SharedNodePointer& sendi
 }
 
 bool ReceivedPacketProcessor::process() {
+    quint64 now = usecTimestampNow();
+    quint64 sinceLastWindow = now - _lastWindowAt;
+
+    
+    if (sinceLastWindow > USECS_PER_SECOND) {
+        lock();
+        float secondsSinceLastWindow = sinceLastWindow / USECS_PER_SECOND;
+        float incomingPacketsPerSecondInWindow = (float)_lastWindowIncomingPackets / secondsSinceLastWindow;
+        _incomingPPS.updateAverage(incomingPacketsPerSecondInWindow);
+
+        float processedPacketsPerSecondInWindow = (float)_lastWindowIncomingPackets / secondsSinceLastWindow;
+        _processedPPS.updateAverage(processedPacketsPerSecondInWindow);
+
+        _lastWindowAt = now;
+        _lastWindowIncomingPackets = 0;
+        _lastWindowProcessedPackets = 0;
+        unlock();
+    }
 
     if (_packets.size() == 0) {
         _waitingOnPacketsMutex.lock();

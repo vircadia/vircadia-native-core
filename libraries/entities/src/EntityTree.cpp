@@ -26,15 +26,13 @@
 #include "LogHandler.h"
 
 
-const quint64 SIMULATOR_CHANGE_LOCKOUT_PERIOD = (quint64)(0.2f * USECS_PER_SECOND);
-
-
 EntityTree::EntityTree(bool shouldReaverage) : 
     Octree(shouldReaverage), 
     _fbxService(NULL),
     _simulation(NULL)
 {
     _rootElement = createNewElement();
+    resetClientEditStats();
 }
 
 EntityTree::~EntityTree() {
@@ -61,6 +59,8 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     }
     _entityToElementMap.clear();
     Octree::eraseAllOctreeElements(createNewRoot);
+    
+    resetClientEditStats();
 }
 
 bool EntityTree::handlesEditPacketType::(PacketType::Value packetType) const {
@@ -249,7 +249,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     if (getIsClient()) {
         // if our Node isn't allowed to create entities in this domain, don't try.
         auto nodeList = DependencyManager::get<NodeList>();
-        if (!nodeList->getThisNodeCanRez()) {
+        if (nodeList && !nodeList->getThisNodeCanRez()) {
             return NULL;
         }
     }
@@ -1122,4 +1122,30 @@ bool EntityTree::readFromMap(QVariantMap& map) {
     }
 
     return true;
+}
+
+void EntityTree::resetClientEditStats() {
+    _treeResetTime = usecTimestampNow();
+    _maxEditDelta = 0;
+    _totalEditDeltas = 0;
+    _totalTrackedEdits = 0;
+}
+
+
+
+void EntityTree::trackIncomingEntityLastEdited(quint64 lastEditedTime, int bytesRead) {
+    // we don't want to track all edit deltas, just those edits that have happend
+    // since we connected to this domain. This will filter out all previously created
+    // content and only track new edits
+    if (lastEditedTime > _treeResetTime) {
+        quint64 now = usecTimestampNow();
+        quint64 sinceEdit = now - lastEditedTime;
+
+        _totalEditDeltas += sinceEdit;
+        _totalEditBytes += bytesRead;
+        _totalTrackedEdits++;
+        if (sinceEdit > _maxEditDelta) {
+            _maxEditDelta = sinceEdit;
+        }
+    }
 }

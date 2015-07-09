@@ -269,6 +269,7 @@ namespace MenuOption {
     const QString ShowDSConnectTable = "Show Domain Connection Timing";
     const QString ShowBordersEntityNodes = "Show Entity Nodes";
     const QString ShowIKConstraints = "Show IK Constraints";
+    const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
     const QString SimpleShadows = "Simple";
     const QString SixenseEnabled = "Enable Hydra Support";
     const QString SixenseMouseInput = "Enable Sixense Mouse Input";
