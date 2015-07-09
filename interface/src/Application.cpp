@@ -2414,7 +2414,11 @@ void Application::cameraMenuChanged() {
 
 void Application::clearCacheAndRestart() {
     emptyLocalCache();
-    exit(RESTART_CODE);
+    
+    DependencyManager::get<AnimationCache>()->refreshAll();
+    DependencyManager::get<GeometryCache>()->refreshAll();
+    DependencyManager::get<SoundCache>()->refreshAll();
+    DependencyManager::get<TextureCache>()->refreshAll();
 }
 
 void Application::rotationModeChanged() {

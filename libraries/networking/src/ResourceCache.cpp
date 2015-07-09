@@ -44,10 +44,20 @@ ResourceCache::~ResourceCache() {
     }
 }
 
+void ResourceCache::refreshAll() {
+    for (auto it = _resources.begin(); it != _resources.end(); ++it) {
+        if (!it.value().isNull()) {
+            it.value().data()->refresh();
+        }
+    }
+}
+
 void ResourceCache::refresh(const QUrl& url) {
     QSharedPointer<Resource> resource = _resources.value(url);
     if (!resource.isNull()) {
         resource->refresh();
+    } else {
+        _resources.remove(url);
     }
 }
 

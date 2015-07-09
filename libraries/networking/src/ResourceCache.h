@@ -78,7 +78,8 @@ public:
 
     ResourceCache(QObject* parent = NULL);
     virtual ~ResourceCache();
-
+    
+    void refreshAll();
     void refresh(const QUrl& url);
 
 public slots:
@@ -110,7 +111,7 @@ protected:
 private:
     friend class Resource;
 
-    QHash<QUrl, QWeakPointer<Resource> > _resources;
+    QHash<QUrl, QWeakPointer<Resource>> _resources;
     int _lastLRUKey = 0;
     
     static int _requestLimit;
