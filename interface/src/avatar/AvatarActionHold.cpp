@@ -61,11 +61,9 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
         palmRotation = myAvatar->getLeftPalmRotation();
     }
 
-    auto rotation = myAvatar->getWorldAlignedOrientation();
+    auto rotation = palmRotation * _relativeRotation;
     auto offset = rotation * _relativePosition;
     auto position = palmPosition + offset;
-    rotation *= palmRotation;
-    rotation *= _relativeRotation;
     unlock();
 
     if (!tryLockForWrite()) {
