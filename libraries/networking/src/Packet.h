@@ -59,14 +59,8 @@ public:
     virtual bool reset() { setSizeUsed(0); return QIODevice::reset(); }
     virtual qint64 size() const { return _capacity; }
 
-    template<typename T> qint64 readPrimitive(T* data) {
-        return QIODevice::read(reinterpret_cast<char*>(data), sizeof(T));
-    }
-
-    template<typename T> qint64 writePrimitive(const T& data) {
-        static_assert(!std::is_pointer<T>::value, "T must not be a pointer");
-        return QIODevice::write(reinterpret_cast<const char*>(&data), sizeof(T));
-    }
+    template<typename T> qint64 readPrimitive(T* data);
+    template<typename T> qint64 writePrimitive(const T& data);
 
 protected:
     Packet(PacketType::Value type, int64_t size);
@@ -93,5 +87,15 @@ protected:
 
     qint64 _sizeUsed = 0;          // How much of the payload is actually used
 };
+
+
+template<typename T> qint64 readPrimitive(T* data) {
+    return QIODevice::read(reinterpret_cast<char*>(data), sizeof(T));
+}
+
+template<typename T> qint64 writePrimitive(const T& data) {
+    static_assert(!std::is_pointer<T>::value, "T must not be a pointer");
+    return QIODevice::write(reinterpret_cast<const char*>(&data), sizeof(T));
+}
 
 #endif // hifi_Packet_h
