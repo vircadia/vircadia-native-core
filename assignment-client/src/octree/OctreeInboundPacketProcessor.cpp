@@ -280,14 +280,15 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
             ++it;
         }
         
-        packetsSent = nackPacketList.getNumPackets();
         
-        if (packetsSent) {
+        if (nackPacketList.getNumPackets()) {
             qDebug() << "NACK Sent back to editor/client... destinationNode=" << nodeUUID;
+            
+            packetsSent += nackPacketList.getNumPackets();
+            
+            // send the list of nack packets
+            nodeList->sendPacketList(nackPacketList, destinationNode);
         }
-        
-        // send the list of nack packets
-        nodeList->sendPacketList(nackPacketList, destinationNode);
     }
 
     return packetsSent;
