@@ -23,7 +23,7 @@ const QString LOGS_DIRECTORY = "Logs";
 
 class FilePersistThread : public GenericQueueThread < QString > {    
 public:
-    FilePersistThread(FileLogger& logger) : _logger(logger) {
+    FilePersistThread(const FileLogger& logger) : _logger(logger) {
         setObjectName("LogFileWriter");
     }
 
@@ -39,7 +39,7 @@ protected:
         return true;
     }
 private:
-    FileLogger& _logger;
+    const FileLogger& _logger;
 };
 
 static FilePersistThread* _persistThreadInstance;
@@ -49,7 +49,7 @@ FileLogger::FileLogger(QObject* parent) :
     _logData("")
 {
     _persistThreadInstance = new FilePersistThread(*this);
-    _persistThreadInstance->initialize(true);
+    _persistThreadInstance->initialize(true, QThread::LowestPriority);
 
     _fileName = FileUtils::standardPath(LOGS_DIRECTORY);
     QHostAddress clientAddress = getLocalAddress();
