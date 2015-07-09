@@ -26,7 +26,7 @@
 #include "LogHandler.h"
 
 
-EntityTree::EntityTree(bool shouldReaverage) :
+EntityTree::EntityTree(bool shouldReaverage) : 
     Octree(shouldReaverage),
     _fbxService(NULL),
     _simulation(NULL)
