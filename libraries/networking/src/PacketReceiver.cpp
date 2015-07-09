@@ -10,18 +10,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QtCore/QWeakPointer>
-
-#include <AccountManager.h>
-#include <PerfStat.h>
-
-#include "Application.h"
-#include "avatar/AvatarManager.h"
-#include "AudioClient.h"
-#include "Menu.h"
-#include "InterfaceLogging.h"
-
 #include "PacketReceiver.h"
+
+#include "DependencyManager.h"
+#include "NLPacket.h"
+#include "NodeList.h"
 
 PacketReceiver::PacketReceiver(QObject* parent) :
     QObject(parent),
@@ -31,18 +24,18 @@ PacketReceiver::PacketReceiver(QObject* parent) :
 }
 
 void PacketReceiver::registerPacketListener(PacketType::Value type, QObject* object, QString methodName) {
-    packetListenerLock.lock();
-    if (packetListenerMap.contains(type)) {
+    _packetListenerLock.lock();
+    if (_packetListenerMap.contains(type)) {
         qDebug() << "Warning: Registering a packet listener for packet type " << type
             << " that will remove a previously registered listener";
     }
-    packetListenerMap[type] = QPair<QObject*, QString>(object, methodName);
-    packetListenerLock.unlock();
+    _packetListenerMap[type] = QPair<QObject*, QString>(object, methodName);
+    _packetListenerLock.unlock();
 }
 
 void PacketReceiver::processDatagrams() {
-    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                            "PacketReceiver::processDatagrams()");
+    //PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                            //"PacketReceiver::processDatagrams()");
 
     if (_isShuttingDown) {
         return; // bail early... we're shutting down.
@@ -66,21 +59,22 @@ void PacketReceiver::processDatagrams() {
             // TODO What do we do about this?
             //nodeList->processNodeData(senderSockAddr, incomingPacket);
 
-            packetListenerLock.lock();
-            auto& listener = packetListenerMap[incomingType];
-            packetListenerLock.unlock();
+            _packetListenerLock.lock();
+            auto& listener = _packetListenerMap[incomingType];
+            _packetListenerLock.unlock();
 
-            if (packetListenerMap.contains(incomingType)) {
-                auto& listener = packetListenerMap[incomingType];
-                NLPacket packet;
+            if (_packetListenerMap.contains(incomingType)) {
+                auto& listener = _packetListenerMap[incomingType];
+                //TODO Update packet
+                std::unique_ptr<NLPacket> packet;
                 bool success = QMetaObject::invokeMethod(listener.first, listener.second,
                         Q_ARG(std::unique_ptr<NLPacket>, packet),
                         Q_ARG(HifiSockAddr, senderSockAddr));
                 if (!success) {
-                    qDebug() << "Error sending packet " << incomingType << " to listener: " << listener.first.name() << "::" << listener.second;
+                    qDebug() << "Error sending packet " << incomingType << " to listener: " << listener.first->objectName() << "::" << listener.second;
                 }
             } else {
-                QDebug() << "No listener found for packet type: " << incomingType;
+                qDebug() << "No listener found for packet type: " << incomingType;
             }
 
         }

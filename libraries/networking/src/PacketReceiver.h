@@ -13,7 +13,14 @@
 #ifndef hifi_PacketReceiver_h
 #define hifi_PacketReceiver_h
 
+#include <QtCore/QMap>
+#include <QtCore/QMutex>
 #include <QtCore/QObject>
+#include <QtCore/QPair>
+
+#include <memory>
+
+#include "PacketHeaders.h"
 
 class PacketReceiver : public QObject {
     Q_OBJECT
@@ -35,8 +42,8 @@ public slots:
     void processDatagrams();
     
 private:
-    QMutex packetListenerLock;
-    QMap<PacketType::Value, QPair<QObject*, QString>> packetListenerMap;
+    QMutex _packetListenerLock;
+    QMap<PacketType::Value, QPair<QObject*, QString>> _packetListenerMap;
     int _inPacketCount = 0;
     int _outPacketCount = 0;
     int _inByteCount = 0;
