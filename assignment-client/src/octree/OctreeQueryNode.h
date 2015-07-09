@@ -14,7 +14,6 @@
 
 #include <iostream>
 
-
 #include <CoverageMap.h>
 #include <NodeData.h>
 #include <OctreeConstants.h>

@@ -29,10 +29,9 @@ std::unique_ptr<Packet> Packet::create(PacketType::Value type, qint64 size) {
         // default size of -1, means biggest packet possible
         size = maxPayload;
     }
-    if (size <= 0 || size > maxPayload) {
-        // Invalid size, return null pointer
-        return std::unique_ptr<Packet>();
-    }
+    
+    // Fail with invalid size
+    Q_ASSERT(size >= 0 || size < maxPayload);
 
     // allocate memory
     return std::unique_ptr<Packet>(new Packet(type, size));
