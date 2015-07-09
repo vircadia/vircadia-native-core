@@ -140,6 +140,14 @@ AudioClient::AudioClient() :
     // create GVerb filter
     _gverb = createGverbFilter();
     configureGverbFilter(_gverb);
+
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerPacketListener(PacketType::AudioEnvironment, this, "handleAudioStreamStatsPacket");
+    packetReceiver.registerPacketListener(PacketType::AudioStreamStats, this, "handleAudioEnvironmentDataPacket");
+    packetReceiver.registerPacketListener(PacketType::MixedAudio, this, "handleAudioDataPacket");
+    packetReceiver.registerPacketListener(PacketType::SilentAudioFrame, this, "handleSilentAudioFrame");
+    packetReceiver.registerPacketListener(PacketType::NoisyMute, this, "handleNoisyMutePacket");
+    packetReceiver.registerPacketListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
 }
 
 AudioClient::~AudioClient() {
@@ -525,6 +533,93 @@ void AudioClient::stop() {
         soxr_delete(_loopbackResampler);
         _loopbackResampler = NULL;
     }
+}
+
+void AudioClient::handleAudioStreamStatsPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
+    _stats.parseAudioStreamStatsPacket(packet->getData());
+
+    updateLastHeardFromAudioMixer(packet);
+}
+
+void AudioClient::handleAudioEnvironmentDataPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
+    const char* dataAt = packet->getPayload();
+
+    char bitset;
+    memcpy(&bitset, dataAt, sizeof(char));
+    dataAt += sizeof(char);
+
+    bool hasReverb = oneAtBit(bitset, HAS_REVERB_BIT);;
+    if (hasReverb) {
+        float reverbTime, wetLevel;
+        memcpy(&reverbTime, dataAt, sizeof(float));
+        dataAt += sizeof(float);
+        memcpy(&wetLevel, dataAt, sizeof(float));
+        dataAt += sizeof(float);
+        _receivedAudioStream.setReverb(reverbTime, wetLevel);
+    } else {
+        _receivedAudioStream.clearReverb();
+    }
+
+    updateLastHeardFromAudioMixer(packet);
+}
+
+void AudioClient::handleAudioDataPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveFirstAudioPacket);
+
+    if (_audioOutput) {
+
+        if (!_hasReceivedFirstPacket) {
+            _hasReceivedFirstPacket = true;
+
+            // have the audio scripting interface emit a signal to say we just connected to mixer
+            emit receivedFirstPacket();
+        }
+
+        // Audio output must exist and be correctly set up if we're going to process received audio
+        _receivedAudioStream.parseData(packet->getData());
+    }
+
+    updateLastHeardFromAudioMixer(packet);
+}
+
+void AudioClient::handleSilentAudioFrame(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
+    updateLastHeardFromAudioMixer(packet);
+}
+
+void AudioClient::handleNoisyMutePacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
+    if (!_muted) {
+        toggleMute();
+        // TODO reimplement on interface side
+        //AudioScriptingInterface::getInstance().mutedByMixer();
+    }
+}
+
+void AudioClient::handleMuteEnvironmentPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
+    glm::vec3 position;
+    float radius;
+
+    int headerSize = numBytesForPacketHeaderGivenPacketType(PacketType::MuteEnvironment);
+    memcpy(&position, packet->getPayload(), sizeof(glm::vec3));
+    memcpy(&radius, packet->getPayload() + sizeof(glm::vec3), sizeof(float));
+    float distance = glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(),
+                             position);
+    bool shouldMute = !_muted && (distance < radius);
+
+    if (shouldMute) {
+        toggleMute();
+        // TODO reimplement on interface side
+        //AudioScriptingInterface::getInstance().environmentMuted();
+    }
+}
+
+void AudioClient::updateLastHeardFromAudioMixer(std::unique_ptr<NLPacket>& packet) {
+    // update having heard from the audio-mixer and record the bytes received
+    SharedNodePointer audioMixer = nodeList->nodeWithUUID(packet->getSourceID());
+    if (audioMixer) {
+        audioMixer->setLastHeardMicrostamp(usecTimestampNow());
+    }
+
 }
 
 QString AudioClient::getDefaultDeviceName(QAudio::Mode mode) {

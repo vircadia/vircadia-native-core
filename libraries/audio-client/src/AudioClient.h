@@ -133,10 +133,15 @@ public:
 public slots:
     void start();
     void stop();
-    void addReceivedAudioToStream(const QByteArray& audioByteArray);
-    void parseAudioEnvironmentData(const QByteArray& packet);
+
+    void handleAudioStreamStatsPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleAudioEnvironmentDataPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleAudioDataPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleSilentAudioFrame(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleNoisyMutePacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleMuteEnvironmentPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
+
     void sendDownstreamAudioStatsPacket() { _stats.sendDownstreamAudioStatsPacket(); }
-    void parseAudioStreamStatsPacket(const QByteArray& packet) { _stats.parseAudioStreamStatsPacket(packet); }
     void handleAudioInput();
     void reset();
     void audioMixerKilled();
@@ -202,6 +207,7 @@ private slots:
     void audioStateChanged(QAudio::State state);
 
 private:
+    void updateLastHeardFromAudioMixer(std::unique_ptr<NLPacket>& packet);
     void outputFormatChanged();
 
     QByteArray firstInputFrame;
