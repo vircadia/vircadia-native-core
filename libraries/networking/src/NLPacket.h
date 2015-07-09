@@ -19,7 +19,7 @@ class NLPacket : public Packet {
 public:
     static std::unique_ptr<NLPacket> create(PacketType::Value type, int64_t size = -1);
     // Provided for convenience, try to limit use
-    static std::unique_ptr<NLPacket> createCopy(const std::unique_ptr<NLPacket>& other);
+    static std::unique_ptr<NLPacket> createCopy(const NLPacket& other);
 
     static int64_t localHeaderSize(PacketType::Value type);
     static int64_t maxPayloadSize(PacketType::Value type);
@@ -29,7 +29,7 @@ public:
 
 protected:
     NLPacket(PacketType::Value type, int64_t size);
-    NLPacket(NLPacket& other);
+    NLPacket(const NLPacket& other);
 
     void setSourceUuid(QUuid sourceUuid);
     void setConnectionUuid(QUuid connectionUuid);

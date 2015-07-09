@@ -108,7 +108,7 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, std::uniqu
             }
 
             // add packet to history
-            _sentPacketHistories[nodeUUID].packetSent(sequence, packet);
+            _sentPacketHistories[nodeUUID].packetSent(sequence, *packet.get());
 
             queuePacketForSending(node, std::move(packet));
         }
@@ -186,7 +186,7 @@ void OctreeEditPacketSender::queuePacketToNodes(std::unique_ptr<NLPacket> packet
 
             if (isMyJurisdiction) {
                 // make a copy of this packet for this node and queue
-                auto packetCopy = NLPacket::createCopy(packet);
+                auto packetCopy = NLPacket::createCopy(*packet.get());
                 queuePacketToNode(nodeUUID, std::move(packetCopy));
             }
         }
@@ -362,10 +362,10 @@ void OctreeEditPacketSender::processNackPacket(const QByteArray& packet) {
         dataAt += sizeof(unsigned short int);
 
         // retrieve packet from history
-        const std::unique_ptr<NLPacket>& packet = sentPacketHistory.getPacket(sequenceNumber);
+        const NLPacket* packet = sentPacketHistory.getPacket(sequenceNumber);
         if (packet) {
             const SharedNodePointer& node = DependencyManager::get<NodeList>()->nodeWithUUID(sendingNodeUUID);
-            queuePacketForSending(node, NLPacket::createCopy(packet));
+            queuePacketForSending(node, NLPacket::createCopy(*packet));
         }
     }
 }

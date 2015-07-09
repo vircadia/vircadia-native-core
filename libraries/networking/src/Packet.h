@@ -25,7 +25,7 @@ public:
 
     static std::unique_ptr<Packet> create(PacketType::Value type, int64_t size = -1);
     // Provided for convenience, try to limit use
-    static std::unique_ptr<Packet> createCopy(const std::unique_ptr<Packet>& other);
+    static std::unique_ptr<Packet> createCopy(const Packet& other);
 
     static qint64 localHeaderSize(PacketType::Value type);
     static qint64 maxPayloadSize(PacketType::Value type);

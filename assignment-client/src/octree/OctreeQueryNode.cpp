@@ -356,7 +356,7 @@ void OctreeQueryNode::dumpOutOfView() {
     }
 }
 
-void OctreeQueryNode::packetSent(const std::unique_ptr<NLPacket>& packet) {
+void OctreeQueryNode::packetSent(const NLPacket& packet) {
     _sentPacketHistory.packetSent(_sequenceNumber, packet);
     _sequenceNumber++;
 }

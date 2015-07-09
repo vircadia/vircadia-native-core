@@ -56,12 +56,12 @@ void IceServer::processDatagrams() {
 
         PacketType::Value packetType = packetTypeForPacket(incomingPacket);
 
-        if (packetType == PacketType::IceServerHeartbeat) {
+        if (packetType == PacketType::ICEServerHeartbeat) {
             SharedNetworkPeer peer = addOrUpdateHeartbeatingPeer(incomingPacket);
 
             // so that we can send packets to the heartbeating peer when we need, we need to activate a socket now
             peer->activateMatchingOrNewSymmetricSocket(sendingSockAddr);
-        } else if (packetType == PacketType::IceServerQuery) {
+        } else if (packetType == PacketType::ICEServerQuery) {
             QDataStream heartbeatStream(incomingPacket);
 
             // this is a node hoping to connect to a heartbeating peer - do we have the heartbeating peer?
@@ -128,13 +128,13 @@ SharedNetworkPeer IceServer::addOrUpdateHeartbeatingPeer(const QByteArray& incom
 }
 
 void IceServer::sendPeerInformationPacket(const NetworkPeer& peer, const HifiSockAddr* destinationSockAddr) {
-    auto peerPacket = Packet::create(PacketType::IceServerPeerInformation);
+    auto peerPacket = Packet::create(PacketType::ICEServerPeerInformation);
 
     // get the byte array for this peer
     peerPacket->write(peer.toByteArray());
 
     // write the current packet
-    _serverSocket.writeDatagram(peerPacket.constData(), peerPacket.sizeUsed(),
+    _serverSocket.writeDatagram(peerPacket->getData(), peerPacket->getSizeWithHeader(),
                                 destinationSockAddr->getAddress(), destinationSockAddr->getPort());
 }
 

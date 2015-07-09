@@ -24,8 +24,8 @@ class SentPacketHistory {
 public:
     SentPacketHistory(int size = MAX_REASONABLE_SEQUENCE_GAP);
 
-    void packetSent(uint16_t sequenceNumber, const std::unique_ptr<NLPacket>& packet);
-    const std::unique_ptr<NLPacket>& getPacket(uint16_t sequenceNumber) const;
+    void packetSent(uint16_t sequenceNumber, const NLPacket& packet);
+    const NLPacket* getPacket(uint16_t sequenceNumber) const;
 
 private:
     RingBufferHistory<std::unique_ptr<NLPacket>> _sentPackets;    // circular buffer
