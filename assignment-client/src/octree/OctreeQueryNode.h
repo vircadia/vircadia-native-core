@@ -14,7 +14,6 @@
 
 #include <iostream>
 
-
 #include <CoverageMap.h>
 #include <NodeData.h>
 #include <OctreeConstants.h>
@@ -104,7 +103,7 @@ public:
     void forceNodeShutdown();
     bool isShuttingDown() const { return _isShuttingDown; }
 
-    void octreePacketSent() { packetSent(*_octreePacket.get()); }
+    void octreePacketSent() { packetSent(*_octreePacket); }
     void packetSent(const NLPacket& packet);
 
     OCTREE_PACKET_SEQUENCE getSequenceNumber() const { return _sequenceNumber; }

@@ -408,7 +408,6 @@ void AvatarMixer::readPendingDatagrams() {
                     break;
                 }
                 case PacketType::AvatarIdentity: {
-
                     // check if we have a matching node in our list
                     SharedNodePointer avatarNode = nodeList->sendingNodeForPacket(receivedPacket);
 
@@ -425,7 +424,6 @@ void AvatarMixer::readPendingDatagrams() {
                     break;
                 }
                 case PacketType::AvatarBillboard: {
-
                     // check if we have a matching node in our list
                     SharedNodePointer avatarNode = nodeList->sendingNodeForPacket(receivedPacket);
 

@@ -23,7 +23,7 @@ class Packet : public QIODevice {
 public:
     using SequenceNumber = uint16_t;
 
-    static std::unique_ptr<Packet> create(PacketType::Value type, int64_t size = -1);
+    static std::unique_ptr<Packet> create(PacketType::Value type, qint64 size = -1);
     // Provided for convenience, try to limit use
     static std::unique_ptr<Packet> createCopy(const Packet& other);
 
