@@ -471,8 +471,8 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
         for (auto lightID : _spotLights) {
             auto light = _allocatedLights[lightID];
-            // IN DEBUG:
-             light->setShowContour(true);
+            // IN DEBUG: light->setShowContour(true);
+
             batch.setUniformBuffer(_spotLightLocations.lightBufferUnit, light->getSchemaBuffer());
             
             auto eyeLightPos = eyePoint - light->getPosition();
