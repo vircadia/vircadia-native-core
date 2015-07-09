@@ -48,10 +48,6 @@ const NLPacket* SentPacketHistory::getPacket(uint16_t sequenceNumber) const {
     if (seqDiff < 0) {
         seqDiff += UINT16_RANGE;
     }
-    auto packet = _sentPackets.get(seqDiff);
-    if (packet) {
-        return packet->get();
-    } else {
-        return nullptr;
-    }
+
+    return _sentPackets.get(seqDiff)->get();
 }
