@@ -17,8 +17,8 @@ const float SPRING_MAX_SPEED = 10.0f;
 
 const uint16_t ObjectActionSpring::springVersion = 1;
 
-ObjectActionSpring::ObjectActionSpring(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) :
-    ObjectAction(type, id, ownerEntity),
+ObjectActionSpring::ObjectActionSpring(const QUuid& id, EntityItemPointer ownerEntity) :
+    ObjectAction(ACTION_TYPE_SPRING, id, ownerEntity),
     _positionalTarget(glm::vec3(0.0f)),
     _linearTimeScale(0.2f),
     _positionalTargetSet(false),
@@ -206,7 +206,7 @@ QVariantMap ObjectActionSpring::getArguments() {
     return arguments;
 }
 
-QByteArray ObjectActionSpring::serialize() {
+QByteArray ObjectActionSpring::serialize() const {
     QByteArray serializedActionArguments;
     QDataStream dataStream(&serializedActionArguments, QIODevice::WriteOnly);
 
@@ -229,13 +229,14 @@ void ObjectActionSpring::deserialize(QByteArray serializedArguments) {
     QDataStream dataStream(serializedArguments);
 
     EntityActionType type;
-    QUuid id;
-    uint16_t serializationVersion;
-
     dataStream >> type;
     assert(type == getType());
+
+    QUuid id;
     dataStream >> id;
     assert(id == getID());
+
+    uint16_t serializationVersion;
     dataStream >> serializationVersion;
     if (serializationVersion != ObjectActionSpring::springVersion) {
         return;

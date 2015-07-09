@@ -1014,6 +1014,7 @@ void Application::paintGL() {
 
 void Application::runTests() {
     runTimingTests();
+    runUnitTests();
 }
 
 void Application::audioMuteToggled() {
