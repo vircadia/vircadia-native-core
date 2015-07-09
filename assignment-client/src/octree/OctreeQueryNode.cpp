@@ -368,7 +368,7 @@ bool OctreeQueryNode::hasNextNackedPacket() const {
 const NLPacket* OctreeQueryNode::getNextNackedPacket() {
     if (!_nackedSequenceNumbers.isEmpty()) {
         // could return null if packet is not in the history
-        return _sentPacketHistory.getPacket(_nackedSequenceNumbers.dequeue()).get();
+        return _sentPacketHistory.getPacket(_nackedSequenceNumbers.dequeue());
     }
 
     return nullptr;
