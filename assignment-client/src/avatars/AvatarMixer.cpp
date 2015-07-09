@@ -305,9 +305,12 @@ void AvatarMixer::broadcastAvatarData() {
                             || otherNodeData->getBillboardChangeTimestamp() > _lastFrameTimestamp
                             || randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
 
-                        auto billboardPacket = NLPacket::create(PacketType::AvatarBillboard);
-                        billboardPacket->write(otherNode->getUUID().toRfc4122());
-                        billboardPacket->write(otherNodeData->getAvatar().getBillboard());
+                        QByteArray rfcUUID = otherNode->getUUID().toRfc4122();
+                        QByteArray billboard = otherNodeData->getAvatar().getBillboard();
+
+                        auto billboardPacket = NLPacket::create(PacketType::AvatarBillboard, rfcUUID.size() + billboard.size());
+                        billboardPacket->write(rfcUUID);
+                        billboardPacket->write(billboard);
 
                         nodeList->sendPacket(std::move(billboardPacket), node);
 
@@ -319,9 +322,10 @@ void AvatarMixer::broadcastAvatarData() {
                             || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
                             || randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
 
-                        auto identityPacket = NLPacket::create(PacketType::AvatarIdentity);
-
                         QByteArray individualData = otherNodeData->getAvatar().identityByteArray();
+
+                        auto identityPacket = NLPacket::create(PacketType::AvatarIdentity, individualData.size());
+
                         individualData.replace(0, NUM_BYTES_RFC4122_UUID, otherNode->getUUID().toRfc4122());
 
                         identityPacket->write(individualData);
