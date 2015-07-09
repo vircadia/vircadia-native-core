@@ -19,6 +19,7 @@
 #include "PacketHeaders.h"
 
 class Packet : public QIODevice {
+    Q_OBJECT
 public:
     using SequenceNumber = uint16_t;
 

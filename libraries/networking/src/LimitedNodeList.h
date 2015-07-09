@@ -39,7 +39,7 @@
 #include "Node.h"
 #include "NLPacket.h"
 #include "PacketHeaders.h"
-#include "PacketList.h"
+#include "NLPacketList.h"
 #include "UUIDHasher.h"
 
 const int MAX_PACKET_SIZE = 1450;
@@ -69,7 +69,6 @@ Q_DECLARE_METATYPE(SharedNodePointer)
 using namespace tbb;
 typedef std::pair<QUuid, SharedNodePointer> UUIDNodePair;
 typedef concurrent_unordered_map<QUuid, SharedNodePointer, UUIDHasher> NodeHash;
-using NLPacketList = PacketList<NLPacket>;
 
 typedef quint8 PingType_t;
 namespace PingType {
