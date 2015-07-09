@@ -2891,7 +2891,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType::Value packetTyp
             queryPacket->setSizeUsed(packetSize);
 
             // make sure we still have an active socket
-            nodeList->sendUnreliablePacket(queryPacket, node);
+            nodeList->sendUnreliablePacket(*queryPacket, node);
         }
     });
 }
