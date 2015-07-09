@@ -52,15 +52,19 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
     }
 
     glm::vec3 palmPosition;
+    glm::quat palmRotation;
     if (_hand == "right") {
         palmPosition = myAvatar->getRightPalmPosition();
+        palmRotation = myAvatar->getRightPalmRotation();
     } else {
         palmPosition = myAvatar->getLeftPalmPosition();
+        palmRotation = myAvatar->getLeftPalmRotation();
     }
 
     auto rotation = myAvatar->getWorldAlignedOrientation();
     auto offset = rotation * _relativePosition;
     auto position = palmPosition + offset;
+    rotation *= palmRotation;
     rotation *= _relativeRotation;
     unlock();
 

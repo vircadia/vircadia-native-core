@@ -371,6 +371,19 @@ glm::vec3 MyAvatar::getLeftPalmPosition() {
     return leftHandPosition;
 }
 
+glm::quat MyAvatar::getLeftPalmRotation() {
+    unsigned int leftIndex = 0;
+    if (getHand()->getNumPalms() > leftIndex) {
+        PalmData& palm = getHand()->getPalms()[leftIndex];
+        if (palm.isActive()) {
+            glm::vec3 tipDirection = glm::normalize(palm.getTipPosition() - palm.getPosition());
+            glm::vec3 avatarDirection = glm::vec3(0.0f, 0.0f, 1.0f) * getOrientation();
+            return rotationBetween(avatarDirection, tipDirection);
+        }
+    }
+    return glm::quat();
+}
+
 glm::vec3 MyAvatar::getRightPalmPosition() {
     glm::vec3 rightHandPosition;
     getSkeletonModel().getRightHandPosition(rightHandPosition);
@@ -378,6 +391,19 @@ glm::vec3 MyAvatar::getRightPalmPosition() {
     getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightRotation);
     rightHandPosition += HAND_TO_PALM_OFFSET * glm::inverse(rightRotation);
     return rightHandPosition;
+}
+
+glm::quat MyAvatar::getRightPalmRotation() {
+    unsigned int rightIndex = 1;
+    if (getHand()->getNumPalms() > rightIndex) {
+        PalmData& palm = getHand()->getPalms()[rightIndex];
+        if (palm.isActive()) {
+            glm::vec3 tipDirection = glm::normalize(palm.getTipPosition() - palm.getPosition());
+            glm::vec3 avatarDirection = glm::vec3(0.0f, 0.0f, 1.0f) * getOrientation();
+            return rotationBetween(avatarDirection, tipDirection);
+        }
+    }
+    return glm::quat();
 }
 
 void MyAvatar::clearReferential() {
