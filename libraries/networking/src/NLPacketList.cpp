@@ -63,7 +63,7 @@ qint64 NLPacketList::writeData(const char* data, qint64 maxSize) {
                     // but the PacketList is not going to be sent ordered
                     qDebug() << "Error in PacketList::writeData - attempted to write a segment to an unordered packet that is"
                         << "larger than the payload size.";
-                    return -1;
+                    Q_ASSERT(false);
                 }
 
                 // copy from currentPacket where the segment started to the beginning of the newPacket
