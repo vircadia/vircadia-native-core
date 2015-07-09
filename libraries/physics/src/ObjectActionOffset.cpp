@@ -17,7 +17,7 @@ const uint16_t ObjectActionOffset::offsetVersion = 1;
 
 ObjectActionOffset::ObjectActionOffset(const QUuid& id, EntityItemPointer ownerEntity) :
     ObjectAction(ACTION_TYPE_OFFSET, id, ownerEntity),
-    _pointToOffsetFrom(0.f),
+    _pointToOffsetFrom(0.0f),
     _linearDistance(0.0f),
     _linearTimeScale(FLT_MAX),
     _positionalTargetSet(false) {
