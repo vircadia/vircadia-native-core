@@ -419,6 +419,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
             &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::receivedFirstPacket);
     connect(audioIO.data(), &AudioClient::disconnected,
             &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::disconnected);
+    connect(audioIO.data(), &AudioClient::muteEnvironmentRequested, [](glm::vec3 position, float radius) {
+        auto audioClient = DependencyManager::get<AudioClient>();
+        float distance = glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(),
+                                 position);
+        bool shouldMute = !audioClient->isMuted() && (distance < radius);
+
+        if (shouldMute) {
+            audioClient->toggleMute();
+            AudioScriptingInterface::getInstance().environmentMuted();
+        }
+    });
 
     audioThread->start();
 

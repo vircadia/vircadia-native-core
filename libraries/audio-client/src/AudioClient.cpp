@@ -602,19 +602,13 @@ void AudioClient::handleMuteEnvironmentPacket(std::unique_ptr<NLPacket> packet, 
     int headerSize = numBytesForPacketHeaderGivenPacketType(PacketType::MuteEnvironment);
     memcpy(&position, packet->getPayload(), sizeof(glm::vec3));
     memcpy(&radius, packet->getPayload() + sizeof(glm::vec3), sizeof(float));
-    float distance = glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(),
-                             position);
-    bool shouldMute = !_muted && (distance < radius);
 
-    if (shouldMute) {
-        toggleMute();
-        // TODO reimplement on interface side
-        //AudioScriptingInterface::getInstance().environmentMuted();
-    }
+    emit muteEnvironmentRequested(position, radius);
 }
 
 void AudioClient::updateLastHeardFromAudioMixer(std::unique_ptr<NLPacket>& packet) {
     // update having heard from the audio-mixer and record the bytes received
+    auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer audioMixer = nodeList->nodeWithUUID(packet->getSourceID());
     if (audioMixer) {
         audioMixer->setLastHeardMicrostamp(usecTimestampNow());
@@ -1020,44 +1014,6 @@ void AudioClient::sendMuteEnvironmentPacket() {
     if (audioMixer) {
         // send off this mute packet
         nodeList->sendPacket(std::move(mutePacket), audioMixer);
-    }
-}
-
-void AudioClient::addReceivedAudioToStream(const QByteArray& audioByteArray) {
-    DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveFirstAudioPacket);
-
-    if (_audioOutput) {
-
-        if (!_hasReceivedFirstPacket) {
-            _hasReceivedFirstPacket = true;
-
-            // have the audio scripting interface emit a signal to say we just connected to mixer
-            emit receivedFirstPacket();
-        }
-
-        // Audio output must exist and be correctly set up if we're going to process received audio
-        _receivedAudioStream.parseData(audioByteArray);
-    }
-}
-
-void AudioClient::parseAudioEnvironmentData(const QByteArray &packet) {
-    int numBytesPacketHeader = numBytesForPacketHeader(packet);
-    const char* dataAt = packet.constData() + numBytesPacketHeader;
-
-    char bitset;
-    memcpy(&bitset, dataAt, sizeof(char));
-    dataAt += sizeof(char);
-
-    bool hasReverb = oneAtBit(bitset, HAS_REVERB_BIT);;
-    if (hasReverb) {
-        float reverbTime, wetLevel;
-        memcpy(&reverbTime, dataAt, sizeof(float));
-        dataAt += sizeof(float);
-        memcpy(&wetLevel, dataAt, sizeof(float));
-        dataAt += sizeof(float);
-        _receivedAudioStream.setReverb(reverbTime, wetLevel);
-    } else {
-        _receivedAudioStream.clearReverb();
     }
 }
 

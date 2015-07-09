@@ -13,6 +13,7 @@
 #define hifi_AudioClient_h
 
 #include <fstream>
+#include <memory>
 #include <vector>
 
 #include <QtCore/QByteArray>
@@ -32,8 +33,10 @@
 #include <AudioSourceTone.h>
 #include <AudioSourceNoise.h>
 #include <AudioStreamStats.h>
-#include <DependencyManager.h>
 
+#include <DependencyManager.h>
+#include <HifiSockAddr.h>
+#include <NLPacket.h>
 #include <MixedProcessedAudioStream.h>
 #include <RingBufferHistory.h>
 #include <SettingHandle.h>
@@ -196,6 +199,8 @@ signals:
     void disconnected();
 
     void audioFinished();
+
+    void muteEnvironmentRequested(glm::vec3 position, float radius);
 
 protected:
     AudioClient();
