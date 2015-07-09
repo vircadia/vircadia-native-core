@@ -75,46 +75,49 @@ void ImageOverlay::render(RenderArgs* args) {
     glm::vec2 topLeft(left, top);
     glm::vec2 bottomRight(right, bottom);
 
-    float imageWidth = _texture->getWidth();
-    float imageHeight = _texture->getHeight();
+
 
     // if for some reason our image is not over 0 width or height, don't attempt to render the image
-    if (_renderImage && imageWidth > 0 && imageHeight > 0) {
+    if (_renderImage) {
+        float imageWidth = _texture->getWidth();
+        float imageHeight = _texture->getHeight();
+        if (imageWidth > 0 && imageHeight > 0) {
+            QRect fromImage;
+            if (_wantClipFromImage) {
+                float scaleX = imageWidth / _texture->getOriginalWidth();
+                float scaleY = imageHeight / _texture->getOriginalHeight();
 
-        QRect fromImage;
-        if (_wantClipFromImage) {
-            float scaleX = imageWidth / _texture->getOriginalWidth();
-            float scaleY = imageHeight / _texture->getOriginalHeight();
+                fromImage.setX(scaleX * _fromImage.x());
+                fromImage.setY(scaleY * _fromImage.y());
+                fromImage.setWidth(scaleX * _fromImage.width());
+                fromImage.setHeight(scaleY * _fromImage.height());
+            }
+            else {
+                fromImage.setX(0);
+                fromImage.setY(0);
+                fromImage.setWidth(imageWidth);
+                fromImage.setHeight(imageHeight);
+            }
 
-            fromImage.setX(scaleX * _fromImage.x());
-            fromImage.setY(scaleY * _fromImage.y());
-            fromImage.setWidth(scaleX * _fromImage.width());
-            fromImage.setHeight(scaleY * _fromImage.height());
-        } else {
-            fromImage.setX(0);
-            fromImage.setY(0);
-            fromImage.setWidth(imageWidth);
-            fromImage.setHeight(imageHeight);
+            float x = fromImage.x() / imageWidth;
+            float y = fromImage.y() / imageHeight;
+            float w = fromImage.width() / imageWidth; // ?? is this what we want? not sure
+            float h = fromImage.height() / imageHeight;
+
+            glm::vec2 texCoordTopLeft(x, y);
+            glm::vec2 texCoordBottomRight(x + w, y + h);
+
+            DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, quadColor);
+        }
+        else {
+            DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);
         }
 
-        float x = fromImage.x() / imageWidth;
-        float y = fromImage.y() / imageHeight;
-        float w = fromImage.width() / imageWidth; // ?? is this what we want? not sure
-        float h = fromImage.height() / imageHeight;
-
-        glm::vec2 texCoordTopLeft(x, y);
-        glm::vec2 texCoordBottomRight(x + w, y + h);
-
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, quadColor);
-    } else {
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);
-    }
-
-    if (_renderImage) {
-        glDisable(GL_TEXTURE_2D);
+        if (_renderImage) {
+            glDisable(GL_TEXTURE_2D);
+        }
     }
 }
-
 void ImageOverlay::setProperties(const QScriptValue& properties) {
     Overlay2D::setProperties(properties);
 
