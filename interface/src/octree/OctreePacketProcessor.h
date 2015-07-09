@@ -30,9 +30,9 @@ protected:
     virtual void processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);
 
 private slots:
-    void handleEntityDataPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
-    void handleEntityErasePacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
-    void handleOctreeStatsPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
-    void handleEnvironmentDataPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleEntityDataPacket(NLPacket& packet, HifiSockAddr senderSockAddr);
+    void handleEntityErasePacket(NLPacket& packet, HifiSockAddr senderSockAddr);
+    void handleOctreeStatsPacket(NLPacket& packet, HifiSockAddr senderSockAddr);
+    void handleEnvironmentDataPacket(NLPacket& packet, HifiSockAddr senderSockAddr);
 };
 #endif // hifi_OctreePacketProcessor_h
