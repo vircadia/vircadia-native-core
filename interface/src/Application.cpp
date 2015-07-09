@@ -3460,23 +3460,21 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     if (!selfAvatarOnly) {
         auto var = DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities();
         // render models...
-        //if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
-            PerformanceTimer perfTimer("entities");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... entities...");
+        PerformanceTimer perfTimer("entities");
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+            "Application::displaySide() ... entities...");
 
-            RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE;
+        RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE;
 
-            if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowHulls)) {
-                renderDebugFlags = (RenderArgs::DebugFlags) (renderDebugFlags | (int) RenderArgs::RENDER_DEBUG_HULLS);
-            }
-            if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned)) {
-                renderDebugFlags =
-                    (RenderArgs::DebugFlags) (renderDebugFlags | (int) RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP);
-            }
-            renderArgs->_debugFlags = renderDebugFlags;
-            _entities.render(renderArgs);
-        //}
+        if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowHulls)) {
+            renderDebugFlags = (RenderArgs::DebugFlags) (renderDebugFlags | (int) RenderArgs::RENDER_DEBUG_HULLS);
+        }
+        if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned)) {
+            renderDebugFlags =
+                (RenderArgs::DebugFlags) (renderDebugFlags | (int) RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP);
+        }
+        renderArgs->_debugFlags = renderDebugFlags;
+        _entities.render(renderArgs);
 
         // render the ambient occlusion effect if enabled
         if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
