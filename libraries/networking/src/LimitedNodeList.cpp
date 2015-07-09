@@ -551,7 +551,7 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructPingReplyPacket(const QByteA
     return replyPacket;
 }
 
-std::unique_ptr<NLPacket> constructICEPingPacket(PingType_t pingType, const QUuid& iceID) {
+std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingPacket(PingType_t pingType, const QUuid& iceID) {
     int packetSize = NUM_BYTES_RFC4122_UUID + sizeof(PingType_t);
 
     auto icePingPacket = NLPacket::create(PacketType::ICEPing, packetSize);
@@ -562,7 +562,7 @@ std::unique_ptr<NLPacket> constructICEPingPacket(PingType_t pingType, const QUui
     return icePingPacket;
 }
 
-std::unique_ptr<NLPacket> constructICEPingReplyPacket(const QByteArray& pingPacket, const QUuid& iceID) {
+std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingReplyPacket(const QByteArray& pingPacket, const QUuid& iceID) {
     // pull out the ping type so we can reply back with that
     PingType_t pingType;
 
