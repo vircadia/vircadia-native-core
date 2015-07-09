@@ -23,12 +23,12 @@
 class GenericThread : public QObject {
     Q_OBJECT
 public:
-    GenericThread();
+    GenericThread(QObject* parent = nullptr);
     virtual ~GenericThread();
 
     /// Call to start the thread.
     /// \param bool isThreaded true by default. false for non-threaded mode and caller must call threadRoutine() regularly.
-    void initialize(bool isThreaded = true);
+    void initialize(bool isThreaded = true, QThread::Priority priority = QThread::NormalPriority);
 
     /// Call to stop the thread
     void terminate();
