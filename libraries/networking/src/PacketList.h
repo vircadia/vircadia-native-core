@@ -57,11 +57,11 @@ private:
     QByteArray _extendedHeader;
 };
 
-template <typename T> template <typename U> readPrimitive(U* data) {
+template <typename T> template <typename U> PacketList<T>::readPrimitive(U* data) {
     return QIODevice::read(reinterpret_cast<char*>(data), sizeof(U));
 }
 
-template <typename T> template <typename U> writePrimitive(const U& data) {
+template <typename T> template <typename U> PacketList<T>::writePrimitive(const U& data) {
     static_assert(!std::is_pointer<U>::value, "U must not be a pointer");
     return QIODevice::write(reinterpret_cast<const char*>(&data), sizeof(U));
 }
