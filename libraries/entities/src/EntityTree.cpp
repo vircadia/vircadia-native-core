@@ -27,7 +27,7 @@
 
 
 EntityTree::EntityTree(bool shouldReaverage) : 
-    Octree(shouldReaverage), 
+    Octree(shouldReaverage),
     _fbxService(NULL),
     _simulation(NULL)
 {
@@ -59,7 +59,7 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     }
     _entityToElementMap.clear();
     Octree::eraseAllOctreeElements(createNewRoot);
-    
+
     resetClientEditStats();
 }
 
@@ -92,13 +92,11 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
 bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (!containingElement) {
-        qCDebug(entities) << "UNEXPECTED!!!!  EntityTree::updateEntity() entityID doesn't exist!!! entityID=" << entityID;
         return false;
     }
 
     EntityItemPointer existingEntity = containingElement->getEntityWithEntityItemID(entityID);
     if (!existingEntity) {
-        qCDebug(entities) << "UNEXPECTED!!!! don't call updateEntity() on entity items that don't exist. entityID=" << entityID;
         return false;
     }
 
@@ -108,8 +106,6 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
 bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
     EntityTreeElement* containingElement = getContainingElement(entity->getEntityItemID());
     if (!containingElement) {
-        qCDebug(entities) << "UNEXPECTED!!!!  EntityTree::updateEntity() entity-->element lookup failed!!! entityID="
-            << entity->getEntityItemID();
         return false;
     }
     return updateEntityWithElement(entity, properties, containingElement, senderNode);

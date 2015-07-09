@@ -219,20 +219,18 @@ bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
     return false;
 }
 
-// qint64 LimitedNodeList::readDatagram(char* data, qint64 maxSize, QHostAddress* address = 0, quint16 * port = 0) {
+qint64 LimitedNodeList::readDatagram(QByteArray& incomingPacket, QHostAddress* address = 0, quint16* port = 0) {
+   qint64 result = getNodeSocket().readDatagram(incomingPacket.data(), incomingPacket.size(), address, port);
 
-//qint64 LimitedNodeList::readDatagram(QByteArray& incomingPacket, QHostAddress* address = 0, quint16* port = 0) {
-//    qint64 result = getNodeSocket().readDatagram(incomingPacket.data(), incomingPacket.size(), address, port);
-//
-//    SharedNodePointer sendingNode = sendingNodeForPacket(incomingPacket);
-//    if (sendingNode) {
-//        emit dataReceived(sendingNode->getType(), incomingPacket.size());
-//    } else {
-//        emit dataReceived(NodeType::Unassigned, incomingPacket.size());
-//    }
-//
-//    return result;
-//}
+   SharedNodePointer sendingNode = sendingNodeForPacket(incomingPacket);
+   if (sendingNode) {
+       emit dataReceived(sendingNode->getType(), incomingPacket.size());
+   } else {
+       emit dataReceived(NodeType::Unassigned, incomingPacket.size());
+   }
+
+   return result;
+}
 
 qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr) {
     // XXX can BandwidthRecorder be used for this?
@@ -553,7 +551,7 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructPingReplyPacket(const QByteA
     return replyPacket;
 }
 
-std::unique_ptr<NLPacket> constructICEPingPacket(PingType_t pingType, const QUuid& iceID) {
+std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingPacket(PingType_t pingType, const QUuid& iceID) {
     int packetSize = NUM_BYTES_RFC4122_UUID + sizeof(PingType_t);
 
     auto icePingPacket = NLPacket::create(PacketType::ICEPing, packetSize);
@@ -564,7 +562,7 @@ std::unique_ptr<NLPacket> constructICEPingPacket(PingType_t pingType, const QUui
     return icePingPacket;
 }
 
-std::unique_ptr<NLPacket> constructICEPingReplyPacket(const QByteArray& pingPacket, const QUuid& iceID) {
+std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingReplyPacket(const QByteArray& pingPacket, const QUuid& iceID) {
     // pull out the ping type so we can reply back with that
     PingType_t pingType;
 

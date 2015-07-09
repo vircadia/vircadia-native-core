@@ -19,11 +19,11 @@
 
 QVariantList glmToQList(const glm::vec3& g);
 QVariantList glmToQList(const glm::quat& g);
-QVariantList rgbColorToQList(rgbColor& v);
+QVariantList rgbColorToQList(const rgbColor& v);
 
 QVariantMap glmToQMap(const glm::vec3& glmVector);
 QVariantMap glmToQMap(const glm::quat& glmQuat);
 
-glm::vec3 qListToGlmVec3(const QVariant q);
-glm::quat qListToGlmQuat(const QVariant q);
-void qListtoRgbColor(const QVariant q, rgbColor returnValue);
+glm::vec3 qListToGlmVec3(const QVariant& q);
+glm::quat qListToGlmQuat(const QVariant& q);
+void qListtoRgbColor(const QVariant& q, rgbColor& returnValue);

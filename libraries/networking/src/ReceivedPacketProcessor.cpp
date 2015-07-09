@@ -45,7 +45,7 @@ bool ReceivedPacketProcessor::process() {
     quint64 now = usecTimestampNow();
     quint64 sinceLastWindow = now - _lastWindowAt;
 
-    
+
     if (sinceLastWindow > USECS_PER_SECOND) {
         lock();
         float secondsSinceLastWindow = sinceLastWindow / USECS_PER_SECOND;
@@ -80,6 +80,7 @@ bool ReceivedPacketProcessor::process() {
     for(auto& packetPair : currentPackets) {
         // TODO: Replace QByteArray() once NLPacket is coming through on receive side
         processPacket(packetPair.first, QByteArray());
+        _lastWindowProcessedPackets++;
         midProcess();
     }
 
