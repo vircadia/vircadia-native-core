@@ -478,7 +478,8 @@ void DeferredLightingEffect::render(RenderArgs* args) {
             auto eyeLightPos = eyePoint - light->getPosition();
             auto eyeHalfPlaneDistance = glm::dot(eyeLightPos, light->getDirection());
             
-            glm::vec4 coneParam(light->getSpotAngleCosSin(), 0.66f * tan(0.5 * light->getSpotAngle()), 1.0f);
+            const float TANGENT_LENGTH_SCALE = 0.666f;
+            glm::vec4 coneParam(light->getSpotAngleCosSin(), TANGENT_LENGTH_SCALE * tan(0.5 * light->getSpotAngle()), 1.0f);
 
             float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
             // TODO: We shouldn;t have to do that test and use a different volume geometry for when inside the vlight volume,
