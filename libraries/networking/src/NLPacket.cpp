@@ -33,13 +33,12 @@ std::unique_ptr<NLPacket> NLPacket::create(PacketType::Value type, int64_t size)
     if (size > maxPayloadSize(type)) {
         return std::unique_ptr<NLPacket>();
     }
-    
+
     return std::unique_ptr<NLPacket>(new NLPacket(type, size));
 }
 
-std::unique_ptr<NLPacket> NLPacket::createCopy(const std::unique_ptr<NLPacket>& other) {
-    Q_ASSERT(other);
-    return std::unique_ptr<NLPacket>(new NLPacket(*other));
+std::unique_ptr<NLPacket> NLPacket::createCopy(const NLPacket& other) {
+    return std::unique_ptr<NLPacket>(new NLPacket(other));
 }
 
 NLPacket::NLPacket(PacketType::Value type, int64_t size) : Packet(type, localHeaderSize(type) + size) {

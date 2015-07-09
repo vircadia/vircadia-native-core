@@ -38,9 +38,8 @@ std::unique_ptr<Packet> Packet::create(PacketType::Value type, qint64 size) {
     return std::unique_ptr<Packet>(new Packet(type, size));
 }
 
-std::unique_ptr<Packet> Packet::createCopy(const std::unique_ptr<Packet>& other) {
-    Q_ASSERT(other);
-    return std::unique_ptr<Packet>(new Packet(*other));
+std::unique_ptr<Packet> Packet::createCopy(const Packet& other) {
+    return std::unique_ptr<Packet>(new Packet(other));
 }
 
 qint64 Packet::totalHeadersSize() const {
