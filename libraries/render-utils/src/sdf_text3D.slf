@@ -18,7 +18,7 @@ uniform vec4 Color;
 varying vec4 interpolatedNormal;
 
 const float gamma = 2.2;
-const float smoothing = 64.0;
+const float smoothing = 256.0;
 const float interiorCutoff = 0.8;
 const float outlineExpansion = 0.2;
 
