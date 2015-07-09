@@ -12,6 +12,17 @@
 
 #include <QDebug>
 
+#if defined(NSIGHT_FOUND)
+#include "nvToolsExt.h"
+
+ProfileRange::ProfileRange(const char *name) {
+    nvtxRangePush(name);
+}
+ProfileRange::~ProfileRange() {
+    nvtxRangePop();
+}
+#endif
+
 #define ADD_COMMAND(call) _commands.push_back(COMMAND_##call); _commandOffsets.push_back(_params.size());
 
 using namespace gpu;

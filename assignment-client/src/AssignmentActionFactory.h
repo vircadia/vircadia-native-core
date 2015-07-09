@@ -21,7 +21,7 @@ public:
     virtual ~AssignmentActionFactory() { }
     virtual EntityActionPointer factory(EntitySimulation* simulation,
                                         EntityActionType type,
-                                        QUuid id,
+                                        const QUuid& id,
                                         EntityItemPointer ownerEntity,
                                         QVariantMap arguments);
     virtual EntityActionPointer factoryBA(EntitySimulation* simulation,

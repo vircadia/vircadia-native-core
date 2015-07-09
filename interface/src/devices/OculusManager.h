@@ -47,6 +47,7 @@ public:
     
     static glm::vec3 getLeftEyePosition();
     static glm::vec3 getRightEyePosition();
+    static glm::vec3 getMidEyePosition();
     
     static int getHMDScreen();
 
