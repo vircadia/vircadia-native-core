@@ -675,7 +675,7 @@ void ScriptEngine::run() {
                         audioPacket->writePrimitive(sequence);
 
                         // send audio packet
-                        nodeList->sendPacket(std::move(audioPacket), node);
+                        nodeList->sendUnreliablePacket(audioPacket, node);
                     }
                 });
             }
