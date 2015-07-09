@@ -21,6 +21,8 @@ class OctreePacketProcessor : public GenericThread {
 public:
     OctreePacketProcessor();
 
+    virtual bool process() override { };
+
 signals:
     void packetVersionMismatch();
 
