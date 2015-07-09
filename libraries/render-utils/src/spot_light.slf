@@ -35,6 +35,9 @@ void main(void) {
         discard;
     }
 
+    //gl_FragColor = vec4(1.0, 1.0, 1.0, 0.0);
+    //return;
+
     // Need the light now
     Light light = getLight();
 

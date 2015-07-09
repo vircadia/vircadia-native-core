@@ -33,6 +33,7 @@
 
 #include "deferred_light_vert.h"
 #include "deferred_light_limited_vert.h"
+#include "deferred_light_spot_vert.h"
 
 #include "directional_light_frag.h"
 #include "directional_light_shadow_map_frag.h"
@@ -91,26 +92,27 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     gpu::Shader::makeProgram(*_emissiveShader, slotBindings);
 
     _viewState = viewState;
-    loadLightProgram(directional_light_frag, false, _directionalLight, _directionalLightLocations);
-    loadLightProgram(directional_light_shadow_map_frag, false, _directionalLightShadowMap,
+    loadLightProgram(deferred_light_vert, directional_light_frag, false, _directionalLight, _directionalLightLocations);
+    loadLightProgram(deferred_light_vert, directional_light_shadow_map_frag, false, _directionalLightShadowMap,
         _directionalLightShadowMapLocations);
-    loadLightProgram(directional_light_cascaded_shadow_map_frag, false, _directionalLightCascadedShadowMap,
+    loadLightProgram(deferred_light_vert, directional_light_cascaded_shadow_map_frag, false, _directionalLightCascadedShadowMap,
         _directionalLightCascadedShadowMapLocations);
 
-    loadLightProgram(directional_ambient_light_frag, false, _directionalAmbientSphereLight, _directionalAmbientSphereLightLocations);
-    loadLightProgram(directional_ambient_light_shadow_map_frag, false, _directionalAmbientSphereLightShadowMap,
+    loadLightProgram(deferred_light_vert, directional_ambient_light_frag, false, _directionalAmbientSphereLight, _directionalAmbientSphereLightLocations);
+    loadLightProgram(deferred_light_vert, directional_ambient_light_shadow_map_frag, false, _directionalAmbientSphereLightShadowMap,
         _directionalAmbientSphereLightShadowMapLocations);
-    loadLightProgram(directional_ambient_light_cascaded_shadow_map_frag, false, _directionalAmbientSphereLightCascadedShadowMap,
+    loadLightProgram(deferred_light_vert, directional_ambient_light_cascaded_shadow_map_frag, false, _directionalAmbientSphereLightCascadedShadowMap,
         _directionalAmbientSphereLightCascadedShadowMapLocations);
 
-    loadLightProgram(directional_skybox_light_frag, false, _directionalSkyboxLight, _directionalSkyboxLightLocations);
-    loadLightProgram(directional_skybox_light_shadow_map_frag, false, _directionalSkyboxLightShadowMap,
+    loadLightProgram(deferred_light_vert, directional_skybox_light_frag, false, _directionalSkyboxLight, _directionalSkyboxLightLocations);
+    loadLightProgram(deferred_light_vert, directional_skybox_light_shadow_map_frag, false, _directionalSkyboxLightShadowMap,
         _directionalSkyboxLightShadowMapLocations);
-    loadLightProgram(directional_skybox_light_cascaded_shadow_map_frag, false, _directionalSkyboxLightCascadedShadowMap,
+    loadLightProgram(deferred_light_vert, directional_skybox_light_cascaded_shadow_map_frag, false, _directionalSkyboxLightCascadedShadowMap,
         _directionalSkyboxLightCascadedShadowMapLocations);
 
-    loadLightProgram(point_light_frag, true, _pointLight, _pointLightLocations);
-    loadLightProgram(spot_light_frag, true, _spotLight, _spotLightLocations);
+
+    loadLightProgram(deferred_light_limited_vert, point_light_frag, true, _pointLight, _pointLightLocations);
+    loadLightProgram(deferred_light_spot_vert, spot_light_frag, true, _spotLight, _spotLightLocations);
 
     {
         auto VSFS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
@@ -421,13 +423,15 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
         for (auto lightID : _pointLights) {
             auto& light = _allocatedLights[lightID];
-            light->setShowContour(true);
+            // IN DEBUG: light->setShowContour(true);
             if (_pointLightLocations.lightBufferUnit >= 0) {
                 batch.setUniformBuffer(_pointLightLocations.lightBufferUnit, light->getSchemaBuffer());
             }
 
             float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
-            if (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius) {
+            // TODO: We shouldn;t have to do that test and use a different volume geometry for when inside the vlight volume,
+            // we should be able to draw thre same geometry use DepthClamp but for unknown reason it's s not working...
+           /* if (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius) {
                 Transform model;
                 model.setTranslation(glm::vec3(0.0f, 0.0f, -1.0f));
                 batch.setModelTransform(model);
@@ -444,7 +448,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                 
                 batch.setProjectionTransform(projMat);
                 batch.setViewTransform(viewMat);
-            } else {
+            } else*/ {
                 Transform model;
                 model.setTranslation(glm::vec3(light->getPosition().x, light->getPosition().y, light->getPosition().z));
                 batch.setModelTransform(model);
@@ -467,12 +471,22 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
         for (auto lightID : _spotLights) {
             auto light = _allocatedLights[lightID];
-            // IN DEBUG: light->setShowContour(true);
+            // IN DEBUG:
+             light->setShowContour(true);
             batch.setUniformBuffer(_spotLightLocations.lightBufferUnit, light->getSchemaBuffer());
             
+            auto eyeLightPos = eyePoint - light->getPosition();
+            auto eyeHalfPlaneDistance = glm::dot(eyeLightPos, light->getDirection());
+            
+            glm::vec4 coneParam(light->getSpotAngleCosSin(), 0.66f * tan(0.5 * light->getSpotAngle()), 1.0f);
+
             float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
-            float edgeRadius = expandedRadius / glm::cos(light->getSpotAngle());
-            if (glm::distance(eyePoint, glm::vec3(light->getPosition())) < edgeRadius + nearRadius) {
+            // TODO: We shouldn;t have to do that test and use a different volume geometry for when inside the vlight volume,
+            // we should be able to draw thre same geometry use DepthClamp but for unknown reason it's s not working...
+            if ((eyeHalfPlaneDistance > -nearRadius) && (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius)) {
+                coneParam.w = 0.0f;
+                batch._glUniform4fv(_spotLightLocations.coneParam, 1, reinterpret_cast< const GLfloat* >(&coneParam));
+
                 Transform model;
                 model.setTranslation(glm::vec3(0.0f, 0.0f, -1.0f));
                 batch.setModelTransform(model);
@@ -490,15 +504,19 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                 batch.setProjectionTransform(projMat);
                 batch.setViewTransform(viewMat);
             } else {
+                coneParam.w = 1.0f;
+                batch._glUniform4fv(_spotLightLocations.coneParam, 1, reinterpret_cast< const GLfloat* >(&coneParam));
+
                 Transform model;
                 model.setTranslation(glm::vec3(light->getPosition().x, light->getPosition().y, light->getPosition().z));
 
                 glm::quat spotRotation = rotationBetween(glm::vec3(0.0f, 0.0f, -1.0f), light->getDirection());
+                spotRotation = light->getOrientation();
                 model.postRotate(spotRotation);
 
                 float base = expandedRadius * glm::tan(light->getSpotAngle());
                 float height = expandedRadius;
-                model.postScale(glm::vec3(base, base, height));
+                model.postScale(glm::vec3(height, height, height));
 
                 batch.setModelTransform(model);
                 auto mesh = getSpotLightMesh();
@@ -522,6 +540,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     batch.setUniformTexture(2, nullptr);
     batch.setUniformTexture(3, nullptr);
 
+    glDepthRange(0.0, 1.0);
     args->_context->syncCache();
     args->_context->render(batch);
 
@@ -575,8 +594,8 @@ void DeferredLightingEffect::setupTransparent(RenderArgs* args, int lightBufferU
     args->_batch->setUniformBuffer(lightBufferUnit, globalLight->getSchemaBuffer());
 }
 
-void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool lightVolume, gpu::PipelinePointer& pipeline, LightLocations& locations) {
-    auto VS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string((lightVolume ? deferred_light_limited_vert : deferred_light_vert))));
+void DeferredLightingEffect::loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& pipeline, LightLocations& locations) {
+    auto VS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(vertSource)));
     auto PS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(fragSource)));
     
     gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PS));
@@ -605,6 +624,7 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool light
     locations.ambientSphere = program->getUniforms().findLocation("ambientSphere.L00");
     locations.invViewMat = program->getUniforms().findLocation("invViewMat");
     locations.texcoordMat = program->getUniforms().findLocation("texcoordMat");
+    locations.coneParam = program->getUniforms().findLocation("coneParam");
 
 #if (GPU_FEATURE_PROFILE == GPU_CORE)
     locations.lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
@@ -621,7 +641,8 @@ void DeferredLightingEffect::loadLightProgram(const char* fragSource, bool light
         // No need for z test since the depth buffer is not bound state->setDepthTest(true, false, gpu::LESS_EQUAL);
         // TODO: We should bind the true depth buffer both as RT and texture for the depth test
         // TODO: We should use DepthClamp and avoid changing geometry for inside /outside cases
-        
+        state->setDepthClampEnable(true);
+
         // additive blending
         state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
     } else {
@@ -659,30 +680,44 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
         _spotLightMesh.reset(new model::Mesh());
 
         int slices = 16;
-        int vertices = 2 + slices;
+        int rings = 3;
+        int vertices = 2 + rings * slices;
         int originVertex = vertices - 2;
         int capVertex = vertices - 1;
         int verticesSize = vertices * 3 * sizeof(float);
-        int indices = 3 * slices * 2;
+        int indices = 3 * slices * (1 + 1 + 2 * (rings -1));
+        int ringFloatOffset = slices * 3;
+
 
         GLfloat* vertexData = new GLfloat[verticesSize];
-        GLfloat* vertex = vertexData;
+        GLfloat* vertexRing0 = vertexData;
+        GLfloat* vertexRing1 = vertexRing0 + ringFloatOffset;
+        GLfloat* vertexRing2 = vertexRing1 + ringFloatOffset;
         
         for (int i = 0; i < slices; i++) {
             float theta = TWO_PI * i / slices;
-            
-            *(vertex++) = cosf(theta);
-            *(vertex++) = sinf(theta);
-            *(vertex++) = -1.0f;
+            auto cosin = glm::vec2(cosf(theta), sinf(theta));
+
+            *(vertexRing0++) = cosin.x;
+            *(vertexRing0++) = cosin.y;
+            *(vertexRing0++) = 0.0f;
+
+            *(vertexRing1++) = cosin.x;
+            *(vertexRing1++) = cosin.y;
+            *(vertexRing1++) = 0.33f;
+
+            *(vertexRing2++) = cosin.x;
+            *(vertexRing2++) = cosin.y;
+            *(vertexRing2++) = 0.66f;
         }
         
-        *(vertex++) = 0.0f;
-        *(vertex++) = 0.0f;
-        *(vertex++) = 0.0f;
+        *(vertexRing2++) = 0.0f;
+        *(vertexRing2++) = 0.0f;
+        *(vertexRing2++) = -1.0f;
         
-        *(vertex++) = 0.0f;
-        *(vertex++) = 0.0f;
-        *(vertex++) = -1.0f;
+        *(vertexRing2++) = 0.0f;
+        *(vertexRing2++) = 0.0f;
+        *(vertexRing2++) = 1.0f;
         
         _spotLightMesh->setVertexBuffer(gpu::BufferView(new gpu::Buffer(verticesSize, (gpu::Byte*) vertexData), gpu::Element::VEC3F_XYZ));
         delete[] vertexData;
@@ -696,9 +731,30 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
             int s1 = ((i + 1) % slices);
             *(index++) = s0;
             *(index++) = s1;
+
+            int s2 = s0 + slices;
+            int s3 = s1 + slices;
             *(index++) = s1;
             *(index++) = s0;
-            
+            *(index++) = s2;
+
+            *(index++) = s1;
+            *(index++) = s2;
+            *(index++) = s3;
+
+            int s4 = s2 + slices;
+            int s5 = s3 + slices;
+            *(index++) = s3;
+            *(index++) = s2;
+            *(index++) = s4;
+
+            *(index++) = s3;
+            *(index++) = s4;
+            *(index++) = s5;
+
+
+            *(index++) = s5;
+            *(index++) = s4;
             *(index++) = capVertex;
         }
 
@@ -706,6 +762,7 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
         delete[] indexData;
 
         model::Mesh::Part part(0, indices, 0, model::Mesh::TRIANGLES);
+       // model::Mesh::Part part(0, indices, 0, model::Mesh::LINE_STRIP);
         
         _spotLightMesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(sizeof(part), (gpu::Byte*) &part), gpu::Element::PART_DRAWCALL));
 

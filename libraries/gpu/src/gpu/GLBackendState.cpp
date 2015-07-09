@@ -536,11 +536,9 @@ void GLBackend::do_setStateFrontFaceClockwise(bool isClockwise) {
 void GLBackend::do_setStateDepthClampEnable(bool enable) {
     if (_pipeline._stateCache.depthClampEnable != enable) {
         if (enable) {
-            //glEnable(GL_DEPTH_CLAMP);
-            glEnable(GL_DEPTH_CLAMP_NV);
+            glEnable(GL_DEPTH_CLAMP);
         } else {
-            //glDisable(GL_DEPTH_CLAMP);
-            glDisable(GL_DEPTH_CLAMP_NV);
+            glDisable(GL_DEPTH_CLAMP);
         }
         (void) CHECK_GL_ERROR();
 

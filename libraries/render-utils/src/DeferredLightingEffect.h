@@ -96,13 +96,13 @@ private:
         int atmosphereBufferUnit;
         int invViewMat;
         int texcoordMat;
+        int coneParam;
     };
 
     model::MeshPointer _spotLightMesh;
     model::MeshPointer getSpotLightMesh();
 
-    // static void loadLightProgram(const char* fragSource, bool limited, ProgramObject& program, LightLocations& locations);
-    static void loadLightProgram(const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocations& locations);
+    static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocations& locations);
   
     gpu::PipelinePointer getPipeline(SimpleProgramKey config);
     
