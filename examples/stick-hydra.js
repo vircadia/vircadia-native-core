@@ -1,10 +1,10 @@
-//  stick.js
+//  stick-hydra.js
 //  examples
 //
-//  Created by Seth Alves on 2015-6-10
+//  Created by Seth Alves on 2015-7-9
 //  Copyright 2015 High Fidelity, Inc.
 //
-//  Allow avatar to hold a stick
+//  Allow avatar to hold a stick and control it with a hand-tracker
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
