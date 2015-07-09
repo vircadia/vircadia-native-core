@@ -470,15 +470,12 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::HandLasers, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::ShowIKConstraints, 0, false);
 
-#if 0
     MenuWrapper* sixenseOptionsMenu = handOptionsMenu->addMenu("Sixense");
-#ifdef __APPLE__
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
                                            MenuOption::SixenseEnabled,
                                            0, false,
                                            &SixenseManager::getInstance(),
                                            SLOT(toggleSixense(bool)));
-#endif
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
                                            MenuOption::FilterSixense,
                                            0,
@@ -491,7 +488,6 @@ Menu::Menu() {
                                            true,
                                            qApp,
                                            SLOT(setLowVelocityFilter(bool)));
-#endif
 
     MenuWrapper* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
     addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);

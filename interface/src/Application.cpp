@@ -2628,21 +2628,20 @@ void Application::update(float deltaTime) {
             _myAvatar->setDriveKeys(ROT_DOWN, userInputMapper->getActionState(UserInputMapper::PITCH_DOWN));
             _myAvatar->setDriveKeys(ROT_LEFT, userInputMapper->getActionState(UserInputMapper::YAW_LEFT));
             _myAvatar->setDriveKeys(ROT_RIGHT, userInputMapper->getActionState(UserInputMapper::YAW_RIGHT));
-            // TODO: set hand positions somehow
-            UserInputMapper::PoseValue leftHand = userInputMapper->getPoseState(UserInputMapper::LEFT_HAND);
-            UserInputMapper::PoseValue rightHand = userInputMapper->getPoseState(UserInputMapper::RIGHT_HAND);
-            Hand* hand = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHand();
-            setPalmData(hand, leftHand, LEFT_HAND_INDEX);
-            setPalmData(hand, rightHand, RIGHT_HAND_INDEX);
-            if (Menu::getInstance()->isOptionChecked(MenuOption::HandMouseInput)) {
-                emulateMouse(hand, userInputMapper->getActionState(UserInputMapper::LEFT_HAND_CLICK),
-                             userInputMapper->getActionState(UserInputMapper::SHIFT), LEFT_HAND_INDEX);
-                emulateMouse(hand, userInputMapper->getActionState(UserInputMapper::RIGHT_HAND_CLICK),
-                             userInputMapper->getActionState(UserInputMapper::SHIFT), RIGHT_HAND_INDEX);
-            }
         }
         _myAvatar->setDriveKeys(BOOM_IN, userInputMapper->getActionState(UserInputMapper::BOOM_IN));
         _myAvatar->setDriveKeys(BOOM_OUT, userInputMapper->getActionState(UserInputMapper::BOOM_OUT));
+    }
+    UserInputMapper::PoseValue leftHand = userInputMapper->getPoseState(UserInputMapper::LEFT_HAND);
+    UserInputMapper::PoseValue rightHand = userInputMapper->getPoseState(UserInputMapper::RIGHT_HAND);
+    Hand* hand = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHand();
+    setPalmData(hand, leftHand, LEFT_HAND_INDEX);
+    setPalmData(hand, rightHand, RIGHT_HAND_INDEX);
+    if (Menu::getInstance()->isOptionChecked(MenuOption::HandMouseInput)) {
+        emulateMouse(hand, userInputMapper->getActionState(UserInputMapper::LEFT_HAND_CLICK),
+            userInputMapper->getActionState(UserInputMapper::SHIFT), LEFT_HAND_INDEX);
+        emulateMouse(hand, userInputMapper->getActionState(UserInputMapper::RIGHT_HAND_CLICK),
+            userInputMapper->getActionState(UserInputMapper::SHIFT), RIGHT_HAND_INDEX);
     }
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
@@ -2804,6 +2803,7 @@ void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, int i
         if (hand->getPalms()[j].getSixenseID() == index) {
             palm = &(hand->getPalms()[j]);
             foundHand = true;
+            break;
         }
     }
     if (!foundHand) {
@@ -2813,11 +2813,7 @@ void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, int i
         palm->setSixenseID(index);
     }
     
-    if (foundHand) {
-        palm->setActive(pose.isValid());
-    } else {
-        palm->setActive(false); // if this isn't a Sixsense ID palm, always make it inactive
-    }
+    palm->setActive(pose.isValid());
     
     // TODO: velocity filters, tip velocities, et.c
     // see SixenseManager
@@ -2843,8 +2839,10 @@ void Application::emulateMouse(Hand* hand, float click, float shift, int index) 
         if (hand->getPalms()[j].getSixenseID() == index) {
             palm = &(hand->getPalms()[j]);
             foundHand = true;
+            break;
         }
     }
+    //qDebug() << "emulateMouse" << !foundHand << !palm->isActive();
     if (!foundHand || !palm->isActive()) {
         return;
     }
@@ -2873,6 +2871,8 @@ void Application::emulateMouse(Hand* hand, float click, float shift, int index) 
         pos.setY(canvasSize.y / 2.0f + cursorRange * yAngle);
 
     }
+
+    //qDebug() << index << " " << click << " " << shift <<  " " << pos;
 
     //If we are off screen then we should stop processing, and if a trigger or bumper is pressed,
     //we should unpress them.

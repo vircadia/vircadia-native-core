@@ -1378,7 +1378,7 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
         glm::vec3 direction = front + right + up;
         float directionLength = glm::length(direction);
 
-        qCDebug(interfaceapp, "direction = (%.5f, %.5f, %.5f)", direction.x, direction.y, direction.z);
+        //qCDebug(interfaceapp, "direction = (%.5f, %.5f, %.5f)", direction.x, direction.y, direction.z);
 
         // Compute motor magnitude
         if (directionLength > EPSILON) {

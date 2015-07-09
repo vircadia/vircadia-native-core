@@ -152,8 +152,7 @@ void ViveControllerManager::update() {
             if (_deviceID != 0) {
                 userInputMapper->removeDevice(_deviceID);
                 _deviceID = 0;
-                //_poseStateMap[makeInput(LEFT_HAND).getChannel()] = UserInputMapper::PoseValue();
-                //_poseStateMap[makeInput(RIGHT_HAND).getChannel()] = UserInputMapper::PoseValue();
+                _poseStateMap.clear();
             }
         }
         
