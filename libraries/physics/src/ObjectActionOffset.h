@@ -36,6 +36,7 @@ public:
     float _linearDistance;
     float _linearTimeScale;
     bool _positionalTargetSet;
+    bool _needsActivation = true;
 };
 
 #endif // hifi_ObjectActionOffset_h
