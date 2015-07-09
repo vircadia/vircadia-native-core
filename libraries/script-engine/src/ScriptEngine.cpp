@@ -493,7 +493,7 @@ void ScriptEngine::evaluate() {
 
     QScriptValue result = evaluate(_scriptContents);
 
-    // TODO: why do we check this twice? It seems like the call to clearExcpetions() in the lower level evaluate call
+    // TODO: why do we check this twice? It seems like the call to clearExceptions() in the lower level evaluate call
     // will cause this code to never actually run...
     if (hasUncaughtException()) {
         int line = uncaughtExceptionLineNumber();
