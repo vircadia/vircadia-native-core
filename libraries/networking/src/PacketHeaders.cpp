@@ -166,8 +166,6 @@ QString nameForPacketType(PacketType::Value packetType) {
     return QString("unexpected");
 }
 
-
-
 QByteArray byteArrayWithUUIDPopulatedHeader(PacketType::Value packetType, const QUuid& connectionUUID) {
     QByteArray freshByteArray(MAX_PACKET_HEADER_BYTES, 0);
     freshByteArray.resize(populatePacketHeaderWithUUID(freshByteArray, packetType, connectionUUID));
