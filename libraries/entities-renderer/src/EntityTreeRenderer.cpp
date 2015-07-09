@@ -16,7 +16,6 @@
 
 #include <QEventLoop>
 #include <QScriptSyntaxCheckResult>
-#include <QDebug>
 
 #include <AbstractScriptingServicesInterface.h>
 #include <AbstractViewStateInterface.h>
@@ -1158,13 +1157,11 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
 
 void EntityTreeRenderer::updateEntityTree(bool shouldRenderEntities) {
     if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
-        qDebug() << "SHOULD RENDER ENTITIES NOW";
         for (auto entityID : _entityIDsLastInScene) {
             addingEntity(entityID);
         }
         _entityIDsLastInScene.clear();
     } else {
-        qDebug() << "SHOULD NOT RENDER ENTITIES";
         _entityIDsLastInScene = _entitiesInScene.keys();
         for (auto entityID : _entityIDsLastInScene) {
             deletingEntity(entityID);
