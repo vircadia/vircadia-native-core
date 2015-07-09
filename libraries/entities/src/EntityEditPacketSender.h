@@ -20,6 +20,8 @@
 class EntityEditPacketSender :  public OctreeEditPacketSender {
     Q_OBJECT
 public:
+    EntityEditPacketSender();
+
     /// Queues an array of several voxel edit messages. Will potentially send a pending multi-command packet. Determines
     /// which voxel-server node or nodes the packet should be sent to. Can be called even before voxel servers are known, in
     /// which case up to MaxPendingMessages will be buffered and processed when voxel servers are known.
@@ -27,6 +29,8 @@ public:
     void queueEditEntityMessage(PacketType::Value type, EntityItemID modelID, const EntityItemProperties& properties);
 
     void queueEraseEntityMessage(const EntityItemID& entityItemID);
+
+    void processEntityEditNackPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
 
     // My server type is the model server
     virtual char getMyNodeType() const { return NodeType::EntityServer; }

@@ -17,16 +17,26 @@
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
 
+EntityEditPacketSender::EntityEditPacketSender() {
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerPacketListener(PacketType::EntityEditNack, this, "processEntityEditNackPacket");
+}
 
-void EntityEditPacketSender::adjustEditPacketForClockSkew(PacketType::Value type, 
+void EntityEditPacketSender::processEntityEditNackPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
+        processNackPacket(QByteArray::fromRawData(packet->getData()));
+    }
+}
+
+void EntityEditPacketSender::adjustEditPacketForClockSkew(PacketType::Value type,
                                         unsigned char* editBuffer, size_t length, int clockSkew) {
-                                        
+
     if (type == PacketType::EntityAdd || type == PacketType::EntityEdit) {
         EntityItem::adjustEditPacketForClockSkew(editBuffer, length, clockSkew);
     }
 }
 
-void EntityEditPacketSender::queueEditEntityMessage(PacketType::Value type, EntityItemID modelID, 
+void EntityEditPacketSender::queueEditEntityMessage(PacketType::Value type, EntityItemID modelID,
                                                                 const EntityItemProperties& properties) {
     if (!_shouldSend) {
         return; // bail early
