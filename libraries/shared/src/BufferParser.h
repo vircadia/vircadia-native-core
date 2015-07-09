@@ -26,54 +26,13 @@ public:
     }
 
     template<typename T>
-    void readValue(T& result) {
+    inline void readValue(T& result) {
         Q_ASSERT(remaining() >= sizeof(T));
         memcpy(&result, _data + _offset, sizeof(T));
         _offset += sizeof(T);
     }
 
-    template<>
-    void readValue<quat>(quat& result) {
-        size_t advance = unpackOrientationQuatFromBytes(_data + _offset, result);
-        _offset += advance;
-    }
-
-    template<>
-    void readValue<QString>(QString& result) {
-        uint16_t length; readValue(length);
-        result = QString((const char*)_data + _offset);
-    }
-
-    template<>
-    void readValue<QUuid>(QUuid& result) {
-        uint16_t length; readValue(length);
-        Q_ASSERT(16 == length);
-        readUuid(result);
-    }
-
-    template<>
-    void readValue<xColor>(xColor& result) {
-        readValue(result.red);
-        readValue(result.blue);
-        readValue(result.green);
-    }
-
-    template<>
-    void readValue<QVector<glm::vec3>>(QVector<glm::vec3>& result) {
-        uint16_t length; readValue(length);
-        result.resize(length);
-        memcpy(result.data(), _data + _offset, sizeof(glm::vec3) * length);
-        _offset += sizeof(glm::vec3) * length;
-    }
-
-    template<>
-    void readValue<QByteArray>(QByteArray& result) {
-        uint16_t length; readValue(length);
-        result = QByteArray((char*)_data + _offset, (int)length);
-        _offset += length;
-    }
-
-    void readUuid(QUuid& result) {
+    inline void readUuid(QUuid& result) {
         readValue(result.data1);
         readValue(result.data2);
         readValue(result.data3);
@@ -84,7 +43,7 @@ public:
     }
 
     template <typename T>
-    void readFlags(PropertyFlags<T>& result) {
+    inline void readFlags(PropertyFlags<T>& result) {
         // FIXME doing heap allocation
         QByteArray encoded((const char*)(_data + _offset), remaining());
         result.decode(encoded);
@@ -92,7 +51,7 @@ public:
     }
 
     template<typename T>
-    void readCompressedCount(T& result) {
+    inline void readCompressedCount(T& result) {
         // FIXME switch to a heapless implementation as soon as Brad provides it.
         QByteArray encoded((const char*)(_data + _offset), std::min(sizeof(T) << 1, remaining()));
         ByteCountCoded<T> codec = encoded;
@@ -119,5 +78,47 @@ private:
     const uint8_t* const _data;
     const size_t _size;
 };
+
+
+template<>
+inline void BufferParser::readValue<quat>(quat& result) {
+    size_t advance = unpackOrientationQuatFromBytes(_data + _offset, result);
+    _offset += advance;
+}
+
+template<>
+inline void BufferParser::readValue(QString& result) {
+    uint16_t length; readValue(length);
+    result = QString((const char*)_data + _offset);
+}
+
+template<>
+inline void BufferParser::readValue(QUuid& result) {
+    uint16_t length; readValue(length);
+    Q_ASSERT(16 == length);
+    readUuid(result);
+}
+
+template<>
+inline void BufferParser::readValue(xColor& result) {
+    readValue(result.red);
+    readValue(result.blue);
+    readValue(result.green);
+}
+
+template<>
+inline void BufferParser::readValue(QVector<glm::vec3>& result) {
+    uint16_t length; readValue(length);
+    result.resize(length);
+    memcpy(result.data(), _data + _offset, sizeof(glm::vec3) * length);
+    _offset += sizeof(glm::vec3) * length;
+}
+
+template<>
+inline void BufferParser::readValue(QByteArray& result) {
+    uint16_t length; readValue(length);
+    result = QByteArray((char*)_data + _offset, (int)length);
+    _offset += length;
+}
 
 #endif
