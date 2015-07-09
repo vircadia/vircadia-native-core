@@ -1714,6 +1714,14 @@ QByteArray EntityItem::serializeActions(bool& success) const {
 }
 
 const QByteArray EntityItem::getActionData() const {
+    if (_actionDataDirty) {
+        bool success;
+        QByteArray newDataCache = serializeActions(success);
+        if (success) {
+            _allActionsDataCache = newDataCache;
+        }
+        _actionDataDirty = false;
+    }
     return _allActionsDataCache;
 }
 

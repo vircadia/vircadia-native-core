@@ -147,6 +147,10 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
     _rotationalTargetSet = true;
     _active = true;
     unlock();
+    auto ownerEntity = _ownerEntity.lock();
+    if (ownerEntity) {
+        ownerEntity->setActionDataDirty(true);
+    }
     return true;
 }
 

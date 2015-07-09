@@ -395,6 +395,7 @@ public:
     bool hasActions() { return !_objectActions.empty(); }
     QList<QUuid> getActionIDs() { return _objectActions.keys(); }
     QVariantMap getActionArguments(const QUuid& actionID) const;
+    void setActionDataDirty(bool value) const { _actionDataDirty = value; }
 
 protected:
 
@@ -482,6 +483,7 @@ protected:
     void checkWaitingToRemove(EntitySimulation* simulation = nullptr);
     mutable QByteArray _waitingActionData;
     mutable QSet<QUuid> _actionsToRemove;
+    mutable bool _actionDataDirty = false;
 };
 
 #endif // hifi_EntityItem_h
