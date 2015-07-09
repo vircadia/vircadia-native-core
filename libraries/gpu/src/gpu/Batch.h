@@ -26,17 +26,11 @@
 #include "Framebuffer.h"
 
 #if defined(NSIGHT_FOUND)
-    #include "nvToolsExt.h"
     class ProfileRange {
     public:
-        ProfileRange(const char *name) {
-            nvtxRangePush(name);
-        }
-        ~ProfileRange() {
-            nvtxRangePop();
-        }
+        ProfileRange(const char *name);
+        ~ProfileRange();
     };
-
     #define PROFILE_RANGE(name) ProfileRange profileRangeThis(name);
 #else
 #define PROFILE_RANGE(name)
@@ -105,6 +99,7 @@ public:
     void setModelTransform(const Transform& model);
     void setViewTransform(const Transform& view);
     void setProjectionTransform(const Mat4& proj);
+    void setViewportTransform(const Vec4i& viewport); // Viewport is xy = low left corner in the framebuffer, zw = width height of the viewport
 
     // Pipeline Stage
     void setPipeline(const PipelinePointer& pipeline);
@@ -154,6 +149,7 @@ public:
     void _glUniform3f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2);
     void _glUniform3fv(GLint location, GLsizei count, const GLfloat* value);
     void _glUniform4fv(GLint location, GLsizei count, const GLfloat* value);
+    void _glUniform4iv(GLint location, GLsizei count, const GLint* value);
     void _glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
 
     void _glEnableVertexAttribArray(GLint location);
@@ -177,6 +173,7 @@ public:
         COMMAND_setModelTransform,
         COMMAND_setViewTransform,
         COMMAND_setProjectionTransform,
+        COMMAND_setViewportTransform,
 
         COMMAND_setPipeline,
         COMMAND_setStateBlendFactor,
@@ -217,6 +214,7 @@ public:
         COMMAND_glUniform3f,
         COMMAND_glUniform3fv,
         COMMAND_glUniform4fv,
+        COMMAND_glUniform4iv,
         COMMAND_glUniformMatrix4fv,
 
         COMMAND_glEnableVertexAttribArray,

@@ -862,7 +862,7 @@ void AudioClient::handleAudioInput() {
     while (_inputRingBuffer.samplesAvailable() >= inputSamplesRequired) {
 
         const int numNetworkBytes = _isStereoInput
-            ? AudioConstants::NETWORK_FRAME_BYTES_STEREO`
+            ? AudioConstants::NETWORK_FRAME_BYTES_STEREO
             : AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
         const int numNetworkSamples = _isStereoInput
             ? AudioConstants::NETWORK_FRAME_SAMPLES_STEREO
@@ -937,7 +937,6 @@ void AudioClient::handleAudioInput() {
             glm::quat headOrientation = _orientationGetter();
             quint8 isStereo = _isStereoInput ? 1 : 0;
 
-            PacketType::Value packetType;
             if (_lastInputLoudness == 0) {
                 _audioPacket->setType(PacketType::SilentAudioFrame);
             } else {
@@ -952,23 +951,24 @@ void AudioClient::handleAudioInput() {
             _audioPacket->reset();
 
             // write sequence number
-            _audioPacket->write(&_outgoingAvatarAudioSequenceNumber, sizeof(quint16));
+            _audioPacket->writePrimitive(_outgoingAvatarAudioSequenceNumber);
 
-            if (packetType == PacketType::SilentAudioFrame) {
+            if (_audioPacket->getType() == PacketType::SilentAudioFrame) {
                 // pack num silent samples
-                _audioPacket->write(&numSilentSamples, sizeof(quint16));
+                quint16 numSilentSamples = numNetworkSamples;
+                _audioPacket->writePrimitive(numSilentSamples);
             } else {
                 // set the mono/stereo byte
-                _audioPacket->write(&isStereo, sizeof(isStereo));
+                _audioPacket->writePrimitive(isStereo);
             }
 
             // pack the three float positions
-            _audioPacket->write(&headPosition, sizeof(headPosition));
+            _audioPacket->writePrimitive(headPosition);
 
             // pack the orientation
-            _audioPacket->write(&headOrientation, sizeof(headOrientation));
+            _audioPacket->writePrimitive(headOrientation);
 
-            if (packetType != PacketType::SilentAudioFrame) {
+            if (_audioPacket->getType() != PacketType::SilentAudioFrame) {
                 // audio samples have already been packed (written to networkAudioSamples)
                 _audioPacket->setSizeUsed(_audioPacket->getSizeUsed() + numNetworkBytes);
             }
@@ -977,7 +977,7 @@ void AudioClient::handleAudioInput() {
 
             nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendAudioPacket);
 
-            nodeList->sendUnreliablePacket(_audioPacket, audioMixer);
+            nodeList->sendUnreliablePacket(*_audioPacket, audioMixer);
 
             _outgoingAvatarAudioSequenceNumber++;
         }
@@ -1011,8 +1011,8 @@ void AudioClient::sendMuteEnvironmentPacket() {
 
     glm::vec3 currentSourcePosition = _positionGetter();
 
-    mutePacket->write(&currentSourcePosition, sizeof(currentSourcePosition));
-    mutePacket->write(&MUTE_RADIUS, sizeof(MUTE_RADIUS));
+    mutePacket->writePrimitive(currentSourcePosition);
+    mutePacket->writePrimitive(MUTE_RADIUS);
 
     // grab our audio mixer from the NodeList, if it exists
     SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);

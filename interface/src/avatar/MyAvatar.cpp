@@ -34,6 +34,9 @@
 #include <TextRenderer.h>
 #include <UserActivityLogger.h>
 
+#include "devices/Faceshift.h"
+#include "devices/OculusManager.h"
+
 #include "Application.h"
 #include "AvatarManager.h"
 #include "Environment.h"
@@ -42,7 +45,6 @@
 #include "MyAvatar.h"
 #include "Physics.h"
 #include "Recorder.h"
-#include "devices/Faceshift.h"
 #include "Util.h"
 #include "InterfaceLogging.h"
 
@@ -97,7 +99,7 @@ MyAvatar::MyAvatar() :
     _shouldRender(true),
     _billboardValid(false),
     _feetTouchFloor(true),
-    _isLookingAtLeftEye(true),
+    _eyeContactTarget(LEFT_EYE),
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
     _firstPersonSkeletonModel(this),
@@ -865,9 +867,8 @@ int MyAvatar::parseDataAtOffset(const QByteArray& packet, int offset) {
 }
 
 void MyAvatar::sendKillAvatar() {
-    auto nodeList = DependencyManager::get<NodeList>();
-    QByteArray killPacket = nodeList->byteArrayWithPopulatedHeader(PacketType::KillAvatar);
-    nodeList->broadcastToNodes(killPacket, NodeSet() << NodeType::AvatarMixer);
+    auto killPacket = NLPacket::create(PacketType::KillAvatar, 0);
+    DependencyManager::get<NodeList>()->broadcastToNodes(std::move(killPacket), NodeSet() << NodeType::AvatarMixer);
 }
 
 void MyAvatar::updateLookAtTargetAvatar() {
@@ -884,7 +885,6 @@ void MyAvatar::updateLookAtTargetAvatar() {
     const float KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR = 1.3f;
     const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;
 
-    int howManyLookingAtMe = 0;
     foreach (const AvatarSharedPointer& avatarPointer, DependencyManager::get<AvatarManager>()->getAvatarHash()) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.get());
         bool isCurrentTarget = avatar->getIsLookAtTarget();
@@ -897,17 +897,22 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 _targetAvatarPosition = avatarPointer->getPosition();
                 smallestAngleTo = angleTo;
             }
-            //  Check if this avatar is looking at me, and fix their gaze on my camera if so
             if (Application::getInstance()->isLookingAtMyAvatar(avatar)) {
-                howManyLookingAtMe++;
-                //  Have that avatar look directly at my camera
-                //  Philip TODO: correct to look at left/right eye
-                if (qApp->isHMDMode()) {
-                    avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition());
-                    // FIXME what is the point of this?
-                    // avatar->getHead()->setCorrectedLookAtPosition(OculusManager::getLeftEyePosition());
+                // Alter their gaze to look directly at my camera; this looks more natural than looking at my avatar's face.
+                // Offset their gaze according to whether they're looking at one of my eyes or my mouth.
+                glm::vec3 gazeOffset = avatar->getHead()->getLookAtPosition() - getHead()->getEyePosition();
+                const float HUMAN_EYE_SEPARATION = 0.065f;
+                float myEyeSeparation = glm::length(getHead()->getLeftEyePosition() - getHead()->getRightEyePosition());
+                gazeOffset = gazeOffset * HUMAN_EYE_SEPARATION / myEyeSeparation;
+
+                if (Application::getInstance()->isHMDMode()) {
+                    //avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getCamera()->getPosition()
+                    //    + OculusManager::getMidEyePosition() + gazeOffset);
+                    avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition()
+                        + OculusManager::getMidEyePosition() + gazeOffset);
                 } else {
-                    avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition());
+                    avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition()
+                        + gazeOffset);
                 }
             } else {
                 avatar->getHead()->clearCorrectedLookAtPosition();
@@ -924,12 +929,24 @@ void MyAvatar::clearLookAtTargetAvatar() {
     _lookAtTargetAvatar.reset();
 }
 
-bool MyAvatar::isLookingAtLeftEye() {
-    float const CHANCE_OF_CHANGING_EYE = 0.01f;
-    if (randFloat() < CHANCE_OF_CHANGING_EYE) {
-        _isLookingAtLeftEye = !_isLookingAtLeftEye;
+eyeContactTarget MyAvatar::getEyeContactTarget() {
+    float const CHANCE_OF_CHANGING_TARGET = 0.01f;
+    if (randFloat() < CHANCE_OF_CHANGING_TARGET) {
+        float const FIFTY_FIFTY_CHANCE = 0.5f;
+        switch (_eyeContactTarget) {
+            case LEFT_EYE:
+                _eyeContactTarget = (randFloat() < FIFTY_FIFTY_CHANCE) ? MOUTH : RIGHT_EYE;
+                break;
+            case RIGHT_EYE:
+                _eyeContactTarget = (randFloat() < FIFTY_FIFTY_CHANCE) ? LEFT_EYE : MOUTH;
+                break;
+            case MOUTH:
+                _eyeContactTarget = (randFloat() < FIFTY_FIFTY_CHANCE) ? RIGHT_EYE : LEFT_EYE;
+                break;
+        }
     }
-    return _isLookingAtLeftEye;
+
+    return _eyeContactTarget;
 }
 
 glm::vec3 MyAvatar::getDefaultEyePosition() const {
@@ -1402,7 +1419,7 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
             }
         }
     }
-    
+
     float boomChange = _driveKeys[BOOM_OUT] - _driveKeys[BOOM_IN];
     _boomLength += 2.0f * _boomLength * boomChange + boomChange * boomChange;
     _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);

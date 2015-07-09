@@ -99,7 +99,7 @@ void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, 
 
     // check version of piggyback packet against expected version
     if (packetVersion != expectedVersion) {
-        static QMultiMap<QUuid, PacketType> versionDebugSuppressMap;
+        static QMultiMap<QUuid, PacketType::Value> versionDebugSuppressMap;
 
         QUuid senderUUID = uuidFromPacketHeader(packet);
         if (!versionDebugSuppressMap.contains(senderUUID, voxelPacketType)) {

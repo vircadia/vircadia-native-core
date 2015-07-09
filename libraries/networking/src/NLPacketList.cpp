@@ -1,5 +1,5 @@
 //
-//  PacketList.cpp
+//  NLPacketList.cpp
 //  libraries/networking/src
 //
 //  Created by Stephen Birarda on 07/06/15.
@@ -9,39 +9,39 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "PacketList.h"
+#include "NLPacketList.h"
 
 #include <QDebug>
 
-#include "NLPacket.h"
-
-template <class T> PacketList<T>::PacketList(PacketType::Value packetType) :
+NLPacketList::NLPacketList(PacketType::Value packetType) :
     _packetType(packetType)
 {
 
 }
 
-template <class T> std::unique_ptr<NLPacket> PacketList<T>::createPacketWithExtendedHeader() {
+std::unique_ptr<NLPacket> NLPacketList::createPacketWithExtendedHeader() {
     // use the static create method to create a new packet
-    auto packet = T::create(_packetType);
+    auto packet = NLPacket::create(_packetType);
 
     // add the extended header to the front of the packet
     if (packet->write(_extendedHeader) == -1) {
         qDebug() << "Could not write extendedHeader in PacketList::createPacketWithExtendedHeader"
             << "- make sure that _extendedHeader is not larger than the payload capacity.";
     }
+
+    return packet;
 }
 
-template <class T> qint64 PacketList<T>::writeData(const char* data, qint64 maxSize) {
+qint64 NLPacketList::writeData(const char* data, qint64 maxSize) {
     if (!_currentPacket) {
         // we don't have a current packet, time to set one up
         _currentPacket = createPacketWithExtendedHeader();
     }
 
     // check if this block of data can fit into the currentPacket
-    if (maxSize <= _currentPacket.size()) {
+    if (maxSize <= _currentPacket->bytesAvailable()) {
         // it fits, just write it to the current packet
-        _currentPacket.write(data, maxSize);
+        _currentPacket->write(data, maxSize);
 
         // return the number of bytes written
         return maxSize;
@@ -56,34 +56,34 @@ template <class T> qint64 PacketList<T>::writeData(const char* data, qint64 maxS
                 // We need to try and pull the first part of the segment out to our new packet
 
                 // check now to see if this is an unsupported write
-                int numBytesToEnd = _currentPacket.size() - _segmentStartIndex;
+                int numBytesToEnd = _currentPacket->bytesAvailable();
 
-                if ((newPacket.size() - numBytesToEnd) < maxSize) {
+                if ((newPacket->size() - numBytesToEnd) < maxSize) {
                     // this is an unsupported case - the segment is bigger than the size of an individual packet
                     // but the PacketList is not going to be sent ordered
                     qDebug() << "Error in PacketList::writeData - attempted to write a segment to an unordered packet that is"
                         << "larger than the payload size.";
-                    return -1;
+                    Q_ASSERT(false);
                 }
 
                 // copy from currentPacket where the segment started to the beginning of the newPacket
-                newPacket.write(_currentPacket->getPayload() + _segmentStartIndex, numBytesToEnd);
+                newPacket->write(_currentPacket->getPayload() + _segmentStartIndex, numBytesToEnd);
 
                 // the current segment now starts at the beginning of the new packet
                 _segmentStartIndex = 0;
 
                 // shrink the current payload to the actual size of the packet
-                _currentPacket.setSizeUsed(_segmentStartIndex);
+                _currentPacket->setSizeUsed(_segmentStartIndex);
             }
 
             // move the current packet to our list of packets
-            _packets.insert(std::move(_currentPacket));
+            _packets.push_back(std::move(_currentPacket));
 
             // write the data to the newPacket
-            newPacket.write(data, maxSize);
+            newPacket->write(data, maxSize);
 
-            // set our current packet to the new packet
-            _currentPacket = newPacket;
+            // swap our current packet with the new packet
+            _currentPacket.swap(newPacket);
 
             // return the number of bytes written to the new packet
             return maxSize;
@@ -91,11 +91,11 @@ template <class T> qint64 PacketList<T>::writeData(const char* data, qint64 maxS
             // we're an ordered PacketList - let's fit what we can into the current packet and then put the leftover
             // into a new packet
 
-            int numBytesToEnd = _currentPacket.size() - _currentPacket.sizeUsed();
+            int numBytesToEnd = _currentPacket->bytesAvailable();
             _currentPacket->write(data, numBytesToEnd);
 
             // move the current packet to our list of packets
-            _packets.insert(std::move(_currentPacket));
+            _packets.push_back(std::move(_currentPacket));
 
             // recursively call our writeData method for the remaining data to write to a new packet
             return numBytesToEnd + writeData(data + numBytesToEnd, maxSize - numBytesToEnd);
@@ -103,8 +103,8 @@ template <class T> qint64 PacketList<T>::writeData(const char* data, qint64 maxS
     }
 }
 
-template <class T> void PacketList<T>::closeCurrentPacket() {
+void NLPacketList::closeCurrentPacket() {
     // move the current packet to our list of packets
-    _packets.insert(std::move(_currentPacket));
+    _packets.push_back(std::move(_currentPacket));
 }
 

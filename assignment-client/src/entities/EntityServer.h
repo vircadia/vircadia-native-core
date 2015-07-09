@@ -37,8 +37,8 @@ public:
 
     // subclass may implement these method
     virtual void beforeRun();
-    virtual bool hasSpecialPacketToSend(const SharedNodePointer& node);
-    virtual int sendSpecialPacket(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent);
+    virtual bool hasSpecialPacketsToSend(const SharedNodePointer& node);
+    virtual int sendSpecialPackets(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent);
 
     virtual void entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode);
     virtual void readAdditionalConfiguration(const QJsonObject& settingsSectionObject);

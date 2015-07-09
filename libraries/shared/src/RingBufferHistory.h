@@ -21,7 +21,7 @@ template <typename T>
 class RingBufferHistory {
 
 public:
-    
+
     RingBufferHistory(int capacity = 10)
         : _size(capacity + 1),
         _capacity(capacity),
@@ -45,7 +45,7 @@ public:
 
     void insert(const T& entry) {
         // increment newest entry index cyclically
-        _newestEntryAtIndex = (_newestEntryAtIndex == _size - 1) ? 0 : _newestEntryAtIndex + 1;
+        _newestEntryAtIndex = (_newestEntryAtIndex + 1) % _size;
 
         // insert new entry
         _buffer[_newestEntryAtIndex] = entry;
@@ -53,12 +53,12 @@ public:
             _numEntries++;
         }
     }
-    
+
     // std::unique_ptr need to be passed as an rvalue ref and moved into the vector
     void insert(T&& entry) {
         // increment newest entry index cyclically
-        _newestEntryAtIndex = (_newestEntryAtIndex == _size - 1) ? 0 : _newestEntryAtIndex + 1;
-        
+        _newestEntryAtIndex = (_newestEntryAtIndex + 1) % _size;
+
         // insert new entry
         _buffer[_newestEntryAtIndex] = std::move(entry);
         if (_numEntries < _capacity) {
@@ -209,7 +209,7 @@ public:
         T* _at;
     };
 
-    Iterator begin() { return Iterator(&_buffer.first(), &_buffer.last(), &_buffer[_newestEntryAtIndex], &_buffer[_newestEntryAtIndex]); }
+    Iterator begin() { return Iterator(&_buffer.front(), &_buffer.back(), &_buffer[_newestEntryAtIndex], &_buffer[_newestEntryAtIndex]); }
 
     Iterator end() {
         int endAtIndex = _newestEntryAtIndex - _numEntries;

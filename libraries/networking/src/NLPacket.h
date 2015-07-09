@@ -15,23 +15,25 @@
 #include "Packet.h"
 
 class NLPacket : public Packet {
+    Q_OBJECT
 public:
-    static std::unique_ptr<NLPacket> create(PacketType::Value type, int64_t size = -1);
+    static std::unique_ptr<NLPacket> create(PacketType::Value type, qint64 size = -1);
     // Provided for convenience, try to limit use
-    static std::unique_ptr<NLPacket> createCopy(const std::unique_ptr<NLPacket>& other);
-    
-    static int64_t localHeaderSize(PacketType::Value type);
-    static int64_t maxPayloadSize(PacketType::Value type);
-    
+    static std::unique_ptr<NLPacket> createCopy(const NLPacket& other);
+
+    static qint64 localHeaderSize(PacketType::Value type);
+    static qint64 maxPayloadSize(PacketType::Value type);
+
     virtual qint64 totalHeadersSize() const; // Cumulated size of all the headers
     virtual qint64 localHeaderSize() const;  // Current level's header size
 
+    // TODO Implement this :)
     QUuid getSourceID() const { return QUuid(); }
-    
+
 protected:
-    NLPacket(PacketType::Value type, int64_t size);
-    NLPacket(NLPacket& other);
-    
+    NLPacket(PacketType::Value type, qint64 size);
+    NLPacket(const NLPacket& other);
+
     void setSourceUuid(QUuid sourceUuid);
     void setConnectionUuid(QUuid connectionUuid);
 };

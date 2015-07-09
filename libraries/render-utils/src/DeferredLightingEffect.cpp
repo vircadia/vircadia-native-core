@@ -50,37 +50,44 @@
 
 static const std::string glowIntensityShaderHandle = "glowIntensity";
 
+gpu::PipelinePointer DeferredLightingEffect::getPipeline(SimpleProgramKey config) {
+    auto it = _simplePrograms.find(config);
+    if (it != _simplePrograms.end()) {
+        return it.value();
+    }
+    
+    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    if (config.isCulled()) {
+        state->setCullMode(gpu::State::CULL_BACK);
+    } else {
+        state->setCullMode(gpu::State::CULL_NONE);
+    }
+    state->setDepthTest(true, true, gpu::LESS_EQUAL);
+    if (config.hasDepthBias()) {
+        state->setDepthBias(1.0f);
+        state->setDepthBiasSlopeScale(1.0f);
+    }
+    state->setBlendFunction(false,
+                            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+    
+    gpu::ShaderPointer program = (config.isEmissive()) ? _emissiveShader : _simpleShader;
+    gpu::PipelinePointer pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+    _simplePrograms.insert(config, pipeline);
+    return pipeline;
+}
+
 void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     auto VS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(simple_vert)));
     auto PS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(simple_textured_frag)));
     auto PSEmissive = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(simple_textured_emisive_frag)));
     
-    gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PS));
-    gpu::ShaderPointer programEmissive = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PSEmissive));
+    _simpleShader = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PS));
+    _emissiveShader = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PSEmissive));
     
     gpu::Shader::BindingSet slotBindings;
-    gpu::Shader::makeProgram(*program, slotBindings);
-    gpu::Shader::makeProgram(*programEmissive, slotBindings);
-    
-    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-    state->setCullMode(gpu::State::CULL_BACK);
-    state->setDepthTest(true, true, gpu::LESS_EQUAL);
-    state->setBlendFunction(false,
-                            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-    
-    
-    gpu::StatePointer stateCullNone = gpu::StatePointer(new gpu::State());
-    stateCullNone->setCullMode(gpu::State::CULL_NONE);
-    stateCullNone->setDepthTest(true, true, gpu::LESS_EQUAL);
-    stateCullNone->setBlendFunction(false,
-                            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-    
-    _simpleProgram = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
-    _simpleProgramCullNone = gpu::PipelinePointer(gpu::Pipeline::create(program, stateCullNone));
-    _simpleProgramEmissive = gpu::PipelinePointer(gpu::Pipeline::create(programEmissive, state));
-    _simpleProgramEmissiveCullNone = gpu::PipelinePointer(gpu::Pipeline::create(programEmissive, stateCullNone));
+    gpu::Shader::makeProgram(*_simpleShader, slotBindings);
+    gpu::Shader::makeProgram(*_emissiveShader, slotBindings);
 
     _viewState = viewState;
     loadLightProgram(directional_light_frag, false, _directionalLight, _directionalLightLocations);
@@ -117,21 +124,12 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset(_ambientLightMode % gpu::SphericalHarmonics::NUM_PRESET));
 }
 
-void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled, bool emmisive) {
-    if (emmisive) {
-        if (culled) {
-            batch.setPipeline(_simpleProgramEmissive);
-        } else {
-            batch.setPipeline(_simpleProgramEmissiveCullNone);
-        }
-    } else {
-        if (culled) {
-            batch.setPipeline(_simpleProgram);
-        } else {
-            batch.setPipeline(_simpleProgramCullNone);
-        }
-    }
-    if (!textured) {
+void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled,
+                                               bool emmisive, bool depthBias) {
+    SimpleProgramKey config{textured, culled, emmisive, depthBias};
+    batch.setPipeline(getPipeline(config));
+    
+    if (!config.isTextured()) {
         // If it is not textured, bind white texture and keep using textured pipeline
         batch.setUniformTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
     }

@@ -11,41 +11,46 @@
 
 #include "NLPacket.h"
 
-int64_t NLPacket::localHeaderSize(PacketType::Value type) {
-    int64_t size = ((NON_SOURCED_PACKETS.contains(type)) ? 0 : NUM_BYTES_RFC4122_UUID) +
+qint64 NLPacket::localHeaderSize(PacketType::Value type) {
+    qint64 size = ((NON_SOURCED_PACKETS.contains(type)) ? 0 : NUM_BYTES_RFC4122_UUID) +
                     ((NON_VERIFIED_PACKETS.contains(type)) ? 0 : NUM_BYTES_RFC4122_UUID);
     return size;
 }
 
-int64_t NLPacket::maxPayloadSize(PacketType::Value type) {
+qint64 NLPacket::maxPayloadSize(PacketType::Value type) {
     return Packet::maxPayloadSize(type) - localHeaderSize(type);
 }
 
-qint64 Packet::totalHeadersSize() const {
+qint64 NLPacket::totalHeadersSize() const {
     return localHeaderSize() + Packet::localHeaderSize();
 }
 
-qint64 Packet::localHeaderSize() const {
+qint64 NLPacket::localHeaderSize() const {
     return localHeaderSize(_type);
 }
 
-std::unique_ptr<NLPacket> NLPacket::create(PacketType::Value type, int64_t size) {
-    if (size > maxPayloadSize(type)) {
-        return std::unique_ptr<NLPacket>();
+std::unique_ptr<NLPacket> NLPacket::create(PacketType::Value type, qint64 size) {
+    auto maxPayload = maxPayloadSize(type);
+    if (size == -1) {
+        // default size of -1, means biggest packet possible
+        size = maxPayload;
     }
     
+    // Fail with invalid size
+    Q_ASSERT(size >= 0 || size < maxPayload);
+    
+    // allocate memory
     return std::unique_ptr<NLPacket>(new NLPacket(type, size));
 }
 
-std::unique_ptr<NLPacket> NLPacket::createCopy(const std::unique_ptr<NLPacket>& other) {
-    Q_ASSERT(other);
-    return std::unique_ptr<NLPacket>(new NLPacket(*other));
+std::unique_ptr<NLPacket> NLPacket::createCopy(const NLPacket& other) {
+    return std::unique_ptr<NLPacket>(new NLPacket(other));
 }
 
-NLPacket::NLPacket(PacketType::Value type, int64_t size) : Packet(type, localHeaderSize(type) + size) {
+NLPacket::NLPacket(PacketType::Value type, qint64 size) : Packet(type, localHeaderSize(type) + size) {
 }
 
-NLPacket::NLPacket(NLPacket& other) : Packet(other) {
+NLPacket::NLPacket(const NLPacket& other) : Packet(other) {
 }
 
 void NLPacket::setSourceUuid(QUuid sourceUuid) {

@@ -73,7 +73,7 @@ const float ACTIVATION_ANGULAR_VELOCITY_DELTA = 0.03f;
 /// one directly, instead you must only construct one of it's derived classes with additional features.
 class EntityItem {
     // These two classes manage lists of EntityItem pointers and must be able to cleanup pointers when an EntityItem is deleted.
-    // To make the cleanup robust each EntityItem has backpointers to its manager classes (which are only ever set/cleared by 
+    // To make the cleanup robust each EntityItem has backpointers to its manager classes (which are only ever set/cleared by
     // the managers themselves, hence they are fiends) whose NULL status can be used to determine which managers still need to
     // do cleanup.
     friend class EntityTreeElement;
@@ -161,15 +161,15 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData)
                                                 { return 0; }
 
-    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
+    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
                             render::PendingChanges& pendingChanges) { return false; } // by default entity items don't add to scene
-    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
+    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
                                 render::PendingChanges& pendingChanges) { } // by default entity items don't add to scene
     virtual void render(RenderArgs* args) { } // by default entity items don't know how to render
 
     static int expectedBytes();
 
-    static void adjustEditPacketForClockSkew(unsigned char* codeColorBuffer, size_t length, int clockSkew);
+    static void adjustEditPacketForClockSkew(QByteArray& buffer, int clockSkew);
 
     // perform update
     virtual void update(const quint64& now) { _lastUpdated = now; }
@@ -190,20 +190,20 @@ public:
 
     // attributes applicable to all entity types
     EntityTypes::EntityType getType() const { return _type; }
-    
+
     inline glm::vec3 getCenterPosition() const { return getTransformToCenter().getTranslation(); }
     void setCenterPosition(const glm::vec3& position);
-    
+
     const Transform getTransformToCenter() const;
     void setTranformToCenter(const Transform& transform);
-    
+
     inline const Transform& getTransform() const { return _transform; }
     inline void setTransform(const Transform& transform) { _transform = transform; }
-    
+
     /// Position in meters (0.0 - TREE_SCALE)
     inline const glm::vec3& getPosition() const { return _transform.getTranslation(); }
     inline void setPosition(const glm::vec3& value) { _transform.setTranslation(value); }
-    
+
     inline const glm::quat& getRotation() const { return _transform.getRotation(); }
     inline void setRotation(const glm::quat& rotation) { _transform.setRotation(rotation); }
 
@@ -416,7 +416,7 @@ protected:
     float _glowLevel;
     float _localRenderAlpha;
     float _density = ENTITY_ITEM_DEFAULT_DENSITY; // kg/m^3
-    // NOTE: _volumeMultiplier is used to allow some mass properties code exist in the EntityItem base class 
+    // NOTE: _volumeMultiplier is used to allow some mass properties code exist in the EntityItem base class
     // rather than in all of the derived classes.  If we ever collapse these classes to one we could do it a
     // different way.
     float _volumeMultiplier = 1.0f;

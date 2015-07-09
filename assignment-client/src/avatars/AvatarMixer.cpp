@@ -254,7 +254,7 @@ void AvatarMixer::broadcastAvatarData() {
                     }
 
                     PacketSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
-                    PacketSequenceNumber lastSeqFromSender = otherNode->getLastSequenceNumberForPacketType::(PacketType::AvatarData);
+                    PacketSequenceNumber lastSeqFromSender = otherNode->getLastSequenceNumberForPacketType(PacketType::AvatarData);
 
                     if (lastSeqToReceiver > lastSeqFromSender) {
                         // Did we somehow get out of order packets from the sender?
@@ -283,7 +283,7 @@ void AvatarMixer::broadcastAvatarData() {
 
                     // set the last sent sequence number for this sender on the receiver
                     nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(),
-                        otherNode->getLastSequenceNumberForPacketType::(PacketType::AvatarData));
+                        otherNode->getLastSequenceNumberForPacketType(PacketType::AvatarData));
 
                     // start a new segment in the PacketList for this avatar
                     avatarPacketList.startSegment();
@@ -305,9 +305,12 @@ void AvatarMixer::broadcastAvatarData() {
                             || otherNodeData->getBillboardChangeTimestamp() > _lastFrameTimestamp
                             || randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
 
-                        auto billboardPacket = NLPacket::create(PacketType::AvatarBillboard);
-                        billboardPacket->write(otherNode->getUUID().toRfc4122());
-                        billboardPacket->write(otherNodeData->getAvatar().getBillboard());
+                        QByteArray rfcUUID = otherNode->getUUID().toRfc4122();
+                        QByteArray billboard = otherNodeData->getAvatar().getBillboard();
+
+                        auto billboardPacket = NLPacket::create(PacketType::AvatarBillboard, rfcUUID.size() + billboard.size());
+                        billboardPacket->write(rfcUUID);
+                        billboardPacket->write(billboard);
 
                         nodeList->sendPacket(std::move(billboardPacket), node);
 
@@ -319,9 +322,10 @@ void AvatarMixer::broadcastAvatarData() {
                             || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
                             || randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
 
-                        auto identityPacket = NLPacket::create(PacketType::AvatarIdentity);
-
                         QByteArray individualData = otherNodeData->getAvatar().identityByteArray();
+
+                        auto identityPacket = NLPacket::create(PacketType::AvatarIdentity, individualData.size());
+
                         individualData.replace(0, NUM_BYTES_RFC4122_UUID, otherNode->getUUID().toRfc4122());
 
                         identityPacket->write(individualData);
@@ -364,7 +368,7 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
         auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID);
         killPacket->write(killedNode->getUUID().toRfc4122());
 
-        nodeList->broadcastToNodes(killPacket, NodeSet() << NodeType::Agent);
+        nodeList->broadcastToNodes(std::move(killPacket), NodeSet() << NodeType::Agent);
 
         // we also want to remove sequence number data for this avatar on our other avatars
         // so invoke the appropriate method on the AvatarMixerClientData for other avatars
@@ -404,7 +408,6 @@ void AvatarMixer::readPendingDatagrams() {
                     break;
                 }
                 case PacketType::AvatarIdentity: {
-
                     // check if we have a matching node in our list
                     SharedNodePointer avatarNode = nodeList->sendingNodeForPacket(receivedPacket);
 
@@ -421,7 +424,6 @@ void AvatarMixer::readPendingDatagrams() {
                     break;
                 }
                 case PacketType::AvatarBillboard: {
-
                     // check if we have a matching node in our list
                     SharedNodePointer avatarNode = nodeList->sendingNodeForPacket(receivedPacket);
 

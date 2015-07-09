@@ -12,9 +12,21 @@
 #ifndef hifi_EntityTests_h
 #define hifi_EntityTests_h
 
-namespace EntityTests {
-    void entityTreeTests(bool verbose = false);
-    void runAllTests(bool verbose = false);
-}
+#include <QtTest/QtTest>
+
+//
+// TODO: These are waaay out of date with the current codebase, and should be reimplemented at some point.
+//
+
+class EntityTests : public QObject {
+    Q_OBJECT
+
+private slots:
+    void testsNotImplemented () {
+        qDebug() << "fixme: ModelTests are currently broken and need to be reimplemented";
+    }
+//    void entityTreeTests(bool verbose = false);
+//    void runAllTests(bool verbose = false);
+};
 
 #endif // hifi_EntityTests_h

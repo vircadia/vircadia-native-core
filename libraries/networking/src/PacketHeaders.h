@@ -107,10 +107,6 @@ QString nameForPacketType(PacketType::Value packetType);
 
 const QUuid nullUUID = QUuid();
 
-QByteArray byteArrayWithUUIDPopulatedHeader(PacketType::Value packetType, const QUuid& connectionUUID);
-int populatePacketHeaderWithUUID(QByteArray& packet, PacketType::Value packetType, const QUuid& connectionUUID);
-int populatePacketHeaderWithUUID(char* packet, PacketType::Value packetType, const QUuid& connectionUUID);
-
 int numHashBytesForType(PacketType::Value packetType);
 int numSequenceNumberBytesForType(PacketType::Value packetType);
 
@@ -132,14 +128,6 @@ QByteArray hashForPacketAndConnectionUUID(const QByteArray& packet, const QUuid&
 // If the caller has already looked at the packet type and can provide it then the methods below won't have to look it up.
 
 PacketSequenceNumber sequenceNumberFromHeader(const QByteArray& packet, PacketType::Value packetType = PacketType::Unknown);
-
-void replaceHashInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketType::Value packetType = PacketType::Unknown);
-
-void replaceSequenceNumberInPacket(QByteArray& packet, PacketSequenceNumber sequenceNumber,
-                                   PacketType::Value packetType = PacketType::Unknown);
-
-void replaceHashAndSequenceNumberInPacket(QByteArray& packet, const QUuid& connectionUUID, PacketSequenceNumber sequenceNumber,
-                                          PacketType::Value packetType = PacketType::Unknown);
 
 int arithmeticCodingValueFromBuffer(const char* checkValue);
 int numBytesArithmeticCodingFromBuffer(const char* checkValue);

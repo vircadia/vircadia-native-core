@@ -176,7 +176,7 @@ private:
 
     bool _isReadyToSend;
 
-    std::unique_ptr<NLPacket> _statsPacket { NLPacket::create(PacketType::OctreeStats); }
+    std::unique_ptr<NLPacket> _statsPacket = NLPacket::create(PacketType::OctreeStats);
 
     // scene timing data in usecs
     bool _isStarted;

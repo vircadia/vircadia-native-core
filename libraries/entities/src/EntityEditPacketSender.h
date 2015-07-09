@@ -34,6 +34,6 @@ public:
 
     // My server type is the model server
     virtual char getMyNodeType() const { return NodeType::EntityServer; }
-    virtual void adjustEditPacketForClockSkew(PacketType::Value type, unsigned char* editBuffer, size_t length, int clockSkew);
+    virtual void adjustEditPacketForClockSkew(PacketType::Value type, QByteArray& buffer, int clockSkew);
 };
 #endif // hifi_EntityEditPacketSender_h

@@ -21,7 +21,7 @@ const char* MODEL_SERVER_NAME = "Entity";
 const char* MODEL_SERVER_LOGGING_TARGET_NAME = "entity-server";
 const char* LOCAL_MODELS_PERSIST_FILE = "resources/models.svo";
 
-EntityServer::EntityServer(const QByteArray& packet) 
+EntityServer::EntityServer(const QByteArray& packet)
     :   OctreeServer(packet), _entitySimulation(NULL) {
     // nothing special to do here...
 }
@@ -64,7 +64,7 @@ void EntityServer::entityCreated(const EntityItem& newEntity, const SharedNodePo
 
 
 // EntityServer will use the "special packets" to send list of recently deleted entities
-bool EntityServer::hasSpecialPacketToSend(const SharedNodePointer& node) {
+bool EntityServer::hasSpecialPacketsToSend(const SharedNodePointer& node) {
     bool shouldSendDeletedEntities = false;
 
     // check to see if any new entities have been added since we last sent to this node...
@@ -79,9 +79,8 @@ bool EntityServer::hasSpecialPacketToSend(const SharedNodePointer& node) {
     return shouldSendDeletedEntities;
 }
 
-int EntityServer::sendSpecialPacket(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent) {
-    unsigned char outputBuffer[MAX_PACKET_SIZE];
-    size_t packetLength = 0;
+int EntityServer::sendSpecialPackets(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent) {
+    int totalBytes = 0;
 
     EntityNodeData* nodeData = static_cast<EntityNodeData*>(node->getLinkedData());
     if (nodeData) {
@@ -91,23 +90,25 @@ int EntityServer::sendSpecialPacket(const SharedNodePointer& node, OctreeQueryNo
         EntityTree* tree = static_cast<EntityTree*>(_tree);
         bool hasMoreToSend = true;
 
-        // TODO: is it possible to send too many of these packets? what if you deleted 1,000,000 entities?
         packetsSent = 0;
-        while (hasMoreToSend) {
-            hasMoreToSend = tree->encodeEntitiesDeletedSince(queryNode->getSequenceNumber(), deletedEntitiesSentAt,
-                                                outputBuffer, MAX_PACKET_SIZE, packetLength);
 
-            DependencyManager::get<NodeList>()->writeDatagram((char*) outputBuffer, packetLength,
-                                                              SharedNodePointer(node));
-            queryNode->packetSent(outputBuffer, packetLength);
+        while (hasMoreToSend) {
+            auto specialPacket = tree->encodeEntitiesDeletedSince(queryNode->getSequenceNumber(), deletedEntitiesSentAt,
+                                                                  hasMoreToSend);
+
+            queryNode->packetSent(*specialPacket.get());
+
+            totalBytes += specialPacket->getSizeWithHeader();
             packetsSent++;
+
+            DependencyManager::get<NodeList>()->sendPacket(std::move(specialPacket), node);
         }
 
         nodeData->setLastDeletedEntitiesSentAt(deletePacketSentAt);
     }
 
     // TODO: caller is expecting a packetLength, what if we send more than one packet??
-    return packetLength;
+    return totalBytes;
 }
 
 void EntityServer::pruneDeletedEntities() {
@@ -115,7 +116,7 @@ void EntityServer::pruneDeletedEntities() {
     if (tree->hasAnyDeletedEntities()) {
 
         quint64 earliestLastDeletedEntitiesSent = usecTimestampNow() + 1; // in the future
-        
+
         DependencyManager::get<NodeList>()->eachNode([&earliestLastDeletedEntitiesSent](const SharedNodePointer& node) {
             if (node->getLinkedData()) {
                 EntityNodeData* nodeData = static_cast<EntityNodeData*>(node->getLinkedData());
@@ -125,12 +126,12 @@ void EntityServer::pruneDeletedEntities() {
                 }
             }
         });
-        
+
         tree->forgetEntitiesDeletedBefore(earliestLastDeletedEntitiesSent);
     }
 }
 
-void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectionObject) { 
+void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectionObject) {
     bool wantEditLogging = false;
     readOptionBool(QString("wantEditLogging"), settingsSectionObject, wantEditLogging);
     qDebug("wantEditLogging=%s", debug::valueOf(wantEditLogging));

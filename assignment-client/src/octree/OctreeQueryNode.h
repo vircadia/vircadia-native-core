@@ -14,7 +14,6 @@
 
 #include <iostream>
 
-
 #include <CoverageMap.h>
 #include <NodeData.h>
 #include <OctreeConstants.h>
@@ -41,13 +40,13 @@ public:
 
     void writeToPacket(const unsigned char* buffer, unsigned int bytes); // writes to end of packet
 
-    NLPacket& getPacket() const { return _octreePacket; }
+    NLPacket& getPacket() const { return *_octreePacket; }
     bool isPacketWaiting() const { return _octreePacketWaiting; }
 
     bool packetIsDuplicate() const;
     bool shouldSuppressDuplicatePacket();
-
-    unsigned int getAvailable() const { return _octreePacketAvailableBytes; }
+    
+    unsigned int getAvailable() const { return _octreePacket->bytesAvailable(); }
     int getMaxSearchLevel() const { return _maxSearchLevel; }
     void resetMaxSearchLevel() { _maxSearchLevel = 1; }
     void incrementMaxSearchLevel() { _maxSearchLevel++; }
@@ -104,7 +103,7 @@ public:
     void forceNodeShutdown();
     bool isShuttingDown() const { return _isShuttingDown; }
 
-    void octreePacketSent() { packetSent(_octreePacket); }
+    void octreePacketSent() { packetSent(*_octreePacket); }
     void packetSent(const NLPacket& packet);
 
     OCTREE_PACKET_SEQUENCE getSequenceNumber() const { return _sequenceNumber; }
