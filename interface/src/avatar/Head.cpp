@@ -296,7 +296,7 @@ void Head::relaxLean(float deltaTime) {
 
 void Head::render(RenderArgs* renderArgs, float alpha, ViewFrustum* renderFrustum, bool postLighting) {
     if (_renderLookatVectors) {
-            renderLookatVectors(renderArgs, _leftEyePosition, _rightEyePosition, getCorrectedLookAtPosition());    
+        renderLookatVectors(renderArgs, _leftEyePosition, _rightEyePosition, getCorrectedLookAtPosition());
     }
 }
 
@@ -324,7 +324,7 @@ glm::vec3 Head::getCorrectedLookAtPosition() {
 }
 
 void Head::setCorrectedLookAtPosition(glm::vec3 correctedLookAtPosition) {
-    _isLookingAtMe = true; 
+    _isLookingAtMe = true;
     _correctedLookAtPosition = correctedLookAtPosition;
 }
 

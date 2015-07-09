@@ -30,6 +30,7 @@ void drawText(int x, int y, float scale, float radians, int mono,
 void renderCollisionOverlay(int width, int height, float magnitude, float red = 0, float blue = 0, float green = 0);
 
 void runTimingTests();
+void runUnitTests();
 
 bool rayIntersectsSphere(const glm::vec3& rayStarting, const glm::vec3& rayNormalizedDirection,
     const glm::vec3& sphereCenter, float sphereRadius, float& distance);

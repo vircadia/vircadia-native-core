@@ -256,7 +256,6 @@ void AvatarManager::handleOutgoingChanges(VectorOfMotionStates& motionStates) {
 }
 
 void AvatarManager::handleCollisionEvents(CollisionEvents& collisionEvents) {
-    // TODO: expose avatar collision events to JS
     for (Collision collision : collisionEvents) {
         // TODO: Current physics uses null idA or idB for non-entities. The plan is to handle MOTIONSTATE_TYPE_AVATAR,
         // and then MOTIONSTATE_TYPE_MYAVATAR. As it is, this code only covers the case of my avatar (in which case one
@@ -285,6 +284,7 @@ void AvatarManager::handleCollisionEvents(CollisionEvents& collisionEvents) {
                 const float AVATAR_STRETCH_FACTOR = 1.0f;
 
                 AudioInjector::playSound(collisionSoundURL, energyFactorOfFull, AVATAR_STRETCH_FACTOR, myAvatar->getPosition());
+                myAvatar->collisionWithEntity(collision);
             }
         }
     }

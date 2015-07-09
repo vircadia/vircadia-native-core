@@ -1014,6 +1014,7 @@ void Application::paintGL() {
 
 void Application::runTests() {
     runTimingTests();
+    runUnitTests();
 }
 
 void Application::audioMuteToggled() {
@@ -1182,7 +1183,6 @@ bool Application::event(QEvent* event) {
 }
 
 bool Application::eventFilter(QObject* object, QEvent* event) {
-
     if (event->type() == QEvent::ShortcutOverride) {
         if (DependencyManager::get<OffscreenUi>()->shouldSwallowShortcut(event)) {
             event->accept();
@@ -1787,6 +1787,7 @@ void Application::checkFPS() {
 }
 
 void Application::idle() {
+    PROFILE_RANGE(__FUNCTION__);
     static SimpleAverage<float> interIdleDurations;
     static uint64_t lastIdleEnd{ 0 };
 
@@ -2304,38 +2305,42 @@ void Application::updateMyAvatarLookAtPosition() {
     bool isLookingAtSomeone = false;
     glm::vec3 lookAtSpot;
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-        //  When I am in mirror mode, just look right at the camera (myself)
+        //  When I am in mirror mode, just look right at the camera (myself); don't switch gaze points because when physically
+        //  looking in a mirror one's eyes appear steady.
         if (!OculusManager::isConnected()) {
             lookAtSpot = _myCamera.getPosition();
         } else {
-            if (_myAvatar->isLookingAtLeftEye()) {
-                lookAtSpot = OculusManager::getLeftEyePosition();
-            } else {
-                lookAtSpot = OculusManager::getRightEyePosition();
-            }
+            lookAtSpot = _myCamera.getPosition() + OculusManager::getMidEyePosition();
         }
-
     } else {
         AvatarSharedPointer lookingAt = _myAvatar->getLookAtTargetAvatar().lock();
         if (lookingAt && _myAvatar != lookingAt.get()) {
-            isLookingAtSomeone = true;
             //  If I am looking at someone else, look directly at one of their eyes
-            if (tracker && !tracker->isMuted()) {
-                //  If a face tracker is active, look at the eye for the side my gaze is biased toward
-                if (tracker->getEstimatedEyeYaw() > _myAvatar->getHead()->getFinalYaw()) {
-                    // Look at their right eye
-                    lookAtSpot = static_cast<Avatar*>(lookingAt.get())->getHead()->getRightEyePosition();
-                } else {
-                    // Look at their left eye
-                    lookAtSpot = static_cast<Avatar*>(lookingAt.get())->getHead()->getLeftEyePosition();
+            isLookingAtSomeone = true;
+            Head* lookingAtHead = static_cast<Avatar*>(lookingAt.get())->getHead();
+
+            const float MAXIMUM_FACE_ANGLE = 65.0f * RADIANS_PER_DEGREE;
+            glm::vec3 lookingAtFaceOrientation = lookingAtHead->getFinalOrientationInWorldFrame() * IDENTITY_FRONT;
+            glm::vec3 fromLookingAtToMe = glm::normalize(_myAvatar->getHead()->getEyePosition()
+                - lookingAtHead->getEyePosition());
+            float faceAngle = glm::angle(lookingAtFaceOrientation, fromLookingAtToMe);
+
+            if (faceAngle < MAXIMUM_FACE_ANGLE) {
+                // Randomly look back and forth between look targets
+                switch (_myAvatar->getEyeContactTarget()) {
+                    case LEFT_EYE:
+                        lookAtSpot = lookingAtHead->getLeftEyePosition();
+                        break;
+                    case RIGHT_EYE:
+                        lookAtSpot = lookingAtHead->getRightEyePosition();
+                        break;
+                    case MOUTH:
+                        lookAtSpot = lookingAtHead->getMouthPosition();
+                        break;
                 }
             } else {
-                //  Need to add randomly looking back and forth between left and right eye for case with no tracker
-                if (_myAvatar->isLookingAtLeftEye()) {
-                    lookAtSpot = static_cast<Avatar*>(lookingAt.get())->getHead()->getLeftEyePosition();
-                } else {
-                    lookAtSpot = static_cast<Avatar*>(lookingAt.get())->getHead()->getRightEyePosition();
-                }
+                // Just look at their head (mid point between eyes)
+                lookAtSpot = lookingAtHead->getEyePosition();
             }
         } else {
             //  I am not looking at anyone else, so just look forward
@@ -2343,14 +2348,13 @@ void Application::updateMyAvatarLookAtPosition() {
                 (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
         }
     }
-    //
-    //  Deflect the eyes a bit to match the detected Gaze from 3D camera if active
-    //
-    if (tracker && !tracker->isMuted()) {
+
+    // Deflect the eyes a bit to match the detected gaze from Faceshift if active.
+    // DDE doesn't track eyes.
+    if (tracker && typeid(*tracker) == typeid(Faceshift) && !tracker->isMuted()) {
         float eyePitch = tracker->getEstimatedEyePitch();
         float eyeYaw = tracker->getEstimatedEyeYaw();
         const float GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT = 0.1f;
-        // deflect using Faceshift gaze data
         glm::vec3 origin = _myAvatar->getHead()->getEyePosition();
         float pitchSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? -1.0f : 1.0f;
         float deflection = DependencyManager::get<Faceshift>()->getEyeDeflection();
@@ -3383,14 +3387,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     // load the view frustum
     loadViewFrustum(theCamera, _displayViewFrustum);
 
-    // flip x if in mirror mode (also requires reversing winding order for backface culling)
-    if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
-        //glScalef(-1.0f, 1.0f, 1.0f);
-        //glFrontFace(GL_CW);
-    } else {
-        glFrontFace(GL_CCW);
-    }
-
     // transform view according to theCamera
     // could be myCamera (if in normal mode)
     // or could be viewFrustumOffsetCamera if in offset mode
@@ -3408,9 +3404,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     Transform viewTransform;
     viewTransform.setTranslation(theCamera.getPosition());
     viewTransform.setRotation(rotation);
-    if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
-//         viewTransform.setScale(Transform::Vec3(-1.0f, 1.0f, 1.0f));
-    }
     if (renderArgs->_renderSide != RenderArgs::MONO) {
         glm::mat4 invView = glm::inverse(_untranslatedViewMatrix);
 
