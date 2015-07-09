@@ -14,7 +14,8 @@
 #include "GenericThread.h"
 
 
-GenericThread::GenericThread() :
+GenericThread::GenericThread(QObject* parent) : 
+    QObject(parent),
     _stopThread(false),
     _isThreaded(false) // assume non-threaded, must call initialize()
 {
