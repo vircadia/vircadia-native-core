@@ -23,11 +23,23 @@
 #include <SimpleMovingAverage.h>
 #include <StDev.h>
 
+#include "JitterTests.h"
+
+// Uncomment this to run manually
+//#define RUN_MANUALLY
+
+#ifndef RUN_MANUALLY
+
+QTEST_MAIN(JitterTests)
+
+#else // RUN_MANUALLY
+
 const quint64 MSEC_TO_USEC = 1000;
 const quint64 LARGE_STATS_TIME = 500; // we don't expect stats calculation to take more than this many usecs
 
 void runSend(const char* addressOption, int port, int gap, int size, int report);
 void runReceive(const char* addressOption, int port, int gap, int size, int report);
+
 
 int main(int argc, const char * argv[]) {
     if (argc != 7) {
@@ -375,3 +387,5 @@ void runReceive(const char* addressOption, int port, int gap, int size, int repo
     WSACleanup();
 #endif
 }
+
+#endif // #ifdef RUN_MANUALLY

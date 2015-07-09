@@ -12,24 +12,19 @@
 #ifndef hifi_ObjectActionSpring_h
 #define hifi_ObjectActionSpring_h
 
-#include <QUuid>
-
-#include <EntityItem.h>
 #include "ObjectAction.h"
 
 class ObjectActionSpring : public ObjectAction {
 public:
-    ObjectActionSpring(EntityActionType type, QUuid id, EntityItemPointer ownerEntity);
+    ObjectActionSpring(const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~ObjectActionSpring();
-
-    virtual EntityActionType getType() { return ACTION_TYPE_SPRING; }
 
     virtual bool updateArguments(QVariantMap arguments);
     virtual QVariantMap getArguments();
 
     virtual void updateActionWorker(float deltaTimeStep);
 
-    virtual QByteArray serialize();
+    virtual QByteArray serialize() const;
     virtual void deserialize(QByteArray serializedArguments);
 
 protected:

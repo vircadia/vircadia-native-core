@@ -185,6 +185,14 @@ public:
     virtual quint64 getAverageCreateTime() const { return _totalCreates == 0 ? 0 : _totalCreateTime / _totalCreates; }
     virtual quint64 getAverageLoggingTime() const { return _totalEditMessages == 0 ? 0 : _totalLoggingTime / _totalEditMessages; }
 
+    void trackIncomingEntityLastEdited(quint64 lastEditedTime, int bytesRead);
+    quint64 getAverageEditDeltas() const 
+        { return _totalTrackedEdits == 0 ? 0 : _totalEditDeltas / _totalTrackedEdits; }
+    quint64 getAverageEditBytes() const 
+        { return _totalTrackedEdits == 0 ? 0 : _totalEditBytes / _totalTrackedEdits; }
+    quint64 getMaxEditDelta() const { return _maxEditDelta; }
+    quint64 getTotalTrackedEdits() const { return _totalTrackedEdits; }
+
 signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);
@@ -230,6 +238,14 @@ private:
     quint64 _totalUpdateTime = 0;
     quint64 _totalCreateTime = 0;
     quint64 _totalLoggingTime = 0;
+
+    // these performance statistics are only used in the client
+    void resetClientEditStats();
+    int _totalTrackedEdits = 0;
+    quint64 _totalEditBytes = 0;
+    quint64 _totalEditDeltas = 0;
+    quint64 _maxEditDelta = 0;
+    quint64 _treeResetTime = 0;
 };
 
 #endif // hifi_EntityTree_h

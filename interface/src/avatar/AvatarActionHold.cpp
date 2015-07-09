@@ -17,13 +17,14 @@
 
 const uint16_t AvatarActionHold::holdVersion = 1;
 
-AvatarActionHold::AvatarActionHold(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) :
-    ObjectActionSpring(type, id, ownerEntity),
+AvatarActionHold::AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntity) :
+    ObjectActionSpring(id, ownerEntity),
     _relativePosition(glm::vec3(0.0f)),
     _relativeRotation(glm::quat()),
     _hand("right"),
     _mine(false)
 {
+    _type = ACTION_TYPE_HOLD;
     #if WANT_DEBUG
     qDebug() << "AvatarActionHold::AvatarActionHold";
     #endif
@@ -166,8 +167,7 @@ QVariantMap AvatarActionHold::getArguments() {
 
 
 void AvatarActionHold::deserialize(QByteArray serializedArguments) {
-    if (_mine) {
-        return;
+    if (!_mine) {
+        ObjectActionSpring::deserialize(serializedArguments);
     }
-    ObjectActionSpring::deserialize(serializedArguments);
 }

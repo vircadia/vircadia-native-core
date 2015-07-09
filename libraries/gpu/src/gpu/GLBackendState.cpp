@@ -589,7 +589,7 @@ void GLBackend::do_setStateAntialiasedLineEnable(bool enable) {
 
 void GLBackend::do_setStateDepthBias(Vec2 bias) {
     if ( (bias.x != _pipeline._stateCache.depthBias) || (bias.y != _pipeline._stateCache.depthBiasSlopeScale)) {
-        if ((bias.x != 0.f) || (bias.y != 0.f)) {
+        if ((bias.x != 0.0f) || (bias.y != 0.0f)) {
             glEnable(GL_POLYGON_OFFSET_FILL);
             glEnable(GL_POLYGON_OFFSET_LINE);
             glEnable(GL_POLYGON_OFFSET_POINT);

@@ -15,8 +15,8 @@
 
 const uint16_t ObjectActionOffset::offsetVersion = 1;
 
-ObjectActionOffset::ObjectActionOffset(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) :
-    ObjectAction(type, id, ownerEntity) {
+ObjectActionOffset::ObjectActionOffset(const QUuid& id, EntityItemPointer ownerEntity) :
+    ObjectAction(ACTION_TYPE_OFFSET, id, ownerEntity) {
     #if WANT_DEBUG
     qDebug() << "ObjectActionOffset::ObjectActionOffset";
     #endif
@@ -127,7 +127,7 @@ QVariantMap ObjectActionOffset::getArguments() {
     return arguments;
 }
 
-QByteArray ObjectActionOffset::serialize() {
+QByteArray ObjectActionOffset::serialize() const {
     QByteArray ba;
     QDataStream dataStream(&ba, QIODevice::WriteOnly);
     dataStream << getType();
@@ -146,13 +146,14 @@ void ObjectActionOffset::deserialize(QByteArray serializedArguments) {
     QDataStream dataStream(serializedArguments);
 
     EntityActionType type;
-    QUuid id;
-    uint16_t serializationVersion;
-
     dataStream >> type;
     assert(type == getType());
+
+    QUuid id;
     dataStream >> id;
     assert(id == getID());
+
+    uint16_t serializationVersion;
     dataStream >> serializationVersion;
     if (serializationVersion != ObjectActionOffset::offsetVersion) {
         return;

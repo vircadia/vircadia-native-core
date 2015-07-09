@@ -12,14 +12,14 @@
 #include "AssignmentActionFactory.h"
 
 
-EntityActionPointer assignmentActionFactory(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) {
+EntityActionPointer assignmentActionFactory(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity) {
     return (EntityActionPointer) new AssignmentAction(type, id, ownerEntity);
 }
 
 
 EntityActionPointer AssignmentActionFactory::factory(EntitySimulation* simulation,
                                                      EntityActionType type,
-                                                     QUuid id,
+                                                     const QUuid& id,
                                                      EntityItemPointer ownerEntity,
                                                      QVariantMap arguments) {
     EntityActionPointer action = assignmentActionFactory(type, id, ownerEntity);

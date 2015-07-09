@@ -18,16 +18,16 @@
 #include "InterfaceActionFactory.h"
 
 
-EntityActionPointer interfaceActionFactory(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) {
+EntityActionPointer interfaceActionFactory(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity) {
     switch (type) {
         case ACTION_TYPE_NONE:
             return nullptr;
         case ACTION_TYPE_OFFSET:
-            return (EntityActionPointer) new ObjectActionOffset(type, id, ownerEntity);
+            return (EntityActionPointer) new ObjectActionOffset(id, ownerEntity);
         case ACTION_TYPE_SPRING:
-            return (EntityActionPointer) new ObjectActionSpring(type, id, ownerEntity);
+            return (EntityActionPointer) new ObjectActionSpring(id, ownerEntity);
         case ACTION_TYPE_HOLD:
-            return (EntityActionPointer) new AvatarActionHold(type, id, ownerEntity);
+            return (EntityActionPointer) new AvatarActionHold(id, ownerEntity);
     }
 
     assert(false);
@@ -37,7 +37,7 @@ EntityActionPointer interfaceActionFactory(EntityActionType type, QUuid id, Enti
 
 EntityActionPointer InterfaceActionFactory::factory(EntitySimulation* simulation,
                                                     EntityActionType type,
-                                                    QUuid id,
+                                                    const QUuid& id,
                                                     EntityItemPointer ownerEntity,
                                                     QVariantMap arguments) {
     EntityActionPointer action = interfaceActionFactory(type, id, ownerEntity);

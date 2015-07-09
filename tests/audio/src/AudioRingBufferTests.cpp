@@ -13,10 +13,17 @@
 
 #include "SharedUtil.h"
 
+// Adds an implicit cast to make sure that actual and expected are of the same type.
+//  QCOMPARE(<unsigned int>, <int>) => cryptic linker error.
+//  (since QTest::qCompare is defined for (T, T, ...), but not (T, U, ...))
+//
+#define QCOMPARE_WITH_CAST(actual, expected) \
+QCOMPARE(actual, static_cast<decltype(actual)>(expected))
+
+QTEST_MAIN(AudioRingBufferTests)
+
 void AudioRingBufferTests::assertBufferSize(const AudioRingBuffer& buffer, int samples) {
-    if (buffer.samplesAvailable() != samples) {
-        qDebug("Unexpected num samples available! Exptected: %d  Actual: %d\n", samples, buffer.samplesAvailable());
-    }
+    QCOMPARE(buffer.samplesAvailable(), samples);
 }
 
 void AudioRingBufferTests::runAllTests() {
@@ -54,13 +61,8 @@ void AudioRingBufferTests::runAllTests() {
 
         // verify 143 samples of read data
         for (int i = 0; i < 143; i++) {
-            if (readData[i] != i) {
-                qDebug("first readData[%d] incorrect!  Expcted: %d  Actual: %d", i, i, readData[i]);
-                return;
-            }
+            QCOMPARE(readData[i], (int16_t)i);
         }
-
-
         writeIndexAt = 0;
         readIndexAt = 0;
 
@@ -81,9 +83,6 @@ void AudioRingBufferTests::runAllTests() {
             readData[i] = writeIndexAt - 100 + i;
         }
 
-
-
-
         writeIndexAt = 0;
         readIndexAt = 0;
 
@@ -96,50 +95,33 @@ void AudioRingBufferTests::runAllTests() {
         assertBufferSize(ringBuffer, 100);
 
         // write 29 silent samples, 100 samples in buffer, make sure non were added
-        int samplesWritten;
-        if ((samplesWritten = ringBuffer.addSilentSamples(29)) != 0) {
-            qDebug("addSilentSamples(29) incorrect!  Expected: 0  Actual: %d", samplesWritten);
-            return;
-        }
+        int samplesWritten = ringBuffer.addSilentSamples(29);
+        QCOMPARE(samplesWritten, 0);
         assertBufferSize(ringBuffer, 100);
 
         // read 3 samples, 97 samples in buffer (expect to read "1", "2", "3")
         readIndexAt += ringBuffer.readSamples(&readData[readIndexAt], 3);
         for (int i = 0; i < 3; i++) {
-            if (readData[i] != i + 1) {
-                qDebug("Second readData[%d] incorrect!  Expcted: %d  Actual: %d", i, i + 1, readData[i]);
-                return;
-            }
+            QCOMPARE(readData[i], static_cast<int16_t>(i + 1));
         }
         assertBufferSize(ringBuffer, 97);
 
         // write 4 silent samples, 100 samples in buffer
-        if ((samplesWritten = ringBuffer.addSilentSamples(4)) != 3) {
-            qDebug("addSilentSamples(4) incorrect!  Exptected: 3  Actual: %d", samplesWritten);
-            return;
-        }
+        QCOMPARE(ringBuffer.addSilentSamples(4), 3);
         assertBufferSize(ringBuffer, 100);
 
         // read back 97 samples (the non-silent samples), 3 samples in buffer (expect to read "4" thru "100")
         readIndexAt += ringBuffer.readSamples(&readData[readIndexAt], 97);
         for (int i = 3; i < 100; i++) {
-            if (readData[i] != i + 1) {
-                qDebug("third readData[%d] incorrect!  Expcted: %d  Actual: %d", i, i + 1, readData[i]);
-                return;
-            }
+            QCOMPARE(readData[i], static_cast<int16_t>(i + 1));
         }
         assertBufferSize(ringBuffer, 3);
 
         // read back 3 silent samples, 0 samples in buffer
         readIndexAt += ringBuffer.readSamples(&readData[readIndexAt], 3);
         for (int i = 100; i < 103; i++) {
-            if (readData[i] != 0) {
-                qDebug("Fourth readData[%d] incorrect!  Expcted: %d  Actual: %d", i, 0, readData[i]);
-                return;
-            }
+            QCOMPARE(readData[i], static_cast<int16_t>(0));
         }
         assertBufferSize(ringBuffer, 0);
     }
-
-    qDebug() << "PASSED";
 }
