@@ -16,10 +16,48 @@
 #include "OctreePacketProcessor.h"
 #include "SceneScriptingInterface.h"
 
+OctreePacketProcessor::OctreePacketProcessor() {
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerPacketListener(PacketType::OctreeStats, this, "handleEntityDataPacket");
+    packetReceiver.registerPacketListener(PacketType::EntityData, this, "handleEntityDataPacket");
+    packetReceiver.registerPacketListener(PacketType::EntityErase, this, "handleEntityErasePacket");
+    packetReceiver.registerPacketListener(PacketType::OctreeStats, this, "handleOctreeStatsPacket");
+    packetReceiver.registerPacketListener(PacketType::EnvironmentData, this, "handleEnvironmentDataPacket");
+}
+
+// TODO implement packet processing in PacketType-specific methods
+void OctreePacketProcessor::handleEntityDataPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
+    SharedNodePointer sendingNode = DependencyManager::get<NodeList>()->nodeWithUUID(packet->getSourceID());
+    if (sendingNode) {
+        processPacket(sendingNode, QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
+    }
+}
+
+void OctreePacketProcessor::handleEntityErasePacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
+    SharedNodePointer sendingNode = DependencyManager::get<NodeList>()->nodeWithUUID(packet->getSourceID());
+    if (sendingNode) {
+        processPacket(sendingNode, QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
+    }
+}
+
+void OctreePacketProcessor::handleOctreeStatsPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
+    SharedNodePointer sendingNode = DependencyManager::get<NodeList>()->nodeWithUUID(packet->getSourceID());
+    if (sendingNode) {
+        processPacket(sendingNode, QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
+    }
+}
+
+void OctreePacketProcessor::handleEnvironmentDataPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
+    SharedNodePointer sendingNode = DependencyManager::get<NodeList>()->nodeWithUUID(packet->getSourceID());
+    if (sendingNode) {
+        processPacket(sendingNode, QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
+    }
+}
+
 void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "OctreePacketProcessor::processPacket()");
-    
+
     QByteArray mutablePacket = packet;
 
     const int WAY_BEHIND = 300;
@@ -34,7 +72,7 @@ void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, 
 
 
     PacketType::Value voxelPacketType = packetTypeForPacket(mutablePacket);
-    
+
     // note: PacketType_OCTREE_STATS can have PacketType_VOXEL_DATA
     // immediately following them inside the same packet. So, we process the PacketType_OCTREE_STATS first
     // then process any remaining bytes as if it was another packet
@@ -43,7 +81,7 @@ void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, 
         wasStatsPacket = true;
         if (messageLength > statsMessageLength) {
             mutablePacket = mutablePacket.mid(statsMessageLength);
-            
+
             // TODO: this does not look correct, the goal is to test the packet version for the piggyback, but
             //       this is testing the version and hash of the original packet
             if (!DependencyManager::get<NodeList>()->packetVersionAndHashMatch(packet)) {
@@ -54,28 +92,28 @@ void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, 
             return; // bail since no piggyback data
         }
     } // fall through to piggyback message
-    
+
     voxelPacketType = packetTypeForPacket(mutablePacket);
     PacketVersion packetVersion = mutablePacket[1];
     PacketVersion expectedVersion = versionForPacketType(voxelPacketType);
-    
+
     // check version of piggyback packet against expected version
     if (packetVersion != expectedVersion) {
         static QMultiMap<QUuid, PacketType> versionDebugSuppressMap;
-        
+
         QUuid senderUUID = uuidFromPacketHeader(packet);
         if (!versionDebugSuppressMap.contains(senderUUID, voxelPacketType)) {
             qDebug() << "Packet version mismatch on" << voxelPacketType << "- Sender"
             << senderUUID << "sent" << (int)packetVersion << "but"
             << (int)expectedVersion << "expected.";
-            
+
             emit packetVersionMismatch();
 
             versionDebugSuppressMap.insert(senderUUID, voxelPacketType);
         }
         return; // bail since piggyback version doesn't match
     }
-    
+
     app->trackIncomingOctreePacket(mutablePacket, sendingNode, wasStatsPacket);
 
     if (sendingNode) {

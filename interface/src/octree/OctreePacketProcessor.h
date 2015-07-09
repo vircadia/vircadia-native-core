@@ -16,13 +16,21 @@
 
 /// Handles processing of incoming voxel packets for the interface application. As with other ReceivedPacketProcessor classes 
 /// the user is responsible for reading inbound packets and adding them to the processing queue by calling queueReceivedPacket()
-class OctreePacketProcessor : public ReceivedPacketProcessor {
+class OctreePacketProcessor : public GenericThread {
     Q_OBJECT
+public:
+    OctreePacketProcessor();
 
 signals:
     void packetVersionMismatch();
 
 protected:
     virtual void processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);
+
+private slots:
+    void handleEntityDataPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleEntityErasePacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleOctreeStatsPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleEnvironmentDataPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
 };
 #endif // hifi_OctreePacketProcessor_h
