@@ -394,6 +394,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         static_cast<NodeList*>(dependency)->deleteLater();
     });
 
+    // setup a timer for domain-server check ins
+    QTimer* domainCheckInTimer = new QTimer(nodeList);
+    connect(domainCheckInTimer, &QTimer::timeout, nodeList, &NodeList::sendDomainServerCheckIn);
+    domainCheckInTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
+
     // put the NodeList and datagram processing on the node thread
     nodeList->moveToThread(nodeThread);
 
@@ -1781,9 +1786,6 @@ void Application::checkFPS() {
     _frameCount = 0;
     _datagramProcessor->resetCounters();
     _timerStart.start();
-
-    // ask the node list to check in with the domain server
-    DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
 }
 
 void Application::idle() {
