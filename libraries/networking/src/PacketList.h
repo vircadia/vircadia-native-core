@@ -40,12 +40,12 @@ public:
 protected:
     virtual qint64 writeData(const char* data, qint64 maxSize);
     virtual qint64 readData(char* data, qint64 maxSize) { return 0; }
-    
+
 private:
     PacketList(const PacketList& other) = delete;
     PacketList& operator=(const PacketList& other) = delete;
 
-    std::unique_ptr<NLPacket> createPacketWithExtendedHeader();
+    std::unique_ptr<T> createPacketWithExtendedHeader();
 
     PacketType::Value _packetType;
     bool _isOrdered = false;

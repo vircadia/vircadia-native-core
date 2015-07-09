@@ -21,7 +21,7 @@ template <typename T> PacketList<T>::PacketList(PacketType::Value packetType) :
 
 }
 
-template <typename T> std::unique_ptr<NLPacket> PacketList<T>::createPacketWithExtendedHeader() {
+template <typename T> std::unique_ptr<T> PacketList<T>::createPacketWithExtendedHeader() {
     // use the static create method to create a new packet
     auto packet = T::create(_packetType);
 
