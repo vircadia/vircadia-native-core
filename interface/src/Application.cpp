@@ -2885,7 +2885,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType::Value packetTyp
             }
 
             // encode the query data
-            int packetSize = _octreeQuery.getBroadcastData(queryPacket->getPayload());
+            int packetSize = _octreeQuery.getBroadcastData(reinterpret_cast<unsigned char*>(queryPacket->getPayload()));
             queryPacket->setSizeUsed(packetSize);
 
             // make sure we still have an active socket
