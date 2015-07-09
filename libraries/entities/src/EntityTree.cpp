@@ -772,6 +772,11 @@ std::unique_ptr<NLPacket> EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_S
     OCTREE_PACKET_SENT_TIME now = usecTimestampNow();
     deletesPacket->writePrimitive(now);
 
+    // figure out where we are now and pack a temporary number of IDs
+    uint16_t numberOfIDs = 0;
+    qint64 numberOfIDsPos = deletesPacket->pos();
+    deletesPacket->writePrimitive(numberOfIDs);
+
     // we keep a multi map of entity IDs to timestamps, we only want to include the entity IDs that have been
     // deleted since we last sent to this node
     _recentlyDeletedEntitiesLock.lockForRead();
@@ -787,6 +792,8 @@ std::unique_ptr<NLPacket> EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_S
             if (it.key() > sinceTime) {
                 QUuid entityID = values.at(valueItem);
                 deletesPacket->write(entityID.toRfc4122());
+
+                ++numberOfIDs;
 
                 // check to make sure we have room for one more ID
                 if (NUM_BYTES_RFC4122_UUID > deletesPacket->bytesAvailable()) {
@@ -813,6 +820,10 @@ std::unique_ptr<NLPacket> EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_S
     }
 
     _recentlyDeletedEntitiesLock.unlock();
+
+    // replace the count for the number of included IDs
+    deletesPacket->seek(numberOfIDsPos);
+    deletesPacket->writePrimitive(numberOfIDs);
 
     return std::move(deletesPacket);
 }
