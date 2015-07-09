@@ -208,6 +208,9 @@ void ViveControllerManager::handlePoseEvent(const mat4& mat, int index) {
         rotation = rotation * glm::angleAxis(PI, glm::vec3(1.0f, 0.0f, 0.0f)) * glm::angleAxis(PI + PI_OVER_TWO, glm::vec3(0.0f, 0.0f, 1.0f));
     }
 
+    const float CONTROLLER_LENGTH_OFFSET = 0.1f;
+    position += rotation * glm::vec3(0, 0, -CONTROLLER_LENGTH_OFFSET);
+
     _poseStateMap[makeInput(JointChannel(index)).getChannel()] = UserInputMapper::PoseValue(position, rotation);
 }
 
