@@ -83,6 +83,7 @@ PlankyStack = function() {
     var _this = this;
     this.planks = [];
     this.ground = false;
+    this.editLines = [];
     this.options = new PlankyOptions();
     this.deRez = function() {
         _this.planks.forEach(function(plank) {
@@ -92,7 +93,14 @@ PlankyStack = function() {
         if (_this.ground) {
             Entities.deleteEntity(_this.ground);
         }
+        this.editLines.forEach(function(line) {
+            Entities.deleteEntity(line);
+        })
+        if (_this.centerLine) {
+            Entities.deleteEntity(_this.centerLine);
+        }        
         _this.ground = false;
+        _this.centerLine = false;
     };
     this.rez = function() {
         if (_this.planks.length > 0) {
@@ -121,6 +129,20 @@ PlankyStack = function() {
         // move ground to rez position/rotation
         Entities.editEntity(_this.ground, {dimensions: _this.options.baseDimension, position: Vec3.sum(_this.basePosition, {y: -(_this.options.baseDimension.y / 2)}), rotation: _this.baseRotation});
     }
+
+    var refreshLines = function() {
+        if (_this.editLines.length === 0) {
+            _this.editLines.push(Entities.addEntity({
+                type: 'Line',
+                dimensions: {x: 5, y: 21, z: 5},
+                position: Vec3.sum(_this.basePosition, {y: -(_this.options.baseDimension.y / 2)}),
+                lineWidth: 7,
+                color: {red: 214, green: 91, blue: 67},
+                linePoints: [{x: 0, y: 0, z: 0}, {x: 0, y: 10, z: 0}]
+            }));
+            return;
+        }
+    }
     var trimDimension = function(dimension, maxIndex) {
         _this.planks.forEach(function(plank, index, object) {
             if (plank[dimension] > maxIndex) {
@@ -132,13 +154,12 @@ PlankyStack = function() {
     var createOrUpdate = function(layer, row) {
         var found = false;
         var layerRotated = layer % 2 === 0;
-        var offset = -(_this.options.blockSpacing);
-        var layerRotation = Quat.fromPitchYawRollDegrees(0, layerRotated ? NO_ANGLE : RIGHT_ANGLE, 0.0);        
-        var blockPositionXZ = (_this.options.blockSize.x * row) - (((_this.options.blockSize.x * _this.options.blocksPerLayer) / 2) - (_this.options.blockSize.x / 2));
+        var layerRotation = Quat.fromPitchYawRollDegrees(0, layerRotated ? NO_ANGLE : RIGHT_ANGLE, 0.0);
+        var blockPositionXZ = ((row - (_this.options.blocksPerLayer / 2) + 0.5) * (_this.options.blockSpacing + _this.options.blockSize.x));
         var localTransform = Vec3.multiplyQbyV(_this.offsetRot, {
-            x: (layerRotated ? blockPositionXZ + offset: 0),
+            x: (layerRotated ? blockPositionXZ : 0),
             y: (_this.options.blockSize.y / 2) + (_this.options.blockSize.y * layer),
-            z: (layerRotated ? 0 : blockPositionXZ + offset)
+            z: (layerRotated ? 0 : blockPositionXZ)
         });
         var newProperties = {
             type: 'Model',
@@ -173,6 +194,7 @@ PlankyStack = function() {
     };
     this.refresh = function() {
         refreshGround();
+        refreshLines();
         trimDimension('layer', _this.options.numLayers);
         trimDimension('row', _this.options.blocksPerLayer);
         _this.offsetRot = Quat.multiply(_this.baseRotation, Quat.fromPitchYawRollDegrees(0.0, _this.options.blockYawOffset, 0.0));
@@ -183,7 +205,6 @@ PlankyStack = function() {
         }
         if (!editMode) {
             _this.planks.forEach(function(plank, index, object) {
-                print(index + " , " + plank);
                 Entities.editEntity(plank.entity, {ignoreForCollisions: false, collisionsWillMove: true});
            //     Entities.editEntity(plank.entity, {collisionsWillMove: true});
             });
@@ -218,15 +239,6 @@ function getButtonPosX() {
 function getCogButtonPosX() {
     return getButtonPosX() - (BUTTON_DIMENSIONS.width * 1.1);
 }
-
-print(JSON.stringify({
-    x: getButtonPosX(),
-    y: 10,
-    width: BUTTON_DIMENSIONS.width,
-    height: BUTTON_DIMENSIONS.height,
-    imageURL: HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/planky_button.svg',
-    alpha: 0.8
-}));
 
 function createButtons() {
     button = Overlays.addOverlay('image', {
