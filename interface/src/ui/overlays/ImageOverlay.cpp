@@ -75,8 +75,6 @@ void ImageOverlay::render(RenderArgs* args) {
     glm::vec2 topLeft(left, top);
     glm::vec2 bottomRight(right, bottom);
 
-
-
     // if for some reason our image is not over 0 width or height, don't attempt to render the image
     if (_renderImage) {
         float imageWidth = _texture->getWidth();
@@ -108,16 +106,15 @@ void ImageOverlay::render(RenderArgs* args) {
             glm::vec2 texCoordBottomRight(x + w, y + h);
 
             DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, quadColor);
-        }
-        else {
+        } else {
             DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);
         }
-
-        if (_renderImage) {
-            glDisable(GL_TEXTURE_2D);
-        }
+        glDisable(GL_TEXTURE_2D);
+    } else {
+        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);
     }
 }
+
 void ImageOverlay::setProperties(const QScriptValue& properties) {
     Overlay2D::setProperties(properties);
 
