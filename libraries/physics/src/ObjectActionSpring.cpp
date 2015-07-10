@@ -175,7 +175,7 @@ QByteArray ObjectActionSpring::serialize() const {
     QByteArray serializedActionArguments;
     QDataStream dataStream(&serializedActionArguments, QIODevice::WriteOnly);
 
-    dataStream << getType();
+    dataStream << ACTION_TYPE_SPRING;
     dataStream << getID();
     dataStream << ObjectActionSpring::springVersion;
 
@@ -195,7 +195,7 @@ void ObjectActionSpring::deserialize(QByteArray serializedArguments) {
 
     EntityActionType type;
     dataStream >> type;
-    assert(type == getType());
+    assert(type == ACTION_TYPE_SPRING);
 
     QUuid id;
     dataStream >> id;
