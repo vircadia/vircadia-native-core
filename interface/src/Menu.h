@@ -179,7 +179,6 @@ namespace MenuOption {
     const QString DisplayModelElementProxy = "Display Model Element Bounds";
     const QString DisplayDebugTimingDetails = "Display Timing Details";
     const QString DontDoPrecisionPicking = "Don't Do Precision Picking";
-    const QString DontFadeOnOctreeServerChanges = "Don't Fade In/Out on Octree Server Changes";
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
