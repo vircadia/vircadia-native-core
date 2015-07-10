@@ -802,6 +802,8 @@ void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityS
     connect(this, &EntityTreeRenderer::enterEntity, entityScriptingInterface, &EntityScriptingInterface::enterEntity);
     connect(this, &EntityTreeRenderer::leaveEntity, entityScriptingInterface, &EntityScriptingInterface::leaveEntity);
     connect(this, &EntityTreeRenderer::collisionWithEntity, entityScriptingInterface, &EntityScriptingInterface::collisionWithEntity);
+
+    connect(&(*DependencyManager::get<SceneScriptingInterface>()), &SceneScriptingInterface::shouldRenderEntitiesChanged, this, &EntityTreeRenderer::updateEntityRenderStatus, Qt::QueuedConnection);
 }
 
 QScriptValueList EntityTreeRenderer::createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID) {
@@ -1150,5 +1152,19 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
         args << idA.toScriptValue(_entitiesScriptEngine);
         args << collisionToScriptValue(_entitiesScriptEngine, collision);
         entityScriptB.property("collisionWithEntity").call(entityScriptA, args);
+    }
+}
+
+void EntityTreeRenderer::updateEntityRenderStatus(bool shouldRenderEntities) {
+    if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
+        for (auto entityID : _entityIDsLastInScene) {
+            addingEntity(entityID);
+        }
+        _entityIDsLastInScene.clear();
+    } else {
+        _entityIDsLastInScene = _entitiesInScene.keys();
+        for (auto entityID : _entityIDsLastInScene) {
+            deletingEntity(entityID);
+        }
     }
 }

@@ -17,8 +17,7 @@ EntityActionPointer assignmentActionFactory(EntityActionType type, const QUuid& 
 }
 
 
-EntityActionPointer AssignmentActionFactory::factory(EntitySimulation* simulation,
-                                                     EntityActionType type,
+EntityActionPointer AssignmentActionFactory::factory(EntityActionType type,
                                                      const QUuid& id,
                                                      EntityItemPointer ownerEntity,
                                                      QVariantMap arguments) {
@@ -33,9 +32,7 @@ EntityActionPointer AssignmentActionFactory::factory(EntitySimulation* simulatio
 }
 
 
-EntityActionPointer AssignmentActionFactory::factoryBA(EntitySimulation* simulation,
-                                                       EntityItemPointer ownerEntity,
-                                                       QByteArray data) {
+EntityActionPointer AssignmentActionFactory::factoryBA(EntityItemPointer ownerEntity, QByteArray data) {
     QDataStream serializedActionDataStream(data);
     EntityActionType type;
     QUuid id;

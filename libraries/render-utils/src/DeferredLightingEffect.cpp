@@ -9,7 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
 #include <gpu/GPUConfig.h>
 
 #include <GLMHelpers.h>
@@ -24,7 +23,7 @@
 #include "TextureCache.h"
 
 #include "gpu/Batch.h"
-#include "gpu/GLBackend.h"
+#include "gpu/Context.h"
 #include "gpu/StandardShaderLib.h"
 
 #include "simple_vert.h"
@@ -269,7 +268,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
     // Fetch the ViewMatrix;
     glm::mat4 invViewMat;
-    _viewState->getViewTransform().getMatrix(invViewMat);
+    invViewMat = args->_viewFrustum->getView();
 
     auto& program = _directionalLight;
     const LightLocations* locations = &_directionalLightLocations;
@@ -344,7 +343,8 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
-    _viewState->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    args->_viewFrustum->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+
     batch._glUniform1f(locations->nearLocation, nearVal);
 
     float depthScale = (farVal - nearVal) / farVal;
@@ -394,9 +394,9 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
     // enlarge the scales slightly to account for tesselation
     const float SCALE_EXPANSION = 0.05f;
-    
-    const glm::vec3& eyePoint = _viewState->getCurrentViewFrustum()->getPosition();
-    float nearRadius = glm::distance(eyePoint, _viewState->getCurrentViewFrustum()->getNearTopLeft());
+
+    auto eyePoint = args->_viewFrustum->getPosition();
+    float nearRadius = glm::distance(eyePoint, args->_viewFrustum->getNearTopLeft());
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
     

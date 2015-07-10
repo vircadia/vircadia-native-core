@@ -184,6 +184,7 @@ void ApplicationCompositor::bindCursorTexture(gpu::Batch& batch, uint8_t cursorI
 
 // Draws the FBO texture for the screen
 void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
+    PROFILE_RANGE(__FUNCTION__);
     if (_alpha == 0.0f) {
         return;
     }
@@ -252,6 +253,7 @@ vec2 getPolarCoordinates(const PalmData& palm) {
 
 // Draws the FBO texture for Oculus rift.
 void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int eye) {
+    PROFILE_RANGE(__FUNCTION__);
     if (_alpha == 0.0f) {
         return;
     }
