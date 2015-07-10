@@ -14,12 +14,11 @@
 #define hifi_PacketReceiver_h
 
 #include <QtCore/QMap>
+#include <QtCore/QMetaMethod>
 #include <QtCore/QMutex>
 #include <QtCore/QObject>
-#include <QtCore/QPair>
 
-#include <memory>
-
+#include "NLPacket.h"
 #include "PacketHeaders.h"
 
 class PacketReceiver : public QObject {
@@ -36,16 +35,23 @@ public:
 
     void shutdown() { _isShuttingDown = true; }
 
-    bool registerPacketListener(PacketType::Value type, QObject* listener, const char* slot);
+    void registerPacketListener(PacketType::Value type, QObject* listener, const char* slot);
 
 public slots:
     void processDatagrams();
+
+signals:
+    void dataSent(quint8 channel_type, int bytes);
+    void dataReceived(quint8 channel_type, int bytes);
+    void packetVersionMismatch(PacketType::Value type);
     
 private:
-    using ObjectMethodPair = QPair<QObject*, QMetaMethod>;
+    bool packetVersionMatch(const NLPacket& packet);
+    
+    using ObjectMethodPair = std::pair<QPointer<QObject>, QMetaMethod>;
 
     QMutex _packetListenerLock;
-    QMap<PacketType::Value, ObjectMethodPair> _packetListenerMap;
+    QHash<PacketType::Value, ObjectMethodPair> _packetListenerMap;
     int _inPacketCount = 0;
     int _outPacketCount = 0;
     int _inByteCount = 0;

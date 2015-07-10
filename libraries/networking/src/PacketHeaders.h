@@ -121,9 +121,6 @@ QUuid uuidFromPacketHeader(const QByteArray& packet);
 int hashOffsetForPacketType(PacketType::Value packetType);
 int sequenceNumberOffsetForPacketType(PacketType::Value packetType);
 
-QByteArray hashFromPacketHeader(const QByteArray& packet);
-QByteArray hashForPacketAndConnectionUUID(const QByteArray& packet, const QUuid& connectionUUID);
-
 // NOTE: The following four methods accept a PacketType::Value which defaults to PacketType::Unknown.
 // If the caller has already looked at the packet type and can provide it then the methods below won't have to look it up.
 

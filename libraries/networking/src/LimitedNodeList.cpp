@@ -168,73 +168,39 @@ void LimitedNodeList::changeSocketBufferSizes(int numBytes) {
     }
 }
 
-bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
-    PacketType::Value checkType = packetTypeForPacket(packet);
-    int numPacketTypeBytes = numBytesArithmeticCodingFromBuffer(packet.data());
-
-    if (packet[numPacketTypeBytes] != versionForPacketType(checkType)
-        && checkType != PacketType::StunResponse) {
-        PacketType::Value mismatchType = packetTypeForPacket(packet);
-
-        static QMultiMap<QUuid, PacketType::Value> versionDebugSuppressMap;
-
-        QUuid senderUUID = uuidFromPacketHeader(packet);
-        if (!versionDebugSuppressMap.contains(senderUUID, checkType)) {
-            qCDebug(networking) << "Packet version mismatch on" << packetTypeForPacket(packet) << "- Sender"
-            << uuidFromPacketHeader(packet) << "sent" << qPrintable(QString::number(packet[numPacketTypeBytes])) << "but"
-            << qPrintable(QString::number(versionForPacketType(mismatchType))) << "expected.";
-
-            emit packetVersionMismatch();
-
-            versionDebugSuppressMap.insert(senderUUID, checkType);
-        }
-
-        return false;
-    }
-
-    if (!NON_VERIFIED_PACKETS.contains(checkType)) {
+bool LimitedNodeList::packetSourceAndHashMatch(const NLPacket& packet, SharedNodePointer& matchingNode) {
+    
+    if (!NON_VERIFIED_PACKETS.contains(packet.getType()) && !NON_SOURCED_PACKETS.contains(packet.getType())) {
         // figure out which node this is from
-        SharedNodePointer sendingNode = sendingNodeForPacket(packet);
-        if (sendingNode) {
+        matchingNode = nodeWithUUID(packet.getSourceID());
+        
+        if (matchingNode) {
             // check if the md5 hash in the header matches the hash we would expect
-            if (hashFromPacketHeader(packet) == hashForPacketAndConnectionUUID(packet, sendingNode->getConnectionSecret())) {
+            if (packet.getVerificationHash() == packet.payloadHashWithConnectionUUID(matchingNode->getConnectionSecret())) {
                 return true;
             } else {
                 static QMultiMap<QUuid, PacketType::Value> hashDebugSuppressMap;
+                
+                const QUuid& senderID = packet.getSourceID();
 
-                QUuid senderUUID = uuidFromPacketHeader(packet);
-                if (!hashDebugSuppressMap.contains(senderUUID, checkType)) {
-                    qCDebug(networking) << "Packet hash mismatch on" << checkType << "- Sender"
-                    << uuidFromPacketHeader(packet);
+                if (!hashDebugSuppressMap.contains(senderID, packet.getType())) {
+                    qCDebug(networking) << "Packet hash mismatch on" << packet.getType() << "- Sender" << senderID;
 
-                    hashDebugSuppressMap.insert(senderUUID, checkType);
+                    hashDebugSuppressMap.insert(senderID, packet.getType());
                 }
             }
         } else {
             static QString repeatedMessage
                 = LogHandler::getInstance().addRepeatedMessageRegex("Packet of type \\d+ received from unknown node with UUID");
 
-            qCDebug(networking) << "Packet of type" << checkType << "received from unknown node with UUID"
-                << qPrintable(uuidStringWithoutCurlyBraces(uuidFromPacketHeader(packet)));
+            qCDebug(networking) << "Packet of type" << packet.getType() << "received from unknown node with UUID"
+                << qPrintable(uuidStringWithoutCurlyBraces(packet.getSourceID()));
         }
     } else {
         return true;
     }
 
     return false;
-}
-
-qint64 LimitedNodeList::readDatagram(QByteArray& incomingPacket, QHostAddress* address = 0, quint16* port = 0) {
-    qint64 result = getNodeSocket().readDatagram(incomingPacket.data(), incomingPacket.size(), address, port);
-
-    SharedNodePointer sendingNode = sendingNodeForPacket(incomingPacket);
-    if (sendingNode) {
-        emit dataReceived(sendingNode->getType(), incomingPacket.size());
-    } else {
-        emit dataReceived(NodeType::Unassigned, incomingPacket.size());
-    }
-
-    return result;
 }
 
 qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr) {
@@ -262,25 +228,13 @@ PacketSequenceNumber LimitedNodeList::getNextSequenceNumberForPacket(const QUuid
     return _packetSequenceNumbers[nodeUUID][packetType]++;
 }
 
-void LimitedNodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet) {
-    // the node decided not to do anything with this packet
-    // if it comes from a known source we should keep that node alive
-    SharedNodePointer matchingNode = sendingNodeForPacket(packet);
-    if (matchingNode) {
-        matchingNode->setLastHeardMicrostamp(usecTimestampNow());
-    }
-}
-
-int LimitedNodeList::updateNodeWithDataFromPacket(const SharedNodePointer& matchingNode, const QByteArray &packet) {
+int LimitedNodeList::updateNodeWithDataFromPacket(const SharedNodePointer& matchingNode, QSharedPointer<NLPacket> packet) {
     QMutexLocker locker(&matchingNode->getMutex());
-
-    matchingNode->setLastHeardMicrostamp(usecTimestampNow());
 
     // if this was a sequence numbered packet we should store the last seq number for
     // a packet of this type for this node
-    PacketType::Value packetType = packetTypeForPacket(packet);
-    if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
-        matchingNode->setLastSequenceNumberForPacketType(sequenceNumberFromHeader(packet, packetType), packetType);
+    if (SEQUENCE_NUMBERED_PACKETS.contains(packet->getType())) {
+        matchingNode->setLastSequenceNumberForPacketType(packet->readSequenceNumber(), packet->getType());
     }
 
     NodeData* linkedData = matchingNode->getLinkedData();
@@ -290,13 +244,13 @@ int LimitedNodeList::updateNodeWithDataFromPacket(const SharedNodePointer& match
 
     if (linkedData) {
         QMutexLocker linkedDataLocker(&linkedData->getMutex());
-        return linkedData->parseData(packet);
+        return linkedData->parseData(QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
     }
     return 0;
 }
 
-int LimitedNodeList::findNodeAndUpdateWithDataFromPacket(const QByteArray& packet) {
-    SharedNodePointer matchingNode = sendingNodeForPacket(packet);
+int LimitedNodeList::findNodeAndUpdateWithDataFromPacket(QSharedPointer<NLPacket> packet) {
+    SharedNodePointer matchingNode = nodeWithUUID(packet->getSourceID());
 
     if (matchingNode) {
         return updateNodeWithDataFromPacket(matchingNode, packet);
@@ -312,13 +266,6 @@ SharedNodePointer LimitedNodeList::nodeWithUUID(const QUuid& nodeUUID) {
     NodeHash::const_iterator it = _nodeHash.find(nodeUUID);
     return it == _nodeHash.cend() ? SharedNodePointer() : it->second;
  }
-
-SharedNodePointer LimitedNodeList::sendingNodeForPacket(const QByteArray& packet) {
-    QUuid nodeUUID = uuidFromPacketHeader(packet);
-
-    // return the matching node, or NULL if there is no match
-    return nodeWithUUID(nodeUUID);
-}
 
 void LimitedNodeList::eraseAllNodes() {
     qCDebug(networking) << "Clearing the NodeList. Deleting all nodes in list.";

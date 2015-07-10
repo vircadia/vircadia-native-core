@@ -18,6 +18,8 @@ class NLPacket : public Packet {
     Q_OBJECT
 public:
     static std::unique_ptr<NLPacket> create(PacketType::Value type, qint64 size = -1);
+    static std::unique_ptr<NLPacket> fromReceivedPacket(std::unique_ptr<char> data, qint64 size,
+                                                        const HifiSockAddr& senderSockAddr);
     // Provided for convenience, try to limit use
     static std::unique_ptr<NLPacket> createCopy(const NLPacket& other);
 
@@ -27,15 +29,24 @@ public:
     virtual qint64 totalHeadersSize() const; // Cumulated size of all the headers
     virtual qint64 localHeaderSize() const;  // Current level's header size
 
-    // TODO Implement this :)
-    QUuid getSourceID() const { return QUuid(); }
+    void readSourceID();
+    void readVerificationHash();
+
+    const QUuid& getSourceID() const { return _sourceID; }
+    const QByteArray& getVerificationHash() const { return _verificationHash; }
+
+    QByteArray payloadHashWithConnectionUUID(const QUuid& connectionUUID) const;
 
 protected:
     NLPacket(PacketType::Value type, qint64 size);
+    NLPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
     NLPacket(const NLPacket& other);
 
-    void setSourceUuid(QUuid sourceUuid);
-    void setConnectionUuid(QUuid connectionUuid);
+    void setSourceID(const QUuid& sourceID);
+    void setVerificationHash(const QByteArray& verificationHash);
+
+    QUuid _sourceID;
+    QByteArray _verificationHash;
 };
 
 #endif // hifi_NLPacket_h

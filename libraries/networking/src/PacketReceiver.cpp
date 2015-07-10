@@ -13,8 +13,9 @@
 #include "PacketReceiver.h"
 
 #include "DependencyManager.h"
-#include "NLPacket.h"
+#include "NetworkLogging.h"
 #include "NodeList.h"
+#include "SharedUtil.h"
 
 PacketReceiver::PacketReceiver(QObject* parent) :
     QObject(parent),
@@ -51,18 +52,18 @@ void PacketReceiver::registerPacketListener(PacketType::Value type, QObject* obj
 
         qDebug() << "PacketReceiver::registerPacketListener expected a method that takes"
                 << NON_SOURCED_PACKET_LISTENER_PARAMETERS
-                << "but parameter method takes" << signalMethod.parameterTypes();
+                << "but parameter method takes" << slotMethod.parameterTypes();
     } else {
         const QList<QByteArray> SOURCED_PACKET_LISTENER_PARAMETERS = QList<QByteArray>()
-            << QMetaObject::normalizedType(("QSharedPointer<NLPacket>")
-            << QMetaObject::normalizedType(("QSharedPointer<Node>");
+            << QMetaObject::normalizedType("QSharedPointer<NLPacket>")
+            << QMetaObject::normalizedType("QSharedPointer<Node>");
 
         parametersMatch = slotMethod.parameterTypes() == SOURCED_PACKET_LISTENER_PARAMETERS;
 
         if (!parametersMatch) {
             qDebug() << "PacketReceiver::registerPacketListener expected a method that takes"
                 << SOURCED_PACKET_LISTENER_PARAMETERS
-                << "but parameter method takes" << signalMethod.parameterTypes();
+                << "but parameter method takes" << slotMethod.parameterTypes();
         }
     }
     
@@ -70,9 +71,35 @@ void PacketReceiver::registerPacketListener(PacketType::Value type, QObject* obj
     assert(parametersMatch);
 
     // add the mapping
-    _packetListenerMap[type] = ObjectMethodPair(object, slotMethod);
+    _packetListenerMap[type] = ObjectMethodPair(QPointer<QObject>(object), slotMethod);
         
     _packetListenerLock.unlock();
+}
+
+bool PacketReceiver::packetVersionMatch(const NLPacket& packet) {
+
+    if (packet.getVersion() != versionForPacketType(packet.getType())
+        && packet.getType() != PacketType::StunResponse) {
+
+        static QMultiMap<QUuid, PacketType::Value> versionDebugSuppressMap;
+
+        const QUuid& senderID = packet.getSourceID();
+        
+        if (!versionDebugSuppressMap.contains(senderID, packet.getType())) {
+
+            qCDebug(networking) << "Packet version mismatch on" << packet.getType() << "- Sender"
+                << senderID << "sent" << qPrintable(QString::number(packet.getVersion())) << "but"
+                << qPrintable(QString::number(versionForPacketType(packet.getType()))) << "expected.";
+
+            emit packetVersionMismatch(packet.getType());
+
+            versionDebugSuppressMap.insert(senderID, packet.getType());
+        }
+
+        return false;
+    } else {
+        return true;
+    }
 }
 
 void PacketReceiver::processDatagrams() {
@@ -83,42 +110,83 @@ void PacketReceiver::processDatagrams() {
         return; // bail early... we're shutting down.
     }
 
-    static QByteArray incomingPacket;
-
     auto nodeList = DependencyManager::get<NodeList>();
 
     while (DependencyManager::get<NodeList>()->getNodeSocket().hasPendingDatagrams()) {
-        incomingPacket.resize(nodeList->getNodeSocket().pendingDatagramSize());
+        // setup a buffer to read the packet into
+        int packetSizeWithHeader = nodeList->getNodeSocket().pendingDatagramSize();
+        std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[packetSizeWithHeader]);
+        
+        // setup a HifiSockAddr to read into
         HifiSockAddr senderSockAddr;
-        nodeList->readDatagram(incomingPacket, senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
 
+        // pull the datagram
+        nodeList->getNodeSocket().readDatagram(buffer.get(), packetSizeWithHeader,
+                                               senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
+
+        // setup an NLPacket from the data we just read
+        auto packet = NLPacket::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
+        
         _inPacketCount++;
-        _inByteCount += incomingPacket.size();
+        _inByteCount += packetSizeWithHeader;
 
-        if (nodeList->packetVersionAndHashMatch(incomingPacket)) {
-            PacketType::Value incomingType = packetTypeForPacket(incomingPacket);
-
-            // TODO What do we do about this?
-            //nodeList->processNodeData(senderSockAddr, incomingPacket);
-
-            _packetListenerLock.lock();
-            auto& listener = _packetListenerMap[incomingType];
-            _packetListenerLock.unlock();
-
-            if (_packetListenerMap.contains(incomingType)) {
-                auto& listener = _packetListenerMap[incomingType];
-                //TODO Update packet
-                QSharedPointer<NLPacket> packet;
-                bool success = QMetaObject::invokeMethod(listener.first, listener.second,
-                        Q_ARG(QSharedPointer<NLPacket>, packet),
-                        Q_ARG(HifiSockAddr, senderSockAddr));
-                if (!success) {
-                    qDebug() << "Error sending packet " << incomingType << " to listener: " << listener.first->objectName() << "::" << listener.second;
+        if (packetVersionMatch(*packet)) {
+            
+            SharedNodePointer matchingNode;
+            if (nodeList->packetSourceAndHashMatch(*packet, matchingNode)) {
+                 
+                if (matchingNode) {
+                    // No matter if this packet is handled or not, we update the timestamp for the last time we heard
+                    // from this sending node
+                    matchingNode->setLastHeardMicrostamp(usecTimestampNow());
                 }
-            } else {
-                qDebug() << "No listener found for packet type: " << incomingType;
-            }
 
+                _packetListenerLock.lock();
+                
+                auto it = _packetListenerMap.find(packet->getType());
+
+                if (it != _packetListenerMap.end()) {
+
+                    auto listener = it.value();
+                   
+                    if (!listener.first.isNull()) {
+                        
+                        if (matchingNode) {
+                            emit dataReceived(matchingNode->getType(), packet->getSizeWithHeader());
+                        } else {
+                            emit dataReceived(NodeType::Unassigned, packet->getSizeWithHeader());
+                        }
+                        
+                        bool success = false;
+
+                        if (matchingNode) {
+                            success = listener.second.invoke(listener.first,
+                                Q_ARG(QSharedPointer<NLPacket>, QSharedPointer<NLPacket>(packet.release())));
+                        } else {
+                            success = listener.second.invoke(listener.first,
+                                Q_ARG(QSharedPointer<NLPacket>, QSharedPointer<NLPacket>(packet.release())),
+                                Q_ARG(SharedNodePointer, matchingNode));
+                        }
+                                            
+                        if (!success) {
+                            qDebug() << "Error delivering packet " << nameForPacketType(packet->getType()) << " to listener: "
+                                << listener.first->objectName() << "::" << listener.second.name();
+                        }
+
+                    } else {
+                        // we have a dead listener - remove this mapping from the _packetListenerMap
+                        qDebug() << "Listener for packet type" << nameForPacketType(packet->getType())
+                            << "has been destroyed - removing mapping.";
+                        _packetListenerMap.erase(it);
+                    }
+
+                     _packetListenerLock.unlock();
+
+                } else {
+                    _packetListenerLock.unlock();
+                    qDebug() << "No listener found for packet type " << nameForPacketType(packet->getType());
+                }
+            }
         }
     }
 }

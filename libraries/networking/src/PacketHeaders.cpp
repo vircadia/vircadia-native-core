@@ -208,15 +208,6 @@ int sequenceNumberOffsetForPacketType(PacketType::Value packetType) {
     return numBytesForPacketHeaderGivenPacketType(packetType) - sizeof(PacketSequenceNumber);
 }
 
-QByteArray hashFromPacketHeader(const QByteArray& packet) {
-    return packet.mid(hashOffsetForPacketType(packetTypeForPacket(packet)), NUM_BYTES_MD5_HASH);
-}
-
-QByteArray hashForPacketAndConnectionUUID(const QByteArray& packet, const QUuid& connectionUUID) {
-    return QCryptographicHash::hash(packet.mid(numBytesForPacketHeader(packet)) + connectionUUID.toRfc4122(),
-                                    QCryptographicHash::Md5);
-}
-
 PacketSequenceNumber sequenceNumberFromHeader(const QByteArray& packet, PacketType::Value packetType) {
     if (packetType == PacketType::Unknown) {
         packetType = packetTypeForPacket(packet);
