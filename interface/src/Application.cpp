@@ -3822,19 +3822,19 @@ void Application::domainConnectionDenied(const QString& reason) {
     }
 }
 
-void handleDomainConnectionDeniedPacket(std::unique_ptr<NLPacket>, HifiSockAddr senderSockAddr) {
-        int headerSize = numBytesForPacketHeaderGivenPacketType(PacketType::DomainConnectionDenied);
-        QDataStream packetStream(QByteArray(incomingPacket.constData() + headerSize,
-                                            incomingPacket.size() - headerSize));
-        QString reason;
-        packetStream >> reason;
+void Application::handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
+    int headerSize = numBytesForPacketHeaderGivenPacketType(PacketType::DomainConnectionDenied);
+    QDataStream packetStream(QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
 
-        // output to the log so the user knows they got a denied connection request
-        // and check and signal for an access token so that we can make sure they are logged in
-        qCDebug(interfaceapp) << "The domain-server denied a connection request: " << reason;
-        qCDebug(interfaceapp) << "You may need to re-log to generate a keypair so you can provide a username signature.";
-        domainConnectionDenied(reason);
-        AccountManager::getInstance().checkAndSignalForAccessToken();
+    QString reason;
+    packetStream >> reason;
+
+    // output to the log so the user knows they got a denied connection request
+    // and check and signal for an access token so that we can make sure they are logged in
+    qCDebug(interfaceapp) << "The domain-server denied a connection request: " << reason;
+    qCDebug(interfaceapp) << "You may need to re-log to generate a keypair so you can provide a username signature.";
+    domainConnectionDenied(reason);
+    AccountManager::getInstance().checkAndSignalForAccessToken();
 }
 
 void Application::connectedToDomain(const QString& hostname) {

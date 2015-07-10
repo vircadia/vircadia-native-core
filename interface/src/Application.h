@@ -444,7 +444,7 @@ public slots:
     void notifyPacketVersionMismatch();
 
     void domainConnectionDenied(const QString& reason);
-    void handleDomainConnectionDeniedPacket(std::unique_ptr<NLPacket>, HifiSockAddr senderSockAddr);
+    void handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket>, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
 
     void cameraMenuChanged();
 
