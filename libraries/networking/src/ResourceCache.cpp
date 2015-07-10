@@ -34,20 +34,17 @@ ResourceCache::ResourceCache(QObject* parent) :
 }
 
 ResourceCache::~ResourceCache() {
-    // the unused resources may themselves reference resources that will be added to the unused
-    // list on destruction, so keep clearing until there are no references left
-    while (!_unusedResources.isEmpty()) {
-        foreach (const QSharedPointer<Resource>& resource, _unusedResources) {
-            resource->setCache(nullptr);
-        }
-        _unusedResources.clear();
-    }
+    clearUnusedResource();
 }
 
 void ResourceCache::refreshAll() {
-    for (auto it = _resources.begin(); it != _resources.end(); ++it) {
-        if (!it.value().isNull()) {
-            it.value().data()->refresh();
+    // Clear all unused resources so we don't have to reload them
+    clearUnusedResource();
+    
+    // Refresh all remaining resources in use
+    foreach (auto resource, _resources) {
+        if (!resource.isNull()) {
+            resource.data()->refresh();
         }
     }
 }
@@ -141,6 +138,17 @@ void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
         _unusedResourcesSize -= it.value()->getBytesTotal();
         it.value()->setCache(nullptr);
         _unusedResources.erase(it);
+    }
+}
+
+void ResourceCache::clearUnusedResource() {
+    // the unused resources may themselves reference resources that will be added to the unused
+    // list on destruction, so keep clearing until there are no references left
+    while (!_unusedResources.isEmpty()) {
+        foreach (const QSharedPointer<Resource>& resource, _unusedResources) {
+            resource->setCache(nullptr);
+        }
+        _unusedResources.clear();
     }
 }
 
@@ -271,11 +279,12 @@ void Resource::refresh() {
 }
 
 void Resource::allReferencesCleared() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "allReferencesCleared");
-        return;
-    }
     if (_cache) {
+        if (QThread::currentThread() != thread()) {
+            QMetaObject::invokeMethod(this, "allReferencesCleared");
+            return;
+        }
+        
         // create and reinsert new shared pointer 
         QSharedPointer<Resource> self(this, &Resource::allReferencesCleared);
         setSelf(self);
