@@ -95,7 +95,9 @@ void GLBackend::do_getQuery(Batch& batch, uint32 paramOffset) {
     if (glquery) { 
         #if (GPU_FEATURE_PROFILE == GPU_LEGACY)
             // (EXT_TIMER_QUERY)
+            #if !defined(Q_OS_LINUX)
             glGetQueryObjectui64vEXT(glquery->_qo, GL_QUERY_RESULT, &glquery->_result);
+            #endif
         #else
             glGetQueryObjectui64v(glquery->_qo, GL_QUERY_RESULT, &glquery->_result);
         #endif
