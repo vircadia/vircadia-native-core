@@ -18,6 +18,7 @@
 
 #include <vector>
 
+#include "Query.h"
 #include "Stream.h"
 #include "Texture.h"
 
@@ -108,6 +109,11 @@ public:
     // Framebuffer Stage
     void setFramebuffer(const FramebufferPointer& framebuffer);
 
+    // Query Section
+    void beginQuery(const QueryPointer& query);
+    void endQuery(const QueryPointer& query);
+    void getQuery(const QueryPointer& query);
+
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
     // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
@@ -175,6 +181,10 @@ public:
         COMMAND_setResourceTexture,
 
         COMMAND_setFramebuffer,
+
+        COMMAND_beginQuery,
+        COMMAND_endQuery,
+        COMMAND_getQuery,
 
         // TODO: As long as we have gl calls explicitely issued from interface
         // code, we need to be able to record and batch these calls. THe long 
@@ -279,6 +289,7 @@ public:
     typedef Cache<Transform>::Vector TransformCaches;
     typedef Cache<PipelinePointer>::Vector PipelineCaches;
     typedef Cache<FramebufferPointer>::Vector FramebufferCaches;
+    typedef Cache<QueryPointer>::Vector QueryCaches;
 
     // Cache Data in a byte array if too big to fit in Param
     // FOr example Mat4s are going there
@@ -303,6 +314,7 @@ public:
     TransformCaches _transforms;
     PipelineCaches _pipelines;
     FramebufferCaches _framebuffers;
+    QueryCaches _queries;
 
 protected:
 };

@@ -99,6 +99,15 @@ public:
         return reinterpret_cast<T*>(framebuffer.getGPUObject());
     }
 
+    template< typename T >
+    static void setGPUObject(const Query& query, T* object) {
+        query.setGPUObject(object);
+    }
+    template< typename T >
+    static T* getGPUObject(const Query& query) {
+        return reinterpret_cast<T*>(query.getGPUObject());
+    }
+
 protected:
 
 };
