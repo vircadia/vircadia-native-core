@@ -66,9 +66,9 @@ void PacketReceiver::processDatagrams() {
             if (_packetListenerMap.contains(incomingType)) {
                 auto& listener = _packetListenerMap[incomingType];
                 //TODO Update packet
-                std::unique_ptr<NLPacket> packet;
+                QSharedPointer<NLPacket> packet;
                 bool success = QMetaObject::invokeMethod(listener.first, listener.second,
-                        Q_ARG(NLPacket&, *packet),
+                        Q_ARG(QSharedPointer<NLPacket>, packet),
                         Q_ARG(HifiSockAddr, senderSockAddr));
                 if (!success) {
                     qDebug() << "Error sending packet " << incomingType << " to listener: " << listener.first->objectName() << "::" << listener.second;
