@@ -115,7 +115,7 @@ public slots:
     void deletingEntity(const EntityItemID& entityID);
     void entitySciptChanging(const EntityItemID& entityID, const bool reload);
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
-    void updateEntityTree(bool shouldRenderEntities);
+    void updateEntityRenderStatus(bool shouldRenderEntities);
 
     // optional slots that can be wired to menu items
     void setDisplayElementChildProxies(bool value) { _displayElementChildProxies = value; }

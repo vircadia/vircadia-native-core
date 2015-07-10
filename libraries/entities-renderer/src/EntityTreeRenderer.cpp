@@ -803,7 +803,7 @@ void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityS
     connect(this, &EntityTreeRenderer::leaveEntity, entityScriptingInterface, &EntityScriptingInterface::leaveEntity);
     connect(this, &EntityTreeRenderer::collisionWithEntity, entityScriptingInterface, &EntityScriptingInterface::collisionWithEntity);
 
-    connect(&(*DependencyManager::get<SceneScriptingInterface>()), &SceneScriptingInterface::shouldRenderEntitiesChanged, this, &EntityTreeRenderer::updateEntityTree, Qt::QueuedConnection);
+    connect(&(*DependencyManager::get<SceneScriptingInterface>()), &SceneScriptingInterface::shouldRenderEntitiesChanged, this, &EntityTreeRenderer::updateEntityRenderStatus, Qt::QueuedConnection);
 }
 
 QScriptValueList EntityTreeRenderer::createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID) {
@@ -1155,7 +1155,7 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
     }
 }
 
-void EntityTreeRenderer::updateEntityTree(bool shouldRenderEntities) {
+void EntityTreeRenderer::updateEntityRenderStatus(bool shouldRenderEntities) {
     if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
         for (auto entityID : _entityIDsLastInScene) {
             addingEntity(entityID);

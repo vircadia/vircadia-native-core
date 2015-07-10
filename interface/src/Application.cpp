@@ -3458,7 +3458,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
    // Assuming nothing get's rendered through that
 
     if (!selfAvatarOnly) {
-        auto var = DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities();
         // render models...
         PerformanceTimer perfTimer("entities");
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
