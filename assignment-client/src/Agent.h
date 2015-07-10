@@ -55,6 +55,9 @@ public slots:
     void readPendingDatagrams();
     void playAvatarSound(Sound* avatarSound) { _scriptEngine.setAvatarSound(avatarSound); }
 
+private slots:
+    void handleAudioPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
+
 private:
     ScriptEngine _scriptEngine;
     EntityEditPacketSender _entityEditSender;

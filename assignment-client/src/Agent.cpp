@@ -47,6 +47,10 @@ Agent::Agent(const QByteArray& packet) :
 
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
+
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPackingReceiver();
+    packetReceiver.registerPacketListener(PacketType::MixedAudio, this, "handleAudioPacket");
+    packetReceiver.registerPacketListener(PacketType::SilentAudioFrame, this, "handleAudioPacket");
 }
 
 void Agent::readPendingDatagrams() {
@@ -106,21 +110,17 @@ void Agent::readPendingDatagrams() {
                 if (datagramPacketType == PacketType::EntityData || datagramPacketType == PacketType::EntityErase) {
                     _entityViewer.processDatagram(mutablePacket, sourceNode);
                 }
-
-            } else if (datagramPacketType == PacketType::MixedAudio || datagramPacketType == PacketType::SilentAudioFrame) {
-
-                _receivedAudioStream.parseData(receivedPacket);
-
-                _lastReceivedAudioLoudness = _receivedAudioStream.getNextOutputFrameLoudness();
-
-                _receivedAudioStream.clearBuffer();
-
-                // let this continue through to the NodeList so it updates last heard timestamp
-                // for the sending audio mixer
-                DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, receivedPacket);
             }
         }
     }
+}
+
+void Agent::handleAudioPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
+    _receivedAudioStream.parseData(receivedPacket);
+
+    _lastReceivedAudioLoudness = _receivedAudioStream.getNextOutputFrameLoudness();
+
+    _receivedAudioStream.clearBuffer();
 }
 
 const QString AGENT_LOGGING_NAME = "agent";
