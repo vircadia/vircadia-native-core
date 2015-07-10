@@ -76,6 +76,12 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
 
     _jobs.push_back(Job(new DrawOverlay3D::JobModel("DrawOverlay3D")));
     _jobs.push_back(Job(new ResetGLState::JobModel()));
+
+    // Give ourselves 3 frmaes of timer queries
+    _timerQueries.push_back(gpu::QueryPointer(new gpu::Query()));
+    _timerQueries.push_back(gpu::QueryPointer(new gpu::Query()));
+    _timerQueries.push_back(gpu::QueryPointer(new gpu::Query()));
+    _currentTimerQueryIndex = 0;
 }
 
 RenderDeferredTask::~RenderDeferredTask() {
@@ -102,6 +108,7 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     for (auto job : _jobs) {
         job.run(sceneContext, renderContext);
     }
+
 };
 
 void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
