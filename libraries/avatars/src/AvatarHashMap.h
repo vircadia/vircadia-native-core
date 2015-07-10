@@ -34,7 +34,6 @@ public:
     int size() { return _avatarHash.size(); }
 
 public slots:
-    void processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer);
     bool isAvatarInRange(const glm::vec3 & position, const float range);
 
 private slots:
