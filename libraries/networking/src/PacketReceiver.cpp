@@ -23,13 +23,54 @@ PacketReceiver::PacketReceiver(QObject* parent) :
 
 }
 
-void PacketReceiver::registerPacketListener(PacketType::Value type, QObject* object, QString methodName) {
+void PacketReceiver::registerPacketListener(PacketType::Value type, QObject* object, const char* slot) {
+    Q_ASSERT(object);
+    
     _packetListenerLock.lock();
+
     if (_packetListenerMap.contains(type)) {
         qDebug() << "Warning: Registering a packet listener for packet type " << type
-            << " that will remove a previously registered listener";
+            << "that will remove a previously registered listener";
     }
-    _packetListenerMap[type] = QPair<QObject*, QString>(object, methodName);
+    
+    // convert the const char* slot to a QMetaMethod
+    int methodIndex = object->indexOfSlot(slot);
+    Q_ASSERT(methodIndex >= 0);
+
+    QMetaMethod slotMethod = object->method(methodIndex);
+    Q_ASSERT(method.isValid());
+
+    // compare the parameters we expect and the parameters the QMetaMethod has
+    bool parametersMatch = false;
+
+    if (NON_SOURCED_PACKETS.contains(type)) {
+        const QList<QByteArray> NON_SOURCED_PACKET_LISTENER_PARAMETERS = QList<QByteArray>()
+            << QString("QSharedPointer<NLPacket>");
+
+        parametersMatch = slotMethod.parameterTypes() == NON_SOURCED_PACKET_LISTENER_PARAMETERS;
+
+        qDebug() << "PacketReceiver::registerPacketListener expected a method that takes"
+                << NON_SOURCED_PACKET_LISTENER_PARAMETERS
+                << "but parameter method takes" << signalMethod.parameterTypes();
+    } else {
+        const QList<QByteArray> SOURCED_PACKET_LISTENER_PARAMETERS = QList<QByteArray>()
+            << QString("QSharedPointer<NLPacket>") << QString("QSharedPointer<Node>");
+
+        parametersMatch = slotMethod.parameterTypes() == SOURCED_PACKET_LISTENER_PARAMETERS;
+
+        if (!parametersMatch) {
+            qDebug() << "PacketReceiver::registerPacketListener expected a method that takes"
+                << SOURCED_PACKET_LISTENER_PARAMETERS
+                << "but parameter method takes" << signalMethod.parameterTypes();
+        }
+    }
+    
+    // make sure the parameters match
+    assert(parametersMatch);
+
+    // add the mapping
+    _packetListenerMap[type] = ObjectMethodPair(object, slotMethod);
+        
     _packetListenerLock.unlock();
 }
 

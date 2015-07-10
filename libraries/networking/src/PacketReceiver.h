@@ -36,14 +36,16 @@ public:
 
     void shutdown() { _isShuttingDown = true; }
 
-    void registerPacketListener(PacketType::Value type, QObject* object, QString methodName);
+    bool registerPacketListener(PacketType::Value type, QObject* listener, const char* slot);
 
 public slots:
     void processDatagrams();
     
 private:
+    using ObjectMethodPair = QPair<QObject*, QMetaMethod>;
+
     QMutex _packetListenerLock;
-    QMap<PacketType::Value, QPair<QObject*, QString>> _packetListenerMap;
+    QMap<PacketType::Value, ObjectMethodPair> _packetListenerMap;
     int _inPacketCount = 0;
     int _outPacketCount = 0;
     int _inByteCount = 0;
