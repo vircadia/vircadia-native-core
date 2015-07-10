@@ -52,7 +52,7 @@ AvatarSharedPointer AvatarHashMap::addAvatar(const QUuid& sessionUUID, const QWe
     return avatar;
 }
 
-void AvatarHashMap::processAvatarDataPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
+void AvatarHashMap::processAvatarDataPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
     const auto data = QByteArray::fromRawData(packet->getPayload(), packet->size());
     int bytesRead = 0;
 
@@ -83,7 +83,7 @@ void AvatarHashMap::processAvatarDataPacket(std::unique_ptr<NLPacket> packet, Hi
     }
 }
 
-void AvatarHashMap::processAvatarIdentityPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
+void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
     // setup a data stream to parse the packet
     QDataStream identityStream { packet.get() };
 
@@ -124,7 +124,7 @@ void AvatarHashMap::processAvatarIdentityPacket(std::unique_ptr<NLPacket> packet
     }
 }
 
-void AvatarHashMap::processAvatarBillboardPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
+void AvatarHashMap::processAvatarBillboardPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
     const auto data = QByteArray::fromRawData(packet->getPayload(), packet->size());
     QUuid sessionUUID = QUuid::fromRfc4122(QByteArray::fromRawData(data, NUM_BYTES_RFC4122_UUID));
 
@@ -144,7 +144,7 @@ void AvatarHashMap::processAvatarBillboardPacket(std::unique_ptr<NLPacket> packe
     }
 }
 
-void AvatarHashMap::processKillAvatar(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
+void AvatarHashMap::processKillAvatar(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
     SharedNodePointer avatarMixer = DependencyManager::get<NodeList>()->nodeWithUUID(packet->getSourceID());
     if (avatarMixer) {
         avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
