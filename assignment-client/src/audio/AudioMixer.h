@@ -42,6 +42,14 @@ public slots:
 
     static const InboundAudioStream::Settings& getStreamSettings() { return _streamSettings; }
 
+private slots:
+    void handleMicrophoneAudioNoEchoPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleMicrophoneAudioWithEchoPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleInjectAudioPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleSilentAudioFramePacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleAudioStreamStatsPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
+
 private:
     /// adds one stream to the mix for a listening node
     int addStreamToMixForListeningNodeWithStream(AudioMixerClientData* listenerNodeData,
