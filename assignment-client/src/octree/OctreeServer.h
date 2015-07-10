@@ -128,6 +128,11 @@ public slots:
     void readPendingDatagrams() { }; // this will not be called since our datagram processing thread will handle
     void readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
 
+private slots:
+    void handleOctreeQueryPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleOctreeDataNackPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleJurisdictionRequestPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
+
 protected:
     virtual Octree* createTree() = 0;
     bool readOptionBool(const QString& optionName, const QJsonObject& settingsSectionObject, bool& result);
