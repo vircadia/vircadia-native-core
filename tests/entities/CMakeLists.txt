@@ -2,7 +2,7 @@
 set(TARGET_NAME "entities-test")
 
 # This is not a testcase -- just set it up as a regular hifi project
-setup_hifi_project()
+setup_hifi_project(Script)
 
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Tests/manual-tests/")
 
