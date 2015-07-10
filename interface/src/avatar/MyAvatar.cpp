@@ -1313,9 +1313,10 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
     if (qApp->isHMDMode()) {
         // these angles will be in radians
-        glm::quat orientation = qApp->getHeadOrientation();
+        glm::quat orientation = glm::quat_cast(_sensorToWorldMat) * qApp->getHeadOrientation();
+        glm::quat localOrientation = glm::inverse(bodyOrientation) * orientation;
         // ... so they need to be converted to degrees before we do math...
-        glm::vec3 euler = glm::eulerAngles(orientation) * DEGREES_PER_RADIAN;
+        glm::vec3 euler = glm::eulerAngles(localOrientation) * DEGREES_PER_RADIAN;
 
         //Invert yaw and roll when in mirror mode
         if (Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
