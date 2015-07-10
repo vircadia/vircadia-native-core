@@ -1942,7 +1942,7 @@ QSharedPointer<NetworkGeometry> NetworkGeometry::getLODOrFallback(float distance
             }
         }
     }
-    if (lod->isLoaded()) {
+    if (lod && lod->isLoaded()) {
         hysteresis = lodDistance;
         return lod;
     }

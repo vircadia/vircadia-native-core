@@ -111,7 +111,7 @@ void AnimationHandle::setAnimationDetails(const AnimationDetails& details) {
 
 
 void AnimationHandle::simulate(float deltaTime) {
-    if (!_animation->isLoaded()) {
+    if (!_animation || !_animation->isLoaded()) {
         return;
     }
     
@@ -151,7 +151,7 @@ void AnimationHandle::simulate(float deltaTime) {
 }
 
 void AnimationHandle::applyFrame(float frameIndex) {
-    if (!_animation->isLoaded()) {
+    if (!_animation || !_animation->isLoaded()) {
         return;
     }
     
