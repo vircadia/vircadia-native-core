@@ -394,6 +394,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         static_cast<NodeList*>(dependency)->deleteLater();
     });
 
+    // setup a timer for domain-server check ins
+    QTimer* domainCheckInTimer = new QTimer(nodeList.data());
+    connect(domainCheckInTimer, &QTimer::timeout, nodeList.data(), &NodeList::sendDomainServerCheckIn);
+    domainCheckInTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
+
     // put the NodeList and datagram processing on the node thread
     nodeList->moveToThread(nodeThread);
 
@@ -982,7 +987,7 @@ void Application::paintGL() {
 
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            renderRearViewMirror(&renderArgs, _mirrorViewRect);       
+            renderRearViewMirror(&renderArgs, _mirrorViewRect);
         }
 
         renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
@@ -1781,9 +1786,6 @@ void Application::checkFPS() {
     _frameCount = 0;
     _datagramProcessor->resetCounters();
     _timerStart.start();
-
-    // ask the node list to check in with the domain server
-    DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
 }
 
 void Application::idle() {
@@ -1852,7 +1854,7 @@ void Application::idle() {
         // After finishing all of the above work, ensure the idle timer is set to the proper interval,
         // depending on whether we're throttling or not
         idleTimer->start(_glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : 0);
-    } 
+    }
 
     // check for any requested background downloads.
     emit checkBackgroundDownloads();
@@ -3310,7 +3312,7 @@ namespace render {
                         const float APPROXIMATE_DISTANCE_FROM_HORIZON = 0.1f;
                         const float DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON = 0.2f;
 
-                        glm::vec3 sunDirection = (args->_viewFrustum->getPosition()/*getAvatarPosition()*/ - closestData.getSunLocation()) 
+                        glm::vec3 sunDirection = (args->_viewFrustum->getPosition()/*getAvatarPosition()*/ - closestData.getSunLocation())
                                                         / closestData.getAtmosphereOuterRadius();
                         float height = glm::distance(args->_viewFrustum->getPosition()/*theCamera.getPosition()*/, closestData.getAtmosphereCenter());
                         if (height < closestData.getAtmosphereInnerRadius()) {
@@ -3318,8 +3320,8 @@ namespace render {
                             alpha = 0.0f;
 
                             if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
-                                float directionY = glm::clamp(sunDirection.y, 
-                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
+                                float directionY = glm::clamp(sunDirection.y,
+                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
                                                     + APPROXIMATE_DISTANCE_FROM_HORIZON;
                                 alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
                             }
@@ -3330,8 +3332,8 @@ namespace render {
                                 (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
 
                             if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
-                                float directionY = glm::clamp(sunDirection.y, 
-                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
+                                float directionY = glm::clamp(sunDirection.y,
+                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
                                                     + APPROXIMATE_DISTANCE_FROM_HORIZON;
                                 alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
                             }
@@ -3497,8 +3499,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         pendingChanges.resetItem(WorldBoxRenderData::_item, worldBoxRenderPayload);
     } else {
 
-        pendingChanges.updateItem<WorldBoxRenderData>(WorldBoxRenderData::_item,  
-                [](WorldBoxRenderData& payload) { 
+        pendingChanges.updateItem<WorldBoxRenderData>(WorldBoxRenderData::_item,
+                [](WorldBoxRenderData& payload) {
                     payload._val++;
                 });
     }
@@ -3517,7 +3519,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     }
 
     {
-        PerformanceTimer perfTimer("SceneProcessPendingChanges"); 
+        PerformanceTimer perfTimer("SceneProcessPendingChanges");
         _main3DScene->enqueuePendingChanges(pendingChanges);
 
         _main3DScene->processPendingChangesQueue();
@@ -4826,7 +4828,7 @@ qreal Application::getDevicePixelRatio() {
 mat4 Application::getEyeProjection(int eye) const {
     if (isHMDMode()) {
         return OculusManager::getEyeProjection(eye);
-    } 
+    }
       
     return _viewFrustum.getProjection();
 }
