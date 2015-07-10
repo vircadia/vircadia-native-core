@@ -129,11 +129,12 @@ void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     emit qApp->renderingOverlay();
     qApp->getOverlays().renderHUD(renderArgs);
 
+    DependencyManager::get<AudioScope>()->render(renderArgs, _overlayFramebuffer->size().width(), _overlayFramebuffer->size().height());
+
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
     glMatrixMode(GL_MODELVIEW);
 
-    renderArgs->_context->syncCache();
     fboViewport(_overlayFramebuffer);
 }
 
