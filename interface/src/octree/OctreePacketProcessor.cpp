@@ -26,28 +26,28 @@ OctreePacketProcessor::OctreePacketProcessor() {
 }
 
 // TODO implement packet processing in PacketType-specific methods
-void OctreePacketProcessor::handleEntityDataPacket(NLPacket& packet, HifiSockAddr senderSockAddr) {
+void OctreePacketProcessor::handleEntityDataPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
     SharedNodePointer sendingNode = DependencyManager::get<NodeList>()->nodeWithUUID(packet->getSourceID());
     if (sendingNode) {
         processPacket(sendingNode, QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
     }
 }
 
-void OctreePacketProcessor::handleEntityErasePacket(NLPacket& packet, HifiSockAddr senderSockAddr) {
+void OctreePacketProcessor::handleEntityErasePacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
     SharedNodePointer sendingNode = DependencyManager::get<NodeList>()->nodeWithUUID(packet->getSourceID());
     if (sendingNode) {
         processPacket(sendingNode, QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
     }
 }
 
-void OctreePacketProcessor::handleOctreeStatsPacket(NLPacket& packet, HifiSockAddr senderSockAddr) {
+void OctreePacketProcessor::handleOctreeStatsPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
     SharedNodePointer sendingNode = DependencyManager::get<NodeList>()->nodeWithUUID(packet->getSourceID());
     if (sendingNode) {
         processPacket(sendingNode, QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
     }
 }
 
-void OctreePacketProcessor::handleEnvironmentDataPacket(NLPacket& packet, HifiSockAddr senderSockAddr) {
+void OctreePacketProcessor::handleEnvironmentDataPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
     SharedNodePointer sendingNode = DependencyManager::get<NodeList>()->nodeWithUUID(packet->getSourceID());
     if (sendingNode) {
         processPacket(sendingNode, QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
