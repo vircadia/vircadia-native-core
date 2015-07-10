@@ -236,7 +236,7 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
     batch.setViewTransform(viewMat);
 
     batch.setPipeline(getOpaquePipeline());
-    batch.setUniformTexture(0, args->_whiteTexture);
+    batch.setResourceTexture(0, args->_whiteTexture);
 
     if (!inItems.empty()) {
         batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0);

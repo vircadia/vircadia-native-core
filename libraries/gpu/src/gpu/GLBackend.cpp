@@ -35,7 +35,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_setStateBlendFactor),
 
     (&::gpu::GLBackend::do_setUniformBuffer),
-    (&::gpu::GLBackend::do_setUniformTexture),
+    (&::gpu::GLBackend::do_setResourceTexture),
 
     (&::gpu::GLBackend::do_setFramebuffer),
 

@@ -179,7 +179,7 @@ void ApplicationCompositor::bindCursorTexture(gpu::Batch& batch, uint8_t cursorI
         _cursors[iconId] = DependencyManager::get<TextureCache>()->
             getImageTexture(iconPath);
     }
-    batch.setUniformTexture(0, _cursors[iconId]);
+    batch.setResourceTexture(0, _cursors[iconId]);
 }
 
 // Draws the FBO texture for the screen
