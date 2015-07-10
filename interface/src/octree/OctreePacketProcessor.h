@@ -21,8 +21,6 @@ class OctreePacketProcessor : public ReceivedPacketProcessor {
 public:
     OctreePacketProcessor();
 
-    virtual bool process() override { };
-
 signals:
     void packetVersionMismatch();
 
