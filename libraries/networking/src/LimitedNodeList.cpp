@@ -93,6 +93,8 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     // check the local socket right now
     updateLocalSockAddr();
 
+    // TODO: Create a new thread, and move PacketReceiver to it
+
     connect(&_nodeSocket, &QUdpSocket::readyRead, &_packetReceiver, &PacketReceiver::processDatagrams);
 
     _packetStatTimer.start();
