@@ -245,3 +245,20 @@ void Batch::setFramebuffer(const FramebufferPointer& framebuffer) {
 
 }
 
+void Batch::beginQuery(const QueryPointer& query) {
+    ADD_COMMAND(beginQuery);
+
+    _params.push_back(_queries.cache(query));
+}
+
+void Batch::endQuery(const QueryPointer& query) {
+    ADD_COMMAND(endQuery);
+
+    _params.push_back(_queries.cache(query));
+}
+
+void Batch::getQuery(const QueryPointer& query) {
+    ADD_COMMAND(getQuery);
+
+    _params.push_back(_queries.cache(query));
+}
