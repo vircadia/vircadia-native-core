@@ -28,12 +28,12 @@ BillboardOverlay::BillboardOverlay(const BillboardOverlay* billboardOverlay) :
 }
 
 void BillboardOverlay::render(RenderArgs* args) {
-    if (!_isLoaded) {
+    if (!_texture) {
         _isLoaded = true;
         _texture = DependencyManager::get<TextureCache>()->getTexture(_url);
     }
 
-    if (!_visible || !_texture->isLoaded()) {
+    if (!_visible || !_texture || !_texture->isLoaded()) {
         return;
     }
 
@@ -170,7 +170,7 @@ void BillboardOverlay::setBillboardURL(const QString& url) {
 bool BillboardOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                         float& distance, BoxFace& face) {
 
-    if (_texture) {
+    if (_texture && _texture->isLoaded()) {
         glm::quat rotation = getRotation();
         if (_isFacingAvatar) {
             // rotate about vertical to face the camera
