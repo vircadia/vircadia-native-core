@@ -117,7 +117,7 @@ void GLBackend::updateTransform() {
     if (_transform._invalidView || _transform._invalidProj || _transform._invalidViewport) {
         glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT, 0);
         glBindBuffer(GL_ARRAY_BUFFER, _transform._transformCameraBuffer);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(_transform._transformCamera), (const void*) &_transform._transformCamera, GL_DYNAMIC_DRAW);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(_transform._transformCamera), (const void*)&_transform._transformCamera);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         CHECK_GL_ERROR();
     }
@@ -125,7 +125,7 @@ void GLBackend::updateTransform() {
     if (_transform._invalidModel) {
         glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_OBJECT_SLOT, 0);
         glBindBuffer(GL_ARRAY_BUFFER, _transform._transformObjectBuffer);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(_transform._transformObject), (const void*) &_transform._transformObject, GL_DYNAMIC_DRAW);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(_transform._transformObject), (const void*) &_transform._transformObject);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         CHECK_GL_ERROR();
     }
