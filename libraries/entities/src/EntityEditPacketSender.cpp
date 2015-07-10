@@ -22,7 +22,7 @@ EntityEditPacketSender::EntityEditPacketSender() {
     packetReceiver.registerPacketListener(PacketType::EntityEditNack, this, "processEntityEditNackPacket");
 }
 
-void EntityEditPacketSender::processEntityEditNackPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
+void EntityEditPacketSender::processEntityEditNackPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
     if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
         processNackPacket(QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
     }
