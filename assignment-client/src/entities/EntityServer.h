@@ -49,6 +49,11 @@ public slots:
 protected:
     virtual Octree* createTree();
 
+private slots:
+    void handleEntityAddPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
+    void handleEntityEditPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
+    void handleEntityErasePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
+
 private:
     EntitySimulation* _entitySimulation;
     QTimer* _pruneDeletedEntitiesTimer = nullptr;
