@@ -34,10 +34,10 @@ void PacketReceiver::registerPacketListener(PacketType::Value type, QObject* obj
     }
     
     // convert the const char* slot to a QMetaMethod
-    int methodIndex = object->indexOfSlot(slot);
+    int methodIndex = object->metaObject()->indexOfSlot(slot);
     Q_ASSERT(methodIndex >= 0);
 
-    QMetaMethod slotMethod = object->method(methodIndex);
+    QMetaMethod slotMethod = object->metaObject()->method(methodIndex);
     Q_ASSERT(method.isValid());
 
     // compare the parameters we expect and the parameters the QMetaMethod has
@@ -45,7 +45,7 @@ void PacketReceiver::registerPacketListener(PacketType::Value type, QObject* obj
 
     if (NON_SOURCED_PACKETS.contains(type)) {
         const QList<QByteArray> NON_SOURCED_PACKET_LISTENER_PARAMETERS = QList<QByteArray>()
-            << QString("QSharedPointer<NLPacket>");
+            << QMetaObject::normalizedType("QSharedPointer<NLPacket>");
 
         parametersMatch = slotMethod.parameterTypes() == NON_SOURCED_PACKET_LISTENER_PARAMETERS;
 
@@ -54,7 +54,8 @@ void PacketReceiver::registerPacketListener(PacketType::Value type, QObject* obj
                 << "but parameter method takes" << signalMethod.parameterTypes();
     } else {
         const QList<QByteArray> SOURCED_PACKET_LISTENER_PARAMETERS = QList<QByteArray>()
-            << QString("QSharedPointer<NLPacket>") << QString("QSharedPointer<Node>");
+            << QMetaObject::normalizedType(("QSharedPointer<NLPacket>")
+            << QMetaObject::normalizedType(("QSharedPointer<Node>");
 
         parametersMatch = slotMethod.parameterTypes() == SOURCED_PACKET_LISTENER_PARAMETERS;
 
