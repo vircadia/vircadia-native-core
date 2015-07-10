@@ -197,8 +197,7 @@ template<typename Enum> inline QByteArray PropertyFlags<Enum>::encode() {
 
 template<typename Enum> 
 inline size_t PropertyFlags<Enum>::decode(const uint8_t* data, size_t size) {
-    clear();
-    //clear(); // we are cleared out!
+    clear(); // we are cleared out!
 
     size_t bytesConsumed = 0;
     int bitCount = BITS_IN_BYTE * size;
