@@ -296,15 +296,18 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 
     Head* head = getHead();
     if (inHmd || isPlaying()) {
-        head->setDeltaPitch(estimatedRotation.x);
-        head->setDeltaYaw(estimatedRotation.y);
+        if (!isRoomTracking) {
+            head->setDeltaPitch(estimatedRotation.x);
+            head->setDeltaYaw(estimatedRotation.y);
+            head->setDeltaRoll(estimatedRotation.z);
+        }
     } else {
         float magnifyFieldOfView = qApp->getFieldOfView() /
                                    _realWorldFieldOfView.get();
         head->setDeltaPitch(estimatedRotation.x * magnifyFieldOfView);
         head->setDeltaYaw(estimatedRotation.y * magnifyFieldOfView);
+        head->setDeltaRoll(estimatedRotation.z);
     }
-    head->setDeltaRoll(estimatedRotation.z);
 
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
