@@ -206,7 +206,7 @@ void AssignmentClient::sendAssignmentRequest() {
     }
 }
 
-void AssignmentClient::handleCreateAssignementPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
+void AssignmentClient::handleCreateAssignmentPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
     qDebug() << "Received a PacketType::CreateAssignment - attempting to unpack.";
 
     // construct the deployed assignment from the packet data
@@ -214,6 +214,8 @@ void AssignmentClient::handleCreateAssignementPacket(QSharedPointer<NLPacket> pa
 
     if (_currentAssignment) {
         qDebug() << "Received an assignment -" << *_currentAssignment;
+
+        auto nodeList = DependencyManager::get<NodeList>();
 
         // switch our DomainHandler hostname and port to whoever sent us the assignment
 
@@ -304,9 +306,6 @@ void AssignmentClient::assignmentCompleted() {
     qDebug() << "Assignment finished or never started - waiting for new assignment.";
 
     auto nodeList = DependencyManager::get<NodeList>();
-
-    // have us handle incoming NodeList datagrams again, and make sure our ThreadedAssignment isn't handling them
-    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &AssignmentClient::readPendingDatagrams);
 
     // reset our NodeList by switching back to unassigned and clearing the list
     nodeList->setOwnerType(NodeType::Unassigned);
