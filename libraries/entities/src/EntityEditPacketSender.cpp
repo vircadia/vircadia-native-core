@@ -23,9 +23,9 @@ EntityEditPacketSender::EntityEditPacketSender() {
 }
 
 void EntityEditPacketSender::processEntityEditNackPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
+    // if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
         processNackPacket(QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
-    }
+    // }
 }
 
 void EntityEditPacketSender::adjustEditPacketForClockSkew(PacketType::Value type, QByteArray& buffer, int clockSkew) {
