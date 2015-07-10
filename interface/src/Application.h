@@ -454,7 +454,7 @@ public slots:
     
     void cameraMenuChanged();
     
-    void clearCacheAndRestart();
+    void reloadResourceCaches();
 
 private slots:
     void clearDomainOctreeDetails();

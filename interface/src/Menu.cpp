@@ -127,7 +127,6 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyPath, 0,
                                   addressManager.data(), SLOT(copyPath()));
 
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::ClearCacheAndRestart, 0, qApp, SLOT(clearCacheAndRestart()));
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::Quit,
                                   Qt::CTRL | Qt::Key_Q,
@@ -257,6 +256,8 @@ Menu::Menu() {
             avatar, SLOT(updateMotionBehavior()));
 
     MenuWrapper* viewMenu = addMenu("View");
+    
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
 
     addCheckableActionToQMenuAndActionHash(viewMenu,
                                            MenuOption::Fullscreen,

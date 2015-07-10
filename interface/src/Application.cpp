@@ -2415,7 +2415,7 @@ void Application::cameraMenuChanged() {
     }
 }
 
-void Application::clearCacheAndRestart() {
+void Application::reloadResourceCaches() {
     emptyLocalCache();
     
     DependencyManager::get<AnimationCache>()->refreshAll();
