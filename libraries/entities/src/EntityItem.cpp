@@ -1653,7 +1653,7 @@ void EntityItem::deserializeActionsInternal() {
     // remove any actions that weren't included in the new data.
     QHash<QUuid, EntityActionPointer>::const_iterator i = _objectActions.begin();
     while (i != _objectActions.end()) {
-        const QUuid id = i.key();
+        QUuid id = i.key();
         if (!updated.contains(id)) {
             _actionsToRemove << id;
         }
