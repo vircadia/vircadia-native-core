@@ -118,18 +118,6 @@ void Agent::readPendingDatagrams() {
                 // let this continue through to the NodeList so it updates last heard timestamp
                 // for the sending audio mixer
                 DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, receivedPacket);
-            } else if (datagramPacketType == PacketType::BulkAvatarData
-                       || datagramPacketType == PacketType::AvatarIdentity
-                       || datagramPacketType == PacketType::AvatarBillboard
-                       || datagramPacketType == PacketType::KillAvatar) {
-                // let the avatar hash map process it
-                DependencyManager::get<AvatarHashMap>()->processAvatarMixerDatagram(receivedPacket, nodeList->sendingNodeForPacket(receivedPacket));
-
-                // let this continue through to the NodeList so it updates last heard timestamp
-                // for the sending avatar-mixer
-                DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, receivedPacket);
-            } else {
-                DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, receivedPacket);
             }
         }
     }
