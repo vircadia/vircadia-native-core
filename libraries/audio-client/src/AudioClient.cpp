@@ -535,13 +535,13 @@ void AudioClient::stop() {
     }
 }
 
-void AudioClient::handleAudioStreamStatsPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
+void AudioClient::handleAudioStreamStatsPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
     _stats.parseAudioStreamStatsPacket(packet->getData());
 
     updateLastHeardFromAudioMixer(packet);
 }
 
-void AudioClient::handleAudioEnvironmentDataPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
+void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
     const char* dataAt = packet->getPayload();
 
     char bitset;
@@ -563,7 +563,7 @@ void AudioClient::handleAudioEnvironmentDataPacket(std::unique_ptr<NLPacket> pac
     updateLastHeardFromAudioMixer(packet);
 }
 
-void AudioClient::handleAudioDataPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
+void AudioClient::handleAudioDataPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveFirstAudioPacket);
 
@@ -583,11 +583,11 @@ void AudioClient::handleAudioDataPacket(std::unique_ptr<NLPacket> packet, HifiSo
     updateLastHeardFromAudioMixer(packet);
 }
 
-void AudioClient::handleSilentAudioFrame(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
+void AudioClient::handleSilentAudioFrame(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
     updateLastHeardFromAudioMixer(packet);
 }
 
-void AudioClient::handleNoisyMutePacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
+void AudioClient::handleNoisyMutePacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
     if (!_muted) {
         toggleMute();
         // TODO reimplement on interface side
@@ -595,7 +595,7 @@ void AudioClient::handleNoisyMutePacket(std::unique_ptr<NLPacket> packet, HifiSo
     }
 }
 
-void AudioClient::handleMuteEnvironmentPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr) {
+void AudioClient::handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
     glm::vec3 position;
     float radius;
 
@@ -606,7 +606,7 @@ void AudioClient::handleMuteEnvironmentPacket(std::unique_ptr<NLPacket> packet, 
     emit muteEnvironmentRequested(position, radius);
 }
 
-void AudioClient::updateLastHeardFromAudioMixer(std::unique_ptr<NLPacket>& packet) {
+void AudioClient::updateLastHeardFromAudioMixer(QSharedPointer<NLPacket>& packet) {
     // update having heard from the audio-mixer and record the bytes received
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer audioMixer = nodeList->nodeWithUUID(packet->getSourceID());

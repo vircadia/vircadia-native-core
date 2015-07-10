@@ -139,12 +139,12 @@ public slots:
     void start();
     void stop();
 
-    void handleAudioStreamStatsPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
-    void handleAudioEnvironmentDataPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
-    void handleAudioDataPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
-    void handleSilentAudioFrame(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
-    void handleNoisyMutePacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
-    void handleMuteEnvironmentPacket(std::unique_ptr<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleAudioStreamStatsPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleAudioEnvironmentDataPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleAudioDataPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleSilentAudioFrame(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleNoisyMutePacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
 
     void sendDownstreamAudioStatsPacket() { _stats.sendDownstreamAudioStatsPacket(); }
     void handleAudioInput();
@@ -214,7 +214,7 @@ private slots:
     void audioStateChanged(QAudio::State state);
 
 private:
-    void updateLastHeardFromAudioMixer(std::unique_ptr<NLPacket>& packet);
+    void updateLastHeardFromAudioMixer(QSharedPointer<NLPacket>& packet);
     void outputFormatChanged();
 
     QByteArray firstInputFrame;
