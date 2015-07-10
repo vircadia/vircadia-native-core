@@ -175,6 +175,7 @@ public:
 signals:
     /// Fired when the resource has been loaded.
     void loaded();
+    void onRefresh();
 
 protected slots:
     void attemptRequest();

@@ -271,11 +271,11 @@ void Resource::refresh() {
         _replyTimer->deleteLater();
         _replyTimer = nullptr;
     }
+    
     init();
     _request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
-    if (!_startedLoading) {
-        attemptRequest();
-    }
+    ensureLoading();
+    emit onRefresh();
 }
 
 void Resource::allReferencesCleared() {
@@ -331,8 +331,7 @@ void Resource::reinsert() {
     _cache->_resources.insert(_url, _self);
 }
 
-const int REPLY_TIMEOUT_MS = 5000;
-
+static const int REPLY_TIMEOUT_MS = 5000;
 void Resource::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
     if (!_reply->isFinished()) {
         _bytesReceived = bytesReceived;
