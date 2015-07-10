@@ -52,16 +52,18 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
     }
 
     glm::vec3 palmPosition;
+    glm::quat palmRotation;
     if (_hand == "right") {
         palmPosition = myAvatar->getRightPalmPosition();
+        palmRotation = myAvatar->getRightPalmRotation();
     } else {
         palmPosition = myAvatar->getLeftPalmPosition();
+        palmRotation = myAvatar->getLeftPalmRotation();
     }
 
-    auto rotation = myAvatar->getWorldAlignedOrientation();
+    auto rotation = palmRotation * _relativeRotation;
     auto offset = rotation * _relativePosition;
     auto position = palmPosition + offset;
-    rotation *= _relativeRotation;
     unlock();
 
     if (!tryLockForWrite()) {
@@ -81,6 +83,13 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
         rotation.w != rotation.w) {
         qDebug() << "AvatarActionHold::updateActionWorker -- target rotation includes NaN";
         return;
+    }
+
+    if (_positionalTarget != position || _rotationalTarget != rotation) {
+        auto ownerEntity = _ownerEntity.lock();
+        if (ownerEntity) {
+            ownerEntity->setActionDataDirty(true);
+        }
     }
 
     _positionalTarget = position;
