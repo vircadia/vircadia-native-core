@@ -26,6 +26,9 @@ class PacketReceiver : public QObject {
     Q_OBJECT
 public:
     PacketReceiver(QObject* parent = 0);
+    PacketReceiver(const PacketReceiver&) = delete;
+
+    PacketReceiver& operator=(const PacketReceiver&) = delete;
     
     int getInPacketCount() const { return _inPacketCount; }
     int getOutPacketCount() const { return _outPacketCount; }
