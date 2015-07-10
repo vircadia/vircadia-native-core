@@ -397,8 +397,8 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
         const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
         const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
     
-        if ((! collisionNetworkGeometry.isNull() && collisionNetworkGeometry->isLoadedWithTextures()) &&
-            (! renderNetworkGeometry.isNull() && renderNetworkGeometry->isLoadedWithTextures())) {
+        if ((!collisionNetworkGeometry && collisionNetworkGeometry->isLoadedWithTextures()) &&
+            (!renderNetworkGeometry && renderNetworkGeometry->isLoadedWithTextures())) {
             // we have both URLs AND both geometries AND they are both fully loaded.
             return true;
         }
@@ -419,7 +419,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
         // should never fall in here when collision model not fully loaded
         // hence we assert collisionNetworkGeometry is not NULL
-        assert(!collisionNetworkGeometry.isNull());
+        assert(!collisionNetworkGeometry);
 
         const FBXGeometry& collisionGeometry = collisionNetworkGeometry->getFBXGeometry();
         const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();

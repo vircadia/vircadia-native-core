@@ -457,7 +457,8 @@ bool Model::updateGeometry() {
         } 
         deleteGeometry();
         _dilatedTextures.clear();
-        _geometry = geometry;
+        setGeometry(geometry);
+        
         _meshGroupsKnown = false;
         _readyWhenAdded = false; // in case any of our users are using scenes
         invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
@@ -1142,10 +1143,29 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     onInvalidate();
 
     // if so instructed, keep the current geometry until the new one is loaded 
-    _nextBaseGeometry = _nextGeometry = DependencyManager::get<GeometryCache>()->getGeometry(url, fallback, delayLoad);
+    _nextGeometry = DependencyManager::get<GeometryCache>()->getGeometry(url, fallback, delayLoad);
     _nextLODHysteresis = NetworkGeometry::NO_HYSTERESIS;
     if (!retainCurrent || !isActive() || (_nextGeometry && _nextGeometry->isLoaded())) {
         applyNextGeometry();
+    }
+}
+
+void Model::geometryRefreshed() {
+    QObject* sender = QObject::sender();
+    
+    if (sender == _geometry) {
+        _readyWhenAdded = false; // reset out render items.
+        _needsReload = true;
+        invalidCalculatedMeshBoxes();
+        
+        onInvalidate();
+        
+        // if so instructed, keep the current geometry until the new one is loaded
+        _nextGeometry = DependencyManager::get<GeometryCache>()->getGeometry(_url);
+        _nextLODHysteresis = NetworkGeometry::NO_HYSTERESIS;
+        applyNextGeometry();
+    } else {
+        sender->disconnect(this, SLOT(geometryRefreshed()));
     }
 }
 
@@ -1156,7 +1176,11 @@ const QSharedPointer<NetworkGeometry> Model::getCollisionGeometry(bool delayLoad
         _collisionGeometry = DependencyManager::get<GeometryCache>()->getGeometry(_collisionUrl, QUrl(), delayLoad);
     }
 
-    return _collisionGeometry;
+    if (_collisionGeometry && _collisionGeometry->isLoaded()) {
+        return _collisionGeometry;
+    }
+    
+    return QSharedPointer<NetworkGeometry>();
 }
 
 void Model::setCollisionModelURL(const QUrl& url) {
@@ -1776,6 +1800,18 @@ void Model::setBlendedVertices(int blendNumber, const QWeakPointer<NetworkGeomet
     }
 }
 
+void Model::setGeometry(const QSharedPointer<NetworkGeometry>& newGeometry) {
+    if (_geometry == newGeometry) {
+        return;
+    }
+    
+    if (_geometry) {
+        _geometry->disconnect(_geometry.data(), &Resource::onRefresh, this, &Model::geometryRefreshed);
+    }
+    _geometry = newGeometry;
+    QObject::connect(_geometry.data(), &Resource::onRefresh, this, &Model::geometryRefreshed);
+}
+
 void Model::applyNextGeometry() {
     // delete our local geometry and custom textures
     deleteGeometry();
@@ -1783,13 +1819,12 @@ void Model::applyNextGeometry() {
     _lodHysteresis = _nextLODHysteresis;
     
     // we retain a reference to the base geometry so that its reference count doesn't fall to zero
-    _baseGeometry = _nextBaseGeometry;
-    _geometry = _nextGeometry;
+    setGeometry(_nextGeometry);
+    
     _meshGroupsKnown = false;
     _readyWhenAdded = false; // in case any of our users are using scenes
     _needsReload = false; // we are loaded now!
     invalidCalculatedMeshBoxes();
-    _nextBaseGeometry.reset();
     _nextGeometry.reset();
 }
 
