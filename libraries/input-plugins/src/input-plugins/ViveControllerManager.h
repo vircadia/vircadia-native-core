@@ -17,8 +17,10 @@
 
 #include <GLMHelpers.h>
 
-#include "UserInputMapper.h"
+#include <model/Geometry.h>
 #include "plugins/Plugin.h"
+#include <RenderArgs.h>
+#include "UserInputMapper.h"
 
 class ViveControllerManager : public Plugin {
 public:
@@ -64,7 +66,8 @@ public:
     };
     
     void focusOutEvent();
-    
+
+    void render(RenderArgs* args);
     void update();
     
     static ViveControllerManager& getInstance();
@@ -89,6 +92,8 @@ public:
 private:
     ViveControllerManager();
     ~ViveControllerManager();
+
+    void renderHand(UserInputMapper::PoseValue pose, gpu::Batch& batch);
     
     void handleButtonEvent(uint64_t buttons, int index);
     void handleAxisEvent(Axis axis, float x, float y, int index);
@@ -97,6 +102,9 @@ private:
     bool _isInitialized;
     bool _isEnabled;
     int _trackedControllers;
+
+    bool _modelLoaded;
+    model::Geometry _modelGeometry;
 
     static const QString NAME;
 

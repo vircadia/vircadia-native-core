@@ -13,6 +13,10 @@
 
 #include <PerfStat.h>
 
+#include "GeometryCache.h"
+#include <gpu/Batch.h>
+#include <gpu/Context.h>
+#include <DeferredLightingEffect.h>
 #include <display-plugins\openvr\OpenVrHelpers.h>
 #include "NumericalConstants.h"
 #include "UserActivityLogger.h"
@@ -40,6 +44,8 @@ const unsigned int GRIP_BUTTON = 1U << 2;
 const unsigned int TRACKPAD_BUTTON = 1U << 3;
 const unsigned int TRIGGER_BUTTON = 1U << 4;
 
+const QString CONTROLLER_MODEL_STRING = "vr_controller_05_wireless_b";
+
 ViveControllerManager& ViveControllerManager::getInstance() {
     static ViveControllerManager sharedInstance;
     return sharedInstance;
@@ -48,7 +54,8 @@ ViveControllerManager& ViveControllerManager::getInstance() {
 ViveControllerManager::ViveControllerManager() :
     _isInitialized(false),
     _isEnabled(true),
-    _trackedControllers(0)
+    _trackedControllers(0),
+    _modelLoaded(false)
 {
     
 }
@@ -98,7 +105,88 @@ void ViveControllerManager::activate() {
         Q_ASSERT(eError == vr::HmdError_None);
     }
     Q_ASSERT(_hmd);
+
+    vr::RenderModel_t model;
+    if (!_hmd->LoadRenderModel(CONTROLLER_MODEL_STRING.toStdString().c_str(), &model)) {
+        qDebug("Unable to load render model %s\n", CONTROLLER_MODEL_STRING);
+    } else {
+        model::Mesh* mesh = new model::Mesh();
+        model::MeshPointer meshPtr(mesh);
+        _modelGeometry.setMesh(meshPtr);
+
+        auto indexBuffer = new gpu::Buffer(3 * model.unTriangleCount * sizeof(uint16_t), (gpu::Byte*)model.rIndexData);
+        auto indexBufferPtr = gpu::BufferPointer(indexBuffer);
+        auto indexBufferView = new gpu::BufferView(indexBufferPtr, gpu::Element(gpu::SCALAR, gpu::UINT16, gpu::RAW));
+        mesh->setIndexBuffer(*indexBufferView);
+
+        auto vertexBuffer = new gpu::Buffer(model.unVertexCount * sizeof(vr::RenderModel_Vertex_t),
+            (gpu::Byte*)model.rVertexData);
+        auto vertexBufferPtr = gpu::BufferPointer(vertexBuffer);
+        auto vertexBufferView = new gpu::BufferView(vertexBufferPtr,
+            0,
+            vertexBufferPtr->getSize() - sizeof(float) * 3,
+            sizeof(vr::RenderModel_Vertex_t),
+            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW));
+        mesh->setVertexBuffer(*vertexBufferView);
+        mesh->addAttribute(gpu::Stream::NORMAL,
+            gpu::BufferView(vertexBufferPtr,
+            sizeof(float) * 3,
+            vertexBufferPtr->getSize() - sizeof(float) * 3,
+            sizeof(vr::RenderModel_Vertex_t),
+            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
+        //mesh->addAttribute(gpu::Stream::TEXCOORD,
+        //    gpu::BufferView(vertexBufferPtr,
+        //    2 * sizeof(float) * 3,
+        //    vertexBufferPtr->getSize() - sizeof(float) * 3,
+        //    sizeof(vr::RenderModel_Vertex_t),
+        //    gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::RAW)));
+
+        _modelLoaded = true;
+    }
+
     _isInitialized = true;
+}
+
+void ViveControllerManager::render(RenderArgs* args) {
+    PerformanceTimer perfTimer("ViveControllerManager::render");
+
+    if (_modelLoaded) {
+        UserInputMapper::PoseValue leftHand = _poseStateMap[makeInput(JointChannel::LEFT_HAND).getChannel()];
+        UserInputMapper::PoseValue rightHand = _poseStateMap[makeInput(JointChannel::RIGHT_HAND).getChannel()];
+
+        gpu::Batch batch;
+        auto geometryCache = DependencyManager::get<GeometryCache>();
+        geometryCache->useSimpleDrawPipeline(batch);
+        batch.setProjectionTransform(mat4());
+
+        if (leftHand.isValid()) {
+            renderHand(leftHand, batch);
+        }
+        if (rightHand.isValid()) {
+            renderHand(rightHand, batch);
+        }
+
+        args->_context->syncCache();
+        args->_context->render(batch);
+    }
+}
+
+void ViveControllerManager::renderHand(UserInputMapper::PoseValue pose, gpu::Batch& batch) {
+    Transform transform;
+    transform.setTranslation(pose.getTranslation());
+    transform.setRotation(pose.getRotation());
+
+    auto mesh = _modelGeometry.getMesh();
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
+    batch.setModelTransform(transform);
+    batch.setInputFormat(mesh->getVertexFormat());
+    batch.setInputBuffer(gpu::Stream::POSITION, mesh->getVertexBuffer());
+    batch.setInputBuffer(gpu::Stream::NORMAL,
+        mesh->getVertexBuffer()._buffer,
+        sizeof(float) * 3,
+        mesh->getVertexBuffer()._stride);
+    batch.setIndexBuffer(gpu::UINT16, mesh->getIndexBuffer()._buffer, 0);
+    batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
 }
 
 void ViveControllerManager::update() {
@@ -108,7 +196,7 @@ void ViveControllerManager::update() {
     _buttonPressedMap.clear();
     if (_isInitialized && _isEnabled) {
         
-        PerformanceTimer perfTimer("Vive Controllers");
+        PerformanceTimer perfTimer("ViveControllerManager::update");
 
         int numTrackedControllers = 0;
         

@@ -3,7 +3,7 @@ set(TARGET_NAME input-plugins)
 setup_hifi_library()
 
 # use setup_hifi_library macro to setup our project and link appropriate Qt modules
-link_hifi_libraries(shared plugins)
+link_hifi_libraries(shared plugins gpu render-utils)
 
 GroupSources("src/input-plugins")
 
