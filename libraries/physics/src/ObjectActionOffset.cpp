@@ -95,26 +95,21 @@ bool ObjectActionOffset::updateArguments(QVariantMap arguments) {
     glm::vec3 pointToOffsetFrom =
         EntityActionInterface::extractVec3Argument("offset action", arguments, "pointToOffsetFrom", ok, true);
     if (!ok) {
-        return false;
+        pointToOffsetFrom = _pointToOffsetFrom;
     }
 
     ok = true;
     float linearTimeScale =
         EntityActionInterface::extractFloatArgument("offset action", arguments, "linearTimeScale", ok, false);
-    if (ok) { 
-        if (linearTimeScale <= 0.0f) {
-            qDebug() << "offset action -- linearTimeScale must be greater than zero.";
-            return false;
-        }
-    } else {
-        linearTimeScale = 0.1f;
+    if (!ok) { 
+        linearTimeScale = _linearTimeScale;
     }
 
     ok = true;
     float linearDistance =
         EntityActionInterface::extractFloatArgument("offset action", arguments, "linearDistance", ok, false);
     if (!ok) {
-        linearDistance = 0.0f;
+        linearDistance = _linearDistance;
     }
 
     // only change stuff if something actually changed
