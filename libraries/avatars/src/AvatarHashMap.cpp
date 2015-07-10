@@ -85,7 +85,7 @@ void AvatarHashMap::processAvatarDataPacket(QSharedPointer<NLPacket> packet, Hif
 
 void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
     // setup a data stream to parse the packet
-    QDataStream identityStream { packet.get() };
+    QDataStream identityStream { packet.data() };
 
     QUuid sessionUUID;
 

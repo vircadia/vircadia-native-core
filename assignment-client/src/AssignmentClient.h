@@ -28,7 +28,6 @@ public:
                      quint16 assignmentMonitorPort);
 private slots:
     void sendAssignmentRequest();
-    void readPendingDatagrams();
     void assignmentCompleted();
     void handleAuthenticationRequest();
     void sendStatsPacketToACM();
@@ -36,6 +35,10 @@ private slots:
 
 public slots:
     void aboutToQuit();
+
+private slots:
+    void handleCreateAssignmentPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
+    void handleStopNodePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
 
 private:
     void setUpStatsToMonitor();
