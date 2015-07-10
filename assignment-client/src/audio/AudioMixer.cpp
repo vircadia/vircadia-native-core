@@ -96,13 +96,13 @@ AudioMixer::AudioMixer(const QByteArray& packet) :
     // we will soon find a better common home for these audio-related constants
     // SOON
 
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->registerPacketListener(PacketType::MicrophoneAudioNoEcho, this, "handleMicrophoneAudioNoEchoPacket");
-    nodeList->registerPacketListener(PacketType::MicrophoneAudioWithEcho, this, "handleMicrophoneAudioWithEchoPacket");
-    nodeList->registerPacketListener(PacketType::InjectAudio, this, "handleInjectAudioPacket");
-    nodeList->registerPacketListener(PacketType::SilentAudioFrame, this, "handleSilentAudioFramePacket");
-    nodeList->registerPacketListener(PacketType::AudioStreamStats, this, "handleAudioStreamStatsPacket");
-    nodeList->registerPacketListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver->registerPacketListener(PacketType::MicrophoneAudioNoEcho, this, "handleMicrophoneAudioNoEchoPacket");
+    packetReceiver->registerPacketListener(PacketType::MicrophoneAudioWithEcho, this, "handleMicrophoneAudioWithEchoPacket");
+    packetReceiver->registerPacketListener(PacketType::InjectAudio, this, "handleInjectAudioPacket");
+    packetReceiver->registerPacketListener(PacketType::SilentAudioFrame, this, "handleSilentAudioFramePacket");
+    packetReceiver->registerPacketListener(PacketType::AudioStreamStats, this, "handleAudioStreamStatsPacket");
+    packetReceiver->registerPacketListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
 }
 
 const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
