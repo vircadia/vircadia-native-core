@@ -62,7 +62,7 @@ public:
     void updateAvatarPhysicsShape(const QUuid& id);
 
     // For Scene.shouldRenderEntities
-    QList<AvatarSharedPointer>& getAvatarsLastInScene() { return _avatarIDsLastInScene; }
+    QList<AvatarSharedPointer>& getAvatarsLastInScene() { return _avatarsLastInScene; }
    
 public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
