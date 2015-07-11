@@ -60,9 +60,13 @@ public:
     void handleCollisionEvents(CollisionEvents& collisionEvents);
 
     void updateAvatarPhysicsShape(const QUuid& id);
+
+    // For Scene.shouldRenderEntities
+    QList<AvatarSharedPointer>& getAvatarsLastInScene() { return _avatarIDsLastInScene; }
    
 public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
+    void updateAvatarRenderStatus(bool shouldRenderAvatars);
 
 private:
     AvatarManager(QObject* parent = 0);
@@ -88,6 +92,9 @@ private:
     SetOfMotionStates _motionStatesToAdd;
     VectorOfMotionStates _motionStatesToDelete;
     VectorOfMotionStates _tempMotionStates;
+
+    // For Scene.shouldRenderAvatars
+    QList<AvatarSharedPointer> _avatarsLastInScene;
 };
 
 Q_DECLARE_METATYPE(AvatarManager::LocalLight)
