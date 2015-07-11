@@ -81,6 +81,7 @@ public:
     bool isSpot() const { return getType() == SPOT; }
     void setSpotAngle(float angle);
     float getSpotAngle() const { return getSchema()._spot.z; }
+    glm::vec2 getSpotAngleCosSin() const { return glm::vec2(getSchema()._spot.x, getSchema()._spot.y); }
     void setSpotExponent(float exponent);
     float getSpotExponent() const { return getSchema()._spot.w; }
 
@@ -107,7 +108,7 @@ public:
         Color _color{1.0f};
         float _intensity{1.0f};
         Vec4 _attenuation{1.0f};
-        Vec4 _spot{0.0f, 0.0f, 0.0f, 3.0f};
+        Vec4 _spot{0.0f, 0.0f, 0.0f, 0.0f};
         Vec4 _shadow{0.0f};
 
         Vec4 _control{0.0f, 0.0f, 0.0f, 0.0f};

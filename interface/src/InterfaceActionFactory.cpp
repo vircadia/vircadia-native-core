@@ -18,32 +18,50 @@
 #include "InterfaceActionFactory.h"
 
 
-EntityActionPointer InterfaceActionFactory::factory(EntitySimulation* simulation,
-                                                    EntityActionType type,
-                                                    QUuid id,
-                                                    EntityItemPointer ownerEntity,
-                                                    QVariantMap arguments) {
-    EntityActionPointer action = nullptr;
+EntityActionPointer interfaceActionFactory(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity) {
     switch (type) {
         case ACTION_TYPE_NONE:
             return nullptr;
         case ACTION_TYPE_OFFSET:
-            action = (EntityActionPointer) new ObjectActionOffset(id, ownerEntity);
-            break;
+            return (EntityActionPointer) new ObjectActionOffset(id, ownerEntity);
         case ACTION_TYPE_SPRING:
-            action = (EntityActionPointer) new ObjectActionSpring(id, ownerEntity);
-            break;
+            return (EntityActionPointer) new ObjectActionSpring(id, ownerEntity);
         case ACTION_TYPE_HOLD:
-            action = (EntityActionPointer) new AvatarActionHold(id, ownerEntity);
-            break;
+            return (EntityActionPointer) new AvatarActionHold(id, ownerEntity);
     }
 
-    bool ok = action->updateArguments(arguments);
-    if (ok) {
-        ownerEntity->addAction(simulation, action);
-        return action;
-    }
+    assert(false);
+    return nullptr;
+}
 
-    action = nullptr;
+
+EntityActionPointer InterfaceActionFactory::factory(EntityActionType type,
+                                                    const QUuid& id,
+                                                    EntityItemPointer ownerEntity,
+                                                    QVariantMap arguments) {
+    EntityActionPointer action = interfaceActionFactory(type, id, ownerEntity);
+    if (action) {
+        bool ok = action->updateArguments(arguments);
+        if (ok) {
+            return action;
+        }
+    }
+    return nullptr;
+}
+
+
+EntityActionPointer InterfaceActionFactory::factoryBA(EntityItemPointer ownerEntity, QByteArray data) {
+    QDataStream serializedArgumentStream(data);
+    EntityActionType type;
+    QUuid id;
+
+    serializedArgumentStream >> type;
+    serializedArgumentStream >> id;
+
+    EntityActionPointer action = interfaceActionFactory(type, id, ownerEntity);
+
+    if (action) {
+        action->deserialize(data);
+    }
     return action;
 }

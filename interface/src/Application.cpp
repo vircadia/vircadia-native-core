@@ -91,6 +91,7 @@
 #include <SceneScriptingInterface.h>
 #include <ScriptCache.h>
 #include <SettingHandle.h>
+#include <SimpleAverage.h>
 #include <SoundCache.h>
 #include <TextRenderer.h>
 #include <Tooltip.h>
@@ -178,6 +179,7 @@ using namespace std;
 //  Starfield information
 static unsigned STARFIELD_NUM_STARS = 50000;
 static unsigned STARFIELD_SEED = 1;
+static uint8_t THROTTLED_IDLE_TIMER_DELAY = 10;
 
 const qint64 MAXIMUM_CACHE_SIZE = 10 * BYTES_PER_GIGABYTES;  // 10GB
 
@@ -391,6 +393,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     nodeList->setCustomDeleter([](Dependency* dependency) {
         static_cast<NodeList*>(dependency)->deleteLater();
     });
+
+    // setup a timer for domain-server check ins
+    QTimer* domainCheckInTimer = new QTimer(nodeList.data());
+    connect(domainCheckInTimer, &QTimer::timeout, nodeList.data(), &NodeList::sendDomainServerCheckIn);
+    domainCheckInTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
 
     // put the NodeList and datagram processing on the node thread
     nodeList->moveToThread(nodeThread);
@@ -885,12 +892,6 @@ void Application::paintGL() {
 
     {
         PerformanceTimer perfTimer("renderOverlay");
-        /*
-        gpu::Context context(new gpu::GLBackend());
-        RenderArgs renderArgs(&context, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
-            lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
-            RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
-            */
         _applicationOverlay.renderOverlay(&renderArgs);
     }
 
@@ -966,6 +967,8 @@ void Application::paintGL() {
     } else if (TV3DManager::isConnected()) {
         TV3DManager::display(&renderArgs, _myCamera);
     } else {
+        PROFILE_RANGE(__FUNCTION__ "/mainRender");
+
         DependencyManager::get<GlowEffect>()->prepare(&renderArgs);
 
         // Viewport is assigned to the size of the framebuffer
@@ -980,7 +983,7 @@ void Application::paintGL() {
 
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            renderRearViewMirror(&renderArgs, _mirrorViewRect);       
+            renderRearViewMirror(&renderArgs, _mirrorViewRect);
         }
 
         renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
@@ -1000,6 +1003,7 @@ void Application::paintGL() {
 
 
     if (!OculusManager::isConnected() || OculusManager::allowSwap()) {
+        PROFILE_RANGE(__FUNCTION__ "/bufferSwap");
         _glWidget->swapBuffers();
     }
 
@@ -1012,6 +1016,7 @@ void Application::paintGL() {
 
 void Application::runTests() {
     runTimingTests();
+    runUnitTests();
 }
 
 void Application::audioMuteToggled() {
@@ -1048,6 +1053,7 @@ void Application::resetCameras(Camera& camera, const glm::uvec2& size) {
 }
 
 void Application::resizeGL() {
+    PROFILE_RANGE(__FUNCTION__);
     // Set the desired FBO texture size. If it hasn't changed, this does nothing.
     // Otherwise, it must rebuild the FBOs
     QSize renderSize;
@@ -1180,7 +1186,6 @@ bool Application::event(QEvent* event) {
 }
 
 bool Application::eventFilter(QObject* object, QEvent* event) {
-
     if (event->type() == QEvent::ShortcutOverride) {
         if (DependencyManager::get<OffscreenUi>()->shouldSwallowShortcut(event)) {
             event->accept();
@@ -1524,6 +1529,7 @@ void Application::focusOutEvent(QFocusEvent* event) {
 }
 
 void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
+    PROFILE_RANGE(__FUNCTION__);
     // Used by application overlay to determine how to draw cursor(s)
     _lastMouseMoveWasSimulated = deviceID > 0;
     if (!_lastMouseMoveWasSimulated) {
@@ -1779,14 +1785,28 @@ void Application::checkFPS() {
     _frameCount = 0;
     _datagramProcessor->resetCounters();
     _timerStart.start();
-
-    // ask the node list to check in with the domain server
-    DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
 }
 
 void Application::idle() {
-    PerformanceTimer perfTimer("idle");
+    PROFILE_RANGE(__FUNCTION__);
+    static SimpleAverage<float> interIdleDurations;
+    static uint64_t lastIdleEnd{ 0 };
 
+    if (lastIdleEnd != 0) {
+        uint64_t now = usecTimestampNow();
+        interIdleDurations.update(now - lastIdleEnd);
+        static uint64_t lastReportTime = now;
+        if ((now - lastReportTime) >= (USECS_PER_SECOND)) {
+            static QString LOGLINE("Average inter-idle time: %1 us for %2 samples");
+            if (Menu::getInstance()->isOptionChecked(MenuOption::LogExtraTimings)) {
+                qCDebug(interfaceapp_timing) << LOGLINE.arg((int)interIdleDurations.getAverage()).arg(interIdleDurations.getCount());
+            }
+            interIdleDurations.reset();
+            lastReportTime = now;
+        }
+    }
+
+    PerformanceTimer perfTimer("idle");
     if (_aboutToQuit) {
         return; // bail early, nothing to do here.
     }
@@ -1810,6 +1830,7 @@ void Application::idle() {
             PerformanceTimer perfTimer("update");
             PerformanceWarning warn(showWarnings, "Application::idle()... update()");
             const float BIGGEST_DELTA_TIME_SECS = 0.25f;
+            PROFILE_RANGE(__FUNCTION__ "/idleUpdate");
             update(glm::clamp((float)timeSinceLastUpdate / 1000.0f, 0.0f, BIGGEST_DELTA_TIME_SECS));
         }
         {
@@ -1829,13 +1850,15 @@ void Application::idle() {
                 _idleLoopStdev.reset();
             }
 
-            // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
-            idleTimer->start(2);
         }
+        // After finishing all of the above work, ensure the idle timer is set to the proper interval,
+        // depending on whether we're throttling or not
+        idleTimer->start(_glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : 0);
     }
 
     // check for any requested background downloads.
     emit checkBackgroundDownloads();
+    lastIdleEnd = usecTimestampNow();
 }
 
 void Application::setFullscreen(bool fullscreen) {
@@ -2208,6 +2231,7 @@ void Application::init() {
 
     // Make sure any new sounds are loaded as soon as know about them.
     connect(tree, &EntityTree::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
+    connect(_myAvatar, &MyAvatar::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
 }
 
 void Application::closeMirrorView() {
@@ -2283,38 +2307,42 @@ void Application::updateMyAvatarLookAtPosition() {
     bool isLookingAtSomeone = false;
     glm::vec3 lookAtSpot;
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-        //  When I am in mirror mode, just look right at the camera (myself)
+        //  When I am in mirror mode, just look right at the camera (myself); don't switch gaze points because when physically
+        //  looking in a mirror one's eyes appear steady.
         if (!OculusManager::isConnected()) {
             lookAtSpot = _myCamera.getPosition();
         } else {
-            if (_myAvatar->isLookingAtLeftEye()) {
-                lookAtSpot = OculusManager::getLeftEyePosition();
-            } else {
-                lookAtSpot = OculusManager::getRightEyePosition();
-            }
+            lookAtSpot = _myCamera.getPosition() + OculusManager::getMidEyePosition();
         }
-
     } else {
         AvatarSharedPointer lookingAt = _myAvatar->getLookAtTargetAvatar().lock();
         if (lookingAt && _myAvatar != lookingAt.get()) {
-            isLookingAtSomeone = true;
             //  If I am looking at someone else, look directly at one of their eyes
-            if (tracker && !tracker->isMuted()) {
-                //  If a face tracker is active, look at the eye for the side my gaze is biased toward
-                if (tracker->getEstimatedEyeYaw() > _myAvatar->getHead()->getFinalYaw()) {
-                    // Look at their right eye
-                    lookAtSpot = static_pointer_cast<Avatar>(lookingAt)->getHead()->getRightEyePosition();
-                } else {
-                    // Look at their left eye
-                    lookAtSpot = static_pointer_cast<Avatar>(lookingAt)->getHead()->getLeftEyePosition();
+            isLookingAtSomeone = true;
+            auto lookingAtHead = static_pointer_cast<Avatar>(lookingAt)->getHead();
+
+            const float MAXIMUM_FACE_ANGLE = 65.0f * RADIANS_PER_DEGREE;
+            glm::vec3 lookingAtFaceOrientation = lookingAtHead->getFinalOrientationInWorldFrame() * IDENTITY_FRONT;
+            glm::vec3 fromLookingAtToMe = glm::normalize(_myAvatar->getHead()->getEyePosition()
+                - lookingAtHead->getEyePosition());
+            float faceAngle = glm::angle(lookingAtFaceOrientation, fromLookingAtToMe);
+
+            if (faceAngle < MAXIMUM_FACE_ANGLE) {
+                // Randomly look back and forth between look targets
+                switch (_myAvatar->getEyeContactTarget()) {
+                    case LEFT_EYE:
+                        lookAtSpot = lookingAtHead->getLeftEyePosition();
+                        break;
+                    case RIGHT_EYE:
+                        lookAtSpot = lookingAtHead->getRightEyePosition();
+                        break;
+                    case MOUTH:
+                        lookAtSpot = lookingAtHead->getMouthPosition();
+                        break;
                 }
             } else {
-                //  Need to add randomly looking back and forth between left and right eye for case with no tracker
-                if (_myAvatar->isLookingAtLeftEye()) {
-                    lookAtSpot = static_pointer_cast<Avatar>(lookingAt)->getHead()->getLeftEyePosition();
-                } else {
-                    lookAtSpot = static_pointer_cast<Avatar>(lookingAt)->getHead()->getRightEyePosition();
-                }
+                // Just look at their head (mid point between eyes)
+                lookAtSpot = lookingAtHead->getEyePosition();
             }
         } else {
             //  I am not looking at anyone else, so just look forward
@@ -2322,14 +2350,13 @@ void Application::updateMyAvatarLookAtPosition() {
                 (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
         }
     }
-    //
-    //  Deflect the eyes a bit to match the detected Gaze from 3D camera if active
-    //
-    if (tracker && !tracker->isMuted()) {
+
+    // Deflect the eyes a bit to match the detected gaze from Faceshift if active.
+    // DDE doesn't track eyes.
+    if (tracker && typeid(*tracker) == typeid(Faceshift) && !tracker->isMuted()) {
         float eyePitch = tracker->getEstimatedEyePitch();
         float eyeYaw = tracker->getEstimatedEyeYaw();
         const float GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT = 0.1f;
-        // deflect using Faceshift gaze data
         glm::vec3 origin = _myAvatar->getHead()->getEyePosition();
         float pitchSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? -1.0f : 1.0f;
         float deflection = DependencyManager::get<Faceshift>()->getEyeDeflection();
@@ -2929,6 +2956,7 @@ QRect Application::getDesirableApplicationGeometry() {
 //                 or the "myCamera".
 //
 void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
+    PROFILE_RANGE(__FUNCTION__);
     // We will use these below, from either the camera or head vectors calculated above
     viewFrustum.setProjection(camera.getProjection());
 
@@ -3285,7 +3313,7 @@ namespace render {
                         const float APPROXIMATE_DISTANCE_FROM_HORIZON = 0.1f;
                         const float DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON = 0.2f;
 
-                        glm::vec3 sunDirection = (args->_viewFrustum->getPosition()/*getAvatarPosition()*/ - closestData.getSunLocation()) 
+                        glm::vec3 sunDirection = (args->_viewFrustum->getPosition()/*getAvatarPosition()*/ - closestData.getSunLocation())
                                                         / closestData.getAtmosphereOuterRadius();
                         float height = glm::distance(args->_viewFrustum->getPosition()/*theCamera.getPosition()*/, closestData.getAtmosphereCenter());
                         if (height < closestData.getAtmosphereInnerRadius()) {
@@ -3293,8 +3321,8 @@ namespace render {
                             alpha = 0.0f;
 
                             if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
-                                float directionY = glm::clamp(sunDirection.y, 
-                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
+                                float directionY = glm::clamp(sunDirection.y,
+                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
                                                     + APPROXIMATE_DISTANCE_FROM_HORIZON;
                                 alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
                             }
@@ -3305,8 +3333,8 @@ namespace render {
                                 (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
 
                             if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
-                                float directionY = glm::clamp(sunDirection.y, 
-                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
+                                float directionY = glm::clamp(sunDirection.y,
+                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
                                                     + APPROXIMATE_DISTANCE_FROM_HORIZON;
                                 alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
                             }
@@ -3362,14 +3390,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     // load the view frustum
     loadViewFrustum(theCamera, _displayViewFrustum);
 
-    // flip x if in mirror mode (also requires reversing winding order for backface culling)
-    if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
-        //glScalef(-1.0f, 1.0f, 1.0f);
-        //glFrontFace(GL_CW);
-    } else {
-        glFrontFace(GL_CCW);
-    }
-
     // transform view according to theCamera
     // could be myCamera (if in normal mode)
     // or could be viewFrustumOffsetCamera if in offset mode
@@ -3387,9 +3407,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     Transform viewTransform;
     viewTransform.setTranslation(theCamera.getPosition());
     viewTransform.setRotation(rotation);
-    if (theCamera.getMode() == CAMERA_MODE_MIRROR) {
-//         viewTransform.setScale(Transform::Vec3(-1.0f, 1.0f, 1.0f));
-    }
     if (renderArgs->_renderSide != RenderArgs::MONO) {
         glm::mat4 invView = glm::inverse(_untranslatedViewMatrix);
 
@@ -3444,9 +3461,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
    // Assuming nothing get's rendered through that
 
     if (!selfAvatarOnly) {
-
-        // render models...
         if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
+            // render models...
             PerformanceTimer perfTimer("entities");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... entities...");
@@ -3454,11 +3470,11 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE;
 
             if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowHulls)) {
-                renderDebugFlags = (RenderArgs::DebugFlags) (renderDebugFlags | (int) RenderArgs::RENDER_DEBUG_HULLS);
+                renderDebugFlags = (RenderArgs::DebugFlags) (renderDebugFlags | (int)RenderArgs::RENDER_DEBUG_HULLS);
             }
             if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned)) {
                 renderDebugFlags =
-                    (RenderArgs::DebugFlags) (renderDebugFlags | (int) RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP);
+                    (RenderArgs::DebugFlags) (renderDebugFlags | (int)RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP);
             }
             renderArgs->_debugFlags = renderDebugFlags;
             _entities.render(renderArgs);
@@ -3483,8 +3499,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         pendingChanges.resetItem(WorldBoxRenderData::_item, worldBoxRenderPayload);
     } else {
 
-        pendingChanges.updateItem<WorldBoxRenderData>(WorldBoxRenderData::_item,  
-                [](WorldBoxRenderData& payload) { 
+        pendingChanges.updateItem<WorldBoxRenderData>(WorldBoxRenderData::_item,
+                [](WorldBoxRenderData& payload) {
                     payload._val++;
                 });
     }
@@ -3503,7 +3519,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     }
 
     {
-        PerformanceTimer perfTimer("SceneProcessPendingChanges"); 
+        PerformanceTimer perfTimer("SceneProcessPendingChanges");
         _main3DScene->enqueuePendingChanges(pendingChanges);
 
         _main3DScene->processPendingChangesQueue();
@@ -3526,6 +3542,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         renderContext._maxDrawnOpaqueItems = sceneInterface->getEngineMaxDrawnOpaqueItems();
         renderContext._maxDrawnTransparentItems = sceneInterface->getEngineMaxDrawnTransparentItems();
         renderContext._maxDrawnOverlay3DItems = sceneInterface->getEngineMaxDrawnOverlay3DItems();
+
+        renderContext._drawItemStatus = sceneInterface->doEngineDisplayItemStatus();
 
         renderArgs->_shouldRender = LODManager::shouldRender;
 
@@ -4810,7 +4828,7 @@ qreal Application::getDevicePixelRatio() {
 mat4 Application::getEyeProjection(int eye) const {
     if (isHMDMode()) {
         return OculusManager::getEyeProjection(eye);
-    } 
+    }
       
     return _viewFrustum.getProjection();
 }

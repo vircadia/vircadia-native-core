@@ -19,17 +19,24 @@
 
 class ObjectActionOffset : public ObjectAction {
 public:
-    ObjectActionOffset(QUuid id, EntityItemPointer ownerEntity);
+    ObjectActionOffset(const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~ObjectActionOffset();
 
     virtual bool updateArguments(QVariantMap arguments);
+    virtual QVariantMap getArguments();
+
     virtual void updateActionWorker(float deltaTimeStep);
 
-private:
+    virtual QByteArray serialize() const;
+    virtual void deserialize(QByteArray serializedArguments);
+
+ private:
+    static const uint16_t offsetVersion;
     glm::vec3 _pointToOffsetFrom;
     float _linearDistance;
     float _linearTimeScale;
     bool _positionalTargetSet;
+    bool _needsActivation = true;
 };
 
 #endif // hifi_ObjectActionOffset_h

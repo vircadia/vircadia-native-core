@@ -161,10 +161,30 @@ namespace render {
     template <> void payloadRender(const RenderableModelEntityItemMeta::Pointer& payload, RenderArgs* args) {
         if (args) {
             if (payload && payload->entity) {
+                PROFILE_RANGE("MetaModelRender");
                 payload->entity->render(args);
             }
         }
     }
+}
+
+void makeEntityItemStatusGetters(RenderableModelEntityItem* entity, render::Item::Status::Getters& statusGetters) {
+    statusGetters.push_back([entity] () -> render::Item::Status::Value {
+        quint64 delta = usecTimestampNow() - entity->getLastEditedFromRemote();
+        const float WAIT_THRESHOLD_INV = 1.0f / (0.2f * USECS_PER_SECOND);
+        float normalizedDelta = delta * WAIT_THRESHOLD_INV;
+        // Status icon will scale from 1.0f down to 0.0f after WAIT_THRESHOLD
+        // Color is red if last update is after WAIT_THRESHOLD, green otherwise (120 deg is green)
+        return render::Item::Status::Value(1.0f - normalizedDelta, (normalizedDelta > 1.0f ? render::Item::Status::Value::GREEN : render::Item::Status::Value::RED));
+    });
+    statusGetters.push_back([entity] () -> render::Item::Status::Value {
+        quint64 delta = usecTimestampNow() - entity->getLastBroadcast();
+        const float WAIT_THRESHOLD_INV = 1.0f / (0.4f * USECS_PER_SECOND);
+        float normalizedDelta = delta * WAIT_THRESHOLD_INV;
+        // Status icon will scale from 1.0f down to 0.0f after WAIT_THRESHOLD
+        // Color is Magenta if last update is after WAIT_THRESHOLD, cyan otherwise (180 deg is green)
+        return render::Item::Status::Value(1.0f - normalizedDelta, (normalizedDelta > 1.0f ? render::Item::Status::Value::MAGENTA : render::Item::Status::Value::CYAN));
+    });
 }
 
 bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
@@ -177,7 +197,9 @@ bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_p
     pendingChanges.resetItem(_myMetaItem, renderPayload);
     
     if (_model) {
-        return _model->addToScene(scene, pendingChanges);
+        render::Item::Status::Getters statusGetters;
+        makeEntityItemStatusGetters(this, statusGetters);
+        return _model->addToScene(scene, pendingChanges, statusGetters);
     }
 
     return true;
@@ -214,7 +236,10 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             render::PendingChanges pendingChanges;
             if (_model->needsFixupInScene()) {
                 _model->removeFromScene(scene, pendingChanges);
-                _model->addToScene(scene, pendingChanges);
+
+                render::Item::Status::Getters statusGetters;
+                makeEntityItemStatusGetters(this, statusGetters);
+                _model->addToScene(scene, pendingChanges, statusGetters);
             }
             scene->enqueuePendingChanges(pendingChanges);
 

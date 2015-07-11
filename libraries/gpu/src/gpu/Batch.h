@@ -18,6 +18,7 @@
 
 #include <vector>
 
+#include "Query.h"
 #include "Stream.h"
 #include "Texture.h"
 
@@ -26,36 +27,17 @@
 #include "Framebuffer.h"
 
 #if defined(NSIGHT_FOUND)
-    #include "nvToolsExt.h"
     class ProfileRange {
     public:
-        ProfileRange(const char *name) {
-            nvtxRangePush(name);
-        }
-        ~ProfileRange() {
-            nvtxRangePop();
-        }
+        ProfileRange(const char *name);
+        ~ProfileRange();
     };
-
     #define PROFILE_RANGE(name) ProfileRange profileRangeThis(name);
 #else
 #define PROFILE_RANGE(name)
 #endif
 
 namespace gpu {
-
-enum Primitive {
-    POINTS = 0,
-    LINES,
-    LINE_STRIP,
-    TRIANGLES,
-    TRIANGLE_STRIP,
-    TRIANGLE_FAN,
-    QUADS,
-    QUAD_STRIP,
-
-    NUM_PRIMITIVES,
-};
 
 enum ReservedSlot {
 /*    TRANSFORM_OBJECT_SLOT = 6,
@@ -82,7 +64,12 @@ public:
     void drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0, uint32 startInstance = 0);
 
     // Clear framebuffer layers
+    // Targets can be any of the render buffers contained in the Framebuffer
     void clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil);
+    void clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color); // not a command, just a shortcut for clearFramebuffer, mask out targets to make sure it touches only color targets
+    void clearDepthFramebuffer(float depth); // not a command, just a shortcut for clearFramebuffer, it touches only depth target
+    void clearStencilFramebuffer(int stencil); // not a command, just a shortcut for clearFramebuffer, it touches only stencil target
+    void clearDepthStencilFramebuffer(float depth, int stencil); // not a command, just a shortcut for clearFramebuffer, it touches depth and stencil target
     
     // Input Stage
     // InputFormat
@@ -95,6 +82,7 @@ public:
     void setInputStream(Slot startChannel, const BufferStream& stream); // not a command, just unroll into a loop of setInputBuffer
 
     void setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset);
+    void setIndexBuffer(const BufferView& buffer); // not a command, just a shortcut from a BufferView
 
     // Transform Stage
     // Vertex position is transformed by ModelTransform from object space to world space
@@ -105,6 +93,7 @@ public:
     void setModelTransform(const Transform& model);
     void setViewTransform(const Transform& view);
     void setProjectionTransform(const Mat4& proj);
+    void setViewportTransform(const Vec4i& viewport); // Viewport is xy = low left corner in the framebuffer, zw = width height of the viewport
 
     // Pipeline Stage
     void setPipeline(const PipelinePointer& pipeline);
@@ -119,6 +108,11 @@ public:
 
     // Framebuffer Stage
     void setFramebuffer(const FramebufferPointer& framebuffer);
+
+    // Query Section
+    void beginQuery(const QueryPointer& query);
+    void endQuery(const QueryPointer& query);
+    void getQuery(const QueryPointer& query);
 
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
@@ -154,6 +148,7 @@ public:
     void _glUniform3f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2);
     void _glUniform3fv(GLint location, GLsizei count, const GLfloat* value);
     void _glUniform4fv(GLint location, GLsizei count, const GLfloat* value);
+    void _glUniform4iv(GLint location, GLsizei count, const GLint* value);
     void _glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
 
     void _glEnableVertexAttribArray(GLint location);
@@ -177,6 +172,7 @@ public:
         COMMAND_setModelTransform,
         COMMAND_setViewTransform,
         COMMAND_setProjectionTransform,
+        COMMAND_setViewportTransform,
 
         COMMAND_setPipeline,
         COMMAND_setStateBlendFactor,
@@ -185,6 +181,10 @@ public:
         COMMAND_setUniformTexture,
 
         COMMAND_setFramebuffer,
+
+        COMMAND_beginQuery,
+        COMMAND_endQuery,
+        COMMAND_getQuery,
 
         // TODO: As long as we have gl calls explicitely issued from interface
         // code, we need to be able to record and batch these calls. THe long 
@@ -217,6 +217,7 @@ public:
         COMMAND_glUniform3f,
         COMMAND_glUniform3fv,
         COMMAND_glUniform4fv,
+        COMMAND_glUniform4iv,
         COMMAND_glUniformMatrix4fv,
 
         COMMAND_glEnableVertexAttribArray,
@@ -288,6 +289,7 @@ public:
     typedef Cache<Transform>::Vector TransformCaches;
     typedef Cache<PipelinePointer>::Vector PipelineCaches;
     typedef Cache<FramebufferPointer>::Vector FramebufferCaches;
+    typedef Cache<QueryPointer>::Vector QueryCaches;
 
     // Cache Data in a byte array if too big to fit in Param
     // FOr example Mat4s are going there
@@ -312,6 +314,7 @@ public:
     TransformCaches _transforms;
     PipelineCaches _pipelines;
     FramebufferCaches _framebuffers;
+    QueryCaches _queries;
 
 protected:
 };

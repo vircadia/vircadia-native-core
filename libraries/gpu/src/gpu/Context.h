@@ -42,7 +42,7 @@ public:
         Mat4 _projectionViewUntranslated;
         Mat4 _projection;
         Mat4 _projectionInverse;
-        Vec4 _viewport;
+        Vec4 _viewport; // Public value is int but float in the shader to stay in floats for all the transform computations.
     };
 
     template< typename T >
@@ -97,6 +97,15 @@ public:
     template< typename T >
     static T* getGPUObject(const Framebuffer& framebuffer) {
         return reinterpret_cast<T*>(framebuffer.getGPUObject());
+    }
+
+    template< typename T >
+    static void setGPUObject(const Query& query, T* object) {
+        query.setGPUObject(object);
+    }
+    template< typename T >
+    static T* getGPUObject(const Query& query) {
+        return reinterpret_cast<T*>(query.getGPUObject());
     }
 
 protected:

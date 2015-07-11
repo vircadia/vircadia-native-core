@@ -172,22 +172,20 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     Glower glow(0.0f);
     PerformanceTimer perfTimer("RenderableWebEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Web);
-    static const glm::vec2 texMin(0.0f);
-    static const glm::vec2 texMax(1.0f);
-    glm::vec2 topLeft(-0.5f -0.5f);
-    glm::vec2 bottomRight(0.5f, 0.5f);
+    static const glm::vec2 texMin(0.0f), texMax(1.0f), topLeft(-0.5f), bottomRight(0.5f);
 
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
     batch.setModelTransform(getTransformToCenter());
+    bool textured = false, culled = false, emissive = false;
     if (_texture) {
+        batch._glActiveTexture(GL_TEXTURE0);
         batch._glBindTexture(GL_TEXTURE_2D, _texture);
-        batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        textured = emissive = true;
     }
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true);
+    
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, textured, culled, emissive);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f));
-    DependencyManager::get<DeferredLightingEffect>()->releaseSimpleProgram(batch);
 }
 
 void RenderableWebEntityItem::setSourceUrl(const QString& value) {

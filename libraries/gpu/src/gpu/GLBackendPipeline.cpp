@@ -73,7 +73,9 @@ void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
 
 #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
 #else
+        _pipeline._program_transformObject_model = -1;
         _pipeline._program_transformCamera_viewInverse = -1;
+        _pipeline._program_transformCamera_viewport = -1;
 #endif
 
         _pipeline._state = nullptr;
@@ -91,7 +93,9 @@ void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
 
 #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
 #else
+            _pipeline._program_transformObject_model = pipelineObject->_program->_transformObject_model;
             _pipeline._program_transformCamera_viewInverse = pipelineObject->_program->_transformCamera_viewInverse;
+            _pipeline._program_transformCamera_viewport = pipelineObject->_program->_transformCamera_viewport;
 #endif
         }
 
@@ -143,9 +147,19 @@ void GLBackend::updatePipeline() {
 
 #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
 #else
+    // If shader program needs the model we need to provide it
+    if (_pipeline._program_transformObject_model >= 0) {
+        glUniformMatrix4fv(_pipeline._program_transformObject_model, 1, false, (const GLfloat*) &_transform._transformObject._model);
+    }
+
     // If shader program needs the inverseView we need to provide it
     if (_pipeline._program_transformCamera_viewInverse >= 0) {
         glUniformMatrix4fv(_pipeline._program_transformCamera_viewInverse, 1, false, (const GLfloat*) &_transform._transformCamera._viewInverse);
+    }
+
+    // If shader program needs the viewport we need to provide it
+    if (_pipeline._program_transformCamera_viewport >= 0) {
+        glUniform4fv(_pipeline._program_transformCamera_viewport, 1, (const GLfloat*) &_transform._transformCamera._viewport);
     }
 #endif
 }
@@ -160,6 +174,10 @@ void GLBackend::do_setUniformBuffer(Batch& batch, uint32 paramOffset) {
     GLuint bo = getBufferID(*uniformBuffer);
     glBindBufferRange(GL_UNIFORM_BUFFER, slot, bo, rangeStart, rangeSize);
 #else
+    // because we rely on the program uniform mechanism we need to have
+    // the program bound, thank you MacOSX Legacy profile.
+    updatePipeline();
+    
     GLfloat* data = (GLfloat*) (uniformBuffer->getData() + rangeStart);
     glUniform4fv(slot, rangeSize / sizeof(GLfloat[4]), data);
  

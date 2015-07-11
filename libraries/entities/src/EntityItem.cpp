@@ -9,10 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "EntityItem.h"
+
 #include <QtCore/QObject>
+#include <QtEndian>
 
 #include <glm/gtx/transform.hpp>
 
+#include <BufferParser.h>
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
 #include <Octree.h>
@@ -22,12 +26,14 @@
 #include <SoundCache.h>
 
 #include "EntityScriptingInterface.h"
-#include "EntityItem.h"
 #include "EntitiesLogging.h"
 #include "EntityTree.h"
 #include "EntitySimulation.h"
+#include "EntityActionFactoryInterface.h"
+
 
 bool EntityItem::_sendPhysicsUpdates = true;
+int EntityItem::_maxActionsDataSize = 800;
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _type(EntityTypes::Unknown),
@@ -64,8 +70,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _collisionsWillMove(ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE),
     _locked(ENTITY_ITEM_DEFAULT_LOCKED),
     _userData(ENTITY_ITEM_DEFAULT_USER_DATA),
-    _simulatorID(ENTITY_ITEM_DEFAULT_SIMULATOR_ID),
-    _simulatorIDChangedTime(0),
+    _simulationOwner(),
     _marketplaceID(ENTITY_ITEM_DEFAULT_MARKETPLACE_ID),
     _name(ENTITY_ITEM_DEFAULT_NAME),
     _href(""),
@@ -86,6 +91,13 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
 }
 
 EntityItem::~EntityItem() {
+    // clear out any left-over actions
+    EntityTree* entityTree = _element ? _element->getTree() : nullptr;
+    EntitySimulation* simulation = entityTree ? entityTree->getSimulation() : nullptr;
+    if (simulation) {
+        clearActions(simulation);
+    }
+
     // these pointers MUST be correct at delete, else we probably have a dangling backpointer 
     // to this EntityItem in the corresponding data structure.
     assert(!_simulated);
@@ -96,13 +108,16 @@ EntityItem::~EntityItem() {
 EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties;
 
+    requestedProperties += PROP_SIMULATION_OWNER;
     requestedProperties += PROP_POSITION;
-    requestedProperties += PROP_DIMENSIONS; // NOTE: PROP_RADIUS obsolete
     requestedProperties += PROP_ROTATION;
-    requestedProperties += PROP_DENSITY;
     requestedProperties += PROP_VELOCITY;
-    requestedProperties += PROP_GRAVITY;
+    requestedProperties += PROP_ANGULAR_VELOCITY;
     requestedProperties += PROP_ACCELERATION;
+
+    requestedProperties += PROP_DIMENSIONS; // NOTE: PROP_RADIUS obsolete
+    requestedProperties += PROP_DENSITY;
+    requestedProperties += PROP_GRAVITY;
     requestedProperties += PROP_DAMPING;
     requestedProperties += PROP_RESTITUTION;
     requestedProperties += PROP_FRICTION;
@@ -111,7 +126,6 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_SCRIPT_TIMESTAMP;
     requestedProperties += PROP_COLLISION_SOUND_URL;
     requestedProperties += PROP_REGISTRATION_POINT;
-    requestedProperties += PROP_ANGULAR_VELOCITY;
     requestedProperties += PROP_ANGULAR_DAMPING;
     requestedProperties += PROP_VISIBLE;
     requestedProperties += PROP_IGNORE_FOR_COLLISIONS;
@@ -120,10 +134,10 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_USER_DATA;
     requestedProperties += PROP_MARKETPLACE_ID;
     requestedProperties += PROP_NAME;
-    requestedProperties += PROP_SIMULATOR_ID;
     requestedProperties += PROP_HREF;
     requestedProperties += PROP_DESCRIPTION;
-    
+    requestedProperties += PROP_ACTION_DATA;
+
     return requestedProperties;
 }
 
@@ -228,13 +242,16 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         //      PROP_PAGED_PROPERTY,
         //      PROP_CUSTOM_PROPERTIES_INCLUDED,
 
+        APPEND_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, _simulationOwner.toByteArray());
         APPEND_ENTITY_PROPERTY(PROP_POSITION, getPosition());
-        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getDimensions()); // NOTE: PROP_RADIUS obsolete
         APPEND_ENTITY_PROPERTY(PROP_ROTATION, getRotation());
-        APPEND_ENTITY_PROPERTY(PROP_DENSITY, getDensity());
         APPEND_ENTITY_PROPERTY(PROP_VELOCITY, getVelocity());
-        APPEND_ENTITY_PROPERTY(PROP_GRAVITY, getGravity());
+        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, getAngularVelocity());
         APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, getAcceleration());
+
+        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getDimensions()); // NOTE: PROP_RADIUS obsolete
+        APPEND_ENTITY_PROPERTY(PROP_DENSITY, getDensity());
+        APPEND_ENTITY_PROPERTY(PROP_GRAVITY, getGravity());
         APPEND_ENTITY_PROPERTY(PROP_DAMPING, getDamping());
         APPEND_ENTITY_PROPERTY(PROP_RESTITUTION, getRestitution());
         APPEND_ENTITY_PROPERTY(PROP_FRICTION, getFriction());
@@ -242,19 +259,18 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_SCRIPT, getScript());
         APPEND_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, getScriptTimestamp());
         APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, getRegistrationPoint());
-        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, getAngularVelocity());
         APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, getAngularDamping());
         APPEND_ENTITY_PROPERTY(PROP_VISIBLE, getVisible());
         APPEND_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, getIgnoreForCollisions());
         APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, getCollisionsWillMove());
         APPEND_ENTITY_PROPERTY(PROP_LOCKED, getLocked());
         APPEND_ENTITY_PROPERTY(PROP_USER_DATA, getUserData());
-        APPEND_ENTITY_PROPERTY(PROP_SIMULATOR_ID, getSimulatorID());
         APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, getMarketplaceID());
         APPEND_ENTITY_PROPERTY(PROP_NAME, getName());
         APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, getCollisionSoundURL());
         APPEND_ENTITY_PROPERTY(PROP_HREF, getHref());
         APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, getDescription());
+        APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, getActionData());
 
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
@@ -318,8 +334,8 @@ int EntityItem::expectedBytes() {
 }
 
 
+// clients use this method to unpack FULL updates from entity-server
 int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
-
     if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
     
         // NOTE: This shouldn't happen. The only versions of the bit stream that didn't support split mtu buffers should
@@ -328,6 +344,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                         "ERROR CASE...args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU";
         return 0;
     }
+
+    args.entitiesPerPacket++;
 
     // Header bytes
     //    object ID [16 bytes]
@@ -338,55 +356,78 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     // ~27-35 bytes...
     const int MINIMUM_HEADER_BYTES = 27;
 
-    int bytesRead = 0;
     if (bytesLeftToRead < MINIMUM_HEADER_BYTES) {
         return 0;
     }
 
-    // if this bitstream indicates that this node is the simulation owner, ignore any physics-related updates.
-    glm::vec3 savePosition = getPosition();
-    glm::quat saveRotation = getRotation();
-    glm::vec3 saveVelocity = _velocity;
-    glm::vec3 saveAngularVelocity = _angularVelocity;
-
-    int originalLength = bytesLeftToRead;
-    QByteArray originalDataBuffer((const char*)data, originalLength);
-
     int clockSkew = args.sourceNode ? args.sourceNode->getClockSkewUsec() : 0;
 
+    BufferParser parser(data, bytesLeftToRead);
+
+#ifdef DEBUG
+#define VALIDATE_ENTITY_ITEM_PARSER 1
+#endif
+
+#ifdef VALIDATE_ENTITY_ITEM_PARSER
+    int bytesRead = 0;
+    int originalLength = bytesLeftToRead;
+    // TODO: figure out a way to avoid the big deep copy below.
+    QByteArray originalDataBuffer((const char*)data, originalLength); // big deep copy!
     const unsigned char* dataAt = data;
+#endif
 
     // id
-    QByteArray encodedID = originalDataBuffer.mid(bytesRead, NUM_BYTES_RFC4122_UUID); // maximum possible size
-    _id = QUuid::fromRfc4122(encodedID);
-    dataAt += encodedID.size();
-    bytesRead += encodedID.size();
-    
+    parser.readUuid(_id);
+#ifdef VALIDATE_ENTITY_ITEM_PARSER
+    {
+        QByteArray encodedID = originalDataBuffer.mid(bytesRead, NUM_BYTES_RFC4122_UUID); // maximum possible size
+        QUuid id = QUuid::fromRfc4122(encodedID);
+        dataAt += encodedID.size();
+        bytesRead += encodedID.size();
+        Q_ASSERT(id == _id);
+        Q_ASSERT(parser.offset() == bytesRead);
+    }
+#endif
+
     // type
+    parser.readCompressedCount<quint32>((quint32&)_type);
+#ifdef VALIDATE_ENTITY_ITEM_PARSER
     QByteArray encodedType = originalDataBuffer.mid(bytesRead); // maximum possible size
     ByteCountCoded<quint32> typeCoder = encodedType;
     encodedType = typeCoder; // determine true length
     dataAt += encodedType.size();
     bytesRead += encodedType.size();
     quint32 type = typeCoder;
-    _type = (EntityTypes::EntityType)type;
+    EntityTypes::EntityType oldType = (EntityTypes::EntityType)type;
+    Q_ASSERT(oldType == _type);
+    Q_ASSERT(parser.offset() == bytesRead);
+#endif    
 
     bool overwriteLocalData = true; // assume the new content overwrites our local data
+    quint64 now = usecTimestampNow();
 
     // _created
-    quint64 createdFromBuffer = 0;
-    memcpy(&createdFromBuffer, dataAt, sizeof(createdFromBuffer));
-    dataAt += sizeof(createdFromBuffer);
-    bytesRead += sizeof(createdFromBuffer);
-
-    quint64 now = usecTimestampNow();
-    if (_created == UNKNOWN_CREATED_TIME) {
-        // we don't yet have a _created timestamp, so we accept this one
-        createdFromBuffer -= clockSkew;
-        if (createdFromBuffer > now || createdFromBuffer == UNKNOWN_CREATED_TIME) {
-            createdFromBuffer = now;
+    {
+        quint64 createdFromBuffer = 0;
+        parser.readValue(createdFromBuffer);
+#ifdef VALIDATE_ENTITY_ITEM_PARSER
+        {
+            quint64 createdFromBuffer2 = 0;
+            memcpy(&createdFromBuffer2, dataAt, sizeof(createdFromBuffer2));
+            dataAt += sizeof(createdFromBuffer2);
+            bytesRead += sizeof(createdFromBuffer2);
+            Q_ASSERT(createdFromBuffer2 == createdFromBuffer);
+            Q_ASSERT(parser.offset() == bytesRead);
         }
-        _created = createdFromBuffer;
+#endif        
+        if (_created == UNKNOWN_CREATED_TIME) {
+            // we don't yet have a _created timestamp, so we accept this one
+            createdFromBuffer -= clockSkew;
+            if (createdFromBuffer > now || createdFromBuffer == UNKNOWN_CREATED_TIME) {
+                createdFromBuffer = now;
+            }
+            _created = createdFromBuffer;
+        }
     }
 
     #ifdef WANT_DEBUG
@@ -404,16 +445,23 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         qCDebug(entities) << "    lastEdited =" << lastEdited;
         qCDebug(entities) << "    ago=" << editedAgo << "seconds - " << agoAsString;
     #endif
-    
+
     quint64 lastEditedFromBuffer = 0;
-    quint64 lastEditedFromBufferAdjusted = 0;
 
     // TODO: we could make this encoded as a delta from _created
     // _lastEdited
-    memcpy(&lastEditedFromBuffer, dataAt, sizeof(lastEditedFromBuffer));
-    dataAt += sizeof(lastEditedFromBuffer);
-    bytesRead += sizeof(lastEditedFromBuffer);
-    lastEditedFromBufferAdjusted = lastEditedFromBuffer - clockSkew;
+    parser.readValue(lastEditedFromBuffer);
+#ifdef VALIDATE_ENTITY_ITEM_PARSER
+    {
+        quint64 lastEditedFromBuffer2 = 0;
+        memcpy(&lastEditedFromBuffer2, dataAt, sizeof(lastEditedFromBuffer2));
+        dataAt += sizeof(lastEditedFromBuffer2);
+        bytesRead += sizeof(lastEditedFromBuffer2);
+        Q_ASSERT(lastEditedFromBuffer2 == lastEditedFromBuffer);
+        Q_ASSERT(parser.offset() == bytesRead);
+    }
+#endif        
+    quint64 lastEditedFromBufferAdjusted = lastEditedFromBuffer - clockSkew;
     if (lastEditedFromBufferAdjusted > now) {
         lastEditedFromBufferAdjusted = now;
     }
@@ -451,7 +499,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             ignoreServerPacket = true;
         }
     }
-    
+
     if (ignoreServerPacket) {
         overwriteLocalData = false;
         #ifdef WANT_DEBUG
@@ -468,16 +516,28 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         _lastEdited = lastEditedFromBufferAdjusted;
         _lastEditedFromRemote = now;
         _lastEditedFromRemoteInRemoteTime = lastEditedFromBuffer;
-        
-        // TODO: only send this notification if something ACTUALLY changed (hint, we haven't yet parsed 
+
+        // TODO: only send this notification if something ACTUALLY changed (hint, we haven't yet parsed
         // the properties out of the bitstream (see below))
         somethingChangedNotification(); // notify derived classes that something has changed
     }
 
     // last updated is stored as ByteCountCoded delta from lastEdited
-    QByteArray encodedUpdateDelta = originalDataBuffer.mid(bytesRead); // maximum possible size
-    ByteCountCoded<quint64> updateDeltaCoder = encodedUpdateDelta;
-    quint64 updateDelta = updateDeltaCoder;
+    quint64 updateDelta;
+    parser.readCompressedCount(updateDelta);
+#ifdef VALIDATE_ENTITY_ITEM_PARSER
+    {
+        QByteArray encodedUpdateDelta = originalDataBuffer.mid(bytesRead); // maximum possible size
+        ByteCountCoded<quint64> updateDeltaCoder = encodedUpdateDelta;
+        quint64 updateDelta2 = updateDeltaCoder;
+        Q_ASSERT(updateDelta == updateDelta2);
+        encodedUpdateDelta = updateDeltaCoder; // determine true length
+        dataAt += encodedUpdateDelta.size();
+        bytesRead += encodedUpdateDelta.size();
+        Q_ASSERT(parser.offset() == bytesRead);
+    }
+#endif        
+    
     if (overwriteLocalData) {
         _lastUpdated = lastEditedFromBufferAdjusted + updateDelta; // don't adjust for clock skew since we already did that
         #ifdef WANT_DEBUG
@@ -486,17 +546,26 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             qCDebug(entities) << "           lastEditedFromBufferAdjusted:" << debugTime(lastEditedFromBufferAdjusted, now);
         #endif
     }
-    encodedUpdateDelta = updateDeltaCoder; // determine true length
-    dataAt += encodedUpdateDelta.size();
-    bytesRead += encodedUpdateDelta.size();
-    
+
     // Newer bitstreams will have a last simulated and a last updated value
     quint64 lastSimulatedFromBufferAdjusted = now;
     if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_LAST_SIMULATED_TIME) {
         // last simulated is stored as ByteCountCoded delta from lastEdited
-        QByteArray encodedSimulatedDelta = originalDataBuffer.mid(bytesRead); // maximum possible size
-        ByteCountCoded<quint64> simulatedDeltaCoder = encodedSimulatedDelta;
-        quint64 simulatedDelta = simulatedDeltaCoder;
+        quint64 simulatedDelta;
+        parser.readCompressedCount(simulatedDelta);
+#ifdef VALIDATE_ENTITY_ITEM_PARSER
+        {
+            QByteArray encodedSimulatedDelta = originalDataBuffer.mid(bytesRead); // maximum possible size
+            ByteCountCoded<quint64> simulatedDeltaCoder = encodedSimulatedDelta;
+            quint64 simulatedDelta2 = simulatedDeltaCoder;
+            Q_ASSERT(simulatedDelta2 == simulatedDelta);
+            encodedSimulatedDelta = simulatedDeltaCoder; // determine true length
+            dataAt += encodedSimulatedDelta.size();
+            bytesRead += encodedSimulatedDelta.size();
+            Q_ASSERT(parser.offset() == bytesRead);
+        }
+#endif
+
         if (overwriteLocalData) {
             lastSimulatedFromBufferAdjusted = lastEditedFromBufferAdjusted + simulatedDelta; // don't adjust for clock skew since we already did that
             if (lastSimulatedFromBufferAdjusted > now) {
@@ -508,11 +577,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 qCDebug(entities) << "        lastSimulatedFromBufferAdjusted:" << debugTime(lastSimulatedFromBufferAdjusted, now);
             #endif
         }
-        encodedSimulatedDelta = simulatedDeltaCoder; // determine true length
-        dataAt += encodedSimulatedDelta.size();
-        bytesRead += encodedSimulatedDelta.size();
     }
-    
+
     #ifdef WANT_DEBUG
         if (overwriteLocalData) {
             qCDebug(entities) << "EntityItem::readEntityDataFromBuffer()... changed entity:" << getEntityItemID();
@@ -521,47 +587,94 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             qCDebug(entities) << "                         getLastUpdated:" << debugTime(getLastUpdated(), now);
         }
     #endif
-    
+
 
     // Property Flags
-    QByteArray encodedPropertyFlags = originalDataBuffer.mid(bytesRead); // maximum possible size
-    EntityPropertyFlags propertyFlags = encodedPropertyFlags;
-    dataAt += propertyFlags.getEncodedLength();
-    bytesRead += propertyFlags.getEncodedLength();
-    READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
+    EntityPropertyFlags propertyFlags;
+    parser.readFlags(propertyFlags);
+#ifdef VALIDATE_ENTITY_ITEM_PARSER
+    {
+        QByteArray encodedPropertyFlags = originalDataBuffer.mid(bytesRead); // maximum possible size
+        EntityPropertyFlags propertyFlags2 = encodedPropertyFlags;
+        dataAt += propertyFlags.getEncodedLength();
+        bytesRead += propertyFlags.getEncodedLength();
+        Q_ASSERT(propertyFlags2 == propertyFlags);
+        Q_ASSERT(parser.offset() == bytesRead);
+    }
+#endif
 
-    // Old bitstreams had PROP_RADIUS, new bitstreams have PROP_DIMENSIONS
-    if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_DIMENSIONS) {
-        if (propertyFlags.getHasProperty(PROP_RADIUS)) {
-            float fromBuffer;
-            memcpy(&fromBuffer, dataAt, sizeof(fromBuffer));
-            dataAt += sizeof(fromBuffer);
-            bytesRead += sizeof(fromBuffer);
-            if (overwriteLocalData) {
-                setRadius(fromBuffer);
+#ifdef VALIDATE_ENTITY_ITEM_PARSER
+    Q_ASSERT(parser.data() + parser.offset() == dataAt);
+#else
+    const unsigned char* dataAt = parser.data() + parser.offset();
+    int bytesRead = parser.offset();
+#endif
+
+
+    if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_SIMULATION_OWNER_AND_ACTIONS_OVER_WIRE) {
+        // pack SimulationOwner and terse update properties near each other
+
+        // NOTE: the server is authoritative for changes to simOwnerID so we always unpack ownership data
+        // even when we would otherwise ignore the rest of the packet.
+
+        if (propertyFlags.getHasProperty(PROP_SIMULATION_OWNER)) {
+
+            QByteArray simOwnerData;
+            int bytes = OctreePacketData::unpackDataFromBytes(dataAt, simOwnerData);
+            SimulationOwner newSimOwner;
+            newSimOwner.fromByteArray(simOwnerData);
+            dataAt += bytes;
+            bytesRead += bytes;
+
+            if (_simulationOwner.set(newSimOwner)) {
+                _dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
             }
         }
-    } else {
+        {   // When we own the simulation we don't accept updates to the entity's transform/velocities
+            // but since we're using macros below we have to temporarily modify overwriteLocalData.
+            auto nodeList = DependencyManager::get<NodeList>();
+            bool weOwnIt = _simulationOwner.matchesValidID(nodeList->getSessionUUID());
+            bool oldOverwrite = overwriteLocalData;
+            overwriteLocalData = overwriteLocalData && !weOwnIt;
+            READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
+            READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotation);
+            READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocity);
+            READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
+            READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, setAcceleration);
+            overwriteLocalData = oldOverwrite;
+        }
+
         READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensions);
-    }
+        READ_ENTITY_PROPERTY(PROP_DENSITY, float, updateDensity);
+        READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, updateGravity);
 
-    READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotation);
-    READ_ENTITY_PROPERTY(PROP_DENSITY, float, updateDensity);
-    READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocity);
-    READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, updateGravity);
-    if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
+        READ_ENTITY_PROPERTY(PROP_DAMPING, float, updateDamping);
+        READ_ENTITY_PROPERTY(PROP_RESTITUTION, float, updateRestitution);
+        READ_ENTITY_PROPERTY(PROP_FRICTION, float, updateFriction);
+        READ_ENTITY_PROPERTY(PROP_LIFETIME, float, updateLifetime);
+        READ_ENTITY_PROPERTY(PROP_SCRIPT, QString, setScript);
+        READ_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
+        READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
+    } else {
+        // legacy order of packing here
+        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
+        READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensions);
+        READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotation);
+        READ_ENTITY_PROPERTY(PROP_DENSITY, float, updateDensity);
+        READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocity);
+        READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, updateGravity);
         READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, setAcceleration);
+
+        READ_ENTITY_PROPERTY(PROP_DAMPING, float, updateDamping);
+        READ_ENTITY_PROPERTY(PROP_RESTITUTION, float, updateRestitution);
+        READ_ENTITY_PROPERTY(PROP_FRICTION, float, updateFriction);
+        READ_ENTITY_PROPERTY(PROP_LIFETIME, float, updateLifetime);
+        READ_ENTITY_PROPERTY(PROP_SCRIPT, QString, setScript);
+        READ_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
+        READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
+        READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
     }
 
-    READ_ENTITY_PROPERTY(PROP_DAMPING, float, updateDamping);
-    READ_ENTITY_PROPERTY(PROP_RESTITUTION, float, updateRestitution);
-    READ_ENTITY_PROPERTY(PROP_FRICTION, float, updateFriction);
-    READ_ENTITY_PROPERTY(PROP_LIFETIME, float, updateLifetime);
-    READ_ENTITY_PROPERTY(PROP_SCRIPT, QString, setScript);
-    READ_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
-    READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
-    READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
-    //READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocityInDegrees);
     READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, updateAngularDamping);
     READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, setVisible);
     READ_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, bool, updateIgnoreForCollisions);
@@ -569,12 +682,14 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
 
-    if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_ACCELERATION) {
+    if (args.bitstreamVersion < VERSION_ENTITIES_HAVE_SIMULATION_OWNER_AND_ACTIONS_OVER_WIRE) {
+        // this code for when there is only simulatorID and no simulation priority
+
         // we always accept the server's notion of simulatorID, so we fake overwriteLocalData as true
-        // before we try to READ_ENTITY_PROPERTY it 
+        // before we try to READ_ENTITY_PROPERTY it
         bool temp = overwriteLocalData;
         overwriteLocalData = true;
-        READ_ENTITY_PROPERTY(PROP_SIMULATOR_ID, QUuid, updateSimulatorID);
+        READ_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, QUuid, updateSimulatorID);
         overwriteLocalData = temp;
     }
 
@@ -587,12 +702,15 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_HREF, QString, setHref);
     READ_ENTITY_PROPERTY(PROP_DESCRIPTION, QString, setDescription);
 
-    bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
+    READ_ENTITY_PROPERTY(PROP_ACTION_DATA, QByteArray, setActionData);
+
+    bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+                                                  propertyFlags, overwriteLocalData);
 
     ////////////////////////////////////
     // WARNING: Do not add stream content here after the subclass. Always add it before the subclass
     //
-    // NOTE: we had a bad version of the stream that we added stream data after the subclass. We can attempt to recover 
+    // NOTE: we had a bad version of the stream that we added stream data after the subclass. We can attempt to recover
     // by doing this parsing here... but it's not likely going to fully recover the content.
     //
     // TODO: Remove this conde once we've sufficiently migrated content past this damaged version
@@ -614,7 +732,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             #ifdef WANT_DEBUG
                 qCDebug(entities) << "skipTimeForward:" << skipTimeForward;
             #endif
-
             // we want to extrapolate the motion forward to compensate for packet travel time, but
             // we don't want the side effect of flag setting.
             simulateKinematicMotion(skipTimeForward, false);
@@ -624,18 +741,19 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     auto nodeList = DependencyManager::get<NodeList>();
     const QUuid& myNodeID = nodeList->getSessionUUID();
     if (overwriteLocalData) {
-        if (_simulatorID == myNodeID && !_simulatorID.isNull()) {
-            // we own the simulation, so we keep our transform+velocities and remove any related dirty flags
-            // rather than accept the values in the packet
-            setPosition(savePosition);
-            setRotation(saveRotation);
-            _velocity = saveVelocity;
-            _angularVelocity = saveAngularVelocity;
-            _dirtyFlags &= ~(EntityItem::DIRTY_TRANSFORM | EntityItem::DIRTY_VELOCITIES);
-        } else {
+        if (!_simulationOwner.matchesValidID(myNodeID)) {
+            
             _lastSimulated = now;
         }
     }
+
+    // Tracking for editing roundtrips here. We will tell our EntityTree that we just got incoming data about
+    // and entity that was edited at some time in the past. The tree will determine how it wants to track this
+    // information.
+    if (_element && _element->getTree()) {
+        _element->getTree()->trackIncomingEntityLastEdited(lastEditedFromBufferAdjusted, bytesRead);
+    }
+
 
     return bytesRead;
 }
@@ -759,6 +877,10 @@ void EntityItem::simulate(const quint64& now) {
 }
 
 void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
+    if (hasActions()) {
+        return;
+    }
+
     if (hasAngularVelocity()) {
         // angular damping
         if (_angularDamping > 0.0f) {
@@ -770,7 +892,7 @@ void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
         }
 
         float angularSpeed = glm::length(_angularVelocity);
-        
+
         const float EPSILON_ANGULAR_VELOCITY_LENGTH = 0.0017453f; // 0.0017453 rad/sec = 0.1f degrees/sec
         if (angularSpeed < EPSILON_ANGULAR_VELOCITY_LENGTH) {
             if (setFlags && angularSpeed > 0.0f) {
@@ -778,8 +900,8 @@ void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
             }
             _angularVelocity = ENTITY_ITEM_ZERO_VEC3;
         } else {
-            // for improved agreement with the way Bullet integrates rotations we use an approximation 
-            // and break the integration into bullet-sized substeps 
+            // for improved agreement with the way Bullet integrates rotations we use an approximation
+            // and break the integration into bullet-sized substeps
             glm::quat rotation = getRotation();
             float dt = timeElapsed;
             while (dt > PHYSICS_ENGINE_FIXED_SUBSTEP) {
@@ -892,6 +1014,7 @@ EntityItemProperties EntityItem::getProperties() const {
 
     properties._type = getType();
     
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(simulationOwner, getSimulationOwner);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(position, getPosition);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(dimensions, getDimensions); // NOTE: radius is obsolete
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(rotation, getRotation);
@@ -917,11 +1040,11 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionsWillMove, getCollisionsWillMove);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(locked, getLocked);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(userData, getUserData);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(simulatorID, getSimulatorID);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(marketplaceID, getMarketplaceID);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(name, getName);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(href, getHref);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(description, getDescription);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(actionData, getActionData);
 
     properties._defaultSettings = false;
     
@@ -947,6 +1070,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
 
     // these affect TerseUpdate properties
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulationOwner, setSimulationOwner);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, updatePosition);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, updateRotation);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, updateVelocity);
@@ -968,7 +1092,6 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, updateCollisionsWillMove);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(created, updateCreated);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, updateLifetime);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulatorID, updateSimulatorID);
 
     // non-simulation properties below
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
@@ -983,6 +1106,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(name, setName);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(href, setHref);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(description, setDescription);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(actionData, setActionData);
 
     if (somethingChanged) {
         uint64_t now = usecTimestampNow();
@@ -1343,52 +1467,118 @@ void EntityItem::updateCreated(uint64_t value) {
     }
 }
 
-void EntityItem::setSimulatorID(const QUuid& value) {
-    _simulatorID = value;
-    _simulatorIDChangedTime = usecTimestampNow();
+void EntityItem::setSimulationOwner(const QUuid& id, quint8 priority) {
+    _simulationOwner.set(id, priority);
+}
+
+void EntityItem::setSimulationOwner(const SimulationOwner& owner) {
+    _simulationOwner.set(owner);
 }
 
 void EntityItem::updateSimulatorID(const QUuid& value) {
-    if (_simulatorID != value) {
-        _simulatorID = value;
-        _simulatorIDChangedTime = usecTimestampNow();
+    if (_simulationOwner.setID(value)) {
         _dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
     }
 }
 
+void EntityItem::clearSimulationOwnership() {
+    _simulationOwner.clear();
+    // don't bother setting the DIRTY_SIMULATOR_ID flag because clearSimulationOwnership()
+    // is only ever called entity-server-side and the flags are only used client-side
+    //_dirtyFlags |= EntityItem::DIRTY_SIMULATOR_ID;
+
+}
+
+
 bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer action) {
+    lockForWrite();
+    checkWaitingToRemove(simulation);
+
+    bool result = addActionInternal(simulation, action);
+    if (!result) {
+        removeAction(simulation, action->getID());
+    }
+
+    unlock();
+    return result;
+}
+
+bool EntityItem::addActionInternal(EntitySimulation* simulation, EntityActionPointer action) {
+    assertLocked();
     assert(action);
+    assert(simulation);
+    auto actionOwnerEntity = action->getOwnerEntity().lock();
+    assert(actionOwnerEntity);
+    assert(actionOwnerEntity.get() == this);
+
     const QUuid& actionID = action->getID();
     assert(!_objectActions.contains(actionID) || _objectActions[actionID] == action);
     _objectActions[actionID] = action;
-
-    assert(action->getOwnerEntity().get() == this);
-
     simulation->addAction(action);
 
-    return false;
+    bool success;
+    QByteArray newDataCache = serializeActions(success);
+    if (success) {
+        _allActionsDataCache = newDataCache;
+    }
+    return success;
 }
 
 bool EntityItem::updateAction(EntitySimulation* simulation, const QUuid& actionID, const QVariantMap& arguments) {
+    lockForWrite();
+    checkWaitingToRemove(simulation);
+
     if (!_objectActions.contains(actionID)) {
+        unlock();
         return false;
     }
     EntityActionPointer action = _objectActions[actionID];
-    return action->updateArguments(arguments);
+
+    bool success = action->updateArguments(arguments);
+    if (success) {
+        _allActionsDataCache = serializeActions(success);
+    } else {
+        qDebug() << "EntityItem::updateAction failed";
+    }
+
+    unlock();
+    return success;
 }
 
 bool EntityItem::removeAction(EntitySimulation* simulation, const QUuid& actionID) {
+    lockForWrite();
+    checkWaitingToRemove(simulation);
+
+    bool success = removeActionInternal(actionID);
+    unlock();
+    return success;
+}
+
+bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulation* simulation) {
+    assertWriteLocked();
     if (_objectActions.contains(actionID)) {
+        if (!simulation) {
+            EntityTree* entityTree = _element ? _element->getTree() : nullptr;
+            simulation = entityTree ? entityTree->getSimulation() : nullptr;
+        }
+
         EntityActionPointer action = _objectActions[actionID];
-        _objectActions.remove(actionID);
         action->setOwnerEntity(nullptr);
-        action->removeFromSimulation(simulation);
-        return true;
+        _objectActions.remove(actionID);
+
+        if (simulation) {
+            action->removeFromSimulation(simulation);
+        }
+
+        bool success = true;
+        _allActionsDataCache = serializeActions(success);
+        return success;
     }
     return false;
 }
 
-void EntityItem::clearActions(EntitySimulation* simulation) {
+bool EntityItem::clearActions(EntitySimulation* simulation) {
+    lockForWrite();
     QHash<QUuid, EntityActionPointer>::iterator i = _objectActions.begin();
     while (i != _objectActions.end()) {
         const QUuid id = i.key();
@@ -1397,4 +1587,261 @@ void EntityItem::clearActions(EntitySimulation* simulation) {
         action->setOwnerEntity(nullptr);
         action->removeFromSimulation(simulation);
     }
+    // empty _serializedActions means no actions for the EntityItem
+    _actionsToRemove.clear();
+    _allActionsDataCache.clear();
+    unlock();
+    return true;
 }
+
+
+void EntityItem::deserializeActions() {
+    assertUnlocked();
+    lockForWrite();
+    deserializeActionsInternal();
+    unlock();
+}
+
+
+void EntityItem::deserializeActionsInternal() {
+    assertWriteLocked();
+
+    if (!_element) {
+        return;
+    }
+
+    // Keep track of which actions got added or updated by the new actionData
+
+    EntityTree* entityTree = _element ? _element->getTree() : nullptr;
+    assert(entityTree);
+    EntitySimulation* simulation = entityTree ? entityTree->getSimulation() : nullptr;
+    assert(simulation);
+
+    QVector<QByteArray> serializedActions;
+    if (_allActionsDataCache.size() > 0) {
+        QDataStream serializedActionsStream(_allActionsDataCache);
+        serializedActionsStream >> serializedActions;
+    }
+
+    QSet<QUuid> updated;
+
+    foreach(QByteArray serializedAction, serializedActions) {
+        QDataStream serializedActionStream(serializedAction);
+        EntityActionType actionType;
+        QUuid actionID;
+        serializedActionStream >> actionType;
+        serializedActionStream >> actionID;
+        updated << actionID;
+
+        if (_objectActions.contains(actionID)) {
+            EntityActionPointer action = _objectActions[actionID];
+            // TODO: make sure types match?  there isn't currently a way to
+            // change the type of an existing action.
+            action->deserialize(serializedAction);
+        } else {
+            auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
+
+            // EntityItemPointer entity = entityTree->findEntityByEntityItemID(_id, false);
+            EntityItemPointer entity = shared_from_this();
+            EntityActionPointer action = actionFactory->factoryBA(entity, serializedAction);
+            if (action) {
+                entity->addActionInternal(simulation, action);
+            }
+        }
+    }
+
+    // remove any actions that weren't included in the new data.
+    QHash<QUuid, EntityActionPointer>::const_iterator i = _objectActions.begin();
+    while (i != _objectActions.end()) {
+        QUuid id = i.key();
+        if (!updated.contains(id)) {
+            _actionsToRemove << id;
+        }
+        i++;
+    }
+
+    return;
+}
+
+void EntityItem::checkWaitingToRemove(EntitySimulation* simulation) {
+    assertLocked();
+    foreach(QUuid actionID, _actionsToRemove) {
+        removeActionInternal(actionID, simulation);
+    }
+    _actionsToRemove.clear();
+}
+
+void EntityItem::setActionData(QByteArray actionData) {
+    assertUnlocked();
+    lockForWrite();
+    setActionDataInternal(actionData);
+    unlock();
+}
+
+void EntityItem::setActionDataInternal(QByteArray actionData) {
+    assertWriteLocked();
+    checkWaitingToRemove();
+    _allActionsDataCache = actionData;
+    deserializeActionsInternal();
+}
+
+QByteArray EntityItem::serializeActions(bool& success) const {
+    assertLocked();
+    QByteArray result;
+
+    if (_objectActions.size() == 0) {
+        success = true;
+        return QByteArray();
+    }
+
+    QVector<QByteArray> serializedActions;
+    QHash<QUuid, EntityActionPointer>::const_iterator i = _objectActions.begin();
+    while (i != _objectActions.end()) {
+        const QUuid id = i.key();
+        EntityActionPointer action = _objectActions[id];
+        QByteArray bytesForAction = action->serialize();
+        serializedActions << bytesForAction;
+        i++;
+    }
+
+    QDataStream serializedActionsStream(&result, QIODevice::WriteOnly);
+    serializedActionsStream << serializedActions;
+
+    if (result.size() >= _maxActionsDataSize) {
+        success = false;
+        return result;
+    }
+
+    success = true;
+    return result;
+}
+
+const QByteArray EntityItem::getActionDataInternal() const {
+    if (_actionDataDirty) {
+        bool success;
+        QByteArray newDataCache = serializeActions(success);
+        if (success) {
+            _allActionsDataCache = newDataCache;
+        }
+        _actionDataDirty = false;
+    }
+    return _allActionsDataCache;
+}
+
+const QByteArray EntityItem::getActionData() const {
+    assertUnlocked();
+    lockForRead();
+    auto result = getActionDataInternal();
+    unlock();
+    return result;
+}
+
+QVariantMap EntityItem::getActionArguments(const QUuid& actionID) const {
+    QVariantMap result;
+    lockForRead();
+
+    if (_objectActions.contains(actionID)) {
+        EntityActionPointer action = _objectActions[actionID];
+        result = action->getArguments();
+        result["type"] = EntityActionInterface::actionTypeToString(action->getType());
+    }
+    unlock();
+    return result;
+}
+
+
+
+#define ENABLE_LOCKING 1
+
+#ifdef ENABLE_LOCKING
+void EntityItem::lockForRead() const {
+    _lock.lockForRead();
+}
+
+bool EntityItem::tryLockForRead() const {
+    return _lock.tryLockForRead();
+}
+
+void EntityItem::lockForWrite() const {
+    _lock.lockForWrite();
+}
+
+bool EntityItem::tryLockForWrite() const {
+    return _lock.tryLockForWrite();
+}
+
+void EntityItem::unlock() const {
+    _lock.unlock();
+}
+
+bool EntityItem::isLocked() const {
+    bool readSuccess = tryLockForRead();
+    if (readSuccess) {
+        unlock();
+    }
+    bool writeSuccess = tryLockForWrite();
+    if (writeSuccess) {
+        unlock();
+    }
+    if (readSuccess && writeSuccess) {
+        return false;  // if we can take both kinds of lock, there was no previous lock
+    }
+    return true; // either read or write failed, so there is some lock in place.
+}
+
+
+bool EntityItem::isWriteLocked() const {
+    bool readSuccess = tryLockForRead();
+    if (readSuccess) {
+        unlock();
+        return false;
+    }
+    bool writeSuccess = tryLockForWrite();
+    if (writeSuccess) {
+        unlock();
+        return false;
+    }
+    return true; // either read or write failed, so there is some lock in place.
+}
+
+
+bool EntityItem::isUnlocked() const {
+    // this can't be sure -- this may get unlucky and hit locks from other threads.  what we're actually trying
+    // to discover is if *this* thread hasn't locked the EntityItem.  Try repeatedly to take both kinds of lock.
+    bool readSuccess = false;
+    for (int i=0; i<80; i++) {
+        readSuccess = tryLockForRead();
+        if (readSuccess) {
+            unlock();
+            break;
+        }
+        QThread::usleep(200);
+    }
+
+    bool writeSuccess = false;
+    if (readSuccess) {
+        for (int i=0; i<80; i++) {
+            writeSuccess = tryLockForWrite();
+            if (writeSuccess) {
+                unlock();
+                break;
+            }
+            QThread::usleep(300);
+        }
+    }
+
+    if (readSuccess && writeSuccess) {
+        return true;  // if we can take both kinds of lock, there was no previous lock
+    }
+    return false;
+}
+#else
+void EntityItem::lockForRead() const { }
+bool EntityItem::tryLockForRead() const { return true; }
+void EntityItem::lockForWrite() const { }
+bool EntityItem::tryLockForWrite() const { return true; }
+void EntityItem::unlock() const { }
+bool EntityItem::isLocked() const { return true; }
+bool EntityItem::isWriteLocked() const { return true; }
+bool EntityItem::isUnlocked() const { return true; }
+#endif

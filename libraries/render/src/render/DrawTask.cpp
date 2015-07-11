@@ -59,7 +59,6 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
 
-    auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->args;
     auto renderDetails = renderContext->args->_details._item;
 
@@ -101,7 +100,6 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
 void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemIDsBounds& outItems) {
     auto& scene = sceneContext->_scene;
     auto& items = scene->getMasterBucket().at(_filter);
-    auto& renderDetails = renderContext->args->_details;
 
     outItems.clear();
     outItems.reserve(items.size());
@@ -128,9 +126,10 @@ struct ItemBound {
     float _nearDepth = 0.0f;
     float _farDepth = 0.0f;
     ItemID _id = 0;
+    AABox _bounds;
 
     ItemBound() {}
-    ItemBound(float centerDepth, float nearDepth, float farDepth, ItemID id) : _centerDepth(centerDepth), _nearDepth(nearDepth), _farDepth(farDepth), _id(id) {}
+    ItemBound(float centerDepth, float nearDepth, float farDepth, ItemID id, const AABox& bounds) : _centerDepth(centerDepth), _nearDepth(nearDepth), _farDepth(farDepth), _id(id), _bounds(bounds) {}
 };
 
 struct FrontToBackSort {
@@ -167,7 +166,7 @@ void render::depthSortItems(const SceneContextPointer& sceneContext, const Rende
         auto bound = itemDetails.bounds; // item.getBound();
         float distance = args->_viewFrustum->distanceToCamera(bound.calcCenter());
 
-        itemBounds.emplace_back(ItemBound(distance, distance, distance, itemDetails.id));
+        itemBounds.emplace_back(ItemBound(distance, distance, distance, itemDetails.id, bound));
     }
 
     // sort against Z
@@ -181,7 +180,7 @@ void render::depthSortItems(const SceneContextPointer& sceneContext, const Rende
 
     // FInally once sorted result to a list of itemID
     for (auto& itemBound : itemBounds) {
-        outItems.emplace_back(itemBound._id);
+       outItems.emplace_back(ItemIDAndBounds(itemBound._id, itemBound._bounds));
     }
 }
 

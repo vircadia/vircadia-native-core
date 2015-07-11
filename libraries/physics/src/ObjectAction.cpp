@@ -13,9 +13,9 @@
 
 #include "ObjectAction.h"
 
-ObjectAction::ObjectAction(QUuid id, EntityItemPointer ownerEntity) :
+ObjectAction::ObjectAction(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity) :
     btActionInterface(),
-    _id(id),
+    EntityActionInterface(type, id),
     _active(false),
     _ownerEntity(ownerEntity) {
 }
@@ -24,13 +24,16 @@ ObjectAction::~ObjectAction() {
 }
 
 void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep) {
+    if (_ownerEntity.expired()) {
+        qDebug() << "warning -- action with no entity removing self from btCollisionWorld.";
+        btDynamicsWorld* dynamicsWorld = static_cast<btDynamicsWorld*>(collisionWorld);
+        dynamicsWorld->removeAction(this);
+        return;
+    }
     if (!_active) {
         return;
     }
-    if (!_ownerEntity) {
-        qDebug() << "ObjectAction::updateAction no owner entity";
-        return;
-    }
+
     updateActionWorker(deltaTimeStep);
 }
 
@@ -42,10 +45,11 @@ void ObjectAction::removeFromSimulation(EntitySimulation* simulation) const {
 }
 
 btRigidBody* ObjectAction::getRigidBody() {
-    if (!_ownerEntity) {
+    auto ownerEntity = _ownerEntity.lock();
+    if (!ownerEntity) {
         return nullptr;
     }
-    void* physicsInfo = _ownerEntity->getPhysicsInfo();
+    void* physicsInfo = ownerEntity->getPhysicsInfo();
     if (!physicsInfo) {
         return nullptr;
     }
@@ -124,3 +128,4 @@ void ObjectAction::setAngularVelocity(glm::vec3 angularVelocity) {
     rigidBody->setAngularVelocity(glmToBullet(angularVelocity));
     rigidBody->activate();
 }
+

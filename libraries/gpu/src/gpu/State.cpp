@@ -36,8 +36,8 @@ State::Signature State::evalSignature(const Data& state) {
     if (state.frontFaceClockwise != State::DEFAULT.frontFaceClockwise) {
         signature.set(State::FRONT_FACE_CLOCKWISE);
     }
-    if (state.depthClipEnable != State::DEFAULT.depthClipEnable) {
-        signature.set(State::DEPTH_CLIP_ENABLE);
+    if (state.depthClampEnable != State::DEFAULT.depthClampEnable) {
+        signature.set(State::DEPTH_CLAMP_ENABLE);
     }
     if (state.scissorEnable != State::DEFAULT.scissorEnable) {
         signature.set(State::SCISSOR_ENABLE);

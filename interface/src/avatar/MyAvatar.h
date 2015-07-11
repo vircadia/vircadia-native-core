@@ -19,12 +19,19 @@
 
 class ModelItemID;
 
+enum eyeContactTarget {
+    LEFT_EYE,
+    RIGHT_EYE,
+    MOUTH
+};
+
 class MyAvatar : public Avatar {
     Q_OBJECT
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
     Q_PROPERTY(glm::vec3 motorVelocity READ getScriptedMotorVelocity WRITE setScriptedMotorVelocity)
     Q_PROPERTY(float motorTimescale READ getScriptedMotorTimescale WRITE setScriptedMotorTimescale)
     Q_PROPERTY(QString motorReferenceFrame READ getScriptedMotorFrame WRITE setScriptedMotorFrame)
+    Q_PROPERTY(QString collisionSoundURL READ getCollisionSoundURL WRITE setCollisionSoundURL)
     //TODO: make gravity feature work Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setGravity)
 
 public:
@@ -93,7 +100,7 @@ public:
 
     bool isMyAvatar() const { return true; }
     
-    bool isLookingAtLeftEye();
+    eyeContactTarget getEyeContactTarget();
 
     virtual int parseDataAtOffset(const QByteArray& packet, int offset);
     
@@ -150,6 +157,9 @@ public:
     void setScriptedMotorTimescale(float timescale);
     void setScriptedMotorFrame(QString frame);
 
+    const QString& getCollisionSoundURL() {return _collisionSoundURL; }
+    void setCollisionSoundURL(const QString& url);
+
     void clearScriptableSettings();
 
     virtual void attach(const QString& modelURL, const QString& jointName = QString(),
@@ -185,10 +195,12 @@ public slots:
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
     void updateMotionBehavior();
-    
+
     glm::vec3 getLeftPalmPosition();
+    glm::quat getLeftPalmRotation();
     glm::vec3 getRightPalmPosition();
-    
+    glm::quat getRightPalmRotation();
+
     void clearReferential();
     bool setModelReferential(const QUuid& id);
     bool setJointReferential(const QUuid& id, int jointIndex);
@@ -204,6 +216,8 @@ public slots:
     
 signals:
     void transformChanged();
+    void newCollisionSoundURL(const QUrl& url);
+    void collisionWithEntity(const Collision& collision);
 
 private:
 
@@ -233,6 +247,7 @@ private:
     float _scriptedMotorTimescale; // timescale for avatar to achieve its target velocity
     int _scriptedMotorFrame;
     quint32 _motionBehaviors;
+    QString _collisionSoundURL;
 
     DynamicCharacterController _characterController;
 
@@ -245,7 +260,7 @@ private:
     QList<AnimationHandlePointer> _animationHandles;
     
     bool _feetTouchFloor;
-    bool _isLookingAtLeftEye;
+    eyeContactTarget _eyeContactTarget;
 
     RecorderPointer _recorder;
     

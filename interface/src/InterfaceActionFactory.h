@@ -18,11 +18,12 @@ class InterfaceActionFactory : public EntityActionFactoryInterface {
 public:
     InterfaceActionFactory() : EntityActionFactoryInterface() { }
     virtual ~InterfaceActionFactory() { }
-    virtual EntityActionPointer factory(EntitySimulation* simulation,
-                                        EntityActionType type,
-                                        QUuid id,
+    virtual EntityActionPointer factory(EntityActionType type,
+                                        const QUuid& id,
                                         EntityItemPointer ownerEntity,
                                         QVariantMap arguments);
+    virtual EntityActionPointer factoryBA(EntityItemPointer ownerEntity,
+                                          QByteArray data);
 };
 
 #endif // hifi_InterfaceActionFactory_h

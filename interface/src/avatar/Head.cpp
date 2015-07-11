@@ -9,9 +9,11 @@
 //
 
 #include <glm/gtx/quaternion.hpp>
+#include <gpu/GPUConfig.h>
+#include <gpu/Batch.h>
 
 #include <DependencyManager.h>
-#include <GlowEffect.h>
+#include <DeferredLightingEffect.h>
 #include <NodeList.h>
 
 #include "Application.h"
@@ -293,10 +295,8 @@ void Head::relaxLean(float deltaTime) {
 }
 
 void Head::render(RenderArgs* renderArgs, float alpha, ViewFrustum* renderFrustum, bool postLighting) {
-    if (postLighting) {
-        if (_renderLookatVectors) {
-            renderLookatVectors(renderArgs, _leftEyePosition, _rightEyePosition, getCorrectedLookAtPosition());    
-        }
+    if (_renderLookatVectors) {
+        renderLookatVectors(renderArgs, _leftEyePosition, _rightEyePosition, getCorrectedLookAtPosition());
     }
 }
 
@@ -324,7 +324,7 @@ glm::vec3 Head::getCorrectedLookAtPosition() {
 }
 
 void Head::setCorrectedLookAtPosition(glm::vec3 correctedLookAtPosition) {
-    _isLookingAtMe = true; 
+    _isLookingAtMe = true;
     _correctedLookAtPosition = correctedLookAtPosition;
 }
 
@@ -380,17 +380,19 @@ void Head::addLeanDeltas(float sideways, float forward) {
 }
 
 void Head::renderLookatVectors(RenderArgs* renderArgs, glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
+    auto& batch = *renderArgs->_batch;
+    auto transform = Transform{};
+    batch.setModelTransform(transform);
+    batch._glLineWidth(2.0f);
+
+    auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
+    deferredLighting->bindSimpleProgram(batch);
+
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    DependencyManager::get<GlowEffect>()->begin(renderArgs);
-    
-    glLineWidth(2.0);
-    
     glm::vec4 startColor(0.2f, 0.2f, 0.2f, 1.0f);
     glm::vec4 endColor(1.0f, 1.0f, 1.0f, 0.0f);
-    geometryCache->renderLine(leftEyePosition, lookatPosition, startColor, endColor, _leftEyeLookAtID);
-    geometryCache->renderLine(rightEyePosition, lookatPosition, startColor, endColor, _rightEyeLookAtID);
-
-    DependencyManager::get<GlowEffect>()->end(renderArgs);
+    geometryCache->renderLine(batch, leftEyePosition, lookatPosition, startColor, endColor, _leftEyeLookAtID);
+    geometryCache->renderLine(batch, rightEyePosition, lookatPosition, startColor, endColor, _rightEyeLookAtID);
 }
 
 
