@@ -129,9 +129,9 @@ public slots:
     void readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
 
 private slots:
-    void handleOctreeQueryPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
-    void handleOctreeDataNackPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
-    void handleJurisdictionRequestPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleOctreeQueryPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
+    void handleOctreeDataNackPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
+    void handleJurisdictionRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
 
 protected:
     virtual Octree* createTree() = 0;
