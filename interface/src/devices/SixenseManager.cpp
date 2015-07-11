@@ -233,6 +233,7 @@ void SixenseManager::update(float deltaTime) {
             if (glm::length(position) < CONTROLLER_AT_BASE_DISTANCE) {
                 numControllersAtBase++;
             }
+            _controllersAtBase = (numControllersAtBase == 2);
             
             if (!_controllersAtBase) {
                 //  Rotation of Palm
@@ -268,7 +269,6 @@ void SixenseManager::update(float deltaTime) {
         if (numActiveControllers == 2) {
             updateCalibration(controllers);
         }
-        _controllersAtBase = (numControllersAtBase == 2);
     }
     
     for (auto axisState : _axisStateMap) {

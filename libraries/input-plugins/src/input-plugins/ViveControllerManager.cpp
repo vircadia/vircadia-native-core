@@ -157,7 +157,6 @@ void ViveControllerManager::render(RenderArgs* args) {
         gpu::Batch batch;
         auto geometryCache = DependencyManager::get<GeometryCache>();
         geometryCache->useSimpleDrawPipeline(batch);
-        batch.setProjectionTransform(mat4());
 
         if (leftHand.isValid()) {
             renderHand(leftHand, batch);
@@ -172,9 +171,10 @@ void ViveControllerManager::render(RenderArgs* args) {
 }
 
 void ViveControllerManager::renderHand(UserInputMapper::PoseValue pose, gpu::Batch& batch) {
-    Transform transform;
-    transform.setTranslation(pose.getTranslation());
-    transform.setRotation(pose.getRotation());
+    auto userInputMapper = DependencyManager::get<UserInputMapper>();
+    Transform transform(userInputMapper->getSensorToWorldMat());
+    transform.postTranslate(pose.getTranslation());
+    transform.postRotate(pose.getRotation());
 
     auto mesh = _modelGeometry.getMesh();
     DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
@@ -228,7 +228,7 @@ void ViveControllerManager::update() {
                 //qDebug() << "Trackpad: " << controllerState.rAxis[0].x << " " << controllerState.rAxis[0].y;
                 //qDebug() << "Trigger: " << controllerState.rAxis[1].x << " " << controllerState.rAxis[1].y;
                 handleButtonEvent(controllerState.ulButtonPressed, numTrackedControllers - 1);
-                for (int i = 0; i < 5; i++) {
+                for (int i = 0; i < vr::k_unControllerStateAxisCount; i++) {
                     handleAxisEvent(Axis(i), controllerState.rAxis[i].x, controllerState.rAxis[i].y, numTrackedControllers - 1);
                 }
             }

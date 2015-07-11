@@ -2608,6 +2608,7 @@ void Application::update(float deltaTime) {
     }
 
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
+    userInputMapper->setSensorToWorldMat(_myAvatar->getSensorToWorldMat());
     userInputMapper->update(deltaTime);
     _keyboardMouseDevice.update();
 
@@ -3743,7 +3744,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             }
             renderArgs->_debugFlags = renderDebugFlags;
             _entities.render(renderArgs);
-            //ViveControllerManager::getInstance().render(renderArgs);
+            ViveControllerManager::getInstance().render(renderArgs);
         }
 
         // render the ambient occlusion effect if enabled

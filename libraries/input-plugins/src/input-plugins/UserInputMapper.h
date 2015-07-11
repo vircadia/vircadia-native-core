@@ -223,6 +223,9 @@ public:
     // Update means go grab all the device input channels and update the output channel values
     void update(float deltaTime);
     
+    void setSensorToWorldMat(glm::mat4 sensorToWorldMat) { _sensorToWorldMat = sensorToWorldMat; }
+    glm::mat4 getSensorToWorldMat() { return _sensorToWorldMat; }
+    
     UserInputMapper();
 
 signals:
@@ -243,6 +246,8 @@ protected:
     std::vector<float> _actionStates = std::vector<float>(NUM_ACTIONS, 0.0f);
     std::vector<float> _actionScales = std::vector<float>(NUM_ACTIONS, 1.0f);
     std::vector<PoseValue> _poseStates = std::vector<PoseValue>(NUM_ACTIONS);
+
+    glm::mat4 _sensorToWorldMat;
 };
 
 Q_DECLARE_METATYPE(UserInputMapper::InputPair)
