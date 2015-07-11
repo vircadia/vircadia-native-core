@@ -443,8 +443,7 @@ public slots:
 
     void notifyPacketVersionMismatch();
 
-    void domainConnectionDenied(const QString& reason);
-    void handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket>, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
+    void handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket>, SharedNodePointer senderNode);
 
     void cameraMenuChanged();
 

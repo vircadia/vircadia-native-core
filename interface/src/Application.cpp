@@ -3815,16 +3815,8 @@ void Application::domainChanged(const QString& domainHostname) {
     _domainConnectionRefusals.clear();
 }
 
-void Application::domainConnectionDenied(const QString& reason) {
-    if (!_domainConnectionRefusals.contains(reason)) {
-        _domainConnectionRefusals.append(reason);
-        emit domainConnectionRefused(reason);
-    }
-}
-
-void Application::handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
-    int headerSize = numBytesForPacketHeaderGivenPacketType(PacketType::DomainConnectionDenied);
-    QDataStream packetStream(QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
+void Application::handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+    QDataStream packetStream(packet.data());
 
     QString reason;
     packetStream >> reason;
@@ -3833,7 +3825,12 @@ void Application::handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> pa
     // and check and signal for an access token so that we can make sure they are logged in
     qCDebug(interfaceapp) << "The domain-server denied a connection request: " << reason;
     qCDebug(interfaceapp) << "You may need to re-log to generate a keypair so you can provide a username signature.";
-    domainConnectionDenied(reason);
+
+    if (!_domainConnectionRefusals.contains(reason)) {
+        _domainConnectionRefusals.append(reason);
+        emit domainConnectionRefused(reason);
+    }
+
     AccountManager::getInstance().checkAndSignalForAccessToken();
 }
 
