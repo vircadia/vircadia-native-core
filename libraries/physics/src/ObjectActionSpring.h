@@ -37,7 +37,6 @@ protected:
     glm::quat _rotationalTarget;
     float _angularTimeScale;
     bool _rotationalTargetSet;
-    bool _needsActivation;
 };
 
 #endif // hifi_ObjectActionSpring_h

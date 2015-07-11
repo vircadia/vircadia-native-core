@@ -127,7 +127,7 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
 
         _mine = true;
         _active = true;
-        _needsActivation = true;
+        activateBody();
         unlock();
     }
     return true;

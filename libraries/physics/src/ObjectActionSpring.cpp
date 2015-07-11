@@ -25,8 +25,7 @@ ObjectActionSpring::ObjectActionSpring(const QUuid& id, EntityItemPointer ownerE
     _positionalTargetSet(true),
     _rotationalTarget(glm::quat()),
     _angularTimeScale(FLT_MAX),
-    _rotationalTargetSet(true),
-    _needsActivation(true) {
+    _rotationalTargetSet(true) {
     #if WANT_DEBUG
     qDebug() << "ObjectActionSpring::ObjectActionSpring";
     #endif
@@ -67,10 +66,10 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
     if (_linearTimeScale < MAX_TIMESCALE) {
         btVector3 offset = rigidBody->getCenterOfMassPosition() - glmToBullet(_positionalTarget);
         float offsetLength = offset.length();
-        //float blend = glm::min(1.0f, deltaTimeStep / _linearTimeScale);
-        float blend = 1.0f;
         float speed = (offsetLength > FLT_EPSILON) ? glm::min(offsetLength / _linearTimeScale, SPRING_MAX_SPEED) : 0.0f;
-        rigidBody->setLinearVelocity((1.0f - blend) * rigidBody->getLinearVelocity() - (blend * speed / (offsetLength * _linearTimeScale)) * offset);
+
+        // this action is aggresively critically damped and defeats the current velocity
+        rigidBody->setLinearVelocity((- speed / offsetLength) * offset);
     }
 
     if (_angularTimeScale < MAX_TIMESCALE) {
@@ -98,13 +97,8 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
                 targetVelocity = (angle / _angularTimeScale) * deltaQ.getAxis();
             }
         }
-        //float blend = glm::min(1.0f, deltaTimeStep / _angularTimeScale);
-        float blend = 1.0f;
-        rigidBody->setAngularVelocity((1.0f - blend) * rigidBody->getAngularVelocity() + blend * targetVelocity);
-    }
-    if (_needsActivation) {
-        rigidBody->activate();
-        _needsActivation = false;
+        // this action is aggresively critically damped and defeats the current velocity
+        rigidBody->setAngularVelocity(targetVelocity);
     }
     unlock();
 }
@@ -151,7 +145,7 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
         _rotationalTarget = rotationalTarget;
         _angularTimeScale = glm::max(MIN_TIMESCALE, glm::abs(angularTimeScale));
         _active = true;
-        _needsActivation = true;
+        activateBody();
         unlock();
     }
     return true;
