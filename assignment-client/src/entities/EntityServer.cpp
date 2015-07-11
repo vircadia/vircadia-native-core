@@ -42,19 +42,19 @@ EntityServer::~EntityServer() {
 
 void EntityServer::handleEntityAddPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
     if (_octreeInboundPacketProcessor) {
-        _octreeInboundPacketProcessor->queueReceivedPacket(senderNode, receivedPacket->getData());
+        _octreeInboundPacketProcessor->queueReceivedPacket(senderNode, packet->getData());
     }
 }
 
 void EntityServer::handleEntityEditPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
     if (_octreeInboundPacketProcessor) {
-        _octreeInboundPacketProcessor->queueReceivedPacket(senderNode, receivedPacket->getData());
+        _octreeInboundPacketProcessor->queueReceivedPacket(senderNode, packet->getData());
     }
 }
 
 void EntityServer::handleEntityErasePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
     if (_octreeInboundPacketProcessor) {
-        _octreeInboundPacketProcessor->queueReceivedPacket(senderNode, receivedPacket->getData());
+        _octreeInboundPacketProcessor->queueReceivedPacket(senderNode, packet->getData());
     }
 }
 
