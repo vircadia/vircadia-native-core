@@ -281,12 +281,10 @@ void DomainHandler::settingsRequestFinished() {
     settingsReply->deleteLater();
 }
 
-void DomainHandler::parseDTLSRequirementPacket(const QByteArray& dtlsRequirementPacket) {
+void DomainHandler::processDTLSRequirementPacket(QSharedPointer<NLPacket> dtlsRequirementPacket) {
     // figure out the port that the DS wants us to use for us to talk to them with DTLS
-    int numBytesPacketHeader = numBytesForPacketHeader(dtlsRequirementPacket);
-
-    unsigned short dtlsPort = 0;
-    memcpy(&dtlsPort, dtlsRequirementPacket.data() + numBytesPacketHeader, sizeof(dtlsPort));
+    unsigned short dtlsPort;
+    dtlsRequirementPacket->readPrimitive(&dtlsPort);
 
     qCDebug(networking) << "domain-server DTLS port changed to" << dtlsPort << "- Enabling DTLS.";
 
@@ -295,9 +293,13 @@ void DomainHandler::parseDTLSRequirementPacket(const QByteArray& dtlsRequirement
 //    initializeDTLSSession();
 }
 
-void DomainHandler::processICEResponsePacket(const QByteArray& icePacket) {
-    QDataStream iceResponseStream(icePacket);
-    iceResponseStream.skipRawData(numBytesForPacketHeader(icePacket));
+void DomainHandler::processICEResponsePacket(QSharedPointer<NLPacket> icePacket) {
+    if (!_icePeer.hasSockets()) {
+        // bail on processing this packet if our ice peer doesn't have sockets
+        return;
+    }
+
+    QDataStream iceResponseStream(icePacket.data());
 
     iceResponseStream >> _icePeer;
 

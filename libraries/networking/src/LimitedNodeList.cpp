@@ -369,9 +369,8 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructPingPacket(PingType_t pingTy
     return pingPacket;
 }
 
-std::unique_ptr<NLPacket> LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
-    QDataStream pingPacketStream(pingPacket);
-    pingPacketStream.skipRawData(numBytesForPacketHeader(pingPacket));
+std::unique_ptr<NLPacket> LimitedNodeList::constructPingReplyPacket(QSharedPointer<NLPacket> pingPacket) {
+    QDataStream pingPacketStream(pingPacket.data());
 
     PingType_t typeFromOriginalPing;
     pingPacketStream >> typeFromOriginalPing;
@@ -400,11 +399,11 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingPacket(PingType_t pin
     return icePingPacket;
 }
 
-std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingReplyPacket(const QByteArray& pingPacket, const QUuid& iceID) {
+std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingReplyPacket(QSharedPointer<NLPacket> pingPacket, const QUuid& iceID) {
     // pull out the ping type so we can reply back with that
     PingType_t pingType;
 
-    memcpy(&pingType, pingPacket.data() + NUM_BYTES_RFC4122_UUID, sizeof(PingType_t));
+    memcpy(&pingType, pingPacket->getPayload() + NUM_BYTES_RFC4122_UUID, sizeof(PingType_t));
 
     int packetSize = NUM_BYTES_RFC4122_UUID + sizeof(PingType_t);
     auto icePingReplyPacket = NLPacket::create(PacketType::ICEPingReply, packetSize);
@@ -514,7 +513,7 @@ void LimitedNodeList::rebindNodeSocket() {
     _nodeSocket.bind(QHostAddress::AnyIPv4, oldPort);
 }
 
-bool LimitedNodeList::processSTUNResponse(const QByteArray& packet) {
+bool LimitedNodeList::processSTUNResponse(QSharedPointer<NLPacket> packet) {
     // check the cookie to make sure this is actually a STUN response
     // and read the first attribute and make sure it is a XOR_MAPPED_ADDRESS
     const int NUM_BYTES_MESSAGE_TYPE_AND_LENGTH = 4;
@@ -524,13 +523,13 @@ bool LimitedNodeList::processSTUNResponse(const QByteArray& packet) {
 
     int attributeStartIndex = NUM_BYTES_STUN_HEADER;
 
-    if (memcmp(packet.data() + NUM_BYTES_MESSAGE_TYPE_AND_LENGTH,
+    if (memcmp(packet->getData() + NUM_BYTES_MESSAGE_TYPE_AND_LENGTH,
                &RFC_5389_MAGIC_COOKIE_NETWORK_ORDER,
                sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER)) == 0) {
 
         // enumerate the attributes to find XOR_MAPPED_ADDRESS_TYPE
-        while (attributeStartIndex < packet.size()) {
-            if (memcmp(packet.data() + attributeStartIndex, &XOR_MAPPED_ADDRESS_TYPE, sizeof(XOR_MAPPED_ADDRESS_TYPE)) == 0) {
+        while (attributeStartIndex < packet->getSizeWithHeader()) {
+            if (memcmp(packet->getData() + attributeStartIndex, &XOR_MAPPED_ADDRESS_TYPE, sizeof(XOR_MAPPED_ADDRESS_TYPE)) == 0) {
                 const int NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH = 4;
                 const int NUM_BYTES_FAMILY_ALIGN = 1;
                 const uint8_t IPV4_FAMILY_NETWORK_ORDER = htons(0x01) >> 8;
@@ -538,14 +537,14 @@ bool LimitedNodeList::processSTUNResponse(const QByteArray& packet) {
                 int byteIndex = attributeStartIndex + NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH + NUM_BYTES_FAMILY_ALIGN;
 
                 uint8_t addressFamily = 0;
-                memcpy(&addressFamily, packet.data() + byteIndex, sizeof(addressFamily));
+                memcpy(&addressFamily, packet->getData() + byteIndex, sizeof(addressFamily));
 
                 byteIndex += sizeof(addressFamily);
 
                 if (addressFamily == IPV4_FAMILY_NETWORK_ORDER) {
                     // grab the X-Port
                     uint16_t xorMappedPort = 0;
-                    memcpy(&xorMappedPort, packet.data() + byteIndex, sizeof(xorMappedPort));
+                    memcpy(&xorMappedPort, packet->getData() + byteIndex, sizeof(xorMappedPort));
 
                     uint16_t newPublicPort = ntohs(xorMappedPort) ^ (ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER) >> 16);
 
@@ -553,7 +552,7 @@ bool LimitedNodeList::processSTUNResponse(const QByteArray& packet) {
 
                     // grab the X-Address
                     uint32_t xorMappedAddress = 0;
-                    memcpy(&xorMappedAddress, packet.data() + byteIndex, sizeof(xorMappedAddress));
+                    memcpy(&xorMappedAddress, packet->getData() + byteIndex, sizeof(xorMappedAddress));
 
                     uint32_t stunAddress = ntohl(xorMappedAddress) ^ ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
 
@@ -583,7 +582,7 @@ bool LimitedNodeList::processSTUNResponse(const QByteArray& packet) {
                 const int NUM_BYTES_ATTRIBUTE_TYPE = 2;
 
                 uint16_t attributeLength = 0;
-                memcpy(&attributeLength, packet.data() + attributeStartIndex + NUM_BYTES_ATTRIBUTE_TYPE,
+                memcpy(&attributeLength, packet->getData() + attributeStartIndex + NUM_BYTES_ATTRIBUTE_TYPE,
                        sizeof(attributeLength));
                 attributeLength = ntohs(attributeLength);
 

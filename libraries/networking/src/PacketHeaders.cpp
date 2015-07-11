@@ -18,21 +18,21 @@
 using namespace PacketType;
 
 const QSet<PacketType::Value> NON_VERIFIED_PACKETS = QSet<PacketType::Value>()
-    << DomainServerRequireDTLS << DomainConnectRequest
-    << DomainList << DomainListRequest << DomainConnectionDenied
     << CreateAssignment << RequestAssignment << StunResponse
     << NodeJsonStats << EntityQuery
     << OctreeDataNack << EntityEditNack
     << Ping
-    << PingReply << StopNode
-    << DomainServerPathQuery << DomainServerPathResponse
-    << DomainServerAddedNode;
+    << PingReply << StopNode;
 
 const QSet<PacketType::Value> SEQUENCE_NUMBERED_PACKETS = QSet<PacketType::Value>() << AvatarData;
 
 const QSet<PacketType::Value> NON_SOURCED_PACKETS = QSet<PacketType::Value>()
+    << DomainServerRequireDTLS << DomainConnectRequest
+    << DomainList << DomainListRequest << DomainConnectionDenied
+    << DomainServerPathQuery << DomainServerPathResponse
+    << DomainServerAddedNode
     << ICEServerPeerInformation << ICEServerQuery << ICEServerHeartbeat
-    << ICEPing << ICEPingReply << DomainConnectRequest;
+    << ICEPing << ICEPingReply;
 
 int arithmeticCodingValueFromBuffer(const char* checkValue) {
     if (((uchar) *checkValue) < 255) {

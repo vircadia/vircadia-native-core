@@ -933,15 +933,17 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     // always send the node their own UUID back
     QDataStream domainListStream(&domainListPackets);
 
-    const int NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES = NUM_BYTES_RFC4122_UUID + 2;
+    const int NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES = NUM_BYTES_RFC4122_UUID + NUM_BYTES_RFC4122_UUID + 2;
 
     // setup the extended header for the domain list packets
     // this data is at the beginning of each of the domain list packets
     QByteArray extendedHeader(NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES, 0);
-    extendedHeader.replace(0, NUM_BYTES_RFC4122_UUID, node->getUUID().toRfc4122());
+    QDataStream extendedHeaderStream(&extendedHeader, &QIODevice::Append);
 
-    extendedHeader[NUM_BYTES_RFC4122_UUID] = (char) node->getCanAdjustLocks();
-    extendedHeader[NUM_BYTES_RFC4122_UUID + 1] = (char) node->getCanRez();
+    extendedHeaderStream << limitedNodeList->getSessionUUID().toRfc4122();
+    extendedHeaderStream << node->getUUID().toRfc4122();
+    extendedHeaderStream << (quint8) node->getCanAdjustLocks();
+    extendedHeaderStream << (quint8) node->getCanRez();
 
     domainListPackets.setExtendedHeader(extendedHeader);
 

@@ -169,12 +169,12 @@ public:
     void resetPacketStats();
 
     std::unique_ptr<NLPacket> constructPingPacket(PingType_t pingType = PingType::Agnostic);
-    std::unique_ptr<NLPacket> constructPingReplyPacket(const QByteArray& pingPacket);
+    std::unique_ptr<NLPacket> constructPingReplyPacket(QSharedPointer<NLPacket> pingPacket);
 
     std::unique_ptr<NLPacket> constructICEPingPacket(PingType_t pingType, const QUuid& iceID);
-    std::unique_ptr<NLPacket> constructICEPingReplyPacket(const QByteArray& pingPacket, const QUuid& iceID);
+    std::unique_ptr<NLPacket> constructICEPingReplyPacket(QSharedPointer<NLPacket> pingPacket, const QUuid& iceID);
 
-    virtual bool processSTUNResponse(const QByteArray& packet);
+    virtual bool processSTUNResponse(QSharedPointer<NLPacket> packet);
 
     void sendHeartbeatToIceServer(const HifiSockAddr& iceServerSockAddr);
     void sendPeerQueryToIceServer(const HifiSockAddr& iceServerSockAddr, const QUuid& clientID, const QUuid& peerID);
