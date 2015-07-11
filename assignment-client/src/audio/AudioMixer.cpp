@@ -544,28 +544,34 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
 }
 
 void AudioMixer::readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
+    auto nodeList = DependencyManager::get<NodeList>();
     if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
         nodeList->processNodeData(senderSockAddr, receivedPacket);
     }
 }
 
 void AudioMixer::handleMicrophoneAudioNoEchoPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
+    auto nodeList = DependencyManager::get<NodeList>();
     nodeList->findNodeAndUpdateWithDataFromPacket(packet->getData());
 }
 
 void AudioMixer::handleMicrophoneAudioWithEchoPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
+    auto nodeList = DependencyManager::get<NodeList>();
     nodeList->findNodeAndUpdateWithDataFromPacket(packet->getData());
 }
 
 void AudioMixer::handleInjectAudioPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
+    auto nodeList = DependencyManager::get<NodeList>();
     nodeList->findNodeAndUpdateWithDataFromPacket(packet->getData());
 }
 
 void AudioMixer::handleSilentAudioFramePacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
+    auto nodeList = DependencyManager::get<NodeList>();
     nodeList->findNodeAndUpdateWithDataFromPacket(packet->getData());
 }
 
 void AudioMixer::handleAudioStreamStatsPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
+    auto nodeList = DependencyManager::get<NodeList>();
     nodeList->findNodeAndUpdateWithDataFromPacket(packet->getData());
 }
 
@@ -573,14 +579,14 @@ void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet, Hi
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer sendingNode = nodeList->nodeWithUUID(packet->getSourceID());
     if (sendingNode->getCanAdjustLocks()) {
-        auto packet = NLPacket::create(PacketType::MuteEnvironment);
+        auto newPacket = NLPacket::create(PacketType::MuteEnvironment);
         // Copy payload
-        packet->write(receivedPacket.mid(numBytesForPacketHeader(receivedPacket)));
+        newPacket->write(newPacket->getPayload());
 
         nodeList->eachNode([&](const SharedNodePointer& node){
             if (node->getType() == NodeType::Agent && node->getActiveSocket() &&
                 node->getLinkedData() && node != sendingNode) {
-                nodeList->sendPacket(std::move(packet), node);
+                nodeList->sendPacket(std::move(newPacket), node);
             }
         });
     }
