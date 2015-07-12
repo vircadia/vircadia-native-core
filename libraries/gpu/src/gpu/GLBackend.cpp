@@ -238,7 +238,7 @@ void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
 
     std::vector<GLenum> drawBuffers;
     if (masks & Framebuffer::BUFFER_COLORS) {
-        for (int i = 0; i < Framebuffer::MAX_NUM_RENDER_BUFFERS; i++) {
+        for (unsigned int i = 0; i < Framebuffer::MAX_NUM_RENDER_BUFFERS; i++) {
             if (masks & (1 << i)) {
                 drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
             }
