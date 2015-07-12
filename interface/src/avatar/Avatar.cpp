@@ -644,7 +644,7 @@ void Avatar::renderBillboard(RenderArgs* renderArgs) {
     glm::vec2 texCoordBottomRight(1.0f, 1.0f);
     
     gpu::Batch& batch = *renderArgs->_batch;
-    batch.setUniformTexture(0, _billboardTexture->getGPUTexture());
+    batch.setResourceTexture(0, _billboardTexture->getGPUTexture());
     DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
                                                         glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
