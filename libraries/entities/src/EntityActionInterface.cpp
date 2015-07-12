@@ -127,21 +127,21 @@ glm::vec3 EntityActionInterface::extractVec3Argument(QString objectName, QVarian
             qDebug() << objectName << "requires argument:" << argumentName;
         }
         ok = false;
-        return glm::vec3();
+        return glm::vec3(0.0f);
     }
 
     QVariant resultV = arguments[argumentName];
     if (resultV.type() != (QVariant::Type) QMetaType::QVariantMap) {
         qDebug() << objectName << "argument" << argumentName << "must be a map";
         ok = false;
-        return glm::vec3();
+        return glm::vec3(0.0f);
     }
 
     QVariantMap resultVM = resultV.toMap();
     if (!resultVM.contains("x") || !resultVM.contains("y") || !resultVM.contains("z")) {
-        qDebug() << objectName << "argument" << argumentName << "must be a map with keys of x, y, z";
+        qDebug() << objectName << "argument" << argumentName << "must be a map with keys: x, y, z";
         ok = false;
-        return glm::vec3();
+        return glm::vec3(0.0f);
     }
 
     QVariant xV = resultVM["x"];
@@ -155,9 +155,15 @@ glm::vec3 EntityActionInterface::extractVec3Argument(QString objectName, QVarian
     float y = yV.toFloat(&yOk);
     float z = zV.toFloat(&zOk);
     if (!xOk || !yOk || !zOk) {
-        qDebug() << objectName << "argument" << argumentName << "must be a map with keys of x, y, z and values of type float.";
+        qDebug() << objectName << "argument" << argumentName << "must be a map with keys: x, y, and z of type float.";
         ok = false;
-        return glm::vec3();
+        return glm::vec3(0.0f);
+    }
+
+    if (x != x || y != y || z != z) {
+        // at least one of the values is NaN
+        ok = false;
+        return glm::vec3(0.0f);
     }
 
     return glm::vec3(x, y, z);
@@ -181,8 +187,8 @@ glm::quat EntityActionInterface::extractQuatArgument(QString objectName, QVarian
     }
 
     QVariantMap resultVM = resultV.toMap();
-    if (!resultVM.contains("x") || !resultVM.contains("y") || !resultVM.contains("z")) {
-        qDebug() << objectName << "argument" << argumentName << "must be a map with keys of x, y, z";
+    if (!resultVM.contains("x") || !resultVM.contains("y") || !resultVM.contains("z") || !resultVM.contains("w")) {
+        qDebug() << objectName << "argument" << argumentName << "must be a map with keys: x, y, z, and w";
         ok = false;
         return glm::quat();
     }
@@ -202,12 +208,18 @@ glm::quat EntityActionInterface::extractQuatArgument(QString objectName, QVarian
     float w = wV.toFloat(&wOk);
     if (!xOk || !yOk || !zOk || !wOk) {
         qDebug() << objectName << "argument" << argumentName
-                 << "must be a map with keys of x, y, z, w and values of type float.";
+                 << "must be a map with keys: x, y, z, and w of type float.";
         ok = false;
         return glm::quat();
     }
 
-    return glm::quat(w, x, y, z);
+    if (x != x || y != y || z != z || w != w) {
+        // at least one of the components is NaN!
+        ok = false;
+        return glm::quat();
+    }
+
+    return glm::normalize(glm::quat(w, x, y, z));
 }
 
 float EntityActionInterface::extractFloatArgument(QString objectName, QVariantMap arguments,
@@ -224,7 +236,7 @@ float EntityActionInterface::extractFloatArgument(QString objectName, QVariantMa
     bool vOk = true;
     float v = vV.toFloat(&vOk);
 
-    if (!vOk) {
+    if (!vOk || v != v) {
         ok = false;
         return 0.0f;
     }

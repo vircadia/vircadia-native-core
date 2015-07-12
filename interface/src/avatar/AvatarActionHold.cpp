@@ -70,30 +70,14 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
         return;
     }
 
-    // check for NaNs
-    if (position.x != position.x ||
-        position.y != position.y ||
-        position.z != position.z) {
-        qDebug() << "AvatarActionHold::updateActionWorker -- target position includes NaN";
-        return;
-    }
-    if (rotation.x != rotation.x ||
-        rotation.y != rotation.y ||
-        rotation.z != rotation.z ||
-        rotation.w != rotation.w) {
-        qDebug() << "AvatarActionHold::updateActionWorker -- target rotation includes NaN";
-        return;
-    }
-
     if (_positionalTarget != position || _rotationalTarget != rotation) {
         auto ownerEntity = _ownerEntity.lock();
         if (ownerEntity) {
             ownerEntity->setActionDataDirty(true);
         }
+        _positionalTarget = position;
+        _rotationalTarget = rotation;
     }
-
-    _positionalTarget = position;
-    _rotationalTarget = rotation;
     unlock();
 
     ObjectActionSpring::updateActionWorker(deltaTimeStep);
@@ -101,59 +85,51 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
 
 
 bool AvatarActionHold::updateArguments(QVariantMap arguments) {
-    bool rPOk = true;
+    bool ok = true;
     glm::vec3 relativePosition =
-        EntityActionInterface::extractVec3Argument("hold", arguments, "relativePosition", rPOk, false);
-    bool rROk = true;
+        EntityActionInterface::extractVec3Argument("hold", arguments, "relativePosition", ok, false);
+    if (!ok) {
+        relativePosition = _relativePosition;
+    }
+
+    ok = true;
     glm::quat relativeRotation =
-        EntityActionInterface::extractQuatArgument("hold", arguments, "relativeRotation", rROk, false);
-    bool tSOk = true;
+        EntityActionInterface::extractQuatArgument("hold", arguments, "relativeRotation", ok, false);
+    if (!ok) {
+        relativeRotation = _relativeRotation;
+    }
+    
+    ok = true;
     float timeScale =
-        EntityActionInterface::extractFloatArgument("hold", arguments, "timeScale", tSOk, false);
-    bool hOk = true;
+        EntityActionInterface::extractFloatArgument("hold", arguments, "timeScale", ok, false);
+    if (!ok) {
+        timeScale = _linearTimeScale;
+    }
+
+    ok = true;
     QString hand =
-        EntityActionInterface::extractStringArgument("hold", arguments, "hand", hOk, false);
+        EntityActionInterface::extractStringArgument("hold", arguments, "hand", ok, false);
+    if (!ok || !(hand == "left" || hand == "right")) {
+        hand = _hand;
+    }
 
-    lockForWrite();
-    if (rPOk) {
+    if (relativePosition != _relativePosition
+            || relativeRotation != _relativeRotation
+            || timeScale != _linearTimeScale
+            || hand != _hand) {
+        lockForWrite();
         _relativePosition = relativePosition;
-    } else {
-        _relativePosition = glm::vec3(0.0f, 0.0f, 1.0f);
-    }
-
-    if (rROk) {
         _relativeRotation = relativeRotation;
-    } else {
-        _relativeRotation = glm::quat(0.0f, 0.0f, 0.0f, 1.0f);
-    }
+        const float MIN_TIMESCALE = 0.1f;
+        _linearTimeScale = glm::min(MIN_TIMESCALE, timeScale);
+        _angularTimeScale = _linearTimeScale;
+        _hand = hand;
 
-    if (tSOk) {
-        _linearTimeScale = timeScale;
-        _angularTimeScale = timeScale;
-    } else {
-        _linearTimeScale = 0.2f;
-        _angularTimeScale = 0.2f;
+        _mine = true;
+        _active = true;
+        activateBody();
+        unlock();
     }
-
-    if (hOk) {
-        hand = hand.toLower();
-        if (hand == "left") {
-            _hand = "left";
-        } else if (hand == "right") {
-            _hand = "right";
-        } else {
-            qDebug() << "hold action -- invalid hand argument:" << hand;
-            _hand = "right";
-        }
-    } else {
-        _hand = "right";
-    }
-
-    _mine = true;
-    _positionalTargetSet = true;
-    _rotationalTargetSet = true;
-    _active = true;
-    unlock();
     return true;
 }
 
