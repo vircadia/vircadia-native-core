@@ -55,9 +55,9 @@
 
 static const int NUM_AUDIO_CHANNELS = 2;
 
-static const int DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 3;
+static const int DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 20;
 static const int MIN_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 1;
-static const int MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 20;
+static const int MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 40;
 #if defined(Q_OS_ANDROID) || defined(Q_OS_WIN)
     static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED = false;
 #else
