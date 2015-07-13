@@ -53,7 +53,7 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
     auto addressManager = DependencyManager::set<AddressManager>();
     auto nodeList = DependencyManager::set<LimitedNodeList>();
 
-    auto packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver->registerPacketListener(PacketType::NodeJsonStats, this, "handleNodeJsonStatsPacket");
     packetReceiver->registerPacketListener(PacketType::NodeJsonStats, this, "handleNodeJsonStatsUnknownNodePacket");
 
