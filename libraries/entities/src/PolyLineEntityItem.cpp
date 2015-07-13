@@ -118,21 +118,18 @@ bool PolyLineEntityItem::setStrokeWidths(const QVector<float>& strokeWidths ) {
 bool PolyLineEntityItem::setNormals(const QVector<glm::vec3>& normals) {
     
     _normals = normals;
-    if( _normals.size() != _points.size()) {
-        qDebug() << "RETURN FALSE";
+    if( _normals.size() != _points.size() || _normals.size() != _strokeWidths.size()) {
+        qDebug() << "normals dont equal points!";
         return false;
     }
     
-    if (_points.size () < 2 || _strokeWidths.size() < 2) {
+    if (_points.size () < 2) {
+        qDebug() << "points size is less than 2!";
         return false;
     }
     
 //    int minArraySize = glm::min(_normals.size(), _points.size())
     _vertices.clear();
-    //Go through and create vertices for triangle strip based on normalsa
-    if (_normals.size() != _points.size()) {
-        return false;
-    }
     glm::vec3 v1, v2, tangent, binormal, point;
     for (int i = 0; i < _points.size()-1; i++) {
         float width = _strokeWidths.at(i);
@@ -197,7 +194,7 @@ bool PolyLineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
 int PolyLineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                      ReadBitstreamToTreeParams& args,
                                                      EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
-    _quadReadWriteLock.lockForWrite();
+    QWriteLocker lock(&_quadReadWriteLock);
     int bytesRead = 0;
     const unsigned char* dataAt = data;
     
@@ -207,7 +204,6 @@ int PolyLineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* da
     READ_ENTITY_PROPERTY(PROP_NORMALS, QVector<glm::vec3>,  setNormals);
     READ_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, QVector<float>, setStrokeWidths);
     
-    _quadReadWriteLock.unlock();
     return bytesRead;
 }
 
