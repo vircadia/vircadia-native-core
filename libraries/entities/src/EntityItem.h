@@ -68,10 +68,28 @@ const float ACTIVATION_ANGULAR_VELOCITY_DELTA = 0.03f;
 #define debugTimeOnly(T) qPrintable(QString("%1").arg(T, 16, 10))
 #define debugTreeVector(V) V << "[" << V << " in meters ]"
 
+#if DEBUG
+  #define assertLocked() assert(isLocked())
+#else
+  #define assertLocked()
+#endif
+
+#if DEBUG
+  #define assertWriteLocked() assert(isWriteLocked())
+#else
+  #define assertWriteLocked()
+#endif
+
+#if DEBUG
+  #define assertUnlocked() assert(isUnlocked())
+#else
+  #define assertUnlocked()
+#endif
+
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
 /// one directly, instead you must only construct one of it's derived classes with additional features.
-class EntityItem {
+class EntityItem : public std::enable_shared_from_this<EntityItem> {
     // These two classes manage lists of EntityItem pointers and must be able to cleanup pointers when an EntityItem is deleted.
     // To make the cleanup robust each EntityItem has backpointers to its manager classes (which are only ever set/cleared by 
     // the managers themselves, hence they are fiends) whose NULL status can be used to determine which managers still need to
@@ -395,8 +413,13 @@ public:
     bool hasActions() { return !_objectActions.empty(); }
     QList<QUuid> getActionIDs() { return _objectActions.keys(); }
     QVariantMap getActionArguments(const QUuid& actionID) const;
+    void deserializeActions();
+    void setActionDataDirty(bool value) const { _actionDataDirty = value; }
 
 protected:
+
+    const QByteArray getActionDataInternal() const;
+    void setActionDataInternal(QByteArray actionData);
 
     static bool _sendPhysicsUpdates;
     EntityTypes::EntityType _type;
@@ -470,18 +493,28 @@ protected:
 
     bool addActionInternal(EntitySimulation* simulation, EntityActionPointer action);
     bool removeActionInternal(const QUuid& actionID, EntitySimulation* simulation = nullptr);
-    bool deserializeActions(QByteArray allActionsData, EntitySimulation* simulation = nullptr) const;
+    void deserializeActionsInternal();
     QByteArray serializeActions(bool& success) const;
     QHash<QUuid, EntityActionPointer> _objectActions;
+
     static int _maxActionsDataSize;
     mutable QByteArray _allActionsDataCache;
     // when an entity-server starts up, EntityItem::setActionData is called before the entity-tree is
     // ready.  This means we can't find our EntityItemPointer or add the action to the simulation.  These
     // are used to keep track of and work around this situation.
-    bool checkWaitingActionData(EntitySimulation* simulation = nullptr) const;
     void checkWaitingToRemove(EntitySimulation* simulation = nullptr);
-    mutable QByteArray _waitingActionData;
     mutable QSet<QUuid> _actionsToRemove;
+    mutable bool _actionDataDirty = false;
+
+    mutable QReadWriteLock _lock;
+    void lockForRead() const;
+    bool tryLockForRead() const;
+    void lockForWrite() const;
+    bool tryLockForWrite() const;
+    void unlock() const;
+    bool isLocked() const;
+    bool isWriteLocked() const;
+    bool isUnlocked() const;
 };
 
 #endif // hifi_EntityItem_h

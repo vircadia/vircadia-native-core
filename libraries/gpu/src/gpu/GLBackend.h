@@ -181,12 +181,25 @@ public:
     class GLFramebuffer : public GPUObject {
     public:
         GLuint _fbo = 0;
+        std::vector<GLenum> _colorBuffers;
 
         GLFramebuffer();
         ~GLFramebuffer();
     };
     static GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer);
     static GLuint getFramebufferID(const FramebufferPointer& framebuffer);
+
+    class GLQuery : public GPUObject {
+    public:
+        GLuint _qo = 0;
+        GLuint64 _result = 0;
+
+        GLQuery();
+        ~GLQuery();
+    };
+    static GLQuery* syncGPUObject(const Query& query);
+    static GLuint getQueryID(const QueryPointer& query);
+
 
     static const int MAX_NUM_ATTRIBUTES = Stream::NUM_INPUT_SLOTS;
     static const int MAX_NUM_INPUT_BUFFERS = 16;
@@ -198,7 +211,7 @@ public:
     void do_setStateFillMode(int32 mode);
     void do_setStateCullMode(int32 mode);
     void do_setStateFrontFaceClockwise(bool isClockwise);
-    void do_setStateDepthClipEnable(bool enable);
+    void do_setStateDepthClampEnable(bool enable);
     void do_setStateScissorEnable(bool enable);
     void do_setStateMultisampleEnable(bool enable);
     void do_setStateAntialiasedLineEnable(bool enable);
@@ -298,6 +311,7 @@ protected:
             _model(),
             _view(),
             _projection(),
+            _viewport(0,0,1,1),
             _invalidModel(true),
             _invalidView(true),
             _invalidProj(false),
@@ -307,7 +321,7 @@ protected:
 
     // Uniform Stage
     void do_setUniformBuffer(Batch& batch, uint32 paramOffset);
-    void do_setUniformTexture(Batch& batch, uint32 paramOffset);
+    void do_setResourceTexture(Batch& batch, uint32 paramOffset);
     
     struct UniformStageState {
         
@@ -366,6 +380,11 @@ protected:
 
         OutputStageState() {}
     } _output;
+
+    // Query section
+    void do_beginQuery(Batch& batch, uint32 paramOffset);
+    void do_endQuery(Batch& batch, uint32 paramOffset);
+    void do_getQuery(Batch& batch, uint32 paramOffset);
 
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 

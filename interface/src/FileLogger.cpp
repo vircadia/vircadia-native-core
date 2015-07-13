@@ -21,11 +21,34 @@ const QString FILENAME_FORMAT = "hifi-log_%1_%2.txt";
 const QString DATETIME_FORMAT = "yyyy-MM-dd_hh.mm.ss";
 const QString LOGS_DIRECTORY = "Logs";
 
+class FilePersistThread : public GenericQueueThread < QString > {    
+public:
+    FilePersistThread(const FileLogger& logger) : _logger(logger) {
+        setObjectName("LogFileWriter");
+    }
+
+protected:
+    virtual bool processQueueItems(const Queue& messages) {
+        QFile file(_logger._fileName);
+        if (file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
+            QTextStream out(&file);
+            foreach(const QString& message, messages) {
+                out << message;
+            }
+        }
+        return true;
+    }
+private:
+    const FileLogger& _logger;
+};
+
+static FilePersistThread* _persistThreadInstance;
+
 FileLogger::FileLogger(QObject* parent) :
-    AbstractLoggerInterface(parent),
-    _logData("")
+    AbstractLoggerInterface(parent)
 {
-    setExtraDebugging(false);
+    _persistThreadInstance = new FilePersistThread(*this);
+    _persistThreadInstance->initialize(true, QThread::LowestPriority);
 
     _fileName = FileUtils::standardPath(LOGS_DIRECTORY);
     QHostAddress clientAddress = getLocalAddress();
@@ -33,18 +56,24 @@ FileLogger::FileLogger(QObject* parent) :
     _fileName.append(QString(FILENAME_FORMAT).arg(clientAddress.toString(), now.toString(DATETIME_FORMAT)));
 }
 
-void FileLogger::addMessage(QString message) {
-    QMutexLocker locker(&_mutex);
-    emit logReceived(message);
-    _logData += message;
+FileLogger::~FileLogger() {
+    _persistThreadInstance->terminate();
+}
 
-    QFile file(_fileName);
-    if (file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
-        QTextStream out(&file);
-        out <<  message;
-    }
+void FileLogger::addMessage(const QString& message) {
+    _persistThreadInstance->queueItem(message);
+    emit logReceived(message);
 }
 
 void FileLogger::locateLog() {
     FileUtils::locateFile(_fileName);
+}
+
+QString FileLogger::getLogData() {
+    QString result;
+    QFile f(_fileName);
+    if (f.open(QFile::ReadOnly | QFile::Text)) {
+        result = QTextStream(&f).readAll();
+    }
+    return result;
 }

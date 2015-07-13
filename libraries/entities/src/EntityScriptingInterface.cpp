@@ -543,6 +543,9 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
     }
 
     bool success = actor(simulation, entity);
+    if (success) {
+        _entityTree->entityChanged(entity);
+    }
     _entityTree->unlock();
 
     // transmit the change
@@ -574,7 +577,7 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
             if (actionType == ACTION_TYPE_NONE) {
                 return false;
             }
-            EntityActionPointer action = actionFactory->factory(simulation, actionType, actionID, entity, arguments);
+            EntityActionPointer action = actionFactory->factory(actionType, actionID, entity, arguments);
             if (action) {
                 entity->addAction(simulation, action);
                 auto nodeList = DependencyManager::get<NodeList>();

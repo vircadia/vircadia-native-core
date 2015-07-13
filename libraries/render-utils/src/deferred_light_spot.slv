@@ -1,0 +1,47 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  deferred_light_spot.vert
+//  vertex shader
+//
+//  Created by Sam Gateau on 7/8/15.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Transform.slh@>
+
+<$declareStandardTransform()$>
+
+uniform mat4 texcoordMat;
+uniform vec4 coneParam;
+
+void main(void) {
+    vec4 coneVertex = gl_Vertex;
+    if (coneParam.w != 0.0) {
+        if(coneVertex.z >= 0.0) {
+            // Evaluate the true position of the spot volume
+            vec2 dir =  float(coneVertex.z < 0.5f) * (coneParam.xy
+                            +   vec2(coneParam.y, -coneParam.x) * coneParam.z * float(coneVertex.z > 0.0f))
+                     +  float(coneVertex.z > 0.5f) * (vec2(1.0, 0.0)
+                            +   vec2(0.0, coneParam.z) * float(coneVertex.z < 1.0f));
+
+            coneVertex.xy *= dir.y;
+            coneVertex.z = -dir.x;
+        } else {
+            coneVertex.z = 0.0;
+        }
+    }
+
+    // standard transform
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    <$transformModelToClipPos(cam, obj, coneVertex, gl_Position)$>;
+
+    vec4 projected = gl_Position / gl_Position.w;
+    gl_TexCoord[0] = vec4(dot(projected, texcoordMat[0]) * gl_Position.w,
+        dot(projected, texcoordMat[1]) * gl_Position.w, 0.0, gl_Position.w);
+}

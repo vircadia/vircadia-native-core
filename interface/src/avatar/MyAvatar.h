@@ -19,6 +19,12 @@
 
 class ModelItemID;
 
+enum eyeContactTarget {
+    LEFT_EYE,
+    RIGHT_EYE,
+    MOUTH
+};
+
 class MyAvatar : public Avatar {
     Q_OBJECT
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
@@ -94,7 +100,7 @@ public:
 
     bool isMyAvatar() const { return true; }
     
-    bool isLookingAtLeftEye();
+    eyeContactTarget getEyeContactTarget();
 
     virtual int parseDataAtOffset(const QByteArray& packet, int offset);
     
@@ -189,10 +195,12 @@ public slots:
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
     void updateMotionBehavior();
-    
+
     glm::vec3 getLeftPalmPosition();
+    glm::quat getLeftPalmRotation();
     glm::vec3 getRightPalmPosition();
-    
+    glm::quat getRightPalmRotation();
+
     void clearReferential();
     bool setModelReferential(const QUuid& id);
     bool setJointReferential(const QUuid& id, int jointIndex);
@@ -209,6 +217,7 @@ public slots:
 signals:
     void transformChanged();
     void newCollisionSoundURL(const QUrl& url);
+    void collisionWithEntity(const Collision& collision);
 
 private:
 
@@ -251,7 +260,7 @@ private:
     QList<AnimationHandlePointer> _animationHandles;
     
     bool _feetTouchFloor;
-    bool _isLookingAtLeftEye;
+    eyeContactTarget _eyeContactTarget;
 
     RecorderPointer _recorder;
     

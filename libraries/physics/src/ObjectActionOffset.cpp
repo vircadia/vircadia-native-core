@@ -15,8 +15,12 @@
 
 const uint16_t ObjectActionOffset::offsetVersion = 1;
 
-ObjectActionOffset::ObjectActionOffset(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) :
-    ObjectAction(type, id, ownerEntity) {
+ObjectActionOffset::ObjectActionOffset(const QUuid& id, EntityItemPointer ownerEntity) :
+    ObjectAction(ACTION_TYPE_OFFSET, id, ownerEntity),
+    _pointToOffsetFrom(0.0f),
+    _linearDistance(0.0f),
+    _linearTimeScale(FLT_MAX),
+    _positionalTargetSet(false) {
     #if WANT_DEBUG
     qDebug() << "ObjectActionOffset::ObjectActionOffset";
     #endif
@@ -44,6 +48,7 @@ void ObjectActionOffset::updateActionWorker(btScalar deltaTimeStep) {
         unlock();
         return;
     }
+
     ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
     btRigidBody* rigidBody = motionState->getRigidBody();
     if (!rigidBody) {
@@ -52,21 +57,28 @@ void ObjectActionOffset::updateActionWorker(btScalar deltaTimeStep) {
         return;
     }
 
-    if (_positionalTargetSet) {
-        glm::vec3 offset = _pointToOffsetFrom - bulletToGLM(rigidBody->getCenterOfMassPosition());
-        float offsetLength = glm::length(offset);
-        float offsetError = _linearDistance - offsetLength;
+    const float MAX_LINEAR_TIMESCALE = 600.0f;  // 10 minutes is a long time
+    if (_positionalTargetSet && _linearTimeScale < MAX_LINEAR_TIMESCALE) {
+        glm::vec3 objectPosition = bulletToGLM(rigidBody->getCenterOfMassPosition());
+        glm::vec3 springAxis = objectPosition - _pointToOffsetFrom; // from anchor to object
+        float distance = glm::length(springAxis);
+        if (distance > FLT_EPSILON) {
+            springAxis /= distance;  // normalize springAxis
 
-        // if (glm::abs(offsetError) > IGNORE_POSITION_DELTA) {
-        if (glm::abs(offsetError) > 0.0f) {
-            float offsetErrorAbs = glm::abs(offsetError);
-            float offsetErrorDirection = - offsetError / offsetErrorAbs;
-            glm::vec3 previousVelocity = bulletToGLM(rigidBody->getLinearVelocity());
+            // compute (critically damped) target velocity of spring relaxation
+            glm::vec3 offset = (distance - _linearDistance) * springAxis;
+            glm::vec3 targetVelocity = (-1.0f / _linearTimeScale) * offset;
 
-            glm::vec3 velocityAdjustment = glm::normalize(offset) * offsetErrorDirection * offsetErrorAbs / _linearTimeScale;
-            rigidBody->setLinearVelocity(glmToBullet(previousVelocity + velocityAdjustment));
-            // rigidBody->setLinearVelocity(glmToBullet(velocityAdjustment));
-            rigidBody->activate();
+            // compute current velocity and its parallel component
+            glm::vec3 currentVelocity = bulletToGLM(rigidBody->getLinearVelocity());
+            glm::vec3 parallelVelocity = glm::dot(currentVelocity, springAxis) * springAxis;
+
+            // we blend the parallel component with the spring's target velocity to get the new velocity
+            float blend = deltaTimeStep / _linearTimeScale;
+            if (blend > 1.0f) {
+                blend = 1.0f;
+            }
+            rigidBody->setLinearVelocity(glmToBullet(currentVelocity + blend * (targetVelocity - parallelVelocity)));
         }
     }
 
@@ -75,45 +87,40 @@ void ObjectActionOffset::updateActionWorker(btScalar deltaTimeStep) {
 
 
 bool ObjectActionOffset::updateArguments(QVariantMap arguments) {
-    bool pOk0 = true;
+    bool ok = true;
     glm::vec3 pointToOffsetFrom =
-        EntityActionInterface::extractVec3Argument("offset action", arguments, "pointToOffsetFrom", pOk0, true);
+        EntityActionInterface::extractVec3Argument("offset action", arguments, "pointToOffsetFrom", ok, true);
+    if (!ok) {
+        pointToOffsetFrom = _pointToOffsetFrom;
+    }
 
-    bool pOk1 = true;
+    ok = true;
     float linearTimeScale =
-        EntityActionInterface::extractFloatArgument("offset action", arguments, "linearTimeScale", pOk1, false);
+        EntityActionInterface::extractFloatArgument("offset action", arguments, "linearTimeScale", ok, false);
+    if (!ok) { 
+        linearTimeScale = _linearTimeScale;
+    }
 
-    bool pOk2 = true;
+    ok = true;
     float linearDistance =
-        EntityActionInterface::extractFloatArgument("offset action", arguments, "linearDistance", pOk2, false);
-
-    if (!pOk0) {
-        return false;
-    }
-    if (pOk1 && linearTimeScale <= 0.0f) {
-        qDebug() << "offset action -- linearTimeScale must be greater than zero.";
-        return false;
+        EntityActionInterface::extractFloatArgument("offset action", arguments, "linearDistance", ok, false);
+    if (!ok) {
+        linearDistance = _linearDistance;
     }
 
-    lockForWrite();
-
-    _pointToOffsetFrom = pointToOffsetFrom;
-    _positionalTargetSet = true;
-
-    if (pOk1) {
+    // only change stuff if something actually changed
+    if (_pointToOffsetFrom != pointToOffsetFrom
+            || _linearTimeScale != linearTimeScale
+            || _linearDistance != linearDistance) {
+        lockForWrite();
+        _pointToOffsetFrom = pointToOffsetFrom;
         _linearTimeScale = linearTimeScale;
-    } else {
-        _linearTimeScale = 0.1f;
-    }
-
-    if (pOk2) {
         _linearDistance = linearDistance;
-    } else {
-        _linearDistance = 1.0f;
+        _positionalTargetSet = true;
+        _active = true;
+        activateBody();
+        unlock();
     }
-
-    _active = true;
-    unlock();
     return true;
 }
 
@@ -127,7 +134,7 @@ QVariantMap ObjectActionOffset::getArguments() {
     return arguments;
 }
 
-QByteArray ObjectActionOffset::serialize() {
+QByteArray ObjectActionOffset::serialize() const {
     QByteArray ba;
     QDataStream dataStream(&ba, QIODevice::WriteOnly);
     dataStream << getType();
@@ -146,13 +153,14 @@ void ObjectActionOffset::deserialize(QByteArray serializedArguments) {
     QDataStream dataStream(serializedArguments);
 
     EntityActionType type;
-    QUuid id;
-    uint16_t serializationVersion;
-
     dataStream >> type;
     assert(type == getType());
+
+    QUuid id;
     dataStream >> id;
     assert(id == getID());
+
+    uint16_t serializationVersion;
     dataStream >> serializationVersion;
     if (serializationVersion != ObjectActionOffset::offsetVersion) {
         return;
