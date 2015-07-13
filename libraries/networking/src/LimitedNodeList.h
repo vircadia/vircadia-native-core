@@ -157,6 +157,7 @@ public:
     const HifiSockAddr& getLocalSockAddr() const { return _localSockAddr; }
     const HifiSockAddr& getSTUNSockAddr() const { return _stunSockAddr; }
 
+    void processKillNode(NLPacket& packet);
     void processKillNode(const QByteArray& datagram);
 
     int updateNodeWithDataFromPacket(const SharedNodePointer& matchingNode, QSharedPointer<NLPacket> packet);
