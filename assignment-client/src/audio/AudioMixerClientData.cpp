@@ -49,20 +49,18 @@ AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() const {
     return NULL;
 }
 
-int AudioMixerClientData::parseData(const QByteArray& packet) {
-    PacketType::Value packetType = packetTypeForPacket(packet);
+int AudioMixerClientData::parseData(NLPacket& packet, SharedNodePointer sendingNode) {
+    PacketType::Value packetType = packet.getType();
+    
     if (packetType == PacketType::AudioStreamStats) {
 
-        const char* dataAt = packet.data();
-
         // skip over header, appendFlag, and num stats packed
-        dataAt += (numBytesForPacketHeader(packet) + sizeof(quint8) + sizeof(quint16));
+        packet.seek(sizeof(quint8) + sizeof(quint16));
 
         // read the downstream audio stream stats
-        memcpy(&_downstreamAudioStreamStats, dataAt, sizeof(AudioStreamStats));
-        dataAt += sizeof(AudioStreamStats);
+        packet.readPrimitive(&_downstreamAudioStreamStats);
 
-        return dataAt - packet.data();
+        return packet.pos();
 
     } else {
         PositionalAudioStream* matchingStream = NULL;
@@ -76,8 +74,11 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
                 // we don't have a mic stream yet, so add it
 
                 // read the channel flag to see if our stream is stereo or not
-                const char* channelFlagAt = packet.constData() + numBytesForPacketHeader(packet) + sizeof(quint16);
-                quint8 channelFlag = *(reinterpret_cast<const quint8*>(channelFlagAt));
+                packet.seek(sizeof(quint16));
+
+                quint8 channelFlag;
+                packet.readPrimitive(&channelFlag);
+
                 bool isStereo = channelFlag == 1;
 
                 _audioStreams.insert(nullUUID, matchingStream = new AvatarAudioStream(isStereo, AudioMixer::getStreamSettings()));
@@ -88,19 +89,23 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
             // this is injected audio
 
             // grab the stream identifier for this injected audio
-            int bytesBeforeStreamIdentifier = numBytesForPacketHeader(packet) + sizeof(quint16);
-            QUuid streamIdentifier = QUuid::fromRfc4122(packet.mid(bytesBeforeStreamIdentifier, NUM_BYTES_RFC4122_UUID));
-            int bytesBeforeStereoIdentifier = bytesBeforeStreamIdentifier + NUM_BYTES_RFC4122_UUID;
+            packet.seek(sizeof(quint16));
+            QUuid streamIdentifier = QUuid::fromRfc4122(packet.read(NUM_BYTES_RFC4122_UUID));
+
             bool isStereo;
-            QDataStream(packet.mid(bytesBeforeStereoIdentifier)) >> isStereo;
+            packet.readPrimitive(&isStereo);
 
             if (!_audioStreams.contains(streamIdentifier)) {
                 // we don't have this injected stream yet, so add it
-                _audioStreams.insert(streamIdentifier, matchingStream = new InjectedAudioStream(streamIdentifier, isStereo, AudioMixer::getStreamSettings()));
+                _audioStreams.insert(streamIdentifier,
+                        matchingStream = new InjectedAudioStream(streamIdentifier, isStereo, AudioMixer::getStreamSettings()));
             } else {
                 matchingStream = _audioStreams.value(streamIdentifier);
             }
         }
+
+        // seek to the beginning of the packet so that the next reader is in the right spot
+        packet.seek(0);
 
         return matchingStream->parseData(packet);
     }
