@@ -41,8 +41,6 @@ DialogContainer {
         readonly property int closeMargin: 16
         readonly property real tan30: 0.577  // tan(30°)
         readonly property int inputSpacing: 16
-        property int maximumX: parent ? parent.width - width : 0
-        property int maximumY: parent ? parent.height - height : 0
 
         Rectangle {
             id: backgroundRectangle
