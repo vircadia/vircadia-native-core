@@ -114,9 +114,9 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     loadLightProgram(deferred_light_spot_vert, spot_light_frag, true, _spotLight, _spotLightLocations);
 
     {
-        auto VSFS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto PSBlit = gpu::StandardShaderLib::getDrawTexturePS();
-        auto blitProgram = gpu::ShaderPointer(gpu::Shader::createProgram(VSFS, PSBlit));
+        //auto VSFS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
+        //auto PSBlit = gpu::StandardShaderLib::getDrawTexturePS();
+        auto blitProgram = gpu::StandardShaderLib::getProgram(gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS, gpu::StandardShaderLib::getDrawTexturePS);
         gpu::Shader::makeProgram(*blitProgram);
         gpu::StatePointer blitState = gpu::StatePointer(new gpu::State());
         blitState->setBlendFunction(true,
