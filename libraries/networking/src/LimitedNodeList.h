@@ -243,6 +243,7 @@ public slots:
     virtual void sendSTUNRequest();
 
     void killNodeWithUUID(const QUuid& nodeUUID);
+
 signals:
     void uuidChanged(const QUuid& ownerUUID, const QUuid& oldUUID);
     void nodeAdded(SharedNodePointer);

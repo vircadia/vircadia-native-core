@@ -101,7 +101,6 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     packetReceiver.registerPacketListener(PacketType::PingReply, this, "processPingReplyPacket");
     packetReceiver.registerPacketListener(PacketType::ICEPing, this, "processICEPingPacket");
     packetReceiver.registerPacketListener(PacketType::ICEPingReply, this, "processICEPingReplyPacket");
-    packetReceiver.registerPacketListener(PacketType::StunResponse, this, "processSTUNResponse");
 }
 
 qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination) {

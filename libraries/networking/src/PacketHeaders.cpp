@@ -21,6 +21,7 @@ const QSet<PacketType::Value> NON_VERIFIED_PACKETS = QSet<PacketType::Value>()
     << CreateAssignment << RequestAssignment << StunResponse
     << NodeJsonStats << EntityQuery
     << OctreeDataNack << EntityEditNack
+    << DomainListRequest
     << Ping
     << PingReply << StopNode;
 
@@ -28,7 +29,7 @@ const QSet<PacketType::Value> SEQUENCE_NUMBERED_PACKETS = QSet<PacketType::Value
 
 const QSet<PacketType::Value> NON_SOURCED_PACKETS = QSet<PacketType::Value>()
     << DomainServerRequireDTLS << DomainConnectRequest
-    << DomainList << DomainListRequest << DomainConnectionDenied
+    << DomainList << DomainConnectionDenied
     << DomainServerPathQuery << DomainServerPathResponse
     << DomainServerAddedNode
     << ICEServerPeerInformation << ICEServerQuery << ICEServerHeartbeat

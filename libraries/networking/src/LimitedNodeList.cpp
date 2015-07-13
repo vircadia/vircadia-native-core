@@ -98,6 +98,9 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     connect(&_nodeSocket, &QUdpSocket::readyRead, &_packetReceiver, &PacketReceiver::processDatagrams);
 
     _packetStatTimer.start();
+    
+    // make sure we handle STUN response packets
+    _packetReceiver.registerPacketListener(PacketType::StunResponse, this, "processSTUNResponse");
 }
 
 void LimitedNodeList::setSessionUUID(const QUuid& sessionUUID) {

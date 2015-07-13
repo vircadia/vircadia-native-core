@@ -18,7 +18,7 @@
 
 #include "ThreadedAssignment.h"
 
-ThreadedAssignment::ThreadedAssignment(const QByteArray& packet) :
+ThreadedAssignment::ThreadedAssignment(NLPacket& packet) :
     Assignment(packet),
     _isFinished(false),
     _datagramProcessingThread(NULL)

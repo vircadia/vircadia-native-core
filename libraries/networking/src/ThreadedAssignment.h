@@ -19,7 +19,7 @@
 class ThreadedAssignment : public Assignment {
     Q_OBJECT
 public:
-    ThreadedAssignment(const QByteArray& packet);
+    ThreadedAssignment(NLPacket& packet);
     ~ThreadedAssignment() { stop(); }
 
     void setFinished(bool isFinished);
