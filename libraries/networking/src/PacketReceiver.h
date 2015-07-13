@@ -17,6 +17,7 @@
 #include <QtCore/QMetaMethod>
 #include <QtCore/QMutex>
 #include <QtCore/QObject>
+#include <QtCore/QSet>
 
 #include "NLPacket.h"
 #include "PacketHeaders.h"
@@ -37,7 +38,8 @@ public:
     void resetCounters() { _inPacketCount = 0; _outPacketCount = 0; _inByteCount = 0; _outByteCount = 0; }
 
     void shutdown() { _isShuttingDown = true; }
-
+    
+    void registerPacketListeners(const QSet<PacketType::Value>& types, QObject* listener, const char* slot);
     void registerPacketListener(PacketType::Value type, QObject* listener, const char* slot);
 
 public slots:

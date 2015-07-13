@@ -24,6 +24,12 @@ PacketReceiver::PacketReceiver(QObject* parent) :
 
 }
 
+void PacketReceiver::registerPacketListeners(const QSet<PacketType::Value>& types, QObject* object, const char* slot) {
+    foreach(PacketType::Value type, types) {
+        registerPacketListener(type, object, slot);
+    }
+}
+
 void PacketReceiver::registerPacketListener(PacketType::Value type, QObject* object, const char* slot) {
     Q_ASSERT(object);
     

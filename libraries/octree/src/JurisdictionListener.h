@@ -47,7 +47,7 @@ public slots:
 protected:
     /// Callback for processing of received packets. Will process any queued PacketType::_JURISDICTION and update the
     /// jurisdiction map member variable
-    virtual void processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);
+    virtual void processPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
 
 private:
     NodeToJurisdictionMap _jurisdictions;

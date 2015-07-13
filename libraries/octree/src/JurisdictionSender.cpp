@@ -28,13 +28,11 @@ JurisdictionSender::JurisdictionSender(JurisdictionMap* map, NodeType_t type) :
 JurisdictionSender::~JurisdictionSender() {
 }
 
-void JurisdictionSender::processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) {
-    if (packetTypeForPacket(packet) == PacketType::JurisdictionRequest) {
-        if (sendingNode) {
-            lockRequestingNodes();
-            _nodesRequestingJurisdictions.push(sendingNode->getUUID());
-            unlockRequestingNodes();
-        }
+void JurisdictionSender::processPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+    if (packet->getType() == PacketType::JurisdictionRequest) {
+        lockRequestingNodes();
+        _nodesRequestingJurisdictions.push(sendingNode->getUUID());
+        unlockRequestingNodes();
     }
 }
 
@@ -43,7 +41,7 @@ bool JurisdictionSender::process() {
 
     // call our ReceivedPacketProcessor base class process so we'll get any pending packets
     if (continueProcessing && (continueProcessing = ReceivedPacketProcessor::process())) {
-        auto packet = (_jurisdictionMap) ? _jurisdictionMap->packIntoMessage()
+        auto packet = (_jurisdictionMap) ? _jurisdictionMap->packIntoPacket()
                                          : JurisdictionMap::packEmptyJurisdictionIntoMessage(getNodeType());
         int nodeCount = 0;
 

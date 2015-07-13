@@ -24,15 +24,9 @@ void ReceivedPacketProcessor::terminating() {
     _hasPackets.wakeAll();
 }
 
-void ReceivedPacketProcessor::queueReceivedPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) {
-    // Make sure our Node and NodeList knows we've heard from this node.
-    sendingNode->setLastHeardMicrostamp(usecTimestampNow());
-
-    // TODO: fix the NodePacketPair once we've figured out receive API
-    NodePacketPair networkPacket(sendingNode, NLPacket::create(PacketType::OctreeStats));
-
+void ReceivedPacketProcessor::queueReceivedPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
     lock();
-    _packets.push_back(std::move(networkPacket));
+    _packets.push_back({ sendingNode, packet });
     _nodePacketCounts[sendingNode->getUUID()]++;
     _lastWindowIncomingPackets++;
     unlock();
@@ -73,13 +67,12 @@ bool ReceivedPacketProcessor::process() {
     }
 
     lock();
-    std::list<NodePacketPair> currentPackets;
+    std::list<NodeSharedPacketPair> currentPackets;
     currentPackets.swap(_packets);
     unlock();
 
     for(auto& packetPair : currentPackets) {
-        // TODO: Replace QByteArray() once NLPacket is coming through on receive side
-        processPacket(packetPair.first, QByteArray());
+        processPacket(packetPair.second, packetPair.first);
         _lastWindowProcessedPackets++;
         midProcess();
     }

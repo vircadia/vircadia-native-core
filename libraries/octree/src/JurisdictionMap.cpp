@@ -280,7 +280,7 @@ std::unique_ptr<NLPacket> JurisdictionMap::packEmptyJurisdictionIntoMessage(Node
     return std::move(packet); // includes header!
 }
 
-std::unique_ptr<NLPacket> JurisdictionMap::packIntoMessage() {
+std::unique_ptr<NLPacket> JurisdictionMap::packIntoPacket() {
     auto packet = NLPacket::create(PacketType::Jurisdiction);
 
     // Pack the Node Type in first byte
@@ -315,42 +315,28 @@ std::unique_ptr<NLPacket> JurisdictionMap::packIntoMessage() {
     return std::move(packet);
 }
 
-int JurisdictionMap::unpackFromMessage(const unsigned char* sourceBuffer, int availableBytes) {
+int JurisdictionMap::unpackFromPacket(NLPacket& packet) {
     clear();
-    const unsigned char* startPosition = sourceBuffer;
-
-    // increment to push past the packet header
-    int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<const char*>(sourceBuffer));
-    sourceBuffer += numBytesPacketHeader;
-    int remainingBytes = availableBytes - numBytesPacketHeader;
-
+    
     // read the root jurisdiction
     int bytes = 0;
-    memcpy(&bytes, sourceBuffer, sizeof(bytes));
-    sourceBuffer += sizeof(bytes);
-    remainingBytes -= sizeof(bytes);
+    packet.readPrimitive(&bytes);
 
-    if (bytes > 0 && bytes <= remainingBytes) {
+    if (bytes > 0 && bytes <= packet.bytesAvailable()) {
         _rootOctalCode = new unsigned char[bytes];
-        memcpy(_rootOctalCode, sourceBuffer, bytes);
-        sourceBuffer += bytes;
-        remainingBytes -= bytes;
+        packet.read(reinterpret_cast<char*>(_rootOctalCode), bytes);
 
         // if and only if there's a root jurisdiction, also include the end nodes
         int endNodeCount = 0;
-        memcpy(&endNodeCount, sourceBuffer, sizeof(endNodeCount));
-        sourceBuffer += sizeof(endNodeCount);
-        for (int i=0; i < endNodeCount; i++) {
+        packet.readPrimitive(&endNodeCount);
+        
+        for (int i = 0; i < endNodeCount; i++) {
             int bytes = 0;
-            memcpy(&bytes, sourceBuffer, sizeof(bytes));
-            sourceBuffer += sizeof(bytes);
-            remainingBytes -= sizeof(bytes);
+            packet.readPrimitive(&bytes);
 
-            if (bytes <= remainingBytes) {
+            if (bytes <= packet.bytesAvailable()) {
                 unsigned char* endNodeCode = new unsigned char[bytes];
-                memcpy(endNodeCode, sourceBuffer, bytes);
-                sourceBuffer += bytes;
-                remainingBytes -= bytes;
+                packet.read(reinterpret_cast<char*>(endNodeCode), bytes);
 
                 // if the endNodeCode was 0 length then don't add it
                 if (bytes > 0) {
@@ -360,5 +346,5 @@ int JurisdictionMap::unpackFromMessage(const unsigned char* sourceBuffer, int av
         }
     }
 
-    return sourceBuffer - startPosition; // includes header!
+    return packet.pos(); // excludes header
 }
