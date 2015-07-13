@@ -248,6 +248,58 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSock
     return bytesWritten;
 }
 
+qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const Node& destinationNode) {
+    if (!destinationNode.getActiveSocket()) {
+        // we don't have a socket to send to, return 0
+        return 0;
+    }
+    
+    // use the node's active socket as the destination socket
+    auto destinationSockAddr = destinationNode.getActiveSocket();
+    
+    return sendUnreliablePacket(packet, *destinationSockAddr);
+}
+
+qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr) {
+    return writeDatagram(packet.getData(), sockAddr);
+}
+
+qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode) {
+    if (!destinationNode.getActiveSocket()) {
+        // we don't have a socket to send to, return 0
+        return 0;
+    }
+    
+    // use the node's active socket as the destination socket
+    auto destinationSockAddr = destinationNode.getActiveSocket();
+    
+    return sendPacket(std::move(packet), *destinationSockAddr);
+}
+
+qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr) {
+    return writeDatagram(packet->getData(), sockAddr);
+}
+
+qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& destinationNode) {
+    if (!destinationNode.getActiveSocket()) {
+        // we don't have a socket to send to, return 0
+        return 0;
+    }
+    
+    // use the node's active socket as the destination socket
+    auto destinationSockAddr = destinationNode.getActiveSocket();
+    
+    return sendPacketList(packetList, *destinationSockAddr);
+}
+
+qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr) {
+    //    for (auto packet : packetList) {
+    //        
+    //    }
+    
+    assert(false); return 0;
+}
+
 PacketSequenceNumber LimitedNodeList::getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType::Value packetType) {
     // Thanks to std::map and std::unordered_map this line either default constructs the
     // PacketType::SequenceMap and the PacketSequenceNumber or returns the existing value.
