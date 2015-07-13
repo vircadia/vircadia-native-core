@@ -126,7 +126,7 @@ void testPropertyFlags(uint32_t value) {
         auto decodeSize = decodeNew.decode((const uint8_t*)encoded.data(), encoded.size());
         #endif
         Q_ASSERT(originalSize == decodeSize);
-        Q_ASSERT(decodeNew == (unsigned int) original);
+        Q_ASSERT(decodeNew == original);
     }
 }
 
