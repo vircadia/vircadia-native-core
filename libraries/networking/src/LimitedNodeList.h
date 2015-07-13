@@ -27,7 +27,6 @@
 #include <QtCore/QReadWriteLock>
 #include <QtCore/QSet>
 #include <QtCore/QSharedMemory>
-#include <QtCore/QSharedPointer>
 #include <QtNetwork/QUdpSocket>
 #include <QtNetwork/QHostAddress>
 
@@ -63,9 +62,6 @@ const QHostAddress DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME = QHostAddress::Lo
 const QString USERNAME_UUID_REPLACEMENT_STATS_KEY = "$username";
 
 class HifiSockAddr;
-
-typedef QSharedPointer<Node> SharedNodePointer;
-Q_DECLARE_METATYPE(SharedNodePointer)
 
 using namespace tbb;
 typedef std::pair<QUuid, SharedNodePointer> UUIDNodePair;

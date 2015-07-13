@@ -38,10 +38,10 @@ public slots:
 
 private slots:
     void sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID);
-    void processAvatarDataPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
-    void processAvatarIdentityPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
-    void processAvatarBillboardPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
-    void processKillAvatar(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void processAvatarDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void processAvatarIdentityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void processAvatarBillboardPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void processKillAvatar(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
 
 protected:
     AvatarHashMap();

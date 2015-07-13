@@ -56,6 +56,10 @@ static void localLightFromScriptValue(const QScriptValue& value, AvatarManager::
     vec3FromScriptValue(value.property("color"), light.color);
 }
 
+AvatarManager::AvatarManager() {
+
+}
+
 void AvatarManager::registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, localLightToScriptValue, localLightFromScriptValue);
     qScriptRegisterSequenceMetaType<QVector<AvatarManager::LocalLight> >(engine);

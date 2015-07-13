@@ -17,8 +17,8 @@
 
 #include <QtCore/QDebug>
 #include <QtCore/QMutex>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QUuid>
-#include <QMutex>
 
 #include "HifiSockAddr.h"
 #include "NetworkPeer.h"
@@ -91,6 +91,9 @@ private:
 
     PacketTypeSequenceMap _lastSequenceNumbers;
 };
+
+typedef QSharedPointer<Node> SharedNodePointer;
+Q_DECLARE_METATYPE(SharedNodePointer)
 
 QDebug operator<<(QDebug debug, const Node &message);
 

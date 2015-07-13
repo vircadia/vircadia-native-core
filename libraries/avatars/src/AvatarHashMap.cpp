@@ -52,48 +52,37 @@ AvatarSharedPointer AvatarHashMap::addAvatar(const QUuid& sessionUUID, const QWe
     return avatar;
 }
 
-void AvatarHashMap::processAvatarDataPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
-    const auto data = QByteArray::fromRawData(packet->getPayload(), packet->size());
-    int bytesRead = 0;
-
-    SharedNodePointer avatarMixer = DependencyManager::get<NodeList>()->nodeWithUUID(packet->getSourceID());
-    if (avatarMixer) {
-        avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
-    }
+void AvatarHashMap::processAvatarDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
 
     // enumerate over all of the avatars in this packet
     // only add them if mixerWeakPointer points to something (meaning that mixer is still around)
-    while (bytesRead < data.size() && avatarMixer.data()) {
-        QUuid sessionUUID = QUuid::fromRfc4122(data.mid(bytesRead, NUM_BYTES_RFC4122_UUID));
-        bytesRead += NUM_BYTES_RFC4122_UUID;
+    while (packet->bytesAvailable()) {
+        QUuid sessionUUID = QUuid::fromRfc4122(packet->read(NUM_BYTES_RFC4122_UUID));
 
         if (sessionUUID != _lastOwnerSessionUUID) {
             AvatarSharedPointer avatar = _avatarHash.value(sessionUUID);
             if (!avatar) {
-                avatar = addAvatar(sessionUUID, avatarMixer);
+                avatar = addAvatar(sessionUUID, sendingNode);
             }
 
             // have the matching (or new) avatar parse the data from the packet
-            bytesRead += avatar->parseDataAtOffset(data, bytesRead);
+            int bytesRead = avatar->parseDataFromBuffer(QByteArray::fromRawData(packet->getPayload(), packet->pos()));
+            packet->seek(packet->pos() + bytesRead);
         } else {
             // create a dummy AvatarData class to throw this data on the ground
             AvatarData dummyData;
-            bytesRead += dummyData.parseDataAtOffset(data, bytesRead);
+            int bytesRead = dummyData.parseDataFromBuffer(QByteArray::fromRawData(packet->getPayload(), packet->pos()));
+            packet->seek(packet->pos() + bytesRead);
         }
     }
 }
 
-void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
+void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
     // setup a data stream to parse the packet
-    QDataStream identityStream { packet.data() };
+    QDataStream identityStream(packet.data());
 
     QUuid sessionUUID;
-
-    SharedNodePointer avatarMixer = DependencyManager::get<NodeList>()->nodeWithUUID(packet->getSourceID());
-    if (avatarMixer) {
-        avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
-    }
-
+    
     while (!identityStream.atEnd()) {
 
         QUrl faceMeshURL, skeletonURL;
@@ -104,7 +93,7 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<NLPacket> packet,
         // mesh URL for a UUID, find avatar in our list
         AvatarSharedPointer avatar = _avatarHash.value(sessionUUID);
         if (!avatar) {
-            avatar = addAvatar(sessionUUID, avatarMixer);
+            avatar = addAvatar(sessionUUID, sendingNode);
         }
         if (avatar->getFaceModelURL() != faceMeshURL) {
             avatar->setFaceModelURL(faceMeshURL);
@@ -124,34 +113,23 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<NLPacket> packet,
     }
 }
 
-void AvatarHashMap::processAvatarBillboardPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
-    const auto data = QByteArray::fromRawData(packet->getPayload(), packet->size());
-    QUuid sessionUUID = QUuid::fromRfc4122(QByteArray::fromRawData(data, NUM_BYTES_RFC4122_UUID));
-
-    SharedNodePointer avatarMixer = DependencyManager::get<NodeList>()->nodeWithUUID(packet->getSourceID());
-    if (avatarMixer) {
-        avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
-    }
+void AvatarHashMap::processAvatarBillboardPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+    QUuid sessionUUID = QUuid::fromRfc4122(packet->read(NUM_BYTES_RFC4122_UUID));
 
     AvatarSharedPointer avatar = _avatarHash.value(sessionUUID);
     if (!avatar) {
-        avatar = addAvatar(sessionUUID, avatarMixer);
+        avatar = addAvatar(sessionUUID, sendingNode);
     }
 
-    QByteArray billboard = data.mid(NUM_BYTES_RFC4122_UUID);
+    QByteArray billboard = packet->read(packet->bytesAvailable());
     if (avatar->getBillboard() != billboard) {
         avatar->setBillboard(billboard);
     }
 }
 
-void AvatarHashMap::processKillAvatar(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
-    SharedNodePointer avatarMixer = DependencyManager::get<NodeList>()->nodeWithUUID(packet->getSourceID());
-    if (avatarMixer) {
-        avatarMixer->setLastHeardMicrostamp(usecTimestampNow());
-    }
-
+void AvatarHashMap::processKillAvatar(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
     // read the node id
-    QUuid sessionUUID = QUuid::fromRfc4122(QByteArray(packet->getPayload(), NUM_BYTES_RFC4122_UUID));
+    QUuid sessionUUID = QUuid::fromRfc4122(packet->read(NUM_BYTES_RFC4122_UUID));
     removeAvatar(sessionUUID);
 }
 
