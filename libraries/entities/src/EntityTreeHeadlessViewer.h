@@ -38,7 +38,7 @@ public:
 
     EntityTree* getTree() { return (EntityTree*)_tree; }
 
-    void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
+    void processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode);
 
     virtual void init();
 

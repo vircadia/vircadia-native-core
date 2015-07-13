@@ -3910,12 +3910,12 @@ void Application::nodeKilled(SharedNodePointer node) {
         DependencyManager::get<AvatarManager>()->clearOtherAvatars();
     }
 }
-
-void Application::trackIncomingOctreePacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket) {
+ 
+void Application::trackIncomingOctreePacket(NLPacket& packet, SharedNodePointer sendingNode, bool wasStatsPacket) {
 
     // Attempt to identify the sender from its address.
     if (sendingNode) {
-        QUuid nodeUUID = sendingNode->getUUID();
+        const QUuid& nodeUUID = sendingNode->getUUID();
 
         // now that we know the node ID, let's add these stats to the stats for that node...
         _octreeSceneStatsLock.lockForWrite();
@@ -3927,7 +3927,7 @@ void Application::trackIncomingOctreePacket(const QByteArray& packet, const Shar
     }
 }
 
-int Application::processOctreeStats(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingNode) {
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server
 
     // parse the incoming stats datas stick it in a temporary object for now, while we
@@ -3941,10 +3941,10 @@ int Application::processOctreeStats(QSharedPointer<NLPacket> packet, SharedNodeP
     _octreeSceneStatsLock.lockForWrite();
     if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
         octreeStats = &_octreeServerSceneStats[nodeUUID];
-        statsMessageLength = octreeStats->unpackFromPacket(*packet);
+        statsMessageLength = octreeStats->unpackFromPacket(packet);
     } else {
         OctreeSceneStats temp;
-        statsMessageLength = temp.unpackFromPacket(*packet);
+        statsMessageLength = temp.unpackFromPacket(packet);
         octreeStats = &temp;
     }
     _octreeSceneStatsLock.unlock();

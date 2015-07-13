@@ -747,20 +747,17 @@ const char* OctreeSceneStats::getItemValue(Item item) {
     return _itemValueBuffer;
 }
 
-void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
-    bool wasStatsPacket, int nodeClockSkewUsec) {
+void OctreeSceneStats::trackIncomingOctreePacket(NLPacket& packet, bool wasStatsPacket, int nodeClockSkewUsec) {
     const bool wantExtraDebugging = false;
 
-    int numBytesPacketHeader = numBytesForPacketHeader(packet);
-    const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data()) + numBytesPacketHeader;
+    // skip past the flags
+    packet.seek(sizeof(OCTREE_PACKET_FLAGS));
+    
+    OCTREE_PACKET_SEQUENCE sequence;
+    packet.readPrimitive(&sequence);
 
-    //VOXEL_PACKET_FLAGS flags = (*(VOXEL_PACKET_FLAGS*)(dataAt));
-    dataAt += sizeof(OCTREE_PACKET_FLAGS);
-    OCTREE_PACKET_SEQUENCE sequence = (*(OCTREE_PACKET_SEQUENCE*)dataAt);
-    dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
-
-    OCTREE_PACKET_SENT_TIME sentAt = (*(OCTREE_PACKET_SENT_TIME*)dataAt);
-    dataAt += sizeof(OCTREE_PACKET_SENT_TIME);
+    OCTREE_PACKET_SENT_TIME sentAt;
+    packet.readPrimitive(&sentAt);
 
     //bool packetIsColored = oneAtBit(flags, PACKET_IS_COLOR_BIT);
     //bool packetIsCompressed = oneAtBit(flags, PACKET_IS_COMPRESSED_BIT);
@@ -792,8 +789,8 @@ void OctreeSceneStats::trackIncomingOctreePacket(const QByteArray& packet,
 
     // track packets here...
     _incomingPacket++;
-    _incomingBytes += packet.size();
+    _incomingBytes += packet.getSizeWithHeader();
     if (!wasStatsPacket) {
-        _incomingWastedBytes += (MAX_PACKET_SIZE - packet.size());
+        _incomingWastedBytes += (MAX_PACKET_SIZE - packet.getSizeWithHeader());
     }
 }

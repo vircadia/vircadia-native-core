@@ -28,7 +28,7 @@ OctreePacketProcessor::OctreePacketProcessor() {
 }
 
 void OctreePacketProcessor::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
-    queueReceivedPacket(senderNode, packet);
+    queueReceivedPacket(packet, senderNode);
 }
 
 void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
@@ -41,8 +41,6 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
         qDebug("OctreePacketProcessor::processPacket() packets to process=%d", packetsToProcessCount());
     }
     
-    int messageLength = packet->getSizeUsed();
-
     Application* app = Application::getInstance();
     bool wasStatsPacket = false;
 
@@ -52,60 +50,61 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
     // immediately following them inside the same packet. So, we process the PacketType_OCTREE_STATS first
     // then process any remaining bytes as if it was another packet
     if (octreePacketType == PacketType::OctreeStats) {
-        int statsMessageLength = app->processOctreeStats(packet, sendingNode);
-        wasStatsPacket = true;
-        if (messageLength > statsMessageLength) {
-            mutablePacket = mutablePacket.mid(statsMessageLength);
+        int statsMessageLength = app->processOctreeStats(*packet, sendingNode);
 
-            // TODO: this does not look correct, the goal is to test the packet version for the piggyback, but
-            //       this is testing the version and hash of the original packet
-            if (!DependencyManager::get<NodeList>()->packetVersionAndHashMatch(packet)) {
-                return; // bail since piggyback data doesn't match our versioning
-            }
+        wasStatsPacket = true;
+        int piggybackBytes = packet->getSizeUsed() - statsMessageLength;
+        
+        if (piggybackBytes) {
+            // construct a new packet from the piggybacked one
+            std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[piggybackBytes]);
+            memcpy(buffer.get(), packet->getPayload() + statsMessageLength, piggybackBytes);
+            
+            auto newPacket = NLPacket::fromReceivedPacket(std::move(buffer), piggybackBytes, packet->getSenderSockAddr());
+            packet = QSharedPointer<NLPacket>(newPacket.release());
         } else {
             // Note... stats packets don't have sequence numbers, so we don't want to send those to trackIncomingVoxelPacket()
             return; // bail since no piggyback data
         }
     } // fall through to piggyback message
 
-    voxelPacketType = packetTypeForPacket(mutablePacket);
-    PacketVersion packetVersion = mutablePacket[1];
-    PacketVersion expectedVersion = versionForPacketType(voxelPacketType);
+    PacketType::Value packetType = packet->getType();
 
     // check version of piggyback packet against expected version
-    if (packetVersion != expectedVersion) {
+    if (packetType != versionForPacketType(packet->getType())) {
         static QMultiMap<QUuid, PacketType::Value> versionDebugSuppressMap;
 
-        QUuid senderUUID = uuidFromPacketHeader(packet);
-        if (!versionDebugSuppressMap.contains(senderUUID, voxelPacketType)) {
-            qDebug() << "Packet version mismatch on" << voxelPacketType << "- Sender"
-            << senderUUID << "sent" << (int)packetVersion << "but"
-            << (int)expectedVersion << "expected.";
+        const QUuid& senderUUID = packet->getSourceID();
+        if (!versionDebugSuppressMap.contains(senderUUID, packet->getType())) {
+            
+            qDebug() << "Packet version mismatch on" << packetType << "- Sender"
+                << senderUUID << "sent" << (int) packetType << "but"
+                << (int) versionForPacketType(packetType) << "expected.";
 
             emit packetVersionMismatch();
 
-            versionDebugSuppressMap.insert(senderUUID, voxelPacketType);
+            versionDebugSuppressMap.insert(senderUUID, packetType);
         }
         return; // bail since piggyback version doesn't match
     }
 
-    app->trackIncomingOctreePacket(mutablePacket, sendingNode, wasStatsPacket);
+    app->trackIncomingOctreePacket(*packet, sendingNode, wasStatsPacket);
 
-    switch(voxelPacketType) {
+    switch(packetType) {
         case PacketType::EntityErase: {
             if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
-                app->_entities.processEraseMessage(mutablePacket, sendingNode);
+                app->_entities.processEraseMessage(*packet, sendingNode);
             }
         } break;
 
         case PacketType::EntityData: {
             if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
-                app->_entities.processDatagram(mutablePacket, sendingNode);
+                app->_entities.processDatagram(*packet, sendingNode);
             }
         } break;
 
         case PacketType::EnvironmentData: {
-            app->_environment.parseData(*sendingNode->getActiveSocket(), mutablePacket);
+            app->_environment.processPacket(*packet);
         } break;
 
         default: {

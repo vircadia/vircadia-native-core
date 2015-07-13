@@ -45,7 +45,7 @@
 #include "EntitiesRendererLogging.h"
 #include "AddressManager.h"
 
-EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState, 
+EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState,
                                             AbstractScriptingServicesInterface* scriptingServices) :
     OctreeRenderer(),
     _wantScripts(wantScripts),
@@ -75,13 +75,13 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
 }
 
 EntityTreeRenderer::~EntityTreeRenderer() {
-    // NOTE: we don't need to delete _entitiesScriptEngine because it is registered with the application and has a 
+    // NOTE: we don't need to delete _entitiesScriptEngine because it is registered with the application and has a
     // signal tied to call it's deleteLater on doneRunning
     if (_sandboxScriptEngine) {
         // TODO: consider reworking how _sandboxScriptEngine is managed. It's treated differently than _entitiesScriptEngine
-        // because we don't call registerScriptEngineWithApplicationServices() for it. This implementation is confusing and 
-        // potentially error prone because it's not a full fledged ScriptEngine that has been fully connected to the 
-        // application. We did this so that scripts that were ill-formed could be evaluated but not execute against the 
+        // because we don't call registerScriptEngineWithApplicationServices() for it. This implementation is confusing and
+        // potentially error prone because it's not a full fledged ScriptEngine that has been fully connected to the
+        // application. We did this so that scripts that were ill-formed could be evaluated but not execute against the
         // application services. But this means it's shutdown behavior is different from other ScriptEngines
         delete _sandboxScriptEngine;
         _sandboxScriptEngine = NULL;
@@ -119,7 +119,7 @@ void EntityTreeRenderer::init() {
     }
 
     // make sure our "last avatar position" is something other than our current position, so that on our
-    // first chance, we'll check for enter/leave entity events.    
+    // first chance, we'll check for enter/leave entity events.
     _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3((float)TREE_SCALE);
     
     connect(entityTree, &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity, Qt::QueuedConnection);
@@ -138,7 +138,7 @@ void EntityTreeRenderer::scriptContentsAvailable(const QUrl& url, const QString&
         _waitingOnPreload.remove(url);
         foreach(EntityItemID entityID, entityIDs) {
             checkAndCallPreload(entityID);
-        } 
+        }
     }
 }
 
@@ -154,7 +154,7 @@ QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItem
 }
 
 
-QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL, bool& isPending, QUrl& urlOut, 
+QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL, bool& isPending, QUrl& urlOut,
         bool& reload) {
     isPending = false;
     QUrl url(scriptMaybeURLorText);
@@ -353,7 +353,7 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
             
             // Note: at this point we don't need to worry about the tree being locked, because we only deal with
             // EntityItemIDs from here. The loadEntityScript() method is robust against attempting to load scripts
-            // for entity IDs that no longer exist. 
+            // for entity IDs that no longer exist.
 
             // for all of our previous containing entities, if they are no longer containing then send them a leave event
             foreach(const EntityItemID& entityID, _currentEntitiesInside) {
@@ -400,7 +400,7 @@ void EntityTreeRenderer::leaveAllEntities() {
         _currentEntitiesInside.clear();
         
         // make sure our "last avatar position" is something other than our current position, so that on our
-        // first chance, we'll check for enter/leave entity events.    
+        // first chance, we'll check for enter/leave entity events.
         _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3((float)TREE_SCALE);
     }
 }
@@ -513,7 +513,7 @@ const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(EntityItemPointer en
     const FBXGeometry* result = NULL;
     
     if (entityItem->getType() == EntityTypes::Model) {
-        std::shared_ptr<RenderableModelEntityItem> modelEntityItem = 
+        std::shared_ptr<RenderableModelEntityItem> modelEntityItem =
                                                         std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
         assert(modelEntityItem); // we need this!!!
         Model* model = modelEntityItem->getModel(this);
@@ -527,7 +527,7 @@ const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(EntityItemPointer en
 const Model* EntityTreeRenderer::getModelForEntityItem(EntityItemPointer entityItem) {
     const Model* result = NULL;
     if (entityItem->getType() == EntityTypes::Model) {
-        std::shared_ptr<RenderableModelEntityItem> modelEntityItem = 
+        std::shared_ptr<RenderableModelEntityItem> modelEntityItem =
                                                         std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
         result = modelEntityItem->getModel(this);
     }
@@ -538,7 +538,7 @@ const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(EntityItemP
     const FBXGeometry* result = NULL;
     
     if (entityItem->getType() == EntityTypes::Model) {
-        std::shared_ptr<RenderableModelEntityItem> modelEntityItem = 
+        std::shared_ptr<RenderableModelEntityItem> modelEntityItem =
                                                         std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
         if (modelEntityItem->hasCompoundShapeURL()) {
             Model* model = modelEntityItem->getModel(this);
@@ -678,20 +678,20 @@ float EntityTreeRenderer::getSizeScale() const {
     return _viewState->getSizeScale();
 }
 
-int EntityTreeRenderer::getBoundaryLevelAdjust() const { 
+int EntityTreeRenderer::getBoundaryLevelAdjust() const {
     return _viewState->getBoundaryLevelAdjust();
 }
 
 
-void EntityTreeRenderer::processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
-    static_cast<EntityTree*>(_tree)->processEraseMessage(dataByteArray, sourceNode);
+void EntityTreeRenderer::processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode) {
+    static_cast<EntityTree*>(_tree)->processEraseMessage(packet, sourceNode);
 }
 
 Model* EntityTreeRenderer::allocateModel(const QString& url, const QString& collisionUrl) {
     Model* model = NULL;
     // Make sure we only create and delete models on the thread that owns the EntityTreeRenderer
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "allocateModel", Qt::BlockingQueuedConnection, 
+        QMetaObject::invokeMethod(this, "allocateModel", Qt::BlockingQueuedConnection,
                 Q_RETURN_ARG(Model*, model),
                 Q_ARG(const QString&, url));
 
@@ -715,7 +715,7 @@ Model* EntityTreeRenderer::updateModel(Model* original, const QString& newUrl, c
 
     // Before we do any creating or deleting, make sure we're on our renderer thread
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "updateModel", Qt::BlockingQueuedConnection, 
+        QMetaObject::invokeMethod(this, "updateModel", Qt::BlockingQueuedConnection,
                 Q_RETURN_ARG(Model*, model),
                 Q_ARG(Model*, original),
                 Q_ARG(const QString&, newUrl));
@@ -756,7 +756,7 @@ void EntityTreeRenderer::deleteReleasedModels() {
     }
 }
 
-RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType, 
+RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
                                                                                     bool precisionPicking) {
     RayToEntityIntersectionResult result;
     if (_tree) {
@@ -764,8 +764,8 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
 
         OctreeElement* element;
         EntityItemPointer intersectedEntity = NULL;
-        result.intersects = entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face, 
-                                                                (void**)&intersectedEntity, lockType, &result.accurate, 
+        result.intersects = entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face,
+                                                                (void**)&intersectedEntity, lockType, &result.accurate,
                                                                 precisionPicking);
         if (result.intersects && intersectedEntity) {
             result.entityID = intersectedEntity->getEntityItemID();
@@ -778,15 +778,15 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
 }
 
 void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityScriptingInterface) {
-    connect(this, &EntityTreeRenderer::mousePressOnEntity, entityScriptingInterface, 
+    connect(this, &EntityTreeRenderer::mousePressOnEntity, entityScriptingInterface,
         [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId){
         entityScriptingInterface->mousePressOnEntity(intersection.entityID, MouseEvent(*event, deviceId));
     });
-    connect(this, &EntityTreeRenderer::mouseMoveOnEntity, entityScriptingInterface, 
+    connect(this, &EntityTreeRenderer::mouseMoveOnEntity, entityScriptingInterface,
         [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId) {
         entityScriptingInterface->mouseMoveOnEntity(intersection.entityID, MouseEvent(*event, deviceId));
     });
-    connect(this, &EntityTreeRenderer::mouseReleaseOnEntity, entityScriptingInterface, 
+    connect(this, &EntityTreeRenderer::mouseReleaseOnEntity, entityScriptingInterface,
         [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId) {
         entityScriptingInterface->mouseReleaseOnEntity(intersection.entityID, MouseEvent(*event, deviceId));
     });
@@ -966,7 +966,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
 
     } else {
         // handle the hover logic...
-        // if we were previously hovering over an entity, and we're no longer hovering over any entity then we need to 
+        // if we were previously hovering over an entity, and we're no longer hovering over any entity then we need to
         // send the hover leave for our previous entity
         if (!_currentHoverOverEntityID.isInvalidID()) {
             emit hoverLeaveEntity(_currentHoverOverEntityID, MouseEvent(*event, deviceID));

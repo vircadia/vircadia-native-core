@@ -612,8 +612,8 @@ private:
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
 
-    int processOctreeStats(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
-    void trackIncomingOctreePacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket);
+    int processOctreeStats(NLPacket& packet, SharedNodePointer sendingNode);
+    void trackIncomingOctreePacket(NLPacket& packet, SharedNodePointer sendingNode, bool wasStatsPacket);
 
     NodeToJurisdictionMap _entityServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;
