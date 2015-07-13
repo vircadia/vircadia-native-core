@@ -15,14 +15,17 @@
 #include <TextureCache.h>
 
 #include "Planar3DOverlay.h"
+#include "PanelAttachable.h"
 
-class BillboardOverlay : public Planar3DOverlay {
+class BillboardOverlay : public Planar3DOverlay, public PanelAttachable {
     Q_OBJECT
 public:
     BillboardOverlay();
     BillboardOverlay(const BillboardOverlay* billboardOverlay);
 
     virtual void render(RenderArgs* args);
+
+    virtual void update(float deltatime);
 
     // setters
     void setURL(const QString& url);

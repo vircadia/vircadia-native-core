@@ -16,6 +16,9 @@
 
 #include "Overlay.h"
 
+#include "FloatingUIPanel.h"
+#include "PanelAttachable.h"
+
 class PickRay;
 
 class OverlayPropertyResult {
@@ -90,12 +93,33 @@ public slots:
     /// overlay; in meters if it is a 3D text overlay
     QSizeF textSize(unsigned int id, const QString& text) const;
 
+
+    /// adds a panel that has already been created
+    unsigned int addPanel(FloatingUIPanel* panel);
+
+    /// creates and adds a panel based on a set of properties
+    unsigned int addPanel(const QScriptValue& properties);
+
+    /// edit the properties of a panel
+    void editPanel(unsigned int panelId, const QScriptValue& properties);
+
+    /// get a property of a panel
+    OverlayPropertyResult getPanelProperty(unsigned int panelId, const QString& property);
+
+    /// deletes a panel and all child overlays
+    void deletePanel(unsigned int panelId);
+
 private:
     void cleanupOverlaysToDelete();
+    Overlay::Pointer getOverlay(unsigned int id) const;
+    void setAttachedPanel(Overlay* overlay, unsigned int overlayId, const QScriptValue& property);
+
     QMap<unsigned int, Overlay::Pointer> _overlaysHUD;
     QMap<unsigned int, Overlay::Pointer> _overlaysWorld;
+    QMap<unsigned int, FloatingUIPanel::Pointer> _panels;
     QList<Overlay::Pointer> _overlaysToDelete;
     unsigned int _nextOverlayID;
+
     QReadWriteLock _lock;
     QReadWriteLock _deleteLock;
     QScriptEngine* _scriptEngine;

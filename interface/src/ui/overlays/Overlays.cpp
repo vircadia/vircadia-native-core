@@ -48,6 +48,7 @@ Overlays::~Overlays() {
         }
         _overlaysHUD.clear();
         _overlaysWorld.clear();
+        _panels.clear();
     }
     
     cleanupOverlaysToDelete();
@@ -124,11 +125,36 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
     }
 }
 
+Overlay::Pointer Overlays::getOverlay(unsigned int id) const {
+    if (_overlaysHUD.contains(id)) {
+        return _overlaysHUD[id];
+    }
+    if (_overlaysWorld.contains(id)) {
+        return _overlaysWorld[id];
+    }
+    return nullptr;
+}
+
+void Overlays::setAttachedPanel(Overlay* overlay, unsigned int overlayId, const QScriptValue& property) {
+    if (PanelAttachable* attachable = dynamic_cast<PanelAttachable*>(overlay)) {
+        if (property.isValid()) {
+            unsigned int attachedPanelId = property.toVariant().toUInt();
+            FloatingUIPanel* panel = nullptr;
+            if (_panels.contains(attachedPanelId)) {
+                panel = _panels[attachedPanelId].get();
+                panel->children.append(overlayId);
+                attachable->setAttachedPanel(panel);
+            } else {
+                attachable->getAttachedPanel()->children.removeAll(overlayId);
+                attachable->setAttachedPanel(nullptr);
+            }
+        }
+    }
+}
+
 unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& properties) {
-    unsigned int thisID = 0;
     Overlay* thisOverlay = NULL;
-    
-    bool created = true;
+
     if (type == "image") {
         thisOverlay = new ImageOverlay();
     } else if (type == "text") {
@@ -153,16 +179,15 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
         thisOverlay = new ModelOverlay();
     } else if (type == "billboard") {
         thisOverlay = new BillboardOverlay();
-    } else {
-        created = false;
     }
 
-    if (created) {
+    if (thisOverlay) {
         thisOverlay->setProperties(properties);
-        thisID = addOverlay(thisOverlay);
+        unsigned int overlayId = addOverlay(thisOverlay);
+        setAttachedPanel(thisOverlay, overlayId, properties.property("attachedPanel"));
+        return overlayId;
     }
-
-    return thisID; 
+    return 0;
 }
 
 unsigned int Overlays::addOverlay(Overlay* overlay) {
@@ -189,17 +214,12 @@ unsigned int Overlays::addOverlay(Overlay* overlay) {
     } else {
         _overlaysHUD[thisID] = overlayPointer;
     }
-    
+
     return thisID;
 }
 
 unsigned int Overlays::cloneOverlay(unsigned int id) {
-    Overlay::Pointer thisOverlay = NULL;
-    if (_overlaysHUD.contains(id)) {
-        thisOverlay = _overlaysHUD[id];
-    } else if (_overlaysWorld.contains(id)) {
-        thisOverlay = _overlaysWorld[id];
-    }
+    Overlay::Pointer thisOverlay = getOverlay(id);
 
     if (thisOverlay) {
         return addOverlay(thisOverlay->createClone());
@@ -210,14 +230,8 @@ unsigned int Overlays::cloneOverlay(unsigned int id) {
 
 bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
     QWriteLocker lock(&_lock);
-    Overlay::Pointer thisOverlay;
 
-    if (_overlaysHUD.contains(id)) {
-        thisOverlay = _overlaysHUD[id];
-    } else if (_overlaysWorld.contains(id)) {
-        thisOverlay = _overlaysWorld[id];
-    }
-
+    Overlay::Pointer thisOverlay = getOverlay(id);
     if (thisOverlay) {
         if (thisOverlay->is3D()) {
             auto overlay3D = std::static_pointer_cast<Base3DOverlay>(thisOverlay);
@@ -238,6 +252,8 @@ bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
         } else {
             thisOverlay->setProperties(properties);
         }
+
+        setAttachedPanel(thisOverlay.get(), id, properties.property("attachedPanel"));
 
         return true;
     }
@@ -302,15 +318,18 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
 
 OverlayPropertyResult Overlays::getProperty(unsigned int id, const QString& property) {
     OverlayPropertyResult result;
-    Overlay::Pointer thisOverlay;
+    Overlay::Pointer thisOverlay = getOverlay(id);
     QReadLocker lock(&_lock);
-    if (_overlaysHUD.contains(id)) {
-        thisOverlay = _overlaysHUD[id];
-    } else if (_overlaysWorld.contains(id)) {
-        thisOverlay = _overlaysWorld[id];
-    }
     if (thisOverlay) {
-        result.value = thisOverlay->getProperty(property);
+        if (property == "attachedPanel") {
+            if (FloatingUIPanel* panel = dynamic_cast<FloatingUIPanel*>(thisOverlay.get())) {
+                result.value = _panels.key(FloatingUIPanel::Pointer(panel));
+            } else {
+                result.value = 0;
+            }
+        } else {
+            result.value = thisOverlay->getProperty(property);
+        }
     }
     return result;
 }
@@ -456,12 +475,8 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
 
 bool Overlays::isLoaded(unsigned int id) {
     QReadLocker lock(&_lock);
-    Overlay::Pointer thisOverlay = NULL;
-    if (_overlaysHUD.contains(id)) {
-        thisOverlay = _overlaysHUD[id];
-    } else if (_overlaysWorld.contains(id)) {
-        thisOverlay = _overlaysWorld[id];
-    } else {
+    Overlay::Pointer thisOverlay = getOverlay(id);
+    if (!thisOverlay) {
         return false; // not found
     }
     return thisOverlay->isLoaded();
@@ -482,4 +497,56 @@ QSizeF Overlays::textSize(unsigned int id, const QString& text) const {
         }
     }
     return QSizeF(0.0f, 0.0f);
+}
+
+unsigned int Overlays::addPanel(FloatingUIPanel* panel) {
+    QWriteLocker lock(&_lock);
+
+    FloatingUIPanel::Pointer panelPointer(panel);
+    unsigned int thisID = _nextOverlayID;
+    _nextOverlayID++;
+    _panels[thisID] = panelPointer;
+
+    return thisID;
+}
+
+unsigned int Overlays::addPanel(const QScriptValue& properties) {
+    FloatingUIPanel* panel = new FloatingUIPanel();
+    panel->init(_scriptEngine);
+    panel->setProperties(properties);
+    return addPanel(panel);
+}
+
+void Overlays::editPanel(unsigned int panelId, const QScriptValue& properties) {
+    if (_panels.contains(panelId)) {
+        _panels[panelId]->setProperties(properties);
+    }
+}
+
+OverlayPropertyResult Overlays::getPanelProperty(unsigned int panelId, const QString& property) {
+    OverlayPropertyResult result;
+    if (_panels.contains(panelId)) {
+        FloatingUIPanel::Pointer thisPanel = _panels[panelId];
+        QReadLocker lock(&_lock);
+        result.value = thisPanel->getProperty(property);
+    }
+    return result;
+}
+
+
+void Overlays::deletePanel(unsigned int panelId) {
+    FloatingUIPanel::Pointer panelToDelete;
+
+    {
+        QWriteLocker lock(&_lock);
+        if (_panels.contains(panelId)) {
+            panelToDelete = _panels.take(panelId);
+        } else {
+            return;
+        }
+    }
+
+    while (!panelToDelete->children.isEmpty()) {
+        deleteOverlay(panelToDelete->children.takeLast());
+    }
 }

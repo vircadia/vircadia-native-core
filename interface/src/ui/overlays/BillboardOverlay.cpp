@@ -36,6 +36,13 @@ BillboardOverlay::BillboardOverlay(const BillboardOverlay* billboardOverlay) :
 {
 }
 
+void BillboardOverlay::update(float deltatime) {
+    glm::vec3 newPos = getTranslatedPosition(Application::getInstance()->getAvatarPosition());
+    if (newPos != glm::vec3()) {
+        setPosition(newPos);
+    }
+}
+
 void BillboardOverlay::render(RenderArgs* args) {
     if (!_texture) {
         _isLoaded = true;
@@ -46,15 +53,17 @@ void BillboardOverlay::render(RenderArgs* args) {
         return;
     }
 
+    glm::vec3 newPos = getTranslatedPosition(Application::getInstance()->getAvatarPosition());
+    if (newPos != glm::vec3()) {
+        setPosition(newPos);
+    }
+
     glm::quat rotation;
     if (_isFacingAvatar) {
         // LOL, quaternions are hard.
-        // rotate about vertical to face the camera
 //        glm::vec3 dPos = getPosition() - args->_viewFrustum->getPosition();
 //        dPos = glm::normalize(dPos);
 //        rotation = glm::quat(0, dPos.x, dPos.y, dPos.z);
-        rotation = args->_viewFrustum->getOrientation();
-        rotation *= glm::angleAxis(glm::pi<float>(), IDENTITY_UP);
 //        float horizontal = glm::sqrt(dPos.x * dPos.x + dPos.y + dPos.y);
 //        glm::vec3 zAxis = glm::vec3(0, 0, 1);
 //        rotation = rotationBetween(zAxis, dPos);
@@ -70,9 +79,24 @@ void BillboardOverlay::render(RenderArgs* args) {
 //        rotation = yawQuat * pitchQuat;
 //        glm::vec3 pitch = glm::vec3(dPos.x, dPos.y, 0);
 //        rotation = glm::quat(glm::vec3(pitch, yaw, 0));
+        // rotate about vertical to be perpendicular to the camera
+        rotation = args->_viewFrustum->getOrientation();
+        rotation *= glm::angleAxis(glm::pi<float>(), IDENTITY_UP);
         rotation *= getRotation();
     } else {
         rotation = getRotation();
+        if (getAttachedPanel()) {
+            rotation *= getAttachedPanel()->getOffsetRotation() *
+                        getAttachedPanel()->getFacingRotation();
+//            if (getAttachedPanel()->getFacingRotation() != glm::quat(0, 0, 0, 0)) {
+//                rotation *= getAttachedPanel()->getFacingRotation();
+//            } else if (getAttachedPanel()->getOffsetRotation() != glm::quat(0, 0, 0, 0)) {
+//                rotation *= getAttachedPanel()->getOffsetRotation();
+//            } else {
+//                rotation *= Application::getInstance()->getCamera()->getOrientation() *
+//                            glm::quat(0, 0, 1, 0);
+//            }
+        }
     }
 
     float imageWidth = _texture->getWidth();
@@ -114,7 +138,7 @@ void BillboardOverlay::render(RenderArgs* args) {
         Transform transform = _transform;
         transform.postScale(glm::vec3(getDimensions(), 1.0f));
         transform.setRotation(rotation);
-        
+
         batch->setModelTransform(transform);
         batch->setResourceTexture(0, _texture->getGPUTexture());
         
@@ -171,6 +195,21 @@ void BillboardOverlay::setProperties(const QScriptValue &properties) {
     if (isFacingAvatarValue.isValid()) {
         _isFacingAvatar = isFacingAvatarValue.toVariant().toBool();
     }
+
+    QScriptValue offsetPosition = properties.property("offsetPosition");
+    if (offsetPosition.isValid()) {
+        QScriptValue x = offsetPosition.property("x");
+        QScriptValue y = offsetPosition.property("y");
+        QScriptValue z = offsetPosition.property("z");
+
+        if (x.isValid() && y.isValid() && z.isValid()) {
+            glm::vec3 newPosition;
+            newPosition.x = x.toVariant().toFloat();
+            newPosition.y = y.toVariant().toFloat();
+            newPosition.z = z.toVariant().toFloat();
+            setOffsetPosition(newPosition);
+        }
+    }
 }
 
 QScriptValue BillboardOverlay::getProperty(const QString& property) {
@@ -182,6 +221,9 @@ QScriptValue BillboardOverlay::getProperty(const QString& property) {
     }
     if (property == "isFacingAvatar") {
         return _isFacingAvatar;
+    }
+    if (property == "offsetPosition") {
+        return vec3toScriptValue(_scriptEngine, getOffsetPosition());
     }
 
     return Planar3DOverlay::getProperty(property);
