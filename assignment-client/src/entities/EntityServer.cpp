@@ -21,9 +21,10 @@ const char* MODEL_SERVER_NAME = "Entity";
 const char* MODEL_SERVER_LOGGING_TARGET_NAME = "entity-server";
 const char* LOCAL_MODELS_PERSIST_FILE = "resources/models.svo";
 
-EntityServer::EntityServer(const QByteArray& packet)
-    :   OctreeServer(packet), _entitySimulation(NULL) {
-
+EntityServer::EntityServer(NLPacket& packet) :
+    OctreeServer(packet),
+    _entitySimulation(NULL)
+{
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerPacketListener(PacketType::EntityAdd, this, "handleEntityAddPacket");
     packetReceiver.registerPacketListener(PacketType::EntityEdit, this, "handleEntityEditPacket");
@@ -40,19 +41,19 @@ EntityServer::~EntityServer() {
     tree->removeNewlyCreatedHook(this);
 }
 
-void EntityServer::handleEntityAddPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
+void EntityServer::handleEntityAddPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
     if (_octreeInboundPacketProcessor) {
         _octreeInboundPacketProcessor->queueReceivedPacket(packet, senderNode);
     }
 }
 
-void EntityServer::handleEntityEditPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
+void EntityServer::handleEntityEditPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
     if (_octreeInboundPacketProcessor) {
         _octreeInboundPacketProcessor->queueReceivedPacket(packet, senderNode);
     }
 }
 
-void EntityServer::handleEntityErasePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
+void EntityServer::handleEntityErasePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
     if (_octreeInboundPacketProcessor) {
         _octreeInboundPacketProcessor->queueReceivedPacket(packet, senderNode);
     }

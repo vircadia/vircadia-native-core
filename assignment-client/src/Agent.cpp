@@ -60,34 +60,38 @@ Agent::Agent(NLPacket& packet) :
 }
 
 void Agent::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
-    QByteArray mutablePacket = QByteArray(packet->getData(), packet->getSizeWithHeader());
-    int messageLength = mutablePacket.size();
-
     auto packetType = packet->getType();
 
     if (packetType == PacketType::OctreeStats) {
 
         int statsMessageLength = OctreeHeadlessViewer::parseOctreeStats(packet, senderNode);
-        if (messageLength > statsMessageLength) {
-            mutablePacket = mutablePacket.mid(statsMessageLength);
+        if (packet->getSizeUsed() > statsMessageLength) {
+            // pull out the piggybacked packet and create a new QSharedPointer<NLPacket> for it
+            int packetSizeWithHeader = packet->getSizeUsed() - statsMessageLength;
+            
+            std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[packetSizeWithHeader]);
+            memcpy(buffer.get(), packet->getPayload() + statsMessageLength, packetSizeWithHeader);
+
+            auto newPacket = NLPacket::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, packet->getSenderSockAddr());
+            packet = QSharedPointer<NLPacket>(newPacket.release());
         } else {
             return; // bail since no piggyback data
         }
 
-        packetType = packetTypeForPacket(mutablePacket);
+        packetType = packet->getType();
     } // fall through to piggyback message
 
     if (packetType == PacketType::EntityData || packetType == PacketType::EntityErase) {
-        _entityViewer.processDatagram(mutablePacket, senderNode);
+        _entityViewer.processDatagram(*packet, senderNode);
     }
 }
 
-void Agent::handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
-    QByteArray receivedPacket = QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader());
-    int headerBytes = numBytesForPacketHeader(receivedPacket);
-
+void Agent::handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+    NodeType_t nodeType;
+    packet->peek(reinterpret_cast<char*>(&nodeType), sizeof(nodeType));
+    
     // PacketType_JURISDICTION, first byte is the node type...
-    switch (receivedPacket[headerBytes]) {
+    switch (nodeType) {
         case NodeType::EntityServer:
             DependencyManager::get<EntityScriptingInterface>()->getJurisdictionListener()->
                 queueReceivedPacket(packet, senderNode);
@@ -95,8 +99,8 @@ void Agent::handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNode
     }
 }
 
-void Agent::handleAudioPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
-    _receivedAudioStream.parseData(QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
+void Agent::handleAudioPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+    _receivedAudioStream.parseData(*packet, senderNode);
 
     _lastReceivedAudioLoudness = _receivedAudioStream.getNextOutputFrameLoudness();
 

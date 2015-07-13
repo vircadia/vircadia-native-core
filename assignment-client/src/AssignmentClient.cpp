@@ -210,7 +210,7 @@ void AssignmentClient::handleCreateAssignmentPacket(QSharedPointer<NLPacket> pac
     qDebug() << "Received a PacketType::CreateAssignment - attempting to unpack.";
 
     // construct the deployed assignment from the packet data
-    _currentAssignment = AssignmentFactory::unpackAssignment(QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
+    _currentAssignment = AssignmentFactory::unpackAssignment(*packet);
 
     if (_currentAssignment) {
         qDebug() << "Received an assignment -" << *_currentAssignment;
