@@ -33,7 +33,7 @@ const QString AVATAR_MIXER_LOGGING_NAME = "avatar-mixer";
 const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 60;
 const unsigned int AVATAR_DATA_SEND_INTERVAL_MSECS = (1.0f / (float) AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND) * 1000;
 
-AvatarMixer::AvatarMixer(const QByteArray& packet) :
+AvatarMixer::AvatarMixer(NLPacket& packet) :
     ThreadedAssignment(packet),
     _broadcastThread(),
     _lastFrameTimestamp(QDateTime::currentMSecsSinceEpoch()),
@@ -402,7 +402,7 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
 
 void AvatarMixer::handleAvatarDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->findNodeAndUpdateWithDataFromPacket(packet);
+    nodeList->updateNodeWithDataFromPacket(packet, senderNode);
 }
 
 void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {

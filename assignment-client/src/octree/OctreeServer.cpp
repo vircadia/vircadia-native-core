@@ -213,7 +213,7 @@ void OctreeServer::trackProcessWaitTime(float time) {
     _averageProcessWaitTime.updateAverage(time);
 }
 
-OctreeServer::OctreeServer(const QByteArray& packet) :
+OctreeServer::OctreeServer(NLPacket& packet) :
     ThreadedAssignment(packet),
     _argc(0),
     _argv(NULL),
@@ -247,11 +247,6 @@ OctreeServer::OctreeServer(const QByteArray& packet) :
     // make sure the AccountManager has an Auth URL for payment redemptions
 
     AccountManager::getInstance().setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
-
-    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerPacketListener(getMyQueryMessageType(), this, "handleOctreeQueryPacket");
-    packetReceiver.registerPacketListener(PacketType::OctreeDataNack, this, "handleOctreeDataNackPacket");
-    packetReceiver.registerPacketListener(PacketType::JurisdictionRequest, this, "handleJurisdictionRequestPacket");
 }
 
 OctreeServer::~OctreeServer() {
@@ -1108,6 +1103,12 @@ void OctreeServer::readConfiguration() {
 }
 
 void OctreeServer::run() {
+
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerPacketListener(getMyQueryMessageType(), this, "handleOctreeQueryPacket");
+    packetReceiver.registerPacketListener(PacketType::OctreeDataNack, this, "handleOctreeDataNackPacket");
+    packetReceiver.registerPacketListener(PacketType::JurisdictionRequest, this, "handleJurisdictionRequestPacket");
+    
     _safeServerName = getMyServerName();
 
     // Before we do anything else, create our tree...

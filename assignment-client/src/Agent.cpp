@@ -32,7 +32,7 @@
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
 
-Agent::Agent(const QByteArray& packet) :
+Agent::Agent(NLPacket& packet) :
     ThreadedAssignment(packet),
     _entityEditSender(),
     _receivedAudioStream(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES,
@@ -49,15 +49,17 @@ Agent::Agent(const QByteArray& packet) :
     DependencyManager::set<SoundCache>();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerPacketListener(PacketType::MixedAudio, this, "handleAudioPacket");
-    packetReceiver.registerPacketListener(PacketType::SilentAudioFrame, this, "handleAudioPacket");
-    packetReceiver.registerPacketListener(PacketType::OctreeStats, this, "handleOctreePacket");
-    packetReceiver.registerPacketListener(PacketType::EntityData, this, "handleOctreePacket");
-    packetReceiver.registerPacketListener(PacketType::EntityErase, this, "handleOctreePacket");
+    
+    packetReceiver.registerPacketListenerForTypes(
+        QSet<PacketType::Value>({ PacketType::MixedAudio, PacketType::SilentAudioFrame }),
+        this, "handleAudioPacket");
+    packetReceiver.registerPacketListenerForTypes(
+        QSet<PacketType::Value>({ PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase }),
+        this, "handleOctreePacket");
     packetReceiver.registerPacketListener(PacketType::Jurisdiction, this, "handleJurisdictionPacket");
 }
 
-void Agent::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
+void Agent::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
     QByteArray mutablePacket = QByteArray(packet->getData(), packet->getSizeWithHeader());
     int messageLength = mutablePacket.size();
 

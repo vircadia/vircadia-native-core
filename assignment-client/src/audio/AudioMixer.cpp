@@ -104,7 +104,7 @@ AudioMixer::AudioMixer(NLPacket& packet) :
         PacketType::AudioStreamStats
     };
 
-    packetReceiver.registerPacketListenerForSet(nodeAudioPackets, this, "handleNodeAudioPacket");
+    packetReceiver.registerPacketListenerForTypes(nodeAudioPackets, this, "handleNodeAudioPacket");
     packetReceiver.registerPacketListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
 }
 
@@ -475,7 +475,6 @@ int AudioMixer::prepareMixForListeningNode(Node* node) {
 }
 
 void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
-    static char clientEnvBuffer[MAX_PACKET_SIZE];
 
     // Send stream properties
     bool hasReverb = false;
@@ -501,6 +500,7 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
             break;
         }
     }
+    
     AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
     AvatarAudioStream* stream = nodeData->getAvatarAudioStream();
     bool dataChanged = (stream->hasReverb() != hasReverb) ||
@@ -550,13 +550,13 @@ void AudioMixer::handleNodeAudioPacket(QSharedPointer<NLPacket> packet, SharedNo
     DependencyManager::get<NodeList>()->updateNodeWithDataFromPacket(packet, sendingNode);
 }
 
-void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
+void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
     auto nodeList = DependencyManager::get<NodeList>();
-    SharedNodePointer sendingNode = nodeList->nodeWithUUID(packet->getSourceID());
+    
     if (sendingNode->getCanAdjustLocks()) {
-        auto newPacket = NLPacket::create(PacketType::MuteEnvironment);
+        auto newPacket = NLPacket::create(PacketType::MuteEnvironment, packet->getSizeUsed());
         // Copy payload
-        newPacket->write(newPacket->getPayload());
+        newPacket->write(packet->getPayload(), packet->getSizeUsed());
 
         nodeList->eachNode([&](const SharedNodePointer& node){
             if (node->getType() == NodeType::Agent && node->getActiveSocket() &&

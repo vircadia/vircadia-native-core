@@ -24,7 +24,7 @@ PacketReceiver::PacketReceiver(QObject* parent) :
 
 }
 
-void PacketReceiver::registerPacketListenerForSet(const QSet<PacketType::Value>& types, QObject* object, const char* slot) {
+void PacketReceiver::registerPacketListenerForTypes(const QSet<PacketType::Value>& types, QObject* object, const char* slot) {
     QSet<PacketType::Value> nonSourcedTypes;
     QSet<PacketType::Value> sourcedTypes;
 

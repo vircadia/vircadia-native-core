@@ -32,7 +32,7 @@ const int DEFAULT_PACKETS_PER_INTERVAL = 2000; // some 120,000 packets per secon
 class OctreeServer : public ThreadedAssignment, public HTTPRequestHandler {
     Q_OBJECT
 public:
-    OctreeServer(const QByteArray& packet);
+    OctreeServer(NLPacket& packet);
     ~OctreeServer();
 
     /// allows setting of run arguments
