@@ -9,18 +9,20 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "EntityScriptingInterface.h"
+
 #include <VariantMapToScriptValue.h>
 
+#include "EntitiesLogging.h"
+#include "EntityActionFactoryInterface.h"
+#include "EntityActionInterface.h"
+#include "EntitySimulation.h"
 #include "EntityTree.h"
 #include "LightEntityItem.h"
 #include "ModelEntityItem.h"
+#include "SimulationOwner.h"
 #include "ZoneEntityItem.h"
-#include "EntitiesLogging.h"
-#include "EntitySimulation.h"
-#include "EntityActionInterface.h"
-#include "EntityActionFactoryInterface.h"
 
-#include "EntityScriptingInterface.h"
 
 EntityScriptingInterface::EntityScriptingInterface() :
     _entityTree(NULL)
@@ -61,16 +63,6 @@ void EntityScriptingInterface::setEntityTree(EntityTree* modelTree) {
     }
 }
 
-void bidForSimulationOwnership(EntityItemProperties& properties) {
-    // We make a bid for simulation ownership by declaring our sessionID as simulation owner 
-    // in the outgoing properties.  The EntityServer may accept the bid or might not.
-    auto nodeList = DependencyManager::get<NodeList>();
-    const QUuid myNodeID = nodeList->getSessionUUID();
-    properties.setSimulatorID(myNodeID);
-}
-
-
-
 QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
 
     EntityItemProperties propertiesWithSimID = properties;
@@ -83,11 +75,15 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
         _entityTree->lockForWrite();
         EntityItemPointer entity = _entityTree->addEntity(id, propertiesWithSimID);
         if (entity) {
-            entity->setLastBroadcast(usecTimestampNow());
             // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
-            bidForSimulationOwnership(propertiesWithSimID);
+            auto nodeList = DependencyManager::get<NodeList>();
+            const QUuid myNodeID = nodeList->getSessionUUID();
+            propertiesWithSimID.setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
+
             // and make note of it now, so we can act on it right away.
-            entity->setSimulatorID(propertiesWithSimID.getSimulatorID());
+            entity->setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
+
+            entity->setLastBroadcast(usecTimestampNow());
         } else {
             qCDebug(entities) << "script failed to add new Entity to local Octree";
             success = false;
@@ -113,7 +109,7 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
         if (entity) {
             results = entity->getProperties();
 
-            // TODO: improve sitting points and naturalDimensions in the future, 
+            // TODO: improve sitting points and naturalDimensions in the future,
             //       for now we've included the old sitting points model behavior for entity types that are models
             //        we've also added this hack for setting natural dimensions of models
             if (entity->getType() == EntityTypes::Model) {
@@ -146,23 +142,35 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties proper
             if (entity) {
                 // make sure the properties has a type, so that the encode can know which properties to include
                 properties.setType(entity->getType());
-                if (properties.hasTerseUpdateChanges()) {
+                bool hasTerseUpdateChanges = properties.hasTerseUpdateChanges();
+                bool hasPhysicsChanges = properties.hasMiscPhysicsChanges() || hasTerseUpdateChanges;
+                if (hasPhysicsChanges) {
                     auto nodeList = DependencyManager::get<NodeList>();
                     const QUuid myNodeID = nodeList->getSessionUUID();
-    
+
                     if (entity->getSimulatorID() == myNodeID) {
                         // we think we already own the simulation, so make sure to send ALL TerseUpdate properties
-                        entity->getAllTerseUpdateProperties(properties);
+                        if (hasTerseUpdateChanges) {
+                            entity->getAllTerseUpdateProperties(properties);
+                        }
                         // TODO: if we knew that ONLY TerseUpdate properties have changed in properties AND the object 
                         // is dynamic AND it is active in the physics simulation then we could chose to NOT queue an update 
                         // and instead let the physics simulation decide when to send a terse update.  This would remove
                         // the "slide-no-rotate" glitch (and typical a double-update) that we see during the "poke rolling
-                        // balls" test.  However, even if we solve this problem we still need to provide a "slerp the visible 
+                        // balls" test.  However, even if we solve this problem we still need to provide a "slerp the visible
                         // proxy toward the true physical position" feature to hide the final glitches in the remote watcher's
                         // simulation.
+
+                        if (entity->getSimulationPriority() < SCRIPT_EDIT_SIMULATION_PRIORITY) {
+                            // we re-assert our simulation ownership at a higher priority
+                            properties.setSimulationOwner(myNodeID, 
+                                    glm::max(entity->getSimulationPriority(), SCRIPT_EDIT_SIMULATION_PRIORITY));
+                        }
+                    } else {
+                        // we make a bid for simulation ownership
+                        properties.setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
+                        entity->flagForOwnership();
                     }
-                    // we make a bid for (or assert existing) simulation ownership
-                    properties.setSimulatorID(myNodeID);
                 }
                 entity->setLastBroadcast(usecTimestampNow());
             }
@@ -204,7 +212,7 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
 }
 
 QUuid EntityScriptingInterface::findClosestEntity(const glm::vec3& center, float radius) const {
-    EntityItemID result; 
+    EntityItemID result;
     if (_entityTree) {
         _entityTree->lockForRead();
         EntityItemPointer closestEntity = _entityTree->findClosestEntity(center, radius);
@@ -264,8 +272,8 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionBlock
     return findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
 }
 
-RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorker(const PickRay& ray, 
-                                                                                    Octree::lockType lockType, 
+RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorker(const PickRay& ray,
+                                                                                    Octree::lockType lockType,
                                                                                     bool precisionPicking) {
 
 
@@ -273,8 +281,8 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
     if (_entityTree) {
         OctreeElement* element;
         EntityItemPointer intersectedEntity = NULL;
-        result.intersects = _entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face, 
-                                                                (void**)&intersectedEntity, lockType, &result.accurate, 
+        result.intersects = _entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face,
+                                                                (void**)&intersectedEntity, lockType, &result.accurate,
                                                                 precisionPicking);
         if (result.intersects && intersectedEntity) {
             result.entityID = intersectedEntity->getEntityItemID();
@@ -318,15 +326,15 @@ bool EntityScriptingInterface::getSendPhysicsUpdates() const {
 }
 
 
-RayToEntityIntersectionResult::RayToEntityIntersectionResult() : 
-    intersects(false), 
+RayToEntityIntersectionResult::RayToEntityIntersectionResult() :
+    intersects(false),
     accurate(true), // assume it's accurate
     entityID(),
     properties(),
     distance(0),
     face(),
     entity(NULL)
-{ 
+{
 }
 
 QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, const RayToEntityIntersectionResult& value) {
@@ -341,7 +349,7 @@ QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, c
 
     obj.setProperty("distance", value.distance);
 
-    QString faceName = "";    
+    QString faceName = "";
     // handle BoxFace
     switch (value.face) {
         case MIN_X_FACE:
@@ -472,24 +480,21 @@ bool EntityScriptingInterface::setPoints(EntityItemPointer entity, std::function
     if (!_entityTree) {
         return false;
     }
-    
+
     auto now = usecTimestampNow();
-    
     PolyLineEntityItem* PolyLineEntity = static_cast<PolyLineEntityItem*>(entity.get());
     _entityTree->lockForWrite();
     bool success = actor(*PolyLineEntity);
     entity->setLastEdited(now);
     entity->setLastBroadcast(now);
     _entityTree->unlock();
-    
+
     _entityTree->lockForRead();
     EntityItemProperties properties = entity->getProperties();
     _entityTree->unlock();
-    
+
     properties.setLinePointsDirty();
     properties.setLastEdited(now);
-    
-    
     queueEntityMessage(PacketTypeEntityEdit, entity->getID(), properties);
     return success;
 }
@@ -560,7 +565,6 @@ bool EntityScriptingInterface::appendPoint(QUuid entityID, const glm::vec3& poin
     }
     
     return false;
-    
 }
 
 
@@ -587,7 +591,20 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
     }
 
     bool success = actor(simulation, entity);
+    if (success) {
+        _entityTree->entityChanged(entity);
+    }
     _entityTree->unlock();
+
+    // transmit the change
+    _entityTree->lockForRead();
+    EntityItemProperties properties = entity->getProperties();
+    _entityTree->unlock();
+    properties.setActionDataDirty();
+    auto now = usecTimestampNow();
+    properties.setLastEdited(now);
+    queueEntityMessage(PacketTypeEntityEdit, entityID, properties);
+
     return success;
 }
 
@@ -608,7 +625,14 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
             if (actionType == ACTION_TYPE_NONE) {
                 return false;
             }
-            if (actionFactory->factory(simulation, actionType, actionID, entity, arguments)) {
+            EntityActionPointer action = actionFactory->factory(actionType, actionID, entity, arguments);
+            if (action) {
+                entity->addAction(simulation, action);
+                auto nodeList = DependencyManager::get<NodeList>();
+                const QUuid myNodeID = nodeList->getSessionUUID();
+                if (entity->getSimulatorID() != myNodeID) {
+                    entity->flagForOwnership();
+                }
                 return true;
             }
             return false;
@@ -622,13 +646,39 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
 
 bool EntityScriptingInterface::updateAction(const QUuid& entityID, const QUuid& actionID, const QVariantMap& arguments) {
     return actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
-            return entity->updateAction(simulation, actionID, arguments);
+            bool success = entity->updateAction(simulation, actionID, arguments);
+            if (success) {
+                auto nodeList = DependencyManager::get<NodeList>();
+                const QUuid myNodeID = nodeList->getSessionUUID();
+                if (entity->getSimulatorID() != myNodeID) {
+                    entity->flagForOwnership();
+                }
+            }
+            return success;
         });
 }
-
 
 bool EntityScriptingInterface::deleteAction(const QUuid& entityID, const QUuid& actionID) {
     return actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
             return entity->removeAction(simulation, actionID);
         });
+}
+
+QVector<QUuid> EntityScriptingInterface::getActionIDs(const QUuid& entityID) {
+    QVector<QUuid> result;
+    actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
+            QList<QUuid> actionIDs = entity->getActionIDs();
+            result = QVector<QUuid>::fromList(actionIDs);
+            return true;
+        });
+    return result;
+}
+
+QVariantMap EntityScriptingInterface::getActionArguments(const QUuid& entityID, const QUuid& actionID) {
+    QVariantMap result;
+    actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
+            result = entity->getActionArguments(actionID);
+            return true;
+        });
+    return result;
 }

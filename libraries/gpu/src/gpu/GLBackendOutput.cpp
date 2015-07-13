@@ -40,8 +40,7 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
 
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
-        unsigned int nbColorBuffers = 0;
-        GLenum colorBuffers[16];
+        std::vector<GLenum> colorBuffers;
         if (framebuffer.hasColor()) {
             static const GLenum colorAttachments[] = {
                 GL_COLOR_ATTACHMENT0,
@@ -69,8 +68,7 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
                     if (gltexture) {
                         glFramebufferTexture2D(GL_FRAMEBUFFER, colorAttachments[unit], GL_TEXTURE_2D, gltexture->_texture, 0);
                     }
-                    colorBuffers[nbColorBuffers] = colorAttachments[unit];
-                    nbColorBuffers++;
+                    colorBuffers.push_back(colorAttachments[unit]);
                     unit++;
                 }
             }
@@ -100,8 +98,8 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
         }
 
         // Last but not least, define where we draw
-        if (nbColorBuffers > 0) {
-            glDrawBuffers(nbColorBuffers, colorBuffers);
+        if (!colorBuffers.empty()) {
+            glDrawBuffers(colorBuffers.size(), colorBuffers.data());
         } else {
             glDrawBuffer( GL_NONE );
         }
@@ -139,6 +137,7 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
         // All is green, assign the gpuobject to the Framebuffer
         object = new GLFramebuffer();
         object->_fbo = fbo;
+        object->_colorBuffers = colorBuffers;
         Backend::setGPUObject(framebuffer, object);
     }
 
@@ -167,4 +166,3 @@ void GLBackend::do_setFramebuffer(Batch& batch, uint32 paramOffset) {
         _output._framebuffer = framebuffer;
     }
 }
-

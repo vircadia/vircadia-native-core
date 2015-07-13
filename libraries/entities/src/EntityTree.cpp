@@ -23,9 +23,7 @@
 #include "QVariantGLM.h"
 #include "EntitiesLogging.h"
 #include "RecurseOctreeToMapOperator.h"
-
-
-const quint64 SIMULATOR_CHANGE_LOCKOUT_PERIOD = (quint64)(0.2f * USECS_PER_SECOND);
+#include "LogHandler.h"
 
 
 EntityTree::EntityTree(bool shouldReaverage) : 
@@ -34,6 +32,7 @@ EntityTree::EntityTree(bool shouldReaverage) :
     _simulation(NULL)
 {
     _rootElement = createNewElement();
+    resetClientEditStats();
 }
 
 EntityTree::~EntityTree() {
@@ -60,6 +59,8 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     }
     _entityToElementMap.clear();
     Octree::eraseAllOctreeElements(createNewRoot);
+    
+    resetClientEditStats();
 }
 
 bool EntityTree::handlesEditPacketType(PacketType packetType) const {
@@ -91,13 +92,11 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
 bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (!containingElement) {
-        qCDebug(entities) << "UNEXPECTED!!!!  EntityTree::updateEntity() entityID doesn't exist!!! entityID=" << entityID;
         return false;
     }
 
     EntityItemPointer existingEntity = containingElement->getEntityWithEntityItemID(entityID);
     if (!existingEntity) {
-        qCDebug(entities) << "UNEXPECTED!!!! don't call updateEntity() on entity items that don't exist. entityID=" << entityID;
         return false;
     }
 
@@ -107,8 +106,6 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
 bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
     EntityTreeElement* containingElement = getContainingElement(entity->getEntityItemID());
     if (!containingElement) {
-        qCDebug(entities) << "UNEXPECTED!!!!  EntityTree::updateEntity() entity-->element lookup failed!!! entityID=" 
-            << entity->getEntityItemID();
         return false;
     }
     return updateEntityWithElement(entity, properties, containingElement, senderNode);
@@ -150,23 +147,34 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
     } else {
         if (getIsServer()) {
             bool simulationBlocked = !entity->getSimulatorID().isNull();
-            if (properties.simulatorIDChanged()) {
-                QUuid submittedID = properties.getSimulatorID();
+            if (properties.simulationOwnerChanged()) {
+                QUuid submittedID = properties.getSimulationOwner().getID();
                 // a legit interface will only submit their own ID or NULL:
                 if (submittedID.isNull()) {
                     if (entity->getSimulatorID() == senderID) {
                         // We only allow the simulation owner to clear their own simulationID's.
                         simulationBlocked = false;
+                        properties.clearSimulationOwner(); // clear everything
                     }
                     // else: We assume the sender really did believe it was the simulation owner when it sent
                 } else if (submittedID == senderID) {
                     // the sender is trying to take or continue ownership
-                    if (entity->getSimulatorID().isNull() || entity->getSimulatorID() == senderID) {
+                    if (entity->getSimulatorID().isNull()) {
+                        // the sender it taking ownership
+                        properties.promoteSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
+                        simulationBlocked = false;
+                    } else if (entity->getSimulatorID() == senderID) {
+                        // the sender is asserting ownership
                         simulationBlocked = false;
                     } else {
                         // the sender is trying to steal ownership from another simulator
-                        // so we apply the ownership change filter
-                        if (usecTimestampNow() - entity->getSimulatorIDChangedTime() > SIMULATOR_CHANGE_LOCKOUT_PERIOD) {
+                        // so we apply the rules for ownership change:
+                        // (1) higher priority wins
+                        // (2) equal priority wins if ownership filter has expired except...
+                        uint8_t oldPriority = entity->getSimulationPriority();
+                        uint8_t newPriority = properties.getSimulationOwner().getPriority();
+                        if (newPriority > oldPriority || 
+                             (newPriority == oldPriority && properties.getSimulationOwner().hasExpired())) {
                             simulationBlocked = false;
                         }
                     }
@@ -174,12 +182,17 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                     // the entire update is suspect --> ignore it
                     return false;
                 }
+            } else {
+                simulationBlocked = senderID != entity->getSimulatorID();
             }
             if (simulationBlocked) {
-                // squash the physics-related changes.
-                properties.setSimulatorIDChanged(false);
+                // squash ownership and physics-related changes.
+                properties.setSimulationOwnerChanged(false);
                 properties.setPositionChanged(false);
                 properties.setRotationChanged(false);
+                properties.setVelocityChanged(false);
+                properties.setAngularVelocityChanged(false);
+                properties.setAccelerationChanged(false);
             }
         }
         // else client accepts what the server says
@@ -232,7 +245,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     if (getIsClient()) {
         // if our Node isn't allowed to create entities in this domain, don't try.
         auto nodeList = DependencyManager::get<NodeList>();
-        if (!nodeList->getThisNodeCanRez()) {
+        if (nodeList && !nodeList->getThisNodeCanRez()) {
             return NULL;
         }
     }
@@ -636,6 +649,8 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                                           << "] attempted to add an entity.";
                     }
                 } else {
+                    static QString repeatedMessage =
+                        LogHandler::getInstance().addRepeatedMessageRegex("^Add or Edit failed.*");
                     qCDebug(entities) << "Add or Edit failed." << packetType << existingEntity.get();
                 }
             }
@@ -1103,4 +1118,30 @@ bool EntityTree::readFromMap(QVariantMap& map) {
     }
 
     return true;
+}
+
+void EntityTree::resetClientEditStats() {
+    _treeResetTime = usecTimestampNow();
+    _maxEditDelta = 0;
+    _totalEditDeltas = 0;
+    _totalTrackedEdits = 0;
+}
+
+
+
+void EntityTree::trackIncomingEntityLastEdited(quint64 lastEditedTime, int bytesRead) {
+    // we don't want to track all edit deltas, just those edits that have happend
+    // since we connected to this domain. This will filter out all previously created
+    // content and only track new edits
+    if (lastEditedTime > _treeResetTime) {
+        quint64 now = usecTimestampNow();
+        quint64 sinceEdit = now - lastEditedTime;
+
+        _totalEditDeltas += sinceEdit;
+        _totalEditBytes += bytesRead;
+        _totalTrackedEdits++;
+        if (sinceEdit > _maxEditDelta) {
+            _maxEditDelta = sinceEdit;
+        }
+    }
 }

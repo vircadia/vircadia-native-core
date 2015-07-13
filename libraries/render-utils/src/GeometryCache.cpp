@@ -279,14 +279,21 @@ void GeometryCache::renderSphere(gpu::Batch& batch, float radius, int slices, in
     const int VERTICES_SLOT = 0;
     const int NORMALS_SLOT = 1;
     const int COLOR_SLOT = 2;
-    gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format()); // 1 for everyone
-    streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-    streamFormat->setAttribute(gpu::Stream::NORMAL, NORMALS_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-    streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+    static gpu::Stream::FormatPointer streamFormat;
+    static gpu::Element positionElement, normalElement, colorElement;
+    if (!streamFormat) {
+        streamFormat.reset(new gpu::Stream::Format()); // 1 for everyone
+        streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
+        streamFormat->setAttribute(gpu::Stream::NORMAL, NORMALS_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+        streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        positionElement = streamFormat->getAttributes().at(gpu::Stream::POSITION)._element;
+        normalElement = streamFormat->getAttributes().at(gpu::Stream::NORMAL)._element;
+        colorElement = streamFormat->getAttributes().at(gpu::Stream::COLOR)._element;
+    }
 
-    gpu::BufferView verticesView(verticesBuffer, streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
-    gpu::BufferView normalsView(verticesBuffer, streamFormat->getAttributes().at(gpu::Stream::NORMAL)._element);
-    gpu::BufferView colorView(colorBuffer, streamFormat->getAttributes().at(gpu::Stream::COLOR)._element);
+    gpu::BufferView verticesView(verticesBuffer, positionElement);
+    gpu::BufferView normalsView(verticesBuffer, normalElement);
+    gpu::BufferView colorView(colorBuffer, colorElement);
     
     batch.setInputFormat(streamFormat);
     batch.setInputBuffer(VERTICES_SLOT, verticesView);
@@ -400,7 +407,6 @@ void GeometryCache::renderCone(float base, float height, int slices, int stacks)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
-
 
 void GeometryCache::renderGrid(int xDivisions, int yDivisions, const glm::vec4& color) {
     gpu::Batch batch;
@@ -900,14 +906,21 @@ void GeometryCache::renderSolidCube(gpu::Batch& batch, float size, const glm::ve
     const int VERTICES_SLOT = 0;
     const int NORMALS_SLOT = 1;
     const int COLOR_SLOT = 2;
-    gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format()); // 1 for everyone
+    static gpu::Stream::FormatPointer streamFormat;
+    static gpu::Element positionElement, normalElement, colorElement;
+    if (!streamFormat) {
+        streamFormat.reset(new gpu::Stream::Format()); // 1 for everyone
+        streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
+        streamFormat->setAttribute(gpu::Stream::NORMAL, NORMALS_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+        streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        positionElement = streamFormat->getAttributes().at(gpu::Stream::POSITION)._element;
+        normalElement = streamFormat->getAttributes().at(gpu::Stream::NORMAL)._element;
+        colorElement = streamFormat->getAttributes().at(gpu::Stream::COLOR)._element;
+    }
     
-    streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-    streamFormat->setAttribute(gpu::Stream::NORMAL, NORMALS_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-    streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
-
-    gpu::BufferView verticesView(verticesBuffer, 0, verticesBuffer->getSize(), VERTEX_STRIDE, streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
-    gpu::BufferView normalsView(verticesBuffer, NORMALS_OFFSET, verticesBuffer->getSize(), VERTEX_STRIDE, streamFormat->getAttributes().at(gpu::Stream::NORMAL)._element);
+    
+    gpu::BufferView verticesView(verticesBuffer, 0, verticesBuffer->getSize(), VERTEX_STRIDE, positionElement);
+    gpu::BufferView normalsView(verticesBuffer, NORMALS_OFFSET, verticesBuffer->getSize(), VERTEX_STRIDE, normalElement);
     gpu::BufferView colorView(colorBuffer, streamFormat->getAttributes().at(gpu::Stream::COLOR)._element);
     
     batch.setInputFormat(streamFormat);
@@ -987,12 +1000,18 @@ void GeometryCache::renderWireCube(gpu::Batch& batch, float size, const glm::vec
 
     const int VERTICES_SLOT = 0;
     const int COLOR_SLOT = 1;
-    gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format()); // 1 for everyone
-    streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-    streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
-    
-    gpu::BufferView verticesView(verticesBuffer, streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
-    gpu::BufferView colorView(colorBuffer, streamFormat->getAttributes().at(gpu::Stream::COLOR)._element);
+    static gpu::Stream::FormatPointer streamFormat;
+    static gpu::Element positionElement, colorElement;
+    if (!streamFormat) {
+        streamFormat.reset(new gpu::Stream::Format()); // 1 for everyone
+        streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
+        streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+        positionElement = streamFormat->getAttributes().at(gpu::Stream::POSITION)._element;
+        colorElement = streamFormat->getAttributes().at(gpu::Stream::COLOR)._element;
+    }
+   
+    gpu::BufferView verticesView(verticesBuffer, positionElement);
+    gpu::BufferView colorView(colorBuffer, colorElement);
     
     batch.setInputFormat(streamFormat);
     batch.setInputBuffer(VERTICES_SLOT, verticesView);
@@ -1058,13 +1077,13 @@ void GeometryCache::renderBevelCornersRect(gpu::Batch& batch, int x, int y, int 
         int vertexPoint = 0;
 
         // Triangle strip points
-        //      3 ------ 5
-        //    /            \
-        //  1                7
-        //  |                |
-        //  2                8
-        //    \            /
-        //      4 ------ 6
+        //      3 ------ 5      //
+        //    /            \    //
+        //  1                7  //
+        //  |                |  //
+        //  2                8  //
+        //    \            /    //
+        //      4 ------ 6      //
         
         // 1
         vertexBuffer[vertexPoint++] = x;

@@ -12,6 +12,17 @@
 
 #include <QDebug>
 
+#if defined(NSIGHT_FOUND)
+#include "nvToolsExt.h"
+
+ProfileRange::ProfileRange(const char *name) {
+    nvtxRangePush(name);
+}
+ProfileRange::~ProfileRange() {
+    nvtxRangePop();
+}
+#endif
+
 #define ADD_COMMAND(call) _commands.push_back(COMMAND_##call); _commandOffsets.push_back(_params.size());
 
 using namespace gpu;
@@ -103,6 +114,23 @@ void Batch::clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, floa
     _params.push_back(targets);
 }
 
+void Batch::clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color) {
+    clearFramebuffer(targets & Framebuffer::BUFFER_COLORS, color, 1.0f, 0);
+}
+
+void Batch::clearDepthFramebuffer(float depth) {
+    clearFramebuffer(Framebuffer::BUFFER_DEPTH, Vec4(0.0f), depth, 0);
+}
+
+void Batch::clearStencilFramebuffer(int stencil) {
+    clearFramebuffer(Framebuffer::BUFFER_STENCIL, Vec4(0.0f), 1.0f, stencil);
+}
+
+void Batch::clearDepthStencilFramebuffer(float depth, int stencil) {
+    clearFramebuffer(Framebuffer::BUFFER_DEPTHSTENCIL, Vec4(0.0f), depth, stencil);
+}
+
+
 void Batch::setInputFormat(const Stream::FormatPointer& format) {
     ADD_COMMAND(setInputFormat);
 
@@ -141,6 +169,10 @@ void Batch::setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset
     _params.push_back(type);
 }
 
+void Batch::setIndexBuffer(const BufferView& buffer) {
+    setIndexBuffer(buffer._element.getType(), buffer._buffer, buffer._offset);
+}
+
 void Batch::setModelTransform(const Transform& model) {
     ADD_COMMAND(setModelTransform);
 
@@ -157,6 +189,12 @@ void Batch::setProjectionTransform(const Mat4& proj) {
     ADD_COMMAND(setProjectionTransform);
 
     _params.push_back(cacheData(sizeof(Mat4), &proj));
+}
+
+void Batch::setViewportTransform(const Vec4i& viewport) {
+    ADD_COMMAND(setViewportTransform);
+
+    _params.push_back(cacheData(sizeof(Vec4i), &viewport));
 }
 
 void Batch::setPipeline(const PipelinePointer& pipeline) {
@@ -189,21 +227,38 @@ void Batch::setUniformBuffer(uint32 slot, const BufferView& view) {
 }
 
 
-void Batch::setUniformTexture(uint32 slot, const TexturePointer& texture) {
-    ADD_COMMAND(setUniformTexture);
+void Batch::setResourceTexture(uint32 slot, const TexturePointer& texture) {
+    ADD_COMMAND(setResourceTexture);
 
     _params.push_back(_textures.cache(texture));
     _params.push_back(slot);
 }
 
-void Batch::setUniformTexture(uint32 slot, const TextureView& view) {
-    setUniformTexture(slot, view._texture);
+void Batch::setResourceTexture(uint32 slot, const TextureView& view) {
+    setResourceTexture(slot, view._texture);
 }
 
 void Batch::setFramebuffer(const FramebufferPointer& framebuffer) {
-    ADD_COMMAND(setUniformTexture);
+    ADD_COMMAND(setFramebuffer);
 
     _params.push_back(_framebuffers.cache(framebuffer));
 
 }
 
+void Batch::beginQuery(const QueryPointer& query) {
+    ADD_COMMAND(beginQuery);
+
+    _params.push_back(_queries.cache(query));
+}
+
+void Batch::endQuery(const QueryPointer& query) {
+    ADD_COMMAND(endQuery);
+
+    _params.push_back(_queries.cache(query));
+}
+
+void Batch::getQuery(const QueryPointer& query) {
+    ADD_COMMAND(getQuery);
+
+    _params.push_back(_queries.cache(query));
+}

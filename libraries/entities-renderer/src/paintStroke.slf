@@ -17,11 +17,18 @@
 // the interpolated normal
 varying vec4 interpolatedNormal;
 
+vec3 newNormal = normalize(interpolatedNormal.xyz);
+
+int frontCondition = 1 -int(gl_FrontFacing) * 2;
+//if (!gl_FrontFacing) {
+  //  newNormal = -newNormal;
+//}
+
 
 void main(void) {
     vec3 color = vec3(0.9, 0.2, 0.9);
     packDeferredFragment(
-        normalize(interpolatedNormal.xyz), 
+        newNormal * frontCondition,
         glowIntensity,
         gl_Color.rgb,
         gl_FrontMaterial.specular.rgb,

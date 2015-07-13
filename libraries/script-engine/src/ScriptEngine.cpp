@@ -493,7 +493,7 @@ void ScriptEngine::evaluate() {
 
     QScriptValue result = evaluate(_scriptContents);
 
-    // TODO: why do we check this twice? It seems like the call to clearExcpetions() in the lower level evaluate call
+    // TODO: why do we check this twice? It seems like the call to clearExceptions() in the lower level evaluate call
     // will cause this code to never actually run...
     if (hasUncaughtException()) {
         int line = uncaughtExceptionLineNumber();
@@ -710,7 +710,13 @@ void ScriptEngine::run() {
 
         // since we're in non-threaded mode, call process so that the packets are sent
         if (!entityScriptingInterface->getEntityPacketSender()->isThreaded()) {
-            entityScriptingInterface->getEntityPacketSender()->process();
+            // wait here till the edit packet sender is completely done sending
+            while (entityScriptingInterface->getEntityPacketSender()->hasPacketsToSend()) {
+                entityScriptingInterface->getEntityPacketSender()->process();
+                QCoreApplication::processEvents();
+            }
+        } else {
+            // FIXME - do we need to have a similar "wait here" loop for non-threaded packet senders?
         }
     }
 

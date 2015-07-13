@@ -51,7 +51,7 @@ const GLBackend::GLState::Commands makeResetStateCommands() {
         CommandPointer(new Command1I(&GLBackend::do_setStateFillMode, DEFAULT.fillMode)),
         CommandPointer(new Command1I(&GLBackend::do_setStateCullMode, DEFAULT.cullMode)),
         CommandPointer(new Command1B(&GLBackend::do_setStateFrontFaceClockwise, DEFAULT.frontFaceClockwise)),
-        CommandPointer(new Command1B(&GLBackend::do_setStateDepthClipEnable, DEFAULT.depthClipEnable)),
+        CommandPointer(new Command1B(&GLBackend::do_setStateDepthClampEnable, DEFAULT.depthClampEnable)),
         CommandPointer(new Command1B(&GLBackend::do_setStateScissorEnable, DEFAULT.scissorEnable)),
         CommandPointer(new Command1B(&GLBackend::do_setStateMultisampleEnable, DEFAULT.multisampleEnable)),
         CommandPointer(new Command1B(&GLBackend::do_setStateAntialiasedLineEnable, DEFAULT.antialisedLineEnable)),
@@ -89,8 +89,8 @@ void generateFrontFaceClockwise(GLBackend::GLState::Commands& commands, bool isC
     commands.push_back(CommandPointer(new Command1B(&GLBackend::do_setStateFrontFaceClockwise, isClockwise)));
 }
 
-void generateDepthClipEnable(GLBackend::GLState::Commands& commands, bool enable) {
-    commands.push_back(CommandPointer(new Command1B(&GLBackend::do_setStateDepthClipEnable, enable)));
+void generateDepthClampEnable(GLBackend::GLState::Commands& commands, bool enable) {
+    commands.push_back(CommandPointer(new Command1B(&GLBackend::do_setStateDepthClampEnable, enable)));
 }
 
 void generateScissorEnable(GLBackend::GLState::Commands& commands, bool enable) {
@@ -176,8 +176,8 @@ GLBackend::GLState* GLBackend::syncGPUObject(const State& state) {
                     generateFrontFaceClockwise(object->_commands, state.isFrontFaceClockwise());
                     break;
                 }
-                case State::DEPTH_CLIP_ENABLE: {
-                    generateDepthClipEnable(object->_commands, state.isDepthClipEnable());
+                case State::DEPTH_CLAMP_ENABLE: {
+                    generateDepthClampEnable(object->_commands, state.isDepthClampEnable());
                     break;
                 }
                 case State::SCISSOR_ENABLE: {
@@ -373,7 +373,7 @@ void GLBackend::getCurrentGLState(State::Data& state) {
         GLint winding;
         glGetIntegerv(GL_FRONT_FACE, &winding);
         state.frontFaceClockwise = (winding == GL_CW);
-        state.depthClipEnable = glIsEnabled(GL_DEPTH_CLAMP);
+        state.depthClampEnable = glIsEnabled(GL_DEPTH_CLAMP);
         state.scissorEnable = glIsEnabled(GL_SCISSOR_TEST);
         state.multisampleEnable = glIsEnabled(GL_MULTISAMPLE);
         state.antialisedLineEnable = glIsEnabled(GL_LINE_SMOOTH);
@@ -533,8 +533,8 @@ void GLBackend::do_setStateFrontFaceClockwise(bool isClockwise) {
     }
 }
 
-void GLBackend::do_setStateDepthClipEnable(bool enable) {
-    if (_pipeline._stateCache.depthClipEnable != enable) {
+void GLBackend::do_setStateDepthClampEnable(bool enable) {
+    if (_pipeline._stateCache.depthClampEnable != enable) {
         if (enable) {
             glEnable(GL_DEPTH_CLAMP);
         } else {
@@ -542,7 +542,7 @@ void GLBackend::do_setStateDepthClipEnable(bool enable) {
         }
         (void) CHECK_GL_ERROR();
 
-        _pipeline._stateCache.depthClipEnable = enable;
+        _pipeline._stateCache.depthClampEnable = enable;
     }
 }
 
@@ -589,7 +589,7 @@ void GLBackend::do_setStateAntialiasedLineEnable(bool enable) {
 
 void GLBackend::do_setStateDepthBias(Vec2 bias) {
     if ( (bias.x != _pipeline._stateCache.depthBias) || (bias.y != _pipeline._stateCache.depthBiasSlopeScale)) {
-        if ((bias.x != 0.f) || (bias.y != 0.f)) {
+        if ((bias.x != 0.0f) || (bias.y != 0.0f)) {
             glEnable(GL_POLYGON_OFFSET_FILL);
             glEnable(GL_POLYGON_OFFSET_LINE);
             glEnable(GL_POLYGON_OFFSET_POINT);

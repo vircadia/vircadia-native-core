@@ -73,7 +73,9 @@ void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
 
 #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
 #else
+        _pipeline._program_transformObject_model = -1;
         _pipeline._program_transformCamera_viewInverse = -1;
+        _pipeline._program_transformCamera_viewport = -1;
 #endif
 
         _pipeline._state = nullptr;
@@ -91,7 +93,9 @@ void GLBackend::do_setPipeline(Batch& batch, uint32 paramOffset) {
 
 #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
 #else
+            _pipeline._program_transformObject_model = pipelineObject->_program->_transformObject_model;
             _pipeline._program_transformCamera_viewInverse = pipelineObject->_program->_transformCamera_viewInverse;
+            _pipeline._program_transformCamera_viewport = pipelineObject->_program->_transformCamera_viewport;
 #endif
         }
 
@@ -143,9 +147,19 @@ void GLBackend::updatePipeline() {
 
 #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
 #else
+    // If shader program needs the model we need to provide it
+    if (_pipeline._program_transformObject_model >= 0) {
+        glUniformMatrix4fv(_pipeline._program_transformObject_model, 1, false, (const GLfloat*) &_transform._transformObject._model);
+    }
+
     // If shader program needs the inverseView we need to provide it
     if (_pipeline._program_transformCamera_viewInverse >= 0) {
         glUniformMatrix4fv(_pipeline._program_transformCamera_viewInverse, 1, false, (const GLfloat*) &_transform._transformCamera._viewInverse);
+    }
+
+    // If shader program needs the viewport we need to provide it
+    if (_pipeline._program_transformCamera_viewport >= 0) {
+        glUniform4fv(_pipeline._program_transformCamera_viewport, 1, (const GLfloat*) &_transform._transformCamera._viewport);
     }
 #endif
 }
@@ -174,7 +188,7 @@ void GLBackend::do_setUniformBuffer(Batch& batch, uint32 paramOffset) {
     (void) CHECK_GL_ERROR();
 }
 
-void GLBackend::do_setUniformTexture(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_setResourceTexture(Batch& batch, uint32 paramOffset) {
     GLuint slot = batch._params[paramOffset + 1]._uint;
     TexturePointer uniformTexture = batch._textures.get(batch._params[paramOffset + 0]._uint);
 

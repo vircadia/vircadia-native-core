@@ -12,12 +12,18 @@
 #ifndef hifi_CollisionInfoTests_h
 #define hifi_CollisionInfoTests_h
 
-namespace CollisionInfoTests {
+#include <QtTest/QtTest>
 
+// Add additional qtest functionality (the include order is important!)
+#include "GlmTestUtils.h"
+#include "../QTestExtensions.h"
+
+class CollisionInfoTests : public QObject {
+    Q_OBJECT
+
+private slots:
 //    void rotateThenTranslate();
 //    void translateThenRotate();
-
-    void runAllTests(); 
-}
+};
 
 #endif // hifi_CollisionInfoTests_h

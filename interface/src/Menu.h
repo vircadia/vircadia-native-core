@@ -212,6 +212,7 @@ namespace MenuOption {
     const QString LodTools = "LOD Tools";
     const QString Login = "Login";
     const QString Log = "Log";
+    const QString LogExtraTimings = "Log Extra Timing Details";
     const QString LowVelocityFilter = "Low Velocity Filter";
     const QString Mirror = "Mirror";
     const QString MuteAudio = "Mute Microphone";
@@ -268,6 +269,7 @@ namespace MenuOption {
     const QString ShowDSConnectTable = "Show Domain Connection Timing";
     const QString ShowBordersEntityNodes = "Show Entity Nodes";
     const QString ShowIKConstraints = "Show IK Constraints";
+    const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
     const QString SimpleShadows = "Simple";
     const QString SixenseEnabled = "Enable Hydra Support";
     const QString SixenseMouseInput = "Enable Sixense Mouse Input";
