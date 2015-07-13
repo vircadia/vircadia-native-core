@@ -327,9 +327,7 @@ public:
     // rendering of several elements depend on that
     // TODO: carry that information on the Camera as a setting
     bool isHMDMode() const;
-    glm::quat getHeadOrientation() const;
-    glm::vec3 getHeadPosition() const;
-    glm::mat4 getHeadPose() const;
+    glm::mat4 getHMDSensorPose() const;
     glm::mat4 getEyePose(int eye) const;
     glm::mat4 getEyeProjection(int eye) const;
 
@@ -669,9 +667,6 @@ private:
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
     ApplicationCompositor _compositor;
-
-    glm::vec3 _headPosition;
-    glm::quat _headOrientation;
 
     int _oldHandMouseX[2];
     int _oldHandMouseY[2];

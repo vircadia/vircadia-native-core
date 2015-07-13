@@ -350,7 +350,7 @@ void ApplicationCompositor::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& or
     // Intersection UI overlay space
     glm::vec3 worldSpaceDirection = overlayOrientation * overlaySpaceDirection;
     glm::vec3 worldSpaceIntersection = (glm::normalize(worldSpaceDirection) * _oculusUIRadius) + overlayPosition;
-    glm::vec3 worldSpaceHeadPosition = (overlayOrientation * glm::vec3(qApp->getHeadPose()[3])) + overlayPosition;
+    glm::vec3 worldSpaceHeadPosition = (overlayOrientation * extractTranslation(qApp->getHMDSensorPose())) + overlayPosition;
 
     // Intersection in world space
     origin = worldSpaceHeadPosition;

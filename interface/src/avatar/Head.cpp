@@ -337,19 +337,20 @@ void Head::setCorrectedLookAtPosition(glm::vec3 correctedLookAtPosition) {
 glm::quat Head::getCameraOrientation() const {
     // NOTE: Head::getCameraOrientation() is not used for orienting the camera "view" while in Oculus mode, so
     // you may wonder why this code is here. This method will be called while in Oculus mode to determine how
-    // to change the driving direction while in Oculus mode. It is used to support driving toward where you're 
+    // to change the driving direction while in Oculus mode. It is used to support driving toward where you're
     // head is looking. Note that in oculus mode, your actual camera view and where your head is looking is not
     // always the same.
-    MyAvatar* myAvatar = dynamic_cast<MyAvatar*>(_owningAvatar);
-    if (qApp->isHMDMode() && myAvatar) {
-        if (isRoomTracking) {
-            return glm::quat_cast(myAvatar->getSensorToWorldMat()) * qApp->getHeadOrientation();
+    if (qApp->isHMDMode()) {
+        MyAvatar* myAvatar = dynamic_cast<MyAvatar*>(_owningAvatar);
+        if (isRoomTracking && myAvatar) {
+            return glm::quat_cast(myAvatar->getSensorToWorldMatrix()) * myAvatar->getHMDSensorOrientation();
         } else {
             return getOrientation();
         }
+    } else {
+        Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
+        return owningAvatar->getWorldAlignedOrientation() * glm::quat(glm::radians(glm::vec3(_basePitch, 0.0f, 0.0f)));
     }
-    Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
-    return owningAvatar->getWorldAlignedOrientation() * glm::quat(glm::radians(glm::vec3(_basePitch, 0.0f, 0.0f)));
 }
 
 glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {

@@ -962,14 +962,7 @@ void Application::paintGL() {
             // If not using an HMD, grab the camera orientation directly
             _myCamera.setRotation(_myAvatar->getHead()->getCameraOrientation());
         } else {
-            // In an HMD, people can look up and down with their actual neck, and the
-            // per-eye HMD pose will be applied later.  So set the camera orientation
-            // to only the yaw, excluding pitch and roll, i.e. an orientation that
-            // is orthongonal to the (body's) Y axis
-            //_myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
-
-            // AJT: no actually we do want the roll and pitch
-            _myCamera.setRotation(glm::quat_cast(_myAvatar->getSensorToWorldMat()) * getHeadOrientation());
+            _myCamera.setRotation(glm::quat_cast(_myAvatar->getSensorToWorldMatrix() * getHMDSensorPose()));
         }
 
         /*
@@ -2608,7 +2601,7 @@ void Application::update(float deltaTime) {
     }
 
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
-    userInputMapper->setSensorToWorldMat(_myAvatar->getSensorToWorldMat());
+    userInputMapper->setSensorToWorldMat(_myAvatar->getSensorToWorldMatrix());
     userInputMapper->update(deltaTime);
     _keyboardMouseDevice.update();
 
@@ -2688,10 +2681,8 @@ void Application::update(float deltaTime) {
         _physicsEngine.stepSimulation();
         _entities.getTree()->unlock();
 
-        // AJT: FIXME due to sensitve order of operations, within MyAvatar,
-        // delay the head pose until after the physics step.
-        _headPosition = glm::vec3(getActiveDisplayPlugin()->getHeadPose()[3]);
-        _headOrientation = glm::quat_cast(getActiveDisplayPlugin()->getHeadPose());
+        // update the avatar with the current HMD pose
+        _myAvatar->setHMDSensorMatrix(getHMDSensorPose());
 
         if (_physicsEngine.hasOutgoingChanges()) {
             _entities.getTree()->lockForWrite();
@@ -2821,7 +2812,7 @@ void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, int i
 
     // transform from sensor space, to world space, to avatar model space.
     glm::mat4 poseMat = createMatFromQuatAndPos(pose.getRotation(), pose.getTranslation());
-    glm::mat4 sensorToWorldMat = _myAvatar->getSensorToWorldMat();
+    glm::mat4 sensorToWorldMat = _myAvatar->getSensorToWorldMatrix();
     glm::mat4 modelMat = createMatFromQuatAndPos(_myAvatar->getOrientation(), _myAvatar->getPosition());
     glm::mat4 objectPose = glm::inverse(modelMat) * sensorToWorldMat * poseMat;
 
@@ -5018,14 +5009,6 @@ void Application::initPlugins() {
 void Application::shutdownPlugins() {
 }
 
-glm::vec3 Application::getHeadPosition() const {
-    return _headPosition;
-}
-
-glm::quat Application::getHeadOrientation() const {
-    return _headOrientation;
-}
-
 glm::uvec2 Application::getCanvasSize() const {
     return getActiveDisplayPlugin()->getRecommendedUiSize();
 }
@@ -5159,8 +5142,8 @@ GlWindow* Application::getVisibleWindow() {
 mat4 Application::getEyeProjection(int eye) const {
     if (isHMDMode()) {
         return getActiveDisplayPlugin()->getProjection((Eye)eye, _viewFrustum.getProjection());
-    } 
-      
+    }
+
     return _viewFrustum.getProjection();
 }
 
@@ -5172,7 +5155,7 @@ mat4 Application::getEyePose(int eye) const {
     return mat4();
 }
 
-mat4 Application::getHeadPose() const {
+mat4 Application::getHMDSensorPose() const {
     if (isHMDMode()) {
         return getActiveDisplayPlugin()->getHeadPose();
     }

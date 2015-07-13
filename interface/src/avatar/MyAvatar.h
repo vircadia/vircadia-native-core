@@ -39,6 +39,17 @@ public:
     void preRender(RenderArgs* renderArgs);
     void updateFromTrackers(float deltaTime);
 
+    void setHMDSensorMatrix(const glm::mat4& hmdSensorMatrix);
+    const glm::mat4& getHMDSensorMatrix() const { return _hmdSensorMatrix; }
+    const glm::vec3& getHMDSensorPosition() const { return _hmdSensorPosition; }
+    const glm::quat& getHMDSensorOrientation() const { return _hmdSensorOrientation; }
+
+    glm::mat4 getSensorToWorldMatrix() const { return _sensorToWorldMatrix; }
+
+    // these are overriden, because they must update the sensor matrix
+    virtual void setPosition(const glm::vec3 position, bool overideReferential = false) override;
+    virtual void setOrientation(const glm::quat& orientation, bool overideReferential = false) override;
+
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting = false) override;
     virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel = 0.0f) override;
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const override;
@@ -54,30 +65,30 @@ public:
     Q_INVOKABLE glm::vec3 getDefaultEyePosition() const;
     bool getShouldRenderLocally() const { return _shouldRender; }
     float getRealWorldFieldOfView() { return _realWorldFieldOfView.get(); }
-    
+
     const QList<AnimationHandlePointer>& getAnimationHandles() const { return _animationHandles; }
     AnimationHandlePointer addAnimationHandle();
     void removeAnimationHandle(const AnimationHandlePointer& handle);
-    
+
     /// Allows scripts to run animations.
     Q_INVOKABLE void startAnimation(const QString& url, float fps = 30.0f, float priority = 1.0f, bool loop = false,
         bool hold = false, float firstFrame = 0.0f, float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList());
-    
+
     /// Stops an animation as identified by a URL.
     Q_INVOKABLE void stopAnimation(const QString& url);
-    
+
     /// Starts an animation by its role, using the provided URL and parameters if the avatar doesn't have a custom
     /// animation for the role.
     Q_INVOKABLE void startAnimationByRole(const QString& role, const QString& url = QString(), float fps = 30.0f,
         float priority = 1.0f, bool loop = false, bool hold = false, float firstFrame = 0.0f,
         float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList());
-    
+
     /// Stops an animation identified by its role.
     Q_INVOKABLE void stopAnimationByRole(const QString& role);
 
     Q_INVOKABLE AnimationDetails getAnimationDetailsByRole(const QString& role);
     Q_INVOKABLE AnimationDetails getAnimationDetails(const QString& url);
-    
+
     // get/set avatar data
     void saveData();
     void loadData();
@@ -89,31 +100,31 @@ public:
     void clearDriveKeys();
     void setDriveKeys(int key, float val) { _driveKeys[key] = val; };
     bool getDriveKeys(int key) { return _driveKeys[key] != 0.0f; };
-    
+
     void relayDriveKeysToCharacterController();
 
     bool isMyAvatar() const { return true; }
-    
+
     bool isLookingAtLeftEye();
 
     virtual int parseDataAtOffset(const QByteArray& packet, int offset);
-    
+
     static void sendKillAvatar();
-    
+
     Q_INVOKABLE glm::vec3 getTrackedHeadPosition() const { return _trackedHeadPosition; }
     Q_INVOKABLE glm::vec3 getHeadPosition() const { return getHead()->getPosition(); }
     Q_INVOKABLE float getHeadFinalYaw() const { return getHead()->getFinalYaw(); }
     Q_INVOKABLE float getHeadFinalRoll() const { return getHead()->getFinalRoll(); }
     Q_INVOKABLE float getHeadFinalPitch() const { return getHead()->getFinalPitch(); }
     Q_INVOKABLE float getHeadDeltaPitch() const { return getHead()->getDeltaPitch(); }
-    
+
     Q_INVOKABLE glm::vec3 getEyePosition() const { return getHead()->getEyePosition(); }
-    
+
     Q_INVOKABLE glm::vec3 getTargetAvatarPosition() const { return _targetAvatarPosition; }
     AvatarWeakPointer getLookAtTargetAvatar() const { return _lookAtTargetAvatar; }
     void updateLookAtTargetAvatar();
     void clearLookAtTargetAvatar();
-    
+
     virtual void setJointRotations(QVector<glm::quat> jointRotations);
     virtual void setJointData(int index, const glm::quat& rotation);
     virtual void clearJointData(int index);
@@ -140,7 +151,7 @@ public:
     virtual glm::vec3 getSkeletonPosition() const;
     void updateLocalAABox();
     DynamicCharacterController* getCharacterController() { return &_characterController; }
-    
+
     void clearJointAnimationPriorities();
 
     glm::vec3 getScriptedMotorVelocity() const { return _scriptedMotorVelocity; }
@@ -159,17 +170,17 @@ public:
     virtual void attach(const QString& modelURL, const QString& jointName = QString(),
         const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
         bool allowDuplicates = false, bool useSaved = true);
-        
+
     /// Renders a laser pointer for UI picking
     void renderLaserPointers(gpu::Batch& batch);
     glm::vec3 getLaserPointerTipPosition(const PalmData* palm);
-    
+
     const RecorderPointer getRecorder() const { return _recorder; }
     const PlayerPointer getPlayer() const { return _player; }
-    
+
     float getBoomLength() const { return _boomLength; }
     void setBoomLength(float boomLength) { _boomLength = boomLength; }
-    
+
     static const float ZOOM_MIN;
     static const float ZOOM_MAX;
     static const float ZOOM_DEFAULT;
@@ -178,7 +189,7 @@ public slots:
     void increaseSize();
     void decreaseSize();
     void resetSize();
-    
+
     void goToLocation(const glm::vec3& newPosition,
                       bool hasOrientation = false, const glm::quat& newOrientation = glm::quat(),
                       bool shouldFaceLocation = false);
@@ -189,14 +200,14 @@ public slots:
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
     void updateMotionBehavior();
-    
+
     glm::vec3 getLeftPalmPosition();
     glm::vec3 getRightPalmPosition();
-    
+
     void clearReferential();
     bool setModelReferential(const QUuid& id);
     bool setJointReferential(const QUuid& id, int jointIndex);
-    
+
     bool isRecording();
     qint64 recorderElapsed();
     void startRecording();
@@ -205,12 +216,6 @@ public slots:
     void loadLastRecording();
 
     virtual void rebuildSkeletonBody();
-
-    // these are overriden, because they must move the sensor mat, such that the avatar will be at the given location.
-    virtual void setPosition(const glm::vec3 position, bool overideReferential = false) override;
-    virtual void setOrientation(const glm::quat& orientation, bool overideReferential = false) override;
-
-    glm::mat4 getSensorToWorldMat() const { return _sensorToWorldMat; }
 
 signals:
     void transformChanged();
@@ -239,7 +244,7 @@ private:
     bool _wasPushing;
     bool _isPushing;
     bool _isBraking;
-    
+
     float _boomLength;
 
     float _trapDuration; // seconds that avatar has been trapped by collisions
@@ -262,16 +267,16 @@ private:
     float _oculusYawOffset;
 
     QList<AnimationHandlePointer> _animationHandles;
-    
+
     bool _feetTouchFloor;
     bool _isLookingAtLeftEye;
 
     RecorderPointer _recorder;
-    
+
     glm::vec3 _trackedHeadPosition;
-    
+
     Setting::Handle<float> _realWorldFieldOfView;
-    
+
 	// private methods
     void updateOrientation(float deltaTime);
     glm::vec3 applyKeyboardMotor(float deltaTime, const glm::vec3& velocity, bool isHovering);
@@ -285,7 +290,7 @@ private:
     QUrl _fullAvatarURLFromPreferences;
     QUrl _headURLFromPreferences;
     QUrl _skeletonURLFromPreferences;
-    
+
     QString _headModelName;
     QString _bodyModelName;
     QString _fullAvatarModelName;
@@ -294,7 +299,13 @@ private:
     SkeletonModel _firstPersonSkeletonModel;
     bool _prevShouldDrawHead;
 
-    glm::mat4 _sensorToWorldMat;
+    // cache of the current HMD sensor position and orientation, in sensor space.
+    glm::mat4 _hmdSensorMatrix;
+    glm::vec3 _hmdSensorPosition;
+    glm::quat _hmdSensorOrientation;
+
+    // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
+    glm::mat4 _sensorToWorldMatrix;
 };
 
 #endif // hifi_MyAvatar_h

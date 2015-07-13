@@ -104,7 +104,10 @@ MyAvatar::MyAvatar() :
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
     _firstPersonSkeletonModel(this),
     _prevShouldDrawHead(true),
-    _sensorToWorldMat()
+    _hmdSensorMatrix(),
+    _hmdSensorPosition(),
+    _hmdSensorOrientation(),
+    _sensorToWorldMatrix()
 {
     _firstPersonSkeletonModel.setIsFirstPerson(true);
 
@@ -246,6 +249,12 @@ void MyAvatar::simulate(float deltaTime) {
     maybeUpdateBillboard();
 }
 
+void MyAvatar::setHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
+     _hmdSensorMatrix = hmdSensorMatrix;
+     _hmdSensorPosition = extractTranslation(hmdSensorMatrix);
+     _hmdSensorOrientation = glm::quat_cast(hmdSensorMatrix);
+}
+
 //  Update avatar head rotation with sensor data
 void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
@@ -257,7 +266,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     }
 
     if (inHmd) {
-        estimatedPosition = qApp->getHeadPosition();
+        estimatedPosition = extractTranslation(getHMDSensorMatrix());
         estimatedPosition.x *= -1.0f;
         _trackedHeadPosition = estimatedPosition;
 
@@ -1291,12 +1300,13 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
     glm::quat twist = glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta, 0.0f) * deltaTime));
 
+    // AJT: FIXME move this into a method. also, why doesn't plain ole getOrientation, setOrientation work here?
     // update sensor mat, so that rotation will take effect when room tracking.
     glm::vec3 bodyPosition = calcBodyPositionFromSensors();
     glm::quat bodyOrientation = calcBodyOrientationFromSensors();
     glm::mat4 bodyMat = createMatFromQuatAndPos(bodyOrientation, bodyPosition);
     glm::mat4 sensorOffset = bodyMat * glm::mat4_cast(twist) * glm::inverse(bodyMat);
-    _sensorToWorldMat = sensorOffset * _sensorToWorldMat;
+    _sensorToWorldMatrix = sensorOffset * _sensorToWorldMatrix;
 
     if (!(qApp->isHMDMode() && isRoomTracking)) {
         setOrientation(twist * getOrientation());
@@ -1313,7 +1323,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
     if (qApp->isHMDMode()) {
         // these angles will be in radians
-        glm::quat orientation = glm::quat_cast(_sensorToWorldMat) * qApp->getHeadOrientation();
+        glm::quat orientation = glm::quat_cast(getSensorToWorldMatrix() * getHMDSensorMatrix());
         glm::quat localOrientation = glm::inverse(bodyOrientation) * orientation;
         // ... so they need to be converted to degrees before we do math...
         glm::vec3 euler = glm::eulerAngles(localOrientation) * DEGREES_PER_RADIAN;
@@ -1427,7 +1437,7 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
             }
         }
     }
-    
+
     float boomChange = _driveKeys[BOOM_OUT] - _driveKeys[BOOM_IN];
     _boomLength += 2.0f * _boomLength * boomChange + boomChange * boomChange;
     _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);
@@ -1590,7 +1600,7 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
         // Set the orientation of the sensor room, not the avatar itself.
         glm::mat4 m;
         m[3] = glm::vec4(newPosition, 1);
-        _sensorToWorldMat = m;
+        _sensorToWorldMatrix = m;
     } else {
         glm::vec3 shiftedPosition = newPosition;
         if (hasOrientation) {
@@ -1698,8 +1708,8 @@ void MyAvatar::setPosition(const glm::vec3 position, bool overideReferential) {
     // position when driven from the head.
     glm::vec3 bodyPos = calcBodyPositionFromSensors();
     glm::vec3 desiredPos = position;
-    glm::vec3 sensorPos(_sensorToWorldMat[3]);
-    _sensorToWorldMat[3] = glm::vec4(desiredPos - bodyPos + sensorPos, 1);
+    glm::vec3 sensorPos = extractTranslation(_sensorToWorldMatrix);
+    _sensorToWorldMatrix[3] = glm::vec4(desiredPos - bodyPos + sensorPos, 1);
 
     setAvatarPosition(position);
 }
@@ -1712,15 +1722,15 @@ void MyAvatar::setOrientation(const glm::quat& orientation, bool overideReferent
     glm::quat bodyOrientation = calcBodyOrientationFromSensors();
     glm::mat4 bodyMat = createMatFromQuatAndPos(bodyOrientation, bodyPos);
     glm::mat4 desiredMat = createMatFromQuatAndPos(orientation, bodyPos);
-    _sensorToWorldMat = desiredMat * glm::inverse(bodyMat) * _sensorToWorldMat;
+    _sensorToWorldMatrix = desiredMat * glm::inverse(bodyMat) * _sensorToWorldMatrix;
 
     setAvatarOrientation(orientation);
 }
 
 glm::vec3 MyAvatar::calcBodyPositionFromSensors() const {
     // hmd is in sensor space.
-    const glm::vec3 hmdPosition = qApp->getHeadPosition();
-    const glm::quat hmdOrientation = qApp->getHeadOrientation();
+    const glm::vec3 hmdPosition = getHMDSensorPosition();
+    const glm::quat hmdOrientation = getHMDSensorOrientation();
     const glm::quat hmdOrientationYawOnly = cancelOutRollAndPitch(hmdOrientation);
 
     // In sensor space, figure out where the avatar body should be,
@@ -1734,13 +1744,13 @@ glm::vec3 MyAvatar::calcBodyPositionFromSensors() const {
     glm::vec3 roomBodyPos = hmdPosition + eyeToNeck + neckToRoot;
 
     // now convert from sensor space into world coordinates
-    return transformPoint(_sensorToWorldMat, roomBodyPos);
+    return transformPoint(_sensorToWorldMatrix, roomBodyPos);
 }
 
 glm::quat MyAvatar::calcBodyOrientationFromSensors() const {
-    const glm::quat hmdOrientation = qApp->getHeadOrientation();
+    const glm::quat hmdOrientation = getHMDSensorOrientation();
     const glm::quat hmdOrientationYawOnly = cancelOutRollAndPitch(hmdOrientation);
 
     // TODO: do a beter calculation of bodyOrientation for now just use hmd facing.
-    return glm::quat_cast(_sensorToWorldMat) * hmdOrientationYawOnly;
+    return glm::quat_cast(_sensorToWorldMatrix) * hmdOrientationYawOnly;
 }
