@@ -130,7 +130,7 @@ void AudioScope::render(RenderArgs* renderArgs, int width, int height) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     geometryCache->useSimpleDrawPipeline(batch);
     auto textureCache = DependencyManager::get<TextureCache>();
-    batch.setUniformTexture(0, textureCache->getWhiteTexture());
+    batch.setResourceTexture(0, textureCache->getWhiteTexture());
     mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
     batch.setProjectionTransform(legacyProjection);
     batch.setModelTransform(Transform());

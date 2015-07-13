@@ -321,7 +321,7 @@ protected:
 
     // Uniform Stage
     void do_setUniformBuffer(Batch& batch, uint32 paramOffset);
-    void do_setUniformTexture(Batch& batch, uint32 paramOffset);
+    void do_setResourceTexture(Batch& batch, uint32 paramOffset);
     
     struct UniformStageState {
         
