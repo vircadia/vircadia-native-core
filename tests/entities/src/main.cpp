@@ -85,7 +85,7 @@ void testByteCountCodedStable(const T& value) {
     #ifndef QT_NO_DEBUG
     auto consumed = decoder.decode(encoded.data(), encoded.size());
     #endif
-    Q_ASSERT(consumed == originalEncodedSize);
+    Q_ASSERT(consumed == (unsigned int)originalEncodedSize);
 
 }
 
@@ -108,6 +108,9 @@ void testPropertyFlags(uint32_t value) {
         original.setHasProperty((EntityPropertyList)i);
     }
     QByteArray encoded = original.encode();
+    #ifndef QT_NO_DEBUG
+    auto originalSize = encoded.size();
+    #endif
     for (size_t i = 0; i < enumSize; ++i) {
         encoded.append(qrand());
     }
@@ -123,7 +126,7 @@ void testPropertyFlags(uint32_t value) {
         auto decodeSize = decodeNew.decode((const uint8_t*)encoded.data(), encoded.size());
         #endif
         Q_ASSERT(originalSize == decodeSize);
-        Q_ASSERT(decodeNew == original);
+        Q_ASSERT(decodeNew == (unsigned int) original);
     }
 }
 
