@@ -122,7 +122,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     }
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerPacketListener(PacketType::CreateAssignment, this, "handleCreateAssignmentPacket");
-    packetReceiver.registerPacketListener(PacketType::CreateAssignment, this, "handleStopNodePacket");
+    packetReceiver.registerPacketListener(PacketType::StopNode, this, "handleStopNodePacket");
 }
 
 

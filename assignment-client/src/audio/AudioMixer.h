@@ -35,8 +35,6 @@ public slots:
     /// threaded run of assignment
     void run();
 
-    void readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
-
     void sendStatsPacket();
 
     static const InboundAudioStream::Settings& getStreamSettings() { return _streamSettings; }

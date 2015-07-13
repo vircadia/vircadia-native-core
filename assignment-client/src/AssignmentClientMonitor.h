@@ -35,9 +35,10 @@ public:
 
     void stopChildProcesses();
 private slots:
-    void readPendingDatagrams();
     void checkSpares();
     void childProcessFinished();
+    void handleNodeJsonStatsPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleNodeJsonStatsUnknownNodePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     
 public slots:
     void aboutToQuit();

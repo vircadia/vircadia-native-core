@@ -52,11 +52,12 @@ public:
     
 public slots:
     void run();
-    void readPendingDatagrams();
     void playAvatarSound(Sound* avatarSound) { _scriptEngine.setAvatarSound(avatarSound); }
 
 private slots:
     void handleAudioPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
+    void handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
+    void handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
 
 private:
     ScriptEngine _scriptEngine;

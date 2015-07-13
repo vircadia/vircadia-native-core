@@ -48,75 +48,53 @@ Agent::Agent(const QByteArray& packet) :
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
 
-    auto& packetReceiver = DependencyManager::get<NodeList>()->getPackingReceiver();
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerPacketListener(PacketType::MixedAudio, this, "handleAudioPacket");
     packetReceiver.registerPacketListener(PacketType::SilentAudioFrame, this, "handleAudioPacket");
+    packetReceiver.registerPacketListener(PacketType::OctreeStats, this, "handleOctreePacket");
+    packetReceiver.registerPacketListener(PacketType::EntityData, this, "handleOctreePacket");
+    packetReceiver.registerPacketListener(PacketType::EntityErase, this, "handleOctreePacket");
+    packetReceiver.registerPacketListener(PacketType::Jurisdiction, this, "handleJurisdictionPacket");
 }
 
-void Agent::readPendingDatagrams() {
-    QByteArray receivedPacket;
-    HifiSockAddr senderSockAddr;
-    auto nodeList = DependencyManager::get<NodeList>();
+void Agent::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
+    QByteArray mutablePacket = QByteArray(packet->getData(), packet->getSizeWithHeader());
+    int messageLength = mutablePacket.size();
 
-    while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
-        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
-            PacketType::Value datagramPacketType = packetTypeForPacket(receivedPacket);
+    auto packetType = packet->getType();
 
-            if (datagramPacketType == PacketType::Jurisdiction) {
-                int headerBytes = numBytesForPacketHeader(receivedPacket);
+    if (packetType == PacketType::OctreeStats) {
 
-                SharedNodePointer matchedNode = nodeList->sendingNodeForPacket(receivedPacket);
-
-                if (matchedNode) {
-                    // PacketType_JURISDICTION, first byte is the node type...
-                    switch (receivedPacket[headerBytes]) {
-                        case NodeType::EntityServer:
-                            DependencyManager::get<EntityScriptingInterface>()->getJurisdictionListener()->
-                                queueReceivedPacket(matchedNode, receivedPacket);
-                            break;
-                    }
-                }
-
-            } else if (datagramPacketType == PacketType::OctreeStats
-                        || datagramPacketType == PacketType::EntityData
-                        || datagramPacketType == PacketType::EntityErase
-            ) {
-                // Make sure our Node and NodeList knows we've heard from this node.
-                SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);
-                sourceNode->setLastHeardMicrostamp(usecTimestampNow());
-
-                QByteArray mutablePacket = receivedPacket;
-                int messageLength = mutablePacket.size();
-
-                if (datagramPacketType == PacketType::OctreeStats) {
-
-                    int statsMessageLength = OctreeHeadlessViewer::parseOctreeStats(mutablePacket, sourceNode);
-                    if (messageLength > statsMessageLength) {
-                        mutablePacket = mutablePacket.mid(statsMessageLength);
-
-                        // TODO: this needs to be fixed, the goal is to test the packet version for the piggyback, but
-                        //       this is testing the version and hash of the original packet
-                        //       need to use numBytesArithmeticCodingFromBuffer()...
-                        if (!DependencyManager::get<NodeList>()->packetVersionAndHashMatch(receivedPacket)) {
-                            return; // bail since piggyback data doesn't match our versioning
-                        }
-                    } else {
-                        return; // bail since no piggyback data
-                    }
-
-                    datagramPacketType = packetTypeForPacket(mutablePacket);
-                } // fall through to piggyback message
-
-                if (datagramPacketType == PacketType::EntityData || datagramPacketType == PacketType::EntityErase) {
-                    _entityViewer.processDatagram(mutablePacket, sourceNode);
-                }
-            }
+        int statsMessageLength = OctreeHeadlessViewer::parseOctreeStats(packet, senderNode);
+        if (messageLength > statsMessageLength) {
+            mutablePacket = mutablePacket.mid(statsMessageLength);
+        } else {
+            return; // bail since no piggyback data
         }
+
+        packetType = packetTypeForPacket(mutablePacket);
+    } // fall through to piggyback message
+
+    if (packetType == PacketType::EntityData || packetType == PacketType::EntityErase) {
+        _entityViewer.processDatagram(mutablePacket, senderNode);
+    }
+}
+
+void Agent::handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
+    QByteArray receivedPacket = QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader());
+    int headerBytes = numBytesForPacketHeader(receivedPacket);
+
+    // PacketType_JURISDICTION, first byte is the node type...
+    switch (receivedPacket[headerBytes]) {
+        case NodeType::EntityServer:
+            DependencyManager::get<EntityScriptingInterface>()->getJurisdictionListener()->
+                queueReceivedPacket(packet, senderNode);
+            break;
     }
 }
 
 void Agent::handleAudioPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
-    _receivedAudioStream.parseData(receivedPacket);
+    _receivedAudioStream.parseData(QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
 
     _lastReceivedAudioLoudness = _receivedAudioStream.getNextOutputFrameLoudness();
 

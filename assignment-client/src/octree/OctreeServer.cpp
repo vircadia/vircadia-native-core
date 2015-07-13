@@ -248,10 +248,10 @@ OctreeServer::OctreeServer(const QByteArray& packet) :
 
     AccountManager::getInstance().setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
 
-    auto packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver->registerPacketListener(getMyQueryMessageType(), this, "handleOctreeQueryPacket");
-    packetReceiver->registerPacketListener(PacketType::OctreeDataNack, this, "handleOctreeDataNackPacket");
-    packetReceiver->registerPacketListener(PacketType::JurisdictionRequest, this, "handleJurisdictionRequestPacket");
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerPacketListener(getMyQueryMessageType(), this, "handleOctreeQueryPacket");
+    packetReceiver.registerPacketListener(PacketType::OctreeDataNack, this, "handleOctreeDataNackPacket");
+    packetReceiver.registerPacketListener(PacketType::JurisdictionRequest, this, "handleJurisdictionRequestPacket");
 }
 
 OctreeServer::~OctreeServer() {
@@ -860,35 +860,29 @@ void OctreeServer::readPendingDatagram(const QByteArray& receivedPacket, const H
     }
 }
 
-void handleOctreeQueryPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
+void OctreeServer::handleOctreeQueryPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
     // If we got a query packet, then we're talking to an agent, and we
     // need to make sure we have it in our nodeList.
-    SharedNodePointer matchingNode = nodeList->nodeWithUUID(packet->getSourceID());
-    if (matchingNode) {
-        nodeList->updateNodeWithDataFromPacket(matchingNode, packet->getData());
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->updateNodeWithDataFromPacket(senderNode, packet->getData());
 
-        OctreeQueryNode* nodeData = (OctreeQueryNode*) matchingNode->getLinkedData();
-        if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
-            nodeData->initializeOctreeSendThread(this, matchingNode);
-        }
+    OctreeQueryNode* nodeData = (OctreeQueryNode*)senderNode->getLinkedData();
+    if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
+        nodeData->initializeOctreeSendThread(this, senderNode);
     }
 }
 
-void handleOctreeDataNackPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
+void OctreeServer::handleOctreeDataNackPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
     // If we got a nack packet, then we're talking to an agent, and we
     // need to make sure we have it in our nodeList.
-    SharedNodePointer matchingNode = nodeList->nodeWithUUID(packet->getSourceID());
-    if (matchingNode) {
-        OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
-        if (nodeData) {
-            nodeData->parseNackPacket(packet->getData());
-        }
+    OctreeQueryNode* nodeData = (OctreeQueryNode*)senderNode->getLinkedData();
+    if (nodeData) {
+        nodeData->parseNackPacket(packet->getData());
     }
 }
 
-void handleJurisdictionRequestPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
-    SharedNodePointer matchingNode = nodeList->nodeWithUUID(packet->getSourceID());
-    _jurisdictionSender->queueReceivedPacket(matchingNode, packet->getData());
+void OctreeServer::handleJurisdictionRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
+    _jurisdictionSender->queueReceivedPacket(senderNode, packet->getData());
 }
 
 void OctreeServer::setupDatagramProcessingThread() {
