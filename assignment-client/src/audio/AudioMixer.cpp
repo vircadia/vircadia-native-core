@@ -528,7 +528,7 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
             envPacket->writePrimitive(reverbTime);
             envPacket->writePrimitive(wetLevel);
         }
-        nodeList->sendPacket(std::move(envPacket), node);
+        nodeList->sendPacket(std::move(envPacket), *node);
     }
 }
 
@@ -555,7 +555,7 @@ void AudioMixer::readPendingDatagram(const QByteArray& receivedPacket, const Hif
                 nodeList->eachNode([&](const SharedNodePointer& node){
                     if (node->getType() == NodeType::Agent && node->getActiveSocket() &&
                         node->getLinkedData() && node != sendingNode) {
-                        nodeList->sendPacket(std::move(packet), node);
+                        nodeList->sendPacket(std::move(packet), *node);
                     }
                 });
             }
@@ -793,7 +793,7 @@ void AudioMixer::run() {
                 if (nodeData->getAvatarAudioStream()
                     && shouldMute(nodeData->getAvatarAudioStream()->getQuietestFrameLoudness())) {
                     auto mutePacket = NLPacket::create(PacketType::NoisyMute, 0);
-                    nodeList->sendPacket(std::move(mutePacket), node);
+                    nodeList->sendPacket(std::move(mutePacket), *node);
                 }
 
                 if (node->getType() == NodeType::Agent && node->getActiveSocket()
@@ -831,7 +831,7 @@ void AudioMixer::run() {
                     sendAudioEnvironmentPacket(node);
 
                     // send mixed audio packet
-                    nodeList->sendPacket(std::move(mixPacket), node);
+                    nodeList->sendPacket(std::move(mixPacket), *node);
                     nodeData->incrementOutgoingMixedAudioSequenceNumber();
 
                     // send an audio stream stats packet if it's time

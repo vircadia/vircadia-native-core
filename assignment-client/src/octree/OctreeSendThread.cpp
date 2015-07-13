@@ -179,12 +179,12 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
 
             // actually send it
             OctreeServer::didCallWriteDatagram(this);
-            DependencyManager::get<NodeList>()->sendUnreliablePacket(statsPacket, _node);
+            DependencyManager::get<NodeList>()->sendUnreliablePacket(statsPacket, *_node);
             packetSent = true;
         } else {
             // not enough room in the packet, send two packets
             OctreeServer::didCallWriteDatagram(this);
-            DependencyManager::get<NodeList>()->sendUnreliablePacket(statsPacket, _node);
+            DependencyManager::get<NodeList>()->sendUnreliablePacket(statsPacket, *_node);
 
             // since a stats message is only included on end of scene, don't consider any of these bytes "wasted", since
             // there was nothing else to send.
@@ -215,7 +215,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
             packetsSent++;
 
             OctreeServer::didCallWriteDatagram(this);
-            DependencyManager::get<NodeList>()->sendUnreliablePacket(nodeData->getPacket(), _node);
+            DependencyManager::get<NodeList>()->sendUnreliablePacket(nodeData->getPacket(), *_node);
             packetSent = true;
 
             int packetSizeWithHeader = nodeData->getPacket().getSizeWithHeader();
@@ -247,7 +247,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         if (nodeData->isPacketWaiting() && !nodeData->isShuttingDown()) {
             // just send the octree packet
             OctreeServer::didCallWriteDatagram(this);
-            DependencyManager::get<NodeList>()->sendUnreliablePacket(nodeData->getPacket(), _node);
+            DependencyManager::get<NodeList>()->sendUnreliablePacket(nodeData->getPacket(), *_node);
             packetSent = true;
 
             int packetSizeWithHeader = nodeData->getPacket().getSizeWithHeader();
@@ -592,7 +592,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         while (nodeData->hasNextNackedPacket() && packetsSentThisInterval < maxPacketsPerInterval) {
             const NLPacket* packet = nodeData->getNextNackedPacket();
             if (packet) {
-                DependencyManager::get<NodeList>()->sendUnreliablePacket(*packet, _node);
+                DependencyManager::get<NodeList>()->sendUnreliablePacket(*packet, *_node);
                 truePacketsSent++;
                 packetsSentThisInterval++;
 

@@ -1030,7 +1030,7 @@ void DomainServer::broadcastNewNode(const SharedNodePointer& addedNode) {
             addNodePacket->write(rfcConnectionSecret);
 
             // send off this packet to the node
-            limitedNodeList->sendUnreliablePacket(*addNodePacket, node);
+            limitedNodeList->sendUnreliablePacket(*addNodePacket, *node);
         }
     );
 }
@@ -1094,7 +1094,7 @@ void DomainServer::readAvailableDatagrams() {
 
                 assignmentStream << uniqueAssignment;
 
-                limitedNodeList->sendUnreliablePacket(*assignmentPacket, senderSockAddr);
+                limitedNodeList->sendUnreliablePacket(*assignmentPacket, *senderSockAddr);
 
                 // add the information for that deployed assignment to the hash of pending assigned nodes
                 PendingAssignedNodeData* pendingNodeData = new PendingAssignedNodeData(assignmentToDeploy->getUUID(),
@@ -1125,7 +1125,7 @@ void DomainServer::readAvailableDatagrams() {
                 dtlsRequiredPacket->writePrimitive(dtlsPort);
             }
 
-            limitedNodeList->sendUnreliablePacket(*dtlsRequiredPacket, senderSockAddr);
+            limitedNodeList->sendUnreliablePacket(*dtlsRequiredPacket, *senderSockAddr);
         }
     }
 }

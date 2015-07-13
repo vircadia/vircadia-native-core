@@ -123,14 +123,14 @@ public:
 
     qint64 readDatagram(QByteArray& incomingPacket, QHostAddress* address, quint16 * port);
 
-    qint64 sendUnreliablePacket(const NLPacket& packet, const SharedNodePointer& destinationNode) { assert(false); return 0; }
-    qint64 sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr) { assert(false); return 0; }
+    qint64 sendUnreliablePacket(const NLPacket& packet, const Node& destinationNode);
+    qint64 sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr);
 
-    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const SharedNodePointer& destinationNode) { assert(false); return 0; }
-    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr) { assert(false); return 0; }
+    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode);
+    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr);
 
-    qint64 sendPacketList(NLPacketList& packetList, const SharedNodePointer& destinationNode) { assert(false); return 0; }
-    qint64 sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr) { assert(false); return 0; }
+    qint64 sendPacketList(NLPacketList& packetList, const Node& destinationNode);
+    qint64 sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr);
 
     void (*linkedDataCreateCallback)(Node *);
 

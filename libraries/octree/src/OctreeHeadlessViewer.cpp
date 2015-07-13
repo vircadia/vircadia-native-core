@@ -219,7 +219,7 @@ void OctreeHeadlessViewer::queryOctree() {
             _octreeQuery.getBroadcastData(reinterpret_cast<unsigned char*>(queryPacket->getPayload()));
 
             // ask the NodeList to send it
-            nodeList->sendPacket(std::move(queryPacket), node);
+            nodeList->sendPacket(std::move(queryPacket), *node);
         }
     });
 }

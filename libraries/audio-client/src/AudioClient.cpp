@@ -882,7 +882,7 @@ void AudioClient::handleAudioInput() {
 
             nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendAudioPacket);
 
-            nodeList->sendUnreliablePacket(*_audioPacket, audioMixer);
+            nodeList->sendUnreliablePacket(*_audioPacket, *audioMixer);
 
             _outgoingAvatarAudioSequenceNumber++;
         }
@@ -924,7 +924,7 @@ void AudioClient::sendMuteEnvironmentPacket() {
 
     if (audioMixer) {
         // send off this mute packet
-        nodeList->sendPacket(std::move(mutePacket), audioMixer);
+        nodeList->sendPacket(std::move(mutePacket), *audioMixer);
     }
 }
 

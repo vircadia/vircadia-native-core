@@ -190,7 +190,7 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
         numStreamStatsRemaining -= numStreamStatsToPack;
 
         // send the current packet
-        nodeList->sendPacket(std::move(statsPacket), destinationNode);
+        nodeList->sendPacket(std::move(statsPacket), *destinationNode);
     }
 }
 

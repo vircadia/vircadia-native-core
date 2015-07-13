@@ -101,7 +101,7 @@ int EntityServer::sendSpecialPackets(const SharedNodePointer& node, OctreeQueryN
             totalBytes += specialPacket->getSizeWithHeader();
             packetsSent++;
 
-            DependencyManager::get<NodeList>()->sendPacket(std::move(specialPacket), node);
+            DependencyManager::get<NodeList>()->sendPacket(std::move(specialPacket), *node);
         }
 
         nodeData->setLastDeletedEntitiesSentAt(deletePacketSentAt);

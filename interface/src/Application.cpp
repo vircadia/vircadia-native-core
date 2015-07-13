@@ -1769,7 +1769,7 @@ void Application::sendPingPackets() {
                 return false;
         }
     }, [nodeList](const SharedNodePointer& node) {
-        nodeList->sendPacket(std::move(nodeList->constructPingPacket()), node);
+        nodeList->sendPacket(std::move(nodeList->constructPingPacket()), *node);
     });
 }
 
@@ -2710,7 +2710,7 @@ int Application::sendNackPackets() {
                 packetsSent += nackPacketList.getNumPackets();
 
                 // send the packet list
-                nodeList->sendPacketList(nackPacketList, node);
+                nodeList->sendPacketList(nackPacketList, *node);
             }
         }
     });
@@ -2891,7 +2891,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType::Value packetTyp
             queryPacket->setSizeUsed(packetSize);
 
             // make sure we still have an active socket
-            nodeList->sendUnreliablePacket(*queryPacket, node);
+            nodeList->sendUnreliablePacket(*queryPacket, *node);
         }
     });
 }
