@@ -25,61 +25,89 @@ PacketReceiver::PacketReceiver(QObject* parent) :
 }
 
 void PacketReceiver::registerPacketListeners(const QSet<PacketType::Value>& types, QObject* object, const char* slot) {
+    QSet<PacketType::Value> nonSourcedTypes;
+    QSet<PacketType::Value> sourceTypes;
+
     foreach(PacketType::Value type, types) {
-        registerPacketListener(type, object, slot);
+        if (NON_SOURCED_PACKETS.contains(type)) {
+            nonSourcedTypes << type;
+        } else {
+            sourceTypes << type;
+        }
+    }
+
+    if (nonSourcedTypes.size() > 0) {
+        QMetaMethod nonSourcedMethod = matchingMethodForListener(nonSourcedTypes[0], object, slot);
+        foreach(PacketType::Value type, nonSourcedTypes) {
+            registerVerifiedListener(type, object, nonSourcedMethod);
+        }
+    }
+
+    if (sourceTypes.size() > 0) {
+        QMetaMethod sourcedMethod = matchingMethodForListener(sourcedTypes[0], object, slot);
+        foreach(PacketType::Value type, sourcedTypes) {
+            registerVerifiedListener(type, object, sourcedMethod);
+        }
     }
 }
 
 void PacketReceiver::registerPacketListener(PacketType::Value type, QObject* object, const char* slot) {
+    QMetaMethod matchingMethod = matchingMethodForListener(type, object, slot);
+    if (matchingMethod.isValid()) {
+        registerVerifiedListener(type, object, slotMethod);
+    }
+}
+
+QMetaMethod PacketReciever::matchingMethodForListener(PacketType::Value type, QObject* object, const char* slot) {
     Q_ASSERT(object);
+
+    // normalize the slot with the expected parameters
+    QString normalizedSlot;
+
+    if (NON_SOURCED_PACKETS.contains(type)) {
+        const QString NON_SOURCED_PACKET_LISTENER_PARAMETERS = "QSharedPointer<NLPacket>";
+
+        normalizedSlot =
+            QMetaObject::normalizedSignature(QString("%1(%2)").arg(slot).arg(NON_SOURCED_PACKET_LISTENER_PARAMETERS));
+    } else {
+        const QList<QByteArray> SOURCED_PACKET_LISTENER_PARAMETERS = "QSharedPointer<NLPacket>,QSharedPointer<Node>";
+
+        normalizedSlot = QMetaObject::normalizedSignature(QString("%1(%2)").arg(slot).arg(SOURCED_PACKET_LISTENER_PARAMETERS));
+    }
+
+    // does the constructed normalized method exist?
+    int methodIndex = object->metaObject()->indexOfSlot(normalizedSlot.data());
     
+    if (methodIndex < 0) {
+        qDebug() << "PacketReceiver::registerPacketListener expected a method with a normalized signature of"
+                << normalizedSlot << "but such a method was not found.";
+    }
+
+    Q_ASSERT(methodIndex >= 0);
+
+    // return the converted QMetaMethod
+    if (methodIndex >= 0) {
+        return object->metaObject()->method(methodIndex);
+    } else {
+        // if somehow (scripting?) something bad gets in here at runtime that doesn't hit the asserts above
+        // return a non-valid QMetaMethod
+        return QMetaMethod();
+    }
+}
+
+void PacketReceiver::registerVerifiedListener(PacketType::Value type, QObject* object, const QMetaMethod& slot) {
     _packetListenerLock.lock();
 
     if (_packetListenerMap.contains(type)) {
         qDebug() << "Warning: Registering a packet listener for packet type " << type
             << "that will remove a previously registered listener";
     }
-    
-    // convert the const char* slot to a QMetaMethod
-    int methodIndex = object->metaObject()->indexOfSlot(slot);
-    Q_ASSERT(methodIndex >= 0);
-
-    QMetaMethod slotMethod = object->metaObject()->method(methodIndex);
-    Q_ASSERT(method.isValid());
-
-    // compare the parameters we expect and the parameters the QMetaMethod has
-    bool parametersMatch = false;
-
-    if (NON_SOURCED_PACKETS.contains(type)) {
-        const QList<QByteArray> NON_SOURCED_PACKET_LISTENER_PARAMETERS = QList<QByteArray>()
-            << QMetaObject::normalizedType("QSharedPointer<NLPacket>");
-
-        parametersMatch = slotMethod.parameterTypes() == NON_SOURCED_PACKET_LISTENER_PARAMETERS;
-
-        qDebug() << "PacketReceiver::registerPacketListener expected a method that takes"
-                << NON_SOURCED_PACKET_LISTENER_PARAMETERS
-                << "but parameter method takes" << slotMethod.parameterTypes();
-    } else {
-        const QList<QByteArray> SOURCED_PACKET_LISTENER_PARAMETERS = QList<QByteArray>()
-            << QMetaObject::normalizedType("QSharedPointer<NLPacket>")
-            << QMetaObject::normalizedType("QSharedPointer<Node>");
-
-        parametersMatch = slotMethod.parameterTypes() == SOURCED_PACKET_LISTENER_PARAMETERS;
-
-        if (!parametersMatch) {
-            qDebug() << "PacketReceiver::registerPacketListener expected a method that takes"
-                << SOURCED_PACKET_LISTENER_PARAMETERS
-                << "but parameter method takes" << slotMethod.parameterTypes();
-        }
-    }
-    
-    // make sure the parameters match
-    assert(parametersMatch);
 
     // add the mapping
-    _packetListenerMap[type] = ObjectMethodPair(QPointer<QObject>(object), slotMethod);
+    _packetListenerMap[type] = ObjectMethodPair(QPointer<QObject>(object), slot);
         
     _packetListenerLock.unlock();
+
 }
 
 bool PacketReceiver::packetVersionMatch(const NLPacket& packet) {

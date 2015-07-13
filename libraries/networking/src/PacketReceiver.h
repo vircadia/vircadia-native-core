@@ -52,6 +52,8 @@ signals:
     
 private:
     bool packetVersionMatch(const NLPacket& packet);
+
+    void registerVerifiedListener(PacketType::Value type, QObject* listener, const QMetaMethod& slot);
     
     using ObjectMethodPair = std::pair<QPointer<QObject>, QMetaMethod>;
 
