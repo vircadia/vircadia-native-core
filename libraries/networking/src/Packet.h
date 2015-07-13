@@ -16,6 +16,7 @@
 
 #include <QIODevice>
 
+#include "HifiSockAddr.h"
 #include "PacketHeaders.h"
 
 class Packet : public QIODevice {
@@ -47,6 +48,8 @@ public:
     qint64 getSizeWithHeader() const { return localHeaderSize() + getSizeUsed(); }
     qint64 getSizeUsed() const { return _sizeUsed; }
     void setSizeUsed(qint64 sizeUsed) { _sizeUsed = sizeUsed; }
+
+    HifiSockAddr getSenderSockAddr() const { return HifiSockAddr(); }
 
     // Header readers
     PacketType::Value readType() const;
