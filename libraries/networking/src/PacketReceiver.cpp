@@ -26,25 +26,25 @@ PacketReceiver::PacketReceiver(QObject* parent) :
 
 void PacketReceiver::registerPacketListeners(const QSet<PacketType::Value>& types, QObject* object, const char* slot) {
     QSet<PacketType::Value> nonSourcedTypes;
-    QSet<PacketType::Value> sourceTypes;
+    QSet<PacketType::Value> sourcedTypes;
 
     foreach(PacketType::Value type, types) {
         if (NON_SOURCED_PACKETS.contains(type)) {
             nonSourcedTypes << type;
         } else {
-            sourceTypes << type;
+            sourcedTypes << type;
         }
     }
 
     if (nonSourcedTypes.size() > 0) {
-        QMetaMethod nonSourcedMethod = matchingMethodForListener(nonSourcedTypes[0], object, slot);
+        QMetaMethod nonSourcedMethod = matchingMethodForListener(*nonSourcedTypes.begin(), object, slot);
         foreach(PacketType::Value type, nonSourcedTypes) {
             registerVerifiedListener(type, object, nonSourcedMethod);
         }
     }
 
-    if (sourceTypes.size() > 0) {
-        QMetaMethod sourcedMethod = matchingMethodForListener(sourcedTypes[0], object, slot);
+    if (sourcedTypes.size() > 0) {
+        QMetaMethod sourcedMethod = matchingMethodForListener(*sourcedTypes.begin(), object, slot);
         foreach(PacketType::Value type, sourcedTypes) {
             registerVerifiedListener(type, object, sourcedMethod);
         }
@@ -54,11 +54,11 @@ void PacketReceiver::registerPacketListeners(const QSet<PacketType::Value>& type
 void PacketReceiver::registerPacketListener(PacketType::Value type, QObject* object, const char* slot) {
     QMetaMethod matchingMethod = matchingMethodForListener(type, object, slot);
     if (matchingMethod.isValid()) {
-        registerVerifiedListener(type, object, slotMethod);
+        registerVerifiedListener(type, object, matchingMethod);
     }
 }
 
-QMetaMethod PacketReciever::matchingMethodForListener(PacketType::Value type, QObject* object, const char* slot) {
+QMetaMethod PacketReceiver::matchingMethodForListener(PacketType::Value type, QObject* object, const char* slot) const {
     Q_ASSERT(object);
 
     // normalize the slot with the expected parameters
@@ -67,16 +67,19 @@ QMetaMethod PacketReciever::matchingMethodForListener(PacketType::Value type, QO
     if (NON_SOURCED_PACKETS.contains(type)) {
         const QString NON_SOURCED_PACKET_LISTENER_PARAMETERS = "QSharedPointer<NLPacket>";
 
+        QString nonNormalizedSignature = QString("%1(%2)").arg(slot).arg(NON_SOURCED_PACKET_LISTENER_PARAMETERS);
         normalizedSlot =
-            QMetaObject::normalizedSignature(QString("%1(%2)").arg(slot).arg(NON_SOURCED_PACKET_LISTENER_PARAMETERS));
+            QMetaObject::normalizedSignature(nonNormalizedSignature.toStdString().c_str());
     } else {
-        const QList<QByteArray> SOURCED_PACKET_LISTENER_PARAMETERS = "QSharedPointer<NLPacket>,QSharedPointer<Node>";
-
-        normalizedSlot = QMetaObject::normalizedSignature(QString("%1(%2)").arg(slot).arg(SOURCED_PACKET_LISTENER_PARAMETERS));
+        const QString SOURCED_PACKET_LISTENER_PARAMETERS = "QSharedPointer<NLPacket>,QSharedPointer<Node>";
+    
+        QString nonNormalizedSignature = QString("%1(%2)").arg(slot).arg(SOURCED_PACKET_LISTENER_PARAMETERS);
+        normalizedSlot =
+            QMetaObject::normalizedSignature(nonNormalizedSignature.toStdString().c_str());
     }
 
     // does the constructed normalized method exist?
-    int methodIndex = object->metaObject()->indexOfSlot(normalizedSlot.data());
+    int methodIndex = object->metaObject()->indexOfSlot(normalizedSlot.toStdString().c_str());
     
     if (methodIndex < 0) {
         qDebug() << "PacketReceiver::registerPacketListener expected a method with a normalized signature of"
