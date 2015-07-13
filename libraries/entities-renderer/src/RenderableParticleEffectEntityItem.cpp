@@ -50,7 +50,7 @@ void RenderableParticleEffectEntityItem::render(RenderArgs* args) {
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
     if (textured) {
-        batch.setUniformTexture(0, _texture->getGPUTexture());
+        batch.setResourceTexture(0, _texture->getGPUTexture());
     }
     batch.setModelTransform(getTransformToCenter());
     DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, textured);

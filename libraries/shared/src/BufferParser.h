@@ -44,10 +44,7 @@ public:
 
     template <typename T>
     inline void readFlags(PropertyFlags<T>& result) {
-        // FIXME doing heap allocation
-        QByteArray encoded((const char*)(_data + _offset), remaining());
-        result.decode(encoded);
-        _offset += result.getEncodedLength();
+        _offset += result.decode(_data + _offset, remaining());
     }
 
     template<typename T>

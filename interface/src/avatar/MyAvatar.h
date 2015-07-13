@@ -195,10 +195,12 @@ public slots:
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
     void updateMotionBehavior();
-    
+
     glm::vec3 getLeftPalmPosition();
+    glm::quat getLeftPalmRotation();
     glm::vec3 getRightPalmPosition();
-    
+    glm::quat getRightPalmRotation();
+
     void clearReferential();
     bool setModelReferential(const QUuid& id);
     bool setJointReferential(const QUuid& id, int jointIndex);
