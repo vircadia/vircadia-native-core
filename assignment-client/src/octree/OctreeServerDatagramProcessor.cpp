@@ -25,7 +25,7 @@ OctreeServerDatagramProcessor::OctreeServerDatagramProcessor(QUdpSocket& nodeSoc
     
 }
 
-OctreeServerDatagramProcessor::~OctreeServerDatagramProcessor() {    
+OctreeServerDatagramProcessor::~OctreeServerDatagramProcessor() {
     // return the node socket to its previous thread
     _nodeSocket.moveToThread(_previousNodeSocketThread);
 }
@@ -45,7 +45,6 @@ void OctreeServerDatagramProcessor::readPendingDatagrams() {
                                   
         PacketType::Value packetType = packetTypeForPacket(incomingPacket);
         if (packetType == PacketType::Ping) {
-            DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, incomingPacket);
             return; // don't emit
         }
         
