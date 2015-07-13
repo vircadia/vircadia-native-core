@@ -103,8 +103,8 @@ public:
     void setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size);
     void setUniformBuffer(uint32 slot, const BufferView& view); // not a command, just a shortcut from a BufferView
 
-    void setUniformTexture(uint32 slot, const TexturePointer& view);
-    void setUniformTexture(uint32 slot, const TextureView& view); // not a command, just a shortcut from a TextureView
+    void setResourceTexture(uint32 slot, const TexturePointer& view);
+    void setResourceTexture(uint32 slot, const TextureView& view); // not a command, just a shortcut from a TextureView
 
     // Framebuffer Stage
     void setFramebuffer(const FramebufferPointer& framebuffer);
@@ -178,7 +178,7 @@ public:
         COMMAND_setStateBlendFactor,
 
         COMMAND_setUniformBuffer,
-        COMMAND_setUniformTexture,
+        COMMAND_setResourceTexture,
 
         COMMAND_setFramebuffer,
 
