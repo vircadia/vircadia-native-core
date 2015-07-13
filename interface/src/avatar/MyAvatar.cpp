@@ -107,8 +107,8 @@ MyAvatar::MyAvatar() :
     _hmdSensorMatrix(),
     _hmdSensorOrientation(),
     _hmdSensorPosition(),
-    _bodySensorOrientation(),
-    _bodySensorPosition(),
+    _bodySensorMatrix(),
+    _inverseBodySensorMatrix(),
     _sensorToWorldMatrix()
 {
     _firstPersonSkeletonModel.setIsFirstPerson(true);
@@ -256,7 +256,8 @@ void MyAvatar::setHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
      _hmdSensorPosition = extractTranslation(hmdSensorMatrix);
      _hmdSensorOrientation = glm::quat_cast(hmdSensorMatrix);
 
-     deriveBodyFromHMDSensor(_bodySensorOrientation, _bodySensorPosition);
+     _bodySensorMatrix = deriveBodyFromHMDSensor();
+     _inverseBodySensorMatrix = glm::inverse(_bodySensorMatrix);
 }
 
 //  Update avatar head rotation with sensor data
@@ -1344,7 +1345,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
         head->setBaseRoll(ROLL(euler));
 
         // AJT: FIXME, I might be able to do just a setOrientation here right?
-        setAvatarOrientation(getWorldBodyOrientation());
+        Avatar::setOrientation(getWorldBodyOrientation());
     }
 }
 
@@ -1505,7 +1506,7 @@ void MyAvatar::updatePosition(float deltaTime) {
     _moving = speed > MOVING_SPEED_THRESHOLD;
 
     if (qApp->isHMDMode() && isRoomTracking) {
-        setAvatarPosition(getWorldBodyPosition());
+        Avatar::setPosition(getWorldBodyPosition());
     }
 }
 
@@ -1698,50 +1699,39 @@ void MyAvatar::relayDriveKeysToCharacterController() {
     }
 }
 
-void MyAvatar::setAvatarPosition(glm::vec3 pos) {
-    Avatar::setPosition(pos);
-}
-
-void MyAvatar::setAvatarOrientation(glm::quat quat) {
-    Avatar::setOrientation(quat);
-}
-
 // overriden, because they must move the sensor mat, so that the avatar will be at the given location.
 void MyAvatar::setPosition(const glm::vec3 position, bool overideReferential) {
+
     // update the sensor mat so that the body position will end up in the desired
     // position when driven from the head.
-    glm::vec3 bodyPos = getWorldBodyPosition();
-    glm::vec3 desiredPos = position;
-    glm::vec3 sensorPos = extractTranslation(_sensorToWorldMatrix);
-    _sensorToWorldMatrix[3] = glm::vec4(desiredPos - bodyPos + sensorPos, 1);
+    glm::mat4 desiredMat = createMatFromQuatAndPos(getOrientation(), position);
+    _sensorToWorldMatrix = desiredMat * _inverseBodySensorMatrix;
 
-    setAvatarPosition(position);
+    Avatar::setPosition(position);
 }
 
 // overriden, because they must move the sensor mat, so that the avatar will face the given orienation.
 void MyAvatar::setOrientation(const glm::quat& orientation, bool overideReferential) {
-    // update the sensor mat so that the body orientation will end up in the desired
-    // location when driven from the head.
-    glm::vec3 bodyPos = getWorldBodyPosition();
-    glm::quat bodyOrientation = getWorldBodyOrientation();
-    glm::mat4 bodyMat = createMatFromQuatAndPos(bodyOrientation, bodyPos);
-    glm::mat4 desiredMat = createMatFromQuatAndPos(orientation, bodyPos);
-    _sensorToWorldMatrix = desiredMat * glm::inverse(bodyMat) * _sensorToWorldMatrix;
 
-    setAvatarOrientation(orientation);
+    // update the sensor mat so that the body position will end up in the desired
+    // position when driven from the head.
+    glm::mat4 desiredMat = createMatFromQuatAndPos(orientation, getPosition());
+    _sensorToWorldMatrix = desiredMat * _inverseBodySensorMatrix;
+
+    Avatar::setOrientation(orientation);
 }
 
 glm::vec3 MyAvatar::getWorldBodyPosition() const {
-    return transformPoint(_sensorToWorldMatrix, _bodySensorPosition);
+    return transformPoint(_sensorToWorldMatrix, extractTranslation(_bodySensorMatrix));
 }
 
 glm::quat MyAvatar::getWorldBodyOrientation() const {
-    return glm::quat_cast(_sensorToWorldMatrix) * _bodySensorOrientation;
+    return glm::quat_cast(_sensorToWorldMatrix *_bodySensorMatrix);
 }
 
 // derive avatar body position and orientation from the current HMD Sensor location.
 // results are in sensor space
-void MyAvatar::deriveBodyFromHMDSensor(glm::quat& bodyOrientationOut, glm::vec3& bodyPositionOut) const {
+glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
 
     // HMD is in sensor space.
     const glm::vec3 hmdPosition = getHMDSensorPosition();
@@ -1759,8 +1749,8 @@ void MyAvatar::deriveBodyFromHMDSensor(glm::quat& bodyOrientationOut, glm::vec3&
     // while neckToRoot offset is only relative to HMDs yaw.
     glm::vec3 eyeToNeck = hmdOrientation * (localNeck - localEyes);
     glm::vec3 neckToRoot = hmdOrientationYawOnly * -localNeck;
-    glm::vec3 roomBodyPos = hmdPosition + eyeToNeck + neckToRoot;
+    glm::vec3 bodyPos = hmdPosition + eyeToNeck + neckToRoot;
 
-    bodyOrientationOut = hmdOrientationYawOnly;
-    bodyPositionOut = roomBodyPos;
+    // avatar facing is determined solely by hmd orientation.
+    return createMatFromQuatAndPos(hmdOrientationYawOnly, bodyPos);
 }

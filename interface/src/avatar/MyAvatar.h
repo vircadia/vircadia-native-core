@@ -240,7 +240,7 @@ private:
 
     // derive avatar body position and orientation from the current HMD Sensor location.
     // results are in sensor space
-    void deriveBodyFromHMDSensor(glm::quat& bodyOrientationOut, glm::vec3& bodyPositionOut) const;
+    glm::mat4 deriveBodyFromHMDSensor() const;
 
     glm::vec3 _gravity;
 
@@ -311,8 +311,8 @@ private:
 
     // cache of the current body position and orientation of the avatar's body,
     // in sensor space.
-    glm::quat _bodySensorOrientation;
-    glm::vec3 _bodySensorPosition;
+    glm::mat4 _bodySensorMatrix;
+    glm::mat4 _inverseBodySensorMatrix;
 
     // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
     glm::mat4 _sensorToWorldMatrix;
