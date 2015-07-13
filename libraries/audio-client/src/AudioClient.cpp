@@ -43,7 +43,7 @@ extern "C" {
     #include <gverb/gverbdsp.h>
 }
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
 
