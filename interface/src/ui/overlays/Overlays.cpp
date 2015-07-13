@@ -118,7 +118,6 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
 
     renderArgs->_context->syncCache();
     renderArgs->_context->render(batch);
-//    gpu::GLBackend::renderBatch(batch, true);
 }
 
 unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& properties) {
