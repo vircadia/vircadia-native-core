@@ -30,7 +30,7 @@ private slots:
     void sendAssignmentRequest();
     void assignmentCompleted();
     void handleAuthenticationRequest();
-    void sendStatsPacketToACM();
+    void sendStatusPacketToACM();
     void stopAssignmentClient();
 
 public slots:
@@ -41,7 +41,7 @@ private slots:
     void handleStopNodePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
 
 private:
-    void setUpStatsToMonitor();
+    void setUpStatusToMonitor();
 
     Assignment _requestAssignment;
     QPointer<ThreadedAssignment> _currentAssignment;
