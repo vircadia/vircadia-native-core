@@ -108,7 +108,6 @@ void testPropertyFlags(uint32_t value) {
         original.setHasProperty((EntityPropertyList)i);
     }
     QByteArray encoded = original.encode();
-    // auto originalSize = encoded.size();
     for (size_t i = 0; i < enumSize; ++i) {
         encoded.append(qrand());
     }
