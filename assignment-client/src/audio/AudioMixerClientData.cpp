@@ -159,10 +159,7 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
     int numStreamStatsRemaining = _audioStreams.size();
     QHash<QUuid, PositionalAudioStream*>::ConstIterator audioStreamsIterator = _audioStreams.constBegin();
 
-    NLPacketList statsPacketList(PacketType::AudioStreamStats);
-
     while (numStreamStatsRemaining > 0) {
-
         auto statsPacket = NLPacket::create(PacketType::AudioStreamStats);
 
         // pack the append flag in this packet
