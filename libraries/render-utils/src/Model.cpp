@@ -2030,9 +2030,9 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                 }
             }
             if (diffuseMap && static_cast<NetworkTexture*>(diffuseMap)->isLoaded()) {
-                batch.setUniformTexture(0, diffuseMap->getGPUTexture());
+                batch.setResourceTexture(0, diffuseMap->getGPUTexture());
             } else {
-                batch.setUniformTexture(0, textureCache->getGrayTexture());
+                batch.setResourceTexture(0, textureCache->getGrayTexture());
             }
 
             if (locations->texcoordMatrices >= 0) {
@@ -2048,13 +2048,13 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
 
             if (!mesh.tangents.isEmpty()) {                 
                 NetworkTexture* normalMap = networkPart.normalTexture.data();
-                batch.setUniformTexture(1, !normalMap || !normalMap->isLoaded() ?
+                batch.setResourceTexture(1, !normalMap || !normalMap->isLoaded() ?
                                         textureCache->getBlueTexture() : normalMap->getGPUTexture());
             }
     
             if (locations->specularTextureUnit >= 0) {
                 NetworkTexture* specularMap = networkPart.specularTexture.data();
-                batch.setUniformTexture(locations->specularTextureUnit, !specularMap || !specularMap->isLoaded() ?
+                batch.setResourceTexture(locations->specularTextureUnit, !specularMap || !specularMap->isLoaded() ?
                                         textureCache->getBlackTexture() : specularMap->getGPUTexture());
             }
 
@@ -2071,7 +2071,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                 GLBATCH(glUniform2f)(locations->emissiveParams, emissiveOffset, emissiveScale);
                 
                 NetworkTexture* emissiveMap = networkPart.emissiveTexture.data();
-                batch.setUniformTexture(locations->emissiveTextureUnit, !emissiveMap || !emissiveMap->isLoaded() ?
+                batch.setResourceTexture(locations->emissiveTextureUnit, !emissiveMap || !emissiveMap->isLoaded() ?
                                         textureCache->getGrayTexture() : emissiveMap->getGPUTexture());
             }
             
