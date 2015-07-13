@@ -47,6 +47,7 @@ typedef unsigned long long quint64;
 #include <QReadWriteLock>
 
 #include <CollisionInfo.h>
+#include <NLPacket.h>
 #include <Node.h>
 #include <RegisteredMetaTypes.h>
 #include <SimpleMovingAverage.h>
@@ -260,10 +261,10 @@ public:
         return false;
     }
 
-    bool hasIdentityChangedAfterParsing(const QByteArray& packet);
+    bool hasIdentityChangedAfterParsing(NLPacket& packet);
     QByteArray identityByteArray();
     
-    bool hasBillboardChangedAfterParsing(const QByteArray& packet);
+    bool hasBillboardChangedAfterParsing(NLPacket& packet);
     
     const QUrl& getFaceModelURL() const { return _faceModelURL; }
     QString getFaceModelURLString() const { return _faceModelURL.toString(); }
