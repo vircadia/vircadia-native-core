@@ -118,7 +118,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
         qDebug() << "Assignment-client monitor socket is" << _assignmentClientMonitorSocket;
 
         // Hook up a timer to send this child's status to the Monitor once per second
-        setUpStatsToMonitor();
+        setUpStatusToMonitor();
     }
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerPacketListener(PacketType::CreateAssignment, this, "handleCreateAssignmentPacket");
@@ -160,23 +160,28 @@ void AssignmentClient::aboutToQuit() {
 }
 
 
-void AssignmentClient::setUpStatsToMonitor() {
+void AssignmentClient::setUpStatusToMonitor() {
     // send a stats packet every 1 seconds
-    connect(&_statsTimerACM, &QTimer::timeout, this, &AssignmentClient::sendStatsPacketToACM);
+    connect(&_statsTimerACM, &QTimer::timeout, this, &AssignmentClient::sendStatusPacketToACM);
     _statsTimerACM.start(1000);
 }
 
-void AssignmentClient::sendStatsPacketToACM() {
+void AssignmentClient::sendStatusPacketToACM() {
     // tell the assignment client monitor what this assignment client is doing (if anything)
-    QJsonObject statsObject;
     auto nodeList = DependencyManager::get<NodeList>();
 
+    auto statusPacket = NLPacket::create(PacketType::AssignmentClientStatus, 1 + NUM_BYTES_RFC4122_UUID);
+    
+    quint8 assignmentType = Assignment::Type::AllTypes;
+
     if (_currentAssignment) {
-        statsObject["assignment_type"] = _currentAssignment->getTypeName();
-    } else {
-        statsObject["assignment_type"] = "none";
+        assignmentType = _currentAssignment->getType();
     }
-    nodeList->sendStats(statsObject, _assignmentClientMonitorSocket);
+
+    statusPacket->write(nodeList->getSessionUUID().toRfc4122());
+    statusPacket->writePrimitive(assignmentType);
+    
+    nodeList->sendPacket(std::move(statusPacket), _assignmentClientMonitorSocket);
 }
 
 void AssignmentClient::sendAssignmentRequest() {

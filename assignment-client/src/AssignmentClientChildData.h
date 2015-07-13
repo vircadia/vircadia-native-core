@@ -17,16 +17,16 @@
 
 class AssignmentClientChildData : public NodeData {
  public:
-    AssignmentClientChildData(QString childType);
+    AssignmentClientChildData(Assignment::Type childType);
 
-    QString getChildType() { return _childType; }
-    void setChildType(QString childType) { _childType = childType; }
+    Assignment::Type getChildType() { return _childType; }
+    void setChildType(Assignment::Type childType) { _childType = childType; }
 
     // implement parseData to return 0 so we can be a subclass of NodeData
     int parseData(NLPacket& packet, QSharedPointer<Node> sendingNode) { return 0; }
 
  private:
-    QString _childType;
+    Assignment::Type _childType;
 };
 
 #endif // hifi_AssignmentClientChildData_h

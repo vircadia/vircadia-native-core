@@ -57,7 +57,7 @@ namespace PacketType {
         OctreeStats,
         Jurisdiction,
         JurisdictionRequest,
-        UNUSED_6,
+        AssignmentClientStatus,
         UNUSED_7, // 30
         UNUSED_8,
         UNUSED_9,

@@ -33,7 +33,8 @@ const QSet<PacketType::Value> NON_SOURCED_PACKETS = QSet<PacketType::Value>()
     << DomainServerPathQuery << DomainServerPathResponse
     << DomainServerAddedNode
     << ICEServerPeerInformation << ICEServerQuery << ICEServerHeartbeat
-    << ICEPing << ICEPingReply;
+    << ICEPing << ICEPingReply
+    << AssignmentClientStatus;
 
 int arithmeticCodingValueFromBuffer(const char* checkValue) {
     if (((uchar) *checkValue) < 255) {

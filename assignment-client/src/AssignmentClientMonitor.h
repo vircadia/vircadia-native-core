@@ -37,8 +37,7 @@ public:
 private slots:
     void checkSpares();
     void childProcessFinished();
-    void handleNodeJsonStatsPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
-    void handleNodeJsonStatsUnknownNodePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleChildStatusPacket(QSharedPointer<NLPacket> packet);
     
 public slots:
     void aboutToQuit();
