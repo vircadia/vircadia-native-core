@@ -319,18 +319,16 @@ void AvatarManager::updateAvatarPhysicsShape(const QUuid& id) {
 
 void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
     if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
-        for (auto avatarData : _avatarsLastInScene) {
+        for (auto avatarData : _avatarHash) {
             auto avatar = std::dynamic_pointer_cast<Avatar>(avatarData);
             render::ScenePointer scene = Application::getInstance()->getMain3DScene();
             render::PendingChanges pendingChanges;
             avatar->addToScene(avatar, scene, pendingChanges);
             scene->enqueuePendingChanges(pendingChanges);
         }
-        _avatarsLastInScene.clear();
     }
     else {
-        _avatarsLastInScene = _avatarHash.values();
-        for (auto avatarData : _avatarsLastInScene) {
+        for (auto avatarData : _avatarHash) {
             auto avatar = std::dynamic_pointer_cast<Avatar>(avatarData);
             render::ScenePointer scene = Application::getInstance()->getMain3DScene();
             render::PendingChanges pendingChanges;
