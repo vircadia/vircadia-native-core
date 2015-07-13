@@ -23,7 +23,7 @@ class AssignmentClientChildData : public NodeData {
     void setChildType(QString childType) { _childType = childType; }
 
     // implement parseData to return 0 so we can be a subclass of NodeData
-    int parseData(const QByteArray& packet) { return 0; }
+    int parseData(NLPacket& packet, QSharedPointer<Node> sendingNode) { return 0; }
 
  private:
     QString _childType;

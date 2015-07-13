@@ -28,7 +28,7 @@ const int READ_DATAGRAMS_STATS_WINDOW_SECONDS = 30;
 class AudioMixer : public ThreadedAssignment {
     Q_OBJECT
 public:
-    AudioMixer(const QByteArray& packet);
+    AudioMixer(NLPacket& packet);
 
     void deleteLater() { qDebug() << "DELETE LATER CALLED?"; QObject::deleteLater(); }
 public slots:
@@ -40,12 +40,8 @@ public slots:
     static const InboundAudioStream::Settings& getStreamSettings() { return _streamSettings; }
 
 private slots:
-    void handleMicrophoneAudioNoEchoPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
-    void handleMicrophoneAudioWithEchoPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
-    void handleInjectAudioPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
-    void handleSilentAudioFramePacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
-    void handleAudioStreamStatsPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
-    void handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void handleNodeAudioPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
 
 private:
     /// adds one stream to the mix for a listening node

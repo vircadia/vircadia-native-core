@@ -32,7 +32,7 @@ const int DEFAULT_PACKETS_PER_INTERVAL = 2000; // some 120,000 packets per secon
 class OctreeServer : public ThreadedAssignment, public HTTPRequestHandler {
     Q_OBJECT
 public:
-    OctreeServer(const QByteArray& packet);
+    OctreeServer(NLPacket& packet);
     ~OctreeServer();
 
     /// allows setting of run arguments
@@ -125,13 +125,10 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     void sendStatsPacket();
 
-    void readPendingDatagrams() { }; // this will not be called since our datagram processing thread will handle
-    void readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
-
 private slots:
-    void handleOctreeQueryPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
-    void handleOctreeDataNackPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
-    void handleJurisdictionRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
+    void handleOctreeQueryPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleOctreeDataNackPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleJurisdictionRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
 
 protected:
     virtual Octree* createTree() = 0;

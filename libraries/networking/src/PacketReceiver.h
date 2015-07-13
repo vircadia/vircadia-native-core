@@ -39,7 +39,7 @@ public:
 
     void shutdown() { _isShuttingDown = true; }
     
-    void registerPacketListeners(const QSet<PacketType::Value>& types, QObject* listener, const char* slot);
+    void registerPacketListenerForTypes(const QSet<PacketType::Value>& types, QObject* listener, const char* slot);
     void registerPacketListener(PacketType::Value type, QObject* listener, const char* slot);
 
 public slots:

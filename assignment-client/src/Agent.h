@@ -35,7 +35,7 @@ class Agent : public ThreadedAssignment {
     Q_PROPERTY(bool isListeningToAudioStream READ isListeningToAudioStream WRITE setIsListeningToAudioStream)
     Q_PROPERTY(float lastReceivedAudioLoudness READ getLastReceivedAudioLoudness)
 public:
-    Agent(const QByteArray& packet);
+    Agent(NLPacket& packet);
     
     void setIsAvatar(bool isAvatar) { QMetaObject::invokeMethod(&_scriptEngine, "setIsAvatar", Q_ARG(bool, isAvatar)); }
     bool isAvatar() const { return _scriptEngine.isAvatar(); }
@@ -55,9 +55,9 @@ public slots:
     void playAvatarSound(Sound* avatarSound) { _scriptEngine.setAvatarSound(avatarSound); }
 
 private slots:
-    void handleAudioPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
-    void handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
-    void handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
+    void handleAudioPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
 
 private:
     ScriptEngine _scriptEngine;

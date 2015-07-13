@@ -20,7 +20,7 @@
 /// Handles assignments of type AvatarMixer - distribution of avatar data to various clients
 class AvatarMixer : public ThreadedAssignment {
 public:
-    AvatarMixer(const QByteArray& packet);
+    AvatarMixer(NLPacket& packet);
     ~AvatarMixer();
 public slots:
     /// runs the avatar mixer

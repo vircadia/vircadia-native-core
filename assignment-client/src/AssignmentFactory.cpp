@@ -17,12 +17,10 @@
 #include "avatars/AvatarMixer.h"
 #include "entities/EntityServer.h"
 
-ThreadedAssignment* AssignmentFactory::unpackAssignment(const QByteArray& packet) {
-    QDataStream packetStream(packet);
-    packetStream.skipRawData(numBytesForPacketHeader(packet));
+ThreadedAssignment* AssignmentFactory::unpackAssignment(NLPacket& packet) {
 
     quint8 packedType;
-    packetStream >> packedType;    
+    packet.peek(reinterpret_cast<char*>(&packedType), sizeof(packedType));
     
     Assignment::Type unpackedType = (Assignment::Type) packedType;
     
