@@ -18,6 +18,7 @@
 #include <GLMHelpers.h>
 
 #include <model/Geometry.h>
+#include <gpu/Texture.h>
 #include "plugins/Plugin.h"
 #include <RenderArgs.h>
 #include "UserInputMapper.h"
@@ -93,7 +94,7 @@ private:
     ViveControllerManager();
     ~ViveControllerManager();
 
-    void renderHand(UserInputMapper::PoseValue pose, gpu::Batch& batch);
+    void renderHand(UserInputMapper::PoseValue pose, gpu::Batch& batch, int index);
     
     void handleButtonEvent(uint64_t buttons, int index);
     void handleAxisEvent(Axis axis, float x, float y, int index);
@@ -105,6 +106,7 @@ private:
 
     bool _modelLoaded;
     model::Geometry _modelGeometry;
+    gpu::TexturePointer texture;
 
     static const QString NAME;
 

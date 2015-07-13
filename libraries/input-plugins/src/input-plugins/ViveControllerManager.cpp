@@ -44,6 +44,7 @@ const unsigned int GRIP_BUTTON = 1U << 2;
 const unsigned int TRACKPAD_BUTTON = 1U << 3;
 const unsigned int TRIGGER_BUTTON = 1U << 4;
 
+const float CONTROLLER_LENGTH_OFFSET = 0.175f;
 const QString CONTROLLER_MODEL_STRING = "vr_controller_05_wireless_b";
 
 ViveControllerManager& ViveControllerManager::getInstance() {
@@ -137,9 +138,17 @@ void ViveControllerManager::activate() {
         //mesh->addAttribute(gpu::Stream::TEXCOORD,
         //    gpu::BufferView(vertexBufferPtr,
         //    2 * sizeof(float) * 3,
-        //    vertexBufferPtr->getSize() - sizeof(float) * 3,
+        //    vertexBufferPtr->getSize() - sizeof(float) * 2,
         //    sizeof(vr::RenderModel_Vertex_t),
         //    gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::RAW)));
+        
+        gpu::Element formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA);
+        gpu::Element formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA);
+        texture = gpu::TexturePointer(
+            gpu::Texture::create2D(formatGPU, model.diffuseTexture.unWidth, model.diffuseTexture.unHeight,
+            gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+        texture->assignStoredMip(0, formatMip, model.diffuseTexture.unWidth * model.diffuseTexture.unHeight * 4 * sizeof(uint8_t), model.diffuseTexture.rubTextureMapData);
+        texture->autoGenerateMips(-1);
 
         _modelLoaded = true;
     }
@@ -157,12 +166,17 @@ void ViveControllerManager::render(RenderArgs* args) {
         gpu::Batch batch;
         auto geometryCache = DependencyManager::get<GeometryCache>();
         geometryCache->useSimpleDrawPipeline(batch);
+        DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
+
+        auto mesh = _modelGeometry.getMesh();
+        batch.setInputFormat(mesh->getVertexFormat());
+        //batch.setUniformTexture(0, texture);
 
         if (leftHand.isValid()) {
-            renderHand(leftHand, batch);
+            renderHand(leftHand, batch, LEFT_HAND);
         }
         if (rightHand.isValid()) {
-            renderHand(rightHand, batch);
+            renderHand(rightHand, batch, RIGHT_HAND);
         }
 
         args->_context->syncCache();
@@ -170,21 +184,27 @@ void ViveControllerManager::render(RenderArgs* args) {
     }
 }
 
-void ViveControllerManager::renderHand(UserInputMapper::PoseValue pose, gpu::Batch& batch) {
+void ViveControllerManager::renderHand(UserInputMapper::PoseValue pose, gpu::Batch& batch, int index) {
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     Transform transform(userInputMapper->getSensorToWorldMat());
-    transform.postTranslate(pose.getTranslation());
-    transform.postRotate(pose.getRotation());
+    transform.postTranslate(pose.getTranslation() + pose.getRotation() * glm::vec3(0, 0, CONTROLLER_LENGTH_OFFSET));
+
+    int sign = index == LEFT_HAND ? 1.0f : -1.0f;
+    glm::quat rotation = pose.getRotation() * glm::angleAxis(PI, glm::vec3(1.0f, 0.0f, 0.0f)) * glm::angleAxis(sign * PI_OVER_TWO, glm::vec3(0.0f, 0.0f, 1.0f));
+    transform.postRotate(rotation);
+
+    batch.setModelTransform(transform);
 
     auto mesh = _modelGeometry.getMesh();
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
-    batch.setModelTransform(transform);
-    batch.setInputFormat(mesh->getVertexFormat());
     batch.setInputBuffer(gpu::Stream::POSITION, mesh->getVertexBuffer());
     batch.setInputBuffer(gpu::Stream::NORMAL,
         mesh->getVertexBuffer()._buffer,
         sizeof(float) * 3,
         mesh->getVertexBuffer()._stride);
+    //batch.setInputBuffer(gpu::Stream::TEXCOORD,
+    //    mesh->getVertexBuffer()._buffer,
+    //    2 * 3 * sizeof(float),
+    //    mesh->getVertexBuffer()._stride);
     batch.setIndexBuffer(gpu::UINT16, mesh->getIndexBuffer()._buffer, 0);
     batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
 }
@@ -290,13 +310,9 @@ void ViveControllerManager::handlePoseEvent(const mat4& mat, int index) {
     glm::quat rotation = glm::quat_cast(mat);
 
     // Flip the rotation appropriately for each hand
-    if (index == LEFT_HAND) {
-        rotation = rotation * glm::angleAxis(PI, glm::vec3(1.0f, 0.0f, 0.0f)) * glm::angleAxis(PI_OVER_TWO, glm::vec3(0.0f, 0.0f, 1.0f));
-    } else if (index == RIGHT_HAND) {
-        rotation = rotation * glm::angleAxis(PI, glm::vec3(1.0f, 0.0f, 0.0f)) * glm::angleAxis(PI + PI_OVER_TWO, glm::vec3(0.0f, 0.0f, 1.0f));
-    }
+    int sign = index == LEFT_HAND ? 1.0f : -1.0f;
+    rotation = rotation * glm::angleAxis(PI, glm::vec3(1.0f, 0.0f, 0.0f)) * glm::angleAxis(sign * PI_OVER_TWO, glm::vec3(0.0f, 0.0f, 1.0f));
 
-    const float CONTROLLER_LENGTH_OFFSET = 0.1f;
     position += rotation * glm::vec3(0, 0, -CONTROLLER_LENGTH_OFFSET);
 
     _poseStateMap[makeInput(JointChannel(index)).getChannel()] = UserInputMapper::PoseValue(position, rotation);
