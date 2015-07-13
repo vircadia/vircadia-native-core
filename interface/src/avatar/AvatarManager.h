@@ -29,8 +29,6 @@ class AvatarManager : public AvatarHashMap {
     SINGLETON_DEPENDENCY
 
 public:
-    AvatarManager();
-    
     /// Registers the script types associated with the avatar manager.
     static void registerMetaTypes(QScriptEngine* engine);
 

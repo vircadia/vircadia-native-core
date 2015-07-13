@@ -872,7 +872,7 @@ AttachmentData MyAvatar::loadAttachmentData(const QUrl& modelURL, const QString&
 
 int MyAvatar::parseDataFromBuffer(const QByteArray& buffer) {
     qCDebug(interfaceapp) << "Error: ignoring update packet for MyAvatar"
-        << " packetLength = " << buffer.size()
+        << " packetLength = " << buffer.size();
     // this packet is just bad, so we pretend that we unpacked it ALL
     return buffer.size();
 }
