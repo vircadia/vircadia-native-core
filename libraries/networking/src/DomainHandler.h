@@ -21,6 +21,7 @@
 
 #include "HifiSockAddr.h"
 #include "NetworkPeer.h"
+#include "NLPacket.h"
 
 const unsigned short DEFAULT_DOMAIN_SERVER_PORT = 40102;
 const unsigned short DEFAULT_DOMAIN_SERVER_DTLS_PORT = 40103;
@@ -69,8 +70,8 @@ public:
     void requestDomainSettings();
     const QJsonObject& getSettingsObject() const { return _settingsObject; }
 
-    void parseDTLSRequirementPacket(const QByteArray& dtlsRequirementPacket);
-    void processICEResponsePacket(const QByteArray& icePacket);
+    void processDTLSRequirementPacket(QSharedPointer<NLPacket> dtlsRequirementPacket);
+    void processICEResponsePacket(QSharedPointer<NLPacket> icePacket);
 
     void setPendingPath(const QString& pendingPath) { _pendingPath = pendingPath; }
     const QString& getPendingPath() { return _pendingPath; }

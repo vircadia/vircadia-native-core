@@ -120,7 +120,8 @@ public:
     QUdpSocket& getNodeSocket() { return _nodeSocket; }
     QUdpSocket& getDTLSSocket();
 
-    bool packetVersionAndHashMatch(const QByteArray& packet);
+    bool packetVersionMatch(const NLPacket& packet);
+    bool packetSourceAndHashMatch(const NLPacket& packet, SharedNodePointer& matchingNode);
 
     PacketReceiver& getPacketReceiver() { return _packetReceiver; }
 
@@ -130,7 +131,6 @@ public:
     //     { return populatePacketHeaderWithUUID(packet, packetType, _sessionUUID); }
     // int populatePacketHeader(char* packet, PacketType::Value packetType)
     //     { return populatePacketHeaderWithUUID(packet, packetType, _sessionUUID); }
-    qint64 readDatagram(QByteArray& incomingPacket, QHostAddress* address, quint16 * port);
 
     qint64 sendUnreliablePacket(const NLPacket& packet, const SharedNodePointer& destinationNode) { assert(false); return 0; }
     qint64 sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr) { assert(false); return 0; }
@@ -146,7 +146,6 @@ public:
     int size() const { return _nodeHash.size(); }
 
     SharedNodePointer nodeWithUUID(const QUuid& nodeUUID);
-    SharedNodePointer sendingNodeForPacket(const QByteArray& packet);
 
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                       const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
@@ -158,11 +157,10 @@ public:
     const HifiSockAddr& getLocalSockAddr() const { return _localSockAddr; }
     const HifiSockAddr& getSTUNSockAddr() const { return _stunSockAddr; }
 
-    void processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
     void processKillNode(const QByteArray& datagram);
 
-    int updateNodeWithDataFromPacket(const SharedNodePointer& matchingNode, const QByteArray& packet);
-    int findNodeAndUpdateWithDataFromPacket(const QByteArray& packet);
+    int updateNodeWithDataFromPacket(const SharedNodePointer& matchingNode, QSharedPointer<NLPacket> packet);
+    int findNodeAndUpdateWithDataFromPacket(const QSharedPointer<NLPacket> packet);
 
     unsigned broadcastToNodes(std::unique_ptr<NLPacket> packet, const NodeSet& destinationNodeTypes) { assert(false); return 0; }
     SharedNodePointer soloNodeOfType(char nodeType);
@@ -171,12 +169,12 @@ public:
     void resetPacketStats();
 
     std::unique_ptr<NLPacket> constructPingPacket(PingType_t pingType = PingType::Agnostic);
-    std::unique_ptr<NLPacket> constructPingReplyPacket(const QByteArray& pingPacket);
+    std::unique_ptr<NLPacket> constructPingReplyPacket(QSharedPointer<NLPacket> pingPacket);
 
     std::unique_ptr<NLPacket> constructICEPingPacket(PingType_t pingType, const QUuid& iceID);
-    std::unique_ptr<NLPacket> constructICEPingReplyPacket(const QByteArray& pingPacket, const QUuid& iceID);
+    std::unique_ptr<NLPacket> constructICEPingReplyPacket(QSharedPointer<NLPacket> pingPacket, const QUuid& iceID);
 
-    virtual bool processSTUNResponse(const QByteArray& packet);
+    virtual bool processSTUNResponse(QSharedPointer<NLPacket> packet);
 
     void sendHeartbeatToIceServer(const HifiSockAddr& iceServerSockAddr);
     void sendPeerQueryToIceServer(const HifiSockAddr& iceServerSockAddr, const QUuid& clientID, const QUuid& peerID);
@@ -255,11 +253,6 @@ signals:
 
     void canAdjustLocksChanged(bool canAdjustLocks);
     void canRezChanged(bool canRez);
-
-    void dataSent(const quint8 channel_type, const int bytes);
-    void dataReceived(const quint8 channel_type, const int bytes);
-
-    void packetVersionMismatch();
 
 protected:
     LimitedNodeList(unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);

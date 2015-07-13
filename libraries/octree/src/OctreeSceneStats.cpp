@@ -442,30 +442,16 @@ int OctreeSceneStats::packIntoPacket() {
     return _statsPacket->getSizeUsed();
 }
 
-int OctreeSceneStats::unpackFromMessage(const unsigned char* sourceBuffer, int availableBytes) {
-    const unsigned char* startPosition = sourceBuffer;
+int OctreeSceneStats::unpackFromPacket(NLPacket& packet) {
+    packet.readPrimitive(&_start);
+    packet.readPrimitive(&_end);
+    packet.readPrimitive(&_elapsed);
+    packet.readPrimitive(&_totalEncodeTime);
 
-    // increment to push past the packet header
-    int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<const char*>(sourceBuffer));
-    sourceBuffer += numBytesPacketHeader;
-
-    memcpy(&_start, sourceBuffer, sizeof(_start));
-    sourceBuffer += sizeof(_start);
-    memcpy(&_end, sourceBuffer, sizeof(_end));
-    sourceBuffer += sizeof(_end);
-    memcpy(&_elapsed, sourceBuffer, sizeof(_elapsed));
-    sourceBuffer += sizeof(_elapsed);
-    memcpy(&_totalEncodeTime, sourceBuffer, sizeof(_totalEncodeTime));
-    sourceBuffer += sizeof(_totalEncodeTime);
-
-    memcpy(&_isFullScene, sourceBuffer, sizeof(_isFullScene));
-    sourceBuffer += sizeof(_isFullScene);
-    memcpy(&_isMoving, sourceBuffer, sizeof(_isMoving));
-    sourceBuffer += sizeof(_isMoving);
-    memcpy(&_packets, sourceBuffer, sizeof(_packets));
-    sourceBuffer += sizeof(_packets);
-    memcpy(&_bytes, sourceBuffer, sizeof(_bytes));
-    sourceBuffer += sizeof(_bytes);
+    packet.readPrimitive(&_isFullScene);
+    packet.readPrimitive(&_isMoving);
+    packet.readPrimitive(&_packets);
+    packet.readPrimitive(&_bytes);
 
     if (_isFullScene) {
         _lastFullElapsed = _elapsed;
@@ -474,75 +460,52 @@ int OctreeSceneStats::unpackFromMessage(const unsigned char* sourceBuffer, int a
         _lastFullTotalBytes = _bytes;
     }
 
-    memcpy(&_totalInternal, sourceBuffer, sizeof(_totalInternal));
-    sourceBuffer += sizeof(_totalInternal);
-    memcpy(&_totalLeaves, sourceBuffer, sizeof(_totalLeaves));
-    sourceBuffer += sizeof(_totalLeaves);
+    packet.readPrimitive(&_totalInternal);
+    packet.readPrimitive(&_totalLeaves);
     _totalElements = _totalInternal + _totalLeaves;
 
-    memcpy(&_internal, sourceBuffer, sizeof(_internal));
-    sourceBuffer += sizeof(_internal);
-    memcpy(&_leaves, sourceBuffer, sizeof(_leaves));
-    sourceBuffer += sizeof(_leaves);
+    packet.readPrimitive(&_internal);
+    packet.readPrimitive(&_leaves);
     _traversed = _internal + _leaves;
 
-    memcpy(&_internalSkippedDistance, sourceBuffer, sizeof(_internalSkippedDistance));
-    sourceBuffer += sizeof(_internalSkippedDistance);
-    memcpy(&_leavesSkippedDistance, sourceBuffer, sizeof(_leavesSkippedDistance));
-    sourceBuffer += sizeof(_leavesSkippedDistance);
+    packet.readPrimitive(&_internalSkippedDistance);
+    packet.readPrimitive(&_leavesSkippedDistance);
     _skippedDistance = _internalSkippedDistance + _leavesSkippedDistance;
 
-    memcpy(&_internalSkippedOutOfView, sourceBuffer, sizeof(_internalSkippedOutOfView));
-    sourceBuffer += sizeof(_internalSkippedOutOfView);
-    memcpy(&_leavesSkippedOutOfView, sourceBuffer, sizeof(_leavesSkippedOutOfView));
-    sourceBuffer += sizeof(_leavesSkippedOutOfView);
+    packet.readPrimitive(&_internalSkippedOutOfView);
+    packet.readPrimitive(&_leavesSkippedOutOfView);
     _skippedOutOfView = _internalSkippedOutOfView + _leavesSkippedOutOfView;
 
-    memcpy(&_internalSkippedWasInView, sourceBuffer, sizeof(_internalSkippedWasInView));
-    sourceBuffer += sizeof(_internalSkippedWasInView);
-    memcpy(&_leavesSkippedWasInView, sourceBuffer, sizeof(_leavesSkippedWasInView));
-    sourceBuffer += sizeof(_leavesSkippedWasInView);
+    packet.readPrimitive(&_internalSkippedWasInView);
+    packet.readPrimitive(&_leavesSkippedWasInView);
     _skippedWasInView = _internalSkippedWasInView + _leavesSkippedWasInView;
 
-    memcpy(&_internalSkippedNoChange, sourceBuffer, sizeof(_internalSkippedNoChange));
-    sourceBuffer += sizeof(_internalSkippedNoChange);
-    memcpy(&_leavesSkippedNoChange, sourceBuffer, sizeof(_leavesSkippedNoChange));
-    sourceBuffer += sizeof(_leavesSkippedNoChange);
+    packet.readPrimitive(&_internalSkippedNoChange);
+    packet.readPrimitive(&_leavesSkippedNoChange);
     _skippedNoChange = _internalSkippedNoChange + _leavesSkippedNoChange;
 
-    memcpy(&_internalSkippedOccluded, sourceBuffer, sizeof(_internalSkippedOccluded));
-    sourceBuffer += sizeof(_internalSkippedOccluded);
-    memcpy(&_leavesSkippedOccluded, sourceBuffer, sizeof(_leavesSkippedOccluded));
-    sourceBuffer += sizeof(_leavesSkippedOccluded);
+    packet.readPrimitive(&_internalSkippedOccluded);
+    packet.readPrimitive(&_leavesSkippedOccluded);
     _skippedOccluded = _internalSkippedOccluded + _leavesSkippedOccluded;
 
-    memcpy(&_internalColorSent, sourceBuffer, sizeof(_internalColorSent));
-    sourceBuffer += sizeof(_internalColorSent);
-    memcpy(&_leavesColorSent, sourceBuffer, sizeof(_leavesColorSent));
-    sourceBuffer += sizeof(_leavesColorSent);
+    packet.readPrimitive(&_internalColorSent);
+    packet.readPrimitive(&_leavesColorSent);
     _colorSent = _internalColorSent + _leavesColorSent;
 
-    memcpy(&_internalDidntFit, sourceBuffer, sizeof(_internalDidntFit));
-    sourceBuffer += sizeof(_internalDidntFit);
-    memcpy(&_leavesDidntFit, sourceBuffer, sizeof(_leavesDidntFit));
-    sourceBuffer += sizeof(_leavesDidntFit);
+    packet.readPrimitive(&_internalDidntFit);
+    packet.readPrimitive(&_leavesDidntFit);
     _didntFit = _internalDidntFit + _leavesDidntFit;
 
-    memcpy(&_colorBitsWritten, sourceBuffer, sizeof(_colorBitsWritten));
-    sourceBuffer += sizeof(_colorBitsWritten);
-    memcpy(&_existsBitsWritten, sourceBuffer, sizeof(_existsBitsWritten));
-    sourceBuffer += sizeof(_existsBitsWritten);
-    memcpy(&_existsInPacketBitsWritten, sourceBuffer, sizeof(_existsInPacketBitsWritten));
-    sourceBuffer += sizeof(_existsInPacketBitsWritten);
-    memcpy(&_treesRemoved, sourceBuffer, sizeof(_treesRemoved));
-    sourceBuffer += sizeof(_treesRemoved);
-
+    packet.readPrimitive(&_colorBitsWritten);
+    packet.readPrimitive(&_existsBitsWritten);
+    packet.readPrimitive(&_existsInPacketBitsWritten);
+    packet.readPrimitive(&_treesRemoved);
     // before allocating new juridiction, clean up existing ones
     if (_jurisdictionRoot) {
         delete[] _jurisdictionRoot;
         _jurisdictionRoot = NULL;
     }
-
+    
     // clear existing endNodes before copying new ones...
     for (size_t i = 0; i < _jurisdictionEndNodes.size(); i++) {
         if (_jurisdictionEndNodes[i]) {
@@ -553,28 +516,29 @@ int OctreeSceneStats::unpackFromMessage(const unsigned char* sourceBuffer, int a
 
     // read the root jurisdiction
     int bytes = 0;
-    memcpy(&bytes, sourceBuffer, sizeof(bytes));
-    sourceBuffer += sizeof(bytes);
+    packet.readPrimitive(&bytes);
 
     if (bytes == 0) {
         _jurisdictionRoot = NULL;
         _jurisdictionEndNodes.clear();
     } else {
         _jurisdictionRoot = new unsigned char[bytes];
-        memcpy(_jurisdictionRoot, sourceBuffer, bytes);
-        sourceBuffer += bytes;
+        packet.read(reinterpret_cast<char*>(_jurisdictionRoot), bytes);
+
         // if and only if there's a root jurisdiction, also include the end elements
         _jurisdictionEndNodes.clear();
+        
         int endNodeCount = 0;
-        memcpy(&endNodeCount, sourceBuffer, sizeof(endNodeCount));
-        sourceBuffer += sizeof(endNodeCount);
+        packet.readPrimitive(&endNodeCount);
+        
         for (int i=0; i < endNodeCount; i++) {
             int bytes = 0;
-            memcpy(&bytes, sourceBuffer, sizeof(bytes));
-            sourceBuffer += sizeof(bytes);
+            
+            packet.readPrimitive(&bytes);
+            
             unsigned char* endNodeCode = new unsigned char[bytes];
-            memcpy(endNodeCode, sourceBuffer, bytes);
-            sourceBuffer += bytes;
+            packet.read(reinterpret_cast<char*>(endNodeCode), bytes);
+            
             _jurisdictionEndNodes.push_back(endNodeCode);
         }
     }
@@ -585,8 +549,7 @@ int OctreeSceneStats::unpackFromMessage(const unsigned char* sourceBuffer, int a
     float calculatedBPV = total == 0 ? 0 : (_bytes * 8) / total;
     _bitsPerOctreeAverage.updateAverage(calculatedBPV);
 
-
-    return sourceBuffer - startPosition; // includes header!
+    return packet.pos(); // excludes header!
 }
 
 

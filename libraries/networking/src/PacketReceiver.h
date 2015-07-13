@@ -14,12 +14,12 @@
 #define hifi_PacketReceiver_h
 
 #include <QtCore/QMap>
+#include <QtCore/QMetaMethod>
 #include <QtCore/QMutex>
 #include <QtCore/QObject>
-#include <QtCore/QPair>
+#include <QtCore/QSet>
 
-#include <memory>
-
+#include "NLPacket.h"
 #include "PacketHeaders.h"
 
 class PacketReceiver : public QObject {
@@ -38,15 +38,25 @@ public:
     void resetCounters() { _inPacketCount = 0; _outPacketCount = 0; _inByteCount = 0; _outByteCount = 0; }
 
     void shutdown() { _isShuttingDown = true; }
-
-    void registerPacketListener(PacketType::Value type, QObject* object, QString methodName);
+    
+    void registerPacketListeners(const QSet<PacketType::Value>& types, QObject* listener, const char* slot);
+    void registerPacketListener(PacketType::Value type, QObject* listener, const char* slot);
 
 public slots:
     void processDatagrams();
+
+signals:
+    void dataSent(quint8 channel_type, int bytes);
+    void dataReceived(quint8 channel_type, int bytes);
+    void packetVersionMismatch(PacketType::Value type);
     
 private:
+    bool packetVersionMatch(const NLPacket& packet);
+    
+    using ObjectMethodPair = std::pair<QPointer<QObject>, QMetaMethod>;
+
     QMutex _packetListenerLock;
-    QMap<PacketType::Value, QPair<QObject*, QString>> _packetListenerMap;
+    QHash<PacketType::Value, ObjectMethodPair> _packetListenerMap;
     int _inPacketCount = 0;
     int _outPacketCount = 0;
     int _inByteCount = 0;

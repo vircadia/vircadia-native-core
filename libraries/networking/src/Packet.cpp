@@ -37,6 +37,14 @@ std::unique_ptr<Packet> Packet::create(PacketType::Value type, qint64 size) {
     return std::unique_ptr<Packet>(new Packet(type, size));
 }
 
+std::unique_ptr<Packet> Packet::fromReceivedPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr) {
+    // Fail with invalid size
+    Q_ASSERT(size >= 0);
+
+    // allocate memory
+    return std::unique_ptr<Packet>(new Packet(std::move(data), size, senderSockAddr));
+}
+
 std::unique_ptr<Packet> Packet::createCopy(const Packet& other) {
     return std::unique_ptr<Packet>(new Packet(other));
 }
@@ -51,20 +59,34 @@ qint64 Packet::localHeaderSize() const {
 
 Packet::Packet(PacketType::Value type, qint64 size) :
     _type(type),
+    _version(0),
     _packetSize(localHeaderSize(_type) + size),
     _packet(new char(_packetSize)),
     _payloadStart(_packet.get() + localHeaderSize(_type)),
-    _capacity(size) {
-        // Sanity check
-        Q_ASSERT(size <= maxPayloadSize(type));
+    _capacity(size)
+{
+    // Sanity check
+    Q_ASSERT(size <= maxPayloadSize(type));
 
-        // copy packet type and version in header
-        writePacketTypeAndVersion(type);
+    // copy packet type and version in header
+    writePacketTypeAndVersion(type);
 
-        // Set control bit and sequence number to 0 if necessary
-        if (SEQUENCE_NUMBERED_PACKETS.contains(type)) {
-            writeSequenceNumber(0);
-        }
+    // Set control bit and sequence number to 0 if necessary
+    if (SEQUENCE_NUMBERED_PACKETS.contains(type)) {
+        writeSequenceNumber(0);
+    }
+}
+
+Packet::Packet(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr) :
+    _packetSize(size),
+    _packet(std::move(data)),
+    _senderSockAddr(senderSockAddr)
+{
+    _type = readType();
+    _version = readVersion();
+    _capacity = _packetSize - localHeaderSize(_type);
+    _sizeUsed = _capacity;
+    _payloadStart = _packet.get() + (_packetSize - _capacity);
 }
 
 Packet::Packet(const Packet& other) {

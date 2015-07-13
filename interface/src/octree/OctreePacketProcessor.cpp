@@ -1,4 +1,4 @@
-//Merge branch 'master' of ssh://github.com/highfidelity/hifi into isentropic/
+//
 //  OctreePacketProcessor.cpp
 //  interface/src/octree
 //
@@ -18,54 +18,41 @@
 
 OctreePacketProcessor::OctreePacketProcessor() {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerPacketListener(PacketType::OctreeStats, this, "handleEntityDataPacket");
-    packetReceiver.registerPacketListener(PacketType::EntityData, this, "handleEntityDataPacket");
-    packetReceiver.registerPacketListener(PacketType::EntityErase, this, "handleEntityErasePacket");
-    packetReceiver.registerPacketListener(PacketType::OctreeStats, this, "handleOctreeStatsPacket");
-    packetReceiver.registerPacketListener(PacketType::EnvironmentData, this, "handleEnvironmentDataPacket");
+    
+    QSet<PacketType::Value> types {
+        PacketType::OctreeStats, PacketType::EntityData,
+        PacketType::EntityErase, PacketType::OctreeStats, PacketType::EnvironmentData
+    }
+
+    packetReceiver.registerPacketListeners(types, this, "handleOctreePacket");
 }
 
-// TODO implement packet processing in PacketType-specific methods
-void OctreePacketProcessor::handleEntityDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
-    queueReceivedPacket(senderNode, QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
+void OctreePacketProcessor::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+    queueReceivedPacket(senderNode, packet);
 }
 
-void OctreePacketProcessor::handleEntityErasePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
-    queueReceivedPacket(senderNode, QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
-}
-
-void OctreePacketProcessor::handleOctreeStatsPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
-    queueReceivedPacket(senderNode, QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
-}
-
-void OctreePacketProcessor::handleEnvironmentDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
-    queueReceivedPacket(senderNode, QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
-}
-
-void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) {
+void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "OctreePacketProcessor::processPacket()");
-
-    QByteArray mutablePacket = packet;
 
     const int WAY_BEHIND = 300;
 
     if (packetsToProcessCount() > WAY_BEHIND && Application::getInstance()->getLogger()->extraDebugging()) {
         qDebug("OctreePacketProcessor::processPacket() packets to process=%d", packetsToProcessCount());
     }
-    int messageLength = mutablePacket.size();
+    
+    int messageLength = packet->getSizeUsed();
 
     Application* app = Application::getInstance();
     bool wasStatsPacket = false;
 
-
-    PacketType::Value voxelPacketType = packetTypeForPacket(mutablePacket);
+    PacketType::Value octreePacketType = packet->getType();
 
     // note: PacketType_OCTREE_STATS can have PacketType_VOXEL_DATA
     // immediately following them inside the same packet. So, we process the PacketType_OCTREE_STATS first
     // then process any remaining bytes as if it was another packet
-    if (voxelPacketType == PacketType::OctreeStats) {
-        int statsMessageLength = app->parseOctreeStats(mutablePacket, sendingNode);
+    if (octreePacketType == PacketType::OctreeStats) {
+        int statsMessageLength = app->processOctreeStats(packet, sendingNode);
         wasStatsPacket = true;
         if (messageLength > statsMessageLength) {
             mutablePacket = mutablePacket.mid(statsMessageLength);
@@ -104,29 +91,26 @@ void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, 
 
     app->trackIncomingOctreePacket(mutablePacket, sendingNode, wasStatsPacket);
 
-    if (sendingNode) {
+    switch(voxelPacketType) {
+        case PacketType::EntityErase: {
+            if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
+                app->_entities.processEraseMessage(mutablePacket, sendingNode);
+            }
+        } break;
 
-        switch(voxelPacketType) {
-            case PacketType::EntityErase: {
-                if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
-                    app->_entities.processEraseMessage(mutablePacket, sendingNode);
-                }
-            } break;
+        case PacketType::EntityData: {
+            if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
+                app->_entities.processDatagram(mutablePacket, sendingNode);
+            }
+        } break;
 
-            case PacketType::EntityData: {
-                if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
-                    app->_entities.processDatagram(mutablePacket, sendingNode);
-                }
-            } break;
+        case PacketType::EnvironmentData: {
+            app->_environment.parseData(*sendingNode->getActiveSocket(), mutablePacket);
+        } break;
 
-            case PacketType::EnvironmentData: {
-                app->_environment.parseData(*sendingNode->getActiveSocket(), mutablePacket);
-            } break;
-
-            default: {
-                // nothing to do
-            } break;
-        }
+        default: {
+            // nothing to do
+        } break;
     }
 }
 

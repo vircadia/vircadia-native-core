@@ -443,8 +443,7 @@ public slots:
 
     void notifyPacketVersionMismatch();
 
-    void domainConnectionDenied(const QString& reason);
-    void handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket>, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
+    void handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket>, SharedNodePointer senderNode);
 
     void cameraMenuChanged();
 
@@ -613,7 +612,7 @@ private:
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
 
-    int parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sendingNode);
+    int processOctreeStats(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
     void trackIncomingOctreePacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket);
 
     NodeToJurisdictionMap _entityServerJurisdictions;

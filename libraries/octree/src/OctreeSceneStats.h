@@ -93,8 +93,8 @@ public:
     /// Pack the details of the statistics into a buffer for sending as a network packet
     int packIntoPacket();
 
-    /// Unpack the details of the statistics from a buffer typically received as a network packet
-    int unpackFromMessage(const unsigned char* sourceBuffer, int availableBytes);
+    /// Unpack the details of the statistics from a network packet
+    int unpackFromPacket(NLPacket& packet);
 
     /// Indicates that a scene has been completed and the statistics are ready to be sent
     bool isReadyToSend() const { return _isReadyToSend; }

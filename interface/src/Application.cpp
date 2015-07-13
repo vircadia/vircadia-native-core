@@ -462,7 +462,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(nodeList.data(), &NodeList::uuidChanged, _myAvatar, &MyAvatar::setSessionUUID);
     connect(nodeList.data(), &NodeList::uuidChanged, this, &Application::setSessionUUID);
     connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
-    connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
+    connect(&nodeList->getPacketReceiver(), &PacketReceiver::packetVersionMismatch,
+            this, &Application::notifyPacketVersionMismatch);
 
     // connect to appropriate slots on AccountManager
     AccountManager& accountManager = AccountManager::getInstance();
@@ -3815,16 +3816,8 @@ void Application::domainChanged(const QString& domainHostname) {
     _domainConnectionRefusals.clear();
 }
 
-void Application::domainConnectionDenied(const QString& reason) {
-    if (!_domainConnectionRefusals.contains(reason)) {
-        _domainConnectionRefusals.append(reason);
-        emit domainConnectionRefused(reason);
-    }
-}
-
-void Application::handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
-    int headerSize = numBytesForPacketHeaderGivenPacketType(PacketType::DomainConnectionDenied);
-    QDataStream packetStream(QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
+void Application::handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+    QDataStream packetStream(packet.data());
 
     QString reason;
     packetStream >> reason;
@@ -3833,7 +3826,12 @@ void Application::handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> pa
     // and check and signal for an access token so that we can make sure they are logged in
     qCDebug(interfaceapp) << "The domain-server denied a connection request: " << reason;
     qCDebug(interfaceapp) << "You may need to re-log to generate a keypair so you can provide a username signature.";
-    domainConnectionDenied(reason);
+
+    if (!_domainConnectionRefusals.contains(reason)) {
+        _domainConnectionRefusals.append(reason);
+        emit domainConnectionRefused(reason);
+    }
+
     AccountManager::getInstance().checkAndSignalForAccessToken();
 }
 
@@ -3927,70 +3925,70 @@ void Application::trackIncomingOctreePacket(const QByteArray& packet, const Shar
     }
 }
 
-int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sendingNode) {
+int Application::processOctreeStats(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server
 
     // parse the incoming stats datas stick it in a temporary object for now, while we
     // determine which server it belongs to
-    OctreeSceneStats temp;
-    int statsMessageLength = temp.unpackFromMessage(reinterpret_cast<const unsigned char*>(packet.data()), packet.size());
+    int statsMessageLength = 0;
 
-    // quick fix for crash... why would voxelServer be NULL?
-    if (sendingNode) {
-        QUuid nodeUUID = sendingNode->getUUID();
+    const QUuid& nodeUUID = sendingNode->getUUID();
+    OctreeSceneStats* octreeStats;
 
-        // now that we know the node ID, let's add these stats to the stats for that node...
-        _octreeSceneStatsLock.lockForWrite();
-        if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
-            _octreeServerSceneStats[nodeUUID].unpackFromMessage(reinterpret_cast<const unsigned char*>(packet.data()),
-                                                                packet.size());
-        } else {
-            _octreeServerSceneStats[nodeUUID] = temp;
+    // now that we know the node ID, let's add these stats to the stats for that node...
+    _octreeSceneStatsLock.lockForWrite();
+    if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
+        octreeStats = &_octreeServerSceneStats[nodeUUID];
+        statsMessageLength = octreeStats->unpackFromPacket(*packet);
+    } else {
+        OctreeSceneStats temp;
+        statsMessageLength = temp.unpackFromPacket(*packet);
+        octreeStats = &temp;
+    }
+    _octreeSceneStatsLock.unlock();
+
+    VoxelPositionSize rootDetails;
+    voxelDetailsForCode(octreeStats->getJurisdictionRoot(), rootDetails);
+
+    // see if this is the first we've heard of this node...
+    NodeToJurisdictionMap* jurisdiction = NULL;
+    QString serverType;
+    if (sendingNode->getType() == NodeType::EntityServer) {
+        jurisdiction = &_entityServerJurisdictions;
+        serverType = "Entity";
+    }
+
+    jurisdiction->lockForRead();
+    if (jurisdiction->find(nodeUUID) == jurisdiction->end()) {
+        jurisdiction->unlock();
+
+        qCDebug(interfaceapp, "stats from new %s server... [%f, %f, %f, %f]",
+                qPrintable(serverType),
+                (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
+
+        // Add the jurisditionDetails object to the list of "fade outs"
+        if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnOctreeServerChanges)) {
+            OctreeFade fade(OctreeFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
+            fade.voxelDetails = rootDetails;
+            const float slightly_smaller = 0.99f;
+            fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
+            _octreeFadesLock.lockForWrite();
+            _octreeFades.push_back(fade);
+            _octreeFadesLock.unlock();
         }
-        _octreeSceneStatsLock.unlock();
-
-        VoxelPositionSize rootDetails;
-        voxelDetailsForCode(temp.getJurisdictionRoot(), rootDetails);
-
-        // see if this is the first we've heard of this node...
-        NodeToJurisdictionMap* jurisdiction = NULL;
-        QString serverType;
-        if (sendingNode->getType() == NodeType::EntityServer) {
-            jurisdiction = &_entityServerJurisdictions;
-            serverType = "Entity";
-        }
-
-        jurisdiction->lockForRead();
-        if (jurisdiction->find(nodeUUID) == jurisdiction->end()) {
-            jurisdiction->unlock();
-
-            qCDebug(interfaceapp, "stats from new %s server... [%f, %f, %f, %f]",
-                    qPrintable(serverType),
-                    (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
-
-            // Add the jurisditionDetails object to the list of "fade outs"
-            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnOctreeServerChanges)) {
-                OctreeFade fade(OctreeFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
-                fade.voxelDetails = rootDetails;
-                const float slightly_smaller = 0.99f;
-                fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
-                _octreeFadesLock.lockForWrite();
-                _octreeFades.push_back(fade);
-                _octreeFadesLock.unlock();
-            }
-        } else {
-            jurisdiction->unlock();
-        }
-        // store jurisdiction details for later use
-        // This is bit of fiddling is because JurisdictionMap assumes it is the owner of the values used to construct it
-        // but OctreeSceneStats thinks it's just returning a reference to its contents. So we need to make a copy of the
-        // details from the OctreeSceneStats to construct the JurisdictionMap
-        JurisdictionMap jurisdictionMap;
-        jurisdictionMap.copyContents(temp.getJurisdictionRoot(), temp.getJurisdictionEndNodes());
-        jurisdiction->lockForWrite();
-        (*jurisdiction)[nodeUUID] = jurisdictionMap;
+    } else {
         jurisdiction->unlock();
     }
+    // store jurisdiction details for later use
+    // This is bit of fiddling is because JurisdictionMap assumes it is the owner of the values used to construct it
+    // but OctreeSceneStats thinks it's just returning a reference to its contents. So we need to make a copy of the
+    // details from the OctreeSceneStats to construct the JurisdictionMap
+    JurisdictionMap jurisdictionMap;
+    jurisdictionMap.copyContents(octreeStats->getJurisdictionRoot(), octreeStats->getJurisdictionEndNodes());
+    jurisdiction->lockForWrite();
+    (*jurisdiction)[nodeUUID] = jurisdictionMap;
+    jurisdiction->unlock();
+
     return statsMessageLength;
 }
 

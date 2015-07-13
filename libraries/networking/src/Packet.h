@@ -25,6 +25,8 @@ public:
     using SequenceNumber = uint16_t;
 
     static std::unique_ptr<Packet> create(PacketType::Value type, qint64 size = -1);
+    static std::unique_ptr<Packet> fromReceivedPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
+    
     // Provided for convenience, try to limit use
     static std::unique_ptr<Packet> createCopy(const Packet& other);
 
@@ -44,16 +46,16 @@ public:
 
     PacketType::Value getType() const { return _type; }
     void setType(PacketType::Value type);
-
+    
+    PacketVersion getVersion() const { return _version; }
+    
     qint64 getSizeWithHeader() const { return localHeaderSize() + getSizeUsed(); }
     qint64 getSizeUsed() const { return _sizeUsed; }
     void setSizeUsed(qint64 sizeUsed) { _sizeUsed = sizeUsed; }
 
-    HifiSockAddr getSenderSockAddr() const { return HifiSockAddr(); }
+    HifiSockAddr& getSenderSockAddr() { return _senderSockAddr; }
+    const HifiSockAddr& getSenderSockAddr() const { return _senderSockAddr; }
 
-    // Header readers
-    PacketType::Value readType() const;
-    PacketVersion readVersion() const;
     SequenceNumber readSequenceNumber() const;
     bool readIsControlPacket() const;
 
@@ -68,10 +70,15 @@ public:
 
 protected:
     Packet(PacketType::Value type, int64_t size);
+    Packet(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
     Packet(const Packet& other);
     Packet& operator=(const Packet& other);
     Packet(Packet&& other);
     Packet& operator=(Packet&& other);
+
+    // Header readers
+    PacketType::Value readType() const;
+    PacketVersion readVersion() const;
 
     // QIODevice virtual functions
     virtual qint64 writeData(const char* data, qint64 maxSize);
@@ -82,6 +89,7 @@ protected:
     void writeSequenceNumber(SequenceNumber seqNum);
 
     PacketType::Value _type;       // Packet type
+    PacketVersion _version;        // Packet version
 
     qint64 _packetSize = 0;        // Total size of the allocated memory
     std::unique_ptr<char> _packet; // Allocated memory
@@ -90,6 +98,8 @@ protected:
     qint64 _capacity = 0;          // Total capacity of the payload
 
     qint64 _sizeUsed = 0;          // How much of the payload is actually used
+
+    HifiSockAddr _senderSockAddr;  // sender address for packet (only used on receiving end)
 };
 
 

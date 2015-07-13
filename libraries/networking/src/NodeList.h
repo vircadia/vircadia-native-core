@@ -38,6 +38,7 @@ const quint64 DOMAIN_SERVER_CHECK_IN_MSECS = 1 * 1000;
 const int MAX_SILENT_DOMAIN_SERVER_CHECK_INS = 5;
 
 using NodePacketPair = std::pair<SharedNodePointer, std::unique_ptr<NLPacket>>;
+using NodeSharedPacketPair = std::pair<SharedNodePointer, QSharedPointer<NLPacket>>;
 
 class Application;
 class Assignment;
@@ -71,6 +72,16 @@ public slots:
     void reset();
     void sendDomainServerCheckIn();
     void handleDSPathQuery(const QString& newPath);
+
+    void processDomainServerList(QSharedPointer<NLPacket> packet);
+    void processDomainServerAddedNode(QSharedPointer<NLPacket> packet);
+    void processDomainServerPathQueryResponse(QSharedPointer<NLPacket> packet);
+
+    void processPingPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void processPingReplyPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+
+    void processICEPingPacket(QSharedPointer<NLPacket> packet);
+    void processICEPingReplyPacket(QSharedPointer<NLPacket> packet);
 signals:
     void limitOfSilentDomainCheckInsReached();
 private slots:
@@ -89,15 +100,11 @@ private:
 
     void processDomainServerAuthRequest(const QByteArray& packet);
     void requestAuthForDomainServer();
-    void activateSocketFromNodeCommunication(const QByteArray& packet, const SharedNodePointer& sendingNode);
-    void timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode);
-
-    void handleDSPathQueryResponse(const QByteArray& packet);
+    void activateSocketFromNodeCommunication(QSharedPointer<NLPacket> packet, const SharedNodePointer& sendingNode);
+    void timePingReply(QSharedPointer<NLPacket> packet, const SharedNodePointer& sendingNode);
 
     void sendDSPathQuery(const QString& newPath);
-
-    int processDomainServerList(const QByteArray& packet);
-    void processDomainServerAddedNode(const QByteArray& packet);
+ 
     void parseNodeFromPacketStream(QDataStream& packetStream);
 
     void pingPunchForInactiveNode(const SharedNodePointer& node);
