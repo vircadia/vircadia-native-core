@@ -2048,13 +2048,13 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
 
             if (!mesh.tangents.isEmpty()) {                 
                 NetworkTexture* normalMap = networkPart.normalTexture.data();
-                batch.setResourceTexture(1, !normalMap || !normalMap->isLoaded() ?
+                batch.setResourceTexture(1, (!normalMap || !normalMap->isLoaded()) ?
                                         textureCache->getBlueTexture() : normalMap->getGPUTexture());
             }
     
             if (locations->specularTextureUnit >= 0) {
                 NetworkTexture* specularMap = networkPart.specularTexture.data();
-                batch.setResourceTexture(locations->specularTextureUnit, !specularMap || !specularMap->isLoaded() ?
+                batch.setResourceTexture(locations->specularTextureUnit, (!specularMap || !specularMap->isLoaded()) ?
                                         textureCache->getBlackTexture() : specularMap->getGPUTexture());
             }
 
@@ -2071,7 +2071,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                 GLBATCH(glUniform2f)(locations->emissiveParams, emissiveOffset, emissiveScale);
                 
                 NetworkTexture* emissiveMap = networkPart.emissiveTexture.data();
-                batch.setResourceTexture(locations->emissiveTextureUnit, !emissiveMap || !emissiveMap->isLoaded() ?
+                batch.setResourceTexture(locations->emissiveTextureUnit, (!emissiveMap || !emissiveMap->isLoaded()) ?
                                         textureCache->getGrayTexture() : emissiveMap->getGPUTexture());
             }
             
