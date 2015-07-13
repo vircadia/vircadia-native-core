@@ -107,7 +107,7 @@ int AudioMixerClientData::parseData(NLPacket& packet, SharedNodePointer sendingN
         // seek to the beginning of the packet so that the next reader is in the right spot
         packet.seek(0);
 
-        return matchingStream->parseData(packet);
+        return matchingStream->parseData(packet, sendingNode);
     }
     return 0;
 }

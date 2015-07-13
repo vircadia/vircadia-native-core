@@ -75,7 +75,7 @@ bool AudioMixer::shouldMute(float quietestFrame) {
     return (quietestFrame > _noiseMutingThreshold);
 }
 
-AudioMixer::AudioMixer(const QByteArray& packet) :
+AudioMixer::AudioMixer(NLPacket& packet) :
     ThreadedAssignment(packet),
     _trailingSleepRatio(1.0f),
     _minAudibilityThreshold(LOUDNESS_TO_DISTANCE_RATIO / 2.0f),
@@ -97,11 +97,14 @@ AudioMixer::AudioMixer(const QByteArray& packet) :
     // SOON
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerPacketListener(PacketType::MicrophoneAudioNoEcho, this, "handleMicrophoneAudioNoEchoPacket");
-    packetReceiver.registerPacketListener(PacketType::MicrophoneAudioWithEcho, this, "handleMicrophoneAudioWithEchoPacket");
-    packetReceiver.registerPacketListener(PacketType::InjectAudio, this, "handleInjectAudioPacket");
-    packetReceiver.registerPacketListener(PacketType::SilentAudioFrame, this, "handleSilentAudioFramePacket");
-    packetReceiver.registerPacketListener(PacketType::AudioStreamStats, this, "handleAudioStreamStatsPacket");
+    
+    QSet<PacketType::Value> nodeAudioPackets {
+        PacketType::MicrophoneAudioNoEcho, PacketType::MicrophoneAudioWithEcho,
+        PacketType::InjectAudio, PacketType::SilentAudioFrame,
+        PacketType::AudioStreamStats
+    };
+
+    packetReceiver.registerPacketListenerForSet(nodeAudioPackets, this, "handleNodeAudioPacket");
     packetReceiver.registerPacketListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
 }
 
@@ -543,29 +546,8 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
     }
 }
 
-void AudioMixer::handleMicrophoneAudioNoEchoPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->findNodeAndUpdateWithDataFromPacket(packet);
-}
-
-void AudioMixer::handleMicrophoneAudioWithEchoPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->findNodeAndUpdateWithDataFromPacket(packet);
-}
-
-void AudioMixer::handleInjectAudioPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->findNodeAndUpdateWithDataFromPacket(packet);
-}
-
-void AudioMixer::handleSilentAudioFramePacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->findNodeAndUpdateWithDataFromPacket(packet);
-}
-
-void AudioMixer::handleAudioStreamStatsPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->findNodeAndUpdateWithDataFromPacket(packet);
+void AudioMixer::handleNodeAudioPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+    DependencyManager::get<NodeList>()->updateNodeWithDataFromPacket(packet, sendingNode);
 }
 
 void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
