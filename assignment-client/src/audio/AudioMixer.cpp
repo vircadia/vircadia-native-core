@@ -543,11 +543,6 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
     }
 }
 
-void AudioMixer::readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->processNodeData(senderSockAddr, receivedPacket);
-}
-
 void AudioMixer::handleMicrophoneAudioNoEchoPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->findNodeAndUpdateWithDataFromPacket(packet);
@@ -683,28 +678,6 @@ void AudioMixer::run() {
     // setup a QThread with us as parent that will house the AudioMixerDatagramProcessor
     _datagramProcessingThread = new QThread(this);
     _datagramProcessingThread->setObjectName("Datagram Processor Thread");
-
-    // create an AudioMixerDatagramProcessor and move it to that thread
-    AudioMixerDatagramProcessor* datagramProcessor = new AudioMixerDatagramProcessor(nodeList->getNodeSocket(), thread());
-    datagramProcessor->moveToThread(_datagramProcessingThread);
-
-    // remove the NodeList as the parent of the node socket
-    nodeList->getNodeSocket().setParent(NULL);
-    nodeList->getNodeSocket().moveToThread(_datagramProcessingThread);
-
-    // let the datagram processor handle readyRead from node socket
-    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead,
-            datagramProcessor, &AudioMixerDatagramProcessor::readPendingDatagrams);
-
-    // connect to the datagram processing thread signal that tells us we have to handle a packet
-    connect(datagramProcessor, &AudioMixerDatagramProcessor::packetRequiresProcessing, this, &AudioMixer::readPendingDatagram);
-
-    // delete the datagram processor and the associated thread when the QThread quits
-    connect(_datagramProcessingThread, &QThread::finished, datagramProcessor, &QObject::deleteLater);
-    connect(datagramProcessor, &QObject::destroyed, _datagramProcessingThread, &QThread::deleteLater);
-
-    // start the datagram processing thread
-    _datagramProcessingThread->start();
 
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
