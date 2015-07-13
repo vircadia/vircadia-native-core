@@ -33,7 +33,7 @@
 #include <QtMultimedia/QAudioInput>
 #include <QtMultimedia/QAudioOutput>
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
 #endif
@@ -142,10 +142,10 @@ AudioClient::AudioClient() :
     configureGverbFilter(_gverb);
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerPacketListener(PacketType::AudioEnvironment, this, "handleAudioStreamStatsPacket");
-    packetReceiver.registerPacketListener(PacketType::AudioStreamStats, this, "handleAudioEnvironmentDataPacket");
+    packetReceiver.registerPacketListener(PacketType::AudioStreamStats, &_stats, "handleAudioStreamStatsPacket");
+    packetReceiver.registerPacketListener(PacketType::AudioEnvironment, this, "handleAudioEnvironmentDataPacket");
+    packetReceiver.registerPacketListener(PacketType::SilentAudioFrame, this, "handleAudioDataPacket");
     packetReceiver.registerPacketListener(PacketType::MixedAudio, this, "handleAudioDataPacket");
-    packetReceiver.registerPacketListener(PacketType::SilentAudioFrame, this, "handleSilentAudioFrame");
     packetReceiver.registerPacketListener(PacketType::NoisyMute, this, "handleNoisyMutePacket");
     packetReceiver.registerPacketListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
 }
@@ -535,35 +535,24 @@ void AudioClient::stop() {
     }
 }
 
-void AudioClient::handleAudioStreamStatsPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
-    _stats.parseAudioStreamStatsPacket(packet->getData());
-
-    updateLastHeardFromAudioMixer(packet);
-}
-
-void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
-    const char* dataAt = packet->getPayload();
+void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
 
     char bitset;
-    memcpy(&bitset, dataAt, sizeof(char));
-    dataAt += sizeof(char);
+    packet->readPrimitive(&bitset);
 
-    bool hasReverb = oneAtBit(bitset, HAS_REVERB_BIT);;
+    bool hasReverb = oneAtBit(bitset, HAS_REVERB_BIT);
+    
     if (hasReverb) {
         float reverbTime, wetLevel;
-        memcpy(&reverbTime, dataAt, sizeof(float));
-        dataAt += sizeof(float);
-        memcpy(&wetLevel, dataAt, sizeof(float));
-        dataAt += sizeof(float);
+        packet->readPrimitive(&reverbTime);
+        packet->readPrimitive(&wetLevel);
         _receivedAudioStream.setReverb(reverbTime, wetLevel);
     } else {
         _receivedAudioStream.clearReverb();
-    }
-
-    updateLastHeardFromAudioMixer(packet);
+   }
 }
 
-void AudioClient::handleAudioDataPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
+void AudioClient::handleAudioDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveFirstAudioPacket);
 
@@ -577,43 +566,27 @@ void AudioClient::handleAudioDataPacket(QSharedPointer<NLPacket> packet, HifiSoc
         }
 
         // Audio output must exist and be correctly set up if we're going to process received audio
-        _receivedAudioStream.parseData(packet->getData());
+        _receivedAudioStream.parseData(*packet, sendingNode);
     }
-
-    updateLastHeardFromAudioMixer(packet);
 }
 
-void AudioClient::handleSilentAudioFrame(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
-    updateLastHeardFromAudioMixer(packet);
-}
-
-void AudioClient::handleNoisyMutePacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
+void AudioClient::handleNoisyMutePacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
     if (!_muted) {
         toggleMute();
+        
         // TODO reimplement on interface side
         //AudioScriptingInterface::getInstance().mutedByMixer();
     }
 }
 
-void AudioClient::handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
+void AudioClient::handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
     glm::vec3 position;
     float radius;
-
-    int headerSize = numBytesForPacketHeaderGivenPacketType(PacketType::MuteEnvironment);
-    memcpy(&position, packet->getPayload(), sizeof(glm::vec3));
-    memcpy(&radius, packet->getPayload() + sizeof(glm::vec3), sizeof(float));
+    
+    packet->readPrimitive(&position);
+    packet->readPrimitive(&radius);
 
     emit muteEnvironmentRequested(position, radius);
-}
-
-void AudioClient::updateLastHeardFromAudioMixer(QSharedPointer<NLPacket>& packet) {
-    // update having heard from the audio-mixer and record the bytes received
-    auto nodeList = DependencyManager::get<NodeList>();
-    SharedNodePointer audioMixer = nodeList->nodeWithUUID(packet->getSourceID());
-    if (audioMixer) {
-        audioMixer->setLastHeardMicrostamp(usecTimestampNow());
-    }
-
 }
 
 QString AudioClient::getDefaultDeviceName(QAudio::Mode mode) {

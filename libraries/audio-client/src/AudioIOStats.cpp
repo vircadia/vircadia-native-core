@@ -63,27 +63,24 @@ void AudioIOStats::sentPacket() {
         _lastSentAudioPacket = now;
     }
 }
-void AudioIOStats::parseAudioStreamStatsPacket(const QByteArray& packet) {
-
-    int numBytesPacketHeader = numBytesForPacketHeader(packet);
-    const char* dataAt = packet.constData() + numBytesPacketHeader;
+void AudioIOStats::processStreamStatsPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
 
     // parse the appendFlag, clear injected audio stream stats if 0
-    quint8 appendFlag = *(reinterpret_cast<const quint16*>(dataAt));
-    dataAt += sizeof(quint8);
+    quint8 appendFlag;
+    packet->readPrimitive(&appendFlag);
+
     if (!appendFlag) {
         _mixerInjectedStreamStatsMap.clear();
     }
 
     // parse the number of stream stats structs to follow
-    quint16 numStreamStats = *(reinterpret_cast<const quint16*>(dataAt));
-    dataAt += sizeof(quint16);
+    quint16 numStreamStats;
+    packet->readPrimitive(&numStreamStats);
 
     // parse the stream stats
     AudioStreamStats streamStats;
     for (quint16 i = 0; i < numStreamStats; i++) {
-        memcpy(&streamStats, dataAt, sizeof(AudioStreamStats));
-        dataAt += sizeof(AudioStreamStats);
+        packet->readPrimitive(&streamStats);
 
         if (streamStats._streamType == PositionalAudioStream::Microphone) {
             _mixerAvatarStreamStats = streamStats;

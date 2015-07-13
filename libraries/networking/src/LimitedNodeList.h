@@ -155,8 +155,7 @@ public:
 
     void processKillNode(const QByteArray& datagram);
 
-    int updateNodeWithDataFromPacket(const SharedNodePointer& matchingNode, QSharedPointer<NLPacket> packet);
-    int findNodeAndUpdateWithDataFromPacket(const QSharedPointer<NLPacket> packet);
+    int updateNodeWithDataFromPacket(QSharedPointer<NLPacket> packet, SharedNodePointer matchingNode);
 
     unsigned broadcastToNodes(std::unique_ptr<NLPacket> packet, const NodeSet& destinationNodeTypes) { assert(false); return 0; }
     SharedNodePointer soloNodeOfType(char nodeType);

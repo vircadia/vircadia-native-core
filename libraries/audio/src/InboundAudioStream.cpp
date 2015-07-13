@@ -11,6 +11,9 @@
 
 #include <glm/glm.hpp>
 
+#include <NLPacket.h>
+#include <Node.h>
+
 #include "InboundAudioStream.h"
 #include "PacketHeaders.h"
 
@@ -96,28 +99,23 @@ void InboundAudioStream::perSecondCallbackForUpdatingStats() {
     _timeGapStatsForStatsPacket.currentIntervalComplete();
 }
 
-int InboundAudioStream::parseData(const QByteArray& packet) {
-
-    PacketType::Value packetType = packetTypeForPacket(packet);
-    QUuid senderUUID = uuidFromPacketHeader(packet);
-
-    // parse header 
-    int numBytesHeader = numBytesForPacketHeader(packet);
-    const char* dataAt = packet.constData() + numBytesHeader;
-    int readBytes = numBytesHeader;
+int InboundAudioStream::parseData(NLPacket& packet, SharedNodePointer sendingNode) {
 
     // parse sequence number and track it
-    quint16 sequence = *(reinterpret_cast<const quint16*>(dataAt));
-    dataAt += sizeof(quint16);
-    readBytes += sizeof(quint16);
-    SequenceNumberStats::ArrivalInfo arrivalInfo = _incomingSequenceNumberStats.sequenceNumberReceived(sequence, senderUUID);
+    quint16 sequence;
+    packet.readPrimitive(&sequence);
+    SequenceNumberStats::ArrivalInfo arrivalInfo = _incomingSequenceNumberStats.sequenceNumberReceived(sequence,
+                                                                                                       sendingNode->getUUID());
 
     packetReceivedUpdateTimingStats();
 
     int networkSamples;
 
     // parse the info after the seq number and before the audio data (the stream properties)
-    readBytes += parseStreamProperties(packetType, packet.mid(readBytes), networkSamples);
+    int propertyBytes = parseStreamProperties(packet.getType(),
+                                              QByteArray::fromRawData(packet.getPayload(), packet.pos()),
+                                              networkSamples);
+    packet.seek(packet.pos() + propertyBytes);
 
     // handle this packet based on its arrival status.
     switch (arrivalInfo._status) {
@@ -132,10 +130,12 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
         }
         case SequenceNumberStats::OnTime: {
             // Packet is on time; parse its data to the ringbuffer
-            if (packetType == PacketType::SilentAudioFrame) {
+            if (packet.getType() == PacketType::SilentAudioFrame) {
                 writeDroppableSilentSamples(networkSamples);
             } else {
-                readBytes += parseAudioData(packetType, packet.mid(readBytes), networkSamples);
+                int audioBytes = parseAudioData(packet.getType(), QByteArray::fromRawData(packet.getPayload(), packet.pos()),
+                                                networkSamples);
+                packet.seek(packet.pos() + audioBytes);
             }
             break;
         }
@@ -165,7 +165,7 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
 
     framesAvailableChanged();
 
-    return readBytes;
+    return packet.pos();
 }
 
 int InboundAudioStream::parseStreamProperties(PacketType::Value type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
@@ -314,7 +314,7 @@ void InboundAudioStream::setToStarved() {
             starvesInWindow++;
         } while (starvesIterator != end);
 
-        // this starve put us over the starve threshold. update _desiredJitterBufferFrames to 
+        // this starve put us over the starve threshold. update _desiredJitterBufferFrames to
         // value determined by window A.
         if (starvesInWindow >= _starveThreshold) {
             int calculatedJitterBufferFrames;
@@ -398,7 +398,7 @@ void InboundAudioStream::packetReceivedUpdateTimingStats() {
         _timeGapStatsForDesiredReduction.update(gap);
 
         if (_timeGapStatsForDesiredCalcOnTooManyStarves.getNewStatsAvailableFlag()) {
-            _calculatedJitterBufferFramesUsingMaxGap = ceilf((float)_timeGapStatsForDesiredCalcOnTooManyStarves.getWindowMax() 
+            _calculatedJitterBufferFramesUsingMaxGap = ceilf((float)_timeGapStatsForDesiredCalcOnTooManyStarves.getWindowMax()
                                                              / (float) AudioConstants::NETWORK_FRAME_USECS);
             _timeGapStatsForDesiredCalcOnTooManyStarves.clearNewStatsAvailableFlag();
         }

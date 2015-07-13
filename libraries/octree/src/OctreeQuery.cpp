@@ -64,13 +64,10 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
 }
 
 // called on the other nodes - assigns it to my views of the others
-int OctreeQuery::parseData(const QByteArray& packet) {
-
-    // increment to push past the packet header
-    int numBytesPacketHeader = numBytesForPacketHeader(packet);
-    
-    const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(packet.data());
-    const unsigned char* sourceBuffer = startPosition + numBytesPacketHeader;
+int OctreeQuery::parseData(NLPacket& packet, QSharedPointer<Node> sendingNode) {
+ 
+    const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(packet.getPayload());
+    const unsigned char* sourceBuffer = startPosition;
     
     // camera details
     memcpy(&_cameraPosition, sourceBuffer, sizeof(_cameraPosition));

@@ -231,35 +231,25 @@ PacketSequenceNumber LimitedNodeList::getNextSequenceNumberForPacket(const QUuid
     return _packetSequenceNumbers[nodeUUID][packetType]++;
 }
 
-int LimitedNodeList::updateNodeWithDataFromPacket(const SharedNodePointer& matchingNode, QSharedPointer<NLPacket> packet) {
-    QMutexLocker locker(&matchingNode->getMutex());
+int LimitedNodeList::updateNodeWithDataFromPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+    QMutexLocker locker(&sendingNode->getMutex());
 
     // if this was a sequence numbered packet we should store the last seq number for
     // a packet of this type for this node
     if (SEQUENCE_NUMBERED_PACKETS.contains(packet->getType())) {
-        matchingNode->setLastSequenceNumberForPacketType(packet->readSequenceNumber(), packet->getType());
+        sendingNode->setLastSequenceNumberForPacketType(packet->readSequenceNumber(), packet->getType());
     }
 
-    NodeData* linkedData = matchingNode->getLinkedData();
+    NodeData* linkedData = sendingNode->getLinkedData();
     if (!linkedData && linkedDataCreateCallback) {
-        linkedDataCreateCallback(matchingNode.data());
+        linkedDataCreateCallback(sendingNode.data());
     }
 
     if (linkedData) {
         QMutexLocker linkedDataLocker(&linkedData->getMutex());
-        return linkedData->parseData(QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
+        return linkedData->parseData(*packet, sendingNode);
     }
-    return 0;
-}
-
-int LimitedNodeList::findNodeAndUpdateWithDataFromPacket(QSharedPointer<NLPacket> packet) {
-    SharedNodePointer matchingNode = nodeWithUUID(packet->getSourceID());
-
-    if (matchingNode) {
-        return updateNodeWithDataFromPacket(matchingNode, packet);
-    }
-
-    // we weren't able to match the sender address to the address we have for this node, unlock and don't parse
+    
     return 0;
 }
 
