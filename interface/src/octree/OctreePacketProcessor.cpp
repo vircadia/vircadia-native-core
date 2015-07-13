@@ -22,7 +22,7 @@ OctreePacketProcessor::OctreePacketProcessor() {
     QSet<PacketType::Value> types {
         PacketType::OctreeStats, PacketType::EntityData,
         PacketType::EntityErase, PacketType::OctreeStats, PacketType::EnvironmentData
-    }
+    };
 
     packetReceiver.registerPacketListeners(types, this, "handleOctreePacket");
 }
