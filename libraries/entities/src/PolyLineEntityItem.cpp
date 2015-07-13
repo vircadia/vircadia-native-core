@@ -62,7 +62,6 @@ EntityItemProperties PolyLineEntityItem::getProperties() const {
     
     properties._glowLevel = getGlowLevel();
     properties._glowLevelChanged = false;
-    _quadReadWriteLock.unlock();
     return properties;
 }
 
@@ -89,8 +88,6 @@ bool PolyLineEntityItem::setProperties(const EntityItemProperties& properties) {
         }
         setLastEdited(properties._lastEdited);
     }
-    
-    _quadReadWriteLock.unlock();
     return somethingChanged;
     
 }
@@ -116,21 +113,21 @@ bool PolyLineEntityItem::setStrokeWidths(const QVector<float>& strokeWidths ) {
 }
 
 bool PolyLineEntityItem::setNormals(const QVector<glm::vec3>& normals) {
-    
     _normals = normals;
-    if( _normals.size() != _points.size() || _normals.size() != _strokeWidths.size()) {
-        qDebug() << "normals dont equal points!";
+    if( _normals.size() != _points.size()) {
+//        qDebug() << "normals dont equal points!";
         return false;
     }
     
     if (_points.size () < 2) {
-        qDebug() << "points size is less than 2!";
+//        qDebug() << "points size is less than 2!";
         return false;
     }
     
 //    int minArraySize = glm::min(_normals.size(), _points.size())
     _vertices.clear();
     glm::vec3 v1, v2, tangent, binormal, point;
+  
     for (int i = 0; i < _points.size()-1; i++) {
         float width = _strokeWidths.at(i);
         point = _points.at(i);
