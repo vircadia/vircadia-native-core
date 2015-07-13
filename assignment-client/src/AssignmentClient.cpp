@@ -118,7 +118,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
         qDebug() << "Assignment-client monitor socket is" << _assignmentClientMonitorSocket;
 
         // Hook up a timer to send this child's status to the Monitor once per second
-        setUpStatsToMonitor();
+        setUpStatusToMonitor();
     }
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerPacketListener(PacketType::CreateAssignment, this, "handleCreateAssignmentPacket");
@@ -181,7 +181,7 @@ void AssignmentClient::sendStatusPacketToACM() {
     statusPacket->write(nodeList->getSessionUUID().toRfc4122());
     statusPacket->writePrimitive(assignmentType);
     
-    nodeList->sendPacket(statusPacket, _assignmentClientMonitorSocket);
+    nodeList->sendPacket(std::move(statusPacket), _assignmentClientMonitorSocket);
 }
 
 void AssignmentClient::sendAssignmentRequest() {

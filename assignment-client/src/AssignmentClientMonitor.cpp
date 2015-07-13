@@ -175,7 +175,7 @@ void AssignmentClientMonitor::checkSpares() {
     nodeList->eachNode([&](const SharedNodePointer& node) {
         AssignmentClientChildData *childData = static_cast<AssignmentClientChildData*>(node->getLinkedData());
         totalCount ++;
-        if (childData->getChildType() == "none") {
+        if (childData->getChildType() == Assignment::Type::AllTypes) {
             spareCount ++;
             aSpareId = node->getUUID();
         }
@@ -203,12 +203,12 @@ void AssignmentClientMonitor::checkSpares() {
 }
 
 void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<NLPacket> packet) {
-    QUuid senderUUID = QUuid::fromRfc4122(packet->read(NUM_BYTES_RFC4122_UUID));
+    QUuid senderID = QUuid::fromRfc4122(packet->read(NUM_BYTES_RFC4122_UUID));
 
     auto nodeList = DependencyManager::get<NodeList>();
 
-    SharedNodePointer matchingNode = nodeList->nodeWithUUID(senderUUID);
-    const HifiSockAddr* senderSockAddr = packet->getSendingSockAddr();
+    SharedNodePointer matchingNode = nodeList->nodeWithUUID(senderID);
+    const HifiSockAddr& senderSockAddr = packet->getSenderSockAddr();
 
     AssignmentClientChildData *childData = nullptr;
 
@@ -217,13 +217,13 @@ void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<NLPacket> p
         if (senderSockAddr.getAddress() == QHostAddress::LocalHost ||
                 senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
              
-            if (!senderUUID.isNull()) {
+            if (!senderID.isNull()) {
                 // We don't have this node yet - we should add it
                 matchingNode = DependencyManager::get<LimitedNodeList>()->addOrUpdateNode
-                    (packetUUID, NodeType::Unassigned, senderSockAddr, senderSockAddr, false, false);
+                    (senderID, NodeType::Unassigned, senderSockAddr, senderSockAddr, false, false);
                 
-                childData = new AssignmentClientChildData("unknown");
-                senderNode->setLinkedData(childData);
+                childData = new AssignmentClientChildData(Assignment::Type::AllTypes);
+                matchingNode->setLinkedData(childData);
             } else {
                 // tell unknown assignment-client child to exit.
                 qDebug() << "Asking unknown child at" << senderSockAddr << "to exit.";
@@ -235,7 +235,7 @@ void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<NLPacket> p
             }
         }
     } else {
-        childData = dynamic_cast<AssignmentClientChildData*>(senderNode->getLinkedData());
+        childData = dynamic_cast<AssignmentClientChildData*>(matchingNode->getLinkedData());
     }
 
     if (childData) {
