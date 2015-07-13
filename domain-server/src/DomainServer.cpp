@@ -974,7 +974,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     }
 
     // write the PacketList to this node
-    limitedNodeList->sendPacketList(domainListPackets, node);
+    limitedNodeList->sendPacketList(domainListPackets, *node);
 }
 
 QUuid DomainServer::connectionSecretForNodes(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB) {
@@ -1094,7 +1094,7 @@ void DomainServer::readAvailableDatagrams() {
 
                 assignmentStream << uniqueAssignment;
 
-                limitedNodeList->sendUnreliablePacket(*assignmentPacket, *senderSockAddr);
+                limitedNodeList->sendUnreliablePacket(*assignmentPacket, senderSockAddr);
 
                 // add the information for that deployed assignment to the hash of pending assigned nodes
                 PendingAssignedNodeData* pendingNodeData = new PendingAssignedNodeData(assignmentToDeploy->getUUID(),
@@ -1125,7 +1125,7 @@ void DomainServer::readAvailableDatagrams() {
                 dtlsRequiredPacket->writePrimitive(dtlsPort);
             }
 
-            limitedNodeList->sendUnreliablePacket(*dtlsRequiredPacket, *senderSockAddr);
+            limitedNodeList->sendUnreliablePacket(*dtlsRequiredPacket, senderSockAddr);
         }
     }
 }

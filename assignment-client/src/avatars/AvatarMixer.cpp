@@ -337,7 +337,7 @@ void AvatarMixer::broadcastAvatarData() {
             });
 
             // send the avatar data PacketList
-            nodeList->sendPacketList(avatarPacketList, node);
+            nodeList->sendPacketList(avatarPacketList, *node);
 
             // record the bytes sent for other avatar data in the AvatarMixerClientData
             nodeData->recordSentAvatarData(numAvatarDataBytes);

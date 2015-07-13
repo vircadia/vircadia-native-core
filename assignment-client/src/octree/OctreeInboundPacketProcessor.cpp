@@ -287,7 +287,7 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
             packetsSent += nackPacketList.getNumPackets();
             
             // send the list of nack packets
-            nodeList->sendPacketList(nackPacketList, destinationNode);
+            nodeList->sendPacketList(nackPacketList, *destinationNode);
         }
     }
 
