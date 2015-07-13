@@ -19,6 +19,10 @@
 
 #include "RenderablePolyLineEntityItem.h"
 
+#include "paintStroke_vert.h"
+#include "paintStroke_frag.h"
+
+
 
 EntityItemPointer RenderablePolyLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return EntityItemPointer(new RenderablePolyLineEntityItem(entityID, properties));
@@ -41,8 +45,8 @@ void RenderablePolyLineEntityItem::createPipeline() {
     _format->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), NORMAL_OFFSET);
     _format->setAttribute(gpu::Stream::COLOR, 0, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), COLOR_OFFSET);
     
-    auto VS = DependencyManager::get<DeferredLightingEffect>()->getSimpleVertexShader();
-    auto PS = DependencyManager::get<DeferredLightingEffect>()->getSimplePixelShader();
+    auto VS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(paintStroke_vert)));
+    auto PS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(paintStroke_frag)));
     gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PS));
     
     gpu::Shader::BindingSet slotBindings;

@@ -1,0 +1,29 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  paintStroke.frag
+//  fragment shader
+//
+//  Created by Andrzej Kapolka on 9/15/14.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include DeferredBufferWrite.slh@>
+
+// the interpolated normal
+varying vec4 interpolatedNormal;
+
+
+void main(void) {
+    vec3 color = vec3(0.9, 0.2, 0.9);
+    packDeferredFragment(
+        normalize(interpolatedNormal.xyz), 
+        glowIntensity,
+        gl_Color.rgb,
+        gl_FrontMaterial.specular.rgb,
+        gl_FrontMaterial.shininess);
+}

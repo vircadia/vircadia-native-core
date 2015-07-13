@@ -126,6 +126,8 @@ bool PolyLineEntityItem::setNormals(const QVector<glm::vec3>& normals) {
     if (_points.size () < 2 || _strokeWidths.size() < 2) {
         return false;
     }
+    
+//    int minArraySize = glm::min(_normals.size(), _points.size())
     _vertices.clear();
     //Go through and create vertices for triangle strip based on normalsa
     if (_normals.size() != _points.size()) {
