@@ -13,7 +13,7 @@
 #include <QtCore/QDataStream>
 
 #include <NodeList.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 #include <UUID.h>
 #include <soxr.h>

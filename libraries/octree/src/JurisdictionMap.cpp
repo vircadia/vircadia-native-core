@@ -16,7 +16,7 @@
 
 #include <DependencyManager.h>
 #include <NodeList.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <OctalCode.h>
 
 #include "OctreeLogging.h"

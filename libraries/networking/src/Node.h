@@ -24,7 +24,7 @@
 #include "NetworkPeer.h"
 #include "NodeData.h"
 #include "NodeType.h"
-#include "PacketHeaders.h"
+#include "udt/PacketHeaders.h"
 #include "SimpleMovingAverage.h"
 #include "MovingPercentile.h"
 

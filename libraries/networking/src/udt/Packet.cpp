@@ -11,7 +11,7 @@
 
 #include "Packet.h"
 
-#include "LimitedNodeList.h"
+#include "../LimitedNodeList.h"
 
 qint64 Packet::localHeaderSize(PacketType::Value type) {
     qint64 size = numBytesForArithmeticCodedPacketType(type) + sizeof(PacketVersion) +

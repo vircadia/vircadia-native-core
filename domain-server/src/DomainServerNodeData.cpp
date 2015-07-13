@@ -14,7 +14,7 @@
 #include <QtCore/QVariant>
 
 #include <JSONBreakableMarshal.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 
 #include "DomainServerNodeData.h"
 

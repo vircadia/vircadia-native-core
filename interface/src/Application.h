@@ -31,7 +31,7 @@
 #include <NodeList.h>
 #include <OctreeQuery.h>
 #include <OffscreenUi.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <PhysicalEntitySimulation.h>
 #include <PhysicsEngine.h>
 #include <ScriptEngine.h>
@@ -48,7 +48,6 @@
 #include "FileLogger.h"
 #include "GLCanvas.h"
 #include "Menu.h"
-#include "PacketHeaders.h"
 #include "Physics.h"
 #include "Stars.h"
 #include "avatar/Avatar.h"
@@ -56,6 +55,7 @@
 #include "devices/SixenseManager.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/WebWindowClass.h"
+#include "udt/PacketHeaders.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/HMDToolsDialog.h"
 #include "ui/ModelsBrowser.h"

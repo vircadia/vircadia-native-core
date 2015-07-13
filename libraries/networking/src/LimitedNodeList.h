@@ -38,7 +38,7 @@
 #include "DomainHandler.h"
 #include "Node.h"
 #include "NLPacket.h"
-#include "PacketHeaders.h"
+#include "udt/PacketHeaders.h"
 #include "NLPacketList.h"
 #include "UUIDHasher.h"
 

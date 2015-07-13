@@ -33,6 +33,8 @@
 #include "UUID.h"
 #include "NetworkLogging.h"
 
+#include "udt/udt.h"
+
 const char SOLO_NODE_TYPES[2] = {
     NodeType::AvatarMixer,
     NodeType::AudioMixer

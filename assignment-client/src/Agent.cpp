@@ -19,7 +19,7 @@
 #include <AvatarHashMap.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <ResourceCache.h>
 #include <SoundCache.h>
 #include <UUID.h>

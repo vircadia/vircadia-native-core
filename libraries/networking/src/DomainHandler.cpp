@@ -16,7 +16,7 @@
 #include "Assignment.h"
 #include "HifiSockAddr.h"
 #include "NodeList.h"
-#include "PacketHeaders.h"
+#include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
 #include "UserActivityLogger.h"
 #include "NetworkLogging.h"

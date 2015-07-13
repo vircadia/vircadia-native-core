@@ -12,7 +12,7 @@
 #include <QtCore/QDebug>
 #include <QtCore/QJsonArray>
 
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <UUID.h>
 
 #include "InjectedAudioStream.h"

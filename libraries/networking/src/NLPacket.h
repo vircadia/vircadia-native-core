@@ -12,7 +12,7 @@
 #ifndef hifi_NLPacket_h
 #define hifi_NLPacket_h
 
-#include "Packet.h"
+#include "udt/Packet.h"
 
 class NLPacket : public Packet {
     Q_OBJECT
