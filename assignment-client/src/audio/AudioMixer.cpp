@@ -545,34 +545,32 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
 
 void AudioMixer::readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
     auto nodeList = DependencyManager::get<NodeList>();
-    if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
-        nodeList->processNodeData(senderSockAddr, receivedPacket);
-    }
+    nodeList->processNodeData(senderSockAddr, receivedPacket);
 }
 
 void AudioMixer::handleMicrophoneAudioNoEchoPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->findNodeAndUpdateWithDataFromPacket(packet->getData());
+    nodeList->findNodeAndUpdateWithDataFromPacket(packet);
 }
 
 void AudioMixer::handleMicrophoneAudioWithEchoPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->findNodeAndUpdateWithDataFromPacket(packet->getData());
+    nodeList->findNodeAndUpdateWithDataFromPacket(packet);
 }
 
 void AudioMixer::handleInjectAudioPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->findNodeAndUpdateWithDataFromPacket(packet->getData());
+    nodeList->findNodeAndUpdateWithDataFromPacket(packet);
 }
 
 void AudioMixer::handleSilentAudioFramePacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->findNodeAndUpdateWithDataFromPacket(packet->getData());
+    nodeList->findNodeAndUpdateWithDataFromPacket(packet);
 }
 
 void AudioMixer::handleAudioStreamStatsPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->findNodeAndUpdateWithDataFromPacket(packet->getData());
+    nodeList->findNodeAndUpdateWithDataFromPacket(packet);
 }
 
 void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {

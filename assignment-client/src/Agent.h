@@ -52,7 +52,6 @@ public:
     
 public slots:
     void run();
-    void readPendingDatagrams();
     void playAvatarSound(Sound* avatarSound) { _scriptEngine.setAvatarSound(avatarSound); }
 
 private slots:

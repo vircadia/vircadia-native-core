@@ -65,7 +65,7 @@ void Agent::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointe
 
     if (packetType == PacketType::OctreeStats) {
 
-        int statsMessageLength = OctreeHeadlessViewer::parseOctreeStats(mutablePacket, senderNode);
+        int statsMessageLength = OctreeHeadlessViewer::parseOctreeStats(packet, senderNode);
         if (messageLength > statsMessageLength) {
             mutablePacket = mutablePacket.mid(statsMessageLength);
         } else {
@@ -80,49 +80,16 @@ void Agent::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointe
     }
 }
 
-void Agent::readPendingDatagrams() {
-    QByteArray receivedPacket;
-    HifiSockAddr senderSockAddr;
-    auto nodeList = DependencyManager::get<NodeList>();
-
-    while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
-        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
-            PacketType::Value datagramPacketType = packetTypeForPacket(receivedPacket);
-
-            if (datagramPacketType == PacketType::Jurisdiction) {
-                int headerBytes = numBytesForPacketHeader(receivedPacket);
-
-                SharedNodePointer matchedNode = nodeList->sendingNodeForPacket(receivedPacket);
-
-                if (matchedNode) {
-                    // PacketType_JURISDICTION, first byte is the node type...
-                    switch (receivedPacket[headerBytes]) {
-                        case NodeType::EntityServer:
-                            DependencyManager::get<EntityScriptingInterface>()->getJurisdictionListener()->
-                                queueReceivedPacket(matchedNode, receivedPacket);
-                            break;
-                    }
-                }
-            }
-        }
-    }
-}
-
 void Agent::handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
     QByteArray receivedPacket = QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader());
     int headerBytes = numBytesForPacketHeader(receivedPacket);
 
-    auto nodeList = DependencyManager::get<NodeList>();
-    SharedNodePointer matchedNode = nodeList->sendingNodeForPacket(receivedPacket);
-
-    if (matchedNode) {
-        // PacketType_JURISDICTION, first byte is the node type...
-        switch (receivedPacket[headerBytes]) {
-            case NodeType::EntityServer:
-                DependencyManager::get<EntityScriptingInterface>()->getJurisdictionListener()->
-                    queueReceivedPacket(senderNode, receivedPacket);
-                break;
-        }
+    // PacketType_JURISDICTION, first byte is the node type...
+    switch (receivedPacket[headerBytes]) {
+        case NodeType::EntityServer:
+            DependencyManager::get<EntityScriptingInterface>()->getJurisdictionListener()->
+                queueReceivedPacket(packet, senderNode);
+            break;
     }
 }
 
