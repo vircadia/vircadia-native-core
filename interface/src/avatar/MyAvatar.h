@@ -227,8 +227,8 @@ private:
     void setAvatarPosition(glm::vec3 pos);
     void setAvatarOrientation(glm::quat quat);
 
-    glm::vec3 calcBodyPositionFromSensors() const;
-    glm::quat calcBodyOrientationFromSensors() const;
+    glm::vec3 getWorldBodyPosition() const;
+    glm::quat getWorldBodyOrientation() const;
 
     bool cameraInsideHead() const;
 
@@ -237,6 +237,10 @@ private:
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
     void setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visiblity);
+
+    // derive avatar body position and orientation from the current HMD Sensor location.
+    // results are in sensor space
+    void deriveBodyFromHMDSensor(glm::quat& bodyOrientationOut, glm::vec3& bodyPositionOut) const;
 
     glm::vec3 _gravity;
 
@@ -299,10 +303,16 @@ private:
     SkeletonModel _firstPersonSkeletonModel;
     bool _prevShouldDrawHead;
 
-    // cache of the current HMD sensor position and orientation, in sensor space.
+    // cache of the current HMD sensor position and orientation
+    // in sensor space.
     glm::mat4 _hmdSensorMatrix;
-    glm::vec3 _hmdSensorPosition;
     glm::quat _hmdSensorOrientation;
+    glm::vec3 _hmdSensorPosition;
+
+    // cache of the current body position and orientation of the avatar's body,
+    // in sensor space.
+    glm::quat _bodySensorOrientation;
+    glm::vec3 _bodySensorPosition;
 
     // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
     glm::mat4 _sensorToWorldMatrix;
