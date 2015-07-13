@@ -41,6 +41,8 @@ protected:
     virtual qint64 readData(char* data, qint64 maxSize) { return 0; }
 
 private:
+    friend class LimitedNodeList;
+    
     NLPacketList(const NLPacketList& other) = delete;
     NLPacketList& operator=(const NLPacketList& other) = delete;
 

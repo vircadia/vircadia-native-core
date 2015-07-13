@@ -255,9 +255,7 @@ qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const Node&
     }
     
     // use the node's active socket as the destination socket
-    auto destinationSockAddr = destinationNode.getActiveSocket();
-    
-    return sendUnreliablePacket(packet, *destinationSockAddr);
+    return sendUnreliablePacket(packet, *destinationNode.getActiveSocket());
 }
 
 qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr) {
@@ -271,9 +269,7 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
     }
     
     // use the node's active socket as the destination socket
-    auto destinationSockAddr = destinationNode.getActiveSocket();
-    
-    return sendPacket(std::move(packet), *destinationSockAddr);
+    return sendPacket(std::move(packet), *destinationNode.getActiveSocket());
 }
 
 qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr) {
@@ -285,19 +281,26 @@ qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& des
         // we don't have a socket to send to, return 0
         return 0;
     }
-    
-    // use the node's active socket as the destination socket
-    auto destinationSockAddr = destinationNode.getActiveSocket();
-    
-    return sendPacketList(packetList, *destinationSockAddr);
+    return sendPacketList(packetList, *destinationNode.getActiveSocket());
 }
 
 qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr) {
-    //    for (auto packet : packetList) {
-    //        
-    //    }
+    qint64 bytesSent{ 0 };
+    auto& packets = packetList._packets;
+    while (!packets.empty()) {
+        bytesSent += sendPacket(std::move(packets.front()), sockAddr);
+        packets.pop_front();
+    }
     
-    assert(false); return 0;
+    return bytesSent;
+}
+
+qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode,
+                                   const HifiSockAddr& overridenSockAddr) {
+    // use the node's active socket as the destination socket if there is no overriden socket address
+    auto& destinationSockAddr = (overridenSockAddr.isNull()) ? *destinationNode.getActiveSocket()
+                                                             : overridenSockAddr;
+    return sendPacket(std::move(packet), destinationSockAddr);
 }
 
 PacketSequenceNumber LimitedNodeList::getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType::Value packetType) {

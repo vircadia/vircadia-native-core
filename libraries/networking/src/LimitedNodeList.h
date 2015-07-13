@@ -270,9 +270,8 @@ protected:
     void sendPacketToIceServer(PacketType::Value packetType, const HifiSockAddr& iceServerSockAddr, const QUuid& clientID,
                                const QUuid& peerRequestID = QUuid());
 
-    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const SharedNodePointer& destinationNode,
-                      const HifiSockAddr& overridenSockAddr)
-         { assert(false); return 0; }
+    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode,
+                      const HifiSockAddr& overridenSockAddr);
 
 
     QUuid _sessionUUID;
