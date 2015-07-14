@@ -35,10 +35,13 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_setStateBlendFactor),
 
     (&::gpu::GLBackend::do_setUniformBuffer),
-    (&::gpu::GLBackend::do_setUniformTexture),
+    (&::gpu::GLBackend::do_setResourceTexture),
 
     (&::gpu::GLBackend::do_setFramebuffer),
 
+    (&::gpu::GLBackend::do_beginQuery),
+    (&::gpu::GLBackend::do_endQuery),
+    (&::gpu::GLBackend::do_getQuery),
 
     (&::gpu::GLBackend::do_glEnable),
     (&::gpu::GLBackend::do_glDisable),
@@ -201,7 +204,6 @@ void GLBackend::do_drawInstanced(Batch& batch, uint32 paramOffset) {
     GLenum mode = _primitiveToGLmode[primitiveType];
     uint32 numVertices = batch._params[paramOffset + 2]._uint;
     uint32 startVertex = batch._params[paramOffset + 1]._uint;
-    uint32 startInstance = batch._params[paramOffset + 0]._uint;
 
     glDrawArraysInstancedARB(mode, startVertex, numVertices, numInstances);
     (void) CHECK_GL_ERROR();
@@ -233,16 +235,33 @@ void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
         glmask |= GL_DEPTH_BUFFER_BIT;
     } 
 
+    std::vector<GLenum> drawBuffers;
     if (masks & Framebuffer::BUFFER_COLORS) {
-        glClearColor(color.x, color.y, color.z, color.w);
-        glmask |= GL_COLOR_BUFFER_BIT;
+        for (unsigned int i = 0; i < Framebuffer::MAX_NUM_RENDER_BUFFERS; i++) {
+            if (masks & (1 << i)) {
+                drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
+            }
+        }
+
+        if (!drawBuffers.empty()) {
+            glDrawBuffers(drawBuffers.size(), drawBuffers.data());
+            glClearColor(color.x, color.y, color.z, color.w);
+            glmask |= GL_COLOR_BUFFER_BIT;
+        }
     }
 
     glClear(glmask);
 
+    // Restore the color draw buffers only if a frmaebuffer is bound
+    if (_output._framebuffer && !drawBuffers.empty()) {
+        auto glFramebuffer = syncGPUObject(*_output._framebuffer);
+        if (glFramebuffer) {
+            glDrawBuffers(glFramebuffer->_colorBuffers.size(), glFramebuffer->_colorBuffers.data());
+        }
+    }
+
     (void) CHECK_GL_ERROR();
 }
-
 
 // TODO: As long as we have gl calls explicitely issued from interface
 // code, we need to be able to record and batch these calls. THe long 
@@ -598,10 +617,11 @@ void GLBackend::do_glUniform4fv(Batch& batch, uint32 paramOffset) {
         return;
     }
     updatePipeline();
-    glUniform4fv(
-        batch._params[paramOffset + 2]._int,
-        batch._params[paramOffset + 1]._uint,
-        (const GLfloat*)batch.editData(batch._params[paramOffset + 0]._uint));
+    
+    GLint location = batch._params[paramOffset + 2]._int;
+    GLsizei count = batch._params[paramOffset + 1]._uint;
+    const GLfloat* value = (const GLfloat*)batch.editData(batch._params[paramOffset + 0]._uint);
+    glUniform4fv(location, count, value);
 
     (void) CHECK_GL_ERROR();
 }

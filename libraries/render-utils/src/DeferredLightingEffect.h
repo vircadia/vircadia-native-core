@@ -21,6 +21,7 @@
 
 #include "model/Light.h"
 #include "model/Stage.h"
+#include "model/Geometry.h"
 
 class AbstractViewStateInterface;
 class RenderArgs;
@@ -94,41 +95,49 @@ private:
         int lightBufferUnit;
         int atmosphereBufferUnit;
         int invViewMat;
+        int texcoordMat;
+        int coneParam;
     };
-    
-    static void loadLightProgram(const char* fragSource, bool limited, ProgramObject& program, LightLocations& locations);
+
+    model::MeshPointer _spotLightMesh;
+    model::MeshPointer getSpotLightMesh();
+
+    static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocations& locations);
+  
     gpu::PipelinePointer getPipeline(SimpleProgramKey config);
     
     gpu::ShaderPointer _simpleShader;
     gpu::ShaderPointer _emissiveShader;
     QHash<SimpleProgramKey, gpu::PipelinePointer> _simplePrograms;
 
-    ProgramObject _directionalSkyboxLight;
+    gpu::PipelinePointer _blitLightBuffer;
+
+    gpu::PipelinePointer _directionalSkyboxLight;
     LightLocations _directionalSkyboxLightLocations;
-    ProgramObject _directionalSkyboxLightShadowMap;
+    gpu::PipelinePointer _directionalSkyboxLightShadowMap;
     LightLocations _directionalSkyboxLightShadowMapLocations;
-    ProgramObject _directionalSkyboxLightCascadedShadowMap;
+    gpu::PipelinePointer _directionalSkyboxLightCascadedShadowMap;
     LightLocations _directionalSkyboxLightCascadedShadowMapLocations;
 
-    ProgramObject _directionalAmbientSphereLight;
+    gpu::PipelinePointer _directionalAmbientSphereLight;
     LightLocations _directionalAmbientSphereLightLocations;
-    ProgramObject _directionalAmbientSphereLightShadowMap;
+    gpu::PipelinePointer _directionalAmbientSphereLightShadowMap;
     LightLocations _directionalAmbientSphereLightShadowMapLocations;
-    ProgramObject _directionalAmbientSphereLightCascadedShadowMap;
+    gpu::PipelinePointer _directionalAmbientSphereLightCascadedShadowMap;
     LightLocations _directionalAmbientSphereLightCascadedShadowMapLocations;
 
-    ProgramObject _directionalLight;
+    gpu::PipelinePointer _directionalLight;
     LightLocations _directionalLightLocations;
-    ProgramObject _directionalLightShadowMap;
+    gpu::PipelinePointer _directionalLightShadowMap;
     LightLocations _directionalLightShadowMapLocations;
-    ProgramObject _directionalLightCascadedShadowMap;
+    gpu::PipelinePointer _directionalLightCascadedShadowMap;
     LightLocations _directionalLightCascadedShadowMapLocations;
 
-    ProgramObject _pointLight;
+    gpu::PipelinePointer _pointLight;
     LightLocations _pointLightLocations;
-    ProgramObject _spotLight;
+    gpu::PipelinePointer _spotLight;
     LightLocations _spotLightLocations;
-    
+
     class PointLight {
     public:
         glm::vec4 position;

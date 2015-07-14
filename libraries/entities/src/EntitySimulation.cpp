@@ -146,6 +146,7 @@ void EntitySimulation::sortEntitiesThatMoved() {
 
 void EntitySimulation::addEntity(EntityItemPointer entity) {
     assert(entity);
+    entity->deserializeActions();
     if (entity->isMortal()) {
         _mortalEntities.insert(entity);
         quint64 expiry = entity->getExpiry();

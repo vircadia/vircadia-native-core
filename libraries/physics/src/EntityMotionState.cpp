@@ -287,6 +287,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     }
 
     if (_serverActionData != _entity->getActionData()) {
+        setOutgoingPriority(SCRIPT_EDIT_SIMULATION_PRIORITY);
         return true;
     }
 

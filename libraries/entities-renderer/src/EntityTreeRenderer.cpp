@@ -93,16 +93,18 @@ void EntityTreeRenderer::clear() {
     foreach (const EntityItemID& entityID, _entityScripts.keys()) {
         checkAndCallUnload(entityID);
     }
-    OctreeRenderer::clear();
     _entityScripts.clear();
 
     auto scene = _viewState->getMain3DScene();
     render::PendingChanges pendingChanges;
+    
     foreach(auto entity, _entitiesInScene) {
         entity->removeFromScene(entity, scene, pendingChanges);
     }
     scene->enqueuePendingChanges(pendingChanges);
     _entitiesInScene.clear();
+
+    OctreeRenderer::clear();
 }
 
 void EntityTreeRenderer::init() {
@@ -802,6 +804,8 @@ void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityS
     connect(this, &EntityTreeRenderer::enterEntity, entityScriptingInterface, &EntityScriptingInterface::enterEntity);
     connect(this, &EntityTreeRenderer::leaveEntity, entityScriptingInterface, &EntityScriptingInterface::leaveEntity);
     connect(this, &EntityTreeRenderer::collisionWithEntity, entityScriptingInterface, &EntityScriptingInterface::collisionWithEntity);
+
+    connect(DependencyManager::get<SceneScriptingInterface>().data(), &SceneScriptingInterface::shouldRenderEntitiesChanged, this, &EntityTreeRenderer::updateEntityRenderStatus, Qt::QueuedConnection);
 }
 
 QScriptValueList EntityTreeRenderer::createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID) {
@@ -1001,7 +1005,7 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
         checkAndCallUnload(entityID);
     }
     _entityScripts.remove(entityID);
-    
+
     // here's where we remove the entity payload from the scene
     if (_entitiesInScene.contains(entityID)) {
         auto entity = _entitiesInScene.take(entityID);
@@ -1150,5 +1154,20 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
         args << idA.toScriptValue(_entitiesScriptEngine);
         args << collisionToScriptValue(_entitiesScriptEngine, collision);
         entityScriptB.property("collisionWithEntity").call(entityScriptA, args);
+    }
+}
+
+void EntityTreeRenderer::updateEntityRenderStatus(bool shouldRenderEntities) {
+    if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
+        for (auto entityID : _entityIDsLastInScene) {
+            addingEntity(entityID);
+        }
+        _entityIDsLastInScene.clear();
+    } else {
+        _entityIDsLastInScene = _entitiesInScene.keys();
+        for (auto entityID : _entityIDsLastInScene) {
+            // FIXME - is this really right? do we want to do the deletingEntity() code or just remove from the scene.
+            deletingEntity(entityID);
+        }
     }
 }

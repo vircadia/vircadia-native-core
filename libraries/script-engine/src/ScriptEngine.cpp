@@ -710,7 +710,13 @@ void ScriptEngine::run() {
 
         // since we're in non-threaded mode, call process so that the packets are sent
         if (!entityScriptingInterface->getEntityPacketSender()->isThreaded()) {
-            entityScriptingInterface->getEntityPacketSender()->process();
+            // wait here till the edit packet sender is completely done sending
+            while (entityScriptingInterface->getEntityPacketSender()->hasPacketsToSend()) {
+                entityScriptingInterface->getEntityPacketSender()->process();
+                QCoreApplication::processEvents();
+            }
+        } else {
+            // FIXME - do we need to have a similar "wait here" loop for non-threaded packet senders?
         }
     }
 

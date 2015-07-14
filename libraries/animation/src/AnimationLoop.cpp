@@ -84,14 +84,14 @@ void AnimationLoop::setStartAutomatically(bool startAutomatically) {
 }
     
 void AnimationLoop::setRunning(bool running) {
-    if (_running == running) {
+    // don't do anything if the new value is the same as the value we already have
+    if (_running != running) {
+        _running = running;
+        
+        // If we just set running to true, then also reset the frame to the first frame
         if (running) {
             // move back to the beginning
             _frameIndex = _firstFrame;
         }
-        return;
-    }
-    if ((_running = running)) {
-        _frameIndex = _firstFrame;
     }
 }

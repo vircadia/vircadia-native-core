@@ -90,6 +90,9 @@ public:
     virtual void scriptContentsAvailable(const QUrl& url, const QString& scriptContents);
     virtual void errorInLoadingScript(const QUrl& url);
 
+    // For Scene.shouldRenderEntities
+    QList<EntityItemID>& getEntitiesLastInScene() { return _entityIDsLastInScene; }
+
 signals:
     void mousePressOnEntity(const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId);
     void mouseMoveOnEntity(const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId);
@@ -112,6 +115,7 @@ public slots:
     void deletingEntity(const EntityItemID& entityID);
     void entitySciptChanging(const EntityItemID& entityID, const bool reload);
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
+    void updateEntityRenderStatus(bool shouldRenderEntities);
 
     // optional slots that can be wired to menu items
     void setDisplayElementChildProxies(bool value) { _displayElementChildProxies = value; }
@@ -188,6 +192,8 @@ private:
     int _previousStageDay;
     
     QHash<EntityItemID, EntityItemPointer> _entitiesInScene;
+    // For Scene.shouldRenderEntities
+    QList<EntityItemID> _entityIDsLastInScene;
 };
 
 

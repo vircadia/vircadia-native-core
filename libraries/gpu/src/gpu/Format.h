@@ -182,6 +182,9 @@ public:
     }
 
     static const Element COLOR_RGBA_32;
+    static const Element VEC3F_XYZ;
+    static const Element INDEX_UINT16;
+    static const Element PART_DRAWCALL;
 
  protected:
     uint8 _semantic;
@@ -201,6 +204,19 @@ enum ComparisonFunction {
     ALWAYS,
 
     NUM_COMPARISON_FUNCS,
+};
+
+enum Primitive {
+    POINTS = 0,
+    LINES,
+    LINE_STRIP,
+    TRIANGLES,
+    TRIANGLE_STRIP,
+    TRIANGLE_FAN,
+    QUADS,
+    QUAD_STRIP,
+
+    NUM_PRIMITIVES,
 };
 
 };

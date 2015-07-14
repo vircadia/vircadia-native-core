@@ -72,9 +72,13 @@ void AvatarManager::init() {
     _myAvatar->init();
     _avatarHash.insert(MY_AVATAR_KEY, _myAvatar);
 
+    connect(DependencyManager::get<SceneScriptingInterface>().data(), &SceneScriptingInterface::shouldRenderAvatarsChanged, this, &AvatarManager::updateAvatarRenderStatus, Qt::QueuedConnection);
+
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
     render::PendingChanges pendingChanges;
-    _myAvatar->addToScene(_myAvatar, scene, pendingChanges);
+    if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
+        _myAvatar->addToScene(_myAvatar, scene, pendingChanges);
+    }
     scene->enqueuePendingChanges(pendingChanges);
 }
 
@@ -158,7 +162,9 @@ AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWe
     auto avatar = std::dynamic_pointer_cast<Avatar>(AvatarHashMap::addAvatar(sessionUUID, mixerWeakPointer));
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
     render::PendingChanges pendingChanges;
-    avatar->addToScene(avatar, scene, pendingChanges);
+    if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
+        avatar->addToScene(avatar, scene, pendingChanges);
+    }
     scene->enqueuePendingChanges(pendingChanges);
     return avatar;
 }
@@ -307,6 +313,26 @@ void AvatarManager::updateAvatarPhysicsShape(const QUuid& id) {
                 _motionStatesToAdd.insert(motionState);
                 _avatarMotionStates.insert(motionState);
             }
+        }
+    }
+}
+
+void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
+    if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
+        for (auto avatarData : _avatarHash) {
+            auto avatar = std::dynamic_pointer_cast<Avatar>(avatarData);
+            render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+            render::PendingChanges pendingChanges;
+            avatar->addToScene(avatar, scene, pendingChanges);
+            scene->enqueuePendingChanges(pendingChanges);
+        }
+    } else {
+        for (auto avatarData : _avatarHash) {
+            auto avatar = std::dynamic_pointer_cast<Avatar>(avatarData);
+            render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+            render::PendingChanges pendingChanges;
+            avatar->removeFromScene(avatar, scene, pendingChanges);
+            scene->enqueuePendingChanges(pendingChanges);
         }
     }
 }

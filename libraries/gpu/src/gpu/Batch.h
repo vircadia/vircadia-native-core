@@ -18,6 +18,7 @@
 
 #include <vector>
 
+#include "Query.h"
 #include "Stream.h"
 #include "Texture.h"
 
@@ -37,19 +38,6 @@
 #endif
 
 namespace gpu {
-
-enum Primitive {
-    POINTS = 0,
-    LINES,
-    LINE_STRIP,
-    TRIANGLES,
-    TRIANGLE_STRIP,
-    TRIANGLE_FAN,
-    QUADS,
-    QUAD_STRIP,
-
-    NUM_PRIMITIVES,
-};
 
 enum ReservedSlot {
 /*    TRANSFORM_OBJECT_SLOT = 6,
@@ -76,7 +64,12 @@ public:
     void drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0, uint32 startInstance = 0);
 
     // Clear framebuffer layers
+    // Targets can be any of the render buffers contained in the Framebuffer
     void clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil);
+    void clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color); // not a command, just a shortcut for clearFramebuffer, mask out targets to make sure it touches only color targets
+    void clearDepthFramebuffer(float depth); // not a command, just a shortcut for clearFramebuffer, it touches only depth target
+    void clearStencilFramebuffer(int stencil); // not a command, just a shortcut for clearFramebuffer, it touches only stencil target
+    void clearDepthStencilFramebuffer(float depth, int stencil); // not a command, just a shortcut for clearFramebuffer, it touches depth and stencil target
     
     // Input Stage
     // InputFormat
@@ -89,6 +82,7 @@ public:
     void setInputStream(Slot startChannel, const BufferStream& stream); // not a command, just unroll into a loop of setInputBuffer
 
     void setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset);
+    void setIndexBuffer(const BufferView& buffer); // not a command, just a shortcut from a BufferView
 
     // Transform Stage
     // Vertex position is transformed by ModelTransform from object space to world space
@@ -109,11 +103,16 @@ public:
     void setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size);
     void setUniformBuffer(uint32 slot, const BufferView& view); // not a command, just a shortcut from a BufferView
 
-    void setUniformTexture(uint32 slot, const TexturePointer& view);
-    void setUniformTexture(uint32 slot, const TextureView& view); // not a command, just a shortcut from a TextureView
+    void setResourceTexture(uint32 slot, const TexturePointer& view);
+    void setResourceTexture(uint32 slot, const TextureView& view); // not a command, just a shortcut from a TextureView
 
     // Framebuffer Stage
     void setFramebuffer(const FramebufferPointer& framebuffer);
+
+    // Query Section
+    void beginQuery(const QueryPointer& query);
+    void endQuery(const QueryPointer& query);
+    void getQuery(const QueryPointer& query);
 
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
@@ -179,9 +178,13 @@ public:
         COMMAND_setStateBlendFactor,
 
         COMMAND_setUniformBuffer,
-        COMMAND_setUniformTexture,
+        COMMAND_setResourceTexture,
 
         COMMAND_setFramebuffer,
+
+        COMMAND_beginQuery,
+        COMMAND_endQuery,
+        COMMAND_getQuery,
 
         // TODO: As long as we have gl calls explicitely issued from interface
         // code, we need to be able to record and batch these calls. THe long 
@@ -286,6 +289,7 @@ public:
     typedef Cache<Transform>::Vector TransformCaches;
     typedef Cache<PipelinePointer>::Vector PipelineCaches;
     typedef Cache<FramebufferPointer>::Vector FramebufferCaches;
+    typedef Cache<QueryPointer>::Vector QueryCaches;
 
     // Cache Data in a byte array if too big to fit in Param
     // FOr example Mat4s are going there
@@ -310,6 +314,7 @@ public:
     TransformCaches _transforms;
     PipelineCaches _pipelines;
     FramebufferCaches _framebuffers;
+    QueryCaches _queries;
 
 protected:
 };
