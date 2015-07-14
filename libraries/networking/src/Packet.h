@@ -65,6 +65,7 @@ public:
     virtual bool reset() { setSizeUsed(0); return QIODevice::reset(); }
     virtual qint64 size() const { return _capacity; }
 
+    template<typename T> qint64 peekPrimitive(T* data);
     template<typename T> qint64 readPrimitive(T* data);
     template<typename T> qint64 writePrimitive(const T& data);
 
@@ -102,6 +103,10 @@ protected:
     HifiSockAddr _senderSockAddr;  // sender address for packet (only used on receiving end)
 };
 
+
+template<typename T> qint64 Packet::peekPrimitive(T* data) {
+    return QIODevice::peek(reinterpret_cast<char*>(data), sizeof(T));
+}
 
 template<typename T> qint64 Packet::readPrimitive(T* data) {
     return QIODevice::read(reinterpret_cast<char*>(data), sizeof(T));
