@@ -38,9 +38,7 @@ QSharedPointer<Resource> AnimationCache::createResource(const QUrl& url, const Q
     return QSharedPointer<Resource>(new Animation(url), &Resource::allReferencesCleared);
 }
 
-Animation::Animation(const QUrl& url) :
-    Resource(url) {
-}
+Animation::Animation(const QUrl& url) : Resource(url) {}
 
 class AnimationReader : public QRunnable {
 public:
