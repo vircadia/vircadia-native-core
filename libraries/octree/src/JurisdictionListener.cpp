@@ -57,10 +57,10 @@ bool JurisdictionListener::queueJurisdictionRequest() {
 }
 
 void JurisdictionListener::processPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
-    if (packet->getType() == PacketType::Jurisdiction && sendingNode) {
+    if (packet->getType() == PacketType::Jurisdiction) {
         JurisdictionMap map;
         map.unpackFromPacket(*packet);
-        _jurisdictions[sendingNode->getUUID()] = map;
+        _jurisdictions[packet->getSourceID()] = map;
     }
 }
 
