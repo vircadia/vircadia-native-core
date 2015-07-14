@@ -162,8 +162,6 @@ public:
     std::unique_ptr<NLPacket> constructICEPingPacket(PingType_t pingType, const QUuid& iceID);
     std::unique_ptr<NLPacket> constructICEPingReplyPacket(NLPacket& pingPacket, const QUuid& iceID);
 
-    virtual bool processSTUNResponse(QSharedPointer<NLPacket> packet);
-
     void sendHeartbeatToIceServer(const HifiSockAddr& iceServerSockAddr);
     void sendPeerQueryToIceServer(const HifiSockAddr& iceServerSockAddr, const QUuid& clientID, const QUuid& peerID);
 
@@ -229,6 +227,7 @@ public slots:
 
     void startSTUNPublicSocketUpdate();
     virtual void sendSTUNRequest();
+    bool processSTUNResponse(QSharedPointer<NLPacket> packet);
 
     void killNodeWithUUID(const QUuid& nodeUUID);
 
