@@ -75,11 +75,13 @@ QMetaMethod PacketReceiver::matchingMethodForListener(PacketType::Value type, QO
     QSet<QString> possibleSignatures { QString("%1(%2)").arg(slot).arg(NON_SOURCED_PACKET_LISTENER_PARAMETERS) };
 
     if (!NON_SOURCED_PACKETS.contains(type)) {
-        const QString SOURCED_PACKET_LISTENER_PARAMETERS = "QSharedPointer<NLPacket>,QSharedPointer<Node>";
+        static const QString SOURCED_PACKET_LISTENER_PARAMETERS = "QSharedPointer<NLPacket>,QSharedPointer<Node>";
+        static const QString TYPEDEF_SOURCED_PACKET_LISTENER_PARAMETERS = "QSharedPointer<NLPacket>,SharedNodePointer";
 
         // a sourced packet must take the shared pointer to the packet but optionally could include
         // a shared pointer to the node
 
+        possibleSignatures << QString("%1(%2)").arg(slot).arg(TYPEDEF_SOURCED_PACKET_LISTENER_PARAMETERS);
         possibleSignatures << QString("%1(%2)").arg(slot).arg(SOURCED_PACKET_LISTENER_PARAMETERS);
     }
 
@@ -88,16 +90,18 @@ QMetaMethod PacketReceiver::matchingMethodForListener(PacketType::Value type, QO
     foreach(const QString& signature, possibleSignatures) {
         QByteArray normalizedSlot =
             QMetaObject::normalizedSignature(signature.toStdString().c_str());
-
+        
         // does the constructed normalized method exist?
         methodIndex = object->metaObject()->indexOfSlot(normalizedSlot.toStdString().c_str());
 
-        break;
+        if (methodIndex >= 0) {
+            break;
+        }
     }
 
     if (methodIndex < 0) {
         qDebug() << "PacketReceiver::registerListener expected a method with one of the following signatures:"
-                << possibleSignatures << "- but such a method was not found.";
+                << possibleSignatures.toList() << "- but such a method was not found.";
     }
 
     Q_ASSERT(methodIndex >= 0);
@@ -174,7 +178,7 @@ void PacketReceiver::processDatagrams() {
     //PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             //"PacketReceiver::processDatagrams()");
 
-    auto nodeList = DependencyManager::get<NodeList>();
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
 
     while (nodeList->getNodeSocket().hasPendingDatagrams()) {
         // setup a buffer to read the packet into
