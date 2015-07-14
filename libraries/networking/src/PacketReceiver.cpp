@@ -97,7 +97,7 @@ QMetaMethod PacketReceiver::matchingMethodForListener(PacketType::Value type, QO
 
     if (methodIndex < 0) {
         qDebug() << "PacketReceiver::registerListener expected a method with one of the following signatures:"
-                << possibleSignatures << "- but such a method was not found.";
+                << possibleSignatures.toList() << "- but such a method was not found.";
     }
 
     Q_ASSERT(methodIndex >= 0);
@@ -174,7 +174,7 @@ void PacketReceiver::processDatagrams() {
     //PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             //"PacketReceiver::processDatagrams()");
 
-    auto nodeList = DependencyManager::get<NodeList>();
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
 
     while (nodeList->getNodeSocket().hasPendingDatagrams()) {
         // setup a buffer to read the packet into
