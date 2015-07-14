@@ -68,14 +68,28 @@ SettingsWindow = function() {
             case 'value_change':
                 _this.plankyStack.onValueChanged(data.option, data.value);
                 break;
+            case 'factory-reset':
+                _this.plankyStack.options.factoryReset();
+                _this.sendData({action: 'load', options: _this.plankyStack.options.getJSON()})
+                break;
+            case 'save-default':
+                _this.plankyStack.options.save();
+                break;
+            case 'cleanup':
+                _this.plankyStack.deRez();
+                break;
             default:
-                Window.alert('unknown action ' + data.action);
+                Window.alert('[planky] unknown action ' + data.action);
         }
     };
 };
 
 PlankyOptions = function() {
     var _this = this;
+    this.factoryReset = function() {
+        _this.setDefaults();
+        Settings.setValue('plankyOptions', '');
+    };
     this.save = function() {
         Settings.setValue('plankyOptions', JSON.stringify(_this.getJSON()));
     };
@@ -86,9 +100,9 @@ PlankyOptions = function() {
             return;
         }
         var options = JSON.parse(plankyOptions);
-        options.forEach(function(value, option, object) {
-            _this[option] = value;
-        });
+        for (option in options) {
+            _this[option] = options[option];
+        }
     };
     this.getJSON = function() {
         return {
@@ -147,9 +161,10 @@ PlankyStack = function() {
         })
         if (_this.centerLine) {
             Entities.deleteEntity(_this.centerLine);
-        }        
+        }
         _this.ground = false;
         _this.centerLine = false;
+        _this.editLines = [];
     };
     this.rez = function() {
         if (_this.planks.length > 0) {
@@ -243,7 +258,9 @@ PlankyStack = function() {
     };
     this.onValueChanged = function(option, value) {
         _this.options[option] = value;
-        _this.refresh();
+        if (['numLayers', 'blocksPerLayer', 'blockSize', 'blockSpacing', 'blockHeightVariation'].indexOf(option) !== -1) {
+            _this.refresh();
+        }
     };
     this.refresh = function() {
         refreshGround();
@@ -284,31 +301,28 @@ function grabLowestJointY() {
     return floorY;
 }
 
-function createButtons() {
-    toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.games.planky", function (windowDimensions, toolbar) {
-        return {
-            x: windowDimensions.x - (toolbar.width * 1.1),
-            y: toolbar.height / 2
-        };
-    });    
-    button = toolBar.addTool({
-        width: BUTTON_DIMENSIONS.width,
-        height: BUTTON_DIMENSIONS.height,
-        imageURL: HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/planky_button.svg',
-        alpha: 0.8,
-        visible: true
-    });
+toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.games.planky", function (windowDimensions, toolbar) {
+    return {
+        x: windowDimensions.x - (toolbar.width * 1.1),
+        y: toolbar.height / 2
+    };
+});
 
-    cogButton = toolBar.addTool({
-        width: BUTTON_DIMENSIONS.width,
-        height: BUTTON_DIMENSIONS.height,
-        imageURL: HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/cog.svg',
-        alpha: 0.8,
-        visible: true
-    });
-}
-// Fixes bug of not showing buttons on startup
-Script.setTimeout(createButtons, 2000);
+button = toolBar.addTool({
+    width: BUTTON_DIMENSIONS.width,
+    height: BUTTON_DIMENSIONS.height,
+    imageURL: HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/planky_button.svg',
+    alpha: 0.8,
+    visible: true
+});
+
+cogButton = toolBar.addTool({
+    width: BUTTON_DIMENSIONS.width,
+    height: BUTTON_DIMENSIONS.height,
+    imageURL: HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/cog.svg',
+    alpha: 0.8,
+    visible: true
+});
 
 Controller.mousePressEvent.connect(function(event) {
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
