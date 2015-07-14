@@ -1853,7 +1853,7 @@ void Application::idle() {
         }
         // After finishing all of the above work, ensure the idle timer is set to the proper interval,
         // depending on whether we're throttling or not
-        idleTimer->start(_glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : 0);
+        idleTimer->start(_glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : 1);
     }
 
     // check for any requested background downloads.
