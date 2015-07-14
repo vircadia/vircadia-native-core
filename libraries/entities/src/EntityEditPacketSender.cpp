@@ -17,9 +17,18 @@
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
 
+EntityEditPacketSender::EntityEditPacketSender() {
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::EntityEditNack, this, "processEntityEditNackPacket");
+}
+
+void EntityEditPacketSender::processEntityEditNackPacket(QSharedPointer<NLPacket> packet) {
+    if (_shouldNack) {
+        processNackPacket(QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
+    }
+}
 
 void EntityEditPacketSender::adjustEditPacketForClockSkew(PacketType::Value type, QByteArray& buffer, int clockSkew) {
-
     if (type == PacketType::EntityAdd || type == PacketType::EntityEdit) {
         EntityItem::adjustEditPacketForClockSkew(buffer, clockSkew);
     }

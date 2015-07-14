@@ -870,12 +870,11 @@ AttachmentData MyAvatar::loadAttachmentData(const QUrl& modelURL, const QString&
     return attachment;
 }
 
-int MyAvatar::parseDataAtOffset(const QByteArray& packet, int offset) {
+int MyAvatar::parseDataFromBuffer(const QByteArray& buffer) {
     qCDebug(interfaceapp) << "Error: ignoring update packet for MyAvatar"
-        << " packetLength = " << packet.size()
-        << "  offset = " << offset;
+        << " packetLength = " << buffer.size();
     // this packet is just bad, so we pretend that we unpacked it ALL
-    return packet.size() - offset;
+    return buffer.size();
 }
 
 void MyAvatar::sendKillAvatar() {

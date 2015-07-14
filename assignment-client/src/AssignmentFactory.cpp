@@ -17,15 +17,13 @@
 #include "avatars/AvatarMixer.h"
 #include "entities/EntityServer.h"
 
-ThreadedAssignment* AssignmentFactory::unpackAssignment(const QByteArray& packet) {
-    QDataStream packetStream(packet);
-    packetStream.skipRawData(numBytesForPacketHeader(packet));
+ThreadedAssignment* AssignmentFactory::unpackAssignment(NLPacket& packet) {
 
     quint8 packedType;
-    packetStream >> packedType;    
-    
+    packet.peekPrimitive(&packedType);
+
     Assignment::Type unpackedType = (Assignment::Type) packedType;
-    
+
     switch (unpackedType) {
         case Assignment::AudioMixerType:
             return new AudioMixer(packet);

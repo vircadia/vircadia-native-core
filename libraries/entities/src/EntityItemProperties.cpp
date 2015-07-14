@@ -128,8 +128,8 @@ void EntityItemProperties::setSittingPoints(const QVector<SittingPoint>& sitting
     }
 }
 
-bool EntityItemProperties::animationSettingsChanged() const { 
-    return _animationSettingsChanged; 
+bool EntityItemProperties::animationSettingsChanged() const {
+    return _animationSettingsChanged;
 }
 
 void EntityItemProperties::setAnimationSettings(const QString& value) {
@@ -900,11 +900,14 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType::Value command, Ent
 //
 // TODO: Implement support for script and visible properties.
 //
-bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
+bool EntityItemProperties::decodeEntityEditPacket(NLPacket& packet, int& processedBytes,
                                                   EntityItemID& entityID, EntityItemProperties& properties) {
     bool valid = false;
-
+    
+    const unsigned char* data = reinterpret_cast<const unsigned char*>(packet.getPayload());
     const unsigned char* dataAt = data;
+    
+    int bytesToRead = packet.getSizeUsed();
     processedBytes = 0;
 
     // the first part of the data is an octcode, this is a required element of the edit packet format, but we don't

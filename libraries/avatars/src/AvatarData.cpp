@@ -265,7 +265,7 @@ bool AvatarData::shouldLogError(const quint64& now) {
 }
 
 // read data in packet starting at byte offset and return number of bytes parsed
-int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
+int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
     // lazily allocate memory for HeadData in case we're not an Avatar instance
     if (!_headData) {
@@ -277,7 +277,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
         _handData = new HandData(this);
     }
 
-    const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(packet.data()) + offset;
+    const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(buffer.data());
     const unsigned char* sourceBuffer = startPosition;
     quint64 now = usecTimestampNow();
 
@@ -299,7 +299,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
     // = 45 bytes
     int minPossibleSize = 45;
 
-    int maxAvailableSize = packet.size() - offset;
+    int maxAvailableSize = buffer.size();
     if (minPossibleSize > maxAvailableSize) {
         if (shouldLogError(now)) {
             qCDebug(avatars) << "Malformed AvatarData packet at the start; "
@@ -867,9 +867,8 @@ void AvatarData::clearJointsData() {
     }
 }
 
-bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray &packet) {
-    QDataStream packetStream(packet);
-    packetStream.skipRawData(numBytesForPacketHeader(packet));
+bool AvatarData::hasIdentityChangedAfterParsing(NLPacket& packet) {
+    QDataStream packetStream(&packet);
 
     QUuid avatarUUID;
     QUrl faceModelURL, skeletonModelURL;
@@ -911,8 +910,8 @@ QByteArray AvatarData::identityByteArray() {
     return identityData;
 }
 
-bool AvatarData::hasBillboardChangedAfterParsing(const QByteArray& packet) {
-    QByteArray newBillboard = packet.mid(numBytesForPacketHeader(packet));
+bool AvatarData::hasBillboardChangedAfterParsing(NLPacket& packet) {
+    QByteArray newBillboard = packet.readAll();
     if (newBillboard == _billboard) {
         return false;
     }

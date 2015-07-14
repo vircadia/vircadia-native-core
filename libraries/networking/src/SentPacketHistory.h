@@ -13,8 +13,9 @@
 
 #include <stdint.h>
 #include <qbytearray.h>
-#include "RingBufferHistory.h"
 
+#include "NLPacket.h"
+#include "RingBufferHistory.h"
 #include "SequenceNumberStats.h"
 
 class NLPacket;

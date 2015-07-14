@@ -45,7 +45,7 @@ public:
     virtual void setTree(Octree* newTree);
     
     /// process incoming data
-    virtual void processDatagram(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
+    virtual void processDatagram(NLPacket& packet, SharedNodePointer sourceNode);
 
     /// initialize and GPU/rendering related resources
     virtual void init();

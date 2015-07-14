@@ -66,8 +66,8 @@ public:
     virtual bool canProcessVersion(PacketVersion thisVersion) const
                     { return thisVersion >= VERSION_ENTITIES_USE_METERS_AND_RADIANS; }
     virtual bool handlesEditPacketType(PacketType::Value packetType) const;
-    virtual int processEditPacketData(PacketType::Value packetType, const unsigned char* packetData, int packetLength,
-                    const unsigned char* editData, int maxLength, const SharedNodePointer& senderNode);
+    virtual int processEditPacketData(NLPacket& packet, const unsigned char* editData, int maxLength,
+                                      const SharedNodePointer& senderNode);
 
     virtual bool rootElementHasData() const { return true; }
 
@@ -133,8 +133,8 @@ public:
                                                          bool& hasMore);
     void forgetEntitiesDeletedBefore(quint64 sinceTime);
 
-    int processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
-    int processEraseMessageDetails(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
+    int processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode);
+    int processEraseMessageDetails(const QByteArray& buffer, const SharedNodePointer& sourceNode);
 
     EntityItemFBXService* getFBXService() const { return _fbxService; }
     void setFBXService(EntityItemFBXService* service) { _fbxService = service; }
@@ -186,9 +186,9 @@ public:
     virtual quint64 getAverageLoggingTime() const { return _totalEditMessages == 0 ? 0 : _totalLoggingTime / _totalEditMessages; }
 
     void trackIncomingEntityLastEdited(quint64 lastEditedTime, int bytesRead);
-    quint64 getAverageEditDeltas() const 
+    quint64 getAverageEditDeltas() const
         { return _totalTrackedEdits == 0 ? 0 : _totalEditDeltas / _totalTrackedEdits; }
-    quint64 getAverageEditBytes() const 
+    quint64 getAverageEditBytes() const
         { return _totalTrackedEdits == 0 ? 0 : _totalEditBytes / _totalTrackedEdits; }
     quint64 getMaxEditDelta() const { return _maxEditDelta; }
     quint64 getTotalTrackedEdits() const { return _totalTrackedEdits; }

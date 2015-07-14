@@ -13,6 +13,7 @@
 #define hifi_AudioClient_h
 
 #include <fstream>
+#include <memory>
 #include <vector>
 
 #include <QtCore/QByteArray>
@@ -32,10 +33,13 @@
 #include <AudioSourceTone.h>
 #include <AudioSourceNoise.h>
 #include <AudioStreamStats.h>
-#include <DependencyManager.h>
 
+#include <DependencyManager.h>
+#include <HifiSockAddr.h>
+#include <NLPacket.h>
 #include <MixedProcessedAudioStream.h>
 #include <RingBufferHistory.h>
+#include <PacketListener.h>
 #include <SettingHandle.h>
 #include <Sound.h>
 #include <StDev.h>
@@ -77,7 +81,7 @@ typedef glm::quat (*AudioOrientationGetter)();
 
 class NLPacket;
 
-class AudioClient : public AbstractAudioInterface, public Dependency {
+class AudioClient : public AbstractAudioInterface, public Dependency, public PacketListener {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 public:
@@ -135,10 +139,13 @@ public:
 public slots:
     void start();
     void stop();
-    void addReceivedAudioToStream(const QByteArray& audioByteArray);
-    void parseAudioEnvironmentData(const QByteArray& packet);
+
+    void handleAudioEnvironmentDataPacket(QSharedPointer<NLPacket> packet);
+    void handleAudioDataPacket(QSharedPointer<NLPacket> packet);
+    void handleNoisyMutePacket(QSharedPointer<NLPacket> packet);
+    void handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet);
+
     void sendDownstreamAudioStatsPacket() { _stats.sendDownstreamAudioStatsPacket(); }
-    void parseAudioStreamStatsPacket(const QByteArray& packet) { _stats.parseAudioStreamStatsPacket(packet); }
     void handleAudioInput();
     void reset();
     void audioMixerKilled();
@@ -181,6 +188,7 @@ public slots:
 
 signals:
     bool muteToggled();
+    void mutedByMixer();
     void inputReceived(const QByteArray& inputSamples);
     void outputBytesToNetwork(int numBytes);
     void inputBytesFromNetwork(int numBytes);
@@ -191,6 +199,8 @@ signals:
     void disconnected();
 
     void audioFinished();
+
+    void muteEnvironmentRequested(glm::vec3 position, float radius);
 
 protected:
     AudioClient();

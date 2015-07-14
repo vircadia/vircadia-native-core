@@ -38,7 +38,7 @@ public:
     void setNodeType(NodeType_t type) { _nodeType = type; }
 
 protected:
-    virtual void processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);
+    virtual void processPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
 
     /// Locks all the resources of the thread.
     void lockRequestingNodes() { _requestingNodeMutex.lock(); }

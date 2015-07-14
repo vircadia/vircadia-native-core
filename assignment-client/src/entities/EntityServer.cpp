@@ -21,9 +21,13 @@ const char* MODEL_SERVER_NAME = "Entity";
 const char* MODEL_SERVER_LOGGING_TARGET_NAME = "entity-server";
 const char* LOCAL_MODELS_PERSIST_FILE = "resources/models.svo";
 
-EntityServer::EntityServer(const QByteArray& packet)
-    :   OctreeServer(packet), _entitySimulation(NULL) {
-    // nothing special to do here...
+EntityServer::EntityServer(NLPacket& packet) :
+    OctreeServer(packet),
+    _entitySimulation(NULL)
+{
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListenerForTypes({ PacketType::EntityAdd, PacketType::EntityEdit, PacketType::EntityErase },
+                                            this, "handleEntityPacket");
 }
 
 EntityServer::~EntityServer() {
@@ -34,6 +38,12 @@ EntityServer::~EntityServer() {
 
     EntityTree* tree = (EntityTree*)_tree;
     tree->removeNewlyCreatedHook(this);
+}
+
+void EntityServer::handleEntityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+    if (_octreeInboundPacketProcessor) {
+        _octreeInboundPacketProcessor->queueReceivedPacket(packet, senderNode);
+    }
 }
 
 OctreeQueryNode* EntityServer::createOctreeQueryNode() {

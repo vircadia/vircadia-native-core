@@ -32,6 +32,7 @@
 #include <OctreeQuery.h>
 #include <OffscreenUi.h>
 #include <PacketHeaders.h>
+#include <PacketListener.h>
 #include <PhysicalEntitySimulation.h>
 #include <PhysicsEngine.h>
 #include <ScriptEngine.h>
@@ -43,7 +44,6 @@
 #include "AudioClient.h"
 #include "Bookmarks.h"
 #include "Camera.h"
-#include "DatagramProcessor.h"
 #include "Environment.h"
 #include "FileLogger.h"
 #include "GLCanvas.h"
@@ -135,7 +135,10 @@ class Application;
 
 typedef bool (Application::* AcceptURLMethod)(const QString &);
 
-class Application : public QApplication, public AbstractViewStateInterface, AbstractScriptingServicesInterface {
+class Application : public QApplication,
+    public AbstractViewStateInterface,
+    AbstractScriptingServicesInterface,
+    public PacketListener {
     Q_OBJECT
 
     friend class OctreePacketProcessor;
@@ -214,6 +217,7 @@ public:
     OctreeQuery& getOctreeQuery() { return _octreeQuery; }
     EntityTree* getEntityClipboard() { return &_entityClipboard; }
     EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
+    EntityEditPacketSender* getEntityEditPacketSender() { return &_entityEditSender; }
 
     bool isMousePressed() const { return _mousePressed; }
     bool isMouseHidden() const { return !_cursorVisible; }
@@ -444,7 +448,7 @@ public slots:
 
     void notifyPacketVersionMismatch();
 
-    void domainConnectionDenied(const QString& reason);
+    void handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet);
 
     void cameraMenuChanged();
 
@@ -527,8 +531,6 @@ private:
 
     ToolWindow* _toolWindow;
     WebWindowClass* _friendsWindow;
-
-    DatagramProcessor* _datagramProcessor;
 
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;
@@ -615,8 +617,8 @@ private:
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
 
-    int parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sendingNode);
-    void trackIncomingOctreePacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket);
+    int processOctreeStats(NLPacket& packet, SharedNodePointer sendingNode);
+    void trackIncomingOctreePacket(NLPacket& packet, SharedNodePointer sendingNode, bool wasStatsPacket);
 
     NodeToJurisdictionMap _entityServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;

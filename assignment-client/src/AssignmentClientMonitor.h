@@ -24,7 +24,7 @@
 extern const char* NUM_FORKS_PARAMETER;
 
 
-class AssignmentClientMonitor : public QObject {
+class AssignmentClientMonitor : public QObject, public PacketListener {
     Q_OBJECT
 public:
     AssignmentClientMonitor(const unsigned int numAssignmentClientForks, const unsigned int minAssignmentClientForks,
@@ -35,9 +35,9 @@ public:
 
     void stopChildProcesses();
 private slots:
-    void readPendingDatagrams();
     void checkSpares();
     void childProcessFinished();
+    void handleChildStatusPacket(QSharedPointer<NLPacket> packet);
     
 public slots:
     void aboutToQuit();

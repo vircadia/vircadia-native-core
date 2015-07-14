@@ -22,7 +22,7 @@
 class EntityServer : public OctreeServer, public NewlyCreatedEntityHook {
     Q_OBJECT
 public:
-    EntityServer(const QByteArray& packet);
+    EntityServer(NLPacket& packet);
     ~EntityServer();
 
     // Subclasses must implement these methods
@@ -48,6 +48,9 @@ public slots:
 
 protected:
     virtual Octree* createTree();
+
+private slots:
+    void handleEntityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
 
 private:
     EntitySimulation* _entitySimulation;
