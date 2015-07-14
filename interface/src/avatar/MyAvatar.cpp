@@ -77,8 +77,6 @@ const float MyAvatar::ZOOM_MIN = 0.5f;
 const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 
-static bool isRoomTracking = true;
-
 MyAvatar::MyAvatar() :
 	Avatar(),
     _gravity(0.0f, 0.0f, 0.0f),
@@ -110,7 +108,8 @@ MyAvatar::MyAvatar() :
     _hmdSensorPosition(),
     _bodySensorMatrix(),
     _inverseBodySensorMatrix(),
-    _sensorToWorldMatrix()
+    _sensorToWorldMatrix(),
+    _standingHMDSensorMode(false)
 {
     _firstPersonSkeletonModel.setIsFirstPerson(true);
 
@@ -311,7 +310,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 
     Head* head = getHead();
     if (inHmd || isPlaying()) {
-        if (!isRoomTracking) {
+        if (!getStandingHMDSensorMode()) {
             head->setDeltaPitch(estimatedRotation.x);
             head->setDeltaYaw(estimatedRotation.y);
             head->setDeltaRoll(estimatedRotation.z);
@@ -337,7 +336,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         relativePosition.x = -relativePosition.x;
     }
 
-    if (!(inHmd && isRoomTracking)) {
+    if (!(inHmd && getStandingHMDSensorMode())) {
         head->setLeanSideways(glm::clamp(glm::degrees(atanf(relativePosition.x * _leanScale / TORSO_LENGTH)),
                                          -MAX_LEAN, MAX_LEAN));
         head->setLeanForward(glm::clamp(glm::degrees(atanf(relativePosition.z * _leanScale / TORSO_LENGTH)),
@@ -1340,7 +1339,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
     glm::mat4 sensorOffset = bodyMat * glm::mat4_cast(twist) * glm::inverse(bodyMat);
     _sensorToWorldMatrix = sensorOffset * _sensorToWorldMatrix;
 
-    if (!(qApp->isHMDMode() && isRoomTracking)) {
+    if (!(qApp->isHMDMode() && getStandingHMDSensorMode())) {
         setOrientation(twist * getOrientation());
     }
 
@@ -1532,7 +1531,7 @@ void MyAvatar::updatePosition(float deltaTime) {
     const float MOVING_SPEED_THRESHOLD = 0.01f;
     _moving = speed > MOVING_SPEED_THRESHOLD;
 
-    if (qApp->isHMDMode() && isRoomTracking) {
+    if (qApp->isHMDMode() && getStandingHMDSensorMode()) {
         Avatar::setPosition(getWorldBodyPosition());
     }
 }
@@ -1626,7 +1625,7 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
     qCDebug(interfaceapp).nospace() << "MyAvatar goToLocation - moving to " << newPosition.x << ", "
         << newPosition.y << ", " << newPosition.z;
 
-    if (qApp->isHMDMode() && isRoomTracking) {
+    if (qApp->isHMDMode() && getStandingHMDSensorMode()) {
         // AJT: FIXME, does not work with orientation.
         // AJT: FIXME, does not work with shouldFaceLocation flag.
         // Set the orientation of the sensor room, not the avatar itself.
@@ -1658,7 +1657,7 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
     emit transformChanged();
 }
 
-void MyAvatar::updateMotionBehavior() {
+void MyAvatar::updateMotionBehaviorFromMenu() {
     Menu* menu = Menu::getInstance();
     if (menu->isOptionChecked(MenuOption::KeyboardMotorControl)) {
         _motionBehaviors |= AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED;
@@ -1672,6 +1671,11 @@ void MyAvatar::updateMotionBehavior() {
     }
     _characterController.setEnabled(menu->isOptionChecked(MenuOption::EnableCharacterController));
     _feetTouchFloor = menu->isOptionChecked(MenuOption::ShiftHipsForIdleAnimations);
+}
+
+void MyAvatar::updateStandingHMDModeFromMenu() {
+    Menu* menu = Menu::getInstance();
+    _standingHMDSensorMode = menu->isOptionChecked(MenuOption::StandingHMDSensorMode);
 }
 
 //Renders sixense laser pointers for UI selection with controllers
@@ -1726,7 +1730,6 @@ void MyAvatar::relayDriveKeysToCharacterController() {
     }
 }
 
-// overriden, because they must move the sensor mat, so that the avatar will be at the given location.
 void MyAvatar::setPosition(const glm::vec3 position, bool overideReferential) {
 
     // update the sensor mat so that the body position will end up in the desired
@@ -1737,7 +1740,6 @@ void MyAvatar::setPosition(const glm::vec3 position, bool overideReferential) {
     Avatar::setPosition(position);
 }
 
-// overriden, because they must move the sensor mat, so that the avatar will face the given orienation.
 void MyAvatar::setOrientation(const glm::quat& orientation, bool overideReferential) {
 
     // update the sensor mat so that the body position will end up in the desired

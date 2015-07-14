@@ -192,6 +192,8 @@ public:
     static const float ZOOM_MAX;
     static const float ZOOM_DEFAULT;
 
+    bool getStandingHMDSensorMode() const { return _standingHMDSensorMode; }
+
 public slots:
     void increaseSize();
     void decreaseSize();
@@ -206,7 +208,8 @@ public slots:
     glm::vec3 getThrust() { return _thrust; };
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
-    void updateMotionBehavior();
+    void updateMotionBehaviorFromMenu();
+    void updateStandingHMDModeFromMenu();
 
     glm::vec3 getLeftPalmPosition();
     glm::quat getLeftPalmRotation();
@@ -225,6 +228,8 @@ public slots:
     void loadLastRecording();
 
     virtual void rebuildSkeletonBody();
+
+
 
 signals:
     void transformChanged();
@@ -326,6 +331,8 @@ private:
 
     // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
     glm::mat4 _sensorToWorldMatrix;
+
+    bool _standingHMDSensorMode;
 };
 
 #endif // hifi_MyAvatar_h
