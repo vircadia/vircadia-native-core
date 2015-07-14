@@ -234,6 +234,11 @@ qint64 LimitedNodeList::readDatagram(QByteArray& incomingPacket, QHostAddress* a
     return result;
 }
 
+
+qint64 LimitedNodeList::writeDatagram(const NLPacket& packet, const HifiSockAddr& destinationSockAddr) {
+    return writeDatagram({packet.getData(), static_cast<int>(packet.getSizeWithHeader())}, destinationSockAddr);
+}
+
 qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr) {
     // XXX can BandwidthRecorder be used for this?
     // stat collection for packets
@@ -261,7 +266,7 @@ qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const Node&
 }
 
 qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr) {
-    return writeDatagram(packet.getData(), sockAddr);
+    return writeDatagram(packet, sockAddr);
 }
 
 qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode) {
@@ -275,7 +280,7 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
 }
 
 qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr) {
-    return writeDatagram({packet->getData(), static_cast<int>(packet->getSizeWithHeader())}, sockAddr);
+    return writeDatagram(*packet, sockAddr);
 }
 
 qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& destinationNode) {
@@ -517,6 +522,19 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingReplyPacket(const QBy
     icePingReplyPacket->writePrimitive(pingType);
 
     return icePingReplyPacket;
+}
+
+unsigned int LimitedNodeList::broadcastToNodes(std::unique_ptr<NLPacket> packet, const NodeSet& destinationNodeTypes) {
+    unsigned int n = 0;
+    
+    eachNode([&](const SharedNodePointer& node){
+        if (destinationNodeTypes.contains(node->getType())) {
+            writeDatagram(*packet, *node->getActiveSocket());
+            ++n;
+        }
+    });
+    
+    return n;
 }
 
 SharedNodePointer LimitedNodeList::soloNodeOfType(char nodeType) {
