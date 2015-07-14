@@ -125,7 +125,6 @@ public:
         DisplayModelElementProxy,
         DisplayDebugTimingDetails,
         DontDoPrecisionPicking,
-        DontFadeOnOctreeServerChanges,
         DontRenderEntitiesAsScene,
         EchoLocalAudio,
         EchoServerAudio,

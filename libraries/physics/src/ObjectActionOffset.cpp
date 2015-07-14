@@ -59,10 +59,6 @@ void ObjectActionOffset::updateActionWorker(btScalar deltaTimeStep) {
 
     const float MAX_LINEAR_TIMESCALE = 600.0f;  // 10 minutes is a long time
     if (_positionalTargetSet && _linearTimeScale < MAX_LINEAR_TIMESCALE) {
-        if (_needsActivation) {
-            rigidBody->activate();
-            _needsActivation = false;
-        }
         glm::vec3 objectPosition = bulletToGLM(rigidBody->getCenterOfMassPosition());
         glm::vec3 springAxis = objectPosition - _pointToOffsetFrom; // from anchor to object
         float distance = glm::length(springAxis);
@@ -95,26 +91,21 @@ bool ObjectActionOffset::updateArguments(QVariantMap arguments) {
     glm::vec3 pointToOffsetFrom =
         EntityActionInterface::extractVec3Argument("offset action", arguments, "pointToOffsetFrom", ok, true);
     if (!ok) {
-        return false;
+        pointToOffsetFrom = _pointToOffsetFrom;
     }
 
     ok = true;
     float linearTimeScale =
         EntityActionInterface::extractFloatArgument("offset action", arguments, "linearTimeScale", ok, false);
-    if (ok) { 
-        if (linearTimeScale <= 0.0f) {
-            qDebug() << "offset action -- linearTimeScale must be greater than zero.";
-            return false;
-        }
-    } else {
-        linearTimeScale = 0.1f;
+    if (!ok) { 
+        linearTimeScale = _linearTimeScale;
     }
 
     ok = true;
     float linearDistance =
         EntityActionInterface::extractFloatArgument("offset action", arguments, "linearDistance", ok, false);
     if (!ok) {
-        linearDistance = 0.0f;
+        linearDistance = _linearDistance;
     }
 
     // only change stuff if something actually changed
@@ -127,7 +118,7 @@ bool ObjectActionOffset::updateArguments(QVariantMap arguments) {
         _linearDistance = linearDistance;
         _positionalTargetSet = true;
         _active = true;
-        _needsActivation = true;
+        activateBody();
         unlock();
     }
     return true;

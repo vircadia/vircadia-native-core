@@ -179,7 +179,6 @@ namespace MenuOption {
     const QString DisplayModelElementProxy = "Display Model Element Bounds";
     const QString DisplayDebugTimingDetails = "Display Timing Details";
     const QString DontDoPrecisionPicking = "Don't Do Precision Picking";
-    const QString DontFadeOnOctreeServerChanges = "Don't Fade In/Out on Octree Server Changes";
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
@@ -271,6 +270,7 @@ namespace MenuOption {
     const QString ShowBordersEntityNodes = "Show Entity Nodes";
     const QString ShowIKConstraints = "Show IK Constraints";
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
+    const QString ShowWhosLookingAtMe = "Show Who's Looking at Me";
     const QString SimpleShadows = "Simple";
     const QString SixenseEnabled = "Enable Hydra Support";
     const QString SixenseMouseInput = "Enable Sixense Mouse Input";

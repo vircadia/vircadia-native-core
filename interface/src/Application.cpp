@@ -3589,23 +3589,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     if (!selfAvatarOnly) {
         _nodeBoundsDisplay.draw();
 
-        // render octree fades if they exist
-        if (_octreeFades.size() > 0) {
-            PerformanceTimer perfTimer("octreeFades");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... octree fades...");
-            _octreeFadesLock.lockForWrite();
-            for(std::vector<OctreeFade>::iterator fade = _octreeFades.begin(); fade != _octreeFades.end();) {
-                fade->render(renderArgs);
-                if(fade->isDone()) {
-                    fade = _octreeFades.erase(fade);
-                } else {
-                    ++fade;
-                }
-            }
-            _octreeFadesLock.unlock();
-        }
-
         // give external parties a change to hook in
         {
             PerformanceTimer perfTimer("inWorldInterface");
@@ -3897,17 +3880,6 @@ void Application::nodeKilled(SharedNodePointer node) {
             qCDebug(interfaceapp, "model server going away...... v[%f, %f, %f, %f]",
                     (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
 
-            // Add the jurisditionDetails object to the list of "fade outs"
-            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnOctreeServerChanges)) {
-                OctreeFade fade(OctreeFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
-                fade.voxelDetails = rootDetails;
-                const float slightly_smaller = 0.99f;
-                fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
-                _octreeFadesLock.lockForWrite();
-                _octreeFades.push_back(fade);
-                _octreeFadesLock.unlock();
-            }
-
             // If the model server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
             _entityServerJurisdictions.lockForWrite();
             _entityServerJurisdictions.erase(_entityServerJurisdictions.find(nodeUUID));
@@ -3984,16 +3956,6 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
                     qPrintable(serverType),
                     (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
 
-            // Add the jurisditionDetails object to the list of "fade outs"
-            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnOctreeServerChanges)) {
-                OctreeFade fade(OctreeFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
-                fade.voxelDetails = rootDetails;
-                const float slightly_smaller = 0.99f;
-                fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
-                _octreeFadesLock.lockForWrite();
-                _octreeFades.push_back(fade);
-                _octreeFadesLock.unlock();
-            }
         } else {
             jurisdiction->unlock();
         }

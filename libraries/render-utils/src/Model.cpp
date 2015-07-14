@@ -2066,10 +2066,10 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
             }
             static bool showDiffuse = true;
             if (showDiffuse && diffuseMap) {
-                batch.setUniformTexture(0, diffuseMap->getGPUTexture());
+                batch.setResourceTexture(0, diffuseMap->getGPUTexture());
             
             } else {
-                batch.setUniformTexture(0, textureCache->getWhiteTexture());
+                batch.setResourceTexture(0, textureCache->getWhiteTexture());
             }
 
             if (locations->texcoordMatrices >= 0) {
@@ -2085,14 +2085,14 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
 
             if (!mesh.tangents.isEmpty()) {                 
                 Texture* normalMap = networkPart.normalTexture.data();
-                batch.setUniformTexture(1, !normalMap ?
+                batch.setResourceTexture(1, !normalMap ?
                     textureCache->getBlueTexture() : normalMap->getGPUTexture());
 
             }
     
             if (locations->specularTextureUnit >= 0) {
                 Texture* specularMap = networkPart.specularTexture.data();
-                batch.setUniformTexture(locations->specularTextureUnit, !specularMap ?
+                batch.setResourceTexture(locations->specularTextureUnit, !specularMap ?
                                             textureCache->getWhiteTexture() : specularMap->getGPUTexture());
             }
 
@@ -2109,7 +2109,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                 GLBATCH(glUniform2f)(locations->emissiveParams, emissiveOffset, emissiveScale);
                 
                 Texture* emissiveMap = networkPart.emissiveTexture.data();
-                batch.setUniformTexture(locations->emissiveTextureUnit, !emissiveMap ?
+                batch.setResourceTexture(locations->emissiveTextureUnit, !emissiveMap ?
                                         textureCache->getWhiteTexture() : emissiveMap->getGPUTexture());
             }
             

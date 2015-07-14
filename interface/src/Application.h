@@ -72,7 +72,6 @@
 #include "ui/ToolWindow.h"
 #include "ui/UserInputMapper.h"
 #include "devices/KeyboardMouseDevice.h"
-#include "octree/OctreeFade.h"
 #include "octree/OctreePacketProcessor.h"
 #include "UndoStackScriptingInterface.h"
 
@@ -90,16 +89,6 @@ class MainWindow;
 class Node;
 class ProgramObject;
 class ScriptEngine;
-
-
-static int RESTART_CODE = 1000;
-
-static const float NODE_ADDED_RED   = 0.0f;
-static const float NODE_ADDED_GREEN = 1.0f;
-static const float NODE_ADDED_BLUE  = 0.0f;
-static const float NODE_KILLED_RED   = 1.0f;
-static const float NODE_KILLED_GREEN = 0.0f;
-static const float NODE_KILLED_BLUE  = 0.0f;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 static const QString SVO_EXTENSION  = ".svo";
@@ -634,8 +623,6 @@ private:
 
     NodeBounds _nodeBoundsDisplay;
 
-    std::vector<OctreeFade> _octreeFades;
-    QReadWriteLock _octreeFadesLock;
     ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;
     QPointer<SnapshotShareDialog> _snapshotShareDialog;

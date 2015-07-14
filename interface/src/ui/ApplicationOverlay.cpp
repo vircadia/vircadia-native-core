@@ -127,6 +127,7 @@ void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     glDisable(GL_LIGHTING);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glUseProgram(0);
 
     // give external parties a change to hook in
     emit qApp->renderingOverlay();
@@ -200,7 +201,7 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder(RenderArgs* renderAr
         geometryCache->useSimpleDrawPipeline(batch);
         batch.setProjectionTransform(mat4());
         batch.setModelTransform(mat4());
-        batch.setUniformTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
+        batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
         batch._glLineWidth(CONNECTION_STATUS_BORDER_LINE_WIDTH);
 
         // TODO animate the disconnect border for some excitement while not connected?

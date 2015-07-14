@@ -55,6 +55,7 @@ protected:
     virtual void setLinearVelocity(glm::vec3 linearVelocity);
     virtual glm::vec3 getAngularVelocity();
     virtual void setAngularVelocity(glm::vec3 angularVelocity);
+    virtual void activateBody();
 
     void lockForRead() { _lock.lockForRead(); }
     bool tryLockForRead() { return _lock.tryLockForRead(); }

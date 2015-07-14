@@ -103,7 +103,7 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
             batch.setInputBuffer(gpu::Stream::POSITION, theBuffer, 0, 8);
             //batch.setUniformBuffer(SKYBOX_CONSTANTS_SLOT, theConstants, 0, theConstants->getSize());
             batch.setInputFormat(theFormat);
-            batch.setUniformTexture(0, skybox.getCubemap());
+            batch.setResourceTexture(0, skybox.getCubemap());
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
 

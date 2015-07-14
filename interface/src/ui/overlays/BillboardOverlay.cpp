@@ -87,12 +87,12 @@ void BillboardOverlay::render(RenderArgs* args) {
         transform.postScale(glm::vec3(getDimensions(), 1.0f));
         
         batch->setModelTransform(transform);
-        batch->setUniformTexture(0, _texture->getGPUTexture());
+        batch->setResourceTexture(0, _texture->getGPUTexture());
         
         DependencyManager::get<GeometryCache>()->renderQuad(*batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
                                                             glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha));
     
-        batch->setUniformTexture(0, args->_whiteTexture); // restore default white color after me
+        batch->setResourceTexture(0, args->_whiteTexture); // restore default white color after me
     }
 }
 
