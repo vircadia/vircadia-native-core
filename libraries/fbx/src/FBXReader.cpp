@@ -1781,9 +1781,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     TextureParam tex;
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "RelativeFilename") {
-                            // trim off any path information
                             QByteArray filename = subobject.properties.at(0).toByteArray();
-                            filename = filename.mid(qMax(filename.lastIndexOf('\\'), filename.lastIndexOf('/')) + 1);
+                            filename = filename.replace('\\', '/');
                             textureFilenames.insert(getID(object.properties), filename);
                         } else if (subobject.name == "TextureName") {
                             // trim the name from the timestamp
