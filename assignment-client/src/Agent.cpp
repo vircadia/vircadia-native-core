@@ -88,16 +88,14 @@ void Agent::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointe
 
 void Agent::handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
     NodeType_t nodeType;
-    packet->peek(reinterpret_cast<char*>(&nodeType), sizeof(nodeType));
-    
+    packet->peekPrimitive(&nodeType);
+
     // PacketType_JURISDICTION, first byte is the node type...
-    switch (nodeType) {
-        case NodeType::EntityServer:
-            DependencyManager::get<EntityScriptingInterface>()->getJurisdictionListener()->
-                queueReceivedPacket(packet, senderNode);
-            break;
+    if (nodeType == NodeType::EntityServer) {
+        DependencyManager::get<EntityScriptingInterface>()->getJurisdictionListener()->
+            queueReceivedPacket(packet, senderNode);
     }
-}
+} 
 
 void Agent::handleAudioPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
     _receivedAudioStream.parseData(*packet, senderNode);
