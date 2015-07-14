@@ -421,8 +421,8 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<NLPacket> packet, Sh
 }
 
 void AvatarMixer::handleAvatarBillboardPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
-    if (senderNode->getLinkedData()) {
-        AvatarMixerClientData* nodeData = static_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
+    AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
+    if (nodeData) {
         AvatarData& avatar = nodeData->getAvatar();
 
         // parse the billboard packet and update the change timestamp if appropriate
