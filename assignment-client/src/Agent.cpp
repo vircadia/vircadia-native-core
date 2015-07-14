@@ -99,8 +99,8 @@ void Agent::handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNode
     }
 }
 
-void Agent::handleAudioPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
-    _receivedAudioStream.parseData(*packet, senderNode);
+void Agent::handleAudioPacket(QSharedPointer<NLPacket> packet) {
+    _receivedAudioStream.parseData(*packet);
 
     _lastReceivedAudioLoudness = _receivedAudioStream.getNextOutputFrameLoudness();
 

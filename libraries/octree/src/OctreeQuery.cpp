@@ -64,7 +64,7 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
 }
 
 // called on the other nodes - assigns it to my views of the others
-int OctreeQuery::parseData(NLPacket& packet, QSharedPointer<Node> sendingNode) {
+int OctreeQuery::parseData(NLPacket& packet) {
  
     const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(packet.getPayload());
     const unsigned char* sourceBuffer = startPosition;

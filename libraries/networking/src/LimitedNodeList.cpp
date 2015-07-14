@@ -247,7 +247,7 @@ int LimitedNodeList::updateNodeWithDataFromPacket(QSharedPointer<NLPacket> packe
 
     if (linkedData) {
         QMutexLocker linkedDataLocker(&linkedData->getMutex());
-        return linkedData->parseData(*packet, sendingNode);
+        return linkedData->parseData(*packet);
     }
     
     return 0;

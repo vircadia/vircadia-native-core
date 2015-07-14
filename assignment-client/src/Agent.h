@@ -55,7 +55,7 @@ public slots:
     void playAvatarSound(Sound* avatarSound) { _scriptEngine.setAvatarSound(avatarSound); }
 
 private slots:
-    void handleAudioPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleAudioPacket(QSharedPointer<NLPacket> packet);
     void handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     void handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
 

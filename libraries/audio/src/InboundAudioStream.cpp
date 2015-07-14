@@ -99,13 +99,13 @@ void InboundAudioStream::perSecondCallbackForUpdatingStats() {
     _timeGapStatsForStatsPacket.currentIntervalComplete();
 }
 
-int InboundAudioStream::parseData(NLPacket& packet, SharedNodePointer sendingNode) {
+int InboundAudioStream::parseData(NLPacket& packet) {
 
     // parse sequence number and track it
     quint16 sequence;
     packet.readPrimitive(&sequence);
     SequenceNumberStats::ArrivalInfo arrivalInfo = _incomingSequenceNumberStats.sequenceNumberReceived(sequence,
-                                                                                                       sendingNode->getUUID());
+                                                                                                       packet.getSourceID());
 
     packetReceivedUpdateTimingStats();
 

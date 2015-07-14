@@ -140,10 +140,10 @@ public slots:
     void start();
     void stop();
 
-    void handleAudioEnvironmentDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
-    void handleAudioDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
-    void handleNoisyMutePacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
-    void handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void handleAudioEnvironmentDataPacket(QSharedPointer<NLPacket> packet);
+    void handleAudioDataPacket(QSharedPointer<NLPacket> packet);
+    void handleNoisyMutePacket(QSharedPointer<NLPacket> packet);
+    void handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet);
 
     void sendDownstreamAudioStatsPacket() { _stats.sendDownstreamAudioStatsPacket(); }
     void handleAudioInput();

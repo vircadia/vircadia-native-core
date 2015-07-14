@@ -31,7 +31,7 @@ const QString OUTBOUND_AVATAR_DATA_STATS_KEY = "outbound_av_data_kbps";
 class AvatarMixerClientData : public NodeData {
     Q_OBJECT
 public:
-    int parseData(NLPacket& packet, SharedNodePointer sendingNode);
+    int parseData(NLPacket& packet);
     AvatarData& getAvatar() { return _avatar; }
     
     bool checkAndSetHasReceivedFirstPackets();

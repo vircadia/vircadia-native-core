@@ -107,7 +107,7 @@ public:
     virtual void resetStats();
     void clearBuffer();
 
-    virtual int parseData(NLPacket& packet, QSharedPointer<Node> sendingNode);
+    virtual int parseData(NLPacket& packet);
 
     int popFrames(int maxFrames, bool allOrNothing, bool starveIfNoFramesPopped = true);
     int popSamples(int maxSamples, bool allOrNothing, bool starveIfNoSamplesPopped = true);

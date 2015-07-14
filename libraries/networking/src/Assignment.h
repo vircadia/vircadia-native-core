@@ -85,9 +85,6 @@ public:
     
     const char* getTypeName() const;
 
-    // implement parseData to return 0 so we can be a subclass of NodeData
-    int parseData(NLPacket& packet, SharedNodePointer sendingNode) { return 0; }
-
     friend QDebug operator<<(QDebug debug, const Assignment& assignment);
     friend QDataStream& operator<<(QDataStream &out, const Assignment& assignment);
     friend QDataStream& operator>>(QDataStream &in, Assignment& assignment);
