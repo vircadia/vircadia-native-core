@@ -308,7 +308,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _window(new MainWindow(desktop())),
         _toolWindow(NULL),
         _friendsWindow(NULL),
-        _datagramProcessor(),
         _undoStack(),
         _undoStackScriptingInterface(&_undoStack),
         _frameCount(0),
@@ -381,18 +380,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // start the nodeThread so its event loop is running
     QThread* nodeThread = new QThread(this);
-    nodeThread->setObjectName("Datagram Processor Thread");
+    nodeThread->setObjectName("NodeList Thread");
     nodeThread->start();
 
     // make sure the node thread is given highest priority
     nodeThread->setPriority(QThread::TimeCriticalPriority);
-
-    _datagramProcessor = new DatagramProcessor(nodeList.data());
-
-    // have the NodeList use deleteLater from DM customDeleter
-    nodeList->setCustomDeleter([](Dependency* dependency) {
-        static_cast<NodeList*>(dependency)->deleteLater();
-    });
 
     // setup a timer for domain-server check ins
     QTimer* domainCheckInTimer = new QTimer(nodeList.data());
@@ -409,9 +401,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     ResourceCache* geometryCache = geometryCacheP.data();
     connect(this, &Application::checkBackgroundDownloads, geometryCache, &ResourceCache::checkAsynchronousGets);
 
-    // connect the DataProcessor processDatagrams slot to the QUDPSocket readyRead() signal
-    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, _datagramProcessor, &DatagramProcessor::processDatagrams);
-
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread();
     audioThread->setObjectName("Audio Thread");
@@ -422,14 +411,27 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     audioIO->setOrientationGetter(getOrientationForAudio);
 
     audioIO->moveToThread(audioThread);
+
+    auto& audioScriptingInterface = AudioScriptingInterface::getInstance();
+    
     connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
     connect(audioIO.data(), &AudioClient::destroyed, audioThread, &QThread::quit);
     connect(audioThread, &QThread::finished, audioThread, &QThread::deleteLater);
     connect(audioIO.data(), &AudioClient::muteToggled, this, &Application::audioMuteToggled);
-    connect(audioIO.data(), &AudioClient::receivedFirstPacket,
-            &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::receivedFirstPacket);
-    connect(audioIO.data(), &AudioClient::disconnected,
-            &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::disconnected);
+    connect(audioIO.data(), &AudioClient::mutedByMixer, &audioScriptingInterface, &AudioScriptingInterface::mutedByMixer);
+    connect(audioIO.data(), &AudioClient::receivedFirstPacket, &audioScriptingInterface, &AudioScriptingInterface::receivedFirstPacket);
+    connect(audioIO.data(), &AudioClient::disconnected, &audioScriptingInterface, &AudioScriptingInterface::disconnected);
+    connect(audioIO.data(), &AudioClient::muteEnvironmentRequested, [](glm::vec3 position, float radius) {
+        auto audioClient = DependencyManager::get<AudioClient>();
+        float distance = glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(),
+                                 position);
+        bool shouldMute = !audioClient->isMuted() && (distance < radius);
+
+        if (shouldMute) {
+            audioClient->toggleMute();
+            AudioScriptingInterface::getInstance().environmentMuted();
+        }
+    });
 
     audioThread->start();
 
@@ -462,7 +464,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(nodeList.data(), &NodeList::uuidChanged, _myAvatar, &MyAvatar::setSessionUUID);
     connect(nodeList.data(), &NodeList::uuidChanged, this, &Application::setSessionUUID);
     connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
-    connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
+    connect(&nodeList->getPacketReceiver(), &PacketReceiver::packetVersionMismatch,
+            this, &Application::notifyPacketVersionMismatch);
 
     // connect to appropriate slots on AccountManager
     AccountManager& accountManager = AccountManager::getInstance();
@@ -646,6 +649,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     auto applicationUpdater = DependencyManager::get<AutoUpdater>();
     connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
     applicationUpdater->checkForUpdate();
+
+    auto& packetReceiver = nodeList->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::DomainConnectionDenied, this, "handleDomainConnectionDeniedPacket");
 }
 
 void Application::aboutToQuit() {
@@ -658,8 +664,10 @@ void Application::aboutToQuit() {
 void Application::cleanupBeforeQuit() {
 
     _entities.clear(); // this will allow entity scripts to properly shutdown
-
-    _datagramProcessor->shutdown(); // tell the datagram processor we're shutting down, so it can short circuit
+    
+    // tell the packet receiver we're shutting down, so it can drop packets
+    DependencyManager::get<NodeList>()->getPacketReceiver().setShouldDropPackets(true);
+    
     _entities.shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
     ScriptEngine::stopAllScripts(this); // stop all currently running global scripts
 
@@ -734,6 +742,8 @@ Application::~Application() {
     DependencyManager::destroy<SoundCache>();
 
     QThread* nodeThread = DependencyManager::get<NodeList>()->thread();
+    
+    // remove the NodeList from the DependencyManager
     DependencyManager::destroy<NodeList>();
 
     // ask the node thread to quit and wait until it is done
@@ -1787,7 +1797,6 @@ void Application::checkFPS() {
 
     _fps = (float)_frameCount / diffTime;
     _frameCount = 0;
-    _datagramProcessor->resetCounters();
     _timerStart.start();
 }
 
@@ -3809,11 +3818,23 @@ void Application::domainChanged(const QString& domainHostname) {
     _domainConnectionRefusals.clear();
 }
 
-void Application::domainConnectionDenied(const QString& reason) {
+void Application::handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet) {
+    QDataStream packetStream(packet.data());
+
+    QString reason;
+    packetStream >> reason;
+
+    // output to the log so the user knows they got a denied connection request
+    // and check and signal for an access token so that we can make sure they are logged in
+    qCDebug(interfaceapp) << "The domain-server denied a connection request: " << reason;
+    qCDebug(interfaceapp) << "You may need to re-log to generate a keypair so you can provide a username signature.";
+
     if (!_domainConnectionRefusals.contains(reason)) {
         _domainConnectionRefusals.append(reason);
         emit domainConnectionRefused(reason);
     }
+
+    AccountManager::getInstance().checkAndSignalForAccessToken();
 }
 
 void Application::connectedToDomain(const QString& hostname) {
@@ -3889,12 +3910,12 @@ void Application::nodeKilled(SharedNodePointer node) {
         DependencyManager::get<AvatarManager>()->clearOtherAvatars();
     }
 }
-
-void Application::trackIncomingOctreePacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket) {
+ 
+void Application::trackIncomingOctreePacket(NLPacket& packet, SharedNodePointer sendingNode, bool wasStatsPacket) {
 
     // Attempt to identify the sender from its address.
     if (sendingNode) {
-        QUuid nodeUUID = sendingNode->getUUID();
+        const QUuid& nodeUUID = sendingNode->getUUID();
 
         // now that we know the node ID, let's add these stats to the stats for that node...
         _octreeSceneStatsLock.lockForWrite();
@@ -3906,70 +3927,71 @@ void Application::trackIncomingOctreePacket(const QByteArray& packet, const Shar
     }
 }
 
-int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sendingNode) {
+int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingNode) {
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server
 
     // parse the incoming stats datas stick it in a temporary object for now, while we
     // determine which server it belongs to
-    OctreeSceneStats temp;
-    int statsMessageLength = temp.unpackFromMessage(reinterpret_cast<const unsigned char*>(packet.data()), packet.size());
+    int statsMessageLength = 0;
 
-    // quick fix for crash... why would voxelServer be NULL?
-    if (sendingNode) {
-        QUuid nodeUUID = sendingNode->getUUID();
+    const QUuid& nodeUUID = sendingNode->getUUID();
+    OctreeSceneStats* octreeStats;
 
-        // now that we know the node ID, let's add these stats to the stats for that node...
-        _octreeSceneStatsLock.lockForWrite();
-        if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
-            _octreeServerSceneStats[nodeUUID].unpackFromMessage(reinterpret_cast<const unsigned char*>(packet.data()),
-                                                                packet.size());
-        } else {
-            _octreeServerSceneStats[nodeUUID] = temp;
+    // now that we know the node ID, let's add these stats to the stats for that node...
+    _octreeSceneStatsLock.lockForWrite();
+    auto it = _octreeServerSceneStats.find(nodeUUID);
+    if (it != _octreeServerSceneStats.end()) {
+        octreeStats = &it->second;
+        statsMessageLength = octreeStats->unpackFromPacket(packet);
+    } else {
+        OctreeSceneStats temp;
+        statsMessageLength = temp.unpackFromPacket(packet);
+        octreeStats = &temp;
+    }
+    _octreeSceneStatsLock.unlock();
+
+    VoxelPositionSize rootDetails;
+    voxelDetailsForCode(octreeStats->getJurisdictionRoot(), rootDetails);
+
+    // see if this is the first we've heard of this node...
+    NodeToJurisdictionMap* jurisdiction = NULL;
+    QString serverType;
+    if (sendingNode->getType() == NodeType::EntityServer) {
+        jurisdiction = &_entityServerJurisdictions;
+        serverType = "Entity";
+    }
+
+    jurisdiction->lockForRead();
+    if (jurisdiction->find(nodeUUID) == jurisdiction->end()) {
+        jurisdiction->unlock();
+
+        qCDebug(interfaceapp, "stats from new %s server... [%f, %f, %f, %f]",
+                qPrintable(serverType),
+                (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
+
+        // Add the jurisditionDetails object to the list of "fade outs"
+        if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnOctreeServerChanges)) {
+            OctreeFade fade(OctreeFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
+            fade.voxelDetails = rootDetails;
+            const float slightly_smaller = 0.99f;
+            fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
+            _octreeFadesLock.lockForWrite();
+            _octreeFades.push_back(fade);
+            _octreeFadesLock.unlock();
         }
-        _octreeSceneStatsLock.unlock();
-
-        VoxelPositionSize rootDetails;
-        voxelDetailsForCode(temp.getJurisdictionRoot(), rootDetails);
-
-        // see if this is the first we've heard of this node...
-        NodeToJurisdictionMap* jurisdiction = NULL;
-        QString serverType;
-        if (sendingNode->getType() == NodeType::EntityServer) {
-            jurisdiction = &_entityServerJurisdictions;
-            serverType = "Entity";
-        }
-
-        jurisdiction->lockForRead();
-        if (jurisdiction->find(nodeUUID) == jurisdiction->end()) {
-            jurisdiction->unlock();
-
-            qCDebug(interfaceapp, "stats from new %s server... [%f, %f, %f, %f]",
-                    qPrintable(serverType),
-                    (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
-
-            // Add the jurisditionDetails object to the list of "fade outs"
-            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnOctreeServerChanges)) {
-                OctreeFade fade(OctreeFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
-                fade.voxelDetails = rootDetails;
-                const float slightly_smaller = 0.99f;
-                fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
-                _octreeFadesLock.lockForWrite();
-                _octreeFades.push_back(fade);
-                _octreeFadesLock.unlock();
-            }
-        } else {
-            jurisdiction->unlock();
-        }
-        // store jurisdiction details for later use
-        // This is bit of fiddling is because JurisdictionMap assumes it is the owner of the values used to construct it
-        // but OctreeSceneStats thinks it's just returning a reference to its contents. So we need to make a copy of the
-        // details from the OctreeSceneStats to construct the JurisdictionMap
-        JurisdictionMap jurisdictionMap;
-        jurisdictionMap.copyContents(temp.getJurisdictionRoot(), temp.getJurisdictionEndNodes());
-        jurisdiction->lockForWrite();
-        (*jurisdiction)[nodeUUID] = jurisdictionMap;
+    } else {
         jurisdiction->unlock();
     }
+    // store jurisdiction details for later use
+    // This is bit of fiddling is because JurisdictionMap assumes it is the owner of the values used to construct it
+    // but OctreeSceneStats thinks it's just returning a reference to its contents. So we need to make a copy of the
+    // details from the OctreeSceneStats to construct the JurisdictionMap
+    JurisdictionMap jurisdictionMap;
+    jurisdictionMap.copyContents(octreeStats->getJurisdictionRoot(), octreeStats->getJurisdictionEndNodes());
+    jurisdiction->lockForWrite();
+    (*jurisdiction)[nodeUUID] = jurisdictionMap;
+    jurisdiction->unlock();
+
     return statsMessageLength;
 }
 
@@ -4809,6 +4831,7 @@ mat4 Application::getEyeProjection(int eye) const {
     if (isHMDMode()) {
         return OculusManager::getEyeProjection(eye);
     }
+
     return _viewFrustum.getProjection();
 }
 

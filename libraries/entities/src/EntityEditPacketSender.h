@@ -14,12 +14,16 @@
 
 #include <OctreeEditPacketSender.h>
 
+#include <PacketListener.h>
+
 #include "EntityItem.h"
 
 /// Utility for processing, packing, queueing and sending of outbound edit voxel messages.
-class EntityEditPacketSender :  public OctreeEditPacketSender {
+class EntityEditPacketSender :  public OctreeEditPacketSender, public PacketListener {
     Q_OBJECT
 public:
+    EntityEditPacketSender();
+
     /// Queues an array of several voxel edit messages. Will potentially send a pending multi-command packet. Determines
     /// which voxel-server node or nodes the packet should be sent to. Can be called even before voxel servers are known, in
     /// which case up to MaxPendingMessages will be buffered and processed when voxel servers are known.
@@ -28,8 +32,16 @@ public:
 
     void queueEraseEntityMessage(const EntityItemID& entityItemID);
 
+    void processEntityEditNackPacket(QSharedPointer<NLPacket> packet);
+
     // My server type is the model server
     virtual char getMyNodeType() const { return NodeType::EntityServer; }
     virtual void adjustEditPacketForClockSkew(PacketType::Value type, QByteArray& buffer, int clockSkew);
+
+public slots:
+    void toggleNackPackets() { _shouldNack = !_shouldNack; }
+
+private:
+    bool _shouldNack = false;
 };
 #endif // hifi_EntityEditPacketSender_h

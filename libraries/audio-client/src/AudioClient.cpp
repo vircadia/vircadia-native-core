@@ -33,7 +33,7 @@
 #include <QtMultimedia/QAudioInput>
 #include <QtMultimedia/QAudioOutput>
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
 #endif
@@ -43,7 +43,7 @@ extern "C" {
     #include <gverb/gverbdsp.h>
 }
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
 
@@ -140,6 +140,14 @@ AudioClient::AudioClient() :
     // create GVerb filter
     _gverb = createGverbFilter();
     configureGverbFilter(_gverb);
+
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::AudioStreamStats, &_stats, "handleAudioStreamStatsPacket");
+    packetReceiver.registerListener(PacketType::AudioEnvironment, this, "handleAudioEnvironmentDataPacket");
+    packetReceiver.registerListener(PacketType::SilentAudioFrame, this, "handleAudioDataPacket");
+    packetReceiver.registerListener(PacketType::MixedAudio, this, "handleAudioDataPacket");
+    packetReceiver.registerListener(PacketType::NoisyMute, this, "handleNoisyMutePacket");
+    packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
 }
 
 AudioClient::~AudioClient() {
@@ -525,6 +533,60 @@ void AudioClient::stop() {
         soxr_delete(_loopbackResampler);
         _loopbackResampler = NULL;
     }
+}
+
+void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<NLPacket> packet) {
+
+    char bitset;
+    packet->readPrimitive(&bitset);
+
+    bool hasReverb = oneAtBit(bitset, HAS_REVERB_BIT);
+    
+    if (hasReverb) {
+        float reverbTime, wetLevel;
+        packet->readPrimitive(&reverbTime);
+        packet->readPrimitive(&wetLevel);
+        _receivedAudioStream.setReverb(reverbTime, wetLevel);
+    } else {
+        _receivedAudioStream.clearReverb();
+   }
+}
+
+void AudioClient::handleAudioDataPacket(QSharedPointer<NLPacket> packet) {
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveFirstAudioPacket);
+
+    if (_audioOutput) {
+
+        if (!_hasReceivedFirstPacket) {
+            _hasReceivedFirstPacket = true;
+
+            // have the audio scripting interface emit a signal to say we just connected to mixer
+            emit receivedFirstPacket();
+        }
+
+        // Audio output must exist and be correctly set up if we're going to process received audio
+        _receivedAudioStream.parseData(*packet);
+    }
+}
+
+void AudioClient::handleNoisyMutePacket(QSharedPointer<NLPacket> packet) {
+    if (!_muted) {
+        toggleMute();
+        
+        // have the audio scripting interface emit a signal to say we were muted by the mixer
+        emit mutedByMixer();
+    }
+}
+
+void AudioClient::handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet) {
+    glm::vec3 position;
+    float radius;
+    
+    packet->readPrimitive(&position);
+    packet->readPrimitive(&radius);
+
+    emit muteEnvironmentRequested(position, radius);
 }
 
 QString AudioClient::getDefaultDeviceName(QAudio::Mode mode) {
@@ -925,44 +987,6 @@ void AudioClient::sendMuteEnvironmentPacket() {
     if (audioMixer) {
         // send off this mute packet
         nodeList->sendPacket(std::move(mutePacket), *audioMixer);
-    }
-}
-
-void AudioClient::addReceivedAudioToStream(const QByteArray& audioByteArray) {
-    DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveFirstAudioPacket);
-
-    if (_audioOutput) {
-
-        if (!_hasReceivedFirstPacket) {
-            _hasReceivedFirstPacket = true;
-
-            // have the audio scripting interface emit a signal to say we just connected to mixer
-            emit receivedFirstPacket();
-        }
-
-        // Audio output must exist and be correctly set up if we're going to process received audio
-        _receivedAudioStream.parseData(audioByteArray);
-    }
-}
-
-void AudioClient::parseAudioEnvironmentData(const QByteArray &packet) {
-    int numBytesPacketHeader = numBytesForPacketHeader(packet);
-    const char* dataAt = packet.constData() + numBytesPacketHeader;
-
-    char bitset;
-    memcpy(&bitset, dataAt, sizeof(char));
-    dataAt += sizeof(char);
-
-    bool hasReverb = oneAtBit(bitset, HAS_REVERB_BIT);;
-    if (hasReverb) {
-        float reverbTime, wetLevel;
-        memcpy(&reverbTime, dataAt, sizeof(float));
-        dataAt += sizeof(float);
-        memcpy(&wetLevel, dataAt, sizeof(float));
-        dataAt += sizeof(float);
-        _receivedAudioStream.setReverb(reverbTime, wetLevel);
-    } else {
-        _receivedAudioStream.clearReverb();
     }
 }
 

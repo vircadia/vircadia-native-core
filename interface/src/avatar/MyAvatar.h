@@ -102,7 +102,7 @@ public:
     
     eyeContactTarget getEyeContactTarget();
 
-    virtual int parseDataAtOffset(const QByteArray& packet, int offset);
+    virtual int parseDataFromBuffer(const QByteArray& buffer);
     
     static void sendKillAvatar();
     

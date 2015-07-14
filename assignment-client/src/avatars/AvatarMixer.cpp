@@ -33,7 +33,7 @@ const QString AVATAR_MIXER_LOGGING_NAME = "avatar-mixer";
 const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 60;
 const unsigned int AVATAR_DATA_SEND_INTERVAL_MSECS = (1.0f / (float) AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND) * 1000;
 
-AvatarMixer::AvatarMixer(const QByteArray& packet) :
+AvatarMixer::AvatarMixer(NLPacket& packet) :
     ThreadedAssignment(packet),
     _broadcastThread(),
     _lastFrameTimestamp(QDateTime::currentMSecsSinceEpoch()),
@@ -46,6 +46,12 @@ AvatarMixer::AvatarMixer(const QByteArray& packet) :
 {
     // make sure we hear about node kills so we can tell the other nodes
     connect(DependencyManager::get<NodeList>().data(), &NodeList::nodeKilled, this, &AvatarMixer::nodeKilled);
+
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::AvatarData, this, "handleAvatarDataPacket");
+    packetReceiver.registerListener(PacketType::AvatarIdentity, this, "handleAvatarIdentityPacket");
+    packetReceiver.registerListener(PacketType::AvatarBillboard, this, "handleAvatarBillboardPacket");
+    packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
 }
 
 AvatarMixer::~AvatarMixer() {
@@ -394,63 +400,42 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
     }
 }
 
-void AvatarMixer::readPendingDatagrams() {
-    QByteArray receivedPacket;
-    HifiSockAddr senderSockAddr;
-
+void AvatarMixer::handleAvatarDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
     auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->updateNodeWithDataFromPacket(packet, senderNode);
+}
 
-    while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
-        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
-            switch (packetTypeForPacket(receivedPacket)) {
-                case PacketType::AvatarData: {
-                    nodeList->findNodeAndUpdateWithDataFromPacket(receivedPacket);
-                    break;
-                }
-                case PacketType::AvatarIdentity: {
-                    // check if we have a matching node in our list
-                    SharedNodePointer avatarNode = nodeList->sendingNodeForPacket(receivedPacket);
+void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+    if (senderNode->getLinkedData()) {
+        AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
+        if (nodeData != nullptr) {
+            AvatarData& avatar = nodeData->getAvatar();
 
-                    if (avatarNode && avatarNode->getLinkedData()) {
-                        AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(avatarNode->getLinkedData());
-                        AvatarData& avatar = nodeData->getAvatar();
-
-                        // parse the identity packet and update the change timestamp if appropriate
-                        if (avatar.hasIdentityChangedAfterParsing(receivedPacket)) {
-                            QMutexLocker nodeDataLocker(&nodeData->getMutex());
-                            nodeData->setIdentityChangeTimestamp(QDateTime::currentMSecsSinceEpoch());
-                        }
-                    }
-                    break;
-                }
-                case PacketType::AvatarBillboard: {
-                    // check if we have a matching node in our list
-                    SharedNodePointer avatarNode = nodeList->sendingNodeForPacket(receivedPacket);
-
-                    if (avatarNode && avatarNode->getLinkedData()) {
-                        AvatarMixerClientData* nodeData = static_cast<AvatarMixerClientData*>(avatarNode->getLinkedData());
-                        AvatarData& avatar = nodeData->getAvatar();
-
-                        // parse the billboard packet and update the change timestamp if appropriate
-                        if (avatar.hasBillboardChangedAfterParsing(receivedPacket)) {
-                            QMutexLocker nodeDataLocker(&nodeData->getMutex());
-                            nodeData->setBillboardChangeTimestamp(QDateTime::currentMSecsSinceEpoch());
-                        }
-
-                    }
-                    break;
-                }
-                case PacketType::KillAvatar: {
-                    nodeList->processKillNode(receivedPacket);
-                    break;
-                }
-                default:
-                    // hand this off to the NodeList
-                    nodeList->processNodeData(senderSockAddr, receivedPacket);
-                    break;
+            // parse the identity packet and update the change timestamp if appropriate
+            if (avatar.hasIdentityChangedAfterParsing(*packet)) {
+                QMutexLocker nodeDataLocker(&nodeData->getMutex());
+                nodeData->setIdentityChangeTimestamp(QDateTime::currentMSecsSinceEpoch());
             }
         }
     }
+}
+
+void AvatarMixer::handleAvatarBillboardPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+    AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
+    if (nodeData) {
+        AvatarData& avatar = nodeData->getAvatar();
+
+        // parse the billboard packet and update the change timestamp if appropriate
+        if (avatar.hasBillboardChangedAfterParsing(*packet)) {
+            QMutexLocker nodeDataLocker(&nodeData->getMutex());
+            nodeData->setBillboardChangeTimestamp(QDateTime::currentMSecsSinceEpoch());
+        }
+
+    }
+}
+
+void AvatarMixer::handleKillAvatarPacket(QSharedPointer<NLPacket> packet) {
+    DependencyManager::get<NodeList>()->processKillNode(*packet);
 }
 
 void AvatarMixer::sendStatsPacket() {

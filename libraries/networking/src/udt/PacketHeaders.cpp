@@ -18,21 +18,23 @@
 using namespace PacketType;
 
 const QSet<PacketType::Value> NON_VERIFIED_PACKETS = QSet<PacketType::Value>()
-    << DomainServerRequireDTLS << DomainConnectRequest
-    << DomainList << DomainListRequest << DomainConnectionDenied
     << CreateAssignment << RequestAssignment << StunResponse
     << NodeJsonStats << EntityQuery
     << OctreeDataNack << EntityEditNack
+    << DomainListRequest
     << Ping
-    << PingReply << StopNode
-    << DomainServerPathQuery << DomainServerPathResponse
-    << DomainServerAddedNode;
+    << PingReply << StopNode;
 
 const QSet<PacketType::Value> SEQUENCE_NUMBERED_PACKETS = QSet<PacketType::Value>() << AvatarData;
 
 const QSet<PacketType::Value> NON_SOURCED_PACKETS = QSet<PacketType::Value>()
+    << DomainServerRequireDTLS << DomainConnectRequest
+    << DomainList << DomainConnectionDenied
+    << DomainServerPathQuery << DomainServerPathResponse
+    << DomainServerAddedNode
     << ICEServerPeerInformation << ICEServerQuery << ICEServerHeartbeat
-    << ICEPing << ICEPingReply << DomainConnectRequest;
+    << ICEPing << ICEPingReply
+    << AssignmentClientStatus;
 
 int arithmeticCodingValueFromBuffer(const char* checkValue) {
     if (((uchar) *checkValue) < 255) {
@@ -206,15 +208,6 @@ int hashOffsetForPacketType(PacketType::Value packetType) {
 
 int sequenceNumberOffsetForPacketType(PacketType::Value packetType) {
     return numBytesForPacketHeaderGivenPacketType(packetType) - sizeof(PacketSequenceNumber);
-}
-
-QByteArray hashFromPacketHeader(const QByteArray& packet) {
-    return packet.mid(hashOffsetForPacketType(packetTypeForPacket(packet)), NUM_BYTES_MD5_HASH);
-}
-
-QByteArray hashForPacketAndConnectionUUID(const QByteArray& packet, const QUuid& connectionUUID) {
-    return QCryptographicHash::hash(packet.mid(numBytesForPacketHeader(packet)) + connectionUUID.toRfc4122(),
-                                    QCryptographicHash::Md5);
 }
 
 PacketSequenceNumber sequenceNumberFromHeader(const QByteArray& packet, PacketType::Value packetType) {

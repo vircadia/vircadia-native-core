@@ -52,7 +52,6 @@
 
 #include "AudioRingBuffer.h"
 #include "AudioMixerClientData.h"
-#include "AudioMixerDatagramProcessor.h"
 #include "AvatarAudioStream.h"
 #include "InjectedAudioStream.h"
 
@@ -75,7 +74,7 @@ bool AudioMixer::shouldMute(float quietestFrame) {
     return (quietestFrame > _noiseMutingThreshold);
 }
 
-AudioMixer::AudioMixer(const QByteArray& packet) :
+AudioMixer::AudioMixer(NLPacket& packet) :
     ThreadedAssignment(packet),
     _trailingSleepRatio(1.0f),
     _minAudibilityThreshold(LOUDNESS_TO_DISTANCE_RATIO / 2.0f),
@@ -94,6 +93,18 @@ AudioMixer::AudioMixer(const QByteArray& packet) :
 {
     // constant defined in AudioMixer.h.  However, we don't want to include this here
     // we will soon find a better common home for these audio-related constants
+    // SOON
+
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    
+    QSet<PacketType::Value> nodeAudioPackets {
+        PacketType::MicrophoneAudioNoEcho, PacketType::MicrophoneAudioWithEcho,
+        PacketType::InjectAudio, PacketType::SilentAudioFrame,
+        PacketType::AudioStreamStats
+    };
+
+    packetReceiver.registerListenerForTypes(nodeAudioPackets, this, "handleNodeAudioPacket");
+    packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
 }
 
 const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
@@ -487,6 +498,7 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
             break;
         }
     }
+    
     AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
     AvatarAudioStream* stream = nodeData->getAvatarAudioStream();
     bool dataChanged = (stream->hasReverb() != hasReverb) ||
@@ -532,37 +544,24 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
     }
 }
 
-void AudioMixer::readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
+void AudioMixer::handleNodeAudioPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+    DependencyManager::get<NodeList>()->updateNodeWithDataFromPacket(packet, sendingNode);
+}
+
+void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
     auto nodeList = DependencyManager::get<NodeList>();
+    
+    if (sendingNode->getCanAdjustLocks()) {
+        auto newPacket = NLPacket::create(PacketType::MuteEnvironment, packet->getSizeUsed());
+        // Copy payload
+        newPacket->write(packet->getPayload(), packet->getSizeUsed());
 
-    if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
-        // pull any new audio data from nodes off of the network stack
-        PacketType::Value mixerPacketType = packetTypeForPacket(receivedPacket);
-        if (mixerPacketType == PacketType::MicrophoneAudioNoEcho
-            || mixerPacketType == PacketType::MicrophoneAudioWithEcho
-            || mixerPacketType == PacketType::InjectAudio
-            || mixerPacketType == PacketType::SilentAudioFrame
-            || mixerPacketType == PacketType::AudioStreamStats) {
-
-            nodeList->findNodeAndUpdateWithDataFromPacket(receivedPacket);
-        } else if (mixerPacketType == PacketType::MuteEnvironment) {
-            SharedNodePointer sendingNode = nodeList->sendingNodeForPacket(receivedPacket);
-            if (sendingNode->getCanAdjustLocks()) {
-                auto packet = NLPacket::create(PacketType::MuteEnvironment);
-                // Copy payload
-                packet->write(receivedPacket.mid(numBytesForPacketHeader(receivedPacket)));
-
-                nodeList->eachNode([&](const SharedNodePointer& node){
-                    if (node->getType() == NodeType::Agent && node->getActiveSocket() &&
-                        node->getLinkedData() && node != sendingNode) {
-                        nodeList->sendPacket(std::move(packet), *node);
-                    }
-                });
+        nodeList->eachNode([&](const SharedNodePointer& node){
+            if (node->getType() == NodeType::Agent && node->getActiveSocket() &&
+                node->getLinkedData() && node != sendingNode) {
+                nodeList->sendPacket(std::move(newPacket), *node);
             }
-        } else {
-            // let processNodeData handle it.
-            nodeList->processNodeData(senderSockAddr, receivedPacket);
-        }
+        });
     }
 }
 
@@ -655,32 +654,6 @@ void AudioMixer::run() {
 
     // we do not want this event loop to be the handler for UDP datagrams, so disconnect
     disconnect(&nodeList->getNodeSocket(), 0, this, 0);
-
-    // setup a QThread with us as parent that will house the AudioMixerDatagramProcessor
-    _datagramProcessingThread = new QThread(this);
-    _datagramProcessingThread->setObjectName("Datagram Processor Thread");
-
-    // create an AudioMixerDatagramProcessor and move it to that thread
-    AudioMixerDatagramProcessor* datagramProcessor = new AudioMixerDatagramProcessor(nodeList->getNodeSocket(), thread());
-    datagramProcessor->moveToThread(_datagramProcessingThread);
-
-    // remove the NodeList as the parent of the node socket
-    nodeList->getNodeSocket().setParent(NULL);
-    nodeList->getNodeSocket().moveToThread(_datagramProcessingThread);
-
-    // let the datagram processor handle readyRead from node socket
-    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead,
-            datagramProcessor, &AudioMixerDatagramProcessor::readPendingDatagrams);
-
-    // connect to the datagram processing thread signal that tells us we have to handle a packet
-    connect(datagramProcessor, &AudioMixerDatagramProcessor::packetRequiresProcessing, this, &AudioMixer::readPendingDatagram);
-
-    // delete the datagram processor and the associated thread when the QThread quits
-    connect(_datagramProcessingThread, &QThread::finished, datagramProcessor, &QObject::deleteLater);
-    connect(datagramProcessor, &QObject::destroyed, _datagramProcessingThread, &QThread::deleteLater);
-
-    // start the datagram processing thread
-    _datagramProcessingThread->start();
 
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 

@@ -93,8 +93,8 @@ public:
     /// Pack the details of the statistics into a buffer for sending as a network packet
     int packIntoPacket();
 
-    /// Unpack the details of the statistics from a buffer typically received as a network packet
-    int unpackFromMessage(const unsigned char* sourceBuffer, int availableBytes);
+    /// Unpack the details of the statistics from a network packet
+    int unpackFromPacket(NLPacket& packet);
 
     /// Indicates that a scene has been completed and the statistics are ready to be sent
     bool isReadyToSend() const { return _isReadyToSend; }
@@ -160,7 +160,7 @@ public:
     quint64 getLastFullTotalBytes() const { return _lastFullTotalBytes; }
 
     // Used in client implementations to track individual octree packets
-    void trackIncomingOctreePacket(const QByteArray& packet, bool wasStatsPacket, int nodeClockSkewUsec);
+    void trackIncomingOctreePacket(NLPacket& packet, bool wasStatsPacket, int nodeClockSkewUsec);
 
     quint32 getIncomingPackets() const { return _incomingPacket; }
     quint64 getIncomingBytes() const { return _incomingBytes; }

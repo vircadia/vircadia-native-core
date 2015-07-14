@@ -60,28 +60,25 @@ Assignment::Assignment(Assignment::Command command, Assignment::Type type, const
     }
 }
 
-Assignment::Assignment(const QByteArray& packet) :
+Assignment::Assignment(NLPacket& packet) :
     _pool(),
     _location(GlobalLocation),
     _payload(),
     _walletUUID()
 {
-    PacketType::Value packetType = packetTypeForPacket(packet);
-    
-    if (packetType == PacketType::RequestAssignment) {
+    if (packet.getType() == PacketType::RequestAssignment) {
         _command = Assignment::RequestCommand;
-    } else if (packetType == PacketType::CreateAssignment) {
+    } else if (packet.getType() == PacketType::CreateAssignment) {
         _command = Assignment::CreateCommand;
     }
     
-    QDataStream packetStream(packet);
-    packetStream.skipRawData(numBytesForPacketHeader(packet));
+    QDataStream packetStream(&packet);
     
     packetStream >> *this;
 }
 
 #ifdef WIN32
-#pragma warning(default:4351) 
+#pragma warning(default:4351)
 #endif
 
 

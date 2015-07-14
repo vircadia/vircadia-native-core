@@ -1002,7 +1002,7 @@ void Avatar::setBillboard(const QByteArray& billboard) {
     _billboardTexture.reset();
 }
 
-int Avatar::parseDataAtOffset(const QByteArray& packet, int offset) {
+int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
     if (!_initialized) {
         // now that we have data for this Avatar we are go for init
         init();
@@ -1011,7 +1011,7 @@ int Avatar::parseDataAtOffset(const QByteArray& packet, int offset) {
     // change in position implies movement
     glm::vec3 oldPosition = _position;
 
-    int bytesRead = AvatarData::parseDataAtOffset(packet, offset);
+    int bytesRead = AvatarData::parseDataFromBuffer(buffer);
 
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, _position) > MOVE_DISTANCE_THRESHOLD;
@@ -1137,7 +1137,7 @@ void Avatar::setShowDisplayName(bool showDisplayName) {
     }
 }
 
-// virtual 
+// virtual
 void Avatar::computeShapeInfo(ShapeInfo& shapeInfo) {
     const CapsuleShape& capsule = _skeletonModel.getBoundingShape();
     shapeInfo.setCapsuleY(capsule.getRadius(), capsule.getHalfHeight());

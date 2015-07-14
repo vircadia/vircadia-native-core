@@ -13,16 +13,23 @@
 #define hifi_OctreePacketProcessor_h
 
 #include <ReceivedPacketProcessor.h>
+#include <PacketListener.h>
 
-/// Handles processing of incoming voxel packets for the interface application. As with other ReceivedPacketProcessor classes 
+/// Handles processing of incoming voxel packets for the interface application. As with other ReceivedPacketProcessor classes
 /// the user is responsible for reading inbound packets and adding them to the processing queue by calling queueReceivedPacket()
-class OctreePacketProcessor : public ReceivedPacketProcessor {
+class OctreePacketProcessor : public ReceivedPacketProcessor, public PacketListener {
     Q_OBJECT
+public:
+    OctreePacketProcessor();
+    ~OctreePacketProcessor();
 
 signals:
     void packetVersionMismatch();
 
 protected:
-    virtual void processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);
+    virtual void processPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+
+private slots:
+    void handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
 };
 #endif // hifi_OctreePacketProcessor_h

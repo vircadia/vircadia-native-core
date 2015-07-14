@@ -15,30 +15,35 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QPointer>
 
+#include <PacketListener.h>
+
 #include "ThreadedAssignment.h"
 
 class QSharedMemory;
 
-class AssignmentClient : public QObject {
+class AssignmentClient : public QObject, public PacketListener {
     Q_OBJECT
 public:
-
     AssignmentClient(Assignment::Type requestAssignmentType, QString assignmentPool,
                      QUuid walletUUID, QString assignmentServerHostname, quint16 assignmentServerPort,
                      quint16 assignmentMonitorPort);
+    ~AssignmentClient();
 private slots:
     void sendAssignmentRequest();
-    void readPendingDatagrams();
     void assignmentCompleted();
     void handleAuthenticationRequest();
-    void sendStatsPacketToACM();
+    void sendStatusPacketToACM();
     void stopAssignmentClient();
 
 public slots:
     void aboutToQuit();
 
+private slots:
+    void handleCreateAssignmentPacket(QSharedPointer<NLPacket> packet);
+    void handleStopNodePacket(QSharedPointer<NLPacket> packet);
+
 private:
-    void setUpStatsToMonitor();
+    void setUpStatusToMonitor();
 
     Assignment _requestAssignment;
     QPointer<ThreadedAssignment> _currentAssignment;
