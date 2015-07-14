@@ -93,16 +93,18 @@ void EntityTreeRenderer::clear() {
     foreach (const EntityItemID& entityID, _entityScripts.keys()) {
         checkAndCallUnload(entityID);
     }
-    OctreeRenderer::clear();
     _entityScripts.clear();
 
     auto scene = _viewState->getMain3DScene();
     render::PendingChanges pendingChanges;
+    
     foreach(auto entity, _entitiesInScene) {
         entity->removeFromScene(entity, scene, pendingChanges);
     }
     scene->enqueuePendingChanges(pendingChanges);
     _entitiesInScene.clear();
+
+    OctreeRenderer::clear();
 }
 
 void EntityTreeRenderer::init() {
@@ -1003,7 +1005,7 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
         checkAndCallUnload(entityID);
     }
     _entityScripts.remove(entityID);
-    
+
     // here's where we remove the entity payload from the scene
     if (_entitiesInScene.contains(entityID)) {
         auto entity = _entitiesInScene.take(entityID);
@@ -1164,6 +1166,7 @@ void EntityTreeRenderer::updateEntityRenderStatus(bool shouldRenderEntities) {
     } else {
         _entityIDsLastInScene = _entitiesInScene.keys();
         for (auto entityID : _entityIDsLastInScene) {
+            // FIXME - is this really right? do we want to do the deletingEntity() code or just remove from the scene.
             deletingEntity(entityID);
         }
     }
