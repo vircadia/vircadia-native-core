@@ -108,7 +108,7 @@ void OctreeRenderer::processDatagram(NLPacket& packet, SharedNodePointer sourceN
         
         bool error = false;
         
-        while (packet.bytesAvailable() && !error) {
+        while (packet.bytesAvailable() > 0 && !error) {
             if (packetIsCompressed) {
                 if (packet.bytesAvailable() > (qint64) sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE)) {
                     packet.readPrimitive(&sectionLength);
