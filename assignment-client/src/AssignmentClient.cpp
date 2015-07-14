@@ -195,7 +195,7 @@ void AssignmentClient::sendStatusPacketToACM() {
         assignmentType = _currentAssignment->getType();
     }
 
-    auto statusPacket = NLPacket::create(PacketType::AssignmentClientStatus, typeof(assignmentType) + NUM_BYTES_RFC4122_UUID);
+    auto statusPacket = NLPacket::create(PacketType::AssignmentClientStatus, sizeof(assignmentType) + NUM_BYTES_RFC4122_UUID);
 
     statusPacket->write(nodeList->getSessionUUID().toRfc4122());
     statusPacket->writePrimitive(assignmentType);
