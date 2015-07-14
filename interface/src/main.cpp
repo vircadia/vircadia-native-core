@@ -11,7 +11,6 @@
 #include <QCommandLineParser>
 #include <QDebug>
 #include <QDir>
-#include <QProcess>
 #include <QSettings>
 #include <QTranslator>
 
