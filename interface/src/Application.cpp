@@ -3941,7 +3941,7 @@ int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingN
     _octreeSceneStatsLock.lockForWrite();
     auto it = _octreeServerSceneStats.find(nodeUUID);
     if (it != _octreeServerSceneStats.end()) {
-        octreeStats = &it.value();
+        octreeStats = &it->second;
         statsMessageLength = octreeStats->unpackFromPacket(packet);
     } else {
         OctreeSceneStats temp;
