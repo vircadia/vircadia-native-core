@@ -13,7 +13,7 @@
 
 #include "AvatarMixerClientData.h"
 
-int AvatarMixerClientData::parseData(NLPacket& packet, SharedNodePointer sendingNode) {
+int AvatarMixerClientData::parseData(NLPacket& packet) {
     // compute the offset to the data payload
     return _avatar.parseDataFromBuffer(QByteArray::fromRawData(packet.getPayload(), packet.getSizeUsed()));
 }

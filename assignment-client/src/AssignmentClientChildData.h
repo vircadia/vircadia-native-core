@@ -16,16 +16,13 @@
 
 
 class AssignmentClientChildData : public NodeData {
- public:
+public:
     AssignmentClientChildData(Assignment::Type childType);
 
     Assignment::Type getChildType() { return _childType; }
     void setChildType(Assignment::Type childType) { _childType = childType; }
 
-    // implement parseData to return 0 so we can be a subclass of NodeData
-    int parseData(NLPacket& packet, QSharedPointer<Node> sendingNode) { return 0; }
-
- private:
+private:
     Assignment::Type _childType;
 };
 

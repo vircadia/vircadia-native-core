@@ -2,7 +2,7 @@
 //  AvatarHashMap.h
 //  libraries/avatars/src
 //
-//  Created by Stephen AndrewMeadows on 1/28/2014.
+//  Created by Andrew Meadows on 1/28/2014.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -21,11 +21,12 @@
 #include <DependencyManager.h>
 #include <NLPacket.h>
 #include <Node.h>
+#include <PacketListener.h>
 
 #include "AvatarData.h"
 #include <glm/glm.hpp>
 
-class AvatarHashMap : public QObject, public Dependency {
+class AvatarHashMap : public QObject, public Dependency, public PacketListener {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 

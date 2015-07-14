@@ -80,7 +80,6 @@ public slots:
     void processPingReplyPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
 
     void processICEPingPacket(QSharedPointer<NLPacket> packet);
-    void processICEPingReplyPacket(QSharedPointer<NLPacket> packet);
 signals:
     void limitOfSilentDomainCheckInsReached();
 private slots:

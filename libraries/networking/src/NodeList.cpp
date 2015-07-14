@@ -92,15 +92,10 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     startSTUNPublicSocketUpdate();
 
     auto& packetReceiver = getPacketReceiver();
-    packetReceiver.registerPacketListener(PacketType::DomainList, this, "processDomainServerList");
-    packetReceiver.registerPacketListener(PacketType::DomainServerAddedNode, this, "processDomainServerAddedNode");
-    packetReceiver.registerPacketListener(PacketType::DomainServerRequireDTLS, &_domainHandler, "processDTLSRequirementPacket");
-    packetReceiver.registerPacketListener(PacketType::DomainServerPathResponse, this, "processDomainServerPathQueryResponse");
-    packetReceiver.registerPacketListener(PacketType::ICEServerPeerInformation, &_domainHandler, "processICEResponsePacket");
-    packetReceiver.registerPacketListener(PacketType::Ping, this, "processPingPacket");
-    packetReceiver.registerPacketListener(PacketType::PingReply, this, "processPingReplyPacket");
-    packetReceiver.registerPacketListener(PacketType::ICEPing, this, "processICEPingPacket");
-    packetReceiver.registerPacketListener(PacketType::ICEPingReply, this, "processICEPingReplyPacket");
+    packetReceiver.registerListener(PacketType::DomainList, this, "processDomainServerList");
+    packetReceiver.registerListener(PacketType::Ping, this, "processPingPacket");
+    packetReceiver.registerListener(PacketType::PingReply, this, "processPingReplyPacket");
+    packetReceiver.registerListener(PacketType::ICEPing, this, "processICEPingPacket");
 }
 
 qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination) {
@@ -190,25 +185,6 @@ void NodeList::processICEPingPacket(QSharedPointer<NLPacket> packet) {
     // send back a reply
     auto replyPacket = constructICEPingReplyPacket(*packet, _domainHandler.getICEClientID());
     sendPacket(std::move(replyPacket), packet->getSenderSockAddr());
-}
-
-void NodeList::processICEPingReplyPacket(QSharedPointer<NLPacket> packet) {
-    const HifiSockAddr& senderSockAddr = packet->getSenderSockAddr();
-    qCDebug(networking) << "Received reply from domain-server on" << senderSockAddr;
-
-    if (_domainHandler.getIP().isNull()) {
-        // for now we're unsafely assuming this came back from the domain
-        if (senderSockAddr == _domainHandler.getICEPeer().getLocalSocket()) {
-            qCDebug(networking) << "Connecting to domain using local socket";
-            _domainHandler.activateICELocalSocket();
-        } else if (senderSockAddr == _domainHandler.getICEPeer().getPublicSocket()) {
-            qCDebug(networking) << "Conecting to domain using public socket";
-            _domainHandler.activateICEPublicSocket();
-        } else {
-            qCDebug(networking) << "Reply does not match either local or public socket for domain. Will not connect.";
-        }
-
-    }
 }
 
 void NodeList::reset() {

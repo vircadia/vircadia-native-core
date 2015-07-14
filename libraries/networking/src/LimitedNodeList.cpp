@@ -100,7 +100,7 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     _packetStatTimer.start();
     
     // make sure we handle STUN response packets
-    _packetReceiver.registerPacketListener(PacketType::StunResponse, this, "processSTUNResponse");
+    _packetReceiver.registerListener(PacketType::StunResponse, this, "processSTUNResponse");
 }
 
 void LimitedNodeList::setSessionUUID(const QUuid& sessionUUID) {
@@ -241,7 +241,7 @@ int LimitedNodeList::updateNodeWithDataFromPacket(QSharedPointer<NLPacket> packe
 
     if (linkedData) {
         QMutexLocker linkedDataLocker(&linkedData->getMutex());
-        return linkedData->parseData(*packet, sendingNode);
+        return linkedData->parseData(*packet);
     }
     
     return 0;

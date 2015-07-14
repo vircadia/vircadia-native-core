@@ -24,7 +24,6 @@
 class DomainServerNodeData : public NodeData {
 public:
     DomainServerNodeData();
-    int parseData(NLPacket& packet, QSharedPointer<Node> sendingNode) { return 0; }
 
     const QJsonObject& getStatsJSONObject() const { return _statsJSONObject; }
 

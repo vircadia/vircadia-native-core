@@ -50,13 +50,13 @@ Agent::Agent(NLPacket& packet) :
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     
-    packetReceiver.registerPacketListenerForTypes(
-        QSet<PacketType::Value>({ PacketType::MixedAudio, PacketType::SilentAudioFrame }),
+    packetReceiver.registerListenerForTypes(
+        { PacketType::MixedAudio, PacketType::SilentAudioFrame },
         this, "handleAudioPacket");
-    packetReceiver.registerPacketListenerForTypes(
-        QSet<PacketType::Value>({ PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase }),
+    packetReceiver.registerListenerForTypes(
+        { PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
         this, "handleOctreePacket");
-    packetReceiver.registerPacketListener(PacketType::Jurisdiction, this, "handleJurisdictionPacket");
+    packetReceiver.registerListener(PacketType::Jurisdiction, this, "handleJurisdictionPacket");
 }
 
 void Agent::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
@@ -97,8 +97,8 @@ void Agent::handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNode
     }
 } 
 
-void Agent::handleAudioPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
-    _receivedAudioStream.parseData(*packet, senderNode);
+void Agent::handleAudioPacket(QSharedPointer<NLPacket> packet) {
+    _receivedAudioStream.parseData(*packet);
 
     _lastReceivedAudioLoudness = _receivedAudioStream.getNextOutputFrameLoudness();
 

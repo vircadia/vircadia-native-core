@@ -24,6 +24,7 @@
 #include <Assignment.h>
 #include <HTTPSConnection.h>
 #include <LimitedNodeList.h>
+#include <PacketListener.h>
 
 #include "DomainServerSettingsManager.h"
 #include "DomainServerWebSessionData.h"
@@ -34,7 +35,7 @@
 typedef QSharedPointer<Assignment> SharedAssignmentPointer;
 typedef QMultiHash<QUuid, WalletTransaction*> TransactionHash;
 
-class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
+class DomainServer : public QCoreApplication, public HTTPSRequestHandler, public PacketListener {
     Q_OBJECT
 public:
     DomainServer(int argc, char* argv[]);

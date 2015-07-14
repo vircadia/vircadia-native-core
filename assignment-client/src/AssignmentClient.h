@@ -15,11 +15,13 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QPointer>
 
+#include <PacketListener.h>
+
 #include "ThreadedAssignment.h"
 
 class QSharedMemory;
 
-class AssignmentClient : public QObject {
+class AssignmentClient : public QObject, public PacketListener {
     Q_OBJECT
 public:
 
@@ -37,8 +39,8 @@ public slots:
     void aboutToQuit();
 
 private slots:
-    void handleCreateAssignmentPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
-    void handleStopNodePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr);
+    void handleCreateAssignmentPacket(QSharedPointer<NLPacket> packet);
+    void handleStopNodePacket(QSharedPointer<NLPacket> packet);
 
 private:
     void setUpStatusToMonitor();

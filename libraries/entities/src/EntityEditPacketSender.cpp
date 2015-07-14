@@ -19,13 +19,13 @@
 
 EntityEditPacketSender::EntityEditPacketSender() {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerPacketListener(PacketType::EntityEditNack, this, "processEntityEditNackPacket");
+    packetReceiver.registerListener(PacketType::EntityEditNack, this, "processEntityEditNackPacket");
 }
 
-void EntityEditPacketSender::processEntityEditNackPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {
-    // if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
+void EntityEditPacketSender::processEntityEditNackPacket(QSharedPointer<NLPacket> packet) {
+    if (_shouldNack) {
         processNackPacket(QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
-    // }
+    }
 }
 
 void EntityEditPacketSender::adjustEditPacketForClockSkew(PacketType::Value type, QByteArray& buffer, int clockSkew) {

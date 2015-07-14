@@ -32,6 +32,7 @@
 #include <OctreeQuery.h>
 #include <OffscreenUi.h>
 #include <PacketHeaders.h>
+#include <PacketListener.h>
 #include <PhysicalEntitySimulation.h>
 #include <PhysicsEngine.h>
 #include <ScriptEngine.h>
@@ -134,7 +135,10 @@ class Application;
 
 typedef bool (Application::* AcceptURLMethod)(const QString &);
 
-class Application : public QApplication, public AbstractViewStateInterface, AbstractScriptingServicesInterface {
+class Application : public QApplication,
+    public AbstractViewStateInterface,
+    AbstractScriptingServicesInterface,
+    public PacketListener {
     Q_OBJECT
 
     friend class OctreePacketProcessor;
@@ -213,6 +217,7 @@ public:
     OctreeQuery& getOctreeQuery() { return _octreeQuery; }
     EntityTree* getEntityClipboard() { return &_entityClipboard; }
     EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
+    EntityEditPacketSender* getEntityEditPacketSender() { return &_entityEditSender; }
 
     bool isMousePressed() const { return _mousePressed; }
     bool isMouseHidden() const { return !_cursorVisible; }
@@ -443,7 +448,7 @@ public slots:
 
     void notifyPacketVersionMismatch();
 
-    void handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket>, SharedNodePointer senderNode);
+    void handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet);
 
     void cameraMenuChanged();
 

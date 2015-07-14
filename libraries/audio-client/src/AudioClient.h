@@ -39,6 +39,7 @@
 #include <NLPacket.h>
 #include <MixedProcessedAudioStream.h>
 #include <RingBufferHistory.h>
+#include <PacketListener.h>
 #include <SettingHandle.h>
 #include <Sound.h>
 #include <StDev.h>
@@ -80,7 +81,7 @@ typedef glm::quat (*AudioOrientationGetter)();
 
 class NLPacket;
 
-class AudioClient : public AbstractAudioInterface, public Dependency {
+class AudioClient : public AbstractAudioInterface, public Dependency, public PacketListener {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 public:
@@ -139,10 +140,10 @@ public slots:
     void start();
     void stop();
 
-    void handleAudioEnvironmentDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
-    void handleAudioDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
-    void handleNoisyMutePacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
-    void handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void handleAudioEnvironmentDataPacket(QSharedPointer<NLPacket> packet);
+    void handleAudioDataPacket(QSharedPointer<NLPacket> packet);
+    void handleNoisyMutePacket(QSharedPointer<NLPacket> packet);
+    void handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet);
 
     void sendDownstreamAudioStatsPacket() { _stats.sendDownstreamAudioStatsPacket(); }
     void handleAudioInput();
@@ -187,6 +188,7 @@ public slots:
 
 signals:
     bool muteToggled();
+    void mutedByMixer();
     void inputReceived(const QByteArray& inputSamples);
     void outputBytesToNetwork(int numBytes);
     void inputBytesFromNetwork(int numBytes);

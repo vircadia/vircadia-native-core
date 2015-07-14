@@ -142,12 +142,12 @@ AudioClient::AudioClient() :
     configureGverbFilter(_gverb);
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerPacketListener(PacketType::AudioStreamStats, &_stats, "handleAudioStreamStatsPacket");
-    packetReceiver.registerPacketListener(PacketType::AudioEnvironment, this, "handleAudioEnvironmentDataPacket");
-    packetReceiver.registerPacketListener(PacketType::SilentAudioFrame, this, "handleAudioDataPacket");
-    packetReceiver.registerPacketListener(PacketType::MixedAudio, this, "handleAudioDataPacket");
-    packetReceiver.registerPacketListener(PacketType::NoisyMute, this, "handleNoisyMutePacket");
-    packetReceiver.registerPacketListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
+    packetReceiver.registerListener(PacketType::AudioStreamStats, &_stats, "handleAudioStreamStatsPacket");
+    packetReceiver.registerListener(PacketType::AudioEnvironment, this, "handleAudioEnvironmentDataPacket");
+    packetReceiver.registerListener(PacketType::SilentAudioFrame, this, "handleAudioDataPacket");
+    packetReceiver.registerListener(PacketType::MixedAudio, this, "handleAudioDataPacket");
+    packetReceiver.registerListener(PacketType::NoisyMute, this, "handleNoisyMutePacket");
+    packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
 }
 
 AudioClient::~AudioClient() {
@@ -535,7 +535,7 @@ void AudioClient::stop() {
     }
 }
 
-void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<NLPacket> packet) {
 
     char bitset;
     packet->readPrimitive(&bitset);
@@ -552,7 +552,7 @@ void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<NLPacket> pack
    }
 }
 
-void AudioClient::handleAudioDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+void AudioClient::handleAudioDataPacket(QSharedPointer<NLPacket> packet) {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveFirstAudioPacket);
 
@@ -566,20 +566,20 @@ void AudioClient::handleAudioDataPacket(QSharedPointer<NLPacket> packet, SharedN
         }
 
         // Audio output must exist and be correctly set up if we're going to process received audio
-        _receivedAudioStream.parseData(*packet, sendingNode);
+        _receivedAudioStream.parseData(*packet);
     }
 }
 
-void AudioClient::handleNoisyMutePacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+void AudioClient::handleNoisyMutePacket(QSharedPointer<NLPacket> packet) {
     if (!_muted) {
         toggleMute();
         
-        // TODO reimplement on interface side
-        //AudioScriptingInterface::getInstance().mutedByMixer();
+        // have the audio scripting interface emit a signal to say we were muted by the mixer
+        emit mutedByMixer();
     }
 }
 
-void AudioClient::handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+void AudioClient::handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet) {
     glm::vec3 position;
     float radius;
     
