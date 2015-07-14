@@ -574,8 +574,8 @@ void AudioClient::handleNoisyMutePacket(QSharedPointer<NLPacket> packet) {
     if (!_muted) {
         toggleMute();
         
-        // TODO reimplement on interface side
-        //AudioScriptingInterface::getInstance().mutedByMixer();
+        // have the audio scripting interface emit a signal to say we were muted by the mixer
+        emit mutedByMixer();
     }
 }
 

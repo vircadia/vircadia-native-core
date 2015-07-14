@@ -420,6 +420,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(audioIO.data(), &AudioClient::destroyed, audioThread, &QThread::quit);
     connect(audioThread, &QThread::finished, audioThread, &QThread::deleteLater);
     connect(audioIO.data(), &AudioClient::muteToggled, this, &Application::audioMuteToggled);
+    connect(audioIO.data(), &AudioClient::mutedByMixer, this, &AudioScriptingInterface::mutedByMixer);
     connect(audioIO.data(), &AudioClient::receivedFirstPacket,
             &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::receivedFirstPacket);
     connect(audioIO.data(), &AudioClient::disconnected,

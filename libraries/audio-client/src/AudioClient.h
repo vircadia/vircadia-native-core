@@ -188,6 +188,7 @@ public slots:
 
 signals:
     bool muteToggled();
+    void mutedByMixer();
     void inputReceived(const QByteArray& inputSamples);
     void outputBytesToNetwork(int numBytes);
     void inputBytesFromNetwork(int numBytes);
