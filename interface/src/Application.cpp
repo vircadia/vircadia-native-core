@@ -702,6 +702,14 @@ void Application::cleanupBeforeQuit() {
 #endif
 }
 
+void Application::emptyLocalCache() {
+    QNetworkDiskCache* cache = qobject_cast<QNetworkDiskCache*>(NetworkAccessManager::getInstance().cache());
+    if (cache) {
+        qDebug() << "DiskCacheEditor::clear(): Clearing disk cache.";
+        cache->clear();
+    }
+}
+
 Application::~Application() {
     EntityTree* tree = _entities.getTree();
     tree->lockForWrite();
@@ -2405,6 +2413,15 @@ void Application::cameraMenuChanged() {
             _myCamera.setMode(CAMERA_MODE_INDEPENDENT);
         }
     }
+}
+
+void Application::reloadResourceCaches() {
+    emptyLocalCache();
+    
+    DependencyManager::get<AnimationCache>()->refreshAll();
+    DependencyManager::get<GeometryCache>()->refreshAll();
+    DependencyManager::get<SoundCache>()->refreshAll();
+    DependencyManager::get<TextureCache>()->refreshAll();
 }
 
 void Application::rotationModeChanged() {

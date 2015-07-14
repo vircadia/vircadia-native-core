@@ -229,6 +229,7 @@ namespace MenuOption {
     const QString Preferences = "Preferences...";
     const QString Quit =  "Quit";
     const QString ReloadAllScripts = "Reload All Scripts";
+    const QString ReloadContent = "Reload Content (Clears all caches)";
     const QString RenderBoundingCollisionShapes = "Show Bounding Collision Shapes";
     const QString RenderFocusIndicator = "Show Eye Focus";
     const QString RenderHeadCollisionShapes = "Show Head Collision Shapes";

@@ -246,6 +246,7 @@ public:
 
 protected:
     QSharedPointer<NetworkGeometry> _geometry;
+    void setGeometry(const QSharedPointer<NetworkGeometry>& newGeometry);
     
     glm::vec3 _scale;
     glm::vec3 _offset;
@@ -322,6 +323,9 @@ protected:
     // hook for derived classes to be notified when setUrl invalidates the current model.
     virtual void onInvalidate() {};
 
+protected slots:
+    void geometryRefreshed();
+    
 private:
     
     friend class AnimationHandle;
@@ -331,15 +335,12 @@ private:
     QVector<JointState> createJointStates(const FBXGeometry& geometry);
     void initJointTransforms();
     
-    QSharedPointer<NetworkGeometry> _baseGeometry; ///< reference required to prevent collection of base
-    QSharedPointer<NetworkGeometry> _nextBaseGeometry;
     QSharedPointer<NetworkGeometry> _nextGeometry;
     float _lodDistance;
     float _lodHysteresis;
     float _nextLODHysteresis;
 
     QSharedPointer<NetworkGeometry> _collisionGeometry;
-    QSharedPointer<NetworkGeometry> _saveNonCollisionGeometry;
     
     float _pupilDilation;
     QVector<float> _blendshapeCoefficients;
@@ -525,7 +526,6 @@ private:
     QMap<render::ItemID, render::PayloadPointer> _renderItems;
     bool _readyWhenAdded = false;
     bool _needsReload = true;
-    
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)

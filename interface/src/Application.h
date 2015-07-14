@@ -442,6 +442,8 @@ public slots:
     void domainConnectionDenied(const QString& reason);
     
     void cameraMenuChanged();
+    
+    void reloadResourceCaches();
 
 private slots:
     void clearDomainOctreeDetails();
@@ -487,6 +489,8 @@ private:
     void init();
     
     void cleanupBeforeQuit();
+    
+    void emptyLocalCache();
 
     void update(float deltaTime);
 

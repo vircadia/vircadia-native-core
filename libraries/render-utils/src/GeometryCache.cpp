@@ -1942,7 +1942,7 @@ QSharedPointer<NetworkGeometry> NetworkGeometry::getLODOrFallback(float distance
             }
         }
     }
-    if (lod->isLoaded()) {
+    if (lod && lod->isLoaded()) {
         hysteresis = lodDistance;
         return lod;
     }
@@ -2061,21 +2061,16 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
                 
                 QSharedPointer<NetworkTexture> matchingTexture = QSharedPointer<NetworkTexture>();
                 if (part.diffuseTextureName == name) {
-                    part.diffuseTexture =
-                    textureCache->getTexture(url, DEFAULT_TEXTURE,
-                                                                              _geometry.meshes[i].isEye, QByteArray());
+                    part.diffuseTexture = textureCache->getTexture(url, DEFAULT_TEXTURE, _geometry.meshes[i].isEye);
                     part.diffuseTexture->setLoadPriorities(_loadPriorities);
                 } else if (part.normalTextureName == name) {
-                    part.normalTexture = textureCache->getTexture(url, DEFAULT_TEXTURE,
-                                                                                                   false, QByteArray());
+                    part.normalTexture = textureCache->getTexture(url);
                     part.normalTexture->setLoadPriorities(_loadPriorities);
                 } else if (part.specularTextureName == name) {
-                    part.specularTexture = textureCache->getTexture(url, DEFAULT_TEXTURE,
-                                                                                                     false, QByteArray());
+                    part.specularTexture = textureCache->getTexture(url);
                     part.specularTexture->setLoadPriorities(_loadPriorities);
                 } else if (part.emissiveTextureName == name) {
-                    part.emissiveTexture = textureCache->getTexture(url, DEFAULT_TEXTURE,
-                                                                                                     false, QByteArray());
+                    part.emissiveTexture = textureCache->getTexture(url);
                     part.emissiveTexture->setLoadPriorities(_loadPriorities);
                 }
             }
@@ -2095,22 +2090,22 @@ QStringList NetworkGeometry::getTextureNames() const {
         for (int j = 0; j < mesh.parts.size(); j++) {
             const NetworkMeshPart& part = mesh.parts[j];
             
-            if (!part.diffuseTextureName.isEmpty()) {
+            if (!part.diffuseTextureName.isEmpty() && part.diffuseTexture) {
                 QString textureURL = part.diffuseTexture->getURL().toString();
                 result << part.diffuseTextureName + ":" + textureURL;
             }
 
-            if (!part.normalTextureName.isEmpty()) {
+            if (!part.normalTextureName.isEmpty() && part.normalTexture) {
                 QString textureURL = part.normalTexture->getURL().toString();
                 result << part.normalTextureName + ":" + textureURL;
             }
 
-            if (!part.specularTextureName.isEmpty()) {
+            if (!part.specularTextureName.isEmpty() && part.specularTexture) {
                 QString textureURL = part.specularTexture->getURL().toString();
                 result << part.specularTextureName + ":" + textureURL;
             }
 
-            if (!part.emissiveTextureName.isEmpty()) {
+            if (!part.emissiveTextureName.isEmpty() && part.emissiveTexture) {
                 QString textureURL = part.emissiveTexture->getURL().toString();
                 result << part.emissiveTextureName + ":" + textureURL;
             }
