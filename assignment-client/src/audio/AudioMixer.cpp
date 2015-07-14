@@ -52,7 +52,6 @@
 
 #include "AudioRingBuffer.h"
 #include "AudioMixerClientData.h"
-#include "AudioMixerDatagramProcessor.h"
 #include "AvatarAudioStream.h"
 #include "InjectedAudioStream.h"
 
@@ -655,10 +654,6 @@ void AudioMixer::run() {
 
     // we do not want this event loop to be the handler for UDP datagrams, so disconnect
     disconnect(&nodeList->getNodeSocket(), 0, this, 0);
-
-    // setup a QThread with us as parent that will house the AudioMixerDatagramProcessor
-    _datagramProcessingThread = new QThread(this);
-    _datagramProcessingThread->setObjectName("Datagram Processor Thread");
 
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 

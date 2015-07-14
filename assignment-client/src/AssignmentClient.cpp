@@ -62,6 +62,17 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     DependencyManager::registerInheritance<EntityActionFactoryInterface, AssignmentActionFactory>();
     auto actionFactory = DependencyManager::set<AssignmentActionFactory>();
 
+    // setup a thread for the NodeList and its PacketReceiver
+    QThread* nodeThread = new QThread(this);
+    nodeThread->setObjectName("NodeList Thread");
+    nodeThread->start();
+
+    // make sure the node thread is given highest priority
+    nodeThread->setPriority(QThread::TimeCriticalPriority);
+
+    // put the NodeList on the node thread
+    nodeList->moveToThread(nodeThread);
+
     // make up a uuid for this child so the parent can tell us apart.  This id will be changed
     // when the domain server hands over an assignment.
     QUuid nodeUUID = QUuid::createUuid();
@@ -124,7 +135,6 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     packetReceiver.registerListener(PacketType::CreateAssignment, this, "handleCreateAssignmentPacket");
     packetReceiver.registerListener(PacketType::StopNode, this, "handleStopNodePacket");
 }
-
 void AssignmentClient::stopAssignmentClient() {
     qDebug() << "Forced stop of assignment-client.";
 
@@ -150,6 +160,16 @@ void AssignmentClient::stopAssignmentClient() {
     }
 }
 
+AssignmentClient::~AssignmentClient() {
+    QThread* nodeThread = DependencyManager::get<NodeList>()->thread();
+    
+    // remove the NodeList from the DependencyManager
+    DependencyManager::destroy<NodeList>();
+
+    // ask the node thread to quit and wait until it is done
+    nodeThread->quit();
+    nodeThread->wait();
+}
 
 void AssignmentClient::aboutToQuit() {
     stopAssignmentClient();
@@ -251,9 +271,6 @@ void AssignmentClient::handleCreateAssignmentPacket(QSharedPointer<NLPacket> pac
 
         _currentAssignment->moveToThread(workerThread);
 
-        // move the NodeList to the thread used for the _current assignment
-        nodeList->moveToThread(workerThread);
-
         // Starts an event loop, and emits workerThread->started()
         workerThread->start();
     } else {
@@ -312,6 +329,9 @@ void AssignmentClient::assignmentCompleted() {
     qDebug() << "Assignment finished or never started - waiting for new assignment.";
 
     auto nodeList = DependencyManager::get<NodeList>();
+
+    // tell the packet receiver to stop dropping packets
+    nodeList->getPacketReceiver().setShouldDropPackets(false);
 
     // reset our NodeList by switching back to unassigned and clearing the list
     nodeList->setOwnerType(NodeType::Unassigned);

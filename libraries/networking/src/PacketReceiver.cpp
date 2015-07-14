@@ -59,7 +59,7 @@ void PacketReceiver::registerListener(PacketType::Value type, PacketListener* li
     Q_ASSERT(object);
 
     QMetaMethod matchingMethod = matchingMethodForListener(type, object, slot);
-    
+
     if (matchingMethod.isValid()) {
         registerVerifiedListener(type, object, matchingMethod);
     }
@@ -69,7 +69,7 @@ QMetaMethod PacketReceiver::matchingMethodForListener(PacketType::Value type, QO
     Q_ASSERT(object);
 
     // normalize the slot with the expected parameters
-    
+
     const QString NON_SOURCED_PACKET_LISTENER_PARAMETERS = "QSharedPointer<NLPacket>";
 
     QSet<QString> possibleSignatures { QString("%1(%2)").arg(slot).arg(NON_SOURCED_PACKET_LISTENER_PARAMETERS) };
@@ -79,7 +79,7 @@ QMetaMethod PacketReceiver::matchingMethodForListener(PacketType::Value type, QO
 
         // a sourced packet must take the shared pointer to the packet but optionally could include
         // a shared pointer to the node
-        
+
         possibleSignatures << QString("%1(%2)").arg(slot).arg(SOURCED_PACKET_LISTENER_PARAMETERS);
     }
 
@@ -94,7 +94,7 @@ QMetaMethod PacketReceiver::matchingMethodForListener(PacketType::Value type, QO
 
         break;
     }
-   
+
     if (methodIndex < 0) {
         qDebug() << "PacketReceiver::registerListener expected a method with one of the following signatures:"
                 << possibleSignatures << "- but such a method was not found.";
@@ -122,7 +122,7 @@ void PacketReceiver::registerVerifiedListener(PacketType::Value type, QObject* o
 
     // add the mapping
     _packetListenerMap[type] = ObjectMethodPair(object, slot);
-        
+
     _packetListenerLock.unlock();
 
 }
@@ -131,7 +131,7 @@ void PacketReceiver::unregisterListener(PacketListener* listener) {
     _packetListenerLock.lock();
 
     auto it = _packetListenerMap.begin();
-    
+
     while (it != _packetListenerMap.end()) {
         if (it.value().first == dynamic_cast<QObject*>(listener)) {
             // this listener matches - erase it
@@ -152,7 +152,7 @@ bool PacketReceiver::packetVersionMatch(const NLPacket& packet) {
         static QMultiMap<QUuid, PacketType::Value> versionDebugSuppressMap;
 
         const QUuid& senderID = packet.getSourceID();
-        
+
         if (!versionDebugSuppressMap.contains(senderID, packet.getType())) {
 
             qCDebug(networking) << "Packet version mismatch on" << packet.getType() << "- Sender"
@@ -174,17 +174,18 @@ void PacketReceiver::processDatagrams() {
     //PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             //"PacketReceiver::processDatagrams()");
 
-    if (_isShuttingDown) {
-        return; // bail early... we're shutting down.
-    }
-
     auto nodeList = DependencyManager::get<NodeList>();
 
     while (nodeList->getNodeSocket().hasPendingDatagrams()) {
         // setup a buffer to read the packet into
         int packetSizeWithHeader = nodeList->getNodeSocket().pendingDatagramSize();
         std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[packetSizeWithHeader]);
-        
+
+        // if we're supposed to drop this packet then break out here
+        if (_shouldDropPackets) {
+            break;
+        }
+
         // setup a HifiSockAddr to read into
         HifiSockAddr senderSockAddr;
 
@@ -194,15 +195,15 @@ void PacketReceiver::processDatagrams() {
 
         // setup an NLPacket from the data we just read
         auto packet = NLPacket::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
-        
+
         _inPacketCount++;
         _inByteCount += packetSizeWithHeader;
 
         if (packetVersionMatch(*packet)) {
-            
+
             SharedNodePointer matchingNode;
             if (nodeList->packetSourceAndHashMatch(*packet, matchingNode)) {
-                 
+
                 if (matchingNode) {
                     // No matter if this packet is handled or not, we update the timestamp for the last time we heard
                     // from this sending node
@@ -210,38 +211,45 @@ void PacketReceiver::processDatagrams() {
                 }
 
                 _packetListenerLock.lock();
-                
+
                 auto it = _packetListenerMap.find(packet->getType());
 
                 if (it != _packetListenerMap.end()) {
 
                     auto listener = it.value();
-                   
+
                     if (listener.first) {
-                        
-                        if (matchingNode) {
-                            emit dataReceived(matchingNode->getType(), packet->getSizeWithHeader());
-                        } else {
-                            emit dataReceived(NodeType::Unassigned, packet->getSizeWithHeader());
-                        }
-                        
-                        // if this was a sequence numbered packet we should store the last seq number for
-                        // a packet of this type for this node
-                        if (SEQUENCE_NUMBERED_PACKETS.contains(packet->getType())) {
-                            matchingNode->setLastSequenceNumberForPacketType(packet->readSequenceNumber(), packet->getType());
-                        }
 
                         bool success = false;
 
                         if (matchingNode) {
+                            // if this was a sequence numbered packet we should store the last seq number for
+                            // a packet of this type for this node
+                            if (SEQUENCE_NUMBERED_PACKETS.contains(packet->getType())) {
+                                matchingNode->setLastSequenceNumberForPacketType(packet->readSequenceNumber(), packet->getType());
+                            }
+
+                            emit dataReceived(matchingNode->getType(), packet->getSizeWithHeader());
+                            QMetaMethod metaMethod = listener.second;
+
+                            static const QByteArray SHARED_NODE_NORMALIZED = QMetaObject::normalizedType("QSharedPointer<Node>");
+
+                            if (metaMethod.parameterTypes().contains(SHARED_NODE_NORMALIZED)) {
+                                success = metaMethod.invoke(listener.first,
+                                    Q_ARG(QSharedPointer<NLPacket>, QSharedPointer<NLPacket>(packet.release())),
+                                    Q_ARG(SharedNodePointer, matchingNode));
+
+                            } else {
+                                success = metaMethod.invoke(listener.first,
+                                    Q_ARG(QSharedPointer<NLPacket>, QSharedPointer<NLPacket>(packet.release())));
+                            }
+                        } else {
+                            emit dataReceived(NodeType::Unassigned, packet->getSizeWithHeader());
+
                             success = listener.second.invoke(listener.first,
                                 Q_ARG(QSharedPointer<NLPacket>, QSharedPointer<NLPacket>(packet.release())));
-                        } else {
-                            success = listener.second.invoke(listener.first,
-                                Q_ARG(QSharedPointer<NLPacket>, QSharedPointer<NLPacket>(packet.release())),
-                                Q_ARG(SharedNodePointer, matchingNode));
                         }
-                                            
+
                         if (!success) {
                             qDebug() << "Error delivering packet " << nameForPacketType(packet->getType()) << " to listener: "
                                 << listener.first->objectName() << "::" << listener.second.name();
@@ -253,13 +261,11 @@ void PacketReceiver::processDatagrams() {
                             << "has been destroyed - removing mapping.";
                         _packetListenerMap.erase(it);
                     }
-
-                     _packetListenerLock.unlock();
-
                 } else {
-                    _packetListenerLock.unlock();
                     qDebug() << "No listener found for packet type " << nameForPacketType(packet->getType());
                 }
+
+                _packetListenerLock.unlock();
             }
         }
     }

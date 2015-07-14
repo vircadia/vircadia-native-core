@@ -38,10 +38,8 @@ signals:
     void finished();
 
 protected:
-    bool readAvailableDatagram(QByteArray& destinationByteArray, HifiSockAddr& senderSockAddr);
     void commonInit(const QString& targetName, NodeType_t nodeType, bool shouldSendStats = true);
     bool _isFinished;
-    QThread* _datagramProcessingThread;
     QTimer* _domainServerTimer = nullptr;
     QTimer* _statsTimer = nullptr;
 

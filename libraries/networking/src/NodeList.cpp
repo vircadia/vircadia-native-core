@@ -45,6 +45,11 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
         qRegisterMetaType<SharedNodePointer>();
         firstCall = false;
     }
+
+    setCustomDeleter([](Dependency* dependency){
+        static_cast<NodeList*>(dependency)->deleteLater();
+    });
+    
     auto addressManager = DependencyManager::get<AddressManager>();
 
     // handle domain change signals from AddressManager

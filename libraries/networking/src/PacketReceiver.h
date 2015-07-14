@@ -34,11 +34,11 @@ public:
     
     int getInPacketCount() const { return _inPacketCount; }
     int getInByteCount() const { return _inByteCount; }
+
+    void setShouldDropPackets(bool shouldDropPackets) { _shouldDropPackets = shouldDropPackets; }
     
     void resetCounters() { _inPacketCount = 0; _inByteCount = 0; }
 
-    void shutdown() { _isShuttingDown = true; }
-    
     void registerListenerForTypes(const QSet<PacketType::Value>& types, PacketListener* listener, const char* slot);
     void registerListener(PacketType::Value type, PacketListener* listener, const char* slot);
     void unregisterListener(PacketListener* listener);
@@ -47,8 +47,8 @@ public slots:
     void processDatagrams();
 
 signals:
-    void dataSent(quint8 channel_type, int bytes);
-    void dataReceived(quint8 channel_type, int bytes);
+    void dataSent(quint8 channelType, int bytes);
+    void dataReceived(quint8 channelType, int bytes);
     void packetVersionMismatch(PacketType::Value type);
     
 private:
@@ -63,7 +63,7 @@ private:
     QHash<PacketType::Value, ObjectMethodPair> _packetListenerMap;
     int _inPacketCount = 0;
     int _inByteCount = 0;
-    bool _isShuttingDown = false;
+    bool _shouldDropPackets = false;
 };
 
 #endif // hifi_PacketReceiver_h
