@@ -38,7 +38,7 @@ public:
     static ShaderPointer getDrawColoredTexturePS();
 
     // The shader program combining the shaders available above, so they are unique
-    typedef ShaderPointer (*StandardShaderLib::GetShader) ();
+    typedef ShaderPointer (*GetShader) ();
     static ShaderPointer getProgram(GetShader vs, GetShader ps);
 
 protected:

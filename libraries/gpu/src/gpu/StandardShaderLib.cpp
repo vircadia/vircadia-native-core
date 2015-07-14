@@ -29,12 +29,12 @@ StandardShaderLib::ProgramMap StandardShaderLib::_programs;
 
 ShaderPointer StandardShaderLib::getProgram(GetShader getVS, GetShader getPS) {
 
-    auto& programIt = _programs.find(std::pair<GetShader, GetShader>(getVS, getPS));
+    auto programIt = _programs.find(std::pair<GetShader, GetShader>(getVS, getPS));
     if (programIt != _programs.end()) {
         return (*programIt).second;
     } else {
-        auto vs = getVS();
-        auto ps = getPS();
+        auto vs = (getVS)();
+        auto ps = (getPS)();
         auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
         if (program) {
             // Program created, let's try to make it
