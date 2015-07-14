@@ -500,7 +500,7 @@ Menu::Menu() {
 
     MenuWrapper* networkMenu = developerMenu->addMenu("Network");
     addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::DisableNackPackets, 0, false,
-                                           qApp()->getEntityEditPacketSender(),
+                                           qApp->getEntityEditPacketSender(),
                                            SLOT(toggleNackPackets()));
     addCheckableActionToQMenuAndActionHash(networkMenu,
                                            MenuOption::DisableActivityLogger,
@@ -544,7 +544,7 @@ Menu::Menu() {
                                            SLOT(toggleAudioNoiseReduction()));
 
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio, 0, false,
-                                          NackaudioIO.data(), SLOT(toggleServerEcho()));
+                                           audioIO.data(), SLOT(toggleServerEcho()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio, 0, false,
                                            audioIO.data(), SLOT(toggleLocalEcho()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::MuteAudio,
