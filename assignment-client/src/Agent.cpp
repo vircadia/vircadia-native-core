@@ -51,10 +51,10 @@ Agent::Agent(NLPacket& packet) :
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     
     packetReceiver.registerPacketListenerForTypes(
-        QSet<PacketType::Value>({ PacketType::MixedAudio, PacketType::SilentAudioFrame }),
+        { PacketType::MixedAudio, PacketType::SilentAudioFrame },
         this, "handleAudioPacket");
     packetReceiver.registerPacketListenerForTypes(
-        QSet<PacketType::Value>({ PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase }),
+        { PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
         this, "handleOctreePacket");
     packetReceiver.registerPacketListener(PacketType::Jurisdiction, this, "handleJurisdictionPacket");
 }
