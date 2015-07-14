@@ -57,9 +57,6 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->setOwnerType(nodeType);
 
-    // this is a temp fix for Qt 5.3 - rebinding the node socket gives us readyRead for the socket on this thread
-    nodeList->rebindNodeSocket();
-
     _domainServerTimer = new QTimer();
     connect(_domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
     _domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
