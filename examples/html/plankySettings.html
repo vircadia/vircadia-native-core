@@ -38,13 +38,21 @@ PropertyInput = function(key, label, value, attributes) {
     this.construct();
 };
 
+var valueChangeHandler = function() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        action: 'value_change',
+        option: $(this).attr('name'),
+        value: properties[$(this).attr('name')].getValue()
+    }));
+};
+
 NumberInput = function(key, label, value, attributes) {
     PropertyInput.call(this, key, label, value, attributes);
 };
 NumberInput.prototype = Object.create(PropertyInput.prototype);
 NumberInput.prototype.constructor = NumberInput;
 NumberInput.prototype.createValue = function() {
-    this.input = $('<input>').attr('name', this.key).attr('type', 'number').val(this.value);
+    this.input = $('<input>').attr('name', this.key).attr('type', 'number').val(this.value).on('change', valueChangeHandler);
     if (this.attributes !== undefined) {
         this.input.attr(this.attributes);
     }
@@ -114,7 +122,6 @@ $(function() {
         });
     }
     EventBridge.emitWebEvent(JSON.stringify({action: 'loaded'}));
-
 });
 </script>
 </head>

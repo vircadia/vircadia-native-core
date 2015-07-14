@@ -65,6 +65,9 @@ SettingsWindow = function() {
             case 'loaded':
                 _this.sendData({action: 'load', options: _this.plankyStack.options.getJSON()})
                 break;
+            case 'value_change':
+                _this.plankyStack.onValueChanged(data.option, data.value);
+                break;
             default:
                 Window.alert('unknown action ' + data.action);
         }
@@ -237,6 +240,10 @@ PlankyStack = function() {
         if (!found) {
             _this.planks.push({layer: layer, row: row, entity: Entities.addEntity(newProperties)})
         }
+    };
+    this.onValueChanged = function(option, value) {
+        _this.options[option] = value;
+        _this.refresh();
     };
     this.refresh = function() {
         refreshGround();
