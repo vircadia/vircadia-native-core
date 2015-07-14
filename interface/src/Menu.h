@@ -273,6 +273,7 @@ namespace MenuOption {
     const QString SimpleShadows = "Simple";
     const QString SixenseEnabled = "Enable Hydra Support";
     const QString ShiftHipsForIdleAnimations = "Shift hips for idle animations";
+    const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString StopAllScripts = "Stop All Scripts";

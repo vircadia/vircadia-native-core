@@ -687,6 +687,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     auto applicationUpdater = DependencyManager::get<AutoUpdater>();
     connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
     applicationUpdater->checkForUpdate();
+
+    // Now that menu is initalized we can sync myAvatar with it's state.
+    _myAvatar->updateMotionBehaviorFromMenu();
+    _myAvatar->updateStandingHMDModeFromMenu();
 }
 
 void Application::aboutToQuit() {
