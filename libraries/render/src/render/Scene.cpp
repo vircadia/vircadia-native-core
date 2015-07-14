@@ -76,7 +76,7 @@ void Item::Status::Value::setColor(float hue) {
 }
 
 void Item::Status::getPackedValues(glm::ivec4& values) const {
-    for (unsigned int i = 0; i < values.length(); i++) {
+    for (unsigned int i = 0; i < (unsigned int)values.length(); i++) {
         if (i < _values.size()) {
             values[i] = _values[i]().getPackedData();
         } else {

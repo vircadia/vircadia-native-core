@@ -119,7 +119,7 @@ int EntityServer::sendSpecialPackets(const SharedNodePointer& node, OctreeQueryN
             auto specialPacket = tree->encodeEntitiesDeletedSince(queryNode->getSequenceNumber(), deletedEntitiesSentAt,
                                                                   hasMoreToSend);
 
-            queryNode->packetSent(*specialPacket.get());
+            queryNode->packetSent(*specialPacket);
 
             totalBytes += specialPacket->getSizeWithHeader();
             packetsSent++;

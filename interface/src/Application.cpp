@@ -4830,7 +4830,7 @@ mat4 Application::getEyeProjection(int eye) const {
     if (isHMDMode()) {
         return OculusManager::getEyeProjection(eye);
     }
-    
+
     return _viewFrustum.getProjection();
 }
 

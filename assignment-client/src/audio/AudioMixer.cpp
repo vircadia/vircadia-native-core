@@ -475,7 +475,6 @@ int AudioMixer::prepareMixForListeningNode(Node* node) {
 }
 
 void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
-
     // Send stream properties
     bool hasReverb = false;
     float reverbTime, wetLevel;

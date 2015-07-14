@@ -114,9 +114,9 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     loadLightProgram(deferred_light_spot_vert, spot_light_frag, true, _spotLight, _spotLightLocations);
 
     {
-        auto VSFS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto PSBlit = gpu::StandardShaderLib::getDrawTexturePS();
-        auto blitProgram = gpu::ShaderPointer(gpu::Shader::createProgram(VSFS, PSBlit));
+        //auto VSFS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
+        //auto PSBlit = gpu::StandardShaderLib::getDrawTexturePS();
+        auto blitProgram = gpu::StandardShaderLib::getProgram(gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS, gpu::StandardShaderLib::getDrawTexturePS);
         gpu::Shader::makeProgram(*blitProgram);
         gpu::StatePointer blitState = gpu::StatePointer(new gpu::State());
         blitState->setBlendFunction(true,
@@ -474,17 +474,18 @@ void DeferredLightingEffect::render(RenderArgs* args) {
             // IN DEBUG: light->setShowContour(true);
 
             batch.setUniformBuffer(_spotLightLocations.lightBufferUnit, light->getSchemaBuffer());
-            
+
             auto eyeLightPos = eyePoint - light->getPosition();
             auto eyeHalfPlaneDistance = glm::dot(eyeLightPos, light->getDirection());
-            
+
             const float TANGENT_LENGTH_SCALE = 0.666f;
-            glm::vec4 coneParam(light->getSpotAngleCosSin(), TANGENT_LENGTH_SCALE * tan(0.5 * light->getSpotAngle()), 1.0f);
+            glm::vec4 coneParam(light->getSpotAngleCosSin(), TANGENT_LENGTH_SCALE * tanf(0.5f * light->getSpotAngle()), 1.0f);
 
             float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
             // TODO: We shouldn;t have to do that test and use a different volume geometry for when inside the vlight volume,
             // we should be able to draw thre same geometry use DepthClamp but for unknown reason it's s not working...
-            if ((eyeHalfPlaneDistance > -nearRadius) && (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius)) {
+            if ((eyeHalfPlaneDistance > -nearRadius) &&
+                (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius)) {
                 coneParam.w = 0.0f;
                 batch._glUniform4fv(_spotLightLocations.coneParam, 1, reinterpret_cast< const GLfloat* >(&coneParam));
 

@@ -1,0 +1,39 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Draw and transform the unit quad [-1,-1 -> 1,1]
+//  Transform the normalized texcoords [0, 1] to be in the range [texcoordRect.xy, texcoordRect.xy + texcoordRect.zw]
+//  Simply draw a Triangle_strip of 2 triangles, no input buffers or index buffer needed
+//
+//  Created by Sam Gateau on 6/22/2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Transform.slh@>
+
+<$declareStandardTransform()$>
+
+uniform vec4 texcoordRect;
+
+varying vec2 varTexcoord;
+
+void main(void) {
+    const vec4 UNIT_QUAD[4] = vec4[4](
+        vec4(-1.0, -1.0, 0.0, 1.0),
+        vec4(1.0, -1.0, 0.0, 1.0),
+        vec4(-1.0, 1.0, 0.0, 1.0),
+        vec4(1.0, 1.0, 0.0, 1.0)
+    );
+    vec4 pos = UNIT_QUAD[gl_VertexID];
+
+    // standard transform
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    <$transformModelToClipPos(cam, obj, pos, gl_Position)$>
+
+    varTexcoord = ((pos.xy + 1) * 0.5) * texcoordRect.zw + texcoordRect.xy;
+}

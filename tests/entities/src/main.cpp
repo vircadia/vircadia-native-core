@@ -73,15 +73,19 @@ template <typename T>
 void testByteCountCodedStable(const T& value) {
     ByteCountCoded<T> coder((T)value);
     auto encoded = coder.encode();
+    #ifndef QT_NO_DEBUG
     auto originalEncodedSize = encoded.size();
+    #endif
     for (int i = 0; i < 10; ++i) {
         encoded.append(qrand());
     }
     ByteCountCoded<T> decoder;
     decoder.decode(encoded);
     Q_ASSERT(decoder.data == coder.data);
+    #ifndef QT_NO_DEBUG
     auto consumed = decoder.decode(encoded.data(), encoded.size());
-    Q_ASSERT(consumed == originalEncodedSize);
+    #endif
+    Q_ASSERT(consumed == (unsigned int)originalEncodedSize);
 
 }
 
@@ -100,12 +104,14 @@ void testPropertyFlags(uint32_t value) {
     EntityPropertyFlags original;
     original.clear();
     auto enumSize = sizeof(EntityPropertyList);
-    for (size_t i = 0; i < sizeof(EntityPropertyList) * 8; ++i) {
+    for (size_t i = 0; i < enumSize * 8; ++i) {
         original.setHasProperty((EntityPropertyList)i);
     }
     QByteArray encoded = original.encode();
+    #ifndef QT_NO_DEBUG
     auto originalSize = encoded.size();
-    for (size_t i = 0; i < sizeof(EntityPropertyList); ++i) {
+    #endif
+    for (size_t i = 0; i < enumSize; ++i) {
         encoded.append(qrand());
     }
 
@@ -116,7 +122,9 @@ void testPropertyFlags(uint32_t value) {
     }
 
     {
+        #ifndef QT_NO_DEBUG
         auto decodeSize = decodeNew.decode((const uint8_t*)encoded.data(), encoded.size());
+        #endif
         Q_ASSERT(originalSize == decodeSize);
         Q_ASSERT(decodeNew == original);
     }
@@ -129,7 +137,7 @@ void testPropertyFlags() {
     testPropertyFlags(0xFFFF);
 }
 
-int main(int argc, char** argv) {    
+int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
     {
         auto start = usecTimestampNow();

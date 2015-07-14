@@ -30,16 +30,6 @@ qint64 NLPacket::localHeaderSize() const {
 }
 
 std::unique_ptr<NLPacket> NLPacket::create(PacketType::Value type, qint64 size) {
-    auto maxPayload = maxPayloadSize(type);
-    if (size == -1) {
-        // default size of -1, means biggest packet possible
-        size = maxPayload;
-    }
-    
-    // Fail with invalid size
-    Q_ASSERT(size >= 0 || size < maxPayload);
-    
-    // allocate memory
     return std::unique_ptr<NLPacket>(new NLPacket(type, size));
 }
 

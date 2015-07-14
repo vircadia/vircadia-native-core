@@ -189,7 +189,7 @@ void ObjectActionSpring::deserialize(QByteArray serializedArguments) {
 
     EntityActionType type;
     dataStream >> type;
-    assert(type == ACTION_TYPE_SPRING);
+    assert(type == getType());
 
     QUuid id;
     dataStream >> id;

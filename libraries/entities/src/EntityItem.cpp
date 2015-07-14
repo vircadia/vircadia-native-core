@@ -385,7 +385,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         dataAt += encodedID.size();
         bytesRead += encodedID.size();
         Q_ASSERT(id == _id);
-        Q_ASSERT(parser.offset() == bytesRead);
+        Q_ASSERT(parser.offset() == (unsigned int) bytesRead);
     }
 #endif
 
@@ -400,7 +400,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     quint32 type = typeCoder;
     EntityTypes::EntityType oldType = (EntityTypes::EntityType)type;
     Q_ASSERT(oldType == _type);
-    Q_ASSERT(parser.offset() == bytesRead);
+    Q_ASSERT(parser.offset() == (unsigned int) bytesRead);
 #endif
 
     bool overwriteLocalData = true; // assume the new content overwrites our local data
@@ -417,7 +417,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             dataAt += sizeof(createdFromBuffer2);
             bytesRead += sizeof(createdFromBuffer2);
             Q_ASSERT(createdFromBuffer2 == createdFromBuffer);
-            Q_ASSERT(parser.offset() == bytesRead);
+            Q_ASSERT(parser.offset() == (unsigned int) bytesRead);
         }
 #endif
         if (_created == UNKNOWN_CREATED_TIME) {
@@ -458,7 +458,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         dataAt += sizeof(lastEditedFromBuffer2);
         bytesRead += sizeof(lastEditedFromBuffer2);
         Q_ASSERT(lastEditedFromBuffer2 == lastEditedFromBuffer);
-        Q_ASSERT(parser.offset() == bytesRead);
+        Q_ASSERT(parser.offset() == (unsigned int) bytesRead);
     }
 #endif
     quint64 lastEditedFromBufferAdjusted = lastEditedFromBuffer - clockSkew;
@@ -534,7 +534,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         encodedUpdateDelta = updateDeltaCoder; // determine true length
         dataAt += encodedUpdateDelta.size();
         bytesRead += encodedUpdateDelta.size();
-        Q_ASSERT(parser.offset() == bytesRead);
+        Q_ASSERT(parser.offset() == (unsigned int) bytesRead);
     }
 #endif
 
@@ -562,7 +562,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             encodedSimulatedDelta = simulatedDeltaCoder; // determine true length
             dataAt += encodedSimulatedDelta.size();
             bytesRead += encodedSimulatedDelta.size();
-            Q_ASSERT(parser.offset() == bytesRead);
+            Q_ASSERT(parser.offset() == (unsigned int) bytesRead);
         }
 #endif
 
@@ -599,7 +599,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         dataAt += propertyFlags.getEncodedLength();
         bytesRead += propertyFlags.getEncodedLength();
         Q_ASSERT(propertyFlags2 == propertyFlags);
-        Q_ASSERT(parser.offset() == bytesRead);
+        Q_ASSERT(parser.offset() == (unsigned int)bytesRead);
     }
 #endif
 
