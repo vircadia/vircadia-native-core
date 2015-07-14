@@ -416,15 +416,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     audioIO->setOrientationGetter(getOrientationForAudio);
 
     audioIO->moveToThread(audioThread);
+
+    auto& audioScriptingInterface = AudioScriptingInterface::getInstance();
+    
     connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
     connect(audioIO.data(), &AudioClient::destroyed, audioThread, &QThread::quit);
     connect(audioThread, &QThread::finished, audioThread, &QThread::deleteLater);
     connect(audioIO.data(), &AudioClient::muteToggled, this, &Application::audioMuteToggled);
-    connect(audioIO.data(), &AudioClient::mutedByMixer, this, &AudioScriptingInterface::mutedByMixer);
-    connect(audioIO.data(), &AudioClient::receivedFirstPacket,
-            &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::receivedFirstPacket);
-    connect(audioIO.data(), &AudioClient::disconnected,
-            &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::disconnected);
+    connect(audioIO.data(), &AudioClient::mutedByMixer, &audioScriptingInterface, &AudioScriptingInterface::mutedByMixer);
+    connect(audioIO.data(), &AudioClient::receivedFirstPacket, &audioScriptingInterface, &AudioScriptingInterface::receivedFirstPacket);
+    connect(audioIO.data(), &AudioClient::disconnected, &audioScriptingInterface, &AudioScriptingInterface::disconnected);
     connect(audioIO.data(), &AudioClient::muteEnvironmentRequested, [](glm::vec3 position, float radius) {
         auto audioClient = DependencyManager::get<AudioClient>();
         float distance = glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(),
