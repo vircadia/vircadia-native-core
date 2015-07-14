@@ -122,13 +122,6 @@ public:
 
     PacketReceiver& getPacketReceiver() { return _packetReceiver; }
 
-    // QByteArray byteArrayWithPopulatedHeader(PacketType::Value packetType)
-    //     { return byteArrayWithUUIDPopulatedHeader(packetType, _sessionUUID); }
-    // int populatePacketHeader(QByteArray& packet, PacketType::Value packetType)
-    //     { return populatePacketHeaderWithUUID(packet, packetType, _sessionUUID); }
-    // int populatePacketHeader(char* packet, PacketType::Value packetType)
-    //     { return populatePacketHeaderWithUUID(packet, packetType, _sessionUUID); }
-
     qint64 sendUnreliablePacket(const NLPacket& packet, const SharedNodePointer& destinationNode) { assert(false); return 0; }
     qint64 sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr) { assert(false); return 0; }
 
