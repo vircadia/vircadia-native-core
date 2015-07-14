@@ -19,7 +19,7 @@
 
 EntityEditPacketSender::EntityEditPacketSender() {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerPacketListener(PacketType::EntityEditNack, this, "processEntityEditNackPacket");
+    packetReceiver.registerListener(PacketType::EntityEditNack, this, "processEntityEditNackPacket");
 }
 
 void EntityEditPacketSender::processEntityEditNackPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr) {

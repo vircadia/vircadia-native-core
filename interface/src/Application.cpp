@@ -654,7 +654,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     applicationUpdater->checkForUpdate();
 
     auto& packetReceiver = nodeList->getPacketReceiver();
-    packetReceiver.registerPacketListener(PacketType::DomainConnectionDenied, this, "handleDomainConnectionDeniedPacket");
+    packetReceiver.registerListener(PacketType::DomainConnectionDenied, this, "handleDomainConnectionDeniedPacket");
 }
 
 void Application::aboutToQuit() {
@@ -665,6 +665,9 @@ void Application::aboutToQuit() {
 }
 
 void Application::cleanupBeforeQuit() {
+
+    // stop handling packets we've asked to handle
+    DependencyManager::get<LimitedNodeList>()->getPacketReceiver().unregisterListener(this);
 
     _entities.clear(); // this will allow entity scripts to properly shutdown
 

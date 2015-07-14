@@ -142,12 +142,12 @@ AudioClient::AudioClient() :
     configureGverbFilter(_gverb);
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerPacketListener(PacketType::AudioStreamStats, &_stats, "handleAudioStreamStatsPacket");
-    packetReceiver.registerPacketListener(PacketType::AudioEnvironment, this, "handleAudioEnvironmentDataPacket");
-    packetReceiver.registerPacketListener(PacketType::SilentAudioFrame, this, "handleAudioDataPacket");
-    packetReceiver.registerPacketListener(PacketType::MixedAudio, this, "handleAudioDataPacket");
-    packetReceiver.registerPacketListener(PacketType::NoisyMute, this, "handleNoisyMutePacket");
-    packetReceiver.registerPacketListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
+    packetReceiver.registerListener(PacketType::AudioStreamStats, &_stats, "handleAudioStreamStatsPacket");
+    packetReceiver.registerListener(PacketType::AudioEnvironment, this, "handleAudioEnvironmentDataPacket");
+    packetReceiver.registerListener(PacketType::SilentAudioFrame, this, "handleAudioDataPacket");
+    packetReceiver.registerListener(PacketType::MixedAudio, this, "handleAudioDataPacket");
+    packetReceiver.registerListener(PacketType::NoisyMute, this, "handleNoisyMutePacket");
+    packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
 }
 
 AudioClient::~AudioClient() {

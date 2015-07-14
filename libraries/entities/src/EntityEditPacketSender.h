@@ -14,10 +14,12 @@
 
 #include <OctreeEditPacketSender.h>
 
+#include <PacketListener.h>
+
 #include "EntityItem.h"
 
 /// Utility for processing, packing, queueing and sending of outbound edit voxel messages.
-class EntityEditPacketSender :  public OctreeEditPacketSender {
+class EntityEditPacketSender :  public OctreeEditPacketSender, public PacketListener {
     Q_OBJECT
 public:
     EntityEditPacketSender();

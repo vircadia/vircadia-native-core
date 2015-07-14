@@ -1,6 +1,6 @@
 //
 //  ThreadedAssignment.h
-//  libraries/shared/src
+//  libraries/networking/src
 //
 //  Created by Stephen Birarda on 12/3/2013.
 //  Copyright 2013 High Fidelity, Inc.
@@ -14,9 +14,11 @@
 
 #include <QtCore/QSharedPointer>
 
+#include "PacketListener.h"
+
 #include "Assignment.h"
 
-class ThreadedAssignment : public Assignment {
+class ThreadedAssignment : public Assignment, public PacketListener {
     Q_OBJECT
 public:
     ThreadedAssignment(NLPacket& packet);

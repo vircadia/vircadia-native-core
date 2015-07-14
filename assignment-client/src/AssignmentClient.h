@@ -15,11 +15,13 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QPointer>
 
+#include <PacketListener.h>
+
 #include "ThreadedAssignment.h"
 
 class QSharedMemory;
 
-class AssignmentClient : public QObject {
+class AssignmentClient : public QObject, public PacketListener {
     Q_OBJECT
 public:
 

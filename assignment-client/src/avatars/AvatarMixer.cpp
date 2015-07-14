@@ -48,10 +48,10 @@ AvatarMixer::AvatarMixer(NLPacket& packet) :
     connect(DependencyManager::get<NodeList>().data(), &NodeList::nodeKilled, this, &AvatarMixer::nodeKilled);
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerPacketListener(PacketType::AvatarData, this, "handleAvatarDataPacket");
-    packetReceiver.registerPacketListener(PacketType::AvatarIdentity, this, "handleAvatarIdentityPacket");
-    packetReceiver.registerPacketListener(PacketType::AvatarBillboard, this, "handleAvatarBillboardPacket");
-    packetReceiver.registerPacketListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
+    packetReceiver.registerListener(PacketType::AvatarData, this, "handleAvatarDataPacket");
+    packetReceiver.registerListener(PacketType::AvatarIdentity, this, "handleAvatarIdentityPacket");
+    packetReceiver.registerListener(PacketType::AvatarBillboard, this, "handleAvatarBillboardPacket");
+    packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
 }
 
 AvatarMixer::~AvatarMixer() {

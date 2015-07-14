@@ -54,7 +54,7 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
     auto nodeList = DependencyManager::set<LimitedNodeList>();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerPacketListener(PacketType::AssignmentClientStatus, this, "handleChildStatusPacket");
+    packetReceiver.registerListener(PacketType::AssignmentClientStatus, this, "handleChildStatusPacket");
 
     // use QProcess to fork off a process for each of the child assignment clients
     for (unsigned int i = 0; i < _numAssignmentClientForks; i++) {

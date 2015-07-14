@@ -50,13 +50,13 @@ Agent::Agent(NLPacket& packet) :
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     
-    packetReceiver.registerPacketListenerForTypes(
+    packetReceiver.registerListenerForTypes(
         { PacketType::MixedAudio, PacketType::SilentAudioFrame },
         this, "handleAudioPacket");
-    packetReceiver.registerPacketListenerForTypes(
+    packetReceiver.registerListenerForTypes(
         { PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
         this, "handleOctreePacket");
-    packetReceiver.registerPacketListener(PacketType::Jurisdiction, this, "handleJurisdictionPacket");
+    packetReceiver.registerListener(PacketType::Jurisdiction, this, "handleJurisdictionPacket");
 }
 
 void Agent::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {

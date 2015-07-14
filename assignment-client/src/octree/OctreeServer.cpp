@@ -1060,9 +1060,9 @@ void OctreeServer::readConfiguration() {
 void OctreeServer::run() {
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerPacketListener(getMyQueryMessageType(), this, "handleOctreeQueryPacket");
-    packetReceiver.registerPacketListener(PacketType::OctreeDataNack, this, "handleOctreeDataNackPacket");
-    packetReceiver.registerPacketListener(PacketType::JurisdictionRequest, this, "handleJurisdictionRequestPacket");
+    packetReceiver.registerListener(getMyQueryMessageType(), this, "handleOctreeQueryPacket");
+    packetReceiver.registerListener(PacketType::OctreeDataNack, this, "handleOctreeDataNackPacket");
+    packetReceiver.registerListener(PacketType::JurisdictionRequest, this, "handleJurisdictionRequestPacket");
     
     _safeServerName = getMyServerName();
 

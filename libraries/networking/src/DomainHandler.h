@@ -22,17 +22,18 @@
 #include "HifiSockAddr.h"
 #include "NetworkPeer.h"
 #include "NLPacket.h"
+#include "PacketListener.h"
 
 const unsigned short DEFAULT_DOMAIN_SERVER_PORT = 40102;
 const unsigned short DEFAULT_DOMAIN_SERVER_DTLS_PORT = 40103;
 const quint16 DOMAIN_SERVER_HTTP_PORT = 40100;
 const quint16 DOMAIN_SERVER_HTTPS_PORT = 40101;
 
-class DomainHandler : public QObject {
+class DomainHandler : public QObject, public PacketListener {
     Q_OBJECT
 public:
     DomainHandler(QObject* parent = 0);
-
+    
     void clearConnectionInfo();
     void clearSettings();
 

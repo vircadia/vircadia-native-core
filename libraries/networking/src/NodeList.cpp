@@ -92,15 +92,13 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     startSTUNPublicSocketUpdate();
 
     auto& packetReceiver = getPacketReceiver();
-    packetReceiver.registerPacketListener(PacketType::DomainList, this, "processDomainServerList");
-    packetReceiver.registerPacketListener(PacketType::DomainServerAddedNode, this, "processDomainServerAddedNode");
-    packetReceiver.registerPacketListener(PacketType::DomainServerRequireDTLS, &_domainHandler, "processDTLSRequirementPacket");
-    packetReceiver.registerPacketListener(PacketType::DomainServerPathResponse, this, "processDomainServerPathQueryResponse");
-    packetReceiver.registerPacketListener(PacketType::ICEServerPeerInformation, &_domainHandler, "processICEResponsePacket");
-    packetReceiver.registerPacketListener(PacketType::Ping, this, "processPingPacket");
-    packetReceiver.registerPacketListener(PacketType::PingReply, this, "processPingReplyPacket");
-    packetReceiver.registerPacketListener(PacketType::ICEPing, this, "processICEPingPacket");
-    packetReceiver.registerPacketListener(PacketType::ICEPingReply, this, "processICEPingReplyPacket");
+    packetReceiver.registerListener(PacketType::DomainList, this, "processDomainServerList");
+    packetReceiver.registerListener(PacketType::DomainServerAddedNode, this, "processDomainServerAddedNode");
+    packetReceiver.registerListener(PacketType::DomainServerPathResponse, this, "processDomainServerPathQueryResponse");
+    packetReceiver.registerListener(PacketType::Ping, this, "processPingPacket");
+    packetReceiver.registerListener(PacketType::PingReply, this, "processPingReplyPacket");
+    packetReceiver.registerListener(PacketType::ICEPing, this, "processICEPingPacket");
+    packetReceiver.registerListener(PacketType::ICEPingReply, this, "processICEPingReplyPacket");
 }
 
 qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination) {

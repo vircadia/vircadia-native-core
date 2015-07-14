@@ -21,11 +21,12 @@
 #include <DependencyManager.h>
 #include <NLPacket.h>
 #include <Node.h>
+#include <PacketListener.h>
 
 #include "AvatarData.h"
 #include <glm/glm.hpp>
 
-class AvatarHashMap : public QObject, public Dependency {
+class AvatarHashMap : public QObject, public Dependency, public PacketListener {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 

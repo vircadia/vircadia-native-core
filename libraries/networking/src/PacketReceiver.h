@@ -22,6 +22,8 @@
 #include "NLPacket.h"
 #include "PacketHeaders.h"
 
+class PacketListener;
+
 class PacketReceiver : public QObject {
     Q_OBJECT
 public:
@@ -33,12 +35,13 @@ public:
     int getInPacketCount() const { return _inPacketCount; }
     int getInByteCount() const { return _inByteCount; }
     
-    void resetCounters() { _inPacketCount = 0; _outPacketCount = 0; _inByteCount = 0; _outByteCount = 0; }
+    void resetCounters() { _inPacketCount = 0; _inByteCount = 0; }
 
     void shutdown() { _isShuttingDown = true; }
     
-    void registerPacketListenerForTypes(const QSet<PacketType::Value>& types, QObject* listener, const char* slot);
-    void registerPacketListener(PacketType::Value type, QObject* listener, const char* slot);
+    void registerListenerForTypes(const QSet<PacketType::Value>& types, PacketListener* listener, const char* slot);
+    void registerListener(PacketType::Value type, PacketListener* listener, const char* slot);
+    void unregisterListener(PacketListener* listener);
 
 public slots:
     void processDatagrams();
@@ -54,7 +57,7 @@ private:
     QMetaMethod matchingMethodForListener(PacketType::Value type, QObject* object, const char* slot) const;
     void registerVerifiedListener(PacketType::Value type, QObject* listener, const QMetaMethod& slot);
     
-    using ObjectMethodPair = std::pair<QPointer<QObject>, QMetaMethod>;
+    using ObjectMethodPair = std::pair<QObject*, QMetaMethod>;
 
     QMutex _packetListenerLock;
     QHash<PacketType::Value, ObjectMethodPair> _packetListenerMap;

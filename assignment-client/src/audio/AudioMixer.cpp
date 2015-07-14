@@ -104,8 +104,8 @@ AudioMixer::AudioMixer(NLPacket& packet) :
         PacketType::AudioStreamStats
     };
 
-    packetReceiver.registerPacketListenerForTypes(nodeAudioPackets, this, "handleNodeAudioPacket");
-    packetReceiver.registerPacketListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
+    packetReceiver.registerListenerForTypes(nodeAudioPackets, this, "handleNodeAudioPacket");
+    packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
 }
 
 const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;

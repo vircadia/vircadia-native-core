@@ -111,6 +111,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 }
 
 void DomainServer::aboutToQuit() {
+
     // clear the log handler so that Qt doesn't call the destructor on LogHandler
     qInstallMessageHandler(0);
 }
@@ -280,14 +281,14 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
 
     // register as the packet receiver for the types we want
     PacketReceiver& packetReceiver = nodeList->getPacketReceiver();
-    packetReceiver.registerPacketListener(PacketType::RequestAssignment, this, "processRequestAssignmentPacket");
-    packetReceiver.registerPacketListener(PacketType::DomainConnectRequest, this, "processConnectRequestPackets");
-    packetReceiver.registerPacketListener(PacketType::DomainListRequest, this, "processListRequestPacket");
-    packetReceiver.registerPacketListener(PacketType::DomainServerPathQuery, this, "processPathQueryPacket");
-    packetReceiver.registerPacketListener(PacketType::NodeJsonStats, this, "processNodeJSONStatsPacket");
-    packetReceiver.registerPacketListener(PacketType::ICEPing, this, "processICEPingPacket");
-    packetReceiver.registerPacketListener(PacketType::ICEPingReply, this, "processICEPingReplyPacket");
-    packetReceiver.registerPacketListener(PacketType::ICEServerPeerInformation, this, "processICEPeerInformationPacket");
+    packetReceiver.registerListener(PacketType::RequestAssignment, this, "processRequestAssignmentPacket");
+    packetReceiver.registerListener(PacketType::DomainConnectRequest, this, "processConnectRequestPackets");
+    packetReceiver.registerListener(PacketType::DomainListRequest, this, "processListRequestPacket");
+    packetReceiver.registerListener(PacketType::DomainServerPathQuery, this, "processPathQueryPacket");
+    packetReceiver.registerListener(PacketType::NodeJsonStats, this, "processNodeJSONStatsPacket");
+    packetReceiver.registerListener(PacketType::ICEPing, this, "processICEPingPacket");
+    packetReceiver.registerListener(PacketType::ICEPingReply, this, "processICEPingReplyPacket");
+    packetReceiver.registerListener(PacketType::ICEServerPeerInformation, this, "processICEPeerInformationPacket");
 
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();

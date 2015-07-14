@@ -121,10 +121,9 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
         setUpStatusToMonitor();
     }
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerPacketListener(PacketType::CreateAssignment, this, "handleCreateAssignmentPacket");
-    packetReceiver.registerPacketListener(PacketType::StopNode, this, "handleStopNodePacket");
+    packetReceiver.registerListener(PacketType::CreateAssignment, this, "handleCreateAssignmentPacket");
+    packetReceiver.registerListener(PacketType::StopNode, this, "handleStopNodePacket");
 }
-
 
 void AssignmentClient::stopAssignmentClient() {
     qDebug() << "Forced stop of assignment-client.";

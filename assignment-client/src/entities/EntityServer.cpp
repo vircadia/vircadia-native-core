@@ -26,9 +26,9 @@ EntityServer::EntityServer(NLPacket& packet) :
     _entitySimulation(NULL)
 {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerPacketListener(PacketType::EntityAdd, this, "handleEntityAddPacket");
-    packetReceiver.registerPacketListener(PacketType::EntityEdit, this, "handleEntityEditPacket");
-    packetReceiver.registerPacketListener(PacketType::EntityErase, this, "handleEntityErasePacket");
+    packetReceiver.registerListener(PacketType::EntityAdd, this, "handleEntityAddPacket");
+    packetReceiver.registerListener(PacketType::EntityEdit, this, "handleEntityEditPacket");
+    packetReceiver.registerListener(PacketType::EntityErase, this, "handleEntityErasePacket");
 }
 
 EntityServer::~EntityServer() {

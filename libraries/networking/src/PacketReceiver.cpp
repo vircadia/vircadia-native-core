@@ -24,7 +24,7 @@ PacketReceiver::PacketReceiver(QObject* parent) :
 
 }
 
-void PacketReceiver::registerPacketListenerForTypes(const QSet<PacketType::Value>& types, QObject* object, const char* slot) {
+void PacketReceiver::registerListenerForTypes(const QSet<PacketType::Value>& types, PacketListener* listener, const char* slot) {
     QSet<PacketType::Value> nonSourcedTypes;
     QSet<PacketType::Value> sourcedTypes;
 
@@ -35,6 +35,9 @@ void PacketReceiver::registerPacketListenerForTypes(const QSet<PacketType::Value
             sourcedTypes << type;
         }
     }
+
+    QObject* object = dynamic_cast<QObject*>(listener);
+    Q_ASSERT(object);
 
     if (nonSourcedTypes.size() > 0) {
         QMetaMethod nonSourcedMethod = matchingMethodForListener(*nonSourcedTypes.begin(), object, slot);
@@ -51,8 +54,12 @@ void PacketReceiver::registerPacketListenerForTypes(const QSet<PacketType::Value
     }
 }
 
-void PacketReceiver::registerPacketListener(PacketType::Value type, QObject* object, const char* slot) {
+void PacketReceiver::registerListener(PacketType::Value type, PacketListener* listener, const char* slot) {
+    QObject* object = dynamic_cast<QObject*>(listener);
+    Q_ASSERT(object);
+
     QMetaMethod matchingMethod = matchingMethodForListener(type, object, slot);
+    
     if (matchingMethod.isValid()) {
         registerVerifiedListener(type, object, matchingMethod);
     }
@@ -62,28 +69,35 @@ QMetaMethod PacketReceiver::matchingMethodForListener(PacketType::Value type, QO
     Q_ASSERT(object);
 
     // normalize the slot with the expected parameters
-    QString normalizedSlot;
-
-    if (NON_SOURCED_PACKETS.contains(type)) {
-        const QString NON_SOURCED_PACKET_LISTENER_PARAMETERS = "QSharedPointer<NLPacket>";
-
-        QString nonNormalizedSignature = QString("%1(%2)").arg(slot).arg(NON_SOURCED_PACKET_LISTENER_PARAMETERS);
-        normalizedSlot =
-            QMetaObject::normalizedSignature(nonNormalizedSignature.toStdString().c_str());
-    } else {
-        const QString SOURCED_PACKET_LISTENER_PARAMETERS = "QSharedPointer<NLPacket>,QSharedPointer<Node>";
     
-        QString nonNormalizedSignature = QString("%1(%2)").arg(slot).arg(SOURCED_PACKET_LISTENER_PARAMETERS);
-        normalizedSlot =
-            QMetaObject::normalizedSignature(nonNormalizedSignature.toStdString().c_str());
+    const QString NON_SOURCED_PACKET_LISTENER_PARAMETERS = "QSharedPointer<NLPacket>";
+
+    QSet<QString> possibleSignatures { QString("%1(%2)").arg(slot).arg(NON_SOURCED_PACKET_LISTENER_PARAMETERS) };
+
+    if (!NON_SOURCED_PACKETS.contains(type)) {
+        const QString SOURCED_PACKET_LISTENER_PARAMETERS = "QSharedPointer<NLPacket>,QSharedPointer<Node>";
+
+        // a sourced packet must take the shared pointer to the packet but optionally could include
+        // a shared pointer to the node
+        
+        possibleSignatures << QString("%1(%2)").arg(slot).arg(SOURCED_PACKET_LISTENER_PARAMETERS);
     }
 
-    // does the constructed normalized method exist?
-    int methodIndex = object->metaObject()->indexOfSlot(normalizedSlot.toStdString().c_str());
-    
+    int methodIndex = -1;
+
+    foreach(const QString& signature, possibleSignatures) {
+        QByteArray normalizedSlot =
+            QMetaObject::normalizedSignature(signature.toStdString().c_str());
+
+        // does the constructed normalized method exist?
+        methodIndex = object->metaObject()->indexOfSlot(normalizedSlot.toStdString().c_str());
+
+        break;
+    }
+   
     if (methodIndex < 0) {
-        qDebug() << "PacketReceiver::registerPacketListener expected a method with a normalized signature of"
-                << normalizedSlot << "but such a method was not found.";
+        qDebug() << "PacketReceiver::registerListener expected a method with one of the following signatures:"
+                << possibleSignatures << "- but such a method was not found.";
     }
 
     Q_ASSERT(methodIndex >= 0);
@@ -107,10 +121,27 @@ void PacketReceiver::registerVerifiedListener(PacketType::Value type, QObject* o
     }
 
     // add the mapping
-    _packetListenerMap[type] = ObjectMethodPair(QPointer<QObject>(object), slot);
+    _packetListenerMap[type] = ObjectMethodPair(object, slot);
         
     _packetListenerLock.unlock();
 
+}
+
+void PacketReceiver::unregisterListener(PacketListener* listener) {
+    _packetListenerLock.lock();
+
+    auto it = _packetListenerMap.begin();
+    
+    while (it != _packetListenerMap.end()) {
+        if (it.value().first == dynamic_cast<QObject*>(listener)) {
+            // this listener matches - erase it
+            it = _packetListenerMap.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    _packetListenerLock.unlock();
 }
 
 bool PacketReceiver::packetVersionMatch(const NLPacket& packet) {
@@ -149,7 +180,7 @@ void PacketReceiver::processDatagrams() {
 
     auto nodeList = DependencyManager::get<NodeList>();
 
-    while (DependencyManager::get<NodeList>()->getNodeSocket().hasPendingDatagrams()) {
+    while (nodeList->getNodeSocket().hasPendingDatagrams()) {
         // setup a buffer to read the packet into
         int packetSizeWithHeader = nodeList->getNodeSocket().pendingDatagramSize();
         std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[packetSizeWithHeader]);
@@ -186,7 +217,7 @@ void PacketReceiver::processDatagrams() {
 
                     auto listener = it.value();
                    
-                    if (!listener.first.isNull()) {
+                    if (listener.first) {
                         
                         if (matchingNode) {
                             emit dataReceived(matchingNode->getType(), packet->getSizeWithHeader());
