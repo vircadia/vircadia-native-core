@@ -911,7 +911,7 @@ QByteArray AvatarData::identityByteArray() {
 }
 
 bool AvatarData::hasBillboardChangedAfterParsing(NLPacket& packet) {
-    QByteArray newBillboard = QByteArray(packet.getPayload());
+    QByteArray newBillboard = packet.readAll();
     if (newBillboard == _billboard) {
         return false;
     }
