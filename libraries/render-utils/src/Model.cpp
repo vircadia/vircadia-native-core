@@ -417,6 +417,7 @@ void Model::reset() {
 }
 
 bool Model::updateGeometry() {
+    PROFILE_RANGE(__FUNCTION__);
     bool needFullUpdate = false;
 
     bool needToRebuild = false;
@@ -690,6 +691,7 @@ void Model::recalculateMeshPartOffsets() {
 // entity-scripts to call.  I think it would be best to do the picking once-per-frame (in cpu, or gpu if possible)
 // and then the calls use the most recent such result. 
 void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
+    PROFILE_RANGE(__FUNCTION__);
     bool calculatedMeshTrianglesNeeded = pickAgainstTriangles && !_calculatedMeshTrianglesValid;
 
     if (!_calculatedMeshBoxesValid || calculatedMeshTrianglesNeeded || (!_calculatedMeshPartBoxesValid && pickAgainstTriangles) ) {
@@ -1281,6 +1283,7 @@ Blender::Blender(Model* model, int blendNumber, const QWeakPointer<NetworkGeomet
 }
 
 void Blender::run() {
+    PROFILE_RANGE(__FUNCTION__);
     QVector<glm::vec3> vertices, normals;
     if (!_model.isNull()) {
         int offset = 0;
@@ -1392,6 +1395,7 @@ void Model::snapToRegistrationPoint() {
 }
 
 void Model::simulate(float deltaTime, bool fullUpdate) {
+    PROFILE_RANGE(__FUNCTION__);
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
                     
@@ -1829,6 +1833,7 @@ void Model::setupBatchTransform(gpu::Batch& batch, RenderArgs* args) {
 }
 
 AABox Model::getPartBounds(int meshIndex, int partIndex) {
+
     if (meshIndex < _meshStates.size()) {
         const MeshState& state = _meshStates.at(meshIndex);
         bool isSkinned = state.clusterMatrices.size() > 1;
@@ -1859,6 +1864,7 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
 }
 
 void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent) {
+ //   PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("Model::renderPart");
     if (!_readyWhenAdded) {
         return; // bail asap
@@ -1933,7 +1939,9 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     pickPrograms(batch, mode, translucentMesh, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
                  args, locations);
 
-    updateVisibleJointStates();
+    {
+        updateVisibleJointStates();
+    }
 
     // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
     // to false to rebuild out mesh groups.
@@ -2023,10 +2031,10 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
             }
             static bool showDiffuse = true;
             if (showDiffuse && diffuseMap) {
-                batch.setUniformTexture(0, diffuseMap->getGPUTexture());
+                batch.setResourceTexture(0, diffuseMap->getGPUTexture());
             
             } else {
-                batch.setUniformTexture(0, textureCache->getWhiteTexture());
+                batch.setResourceTexture(0, textureCache->getWhiteTexture());
             }
 
             if (locations->texcoordMatrices >= 0) {
@@ -2042,14 +2050,14 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
 
             if (!mesh.tangents.isEmpty()) {                 
                 Texture* normalMap = networkPart.normalTexture.data();
-                batch.setUniformTexture(1, !normalMap ?
+                batch.setResourceTexture(1, !normalMap ?
                     textureCache->getBlueTexture() : normalMap->getGPUTexture());
 
             }
     
             if (locations->specularTextureUnit >= 0) {
                 Texture* specularMap = networkPart.specularTexture.data();
-                batch.setUniformTexture(locations->specularTextureUnit, !specularMap ?
+                batch.setResourceTexture(locations->specularTextureUnit, !specularMap ?
                                             textureCache->getWhiteTexture() : specularMap->getGPUTexture());
             }
 
@@ -2066,7 +2074,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                 GLBATCH(glUniform2f)(locations->emissiveParams, emissiveOffset, emissiveScale);
                 
                 Texture* emissiveMap = networkPart.emissiveTexture.data();
-                batch.setUniformTexture(locations->emissiveTextureUnit, !emissiveMap ?
+                batch.setResourceTexture(locations->emissiveTextureUnit, !emissiveMap ?
                                         textureCache->getWhiteTexture() : emissiveMap->getGPUTexture());
             }
             
@@ -2076,9 +2084,13 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         }
     }
     
-    _mutex.lock();
-    qint64 offset = _calculatedMeshPartOffset[QPair<int,int>(meshIndex, partIndex)];
-    _mutex.unlock();
+    qint64 offset;
+    {
+        // FIXME_STUTTER: We should n't have any lock here
+        _mutex.lock();
+        offset = _calculatedMeshPartOffset[QPair<int,int>(meshIndex, partIndex)];
+        _mutex.unlock();
+    }
 
     if (part.quadIndices.size() > 0) {
         batch.drawIndexed(gpu::QUADS, part.quadIndices.size(), offset);

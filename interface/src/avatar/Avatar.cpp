@@ -453,22 +453,36 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
             }
         }
 
+        // Stack indicator spheres
+        float indicatorOffset = 0.0f;
+        if (!_displayName.isEmpty() && _displayNameAlpha != 0.0f) {
+            const float DISPLAY_NAME_INDICATOR_OFFSET = 0.22f;
+            indicatorOffset = DISPLAY_NAME_INDICATOR_OFFSET;
+        }
+        const float INDICATOR_RADIUS = 0.03f;
+        const float INDICATOR_INDICATOR_OFFSET = 3.0f * INDICATOR_RADIUS;
+
         // If this is the avatar being looked at, render a little ball above their head
         if (_isLookAtTarget && Menu::getInstance()->isOptionChecked(MenuOption::RenderFocusIndicator)) {
-            const float LOOK_AT_INDICATOR_RADIUS = 0.03f;
-            const float LOOK_AT_INDICATOR_OFFSET = 0.22f;
             const glm::vec4 LOOK_AT_INDICATOR_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
-            glm::vec3 position;
-            if (_displayName.isEmpty() || _displayNameAlpha == 0.0f) {
-                position = glm::vec3(_position.x, getDisplayNamePosition().y, _position.z);
-            } else {
-                position = glm::vec3(_position.x, getDisplayNamePosition().y + LOOK_AT_INDICATOR_OFFSET, _position.z);
-            }
+            glm::vec3 position = glm::vec3(_position.x, getDisplayNamePosition().y + indicatorOffset, _position.z);
             Transform transform;
             transform.setTranslation(position);
             batch.setModelTransform(transform);
-            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, LOOK_AT_INDICATOR_RADIUS
-                                                                                , 15, 15, LOOK_AT_INDICATOR_COLOR);
+            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, INDICATOR_RADIUS,
+                15, 15, LOOK_AT_INDICATOR_COLOR);
+            indicatorOffset += INDICATOR_INDICATOR_OFFSET;
+        }
+
+        // If the avatar is looking at me, render an indication that they area
+        if (getHead()->getIsLookingAtMe() && Menu::getInstance()->isOptionChecked(MenuOption::ShowWhosLookingAtMe)) {
+            const glm::vec4 LOOKING_AT_ME_COLOR = { 0.8f, 0.65f, 0.0f, 0.1f };
+            glm::vec3 position = glm::vec3(_position.x, getDisplayNamePosition().y + indicatorOffset, _position.z);
+            Transform transform;
+            transform.setTranslation(position);
+            batch.setModelTransform(transform);
+            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, INDICATOR_RADIUS,
+                15, 15, LOOKING_AT_ME_COLOR);
         }
 
         // quick check before falling into the code below:
@@ -644,7 +658,7 @@ void Avatar::renderBillboard(RenderArgs* renderArgs) {
     glm::vec2 texCoordBottomRight(1.0f, 1.0f);
     
     gpu::Batch& batch = *renderArgs->_batch;
-    batch.setUniformTexture(0, _billboardTexture->getGPUTexture());
+    batch.setResourceTexture(0, _billboardTexture->getGPUTexture());
     DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
                                                         glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
@@ -750,7 +764,7 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum) co
     const int text_y = -nameDynamicRect.height() / 2;
 
     // Compute background position/size
-    static const float SLIGHTLY_BEHIND = -0.05f;
+    static const float SLIGHTLY_IN_FRONT = 0.1f;
     const int border = 0.1f * nameDynamicRect.height();
     const int left = text_x - border;
     const int bottom = text_y - border;
@@ -765,16 +779,16 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum) co
     
     // Compute display name transform
     auto textTransform = calculateDisplayNameTransform(frustum, renderer->getFontSize());
-    
-    // Render background slightly behind to avoid z-fighting
-    auto backgroundTransform = textTransform;
-    backgroundTransform.postTranslate(glm::vec3(0.0f, 0.0f, SLIGHTLY_BEHIND));
-    batch.setModelTransform(backgroundTransform);
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
+    batch.setModelTransform(textTransform);
+
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, false, true, true, true);
     DependencyManager::get<GeometryCache>()->renderBevelCornersRect(batch, left, bottom, width, height,
                                                                     bevelDistance, backgroundColor);
     // Render actual name
     QByteArray nameUTF8 = renderedDisplayName.toLocal8Bit();
+    
+    // Render text slightly in front to avoid z-fighting
+    textTransform.postTranslate(glm::vec3(0.0f, 0.0f, SLIGHTLY_IN_FRONT * renderer->getFontSize()));
     batch.setModelTransform(textTransform);
     renderer->draw(batch, text_x, -text_y, nameUTF8.data(), textColor);
 }

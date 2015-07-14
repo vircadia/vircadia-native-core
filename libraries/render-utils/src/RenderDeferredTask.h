@@ -77,6 +77,9 @@ public:
 
     virtual void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
+
+    gpu::Queries _timerQueries;
+    int _currentTimerQueryIndex = 0;
 };
 
 

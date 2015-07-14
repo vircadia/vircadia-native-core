@@ -21,8 +21,12 @@
 #include <climits>
 #include <limits>
 
+#include <QDebug>
+
 #include <QBitArray>
 #include <QByteArray>
+
+#include "SharedUtil.h"
 
 #include "NumericalConstants.h"
 
@@ -37,7 +41,8 @@ public:
     ByteCountCoded(const QByteArray& fromEncoded) : data(0) { decode(fromEncoded); }
 
     QByteArray encode() const;
-    void decode(const QByteArray& fromEncoded);
+    size_t decode(const QByteArray& fromEncoded);
+    size_t decode(const char* encodedBuffer, int encodedSize);
 
     bool operator==(const ByteCountCoded& other) const { return data == other.data; }
     bool operator!=(const ByteCountCoded& other) const { return data != other.data; }
@@ -110,52 +115,63 @@ template<typename T> inline QByteArray ByteCountCoded<T>::encode() const {
     return output;
 }
 
-template<typename T> inline void ByteCountCoded<T>::decode(const QByteArray& fromEncodedBytes) {
+template<typename T> inline size_t ByteCountCoded<T>::decode(const QByteArray& fromEncodedBytes) {
+    return decode(fromEncodedBytes.constData(), fromEncodedBytes.size());
+}
 
-    // first convert the ByteArray into a BitArray...
-    QBitArray encodedBits;
-    int bitCount = BITS_IN_BYTE * fromEncodedBytes.count();
-    encodedBits.resize(bitCount);
+template<typename T> inline size_t ByteCountCoded<T>::decode(const char* encodedBuffer, int encodedSize) {
+    data = 0; // reset data
+    size_t bytesConsumed = 0;
+    int bitCount = BITS_IN_BYTE * encodedSize;
+
+    int encodedByteCount = 1; // there is at least 1 byte (after the leadBits)
+    int leadBits = 1; // there is always at least 1 lead bit
+    bool inLeadBits = true;
+    int bitAt = 0;
+    int expectedBitCount; // unknown at this point
+    int lastValueBit;
+    T bitValue = 1;
     
-    for(int byte = 0; byte < fromEncodedBytes.count(); byte++) {
-        char originalByte = fromEncodedBytes.at(byte);
+    for(int byte = 0; byte < encodedSize; byte++) {
+        char originalByte = encodedBuffer[byte];
+        bytesConsumed++;
+        unsigned char maskBit = 128; // LEFT MOST BIT set
         for(int bit = 0; bit < BITS_IN_BYTE; bit++) {
-            int shiftBy = BITS_IN_BYTE - (bit + 1);
-            char maskBit = ( 1 << shiftBy);
-            bool bitValue = originalByte & maskBit;
-            encodedBits.setBit(byte * BITS_IN_BYTE + bit, bitValue);
+            bool bitIsSet = originalByte & maskBit;
+            
+            // Processing of the lead bits
+            if (inLeadBits) {
+                if (bitIsSet) {
+                    encodedByteCount++;
+                    leadBits++;
+                } else {
+                    inLeadBits = false; // once we hit our first 0, we know we're out of the lead bits
+                    expectedBitCount = (encodedByteCount * BITS_IN_BYTE) - leadBits;
+                    lastValueBit = expectedBitCount + bitAt;
+
+                    // check to see if the remainder of our buffer is sufficient
+                    if (expectedBitCount > (bitCount - leadBits)) {
+                        break;
+                    }
+                }
+            } else {
+                if (bitAt > lastValueBit) {
+                    break;
+                }
+                
+                if(bitIsSet) {
+                    data += bitValue;
+                }
+                bitValue *= 2;
+            }
+            bitAt++;
+            maskBit = maskBit >> 1;
         }
-    }
-    
-    // next, read the leading bits to determine the correct number of bytes to decode (may not match the QByteArray)
-    int encodedByteCount = 0;
-    int leadBits = 1;
-    int bitAt;
-    for (bitAt = 0; bitAt < bitCount; bitAt++) {
-        if (encodedBits.at(bitAt)) {
-            encodedByteCount++;
-            leadBits++;
-        } else {
+        if (!inLeadBits && bitAt > lastValueBit) {
             break;
         }
     }
-    encodedByteCount++; // always at least one byte
-    int expectedBitCount = encodedByteCount * BITS_IN_BYTE;
-
-    T value = 0;
-    
-    if (expectedBitCount <= (encodedBits.size() - leadBits)) {
-        // Now, keep reading...
-        int valueStartsAt = bitAt + 1; 
-        T bitValue = 1;
-        for (bitAt = valueStartsAt; bitAt < expectedBitCount; bitAt++) {
-            if(encodedBits.at(bitAt)) {
-                value += bitValue;
-            }
-            bitValue *= 2;
-        }
-    }
-    data = value;
+    return bytesConsumed;
 }
 #endif // hifi_ByteCountCoding_h
 

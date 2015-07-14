@@ -51,7 +51,7 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
             static gpu::BufferPointer theBuffer;
             static gpu::Stream::FormatPointer theFormat;
             static gpu::BufferPointer theConstants;
-            int SKYBOX_CONSTANTS_SLOT = 0; // need to be defined by the compilation of the shader
+            static int SKYBOX_CONSTANTS_SLOT = 0; // need to be defined by the compilation of the shader
             if (!thePipeline) {
                 auto skyVS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(Skybox_vert)));
                 auto skyFS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(Skybox_frag)));
@@ -103,7 +103,7 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
             batch.setInputBuffer(gpu::Stream::POSITION, theBuffer, 0, 8);
             batch.setUniformBuffer(SKYBOX_CONSTANTS_SLOT, theConstants, 0, theConstants->getSize());
             batch.setInputFormat(theFormat);
-            batch.setUniformTexture(0, skybox.getCubemap());
+            batch.setResourceTexture(0, skybox.getCubemap());
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
 

@@ -12,14 +12,13 @@
 #include "AssignmentActionFactory.h"
 
 
-EntityActionPointer assignmentActionFactory(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) {
+EntityActionPointer assignmentActionFactory(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity) {
     return (EntityActionPointer) new AssignmentAction(type, id, ownerEntity);
 }
 
 
-EntityActionPointer AssignmentActionFactory::factory(EntitySimulation* simulation,
-                                                     EntityActionType type,
-                                                     QUuid id,
+EntityActionPointer AssignmentActionFactory::factory(EntityActionType type,
+                                                     const QUuid& id,
                                                      EntityItemPointer ownerEntity,
                                                      QVariantMap arguments) {
     EntityActionPointer action = assignmentActionFactory(type, id, ownerEntity);
@@ -33,9 +32,7 @@ EntityActionPointer AssignmentActionFactory::factory(EntitySimulation* simulatio
 }
 
 
-EntityActionPointer AssignmentActionFactory::factoryBA(EntitySimulation* simulation,
-                                                       EntityItemPointer ownerEntity,
-                                                       QByteArray data) {
+EntityActionPointer AssignmentActionFactory::factoryBA(EntityItemPointer ownerEntity, QByteArray data) {
     QDataStream serializedActionDataStream(data);
     EntityActionType type;
     QUuid id;

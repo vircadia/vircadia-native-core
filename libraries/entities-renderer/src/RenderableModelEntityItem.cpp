@@ -161,6 +161,7 @@ namespace render {
     template <> void payloadRender(const RenderableModelEntityItemMeta::Pointer& payload, RenderArgs* args) {
         if (args) {
             if (payload && payload->entity) {
+                PROFILE_RANGE("MetaModelRender");
                 payload->entity->render(args);
             }
         }
@@ -188,6 +189,7 @@ void makeEntityItemStatusGetters(RenderableModelEntityItem* entity, render::Item
 
 bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
                                             render::PendingChanges& pendingChanges) {
+
     _myMetaItem = scene->allocateID();
     
     auto renderData = RenderableModelEntityItemMeta::Pointer(new RenderableModelEntityItemMeta(self));
@@ -198,7 +200,10 @@ bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_p
     if (_model) {
         render::Item::Status::Getters statusGetters;
         makeEntityItemStatusGetters(this, statusGetters);
-        return _model->addToScene(scene, pendingChanges, statusGetters);
+        
+        // note: we don't care if the model fails to add items, we always added our meta item and therefore we return
+        // true so that the system knows our meta item is in the scene!
+        _model->addToScene(scene, pendingChanges, statusGetters);
     }
 
     return true;

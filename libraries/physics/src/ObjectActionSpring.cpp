@@ -17,14 +17,15 @@ const float SPRING_MAX_SPEED = 10.0f;
 
 const uint16_t ObjectActionSpring::springVersion = 1;
 
-ObjectActionSpring::ObjectActionSpring(EntityActionType type, QUuid id, EntityItemPointer ownerEntity) :
-    ObjectAction(type, id, ownerEntity),
+
+ObjectActionSpring::ObjectActionSpring(const QUuid& id, EntityItemPointer ownerEntity) :
+    ObjectAction(ACTION_TYPE_SPRING, id, ownerEntity),
     _positionalTarget(glm::vec3(0.0f)),
-    _linearTimeScale(0.2f),
-    _positionalTargetSet(false),
+    _linearTimeScale(FLT_MAX),
+    _positionalTargetSet(true),
     _rotationalTarget(glm::quat()),
-    _angularTimeScale(0.2f),
-    _rotationalTargetSet(false) {
+    _angularTimeScale(FLT_MAX),
+    _rotationalTargetSet(true) {
     #if WANT_DEBUG
     qDebug() << "ObjectActionSpring::ObjectActionSpring";
     #endif
@@ -61,130 +62,92 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
         return;
     }
 
-    // handle the linear part
-    if (_positionalTargetSet) {
-        // check for NaN
-        if (_positionalTarget.x != _positionalTarget.x ||
-            _positionalTarget.y != _positionalTarget.y ||
-            _positionalTarget.z != _positionalTarget.z) {
-            qDebug() << "ObjectActionSpring::updateActionWorker -- target position includes NaN";
-            unlock();
-            lockForWrite();
-            _active = false;
-            unlock();
-            return;
-        }
-        glm::vec3 offset = _positionalTarget - bulletToGLM(rigidBody->getCenterOfMassPosition());
-        float offsetLength = glm::length(offset);
-        float speed = offsetLength / _linearTimeScale;
+    const float MAX_TIMESCALE = 600.0f; // 10 min is a long time
+    if (_linearTimeScale < MAX_TIMESCALE) {
+        btVector3 offset = rigidBody->getCenterOfMassPosition() - glmToBullet(_positionalTarget);
+        float offsetLength = offset.length();
+        float speed = (offsetLength > FLT_EPSILON) ? glm::min(offsetLength / _linearTimeScale, SPRING_MAX_SPEED) : 0.0f;
 
-        // cap speed
-        if (speed > SPRING_MAX_SPEED) {
-            speed = SPRING_MAX_SPEED;
-        }
-
-        if (offsetLength > IGNORE_POSITION_DELTA) {
-            glm::vec3 newVelocity = glm::normalize(offset) * speed;
-            rigidBody->setLinearVelocity(glmToBullet(newVelocity));
-            rigidBody->activate();
-        } else {
-            rigidBody->setLinearVelocity(glmToBullet(glm::vec3(0.0f)));
-        }
+        // this action is aggresively critically damped and defeats the current velocity
+        rigidBody->setLinearVelocity((- speed / offsetLength) * offset);
     }
 
-    // handle rotation
-    if (_rotationalTargetSet) {
-        if (_rotationalTarget.x != _rotationalTarget.x ||
-            _rotationalTarget.y != _rotationalTarget.y ||
-            _rotationalTarget.z != _rotationalTarget.z ||
-            _rotationalTarget.w != _rotationalTarget.w) {
-            qDebug() << "AvatarActionHold::updateActionWorker -- target rotation includes NaN";
-            unlock();
-            lockForWrite();
-            _active = false;
-            unlock();
-            return;
-        }
+    if (_angularTimeScale < MAX_TIMESCALE) {
+        btVector3 targetVelocity(0.0f, 0.0f, 0.0f);
 
-        glm::quat bodyRotation = bulletToGLM(rigidBody->getOrientation());
-        // if qZero and qOne are too close to each other, we can get NaN for angle.
-        auto alignmentDot = glm::dot(bodyRotation, _rotationalTarget);
-        const float almostOne = 0.99999f;
-        if (glm::abs(alignmentDot) < almostOne) {
-            glm::quat target = _rotationalTarget;
-            if (alignmentDot < 0) {
+        btQuaternion bodyRotation = rigidBody->getOrientation();
+        auto alignmentDot = bodyRotation.dot(glmToBullet(_rotationalTarget));
+        const float ALMOST_ONE = 0.99999f;
+        if (glm::abs(alignmentDot) < ALMOST_ONE) {
+            btQuaternion target = glmToBullet(_rotationalTarget);
+            if (alignmentDot < 0.0f) {
                 target = -target;
             }
-            glm::quat qZeroInverse = glm::inverse(bodyRotation);
-            glm::quat deltaQ = target * qZeroInverse;
-            glm::vec3 axis = glm::axis(deltaQ);
-            float angle = glm::angle(deltaQ);
-            assert(!isNaN(angle));
-            glm::vec3 newAngularVelocity = (angle / _angularTimeScale) * glm::normalize(axis);
-            rigidBody->setAngularVelocity(glmToBullet(newAngularVelocity));
-            rigidBody->activate();
-        } else {
-            rigidBody->setAngularVelocity(glmToBullet(glm::vec3(0.0f)));
+            // if dQ is the incremental rotation that gets an object from Q0 to Q1 then:
+            //
+            //      Q1 = dQ * Q0 
+            //
+            // solving for dQ gives:
+            //
+            //      dQ = Q1 * Q0^
+            btQuaternion deltaQ = target * bodyRotation.inverse();
+            float angle = deltaQ.getAngle();
+            const float MIN_ANGLE = 1.0e-4;
+            if (angle > MIN_ANGLE) {
+                targetVelocity = (angle / _angularTimeScale) * deltaQ.getAxis();
+            }
         }
+        // this action is aggresively critically damped and defeats the current velocity
+        rigidBody->setAngularVelocity(targetVelocity);
     }
-
     unlock();
 }
 
+const float MIN_TIMESCALE = 0.1f;
 
 bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
     // targets are required, spring-constants are optional
-    bool ptOk = true;
+    bool ok = true;
     glm::vec3 positionalTarget =
-        EntityActionInterface::extractVec3Argument("spring action", arguments, "targetPosition", ptOk, false);
-    bool pscOk = true;
+        EntityActionInterface::extractVec3Argument("spring action", arguments, "targetPosition", ok, false);
+    if (!ok) {
+        positionalTarget = _positionalTarget;
+    }
+    ok = true;
     float linearTimeScale =
-        EntityActionInterface::extractFloatArgument("spring action", arguments, "linearTimeScale", pscOk, false);
-    if (ptOk && pscOk && linearTimeScale <= 0.0f) {
-        qDebug() << "spring action -- linearTimeScale must be greater than zero.";
-        return false;
+        EntityActionInterface::extractFloatArgument("spring action", arguments, "linearTimeScale", ok, false);
+    if (!ok || linearTimeScale <= 0.0f) {
+        linearTimeScale = _linearTimeScale;
     }
 
-    bool rtOk = true;
+    ok = true;
     glm::quat rotationalTarget =
-        EntityActionInterface::extractQuatArgument("spring action", arguments, "targetRotation", rtOk, false);
-    bool rscOk = true;
+        EntityActionInterface::extractQuatArgument("spring action", arguments, "targetRotation", ok, false);
+    if (!ok) {
+        rotationalTarget = _rotationalTarget;
+    }
+
+    ok = true;
     float angularTimeScale =
-        EntityActionInterface::extractFloatArgument("spring action", arguments, "angularTimeScale", rscOk, false);
-
-    if (!ptOk && !rtOk) {
-        qDebug() << "spring action requires at least one of targetPosition or targetRotation argument";
-        return false;
+        EntityActionInterface::extractFloatArgument("spring action", arguments, "angularTimeScale", ok, false);
+    if (!ok) {
+        angularTimeScale = _angularTimeScale;
     }
 
-    lockForWrite();
-
-    _positionalTargetSet = _rotationalTargetSet = false;
-
-    if (ptOk) {
+    if (positionalTarget != _positionalTarget
+            || linearTimeScale != _linearTimeScale
+            || rotationalTarget != _rotationalTarget
+            || angularTimeScale != _angularTimeScale) {
+        // something changed
+        lockForWrite();
         _positionalTarget = positionalTarget;
-        _positionalTargetSet = true;
-
-        if (pscOk) {
-            _linearTimeScale = linearTimeScale;
-        } else {
-            _linearTimeScale = 0.1f;
-        }
-    }
-
-    if (rtOk) {
+        _linearTimeScale = glm::max(MIN_TIMESCALE, glm::abs(linearTimeScale));
         _rotationalTarget = rotationalTarget;
-        _rotationalTargetSet = true;
-
-        if (rscOk) {
-            _angularTimeScale = angularTimeScale;
-        } else {
-            _angularTimeScale = 0.1f;
-        }
+        _angularTimeScale = glm::max(MIN_TIMESCALE, glm::abs(angularTimeScale));
+        _active = true;
+        activateBody();
+        unlock();
     }
-
-    _active = true;
-    unlock();
     return true;
 }
 
@@ -192,25 +155,21 @@ QVariantMap ObjectActionSpring::getArguments() {
     QVariantMap arguments;
     lockForRead();
 
-    if (_positionalTargetSet) {
-        arguments["linearTimeScale"] = _linearTimeScale;
-        arguments["targetPosition"] = glmToQMap(_positionalTarget);
-    }
+    arguments["linearTimeScale"] = _linearTimeScale;
+    arguments["targetPosition"] = glmToQMap(_positionalTarget);
 
-    if (_rotationalTargetSet) {
-        arguments["targetRotation"] = glmToQMap(_rotationalTarget);
-        arguments["angularTimeScale"] = _angularTimeScale;
-    }
+    arguments["targetRotation"] = glmToQMap(_rotationalTarget);
+    arguments["angularTimeScale"] = _angularTimeScale;
 
     unlock();
     return arguments;
 }
 
-QByteArray ObjectActionSpring::serialize() {
+QByteArray ObjectActionSpring::serialize() const {
     QByteArray serializedActionArguments;
     QDataStream dataStream(&serializedActionArguments, QIODevice::WriteOnly);
 
-    dataStream << getType();
+    dataStream << ACTION_TYPE_SPRING;
     dataStream << getID();
     dataStream << ObjectActionSpring::springVersion;
 
@@ -229,13 +188,14 @@ void ObjectActionSpring::deserialize(QByteArray serializedArguments) {
     QDataStream dataStream(serializedArguments);
 
     EntityActionType type;
-    QUuid id;
-    uint16_t serializationVersion;
-
     dataStream >> type;
     assert(type == getType());
+
+    QUuid id;
     dataStream >> id;
     assert(id == getID());
+
+    uint16_t serializationVersion;
     dataStream >> serializationVersion;
     if (serializationVersion != ObjectActionSpring::springVersion) {
         return;

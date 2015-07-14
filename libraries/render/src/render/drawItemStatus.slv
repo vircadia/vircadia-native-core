@@ -22,10 +22,10 @@ uniform vec3 inBoundPos;
 uniform vec3 inBoundDim;
 uniform ivec4 inStatus;
 
-vec3 paintRainbow(float nv) {
-    float v = nv * 5.f;
+vec3 paintRainbow(float normalizedHue) {
+    float v = normalizedHue * 6.f;
     if (v < 0.f) {
-        return vec3(0.f, 0.f, 0.f);
+        return vec3(1.f, 0.f, 0.f);
     } else if (v < 1.f) {
         return vec3(1.f, v, 0.f);
     } else if (v < 2.f) {
@@ -36,8 +36,10 @@ vec3 paintRainbow(float nv) {
         return vec3(0.f, 1.f - (v-3.f), 1.f );
     } else if (v < 5.f) {
         return vec3((v-4.f), 0.f, 1.f );
+    } else if (v < 6.f) {
+        return vec3(1.f, 0.f, 1.f - (v-5.f));
     } else {
-        return vec3(1.f, 1.f, 1.f);
+        return vec3(1.f, 0.f, 0.f);
     }
 }
 

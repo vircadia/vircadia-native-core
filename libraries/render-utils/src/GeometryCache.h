@@ -301,6 +301,7 @@ private:
     };
     
     QHash<IntPair, VerticesIndices> _coneVBOs;
+
     int _nextID;
 
     QHash<int, Vec3PairVec4Pair> _lastRegisteredQuad3DTexture;

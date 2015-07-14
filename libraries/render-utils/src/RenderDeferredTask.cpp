@@ -40,8 +40,9 @@ void ResolveDeferred::run(const SceneContextPointer& sceneContext, const RenderC
 }
 
 RenderDeferredTask::RenderDeferredTask() : Task() {
-    _jobs.push_back(Job(new PrepareDeferred::JobModel("PrepareDeferred")));
     _jobs.push_back(Job(new DrawBackground::JobModel("DrawBackground")));
+
+    _jobs.push_back(Job(new PrepareDeferred::JobModel("PrepareDeferred")));
     _jobs.push_back(Job(new FetchItems::JobModel("FetchOpaque",
         FetchItems(
             [] (const RenderContextPointer& context, int count) {
@@ -75,6 +76,12 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
 
     _jobs.push_back(Job(new DrawOverlay3D::JobModel("DrawOverlay3D")));
     _jobs.push_back(Job(new ResetGLState::JobModel()));
+
+    // Give ourselves 3 frmaes of timer queries
+    _timerQueries.push_back(gpu::QueryPointer(new gpu::Query()));
+    _timerQueries.push_back(gpu::QueryPointer(new gpu::Query()));
+    _timerQueries.push_back(gpu::QueryPointer(new gpu::Query()));
+    _currentTimerQueryIndex = 0;
 }
 
 RenderDeferredTask::~RenderDeferredTask() {
@@ -101,6 +108,7 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     for (auto job : _jobs) {
         job.run(sceneContext, renderContext);
     }
+
 };
 
 void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
@@ -118,7 +126,7 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
     args->_viewFrustum->evalProjectionMatrix(projMat);
     args->_viewFrustum->evalViewTransform(viewMat);
     if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-        viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
+        viewMat.preScale(glm::vec3(-1.0f, 1.0f, 1.0f));
     }
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewMat);
@@ -235,7 +243,7 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
     batch.setViewTransform(viewMat);
 
     batch.setPipeline(getOpaquePipeline());
-    batch.setUniformTexture(0, args->_whiteTexture);
+    batch.setResourceTexture(0, args->_whiteTexture);
 
     if (!inItems.empty()) {
         batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0);
