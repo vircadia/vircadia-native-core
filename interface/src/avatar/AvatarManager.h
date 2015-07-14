@@ -89,7 +89,6 @@ private:
     SetOfMotionStates _motionStatesToAdd;
     VectorOfMotionStates _motionStatesToDelete;
     VectorOfMotionStates _tempMotionStates;
-
 };
 
 Q_DECLARE_METATYPE(AvatarManager::LocalLight)

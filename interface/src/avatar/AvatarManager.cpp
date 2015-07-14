@@ -72,7 +72,7 @@ void AvatarManager::init() {
     _myAvatar->init();
     _avatarHash.insert(MY_AVATAR_KEY, _myAvatar);
 
-    connect(&(*DependencyManager::get<SceneScriptingInterface>()), &SceneScriptingInterface::shouldRenderAvatarsChanged, this, &AvatarManager::updateAvatarRenderStatus, Qt::QueuedConnection);
+    connect(DependencyManager::get<SceneScriptingInterface>().data(), &SceneScriptingInterface::shouldRenderAvatarsChanged, this, &AvatarManager::updateAvatarRenderStatus, Qt::QueuedConnection);
 
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
     render::PendingChanges pendingChanges;
@@ -326,8 +326,7 @@ void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
             avatar->addToScene(avatar, scene, pendingChanges);
             scene->enqueuePendingChanges(pendingChanges);
         }
-    }
-    else {
+    } else {
         for (auto avatarData : _avatarHash) {
             auto avatar = std::dynamic_pointer_cast<Avatar>(avatarData);
             render::ScenePointer scene = Application::getInstance()->getMain3DScene();
