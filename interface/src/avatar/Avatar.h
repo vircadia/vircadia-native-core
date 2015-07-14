@@ -91,7 +91,6 @@ public:
     void removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, 
                                 render::PendingChanges& pendingChanges);
 
-
     //setters
     void setDisplayingLookatVectors(bool displayingLookatVectors) { getHead()->setRenderLookatVectors(displayingLookatVectors); }
     void setIsLookAtTarget(const bool isLookAtTarget) { _isLookAtTarget = isLookAtTarget; }
