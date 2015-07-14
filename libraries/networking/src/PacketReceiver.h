@@ -31,9 +31,7 @@ public:
     PacketReceiver& operator=(const PacketReceiver&) = delete;
     
     int getInPacketCount() const { return _inPacketCount; }
-    int getOutPacketCount() const { return _outPacketCount; }
     int getInByteCount() const { return _inByteCount; }
-    int getOutByteCount() const { return _outByteCount; }
     
     void resetCounters() { _inPacketCount = 0; _outPacketCount = 0; _inByteCount = 0; _outByteCount = 0; }
 
@@ -61,9 +59,7 @@ private:
     QMutex _packetListenerLock;
     QHash<PacketType::Value, ObjectMethodPair> _packetListenerMap;
     int _inPacketCount = 0;
-    int _outPacketCount = 0;
     int _inByteCount = 0;
-    int _outByteCount = 0;
     bool _isShuttingDown = false;
 };
 
