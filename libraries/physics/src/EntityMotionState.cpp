@@ -248,7 +248,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         btTransform xform = _body->getWorldTransform();
         _serverPosition = bulletToGLM(xform.getOrigin());
         _serverRotation = bulletToGLM(xform.getRotation());
-        _serverVelocity = bulletToGLM(_body->getLinearVelocity());
+        _serverVelocity = getBodyLinearVelocity();
         _serverAngularVelocity = bulletToGLM(_body->getAngularVelocity());
         _lastStep = simulationStep;
         _serverActionData = _entity->getActionData();
@@ -287,6 +287,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     }
 
     if (_serverActionData != _entity->getActionData()) {
+        setOutgoingPriority(SCRIPT_EDIT_SIMULATION_PRIORITY);
         return true;
     }
 
@@ -536,7 +537,7 @@ void EntityMotionState::bump(quint8 priority) {
 void EntityMotionState::resetMeasuredBodyAcceleration() {
     _lastMeasureStep = ObjectMotionState::getWorldSimulationStep();
     if (_body) {
-        _lastVelocity = bulletToGLM(_body->getLinearVelocity());
+        _lastVelocity = getBodyLinearVelocity();
     } else {
         _lastVelocity = glm::vec3(0.0f);
     }
@@ -555,7 +556,7 @@ void EntityMotionState::measureBodyAcceleration() {
 
         // Note: the integration equation for velocity uses damping:   v1 = (v0 + a * dt) * (1 - D)^dt
         // hence the equation for acceleration is: a = (v1 / (1 - D)^dt - v0) / dt
-        glm::vec3 velocity = bulletToGLM(_body->getLinearVelocity());
+        glm::vec3 velocity = getBodyLinearVelocity();
         _measuredAcceleration = (velocity / powf(1.0f - _body->getLinearDamping(), dt) - _lastVelocity) * invDt;
         _lastVelocity = velocity;
         if (numSubsteps > PHYSICS_ENGINE_MAX_NUM_SUBSTEPS) {

@@ -394,6 +394,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         static_cast<NodeList*>(dependency)->deleteLater();
     });
 
+    // setup a timer for domain-server check ins
+    QTimer* domainCheckInTimer = new QTimer(nodeList.data());
+    connect(domainCheckInTimer, &QTimer::timeout, nodeList.data(), &NodeList::sendDomainServerCheckIn);
+    domainCheckInTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
+
     // put the NodeList and datagram processing on the node thread
     nodeList->moveToThread(nodeThread);
 
@@ -887,12 +892,6 @@ void Application::paintGL() {
 
     {
         PerformanceTimer perfTimer("renderOverlay");
-        /*
-        gpu::Context context(new gpu::GLBackend());
-        RenderArgs renderArgs(&context, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
-            lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
-            RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
-            */
         _applicationOverlay.renderOverlay(&renderArgs);
     }
 
@@ -968,6 +967,8 @@ void Application::paintGL() {
     } else if (TV3DManager::isConnected()) {
         TV3DManager::display(&renderArgs, _myCamera);
     } else {
+        PROFILE_RANGE(__FUNCTION__ "/mainRender");
+
         DependencyManager::get<GlowEffect>()->prepare(&renderArgs);
 
         // Viewport is assigned to the size of the framebuffer
@@ -982,7 +983,7 @@ void Application::paintGL() {
 
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            renderRearViewMirror(&renderArgs, _mirrorViewRect);       
+            renderRearViewMirror(&renderArgs, _mirrorViewRect);
         }
 
         renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
@@ -1002,6 +1003,7 @@ void Application::paintGL() {
 
 
     if (!OculusManager::isConnected() || OculusManager::allowSwap()) {
+        PROFILE_RANGE(__FUNCTION__ "/bufferSwap");
         _glWidget->swapBuffers();
     }
 
@@ -1051,6 +1053,7 @@ void Application::resetCameras(Camera& camera, const glm::uvec2& size) {
 }
 
 void Application::resizeGL() {
+    PROFILE_RANGE(__FUNCTION__);
     // Set the desired FBO texture size. If it hasn't changed, this does nothing.
     // Otherwise, it must rebuild the FBOs
     QSize renderSize;
@@ -1526,6 +1529,7 @@ void Application::focusOutEvent(QFocusEvent* event) {
 }
 
 void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
+    PROFILE_RANGE(__FUNCTION__);
     // Used by application overlay to determine how to draw cursor(s)
     _lastMouseMoveWasSimulated = deviceID > 0;
     if (!_lastMouseMoveWasSimulated) {
@@ -1781,9 +1785,6 @@ void Application::checkFPS() {
     _frameCount = 0;
     _datagramProcessor->resetCounters();
     _timerStart.start();
-
-    // ask the node list to check in with the domain server
-    DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
 }
 
 void Application::idle() {
@@ -1829,6 +1830,7 @@ void Application::idle() {
             PerformanceTimer perfTimer("update");
             PerformanceWarning warn(showWarnings, "Application::idle()... update()");
             const float BIGGEST_DELTA_TIME_SECS = 0.25f;
+            PROFILE_RANGE(__FUNCTION__ "/idleUpdate");
             update(glm::clamp((float)timeSinceLastUpdate / 1000.0f, 0.0f, BIGGEST_DELTA_TIME_SECS));
         }
         {
@@ -1852,7 +1854,7 @@ void Application::idle() {
         // After finishing all of the above work, ensure the idle timer is set to the proper interval,
         // depending on whether we're throttling or not
         idleTimer->start(_glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : 0);
-    } 
+    }
 
     // check for any requested background downloads.
     emit checkBackgroundDownloads();
@@ -2954,6 +2956,7 @@ QRect Application::getDesirableApplicationGeometry() {
 //                 or the "myCamera".
 //
 void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
+    PROFILE_RANGE(__FUNCTION__);
     // We will use these below, from either the camera or head vectors calculated above
     viewFrustum.setProjection(camera.getProjection());
 
@@ -3310,7 +3313,7 @@ namespace render {
                         const float APPROXIMATE_DISTANCE_FROM_HORIZON = 0.1f;
                         const float DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON = 0.2f;
 
-                        glm::vec3 sunDirection = (args->_viewFrustum->getPosition()/*getAvatarPosition()*/ - closestData.getSunLocation()) 
+                        glm::vec3 sunDirection = (args->_viewFrustum->getPosition()/*getAvatarPosition()*/ - closestData.getSunLocation())
                                                         / closestData.getAtmosphereOuterRadius();
                         float height = glm::distance(args->_viewFrustum->getPosition()/*theCamera.getPosition()*/, closestData.getAtmosphereCenter());
                         if (height < closestData.getAtmosphereInnerRadius()) {
@@ -3318,8 +3321,8 @@ namespace render {
                             alpha = 0.0f;
 
                             if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
-                                float directionY = glm::clamp(sunDirection.y, 
-                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
+                                float directionY = glm::clamp(sunDirection.y,
+                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
                                                     + APPROXIMATE_DISTANCE_FROM_HORIZON;
                                 alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
                             }
@@ -3330,8 +3333,8 @@ namespace render {
                                 (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
 
                             if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
-                                float directionY = glm::clamp(sunDirection.y, 
-                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON) 
+                                float directionY = glm::clamp(sunDirection.y,
+                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
                                                     + APPROXIMATE_DISTANCE_FROM_HORIZON;
                                 alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
                             }
@@ -3458,9 +3461,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
    // Assuming nothing get's rendered through that
 
     if (!selfAvatarOnly) {
-
-        // render models...
         if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
+            // render models...
             PerformanceTimer perfTimer("entities");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... entities...");
@@ -3468,11 +3470,11 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE;
 
             if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowHulls)) {
-                renderDebugFlags = (RenderArgs::DebugFlags) (renderDebugFlags | (int) RenderArgs::RENDER_DEBUG_HULLS);
+                renderDebugFlags = (RenderArgs::DebugFlags) (renderDebugFlags | (int)RenderArgs::RENDER_DEBUG_HULLS);
             }
             if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned)) {
                 renderDebugFlags =
-                    (RenderArgs::DebugFlags) (renderDebugFlags | (int) RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP);
+                    (RenderArgs::DebugFlags) (renderDebugFlags | (int)RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP);
             }
             renderArgs->_debugFlags = renderDebugFlags;
             _entities.render(renderArgs);
@@ -3497,8 +3499,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         pendingChanges.resetItem(WorldBoxRenderData::_item, worldBoxRenderPayload);
     } else {
 
-        pendingChanges.updateItem<WorldBoxRenderData>(WorldBoxRenderData::_item,  
-                [](WorldBoxRenderData& payload) { 
+        pendingChanges.updateItem<WorldBoxRenderData>(WorldBoxRenderData::_item,
+                [](WorldBoxRenderData& payload) {
                     payload._val++;
                 });
     }
@@ -3517,7 +3519,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     }
 
     {
-        PerformanceTimer perfTimer("SceneProcessPendingChanges"); 
+        PerformanceTimer perfTimer("SceneProcessPendingChanges");
         _main3DScene->enqueuePendingChanges(pendingChanges);
 
         _main3DScene->processPendingChangesQueue();
@@ -4826,7 +4828,7 @@ qreal Application::getDevicePixelRatio() {
 mat4 Application::getEyeProjection(int eye) const {
     if (isHMDMode()) {
         return OculusManager::getEyeProjection(eye);
-    } 
+    }
       
     return _viewFrustum.getProjection();
 }

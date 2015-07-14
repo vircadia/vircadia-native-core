@@ -35,14 +35,13 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
     if (!_visible) {
         return; // do nothing if we're not visible
     }
-    
+
     float alpha = getAlpha();
     xColor color = getColor();
     const float MAX_COLOR = 255.0f;
     glm::vec4 rectangleColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
     glm::vec3 position = getPosition();
-    glm::vec3 center = getCenter();
     glm::vec2 dimensions = getDimensions();
     glm::vec2 halfDimensions = dimensions * 0.5f;
     glm::quat rotation = getRotation();
@@ -67,7 +66,7 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
                 glm::vec3 point2(halfDimensions.x, -halfDimensions.y, 0.0f);
                 glm::vec3 point3(halfDimensions.x, halfDimensions.y, 0.0f);
                 glm::vec3 point4(-halfDimensions.x, halfDimensions.y, 0.0f);
-            
+
                 geometryCache->renderDashedLine(*batch, point1, point2, rectangleColor);
                 geometryCache->renderDashedLine(*batch, point2, point3, rectangleColor);
                 geometryCache->renderDashedLine(*batch, point3, point4, rectangleColor);
