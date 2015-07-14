@@ -726,31 +726,22 @@ void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) 
     }
 }
 
-void DomainServer::processListRequestPacket(QSharedPointer<NLPacket> packet) {
-    QDataStream packetStream(packet.data());
+void DomainServer::processListRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
     
-    const QUuid& nodeUUID = packet->getSourceID();
+    NodeType_t throwawayNodeType;
+    HifiSockAddr nodePublicAddress, nodeLocalAddress;
 
-    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+    QDataStream packetStream(packet.data());
 
-    SharedNodePointer checkInNode = limitedNodeList->nodeWithUUID(nodeUUID);
+    parseNodeData(packetStream, throwawayNodeType, nodePublicAddress, nodeLocalAddress, packet->getSenderSockAddr());
 
-    if (!nodeUUID.isNull() && checkInNode) {
-        NodeType_t throwawayNodeType;
-        HifiSockAddr nodePublicAddress, nodeLocalAddress;
+    sendingNode->setPublicSocket(nodePublicAddress);
+    sendingNode->setLocalSocket(nodeLocalAddress);
 
-        QDataStream packetStream(packet.data());
+    QList<NodeType_t> nodeInterestList;
+    packetStream >> nodeInterestList;
 
-        parseNodeData(packetStream, throwawayNodeType, nodePublicAddress, nodeLocalAddress, packet->getSenderSockAddr());
-
-        checkInNode->setPublicSocket(nodePublicAddress);
-        checkInNode->setLocalSocket(nodeLocalAddress);
-
-        QList<NodeType_t> nodeInterestList;
-        packetStream >> nodeInterestList;
-
-        sendDomainListToNode(checkInNode, packet->getSenderSockAddr(), nodeInterestList.toSet());
-    }
+    sendDomainListToNode(sendingNode, packet->getSenderSockAddr(), nodeInterestList.toSet());
 }
 
 unsigned int DomainServer::countConnectedUsers() {
