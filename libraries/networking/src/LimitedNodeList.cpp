@@ -296,12 +296,8 @@ void LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID) {
 }
 
 void LimitedNodeList::processKillNode(NLPacket& packet) {
-    processKillNode(QByteArray::fromRawData(packet.getData(), packet.getSizeWithHeader()));
-}
-
-void LimitedNodeList::processKillNode(const QByteArray& dataByteArray) {
     // read the node id
-    QUuid nodeUUID = QUuid::fromRfc4122(dataByteArray.mid(numBytesForPacketHeader(dataByteArray), NUM_BYTES_RFC4122_UUID));
+    QUuid nodeUUID = QUuid::fromRfc4122(packet.read(NUM_BYTES_RFC4122_UUID));
 
     // kill the node with this UUID, if it exists
     killNodeWithUUID(nodeUUID);
