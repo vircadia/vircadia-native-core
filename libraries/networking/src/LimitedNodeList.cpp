@@ -234,12 +234,6 @@ PacketSequenceNumber LimitedNodeList::getNextSequenceNumberForPacket(const QUuid
 int LimitedNodeList::updateNodeWithDataFromPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
     QMutexLocker locker(&sendingNode->getMutex());
 
-    // if this was a sequence numbered packet we should store the last seq number for
-    // a packet of this type for this node
-    if (SEQUENCE_NUMBERED_PACKETS.contains(packet->getType())) {
-        sendingNode->setLastSequenceNumberForPacketType(packet->readSequenceNumber(), packet->getType());
-    }
-
     NodeData* linkedData = sendingNode->getLinkedData();
     if (!linkedData && linkedDataCreateCallback) {
         linkedDataCreateCallback(sendingNode.data());

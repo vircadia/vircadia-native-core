@@ -194,6 +194,12 @@ void PacketReceiver::processDatagrams() {
                             emit dataReceived(NodeType::Unassigned, packet->getSizeWithHeader());
                         }
                         
+                        // if this was a sequence numbered packet we should store the last seq number for
+                        // a packet of this type for this node
+                        if (SEQUENCE_NUMBERED_PACKETS.contains(packet->getType())) {
+                            matchingNode->setLastSequenceNumberForPacketType(packet->readSequenceNumber(), packet->getType());
+                        }
+
                         bool success = false;
 
                         if (matchingNode) {
