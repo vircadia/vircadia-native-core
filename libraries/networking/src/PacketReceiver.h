@@ -37,8 +37,6 @@ public:
     
     void resetCounters() { _inPacketCount = 0; _inByteCount = 0; }
 
-    void shutdown() { _isShuttingDown = true; }
-    
     void registerListenerForTypes(const QSet<PacketType::Value>& types, PacketListener* listener, const char* slot);
     void registerListener(PacketType::Value type, PacketListener* listener, const char* slot);
     void unregisterListener(PacketListener* listener);

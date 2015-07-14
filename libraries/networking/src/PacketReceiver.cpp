@@ -174,10 +174,6 @@ void PacketReceiver::processDatagrams() {
     //PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             //"PacketReceiver::processDatagrams()");
 
-    if (_isShuttingDown) {
-        return; // bail early... we're shutting down.
-    }
-
     auto nodeList = DependencyManager::get<NodeList>();
 
     while (nodeList->getNodeSocket().hasPendingDatagrams()) {
