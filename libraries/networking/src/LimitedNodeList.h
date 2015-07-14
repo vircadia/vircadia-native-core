@@ -165,10 +165,10 @@ public:
     void resetPacketStats();
 
     std::unique_ptr<NLPacket> constructPingPacket(PingType_t pingType = PingType::Agnostic);
-    std::unique_ptr<NLPacket> constructPingReplyPacket(QSharedPointer<NLPacket> pingPacket);
+    std::unique_ptr<NLPacket> constructPingReplyPacket(NLPacket& pingPacket);
 
     std::unique_ptr<NLPacket> constructICEPingPacket(PingType_t pingType, const QUuid& iceID);
-    std::unique_ptr<NLPacket> constructICEPingReplyPacket(QSharedPointer<NLPacket> pingPacket, const QUuid& iceID);
+    std::unique_ptr<NLPacket> constructICEPingReplyPacket(NLPacket& pingPacket, const QUuid& iceID);
 
     virtual bool processSTUNResponse(QSharedPointer<NLPacket> packet);
 

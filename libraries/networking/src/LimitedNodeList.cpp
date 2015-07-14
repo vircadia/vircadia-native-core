@@ -360,8 +360,8 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructPingPacket(PingType_t pingTy
     return pingPacket;
 }
 
-std::unique_ptr<NLPacket> LimitedNodeList::constructPingReplyPacket(QSharedPointer<NLPacket> pingPacket) {
-    QDataStream pingPacketStream(pingPacket.data());
+std::unique_ptr<NLPacket> LimitedNodeList::constructPingReplyPacket(NLPacket& pingPacket) {
+    QDataStream pingPacketStream(&pingPacket);
 
     PingType_t typeFromOriginalPing;
     pingPacketStream >> typeFromOriginalPing;
@@ -390,11 +390,11 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingPacket(PingType_t pin
     return icePingPacket;
 }
 
-std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingReplyPacket(QSharedPointer<NLPacket> pingPacket, const QUuid& iceID) {
+std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingReplyPacket(NLPacket& pingPacket, const QUuid& iceID) {
     // pull out the ping type so we can reply back with that
     PingType_t pingType;
 
-    memcpy(&pingType, pingPacket->getPayload() + NUM_BYTES_RFC4122_UUID, sizeof(PingType_t));
+    memcpy(&pingType, pingPacket.getPayload() + NUM_BYTES_RFC4122_UUID, sizeof(PingType_t));
 
     int packetSize = NUM_BYTES_RFC4122_UUID + sizeof(PingType_t);
     auto icePingReplyPacket = NLPacket::create(PacketType::ICEPingReply, packetSize);
