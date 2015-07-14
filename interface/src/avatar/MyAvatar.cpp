@@ -1699,7 +1699,6 @@ void MyAvatar::relayDriveKeysToCharacterController() {
     }
 }
 
-// overriden, because they must move the sensor mat, so that the avatar will be at the given location.
 void MyAvatar::setPosition(const glm::vec3 position, bool overideReferential) {
 
     // update the sensor mat so that the body position will end up in the desired
@@ -1710,7 +1709,6 @@ void MyAvatar::setPosition(const glm::vec3 position, bool overideReferential) {
     Avatar::setPosition(position);
 }
 
-// overriden, because they must move the sensor mat, so that the avatar will face the given orienation.
 void MyAvatar::setOrientation(const glm::quat& orientation, bool overideReferential) {
 
     // update the sensor mat so that the body position will end up in the desired

@@ -964,15 +964,6 @@ void Application::paintGL() {
         } else {
             _myCamera.setRotation(glm::quat_cast(_myAvatar->getSensorToWorldMatrix() * getHMDSensorPose()));
         }
-
-        /*
-        qCDebug(interfaceapp, "paintGL");
-        glm::vec3 cameraPos = _myCamera.getPosition();
-        glm::quat cameraRot = _myCamera.getRotation();
-        qCDebug(interfaceapp, "\tcamera pos = (%.5f, %.5f, %.5f)", cameraPos.x, cameraPos.y, cameraPos.z);
-        qCDebug(interfaceapp, "\tcamera rot = (%.5f, %.5f, %.5f, %.5f)", cameraRot.x, cameraRot.y, cameraRot.z, cameraRot.w);
-        */
-
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         if (isHMDMode()) {
             _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
@@ -2783,11 +2774,6 @@ void Application::update(float deltaTime) {
     }
 }
 
-// AJT: hack for debug drawing.
-extern const int NUM_MARKERS;
-extern glm::mat4 markerMats[];
-extern glm::vec4 markerColors[];
-
 void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, int index) {
     PalmData* palm;
     bool foundHand = false;
@@ -2818,9 +2804,6 @@ void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, int i
 
     palm->setRawPosition(extractTranslation(objectPose));
     palm->setRawRotation(glm::quat_cast(objectPose));
-
-    // AJT: Hack for debug drawing.
-    //markerMats[index] = sensorToWorldMat * poseMat;
 }
 
 void Application::emulateMouse(Hand* hand, float click, float shift, int index) {
