@@ -2,7 +2,7 @@
 //  AvatarHashMap.cpp
 //  libraries/avatars/src
 //
-//  Created by AndrewMeadows on 1/28/2014.
+//  Created by Andrew Meadows on 1/28/2014.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
