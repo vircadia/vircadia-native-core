@@ -74,10 +74,18 @@ SettingsWindow = function() {
 PlankyOptions = function() {
     var _this = this;
     this.save = function() {
-        //TODO: save Planky Options here.
+        Settings.setValue('plankyOptions', JSON.stringify(_this.getJSON()));
     };
     this.load = function() {
-        //TODO: load Planky Options here.
+        _this.setDefaults();
+        var plankyOptions = Settings.getValue('plankyOptions')
+        if (plankyOptions === null || plankyOptions === '') {
+            return;
+        }
+        var options = JSON.parse(plankyOptions);
+        options.forEach(function(value, option, object) {
+            _this[option] = value;
+        });
     };
     this.getJSON = function() {
         return {
@@ -112,9 +120,8 @@ PlankyOptions = function() {
         _this.restitution = DEFAULT_RESTITUTION;
         _this.spawnDistance = DEFAULT_SPAWN_DISTANCE;
         _this.blockYawOffset = DEFAULT_BLOCK_YAW_OFFSET;
-
     };
-    this.setDefaults();
+    this.load();
 };
 
 // The PlankyStack exists out of rows and layers
