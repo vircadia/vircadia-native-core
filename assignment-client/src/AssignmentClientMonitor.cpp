@@ -173,7 +173,7 @@ void AssignmentClientMonitor::checkSpares() {
     nodeList->removeSilentNodes();
 
     nodeList->eachNode([&](const SharedNodePointer& node) {
-        AssignmentClientChildData *childData = static_cast<AssignmentClientChildData*>(node->getLinkedData());
+        AssignmentClientChildData* childData = static_cast<AssignmentClientChildData*>(node->getLinkedData());
         totalCount ++;
         if (childData->getChildType() == Assignment::Type::AllTypes) {
             spareCount ++;
@@ -210,7 +210,7 @@ void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<NLPacket> p
     SharedNodePointer matchingNode = nodeList->nodeWithUUID(senderID);
     const HifiSockAddr& senderSockAddr = packet->getSenderSockAddr();
 
-    AssignmentClientChildData *childData = nullptr;
+    AssignmentClientChildData* childData = nullptr;
 
     if (!matchingNode) {
         // The parent only expects to be talking with prorams running on this same machine.
