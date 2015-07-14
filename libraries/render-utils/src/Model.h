@@ -106,6 +106,7 @@ public:
     void setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene);
     bool isVisible() const { return _isVisible; }
     
+    bool isLoaded() const { return _geometry && _geometry->isLoaded(); }
     bool isLoadedWithTextures() const { return _geometry && _geometry->isLoadedWithTextures(); }
     
     void init();
@@ -116,7 +117,7 @@ public:
     
     // new Scene/Engine rendering support
     bool needsFixupInScene() { return !_readyWhenAdded && readyToAddToScene(); }
-    bool readyToAddToScene(RenderArgs* renderArgs = nullptr) { return !_needsReload && isRenderable() && isActive() && isLoadedWithTextures(); }
+    bool readyToAddToScene(RenderArgs* renderArgs = nullptr) { return !_needsReload && isRenderable() && isActive() && isLoaded(); }
     bool addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
     bool addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges, render::Item::Status::Getters& statusGetters);
     void removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
