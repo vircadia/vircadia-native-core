@@ -1797,7 +1797,6 @@ void Application::checkFPS() {
 
     _fps = (float)_frameCount / diffTime;
     _frameCount = 0;
-    //_datagramProcessor->resetCounters();
     _timerStart.start();
 }
 
