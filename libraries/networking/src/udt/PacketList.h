@@ -47,6 +47,10 @@ private:
     PacketList(const PacketList& other) = delete;
     PacketList& operator=(const PacketList& other) = delete;
     
+    // Takes the first packet of the list and returns it.
+    template<typename T> std::unique_ptr<T> takeFront();
+    
+    // Creates a new packet, can be overriden to change return underlying type
     virtual std::unique_ptr<Packet> createPacket();
     std::unique_ptr<Packet> createPacketWithExtendedHeader();
     
@@ -62,12 +66,21 @@ private:
 };
 
 template <typename T> qint64 PacketList::readPrimitive(T* data) {
+    static_assert(!std::is_pointer<T>::value, "T must not be a pointer");
     return QIODevice::read(reinterpret_cast<char*>(data), sizeof(T));
 }
 
 template <typename T> qint64 PacketList::writePrimitive(const T& data) {
     static_assert(!std::is_pointer<T>::value, "T must not be a pointer");
     return QIODevice::write(reinterpret_cast<const char*>(&data), sizeof(T));
+}
+
+template<typename T> std::unique_ptr<T> PacketList::takeFront() {
+    static_assert(std::is_base_of<Packet, T>::value, "T must derive from Packet.");
+    
+    auto packet = std::move(_packets.front());
+    _packets.pop_front();
+    return std::move(std::unique_ptr<T>(dynamic_cast<T*>(packet.release())));
 }
 
 #endif // hifi_PacketList_h

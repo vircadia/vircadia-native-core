@@ -288,10 +288,8 @@ qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& des
 
 qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr) {
     qint64 bytesSent{ 0 };
-    auto& packets = packetList._packets;
-    while (!packets.empty()) {
-        bytesSent += sendPacket(std::move(packets.front()), sockAddr);
-        packets.pop_front();
+    while (!packetList._packets.empty()) {
+        bytesSent += sendPacket(std::move(packetList.takeFront<NLPacket>()), sockAddr);
     }
     
     return bytesSent;
