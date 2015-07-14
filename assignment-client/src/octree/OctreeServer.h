@@ -145,8 +145,6 @@ protected:
     QString getConfiguration();
     QString getStatusLink();
 
-    void setupDatagramProcessingThread();
-
     int _argc;
     const char** _argv;
     char** _parsedArgV;

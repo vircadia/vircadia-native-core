@@ -112,8 +112,6 @@ private:
     DomainHandler _domainHandler;
     int _numNoReplyDomainCheckIns;
     HifiSockAddr _assignmentServerSocket;
-
-    friend class Application;
 };
 
 #endif // hifi_NodeList_h

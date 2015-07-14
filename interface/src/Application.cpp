@@ -380,16 +380,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // start the nodeThread so its event loop is running
     QThread* nodeThread = new QThread(this);
-    nodeThread->setObjectName("Datagram Processor Thread");
+    nodeThread->setObjectName("NodeList Thread");
     nodeThread->start();
 
     // make sure the node thread is given highest priority
     nodeThread->setPriority(QThread::TimeCriticalPriority);
-
-    // have the NodeList use deleteLater from DM customDeleter
-    nodeList->setCustomDeleter([](Dependency* dependency) {
-        static_cast<NodeList*>(dependency)->deleteLater();
-    });
 
     // setup a timer for domain-server check ins
     QTimer* domainCheckInTimer = new QTimer(nodeList.data());
@@ -748,6 +743,8 @@ Application::~Application() {
     DependencyManager::destroy<SoundCache>();
 
     QThread* nodeThread = DependencyManager::get<NodeList>()->thread();
+    
+    // remove the NodeList from the DependencyManager
     DependencyManager::destroy<NodeList>();
 
     // ask the node thread to quit and wait until it is done

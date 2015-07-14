@@ -20,8 +20,8 @@
 
 ThreadedAssignment::ThreadedAssignment(NLPacket& packet) :
     Assignment(packet),
-    _isFinished(false),
-    _datagramProcessingThread(NULL)
+    _isFinished(false)
+
 {
 
 }
@@ -42,30 +42,8 @@ void ThreadedAssignment::setFinished(bool isFinished) {
                 _statsTimer->stop();
             }
 
-            // stop processing datagrams from the node socket
-            // this ensures we won't process a domain list while we are going down
-            auto nodeList = DependencyManager::get<NodeList>();
-            disconnect(&nodeList->getNodeSocket(), 0, this, 0);
-
             // call our virtual aboutToFinish method - this gives the ThreadedAssignment subclass a chance to cleanup
             aboutToFinish();
-
-            // if we have a datagram processing thread, quit it and wait on it to make sure that
-            // the node socket is back on the same thread as the NodeList
-
-
-            if (_datagramProcessingThread) {
-                // tell the datagram processing thread to quit and wait until it is done,
-                // then return the node socket to the NodeList
-                _datagramProcessingThread->quit();
-                _datagramProcessingThread->wait();
-
-                // set node socket parent back to NodeList
-                nodeList->getNodeSocket().setParent(nodeList.data());
-            }
-
-            // move the NodeList back to the QCoreApplication instance's thread
-            nodeList->moveToThread(QCoreApplication::instance()->thread());
 
             emit finished();
         }
@@ -118,18 +96,5 @@ void ThreadedAssignment::checkInWithDomainServerOrExit() {
         setFinished(true);
     } else {
         DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
-    }
-}
-
-bool ThreadedAssignment::readAvailableDatagram(QByteArray& destinationByteArray, HifiSockAddr& senderSockAddr) {
-    auto nodeList = DependencyManager::get<NodeList>();
-
-    if (nodeList->getNodeSocket().hasPendingDatagrams()) {
-        destinationByteArray.resize(nodeList->getNodeSocket().pendingDatagramSize());
-        nodeList->getNodeSocket().readDatagram(destinationByteArray.data(), destinationByteArray.size(),
-                                               senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
-        return true;
-    } else {
-        return false;
     }
 }
