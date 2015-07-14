@@ -407,13 +407,15 @@ void AvatarMixer::handleAvatarDataPacket(QSharedPointer<NLPacket> packet, Shared
 
 void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
     if (senderNode->getLinkedData()) {
-        AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
-        AvatarData& avatar = nodeData->getAvatar();
+        AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
+        if (nodeData != nullptr) {
+            AvatarData& avatar = nodeData->getAvatar();
 
-        // parse the identity packet and update the change timestamp if appropriate
-        if (avatar.hasIdentityChangedAfterParsing(*packet)) {
-            QMutexLocker nodeDataLocker(&nodeData->getMutex());
-            nodeData->setIdentityChangeTimestamp(QDateTime::currentMSecsSinceEpoch());
+            // parse the identity packet and update the change timestamp if appropriate
+            if (avatar.hasIdentityChangedAfterParsing(*packet)) {
+                QMutexLocker nodeDataLocker(&nodeData->getMutex());
+                nodeData->setIdentityChangeTimestamp(QDateTime::currentMSecsSinceEpoch());
+            }
         }
     }
 }
