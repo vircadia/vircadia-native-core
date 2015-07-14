@@ -168,14 +168,14 @@ void AssignmentClient::setUpStatusToMonitor() {
 void AssignmentClient::sendStatusPacketToACM() {
     // tell the assignment client monitor what this assignment client is doing (if anything)
     auto nodeList = DependencyManager::get<NodeList>();
-
-    auto statusPacket = NLPacket::create(PacketType::AssignmentClientStatus, 1 + NUM_BYTES_RFC4122_UUID);
     
     quint8 assignmentType = Assignment::Type::AllTypes;
 
     if (_currentAssignment) {
         assignmentType = _currentAssignment->getType();
     }
+
+    auto statusPacket = NLPacket::create(PacketType::AssignmentClientStatus, typeof(assignmentType) + NUM_BYTES_RFC4122_UUID);
 
     statusPacket->write(nodeList->getSessionUUID().toRfc4122());
     statusPacket->writePrimitive(assignmentType);
