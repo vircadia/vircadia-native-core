@@ -203,7 +203,7 @@ void AssignmentClientMonitor::checkSpares() {
 }
 
 void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<NLPacket> packet) {
-    QUuid senderID = QUuid::fromRfc4122(packet->read(NUM_BYTES_RFC4122_UUID));
+    QUuid senderID = QUuid::fromRfc4122(QByteArray::fromRawData(packet->getData(), NUM_BYTES_RFC4122_UUID));
 
     auto nodeList = DependencyManager::get<NodeList>();
 
