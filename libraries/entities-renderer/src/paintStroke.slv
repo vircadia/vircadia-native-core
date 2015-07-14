@@ -18,7 +18,7 @@
 
 // the interpolated normal
 varying vec4 interpolatedNormal;
-
+varying vec4 modelPosition;
 void main(void) {
     gl_TexCoord[0] = gl_MultiTexCoord0;
     
@@ -31,5 +31,6 @@ void main(void) {
     <$transformModelToClipPos(cam, obj, gl_Vertex, gl_Position)$>
     <$transformModelToEyeDir(cam, obj, gl_Normal, interpolatedNormal.xyz)$>
 
+    modelPosition = gl_Vertex;
     interpolatedNormal = vec4(normalize(interpolatedNormal.xyz), 0.0);
 }

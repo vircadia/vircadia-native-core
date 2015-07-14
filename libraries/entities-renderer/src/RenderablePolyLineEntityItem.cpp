@@ -13,7 +13,8 @@
 
 #include <gpu/GPUConfig.h>
 #include <GeometryCache.h>
-
+#include <TextureCache.h>
+#include <PathUtils.h>
 #include <DeferredLightingEffect.h>
 #include <PerfStat.h>
 
@@ -40,6 +41,10 @@ gpu::Stream::FormatPointer RenderablePolyLineEntityItem::_format;
 void RenderablePolyLineEntityItem::createPipeline() {
     static const int NORMAL_OFFSET = 12;
     static const int COLOR_OFFSET = 24;
+    
+    auto textureCache = DependencyManager::get<TextureCache>();
+    textureCache->getImageTexture(PathUtils::resourcesPath() + "images/paintStrokeTexture.png");
+    
     _format.reset(new gpu::Stream::Format());
     _format->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     _format->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), NORMAL_OFFSET);

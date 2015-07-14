@@ -36,6 +36,7 @@ protected:
     void updateGeometry();
     gpu::BufferPointer _verticesBuffer;
     unsigned int _numVertices;
+    gpu::TexturePointer _texture;
 
 };
 
