@@ -1393,7 +1393,7 @@ void DomainServer::processICEPeerInformationPacket(QSharedPointer<NLPacket> pack
 
 void DomainServer::processICEPingPacket(QSharedPointer<NLPacket> packet) {
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-    auto pingReplyPacket = limitedNodeList->constructICEPingReplyPacket(packet, limitedNodeList->getSessionUUID());
+    auto pingReplyPacket = limitedNodeList->constructICEPingReplyPacket(*packet, limitedNodeList->getSessionUUID());
 
     limitedNodeList->sendPacket(std::move(pingReplyPacket), packet->getSenderSockAddr());
 }
