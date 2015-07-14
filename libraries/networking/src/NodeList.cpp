@@ -370,14 +370,19 @@ void NodeList::processDomainServerPathQueryResponse(QSharedPointer<NLPacket> pac
     packet->readPrimitive(&numViewpointBytes);
 
     // pull the viewpoint from the packet
-    QString viewpoint = QString::fromUtf8(packet->read(numViewpointBytes));
+    auto stringData = packet->read(numViewpointBytes)
+    if (stringData.size() == numViewpointBytes) {
+        QString viewpoint = QString::fromUtf8(stringData);
 
-    // Hand it off to the AddressManager so it can handle it as a relative viewpoint
-    if (DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, pathQuery)) {
-        qCDebug(networking) << "Going to viewpoint" << viewpoint << "which was the lookup result for path" << pathQuery;
+        // Hand it off to the AddressManager so it can handle it as a relative viewpoint
+        if (DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, pathQuery)) {
+            qCDebug(networking) << "Going to viewpoint" << viewpoint << "which was the lookup result for path" << pathQuery;
+        } else {
+            qCDebug(networking) << "Could not go to viewpoint" << viewpoint
+                << "which was the lookup result for path" << pathQuery;
+        }
     } else {
-        qCDebug(networking) << "Could not go to viewpoint" << viewpoint
-            << "which was the lookup result for path" << pathQuery;
+        qCDebug(networking) << "Error loading viewpoint from path query response";
     }
 }
 
