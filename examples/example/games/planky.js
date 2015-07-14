@@ -65,7 +65,7 @@ SettingsWindow = function() {
             case 'loaded':
                 _this.sendData({action: 'load', options: _this.plankyStack.options.getJSON()})
                 break;
-            case 'value_change':
+            case 'value-change':
                 _this.plankyStack.onValueChanged(data.option, data.value);
                 break;
             case 'factory-reset':
@@ -148,6 +148,7 @@ PlankyStack = function() {
     this.ground = false;
     this.editLines = [];
     this.options = new PlankyOptions();
+
     this.deRez = function() {
         _this.planks.forEach(function(plank) {
             Entities.deleteEntity(plank.entity);
@@ -159,13 +160,14 @@ PlankyStack = function() {
         _this.editLines.forEach(function(line) {
             Entities.deleteEntity(line);
         })
+        _this.editLines = [];
         if (_this.centerLine) {
             Entities.deleteEntity(_this.centerLine);
         }
         _this.ground = false;
         _this.centerLine = false;
-        _this.editLines = [];
     };
+
     this.rez = function() {
         if (_this.planks.length > 0) {
             _this.deRez();
@@ -192,7 +194,7 @@ PlankyStack = function() {
         }
         // move ground to rez position/rotation
         Entities.editEntity(_this.ground, {dimensions: _this.options.baseDimension, position: Vec3.sum(_this.basePosition, {y: -(_this.options.baseDimension.y / 2)}), rotation: _this.baseRotation});
-    }
+    };
 
     var refreshLines = function() {
         if (_this.editLines.length === 0) {
@@ -206,7 +208,8 @@ PlankyStack = function() {
             }));
             return;
         }
-    }
+    };
+
     var trimDimension = function(dimension, maxIndex) {
         _this.planks.forEach(function(plank, index, object) {
             if (plank[dimension] > maxIndex) {
@@ -215,6 +218,7 @@ PlankyStack = function() {
             }
         });
     };
+
     var createOrUpdate = function(layer, row) {
         var found = false;
         var layerRotated = layer % 2 === 0;
@@ -256,17 +260,19 @@ PlankyStack = function() {
             _this.planks.push({layer: layer, row: row, entity: Entities.addEntity(newProperties)})
         }
     };
+
     this.onValueChanged = function(option, value) {
         _this.options[option] = value;
         if (['numLayers', 'blocksPerLayer', 'blockSize', 'blockSpacing', 'blockHeightVariation'].indexOf(option) !== -1) {
             _this.refresh();
         }
     };
+
     this.refresh = function() {
         refreshGround();
         refreshLines();
-        trimDimension('layer', _this.options.numLayers);
-        trimDimension('row', _this.options.blocksPerLayer);
+        trimDimension('layer', _this.options.numLayers - 1);
+        trimDimension('row', _this.options.blocksPerLayer - 1);
         _this.offsetRot = Quat.multiply(_this.baseRotation, Quat.fromPitchYawRollDegrees(0.0, _this.options.blockYawOffset, 0.0));
         for (var layer = 0; layer < _this.options.numLayers; layer++) {
             for (var row = 0; row < _this.options.blocksPerLayer; row++) {
@@ -280,6 +286,7 @@ PlankyStack = function() {
             });
         }
     };
+
     this.isFound = function() {
         //TODO: identify entities here until one is found
         return _this.planks.length > 0;

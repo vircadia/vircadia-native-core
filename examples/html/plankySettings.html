@@ -42,10 +42,11 @@ PropertyInput = function(key, label, value, attributes) {
 };
 
 var valueChangeHandler = function() {
+
     sendWebEvent({
-        action: 'value_change',
-        option: $(this).attr('name'),
-        value: properties[$(this).attr('name')].getValue()
+        action: 'value-change',
+        option: $(this).data('var-name'),
+        value: properties[$(this).data('var-name')].getValue()
     });
 };
 
@@ -55,14 +56,14 @@ NumberInput = function(key, label, value, attributes) {
 NumberInput.prototype = Object.create(PropertyInput.prototype);
 NumberInput.prototype.constructor = NumberInput;
 NumberInput.prototype.createValue = function() {
-    this.input = $('<input>').attr('name', this.key).attr('type', 'number').val(this.value).on('change', valueChangeHandler);
+    this.input = $('<input>').data('var-name', this.key).attr('name', this.key).attr('type', 'number').val(this.value).on('change', valueChangeHandler);
     if (this.attributes !== undefined) {
         this.input.attr(this.attributes);
     }
     return this.input;
 };
 NumberInput.prototype.getValue = function() {
-    return this.input.val();
+    return parseFloat(this.input.val());
 };
 
 CoordinateInput = function(key, label, value, attributes) {
@@ -71,9 +72,9 @@ CoordinateInput = function(key, label, value, attributes) {
 CoordinateInput.prototype = Object.create(PropertyInput.prototype);
 CoordinateInput.prototype.constructor = CoordinateInput;
 CoordinateInput.prototype.createValue = function() {
-    this.inputX = $('<input>').attr('name', this.key + '-x').attr('type', 'number').addClass('coord').val(this.value.x);
-    this.inputY = $('<input>').attr('name', this.key + '-y').attr('type', 'number').addClass('coord').val(this.value.y);
-    this.inputZ = $('<input>').attr('name', this.key + '-z').attr('type', 'number').addClass('coord').val(this.value.z);
+    this.inputX = $('<input>').data('var-name', this.key).attr('name', this.key + '-x').attr('type', 'number').addClass('coord').val(this.value.x).on('change', valueChangeHandler);
+    this.inputY = $('<input>').data('var-name', this.key).attr('name', this.key + '-y').attr('type', 'number').addClass('coord').val(this.value.y).on('change', valueChangeHandler);
+    this.inputZ = $('<input>').data('var-name', this.key).attr('name', this.key + '-z').attr('type', 'number').addClass('coord').val(this.value.z).on('change', valueChangeHandler);
     if (this.attributes !== undefined) {
         this.inputX.attr(this.attributes);
         this.inputY.attr(this.attributes);
@@ -82,7 +83,7 @@ CoordinateInput.prototype.createValue = function() {
     return [encapsulateInput(this.inputX, 'X'), encapsulateInput(this.inputY, 'Y'), encapsulateInput(this.inputZ, 'Z')];
 };
 CoordinateInput.prototype.getValue = function() {
-    return {x: this.inputX.val(), y: this.inputY.val(), z: this.inputZ.val()};
+    return {x: parseFloat(this.inputX.val()), y: parseFloat(this.inputY.val()), z: parseFloat(this.inputZ.val())};
 };
 function encapsulateInput(input, label) {
     return $('<div>').addClass('input-area').append(label + ' ').append(input);
@@ -95,7 +96,6 @@ function addHeader(label) {
 $(function() {  
     addHeader('Stack Settings');
     properties['numLayers'] = new NumberInput('numLayers', 'Layers', 17, {'min': 0, 'max': 300, 'step': 1});
-    properties['baseDimension'] = new CoordinateInput('baseDimension', 'Base dimension', {x: 7, y: 2, z: 7}, {'min': 0.5, 'max': 200, 'step': 0.1});
     properties['blocksPerLayer'] = new NumberInput('blocksPerLayer', 'Blocks per layer', 4, {'min': 1, 'max': 100, 'step': 1});
     properties['blockSize'] = new CoordinateInput('blockSize', 'Block size', {x: 0.2, y: 0.1, z: 0.8}, {'min': 0.05, 'max': 20, 'step': 0.1});
     properties['blockSpacing'] = new NumberInput('blockSpacing', 'Block spacing', properties['blockSize'].getValue().x / properties['blocksPerLayer'].getValue(), {'min': 0, 'max': 20, 'step': 0.01});
@@ -114,6 +114,7 @@ $(function() {
     addHeader('Spawn Settings');
     properties['spawnDistance'] = new NumberInput('spawnDistance', 'Spawn distance (meters)', 3);
     properties['blockYawOffset'] = new NumberInput('blockYawOffset', 'Block yaw offset (degrees)', 45, {'min': 0, 'max': 360, 'step': 1});
+    properties['baseDimension'] = new CoordinateInput('baseDimension', 'Base dimension', {x: 7, y: 2, z: 7}, {'min': 0.5, 'max': 200, 'step': 0.1});
     addHeader('Actions');
     $('#properties-list')
         .append($('<input>').val('factory reset').attr('type', 'button').on('click', function() { sendWebEvent({action: 'factory-reset'}); }))
