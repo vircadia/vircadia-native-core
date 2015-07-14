@@ -43,9 +43,10 @@ var gMaxGrabDistance;
 //     elevationAzimuth
 var gGrabMode = "xzplane";
 
-// gGrabOffset allows the user to grab an object off-center.  It points from ray's intersection
-// with the move-plane to object center (at the moment the grab is initiated).  Future target positions
-// are relative to the ray's intersection by the same offset.
+// gGrabOffset allows the user to grab an object off-center.  It points from the object's center
+// to the point where the ray intersects the grab plane (at the moment the grab is initiated).
+// Future target positions of the ray intersection are on the same plane, and the offset is subtracted
+// to compute the target position of the object's center.
 var gGrabOffset = { x: 0, y: 0, z: 0 };
 
 var gTargetPosition;
@@ -152,7 +153,6 @@ function computeNewGrabPlane() {
         maybeResetMousePosition = true;
     }
     gGrabMode = "xzPlane";
-    gPointOnPlane = gCurrentPosition;
     gPlaneNormal = { x: 0, y: 1, z: 0 };
     if (gLiftKey) {
         if (!gRotateKey) {
@@ -163,7 +163,7 @@ function computeNewGrabPlane() {
         gGrabMode = "rotate";
     }
 
-    gPointOnPlane = Vec3.subtract(gCurrentPosition, gGrabOffset);
+    gPointOnPlane = Vec3.sum(gCurrentPosition, gGrabOffset);
     var xzOffset = Vec3.subtract(gPointOnPlane, Camera.getPosition());
     xzOffset.y = 0;
     gXzDistanceToGrab = Vec3.length(xzOffset);
@@ -220,8 +220,8 @@ function mousePressEvent(event) {
     nearestPoint = Vec3.multiply(distanceToGrab, pickRay.direction);
     gPointOnPlane = Vec3.sum(cameraPosition, nearestPoint);
 
-    // compute the grab offset
-    gGrabOffset = Vec3.subtract(gStartPosition, gPointOnPlane);
+    // compute the grab offset (points from object center to point of grab)
+    gGrabOffset = Vec3.subtract(gPointOnPlane, gStartPosition);
 
     computeNewGrabPlane();
 
@@ -258,6 +258,7 @@ function mouseMoveEvent(event) {
     if (Vec3.length(entityProperties.gravity) != 0) {
         gOriginalGravity = entityProperties.gravity;
     }
+    gCurrentPosition = entityProperties.position;
 
     var actionArgs = {};
 
@@ -287,6 +288,7 @@ function mouseMoveEvent(event) {
             var pointOnCylinder = Vec3.multiply(planeNormal, gXzDistanceToGrab);
             pointOnCylinder = Vec3.sum(Camera.getPosition(), pointOnCylinder);
             newTargetPosition = mouseIntersectionWithPlane(pointOnCylinder, planeNormal, event);
+            gPointOnPlane = Vec3.sum(newTargetPosition, gGrabOffset);
         } else {
             var cameraPosition = Camera.getPosition();
             newTargetPosition = mouseIntersectionWithPlane(gPointOnPlane, gPlaneNormal, event);
@@ -298,7 +300,7 @@ function mouseMoveEvent(event) {
                 newTargetPosition = Vec3.sum(relativePosition, cameraPosition);
             }
         }
-        gTargetPosition = Vec3.sum(newTargetPosition, gGrabOffset);
+        gTargetPosition = Vec3.subtract(newTargetPosition, gGrabOffset);
         actionArgs = {targetPosition: gTargetPosition, linearTimeScale: 0.1};
     }
     gPreviousMouse = { x: event.x, y: event.y };
