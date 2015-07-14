@@ -12,6 +12,8 @@
 //
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
+Script.include("../../libraries/toolBars.js");
+
 const DEFAULT_NUM_LAYERS = 16;
 const DEFAULT_BASE_DIMENSION = { x: 7, y: 2, z: 7 };
 const DEFAULT_BLOCKS_PER_LAYER = 3;
@@ -30,7 +32,7 @@ const DEFAULT_BLOCK_YAW_OFFSET = 45;
 
 var editMode = false;
 
-const BUTTON_DIMENSIONS = {width: 49, height: 49};
+const BUTTON_DIMENSIONS = {width: 50, height: 50};
 const MAXIMUM_PERCENTAGE = 100.0;
 const NO_ANGLE = 0;
 const RIGHT_ANGLE = 90;
@@ -42,12 +44,30 @@ var ground = false;
 var layerRotated = false;
 var button;
 var cogButton;
+var toolBar;
 
 SettingsWindow = function() {
+    var _this = this;
+    this.plankyStack = null;
     this.webWindow = null;
-    this.init = function() {
-        this.webWindow = new WebWindow('Planky', Script.resolvePath('../../html/plankySettings.html'), 255, 500, true);
-        this.webWindow.setVisible(false);
+    this.init = function(plankyStack) {
+        _this.webWindow = new WebWindow('Planky', Script.resolvePath('../../html/plankySettings.html'), 255, 500, true);
+        _this.webWindow.setVisible(false);
+        _this.webWindow.eventBridge.webEventReceived.connect(_this.onWebEventReceived);
+        _this.plankyStack = plankyStack;
+    };
+    this.sendData = function(data) {
+        _this.webWindow.eventBridge.emitScriptEvent(JSON.stringify(data));
+    };
+    this.onWebEventReceived = function(data) {
+        data = JSON.parse(data);
+        switch (data.action) {
+            case 'loaded':
+                _this.sendData({action: 'load', options: _this.plankyStack.options.getJSON()})
+                break;
+            default:
+                Window.alert('unknown action ' + data.action);
+        }
     };
 };
 
@@ -59,6 +79,24 @@ PlankyOptions = function() {
     this.load = function() {
         //TODO: load Planky Options here.
     };
+    this.getJSON = function() {
+        return {
+            numLayers: _this.numLayers,
+            baseDimension: _this.baseDimension,
+            blocksPerLayer: _this.blocksPerLayer,
+            blockSize: _this.blockSize,
+            blockSpacing: _this.blockSpacing,
+            blockHeightVariation: _this.blockHeightVariation,
+            gravity: _this.gravity,
+            density: _this.density,
+            dampingFactor: _this.dampingFactor,
+            angularDampingFactor: _this.angularDampingFactor,
+            friction: _this.friction,
+            restitution: _this.restitution,
+            spawnDistance: _this.spawnDistance,
+            blockYawOffset: _this.blockYawOffset,
+        };
+    }
     this.setDefaults = function() {
         _this.numLayers = DEFAULT_NUM_LAYERS;
         _this.baseDimension = DEFAULT_BASE_DIMENSION;
@@ -74,6 +112,7 @@ PlankyOptions = function() {
         _this.restitution = DEFAULT_RESTITUTION;
         _this.spawnDistance = DEFAULT_SPAWN_DISTANCE;
         _this.blockYawOffset = DEFAULT_BLOCK_YAW_OFFSET;
+
     };
     this.setDefaults();
 };
@@ -93,7 +132,7 @@ PlankyStack = function() {
         if (_this.ground) {
             Entities.deleteEntity(_this.ground);
         }
-        this.editLines.forEach(function(line) {
+        _this.editLines.forEach(function(line) {
             Entities.deleteEntity(line);
         })
         if (_this.centerLine) {
@@ -155,7 +194,7 @@ PlankyStack = function() {
         var found = false;
         var layerRotated = layer % 2 === 0;
         var layerRotation = Quat.fromPitchYawRollDegrees(0, layerRotated ? NO_ANGLE : RIGHT_ANGLE, 0.0);
-        var blockPositionXZ = ((row - (_this.options.blocksPerLayer / 2) + 0.5) * (_this.options.blockSpacing + _this.options.blockSize.x));
+        var blockPositionXZ = (row - (_this.options.blocksPerLayer / 2) + 0.5) * (_this.options.blockSpacing + _this.options.blockSize.x);
         var localTransform = Vec3.multiplyQbyV(_this.offsetRot, {
             x: (layerRotated ? blockPositionXZ : 0),
             y: (_this.options.blockSize.y / 2) + (_this.options.blockSize.y * layer),
@@ -217,9 +256,8 @@ PlankyStack = function() {
 };
 
 var settingsWindow = new SettingsWindow();
-settingsWindow.init();
-
 var plankyStack = new PlankyStack();
+settingsWindow.init(plankyStack);
 
 function grabLowestJointY() {
     var jointNames = MyAvatar.getJointNames();
@@ -232,66 +270,58 @@ function grabLowestJointY() {
     return floorY;
 }
 
-function getButtonPosX() {
-    return windowWidth - ((BUTTON_DIMENSIONS.width / 2) + BUTTON_DIMENSIONS.width);
-}
-
-function getCogButtonPosX() {
-    return getButtonPosX() - (BUTTON_DIMENSIONS.width * 1.1);
-}
-
 function createButtons() {
-    button = Overlays.addOverlay('image', {
-        x: getButtonPosX(),
-        y: 10,
+    toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.games.planky", function (windowDimensions, toolbar) {
+        return {
+            x: windowDimensions.x - (toolbar.width * 1.1),
+            y: toolbar.height / 2
+        };
+    });    
+    button = toolBar.addTool({
         width: BUTTON_DIMENSIONS.width,
         height: BUTTON_DIMENSIONS.height,
         imageURL: HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/planky_button.svg',
-        alpha: 0.8
+        alpha: 0.8,
+        visible: true
     });
 
-    cogButton = Overlays.addOverlay('image', {
-        x: getCogButtonPosX(),
-        y: 10,
+    cogButton = toolBar.addTool({
         width: BUTTON_DIMENSIONS.width,
         height: BUTTON_DIMENSIONS.height,
         imageURL: HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/cog.svg',
-        alpha: 0.8
+        alpha: 0.8,
+        visible: true
     });
 }
 // Fixes bug of not showing buttons on startup
-Script.setTimeout(createButtons, 1000);
+Script.setTimeout(createButtons, 2000);
 
 Controller.mousePressEvent.connect(function(event) {
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
-    if (clickedOverlay === button) {
+    if (toolBar.clicked(clickedOverlay) === button) {
         if (!plankyStack.isFound()) {
             plankyStack.rez();
             return;
         }
         editMode = !editMode;
         plankyStack.refresh();
-    } else if (clickedOverlay === cogButton) {
+    } else if (toolBar.clicked(clickedOverlay) === cogButton) {
         settingsWindow.webWindow.setVisible(true);
     }
 });
-                   
-function cleanup() {
-    Overlays.deleteOverlay(button);
-    Overlays.deleteOverlay(cogButton);
-    if (ground) {
-        Entities.deleteEntity(ground);
-    }
-    plankyStack.deRez();
-}
 
-function onUpdate() {
+Script.update.connect(function() {
     if (windowWidth !== Window.innerWidth) {
         windowWidth = Window.innerWidth;
         Overlays.editOverlay(button, {x: getButtonPosX()});
         Overlays.editOverlay(cogButton, {x: getCogButtonPosX()});
     }
-}
+})
 
-Script.update.connect(onUpdate)
-Script.scriptEnding.connect(cleanup);
+Script.scriptEnding.connect(function() {
+    toolBar.cleanup();
+    if (ground) {
+        Entities.deleteEntity(ground);
+    }
+    plankyStack.deRez();
+});
