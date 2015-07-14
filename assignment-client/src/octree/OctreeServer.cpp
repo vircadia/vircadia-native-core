@@ -28,7 +28,6 @@
 
 #include "OctreeServer.h"
 #include "OctreeServerConsts.h"
-#include "OctreeServerDatagramProcessor.h"
 
 OctreeServer* OctreeServer::_instance = NULL;
 int OctreeServer::_clientCount = 0;
@@ -838,36 +837,6 @@ void OctreeServer::handleJurisdictionRequestPacket(QSharedPointer<NLPacket> pack
     _jurisdictionSender->queueReceivedPacket(packet, senderNode);
 }
 
-void OctreeServer::setupDatagramProcessingThread() {
-    auto nodeList = DependencyManager::get<NodeList>();
-
-    // we do not want this event loop to be the handler for UDP datagrams, so disconnect
-    disconnect(&nodeList->getNodeSocket(), 0, this, 0);
-
-    // setup a QThread with us as parent that will house the OctreeServerDatagramProcessor
-    _datagramProcessingThread = new QThread(this);
-    _datagramProcessingThread->setObjectName("Octree Datagram Processor");
-
-    // create an OctreeServerDatagramProcessor and move it to that thread
-    OctreeServerDatagramProcessor* datagramProcessor = new OctreeServerDatagramProcessor(nodeList->getNodeSocket(), thread());
-    datagramProcessor->moveToThread(_datagramProcessingThread);
-
-    // remove the NodeList as the parent of the node socket
-    nodeList->getNodeSocket().setParent(NULL);
-    nodeList->getNodeSocket().moveToThread(_datagramProcessingThread);
-
-    // let the datagram processor handle readyRead from node socket
-    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead,
-            datagramProcessor, &OctreeServerDatagramProcessor::readPendingDatagrams);
-
-    // delete the datagram processor and the associated thread when the QThread quits
-    connect(_datagramProcessingThread, &QThread::finished, datagramProcessor, &QObject::deleteLater);
-    connect(datagramProcessor, &QObject::destroyed, _datagramProcessingThread, &QThread::deleteLater);
-
-    // start the datagram processing thread
-    _datagramProcessingThread->start();
-}
-
 bool OctreeServer::readOptionBool(const QString& optionName, const QJsonObject& settingsSectionObject, bool& result) {
     result = false; // assume it doesn't exist
     bool optionAvailable = false;
@@ -1078,8 +1047,6 @@ void OctreeServer::run() {
 
     // use common init to setup common timers and logging
     commonInit(getMyLoggingServerTargetName(), getMyNodeType());
-
-    setupDatagramProcessingThread();
 
     // read the configuration from either the payload or the domain server configuration
     readConfiguration();
