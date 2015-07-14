@@ -821,7 +821,7 @@ void OctreeServer::readPendingDatagram(const QByteArray& receivedPacket, const H
 
     if (!_isShuttingDown) {
         if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
-            PacketType packetType = packetTypeForPacket(receivedPacket);
+            PacketType::Value packetType = packetTypeForPacket(receivedPacket);
             SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
             if (packetType == getMyQueryMessageType()) {
                 // If we got a query packet, then we're talking to an agent, and we
@@ -834,7 +834,7 @@ void OctreeServer::readPendingDatagram(const QByteArray& receivedPacket, const H
                         nodeData->initializeOctreeSendThread(this, matchingNode);
                     }
                 }
-            } else if (packetType == PacketTypeOctreeDataNack) {
+            } else if (packetType == PacketType::OctreeDataNack) {
                 // If we got a nack packet, then we're talking to an agent, and we
                 // need to make sure we have it in our nodeList.
                 if (matchingNode) {
@@ -843,7 +843,7 @@ void OctreeServer::readPendingDatagram(const QByteArray& receivedPacket, const H
                         nodeData->parseNackPacket(receivedPacket);
                     }
                 }
-            } else if (packetType == PacketTypeJurisdictionRequest) {
+            } else if (packetType == PacketType::JurisdictionRequest) {
                 _jurisdictionSender->queueReceivedPacket(matchingNode, receivedPacket);
             } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {
                 _octreeInboundPacketProcessor->queueReceivedPacket(matchingNode, receivedPacket);

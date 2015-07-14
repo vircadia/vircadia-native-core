@@ -54,29 +54,30 @@ void IceServer::processDatagrams() {
         _serverSocket.readDatagram(incomingPacket.data(), incomingPacket.size(),
                                    sendingSockAddr.getAddressPointer(), sendingSockAddr.getPortPointer());
 
-        PacketType packetType = packetTypeForPacket(incomingPacket);
+        PacketType::Value packetType = packetTypeForPacket(incomingPacket);
 
-        if (packetType == PacketTypeIceServerHeartbeat) {
+        if (packetType == PacketType::ICEServerHeartbeat) {
             SharedNetworkPeer peer = addOrUpdateHeartbeatingPeer(incomingPacket);
 
             // so that we can send packets to the heartbeating peer when we need, we need to activate a socket now
             peer->activateMatchingOrNewSymmetricSocket(sendingSockAddr);
-        } else if (packetType == PacketTypeIceServerQuery) {
+        } else if (packetType == PacketType::ICEServerQuery) {
+            QDataStream heartbeatStream(incomingPacket);
 
             // this is a node hoping to connect to a heartbeating peer - do we have the heartbeating peer?
-            QUuid senderUUID = uuidFromPacketHeader(incomingPacket);
+            QUuid senderUUID;
+            heartbeatStream >> senderUUID;
 
             // pull the public and private sock addrs for this peer
             HifiSockAddr publicSocket, localSocket;
 
-            QDataStream hearbeatStream(incomingPacket);
-            hearbeatStream.skipRawData(numBytesForPacketHeader(incomingPacket));
+            heartbeatStream.skipRawData(numBytesForPacketHeader(incomingPacket));
 
-            hearbeatStream >> publicSocket >> localSocket;
+            heartbeatStream >> publicSocket >> localSocket;
 
             // check if this node also included a UUID that they would like to connect to
             QUuid connectRequestID;
-            hearbeatStream >> connectRequestID;
+            heartbeatStream >> connectRequestID;
 
             SharedNetworkPeer matchingPeer = _activePeers.value(connectRequestID);
 
@@ -127,18 +128,13 @@ SharedNetworkPeer IceServer::addOrUpdateHeartbeatingPeer(const QByteArray& incom
 }
 
 void IceServer::sendPeerInformationPacket(const NetworkPeer& peer, const HifiSockAddr* destinationSockAddr) {
-    QByteArray outgoingPacket(MAX_PACKET_SIZE, 0);
-    int currentPacketSize = populatePacketHeaderWithUUID(outgoingPacket, PacketTypeIceServerPeerInformation, _id);
-    int numHeaderBytes = currentPacketSize;
+    auto peerPacket = Packet::create(PacketType::ICEServerPeerInformation);
 
     // get the byte array for this peer
-    QByteArray peerBytes = peer.toByteArray();
-    outgoingPacket.replace(numHeaderBytes, peerBytes.size(), peerBytes);
-
-    currentPacketSize += peerBytes.size();
+    peerPacket->write(peer.toByteArray());
 
     // write the current packet
-    _serverSocket.writeDatagram(outgoingPacket.data(), outgoingPacket.size(),
+    _serverSocket.writeDatagram(peerPacket->getData(), peerPacket->getSizeWithHeader(),
                                 destinationSockAddr->getAddress(), destinationSockAddr->getPort());
 }
 

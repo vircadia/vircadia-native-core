@@ -19,7 +19,7 @@
 #include <ReceivedPacketProcessor.h>
 #include "JurisdictionMap.h"
 
-/// Will process PacketType_JURISDICTION_REQUEST packets and send out PacketType_JURISDICTION packets
+/// Will process PacketType::_JURISDICTION_REQUEST packets and send out PacketType::_JURISDICTION packets
 /// to requesting parties. As with other ReceivedPacketProcessor classes the user is responsible for reading inbound packets
 /// and adding them to the processing queue by calling queueReceivedPacket()
 class JurisdictionSender : public ReceivedPacketProcessor {

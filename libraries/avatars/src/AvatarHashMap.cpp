@@ -22,16 +22,16 @@ AvatarHashMap::AvatarHashMap() {
 
 void AvatarHashMap::processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer) {
     switch (packetTypeForPacket(datagram)) {
-        case PacketTypeBulkAvatarData:
+        case PacketType::BulkAvatarData:
             processAvatarDataPacket(datagram, mixerWeakPointer);
             break;
-        case PacketTypeAvatarIdentity:
+        case PacketType::AvatarIdentity:
             processAvatarIdentityPacket(datagram, mixerWeakPointer);
             break;
-        case PacketTypeAvatarBillboard:
+        case PacketType::AvatarBillboard:
             processAvatarBillboardPacket(datagram, mixerWeakPointer);
             break;
-        case PacketTypeKillAvatar:
+        case PacketType::KillAvatar:
             processKillAvatar(datagram);
             break;
         default:

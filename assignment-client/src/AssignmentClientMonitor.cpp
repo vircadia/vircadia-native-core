@@ -195,8 +195,8 @@ void AssignmentClientMonitor::checkSpares() {
             SharedNodePointer childNode = nodeList->nodeWithUUID(aSpareId);
             childNode->activateLocalSocket();
 
-            QByteArray diePacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeStopNode);
-            nodeList->writeUnverifiedDatagram(diePacket, childNode);
+            auto diePacket = NLPacket::create(PacketType::StopNode, 0);
+            nodeList->sendPacket(std::move(diePacket), childNode);
         }
     }
 }
@@ -214,7 +214,7 @@ void AssignmentClientMonitor::readPendingDatagrams() {
                                                senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
 
         if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
-            if (packetTypeForPacket(receivedPacket) == PacketTypeNodeJsonStats) {
+            if (packetTypeForPacket(receivedPacket) == PacketType::NodeJsonStats) {
                 QUuid packetUUID = uuidFromPacketHeader(receivedPacket);
                 SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
                 if (!matchingNode) {
@@ -229,8 +229,9 @@ void AssignmentClientMonitor::readPendingDatagrams() {
                         } else {
                             // tell unknown assignment-client child to exit.
                             qDebug() << "asking unknown child to exit.";
-                            QByteArray diePacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeStopNode);
-                            nodeList->writeUnverifiedDatagram(diePacket, senderSockAddr);
+
+                            auto diePacket = NLPacket::create(PacketType::StopNode, 0);
+                            nodeList->sendPacket(std::move(diePacket), senderSockAddr);
                         }
                     }
                 }

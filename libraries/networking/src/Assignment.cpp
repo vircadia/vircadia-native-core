@@ -66,11 +66,11 @@ Assignment::Assignment(const QByteArray& packet) :
     _payload(),
     _walletUUID()
 {
-    PacketType packetType = packetTypeForPacket(packet);
+    PacketType::Value packetType = packetTypeForPacket(packet);
     
-    if (packetType == PacketTypeRequestAssignment) {
+    if (packetType == PacketType::RequestAssignment) {
         _command = Assignment::RequestCommand;
-    } else if (packetType == PacketTypeCreateAssignment) {
+    } else if (packetType == PacketType::CreateAssignment) {
         _command = Assignment::CreateCommand;
     }
     

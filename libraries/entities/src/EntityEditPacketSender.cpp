@@ -18,31 +18,28 @@
 #include "EntityItem.h"
 
 
-void EntityEditPacketSender::adjustEditPacketForClockSkew(PacketType type, 
-                                        unsigned char* editBuffer, size_t length, int clockSkew) {
-                                        
-    if (type == PacketTypeEntityAdd || type == PacketTypeEntityEdit) {
-        EntityItem::adjustEditPacketForClockSkew(editBuffer, length, clockSkew);
+void EntityEditPacketSender::adjustEditPacketForClockSkew(PacketType::Value type, QByteArray& buffer, int clockSkew) {
+
+    if (type == PacketType::EntityAdd || type == PacketType::EntityEdit) {
+        EntityItem::adjustEditPacketForClockSkew(buffer, clockSkew);
     }
 }
 
-void EntityEditPacketSender::queueEditEntityMessage(PacketType type, EntityItemID modelID, 
+void EntityEditPacketSender::queueEditEntityMessage(PacketType::Value type, EntityItemID modelID,
                                                                 const EntityItemProperties& properties) {
     if (!_shouldSend) {
         return; // bail early
     }
 
-    // use MAX_PACKET_SIZE since it's static and guaranteed to be larger than _maxPacketSize
-    unsigned char bufferOut[MAX_PACKET_SIZE];
-    int sizeOut = 0;
+    QByteArray bufferOut(NLPacket::maxPayloadSize(type), 0);
 
-    if (EntityItemProperties::encodeEntityEditPacket(type, modelID, properties, &bufferOut[0], _maxPacketSize, sizeOut)) {
+    if (EntityItemProperties::encodeEntityEditPacket(type, modelID, properties, bufferOut)) {
         #ifdef WANT_DEBUG
             qCDebug(entities) << "calling queueOctreeEditMessage()...";
             qCDebug(entities) << "    id:" << modelID;
             qCDebug(entities) << "    properties:" << properties;
         #endif
-        queueOctreeEditMessage(type, bufferOut, sizeOut);
+        queueOctreeEditMessage(type, bufferOut);
     }
 }
 
@@ -50,10 +47,10 @@ void EntityEditPacketSender::queueEraseEntityMessage(const EntityItemID& entityI
     if (!_shouldSend) {
         return; // bail early
     }
-    // use MAX_PACKET_SIZE since it's static and guaranteed to be larger than _maxPacketSize
-    unsigned char bufferOut[MAX_PACKET_SIZE];
-    size_t sizeOut = 0;
-    if (EntityItemProperties::encodeEraseEntityMessage(entityItemID, &bufferOut[0], _maxPacketSize, sizeOut)) {
-        queueOctreeEditMessage(PacketTypeEntityErase, bufferOut, sizeOut);
+
+    QByteArray bufferOut(NLPacket::maxPayloadSize(PacketType::EntityErase), 0);
+
+    if (EntityItemProperties::encodeEraseEntityMessage(entityItemID, bufferOut)) {
+        queueOctreeEditMessage(PacketType::EntityErase, bufferOut);
     }
 }

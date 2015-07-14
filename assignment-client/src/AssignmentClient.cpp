@@ -218,9 +218,9 @@ void AssignmentClient::readPendingDatagrams() {
                                                senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
 
         if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
-            if (packetTypeForPacket(receivedPacket) == PacketTypeCreateAssignment) {
+            if (packetTypeForPacket(receivedPacket) == PacketType::CreateAssignment) {
 
-                qDebug() << "Received a PacketTypeCreateAssignment - attempting to unpack.";
+                qDebug() << "Received a PacketType::CreateAssignment - attempting to unpack.";
 
                 // construct the deployed assignment from the packet data
                 _currentAssignment = AssignmentFactory::unpackAssignment(receivedPacket);
@@ -271,10 +271,10 @@ void AssignmentClient::readPendingDatagrams() {
                 } else {
                     qDebug() << "Received an assignment that could not be unpacked. Re-requesting.";
                 }
-            } else if (packetTypeForPacket(receivedPacket) == PacketTypeStopNode) {
+            } else if (packetTypeForPacket(receivedPacket) == PacketType::StopNode) {
                 if (senderSockAddr.getAddress() == QHostAddress::LocalHost ||
                     senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
-                    qDebug() << "AssignmentClientMonitor at" << senderSockAddr << "requested stop via PacketTypeStopNode.";
+                    qDebug() << "AssignmentClientMonitor at" << senderSockAddr << "requested stop via PacketType::StopNode.";
 
                     QCoreApplication::quit();
                 } else {

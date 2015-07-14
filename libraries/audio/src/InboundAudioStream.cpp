@@ -98,7 +98,7 @@ void InboundAudioStream::perSecondCallbackForUpdatingStats() {
 
 int InboundAudioStream::parseData(const QByteArray& packet) {
 
-    PacketType packetType = packetTypeForPacket(packet);
+    PacketType::Value packetType = packetTypeForPacket(packet);
     QUuid senderUUID = uuidFromPacketHeader(packet);
 
     // parse header 
@@ -132,7 +132,7 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
         }
         case SequenceNumberStats::OnTime: {
             // Packet is on time; parse its data to the ringbuffer
-            if (packetType == PacketTypeSilentAudioFrame) {
+            if (packetType == PacketType::SilentAudioFrame) {
                 writeDroppableSilentSamples(networkSamples);
             } else {
                 readBytes += parseAudioData(packetType, packet.mid(readBytes), networkSamples);
@@ -168,8 +168,8 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
     return readBytes;
 }
 
-int InboundAudioStream::parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
-    if (type == PacketTypeSilentAudioFrame) {
+int InboundAudioStream::parseStreamProperties(PacketType::Value type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
+    if (type == PacketType::SilentAudioFrame) {
         quint16 numSilentSamples = 0;
         memcpy(&numSilentSamples, packetAfterSeqNum.constData(), sizeof(quint16));
         numAudioSamples = numSilentSamples;
@@ -181,7 +181,7 @@ int InboundAudioStream::parseStreamProperties(PacketType type, const QByteArray&
     }
 }
 
-int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
+int InboundAudioStream::parseAudioData(PacketType::Value type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {
     return _ringBuffer.writeData(packetAfterStreamProperties.data(), numAudioSamples * sizeof(int16_t));
 }
 

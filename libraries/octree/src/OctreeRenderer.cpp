@@ -64,10 +64,10 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
     PerformanceWarning warn(showTimingDetails, "OctreeRenderer::processDatagram()",showTimingDetails);
     
     unsigned int packetLength = dataByteArray.size();
-    PacketType command = packetTypeForPacket(dataByteArray);
+    PacketType::Value command = packetTypeForPacket(dataByteArray);
     unsigned int numBytesPacketHeader = numBytesForPacketHeader(dataByteArray);
     QUuid sourceUUID = uuidFromPacketHeader(dataByteArray);
-    PacketType expectedType = getExpectedPacketType();
+    PacketType::Value expectedType = getExpectedPacketType();
     // packetVersion is the second byte
     PacketVersion packetVersion = dataByteArray[1];
     

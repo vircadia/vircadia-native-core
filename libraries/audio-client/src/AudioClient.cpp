@@ -724,19 +724,17 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
 }
 
 void AudioClient::handleAudioInput() {
-    static char audioDataPacket[MAX_PACKET_SIZE];
-
-    static int numBytesPacketHeader = numBytesForPacketHeaderGivenPacketType(PacketTypeMicrophoneAudioNoEcho);
-
-    // NOTE: we assume PacketTypeMicrophoneAudioWithEcho has same size headers as
-    // PacketTypeMicrophoneAudioNoEcho.  If not, then networkAudioSamples will be pointing to the wrong place for writing
-    // audio samples with echo.
-    static int leadingBytes = numBytesPacketHeader + sizeof(quint16) + sizeof(glm::vec3) + sizeof(glm::quat) + sizeof(quint8);
-    static int16_t* networkAudioSamples = (int16_t*)(audioDataPacket + leadingBytes);
+    if (!_audioPacket) {
+        // we don't have an audioPacket yet - set that up now
+        _audioPacket = NLPacket::create(PacketType::MicrophoneAudioNoEcho);
+    }
 
     float inputToNetworkInputRatio = calculateDeviceToNetworkInputRatio();
 
     int inputSamplesRequired = (int)((float)AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio);
+
+    static int leadingBytes = sizeof(quint16) + sizeof(glm::vec3) + sizeof(glm::quat) + sizeof(quint8);
+    int16_t* networkAudioSamples = (int16_t*)(_audioPacket->getPayload() + leadingBytes);
 
     QByteArray inputByteArray = _inputDevice->readAll();
 
@@ -795,11 +793,11 @@ void AudioClient::handleAudioInput() {
 
             delete[] inputAudioSamples;
 
-            //  Remove DC offset 
+            //  Remove DC offset
             if (!_isStereoInput && !_audioSourceInjectEnabled) {
                 _inputGate.removeDCOffset(networkAudioSamples, numNetworkSamples);
             }
-            
+
             // only impose the noise gate and perform tone injection if we are sending mono audio
             if (!_isStereoInput && !_audioSourceInjectEnabled && _isNoiseGateEnabled) {
                 _inputGate.gateSamples(networkAudioSamples, numNetworkSamples);
@@ -844,59 +842,48 @@ void AudioClient::handleAudioInput() {
             glm::quat headOrientation = _orientationGetter();
             quint8 isStereo = _isStereoInput ? 1 : 0;
 
-            PacketType packetType;
             if (_lastInputLoudness == 0) {
-                packetType = PacketTypeSilentAudioFrame;
+                _audioPacket->setType(PacketType::SilentAudioFrame);
             } else {
                 if (_shouldEchoToServer) {
-                    packetType = PacketTypeMicrophoneAudioWithEcho;
+                    _audioPacket->setType(PacketType::MicrophoneAudioWithEcho);
                 } else {
-                    packetType = PacketTypeMicrophoneAudioNoEcho;
+                    _audioPacket->setType(PacketType::MicrophoneAudioNoEcho);
                 }
             }
 
-            char* currentPacketPtr = audioDataPacket + nodeList->populatePacketHeader(audioDataPacket, packetType);
+            // reset the audio packet so we can start writing
+            _audioPacket->reset();
 
-            // pack sequence number
-            memcpy(currentPacketPtr, &_outgoingAvatarAudioSequenceNumber, sizeof(quint16));
-            currentPacketPtr += sizeof(quint16);
+            // write sequence number
+            _audioPacket->writePrimitive(_outgoingAvatarAudioSequenceNumber);
 
-            if (packetType == PacketTypeSilentAudioFrame) {
+            if (_audioPacket->getType() == PacketType::SilentAudioFrame) {
                 // pack num silent samples
                 quint16 numSilentSamples = numNetworkSamples;
-                memcpy(currentPacketPtr, &numSilentSamples, sizeof(quint16));
-                currentPacketPtr += sizeof(quint16);
-
-                // memcpy the three float positions
-                memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
-                currentPacketPtr += (sizeof(headPosition));
-
-                // memcpy our orientation
-                memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
-                currentPacketPtr += sizeof(headOrientation);
-
+                _audioPacket->writePrimitive(numSilentSamples);
             } else {
                 // set the mono/stereo byte
-                *currentPacketPtr++ = isStereo;
+                _audioPacket->writePrimitive(isStereo);
+            }
 
-                // memcpy the three float positions
-                memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
-                currentPacketPtr += (sizeof(headPosition));
+            // pack the three float positions
+            _audioPacket->writePrimitive(headPosition);
 
-                // memcpy our orientation
-                memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
-                currentPacketPtr += sizeof(headOrientation);
+            // pack the orientation
+            _audioPacket->writePrimitive(headOrientation);
 
+            if (_audioPacket->getType() != PacketType::SilentAudioFrame) {
                 // audio samples have already been packed (written to networkAudioSamples)
-                currentPacketPtr += numNetworkBytes;
+                _audioPacket->setSizeUsed(_audioPacket->getSizeUsed() + numNetworkBytes);
             }
 
             _stats.sentPacket();
 
             nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendAudioPacket);
 
-            int packetBytes = currentPacketPtr - audioDataPacket;
-            nodeList->writeDatagram(audioDataPacket, packetBytes, audioMixer);
+            nodeList->sendUnreliablePacket(*_audioPacket, audioMixer);
+
             _outgoingAvatarAudioSequenceNumber++;
         }
     }
@@ -921,22 +908,23 @@ void AudioClient::processReceivedSamples(const QByteArray& inputBuffer, QByteArr
 void AudioClient::sendMuteEnvironmentPacket() {
     auto nodeList = DependencyManager::get<NodeList>();
 
-    QByteArray mutePacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeMuteEnvironment);
-    int headerSize = mutePacket.size();
+    int dataSize = sizeof(glm::vec3) + sizeof(float);
+
+    auto mutePacket = NLPacket::create(PacketType::MuteEnvironment, dataSize);
 
     const float MUTE_RADIUS = 50;
 
     glm::vec3 currentSourcePosition = _positionGetter();
-    mutePacket.resize(mutePacket.size() + sizeof(glm::vec3) + sizeof(float));
-    memcpy(mutePacket.data() + headerSize, &currentSourcePosition, sizeof(glm::vec3));
-    memcpy(mutePacket.data() + headerSize + sizeof(glm::vec3), &MUTE_RADIUS, sizeof(float));
+
+    mutePacket->writePrimitive(currentSourcePosition);
+    mutePacket->writePrimitive(MUTE_RADIUS);
 
     // grab our audio mixer from the NodeList, if it exists
     SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
 
     if (audioMixer) {
         // send off this mute packet
-        nodeList->writeDatagram(mutePacket, audioMixer);
+        nodeList->sendPacket(std::move(mutePacket), audioMixer);
     }
 }
 
