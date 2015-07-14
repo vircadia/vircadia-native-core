@@ -35,7 +35,6 @@
 #include <UserActivityLogger.h>
 
 #include "devices/Faceshift.h"
-#include "devices/OculusManager.h"
 
 #include "Application.h"
 #include "AvatarManager.h"
@@ -919,10 +918,8 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 gazeOffset = gazeOffset * HUMAN_EYE_SEPARATION / myEyeSeparation;
 
                 if (Application::getInstance()->isHMDMode()) {
-                    //avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getCamera()->getPosition()
-                    //    + OculusManager::getMidEyePosition() + gazeOffset);
                     avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition()
-                        + OculusManager::getMidEyePosition() + gazeOffset);
+                        + glm::vec3(qApp->getHeadPose()[3]) + gazeOffset);
                 } else {
                     avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition()
                         + gazeOffset);

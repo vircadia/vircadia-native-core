@@ -923,6 +923,10 @@ void Application::paintGL() {
 
     {
         PerformanceTimer perfTimer("renderOverlay");
+        gpu::Context context(new gpu::GLBackend());
+        RenderArgs renderArgs(&context, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
+            lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
+            RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
         _applicationOverlay.renderOverlay(&renderArgs);
     }
 
@@ -1066,7 +1070,6 @@ void Application::paintGL() {
         renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
 #endif
 
-<<<<<<< HEAD
     // deliver final composited scene to the display plugin
     {
         GLuint finalTexture = gpu::GLBackend::getTextureID(finalFbo->getRenderBuffer(0));
@@ -3049,25 +3052,6 @@ QRect Application::getDesirableApplicationGeometry() {
     return applicationGeometry;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////
-// loadViewFrustum()
-//
-// Description: this will load the view frustum bounds for EITHER the head
-//                 or the "myCamera".
-//
-void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
-    PROFILE_RANGE(__FUNCTION__);
-    // We will use these below, from either the camera or head vectors calculated above
-    viewFrustum.setProjection(camera.getProjection());
-
-    // Set the viewFrustum up with the correct position and orientation of the camera
-    viewFrustum.setPosition(camera.getPosition());
-    viewFrustum.setOrientation(camera.getRotation());
-
-    // Ask the ViewFrustum class to calculate our corners
-    viewFrustum.calculate();
-}
-
 glm::vec3 Application::getSunDirection() {
     // Sun direction is in fact just the location of the sun relative to the origin
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
@@ -3478,9 +3462,15 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     // load the view frustum
     theCamera.loadViewFrustum(_displayViewFrustum);
 
-    // transform view according to theCamera
-    // could be myCamera (if in normal mode)
-    // or could be viewFrustumOffsetCamera if in offset mode
+    // Load the legacy GL stacks, used by entities (for now)
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadMatrixf(glm::value_ptr(theCamera.getProjection()));
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadMatrixf(glm::value_ptr(glm::inverse(theCamera.getTransform())));
+
 
     glm::quat rotation = theCamera.getRotation();
     // Equivalent to what is happening with _untranslatedViewMatrix and the _viewMatrixTranslation
@@ -3489,13 +3479,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     Transform viewTransform;
     viewTransform.setTranslation(theCamera.getPosition());
     viewTransform.setRotation(rotation);
-    if (renderArgs->_renderSide != RenderArgs::MONO) {
-        glm::mat4 invView = glm::inverse(_untranslatedViewMatrix);
-
-        viewTransform.evalFromRawMatrix(invView);
-        viewTransform.preTranslate(_viewMatrixTranslation);
-    }
-
     setViewTransform(viewTransform);
 
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
