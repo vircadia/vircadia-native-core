@@ -29,9 +29,6 @@ public:
     virtual qint64 totalHeadersSize() const; // Cumulated size of all the headers
     virtual qint64 localHeaderSize() const;  // Current level's header size
 
-    void readSourceID();
-    void readVerificationHash();
-
     const QUuid& getSourceID() const { return _sourceID; }
     const QByteArray& getVerificationHash() const { return _verificationHash; }
 
@@ -42,7 +39,10 @@ protected:
     NLPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
     NLPacket(const NLPacket& other);
 
+    void readSourceID();
     void setSourceID(const QUuid& sourceID);
+
+    void readVerificationHash();
     void setVerificationHash(const QByteArray& verificationHash);
 
     QUuid _sourceID;
