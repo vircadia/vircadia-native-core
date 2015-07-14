@@ -34,6 +34,9 @@ void ThreadedAssignment::setFinished(bool isFinished) {
 
             qDebug() << "ThreadedAssignment::setFinished(true) called - finishing up.";
 
+            // we should de-register immediately for any of our packets
+            DependencyManager::get<NodeList>()->getPacketReceiver().unregisterListener(this);
+
             if (_domainServerTimer) {
                 _domainServerTimer->stop();
             }
