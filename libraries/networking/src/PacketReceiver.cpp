@@ -218,24 +218,32 @@ void PacketReceiver::processDatagrams() {
                     auto listener = it.value();
                    
                     if (listener.first) {
+
+                        bool success = false;
                         
                         if (matchingNode) {
                             emit dataReceived(matchingNode->getType(), packet->getSizeWithHeader());
+                            QMetaMethod metaMethod = listener.second;
+
+                            static const QByteArray SHARED_NODE_NORMALIZED = QMetaObject::normalizedType("QSharedPointer<Node>");
+                            
+                            if (metaMethod.parameterTypes().contains(SHARED_NODE_NORMALIZED)) {
+                                success = metaMethod.invoke(listener.first,
+                                    Q_ARG(QSharedPointer<NLPacket>, QSharedPointer<NLPacket>(packet.release())),
+                                    Q_ARG(SharedNodePointer, matchingNode));
+
+                            } else {
+                                success = metaMethod.invoke(listener.first,
+                                    Q_ARG(QSharedPointer<NLPacket>, QSharedPointer<NLPacket>(packet.release())));
+                            }
+                            
                         } else {
                             emit dataReceived(NodeType::Unassigned, packet->getSizeWithHeader());
-                        }
-                        
-                        bool success = false;
 
-                        if (matchingNode) {
                             success = listener.second.invoke(listener.first,
                                 Q_ARG(QSharedPointer<NLPacket>, QSharedPointer<NLPacket>(packet.release())));
-                        } else {
-                            success = listener.second.invoke(listener.first,
-                                Q_ARG(QSharedPointer<NLPacket>, QSharedPointer<NLPacket>(packet.release())),
-                                Q_ARG(SharedNodePointer, matchingNode));
                         }
-                                            
+                                                                    
                         if (!success) {
                             qDebug() << "Error delivering packet " << nameForPacketType(packet->getType()) << " to listener: "
                                 << listener.first->objectName() << "::" << listener.second.name();
@@ -247,13 +255,11 @@ void PacketReceiver::processDatagrams() {
                             << "has been destroyed - removing mapping.";
                         _packetListenerMap.erase(it);
                     }
-
-                     _packetListenerLock.unlock();
-
                 } else {
-                    _packetListenerLock.unlock();
                     qDebug() << "No listener found for packet type " << nameForPacketType(packet->getType());
                 }
+
+                _packetListenerLock.unlock();
             }
         }
     }
