@@ -375,7 +375,7 @@ void NodeList::processDomainServerPathQueryResponse(QSharedPointer<NLPacket> pac
     packet->readPrimitive(&numViewpointBytes);
 
     // pull the viewpoint from the packet
-    auto stringData = packet->read(numViewpointBytes)
+    auto stringData = packet->read(numViewpointBytes);
     if (stringData.size() == numViewpointBytes) {
         QString viewpoint = QString::fromUtf8(stringData);
 
