@@ -192,6 +192,11 @@ void Oculus_0_6_DisplayPlugin::activate(PluginContainer * container) {
         ovrSizei & size = sceneLayer.Viewport[eye].Size = ovrHmd_GetFovTextureSize(_hmd, eye, fov, 1.0f);
         sceneLayer.Viewport[eye].Pos = { eye == ovrEye_Left ? 0 : size.w, 0 };
     });
+    // We're rendering both eyes to the same texture, so only one of the 
+    // pointers is populated
+    sceneLayer.ColorTexture[0] = _sceneFbo->color;
+    // not needed since the structure was zeroed on init, but explicit
+    sceneLayer.ColorTexture[1] = nullptr;
 
     PerformanceTimer::setActive(true);
 
@@ -213,13 +218,6 @@ void Oculus_0_6_DisplayPlugin::customizeContext(PluginContainer * container) {
 
     _sceneFbo = SwapFboPtr(new SwapFramebufferWrapper(_hmd));
     _sceneFbo->Init(getRecommendedRenderSize());
-
-    // We're rendering both eyes to the same texture, so only one of the 
-    // pointers is populated
-    ovrLayerEyeFov& sceneLayer = getSceneLayer();
-    sceneLayer.ColorTexture[0] = _sceneFbo->color;
-    // not needed since the structure was zeroed on init, but explicit
-    sceneLayer.ColorTexture[1] = nullptr;
 }
 
 void Oculus_0_6_DisplayPlugin::deactivate() {
@@ -274,6 +272,7 @@ void Oculus_0_6_DisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sc
         PerformanceTimer("OculusSubmit");
         ovrLayerHeader* layers = &sceneLayer.Header;
         ovrResult result = ovrHmd_SubmitFrame(_hmd, _frameIndex, nullptr, &layers, 1);
+        qDebug() << result;
     }
     _sceneFbo->Increment();
 
