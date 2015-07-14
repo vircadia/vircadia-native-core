@@ -34,6 +34,8 @@ public:
     
     int getInPacketCount() const { return _inPacketCount; }
     int getInByteCount() const { return _inByteCount; }
+
+    void setShouldDropPackets(bool shouldDropPackets) { _shouldDropPackets = shouldDropPackets; }
     
     void resetCounters() { _inPacketCount = 0; _inByteCount = 0; }
 
@@ -61,7 +63,7 @@ private:
     QHash<PacketType::Value, ObjectMethodPair> _packetListenerMap;
     int _inPacketCount = 0;
     int _inByteCount = 0;
-    bool _isShuttingDown = false;
+    bool _shouldDropPackets = false;
 };
 
 #endif // hifi_PacketReceiver_h

@@ -663,12 +663,11 @@ void Application::aboutToQuit() {
 
 void Application::cleanupBeforeQuit() {
 
-    // stop handling packets we've asked to handle
-    DependencyManager::get<LimitedNodeList>()->getPacketReceiver().unregisterListener(this);
-
     _entities.clear(); // this will allow entity scripts to properly shutdown
-
-    //_datagramProcessor->shutdown(); // tell the datagram processor we're shutting down, so it can short circuit
+    
+    // tell the packet receiver we're shutting down, so it can drop packets
+    DependencyManager::get<NodeList>()->getPacketReceiver().setShouldDropPackets(true);
+    
     _entities.shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
     ScriptEngine::stopAllScripts(this); // stop all currently running global scripts
 

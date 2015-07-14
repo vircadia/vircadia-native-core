@@ -330,6 +330,9 @@ void AssignmentClient::assignmentCompleted() {
 
     auto nodeList = DependencyManager::get<NodeList>();
 
+    // tell the packet receiver to stop dropping packets
+    nodeList->getPacketReceiver().setShouldDropPackets(false);
+
     // reset our NodeList by switching back to unassigned and clearing the list
     nodeList->setOwnerType(NodeType::Unassigned);
     nodeList->reset();
