@@ -275,7 +275,7 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
 }
 
 qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr) {
-    return writeDatagram(packet->getData(), sockAddr);
+    return writeDatagram({packet->getData(), static_cast<int>(packet->getSizeWithHeader())}, sockAddr);
 }
 
 qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& destinationNode) {
