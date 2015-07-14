@@ -210,7 +210,7 @@ void AssignmentClient::sendAssignmentRequest() {
     }
 }
 
-void AssignmentClient::handleCreateAssignmentPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
+void AssignmentClient::handleCreateAssignmentPacket(QSharedPointer<NLPacket> packet) {
     qDebug() << "Received a PacketType::CreateAssignment - attempting to unpack.";
 
     // construct the deployed assignment from the packet data
@@ -223,7 +223,7 @@ void AssignmentClient::handleCreateAssignmentPacket(QSharedPointer<NLPacket> pac
 
         // switch our DomainHandler hostname and port to whoever sent us the assignment
 
-        nodeList->getDomainHandler().setSockAddr(senderSockAddr, _assignmentServerHostname);
+        nodeList->getDomainHandler().setSockAddr(packet->getSenderSockAddr(), _assignmentServerHostname);
         nodeList->getDomainHandler().setAssignmentUUID(_currentAssignment->getUUID());
 
         qDebug() << "Destination IP for assignment is" << nodeList->getDomainHandler().getIP().toString();
@@ -261,7 +261,9 @@ void AssignmentClient::handleCreateAssignmentPacket(QSharedPointer<NLPacket> pac
     }
 }
 
-void AssignmentClient::handleStopNodePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode, HifiSockAddr senderSockAddr) {
+void AssignmentClient::handleStopNodePacket(QSharedPointer<NLPacket> packet) {
+    const HifiSockAddr& senderSockAddr = packet->getSenderSockAddr();
+    
     if (senderSockAddr.getAddress() == QHostAddress::LocalHost ||
             senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
         qDebug() << "AssignmentClientMonitor at" << senderSockAddr << "requested stop via PacketType::StopNode.";

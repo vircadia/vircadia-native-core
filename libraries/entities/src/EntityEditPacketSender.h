@@ -32,7 +32,7 @@ public:
 
     void queueEraseEntityMessage(const EntityItemID& entityItemID);
 
-    void processEntityEditNackPacket(QSharedPointer<NLPacket> packet, HifiSockAddr senderSockAddr);
+    void processEntityEditNackPacket(QSharedPointer<NLPacket> packet);
 
     // My server type is the model server
     virtual char getMyNodeType() const { return NodeType::EntityServer; }

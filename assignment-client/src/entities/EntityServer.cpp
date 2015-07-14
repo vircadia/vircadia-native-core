@@ -26,9 +26,8 @@ EntityServer::EntityServer(NLPacket& packet) :
     _entitySimulation(NULL)
 {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::EntityAdd, this, "handleEntityAddPacket");
-    packetReceiver.registerListener(PacketType::EntityEdit, this, "handleEntityEditPacket");
-    packetReceiver.registerListener(PacketType::EntityErase, this, "handleEntityErasePacket");
+    packetReceiver.registerListenerForTypes({ PacketType::EntityAdd, PacketType::EntityEdit, PacketType::EntityErase },
+                                            this, "handleEntityPacket");
 }
 
 EntityServer::~EntityServer() {
@@ -41,19 +40,7 @@ EntityServer::~EntityServer() {
     tree->removeNewlyCreatedHook(this);
 }
 
-void EntityServer::handleEntityAddPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
-    if (_octreeInboundPacketProcessor) {
-        _octreeInboundPacketProcessor->queueReceivedPacket(packet, senderNode);
-    }
-}
-
-void EntityServer::handleEntityEditPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
-    if (_octreeInboundPacketProcessor) {
-        _octreeInboundPacketProcessor->queueReceivedPacket(packet, senderNode);
-    }
-}
-
-void EntityServer::handleEntityErasePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+void EntityServer::handleEntityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
     if (_octreeInboundPacketProcessor) {
         _octreeInboundPacketProcessor->queueReceivedPacket(packet, senderNode);
     }

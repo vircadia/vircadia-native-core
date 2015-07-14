@@ -432,9 +432,8 @@ void AvatarMixer::handleAvatarBillboardPacket(QSharedPointer<NLPacket> packet, S
     }
 }
 
-void AvatarMixer::handleKillAvatarPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->processKillNode(*packet);
+void AvatarMixer::handleKillAvatarPacket(QSharedPointer<NLPacket> packet) {
+    DependencyManager::get<NodeList>()->processKillNode(*packet);
 }
 
 void AvatarMixer::sendStatsPacket() {

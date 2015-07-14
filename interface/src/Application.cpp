@@ -3821,7 +3821,7 @@ void Application::domainChanged(const QString& domainHostname) {
     _domainConnectionRefusals.clear();
 }
 
-void Application::handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+void Application::handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet) {
     QDataStream packetStream(packet.data());
 
     QString reason;

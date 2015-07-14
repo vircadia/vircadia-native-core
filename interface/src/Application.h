@@ -447,7 +447,7 @@ public slots:
 
     void notifyPacketVersionMismatch();
 
-    void handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket>, SharedNodePointer senderNode);
+    void handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet);
 
     void cameraMenuChanged();
 

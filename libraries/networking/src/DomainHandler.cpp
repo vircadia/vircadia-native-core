@@ -43,6 +43,7 @@ DomainHandler::DomainHandler(QObject* parent) :
 
     packetReceiver.registerListener(PacketType::ICEServerPeerInformation, this, "processICEResponsePacket");
     packetReceiver.registerListener(PacketType::DomainServerRequireDTLS, this, "processDTLSRequirementPacket");
+    packetReceiver.registerListener(PacketType::ICEPingReply, this, "processICEPingReplyPacket");
 }
 
 void DomainHandler::clearConnectionInfo() {
@@ -284,6 +285,24 @@ void DomainHandler::settingsRequestFinished() {
         }
     }
     settingsReply->deleteLater();
+}
+
+void DomainHandler::processICEPingReplyPacket(QSharedPointer<NLPacket> packet) {
+    const HifiSockAddr& senderSockAddr = packet->getSenderSockAddr();
+    qCDebug(networking) << "Received reply from domain-server on" << senderSockAddr;
+
+    if (getIP().isNull()) {
+        // for now we're unsafely assuming this came back from the domain
+        if (senderSockAddr == _icePeer.getLocalSocket()) {
+            qCDebug(networking) << "Connecting to domain using local socket";
+            activateICELocalSocket();
+        } else if (senderSockAddr == _icePeer.getPublicSocket()) {
+            qCDebug(networking) << "Conecting to domain using public socket";
+            activateICEPublicSocket();
+        } else {
+            qCDebug(networking) << "Reply does not match either local or public socket for domain. Will not connect.";
+        }
+    }
 }
 
 void DomainHandler::processDTLSRequirementPacket(QSharedPointer<NLPacket> dtlsRequirementPacket) {

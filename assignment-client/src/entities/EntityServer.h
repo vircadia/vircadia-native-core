@@ -50,9 +50,7 @@ protected:
     virtual Octree* createTree();
 
 private slots:
-    void handleEntityAddPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
-    void handleEntityEditPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
-    void handleEntityErasePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleEntityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
 
 private:
     EntitySimulation* _entitySimulation;

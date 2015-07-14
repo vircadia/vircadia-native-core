@@ -71,9 +71,7 @@ public:
     void requestDomainSettings();
     const QJsonObject& getSettingsObject() const { return _settingsObject; }
 
-    void processDTLSRequirementPacket(QSharedPointer<NLPacket> dtlsRequirementPacket);
-    void processICEResponsePacket(QSharedPointer<NLPacket> icePacket);
-
+   
     void setPendingPath(const QString& pendingPath) { _pendingPath = pendingPath; }
     const QString& getPendingPath() { return _pendingPath; }
     void clearPendingPath() { _pendingPath.clear(); }
@@ -84,6 +82,10 @@ public:
 public slots:
     void setHostnameAndPort(const QString& hostname, quint16 port = DEFAULT_DOMAIN_SERVER_PORT);
     void setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id);
+
+    void processICEPingReplyPacket(QSharedPointer<NLPacket> packet);
+    void processDTLSRequirementPacket(QSharedPointer<NLPacket> dtlsRequirementPacket);
+    void processICEResponsePacket(QSharedPointer<NLPacket> icePacket);
 
 private slots:
     void completedHostnameLookup(const QHostInfo& hostInfo);

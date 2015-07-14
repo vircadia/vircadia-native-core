@@ -35,7 +35,7 @@ private slots:
     void handleAvatarDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     void handleAvatarIdentityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     void handleAvatarBillboardPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
-    void handleKillAvatarPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleKillAvatarPacket(QSharedPointer<NLPacket> packet);
     
 private:
     void broadcastAvatarData();
