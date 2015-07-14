@@ -75,7 +75,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
         static QMultiMap<QUuid, PacketType::Value> versionDebugSuppressMap;
 
         const QUuid& senderUUID = packet->getSourceID();
-        if (!versionDebugSuppressMap.contains(senderUUID, packet->getType())) {
+        if (!versionDebugSuppressMap.contains(senderUUID, packetType)) {
             
             qDebug() << "Packet version mismatch on" << packetType << "- Sender"
                 << senderUUID << "sent" << (int) packetType << "but"
