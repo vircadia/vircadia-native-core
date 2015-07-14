@@ -734,7 +734,7 @@ void DomainServer::processListRequestPacket(QSharedPointer<NLPacket> packet) {
 
     SharedNodePointer checkInNode = limitedNodeList->nodeWithUUID(nodeUUID);
 
-    if (!nodeUUID.isNull() && checkInNode) {
+    if (checkInNode) {
         NodeType_t throwawayNodeType;
         HifiSockAddr nodePublicAddress, nodeLocalAddress;
 
