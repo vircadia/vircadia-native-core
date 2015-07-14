@@ -1413,8 +1413,9 @@ void DomainServer::processICEPingReplyPacket(QSharedPointer<NLPacket> packet) {
 }
 
 void DomainServer::processNodeJSONStatsPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
-    if (sendingNode->getLinkedData()) {
-        reinterpret_cast<DomainServerNodeData*>(sendingNode->getLinkedData())->processJSONStatsPacket(*packet);
+    auto nodeData = dynamic_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
+    if (nodeData) {
+        nodeData->processJSONStatsPacket(*packet);
     }
 }
 
