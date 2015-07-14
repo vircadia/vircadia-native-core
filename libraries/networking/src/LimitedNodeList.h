@@ -117,7 +117,6 @@ public:
     QUdpSocket& getNodeSocket() { return _nodeSocket; }
     QUdpSocket& getDTLSSocket();
 
-    bool packetVersionMatch(const NLPacket& packet);
     bool packetSourceAndHashMatch(const NLPacket& packet, SharedNodePointer& matchingNode);
 
     PacketReceiver& getPacketReceiver() { return _packetReceiver; }
