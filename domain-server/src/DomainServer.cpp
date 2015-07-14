@@ -282,7 +282,7 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     // register as the packet receiver for the types we want
     PacketReceiver& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::RequestAssignment, this, "processRequestAssignmentPacket");
-    packetReceiver.registerListener(PacketType::DomainConnectRequest, this, "processConnectRequestPackets");
+    packetReceiver.registerListener(PacketType::DomainConnectRequest, this, "processConnectRequestPacket");
     packetReceiver.registerListener(PacketType::DomainListRequest, this, "processListRequestPacket");
     packetReceiver.registerListener(PacketType::DomainServerPathQuery, this, "processPathQueryPacket");
     packetReceiver.registerListener(PacketType::NodeJsonStats, this, "processNodeJSONStatsPacket");
