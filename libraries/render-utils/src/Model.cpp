@@ -825,7 +825,7 @@ void Model::renderSetup(RenderArgs* args) {
         }
     }
     
-    if (!_meshGroupsKnown && isLoadedWithTextures()) {
+    if (!_meshGroupsKnown && isLoaded()) {
         segregateMeshGroups();
     }
 }
@@ -884,7 +884,7 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
 
 
 bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
-    if (!_meshGroupsKnown && isLoadedWithTextures()) {
+    if (!_meshGroupsKnown && isLoaded()) {
         segregateMeshGroups();
     }
 
@@ -914,7 +914,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
 }
 
 bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges, render::Item::Status::Getters& statusGetters) {
-    if (!_meshGroupsKnown && isLoadedWithTextures()) {
+    if (!_meshGroupsKnown && isLoaded()) {
         segregateMeshGroups();
     }
 
@@ -2064,12 +2064,10 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                     }
                 }
             }
-            static bool showDiffuse = true;
-            if (showDiffuse && diffuseMap) {
+            if (diffuseMap && static_cast<NetworkTexture*>(diffuseMap)->isLoaded()) {
                 batch.setResourceTexture(0, diffuseMap->getGPUTexture());
-            
             } else {
-                batch.setResourceTexture(0, textureCache->getWhiteTexture());
+                batch.setResourceTexture(0, textureCache->getGrayTexture());
             }
 
             if (locations->texcoordMatrices >= 0) {
@@ -2084,16 +2082,15 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
             }
 
             if (!mesh.tangents.isEmpty()) {                 
-                Texture* normalMap = networkPart.normalTexture.data();
-                batch.setResourceTexture(1, !normalMap ?
-                    textureCache->getBlueTexture() : normalMap->getGPUTexture());
-
+                NetworkTexture* normalMap = networkPart.normalTexture.data();
+                batch.setResourceTexture(1, (!normalMap || !normalMap->isLoaded()) ?
+                                        textureCache->getBlueTexture() : normalMap->getGPUTexture());
             }
     
             if (locations->specularTextureUnit >= 0) {
-                Texture* specularMap = networkPart.specularTexture.data();
-                batch.setResourceTexture(locations->specularTextureUnit, !specularMap ?
-                                            textureCache->getWhiteTexture() : specularMap->getGPUTexture());
+                NetworkTexture* specularMap = networkPart.specularTexture.data();
+                batch.setResourceTexture(locations->specularTextureUnit, (!specularMap || !specularMap->isLoaded()) ?
+                                        textureCache->getBlackTexture() : specularMap->getGPUTexture());
             }
 
             if (args) {
@@ -2108,9 +2105,9 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                 float emissiveScale = part.emissiveParams.y;
                 GLBATCH(glUniform2f)(locations->emissiveParams, emissiveOffset, emissiveScale);
                 
-                Texture* emissiveMap = networkPart.emissiveTexture.data();
-                batch.setResourceTexture(locations->emissiveTextureUnit, !emissiveMap ?
-                                        textureCache->getWhiteTexture() : emissiveMap->getGPUTexture());
+                NetworkTexture* emissiveMap = networkPart.emissiveTexture.data();
+                batch.setResourceTexture(locations->emissiveTextureUnit, (!emissiveMap || !emissiveMap->isLoaded()) ?
+                                        textureCache->getGrayTexture() : emissiveMap->getGPUTexture());
             }
             
             if (translucent && locations->lightBufferUnit >= 0) {
@@ -2223,7 +2220,7 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
 }
 
 bool Model::initWhenReady(render::ScenePointer scene) {
-    if (isActive() && isRenderable() && !_meshGroupsKnown && isLoadedWithTextures()) {
+    if (isActive() && isRenderable() && !_meshGroupsKnown && isLoaded()) {
         segregateMeshGroups();
 
         render::PendingChanges pendingChanges;

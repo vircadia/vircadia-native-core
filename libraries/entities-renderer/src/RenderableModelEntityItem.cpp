@@ -63,11 +63,11 @@ void RenderableModelEntityItem::remapTextures() {
         return; // nothing to do if we don't have a model
     }
     
-    if (!_model->isLoadedWithTextures()) {
-        return; // nothing to do if the model has not yet loaded its default textures
+    if (!_model->isLoaded()) {
+        return; // nothing to do if the model has not yet loaded
     }
     
-    if (!_originalTexturesRead && _model->isLoadedWithTextures()) {
+    if (!_originalTexturesRead) {
         const QSharedPointer<NetworkGeometry>& networkGeometry = _model->getGeometry();
         if (networkGeometry) {
             _originalTextures = networkGeometry->getTextureNames();
@@ -119,7 +119,7 @@ bool RenderableModelEntityItem::readyToAddToScene(RenderArgs* renderArgs) {
         EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(renderArgs->_renderer);
         getModel(renderer);
     }
-    if (renderArgs && _model && _needsInitialSimulation && _model->isActive() && _model->isLoadedWithTextures()) {
+    if (renderArgs && _model && _needsInitialSimulation && _model->isActive() && _model->isLoaded()) {
         _model->setScaleToFit(true, getDimensions());
         _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
         _model->setRotation(getRotation());
@@ -401,8 +401,8 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
         const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
         const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
     
-        if ((collisionNetworkGeometry && collisionNetworkGeometry->isLoadedWithTextures()) &&
-            (renderNetworkGeometry && renderNetworkGeometry->isLoadedWithTextures())) {
+        if ((collisionNetworkGeometry && collisionNetworkGeometry->isLoaded()) &&
+            (renderNetworkGeometry && renderNetworkGeometry->isLoaded())) {
             // we have both URLs AND both geometries AND they are both fully loaded.
             return true;
         }
