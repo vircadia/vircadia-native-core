@@ -37,5 +37,11 @@ public:
     // My server type is the model server
     virtual char getMyNodeType() const { return NodeType::EntityServer; }
     virtual void adjustEditPacketForClockSkew(PacketType::Value type, QByteArray& buffer, int clockSkew);
+
+public slots:
+    void toggleNackPackets() { _shouldNack = !_shouldNack; }
+
+private:
+    bool _shouldNack = false;
 };
 #endif // hifi_EntityEditPacketSender_h
