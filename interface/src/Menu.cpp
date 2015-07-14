@@ -499,7 +499,7 @@ Menu::Menu() {
 #endif
 
     MenuWrapper* networkMenu = developerMenu->addMenu("Network");
-    addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::DisableNackPackets, 0, falsem
+    addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::DisableNackPackets, 0, false,
                                            qApp()->getEntityEditPacketSender(),
                                            SLOT(toggleNackPackets()));
     addCheckableActionToQMenuAndActionHash(networkMenu,
