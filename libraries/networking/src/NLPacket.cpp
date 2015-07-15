@@ -115,7 +115,7 @@ void NLPacket::readVerificationHash() {
     }
 }
 
-void NLPacket::setSourceID(const QUuid& sourceID) {
+void NLPacket::writeSourceID(const QUuid& sourceID) {
     Q_ASSERT(!NON_SOURCED_PACKETS.contains(_type));
     
     auto offset = Packet::totalHeadersSize();
@@ -124,7 +124,7 @@ void NLPacket::setSourceID(const QUuid& sourceID) {
     _sourceID = sourceID;
 }
 
-void NLPacket::setVerificationHash(const QByteArray& verificationHash) {
+void NLPacket::writeVerificationHash(const QByteArray& verificationHash) {
     Q_ASSERT(!NON_SOURCED_PACKETS.contains(_type) && !NON_VERIFIED_PACKETS.contains(_type));
 
     auto offset = Packet::totalHeadersSize() + NUM_BYTES_RFC4122_UUID;
