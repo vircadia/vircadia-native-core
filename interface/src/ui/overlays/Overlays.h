@@ -2,7 +2,13 @@
 //  Overlays.h
 //  interface/src/ui/overlays
 //
+//  Modified by Zander Otavka on 7/15/15
 //  Copyright 2014 High Fidelity, Inc.
+//
+//  Exposes methods for managing `Overlay`s and `FloatingUIPanel`s to scripts.
+//
+//  YOU SHOULD NOT USE `Overlays` DIRECTLY, unless you like pain and deprecation.  Instead, use the
+//  object oriented abstraction layer found in `examples/libraries/overlayUtils.js`.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html

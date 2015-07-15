@@ -9,7 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include(["../../libraries/globals.js"]);
+Script.include([
+  "../../libraries/globals.js",
+  "../../libraries/overlayUtils.js",
+]);
 
 var BG_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/card-bg.svg";
 var RED_DOT_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/red-dot.svg";
@@ -24,13 +27,11 @@ function isBlank(rotation) {
          rotation.w == BLANK_ROTATION.w;
 }
 
-var panel = Overlays.addPanel({
+var panel = new FloatingUIPanel({
   offsetPosition: { x: 0, y: 0, z: 1 },
 });
 
-var panelChildren = [];
-
-var bg = Overlays.addOverlay("billboard", {
+var bg = panel.addChild(new BillboardOverlay({
   url: BG_IMAGE_URL,
   dimensions: {
       x: 0.5,
@@ -40,11 +41,9 @@ var bg = Overlays.addOverlay("billboard", {
   visible: true,
   alpha: 1.0,
   ignoreRayIntersection: false,
-  attachedPanel: panel,
-});
-panelChildren.push(bg);
+}));
 
-var redDot = Overlays.addOverlay("billboard", {
+var redDot = panel.addChild(new BillboardOverlay({
   url: RED_DOT_IMAGE_URL,
   dimensions: {
       x: 0.1,
@@ -54,16 +53,14 @@ var redDot = Overlays.addOverlay("billboard", {
   visible: true,
   alpha: 1.0,
   ignoreRayIntersection: false,
-  attachedPanel: panel,
   offsetPosition: {
     x: -0.15,
     y: -0.15,
     z: -0.001
   }
-});
-panelChildren.push(redDot);
+}));
 
-var redDot2 = Overlays.addOverlay("billboard", {
+var redDot2 = panel.addChild(new BillboardOverlay({
   url: RED_DOT_IMAGE_URL,
   dimensions: {
       x: 0.1,
@@ -73,16 +70,14 @@ var redDot2 = Overlays.addOverlay("billboard", {
   visible: true,
   alpha: 1.0,
   ignoreRayIntersection: false,
-  attachedPanel: panel,
   offsetPosition: {
     x: -0.15,
     y: 0,
     z: -0.001
   }
-});
-panelChildren.push(redDot2);
+}));
 
-var blueSquare = Overlays.addOverlay("billboard", {
+var blueSquare = panel.addChild(new BillboardOverlay({
   url: BLUE_SQUARE_IMAGE_URL,
   dimensions: {
       x: 0.1,
@@ -92,16 +87,14 @@ var blueSquare = Overlays.addOverlay("billboard", {
   visible: true,
   alpha: 1.0,
   ignoreRayIntersection: false,
-  attachedPanel: panel,
   offsetPosition: {
     x: 0.1,
     y: 0,
     z: -0.001
   }
-});
-panelChildren.push(blueSquare);
+}));
 
-var blueSquare2 = Overlays.addOverlay("billboard", {
+var blueSquare2 = panel.addChild(new BillboardOverlay({
   url: BLUE_SQUARE_IMAGE_URL,
   dimensions: {
       x: 0.1,
@@ -111,63 +104,46 @@ var blueSquare2 = Overlays.addOverlay("billboard", {
   visible: true,
   alpha: 1.0,
   ignoreRayIntersection: false,
-  attachedPanel: panel,
   offsetPosition: {
     x: 0.1,
     y: 0.11,
     z: -0.001
   }
-});
-panelChildren.push(blueSquare2);
+}));
 
-var blueSquare3 = Overlays.addOverlay("billboard", {
-  url: BLUE_SQUARE_IMAGE_URL,
-  dimensions: {
-      x: 0.1,
-      y: 0.1,
-  },
-  isFacingAvatar: false,
-  visible: true,
-  alpha: 1.0,
-  ignoreRayIntersection: false,
-  attachedPanel: panel,
-  offsetPosition: {
-    x: -0.01,
-    y: 0.11,
-    z: -0.001
-  }
-});
-panelChildren.push(blueSquare3);
+var blueSquare3 = blueSquare2.clone();
+blueSquare3.offsetPosition = {
+  x: -0.01,
+  y: 0.11,
+  z: -0.001
+};
+blueSquare3.ignoreRayIntersection = false;
 
 Controller.mousePressEvent.connect(function(event) {
   if (event.isRightButton) {
-    var newOffsetRotation = BLANK_ROTATION;
-    if (isBlank(Overlays.getPanelProperty(panel, "offsetRotation"))) {
+    var newOffsetRotation;
+    print(JSON.stringify(panel.offsetRotation))
+    if (isBlank(panel.offsetRotation)) {
       newOffsetRotation = Quat.multiply(MyAvatar.orientation, { x: 0, y: 1, z: 0, w: 0 });
+    } else {
+      newOffsetRotation = BLANK_ROTATION;
     }
-    Overlays.editPanel(panel, {
-      offsetRotation: newOffsetRotation
-    });
+    panel.offsetRotation = newOffsetRotation;
   } else if (event.isLeftButton) {
     var pickRay = Camera.computePickRay(event.x, event.y)
-    var rayPickResult = Overlays.findRayIntersection(pickRay);
-    print(String(rayPickResult.overlayID));
-    if (rayPickResult.intersects) {
-      for (var i in panelChildren) {
-        if (panelChildren[i] == rayPickResult.overlayID) {
-          var oldPos = Overlays.getProperty(rayPickResult.overlayID, "offsetPosition");
-          var newPos = {
-            x: Number(oldPos.x),
-            y: Number(oldPos.y),
-            z: Number(oldPos.z) + 0.1
-          }
-          Overlays.editOverlay(rayPickResult.overlayID, { offsetPosition: newPos });
-        }
+    var overlay = panel.findRayIntersection(pickRay);
+    if (overlay) {
+      var oldPos = overlay.offsetPosition;
+      var newPos = {
+        x: Number(oldPos.x),
+        y: Number(oldPos.y),
+        z: Number(oldPos.z) + 0.1
       }
+      overlay.offsetPosition = newPos;
     }
   }
 });
 
 Script.scriptEnding.connect(function() {
-  Overlays.deletePanel(panel);
+  panel.destroy();
 });
