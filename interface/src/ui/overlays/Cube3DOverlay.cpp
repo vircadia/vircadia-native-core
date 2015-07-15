@@ -12,7 +12,6 @@
 #include "InterfaceConfig.h"
 
 #include <DeferredLightingEffect.h>
-#include <GlowEffect.h>
 #include <SharedUtil.h>
 #include <StreamUtils.h>
 

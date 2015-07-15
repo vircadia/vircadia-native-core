@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+// include this before QGLWidget, which includes an earlier version of OpenGL
+#include "InterfaceConfig.h"
+
 #include <QFileDialog>
 #include <QMenuBar>
 #include <QShortcut>
@@ -16,7 +19,6 @@
 #include <AddressManager.h>
 #include <AudioClient.h>
 #include <DependencyManager.h>
-#include <GlowEffect.h>
 #include <PathUtils.h>
 #include <SettingHandle.h>
 #include <UserActivityLogger.h>
@@ -246,7 +248,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ScriptedMotorControl, 0, true,
             avatar, SLOT(updateMotionBehavior()));
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::NamesAboveHeads, 0, true);
-    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::GlowWhenSpeaking, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::BlueSpeechSphere, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::EnableCharacterController, 0, true,
             avatar, SLOT(updateMotionBehavior()));
@@ -385,8 +386,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars,
         0, // QML Qt::Key_Asterisk,
         true);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableGlowEffect, 0, true,
-                                            DependencyManager::get<GlowEffect>().data(), SLOT(toggleGlowEffect(bool)));
 
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Wireframe, Qt::ALT | Qt::Key_W, false);
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools,

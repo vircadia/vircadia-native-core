@@ -32,7 +32,6 @@
 #include "AbstractViewStateInterface.h"
 #include "AnimationHandle.h"
 #include "DeferredLightingEffect.h"
-#include "GlowEffect.h"
 #include "Model.h"
 #include "RenderUtilsLogging.h"
 
@@ -2215,7 +2214,8 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
     }
 
     if ((locations->glowIntensity > -1) && (mode != RenderArgs::SHADOW_RENDER_MODE)) {
-        GLBATCH(glUniform1f)(locations->glowIntensity, DependencyManager::get<GlowEffect>()->getIntensity());
+        const float DEFAULT_GLOW_INTENSITY = 1.0f; // FIXME - glow is removed
+        GLBATCH(glUniform1f)(locations->glowIntensity, DEFAULT_GLOW_INTENSITY);
     }
 }
 
