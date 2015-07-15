@@ -13,7 +13,7 @@
 
 qint64 NLPacket::localHeaderSize(PacketType::Value type) {
     qint64 size = ((NON_SOURCED_PACKETS.contains(type)) ? 0 : NUM_BYTES_RFC4122_UUID) +
-                    ((NON_VERIFIED_PACKETS.contains(type) || NON_VERIFIED_PACKETS.contains(type)) ? 0 : NUM_BYTES_MD5_HASH);
+                    ((NON_SOURCED_PACKETS.contains(type) || NON_VERIFIED_PACKETS.contains(type)) ? 0 : NUM_BYTES_MD5_HASH);
     return size;
 }
 
@@ -30,17 +30,20 @@ qint64 NLPacket::localHeaderSize() const {
 }
 
 std::unique_ptr<NLPacket> NLPacket::create(PacketType::Value type, qint64 size) {
-    auto maxPayload = maxPayloadSize(type);
+    std::unique_ptr<NLPacket> packet;
+    
     if (size == -1) {
-        // default size of -1, means biggest packet possible
-        size = maxPayload;
+        packet = std::unique_ptr<NLPacket>(new NLPacket(type));
+    } else {
+        // Fail with invalid size
+        Q_ASSERT(size >= 0);
+
+        packet = std::unique_ptr<NLPacket>(new NLPacket(type, size));
     }
+        
+    packet->open(QIODevice::WriteOnly);
     
-    // Fail with invalid size
-    Q_ASSERT(size >= 0 || size < maxPayload);
-    
-    // allocate memory
-    return std::unique_ptr<NLPacket>(new NLPacket(type, size));
+    return packet;
 }
 
 std::unique_ptr<NLPacket> NLPacket::fromReceivedPacket(std::unique_ptr<char> data, qint64 size,
@@ -50,17 +53,42 @@ std::unique_ptr<NLPacket> NLPacket::fromReceivedPacket(std::unique_ptr<char> dat
     
     // Fail with invalid size
     Q_ASSERT(size >= 0);
-    
+
     // allocate memory
-    return std::unique_ptr<NLPacket>(new NLPacket(std::move(data), size, senderSockAddr));
+    auto packet = std::unique_ptr<NLPacket>(new NLPacket(std::move(data), size, senderSockAddr));
+
+    packet->open(QIODevice::ReadOnly);
+
+    return packet;
  
 }
 
 std::unique_ptr<NLPacket> NLPacket::createCopy(const NLPacket& other) {
-    return std::unique_ptr<NLPacket>(new NLPacket(other));
+    auto packet = std::unique_ptr<NLPacket>(new NLPacket(other));
+    
+    if (other.isOpen()) {
+        packet->open(other.openMode());
+    }
+
+    return packet;
 }
 
-NLPacket::NLPacket(PacketType::Value type, qint64 size) : Packet(type, localHeaderSize(type) + size) {
+NLPacket::NLPacket(PacketType::Value type, qint64 size) :
+    Packet(type, localHeaderSize(type) + size)
+{
+    Q_ASSERT(size >= 0);
+    
+    qint64 headerSize = localHeaderSize(type);
+    _payloadStart += headerSize;
+    _payloadCapacity -= headerSize;
+}
+
+NLPacket::NLPacket(PacketType::Value type) :
+    Packet(type, -1)
+{
+    qint64 headerSize = localHeaderSize(type);
+    _payloadStart += headerSize;
+    _payloadCapacity -= headerSize;
 }
 
 NLPacket::NLPacket(const NLPacket& other) : Packet(other) {
@@ -109,7 +137,7 @@ QByteArray NLPacket::payloadHashWithConnectionUUID(const QUuid& connectionUUID) 
     QCryptographicHash hash(QCryptographicHash::Md5);
     
     // add the packet payload and the connection UUID
-    hash.addData(_payloadStart, _sizeUsed);
+    hash.addData(_payloadStart, _payloadSize);
     hash.addData(connectionUUID.toRfc4122());
     
     // return the hash

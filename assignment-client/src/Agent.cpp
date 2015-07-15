@@ -19,7 +19,7 @@
 #include <AvatarHashMap.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <ResourceCache.h>
 #include <SoundCache.h>
 #include <UUID.h>
@@ -65,14 +65,14 @@ void Agent::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointe
     if (packetType == PacketType::OctreeStats) {
 
         int statsMessageLength = OctreeHeadlessViewer::parseOctreeStats(packet, senderNode);
-        if (packet->getSizeUsed() > statsMessageLength) {
+        if (packet->getPayloadSize() > statsMessageLength) {
             // pull out the piggybacked packet and create a new QSharedPointer<NLPacket> for it
-            int packetSizeWithHeader = packet->getSizeUsed() - statsMessageLength;
+            int piggyBackedSizeWithHeader = packet->getPayloadSize() - statsMessageLength;
             
-            std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[packetSizeWithHeader]);
-            memcpy(buffer.get(), packet->getPayload() + statsMessageLength, packetSizeWithHeader);
+            std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[piggyBackedSizeWithHeader]);
+            memcpy(buffer.get(), packet->getPayload() + statsMessageLength, piggyBackedSizeWithHeader);
 
-            auto newPacket = NLPacket::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, packet->getSenderSockAddr());
+            auto newPacket = NLPacket::fromReceivedPacket(std::move(buffer), piggyBackedSizeWithHeader, packet->getSenderSockAddr());
             packet = QSharedPointer<NLPacket>(newPacket.release());
         } else {
             return; // bail since no piggyback data
@@ -88,16 +88,14 @@ void Agent::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointe
 
 void Agent::handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
     NodeType_t nodeType;
-    packet->peek(reinterpret_cast<char*>(&nodeType), sizeof(nodeType));
-    
+    packet->peekPrimitive(&nodeType);
+
     // PacketType_JURISDICTION, first byte is the node type...
-    switch (nodeType) {
-        case NodeType::EntityServer:
-            DependencyManager::get<EntityScriptingInterface>()->getJurisdictionListener()->
-                queueReceivedPacket(packet, senderNode);
-            break;
+    if (nodeType == NodeType::EntityServer) {
+        DependencyManager::get<EntityScriptingInterface>()->getJurisdictionListener()->
+            queueReceivedPacket(packet, senderNode);
     }
-}
+} 
 
 void Agent::handleAudioPacket(QSharedPointer<NLPacket> packet) {
     _receivedAudioStream.parseData(*packet);

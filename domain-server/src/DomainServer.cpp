@@ -29,7 +29,7 @@
 #include <JSONBreakableMarshal.h>
 #include <LogUtils.h>
 #include <NetworkingConstants.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <SettingHandle.h>
 #include <SharedUtil.h>
 #include <ShutdownEventListener.h>
@@ -282,13 +282,12 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     // register as the packet receiver for the types we want
     PacketReceiver& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::RequestAssignment, this, "processRequestAssignmentPacket");
-    packetReceiver.registerListener(PacketType::DomainConnectRequest, this, "processConnectRequestPackets");
+    packetReceiver.registerListener(PacketType::DomainConnectRequest, this, "processConnectRequestPacket");
     packetReceiver.registerListener(PacketType::DomainListRequest, this, "processListRequestPacket");
     packetReceiver.registerListener(PacketType::DomainServerPathQuery, this, "processPathQueryPacket");
     packetReceiver.registerListener(PacketType::NodeJsonStats, this, "processNodeJSONStatsPacket");
     packetReceiver.registerListener(PacketType::ICEPing, this, "processICEPingPacket");
     packetReceiver.registerListener(PacketType::ICEPingReply, this, "processICEPingReplyPacket");
-    packetReceiver.registerListener(PacketType::ICEServerPeerInformation, this, "processICEPeerInformationPacket");
 
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
@@ -580,6 +579,11 @@ void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) 
     NodeType_t nodeType;
     HifiSockAddr publicSockAddr, localSockAddr;
 
+    if (packet->getPayloadSize() == 0) {
+        // TODO: We know what size the connect packet should be (minimally) - check for that here
+        return;
+    }
+
     QDataStream packetStream(packet.data());
 
     QUuid connectUUID;
@@ -726,31 +730,22 @@ void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) 
     }
 }
 
-void DomainServer::processListRequestPacket(QSharedPointer<NLPacket> packet) {
-    QDataStream packetStream(packet.data());
+void DomainServer::processListRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
     
-    const QUuid& nodeUUID = packet->getSourceID();
+    NodeType_t throwawayNodeType;
+    HifiSockAddr nodePublicAddress, nodeLocalAddress;
 
-    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+    QDataStream packetStream(packet.data());
 
-    SharedNodePointer checkInNode = limitedNodeList->nodeWithUUID(nodeUUID);
+    parseNodeData(packetStream, throwawayNodeType, nodePublicAddress, nodeLocalAddress, packet->getSenderSockAddr());
 
-    if (!nodeUUID.isNull() && checkInNode) {
-        NodeType_t throwawayNodeType;
-        HifiSockAddr nodePublicAddress, nodeLocalAddress;
+    sendingNode->setPublicSocket(nodePublicAddress);
+    sendingNode->setLocalSocket(nodeLocalAddress);
 
-        QDataStream packetStream(packet.data());
+    QList<NodeType_t> nodeInterestList;
+    packetStream >> nodeInterestList;
 
-        parseNodeData(packetStream, throwawayNodeType, nodePublicAddress, nodeLocalAddress, packet->getSenderSockAddr());
-
-        checkInNode->setPublicSocket(nodePublicAddress);
-        checkInNode->setLocalSocket(nodeLocalAddress);
-
-        QList<NodeType_t> nodeInterestList;
-        packetStream >> nodeInterestList;
-
-        sendDomainListToNode(checkInNode, packet->getSenderSockAddr(), nodeInterestList.toSet());
-    }
+    sendDomainListToNode(sendingNode, packet->getSenderSockAddr(), nodeInterestList.toSet());
 }
 
 unsigned int DomainServer::countConnectedUsers() {
@@ -976,10 +971,10 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     // setup the extended header for the domain list packets
     // this data is at the beginning of each of the domain list packets
     QByteArray extendedHeader(NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES, 0);
-    QDataStream extendedHeaderStream(&extendedHeader, QIODevice::Append);
+    QDataStream extendedHeaderStream(&extendedHeader, QIODevice::WriteOnly);
 
-    extendedHeaderStream << limitedNodeList->getSessionUUID().toRfc4122();
-    extendedHeaderStream << node->getUUID().toRfc4122();
+    extendedHeaderStream << limitedNodeList->getSessionUUID();
+    extendedHeaderStream << node->getUUID();
     extendedHeaderStream << (quint8) node->getCanAdjustLocks();
     extendedHeaderStream << (quint8) node->getCanRez();
 
@@ -1012,9 +1007,12 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
             });
         }
     }
+    
+    // send an empty list to the node, in case there were no other nodes
+    domainListPackets.closeCurrentPacket(true);
 
     // write the PacketList to this node
-    limitedNodeList->sendPacketList(domainListPackets, node);
+    limitedNodeList->sendPacketList(domainListPackets, *node);
 }
 
 QUuid DomainServer::connectionSecretForNodes(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB) {
@@ -1070,7 +1068,7 @@ void DomainServer::broadcastNewNode(const SharedNodePointer& addedNode) {
             addNodePacket->write(rfcConnectionSecret);
 
             // send off this packet to the node
-            limitedNodeList->sendUnreliablePacket(*addNodePacket, node);
+            limitedNodeList->sendUnreliablePacket(*addNodePacket, *node);
         }
     );
 }
@@ -1394,7 +1392,7 @@ void DomainServer::processICEPeerInformationPacket(QSharedPointer<NLPacket> pack
 
 void DomainServer::processICEPingPacket(QSharedPointer<NLPacket> packet) {
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-    auto pingReplyPacket = limitedNodeList->constructICEPingReplyPacket(packet, limitedNodeList->getSessionUUID());
+    auto pingReplyPacket = limitedNodeList->constructICEPingReplyPacket(*packet, limitedNodeList->getSessionUUID());
 
     limitedNodeList->sendPacket(std::move(pingReplyPacket), packet->getSenderSockAddr());
 }
@@ -1414,8 +1412,9 @@ void DomainServer::processICEPingReplyPacket(QSharedPointer<NLPacket> packet) {
 }
 
 void DomainServer::processNodeJSONStatsPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
-    if (sendingNode->getLinkedData()) {
-        dynamic_cast<DomainServerNodeData*>(sendingNode->getLinkedData())->processJSONStatsPacket(*packet);
+    auto nodeData = dynamic_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
+    if (nodeData) {
+        nodeData->processJSONStatsPacket(*packet);
     }
 }
 
@@ -2191,7 +2190,7 @@ void DomainServer::processPathQueryPacket(QSharedPointer<NLPacket> packet) {
     quint16 numPathBytes;
     packet->readPrimitive(&numPathBytes);
 
-    if (numPathBytes <= packet->bytesAvailable()) {
+    if (numPathBytes <= packet->bytesLeftToRead()) {
         // the number of path bytes makes sense for the sent packet - pull out the path
         QString pathQuery = QString::fromUtf8(packet->getPayload() + packet->pos(), numPathBytes);
 
@@ -2224,7 +2223,7 @@ void DomainServer::processPathQueryPacket(QSharedPointer<NLPacket> packet) {
 
                 // are we going to be able to fit this response viewpoint in a packet?
                 if (numPathBytes + numViewpointBytes + sizeof(numViewpointBytes) + sizeof(numPathBytes)
-                        < (unsigned long) pathResponsePacket->bytesAvailable()) {
+                        < (unsigned long) pathResponsePacket->bytesLeftToRead()) {
                     // append the number of bytes this path is
                     pathResponsePacket->writePrimitive(numPathBytes);
 

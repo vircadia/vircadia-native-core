@@ -21,7 +21,7 @@
 
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <GLMHelpers.h>
 #include <StreamUtils.h>
 #include <UUID.h>
@@ -911,7 +911,7 @@ QByteArray AvatarData::identityByteArray() {
 }
 
 bool AvatarData::hasBillboardChangedAfterParsing(NLPacket& packet) {
-    QByteArray newBillboard = QByteArray(packet.getPayload());
+    QByteArray newBillboard = packet.readAll();
     if (newBillboard == _billboard) {
         return false;
     }

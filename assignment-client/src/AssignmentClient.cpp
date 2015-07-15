@@ -26,7 +26,7 @@
 #include <LogUtils.h>
 #include <LimitedNodeList.h>
 #include <NodeList.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 #include <ShutdownEventListener.h>
 #include <SoundCache.h>
@@ -49,11 +49,11 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     LogUtils::init();
 
     QSettings::setDefaultFormat(QSettings::IniFormat);
-
-    // create a NodeList as an unassigned client
-    DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
+ 
     auto addressManager = DependencyManager::set<AddressManager>();
-    auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned); // Order is important
+
+    // create a NodeList as an unassigned client, must be after addressManager
+    auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned);
 
     auto animationCache = DependencyManager::set<AnimationCache>();
     auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
@@ -188,14 +188,14 @@ void AssignmentClient::setUpStatusToMonitor() {
 void AssignmentClient::sendStatusPacketToACM() {
     // tell the assignment client monitor what this assignment client is doing (if anything)
     auto nodeList = DependencyManager::get<NodeList>();
-
-    auto statusPacket = NLPacket::create(PacketType::AssignmentClientStatus, 1 + NUM_BYTES_RFC4122_UUID);
     
     quint8 assignmentType = Assignment::Type::AllTypes;
 
     if (_currentAssignment) {
         assignmentType = _currentAssignment->getType();
     }
+
+    auto statusPacket = NLPacket::create(PacketType::AssignmentClientStatus, sizeof(assignmentType) + NUM_BYTES_RFC4122_UUID);
 
     statusPacket->write(nodeList->getSessionUUID().toRfc4122());
     statusPacket->writePrimitive(assignmentType);

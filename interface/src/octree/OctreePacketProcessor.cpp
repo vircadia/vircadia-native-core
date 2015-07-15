@@ -57,7 +57,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
         int statsMessageLength = app->processOctreeStats(*packet, sendingNode);
 
         wasStatsPacket = true;
-        int piggybackBytes = packet->getSizeUsed() - statsMessageLength;
+        int piggybackBytes = packet->getPayloadSize() - statsMessageLength;
         
         if (piggybackBytes) {
             // construct a new packet from the piggybacked one
@@ -79,7 +79,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
         static QMultiMap<QUuid, PacketType::Value> versionDebugSuppressMap;
 
         const QUuid& senderUUID = packet->getSourceID();
-        if (!versionDebugSuppressMap.contains(senderUUID, packet->getType())) {
+        if (!versionDebugSuppressMap.contains(senderUUID, packetType)) {
             
             qDebug() << "Packet version mismatch on" << packetType << "- Sender"
                 << senderUUID << "sent" << (int) packetType << "but"

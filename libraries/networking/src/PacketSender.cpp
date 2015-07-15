@@ -54,7 +54,7 @@ void PacketSender::queuePacketForSending(const SharedNodePointer& destinationNod
     unlock();
 
     _totalPacketsQueued++;
-    _totalBytesQueued += packet->getSizeWithHeader();
+    _totalBytesQueued += packet->getDataSize();
 
     // Make sure to  wake our actual processing thread because we  now have packets for it to process.
     _hasPackets.wakeAll();
@@ -272,13 +272,13 @@ bool PacketSender::nonThreadedProcess() {
         unlock();
 
         // send the packet through the NodeList...
-        DependencyManager::get<NodeList>()->sendUnreliablePacket(*(packetPair.second), packetPair.first);
+        DependencyManager::get<NodeList>()->sendUnreliablePacket(*packetPair.second, *packetPair.first);
 
         packetsSentThisCall++;
         _packetsOverCheckInterval++;
         _totalPacketsSent++;
 
-        int packetSize = packetPair.second->getSizeWithHeader();
+        int packetSize = packetPair.second->getDataSize();
 
         _totalBytesSent += packetSize;
         emit packetSent(packetSize);

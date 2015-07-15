@@ -16,7 +16,7 @@
 
 #include <QIODevice>
 
-#include "HifiSockAddr.h"
+#include "../HifiSockAddr.h"
 #include "PacketHeaders.h"
 
 class Packet : public QIODevice {
@@ -49,9 +49,20 @@ public:
     
     PacketVersion getVersion() const { return _version; }
     
-    qint64 getSizeWithHeader() const { return localHeaderSize() + getSizeUsed(); }
-    qint64 getSizeUsed() const { return _sizeUsed; }
-    void setSizeUsed(qint64 sizeUsed) { _sizeUsed = sizeUsed; }
+    // Returns the size of the packet, including the header
+    qint64 getDataSize() const { return totalHeadersSize() + getPayloadSize(); }
+    
+    // Returns the size of the payload only
+    qint64 getPayloadSize() const { return _payloadSize; }
+    
+    // Allows a writer to change the size of the payload used when writing directly
+    void setPayloadSize(qint64 payloadSize);
+    
+    // Returns the number of bytes allocated for the payload
+    qint64 getPayloadCapacity() const  { return _payloadCapacity; }
+
+    qint64 bytesLeftToRead() const { return _payloadCapacity - pos(); }
+    qint64 bytesAvailableForWrite() const { return _payloadCapacity - pos(); }
 
     HifiSockAddr& getSenderSockAddr() { return _senderSockAddr; }
     const HifiSockAddr& getSenderSockAddr() const { return _senderSockAddr; }
@@ -62,9 +73,10 @@ public:
     // QIODevice virtual functions
     // WARNING: Those methods all refer to the payload ONLY and NOT the entire packet
     virtual bool isSequential() const  { return false; }
-    virtual bool reset() { setSizeUsed(0); return QIODevice::reset(); }
-    virtual qint64 size() const { return _capacity; }
+    virtual bool reset();
+    virtual qint64 size() const { return _payloadCapacity; }
 
+    template<typename T> qint64 peekPrimitive(T* data);
     template<typename T> qint64 readPrimitive(T* data);
     template<typename T> qint64 writePrimitive(const T& data);
 
@@ -95,13 +107,17 @@ protected:
     std::unique_ptr<char> _packet; // Allocated memory
 
     char* _payloadStart = nullptr; // Start of the payload
-    qint64 _capacity = 0;          // Total capacity of the payload
+    qint64 _payloadCapacity = 0;          // Total capacity of the payload
 
-    qint64 _sizeUsed = 0;          // How much of the payload is actually used
+    qint64 _payloadSize = 0;          // How much of the payload is actually used
 
     HifiSockAddr _senderSockAddr;  // sender address for packet (only used on receiving end)
 };
 
+
+template<typename T> qint64 Packet::peekPrimitive(T* data) {
+    return QIODevice::peek(reinterpret_cast<char*>(data), sizeof(T));
+}
 
 template<typename T> qint64 Packet::readPrimitive(T* data) {
     return QIODevice::read(reinterpret_cast<char*>(data), sizeof(T));

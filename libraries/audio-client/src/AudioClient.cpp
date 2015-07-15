@@ -50,7 +50,7 @@ extern "C" {
 #include <soxr.h>
 
 #include <NodeList.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <PositionalAudioStream.h>
 #include <SettingHandle.h>
 #include <SharedUtil.h>
@@ -142,7 +142,7 @@ AudioClient::AudioClient() :
     configureGverbFilter(_gverb);
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::AudioStreamStats, &_stats, "handleAudioStreamStatsPacket");
+    packetReceiver.registerListener(PacketType::AudioStreamStats, &_stats, "processStreamStatsPacket");
     packetReceiver.registerListener(PacketType::AudioEnvironment, this, "handleAudioEnvironmentDataPacket");
     packetReceiver.registerListener(PacketType::SilentAudioFrame, this, "handleAudioDataPacket");
     packetReceiver.registerListener(PacketType::MixedAudio, this, "handleAudioDataPacket");
@@ -937,14 +937,14 @@ void AudioClient::handleAudioInput() {
 
             if (_audioPacket->getType() != PacketType::SilentAudioFrame) {
                 // audio samples have already been packed (written to networkAudioSamples)
-                _audioPacket->setSizeUsed(_audioPacket->getSizeUsed() + numNetworkBytes);
+                _audioPacket->setPayloadSize(_audioPacket->getPayloadSize() + numNetworkBytes);
             }
 
             _stats.sentPacket();
 
             nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendAudioPacket);
 
-            nodeList->sendUnreliablePacket(*_audioPacket, audioMixer);
+            nodeList->sendUnreliablePacket(*_audioPacket, *audioMixer);
 
             _outgoingAvatarAudioSequenceNumber++;
         }
@@ -986,7 +986,7 @@ void AudioClient::sendMuteEnvironmentPacket() {
 
     if (audioMixer) {
         // send off this mute packet
-        nodeList->sendPacket(std::move(mutePacket), audioMixer);
+        nodeList->sendPacket(std::move(mutePacket), *audioMixer);
     }
 }
 

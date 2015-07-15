@@ -25,7 +25,7 @@
 #include "HifiSockAddr.h"
 #include "JSONBreakableMarshal.h"
 #include "NodeList.h"
-#include "PacketHeaders.h"
+#include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
 #include "UUID.h"
 #include "NetworkLogging.h"
@@ -38,14 +38,6 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     _numNoReplyDomainCheckIns(0),
     _assignmentServerSocket()
 {
-    static bool firstCall = true;
-    if (firstCall) {
-        NodeType::init();
-        // register the SharedNodePointer meta-type for signals/slots
-        qRegisterMetaType<SharedNodePointer>();
-        firstCall = false;
-    }
-
     setCustomDeleter([](Dependency* dependency){
         static_cast<NodeList*>(dependency)->deleteLater();
     });
@@ -101,6 +93,10 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     packetReceiver.registerListener(PacketType::Ping, this, "processPingPacket");
     packetReceiver.registerListener(PacketType::PingReply, this, "processPingReplyPacket");
     packetReceiver.registerListener(PacketType::ICEPing, this, "processICEPingPacket");
+
+    packetReceiver.registerListener(PacketType::ICEServerPeerInformation, &_domainHandler, "processICEResponsePacket");
+    packetReceiver.registerListener(PacketType::DomainServerRequireDTLS, &_domainHandler, "processDTLSRequirementPacket");
+    packetReceiver.registerListener(PacketType::ICEPingReply, &_domainHandler, "processICEPingReplyPacket");
 }
 
 qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination) {
@@ -164,9 +160,9 @@ void NodeList::timePingReply(QSharedPointer<NLPacket> packet, const SharedNodePo
 
 void NodeList::processPingPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
     // send back a reply
-    auto replyPacket = constructPingReplyPacket(packet);
+    auto replyPacket = constructPingReplyPacket(*packet);
     const HifiSockAddr& senderSockAddr = packet->getSenderSockAddr();
-    sendPacket(std::move(replyPacket), sendingNode, senderSockAddr);
+    sendPacket(std::move(replyPacket), *sendingNode, senderSockAddr);
 
     // If we don't have a symmetric socket for this node and this socket doesn't match
     // what we have for public and local then set it as the symmetric.
@@ -188,7 +184,7 @@ void NodeList::processPingReplyPacket(QSharedPointer<NLPacket> packet, SharedNod
 
 void NodeList::processICEPingPacket(QSharedPointer<NLPacket> packet) {
     // send back a reply
-    auto replyPacket = constructICEPingReplyPacket(packet, _domainHandler.getICEClientID());
+    auto replyPacket = constructICEPingReplyPacket(*packet, _domainHandler.getICEClientID());
     sendPacket(std::move(replyPacket), packet->getSenderSockAddr());
 }
 
@@ -288,7 +284,7 @@ void NodeList::sendDomainServerCheckIn() {
 
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendDSCheckIn);
 
-        if (!isUsingDTLS) {
+        if (!isUsingDTLS) {            
             sendPacket(std::move(domainPacket), _domainHandler.getSockAddr());
         }
 
@@ -340,7 +336,7 @@ void NodeList::sendDSPathQuery(const QString& newPath) {
         // get the size of the UTF8 representation of the desired path
         qint64 numPathBytes = pathQueryUTF8.size();
 
-        if (numPathBytes + ((qint64) sizeof(numPathBytes)) < pathQueryPacket->bytesAvailable()) {
+        if (numPathBytes + ((qint64) sizeof(numPathBytes)) < pathQueryPacket->bytesAvailableForWrite()) {
             // append the size of the path to the query packet
             pathQueryPacket->writePrimitive(numPathBytes);
 
@@ -375,14 +371,19 @@ void NodeList::processDomainServerPathQueryResponse(QSharedPointer<NLPacket> pac
     packet->readPrimitive(&numViewpointBytes);
 
     // pull the viewpoint from the packet
-    QString viewpoint = QString::fromUtf8(packet->read(numViewpointBytes));
+    auto stringData = packet->read(numViewpointBytes);
+    if (stringData.size() == numViewpointBytes) {
+        QString viewpoint = QString::fromUtf8(stringData);
 
-    // Hand it off to the AddressManager so it can handle it as a relative viewpoint
-    if (DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, pathQuery)) {
-        qCDebug(networking) << "Going to viewpoint" << viewpoint << "which was the lookup result for path" << pathQuery;
+        // Hand it off to the AddressManager so it can handle it as a relative viewpoint
+        if (DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, pathQuery)) {
+            qCDebug(networking) << "Going to viewpoint" << viewpoint << "which was the lookup result for path" << pathQuery;
+        } else {
+            qCDebug(networking) << "Could not go to viewpoint" << viewpoint
+                << "which was the lookup result for path" << pathQuery;
+        }
     } else {
-        qCDebug(networking) << "Could not go to viewpoint" << viewpoint
-            << "which was the lookup result for path" << pathQuery;
+        qCDebug(networking) << "Error loading viewpoint from path query response";
     }
 }
 
@@ -472,9 +473,9 @@ void NodeList::processDomainServerList(QSharedPointer<NLPacket> packet) {
     quint8 thisNodeCanRez;
     packetStream >> thisNodeCanRez;
     setThisNodeCanRez((bool) thisNodeCanRez);
-
+    
     // pull each node in the packet
-    while (packetStream.device()->pos() < packet->getSizeUsed()) {
+    while (packetStream.device()->pos() < packet->getPayloadSize()) {
         parseNodeFromPacketStream(packetStream);
     }
 }
@@ -511,7 +512,7 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
 }
 
 void NodeList::sendAssignment(Assignment& assignment) {
-
+ 
     PacketType::Value assignmentPacketType = assignment.getCommand() == Assignment::CreateCommand
         ? PacketType::CreateAssignment
         : PacketType::RequestAssignment;
@@ -519,7 +520,6 @@ void NodeList::sendAssignment(Assignment& assignment) {
     auto assignmentPacket = NLPacket::create(assignmentPacketType);
 
     QDataStream packetStream(assignmentPacket.get());
-
     packetStream << assignment;
 
     // TODO: should this be a non sourced packet?
@@ -540,14 +540,14 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
 
     // send the ping packet to the local and public sockets for this node
     auto localPingPacket = constructPingPacket(PingType::Local);
-    sendPacket(std::move(localPingPacket), node, node->getLocalSocket());
+    sendPacket(std::move(localPingPacket), *node, node->getLocalSocket());
 
     auto publicPingPacket = constructPingPacket(PingType::Public);
-    sendPacket(std::move(publicPingPacket), node, node->getPublicSocket());
+    sendPacket(std::move(publicPingPacket), *node, node->getPublicSocket());
 
     if (!node->getSymmetricSocket().isNull()) {
         auto symmetricPingPacket = constructPingPacket(PingType::Symmetric);
-        sendPacket(std::move(symmetricPingPacket), node, node->getSymmetricSocket());
+        sendPacket(std::move(symmetricPingPacket), *node, node->getSymmetricSocket());
     }
 
     node->incrementConnectionAttempts();

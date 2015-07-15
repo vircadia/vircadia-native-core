@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 
 #include "Agent.h"
 #include "AssignmentFactory.h"
@@ -20,10 +20,10 @@
 ThreadedAssignment* AssignmentFactory::unpackAssignment(NLPacket& packet) {
 
     quint8 packedType;
-    packet.peek(reinterpret_cast<char*>(&packedType), sizeof(packedType));
-    
+    packet.peekPrimitive(&packedType);
+
     Assignment::Type unpackedType = (Assignment::Type) packedType;
-    
+
     switch (unpackedType) {
         case Assignment::AudioMixerType:
             return new AudioMixer(packet);

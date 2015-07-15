@@ -81,7 +81,7 @@
 #include <ObjectMotionState.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <PhysicsEngine.h>
@@ -1783,7 +1783,7 @@ void Application::sendPingPackets() {
                 return false;
         }
     }, [nodeList](const SharedNodePointer& node) {
-        nodeList->sendPacket(std::move(nodeList->constructPingPacket()), node);
+        nodeList->sendPacket(std::move(nodeList->constructPingPacket()), *node);
     });
 }
 
@@ -2721,7 +2721,7 @@ int Application::sendNackPackets() {
                 packetsSent += nackPacketList.getNumPackets();
 
                 // send the packet list
-                nodeList->sendPacketList(nackPacketList, node);
+                nodeList->sendPacketList(nackPacketList, *node);
             }
         }
     });
@@ -2899,10 +2899,10 @@ void Application::queryOctree(NodeType_t serverType, PacketType::Value packetTyp
 
             // encode the query data
             int packetSize = _octreeQuery.getBroadcastData(reinterpret_cast<unsigned char*>(queryPacket->getPayload()));
-            queryPacket->setSizeUsed(packetSize);
+            queryPacket->setPayloadSize(packetSize);
 
             // make sure we still have an active socket
-            nodeList->sendUnreliablePacket(*queryPacket, node);
+            nodeList->sendUnreliablePacket(*queryPacket, *node);
         }
     });
 }
@@ -3939,8 +3939,9 @@ int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingN
 
     // now that we know the node ID, let's add these stats to the stats for that node...
     _octreeSceneStatsLock.lockForWrite();
-    if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
-        octreeStats = &_octreeServerSceneStats[nodeUUID];
+    auto it = _octreeServerSceneStats.find(nodeUUID);
+    if (it != _octreeServerSceneStats.end()) {
+        octreeStats = &it->second;
         statsMessageLength = octreeStats->unpackFromPacket(packet);
     } else {
         OctreeSceneStats temp;
@@ -4830,7 +4831,7 @@ mat4 Application::getEyeProjection(int eye) const {
     if (isHMDMode()) {
         return OculusManager::getEyeProjection(eye);
     }
-    
+
     return _viewFrustum.getProjection();
 }
 

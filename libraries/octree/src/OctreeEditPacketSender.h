@@ -13,7 +13,7 @@
 #define hifi_OctreeEditPacketSender_h
 
 #include <PacketSender.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 
 #include "JurisdictionMap.h"
 #include "SentPacketHistory.h"

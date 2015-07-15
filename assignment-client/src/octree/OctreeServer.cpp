@@ -28,7 +28,6 @@
 
 #include "OctreeServer.h"
 #include "OctreeServerConsts.h"
-#include "OctreeServerDatagramProcessor.h"
 
 OctreeServer* OctreeServer::_instance = NULL;
 int OctreeServer::_clientCount = 0;
@@ -819,7 +818,7 @@ void OctreeServer::handleOctreeQueryPacket(QSharedPointer<NLPacket> packet, Shar
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->updateNodeWithDataFromPacket(packet, senderNode);
 
-    OctreeQueryNode* nodeData = (OctreeQueryNode*)senderNode->getLinkedData();
+    OctreeQueryNode* nodeData = dynamic_cast<OctreeQueryNode*>(senderNode->getLinkedData());
     if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
         nodeData->initializeOctreeSendThread(this, senderNode);
     }
@@ -828,7 +827,7 @@ void OctreeServer::handleOctreeQueryPacket(QSharedPointer<NLPacket> packet, Shar
 void OctreeServer::handleOctreeDataNackPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
     // If we got a nack packet, then we're talking to an agent, and we
     // need to make sure we have it in our nodeList.
-    OctreeQueryNode* nodeData = (OctreeQueryNode*)senderNode->getLinkedData();
+    OctreeQueryNode* nodeData = dynamic_cast<OctreeQueryNode*>(senderNode->getLinkedData());
     if (nodeData) {
         nodeData->parseNackPacket(packet->getData());
     }
@@ -1123,7 +1122,7 @@ void OctreeServer::nodeKilled(SharedNodePointer node) {
     _octreeInboundPacketProcessor->nodeKilled(node);
 
     qDebug() << qPrintable(_safeServerName) << "server killed node:" << *node;
-    OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(node->getLinkedData());
+    OctreeQueryNode* nodeData = dynamic_cast<OctreeQueryNode*>(node->getLinkedData());
     if (nodeData) {
         nodeData->nodeKilled(); // tell our node data and sending threads that we'd like to shut down
     } else {
@@ -1141,7 +1140,7 @@ void OctreeServer::forceNodeShutdown(SharedNodePointer node) {
     quint64 start  = usecTimestampNow();
 
     qDebug() << qPrintable(_safeServerName) << "server killed node:" << *node;
-    OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(node->getLinkedData());
+    OctreeQueryNode* nodeData = dynamic_cast<OctreeQueryNode*>(node->getLinkedData());
     if (nodeData) {
         nodeData->forceNodeShutdown(); // tell our node data and sending threads that we'd like to shut down
     } else {

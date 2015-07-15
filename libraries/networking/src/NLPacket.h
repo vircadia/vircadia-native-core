@@ -12,7 +12,9 @@
 #ifndef hifi_NLPacket_h
 #define hifi_NLPacket_h
 
-#include "Packet.h"
+#include <QtCore/QSharedPointer>
+
+#include "udt/Packet.h"
 
 class NLPacket : public Packet {
     Q_OBJECT
@@ -29,20 +31,21 @@ public:
     virtual qint64 totalHeadersSize() const; // Cumulated size of all the headers
     virtual qint64 localHeaderSize() const;  // Current level's header size
 
-    void readSourceID();
-    void readVerificationHash();
-
     const QUuid& getSourceID() const { return _sourceID; }
     const QByteArray& getVerificationHash() const { return _verificationHash; }
 
     QByteArray payloadHashWithConnectionUUID(const QUuid& connectionUUID) const;
 
 protected:
+    NLPacket(PacketType::Value type);
     NLPacket(PacketType::Value type, qint64 size);
     NLPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
     NLPacket(const NLPacket& other);
 
+    void readSourceID();
     void setSourceID(const QUuid& sourceID);
+
+    void readVerificationHash();
     void setVerificationHash(const QByteArray& verificationHash);
 
     QUuid _sourceID;

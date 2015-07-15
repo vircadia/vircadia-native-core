@@ -18,7 +18,7 @@
 #include "AssignmentClientMonitor.h"
 #include "AssignmentClientApp.h"
 #include "AssignmentClientChildData.h"
-#include "PacketHeaders.h"
+#include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
 
 
@@ -173,7 +173,7 @@ void AssignmentClientMonitor::checkSpares() {
     nodeList->removeSilentNodes();
 
     nodeList->eachNode([&](const SharedNodePointer& node) {
-        AssignmentClientChildData *childData = static_cast<AssignmentClientChildData*>(node->getLinkedData());
+        AssignmentClientChildData* childData = static_cast<AssignmentClientChildData*>(node->getLinkedData());
         totalCount ++;
         if (childData->getChildType() == Assignment::Type::AllTypes) {
             spareCount ++;
@@ -197,20 +197,20 @@ void AssignmentClientMonitor::checkSpares() {
             childNode->activateLocalSocket();
 
             auto diePacket = NLPacket::create(PacketType::StopNode, 0);
-            nodeList->sendPacket(std::move(diePacket), childNode);
+            nodeList->sendPacket(std::move(diePacket), *childNode);
         }
     }
 }
 
 void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<NLPacket> packet) {
-    QUuid senderID = QUuid::fromRfc4122(packet->read(NUM_BYTES_RFC4122_UUID));
+    QUuid senderID = QUuid::fromRfc4122(QByteArray::fromRawData(packet->getData(), NUM_BYTES_RFC4122_UUID));
 
     auto nodeList = DependencyManager::get<NodeList>();
 
     SharedNodePointer matchingNode = nodeList->nodeWithUUID(senderID);
     const HifiSockAddr& senderSockAddr = packet->getSenderSockAddr();
 
-    AssignmentClientChildData *childData = nullptr;
+    AssignmentClientChildData* childData = nullptr;
 
     if (!matchingNode) {
         // The parent only expects to be talking with prorams running on this same machine.

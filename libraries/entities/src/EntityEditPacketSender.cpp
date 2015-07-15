@@ -12,7 +12,7 @@
 #include <assert.h>
 #include <PerfStat.h>
 #include <OctalCode.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include "EntityEditPacketSender.h"
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
@@ -24,7 +24,7 @@ EntityEditPacketSender::EntityEditPacketSender() {
 
 void EntityEditPacketSender::processEntityEditNackPacket(QSharedPointer<NLPacket> packet) {
     if (_shouldNack) {
-        processNackPacket(QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
+        processNackPacket(QByteArray::fromRawData(packet->getData(), packet->getDataSize()));
     }
 }
 

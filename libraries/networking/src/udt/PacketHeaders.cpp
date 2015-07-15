@@ -18,7 +18,6 @@
 using namespace PacketType;
 
 const QSet<PacketType::Value> NON_VERIFIED_PACKETS = QSet<PacketType::Value>()
-    << CreateAssignment << RequestAssignment << StunResponse
     << NodeJsonStats << EntityQuery
     << OctreeDataNack << EntityEditNack
     << DomainListRequest
@@ -28,6 +27,7 @@ const QSet<PacketType::Value> NON_VERIFIED_PACKETS = QSet<PacketType::Value>()
 const QSet<PacketType::Value> SEQUENCE_NUMBERED_PACKETS = QSet<PacketType::Value>() << AvatarData;
 
 const QSet<PacketType::Value> NON_SOURCED_PACKETS = QSet<PacketType::Value>()
+    << StunResponse << CreateAssignment << RequestAssignment
     << DomainServerRequireDTLS << DomainConnectRequest
     << DomainList << DomainConnectionDenied
     << DomainServerPathQuery << DomainServerPathResponse
@@ -68,48 +68,48 @@ PacketVersion versionForPacketType(PacketType::Value packetType) {
     switch (packetType) {
         case MicrophoneAudioNoEcho:
         case MicrophoneAudioWithEcho:
-            return 2;
+            return 3;
         case SilentAudioFrame:
-            return 4;
+            return 5;
         case MixedAudio:
-            return 1;
-        case InjectAudio:
-            return 1;
-        case AvatarData:
-            return 6;
-        case AvatarIdentity:
-            return 1;
-        case EnvironmentData:
             return 2;
+        case InjectAudio:
+            return 2;
+        case AvatarData:
+            return 7;
+        case AvatarIdentity:
+            return 2;
+        case EnvironmentData:
+            return 3;
         case DomainList:
         case DomainListRequest:
-            return 5;
+            return 6;
         case DomainConnectRequest:
-            return 1;
+            return 2;
         case CreateAssignment:
         case RequestAssignment:
-            return 2;
+            return 3;
         case OctreeStats:
-            return 1;
+            return 2;
         case OctreeDataNack:
-            return 1;
+            return 2;
         case StopNode:
-            return 1;
+            return 2;
         case EntityAdd:
         case EntityEdit:
         case EntityData:
-            return VERSION_ENTITIES_HAVE_SIMULATION_OWNER_AND_ACTIONS_OVER_WIRE;
+            return VERSION_ENTITIES_NEW_PROTOCOL_LAYER;
         case EntityEditNack:
-            return 1;
-        case EntityErase:
             return 2;
+        case EntityErase:
+            return 3;
         case AudioStreamStats:
-            return 1;
+            return 2;
         case ICEServerHeartbeat:
         case ICEServerQuery:
-            return 1;
+            return 2;
         default:
-            return 0;
+            return 1;
     }
 }
 

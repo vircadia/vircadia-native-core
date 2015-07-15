@@ -127,6 +127,7 @@ void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     glDisable(GL_LIGHTING);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glUseProgram(0);
 
     // give external parties a change to hook in
     emit qApp->renderingOverlay();

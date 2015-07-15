@@ -184,15 +184,15 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
 
     if (numForks || minForks || maxForks) {
-        AssignmentClientMonitor* monitor =  new AssignmentClientMonitor(numForks, minForks, maxForks, 
+        AssignmentClientMonitor* monitor =  new AssignmentClientMonitor(numForks, minForks, maxForks,
                                                                         requestAssignmentType, assignmentPool,
-                                                                        walletUUID, assignmentServerHostname, 
+                                                                        walletUUID, assignmentServerHostname,
                                                                         assignmentServerPort);
         monitor->setParent(this);
         connect(this, &QCoreApplication::aboutToQuit, monitor, &AssignmentClientMonitor::aboutToQuit);
     } else {
         AssignmentClient* client = new AssignmentClient(requestAssignmentType, assignmentPool,
-                                                        walletUUID, assignmentServerHostname, 
+                                                        walletUUID, assignmentServerHostname,
                                                         assignmentServerPort, monitorPort);
         client->setParent(this);
         connect(this, &QCoreApplication::aboutToQuit, client, &AssignmentClient::aboutToQuit);

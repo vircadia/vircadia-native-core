@@ -14,7 +14,7 @@
 #include <PerfStat.h>
 
 #include <OctalCode.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include "OctreeLogging.h"
 #include "OctreeEditPacketSender.h"
 
@@ -103,12 +103,12 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, std::uniqu
                 quint64 transitTime = queuedAt - createdAt;
 
                 qCDebug(octree) << "OctreeEditPacketSender::queuePacketToNode() queued " << packet->getType()
-                    << " - command to node bytes=" << packet->getSizeWithHeader()
+                    << " - command to node bytes=" << packet->getDataSize()
                     << " sequence=" << sequence << " transitTimeSoFar=" << transitTime << " usecs";
             }
 
             // add packet to history
-            _sentPacketHistories[nodeUUID].packetSent(sequence, *packet.get());
+            _sentPacketHistories[nodeUUID].packetSent(sequence, *packet);
 
             queuePacketForSending(node, std::move(packet));
         }
@@ -186,7 +186,7 @@ void OctreeEditPacketSender::queuePacketToNodes(std::unique_ptr<NLPacket> packet
 
             if (isMyJurisdiction) {
                 // make a copy of this packet for this node and queue
-                auto packetCopy = NLPacket::createCopy(*packet.get());
+                auto packetCopy = NLPacket::createCopy(*packet);
                 queuePacketToNode(nodeUUID, std::move(packetCopy));
             }
         }
@@ -254,8 +254,8 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType::Value type, QByt
                     bufferedPacket = NLPacket::create(type);
                 } else {
                     // If we're switching type, then we send the last one and start over
-                    if ((type != bufferedPacket->getType() && bufferedPacket->getSizeUsed() > 0) ||
-                        (editMessage.size() >= bufferedPacket->bytesAvailable())) {
+                    if ((type != bufferedPacket->getType() && bufferedPacket->getPayloadSize() > 0) ||
+                        (editMessage.size() >= bufferedPacket->bytesAvailableForWrite())) {
 
                         // create the new packet and swap it with the packet in _pendingEditPackets
                         auto packetToRelease = initializePacket(type, node->getClockSkewUsec());
@@ -307,7 +307,7 @@ void OctreeEditPacketSender::releaseQueuedMessages() {
 
 void OctreeEditPacketSender::releaseQueuedPacket(const QUuid& nodeID, std::unique_ptr<NLPacket> packet) {
     _releaseQueuedPacketMutex.lock();
-    if (packet->getSizeUsed() > 0 && packet->getType() != PacketType::Unknown) {
+    if (packet->getPayloadSize() > 0 && packet->getType() != PacketType::Unknown) {
         queuePacketToNode(nodeID, std::move(packet));
     }
     _releaseQueuedPacketMutex.unlock();

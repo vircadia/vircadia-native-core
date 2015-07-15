@@ -46,7 +46,7 @@ public:
     bool packetIsDuplicate() const;
     bool shouldSuppressDuplicatePacket();
     
-    unsigned int getAvailable() const { return _octreePacket->bytesAvailable(); }
+    unsigned int getAvailable() const { return _octreePacket->bytesAvailableForWrite(); }
     int getMaxSearchLevel() const { return _maxSearchLevel; }
     void resetMaxSearchLevel() { _maxSearchLevel = 1; }
     void incrementMaxSearchLevel() { _maxSearchLevel++; }

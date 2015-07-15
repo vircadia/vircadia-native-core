@@ -20,7 +20,7 @@
 
 #include <LogHandler.h>
 #include <NodeList.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 #include <UUID.h>
 #include <TryLocker.h>
@@ -318,7 +318,7 @@ void AvatarMixer::broadcastAvatarData() {
                         billboardPacket->write(rfcUUID);
                         billboardPacket->write(billboard);
 
-                        nodeList->sendPacket(std::move(billboardPacket), node);
+                        nodeList->sendPacket(std::move(billboardPacket), *node);
 
                         ++_sumBillboardPackets;
                     }
@@ -336,14 +336,14 @@ void AvatarMixer::broadcastAvatarData() {
 
                         identityPacket->write(individualData);
 
-                        nodeList->sendPacket(std::move(identityPacket), node);
+                        nodeList->sendPacket(std::move(identityPacket), *node);
 
                         ++_sumIdentityPackets;
                     }
             });
 
             // send the avatar data PacketList
-            nodeList->sendPacketList(avatarPacketList, node);
+            nodeList->sendPacketList(avatarPacketList, *node);
 
             // record the bytes sent for other avatar data in the AvatarMixerClientData
             nodeData->recordSentAvatarData(numAvatarDataBytes);
@@ -407,20 +407,22 @@ void AvatarMixer::handleAvatarDataPacket(QSharedPointer<NLPacket> packet, Shared
 
 void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
     if (senderNode->getLinkedData()) {
-        AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
-        AvatarData& avatar = nodeData->getAvatar();
+        AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
+        if (nodeData != nullptr) {
+            AvatarData& avatar = nodeData->getAvatar();
 
-        // parse the identity packet and update the change timestamp if appropriate
-        if (avatar.hasIdentityChangedAfterParsing(*packet)) {
-            QMutexLocker nodeDataLocker(&nodeData->getMutex());
-            nodeData->setIdentityChangeTimestamp(QDateTime::currentMSecsSinceEpoch());
+            // parse the identity packet and update the change timestamp if appropriate
+            if (avatar.hasIdentityChangedAfterParsing(*packet)) {
+                QMutexLocker nodeDataLocker(&nodeData->getMutex());
+                nodeData->setIdentityChangeTimestamp(QDateTime::currentMSecsSinceEpoch());
+            }
         }
     }
 }
 
 void AvatarMixer::handleAvatarBillboardPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
-    if (senderNode->getLinkedData()) {
-        AvatarMixerClientData* nodeData = static_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
+    AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
+    if (nodeData) {
         AvatarData& avatar = nodeData->getAvatar();
 
         // parse the billboard packet and update the change timestamp if appropriate

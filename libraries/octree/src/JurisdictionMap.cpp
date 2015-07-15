@@ -16,7 +16,7 @@
 
 #include <DependencyManager.h>
 #include <NodeList.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <OctalCode.h>
 
 #include "OctreeLogging.h"
@@ -322,7 +322,7 @@ int JurisdictionMap::unpackFromPacket(NLPacket& packet) {
     int bytes = 0;
     packet.readPrimitive(&bytes);
 
-    if (bytes > 0 && bytes <= packet.bytesAvailable()) {
+    if (bytes > 0 && bytes <= packet.bytesLeftToRead()) {
         _rootOctalCode = new unsigned char[bytes];
         packet.read(reinterpret_cast<char*>(_rootOctalCode), bytes);
 
@@ -334,7 +334,7 @@ int JurisdictionMap::unpackFromPacket(NLPacket& packet) {
             int bytes = 0;
             packet.readPrimitive(&bytes);
 
-            if (bytes <= packet.bytesAvailable()) {
+            if (bytes <= packet.bytesLeftToRead()) {
                 unsigned char* endNodeCode = new unsigned char[bytes];
                 packet.read(reinterpret_cast<char*>(endNodeCode), bytes);
 

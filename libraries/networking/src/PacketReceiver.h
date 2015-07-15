@@ -20,7 +20,7 @@
 #include <QtCore/QSet>
 
 #include "NLPacket.h"
-#include "PacketHeaders.h"
+#include "udt/PacketHeaders.h"
 
 class PacketListener;
 

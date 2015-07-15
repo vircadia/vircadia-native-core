@@ -796,7 +796,7 @@ std::unique_ptr<NLPacket> EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_S
                 ++numberOfIDs;
 
                 // check to make sure we have room for one more ID
-                if (NUM_BYTES_RFC4122_UUID > deletesPacket->bytesAvailable()) {
+                if (NUM_BYTES_RFC4122_UUID > deletesPacket->bytesAvailableForWrite()) {
                     hasFilledPacket = true;
                     break;
                 }
@@ -867,7 +867,7 @@ int EntityTree::processEraseMessage(NLPacket& packet, const SharedNodePointer& s
 
         for (size_t i = 0; i < numberOfIDs; i++) {
 
-            if (NUM_BYTES_RFC4122_UUID > packet.bytesAvailable()) {
+            if (NUM_BYTES_RFC4122_UUID > packet.bytesLeftToRead()) {
                 qCDebug(entities) << "EntityTree::processEraseMessage().... bailing because not enough bytes in buffer";
                 break; // bail to prevent buffer overflow
             }
