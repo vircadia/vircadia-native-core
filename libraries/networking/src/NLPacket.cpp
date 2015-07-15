@@ -109,14 +109,14 @@ void NLPacket::adjustPayloadStartAndCapacity() {
 
 void NLPacket::readSourceID() {
     if (!NON_SOURCED_PACKETS.contains(_type)) {
-        auto offset = Packet::totalHeadersSize();
+        auto offset = Packet::localHeaderSize();
         _sourceID = QUuid::fromRfc4122(QByteArray::fromRawData(_packet.get() + offset, NUM_BYTES_RFC4122_UUID));
     }
 }
 
 void NLPacket::readVerificationHash() {
     if (!NON_SOURCED_PACKETS.contains(_type) && !NON_VERIFIED_PACKETS.contains(_type)) {
-        auto offset = Packet::totalHeadersSize() + NUM_BYTES_RFC4122_UUID;
+        auto offset = Packet::localHeaderSize() + NUM_BYTES_RFC4122_UUID;
         _verificationHash = QByteArray(_packet.get() + offset, NUM_BYTES_MD5_HASH);
     }
 }
@@ -124,7 +124,7 @@ void NLPacket::readVerificationHash() {
 void NLPacket::writeSourceID(const QUuid& sourceID) {
     Q_ASSERT(!NON_SOURCED_PACKETS.contains(_type));
     
-    auto offset = Packet::totalHeadersSize();
+    auto offset = Packet::localHeaderSize();
     memcpy(_packet.get() + offset, sourceID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
     
     _sourceID = sourceID;
@@ -133,7 +133,7 @@ void NLPacket::writeSourceID(const QUuid& sourceID) {
 void NLPacket::writeVerificationHash(const QByteArray& verificationHash) {
     Q_ASSERT(!NON_SOURCED_PACKETS.contains(_type) && !NON_VERIFIED_PACKETS.contains(_type));
 
-    auto offset = Packet::totalHeadersSize() + NUM_BYTES_RFC4122_UUID;
+    auto offset = Packet::localHeaderSize() + NUM_BYTES_RFC4122_UUID;
     memcpy(_packet.get() + offset, verificationHash.data(), verificationHash.size());
     
     _verificationHash = verificationHash;
