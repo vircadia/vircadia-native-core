@@ -100,8 +100,10 @@ QMetaMethod PacketReceiver::matchingMethodForListener(PacketType::Value type, QO
     }
 
     if (methodIndex < 0) {
-        qDebug() << "PacketReceiver::registerListener expected a method with one of the following signatures:"
-                << possibleSignatures.toList() << "- but such a method was not found.";
+        qDebug() << "PacketReceiver::registerListener expected a slot with one of the following signatures:"
+                 << possibleSignatures.toList() << "- but such a slot was not found."
+                 << "Could not complete listener registration for"
+                 << type << "-" << nameForPacketType(type);
     }
 
     Q_ASSERT(methodIndex >= 0);
