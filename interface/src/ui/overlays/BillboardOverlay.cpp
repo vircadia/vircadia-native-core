@@ -28,12 +28,12 @@ BillboardOverlay::BillboardOverlay(const BillboardOverlay* billboardOverlay) :
 }
 
 void BillboardOverlay::render(RenderArgs* args) {
-    if (!_isLoaded) {
+    if (!_texture) {
         _isLoaded = true;
         _texture = DependencyManager::get<TextureCache>()->getTexture(_url);
     }
 
-    if (!_visible || !_texture->isLoaded()) {
+    if (!_visible || !_texture || !_texture->isLoaded()) {
         return;
     }
 
@@ -87,12 +87,12 @@ void BillboardOverlay::render(RenderArgs* args) {
         transform.postScale(glm::vec3(getDimensions(), 1.0f));
         
         batch->setModelTransform(transform);
-        batch->setUniformTexture(0, _texture->getGPUTexture());
+        batch->setResourceTexture(0, _texture->getGPUTexture());
         
         DependencyManager::get<GeometryCache>()->renderQuad(*batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
                                                             glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha));
     
-        batch->setUniformTexture(0, args->_whiteTexture); // restore default white color after me
+        batch->setResourceTexture(0, args->_whiteTexture); // restore default white color after me
     }
 }
 
@@ -170,7 +170,7 @@ void BillboardOverlay::setBillboardURL(const QString& url) {
 bool BillboardOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                         float& distance, BoxFace& face) {
 
-    if (_texture) {
+    if (_texture && _texture->isLoaded()) {
         glm::quat rotation = getRotation();
         if (_isFacingAvatar) {
             // rotate about vertical to face the camera

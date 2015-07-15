@@ -65,70 +65,55 @@ function removeLine() {
 
 
 function createOrUpdateLine(event) {
-  var pickRay = Camera.computePickRay(event.x, event.y);
-  var intersection = Entities.findRayIntersection(pickRay, true); // accurate picking
-  var props = Entities.getEntityProperties(intersection.entityID);
+    var pickRay = Camera.computePickRay(event.x, event.y);
+    var intersection = Entities.findRayIntersection(pickRay, true); // accurate picking
+    var props = Entities.getEntityProperties(intersection.entityID);
 
-  if (intersection.intersects && userCanPoint) {
-    var points = [nearLinePoint(intersection.intersection), intersection.intersection]
-    if (lineIsRezzed) {
-      Entities.editEntity(lineEntityID, {
-        position: nearLinePoint(intersection.intersection),
-        linePoints: points,
-        dimensions: {
-          x: 1,
-          y: 1,
-          z: 1
-        },
-        lifetime: 15 + props.lifespan // renew lifetime
-      });
+    if (intersection.intersects && userCanPoint) {
+        var points = [Vec3.subtract(nearLinePoint(intersection.intersection), MyAvatar.position),
+                      Vec3.subtract(intersection.intersection, MyAvatar.position)];
+        if (lineIsRezzed) {
+            Entities.editEntity(lineEntityID, {
+                linePoints: points,
+                position: MyAvatar.position,
+                lifetime: 15 + props.lifespan // renew lifetime
+            });
+            // Entities.setAllPoints(lineEntityID, points);
+        } else {
+            lineIsRezzed = true;
+            lineEntityID = Entities.addEntity({
+                type: "Line",
+                position: MyAvatar.position,
+                linePoints: points,
+                dimensions: { x: 100, y: 100, z: 100 },
+                color: { red: 255, green: 255, blue: 255 },
+                lifetime: 15 // if someone crashes while pointing, don't leave the line there forever.
+            });
+        }
     } else {
-      lineIsRezzed = true;
-      lineEntityID = Entities.addEntity({
-        type: "Line",
-        position: nearLinePoint(intersection.intersection),
-        linePoints: points,
-        dimensions: {
-          x: 1,
-          y: 1,
-          z: 1
-        },
-        color: {
-          red: 255,
-          green: 255,
-          blue: 255
-        },
-        lifetime: 15 // if someone crashes while pointing, don't leave the line there forever.
-      });
+        removeLine();
     }
-  } else {
-    removeLine();
-  }
 }
 
 
 function mousePressEvent(event) {
-  if (!event.isLeftButton) {
-    return;
-  }
-
-  createOrUpdateLine(event);
-   var clickedOverlay = Overlays.getOverlayAtPoint({
-    x: event.x,
-    y: event.y
-  });
-  if (clickedOverlay == pointerButton) {
-    userCanPoint = !userCanPoint;
-    if (userCanPoint === true) {
-      Overlays.editOverlay(pointerButton, {
-        color: buttonOnColor
-      });
-    } else {
-      Overlays.editOverlay(pointerButton, {
-        color: buttonOffColor
-      });
+    if (!event.isLeftButton) {
+        return;
     }
-  }
+
+    var clickedOverlay = Overlays.getOverlayAtPoint({
+        x: event.x,
+        y: event.y
+    });
+
+    if (clickedOverlay == pointerButton) {
+        userCanPoint = !userCanPoint;
+        if (userCanPoint === true) {
+            Overlays.editOverlay(pointerButton, { color: buttonOnColor });
+        } else {
+            Overlays.editOverlay(pointerButton, { color: buttonOffColor });
+        }
+    }
 }
 
 

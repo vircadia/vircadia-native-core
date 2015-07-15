@@ -25,6 +25,7 @@
 #include <QBitArray>
 #include <QByteArray>
 
+#include "ByteCountCoding.h"
 #include <SharedUtil.h>
 
 template<typename Enum>class PropertyFlags {
@@ -51,7 +52,8 @@ public:
     void setHasProperty(Enum flag, bool value = true);
     bool getHasProperty(Enum flag) const;
     QByteArray encode();
-    void decode(const QByteArray& fromEncoded);
+    size_t decode(const uint8_t* data, size_t length);
+    size_t decode(const QByteArray& fromEncoded);
 
     operator QByteArray() { return encode(); };
 
@@ -193,51 +195,62 @@ template<typename Enum> inline QByteArray PropertyFlags<Enum>::encode() {
     return output;
 }
 
-template<typename Enum> inline void PropertyFlags<Enum>::decode(const QByteArray& fromEncodedBytes) {
-
+template<typename Enum> 
+inline size_t PropertyFlags<Enum>::decode(const uint8_t* data, size_t size) {
     clear(); // we are cleared out!
 
-    // first convert the ByteArray into a BitArray...
-    QBitArray encodedBits;
-    int bitCount = BITS_PER_BYTE * fromEncodedBytes.count();
-    encodedBits.resize(bitCount);
-    
-    for(int byte = 0; byte < fromEncodedBytes.count(); byte++) {
-        char originalByte = fromEncodedBytes.at(byte);
-        for(int bit = 0; bit < BITS_PER_BYTE; bit++) {
-            int shiftBy = BITS_PER_BYTE - (bit + 1);
-            char maskBit = ( 1 << shiftBy);
-            bool bitValue = originalByte & maskBit;
-            encodedBits.setBit(byte * BITS_PER_BYTE + bit, bitValue);
+    size_t bytesConsumed = 0;
+    int bitCount = BITS_IN_BYTE * size;
+
+    int encodedByteCount = 1; // there is at least 1 byte (after the leadBits)
+    int leadBits = 1; // there is always at least 1 lead bit
+    bool inLeadBits = true;
+    int bitAt = 0;
+    int expectedBitCount; // unknown at this point
+    int lastValueBit;
+    for (unsigned int byte = 0; byte < size; byte++) {
+        char originalByte = data[byte];
+        bytesConsumed++;
+        unsigned char maskBit = 0x80; // LEFT MOST BIT set
+        for (int bit = 0; bit < BITS_IN_BYTE; bit++) {
+            bool bitIsSet = originalByte & maskBit;
+            // Processing of the lead bits
+            if (inLeadBits) {
+                if (bitIsSet) {
+                    encodedByteCount++;
+                    leadBits++;
+                } else {
+                    inLeadBits = false; // once we hit our first 0, we know we're out of the lead bits
+                    expectedBitCount = (encodedByteCount * BITS_IN_BYTE) - leadBits;
+                    lastValueBit = expectedBitCount + bitAt;
+
+                    // check to see if the remainder of our buffer is sufficient
+                    if (expectedBitCount > (bitCount - leadBits)) {
+                        break;
+                    }
+                }
+            } else {
+                if (bitAt > lastValueBit) {
+                    break;
+                }
+
+                if (bitIsSet) {
+                    setHasProperty(static_cast<Enum>(bitAt - leadBits), true);
+                }
+            }
+            bitAt++;
+            maskBit >>= 1;
         }
-    }
-    
-    // next, read the leading bits to determine the correct number of bytes to decode (may not match the QByteArray)
-    int encodedByteCount = 0;
-    int leadBits = 1;
-    int bitAt;
-    for (bitAt = 0; bitAt < bitCount; bitAt++) {
-        if (encodedBits.at(bitAt)) {
-            encodedByteCount++;
-            leadBits++;
-        } else {
+        if (!inLeadBits && bitAt > lastValueBit) {
             break;
         }
     }
-    encodedByteCount++; // always at least one byte
-    _encodedLength = encodedByteCount;
+    _encodedLength = bytesConsumed;
+    return bytesConsumed;
+}
 
-    int expectedBitCount = encodedByteCount * BITS_PER_BYTE;
-    
-    // Now, keep reading...
-    if (expectedBitCount <= (encodedBits.size() - leadBits)) {
-        int flagsStartAt = bitAt + 1; 
-        for (bitAt = flagsStartAt; bitAt < expectedBitCount; bitAt++) {
-            if (encodedBits.at(bitAt)) {
-                setHasProperty((Enum)(bitAt - flagsStartAt));
-            }
-        }
-    }
+template<typename Enum> inline size_t PropertyFlags<Enum>::decode(const QByteArray& fromEncodedBytes) {
+    return decode(reinterpret_cast<const uint8_t*>(fromEncodedBytes.data()), fromEncodedBytes.size());
 }
 
 template<typename Enum> inline void PropertyFlags<Enum>::debugDumpBits() {

@@ -35,7 +35,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_setStateBlendFactor),
 
     (&::gpu::GLBackend::do_setUniformBuffer),
-    (&::gpu::GLBackend::do_setUniformTexture),
+    (&::gpu::GLBackend::do_setResourceTexture),
 
     (&::gpu::GLBackend::do_setFramebuffer),
 
@@ -87,10 +87,12 @@ GLBackend::GLBackend() :
     _pipeline(),
     _output()
 {
+    initInput();
     initTransform();
 }
 
 GLBackend::~GLBackend() {
+    killInput();
     killTransform();
 }
 
@@ -204,7 +206,6 @@ void GLBackend::do_drawInstanced(Batch& batch, uint32 paramOffset) {
     GLenum mode = _primitiveToGLmode[primitiveType];
     uint32 numVertices = batch._params[paramOffset + 2]._uint;
     uint32 startVertex = batch._params[paramOffset + 1]._uint;
-    uint32 startInstance = batch._params[paramOffset + 0]._uint;
 
     glDrawArraysInstancedARB(mode, startVertex, numVertices, numInstances);
     (void) CHECK_GL_ERROR();
@@ -238,7 +239,7 @@ void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
 
     std::vector<GLenum> drawBuffers;
     if (masks & Framebuffer::BUFFER_COLORS) {
-        for (int i = 0; i < Framebuffer::MAX_NUM_RENDER_BUFFERS; i++) {
+        for (unsigned int i = 0; i < Framebuffer::MAX_NUM_RENDER_BUFFERS; i++) {
             if (masks & (1 << i)) {
                 drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
             }

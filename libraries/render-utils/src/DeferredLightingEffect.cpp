@@ -114,9 +114,9 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     loadLightProgram(deferred_light_spot_vert, spot_light_frag, true, _spotLight, _spotLightLocations);
 
     {
-        auto VSFS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto PSBlit = gpu::StandardShaderLib::getDrawTexturePS();
-        auto blitProgram = gpu::ShaderPointer(gpu::Shader::createProgram(VSFS, PSBlit));
+        //auto VSFS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
+        //auto PSBlit = gpu::StandardShaderLib::getDrawTexturePS();
+        auto blitProgram = gpu::StandardShaderLib::getProgram(gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS, gpu::StandardShaderLib::getDrawTexturePS);
         gpu::Shader::makeProgram(*blitProgram);
         gpu::StatePointer blitState = gpu::StatePointer(new gpu::State());
         blitState->setBlendFunction(true,
@@ -146,7 +146,7 @@ void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured,
     
     if (!config.isTextured()) {
         // If it is not textured, bind white texture and keep using textured pipeline
-        batch.setUniformTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
+        batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
     }
 }
 
@@ -243,13 +243,13 @@ void DeferredLightingEffect::render(RenderArgs* args) {
  
     batch.clearColorFramebuffer(freeFBO->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
     
-    batch.setUniformTexture(0, textureCache->getPrimaryColorTexture());
+    batch.setResourceTexture(0, textureCache->getPrimaryColorTexture());
 
-    batch.setUniformTexture(1, textureCache->getPrimaryNormalTexture());
+    batch.setResourceTexture(1, textureCache->getPrimaryNormalTexture());
     
-    batch.setUniformTexture(2, textureCache->getPrimarySpecularTexture());
+    batch.setResourceTexture(2, textureCache->getPrimarySpecularTexture());
     
-    batch.setUniformTexture(3, textureCache->getPrimaryDepthTexture());
+    batch.setResourceTexture(3, textureCache->getPrimaryDepthTexture());
         
     // get the viewport side (left, right, both)
     int viewport[4];
@@ -274,7 +274,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     const LightLocations* locations = &_directionalLightLocations;
     bool shadowsEnabled = _viewState->getShadowsEnabled();
     if (shadowsEnabled) {
-        batch.setUniformTexture(4, textureCache->getShadowFramebuffer()->getDepthStencilBuffer());
+        batch.setResourceTexture(4, textureCache->getShadowFramebuffer()->getDepthStencilBuffer());
         
         program = _directionalLightShadowMap;
         locations = &_directionalLightShadowMapLocations;
@@ -328,7 +328,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         }
     
         if (useSkyboxCubemap) {
-            batch.setUniformTexture(5, _skybox->getCubemap());
+            batch.setResourceTexture(5, _skybox->getCubemap());
         }
 
         if (locations->lightBufferUnit >= 0) {
@@ -377,11 +377,11 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     }
 
     if (useSkyboxCubemap) {
-        batch.setUniformTexture(5, nullptr);
+        batch.setResourceTexture(5, nullptr);
     }
 
     if (shadowsEnabled) {
-        batch.setUniformTexture(4, nullptr);
+        batch.setResourceTexture(4, nullptr);
     }
 
     glm::vec4 sCoefficients(sWidth / 2.0f, 0.0f, 0.0f, sMin + sWidth / 2.0f);
@@ -474,17 +474,18 @@ void DeferredLightingEffect::render(RenderArgs* args) {
             // IN DEBUG: light->setShowContour(true);
 
             batch.setUniformBuffer(_spotLightLocations.lightBufferUnit, light->getSchemaBuffer());
-            
+
             auto eyeLightPos = eyePoint - light->getPosition();
             auto eyeHalfPlaneDistance = glm::dot(eyeLightPos, light->getDirection());
-            
+
             const float TANGENT_LENGTH_SCALE = 0.666f;
-            glm::vec4 coneParam(light->getSpotAngleCosSin(), TANGENT_LENGTH_SCALE * tan(0.5 * light->getSpotAngle()), 1.0f);
+            glm::vec4 coneParam(light->getSpotAngleCosSin(), TANGENT_LENGTH_SCALE * tanf(0.5f * light->getSpotAngle()), 1.0f);
 
             float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
             // TODO: We shouldn;t have to do that test and use a different volume geometry for when inside the vlight volume,
             // we should be able to draw thre same geometry use DepthClamp but for unknown reason it's s not working...
-            if ((eyeHalfPlaneDistance > -nearRadius) && (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius)) {
+            if ((eyeHalfPlaneDistance > -nearRadius) &&
+                (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius)) {
                 coneParam.w = 0.0f;
                 batch._glUniform4fv(_spotLightLocations.coneParam, 1, reinterpret_cast< const GLfloat* >(&coneParam));
 
@@ -530,10 +531,10 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     }
     
     // Probably not necessary in the long run because the gpu layer would unbound this texture if used as render target
-    batch.setUniformTexture(0, nullptr);
-    batch.setUniformTexture(1, nullptr);
-    batch.setUniformTexture(2, nullptr);
-    batch.setUniformTexture(3, nullptr);
+    batch.setResourceTexture(0, nullptr);
+    batch.setResourceTexture(1, nullptr);
+    batch.setResourceTexture(2, nullptr);
+    batch.setResourceTexture(3, nullptr);
 
     args->_context->syncCache();
     args->_context->render(batch);
@@ -551,7 +552,7 @@ void DeferredLightingEffect::copyBack(RenderArgs* args) {
     batch.setFramebuffer(textureCache->getPrimaryFramebuffer());
     batch.setPipeline(_blitLightBuffer);
     
-    batch.setUniformTexture(0, freeFBO->getRenderBuffer(0));
+    batch.setResourceTexture(0, freeFBO->getRenderBuffer(0));
 
     batch.setProjectionTransform(glm::mat4());
     batch.setViewTransform(Transform());

@@ -188,7 +188,7 @@ void GLBackend::do_setUniformBuffer(Batch& batch, uint32 paramOffset) {
     (void) CHECK_GL_ERROR();
 }
 
-void GLBackend::do_setUniformTexture(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_setResourceTexture(Batch& batch, uint32 paramOffset) {
     GLuint slot = batch._params[paramOffset + 1]._uint;
     TexturePointer uniformTexture = batch._textures.get(batch._params[paramOffset + 0]._uint);
 
