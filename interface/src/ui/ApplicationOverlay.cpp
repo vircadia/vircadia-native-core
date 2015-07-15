@@ -109,7 +109,7 @@ void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
         batch._glBindTexture(GL_TEXTURE_2D, _uiTexture);
         geometryCache->renderUnitQuad(batch, glm::vec4(1));
         renderArgs->_context->syncCache();
-        renderArgs->_context->render(batch);
+ //       renderArgs->_context->render(batch);
     }
 }
 
