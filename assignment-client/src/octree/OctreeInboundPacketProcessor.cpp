@@ -136,18 +136,18 @@ void OctreeInboundPacketProcessor::processPacket(QSharedPointer<NLPacket> packet
         if (debugProcessPacket) {
             qDebug() << "    atByte (in payload)=" << packet->pos();
             qDebug() << "    payload size=" << packet->getSizeUsed();
-            if (!packet->bytesAvailable()) {
+            if (!packet->bytesLeftToRead()) {
                 qDebug() << "    ----- UNEXPECTED ---- got a packet without any edit details!!!! --------";
             }
         }
         
         const unsigned char* editData = nullptr;
 
-        while (packet->bytesAvailable() > 0) {
+        while (packet->bytesLeftToRead() > 0) {
 
             editData = reinterpret_cast<const unsigned char*>(packet->getPayload() + packet->pos());
 
-            int maxSize = packet->bytesAvailable();
+            int maxSize = packet->bytesLeftToRead();
 
             if (debugProcessPacket) {
                 qDebug() << " --- inside while loop ---";

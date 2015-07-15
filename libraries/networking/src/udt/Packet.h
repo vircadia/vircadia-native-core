@@ -53,7 +53,8 @@ public:
     qint64 getSizeUsed() const { return _sizeUsed; }
     void setSizeUsed(qint64 sizeUsed) { _sizeUsed = sizeUsed; }
 
-    qint64 bytesAvailableForWrite() const { return _capacity - _sizeUsed; }
+    void bytesLeftToRead() const { return _capacity - pos(); }
+    qint64 bytesAvailableForWrite() const { return _capacity - pos(); }
 
     HifiSockAddr& getSenderSockAddr() { return _senderSockAddr; }
     const HifiSockAddr& getSenderSockAddr() const { return _senderSockAddr; }

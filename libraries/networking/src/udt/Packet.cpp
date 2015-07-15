@@ -215,7 +215,7 @@ qint64 Packet::writeData(const char* data, qint64 maxSize) {
 
 qint64 Packet::readData(char* dest, qint64 maxSize) {
     // we're either reading what is left from the current position or what was asked to be read
-    qint64 numBytesToRead = std::min(bytesAvailable(), maxSize);
+    qint64 numBytesToRead = std::min(bytesLeftToRead(), maxSize);
 
     if (numBytesToRead > 0) {
         int currentPosition = pos();
