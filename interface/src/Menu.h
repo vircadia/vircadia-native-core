@@ -145,7 +145,7 @@ namespace MenuOption {
     const QString AudioScopeFrames = "Display Frames";
     const QString AudioScopePause = "Pause Scope";
     const QString AudioScopeTwentyFrames = "Twenty";
-    const QString AudioStats = "Audio Stats";
+    const QString AudioNetworkStats = "Audio Network Stats";
     const QString AudioStatsShowInjectedStreams = "Audio Stats Show Injected Streams";
     const QString AutoMuteAudio = "Auto Mute Microphone";
     const QString AvatarReceiveStats = "Show Receive Stats";

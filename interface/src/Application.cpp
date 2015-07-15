@@ -107,7 +107,7 @@
 #include "avatar/AvatarManager.h"
 
 #include "audio/AudioToolBox.h"
-#include "audio/AudioIOStatsRenderer.h"
+//#include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
 
 #include "devices/CameraToolBox.h"
@@ -274,7 +274,7 @@ bool setupEssentials(int& argc, char** argv) {
     auto faceshift = DependencyManager::set<Faceshift>();
     auto audio = DependencyManager::set<AudioClient>();
     auto audioScope = DependencyManager::set<AudioScope>();
-    auto audioIOStatsRenderer = DependencyManager::set<AudioIOStatsRenderer>();
+//    auto audioIOStatsRenderer = DependencyManager::set<AudioIOStatsRenderer>();
     auto deferredLightingEffect = DependencyManager::set<DeferredLightingEffect>();
     auto ambientOcclusionEffect = DependencyManager::set<AmbientOcclusionEffect>();
     auto textureCache = DependencyManager::set<TextureCache>();
@@ -2443,6 +2443,12 @@ void Application::updateDialogs(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateDialogs()");
     auto dialogsManager = DependencyManager::get<DialogsManager>();
 
+    // Update audio stats dialog, if any
+    AudioStatsDialog* audioStatsDialog = dialogsManager->getAudioStatsDialog();
+    if(audioStatsDialog) {
+        audioStatsDialog->update();
+    }
+    
     // Update bandwidth dialog, if any
     BandwidthDialog* bandwidthDialog = dialogsManager->getBandwidthDialog();
     if (bandwidthDialog) {

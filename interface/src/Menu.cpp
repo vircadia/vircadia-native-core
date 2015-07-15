@@ -24,7 +24,7 @@
 
 #include "Application.h"
 #include "AccountManager.h"
-#include "audio/AudioIOStatsRenderer.h"
+//#include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
 #include "devices/DdeFaceTracker.h"
@@ -314,6 +314,8 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(viewMenu, MenuOption::Log,
         Qt::CTRL | Qt::SHIFT | Qt::Key_L,
         qApp, SLOT(toggleLogDialog()));
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::AudioNetworkStats, 0,
+                                  dialogsManager.data(), SLOT(audioStatsDetails()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0,
                                   dialogsManager.data(), SLOT(bandwidthDetails()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0,
@@ -579,19 +581,19 @@ Menu::Menu() {
         audioScopeFramesGroup->addAction(fiftyFrames);
     }
 
-    auto statsRenderer = DependencyManager::get<AudioIOStatsRenderer>();
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStats,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_A,
-                                           false,
-                                           statsRenderer.data(),
-                                           SLOT(toggle()));
+//    auto statsRenderer = DependencyManager::get<AudioIOStatsRenderer>();
+//    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStats,
+//                                           Qt::CTRL | Qt::SHIFT | Qt::Key_A,
+//                                           false,
+//                                           statsRenderer.data(),
+//                                           SLOT(toggle()));
 
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStatsShowInjectedStreams,
-                                            0,
-                                            false,
-                                            statsRenderer.data(),
-                                            SLOT(toggleShowInjectedStreams()));
-
+//    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStatsShowInjectedStreams,
+//                                            0,
+//                                            false,
+//                                            statsRenderer.data(),
+//                                            SLOT(toggleShowInjectedStreams()));
+//
 
     MenuWrapper* physicsOptionsMenu = developerMenu->addMenu("Physics");
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowOwned);
