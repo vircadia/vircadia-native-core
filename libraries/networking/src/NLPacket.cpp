@@ -80,7 +80,7 @@ NLPacket::NLPacket(PacketType::Value type, qint64 size) :
     
     qint64 headerSize = localHeaderSize(type);
     _payloadStart += headerSize;
-    _capacity -= headerSize;
+    _payloadCapacity -= headerSize;
 }
 
 NLPacket::NLPacket(PacketType::Value type) :
@@ -88,7 +88,7 @@ NLPacket::NLPacket(PacketType::Value type) :
 {
     qint64 headerSize = localHeaderSize(type);
     _payloadStart += headerSize;
-    _capacity -= headerSize;
+    _payloadCapacity -= headerSize;
 }
 
 NLPacket::NLPacket(const NLPacket& other) : Packet(other) {
@@ -137,7 +137,7 @@ QByteArray NLPacket::payloadHashWithConnectionUUID(const QUuid& connectionUUID) 
     QCryptographicHash hash(QCryptographicHash::Md5);
     
     // add the packet payload and the connection UUID
-    hash.addData(_payloadStart, _sizeUsed);
+    hash.addData(_payloadStart, _payloadSize);
     hash.addData(connectionUUID.toRfc4122());
     
     // return the hash

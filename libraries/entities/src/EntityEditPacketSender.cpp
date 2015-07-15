@@ -24,7 +24,7 @@ EntityEditPacketSender::EntityEditPacketSender() {
 
 void EntityEditPacketSender::processEntityEditNackPacket(QSharedPointer<NLPacket> packet) {
     if (_shouldNack) {
-        processNackPacket(QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
+        processNackPacket(QByteArray::fromRawData(packet->getData(), packet->getDataSize()));
     }
 }
 

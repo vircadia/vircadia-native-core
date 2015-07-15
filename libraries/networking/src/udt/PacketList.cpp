@@ -90,7 +90,7 @@ qint64 PacketList::writeData(const char* data, qint64 maxSize) {
                 _segmentStartIndex = 0;
                 
                 // shrink the current payload to the actual size of the packet
-                _currentPacket->setSizeUsed(_segmentStartIndex);
+                _currentPacket->setPayloadSize(_segmentStartIndex);
             }
             
             // move the current packet to our list of packets

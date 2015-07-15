@@ -134,7 +134,7 @@ void IceServer::sendPeerInformationPacket(const NetworkPeer& peer, const HifiSoc
     peerPacket->write(peer.toByteArray());
 
     // write the current packet
-    _serverSocket.writeDatagram(peerPacket->getData(), peerPacket->getSizeWithHeader(),
+    _serverSocket.writeDatagram(peerPacket->getData(), peerPacket->getDataSize(),
                                 destinationSockAddr->getAddress(), destinationSockAddr->getPort());
 }
 

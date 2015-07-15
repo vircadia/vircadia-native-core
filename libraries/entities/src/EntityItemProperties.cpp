@@ -907,7 +907,7 @@ bool EntityItemProperties::decodeEntityEditPacket(NLPacket& packet, int& process
     const unsigned char* data = reinterpret_cast<const unsigned char*>(packet.getPayload());
     const unsigned char* dataAt = data;
     
-    int bytesToRead = packet.getSizeUsed();
+    int bytesToRead = packet.getPayloadSize();
     processedBytes = 0;
 
     // the first part of the data is an octcode, this is a required element of the edit packet format, but we don't

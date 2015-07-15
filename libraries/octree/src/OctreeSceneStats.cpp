@@ -439,7 +439,7 @@ int OctreeSceneStats::packIntoPacket() {
         _statsPacket->writePrimitive(bytes);
     }
 
-    return _statsPacket->getSizeUsed();
+    return _statsPacket->getPayloadSize();
 }
 
 int OctreeSceneStats::unpackFromPacket(NLPacket& packet) {
@@ -789,8 +789,8 @@ void OctreeSceneStats::trackIncomingOctreePacket(NLPacket& packet, bool wasStats
 
     // track packets here...
     _incomingPacket++;
-    _incomingBytes += packet.getSizeWithHeader();
+    _incomingBytes += packet.getDataSize();
     if (!wasStatsPacket) {
-        _incomingWastedBytes += (MAX_PACKET_SIZE - packet.getSizeWithHeader());
+        _incomingWastedBytes += (MAX_PACKET_SIZE - packet.getDataSize());
     }
 }

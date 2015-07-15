@@ -90,7 +90,7 @@ void OctreeRenderer::processDatagram(NLPacket& packet, SharedNodePointer sourceN
             qCDebug(octree, "OctreeRenderer::processDatagram() ... Got Packet Section"
                    " color:%s compressed:%s sequence: %u flight:%d usec size:%lld data:%lld",
                    debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
-                   sequence, flightTime, packet.getSizeWithHeader(), packet.bytesLeftToRead());
+                   sequence, flightTime, packet.getDataSize(), packet.bytesLeftToRead());
         }
         
         _packetsInLastWindow++;
@@ -139,7 +139,7 @@ void OctreeRenderer::processDatagram(NLPacket& packet, SharedNodePointer sourceN
                            " color:%s compressed:%s sequence: %u flight:%d usec size:%lld data:%lld"
                            " subsection:%d sectionLength:%d uncompressed:%d",
                            debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
-                           sequence, flightTime, packet.getSizeWithHeader(), packet.bytesLeftToRead(), subsection, sectionLength,
+                           sequence, flightTime, packet.getDataSize(), packet.bytesLeftToRead(), subsection, sectionLength,
                            packetData.getUncompressedSize());
                 }
                 

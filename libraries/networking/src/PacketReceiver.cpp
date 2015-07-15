@@ -236,20 +236,18 @@ void PacketReceiver::processDatagrams() {
                                 matchingNode->setLastSequenceNumberForPacketType(packet->readSequenceNumber(), packet->getType());
                             }
 
-                            emit dataReceived(matchingNode->getType(), packet->getSizeWithHeader());
+                            emit dataReceived(matchingNode->getType(), packet->getDataSize());
                             QMetaMethod metaMethod = listener.second;
 
                             static const QByteArray QSHAREDPOINTER_NODE_NORMALIZED = QMetaObject::normalizedType("QSharedPointer<Node>");
                             static const QByteArray SHARED_NODE_NORMALIZED = QMetaObject::normalizedType("SharedNodePointer");
 
                             if (metaMethod.parameterTypes().contains(SHARED_NODE_NORMALIZED)) {
-                                qDebug() << "invoking with matchingNode" << matchingNode;
                                 success = metaMethod.invoke(listener.first,
                                         Q_ARG(QSharedPointer<NLPacket>, QSharedPointer<NLPacket>(packet.release())),
                                         Q_ARG(SharedNodePointer, matchingNode));
 
                             } else if (metaMethod.parameterTypes().contains(QSHAREDPOINTER_NODE_NORMALIZED)) {
-                                qDebug() << "invoking with matchingNode" << matchingNode;
                                 success = metaMethod.invoke(listener.first,
                                         Q_ARG(QSharedPointer<NLPacket>, QSharedPointer<NLPacket>(packet.release())),
                                         Q_ARG(QSharedPointer<Node>, matchingNode));
@@ -259,7 +257,7 @@ void PacketReceiver::processDatagrams() {
                                     Q_ARG(QSharedPointer<NLPacket>, QSharedPointer<NLPacket>(packet.release())));
                             }
                         } else {
-                            emit dataReceived(NodeType::Unassigned, packet->getSizeWithHeader());
+                            emit dataReceived(NodeType::Unassigned, packet->getDataSize());
 
                             success = listener.second.invoke(listener.first,
                                 Q_ARG(QSharedPointer<NLPacket>, QSharedPointer<NLPacket>(packet.release())));

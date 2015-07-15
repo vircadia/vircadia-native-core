@@ -579,7 +579,7 @@ void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) 
     NodeType_t nodeType;
     HifiSockAddr publicSockAddr, localSockAddr;
 
-    if (packet->getSizeUsed() == 0) {
+    if (packet->getPayloadSize() == 0) {
         // TODO: We know what size the connect packet should be (minimally) - check for that here
         return;
     }
