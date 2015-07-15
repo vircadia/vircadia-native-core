@@ -3,8 +3,8 @@ set(EXTERNAL_NAME polyvox)
 include(ExternalProject)
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL http://hifi-public.s3.amazonaws.com/dependencies/polyvox.zip
-  URL_MD5 904b840328278c9b36fa7a14be730c34
+  URL http://hifi-public.s3.amazonaws.com/dependencies/polyvox-master-2015-7-15.zip
+  URL_MD5 9ec6323b87e849ae36e562ae1c7494a9
   CMAKE_ARGS -DENABLE_EXAMPLES=OFF -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
   BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build
   LOG_DOWNLOAD 1
@@ -24,7 +24,16 @@ if (APPLE)
     ${EXTERNAL_NAME}
     change-install-name
     COMMENT "Calling install_name_tool on libraries to fix install name for dylib linking"
-    COMMAND ${CMAKE_COMMAND} -DINSTALL_NAME_LIBRARY_DIR=${INSTALL_NAME_LIBRARY_DIR} -P ${EXTERNAL_PROJECT_DIR}/OSXInstallNameChange.cmake
+    COMMAND ${CMAKE_COMMAND} -DINSTALL_NAME_LIBRARY_DIR=${INSTALL_NAME_LIBRARY_DIR}/Debug -P ${EXTERNAL_PROJECT_DIR}/OSXInstallNameChange.cmake
+    DEPENDEES install
+    WORKING_DIRECTORY <SOURCE_DIR>
+    LOG 1
+  )
+  ExternalProject_Add_Step(
+    ${EXTERNAL_NAME}
+    change-install-name
+    COMMENT "Calling install_name_tool on libraries to fix install name for dylib linking"
+    COMMAND ${CMAKE_COMMAND} -DINSTALL_NAME_LIBRARY_DIR=${INSTALL_NAME_LIBRARY_DIR}/Release -P ${EXTERNAL_PROJECT_DIR}/OSXInstallNameChange.cmake
     DEPENDEES install
     WORKING_DIRECTORY <SOURCE_DIR>
     LOG 1
@@ -48,12 +57,15 @@ endif ()
 
 
 if (WIN32)
-  set(${EXTERNAL_NAME_UPPER}_CORE_LIBRARY ${INSTALL_DIR}/PolyVoxCore/lib/PolyVoxCore.lib CACHE FILEPATH "polyvox core library")
+  set(${EXTERNAL_NAME_UPPER}_CORE_LIBRARY_DEBUG ${INSTALL_DIR}/PolyVoxCore/lib/Debug/PolyVoxCore.lib CACHE FILEPATH "polyvox core library")
+  set(${EXTERNAL_NAME_UPPER}_CORE_LIBRARY_RELEASE ${INSTALL_DIR}/PolyVoxCore/lib/Release/PolyVoxCore.lib CACHE FILEPATH "polyvox core library")
 #  set(${EXTERNAL_NAME_UPPER}_UTIL_LIBRARY ${INSTALL_DIR}/PolyVoxUtil/lib/PolyVoxUtil.lib CACHE FILEPATH "polyvox util library")
 elseif (APPLE)
-set(${EXTERNAL_NAME_UPPER}_CORE_LIBRARY ${INSTALL_DIR}/lib/libPolyVoxCore.dylib CACHE FILEPATH "polyvox core library")
+  set(${EXTERNAL_NAME_UPPER}_CORE_LIBRARY_DEBUG ${INSTALL_DIR}/lib/Debug/libPolyVoxCore.dylib CACHE FILEPATH "polyvox core library")
+  set(${EXTERNAL_NAME_UPPER}_CORE_LIBRARY_RELEASE ${INSTALL_DIR}/lib/Release/libPolyVoxCore.dylib CACHE FILEPATH "polyvox core library")
 #  set(${EXTERNAL_NAME_UPPER}_UTIL_LIBRARY ${INSTALL_DIR}/lib/libPolyVoxUtil.dylib CACHE FILEPATH "polyvox util library")
 else ()
-  set(${EXTERNAL_NAME_UPPER}_CORE_LIBRARY ${INSTALL_DIR}/lib/libPolyVoxCore.so CACHE FILEPATH "polyvox core library")
+  set(${EXTERNAL_NAME_UPPER}_CORE_LIBRARY_DEBUG ${INSTALL_DIR}/lib/Debug/libPolyVoxCore.so CACHE FILEPATH "polyvox core library")
+  set(${EXTERNAL_NAME_UPPER}_CORE_LIBRARY_RELEASE ${INSTALL_DIR}/lib/Release/libPolyVoxCore.so CACHE FILEPATH "polyvox core library")
 #  set(${EXTERNAL_NAME_UPPER}_UTIL_LIBRARY ${INSTALL_DIR}/lib/libPolyVoxUtil.so CACHE FILEPATH "polyvox util library")
 endif ()
