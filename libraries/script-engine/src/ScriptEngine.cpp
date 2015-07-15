@@ -721,7 +721,8 @@ void ScriptEngine::run() {
     }
 
     // If we were on a thread, then wait till it's done
-    if (thread()) {
+    // Unless we're an assignment-client, in which case that's handled for us
+    if (thread() && !_isAgent) {
         thread()->quit();
     }
 
