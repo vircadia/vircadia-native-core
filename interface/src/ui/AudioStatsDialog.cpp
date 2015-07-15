@@ -70,38 +70,29 @@ AudioStatsDialog::AudioStatsDialog(QWidget* parent) :
     _form = new QFormLayout();
     QDialog::setLayout(_form);
     
-//    // Initialize vectors for stat channels
-//    _audioMixerStats = *new QVector<QString>();
-//    _upstreamClientStats = *new QVector<QString>();
-//    _upstreamMixerStats = *new QVector<QString>();
-//    _downstreamStats = *new QVector<QString>();
-//    _upstreamInjectedStats = *new QVector<QString>();
-    
     // Load and initilize
     renderStats();
     
-    initializeChannel(_form, 0, &_audioMixerStats, COLOR0);
-    initializeChannel(_form, 1, &_upstreamClientStats, COLOR1);
-    initializeChannel(_form, 2, &_upstreamMixerStats, COLOR2);
-    initializeChannel(_form, 3, &_downstreamStats, COLOR3);
-    initializeChannel(_form, 4, &_upstreamInjectedStats, COLOR0);
+    initializeChannel(_form, 0, _audioMixerStats, COLOR0);
+    initializeChannel(_form, 1, _upstreamClientStats, COLOR1);
+    initializeChannel(_form, 2, _upstreamMixerStats, COLOR2);
+    initializeChannel(_form, 3, _downstreamStats, COLOR3);
+    initializeChannel(_form, 4, _upstreamInjectedStats, COLOR0);
     
 }
 
-void AudioStatsDialog::initializeChannel(QFormLayout* form, const unsigned int index, QVector<QString> *stats, const unsigned color) {
+void AudioStatsDialog::initializeChannel(QFormLayout* form, const unsigned int index, QVector<QString>& stats, const unsigned color) {
     
-//    _audioDisplayChannels[index] = new QVector<AudioStatsDisplay *>();
-    
-    for (int i = 0; i < stats->size(); i++)
+    for (int i = 0; i < stats.size(); i++)
         // Create new display label
-        _audioDisplayChannels[index].push_back(new AudioStatsDisplay(form, stats->at(i), color));
+        _audioDisplayChannels[index].push_back(new AudioStatsDisplay(form, stats.at(i), color));
     
 }
 
-void AudioStatsDialog::updateStats(const unsigned int index, QVector<QString>* stats) {
+void AudioStatsDialog::updateStats(const unsigned int index, QVector<QString>& stats) {
     // Update all stat displays at specified channel
-    for (int i = 0; i < stats->size(); i++)
-        _audioDisplayChannels[index].at(i)->updatedDisplay(stats->at(i));
+    for (int i = 0; i < stats.size(); i++)
+        _audioDisplayChannels[index].at(i)->updatedDisplay(stats.at(i));
 }
 
 
@@ -224,11 +215,11 @@ void AudioStatsDialog::updateTimerTimeout() {
     // Update all audio stats
     renderStats();
     
-    updateStats(0, &_audioMixerStats);
-    updateStats(1, &_upstreamClientStats);
-    updateStats(2, &_upstreamMixerStats);
-    updateStats(3, &_downstreamStats);
-    updateStats(4, &_upstreamInjectedStats);
+    updateStats(0, _audioMixerStats);
+    updateStats(1, _upstreamClientStats);
+    updateStats(2, _upstreamMixerStats);
+    updateStats(3, _downstreamStats);
+    updateStats(4, _upstreamInjectedStats);
     
 }
 
