@@ -14,5 +14,8 @@
 #include "NodeList.h"
 
 PacketListener::~PacketListener() {
-    DependencyManager::get<LimitedNodeList>()->getPacketReceiver().unregisterListener(this);
+    auto limitedNodelist = DependencyManager::get<LimitedNodeList>();
+    if (limitedNodelist) {
+        limitedNodelist->getPacketReceiver().unregisterListener(this);
+    }
 }

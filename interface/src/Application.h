@@ -135,9 +135,10 @@ class Application;
 
 typedef bool (Application::* AcceptURLMethod)(const QString &);
 
-class Application : public QApplication,
+class Application :
+    public QApplication,
     public AbstractViewStateInterface,
-    AbstractScriptingServicesInterface,
+    public AbstractScriptingServicesInterface,
     public PacketListener {
     Q_OBJECT
 
