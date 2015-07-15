@@ -161,19 +161,15 @@ QByteArray AvatarData::toByteArray() {
     // Body scale
     destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _targetScale);
 
-    // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
-    glm::vec3 pitchYawRoll = glm::vec3(_headData->getFinalPitch(),
-                                       _headData->getFinalYaw(),
-                                       _headData->getFinalRoll());
-    if (this->isMyAvatar()) {
-        glm::vec3 lean = glm::vec3(_headData->getFinalLeanForward(),
-                                   _headData->getTorsoTwist(),
-                                   _headData->getFinalLeanSideways());
-        pitchYawRoll -= lean;
-    }
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, pitchYawRoll.x);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, pitchYawRoll.y);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, pitchYawRoll.z);
+    // Head rotation
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getFinalPitch());
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getFinalYaw());
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getFinalRoll());
+
+    // Body lean
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_leanForward);
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_leanSideways);
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_torsoTwist);
 
     // Lookat Position
     memcpy(destinationBuffer, &_headData->_lookAtPosition, sizeof(_headData->_lookAtPosition));
@@ -291,14 +287,17 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     //     headPitch     =  2 (compressed float)
     //     headYaw       =  2 (compressed float)
     //     headRoll      =  2 (compressed float)
+    //     leanForward   =  2 (compressed float)
+    //     leanSideways  =  2 (compressed float)
+    //     torsoTwist    =  2 (compressed float)
     //     lookAt        = 12
     //     audioLoudness =  4
     // }
     // + 1 byte for pupilSize
     // + 1 byte for numJoints (0)
-    // = 45 bytes
-    int minPossibleSize = 45;
-
+    // = 51 bytes
+    int minPossibleSize = 51;
+    
     int maxAvailableSize = buffer.size();
     if (minPossibleSize > maxAvailableSize) {
         if (shouldLogError(now)) {

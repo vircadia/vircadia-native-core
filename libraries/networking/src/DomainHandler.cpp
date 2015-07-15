@@ -12,6 +12,7 @@
 #include <math.h>
 
 #include <QtCore/QJsonDocument>
+#include <QtCore/QDataStream>
 
 #include "Assignment.h"
 #include "HifiSockAddr.h"
