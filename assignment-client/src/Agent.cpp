@@ -42,7 +42,8 @@ Agent::Agent(NLPacket& packet) :
 {
     // be the parent of the script engine so it gets moved when we do
     _scriptEngine.setParent(this);
-
+    _scriptEngine.setIsAgent(true);
+    
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
     DependencyManager::set<ResourceCacheSharedItems>();
