@@ -57,7 +57,8 @@ public:
     
     // Allows a writer to change the size of the payload used when writing directly
     void setPayloadSize(qint64 payloadSize);
-
+    
+    // Returns the number of bytes allocated for the payload
     qint64 getPayloadCapacity() const  { return _payloadCapacity; }
 
     qint64 bytesLeftToRead() const { return _payloadCapacity - pos(); }
