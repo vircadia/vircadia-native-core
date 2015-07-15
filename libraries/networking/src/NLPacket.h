@@ -33,6 +33,9 @@ public:
 
     const QUuid& getSourceID() const { return _sourceID; }
     const QByteArray& getVerificationHash() const { return _verificationHash; }
+    
+    void writeSourceID(const QUuid& sourceID);
+    void writeVerificationHash(const QByteArray& verificationHash);
 
     QByteArray payloadHashWithConnectionUUID(const QUuid& connectionUUID) const;
 
@@ -43,10 +46,7 @@ protected:
     NLPacket(const NLPacket& other);
 
     void readSourceID();
-    void setSourceID(const QUuid& sourceID);
-
     void readVerificationHash();
-    void setVerificationHash(const QByteArray& verificationHash);
 
     QUuid _sourceID;
     QByteArray _verificationHash;

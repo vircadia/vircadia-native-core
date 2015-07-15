@@ -214,7 +214,19 @@ bool LimitedNodeList::packetSourceAndHashMatch(const NLPacket& packet, SharedNod
     return false;
 }
 
-qint64 LimitedNodeList::writeDatagram(const NLPacket& packet, const HifiSockAddr& destinationSockAddr) {
+// NLPacket helper for filling the header
+void writePacketheader(const NLPacket& packet, const QUuid& sessionUUID = QUuid(), const QUuid& connectionSecret = QUuid()) {
+    if (!NON_SOURCED_PACKETS.contains(packet.getType())) {
+        const_cast<NLPacket&>(packet).writeSourceID(sessionUUID);
+    }
+    if (!connectionSecret.isNull() && !NON_VERIFIED_PACKETS.contains(packet.getType())) {
+        const_cast<NLPacket&>(packet).writeVerificationHash(packet.payloadHashWithConnectionUUID(connectionSecret));
+    }
+}
+
+qint64 LimitedNodeList::writeDatagram(const NLPacket& packet, const HifiSockAddr& destinationSockAddr,
+                                      const QUuid& connectionSecret) {
+    writePacketheader(packet, getSessionUUID(), connectionSecret);
     return writeDatagram({packet.getData(), static_cast<int>(packet.getSizeWithHeader())}, destinationSockAddr);
 }
 
@@ -235,31 +247,35 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSock
 }
 
 qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const Node& destinationNode) {
-    if (!destinationNode.getActiveSocket()) {
+    const HifiSockAddr* activeSocket = destinationNode.getActiveSocket();
+    if (!activeSocket) {
         // we don't have a socket to send to, return 0
         return 0;
     }
     
     // use the node's active socket as the destination socket
-    return sendUnreliablePacket(packet, *destinationNode.getActiveSocket());
+    return sendUnreliablePacket(packet, *activeSocket, destinationNode.getConnectionSecret());
 }
 
-qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr) {
-    return writeDatagram(packet, sockAddr);
+qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr,
+                                             const QUuid& connectionSecret) {
+    return writeDatagram(packet, sockAddr, connectionSecret);
 }
 
 qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode) {
-    if (!destinationNode.getActiveSocket()) {
+    const HifiSockAddr* activeSocket = destinationNode.getActiveSocket();
+    if (!activeSocket) {
         // we don't have a socket to send to, return 0
         return 0;
     }
     
     // use the node's active socket as the destination socket
-    return sendPacket(std::move(packet), *destinationNode.getActiveSocket());
+    return sendPacket(std::move(packet), *activeSocket, destinationNode.getConnectionSecret());
 }
 
-qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr) {
-    return writeDatagram(*packet, sockAddr);
+qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr,
+                                   const QUuid& connectionSecret) {
+    return writeDatagram(*packet, sockAddr, connectionSecret);
 }
 
 qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& destinationNode) {
@@ -268,17 +284,20 @@ qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& des
         // we don't have a socket to send to, return 0
         return 0;
     }
-    return sendPacketList(packetList, *activeSocket);
+    
+    // use the node's active socket as the destination socket
+    return sendPacketList(packetList, *activeSocket, destinationNode.getConnectionSecret());
 }
 
-qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr) {
-    qint64 bytesSent { 0 };
+qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr,
+                                       const QUuid& connectionSecret) {
+    qint64 bytesSent{ 0 };
     
     // close the last packet in the list
     packetList.closeCurrentPacket();
     
     while (!packetList._packets.empty()) {
-        bytesSent += sendPacket(std::move(packetList.takeFront<NLPacket>()), sockAddr);
+        bytesSent += sendPacket(std::move(packetList.takeFront<NLPacket>()), sockAddr, connectionSecret);
     }
     
     return bytesSent;
@@ -289,7 +308,7 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
     // use the node's active socket as the destination socket if there is no overriden socket address
     auto& destinationSockAddr = (overridenSockAddr.isNull()) ? *destinationNode.getActiveSocket()
                                                              : overridenSockAddr;
-    return sendPacket(std::move(packet), destinationSockAddr);
+    return sendPacket(std::move(packet), destinationSockAddr, destinationNode.getConnectionSecret());
 }
 
 PacketSequenceNumber LimitedNodeList::getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType::Value packetType) {
