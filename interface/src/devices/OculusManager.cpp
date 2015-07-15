@@ -714,6 +714,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
         vp.Size.w = _recommendedTexSize.w * _offscreenRenderScale;
         glViewport(vp.Pos.x, vp.Pos.y, vp.Size.w, vp.Size.h);
 
+        renderArgs->_viewport = glm::ivec4(vp.Pos.x, vp.Pos.y, vp.Size.w, vp.Size.h);
         renderArgs->_renderSide = RenderArgs::MONO;
         qApp->displaySide(renderArgs, *_camera);
         qApp->getApplicationCompositor().displayOverlayTextureHmd(renderArgs, eye);
