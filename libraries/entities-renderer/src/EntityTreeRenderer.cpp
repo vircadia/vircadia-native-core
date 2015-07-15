@@ -546,7 +546,7 @@ const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(EntityItemP
             Model* model = modelEntityItem->getModel(this);
             if (model) {
                 const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = model->getCollisionGeometry();
-                if (!collisionNetworkGeometry.isNull()) {
+                if (collisionNetworkGeometry && collisionNetworkGeometry->isLoaded()) {
                     result = &collisionNetworkGeometry->getFBXGeometry();
                 }
             }

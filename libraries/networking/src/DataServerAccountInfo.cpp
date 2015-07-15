@@ -13,6 +13,7 @@
 
 #include <qjsondocument.h>
 #include <QtCore/QDebug>
+#include <QtCore/QDataStream>
 
 #include "NetworkLogging.h"
 #include "DataServerAccountInfo.h"

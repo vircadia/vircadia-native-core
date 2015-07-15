@@ -40,16 +40,3 @@ NetworkPacket& NetworkPacket::operator=(NetworkPacket const& other) {
     copyContents(other.getNode(), other.getByteArray());
     return *this;
 }
-
-#ifdef HAS_MOVE_SEMANTICS
-// move, same as copy, but other packet won't be used further
-NetworkPacket::NetworkPacket(NetworkPacket && packet) {
-    copyContents(packet.getNode(), packet.getByteArray());
-}
-
-// move assignment
-NetworkPacket& NetworkPacket::operator=(NetworkPacket&& other) {
-    copyContents(other.getNode(), other.getByteArray());
-    return *this;
-}
-#endif

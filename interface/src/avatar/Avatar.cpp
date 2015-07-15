@@ -636,7 +636,7 @@ void Avatar::renderBillboard(RenderArgs* renderArgs) {
         _billboardTexture = DependencyManager::get<TextureCache>()->getTexture(
             uniqueUrl, DEFAULT_TEXTURE, false, _billboard);
     }
-    if (!_billboardTexture->isLoaded()) {
+    if (!_billboardTexture || !_billboardTexture->isLoaded()) {
         return;
     }
     // rotate about vertical to face the camera

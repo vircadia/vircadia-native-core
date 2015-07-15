@@ -37,7 +37,6 @@
 #include "SpeechRecognizer.h"
 #endif
 #include "ui/DialogsManager.h"
-#include "ui/NodeBounds.h"
 #include "ui/StandAloneJSConsole.h"
 #include "InterfaceLogging.h"
 
@@ -256,6 +255,8 @@ Menu::Menu() {
             avatar, SLOT(updateMotionBehavior()));
 
     MenuWrapper* viewMenu = addMenu("View");
+    
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
 
     addCheckableActionToQMenuAndActionHash(viewMenu,
                                            MenuOption::Fullscreen,
@@ -314,13 +315,6 @@ Menu::Menu() {
                                            qApp,
                                            SLOT(setEnable3DTVMode(bool)));
 
-
-    MenuWrapper* nodeBordersMenu = viewMenu->addMenu("Server Borders");
-    NodeBounds& nodeBounds = qApp->getNodeBoundsDisplay();
-    addCheckableActionToQMenuAndActionHash(nodeBordersMenu, MenuOption::ShowBordersEntityNodes,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_1, false,
-                                           &nodeBounds, SLOT(setShowEntityNodes(bool)));
-
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats);
@@ -340,7 +334,6 @@ Menu::Menu() {
         0, // QML Qt::SHIFT | Qt::Key_A,
         true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::AmbientOcclusion);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DontFadeOnOctreeServerChanges);
 
     MenuWrapper* ambientLightMenu = renderOptionsMenu->addMenu(MenuOption::RenderAmbientLight);
     QActionGroup* ambientLightGroup = new QActionGroup(ambientLightMenu);
