@@ -333,8 +333,9 @@ void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, b
     Avatar::render(renderArgs, cameraPosition, postLighting);
 
     // don't display IK constraints in shadow mode
-    if (Menu::getInstance()->isOptionChecked(MenuOption::ShowIKConstraints) && postLighting) {
-        _skeletonModel.renderIKConstraints();
+    if (Menu::getInstance()->isOptionChecked(MenuOption::ShowIKConstraints) &&
+        renderArgs && renderArgs->_batch) {
+        _skeletonModel.renderIKConstraints(*renderArgs->_batch);
     }
 }
 
