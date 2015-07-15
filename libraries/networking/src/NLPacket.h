@@ -12,6 +12,8 @@
 #ifndef hifi_NLPacket_h
 #define hifi_NLPacket_h
 
+#include <QtCore/QSharedPointer>
+
 #include "udt/Packet.h"
 
 class NLPacket : public Packet {
@@ -35,6 +37,7 @@ public:
     QByteArray payloadHashWithConnectionUUID(const QUuid& connectionUUID) const;
 
 protected:
+    NLPacket(PacketType::Value type);
     NLPacket(PacketType::Value type, qint64 size);
     NLPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
     NLPacket(const NLPacket& other);

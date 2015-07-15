@@ -38,14 +38,6 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     _numNoReplyDomainCheckIns(0),
     _assignmentServerSocket()
 {
-    static bool firstCall = true;
-    if (firstCall) {
-        NodeType::init();
-        // register the SharedNodePointer meta-type for signals/slots
-        qRegisterMetaType<SharedNodePointer>();
-        firstCall = false;
-    }
-
     setCustomDeleter([](Dependency* dependency){
         static_cast<NodeList*>(dependency)->deleteLater();
     });

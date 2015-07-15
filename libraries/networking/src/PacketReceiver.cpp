@@ -21,7 +21,7 @@ PacketReceiver::PacketReceiver(QObject* parent) :
     QObject(parent),
     _packetListenerMap()
 {
-
+    qRegisterMetaType<QSharedPointer<NLPacket>>();
 }
 
 void PacketReceiver::registerListenerForTypes(const QSet<PacketType::Value>& types, PacketListener* listener, const char* slot) {
@@ -206,7 +206,7 @@ void PacketReceiver::processDatagrams() {
         _inByteCount += packetSizeWithHeader;
 
         if (packetVersionMatch(*packet)) {
-
+            
             SharedNodePointer matchingNode;
             if (nodeList->packetSourceAndHashMatch(*packet, matchingNode)) {
 
@@ -227,6 +227,7 @@ void PacketReceiver::processDatagrams() {
                     if (listener.first) {
 
                         bool success = false;
+                        PacketType::Value packetType = packet->getType();
 
                         if (matchingNode) {
                             // if this was a sequence numbered packet we should store the last seq number for
@@ -238,12 +239,20 @@ void PacketReceiver::processDatagrams() {
                             emit dataReceived(matchingNode->getType(), packet->getSizeWithHeader());
                             QMetaMethod metaMethod = listener.second;
 
-                            static const QByteArray SHARED_NODE_NORMALIZED = QMetaObject::normalizedType("QSharedPointer<Node>");
+                            static const QByteArray QSHAREDPOINTER_NODE_NORMALIZED = QMetaObject::normalizedType("QSharedPointer<Node>");
+                            static const QByteArray SHARED_NODE_NORMALIZED = QMetaObject::normalizedType("SharedNodePointer");
 
                             if (metaMethod.parameterTypes().contains(SHARED_NODE_NORMALIZED)) {
+                                qDebug() << "invoking with matchingNode" << matchingNode;
                                 success = metaMethod.invoke(listener.first,
-                                    Q_ARG(QSharedPointer<NLPacket>, QSharedPointer<NLPacket>(packet.release())),
-                                    Q_ARG(SharedNodePointer, matchingNode));
+                                        Q_ARG(QSharedPointer<NLPacket>, QSharedPointer<NLPacket>(packet.release())),
+                                        Q_ARG(SharedNodePointer, matchingNode));
+
+                            } else if (metaMethod.parameterTypes().contains(QSHAREDPOINTER_NODE_NORMALIZED)) {
+                                qDebug() << "invoking with matchingNode" << matchingNode;
+                                success = metaMethod.invoke(listener.first,
+                                        Q_ARG(QSharedPointer<NLPacket>, QSharedPointer<NLPacket>(packet.release())),
+                                        Q_ARG(QSharedPointer<Node>, matchingNode));
 
                             } else {
                                 success = metaMethod.invoke(listener.first,
@@ -257,13 +266,15 @@ void PacketReceiver::processDatagrams() {
                         }
 
                         if (!success) {
-                            qDebug() << "Error delivering packet " << nameForPacketType(packet->getType()) << " to listener: "
-                                << listener.first->objectName() << "::" << listener.second.name();
+                            qDebug().nospace() << "Error delivering packet " << packetType
+                                << " (" << qPrintable(nameForPacketType(packetType)) << ") to listener "
+                                << listener.first << "::" << qPrintable(listener.second.methodSignature());
                         }
 
                     } else {
                         // we have a dead listener - remove this mapping from the _packetListenerMap
-                        qDebug() << "Listener for packet type" << nameForPacketType(packet->getType())
+                        qDebug() << "Listener for packet type" << packet->getType() << "("
+                            << qPrintable(nameForPacketType(packet->getType())) << ")"
                             << "has been destroyed - removing mapping.";
                         _packetListenerMap.erase(it);
                     }

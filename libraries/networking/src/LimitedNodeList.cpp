@@ -62,7 +62,9 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
         NodeType::init();
 
         // register the SharedNodePointer meta-type for signals/slots
+        qRegisterMetaType<QSharedPointer<Node>>();
         qRegisterMetaType<SharedNodePointer>();
+
         firstCall = false;
     }
 
@@ -175,24 +177,30 @@ void LimitedNodeList::changeSocketBufferSizes(int numBytes) {
 
 bool LimitedNodeList::packetSourceAndHashMatch(const NLPacket& packet, SharedNodePointer& matchingNode) {
     
-    if (!NON_VERIFIED_PACKETS.contains(packet.getType()) && !NON_SOURCED_PACKETS.contains(packet.getType())) {
+    if (NON_SOURCED_PACKETS.contains(packet.getType())) {
+        return true;
+    } else {
         // figure out which node this is from
         matchingNode = nodeWithUUID(packet.getSourceID());
         
         if (matchingNode) {
-            // check if the md5 hash in the header matches the hash we would expect
-            if (packet.getVerificationHash() == packet.payloadHashWithConnectionUUID(matchingNode->getConnectionSecret())) {
-                return true;
-            } else {
-                static QMultiMap<QUuid, PacketType::Value> hashDebugSuppressMap;
-                
-                const QUuid& senderID = packet.getSourceID();
+            if (!NON_VERIFIED_PACKETS.contains(packet.getType())) {
+                // check if the md5 hash in the header matches the hash we would expect
+                if (packet.getVerificationHash() != packet.payloadHashWithConnectionUUID(matchingNode->getConnectionSecret())) {
+                    static QMultiMap<QUuid, PacketType::Value> hashDebugSuppressMap;
+                    
+                    const QUuid& senderID = packet.getSourceID();
 
-                if (!hashDebugSuppressMap.contains(senderID, packet.getType())) {
-                    qCDebug(networking) << "Packet hash mismatch on" << packet.getType() << "- Sender" << senderID;
+                    if (!hashDebugSuppressMap.contains(senderID, packet.getType())) {
+                        qCDebug(networking) << "Packet hash mismatch on" << packet.getType() << "- Sender" << senderID;
 
-                    hashDebugSuppressMap.insert(senderID, packet.getType());
+                        hashDebugSuppressMap.insert(senderID, packet.getType());
+                    }
+
+                    return false;
                 }
+
+                return true;
             }
         } else {
             static QString repeatedMessage
@@ -201,8 +209,6 @@ bool LimitedNodeList::packetSourceAndHashMatch(const NLPacket& packet, SharedNod
             qCDebug(networking) << "Packet of type" << packet.getType() << "received from unknown node with UUID"
                 << qPrintable(uuidStringWithoutCurlyBraces(packet.getSourceID()));
         }
-    } else {
-        return true;
     }
 
     return false;

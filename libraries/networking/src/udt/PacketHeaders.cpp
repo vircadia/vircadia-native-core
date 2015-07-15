@@ -18,7 +18,6 @@
 using namespace PacketType;
 
 const QSet<PacketType::Value> NON_VERIFIED_PACKETS = QSet<PacketType::Value>()
-    << CreateAssignment << RequestAssignment << StunResponse
     << NodeJsonStats << EntityQuery
     << OctreeDataNack << EntityEditNack
     << DomainListRequest
@@ -28,6 +27,7 @@ const QSet<PacketType::Value> NON_VERIFIED_PACKETS = QSet<PacketType::Value>()
 const QSet<PacketType::Value> SEQUENCE_NUMBERED_PACKETS = QSet<PacketType::Value>() << AvatarData;
 
 const QSet<PacketType::Value> NON_SOURCED_PACKETS = QSet<PacketType::Value>()
+    << StunResponse << CreateAssignment << RequestAssignment
     << DomainServerRequireDTLS << DomainConnectRequest
     << DomainList << DomainConnectionDenied
     << DomainServerPathQuery << DomainServerPathResponse
