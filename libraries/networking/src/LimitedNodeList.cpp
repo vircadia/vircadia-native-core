@@ -227,7 +227,8 @@ qint64 LimitedNodeList::writePacket(const NLPacket& packet, const HifiSockAddr& 
         && !NON_VERIFIED_PACKETS.contains(packet.getType())) {
         const_cast<NLPacket&>(packet).writeVerificationHash(packet.payloadHashWithConnectionUUID(connectionSecret));
     }
-    return writeDatagram({ packet.getData(), (int)packet.getDataSize() }, destinationSockAddr);
+    
+    return writeDatagram(QByteArray::fromRawData(packet.getData(), packet.getDataSize()), destinationSockAddr);
 }
 
 qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr) {
@@ -456,7 +457,7 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructPingReplyPacket(NLPacket& pi
 
     int packetSize = sizeof(PingType_t) + sizeof(quint64) + sizeof(quint64);
 
-    auto replyPacket = NLPacket::create(PacketType::Ping, packetSize);
+    auto replyPacket = NLPacket::create(PacketType::PingReply, packetSize);
 
     QDataStream packetStream(replyPacket.get());
     packetStream << typeFromOriginalPing << timeFromOriginalPing << usecTimestampNow();
