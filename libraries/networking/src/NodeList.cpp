@@ -93,6 +93,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     packetReceiver.registerListener(PacketType::Ping, this, "processPingPacket");
     packetReceiver.registerListener(PacketType::PingReply, this, "processPingReplyPacket");
     packetReceiver.registerListener(PacketType::ICEPing, this, "processICEPingPacket");
+    packetReceiver.registerListener(PacketType::DomainServerAddedNode, this, "processDomainServerAddedNode");
 
     packetReceiver.registerListener(PacketType::ICEServerPeerInformation, &_domainHandler, "processICEResponsePacket");
     packetReceiver.registerListener(PacketType::DomainServerRequireDTLS, &_domainHandler, "processDTLSRequirementPacket");
@@ -159,6 +160,7 @@ void NodeList::timePingReply(QSharedPointer<NLPacket> packet, const SharedNodePo
 }
 
 void NodeList::processPingPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+    
     // send back a reply
     auto replyPacket = constructPingReplyPacket(*packet);
     const HifiSockAddr& senderSockAddr = packet->getSenderSockAddr();
@@ -284,7 +286,7 @@ void NodeList::sendDomainServerCheckIn() {
 
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendDSCheckIn);
 
-        if (!isUsingDTLS) {            
+        if (!isUsingDTLS) {
             sendPacket(std::move(domainPacket), _domainHandler.getSockAddr());
         }
 

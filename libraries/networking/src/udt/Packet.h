@@ -52,7 +52,7 @@ public:
     PacketVersion getVersion() const { return _version; }
     
     // Returns the size of the packet, including the header
-    qint64 getDataSize() const { return totalHeadersSize() + getPayloadSize(); }
+    qint64 getDataSize() const { return totalHeadersSize() + _payloadSize; }
     
     // Returns the size of the payload only
     qint64 getPayloadSize() const { return _payloadSize; }

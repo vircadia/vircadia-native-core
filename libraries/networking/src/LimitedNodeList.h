@@ -120,13 +120,16 @@ public:
     PacketReceiver& getPacketReceiver() { return _packetReceiver; }
 
     qint64 sendUnreliablePacket(const NLPacket& packet, const Node& destinationNode);
-    qint64 sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr);
+    qint64 sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr,
+                                const QUuid& connectionSecret = QUuid());
 
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode);
-    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr);
+    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr,
+                      const QUuid& connectionSecret = QUuid());
 
     qint64 sendPacketList(NLPacketList& packetList, const Node& destinationNode);
-    qint64 sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr);
+    qint64 sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr,
+                          const QUuid& connectionSecret = QUuid());
 
     void (*linkedDataCreateCallback)(Node *);
 
@@ -245,7 +248,8 @@ protected:
     LimitedNodeList(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
     
-    qint64 writeDatagram(const NLPacket& packet, const HifiSockAddr& destinationSockAddr);
+    qint64 writePacket(const NLPacket& packet, const HifiSockAddr& destinationSockAddr,
+                       const QUuid& connectionSecret = QUuid());
     qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr);
 
     PacketSequenceNumber getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType::Value packetType);

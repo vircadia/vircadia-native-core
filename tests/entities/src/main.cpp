@@ -109,7 +109,7 @@ void testPropertyFlags(uint32_t value) {
     }
     QByteArray encoded = original.encode();
     #ifndef QT_NO_DEBUG
-    auto originalSize = encoded.size();
+    int originalSize = encoded.size();
     #endif
     for (size_t i = 0; i < enumSize; ++i) {
         encoded.append(qrand());
@@ -123,7 +123,7 @@ void testPropertyFlags(uint32_t value) {
 
     {
         #ifndef QT_NO_DEBUG
-        auto decodeSize = decodeNew.decode((const uint8_t*)encoded.data(), encoded.size());
+        int decodeSize = decodeNew.decode((const uint8_t*)encoded.data(), encoded.size());
         #endif
         Q_ASSERT(originalSize == decodeSize);
         Q_ASSERT(decodeNew == original);

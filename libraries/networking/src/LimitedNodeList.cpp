@@ -180,6 +180,7 @@ bool LimitedNodeList::packetSourceAndHashMatch(const NLPacket& packet, SharedNod
     if (NON_SOURCED_PACKETS.contains(packet.getType())) {
         return true;
     } else {
+        
         // figure out which node this is from
         matchingNode = nodeWithUUID(packet.getSourceID());
         
@@ -199,23 +200,35 @@ bool LimitedNodeList::packetSourceAndHashMatch(const NLPacket& packet, SharedNod
 
                     return false;
                 }
-
-                return true;
             }
+            
+            return true;
+            
         } else {
             static QString repeatedMessage
                 = LogHandler::getInstance().addRepeatedMessageRegex("Packet of type \\d+ received from unknown node with UUID");
 
-            qCDebug(networking) << "Packet of type" << packet.getType() << "received from unknown node with UUID"
-                << qPrintable(uuidStringWithoutCurlyBraces(packet.getSourceID()));
+            qCDebug(networking) << "Packet of type" << packet.getType() << "(" << nameForPacketType(packet.getType()) << ")"
+                << "received from unknown node with UUID" << qPrintable(uuidStringWithoutCurlyBraces(packet.getSourceID()));
         }
     }
 
     return false;
 }
 
-qint64 LimitedNodeList::writeDatagram(const NLPacket& packet, const HifiSockAddr& destinationSockAddr) {
-    return writeDatagram({packet.getData(), static_cast<int>(packet.getDataSize())}, destinationSockAddr);
+qint64 LimitedNodeList::writePacket(const NLPacket& packet, const HifiSockAddr& destinationSockAddr,
+                                    const QUuid& connectionSecret) {
+    if (!NON_SOURCED_PACKETS.contains(packet.getType())) {
+        const_cast<NLPacket&>(packet).writeSourceID(getSessionUUID());
+    }
+    
+    if (!connectionSecret.isNull()
+        && !NON_SOURCED_PACKETS.contains(packet.getType())
+        && !NON_VERIFIED_PACKETS.contains(packet.getType())) {
+        const_cast<NLPacket&>(packet).writeVerificationHash(packet.payloadHashWithConnectionUUID(connectionSecret));
+    }
+    
+    return writeDatagram(QByteArray::fromRawData(packet.getData(), packet.getDataSize()), destinationSockAddr);
 }
 
 qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr) {
@@ -235,31 +248,35 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSock
 }
 
 qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const Node& destinationNode) {
-    if (!destinationNode.getActiveSocket()) {
+    const HifiSockAddr* activeSocket = destinationNode.getActiveSocket();
+    if (!activeSocket) {
         // we don't have a socket to send to, return 0
         return 0;
     }
     
     // use the node's active socket as the destination socket
-    return sendUnreliablePacket(packet, *destinationNode.getActiveSocket());
+    return sendUnreliablePacket(packet, *activeSocket, destinationNode.getConnectionSecret());
 }
 
-qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr) {
-    return writeDatagram(packet, sockAddr);
+qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr,
+                                             const QUuid& connectionSecret) {
+    return writePacket(packet, sockAddr, connectionSecret);
 }
 
 qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode) {
-    if (!destinationNode.getActiveSocket()) {
+    const HifiSockAddr* activeSocket = destinationNode.getActiveSocket();
+    if (!activeSocket) {
         // we don't have a socket to send to, return 0
         return 0;
     }
     
     // use the node's active socket as the destination socket
-    return sendPacket(std::move(packet), *destinationNode.getActiveSocket());
+    return sendPacket(std::move(packet), *activeSocket, destinationNode.getConnectionSecret());
 }
 
-qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr) {
-    return writeDatagram(*packet, sockAddr);
+qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr,
+                                   const QUuid& connectionSecret) {
+    return writePacket(*packet, sockAddr, connectionSecret);
 }
 
 qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& destinationNode) {
@@ -268,17 +285,20 @@ qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& des
         // we don't have a socket to send to, return 0
         return 0;
     }
-    return sendPacketList(packetList, *activeSocket);
+    
+    // use the node's active socket as the destination socket
+    return sendPacketList(packetList, *activeSocket, destinationNode.getConnectionSecret());
 }
 
-qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr) {
-    qint64 bytesSent { 0 };
+qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr,
+                                       const QUuid& connectionSecret) {
+    qint64 bytesSent = 0;
     
     // close the last packet in the list
     packetList.closeCurrentPacket();
     
     while (!packetList._packets.empty()) {
-        bytesSent += sendPacket(std::move(packetList.takeFront<NLPacket>()), sockAddr);
+        bytesSent += sendPacket(std::move(packetList.takeFront<NLPacket>()), sockAddr, connectionSecret);
     }
     
     return bytesSent;
@@ -289,7 +309,7 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
     // use the node's active socket as the destination socket if there is no overriden socket address
     auto& destinationSockAddr = (overridenSockAddr.isNull()) ? *destinationNode.getActiveSocket()
                                                              : overridenSockAddr;
-    return sendPacket(std::move(packet), destinationSockAddr);
+    return sendPacket(std::move(packet), destinationSockAddr, destinationNode.getConnectionSecret());
 }
 
 PacketSequenceNumber LimitedNodeList::getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType::Value packetType) {
@@ -437,7 +457,7 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructPingReplyPacket(NLPacket& pi
 
     int packetSize = sizeof(PingType_t) + sizeof(quint64) + sizeof(quint64);
 
-    auto replyPacket = NLPacket::create(PacketType::Ping, packetSize);
+    auto replyPacket = NLPacket::create(PacketType::PingReply, packetSize);
 
     QDataStream packetStream(replyPacket.get());
     packetStream << typeFromOriginalPing << timeFromOriginalPing << usecTimestampNow();
@@ -477,7 +497,7 @@ unsigned int LimitedNodeList::broadcastToNodes(std::unique_ptr<NLPacket> packet,
     
     eachNode([&](const SharedNodePointer& node){
         if (destinationNodeTypes.contains(node->getType())) {
-            writeDatagram(*packet, *node->getActiveSocket());
+            writePacket(*packet, *node->getActiveSocket(), node->getConnectionSecret());
             ++n;
         }
     });
