@@ -30,7 +30,11 @@ qint64 NLPacket::localHeaderSize() const {
 }
 
 std::unique_ptr<NLPacket> NLPacket::create(PacketType::Value type, qint64 size) {
-    return std::unique_ptr<NLPacket>(new NLPacket(type, size));
+    auto packet = std::unique_ptr<NLPacket>(new NLPacket(type, size));
+    
+    packet->open(QIODevice::WriteOnly);
+    
+    return packet;
 }
 
 std::unique_ptr<NLPacket> NLPacket::fromReceivedPacket(std::unique_ptr<char> data, qint64 size,
@@ -42,12 +46,22 @@ std::unique_ptr<NLPacket> NLPacket::fromReceivedPacket(std::unique_ptr<char> dat
     Q_ASSERT(size >= 0);
     
     // allocate memory
-    return std::unique_ptr<NLPacket>(new NLPacket(std::move(data), size, senderSockAddr));
+    auto packet = std::unique_ptr<NLPacket>(new NLPacket(std::move(data), size, senderSockAddr));
+
+    packet->open(QIODevice::ReadOnly);
+
+    return packet;
  
 }
 
 std::unique_ptr<NLPacket> NLPacket::createCopy(const NLPacket& other) {
-    return std::unique_ptr<NLPacket>(new NLPacket(other));
+    auto packet = std::unique_ptr<NLPacket>(new NLPacket(other));
+    
+    if (other.isOpen()) {
+        packet->open(other.openMode());
+    }
+
+    return packet;
 }
 
 NLPacket::NLPacket(PacketType::Value type, qint64 size) : Packet(type, localHeaderSize(type) + size) {
