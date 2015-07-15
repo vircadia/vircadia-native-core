@@ -14,7 +14,6 @@
 #include "Rectangle3DOverlay.h"
 
 #include <GeometryCache.h>
-#include <GlowEffect.h>
 #include <SharedUtil.h>
 
 Rectangle3DOverlay::Rectangle3DOverlay() :

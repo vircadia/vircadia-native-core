@@ -24,7 +24,6 @@
 
 #include <DeferredLightingEffect.h>
 #include <GeometryUtil.h>
-#include <GlowEffect.h>
 #include <LODManager.h>
 #include <NodeList.h>
 #include <NumericalConstants.h>
@@ -410,9 +409,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
         float GLOW_FROM_AVERAGE_LOUDNESS = ((this == DependencyManager::get<AvatarManager>()->getMyAvatar())
                                             ? 0.0f
                                             : MAX_GLOW * getHeadData()->getAudioLoudness() / GLOW_MAX_LOUDNESS);
-        if (!Menu::getInstance()->isOptionChecked(MenuOption::GlowWhenSpeaking)) {
-            GLOW_FROM_AVERAGE_LOUDNESS = 0.0f;
-        }
+        GLOW_FROM_AVERAGE_LOUDNESS = 0.0f;
 
         float glowLevel = _moving && distanceToTarget > GLOW_DISTANCE && renderArgs->_renderMode == RenderArgs::NORMAL_RENDER_MODE
                       ? 1.0f
@@ -579,8 +576,6 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool
     fixupModelsInScene();
     
     {
-        Glower glower(renderArgs, glowLevel);
-
         if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
             if (postLighting || renderArgs->_renderMode == RenderArgs::SHADOW_RENDER_MODE) {
                 // render the billboard until both models are loaded
