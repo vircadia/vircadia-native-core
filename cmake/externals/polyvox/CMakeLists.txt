@@ -24,7 +24,16 @@ if (APPLE)
     ${EXTERNAL_NAME}
     change-install-name
     COMMENT "Calling install_name_tool on libraries to fix install name for dylib linking"
-    COMMAND ${CMAKE_COMMAND} -DINSTALL_NAME_LIBRARY_DIR=${INSTALL_NAME_LIBRARY_DIR} -P ${EXTERNAL_PROJECT_DIR}/OSXInstallNameChange.cmake
+    COMMAND ${CMAKE_COMMAND} -DINSTALL_NAME_LIBRARY_DIR=${INSTALL_NAME_LIBRARY_DIR}/Debug -P ${EXTERNAL_PROJECT_DIR}/OSXInstallNameChange.cmake
+    DEPENDEES install
+    WORKING_DIRECTORY <SOURCE_DIR>
+    LOG 1
+  )
+  ExternalProject_Add_Step(
+    ${EXTERNAL_NAME}
+    change-install-name
+    COMMENT "Calling install_name_tool on libraries to fix install name for dylib linking"
+    COMMAND ${CMAKE_COMMAND} -DINSTALL_NAME_LIBRARY_DIR=${INSTALL_NAME_LIBRARY_DIR}/Release -P ${EXTERNAL_PROJECT_DIR}/OSXInstallNameChange.cmake
     DEPENDEES install
     WORKING_DIRECTORY <SOURCE_DIR>
     LOG 1
