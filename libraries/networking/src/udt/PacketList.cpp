@@ -120,7 +120,13 @@ qint64 PacketList::writeData(const char* data, qint64 maxSize) {
     }
 }
 
-void PacketList::closeCurrentPacket() {
-    // move the current packet to our list of packets
-    _packets.push_back(std::move(_currentPacket));
+void PacketList::closeCurrentPacket(bool shouldSendEmpty) {
+    if (shouldSendEmpty && !_currentPacket) {
+        _currentPacket = createPacketWithExtendedHeader();
+    }
+    
+    if (_currentPacket) {
+        // move the current packet to our list of packets
+        _packets.push_back(std::move(_currentPacket));
+    }
 }

@@ -263,15 +263,20 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiS
 }
 
 qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& destinationNode) {
-    if (!destinationNode.getActiveSocket()) {
+    const HifiSockAddr* activeSocket = destinationNode.getActiveSocket();
+    if (!activeSocket) {
         // we don't have a socket to send to, return 0
         return 0;
     }
-    return sendPacketList(packetList, *destinationNode.getActiveSocket());
+    return sendPacketList(packetList, *activeSocket);
 }
 
 qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr) {
-    qint64 bytesSent{ 0 };
+    qint64 bytesSent { 0 };
+    
+    // close the last packet in the list
+    packetList.closeCurrentPacket();
+    
     while (!packetList._packets.empty()) {
         bytesSent += sendPacket(std::move(packetList.takeFront<NLPacket>()), sockAddr);
     }

@@ -31,7 +31,7 @@ public:
     PacketType::Value getType() const { return _packetType; }
     int getNumPackets() const { return _packets.size() + (_currentPacket ? 1 : 0); }
     
-    void closeCurrentPacket();
+    void closeCurrentPacket(bool shouldSendEmpty = false);
     
     void setExtendedHeader(const QByteArray& extendedHeader) { _extendedHeader = extendedHeader; }
     

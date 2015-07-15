@@ -1007,6 +1007,9 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
             });
         }
     }
+    
+    // send an empty list to the node, in case there were no other nodes
+    domainListPackets.closeCurrentPacket(true);
 
     // write the PacketList to this node
     limitedNodeList->sendPacketList(domainListPackets, *node);
