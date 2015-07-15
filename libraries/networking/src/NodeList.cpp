@@ -474,7 +474,6 @@ void NodeList::processDomainServerList(QSharedPointer<NLPacket> packet) {
     packetStream >> thisNodeCanRez;
     setThisNodeCanRez((bool) thisNodeCanRez);
     
-
     // pull each node in the packet
     while (packetStream.device()->pos() < packet->getSizeUsed()) {
         parseNodeFromPacketStream(packetStream);
