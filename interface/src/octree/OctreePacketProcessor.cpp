@@ -57,7 +57,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
         int statsMessageLength = app->processOctreeStats(*packet, sendingNode);
 
         wasStatsPacket = true;
-        int piggybackBytes = packet->getSizeUsed() - statsMessageLength;
+        int piggybackBytes = packet->getPayloadSize() - statsMessageLength;
         
         if (piggybackBytes) {
             // construct a new packet from the piggybacked one

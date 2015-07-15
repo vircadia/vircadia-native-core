@@ -236,7 +236,7 @@ void PacketReceiver::processDatagrams() {
                                 matchingNode->setLastSequenceNumberForPacketType(packet->readSequenceNumber(), packet->getType());
                             }
 
-                            emit dataReceived(matchingNode->getType(), packet->getSizeWithHeader());
+                            emit dataReceived(matchingNode->getType(), packet->getDataSize());
                             QMetaMethod metaMethod = listener.second;
 
                             static const QByteArray QSHAREDPOINTER_NODE_NORMALIZED = QMetaObject::normalizedType("QSharedPointer<Node>");
@@ -257,7 +257,7 @@ void PacketReceiver::processDatagrams() {
                                     Q_ARG(QSharedPointer<NLPacket>, QSharedPointer<NLPacket>(packet.release())));
                             }
                         } else {
-                            emit dataReceived(NodeType::Unassigned, packet->getSizeWithHeader());
+                            emit dataReceived(NodeType::Unassigned, packet->getDataSize());
 
                             success = listener.second.invoke(listener.first,
                                 Q_ARG(QSharedPointer<NLPacket>, QSharedPointer<NLPacket>(packet.release())));

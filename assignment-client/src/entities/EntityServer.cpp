@@ -108,7 +108,7 @@ int EntityServer::sendSpecialPackets(const SharedNodePointer& node, OctreeQueryN
 
             queryNode->packetSent(*specialPacket);
 
-            totalBytes += specialPacket->getSizeWithHeader();
+            totalBytes += specialPacket->getDataSize();
             packetsSent++;
 
             DependencyManager::get<NodeList>()->sendPacket(std::move(specialPacket), *node);

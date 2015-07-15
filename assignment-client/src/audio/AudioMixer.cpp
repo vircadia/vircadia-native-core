@@ -552,9 +552,9 @@ void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet, Sh
     auto nodeList = DependencyManager::get<NodeList>();
     
     if (sendingNode->getCanAdjustLocks()) {
-        auto newPacket = NLPacket::create(PacketType::MuteEnvironment, packet->getSizeUsed());
+        auto newPacket = NLPacket::create(PacketType::MuteEnvironment, packet->getPayloadSize());
         // Copy payload
-        newPacket->write(packet->getPayload(), packet->getSizeUsed());
+        newPacket->write(packet->getPayload(), packet->getPayloadSize());
 
         nodeList->eachNode([&](const SharedNodePointer& node){
             if (node->getType() == NodeType::Agent && node->getActiveSocket() &&

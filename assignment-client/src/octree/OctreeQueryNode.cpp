@@ -108,10 +108,10 @@ bool OctreeQueryNode::packetIsDuplicate() const {
     // since our packets now include header information, like sequence number, and createTime, we can't just do a memcmp
     // of the entire packet, we need to compare only the packet content...
 
-    if (_lastOctreePacketLength == _octreePacket->getSizeUsed()) {
+    if (_lastOctreePacketLength == _octreePacket->getPayloadSize()) {
         if (memcmp(_lastOctreePayload + OCTREE_PACKET_EXTRA_HEADERS_SIZE,
                    _octreePacket->getPayload() + OCTREE_PACKET_EXTRA_HEADERS_SIZE,
-                   _octreePacket->getSizeUsed() - OCTREE_PACKET_EXTRA_HEADERS_SIZE) == 0) {
+                   _octreePacket->getPayloadSize() - OCTREE_PACKET_EXTRA_HEADERS_SIZE) == 0) {
             return true;
         }
     }
@@ -176,7 +176,7 @@ void OctreeQueryNode::resetOctreePacket() {
     // changed since we last reset it. Since we know that no two packets can ever be identical without being the same
     // scene information, (e.g. the root node packet of a static scene), we can use this as a strategy for reducing
     // packet send rate.
-    _lastOctreePacketLength = _octreePacket->getSizeUsed();
+    _lastOctreePacketLength = _octreePacket->getPayloadSize();
     memcpy(_lastOctreePayload, _octreePacket->getPayload(), _lastOctreePacketLength);
 
     // If we're moving, and the client asked for low res, then we force monochrome, otherwise, use

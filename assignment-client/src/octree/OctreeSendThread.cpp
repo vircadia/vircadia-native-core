@@ -147,16 +147,16 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         NLPacket& statsPacket = nodeData->stats.getStatsMessage();
 
         // If the size of the stats message and the octree message will fit in a packet, then piggyback them
-        if (nodeData->getPacket().getSizeWithHeader() <= statsPacket.bytesAvailableForWrite()) {
+        if (nodeData->getPacket().getDataSize() <= statsPacket.bytesAvailableForWrite()) {
 
             // copy octree message to back of stats message
-            statsPacket.write(nodeData->getPacket().getData(), nodeData->getPacket().getSizeWithHeader());
+            statsPacket.write(nodeData->getPacket().getData(), nodeData->getPacket().getDataSize());
 
             // since a stats message is only included on end of scene, don't consider any of these bytes "wasted", since
             // there was nothing else to send.
             int thisWastedBytes = 0;
             _totalWastedBytes += thisWastedBytes;
-            _totalBytes += statsPacket.getSizeWithHeader();
+            _totalBytes += statsPacket.getDataSize();
             _totalPackets++;
 
             if (debug) {
@@ -172,8 +172,8 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
 
                 qDebug() << "Adding stats to packet at " << now << " [" << _totalPackets <<"]: sequence: " << sequence <<
                         " timestamp: " << timestamp <<
-                        " statsMessageLength: " << statsPacket.getSizeWithHeader() <<
-                        " original size: " << nodeData->getPacket().getSizeWithHeader() << " [" << _totalBytes <<
+                        " statsMessageLength: " << statsPacket.getDataSize() <<
+                        " original size: " << nodeData->getPacket().getDataSize() << " [" << _totalBytes <<
                         "] wasted bytes:" << thisWastedBytes << " [" << _totalWastedBytes << "]";
             }
 
@@ -190,7 +190,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
             // there was nothing else to send.
             int thisWastedBytes = 0;
             _totalWastedBytes += thisWastedBytes;
-            _totalBytes += statsPacket.getSizeWithHeader();
+            _totalBytes += statsPacket.getDataSize();
             _totalPackets++;
 
             if (debug) {
@@ -206,11 +206,11 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
 
                 qDebug() << "Sending separate stats packet at " << now << " [" << _totalPackets <<"]: sequence: " << sequence <<
                         " timestamp: " << timestamp <<
-                        " size: " << statsPacket.getSizeWithHeader() << " [" << _totalBytes <<
+                        " size: " << statsPacket.getDataSize() << " [" << _totalBytes <<
                         "] wasted bytes:" << thisWastedBytes << " [" << _totalWastedBytes << "]";
             }
 
-            trueBytesSent += statsPacket.getSizeWithHeader();
+            trueBytesSent += statsPacket.getDataSize();
             truePacketsSent++;
             packetsSent++;
 
@@ -218,10 +218,10 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
             DependencyManager::get<NodeList>()->sendUnreliablePacket(nodeData->getPacket(), *_node);
             packetSent = true;
 
-            int packetSizeWithHeader = nodeData->getPacket().getSizeWithHeader();
+            int packetSizeWithHeader = nodeData->getPacket().getDataSize();
             thisWastedBytes = MAX_PACKET_SIZE - packetSizeWithHeader;
             _totalWastedBytes += thisWastedBytes;
-            _totalBytes += nodeData->getPacket().getSizeWithHeader();
+            _totalBytes += nodeData->getPacket().getDataSize();
             _totalPackets++;
 
             if (debug) {
@@ -237,7 +237,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
 
                 qDebug() << "Sending packet at " << now << " [" << _totalPackets <<"]: sequence: " << sequence <<
                         " timestamp: " << timestamp <<
-                        " size: " << nodeData->getPacket().getSizeWithHeader() << " [" << _totalBytes <<
+                        " size: " << nodeData->getPacket().getDataSize() << " [" << _totalBytes <<
                         "] wasted bytes:" << thisWastedBytes << " [" << _totalWastedBytes << "]";
             }
         }
@@ -250,7 +250,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
             DependencyManager::get<NodeList>()->sendUnreliablePacket(nodeData->getPacket(), *_node);
             packetSent = true;
 
-            int packetSizeWithHeader = nodeData->getPacket().getSizeWithHeader();
+            int packetSizeWithHeader = nodeData->getPacket().getDataSize();
             int thisWastedBytes = MAX_PACKET_SIZE - packetSizeWithHeader;
             _totalWastedBytes += thisWastedBytes;
             _totalBytes += packetSizeWithHeader;
@@ -277,8 +277,8 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
 
     // remember to track our stats
     if (packetSent) {
-        nodeData->stats.packetSent(nodeData->getPacket().getSizeUsed());
-        trueBytesSent += nodeData->getPacket().getSizeUsed();
+        nodeData->stats.packetSent(nodeData->getPacket().getPayloadSize());
+        trueBytesSent += nodeData->getPacket().getPayloadSize();
         truePacketsSent++;
         packetsSent++;
         nodeData->octreePacketSent();
@@ -596,9 +596,9 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                 truePacketsSent++;
                 packetsSentThisInterval++;
 
-                _totalBytes += packet->getSizeWithHeader();
+                _totalBytes += packet->getDataSize();
                 _totalPackets++;
-                _totalWastedBytes += MAX_PACKET_SIZE - packet->getSizeWithHeader();
+                _totalWastedBytes += MAX_PACKET_SIZE - packet->getDataSize();
             }
         }
 
