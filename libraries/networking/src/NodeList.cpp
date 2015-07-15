@@ -125,12 +125,11 @@ qint64 NodeList::sendStatsToDomainServer(const QJsonObject& statsObject) {
 }
 
 void NodeList::timePingReply(QSharedPointer<NLPacket> packet, const SharedNodePointer& sendingNode) {
-    QDataStream packetStream(packet.data());
-
-    quint8 pingType;
+    PingType_t pingType;
     quint64 ourOriginalTime, othersReplyTime;
-
-    packetStream >> pingType >> ourOriginalTime >> othersReplyTime;
+    packet->readPrimitive(&pingType);
+    packet->readPrimitive(&ourOriginalTime);
+    packet->readPrimitive(&othersReplyTime);
 
     quint64 now = usecTimestampNow();
     int pingTime = now - ourOriginalTime;
