@@ -61,17 +61,18 @@ qint64 Packet::localHeaderSize() const {
 
 Packet::Packet(PacketType::Value type, qint64 size) :
     _type(type),
-    _version(0),
-    _packetSize(localHeaderSize(_type) + size),
-    _packet(new char(_packetSize)),
-    _payloadStart(_packet.get() + localHeaderSize(_type)),
-    _capacity(size)
+    _version(0)
 {
     auto maxPayload = maxPayloadSize(type);
     if (size == -1) {
         // default size of -1, means biggest packet possible
         size = maxPayload;
     }
+
+    _packetSize = localHeaderSize(type) + size;
+    _packet.reset(new char(_packetSize));
+    _capacity = size;
+    _payloadStart = _packet.get() + (_packetSize - _capacity);
     
     // Sanity check
     Q_ASSERT(size >= 0 || size < maxPayload);
@@ -191,6 +192,7 @@ void Packet::writeSequenceNumber(SequenceNumber seqNum) {
 
 static const qint64 PACKET_WRITE_ERROR = -1;
 qint64 Packet::writeData(const char* data, qint64 maxSize) {
+    
     // make sure we have the space required to write this block
     if (maxSize <= bytesAvailableForWrite()) {
         qint64 currentPos = pos();

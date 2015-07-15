@@ -512,7 +512,7 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
 }
 
 void NodeList::sendAssignment(Assignment& assignment) {
-
+ 
     PacketType::Value assignmentPacketType = assignment.getCommand() == Assignment::CreateCommand
         ? PacketType::CreateAssignment
         : PacketType::RequestAssignment;
@@ -520,7 +520,6 @@ void NodeList::sendAssignment(Assignment& assignment) {
     auto assignmentPacket = NLPacket::create(assignmentPacketType);
 
     QDataStream packetStream(assignmentPacket.get());
-
     packetStream << assignment;
 
     // TODO: should this be a non sourced packet?
