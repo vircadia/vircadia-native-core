@@ -98,8 +98,6 @@
 #include <UUID.h>
 #include <VrMenu.h>
 
-#include <GlowEffect.h> // FIXME
-
 #include "Application.h"
 #include "AudioClient.h"
 #include "DiscoverabilityManager.h"
@@ -270,7 +268,6 @@ bool setupEssentials(int& argc, char** argv) {
     auto geometryCache = DependencyManager::set<GeometryCache>();
     auto scriptCache = DependencyManager::set<ScriptCache>();
     auto soundCache = DependencyManager::set<SoundCache>();
-    auto glowEffect = DependencyManager::set<GlowEffect>(); // FIXME
     auto faceshift = DependencyManager::set<Faceshift>();
     auto audio = DependencyManager::set<AudioClient>();
     auto audioScope = DependencyManager::set<AudioScope>();
