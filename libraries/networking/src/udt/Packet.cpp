@@ -11,6 +11,8 @@
 
 #include "Packet.h"
 
+const qint64 Packet::PACKET_WRITE_ERROR = -1;
+
 qint64 Packet::localHeaderSize(PacketType::Value type) {
     qint64 size = numBytesForArithmeticCodedPacketType(type) + sizeof(PacketVersion) +
                         ((SEQUENCE_NUMBERED_PACKETS.contains(type)) ? sizeof(SequenceNumber) : 0);
@@ -208,7 +210,6 @@ void Packet::writeSequenceNumber(SequenceNumber seqNum) {
            &seqNum, sizeof(seqNum));
 }
 
-static const qint64 PACKET_WRITE_ERROR = -1;
 qint64 Packet::writeData(const char* data, qint64 maxSize) {
     
     // make sure we have the space required to write this block
