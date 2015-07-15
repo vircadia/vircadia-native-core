@@ -416,6 +416,8 @@ DirectionBox = function(x,y,width,thumbSize) {
     this.onValueChanged = function(value) {};
 }
 
+
+
 var textFontSize = 12;
 
 function PanelItem(name, setter, getter, displayer, x, y, textWidth, valueWidth, height) {
@@ -429,7 +431,7 @@ function PanelItem(name, setter, getter, displayer, x, y, textWidth, valueWidth,
         } else if (value == false) {
             return "Off";
         }
-        return value.toFixed(2); 
+        return value; 
     };
 
     var topMargin = (height - textFontSize);
@@ -616,7 +618,7 @@ Panel = function(x, y) {
       //  print("created Item... colorBox=" + name);     
     };
 
-    this.newDirectionBox= function(name, setValue, getValue, displayValue) {
+    this.newDirectionBox = function(name, setValue, getValue, displayValue) {
 
         var item = new PanelItem(name, setValue, getValue, displayValue, this.x, this.nextY, textWidth, valueWidth, rawHeight);
 
@@ -629,6 +631,20 @@ Panel = function(x, y) {
         this.nextY += rawYDelta;
       //  print("created Item... directionBox=" + name);     
     };
+
+    this.newSubPanel = function(name) {
+        var item = new PanelItem(name, setValue, getValue, displayValue, this.x, this.nextY, textWidth, valueWidth, rawHeight);
+
+        var panel = new Panel(this.widgetX, this.nextY);
+
+        item.widget = panel;
+
+        item.widget.onValueChanged = function(value) { item.setterFromWidget(value); };
+        
+        this.nextY += rawYDelta;
+
+    };
+
 
     this.destroy = function() {
         for (var i in this.items) {
