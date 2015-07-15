@@ -214,19 +214,14 @@ bool LimitedNodeList::packetSourceAndHashMatch(const NLPacket& packet, SharedNod
     return false;
 }
 
-// NLPacket helper for filling the header
-void writePacketheader(const NLPacket& packet, const QUuid& sessionUUID = QUuid(), const QUuid& connectionSecret = QUuid()) {
+qint64 LimitedNodeList::writeDatagram(const NLPacket& packet, const HifiSockAddr& destinationSockAddr,
+                                      const QUuid& connectionSecret) {
     if (!NON_SOURCED_PACKETS.contains(packet.getType())) {
-        const_cast<NLPacket&>(packet).writeSourceID(sessionUUID);
+        const_cast<NLPacket&>(packet).writeSourceID(getSessionUUID());
     }
     if (!connectionSecret.isNull() && !NON_VERIFIED_PACKETS.contains(packet.getType())) {
         const_cast<NLPacket&>(packet).writeVerificationHash(packet.payloadHashWithConnectionUUID(connectionSecret));
     }
-}
-
-qint64 LimitedNodeList::writeDatagram(const NLPacket& packet, const HifiSockAddr& destinationSockAddr,
-                                      const QUuid& connectionSecret) {
-    writePacketheader(packet, getSessionUUID(), connectionSecret);
     return writeDatagram({packet.getData(), static_cast<int>(packet.getSizeWithHeader())}, destinationSockAddr);
 }
 
