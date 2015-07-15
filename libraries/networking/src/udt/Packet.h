@@ -116,7 +116,6 @@ protected:
     HifiSockAddr _senderSockAddr;  // sender address for packet (only used on receiving end)
 };
 
-
 template<typename T> qint64 Packet::peekPrimitive(T* data) {
     return QIODevice::peek(reinterpret_cast<char*>(data), sizeof(T));
 }
