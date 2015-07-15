@@ -417,6 +417,7 @@ void Model::reset() {
 }
 
 bool Model::updateGeometry() {
+    PROFILE_RANGE(__FUNCTION__);
     bool needFullUpdate = false;
 
     bool needToRebuild = false;
@@ -456,7 +457,8 @@ bool Model::updateGeometry() {
         } 
         deleteGeometry();
         _dilatedTextures.clear();
-        _geometry = geometry;
+        setGeometry(geometry);
+        
         _meshGroupsKnown = false;
         _readyWhenAdded = false; // in case any of our users are using scenes
         invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
@@ -545,11 +547,6 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
     // we can use the AABox's ray intersection by mapping our origin and direction into the model frame
     // and testing intersection there.
     if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face)) {
-    
-        if (!_calculatedMeshBoxesValid) {
-            recalculateMeshBoxes(pickAgainstTriangles);
-        }
-
         float bestDistance = std::numeric_limits<float>::max();
 
         float distanceToSubMesh;
@@ -560,6 +557,11 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
         // If we hit the models box, then consider the submeshes...
         _mutex.lock();
+
+        if (!_calculatedMeshBoxesValid) {
+            recalculateMeshBoxes(pickAgainstTriangles);
+        }
+
         foreach(const AABox& subMeshBox, _calculatedMeshBoxes) {
 
             if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace)) {
@@ -690,6 +692,7 @@ void Model::recalculateMeshPartOffsets() {
 // entity-scripts to call.  I think it would be best to do the picking once-per-frame (in cpu, or gpu if possible)
 // and then the calls use the most recent such result. 
 void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
+    PROFILE_RANGE(__FUNCTION__);
     bool calculatedMeshTrianglesNeeded = pickAgainstTriangles && !_calculatedMeshTrianglesValid;
 
     if (!_calculatedMeshBoxesValid || calculatedMeshTrianglesNeeded || (!_calculatedMeshPartBoxesValid && pickAgainstTriangles) ) {
@@ -822,7 +825,7 @@ void Model::renderSetup(RenderArgs* args) {
         }
     }
     
-    if (!_meshGroupsKnown && isLoadedWithTextures()) {
+    if (!_meshGroupsKnown && isLoaded()) {
         segregateMeshGroups();
     }
 }
@@ -881,7 +884,7 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
 
 
 bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
-    if (!_meshGroupsKnown && isLoadedWithTextures()) {
+    if (!_meshGroupsKnown && isLoaded()) {
         segregateMeshGroups();
     }
 
@@ -900,6 +903,38 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
         auto item = scene->allocateID();
         auto renderData = MeshPartPayload::Pointer(renderItem);
         auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
+        pendingChanges.resetItem(item, renderPayload);
+        _renderItems.insert(item, renderPayload);
+        somethingAdded = true;
+    }
+    
+    _readyWhenAdded = readyToAddToScene();
+
+    return somethingAdded;
+}
+
+bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges, render::Item::Status::Getters& statusGetters) {
+    if (!_meshGroupsKnown && isLoaded()) {
+        segregateMeshGroups();
+    }
+
+    bool somethingAdded = false;
+
+    foreach (auto renderItem, _transparentRenderItems) {
+        auto item = scene->allocateID();
+        auto renderData = MeshPartPayload::Pointer(renderItem);
+        auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
+        renderPayload->addStatusGetters(statusGetters);
+        pendingChanges.resetItem(item, renderPayload);
+        _renderItems.insert(item, renderPayload);
+        somethingAdded = true;
+    }
+
+    foreach (auto renderItem, _opaqueRenderItems) {
+        auto item = scene->allocateID();
+        auto renderData = MeshPartPayload::Pointer(renderItem);
+        auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
+        renderPayload->addStatusGetters(statusGetters);
         pendingChanges.resetItem(item, renderPayload);
         _renderItems.insert(item, renderPayload);
         somethingAdded = true;
@@ -1102,14 +1137,35 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     _readyWhenAdded = false; // reset out render items.
     _needsReload = true;
     invalidCalculatedMeshBoxes();
-    
+
     _url = url;
 
+    onInvalidate();
+
     // if so instructed, keep the current geometry until the new one is loaded 
-    _nextBaseGeometry = _nextGeometry = DependencyManager::get<GeometryCache>()->getGeometry(url, fallback, delayLoad);
+    _nextGeometry = DependencyManager::get<GeometryCache>()->getGeometry(url, fallback, delayLoad);
     _nextLODHysteresis = NetworkGeometry::NO_HYSTERESIS;
     if (!retainCurrent || !isActive() || (_nextGeometry && _nextGeometry->isLoaded())) {
         applyNextGeometry();
+    }
+}
+
+void Model::geometryRefreshed() {
+    QObject* sender = QObject::sender();
+    
+    if (sender == _geometry) {
+        _readyWhenAdded = false; // reset out render items.
+        _needsReload = true;
+        invalidCalculatedMeshBoxes();
+        
+        onInvalidate();
+        
+        // if so instructed, keep the current geometry until the new one is loaded
+        _nextGeometry = DependencyManager::get<GeometryCache>()->getGeometry(_url);
+        _nextLODHysteresis = NetworkGeometry::NO_HYSTERESIS;
+        applyNextGeometry();
+    } else {
+        sender->disconnect(this, SLOT(geometryRefreshed()));
     }
 }
 
@@ -1120,7 +1176,11 @@ const QSharedPointer<NetworkGeometry> Model::getCollisionGeometry(bool delayLoad
         _collisionGeometry = DependencyManager::get<GeometryCache>()->getGeometry(_collisionUrl, QUrl(), delayLoad);
     }
 
-    return _collisionGeometry;
+    if (_collisionGeometry && _collisionGeometry->isLoaded()) {
+        return _collisionGeometry;
+    }
+    
+    return QSharedPointer<NetworkGeometry>();
 }
 
 void Model::setCollisionModelURL(const QUrl& url) {
@@ -1247,6 +1307,7 @@ Blender::Blender(Model* model, int blendNumber, const QWeakPointer<NetworkGeomet
 }
 
 void Blender::run() {
+    PROFILE_RANGE(__FUNCTION__);
     QVector<glm::vec3> vertices, normals;
     if (!_model.isNull()) {
         int offset = 0;
@@ -1358,6 +1419,7 @@ void Model::snapToRegistrationPoint() {
 }
 
 void Model::simulate(float deltaTime, bool fullUpdate) {
+    PROFILE_RANGE(__FUNCTION__);
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
                     
@@ -1368,6 +1430,7 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
         //       because ray picking needs valid boxes to work
         _calculatedMeshBoxesValid = false;
         _calculatedMeshTrianglesValid = false;
+        onInvalidate();
 
         // check for scale to fit
         if (_scaleToFit && !_scaledToFit) {
@@ -1377,6 +1440,26 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
             snapToRegistrationPoint();
         }
         simulateInternal(deltaTime);
+    }
+}
+
+void Model::updateClusterMatrices() {
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    glm::mat4 modelToWorld = glm::mat4_cast(_rotation);
+    for (int i = 0; i < _meshStates.size(); i++) {
+        MeshState& state = _meshStates[i];
+        const FBXMesh& mesh = geometry.meshes.at(i);
+        if (_showTrueJointTransforms) {
+            for (int j = 0; j < mesh.clusters.size(); j++) {
+                const FBXCluster& cluster = mesh.clusters.at(j);
+                state.clusterMatrices[j] = modelToWorld * _jointStates[cluster.jointIndex].getTransform() * cluster.inverseBindMatrix;
+            }
+        } else {
+            for (int j = 0; j < mesh.clusters.size(); j++) {
+                const FBXCluster& cluster = mesh.clusters.at(j);
+                state.clusterMatrices[j] = modelToWorld * _jointStates[cluster.jointIndex].getVisibleTransform() * cluster.inverseBindMatrix;
+            }
+        }
     }
 }
 
@@ -1717,6 +1800,18 @@ void Model::setBlendedVertices(int blendNumber, const QWeakPointer<NetworkGeomet
     }
 }
 
+void Model::setGeometry(const QSharedPointer<NetworkGeometry>& newGeometry) {
+    if (_geometry == newGeometry) {
+        return;
+    }
+    
+    if (_geometry) {
+        _geometry->disconnect(_geometry.data(), &Resource::onRefresh, this, &Model::geometryRefreshed);
+    }
+    _geometry = newGeometry;
+    QObject::connect(_geometry.data(), &Resource::onRefresh, this, &Model::geometryRefreshed);
+}
+
 void Model::applyNextGeometry() {
     // delete our local geometry and custom textures
     deleteGeometry();
@@ -1724,13 +1819,12 @@ void Model::applyNextGeometry() {
     _lodHysteresis = _nextLODHysteresis;
     
     // we retain a reference to the base geometry so that its reference count doesn't fall to zero
-    _baseGeometry = _nextBaseGeometry;
-    _geometry = _nextGeometry;
+    setGeometry(_nextGeometry);
+    
     _meshGroupsKnown = false;
     _readyWhenAdded = false; // in case any of our users are using scenes
     _needsReload = false; // we are loaded now!
     invalidCalculatedMeshBoxes();
-    _nextBaseGeometry.reset();
     _nextGeometry.reset();
 }
 
@@ -1774,6 +1868,7 @@ void Model::setupBatchTransform(gpu::Batch& batch, RenderArgs* args) {
 }
 
 AABox Model::getPartBounds(int meshIndex, int partIndex) {
+
     if (meshIndex < _meshStates.size()) {
         const MeshState& state = _meshStates.at(meshIndex);
         bool isSkinned = state.clusterMatrices.size() > 1;
@@ -1804,6 +1899,7 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
 }
 
 void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent) {
+ //   PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("Model::renderPart");
     if (!_readyWhenAdded) {
         return; // bail asap
@@ -1811,7 +1907,9 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     
     // We need to make sure we have valid offsets calculated before we can render
     if (!_calculatedMeshPartOffsetValid) {
+        _mutex.lock();
         recalculateMeshPartOffsets();
+        _mutex.unlock();
     }
     auto textureCache = DependencyManager::get<TextureCache>();
 
@@ -1876,7 +1974,9 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     pickPrograms(batch, mode, translucentMesh, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
                  args, locations);
 
-    updateVisibleJointStates();
+    {
+        updateVisibleJointStates();
+    }
 
     // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
     // to false to rebuild out mesh groups.
@@ -1964,12 +2064,10 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                     }
                 }
             }
-            static bool showDiffuse = true;
-            if (showDiffuse && diffuseMap) {
-                batch.setUniformTexture(0, diffuseMap->getGPUTexture());
-            
+            if (diffuseMap && static_cast<NetworkTexture*>(diffuseMap)->isLoaded()) {
+                batch.setResourceTexture(0, diffuseMap->getGPUTexture());
             } else {
-                batch.setUniformTexture(0, textureCache->getWhiteTexture());
+                batch.setResourceTexture(0, textureCache->getGrayTexture());
             }
 
             if (locations->texcoordMatrices >= 0) {
@@ -1984,16 +2082,15 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
             }
 
             if (!mesh.tangents.isEmpty()) {                 
-                Texture* normalMap = networkPart.normalTexture.data();
-                batch.setUniformTexture(1, !normalMap ?
-                    textureCache->getBlueTexture() : normalMap->getGPUTexture());
-
+                NetworkTexture* normalMap = networkPart.normalTexture.data();
+                batch.setResourceTexture(1, (!normalMap || !normalMap->isLoaded()) ?
+                                        textureCache->getBlueTexture() : normalMap->getGPUTexture());
             }
     
             if (locations->specularTextureUnit >= 0) {
-                Texture* specularMap = networkPart.specularTexture.data();
-                batch.setUniformTexture(locations->specularTextureUnit, !specularMap ?
-                                            textureCache->getWhiteTexture() : specularMap->getGPUTexture());
+                NetworkTexture* specularMap = networkPart.specularTexture.data();
+                batch.setResourceTexture(locations->specularTextureUnit, (!specularMap || !specularMap->isLoaded()) ?
+                                        textureCache->getBlackTexture() : specularMap->getGPUTexture());
             }
 
             if (args) {
@@ -2008,9 +2105,9 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                 float emissiveScale = part.emissiveParams.y;
                 GLBATCH(glUniform2f)(locations->emissiveParams, emissiveOffset, emissiveScale);
                 
-                Texture* emissiveMap = networkPart.emissiveTexture.data();
-                batch.setUniformTexture(locations->emissiveTextureUnit, !emissiveMap ?
-                                        textureCache->getWhiteTexture() : emissiveMap->getGPUTexture());
+                NetworkTexture* emissiveMap = networkPart.emissiveTexture.data();
+                batch.setResourceTexture(locations->emissiveTextureUnit, (!emissiveMap || !emissiveMap->isLoaded()) ?
+                                        textureCache->getGrayTexture() : emissiveMap->getGPUTexture());
             }
             
             if (translucent && locations->lightBufferUnit >= 0) {
@@ -2019,7 +2116,13 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
         }
     }
     
-    qint64 offset = _calculatedMeshPartOffset[QPair<int,int>(meshIndex, partIndex)];
+    qint64 offset;
+    {
+        // FIXME_STUTTER: We should n't have any lock here
+        _mutex.lock();
+        offset = _calculatedMeshPartOffset[QPair<int,int>(meshIndex, partIndex)];
+        _mutex.unlock();
+    }
 
     if (part.quadIndices.size() > 0) {
         batch.drawIndexed(gpu::QUADS, part.quadIndices.size(), offset);
@@ -2116,6 +2219,34 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
     }
 }
 
+bool Model::initWhenReady(render::ScenePointer scene) {
+    if (isActive() && isRenderable() && !_meshGroupsKnown && isLoaded()) {
+        segregateMeshGroups();
+
+        render::PendingChanges pendingChanges;
+
+        foreach (auto renderItem, _transparentRenderItems) {
+            auto item = scene->allocateID();
+            auto renderData = MeshPartPayload::Pointer(renderItem);
+            auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
+            _renderItems.insert(item, renderPayload);
+            pendingChanges.resetItem(item, renderPayload);
+        }
+
+        foreach (auto renderItem, _opaqueRenderItems) {
+            auto item = scene->allocateID();
+            auto renderData = MeshPartPayload::Pointer(renderItem);
+            auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
+            _renderItems.insert(item, renderPayload);
+            pendingChanges.resetItem(item, renderPayload);
+        }
+        scene->enqueuePendingChanges(pendingChanges);
+
+        _readyWhenAdded = true;
+        return true;
+    }
+    return false;
+}
 
 ModelBlender::ModelBlender() :
     _pendingBlenders(0) {

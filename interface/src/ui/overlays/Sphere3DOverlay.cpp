@@ -17,15 +17,10 @@
 #include "Sphere3DOverlay.h"
 #include "Application.h"
 
-Sphere3DOverlay::Sphere3DOverlay() {
-}
 
 Sphere3DOverlay::Sphere3DOverlay(const Sphere3DOverlay* Sphere3DOverlay) :
     Volume3DOverlay(Sphere3DOverlay)
 {
-}
-
-Sphere3DOverlay::~Sphere3DOverlay() {
 }
 
 void Sphere3DOverlay::render(RenderArgs* args) {
@@ -42,42 +37,10 @@ void Sphere3DOverlay::render(RenderArgs* args) {
     auto batch = args->_batch;
 
     if (batch) {
-        Transform transform;
-        transform.setTranslation(_position);
-        transform.setRotation(_rotation);
-        transform.setScale(_dimensions);
-
+        Transform transform = _transform;
+        transform.postScale(getDimensions());
         batch->setModelTransform(transform);
         DependencyManager::get<GeometryCache>()->renderSphere(*batch, 1.0f, SLICES, SLICES, sphereColor, _isSolid);
-    } else {
-        glDisable(GL_LIGHTING);
-        
-        glm::vec3 position = getPosition();
-        glm::vec3 center = getCenter();
-        glm::vec3 dimensions = getDimensions();
-        glm::quat rotation = getRotation();
-
-        float glowLevel = getGlowLevel();
-        Glower* glower = NULL;
-        if (glowLevel > 0.0f) {
-            glower = new Glower(glowLevel);
-        }
-
-        glPushMatrix();
-            glTranslatef(position.x, position.y, position.z);
-            glm::vec3 axis = glm::axis(rotation);
-            glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-            glPushMatrix();
-                glm::vec3 positionToCenter = center - position;
-                glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-                glScalef(dimensions.x, dimensions.y, dimensions.z);
-                DependencyManager::get<GeometryCache>()->renderSphere(1.0f, SLICES, SLICES, sphereColor, _isSolid);
-            glPopMatrix();
-        glPopMatrix();
-        
-        if (glower) {
-            delete glower;
-        }
     }
 
 }

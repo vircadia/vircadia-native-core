@@ -107,6 +107,7 @@ Avatar::Avatar() :
 }
 
 Avatar::~Avatar() {
+    assert(_motionState == nullptr);
     for(auto attachment : _unusedAttachments) {
         delete attachment;
     }
@@ -444,30 +445,44 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
                 _skeletonModel.renderJointCollisionShapes(0.7f);
             }
 
-            if (renderHead && shouldRenderHead(renderArgs, cameraPosition)) {
+            if (renderHead && shouldRenderHead(renderArgs)) {
                 getHead()->getFaceModel().renderJointCollisionShapes(0.7f);
             }
-            if (renderBounding && shouldRenderHead(renderArgs, cameraPosition)) {
-                _skeletonModel.renderBoundingCollisionShapes(0.7f);
+            if (renderBounding && shouldRenderHead(renderArgs)) {
+                _skeletonModel.renderBoundingCollisionShapes(*renderArgs->_batch, 0.7f);
             }
+        }
 
-            // If this is the avatar being looked at, render a little ball above their head
-            if (_isLookAtTarget && Menu::getInstance()->isOptionChecked(MenuOption::RenderFocusIndicator)) {
-                const float LOOK_AT_INDICATOR_RADIUS = 0.03f;
-                const float LOOK_AT_INDICATOR_OFFSET = 0.22f;
-                const glm::vec4 LOOK_AT_INDICATOR_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
-                glm::vec3 position;
-                if (_displayName.isEmpty() || _displayNameAlpha == 0.0f) {
-                    position = glm::vec3(_position.x, getDisplayNamePosition().y, _position.z);
-                } else {
-                    position = glm::vec3(_position.x, getDisplayNamePosition().y + LOOK_AT_INDICATOR_OFFSET, _position.z);
-                }
-                Transform transform;
-                transform.setTranslation(position);
-                batch.setModelTransform(transform);
-                DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, LOOK_AT_INDICATOR_RADIUS
-                                                                                    , 15, 15, LOOK_AT_INDICATOR_COLOR);
-            }
+        // Stack indicator spheres
+        float indicatorOffset = 0.0f;
+        if (!_displayName.isEmpty() && _displayNameAlpha != 0.0f) {
+            const float DISPLAY_NAME_INDICATOR_OFFSET = 0.22f;
+            indicatorOffset = DISPLAY_NAME_INDICATOR_OFFSET;
+        }
+        const float INDICATOR_RADIUS = 0.03f;
+        const float INDICATOR_INDICATOR_OFFSET = 3.0f * INDICATOR_RADIUS;
+
+        // If this is the avatar being looked at, render a little ball above their head
+        if (_isLookAtTarget && Menu::getInstance()->isOptionChecked(MenuOption::RenderFocusIndicator)) {
+            const glm::vec4 LOOK_AT_INDICATOR_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
+            glm::vec3 position = glm::vec3(_position.x, getDisplayNamePosition().y + indicatorOffset, _position.z);
+            Transform transform;
+            transform.setTranslation(position);
+            batch.setModelTransform(transform);
+            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, INDICATOR_RADIUS,
+                15, 15, LOOK_AT_INDICATOR_COLOR);
+            indicatorOffset += INDICATOR_INDICATOR_OFFSET;
+        }
+
+        // If the avatar is looking at me, render an indication that they area
+        if (getHead()->getIsLookingAtMe() && Menu::getInstance()->isOptionChecked(MenuOption::ShowWhosLookingAtMe)) {
+            const glm::vec4 LOOKING_AT_ME_COLOR = { 0.8f, 0.65f, 0.0f, 0.1f };
+            glm::vec3 position = glm::vec3(_position.x, getDisplayNamePosition().y + indicatorOffset, _position.z);
+            Transform transform;
+            transform.setTranslation(position);
+            batch.setModelTransform(transform);
+            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, INDICATOR_RADIUS,
+                15, 15, LOOKING_AT_ME_COLOR);
         }
 
         // quick check before falling into the code below:
@@ -532,6 +547,7 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 }
 
 void Avatar::fixupModelsInScene() {
+
     // check to see if when we added our models to the scene they were ready, if they were not ready, then
     // fix them up in the scene
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
@@ -580,7 +596,7 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool
     getHead()->render(renderArgs, 1.0f, renderFrustum, postLighting);
 }
 
-bool Avatar::shouldRenderHead(const RenderArgs* renderArgs, const glm::vec3& cameraPosition) const {
+bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {
     return true;
 }
 
@@ -620,7 +636,7 @@ void Avatar::renderBillboard(RenderArgs* renderArgs) {
         _billboardTexture = DependencyManager::get<TextureCache>()->getTexture(
             uniqueUrl, DEFAULT_TEXTURE, false, _billboard);
     }
-    if (!_billboardTexture->isLoaded()) {
+    if (!_billboardTexture || !_billboardTexture->isLoaded()) {
         return;
     }
     // rotate about vertical to face the camera
@@ -642,7 +658,7 @@ void Avatar::renderBillboard(RenderArgs* renderArgs) {
     glm::vec2 texCoordBottomRight(1.0f, 1.0f);
     
     gpu::Batch& batch = *renderArgs->_batch;
-    batch.setUniformTexture(0, _billboardTexture->getGPUTexture());
+    batch.setResourceTexture(0, _billboardTexture->getGPUTexture());
     DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
                                                         glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
@@ -692,9 +708,9 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, floa
     const float DESIRED_HIGHT_ON_SCREEN = 20; // In pixels (this is double on retinas)
     
     // Projected point are between -1.0f and 1.0f, hence 0.5f * windowSizeY
-    double pixelHeight = 0.5f * windowSizeY * glm::abs((p1.y / p1.w) - (p0.y / p0.w)); //
+    float pixelHeight = 0.5f * windowSizeY * glm::abs((p1.y / p1.w) - (p0.y / p0.w)); //
     // Handles pixel density (especially for macs retina displays)
-    double devicePixelRatio = qApp->getDevicePixelRatio() * qApp->getRenderResolutionScale(); // pixels / unit
+    float devicePixelRatio = (float)qApp->getDevicePixelRatio() * qApp->getRenderResolutionScale(); // pixels / unit
     
     // Compute correct scale to apply
     float scale = DESIRED_HIGHT_ON_SCREEN / (fontSize * pixelHeight) * devicePixelRatio;
@@ -706,9 +722,10 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, floa
     glm::vec3 worldOffset = glm::vec3(screenOffset.x, screenOffset.y, 0.0f) / (float)pixelHeight;
     
     // Compute orientation
-    glm::vec3 eulerAngles = ::safeEulerAngles(frustum.getOrientation());
-    eulerAngles.z = 0.0f; // Cancel roll
-    glm::quat orientation(eulerAngles); // back to quaternions
+    glm::vec3 dPosition = frustum.getPosition() - getPosition();
+    // If x and z are 0, atan(x, z) is undefined, so default to 0 degrees
+    float yawRotation = dPosition.x == 0.0f && dPosition.z == 0.0f ? 0.0f : glm::atan(dPosition.x, dPosition.z);
+    glm::quat orientation = glm::quat(glm::vec3(0.0f, yawRotation, 0.0f));
     
     // Set transform (The order IS important)
     result.setTranslation(textPosition);
@@ -747,7 +764,7 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum) co
     const int text_y = -nameDynamicRect.height() / 2;
 
     // Compute background position/size
-    static const float SLIGHTLY_BEHIND = -0.05f;
+    static const float SLIGHTLY_IN_FRONT = 0.1f;
     const int border = 0.1f * nameDynamicRect.height();
     const int left = text_x - border;
     const int bottom = text_y - border;
@@ -762,16 +779,16 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum) co
     
     // Compute display name transform
     auto textTransform = calculateDisplayNameTransform(frustum, renderer->getFontSize());
-    
-    // Render background slightly behind to avoid z-fighting
-    auto backgroundTransform = textTransform;
-    backgroundTransform.postTranslate(glm::vec3(0.0f, 0.0f, SLIGHTLY_BEHIND));
-    batch.setModelTransform(backgroundTransform);
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
+    batch.setModelTransform(textTransform);
+
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, false, true, true, true);
     DependencyManager::get<GeometryCache>()->renderBevelCornersRect(batch, left, bottom, width, height,
                                                                     bevelDistance, backgroundColor);
     // Render actual name
     QByteArray nameUTF8 = renderedDisplayName.toLocal8Bit();
+    
+    // Render text slightly in front to avoid z-fighting
+    textTransform.postTranslate(glm::vec3(0.0f, 0.0f, SLIGHTLY_IN_FRONT * renderer->getFontSize()));
     batch.setModelTransform(textTransform);
     renderer->draw(batch, text_x, -text_y, nameUTF8.data(), textColor);
 }
@@ -1008,7 +1025,7 @@ int Avatar::parseDataAtOffset(const QByteArray& packet, int offset) {
 int Avatar::_jointConesID = GeometryCache::UNKNOWN_ID;
 
 // render a makeshift cone section that serves as a body part connecting joint spheres
-void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
+void Avatar::renderJointConnectingCone(gpu::Batch& batch, glm::vec3 position1, glm::vec3 position2,
                                             float radius1, float radius2, const glm::vec4& color) {
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -1055,7 +1072,7 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
         // TODO: this is really inefficient constantly recreating these vertices buffers. It would be
         // better if the avatars cached these buffers for each of the joints they are rendering
         geometryCache->updateVertices(_jointConesID, points, color);
-        geometryCache->renderVertices(gpu::TRIANGLES, _jointConesID);
+        geometryCache->renderVertices(batch, gpu::TRIANGLES, _jointConesID);
     }
 }
 

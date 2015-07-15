@@ -53,10 +53,10 @@ public:
 };
 
 class DrawOverlay3D {
-    mutable gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
+    static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
 public:
-    const gpu::PipelinePointer& getOpaquePipeline() const;
-    
+    static const gpu::PipelinePointer& getOpaquePipeline();
+
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
     typedef render::Job::Model<DrawOverlay3D> JobModel;
@@ -70,8 +70,16 @@ public:
 
     render::Jobs _jobs;
 
+    int _drawStatusJobIndex = -1;
+
+    void setDrawItemStatus(bool draw) { if (_drawStatusJobIndex >= 0) { _jobs[_drawStatusJobIndex].setEnabled(draw); } }
+    bool doDrawItemStatus() const { if (_drawStatusJobIndex >= 0) { return _jobs[_drawStatusJobIndex].isEnabled(); } else { return false; } }
+
     virtual void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
+
+    gpu::Queries _timerQueries;
+    int _currentTimerQueryIndex = 0;
 };
 
 

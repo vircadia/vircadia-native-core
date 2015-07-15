@@ -49,8 +49,6 @@ Camera::Camera() :
     _mode(CAMERA_MODE_THIRD_PERSON),
     _position(0.0f, 0.0f, 0.0f),
     _projection(glm::perspective(glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES), 16.0f/9.0f, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP)),
-    _hmdPosition(),
-    _hmdRotation(),
     _isKeepLookingAt(false),
     _lookingAt(0.0f, 0.0f, 0.0f)
 {
@@ -74,20 +72,6 @@ void Camera::setRotation(const glm::quat& rotation) {
     }
 }
 
-void Camera::setHmdPosition(const glm::vec3& hmdPosition) {
-    _hmdPosition = hmdPosition; 
-    if (_isKeepLookingAt) {
-        lookAt(_lookingAt);
-    }
-}
-
-void Camera::setHmdRotation(const glm::quat& hmdRotation) {
-    _hmdRotation = hmdRotation; 
-    if (_isKeepLookingAt) {
-        lookAt(_lookingAt);
-    }
-}
-
 void Camera::setMode(CameraMode mode) {
     _mode = mode;
     emit modeUpdated(modeToString(mode));
@@ -103,23 +87,25 @@ PickRay Camera::computePickRay(float x, float y) {
 
 void Camera::setModeString(const QString& mode) {
     CameraMode targetMode = stringToMode(mode);
-    
+        
     switch (targetMode) {
+        case CAMERA_MODE_FIRST_PERSON:
+            Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, true);
+            break;
         case CAMERA_MODE_THIRD_PERSON:
-            Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, false);
-            Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
+            Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
             break;
         case CAMERA_MODE_MIRROR:
             Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, true);
-            Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
             break;
         case CAMERA_MODE_INDEPENDENT:
-            Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, false);
-            Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
+            Menu::getInstance()->setIsOptionChecked(MenuOption::IndependentMode, true);
             break;
         default:
             break;
     }
+    
+    qApp->cameraMenuChanged();
     
     if (_mode != targetMode) {
         setMode(targetMode);

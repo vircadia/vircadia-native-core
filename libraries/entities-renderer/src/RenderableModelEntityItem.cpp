@@ -63,11 +63,11 @@ void RenderableModelEntityItem::remapTextures() {
         return; // nothing to do if we don't have a model
     }
     
-    if (!_model->isLoadedWithTextures()) {
-        return; // nothing to do if the model has not yet loaded its default textures
+    if (!_model->isLoaded()) {
+        return; // nothing to do if the model has not yet loaded
     }
     
-    if (!_originalTexturesRead && _model->isLoadedWithTextures()) {
+    if (!_originalTexturesRead) {
         const QSharedPointer<NetworkGeometry>& networkGeometry = _model->getGeometry();
         if (networkGeometry) {
             _originalTextures = networkGeometry->getTextureNames();
@@ -119,7 +119,7 @@ bool RenderableModelEntityItem::readyToAddToScene(RenderArgs* renderArgs) {
         EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(renderArgs->_renderer);
         getModel(renderer);
     }
-    if (renderArgs && _model && _needsInitialSimulation && _model->isActive() && _model->isLoadedWithTextures()) {
+    if (renderArgs && _model && _needsInitialSimulation && _model->isActive() && _model->isLoaded()) {
         _model->setScaleToFit(true, getDimensions());
         _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
         _model->setRotation(getRotation());
@@ -161,14 +161,35 @@ namespace render {
     template <> void payloadRender(const RenderableModelEntityItemMeta::Pointer& payload, RenderArgs* args) {
         if (args) {
             if (payload && payload->entity) {
+                PROFILE_RANGE("MetaModelRender");
                 payload->entity->render(args);
             }
         }
     }
 }
 
+void makeEntityItemStatusGetters(RenderableModelEntityItem* entity, render::Item::Status::Getters& statusGetters) {
+    statusGetters.push_back([entity] () -> render::Item::Status::Value {
+        quint64 delta = usecTimestampNow() - entity->getLastEditedFromRemote();
+        const float WAIT_THRESHOLD_INV = 1.0f / (0.2f * USECS_PER_SECOND);
+        float normalizedDelta = delta * WAIT_THRESHOLD_INV;
+        // Status icon will scale from 1.0f down to 0.0f after WAIT_THRESHOLD
+        // Color is red if last update is after WAIT_THRESHOLD, green otherwise (120 deg is green)
+        return render::Item::Status::Value(1.0f - normalizedDelta, (normalizedDelta > 1.0f ? render::Item::Status::Value::GREEN : render::Item::Status::Value::RED));
+    });
+    statusGetters.push_back([entity] () -> render::Item::Status::Value {
+        quint64 delta = usecTimestampNow() - entity->getLastBroadcast();
+        const float WAIT_THRESHOLD_INV = 1.0f / (0.4f * USECS_PER_SECOND);
+        float normalizedDelta = delta * WAIT_THRESHOLD_INV;
+        // Status icon will scale from 1.0f down to 0.0f after WAIT_THRESHOLD
+        // Color is Magenta if last update is after WAIT_THRESHOLD, cyan otherwise (180 deg is green)
+        return render::Item::Status::Value(1.0f - normalizedDelta, (normalizedDelta > 1.0f ? render::Item::Status::Value::MAGENTA : render::Item::Status::Value::CYAN));
+    });
+}
+
 bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
                                             render::PendingChanges& pendingChanges) {
+
     _myMetaItem = scene->allocateID();
     
     auto renderData = RenderableModelEntityItemMeta::Pointer(new RenderableModelEntityItemMeta(self));
@@ -177,7 +198,12 @@ bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_p
     pendingChanges.resetItem(_myMetaItem, renderPayload);
     
     if (_model) {
-        return _model->addToScene(scene, pendingChanges);
+        render::Item::Status::Getters statusGetters;
+        makeEntityItemStatusGetters(this, statusGetters);
+        
+        // note: we don't care if the model fails to add items, we always added our meta item and therefore we return
+        // true so that the system knows our meta item is in the scene!
+        _model->addToScene(scene, pendingChanges, statusGetters);
     }
 
     return true;
@@ -214,7 +240,10 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             render::PendingChanges pendingChanges;
             if (_model->needsFixupInScene()) {
                 _model->removeFromScene(scene, pendingChanges);
-                _model->addToScene(scene, pendingChanges);
+
+                render::Item::Status::Getters statusGetters;
+                makeEntityItemStatusGetters(this, statusGetters);
+                _model->addToScene(scene, pendingChanges, statusGetters);
             }
             scene->enqueuePendingChanges(pendingChanges);
 
@@ -372,8 +401,8 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
         const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
         const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
     
-        if ((! collisionNetworkGeometry.isNull() && collisionNetworkGeometry->isLoadedWithTextures()) &&
-            (! renderNetworkGeometry.isNull() && renderNetworkGeometry->isLoadedWithTextures())) {
+        if ((collisionNetworkGeometry && collisionNetworkGeometry->isLoaded()) &&
+            (renderNetworkGeometry && renderNetworkGeometry->isLoaded())) {
             // we have both URLs AND both geometries AND they are both fully loaded.
             return true;
         }
@@ -394,7 +423,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
         // should never fall in here when collision model not fully loaded
         // hence we assert collisionNetworkGeometry is not NULL
-        assert(!collisionNetworkGeometry.isNull());
+        assert(collisionNetworkGeometry);
 
         const FBXGeometry& collisionGeometry = collisionNetworkGeometry->getFBXGeometry();
         const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();

@@ -148,7 +148,7 @@ public:
     
     virtual int parseDataAtOffset(const QByteArray& packet, int offset);
 
-    static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, 
+    static void renderJointConnectingCone( gpu::Batch& batch, glm::vec3 position1, glm::vec3 position2,
                                                 float radius1, float radius2, const glm::vec4& color);
 
     virtual void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) { }
@@ -237,7 +237,7 @@ protected:
     Transform calculateDisplayNameTransform(const ViewFrustum& frustum, float fontSize) const;
     void renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum) const;
     virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel = 0.0f);
-    virtual bool shouldRenderHead(const RenderArgs* renderArgs, const glm::vec3& cameraPosition) const;
+    virtual bool shouldRenderHead(const RenderArgs* renderArgs) const;
     virtual void fixupModelsInScene();
 
     void simulateAttachments(float deltaTime);

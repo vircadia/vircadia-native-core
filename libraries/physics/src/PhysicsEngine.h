@@ -94,6 +94,7 @@ public:
 
     int16_t getCollisionMask(int16_t group) const;
 
+    EntityActionPointer getActionByID(const QUuid& actionID) const;
     void addAction(EntityActionPointer action);
     void removeAction(const QUuid actionID);
 

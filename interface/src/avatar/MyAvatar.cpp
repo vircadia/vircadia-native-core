@@ -27,11 +27,15 @@
 #include <GeometryUtil.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
+#include <PathUtils.h>
 #include <PerfStat.h>
 #include <ShapeCollider.h>
 #include <SharedUtil.h>
 #include <TextRenderer.h>
 #include <UserActivityLogger.h>
+
+#include "devices/Faceshift.h"
+#include "devices/OculusManager.h"
 
 #include "Application.h"
 #include "AvatarManager.h"
@@ -41,7 +45,6 @@
 #include "MyAvatar.h"
 #include "Physics.h"
 #include "Recorder.h"
-#include "devices/Faceshift.h"
 #include "Util.h"
 #include "InterfaceLogging.h"
 
@@ -69,14 +72,14 @@ float DEFAULT_SCRIPTED_MOTOR_TIMESCALE = 1.0e6f;
 const int SCRIPTED_MOTOR_CAMERA_FRAME = 0;
 const int SCRIPTED_MOTOR_AVATAR_FRAME = 1;
 const int SCRIPTED_MOTOR_WORLD_FRAME = 2;
+const QString& DEFAULT_AVATAR_COLLISION_SOUND_URL = "https://s3.amazonaws.com/hifi-public/sounds/Collisions-hitsandslaps/airhockey_hit1.wav";
 
 const float MyAvatar::ZOOM_MIN = 0.5f;
-const float MyAvatar::ZOOM_MAX = 10.0f;
+const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 
 MyAvatar::MyAvatar() :
 	Avatar(),
-    _turningKeyPressTime(0.0f),
     _gravity(0.0f, 0.0f, 0.0f),
     _wasPushing(false),
     _isPushing(false),
@@ -90,15 +93,20 @@ MyAvatar::MyAvatar() :
     _scriptedMotorTimescale(DEFAULT_SCRIPTED_MOTOR_TIMESCALE),
     _scriptedMotorFrame(SCRIPTED_MOTOR_CAMERA_FRAME),
     _motionBehaviors(AVATAR_MOTION_DEFAULTS),
+    _collisionSoundURL(""),
     _characterController(this),
     _lookAtTargetAvatar(),
     _shouldRender(true),
     _billboardValid(false),
     _feetTouchFloor(true),
-    _isLookingAtLeftEye(true),
+    _eyeContactTarget(LEFT_EYE),
     _realWorldFieldOfView("realWorldFieldOfView",
-                          DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES)
+                          DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
+    _firstPersonSkeletonModel(this),
+    _prevShouldDrawHead(true)
 {
+    _firstPersonSkeletonModel.setIsFirstPerson(true);
+
     ShapeCollider::initDispatchTable();
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
@@ -132,6 +140,7 @@ QByteArray MyAvatar::toByteArray() {
 
 void MyAvatar::reset() {
     _skeletonModel.reset();
+    _firstPersonSkeletonModel.reset();
     getHead()->reset();
 
     _targetVelocity = glm::vec3(0.0f);
@@ -190,6 +199,7 @@ void MyAvatar::simulate(float deltaTime) {
     {
         PerformanceTimer perfTimer("skeleton");
         _skeletonModel.simulate(deltaTime);
+        _firstPersonSkeletonModel.simulate(deltaTime);
     }
 
     if (!_skeletonModel.hasSkeleton()) {
@@ -313,28 +323,6 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 }
 
 
-void MyAvatar::renderDebugBodyPoints() {
-    glm::vec3 torsoPosition(getPosition());
-    glm::vec3 headPosition(getHead()->getEyePosition());
-    float torsoToHead = glm::length(headPosition - torsoPosition);
-    glm::vec3 position;
-    qCDebug(interfaceapp, "head-above-torso %.2f, scale = %0.2f", (double)torsoToHead, (double)getScale());
-
-    //  Torso Sphere
-    position = torsoPosition;
-    glPushMatrix();
-    glTranslatef(position.x, position.y, position.z);
-    DependencyManager::get<GeometryCache>()->renderSphere(0.2f, 10.0f, 10.0f, glm::vec4(0, 1, 0, .5f));
-    glPopMatrix();
-
-    //  Head Sphere
-    position = headPosition;
-    glPushMatrix();
-    glTranslatef(position.x, position.y, position.z);
-    DependencyManager::get<GeometryCache>()->renderSphere(0.15f, 10.0f, 10.0f, glm::vec4(0, 1, 0, .5f));
-    glPopMatrix();
-}
-
 // virtual
 void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting) {
     // don't render if we've been asked to disable local rendering
@@ -345,8 +333,9 @@ void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, b
     Avatar::render(renderArgs, cameraPosition, postLighting);
 
     // don't display IK constraints in shadow mode
-    if (Menu::getInstance()->isOptionChecked(MenuOption::ShowIKConstraints) && postLighting) {
-        _skeletonModel.renderIKConstraints();
+    if (Menu::getInstance()->isOptionChecked(MenuOption::ShowIKConstraints) &&
+        renderArgs && renderArgs->_batch) {
+        _skeletonModel.renderIKConstraints(*renderArgs->_batch);
     }
 }
 
@@ -361,6 +350,12 @@ glm::vec3 MyAvatar::getLeftPalmPosition() {
     return leftHandPosition;
 }
 
+glm::quat MyAvatar::getLeftPalmRotation() {
+    glm::quat leftRotation;
+    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getLeftHandJointIndex(), leftRotation);
+    return leftRotation;
+}
+
 glm::vec3 MyAvatar::getRightPalmPosition() {
     glm::vec3 rightHandPosition;
     getSkeletonModel().getRightHandPosition(rightHandPosition);
@@ -368,6 +363,12 @@ glm::vec3 MyAvatar::getRightPalmPosition() {
     getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightRotation);
     rightHandPosition += HAND_TO_PALM_OFFSET * glm::inverse(rightRotation);
     return rightHandPosition;
+}
+
+glm::quat MyAvatar::getRightPalmRotation() {
+    glm::quat rightRotation;
+    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightRotation);
+    return rightRotation;
 }
 
 void MyAvatar::clearReferential() {
@@ -658,6 +659,7 @@ void MyAvatar::saveData() {
     settings.endArray();
 
     settings.setValue("displayName", _displayName);
+    settings.setValue("collisionSoundURL", _collisionSoundURL);
 
     settings.endGroup();
 }
@@ -783,6 +785,7 @@ void MyAvatar::loadData() {
     settings.endArray();
 
     setDisplayName(settings.value("displayName").toString());
+    setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
 
     settings.endGroup();
 }
@@ -874,7 +877,6 @@ void MyAvatar::updateLookAtTargetAvatar() {
     const float KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR = 1.3f;
     const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;
 
-    int howManyLookingAtMe = 0;
     foreach (const AvatarSharedPointer& avatarPointer, DependencyManager::get<AvatarManager>()->getAvatarHash()) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.get());
         bool isCurrentTarget = avatar->getIsLookAtTarget();
@@ -887,17 +889,22 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 _targetAvatarPosition = avatarPointer->getPosition();
                 smallestAngleTo = angleTo;
             }
-            //  Check if this avatar is looking at me, and fix their gaze on my camera if so
             if (Application::getInstance()->isLookingAtMyAvatar(avatar)) {
-                howManyLookingAtMe++;
-                //  Have that avatar look directly at my camera
-                //  Philip TODO: correct to look at left/right eye
-                if (qApp->isHMDMode()) {
-                    avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition());
-                    // FIXME what is the point of this?
-                    // avatar->getHead()->setCorrectedLookAtPosition(OculusManager::getLeftEyePosition());
+                // Alter their gaze to look directly at my camera; this looks more natural than looking at my avatar's face.
+                // Offset their gaze according to whether they're looking at one of my eyes or my mouth.
+                glm::vec3 gazeOffset = avatar->getHead()->getLookAtPosition() - getHead()->getEyePosition();
+                const float HUMAN_EYE_SEPARATION = 0.065f;
+                float myEyeSeparation = glm::length(getHead()->getLeftEyePosition() - getHead()->getRightEyePosition());
+                gazeOffset = gazeOffset * HUMAN_EYE_SEPARATION / myEyeSeparation;
+
+                if (Application::getInstance()->isHMDMode()) {
+                    //avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getCamera()->getPosition()
+                    //    + OculusManager::getMidEyePosition() + gazeOffset);
+                    avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition()
+                        + OculusManager::getMidEyePosition() + gazeOffset);
                 } else {
-                    avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition());
+                    avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition()
+                        + gazeOffset);
                 }
             } else {
                 avatar->getHead()->clearCorrectedLookAtPosition();
@@ -914,12 +921,24 @@ void MyAvatar::clearLookAtTargetAvatar() {
     _lookAtTargetAvatar.reset();
 }
 
-bool MyAvatar::isLookingAtLeftEye() {
-    float const CHANCE_OF_CHANGING_EYE = 0.01f;
-    if (randFloat() < CHANCE_OF_CHANGING_EYE) {
-        _isLookingAtLeftEye = !_isLookingAtLeftEye;
+eyeContactTarget MyAvatar::getEyeContactTarget() {
+    float const CHANCE_OF_CHANGING_TARGET = 0.01f;
+    if (randFloat() < CHANCE_OF_CHANGING_TARGET) {
+        float const FIFTY_FIFTY_CHANCE = 0.5f;
+        switch (_eyeContactTarget) {
+            case LEFT_EYE:
+                _eyeContactTarget = (randFloat() < FIFTY_FIFTY_CHANCE) ? MOUTH : RIGHT_EYE;
+                break;
+            case RIGHT_EYE:
+                _eyeContactTarget = (randFloat() < FIFTY_FIFTY_CHANCE) ? LEFT_EYE : MOUTH;
+                break;
+            case MOUTH:
+                _eyeContactTarget = (randFloat() < FIFTY_FIFTY_CHANCE) ? RIGHT_EYE : LEFT_EYE;
+                break;
+        }
     }
-    return _isLookingAtLeftEye;
+
+    return _eyeContactTarget;
 }
 
 glm::vec3 MyAvatar::getDefaultEyePosition() const {
@@ -987,16 +1006,35 @@ QString MyAvatar::getModelDescription() const {
 }
 
 void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
+
     Avatar::setFaceModelURL(faceModelURL);
+    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    getHead()->getFaceModel().setVisibleInScene(_prevShouldDrawHead, scene);
     _billboardValid = false;
 }
 
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
+
     Avatar::setSkeletonModelURL(skeletonModelURL);
+    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
     _billboardValid = false;
+
+    if (_useFullAvatar) {
+        _skeletonModel.setVisibleInScene(_prevShouldDrawHead, scene);
+
+        const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_body.fst");
+        _firstPersonSkeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
+        _firstPersonSkeletonModel.setVisibleInScene(!_prevShouldDrawHead, scene);
+    } else {
+        _skeletonModel.setVisibleInScene(true, scene);
+
+        _firstPersonSkeletonModel.setVisibleInScene(false, scene);
+        _firstPersonSkeletonModel.reset();
+    }
 }
 
 void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName) {
+
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "useFullAvatarURL", Qt::BlockingQueuedConnection,
                                   Q_ARG(const QUrl&, fullAvatarURL),
@@ -1158,6 +1196,13 @@ void MyAvatar::clearScriptableSettings() {
     _scriptedMotorTimescale = DEFAULT_SCRIPTED_MOTOR_TIMESCALE;
 }
 
+void MyAvatar::setCollisionSoundURL(const QString& url) {
+    _collisionSoundURL = url;
+    if (!url.isEmpty() && (url != _collisionSoundURL)) {
+        emit newCollisionSoundURL(QUrl(url));
+    }
+}
+
 void MyAvatar::attach(const QString& modelURL, const QString& jointName, const glm::vec3& translation,
         const glm::quat& rotation, float scale, bool allowDuplicates, bool useSaved) {
     if (QThread::currentThread() != thread()) {
@@ -1178,55 +1223,69 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName, const g
 void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel) {
 
     if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
-        return; // wait until both models are loaded
+        return; // wait until all models are loaded
     }
 
-    // check to see if when we added our models to the scene they were ready, if they were not ready, then
-    // fix them up in the scene
     fixupModelsInScene();
 
-    const glm::vec3 cameraPos = Application::getInstance()->getCamera()->getPosition();
-
     //  Render head so long as the camera isn't inside it
-    if (shouldRenderHead(renderArgs, cameraPos)) {
+    if (shouldRenderHead(renderArgs)) {
         getHead()->render(renderArgs, 1.0f, renderFrustum, postLighting);
     }
-    if (postLighting) {
-        getHand()->render(renderArgs, true);
+    getHand()->render(renderArgs, true);
+}
+
+void MyAvatar::setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visible) {
+    if (model->isActive() && model->isRenderable()) {
+        model->setVisibleInScene(visible, scene);
     }
+}
+
+void MyAvatar::preRender(RenderArgs* renderArgs) {
+
+    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    const bool shouldDrawHead = shouldRenderHead(renderArgs);
+
+    _skeletonModel.initWhenReady(scene);
+    if (_useFullAvatar) {
+        _firstPersonSkeletonModel.initWhenReady(scene);
+    }
+
+    if (shouldDrawHead != _prevShouldDrawHead) {
+        if (_useFullAvatar) {
+            if (shouldDrawHead) {
+                _skeletonModel.setVisibleInScene(true, scene);
+                _firstPersonSkeletonModel.setVisibleInScene(false, scene);
+            } else {
+                _skeletonModel.setVisibleInScene(false, scene);
+                _firstPersonSkeletonModel.setVisibleInScene(true, scene);
+            }
+        } else {
+            getHead()->getFaceModel().setVisibleInScene(shouldDrawHead, scene);
+        }
+
+    }
+    _prevShouldDrawHead = shouldDrawHead;
 }
 
 const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
 
-bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs, const glm::vec3& cameraPosition) const {
+bool MyAvatar::cameraInsideHead() const {
     const Head* head = getHead();
-    return (renderArgs->_renderMode != RenderArgs::NORMAL_RENDER_MODE) || (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON) ||
-        (glm::length(cameraPosition - head->getEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE * _scale);
+    const glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
+    return glm::length(cameraPosition - head->getEyePosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * _scale);
+}
+
+bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
+    return ((renderArgs->_renderMode != RenderArgs::DEFAULT_RENDER_MODE) ||
+            (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON) ||
+            !cameraInsideHead());
 }
 
 void MyAvatar::updateOrientation(float deltaTime) {
-    //  Gather rotation information from keyboard
-    const float TIME_BETWEEN_HMD_TURNS = 0.5f;
-    const float HMD_TURN_DEGREES = 22.5f;
-    if (!qApp->isHMDMode()) {
-        //  Smoothly rotate body with arrow keys if not in HMD
-        _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_SPEED * deltaTime;
-        _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_SPEED * deltaTime;
-    } else {
-        //  Jump turns if in HMD
-        if (_driveKeys[ROT_RIGHT] || _driveKeys[ROT_LEFT]) {
-            if (_turningKeyPressTime == 0.0f) {
-                setOrientation(getOrientation() *
-                               glm::quat(glm::radians(glm::vec3(0.f, _driveKeys[ROT_LEFT] ? HMD_TURN_DEGREES : -HMD_TURN_DEGREES, 0.0f))));
-            }
-            _turningKeyPressTime += deltaTime;
-            if (_turningKeyPressTime > TIME_BETWEEN_HMD_TURNS) {
-                _turningKeyPressTime = 0.0f;
-            }
-        } else {
-            _turningKeyPressTime = 0.0f;
-        }
-    }
+    //  Smoothly rotate body with arrow keys
+    _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_SPEED * deltaTime;
+    _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_SPEED * deltaTime;
     getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
 
     // update body orientation by movement inputs
@@ -1353,7 +1412,8 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
         }
     }
     
-    _boomLength += _driveKeys[BOOM_OUT] - _driveKeys[BOOM_IN];
+    float boomChange = _driveKeys[BOOM_OUT] - _driveKeys[BOOM_IN];
+    _boomLength += 2.0f * _boomLength * boomChange + boomChange * boomChange;
     _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);
 
     return newLocalVelocity;
@@ -1468,7 +1528,7 @@ void MyAvatar::maybeUpdateBillboard() {
     }
     gpu::Context context(new gpu::GLBackend());
     RenderArgs renderArgs(&context);
-    QImage image = Application::getInstance()->renderAvatarBillboard(&renderArgs);
+    QImage image = qApp->renderAvatarBillboard(&renderArgs);
     _billboard.clear();
     QBuffer buffer(&_billboard);
     buffer.open(QIODevice::WriteOnly);
@@ -1546,7 +1606,7 @@ void MyAvatar::updateMotionBehavior() {
 }
 
 //Renders sixense laser pointers for UI selection with controllers
-void MyAvatar::renderLaserPointers() {
+void MyAvatar::renderLaserPointers(gpu::Batch& batch) {
     const float PALM_TIP_ROD_RADIUS = 0.002f;
 
     //If the Oculus is enabled, we will draw a blue cursor ray
@@ -1559,15 +1619,16 @@ void MyAvatar::renderLaserPointers() {
 
             //Scale the root vector with the avatar scale
             scaleVectorRelativeToPosition(root);
-
-            Avatar::renderJointConnectingCone(root, tip, PALM_TIP_ROD_RADIUS, PALM_TIP_ROD_RADIUS, glm::vec4(0, 1, 1, 1));
+            Transform transform = Transform();
+            transform.setTranslation(glm::vec3());
+            batch.setModelTransform(transform);
+            Avatar::renderJointConnectingCone(batch, root, tip, PALM_TIP_ROD_RADIUS, PALM_TIP_ROD_RADIUS, glm::vec4(0, 1, 1, 1));
         }
     }
 }
 
 //Gets the tip position for the laser pointer
 glm::vec3 MyAvatar::getLaserPointerTipPosition(const PalmData* palm) {
-    const ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
     glm::vec3 direction = glm::normalize(palm->getTipPosition() - palm->getPosition());
 
     glm::vec3 position = palm->getPosition();
@@ -1576,7 +1637,8 @@ glm::vec3 MyAvatar::getLaserPointerTipPosition(const PalmData* palm) {
 
 
     glm::vec3 result;
-    if (applicationOverlay.calculateRayUICollisionPoint(position, direction, result)) {
+    const auto& compositor = qApp->getApplicationCompositor();
+    if (compositor.calculateRayUICollisionPoint(position, direction, result)) {
         return result;
     }
 

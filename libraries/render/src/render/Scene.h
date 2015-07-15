@@ -196,12 +196,50 @@ public:
     // Bound is the AABBox fully containing this item
     typedef AABox Bound;
     
-    // Stats records the life history and performances of this item while performing at rendering and updating.
+    // Status records the life history and performances of this item while performing at rendering and updating.
     // This is Used for monitoring and dynamically adjust the quality 
-    class Stats {
+    class Status {
     public:
-        int _firstFrame;
+
+        // Status::Value class is the data used to represent the transient information of a status as a square icon
+        // The "icon" is a square displayed in the 3D scene over the render::Item AABB center.
+        // It can be scaled in the range [0, 1] and the color hue  in the range [0, 360] representing the color wheel hue
+        class Value {
+            unsigned short _scale = 0xFFFF;
+            unsigned short _color = 0xFFFF;
+        public:
+            const static Value INVALID; // Invalid value meanss the status won't show
+
+            Value() {}
+            Value(float scale, float hue) { setScale(scale); setColor(hue); }
+
+            // It can be scaled in the range [0, 1] 
+            void setScale(float scale);
+            // the color hue  in the range [0, 360] representing the color wheel hue
+            void setColor(float hue);
+
+            // Standard color Hue
+            static const float RED; // 0.0f;
+            static const float YELLOW; // 60.0f;
+            static const float GREEN; // 120.0f;
+            static const float CYAN; // 180.0f;
+            static const float BLUE; // 240.0f;
+            static const float MAGENTA; // 300.0f;
+
+            // Retreive the Value data tightely packed as an int
+            int getPackedData() const { return *((const int*) this); }
+        };
+
+        typedef std::function<Value()> Getter;
+        typedef std::vector<Getter> Getters;
+
+        Getters _values;
+
+        void addGetter(const Getter& getter) { _values.push_back(getter); }
+
+        void getPackedValues(glm::ivec4& values) const;
     };
+    typedef std::shared_ptr<Status> StatusPointer;
 
     // Update Functor
     class UpdateFunctorInterface {
@@ -222,7 +260,15 @@ public:
         virtual const model::MaterialKey getMaterialKey() const = 0;
 
         ~PayloadInterface() {}
+
+        // Status interface is local to the base class
+        const StatusPointer& getStatus() const { return _status; }
+        void addStatusGetter(const Status::Getter& getter);
+        void addStatusGetters(const Status::Getters& getters);
+
     protected:
+        StatusPointer _status;
+
         friend class Item;
         virtual void update(const UpdateFunctorPointer& functor) = 0;
     };
@@ -252,6 +298,10 @@ public:
 
     // Shape Type Interface
     const model::MaterialKey getMaterialKey() const { return _payload->getMaterialKey(); }
+
+    // Access the status
+    const StatusPointer& getStatus() const { return _payload->getStatus(); }
+    glm::ivec4 getStatusPackedValues() const;
 
 protected:
     PayloadPointer _payload;

@@ -113,6 +113,8 @@ public:
     // Generate a BufferStream on the mesh vertices and attributes
     const gpu::BufferStream makeBufferStream() const;
 
+    static gpu::Primitive topologyToPrimitive(Topology topo) { return static_cast<gpu::Primitive>(topo); }
+
 protected:
 
     gpu::Stream::FormatPointer _vertexFormat;

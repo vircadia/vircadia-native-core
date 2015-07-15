@@ -484,7 +484,7 @@
           "type": "checkbox",
           "label": "Edit Logging",
           "help": "Logging of all edits to entities",
-          "default": true,
+          "default": false,
           "advanced": true
         },
         {

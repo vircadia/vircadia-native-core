@@ -55,7 +55,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketTypeInjectAudio:
             return 1;
         case PacketTypeAvatarData:
-            return 6;
+            return 7;
         case PacketTypeAvatarIdentity:
             return 1;
         case PacketTypeEnvironmentData:
@@ -73,7 +73,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketTypeEntityAdd:
         case PacketTypeEntityEdit:
         case PacketTypeEntityData:
-            return VERSION_ENTITIES_FACE_CAMERA;
+            return VERSION_ENTITIES_HAVE_SIMULATION_OWNER_AND_ACTIONS_OVER_WIRE;
         case PacketTypeEntityErase:
             return 2;
         case PacketTypeAudioStreamStats:

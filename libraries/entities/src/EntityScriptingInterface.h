@@ -22,6 +22,7 @@
 #include <OctreeScriptingInterface.h>
 #include <RegisteredMetaTypes.h>
 #include "PolyVoxEntityItem.h"
+#include "LineEntityItem.h"
 
 #include "EntityEditPacketSender.h"
 
@@ -122,11 +123,16 @@ public slots:
     Q_INVOKABLE bool setVoxel(QUuid entityID, const glm::vec3& position, int value);
     Q_INVOKABLE bool setAllVoxels(QUuid entityID, int value);
 
+    Q_INVOKABLE bool setAllPoints(QUuid entityID, const QVector<glm::vec3>& points);
+    Q_INVOKABLE bool appendPoint(QUuid entityID, const glm::vec3& point);
+
     Q_INVOKABLE void dumpTree() const;
 
     Q_INVOKABLE QUuid addAction(const QString& actionTypeString, const QUuid& entityID, const QVariantMap& arguments);
     Q_INVOKABLE bool updateAction(const QUuid& entityID, const QUuid& actionID, const QVariantMap& arguments);
     Q_INVOKABLE bool deleteAction(const QUuid& entityID, const QUuid& actionID);
+    Q_INVOKABLE QVector<QUuid> getActionIDs(const QUuid& entityID);
+    Q_INVOKABLE QVariantMap getActionArguments(const QUuid& entityID, const QUuid& actionID);
 
 signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
@@ -157,10 +163,11 @@ signals:
 private:
     bool actionWorker(const QUuid& entityID, std::function<bool(EntitySimulation*, EntityItemPointer)> actor);
     bool setVoxels(QUuid entityID, std::function<void(PolyVoxEntityItem&)> actor);
+    bool setPoints(QUuid entityID, std::function<bool(LineEntityItem&)> actor);
     void queueEntityMessage(PacketType packetType, EntityItemID entityID, const EntityItemProperties& properties);
 
     /// actually does the work of finding the ray intersection, can be called in locking mode or tryLock mode
-    RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType, 
+    RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
                                                                         bool precisionPicking);
 
     EntityTree* _entityTree;

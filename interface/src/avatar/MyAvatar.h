@@ -19,12 +19,19 @@
 
 class ModelItemID;
 
+enum eyeContactTarget {
+    LEFT_EYE,
+    RIGHT_EYE,
+    MOUTH
+};
+
 class MyAvatar : public Avatar {
     Q_OBJECT
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
     Q_PROPERTY(glm::vec3 motorVelocity READ getScriptedMotorVelocity WRITE setScriptedMotorVelocity)
     Q_PROPERTY(float motorTimescale READ getScriptedMotorTimescale WRITE setScriptedMotorTimescale)
     Q_PROPERTY(QString motorReferenceFrame READ getScriptedMotorFrame WRITE setScriptedMotorFrame)
+    Q_PROPERTY(QString collisionSoundURL READ getCollisionSoundURL WRITE setCollisionSoundURL)
     //TODO: make gravity feature work Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setGravity)
 
 public:
@@ -35,12 +42,12 @@ public:
     void reset();
     void update(float deltaTime);
     void simulate(float deltaTime);
+    void preRender(RenderArgs* renderArgs);
     void updateFromTrackers(float deltaTime);
 
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting = false) override;
     virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel = 0.0f) override;
-    virtual bool shouldRenderHead(const RenderArgs* renderArgs, const glm::vec3& cameraPosition) const override;
-    void renderDebugBodyPoints();
+    virtual bool shouldRenderHead(const RenderArgs* renderArgs) const override;
 
     // setters
     void setLeanScale(float scale) { _leanScale = scale; }
@@ -92,7 +99,7 @@ public:
 
     bool isMyAvatar() const { return true; }
     
-    bool isLookingAtLeftEye();
+    eyeContactTarget getEyeContactTarget();
 
     virtual int parseDataAtOffset(const QByteArray& packet, int offset);
     
@@ -149,6 +156,9 @@ public:
     void setScriptedMotorTimescale(float timescale);
     void setScriptedMotorFrame(QString frame);
 
+    const QString& getCollisionSoundURL() {return _collisionSoundURL; }
+    void setCollisionSoundURL(const QString& url);
+
     void clearScriptableSettings();
 
     virtual void attach(const QString& modelURL, const QString& jointName = QString(),
@@ -156,7 +166,7 @@ public:
         bool allowDuplicates = false, bool useSaved = true);
         
     /// Renders a laser pointer for UI picking
-    void renderLaserPointers();
+    void renderLaserPointers(gpu::Batch& batch);
     glm::vec3 getLaserPointerTipPosition(const PalmData* palm);
     
     const RecorderPointer getRecorder() const { return _recorder; }
@@ -184,10 +194,12 @@ public slots:
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
     void updateMotionBehavior();
-    
+
     glm::vec3 getLeftPalmPosition();
+    glm::quat getLeftPalmRotation();
     glm::vec3 getRightPalmPosition();
-    
+    glm::quat getRightPalmRotation();
+
     void clearReferential();
     bool setModelReferential(const QUuid& id);
     bool setJointReferential(const QUuid& id, int jointIndex);
@@ -203,14 +215,19 @@ public slots:
     
 signals:
     void transformChanged();
+    void newCollisionSoundURL(const QUrl& url);
+    void collisionWithEntity(const Collision& collision);
 
 private:
+
+    bool cameraInsideHead() const;
 
     // These are made private for MyAvatar so that you will use the "use" methods instead
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
-    float _turningKeyPressTime;
+    void setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visiblity);
+
     glm::vec3 _gravity;
 
     float _driveKeys[MAX_DRIVE_KEYS];
@@ -229,6 +246,7 @@ private:
     float _scriptedMotorTimescale; // timescale for avatar to achieve its target velocity
     int _scriptedMotorFrame;
     quint32 _motionBehaviors;
+    QString _collisionSoundURL;
 
     DynamicCharacterController _characterController;
 
@@ -241,7 +259,7 @@ private:
     QList<AnimationHandlePointer> _animationHandles;
     
     bool _feetTouchFloor;
-    bool _isLookingAtLeftEye;
+    eyeContactTarget _eyeContactTarget;
 
     RecorderPointer _recorder;
     
@@ -266,6 +284,10 @@ private:
     QString _headModelName;
     QString _bodyModelName;
     QString _fullAvatarModelName;
+
+    // used for rendering when in first person view or when in an HMD.
+    SkeletonModel _firstPersonSkeletonModel;
+    bool _prevShouldDrawHead;
 };
 
 #endif // hifi_MyAvatar_h

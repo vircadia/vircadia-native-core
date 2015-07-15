@@ -8,15 +8,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Overlays.h"
+
 #include <QScriptValueIterator>
 
 #include <limits>
-#include <typeinfo>
 
 #include <Application.h>
-#include <avatar/AvatarManager.h>
-#include <LODManager.h>
 #include <render/Scene.h>
+#include <gpu/GLBackend.h>
 
 #include "BillboardOverlay.h"
 #include "Circle3DOverlay.h"
@@ -25,7 +25,6 @@
 #include "Line3DOverlay.h"
 #include "LocalModelsOverlay.h"
 #include "ModelOverlay.h"
-#include "Overlays.h"
 #include "Rectangle3DOverlay.h"
 #include "Sphere3DOverlay.h"
 #include "Grid3DOverlay.h"
@@ -37,7 +36,6 @@ Overlays::Overlays() : _nextOverlayID(1) {
 }
 
 Overlays::~Overlays() {
-    
     {
         QWriteLocker lock(&_lock);
         QWriteLocker deleteLock(&_deleteLock);
@@ -98,9 +96,11 @@ void Overlays::cleanupOverlaysToDelete() {
 }
 
 void Overlays::renderHUD(RenderArgs* renderArgs) {
+    PROFILE_RANGE(__FUNCTION__);
     QReadLocker lock(&_lock);
+    gpu::Batch batch;
+    renderArgs->_batch = &batch;
     
-    auto lodManager = DependencyManager::get<LODManager>();
 
     foreach(Overlay::Pointer thisOverlay, _overlaysHUD) {
         if (thisOverlay->is3D()) {
@@ -115,6 +115,9 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
             thisOverlay->render(renderArgs);
         }
     }
+
+    renderArgs->_context->syncCache();
+    renderArgs->_context->render(batch);
 }
 
 unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& properties) {
@@ -258,7 +261,7 @@ void Overlays::deleteOverlay(unsigned int id) {
 unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
     glm::vec2 pointCopy = point;
     if (qApp->isHMDMode()) {
-        pointCopy = qApp->getApplicationOverlay().screenToOverlay(point);
+        pointCopy = qApp->getApplicationCompositor().screenToOverlay(point);
     }
     
     QReadLocker lock(&_lock);
@@ -284,7 +287,7 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
         } else {
             Overlay2D* thisOverlay = static_cast<Overlay2D*>(i.value().get());
             if (thisOverlay->getVisible() && thisOverlay->isLoaded() &&
-                thisOverlay->getBounds().contains(pointCopy.x, pointCopy.y, false)) {
+                thisOverlay->getBoundingRect().contains(pointCopy.x, pointCopy.y, false)) {
                 return thisID;
             }
         }

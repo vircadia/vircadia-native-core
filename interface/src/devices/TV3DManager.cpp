@@ -12,6 +12,7 @@
 #include "InterfaceConfig.h"
 
 #include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <GlowEffect.h>
 #include "gpu/GLBackend.h"
@@ -106,21 +107,19 @@ void TV3DManager::display(RenderArgs* renderArgs, Camera& whichCamera) {
         _activeEye = &eye;
         glViewport(portalX, portalY, portalW, portalH);
         glScissor(portalX, portalY, portalW, portalH);
+
+        glm::mat4 projection = glm::frustum<float>(eye.left, eye.right, eye.bottom, eye.top, nearZ, farZ);
+        projection = glm::translate(projection, vec3(eye.modelTranslation, 0, 0));
+        eyeCamera.setProjection(projection);
+
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity(); // reset projection matrix
-        glFrustum(eye.left, eye.right, eye.bottom, eye.top, nearZ, farZ); // set left view frustum
-        GLfloat p[4][4];
-        // Really?
-        glGetFloatv(GL_PROJECTION_MATRIX, &(p[0][0]));
-        float cotangent = p[1][1];
-        GLfloat fov = atan(1.0f / cotangent);
-        glTranslatef(eye.modelTranslation, 0.0, 0.0); // translate to cancel parallax
-
+        glLoadMatrixf(glm::value_ptr(projection));
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         renderArgs->_renderSide = RenderArgs::MONO;
         qApp->displaySide(renderArgs, eyeCamera, false);
-        qApp->getApplicationOverlay().displayOverlayTextureStereo(whichCamera, _aspect, fov);
+        qApp->getApplicationCompositor().displayOverlayTexture(renderArgs);
         _activeEye = NULL;
     }, [&]{
         // render right side view

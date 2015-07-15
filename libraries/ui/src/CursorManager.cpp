@@ -50,7 +50,7 @@ namespace Cursor {
 
     Manager::Manager() {
         ICONS[Icon::DEFAULT] = PathUtils::resourcesPath() + "images/arrow.png";
-        ICONS[Icon::LINK] = PathUtils::resourcesPath() + "images/reticleLink.png";
+        ICONS[Icon::LINK] = PathUtils::resourcesPath() + "images/link.png";
     }
 
     Manager& Manager::instance() {

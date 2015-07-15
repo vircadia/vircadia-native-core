@@ -11,11 +11,14 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
+#include "TextOverlay.h"
+
 #include <DependencyManager.h>
 #include <GeometryCache.h>
+#include <RegisteredMetaTypes.h>
 #include <SharedUtil.h>
+#include <TextRenderer.h>
 
-#include "TextOverlay.h"
 
 TextOverlay::TextOverlay() :
     _backgroundColor(DEFAULT_BACKGROUND_COLOR),
@@ -80,6 +83,7 @@ void TextOverlay::render(RenderArgs* args) {
 
     glm::vec2 topLeft(left, top);
     glm::vec2 bottomRight(right, bottom);
+    glBindTexture(GL_TEXTURE_2D, 0);
     DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);
     
     const int leftAdjust = -1; // required to make text render relative to left edge of bounds
@@ -165,4 +169,12 @@ QSizeF TextOverlay::textSize(const QString& text) const {
     auto extents = _textRenderer->computeExtent(text);
 
     return QSizeF(extents.x, extents.y);
+}
+
+void TextOverlay::setFontSize(int fontSize) {
+    _fontSize = fontSize;
+
+    auto oldTextRenderer = _textRenderer;
+    _textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);
+    delete oldTextRenderer;
 }

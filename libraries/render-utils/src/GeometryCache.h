@@ -133,8 +133,6 @@ public:
     int allocateID() { return _nextID++; }
     static const int UNKNOWN_ID;
 
-    void renderCone(float base, float height, int slices, int stacks);
-
     void renderSphere(float radius, int slices, int stacks, const glm::vec3& color, bool solid = true, int id = UNKNOWN_ID)
                 { renderSphere(radius, slices, stacks, glm::vec4(color, 1.0f), solid, id); }
     void renderSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec3& color, bool solid = true, int id = UNKNOWN_ID) 
@@ -154,6 +152,10 @@ public:
     void renderWireCube(gpu::Batch& batch, float size, const glm::vec4& color);
     void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id = UNKNOWN_ID);
     void renderBevelCornersRect(gpu::Batch& batch, int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id = UNKNOWN_ID);
+
+    void renderUnitCube(gpu::Batch& batch);
+    void renderUnitQuad(const glm::vec4& color = glm::vec4(1), int id = UNKNOWN_ID);
+    void renderUnitQuad(gpu::Batch& batch, const glm::vec4& color = glm::vec4(1), int id = UNKNOWN_ID);
 
     void renderQuad(int x, int y, int width, int height, const glm::vec4& color, int id = UNKNOWN_ID)
             { renderQuad(glm::vec2(x,y), glm::vec2(x + width, y + height), color, id); }
@@ -249,6 +251,9 @@ public:
     /// \param delayLoad if true, don't load the geometry immediately; wait until load is first requested
     QSharedPointer<NetworkGeometry> getGeometry(const QUrl& url, const QUrl& fallback = QUrl(), bool delayLoad = false);
 
+    /// Set a batch to the simple pipeline, returning the previous pipeline
+    void useSimpleDrawPipeline(gpu::Batch& batch);
+
 protected:
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
@@ -266,6 +271,7 @@ private:
         int vertexSize;
     };
 
+    gpu::PipelinePointer _standardDrawPipeline;
     QHash<float, gpu::BufferPointer> _cubeVerticies;
     QHash<Vec2Pair, gpu::BufferPointer> _cubeColors;
     gpu::BufferPointer _wireCubeIndexBuffer;
@@ -273,7 +279,7 @@ private:
     QHash<float, gpu::BufferPointer> _solidCubeVertices;
     QHash<Vec2Pair, gpu::BufferPointer> _solidCubeColors;
     gpu::BufferPointer _solidCubeIndexBuffer;
-    
+
     class BatchItemDetails {
     public:
         static int population;
@@ -293,6 +299,7 @@ private:
     };
     
     QHash<IntPair, VerticesIndices> _coneVBOs;
+
     int _nextID;
 
     QHash<int, Vec3PairVec4Pair> _lastRegisteredQuad3DTexture;

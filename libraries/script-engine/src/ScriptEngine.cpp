@@ -94,6 +94,7 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _vec3Library(),
     _uuidLibrary(),
     _isUserLoaded(false),
+    _isReloading(false),
     _arrayBufferClass(new ArrayBufferClass(this))
 {
     _allScriptsMutex.lock();
@@ -251,12 +252,13 @@ bool ScriptEngine::setScriptContents(const QString& scriptContents, const QStrin
     return true;
 }
 
-void ScriptEngine::loadURL(const QUrl& scriptURL) {
+void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
     if (_isRunning) {
         return;
     }
 
     _fileNameString = scriptURL.toString();
+    _isReloading = reload;
     
     QUrl url(scriptURL);
     
@@ -283,8 +285,7 @@ void ScriptEngine::loadURL(const QUrl& scriptURL) {
         } else {
             bool isPending;
             auto scriptCache = DependencyManager::get<ScriptCache>();
-            scriptCache->getScript(url, this, isPending);
-            
+            scriptCache->getScript(url, this, isPending, reload);
         }
     }
 }
@@ -317,7 +318,10 @@ void ScriptEngine::init() {
     registerAnimationTypes(this);
     registerAvatarTypes(this);
     registerAudioMetaTypes(this);
-    _controllerScriptingInterface->registerControllerTypes(this);
+    
+    if (_controllerScriptingInterface) {
+        _controllerScriptingInterface->registerControllerTypes(this);
+    }
 
     qScriptRegisterMetaType(this, EntityItemPropertiesToScriptValue, EntityItemPropertiesFromScriptValueHonorReadOnly);
     qScriptRegisterMetaType(this, EntityItemIDtoScriptValue, EntityItemIDfromScriptValue);
@@ -489,7 +493,7 @@ void ScriptEngine::evaluate() {
 
     QScriptValue result = evaluate(_scriptContents);
 
-    // TODO: why do we check this twice? It seems like the call to clearExcpetions() in the lower level evaluate call
+    // TODO: why do we check this twice? It seems like the call to clearExceptions() in the lower level evaluate call
     // will cause this code to never actually run...
     if (hasUncaughtException()) {
         int line = uncaughtExceptionLineNumber();
@@ -706,7 +710,13 @@ void ScriptEngine::run() {
 
         // since we're in non-threaded mode, call process so that the packets are sent
         if (!entityScriptingInterface->getEntityPacketSender()->isThreaded()) {
-            entityScriptingInterface->getEntityPacketSender()->process();
+            // wait here till the edit packet sender is completely done sending
+            while (entityScriptingInterface->getEntityPacketSender()->hasPacketsToSend()) {
+                entityScriptingInterface->getEntityPacketSender()->process();
+                QCoreApplication::processEvents();
+            }
+        } else {
+            // FIXME - do we need to have a similar "wait here" loop for non-threaded packet senders?
         }
     }
 
@@ -901,7 +911,13 @@ void ScriptEngine::load(const QString& loadFile) {
     }
 
     QUrl url = resolvePath(loadFile);
-    emit loadScript(url.toString(), false);
+    if (_isReloading) {
+        auto scriptCache = DependencyManager::get<ScriptCache>();
+        scriptCache->deleteScript(url.toString());
+        emit reloadScript(url.toString(), false);
+    } else {
+        emit loadScript(url.toString(), false);
+    }
 }
 
 void ScriptEngine::nodeKilled(SharedNodePointer node) {

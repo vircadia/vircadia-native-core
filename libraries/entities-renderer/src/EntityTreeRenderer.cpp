@@ -27,10 +27,6 @@
 #include <SceneScriptingInterface.h>
 #include <ScriptEngine.h>
 #include <TextureCache.h>
-#include <SoundCache.h>
-#include <soxr.h>
-#include <AudioConstants.h>
-
 
 #include "EntityTreeRenderer.h"
 
@@ -47,8 +43,6 @@
 #include "RenderableLineEntityItem.h"
 #include "RenderablePolyVoxEntityItem.h"
 #include "EntitiesRendererLogging.h"
-
-#include "DependencyManager.h"
 #include "AddressManager.h"
 
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState, 
@@ -57,7 +51,6 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     _wantScripts(wantScripts),
     _entitiesScriptEngine(NULL),
     _sandboxScriptEngine(NULL),
-    _localAudioInterface(NULL),
     _lastMouseEventValid(false),
     _viewState(viewState),
     _scriptingServices(scriptingServices),
@@ -100,16 +93,18 @@ void EntityTreeRenderer::clear() {
     foreach (const EntityItemID& entityID, _entityScripts.keys()) {
         checkAndCallUnload(entityID);
     }
-    OctreeRenderer::clear();
     _entityScripts.clear();
 
     auto scene = _viewState->getMain3DScene();
     render::PendingChanges pendingChanges;
+    
     foreach(auto entity, _entitiesInScene) {
         entity->removeFromScene(entity, scene, pendingChanges);
     }
     scene->enqueuePendingChanges(pendingChanges);
     _entitiesInScene.clear();
+
+    OctreeRenderer::clear();
 }
 
 void EntityTreeRenderer::init() {
@@ -129,9 +124,9 @@ void EntityTreeRenderer::init() {
     // first chance, we'll check for enter/leave entity events.    
     _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3((float)TREE_SCALE);
     
-    connect(entityTree, &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity);
-    connect(entityTree, &EntityTree::addingEntity, this, &EntityTreeRenderer::addingEntity);
-    connect(entityTree, &EntityTree::entityScriptChanging, this, &EntityTreeRenderer::entitySciptChanging);
+    connect(entityTree, &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity, Qt::QueuedConnection);
+    connect(entityTree, &EntityTree::addingEntity, this, &EntityTreeRenderer::addingEntity, Qt::QueuedConnection);
+    connect(entityTree, &EntityTree::entityScriptChanging, this, &EntityTreeRenderer::entitySciptChanging, Qt::QueuedConnection);
 }
 
 void EntityTreeRenderer::shutdown() {
@@ -155,13 +150,14 @@ void EntityTreeRenderer::errorInLoadingScript(const QUrl& url) {
     }
 }
 
-QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItemID, bool isPreload) {
+QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItemID, bool isPreload, bool reload) {
     EntityItemPointer entity = static_cast<EntityTree*>(_tree)->findEntityByEntityItemID(entityItemID);
-    return loadEntityScript(entity, isPreload);
+    return loadEntityScript(entity, isPreload, reload);
 }
 
 
-QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL, bool& isPending, QUrl& urlOut) {
+QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL, bool& isPending, QUrl& urlOut, 
+        bool& reload) {
     isPending = false;
     QUrl url(scriptMaybeURLorText);
     
@@ -199,7 +195,7 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
             auto scriptCache = DependencyManager::get<ScriptCache>();
             
             if (!scriptCache->isInBadScriptList(url)) {
-                scriptContents = scriptCache->getScript(url, this, isPending);
+                scriptContents = scriptCache->getScript(url, this, isPending, reload);
             }
         }
     }
@@ -208,7 +204,7 @@ QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorTe
 }
 
 
-QScriptValue EntityTreeRenderer::loadEntityScript(EntityItemPointer entity, bool isPreload) {
+QScriptValue EntityTreeRenderer::loadEntityScript(EntityItemPointer entity, bool isPreload, bool reload) {
     if (_shuttingDown) {
         return QScriptValue(); // since we're shutting down, we don't load any more scripts
     }
@@ -228,8 +224,8 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItemPointer entity, bool
     if (_entityScripts.contains(entityID)) {
         EntityScriptDetails details = _entityScripts[entityID];
         
-        // check to make sure our script text hasn't changed on us since we last loaded it
-        if (details.scriptText == entityScript) {
+        // check to make sure our script text hasn't changed on us since we last loaded it and we're not redownloading it
+        if (details.scriptText == entityScript && !reload) {
             return details.scriptObject; // previously loaded
         }
         
@@ -244,7 +240,7 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItemPointer entity, bool
     bool isURL = false; // loadScriptContents() will tell us if this is a URL or just text.
     bool isPending = false;
     QUrl url;
-    QString scriptContents = loadScriptContents(entityScript, isURL, isPending, url);
+    QString scriptContents = loadScriptContents(entityScript, isURL, isPending, url, reload);
     
     if (isPending && isPreload && isURL) {
         _waitingOnPreload.insert(url, entityID);
@@ -550,7 +546,7 @@ const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(EntityItemP
             Model* model = modelEntityItem->getModel(this);
             if (model) {
                 const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = model->getCollisionGeometry();
-                if (!collisionNetworkGeometry.isNull()) {
+                if (collisionNetworkGeometry && collisionNetworkGeometry->isLoaded()) {
                     result = &collisionNetworkGeometry->getFBXGeometry();
                 }
             }
@@ -808,6 +804,8 @@ void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityS
     connect(this, &EntityTreeRenderer::enterEntity, entityScriptingInterface, &EntityScriptingInterface::enterEntity);
     connect(this, &EntityTreeRenderer::leaveEntity, entityScriptingInterface, &EntityScriptingInterface::leaveEntity);
     connect(this, &EntityTreeRenderer::collisionWithEntity, entityScriptingInterface, &EntityScriptingInterface::collisionWithEntity);
+
+    connect(DependencyManager::get<SceneScriptingInterface>().data(), &SceneScriptingInterface::shouldRenderEntitiesChanged, this, &EntityTreeRenderer::updateEntityRenderStatus, Qt::QueuedConnection);
 }
 
 QScriptValueList EntityTreeRenderer::createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID) {
@@ -844,6 +842,14 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int device
     RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
     if (rayPickResult.intersects) {
         //qCDebug(entitiesrenderer) << "mousePressEvent over entity:" << rayPickResult.entityID;
+
+        QString urlString = rayPickResult.properties.getHref();
+        QUrl url = QUrl(urlString, QUrl::StrictMode);
+        if (url.isValid() && !url.isEmpty()){
+            DependencyManager::get<AddressManager>()->handleLookupString(urlString);
+
+        }
+
         emit mousePressOnEntity(rayPickResult, event, deviceID);
 
         QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
@@ -999,7 +1005,7 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
         checkAndCallUnload(entityID);
     }
     _entityScripts.remove(entityID);
-    
+
     // here's where we remove the entity payload from the scene
     if (_entitiesInScene.contains(entityID)) {
         auto entity = _entitiesInScene.take(entityID);
@@ -1029,17 +1035,17 @@ void EntityTreeRenderer::addEntityToScene(EntityItemPointer entity) {
 }
 
 
-void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID) {
+void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID, const bool reload) {
     if (_tree && !_shuttingDown) {
         checkAndCallUnload(entityID);
-        checkAndCallPreload(entityID);
+        checkAndCallPreload(entityID, reload);
     }
 }
 
-void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID) {
+void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const bool reload) {
     if (_tree && !_shuttingDown) {
         // load the entity script if needed...
-        QScriptValue entityScript = loadEntityScript(entityID, true); // is preload!
+        QScriptValue entityScript = loadEntityScript(entityID, true, reload); // is preload!
         if (entityScript.property("preload").isValid()) {
             QScriptValueList entityArgs = createEntityArgs(entityID);
             entityScript.property("preload").call(entityScript, entityArgs);
@@ -1056,7 +1062,6 @@ void EntityTreeRenderer::checkAndCallUnload(const EntityItemID& entityID) {
         }
     }
 }
-
 
 void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityTree* entityTree, const EntityItemID& id, const Collision& collision) {
     EntityItemPointer entity = entityTree->findEntityByEntityItemID(id);
@@ -1100,61 +1105,15 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
     if (energyFactorOfFull < COLLISION_MINIMUM_VOLUME) {
         return;
     }
-
-    auto soundCache = DependencyManager::get<SoundCache>();
-    if (soundCache.isNull()) {
-        return;
-    }
-    SharedSoundPointer sound = soundCache.data()->getSound(QUrl(collisionSoundURL));
-    if (sound.isNull() || !sound->isReady()) {
-        return;
-    }
-
-    // This is a hack. Quiet sound aren't really heard at all, so we compress everything to the range [1-c, 1], if we play it all.
+    // Quiet sound aren't really heard at all, so we can compress everything to the range [1-c, 1], if we play it all.
     const float COLLISION_SOUND_COMPRESSION_RANGE = 1.0f; // This section could be removed when the value is 1, but let's see how it goes.
-    float volume = energyFactorOfFull;
-    volume = (volume * COLLISION_SOUND_COMPRESSION_RANGE) + (1.0f - COLLISION_SOUND_COMPRESSION_RANGE);
-    
-    // This is quite similar to AudioScriptingInterface::playSound() and should probably be refactored.
-    AudioInjectorOptions options;
-    options.stereo = sound->isStereo();
-    options.position = position;
-    options.volume = volume;
+    const float volume = (energyFactorOfFull * COLLISION_SOUND_COMPRESSION_RANGE) + (1.0f - COLLISION_SOUND_COMPRESSION_RANGE);
+
 
     // Shift the pitch down by ln(1 + (size / COLLISION_SIZE_FOR_STANDARD_PITCH)) / ln(2)
     const float COLLISION_SIZE_FOR_STANDARD_PITCH = 0.2f;
-    QByteArray samples = sound->getByteArray();
-    soxr_io_spec_t spec = soxr_io_spec(SOXR_INT16_I, SOXR_INT16_I);
-    soxr_quality_spec_t qualitySpec = soxr_quality_spec(SOXR_MQ, 0);
-    const int channelCount = sound->isStereo() ? 2 : 1;
-    const float factor = log(1.0f + (entity->getMinimumAACube().getLargestDimension() / COLLISION_SIZE_FOR_STANDARD_PITCH)) / log(2);
-    const int standardRate = AudioConstants::SAMPLE_RATE;
-    const int resampledRate = standardRate * factor;
-    const int nInputSamples = samples.size() / sizeof(int16_t);
-    const int nOutputSamples = nInputSamples * factor;
-    QByteArray resampled(nOutputSamples * sizeof(int16_t), '\0');
-    const int16_t* receivedSamples = reinterpret_cast<const int16_t*>(samples.data());
-    soxr_error_t soxError = soxr_oneshot(standardRate, resampledRate, channelCount,
-                                         receivedSamples, nInputSamples, NULL,
-                                         reinterpret_cast<int16_t*>(resampled.data()), nOutputSamples, NULL,
-                                         &spec, &qualitySpec, 0);
-    if (soxError) {
-        qCDebug(entitiesrenderer) << "Unable to resample" << collisionSoundURL << "from" << nInputSamples << "@" << standardRate << "to" << nOutputSamples << "@" << resampledRate;
-        resampled = samples;
-    }
-
-    AudioInjector* injector = new AudioInjector(resampled, options);
-    injector->setLocalAudioInterface(_localAudioInterface);
-    injector->triggerDeleteAfterFinish();
-    QThread* injectorThread = new QThread();
-    injectorThread->setObjectName("Audio Injector Thread");
-    injector->moveToThread(injectorThread);
-    // start injecting when the injector thread starts
-    connect(injectorThread, &QThread::started, injector, &AudioInjector::injectAudio);
-    // connect the right slots and signals for AudioInjector and thread cleanup
-    connect(injector, &AudioInjector::destroyed, injectorThread, &QThread::quit);
-    connect(injectorThread, &QThread::finished, injectorThread, &QThread::deleteLater);
-    injectorThread->start();
+    const float stretchFactor = log(1.0f + (entity->getMinimumAACube().getLargestDimension() / COLLISION_SIZE_FOR_STANDARD_PITCH)) / log(2);
+    AudioInjector::playSound(collisionSoundURL, volume, stretchFactor, position);
 }
 
 void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB,
@@ -1195,5 +1154,20 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
         args << idA.toScriptValue(_entitiesScriptEngine);
         args << collisionToScriptValue(_entitiesScriptEngine, collision);
         entityScriptB.property("collisionWithEntity").call(entityScriptA, args);
+    }
+}
+
+void EntityTreeRenderer::updateEntityRenderStatus(bool shouldRenderEntities) {
+    if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
+        for (auto entityID : _entityIDsLastInScene) {
+            addingEntity(entityID);
+        }
+        _entityIDsLastInScene.clear();
+    } else {
+        _entityIDsLastInScene = _entitiesInScene.keys();
+        for (auto entityID : _entityIDsLastInScene) {
+            // FIXME - is this really right? do we want to do the deletingEntity() code or just remove from the scene.
+            deletingEntity(entityID);
+        }
     }
 }

@@ -20,6 +20,7 @@
 
 static int vec4MetaTypeId = qRegisterMetaType<glm::vec4>();
 static int vec3MetaTypeId = qRegisterMetaType<glm::vec3>();
+static int qVectorVec3MetaTypeId = qRegisterMetaType<QVector<glm::vec3>>();
 static int vec2MetaTypeId = qRegisterMetaType<glm::vec2>();
 static int quatMetaTypeId = qRegisterMetaType<glm::quat>();
 static int xColorMetaTypeId = qRegisterMetaType<xColor>();
@@ -31,6 +32,7 @@ static int collisionMetaTypeId = qRegisterMetaType<Collision>();
 void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, vec4toScriptValue, vec4FromScriptValue);
     qScriptRegisterMetaType(engine, vec3toScriptValue, vec3FromScriptValue);
+    qScriptRegisterMetaType(engine, qVectorVec3ToScriptValue, qVectorVec3FromScriptValue);
     qScriptRegisterMetaType(engine, vec2toScriptValue, vec2FromScriptValue);
     qScriptRegisterMetaType(engine, quatToScriptValue, quatFromScriptValue);
     qScriptRegisterMetaType(engine, qRectToScriptValue, qRectFromScriptValue);
@@ -61,6 +63,10 @@ void vec4FromScriptValue(const QScriptValue& object, glm::vec4& vec4) {
 
 QScriptValue vec3toScriptValue(QScriptEngine* engine, const glm::vec3 &vec3) {
     QScriptValue obj = engine->newObject();
+    if (vec3.x != vec3.x || vec3.y != vec3.y || vec3.z != vec3.z) {
+        // if vec3 contains a NaN don't try to convert it
+        return obj;
+    }
     obj.setProperty("x", vec3.x);
     obj.setProperty("y", vec3.y);
     obj.setProperty("z", vec3.z);
@@ -91,6 +97,16 @@ QVector<glm::vec3> qVectorVec3FromScriptValue(const QScriptValue& array){
         newVector << newVec3;
     }
     return newVector;
+}
+
+void qVectorVec3FromScriptValue(const QScriptValue& array, QVector<glm::vec3>& vector ) {
+    int length = array.property("length").toInteger();
+    
+    for (int i = 0; i < length; i++) {
+        glm::vec3 newVec3 = glm::vec3();
+        vec3FromScriptValue(array.property(i), newVec3);
+        vector << newVec3;
+    }
 }
 
 QScriptValue vec2toScriptValue(QScriptEngine* engine, const glm::vec2 &vec2) {
@@ -213,6 +229,7 @@ QScriptValue collisionToScriptValue(QScriptEngine* engine, const Collision& coll
     obj.setProperty("idB", quuidToScriptValue(engine, collision.idB));
     obj.setProperty("penetration", vec3toScriptValue(engine, collision.penetration));
     obj.setProperty("contactPoint", vec3toScriptValue(engine, collision.contactPoint));
+    obj.setProperty("velocityChange", vec3toScriptValue(engine, collision.velocityChange));
     return obj;
 }
 

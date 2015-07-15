@@ -1,4 +1,3 @@
-
 //
 //  cookies.js
 //
@@ -7,12 +6,9 @@
 //  Created by Sam Gateau, 4/1/2015
 //  A simple ui panel that present a list of porperties and the proper widget to edit it
 //  
-//  Modified by Bridget Went, June 2015
-//  Fixed checkBox class functionality, enabled mouseDoublePressEvent to reset panel items
-//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-
+//
 // The Slider class
 Slider = function(x,y,width,thumbSize) {
     this.background = Overlays.addOverlay("text", {

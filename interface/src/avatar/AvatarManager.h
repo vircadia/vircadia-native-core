@@ -63,6 +63,7 @@ public:
    
 public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
+    void updateAvatarRenderStatus(bool shouldRenderAvatars);
 
 private:
     AvatarManager(QObject* parent = 0);
@@ -73,7 +74,7 @@ private:
     // virtual overrides
     virtual AvatarSharedPointer newSharedAvatar();
     virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
-    void removeAvatarMotionState(Avatar* avatar);
+    void removeAvatarMotionState(AvatarSharedPointer avatar);
     virtual void removeAvatar(const QUuid& sessionUUID);
     
     QVector<AvatarSharedPointer> _avatarFades;

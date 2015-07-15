@@ -34,13 +34,18 @@ ResourceCache::ResourceCache(QObject* parent) :
 }
 
 ResourceCache::~ResourceCache() {
-    // the unused resources may themselves reference resources that will be added to the unused
-    // list on destruction, so keep clearing until there are no references left
-    while (!_unusedResources.isEmpty()) {
-        foreach (const QSharedPointer<Resource>& resource, _unusedResources) {
-            resource->setCache(nullptr);
+    clearUnusedResource();
+}
+
+void ResourceCache::refreshAll() {
+    // Clear all unused resources so we don't have to reload them
+    clearUnusedResource();
+    
+    // Refresh all remaining resources in use
+    foreach (auto resource, _resources) {
+        if (!resource.isNull()) {
+            resource.data()->refresh();
         }
-        _unusedResources.clear();
     }
 }
 
@@ -48,6 +53,8 @@ void ResourceCache::refresh(const QUrl& url) {
     QSharedPointer<Resource> resource = _resources.value(url);
     if (!resource.isNull()) {
         resource->refresh();
+    } else {
+        _resources.remove(url);
     }
 }
 
@@ -131,6 +138,17 @@ void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
         _unusedResourcesSize -= it.value()->getBytesTotal();
         it.value()->setCache(nullptr);
         _unusedResources.erase(it);
+    }
+}
+
+void ResourceCache::clearUnusedResource() {
+    // the unused resources may themselves reference resources that will be added to the unused
+    // list on destruction, so keep clearing until there are no references left
+    while (!_unusedResources.isEmpty()) {
+        foreach (const QSharedPointer<Resource>& resource, _unusedResources) {
+            resource->setCache(nullptr);
+        }
+        _unusedResources.clear();
     }
 }
 
@@ -253,19 +271,20 @@ void Resource::refresh() {
         _replyTimer->deleteLater();
         _replyTimer = nullptr;
     }
+    
     init();
     _request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
-    if (!_startedLoading) {
-        attemptRequest();
-    }
+    ensureLoading();
+    emit onRefresh();
 }
 
 void Resource::allReferencesCleared() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "allReferencesCleared");
-        return;
-    }
     if (_cache) {
+        if (QThread::currentThread() != thread()) {
+            QMetaObject::invokeMethod(this, "allReferencesCleared");
+            return;
+        }
+        
         // create and reinsert new shared pointer 
         QSharedPointer<Resource> self(this, &Resource::allReferencesCleared);
         setSelf(self);
@@ -312,8 +331,7 @@ void Resource::reinsert() {
     _cache->_resources.insert(_url, _self);
 }
 
-const int REPLY_TIMEOUT_MS = 5000;
-
+static const int REPLY_TIMEOUT_MS = 5000;
 void Resource::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
     if (!_reply->isFinished()) {
         _bytesReceived = bytesReceived;

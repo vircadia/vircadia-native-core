@@ -308,6 +308,9 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                             handlePath(returnedPath, trigger);
                         }
                     } else {
+                        // we're going to hit the index path, set that as the _newHostLookupPath
+                        _newHostLookupPath = INDEX_PATH;
+
                         // we didn't override the path or get one back - ask the DS for the viewpoint of its index path
                         // which we will jump to if it exists
                         emit pathChangeRequired(INDEX_PATH);
@@ -336,8 +339,6 @@ void AddressManager::handleAPIError(QNetworkReply& errorReply) {
     }
     emit lookupResultsFinished();
 }
-
-const QString GET_PLACE = "/api/v1/places/%1";
 
 void AddressManager::attemptPlaceNameLookup(const QString& lookupString, const QString& overridePath, LookupTrigger trigger) {
     // assume this is a place name and see if we can get any info on it
@@ -478,6 +479,7 @@ bool AddressManager::handleViewpoint(const QString& viewpointString, bool should
         //
         // We use _newHostLookupPath to determine if the client has already stored its last address
         // before moving to a new host thanks to the information in the same lookup URL.
+
 
         if (definitelyPathOnly || (!pathString.isEmpty() && pathString != _newHostLookupPath)) {
             addCurrentAddressToHistory(LookupTrigger::UserInput);

@@ -343,7 +343,7 @@ void Font3D::setupGPU() {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         state->setCullMode(gpu::State::CULL_BACK);
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
-        state->setBlendFunction(false,
+        state->setBlendFunction(true,
                                 gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
         _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
@@ -423,7 +423,7 @@ void Font3D::drawString(gpu::Batch& batch, float x, float y, const QString& str,
     
     setupGPU();
     batch.setPipeline(_pipeline);
-    batch.setUniformTexture(_fontLoc, _texture);
+    batch.setResourceTexture(_fontLoc, _texture);
     batch._glUniform1i(_outlineLoc, (effectType == TextRenderer3D::OUTLINE_EFFECT));
     batch._glUniform4fv(_colorLoc, 1, (const GLfloat*)color);
     

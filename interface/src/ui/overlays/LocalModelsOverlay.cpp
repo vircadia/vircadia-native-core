@@ -24,10 +24,6 @@ LocalModelsOverlay::LocalModelsOverlay(const LocalModelsOverlay* localModelsOver
     Volume3DOverlay(localModelsOverlay),
     _entityTreeRenderer(localModelsOverlay->_entityTreeRenderer)
 {
-
-}
-
-LocalModelsOverlay::~LocalModelsOverlay() {
 }
 
 void LocalModelsOverlay::update(float deltatime) {
@@ -36,25 +32,25 @@ void LocalModelsOverlay::update(float deltatime) {
 
 void LocalModelsOverlay::render(RenderArgs* args) {
     if (_visible) {
-
         float glowLevel = getGlowLevel();
         Glower* glower = NULL;
         if (glowLevel > 0.0f) {
             glower = new Glower(glowLevel);
         }
-
-        glPushMatrix(); {
-            Application* app = Application::getInstance();
-            glm::vec3 oldTranslation = app->getViewMatrixTranslation();
-            app->setViewMatrixTranslation(oldTranslation + _position);
-            _entityTreeRenderer->render(args);
-            Application::getInstance()->setViewMatrixTranslation(oldTranslation);
-        } glPopMatrix();
-
+        
+        auto batch = args ->_batch;
+        Application* app = Application::getInstance();
+        glm::vec3 oldTranslation = app->getViewMatrixTranslation();
+        Transform transform = Transform();
+        transform.setTranslation(oldTranslation + getPosition());
+        batch->setViewTransform(transform);
+        _entityTreeRenderer->render(args);
+        transform.setTranslation(oldTranslation);
+        batch->setViewTransform(transform);
+    
         if (glower) {
             delete glower;
         }
-
     }
 }
 

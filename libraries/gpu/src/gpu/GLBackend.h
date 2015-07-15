@@ -12,11 +12,13 @@
 #define hifi_gpu_GLBackend_h
 
 #include <assert.h>
+#include <functional>
+#include <bitset>
+
 #include "GPUConfig.h"
 
 #include "Context.h"
 #include "Batch.h"
-#include <bitset>
 
 
 namespace gpu {
@@ -46,6 +48,11 @@ public:
     static void renderBatch(Batch& batch, bool syncCache = false);
 
     static bool checkGLError(const char* name = nullptr);
+
+    // Only checks in debug builds
+    static bool checkGLErrorDebug(const char* name = nullptr);
+
+    static void checkGLStackStable(std::function<void()> f);
 
     static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings = Shader::BindingSet());
     
@@ -89,7 +96,9 @@ public:
 
 #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
 #else
+        GLuint _transformObject_model = -1;
         GLuint _transformCamera_viewInverse = -1;
+        GLuint _transformCamera_viewport = -1;
 #endif
 
         GLShader();
@@ -172,12 +181,25 @@ public:
     class GLFramebuffer : public GPUObject {
     public:
         GLuint _fbo = 0;
+        std::vector<GLenum> _colorBuffers;
 
         GLFramebuffer();
         ~GLFramebuffer();
     };
     static GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer);
     static GLuint getFramebufferID(const FramebufferPointer& framebuffer);
+
+    class GLQuery : public GPUObject {
+    public:
+        GLuint _qo = 0;
+        GLuint64 _result = 0;
+
+        GLQuery();
+        ~GLQuery();
+    };
+    static GLQuery* syncGPUObject(const Query& query);
+    static GLuint getQueryID(const QueryPointer& query);
+
 
     static const int MAX_NUM_ATTRIBUTES = Stream::NUM_INPUT_SLOTS;
     static const int MAX_NUM_INPUT_BUFFERS = 16;
@@ -189,7 +211,7 @@ public:
     void do_setStateFillMode(int32 mode);
     void do_setStateCullMode(int32 mode);
     void do_setStateFrontFaceClockwise(bool isClockwise);
-    void do_setStateDepthClipEnable(bool enable);
+    void do_setStateDepthClampEnable(bool enable);
     void do_setStateScissorEnable(bool enable);
     void do_setStateMultisampleEnable(bool enable);
     void do_setStateAntialiasedLineEnable(bool enable);
@@ -206,7 +228,21 @@ public:
 
     void do_setStateColorWriteMask(uint32 mask);
 
+    // Repporting stats of the context
+    class Stats {
+    public:
+        int _ISNumFormatChanges = 0;
+        int _ISNumInputBufferChanges = 0;
+        int _ISNumIndexBufferChanges = 0;
+
+        Stats() {}
+        Stats(const Stats& stats) = default;
+    };
+
+    void getStats(Stats& stats) const { stats = _stats; }
+
 protected:
+    Stats _stats;
 
     // Draw Stage
     void do_draw(Batch& batch, uint32 paramOffset);
@@ -220,12 +256,13 @@ protected:
     void do_setInputFormat(Batch& batch, uint32 paramOffset);
     void do_setInputBuffer(Batch& batch, uint32 paramOffset);
     void do_setIndexBuffer(Batch& batch, uint32 paramOffset);
-    
-    // Synchronize the state cache of this Backend with the actual real state of the GL Context
+
+    void initInput();
+    void killInput();
     void syncInputStateCache();
     void updateInput();
     struct InputStageState {
-        bool _invalidFormat;
+        bool _invalidFormat = true;
         Stream::FormatPointer _format;
 
         typedef std::bitset<MAX_NUM_INPUT_BUFFERS> BuffersState;
@@ -234,6 +271,7 @@ protected:
         Buffers _buffers;
         Offsets _bufferOffsets;
         Offsets _bufferStrides;
+        std::vector<GLuint> _bufferVBOs;
 
         BufferPointer _indexBuffer;
         Offset _indexBufferOffset;
@@ -242,6 +280,8 @@ protected:
         typedef std::bitset<MAX_NUM_ATTRIBUTES> ActivationCache;
         ActivationCache _attributeActivation;
 
+        GLuint _defaultVAO;
+
         InputStageState() :
             _invalidFormat(true),
             _format(0),
@@ -249,10 +289,12 @@ protected:
             _buffers(_buffersState.size(), BufferPointer(0)),
             _bufferOffsets(_buffersState.size(), 0),
             _bufferStrides(_buffersState.size(), 0),
+            _bufferVBOs(_buffersState.size(), 0),
             _indexBuffer(0),
             _indexBufferOffset(0),
             _indexBufferType(UINT32),
-            _attributeActivation(0)
+            _attributeActivation(0),
+            _defaultVAO(0)
              {}
     } _input;
 
@@ -260,7 +302,8 @@ protected:
     void do_setModelTransform(Batch& batch, uint32 paramOffset);
     void do_setViewTransform(Batch& batch, uint32 paramOffset);
     void do_setProjectionTransform(Batch& batch, uint32 paramOffset);
-    
+    void do_setViewportTransform(Batch& batch, uint32 paramOffset);
+
     void initTransform();
     void killTransform();
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
@@ -274,9 +317,11 @@ protected:
         Transform _model;
         Transform _view;
         Mat4 _projection;
+        Vec4i _viewport;
         bool _invalidModel;
         bool _invalidView;
         bool _invalidProj;
+        bool _invalidViewport;
 
         GLenum _lastMode;
 
@@ -286,15 +331,17 @@ protected:
             _model(),
             _view(),
             _projection(),
+            _viewport(0,0,1,1),
             _invalidModel(true),
             _invalidView(true),
             _invalidProj(false),
+            _invalidViewport(false),
             _lastMode(GL_TEXTURE) {}
     } _transform;
 
     // Uniform Stage
     void do_setUniformBuffer(Batch& batch, uint32 paramOffset);
-    void do_setUniformTexture(Batch& batch, uint32 paramOffset);
+    void do_setResourceTexture(Batch& batch, uint32 paramOffset);
     
     struct UniformStageState {
         
@@ -322,7 +369,9 @@ protected:
 
 #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
 #else
+        GLint _program_transformObject_model = -1;
         GLint _program_transformCamera_viewInverse = -1;
+        GLint _program_transformCamera_viewport = -1;
 #endif
 
         State::Data _stateCache;
@@ -351,6 +400,11 @@ protected:
 
         OutputStageState() {}
     } _output;
+
+    // Query section
+    void do_beginQuery(Batch& batch, uint32 paramOffset);
+    void do_endQuery(Batch& batch, uint32 paramOffset);
+    void do_getQuery(Batch& batch, uint32 paramOffset);
 
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
@@ -383,6 +437,7 @@ protected:
     void do_glUniform3f(Batch& batch, uint32 paramOffset);
     void do_glUniform3fv(Batch& batch, uint32 paramOffset);
     void do_glUniform4fv(Batch& batch, uint32 paramOffset);
+    void do_glUniform4iv(Batch& batch, uint32 paramOffset);
     void do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset);
 
     void do_glEnableVertexAttribArray(Batch& batch, uint32 paramOffset);

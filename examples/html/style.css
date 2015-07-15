@@ -8,7 +8,7 @@ body {
     background-color: rgb(76, 76, 76);
     color: rgb(204, 204, 204);
     font-family: Arial;
-    font-size: 8.25pt;
+    font-size: 9.0pt;
 
     -webkit-touch-callout: none;
     -webkit-user-select: none;
@@ -44,20 +44,31 @@ body {
     border: 1.5pt solid black;
 }
 
-.section-header {
+.section-header, .sub-section-header {
     background: #AAA;
     border-bottom: 0.75pt solid #CCC;
     background-color: #333333;
     color: #999;
     padding: 3pt;
+    padding-top: 6pt;
 }
 
-.section-header label {
+.section-header label, .sub-section-header label {
     font-weight: bold;
+    font-size: 11pt;
+}
+
+.sub-section-header {
+    padding-top: 4px;
+}
+
+.sub-section-header label {
+    font-size: 9pt;
 }
 
 .multi-property-section {
 }
+
 .property-section {
     display: block;
     margin: 10 10;
@@ -132,7 +143,7 @@ input.no-spin::-webkit-inner-spin-button {
 table#entity-table {
     border-collapse: collapse;
     font-family: Sans-Serif;
-    font-size: 7.5pt;
+    font-size: 9pt;
     width: 100%;
 }
 
@@ -156,7 +167,7 @@ table#entity-table {
 }
 
 #entity-table td {
-    font-size: 8.25pt;
+    font-size: 9.0pt;
     border: 0pt black solid;
     word-wrap: nowrap;
     white-space: nowrap;
@@ -176,29 +187,29 @@ th#entity-type {
 
 div.input-area {
     display: inline-block;
-    font-size: 7.5pt;
+    font-size: 9pt;
 }
 
 input {
 }
 
-#type {
-    font-size: 10.5pt;
+#type, #id {
+    font-size: 9.0pt;
 }
 
-#type label {
+#type label, #id label {
     color: rgb(150, 150, 150);
 }
 
 input, textarea {
-    background-color: rgb(102, 102, 102);
-    color: rgb(204, 204, 204);
+    background-color: rgb(63, 63, 63);
+    color: rgb(255, 255, 255);
     border: none;
-    font-size: 7.5pt;
+    font-size: 9pt;
 }
 
 input:disabled, textarea:disabled {
-    background-color: rgb(102, 102, 102);
+    background-color: rgb(63, 63, 63);
     color: rgb(160, 160, 160);
 }
 
@@ -224,7 +235,7 @@ input:disabled, textarea:disabled {
 #properties-list .property {
     padding: 4pt;
     border-bottom: 0.75pt solid rgb(63, 63, 63);
-    min-height: 1em;
+    min-height: 12pt;
 }
 
 
@@ -245,9 +256,13 @@ table#properties-list {
     font-weight: bold;
     overflow: hidden;
     text-overflow: ellipsis;
-
     vertical-align: middle;
     height: 1.2em;
+}
+
+#properties-list .label input[type=button] {
+    float: right;
+    padding: 0 5px 1px;
 }
 
 #properties-list .value > div{
@@ -270,9 +285,7 @@ div.inner {
 }
 
 td {
-
-
-        vertical-align: top;
+    vertical-align: top;
 }
 
 #no-entities {

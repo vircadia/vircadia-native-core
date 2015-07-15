@@ -32,6 +32,7 @@
 #include <SoundCache.h>
 
 #include "AssignmentFactory.h"
+#include "AssignmentActionFactory.h"
 
 #include "AssignmentClient.h"
 
@@ -57,6 +58,9 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     auto animationCache = DependencyManager::set<AnimationCache>();
     auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
     auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>();
+
+    DependencyManager::registerInheritance<EntityActionFactoryInterface, AssignmentActionFactory>();
+    auto actionFactory = DependencyManager::set<AssignmentActionFactory>();
 
     // make up a uuid for this child so the parent can tell us apart.  This id will be changed
     // when the domain server hands over an assignment.

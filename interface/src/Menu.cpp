@@ -24,7 +24,6 @@
 
 #include "Application.h"
 #include "AccountManager.h"
-//#include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
 #include "devices/DdeFaceTracker.h"
@@ -37,7 +36,6 @@
 #include "SpeechRecognizer.h"
 #endif
 #include "ui/DialogsManager.h"
-#include "ui/NodeBounds.h"
 #include "ui/StandAloneJSConsole.h"
 #include "InterfaceLogging.h"
 
@@ -256,6 +254,8 @@ Menu::Menu() {
             avatar, SLOT(updateMotionBehavior()));
 
     MenuWrapper* viewMenu = addMenu("View");
+    
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
 
     addCheckableActionToQMenuAndActionHash(viewMenu,
                                            MenuOption::Fullscreen,
@@ -268,9 +268,22 @@ Menu::Menu() {
                                            qApp,
                                            SLOT(setFullscreen(bool)));
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson,
-        0, // QML Qt::Key_P,
-        true, qApp, SLOT(cameraMenuChanged()));
+    MenuWrapper* cameraModeMenu = viewMenu->addMenu("Camera Mode");
+    QActionGroup* cameraModeGroup = new QActionGroup(cameraModeMenu);
+    cameraModeGroup->setExclusive(true);
+    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
+                                                                      MenuOption::FirstPerson, 0, // QML Qt:: Key_P
+                                                                      false, qApp, SLOT(cameraMenuChanged())));
+    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
+                                                                      MenuOption::ThirdPerson, 0,
+                                                                      true, qApp, SLOT(cameraMenuChanged())));
+    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
+                                                                      MenuOption::IndependentMode, 0,
+                                                                      false, qApp, SLOT(cameraMenuChanged())));
+    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
+                                                                      MenuOption::FullscreenMirror, 0, // QML Qt::Key_H,
+                                                                      false, qApp, SLOT(cameraMenuChanged())));
+
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror,
         0, //QML Qt::SHIFT | Qt::Key_H,
         true);
@@ -301,13 +314,6 @@ Menu::Menu() {
                                            qApp,
                                            SLOT(setEnable3DTVMode(bool)));
 
-
-    MenuWrapper* nodeBordersMenu = viewMenu->addMenu("Server Borders");
-    NodeBounds& nodeBounds = qApp->getNodeBoundsDisplay();
-    addCheckableActionToQMenuAndActionHash(nodeBordersMenu, MenuOption::ShowBordersEntityNodes,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_1, false,
-                                           &nodeBounds, SLOT(setShowEntityNodes(bool)));
-
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats);
@@ -329,7 +335,6 @@ Menu::Menu() {
         0, // QML Qt::SHIFT | Qt::Key_A,
         true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::AmbientOcclusion);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DontFadeOnOctreeServerChanges);
 
     MenuWrapper* ambientLightMenu = renderOptionsMenu->addMenu(MenuOption::RenderAmbientLight);
     QActionGroup* ambientLightGroup = new QActionGroup(ambientLightMenu);
@@ -447,6 +452,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderBoundingCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderFocusIndicator, 0, false);
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowWhosLookingAtMe, 0, false);
 
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlignForearmsWithWrists, 0, false);
@@ -518,7 +524,9 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::FrameTimer);
     addActionToQMenuAndActionHash(timingMenu, MenuOption::RunTimingTests, 0, qApp, SLOT(runTests()));
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::PipelineWarnings);
+    addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::LogExtraTimings);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::SuppressShortTimings);
+    addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::ShowRealtimeEntityStats);
 
     auto audioIO = DependencyManager::get<AudioClient>();
     MenuWrapper* audioDebugMenu = developerMenu->addMenu("Audio");

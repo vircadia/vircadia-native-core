@@ -9,26 +9,27 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+// include this before QGLWidget, which includes an earlier version of OpenGL
+#include "InterfaceConfig.h"
+
+#include "Grid3DOverlay.h"
+
 #include <PathUtils.h>
 
 #include "Application.h"
-#include "Grid3DOverlay.h"
 
 ProgramObject Grid3DOverlay::_gridProgram;
 
-Grid3DOverlay::Grid3DOverlay() : Base3DOverlay(),
+Grid3DOverlay::Grid3DOverlay() :
     _minorGridWidth(1.0),
     _majorGridEvery(5) {
 }
 
 Grid3DOverlay::Grid3DOverlay(const Grid3DOverlay* grid3DOverlay) :
-    Base3DOverlay(grid3DOverlay),
+    Planar3DOverlay(grid3DOverlay),
     _minorGridWidth(grid3DOverlay->_minorGridWidth),
     _majorGridEvery(grid3DOverlay->_majorGridEvery)
 {
-}
-
-Grid3DOverlay::~Grid3DOverlay() {
 }
 
 void Grid3DOverlay::render(RenderArgs* args) {
@@ -41,7 +42,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
     const float MAX_COLOR = 255.0f;
 
     // center the grid around the camera position on the plane
-    glm::vec3 rotated = glm::inverse(_rotation) * Application::getInstance()->getCamera()->getPosition();
+    glm::vec3 rotated = glm::inverse(getRotation()) * Application::getInstance()->getCamera()->getPosition();
 
     float spacing = _minorGridWidth;
 
@@ -53,7 +54,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
 
     if (batch) {
         Transform transform;
-        transform.setRotation(_rotation);
+        transform.setRotation(getRotation());
 
 
         // Minor grid
@@ -61,7 +62,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
             batch->_glLineWidth(1.0f);
             auto position = glm::vec3(_minorGridWidth * (floorf(rotated.x / spacing) - MINOR_GRID_DIVISIONS / 2),
                                       spacing * (floorf(rotated.y / spacing) - MINOR_GRID_DIVISIONS / 2),
-                                      _position.z);
+                                      getPosition().z);
             float scale = MINOR_GRID_DIVISIONS * spacing;
 
             transform.setTranslation(position);
@@ -78,7 +79,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
             spacing *= _majorGridEvery;
             auto position = glm::vec3(spacing * (floorf(rotated.x / spacing) - MAJOR_GRID_DIVISIONS / 2),
                                       spacing * (floorf(rotated.y / spacing) - MAJOR_GRID_DIVISIONS / 2),
-                                      _position.z);
+                                      getPosition().z);
             float scale = MAJOR_GRID_DIVISIONS * spacing;
 
             transform.setTranslation(position);
@@ -88,80 +89,11 @@ void Grid3DOverlay::render(RenderArgs* args) {
 
             DependencyManager::get<GeometryCache>()->renderGrid(*batch, MAJOR_GRID_DIVISIONS, MAJOR_GRID_DIVISIONS, gridColor);
         }
-    } else {
-        if (!_gridProgram.isLinked()) {
-            if (!_gridProgram.addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/grid.vert")) {
-                qDebug() << "Failed to compile: " + _gridProgram.log();
-                return;
-            }
-            if (!_gridProgram.addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/grid.frag")) {
-                qDebug() << "Failed to compile: " + _gridProgram.log();
-                return;
-            }
-            if (!_gridProgram.link()) {
-                qDebug() << "Failed to link: " + _gridProgram.log();
-                return;
-            }
-        }
-
-        // Render code largely taken from MetavoxelEditor::render()
-        glDisable(GL_LIGHTING);
-
-        glDepthMask(GL_FALSE);
-
-        glPushMatrix();
-
-        glm::quat rotation = getRotation();
-
-        glm::vec3 axis = glm::axis(rotation);
-
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-
-        glLineWidth(1.5f);
-
-        glm::vec3 position = getPosition();
-
-        _gridProgram.bind();
-
-        // Minor grid
-        glPushMatrix();
-        {
-            glTranslatef(_minorGridWidth * (floorf(rotated.x / spacing) - MINOR_GRID_DIVISIONS / 2),
-                spacing * (floorf(rotated.y / spacing) - MINOR_GRID_DIVISIONS / 2), position.z);
-
-            float scale = MINOR_GRID_DIVISIONS * spacing;
-            glScalef(scale, scale, scale);
-
-            DependencyManager::get<GeometryCache>()->renderGrid(MINOR_GRID_DIVISIONS, MINOR_GRID_DIVISIONS, gridColor);
-        }
-        glPopMatrix();
-
-        // Major grid
-        glPushMatrix();
-        {
-            glLineWidth(4.0f);
-            spacing *= _majorGridEvery;
-            glTranslatef(spacing * (floorf(rotated.x / spacing) - MAJOR_GRID_DIVISIONS / 2),
-                spacing * (floorf(rotated.y / spacing) - MAJOR_GRID_DIVISIONS / 2), position.z);
-
-            float scale = MAJOR_GRID_DIVISIONS * spacing;
-            glScalef(scale, scale, scale);
-
-            DependencyManager::get<GeometryCache>()->renderGrid(MAJOR_GRID_DIVISIONS, MAJOR_GRID_DIVISIONS, gridColor);
-        }
-        glPopMatrix();
-
-        _gridProgram.release();
-
-        glPopMatrix();
-
-        glEnable(GL_LIGHTING);
-        glDepthMask(GL_TRUE);
     }
 }
 
 void Grid3DOverlay::setProperties(const QScriptValue& properties) {
-    Base3DOverlay::setProperties(properties);
+    Planar3DOverlay::setProperties(properties);
 
     if (properties.property("minorGridWidth").isValid()) {
         _minorGridWidth = properties.property("minorGridWidth").toVariant().toFloat();
@@ -180,7 +112,7 @@ QScriptValue Grid3DOverlay::getProperty(const QString& property) {
         return _majorGridEvery;
     }
 
-    return Base3DOverlay::getProperty(property);
+    return Planar3DOverlay::getProperty(property);
 }
 
 Grid3DOverlay* Grid3DOverlay::createClone() const {
