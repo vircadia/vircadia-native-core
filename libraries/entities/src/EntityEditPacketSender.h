@@ -32,13 +32,12 @@ public:
 
     void queueEraseEntityMessage(const EntityItemID& entityItemID);
 
-    void processEntityEditNackPacket(QSharedPointer<NLPacket> packet);
-
     // My server type is the model server
     virtual char getMyNodeType() const { return NodeType::EntityServer; }
     virtual void adjustEditPacketForClockSkew(PacketType::Value type, QByteArray& buffer, int clockSkew);
 
 public slots:
+    void processEntityEditNackPacket(QSharedPointer<NLPacket> packet);
     void toggleNackPackets() { _shouldNack = !_shouldNack; }
 
 private:
