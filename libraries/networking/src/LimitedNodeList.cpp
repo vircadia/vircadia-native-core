@@ -206,8 +206,8 @@ bool LimitedNodeList::packetSourceAndHashMatch(const NLPacket& packet, SharedNod
             static QString repeatedMessage
                 = LogHandler::getInstance().addRepeatedMessageRegex("Packet of type \\d+ received from unknown node with UUID");
 
-            qCDebug(networking) << "Packet of type" << packet.getType() << "received from unknown node with UUID"
-                << qPrintable(uuidStringWithoutCurlyBraces(packet.getSourceID()));
+            qCDebug(networking) << "Packet of type" << packet.getType() << "(" << nameForPacketType(packet.getType()) << ")"
+                << "received from unknown node with UUID" << qPrintable(uuidStringWithoutCurlyBraces(packet.getSourceID()));
         }
     }
 
