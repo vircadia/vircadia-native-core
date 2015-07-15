@@ -255,8 +255,6 @@ Menu::Menu() {
             avatar, SLOT(updateMotionBehavior()));
 
     MenuWrapper* viewMenu = addMenu("View");
-    
-    addActionToQMenuAndActionHash(viewMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
 
     addCheckableActionToQMenuAndActionHash(viewMenu,
                                            MenuOption::Fullscreen,
@@ -328,6 +326,8 @@ Menu::Menu() {
 
 
     MenuWrapper* developerMenu = addMenu("Developer");
+
+    addActionToQMenuAndActionHash(developerMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
 
     MenuWrapper* renderOptionsMenu = developerMenu->addMenu("Render");
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Atmosphere,
