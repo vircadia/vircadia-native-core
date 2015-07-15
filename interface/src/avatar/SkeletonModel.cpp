@@ -366,7 +366,6 @@ void SkeletonModel::renderJointConstraints(gpu::Batch& batch, int jointIndex) {
             geometryCache->renderVertices(batch, gpu::TRIANGLE_FAN, _triangleFanID);
             
         }
-        glPopMatrix();
         
         renderOrientationDirections(jointIndex, position, _rotation * jointState.getRotation(), directionSize);
         jointIndex = joint.parentIndex;
