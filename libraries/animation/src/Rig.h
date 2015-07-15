@@ -16,7 +16,7 @@
 
 #include <QObject>
 
-class AnimationObject : public QObject {
+class Rig : public QObject {
 
 };
 
