@@ -24,7 +24,8 @@ hifi_library_search_hints("polyvox")
 find_path(POLYVOX_CORE_INCLUDE_DIRS PolyVoxCore/SimpleVolume.h PATH_SUFFIXES include include/PolyVoxCore HINTS ${POLYVOX_SEARCH_DIRS})
 # find_path(POLYVOX_UTIL_INCLUDE_DIRS PolyVoxUtil/Serialization.h PATH_SUFFIXES include include/PolyVoxUtil HINTS ${POLYVOX_SEARCH_DIRS})
 
-find_library(POLYVOX_CORE_LIBRARY NAMES PolyVoxCore PATH_SUFFIXES lib HINTS ${POLYVOX_SEARCH_DIRS})
+find_library(POLYVOX_CORE_LIBRARY_DEBUG NAMES PolyVoxCore PATH_SUFFIXES lib/Debug HINTS ${POLYVOX_SEARCH_DIRS})
+find_library(POLYVOX_CORE_LIBRARY_RELEASE NAMES PolyVoxCore PATH_SUFFIXES lib/Release lib HINTS ${POLYVOX_SEARCH_DIRS})
 # find_library(POLYVOX_UTIL_LIBRARY NAMES PolyVoxUtil PATH_SUFFIXES lib HINTS ${POLYVOX_SEARCH_DIRS})
 
 
