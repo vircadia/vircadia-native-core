@@ -62,42 +62,18 @@ void ImageOverlay::render(RenderArgs* args) {
         return;
     }
 
-    // TODO: I commented all the code needed to migrate this ImageOverlay rendering from naked gl to gpu::Batch
-    /*gpu::Batch localBatch;
-    gpu::Batch& batch = (args->_batch ? (*args->_batch) : localBatch);
-    static gpu::PipelinePointer drawPipeline;
-    static int texcoordRectLoc = -1;
-    static int colorLoc = -1;
-    if (!drawPipeline) {
-        auto blitProgram = gpu::StandardShaderLib::getProgram(gpu::StandardShaderLib::getDrawTexcoordRectTransformUnitQuadVS, gpu::StandardShaderLib::getDrawColoredTexturePS);
-        gpu::Shader::makeProgram(*blitProgram);
-        texcoordRectLoc = blitProgram->getUniforms().findLocation("texcoordRect");
-        colorLoc = blitProgram->getUniforms().findLocation("color");
-
-        gpu::StatePointer blitState = gpu::StatePointer(new gpu::State());
-        blitState->setBlendFunction(false, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
-        blitState->setColorWriteMask(true, true, true, true);
-        drawPipeline = gpu::PipelinePointer(gpu::Pipeline::create(blitProgram, blitState));
-    }
-    */
-    // TODO: batch.setPipeline(drawPipeline);
-    glUseProgram(0);
+    gpu::Batch& batch = *args->_batch;
 
     if (_renderImage) {
-        glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, _texture->getID());
-        // TODO: batch.setResourceTexture(0, _texture->getGPUTexture());
-    } // TODO: else {
-    // TODO:     batch.setResourceTexture(0, args->_whiteTexture);
-    // TODO: }
-
-    // TODO: batch.setViewTransform(Transform());
+        batch.setResourceTexture(0, _texture->getGPUTexture());
+    } else {
+        batch.setResourceTexture(0, args->_whiteTexture);
+    }
 
     const float MAX_COLOR = 255.0f;
     xColor color = getColor();
     float alpha = getAlpha();
     glm::vec4 quadColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
-    // TODO: batch._glUniform4fv(colorLoc, 1, (const float*) &quadColor);
 
     int left = _bounds.left();
     int right = _bounds.right() + 1;
@@ -107,11 +83,7 @@ void ImageOverlay::render(RenderArgs* args) {
     glm::vec2 topLeft(left, top);
     glm::vec2 bottomRight(right, bottom);
 
-    // TODO: Transform model;
-    // TODO: model.setTranslation(glm::vec3(0.5f * (right + left), 0.5f * (top + bottom), 0.0f));
-    // TODO: model.setScale(glm::vec3(0.5f * (right - left), 0.5f * (bottom - top), 1.0f));
-    // TODO: batch.setModelTransform(model);
-
+    batch.setModelTransform(Transform());
 
     // if for some reason our image is not over 0 width or height, don't attempt to render the image
     if (_renderImage) {
@@ -144,22 +116,13 @@ void ImageOverlay::render(RenderArgs* args) {
             glm::vec2 texCoordBottomRight(x + w, y + h);
             glm::vec4 texcoordRect(texCoordTopLeft, w, h);
 
-            // TODO: batch._glUniform4fv(texcoordRectLoc, 1, (const float*) &texcoordRect);
-            // TODO: batch.draw(gpu::TRIANGLE_STRIP, 4);
-            DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, quadColor);
+            DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, quadColor);
         } else {
-            // TODO: batch.draw(gpu::TRIANGLE_STRIP, 4);
-            DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);
+            DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, quadColor);
         }
-        glDisable(GL_TEXTURE_2D);
     } else {
-        // TODO: batch.draw(gpu::TRIANGLE_STRIP, 4);
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);
+        DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, quadColor);
     }
-
-    // TODO: if (!args->_batch) {
-    // TODO:     args->_context->render(batch);
-    // TODO: }
 }
 
 void ImageOverlay::setProperties(const QScriptValue& properties) {
