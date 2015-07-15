@@ -138,8 +138,8 @@ void NodeList::timePingReply(QSharedPointer<NLPacket> packet, const SharedNodePo
 
     // The other node's expected time should be our original time plus the one way flight time
     // anything other than that is clock skew
-    quint64 othersExprectedReply = ourOriginalTime + oneWayFlightTime;
-    int clockSkew = othersReplyTime - othersExprectedReply;
+    quint64 othersExpectedReply = ourOriginalTime + oneWayFlightTime;
+    int clockSkew = othersReplyTime - othersExpectedReply;
 
     sendingNode->setPingMs(pingTime / 1000);
     sendingNode->updateClockSkewUsec(clockSkew);
@@ -153,7 +153,7 @@ void NodeList::timePingReply(QSharedPointer<NLPacket> packet, const SharedNodePo
         "                pingTime: " << pingTime << "\n" <<
         "        oneWayFlightTime: " << oneWayFlightTime << "\n" <<
         "         othersReplyTime: " << othersReplyTime << "\n" <<
-        "    othersExprectedReply: " << othersExprectedReply << "\n" <<
+        "    othersExprectedReply: " << othersExpectedReply << "\n" <<
         "               clockSkew: " << clockSkew  << "\n" <<
         "       average clockSkew: " << sendingNode->getClockSkewUsec();
     }
