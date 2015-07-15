@@ -11,7 +11,6 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
-#include <GlowEffect.h>
 #include <GeometryCache.h>
 #include <RegisteredMetaTypes.h>
 
@@ -53,7 +52,6 @@ void Line3DOverlay::render(RenderArgs* args) {
     glm::vec4 colorv4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
     auto batch = args->_batch;
-
     if (batch) {
         batch->setModelTransform(_transform);
 
@@ -62,38 +60,6 @@ void Line3DOverlay::render(RenderArgs* args) {
             DependencyManager::get<GeometryCache>()->renderDashedLine(*batch, _start, _end, colorv4, _geometryCacheID);
         } else {
             DependencyManager::get<GeometryCache>()->renderLine(*batch, _start, _end, colorv4, _geometryCacheID);
-        }
-    } else {
-        float glowLevel = getGlowLevel();
-        Glower* glower = NULL;
-        if (glowLevel > 0.0f) {
-            glower = new Glower(glowLevel);
-        }
-
-        glPushMatrix();
-
-        glDisable(GL_LIGHTING);
-        glLineWidth(_lineWidth);
-
-        glm::vec3 position = getPosition();
-        glm::quat rotation = getRotation();
-
-        glTranslatef(position.x, position.y, position.z);
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-
-        if (getIsDashedLine()) {
-            // TODO: add support for color to renderDashedLine()
-            DependencyManager::get<GeometryCache>()->renderDashedLine(_start, _end, colorv4, _geometryCacheID);
-        } else {
-            DependencyManager::get<GeometryCache>()->renderLine(_start, _end, colorv4, _geometryCacheID);
-        }
-        glEnable(GL_LIGHTING);
-
-        glPopMatrix();
-
-        if (glower) {
-            delete glower;
         }
     }
 }

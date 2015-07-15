@@ -93,7 +93,16 @@ QByteArray FSTReader::writeMapping(const QVariantHash& mapping) {
     for (auto key : PREFERED_ORDER) {
         auto it = mapping.find(key);
         if (it != mapping.constEnd()) {
-            writeVariant(buffer, it);
+            if (key == FREE_JOINT_FIELD) { // writeVariant does not handle strings added using insertMulti.
+                for (auto multi : mapping.values(key)) {
+                    buffer.write(key.toUtf8());
+                    buffer.write(" = ");
+                    buffer.write(multi.toByteArray());
+                    buffer.write("\n");
+                }
+            } else {
+                writeVariant(buffer, it);
+            }
         }
     }
     

@@ -24,7 +24,6 @@
 
 #include <avatar/AvatarManager.h>
 #include <avatar/MyAvatar.h>
-#include <GlowEffect.h>
 #include <GlWindow.h>
 #include <gpu/GLBackend.h>
 #include <OglplusHelpers.h>
@@ -644,15 +643,9 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
         return;
     }
 
-    //Bind our framebuffer object. If we are rendering the glow effect, we let the glow effect shader take care of it
-    if (Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect)) {
-        DependencyManager::get<GlowEffect>()->prepare(renderArgs);
-    } else {
-        auto primaryFBO = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
-        glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFBO));
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    }
-
+    auto primaryFBO = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+    glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFBO));
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
@@ -714,6 +707,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
         vp.Size.w = _recommendedTexSize.w * _offscreenRenderScale;
         glViewport(vp.Pos.x, vp.Pos.y, vp.Size.w, vp.Size.h);
 
+        renderArgs->_viewport = glm::ivec4(vp.Pos.x, vp.Pos.y, vp.Size.w, vp.Size.h);
         renderArgs->_renderSide = RenderArgs::MONO;
         qApp->displaySide(renderArgs, *_camera);
         qApp->getApplicationCompositor().displayOverlayTextureHmd(renderArgs, eye);
@@ -723,15 +717,8 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
     glPopMatrix();
 
     gpu::FramebufferPointer finalFbo;
-    //Bind the output texture from the glow shader. If glow effect is disabled, we just grab the texture
-    if (Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect)) {
-        //Full texture viewport for glow effect
-        glViewport(0, 0, _renderTargetSize.w, _renderTargetSize.h);
-        finalFbo = DependencyManager::get<GlowEffect>()->render(renderArgs);
-    } else {
-        finalFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
+    finalFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
@@ -824,7 +811,6 @@ glm::quat OculusManager::getOrientation() {
     return toGlm(trackingState.HeadPose.ThePose.Orientation);
 }
 
-//Used to set the size of the glow framebuffers
 QSize OculusManager::getRenderTargetSize() {
     QSize rv;
     rv.setWidth(_renderTargetSize.w);
