@@ -27,10 +27,6 @@ OctreePacketProcessor::OctreePacketProcessor() {
     packetReceiver.registerListenerForTypes(types, this, "handleOctreePacket");
 }
 
-OctreePacketProcessor::~OctreePacketProcessor() {
-    DependencyManager::get<NodeList>()->getPacketReceiver().unregisterListener(this);
-}
-
 void OctreePacketProcessor::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
     queueReceivedPacket(packet, senderNode);
 }
