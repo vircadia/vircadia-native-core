@@ -971,10 +971,10 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     // setup the extended header for the domain list packets
     // this data is at the beginning of each of the domain list packets
     QByteArray extendedHeader(NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES, 0);
-    QDataStream extendedHeaderStream(&extendedHeader, QIODevice::Append);
+    QDataStream extendedHeaderStream(&extendedHeader, QIODevice::WriteOnly);
 
-    extendedHeaderStream << limitedNodeList->getSessionUUID().toRfc4122();
-    extendedHeaderStream << node->getUUID().toRfc4122();
+    extendedHeaderStream << limitedNodeList->getSessionUUID();
+    extendedHeaderStream << node->getUUID();
     extendedHeaderStream << (quint8) node->getCanAdjustLocks();
     extendedHeaderStream << (quint8) node->getCanRez();
 
