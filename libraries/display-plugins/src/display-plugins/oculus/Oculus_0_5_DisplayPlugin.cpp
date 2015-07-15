@@ -52,18 +52,18 @@ bool Oculus_0_5_DisplayPlugin::isSupported() const {
 
 static const char* OVR_DISTORTION_VS = R"SHADER(#version 120
 #pragma line __LINE__
-uniform vec2 EyeToSourceUVScale;
+
+//uniform vec2 EyeToSourceUVScale;
+const vec2 EyeToSourceUVScale = vec2(0.232447237, 0.375487238);
 uniform vec2 EyeToSourceUVOffset;
 uniform mat4 EyeRotationStart;
 uniform mat4 EyeRotationEnd;
 
-attribute vec2 Position;
-attribute vec4 Color;
+attribute vec4 Position;
 attribute vec2 TexCoord0;
 attribute vec2 TexCoord1;
 attribute vec2 TexCoord2;
 
-varying vec4 oColor;
 varying vec2 oTexCoord0;
 varying vec2 oTexCoord1;
 varying vec2 oTexCoord2;
@@ -73,6 +73,10 @@ void main() {
     gl_Position.y = Position.y; 
     gl_Position.z = 0.0;
     gl_Position.w = 1.0;
+    oTexCoord0 = TexCoord0;
+    oTexCoord1 = TexCoord1;
+    oTexCoord2 = TexCoord2;
+
     // Vertex inputs are in TanEyeAngle space for the R,G,B channels (i.e. after chromatic aberration and distortion).
     // These are now "real world" vectors in direction (x,y,1) relative to the eye of the HMD.
     vec3 TanEyeAngleR = vec3 ( TexCoord0.x, TexCoord0.y, 1.0 );
@@ -86,9 +90,9 @@ void main() {
     vec3 TransformedGEnd   = (EyeRotationEnd * vec4(TanEyeAngleG, 0)).xyz;
     vec3 TransformedBEnd   = (EyeRotationEnd * vec4(TanEyeAngleB, 0)).xyz;
     // And blend between them.
-    vec3 TransformedR = mix ( TransformedRStart, TransformedREnd, Color.a );
-    vec3 TransformedG = mix ( TransformedGStart, TransformedGEnd, Color.a );
-    vec3 TransformedB = mix ( TransformedBStart, TransformedBEnd, Color.a );
+    vec3 TransformedR = mix ( TransformedRStart, TransformedREnd, Position.z );
+    vec3 TransformedG = mix ( TransformedGStart, TransformedGEnd, Position.z );
+    vec3 TransformedB = mix ( TransformedBStart, TransformedBEnd, Position.z );
 
     // Project them back onto the Z=1 plane of the rendered images.
     float RecipZR = 1.0 / TransformedR.z;
@@ -103,10 +107,13 @@ void main() {
     vec2 SrcCoordR = FlattenedR * EyeToSourceUVScale + EyeToSourceUVOffset;
     vec2 SrcCoordG = FlattenedG * EyeToSourceUVScale + EyeToSourceUVOffset;
     vec2 SrcCoordB = FlattenedB * EyeToSourceUVScale + EyeToSourceUVOffset;
+//    vec2 SrcCoordR = FlattenedR  + EyeToSourceUVOffset;
+//    vec2 SrcCoordG = FlattenedG  + EyeToSourceUVOffset;
+//    vec2 SrcCoordB = FlattenedB  + EyeToSourceUVOffset;
+
     oTexCoord0 = SrcCoordR;
     oTexCoord1 = SrcCoordG;
     oTexCoord2 = SrcCoordB;
-    oColor = vec4(Color.r, Color.r, Color.r, Color.r);              // Used for vignette fade.
 }
 
 )SHADER";
@@ -118,11 +125,13 @@ uniform sampler2D Texture0;
 #extension GL_ARB_draw_buffers : enable
 #extension GL_EXT_gpu_shader4 : enable
 
-varying vec4 oColor;
 varying vec2 oTexCoord0;
+varying vec2 oTexCoord1;
+varying vec2 oTexCoord2;
 
 void main() {
-   gl_FragColor = vec4(0, 0, 0, 1); // texture2D(Texture0, oTexCoord0, 0.0);
+   gl_FragColor = vec4(oTexCoord0, 0, 1);
+   gl_FragColor = texture2D(Texture0, oTexCoord0, 0.0);
    //gl_FragColor.a = 1.0;
 }
 )SHADER";
@@ -147,8 +156,8 @@ void Oculus_0_5_DisplayPlugin::activate(PluginContainer * container) {
     _hmdWindow->setFlags(Qt::FramelessWindowHint);
     _hmdWindow->setFormat(format);
     _hmdWindow->create();
-    //_hmdWindow->setGeometry(_hmd->WindowsPos.x, _hmd->WindowsPos.y, _hmd->Resolution.w, _hmd->Resolution.h);
-    _hmdWindow->setGeometry(0, -1080, _hmd->Resolution.w, _hmd->Resolution.h);
+    _hmdWindow->setGeometry(_hmd->WindowsPos.x, _hmd->WindowsPos.y, _hmd->Resolution.w, _hmd->Resolution.h);
+    //_hmdWindow->setGeometry(0, -1080, _hmd->Resolution.w, _hmd->Resolution.h);
     _hmdWindow->show();
     _hmdWindow->installEventFilter(this);
     _hmdWindow->makeCurrent();
@@ -180,7 +189,7 @@ void Oculus_0_5_DisplayPlugin::activate(PluginContainer * container) {
     compileProgram(_distortProgram, OVR_DISTORTION_VS, OVR_DISTORTION_FS);
 
     auto uniforms = _distortProgram->ActiveUniforms();
-    for (int i = 0; i < uniforms.Size(); ++i) {
+    for (size_t i = 0; i < uniforms.Size(); ++i) {
         auto uniform = uniforms.At(i);
         qDebug() << uniform.Name().c_str() << " @ " << uniform.Index();
         if (uniform.Name() == String("EyeToSourceUVScale")) {
@@ -195,7 +204,7 @@ void Oculus_0_5_DisplayPlugin::activate(PluginContainer * container) {
     }
     
     auto attribs = _distortProgram->ActiveAttribs();
-    for (int i = 0; i < attribs.Size(); ++i) {
+    for (size_t i = 0; i < attribs.Size(); ++i) {
         auto attrib = attribs.At(i);
         qDebug() << attrib.Name().c_str() << " @ " << attrib.Index();
         if (attrib.Name() == String("Position")) {
@@ -230,7 +239,7 @@ void Oculus_0_5_DisplayPlugin::activate(PluginContainer * container) {
         }
         ovrHmd_DestroyDistortionMesh(&meshData);
         const auto& header = _eyeTextures[eye].Header;
-        ovrHmd_GetRenderScaleAndOffset(_eyeFovs[eye], header.TextureSize, header.RenderViewport, _offsetAndScale[eye]);
+        ovrHmd_GetRenderScaleAndOffset(_eyeFovs[eye], header.TextureSize, header.RenderViewport, _scaleAndOffset[eye]);
     });
 
 #endif
@@ -283,19 +292,35 @@ void Oculus_0_5_DisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sc
     _distortProgram->Bind();
     glBindTexture(GL_TEXTURE_2D, finalTexture);
     glViewport(0, 0, _hmd->Resolution.w, _hmd->Resolution.h);
-    // Generates internal compiler error on MSVC 12
     ovr_for_each_eye([&](ovrEyeType eye){
-        glUniform2fv(_uniformOffset, 1, &_offsetAndScale[eye][0].x);
-        glUniform2fv(_uniformScale, 1, &_offsetAndScale[eye][1].x);
+//        ovrMatrix4f timeWarpMatrices[2];
+//        ovrHmd_GetEyeTimewarpMatrices(_hmd, eye, _eyePoses[eye], timeWarpMatrices);
+//        glUniformMatrix4fv(_uniformEyeRotStart, 1, GL_TRUE, &(timeWarpMatrices[0].M[0][0]));
+//        glUniformMatrix4fv(_uniformEyeRotEnd, 1, GL_TRUE, &(timeWarpMatrices[1].M[0][0]));
+        mat4 identity;
+        glUniformMatrix4fv(_uniformEyeRotStart, 1, GL_FALSE, &identity[0][0]);
+        glUniformMatrix4fv(_uniformEyeRotEnd, 1, GL_FALSE, &identity[0][0]);
+
+        vec2 scale(1);
+//        glUniform2fv(_uniformScale, 1, &_scaleAndOffset[eye][0].x);
+        glUniform2fv(_uniformScale, 1, &scale.x);
+
+        glUniform2fv(_uniformOffset, 1, &_scaleAndOffset[eye][1].x);
+
         _eyeVertexBuffers[eye]->Bind(Buffer::Target::Array);
         glEnableVertexAttribArray(_attrPosition);
-        glVertexAttribPointer(_attrPosition, 2, GL_FLOAT, GL_FALSE, sizeof(ovrDistortionVertex), (void*)offsetof(ovrDistortionVertex, ScreenPosNDC));
+        size_t offset;
+        offset = offsetof(ovrDistortionVertex, ScreenPosNDC);
+        glVertexAttribPointer(_attrPosition, 2, GL_FLOAT, GL_FALSE, sizeof(ovrDistortionVertex), (void*)offset);
         glEnableVertexAttribArray(_attrTexCoord0);
-        glVertexAttribPointer(_attrTexCoord0, 2, GL_FLOAT, GL_FALSE, sizeof(ovrDistortionVertex), (void*)offsetof(ovrDistortionVertex, TanEyeAnglesR));
+        offset = offsetof(ovrDistortionVertex, TanEyeAnglesR);
+        glVertexAttribPointer(_attrTexCoord0, 2, GL_FLOAT, GL_FALSE, sizeof(ovrDistortionVertex), (void*)offset);
         glEnableVertexAttribArray(_attrTexCoord1);
-        glVertexAttribPointer(_attrTexCoord1, 2, GL_FLOAT, GL_FALSE, sizeof(ovrDistortionVertex), (void*)offsetof(ovrDistortionVertex, TanEyeAnglesG));
+        offset = offsetof(ovrDistortionVertex, TanEyeAnglesG);
+        glVertexAttribPointer(_attrTexCoord1, 2, GL_FLOAT, GL_FALSE, sizeof(ovrDistortionVertex), (void*)offset);
         glEnableVertexAttribArray(_attrTexCoord2);
-        glVertexAttribPointer(_attrTexCoord2, 2, GL_FLOAT, GL_FALSE, sizeof(ovrDistortionVertex), (void*)offsetof(ovrDistortionVertex, TanEyeAnglesB));
+        offset = offsetof(ovrDistortionVertex, TanEyeAnglesB);
+        glVertexAttribPointer(_attrTexCoord2, 2, GL_FLOAT, GL_FALSE, sizeof(ovrDistortionVertex), (void*)offset);
         _eyeIndexBuffers[eye]->Bind(Buffer::Target::ElementArray);
         glDrawElements(GL_TRIANGLES, _indexCount[eye], GL_UNSIGNED_SHORT, 0);
         glDisableVertexAttribArray(_attrPosition);
