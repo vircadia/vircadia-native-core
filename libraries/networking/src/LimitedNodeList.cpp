@@ -180,6 +180,7 @@ bool LimitedNodeList::packetSourceAndHashMatch(const NLPacket& packet, SharedNod
     if (NON_SOURCED_PACKETS.contains(packet.getType())) {
         return true;
     } else {
+        
         // figure out which node this is from
         matchingNode = nodeWithUUID(packet.getSourceID());
         
@@ -199,9 +200,10 @@ bool LimitedNodeList::packetSourceAndHashMatch(const NLPacket& packet, SharedNod
 
                     return false;
                 }
-
-                return true;
             }
+            
+            return true;
+            
         } else {
             static QString repeatedMessage
                 = LogHandler::getInstance().addRepeatedMessageRegex("Packet of type \\d+ received from unknown node with UUID");
