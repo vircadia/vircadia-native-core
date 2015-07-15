@@ -37,7 +37,6 @@
 #include "SpeechRecognizer.h"
 #endif
 #include "ui/DialogsManager.h"
-#include "ui/NodeBounds.h"
 #include "ui/StandAloneJSConsole.h"
 #include "InterfaceLogging.h"
 
@@ -315,13 +314,6 @@ Menu::Menu() {
                                            false,
                                            qApp,
                                            SLOT(setEnable3DTVMode(bool)));
-
-
-    MenuWrapper* nodeBordersMenu = viewMenu->addMenu("Server Borders");
-    NodeBounds& nodeBounds = qApp->getNodeBoundsDisplay();
-    addCheckableActionToQMenuAndActionHash(nodeBordersMenu, MenuOption::ShowBordersEntityNodes,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_1, false,
-                                           &nodeBounds, SLOT(setShowEntityNodes(bool)));
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
 

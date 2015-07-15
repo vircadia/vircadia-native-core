@@ -337,7 +337,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _mousePressed(false),
         _enableProcessOctreeThread(true),
         _octreeProcessor(),
-        _nodeBoundsDisplay(this),
         _runningScriptsWidget(NULL),
         _runningScriptsWidgetWasVisible(false),
         _trayIcon(new QSystemTrayIcon(_window)),
@@ -3587,8 +3586,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     }
 
     if (!selfAvatarOnly) {
-        _nodeBoundsDisplay.draw();
-
         // give external parties a change to hook in
         {
             PerformanceTimer perfTimer("inWorldInterface");
