@@ -60,7 +60,6 @@
 #include "ui/BandwidthDialog.h"
 #include "ui/HMDToolsDialog.h"
 #include "ui/ModelsBrowser.h"
-#include "ui/NodeBounds.h"
 #include "ui/OctreeStatsDialog.h"
 #include "ui/SnapshotShareDialog.h"
 #include "ui/LodToolsDialog.h"
@@ -302,8 +301,6 @@ public:
     virtual void overrideEnvironmentData(const EnvironmentData& newData) { _environment.override(newData); }
     virtual void endOverrideEnvironmentData() { _environment.endOverride(); }
     virtual qreal getDevicePixelRatio();
-
-    NodeBounds& getNodeBoundsDisplay()  { return _nodeBoundsDisplay; }
 
     FileLogger* getLogger() { return _logger; }
 
@@ -620,8 +617,6 @@ private:
     NodeToJurisdictionMap _entityServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;
     QReadWriteLock _octreeSceneStatsLock;
-
-    NodeBounds _nodeBoundsDisplay;
 
     ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;
