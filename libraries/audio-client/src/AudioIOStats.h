@@ -44,7 +44,10 @@ public:
     const MovingMinMaxAvg<quint64>& getPacketSentTimeGaps() const { return _packetSentTimeGaps; }
     
     void sendDownstreamAudioStatsPacket();
+
+public slots:
     void processStreamStatsPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+
 private:
     MixedProcessedAudioStream* _receivedAudioStream;
     

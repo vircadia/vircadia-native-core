@@ -142,7 +142,7 @@ AudioClient::AudioClient() :
     configureGverbFilter(_gverb);
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::AudioStreamStats, &_stats, "handleAudioStreamStatsPacket");
+    packetReceiver.registerListener(PacketType::AudioStreamStats, &_stats, "processStreamStatsPacket");
     packetReceiver.registerListener(PacketType::AudioEnvironment, this, "handleAudioEnvironmentDataPacket");
     packetReceiver.registerListener(PacketType::SilentAudioFrame, this, "handleAudioDataPacket");
     packetReceiver.registerListener(PacketType::MixedAudio, this, "handleAudioDataPacket");
