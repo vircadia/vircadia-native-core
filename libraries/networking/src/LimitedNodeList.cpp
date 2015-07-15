@@ -50,7 +50,7 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     _localSockAddr(),
     _publicSockAddr(),
     _stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT),
-    _packetReceiver(this),
+    _packetReceiver(new PacketReceiver(this)),
     _numCollectedPackets(0),
     _numCollectedBytes(0),
     _packetStatTimer(),
@@ -99,12 +99,12 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
 
     // TODO: Create a new thread, and move PacketReceiver to it
 
-    connect(&_nodeSocket, &QUdpSocket::readyRead, &_packetReceiver, &PacketReceiver::processDatagrams);
+    connect(&_nodeSocket, &QUdpSocket::readyRead, _packetReceiver, &PacketReceiver::processDatagrams);
 
     _packetStatTimer.start();
     
     // make sure we handle STUN response packets
-    _packetReceiver.registerListener(PacketType::StunResponse, this, "processSTUNResponse");
+    _packetReceiver->registerListener(PacketType::StunResponse, this, "processSTUNResponse");
 }
 
 void LimitedNodeList::setSessionUUID(const QUuid& sessionUUID) {
