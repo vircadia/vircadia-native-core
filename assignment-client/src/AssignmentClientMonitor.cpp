@@ -18,7 +18,7 @@
 #include "AssignmentClientMonitor.h"
 #include "AssignmentClientApp.h"
 #include "AssignmentClientChildData.h"
-#include "PacketHeaders.h"
+#include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
 
 
@@ -197,7 +197,7 @@ void AssignmentClientMonitor::checkSpares() {
             childNode->activateLocalSocket();
 
             auto diePacket = NLPacket::create(PacketType::StopNode, 0);
-            nodeList->sendPacket(std::move(diePacket), childNode);
+            nodeList->sendPacket(std::move(diePacket), *childNode);
         }
     }
 }

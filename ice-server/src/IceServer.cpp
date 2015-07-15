@@ -12,7 +12,7 @@
 #include <QTimer>
 
 #include <LimitedNodeList.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 
 #include "IceServer.h"

@@ -11,8 +11,6 @@
 
 #include "Packet.h"
 
-#include "LimitedNodeList.h"
-
 qint64 Packet::localHeaderSize(PacketType::Value type) {
     qint64 size = numBytesForArithmeticCodedPacketType(type) + sizeof(PacketVersion) +
                         ((SEQUENCE_NUMBERED_PACKETS.contains(type)) ? sizeof(SequenceNumber) : 0);
@@ -60,13 +58,13 @@ Packet::Packet(PacketType::Value type, qint64 size) :
         // default size of -1, means biggest packet possible
         size = maxPayload;
     }
-
+    
     // Sanity check
     Q_ASSERT(size >= 0 || size < maxPayload);
-
+    
     // copy packet type and version in header
     writePacketTypeAndVersion(type);
-
+    
     // Set control bit and sequence number to 0 if necessary
     if (SEQUENCE_NUMBERED_PACKETS.contains(type)) {
         writeSequenceNumber(0);

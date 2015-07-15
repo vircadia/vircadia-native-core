@@ -16,7 +16,7 @@
 
 #include <QIODevice>
 
-#include "HifiSockAddr.h"
+#include "../HifiSockAddr.h"
 #include "PacketHeaders.h"
 
 class Packet : public QIODevice {

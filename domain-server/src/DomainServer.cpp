@@ -29,7 +29,7 @@
 #include <JSONBreakableMarshal.h>
 #include <LogUtils.h>
 #include <NetworkingConstants.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <SettingHandle.h>
 #include <SharedUtil.h>
 #include <ShutdownEventListener.h>
@@ -1005,7 +1005,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     }
 
     // write the PacketList to this node
-    limitedNodeList->sendPacketList(domainListPackets, node);
+    limitedNodeList->sendPacketList(domainListPackets, *node);
 }
 
 QUuid DomainServer::connectionSecretForNodes(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB) {
@@ -1061,7 +1061,7 @@ void DomainServer::broadcastNewNode(const SharedNodePointer& addedNode) {
             addNodePacket->write(rfcConnectionSecret);
 
             // send off this packet to the node
-            limitedNodeList->sendUnreliablePacket(*addNodePacket, node);
+            limitedNodeList->sendUnreliablePacket(*addNodePacket, *node);
         }
     );
 }

@@ -13,7 +13,7 @@
 #include <QtCore/QDataStream>
 
 #include <NodeList.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 #include <UUID.h>
 #include <soxr.h>
@@ -238,7 +238,7 @@ void AudioInjector::injectToMixer() {
             SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
 
             // send off this audio packet
-            nodeList->sendUnreliablePacket(*audioPacket, audioMixer);
+            nodeList->sendUnreliablePacket(*audioPacket, *audioMixer);
             outgoingInjectedAudioSequenceNumber++;
 
             _currentSendPosition += bytesToCopy;

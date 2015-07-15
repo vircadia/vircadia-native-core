@@ -33,6 +33,8 @@
 #include "UUID.h"
 #include "NetworkLogging.h"
 
+#include "udt/udt.h"
+
 const char SOLO_NODE_TYPES[2] = {
     NodeType::AvatarMixer,
     NodeType::AudioMixer
@@ -206,6 +208,10 @@ bool LimitedNodeList::packetSourceAndHashMatch(const NLPacket& packet, SharedNod
     return false;
 }
 
+qint64 LimitedNodeList::writeDatagram(const NLPacket& packet, const HifiSockAddr& destinationSockAddr) {
+    return writeDatagram({packet.getData(), static_cast<int>(packet.getSizeWithHeader())}, destinationSockAddr);
+}
+
 qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr) {
     // XXX can BandwidthRecorder be used for this?
     // stat collection for packets
@@ -220,6 +226,59 @@ qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSock
     }
 
     return bytesWritten;
+}
+
+qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const Node& destinationNode) {
+    if (!destinationNode.getActiveSocket()) {
+        // we don't have a socket to send to, return 0
+        return 0;
+    }
+    
+    // use the node's active socket as the destination socket
+    return sendUnreliablePacket(packet, *destinationNode.getActiveSocket());
+}
+
+qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr) {
+    return writeDatagram(packet, sockAddr);
+}
+
+qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode) {
+    if (!destinationNode.getActiveSocket()) {
+        // we don't have a socket to send to, return 0
+        return 0;
+    }
+    
+    // use the node's active socket as the destination socket
+    return sendPacket(std::move(packet), *destinationNode.getActiveSocket());
+}
+
+qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr) {
+    return writeDatagram(*packet, sockAddr);
+}
+
+qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& destinationNode) {
+    if (!destinationNode.getActiveSocket()) {
+        // we don't have a socket to send to, return 0
+        return 0;
+    }
+    return sendPacketList(packetList, *destinationNode.getActiveSocket());
+}
+
+qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr) {
+    qint64 bytesSent{ 0 };
+    while (!packetList._packets.empty()) {
+        bytesSent += sendPacket(std::move(packetList.takeFront<NLPacket>()), sockAddr);
+    }
+    
+    return bytesSent;
+}
+
+qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode,
+                                   const HifiSockAddr& overridenSockAddr) {
+    // use the node's active socket as the destination socket if there is no overriden socket address
+    auto& destinationSockAddr = (overridenSockAddr.isNull()) ? *destinationNode.getActiveSocket()
+                                                             : overridenSockAddr;
+    return sendPacket(std::move(packet), destinationSockAddr);
 }
 
 PacketSequenceNumber LimitedNodeList::getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType::Value packetType) {
@@ -400,6 +459,19 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingReplyPacket(NLPacket&
     icePingReplyPacket->writePrimitive(pingType);
 
     return icePingReplyPacket;
+}
+
+unsigned int LimitedNodeList::broadcastToNodes(std::unique_ptr<NLPacket> packet, const NodeSet& destinationNodeTypes) {
+    unsigned int n = 0;
+    
+    eachNode([&](const SharedNodePointer& node){
+        if (destinationNodeTypes.contains(node->getType())) {
+            writeDatagram(*packet, *node->getActiveSocket());
+            ++n;
+        }
+    });
+    
+    return n;
 }
 
 SharedNodePointer LimitedNodeList::soloNodeOfType(char nodeType) {

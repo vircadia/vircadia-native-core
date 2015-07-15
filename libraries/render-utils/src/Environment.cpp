@@ -17,7 +17,7 @@
 #include <GeometryUtil.h>
 #include <NumericalConstants.h>
 #include <OctreePacketData.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <PathUtils.h>
 #include <SharedUtil.h>
 

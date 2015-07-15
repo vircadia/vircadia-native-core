@@ -25,7 +25,7 @@
 #include "HifiSockAddr.h"
 #include "JSONBreakableMarshal.h"
 #include "NodeList.h"
-#include "PacketHeaders.h"
+#include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
 #include "UUID.h"
 #include "NetworkLogging.h"
@@ -170,7 +170,7 @@ void NodeList::processPingPacket(QSharedPointer<NLPacket> packet, SharedNodePoin
     // send back a reply
     auto replyPacket = constructPingReplyPacket(*packet);
     const HifiSockAddr& senderSockAddr = packet->getSenderSockAddr();
-    sendPacket(std::move(replyPacket), sendingNode, senderSockAddr);
+    sendPacket(std::move(replyPacket), *sendingNode, senderSockAddr);
 
     // If we don't have a symmetric socket for this node and this socket doesn't match
     // what we have for public and local then set it as the symmetric.
@@ -549,14 +549,14 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
 
     // send the ping packet to the local and public sockets for this node
     auto localPingPacket = constructPingPacket(PingType::Local);
-    sendPacket(std::move(localPingPacket), node, node->getLocalSocket());
+    sendPacket(std::move(localPingPacket), *node, node->getLocalSocket());
 
     auto publicPingPacket = constructPingPacket(PingType::Public);
-    sendPacket(std::move(publicPingPacket), node, node->getPublicSocket());
+    sendPacket(std::move(publicPingPacket), *node, node->getPublicSocket());
 
     if (!node->getSymmetricSocket().isNull()) {
         auto symmetricPingPacket = constructPingPacket(PingType::Symmetric);
-        sendPacket(std::move(symmetricPingPacket), node, node->getSymmetricSocket());
+        sendPacket(std::move(symmetricPingPacket), *node, node->getSymmetricSocket());
     }
 
     node->incrementConnectionAttempts();

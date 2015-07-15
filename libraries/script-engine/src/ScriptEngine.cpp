@@ -24,7 +24,7 @@
 #include <EntityScriptingInterface.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <UUID.h>
 
 #include "AnimationObject.h"
@@ -675,7 +675,7 @@ void ScriptEngine::run() {
                         audioPacket->writePrimitive(sequence);
 
                         // send audio packet
-                        nodeList->sendUnreliablePacket(*audioPacket, node);
+                        nodeList->sendUnreliablePacket(*audioPacket, *node);
                     }
                 });
             }

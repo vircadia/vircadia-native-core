@@ -12,7 +12,7 @@
 #include <limits>
 
 #include <NumericalConstants.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <PerfStat.h>
 
 #include "OctreeServer.h"
@@ -287,7 +287,7 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
             packetsSent += nackPacketList.getNumPackets();
             
             // send the list of nack packets
-            nodeList->sendPacketList(nackPacketList, destinationNode);
+            nodeList->sendPacketList(nackPacketList, *destinationNode);
         }
     }
 
