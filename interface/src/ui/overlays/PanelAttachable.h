@@ -18,26 +18,19 @@
 
 class PanelAttachable {
 public:
+    PanelAttachable();
+    PanelAttachable(const PanelAttachable* panelAttachable);
+
     glm::vec3 getOffsetPosition() const { return _offsetPosition; }
     void setOffsetPosition(glm::vec3 position) { _offsetPosition = position; }
 
     FloatingUIPanel* getAttachedPanel() const { return _attachedPanel; }
     void setAttachedPanel(FloatingUIPanel* panel) { _attachedPanel = panel; }
 
-    glm::vec3 getTranslatedPosition(glm::vec3 avatarPosition) {
-        if (getAttachedPanel()) {
-            glm::vec3 totalOffsetPosition =
-            getAttachedPanel()->getFacingRotation() * getOffsetPosition() +
-            getAttachedPanel()->getOffsetPosition();
-
-            return getAttachedPanel()->getOffsetRotation() * totalOffsetPosition +
-                   avatarPosition;
-        }
-        return glm::vec3();
-    }
+    glm::vec3 getTranslatedPosition(glm::vec3 avatarPosition) const;
 
 private:
-    FloatingUIPanel* _attachedPanel = nullptr;
+    FloatingUIPanel* _attachedPanel;
     glm::vec3 _offsetPosition = glm::vec3(0, 0, 0);
 };
 

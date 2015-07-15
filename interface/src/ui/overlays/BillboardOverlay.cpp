@@ -29,6 +29,7 @@ BillboardOverlay::BillboardOverlay() {
 
 BillboardOverlay::BillboardOverlay(const BillboardOverlay* billboardOverlay) :
     Planar3DOverlay(billboardOverlay),
+    PanelAttachable(billboardOverlay),
     _url(billboardOverlay->_url),
     _texture(billboardOverlay->_texture),
     _fromImage(billboardOverlay->_fromImage),
