@@ -205,9 +205,9 @@ int Environment::processPacket(NLPacket& packet) {
     
     EnvironmentData newData;
     
-    while (packet.bytesAvailable() > 0) {
+    while (packet.bytesLeftToRead() > 0) {
         int dataLength = newData.parseData(reinterpret_cast<const unsigned char*>(packet.getPayload() + packet.pos()),
-                                           packet.bytesAvailable());
+                                           packet.bytesLeftToRead());
         packet.seek(packet.pos() + dataLength);
         
         // update the mapping by address/ID
