@@ -25,12 +25,17 @@
 #include "ProgramObject.h"
 #include "RenderUtil.h"
 #include "TextureCache.h"
+#include "DependencyManager.h"
+#include "ViewFrustum.h"
+
+#include "ambient_occlusion_vert.h"
+#include "ambient_occlusion_frag.h"
 
 const int ROTATION_WIDTH = 4;
 const int ROTATION_HEIGHT = 4;
     
 void AmbientOcclusionEffect::init(AbstractViewStateInterface* viewState) {
-    _viewState = viewState; // we will use this for view state services
+    /*_viewState = viewState; // we will use this for view state services
     
     _occlusionProgram = new ProgramObject();
     _occlusionProgram->addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath()
@@ -93,27 +98,27 @@ void AmbientOcclusionEffect::init(AbstractViewStateInterface* viewState) {
     _blurProgram->setUniformValue("originalTexture", 0);
     _blurProgram->release();
     
-    _blurScaleLocation = _blurProgram->uniformLocation("blurScale");
+    _blurScaleLocation = _blurProgram->uniformLocation("blurScale");*/
 }
 
-void AmbientOcclusionEffect::render() {
-    glDisable(GL_BLEND);
+void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext){
+    /*glDisable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
     glDepthMask(GL_FALSE);
-    
+
     glBindTexture(GL_TEXTURE_2D, DependencyManager::get<TextureCache>()->getPrimaryDepthTextureID());
-    
+
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, _rotationTextureID);
-    
+
     // render with the occlusion shader to the secondary/tertiary buffer
     auto freeFramebuffer = DependencyManager::get<GlowEffect>()->getFreeFramebuffer();
     glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(freeFramebuffer));
-    
+
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
-    _viewState->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
-    
+    AbstractViewStateInterface::instance()->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
     const int VIEWPORT_X_INDEX = 0;
@@ -122,7 +127,7 @@ void AmbientOcclusionEffect::render() {
     auto framebufferSize = DependencyManager::get<TextureCache>()->getFrameBufferSize();
     float sMin = viewport[VIEWPORT_X_INDEX] / (float)framebufferSize.width();
     float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)framebufferSize.width();
-    
+
     _occlusionProgram->bind();
     _occlusionProgram->setUniformValue(_nearLocation, nearVal);
     _occlusionProgram->setUniformValue(_farLocation, farVal);
@@ -132,37 +137,107 @@ void AmbientOcclusionEffect::render() {
         framebufferSize.height() / (float)ROTATION_HEIGHT);
     _occlusionProgram->setUniformValue(_texCoordOffsetLocation, sMin, 0.0f);
     _occlusionProgram->setUniformValue(_texCoordScaleLocation, sWidth, 1.0f);
-    
+
     renderFullscreenQuad();
-    
+
     _occlusionProgram->release();
-    
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     glBindTexture(GL_TEXTURE_2D, 0);
-    
+
     glActiveTexture(GL_TEXTURE0);
-    
+
     // now render secondary to primary with 4x4 blur
     auto primaryFramebuffer = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
     glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFramebuffer));
 
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_ZERO, GL_SRC_COLOR, GL_ZERO, GL_ONE);
-    
+
     auto freeFramebufferTexture = freeFramebuffer->getRenderBuffer(0);
     glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(freeFramebufferTexture));
-    
+
     _blurProgram->bind();
     _blurProgram->setUniformValue(_blurScaleLocation, 1.0f / framebufferSize.width(), 1.0f / framebufferSize.height());
-    
+
     renderFullscreenQuad(sMin, sMin + sWidth);
-    
+
     _blurProgram->release();
-    
+
     glBindTexture(GL_TEXTURE_2D, 0);
-    
+
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
     glEnable(GL_DEPTH_TEST);
-    glDepthMask(GL_TRUE);
+    glDepthMask(GL_TRUE);*/
 }
+
+
+AmbientOcclusion::AmbientOcclusion() {
+}
+
+const gpu::PipelinePointer& AmbientOcclusion::getAOPipeline() {
+    if (!_AOPipeline) {
+        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(ambient_occlusion_vert)));
+        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(ambient_occlusion_frag)));
+        gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+
+        gpu::Shader::BindingSet slotBindings;
+        gpu::Shader::makeProgram(*program, slotBindings);
+
+        //_drawItemBoundPosLoc = program->getUniforms().findLocation("inBoundPos");
+        //_drawItemBoundDimLoc = program->getUniforms().findLocation("inBoundDim");
+
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+
+        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+
+        // Blend on transparent
+        state->setBlendFunction(true,
+            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+            gpu::State::DEST_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ZERO);
+
+        // Good to go add the brand new pipeline
+        _AOPipeline.reset(gpu::Pipeline::create(program, state));
+    }
+    return _AOPipeline;
+}
+
+void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
+
+    // create a simple pipeline that does:
+
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
+    RenderArgs* args = renderContext->args;
+    auto& scene = sceneContext->_scene;
+
+    // Allright, something to render let's do it
+    gpu::Batch batch;
+
+    glm::mat4 projMat;
+    Transform viewMat;
+    args->_viewFrustum->evalProjectionMatrix(projMat);
+    args->_viewFrustum->evalViewTransform(viewMat);
+    if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+        viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
+    }
+    batch.setProjectionTransform(projMat);
+    batch.setViewTransform(viewMat);
+    batch.setModelTransform(Transform());
+
+    // bind the one gpu::Pipeline we need
+    batch.setPipeline(getAOPipeline());
+
+    //renderFullscreenQuad();
+
+    args->_context->syncCache();
+    renderContext->args->_context->syncCache();
+    args->_context->render((batch));
+
+    // need to fetch forom the z buffer and render something in a new render target a result that combine the z and produce a fake AO result
+
+
+
+}
+

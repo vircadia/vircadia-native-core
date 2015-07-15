@@ -18,6 +18,7 @@
 #include "TextureCache.h"
 
 #include "render/DrawStatus.h"
+#include "AmbientOcclusionEffect.h"
 
 #include <PerfStat.h>
 
@@ -71,10 +72,13 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _jobs.push_back(Job(new DrawTransparentDeferred::JobModel("TransparentDeferred", _jobs.back().getOutput())));
     
     _jobs.push_back(Job(new render::DrawStatus::JobModel("DrawStatus", renderedOpaques)));
+
+
     _jobs.back().setEnabled(false);
     _drawStatusJobIndex = _jobs.size() - 1;
 
     _jobs.push_back(Job(new DrawOverlay3D::JobModel("DrawOverlay3D")));
+    _jobs.push_back(Job(new AmbientOcclusion::JobModel("AmbientOcclusion")));
     _jobs.push_back(Job(new ResetGLState::JobModel()));
 
     // Give ourselves 3 frmaes of timer queries

@@ -2154,7 +2154,6 @@ void Application::init() {
     _environment.init();
 
     DependencyManager::get<DeferredLightingEffect>()->init(this);
-    DependencyManager::get<AmbientOcclusionEffect>()->init(this);
 
     // TODO: move _myAvatar out of Application. Move relevant code to MyAvataar or AvatarManager
     DependencyManager::get<AvatarManager>()->init();
@@ -3479,14 +3478,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             renderArgs->_debugFlags = renderDebugFlags;
             _entities.render(renderArgs);
         }
-
-        // render the ambient occlusion effect if enabled
-        if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
-            PerformanceTimer perfTimer("ambientOcclusion");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... AmbientOcclusion...");
-            DependencyManager::get<AmbientOcclusionEffect>()->render();
-        }
     }
 
     // Make sure the WorldBox is in the scene
@@ -3564,6 +3555,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         sceneInterface->setEngineFeedOverlay3DItems(engineRC->_numFeedOverlay3DItems);
         sceneInterface->setEngineDrawnOverlay3DItems(engineRC->_numDrawnOverlay3DItems);
     }
+
     //Render the sixense lasers
     if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
         _myAvatar->renderLaserPointers(*renderArgs->_batch);
