@@ -49,9 +49,13 @@ public:
     
     PacketVersion getVersion() const { return _version; }
     
+    // Returns the size of the packet, including the header
     qint64 getDataSize() const { return totalHeadersSize() + getPayloadSize(); }
     
+    // Returns the size of the payload only
     qint64 getPayloadSize() const { return _payloadSize; }
+    
+    // Allows a writer to change the size of the payload used when writing directly
     void setPayloadSize(qint64 payloadSize);
 
     qint64 getPayloadCapacity() const  { return _payloadCapacity; }
