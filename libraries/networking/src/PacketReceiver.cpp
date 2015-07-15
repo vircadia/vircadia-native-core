@@ -269,15 +269,12 @@ void PacketReceiver::processDatagrams() {
                                 << listener.first << "::" << qPrintable(listener.second.methodSignature());
                         }
 
-                    } else {
-                        // we have a dead listener - remove this mapping from the _packetListenerMap
-                        qDebug() << "Listener for packet type" << packet->getType() << "("
-                            << qPrintable(nameForPacketType(packet->getType())) << ")"
-                            << "has been destroyed - removing mapping.";
-                        _packetListenerMap.erase(it);
                     }
                 } else {
-                    qDebug() << "No listener found for packet type " << nameForPacketType(packet->getType());
+                    qWarning() << "No listener found for packet type " << nameForPacketType(packet->getType());
+                    
+                    // insert a dummy listener so we don't print this again
+                    _packetListenerMap.insert(packet->getType(), { nullptr, QMetaMethod() });
                 }
 
                 _packetListenerLock.unlock();
