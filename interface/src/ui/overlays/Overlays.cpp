@@ -103,19 +103,11 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
     
 
     foreach(Overlay::Pointer thisOverlay, _overlaysHUD) {
-        if (thisOverlay->is3D()) {
-            glEnable(GL_DEPTH_TEST);
-            glEnable(GL_LIGHTING);
-
-            thisOverlay->render(renderArgs);
-
-            glDisable(GL_LIGHTING);
-            glDisable(GL_DEPTH_TEST);
-        } else {
-            thisOverlay->render(renderArgs);
-        }
+        thisOverlay->render(renderArgs);
     }
-    gpu::GLBackend::renderBatch(batch, true);
+
+    renderArgs->_context->syncCache();
+    renderArgs->_context->render(batch);
 }
 
 unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& properties) {

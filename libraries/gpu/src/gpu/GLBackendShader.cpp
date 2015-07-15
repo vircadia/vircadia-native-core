@@ -41,20 +41,33 @@ void makeBindings(GLBackend::GLShader* shader) {
         glBindAttribLocation(glprogram, gpu::Stream::POSITION, "position");
     }
 
+    loc = glGetAttribLocation(glprogram, "attribPosition");
+    if (loc >= 0) {
+        glBindAttribLocation(glprogram, gpu::Stream::POSITION, "attribPosition");
+    }
+
     //Check for gpu specific attribute slotBindings
     loc = glGetAttribLocation(glprogram, "gl_Vertex");
     if (loc >= 0) {
-        glBindAttribLocation(glprogram, gpu::Stream::POSITION, "position");
+        glBindAttribLocation(glprogram, gpu::Stream::POSITION, "gl_Vertex");
     }
 
     loc = glGetAttribLocation(glprogram, "normal");
     if (loc >= 0) {
         glBindAttribLocation(glprogram, gpu::Stream::NORMAL, "normal");
     }
+    loc = glGetAttribLocation(glprogram, "attribNormal");
+    if (loc >= 0) {
+        glBindAttribLocation(glprogram, gpu::Stream::NORMAL, "attribNormal");
+    }
 
     loc = glGetAttribLocation(glprogram, "color");
     if (loc >= 0) {
         glBindAttribLocation(glprogram, gpu::Stream::COLOR, "color");
+    }
+    loc = glGetAttribLocation(glprogram, "attribColor");
+    if (loc >= 0) {
+        glBindAttribLocation(glprogram, gpu::Stream::COLOR, "attribColor");
     }
 
     loc = glGetAttribLocation(glprogram, "texcoord");
@@ -72,6 +85,10 @@ void makeBindings(GLBackend::GLShader* shader) {
     }
 
     loc = glGetAttribLocation(glprogram, "texcoord1");
+    if (loc >= 0) {
+        glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD1, "texcoord1");
+    }
+    loc = glGetAttribLocation(glprogram, "attribTexcoord1");
     if (loc >= 0) {
         glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD1, "texcoord1");
     }

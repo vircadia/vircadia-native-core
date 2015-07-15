@@ -423,7 +423,7 @@ void Font3D::drawString(gpu::Batch& batch, float x, float y, const QString& str,
     
     setupGPU();
     batch.setPipeline(_pipeline);
-    batch.setUniformTexture(_fontLoc, _texture);
+    batch.setResourceTexture(_fontLoc, _texture);
     batch._glUniform1i(_outlineLoc, (effectType == TextRenderer3D::OUTLINE_EFFECT));
     batch._glUniform4fv(_colorLoc, 1, (const GLfloat*)color);
     

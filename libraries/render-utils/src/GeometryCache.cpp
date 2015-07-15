@@ -55,8 +55,6 @@ const int NUM_VERTICES_PER_TRIANGLE = 3;
 const int NUM_TRIANGLES_PER_QUAD = 2;
 const int NUM_VERTICES_PER_TRIANGULATED_QUAD = NUM_VERTICES_PER_TRIANGLE * NUM_TRIANGLES_PER_QUAD;
 const int NUM_COORDS_PER_VERTEX = 3;
-const int NUM_BYTES_PER_VERTEX = NUM_COORDS_PER_VERTEX * sizeof(GLfloat);
-const int NUM_BYTES_PER_INDEX = sizeof(GLushort);
 
 void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm::vec4& color, bool solid, int id) {
     gpu::Batch batch;
@@ -306,106 +304,6 @@ void GeometryCache::renderSphere(gpu::Batch& batch, float radius, int slices, in
     } else {
         batch.drawIndexed(gpu::LINES, indices);
     }
-}
-
-void GeometryCache::renderCone(float base, float height, int slices, int stacks) {
-    VerticesIndices& vbo = _coneVBOs[IntPair(slices, stacks)];
-    int vertices = (stacks + 2) * slices;
-    int baseTriangles = slices - 2;
-    int indices = NUM_VERTICES_PER_TRIANGULATED_QUAD * slices * stacks + NUM_VERTICES_PER_TRIANGLE * baseTriangles;
-    if (vbo.first == 0) {
-        GLfloat* vertexData = new GLfloat[vertices * NUM_COORDS_PER_VERTEX * 2];
-        GLfloat* vertex = vertexData;
-        // cap
-        for (int i = 0; i < slices; i++) {
-            float theta = TWO_PI * i / slices;
-            
-            //normals
-            *(vertex++) = 0.0f;
-            *(vertex++) = 0.0f;
-            *(vertex++) = -1.0f;
-
-            // vertices
-            *(vertex++) = cosf(theta);
-            *(vertex++) = sinf(theta);
-            *(vertex++) = 0.0f;
-        }
-        // body
-        for (int i = 0; i <= stacks; i++) {
-            float z = (float)i / stacks;
-            float radius = 1.0f - z;
-            
-            for (int j = 0; j < slices; j++) {
-                float theta = TWO_PI * j / slices;
-
-                //normals
-                *(vertex++) = cosf(theta) / SQUARE_ROOT_OF_2;
-                *(vertex++) = sinf(theta) / SQUARE_ROOT_OF_2;
-                *(vertex++) = 1.0f / SQUARE_ROOT_OF_2;
-
-                // vertices
-                *(vertex++) = radius * cosf(theta);
-                *(vertex++) = radius * sinf(theta);
-                *(vertex++) = z;
-            }
-        }
-        
-        glGenBuffers(1, &vbo.first);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        glBufferData(GL_ARRAY_BUFFER, 2 * vertices * NUM_BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
-        delete[] vertexData;
-        
-        GLushort* indexData = new GLushort[indices];
-        GLushort* index = indexData;
-        for (int i = 0; i < baseTriangles; i++) {
-            *(index++) = 0;
-            *(index++) = i + 2;
-            *(index++) = i + 1;
-        }
-        for (int i = 1; i <= stacks; i++) {
-            GLushort bottom = i * slices;
-            GLushort top = bottom + slices;
-            for (int j = 0; j < slices; j++) {
-                int next = (j + 1) % slices;
-                
-                *(index++) = bottom + j;
-                *(index++) = top + next;
-                *(index++) = top + j;
-                
-                *(index++) = bottom + j;
-                *(index++) = bottom + next;
-                *(index++) = top + next;
-            }
-        }
-        
-        glGenBuffers(1, &vbo.second);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
-        delete[] indexData;
-        
-    } else {
-        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
-    }
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_NORMAL_ARRAY);
-
-    int stride = NUM_VERTICES_PER_TRIANGULATED_QUAD * sizeof(float);
-    glNormalPointer(GL_FLOAT, stride, 0);
-    glVertexPointer(NUM_COORDS_PER_VERTEX, GL_FLOAT, stride, (const void *)(NUM_COORDS_PER_VERTEX * sizeof(float)));
-    
-    glPushMatrix();
-    glScalef(base, base, height);
-    
-    glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
-    
-    glPopMatrix();
-    
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_NORMAL_ARRAY);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void GeometryCache::renderGrid(int xDivisions, int yDivisions, const glm::vec4& color) {
@@ -1942,7 +1840,7 @@ QSharedPointer<NetworkGeometry> NetworkGeometry::getLODOrFallback(float distance
             }
         }
     }
-    if (lod->isLoaded()) {
+    if (lod && lod->isLoaded()) {
         hysteresis = lodDistance;
         return lod;
     }
@@ -2061,21 +1959,16 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
                 
                 QSharedPointer<NetworkTexture> matchingTexture = QSharedPointer<NetworkTexture>();
                 if (part.diffuseTextureName == name) {
-                    part.diffuseTexture =
-                    textureCache->getTexture(url, DEFAULT_TEXTURE,
-                                                                              _geometry.meshes[i].isEye, QByteArray());
+                    part.diffuseTexture = textureCache->getTexture(url, DEFAULT_TEXTURE, _geometry.meshes[i].isEye);
                     part.diffuseTexture->setLoadPriorities(_loadPriorities);
                 } else if (part.normalTextureName == name) {
-                    part.normalTexture = textureCache->getTexture(url, DEFAULT_TEXTURE,
-                                                                                                   false, QByteArray());
+                    part.normalTexture = textureCache->getTexture(url);
                     part.normalTexture->setLoadPriorities(_loadPriorities);
                 } else if (part.specularTextureName == name) {
-                    part.specularTexture = textureCache->getTexture(url, DEFAULT_TEXTURE,
-                                                                                                     false, QByteArray());
+                    part.specularTexture = textureCache->getTexture(url);
                     part.specularTexture->setLoadPriorities(_loadPriorities);
                 } else if (part.emissiveTextureName == name) {
-                    part.emissiveTexture = textureCache->getTexture(url, DEFAULT_TEXTURE,
-                                                                                                     false, QByteArray());
+                    part.emissiveTexture = textureCache->getTexture(url);
                     part.emissiveTexture->setLoadPriorities(_loadPriorities);
                 }
             }
@@ -2095,22 +1988,22 @@ QStringList NetworkGeometry::getTextureNames() const {
         for (int j = 0; j < mesh.parts.size(); j++) {
             const NetworkMeshPart& part = mesh.parts[j];
             
-            if (!part.diffuseTextureName.isEmpty()) {
+            if (!part.diffuseTextureName.isEmpty() && part.diffuseTexture) {
                 QString textureURL = part.diffuseTexture->getURL().toString();
                 result << part.diffuseTextureName + ":" + textureURL;
             }
 
-            if (!part.normalTextureName.isEmpty()) {
+            if (!part.normalTextureName.isEmpty() && part.normalTexture) {
                 QString textureURL = part.normalTexture->getURL().toString();
                 result << part.normalTextureName + ":" + textureURL;
             }
 
-            if (!part.specularTextureName.isEmpty()) {
+            if (!part.specularTextureName.isEmpty() && part.specularTexture) {
                 QString textureURL = part.specularTexture->getURL().toString();
                 result << part.specularTextureName + ":" + textureURL;
             }
 
-            if (!part.emissiveTextureName.isEmpty()) {
+            if (!part.emissiveTextureName.isEmpty() && part.emissiveTexture) {
                 QString textureURL = part.emissiveTexture->getURL().toString();
                 result << part.emissiveTextureName + ":" + textureURL;
             }
