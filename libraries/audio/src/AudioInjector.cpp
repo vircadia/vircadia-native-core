@@ -232,7 +232,7 @@ void AudioInjector::injectToMixer() {
             audioPacket->write(_audioData.data() + _currentSendPosition, bytesToCopy);
 
             // set the correct size used for this packet
-            audioPacket->setSizeUsed(audioPacket->pos());
+            audioPacket->setPayloadSize(audioPacket->pos());
 
             // grab our audio mixer from the NodeList, if it exists
             SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);

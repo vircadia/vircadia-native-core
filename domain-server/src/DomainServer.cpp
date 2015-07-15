@@ -579,7 +579,7 @@ void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) 
     NodeType_t nodeType;
     HifiSockAddr publicSockAddr, localSockAddr;
 
-    if (packet->getSizeUsed() == 0) {
+    if (packet->getPayloadSize() == 0) {
         // TODO: We know what size the connect packet should be (minimally) - check for that here
         return;
     }
@@ -2190,7 +2190,7 @@ void DomainServer::processPathQueryPacket(QSharedPointer<NLPacket> packet) {
     quint16 numPathBytes;
     packet->readPrimitive(&numPathBytes);
 
-    if (numPathBytes <= packet->bytesAvailable()) {
+    if (numPathBytes <= packet->bytesLeftToRead()) {
         // the number of path bytes makes sense for the sent packet - pull out the path
         QString pathQuery = QString::fromUtf8(packet->getPayload() + packet->pos(), numPathBytes);
 
@@ -2223,7 +2223,7 @@ void DomainServer::processPathQueryPacket(QSharedPointer<NLPacket> packet) {
 
                 // are we going to be able to fit this response viewpoint in a packet?
                 if (numPathBytes + numViewpointBytes + sizeof(numViewpointBytes) + sizeof(numPathBytes)
-                        < (unsigned long) pathResponsePacket->bytesAvailable()) {
+                        < (unsigned long) pathResponsePacket->bytesLeftToRead()) {
                     // append the number of bytes this path is
                     pathResponsePacket->writePrimitive(numPathBytes);
 

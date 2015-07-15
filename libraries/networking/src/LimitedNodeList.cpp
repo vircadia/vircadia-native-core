@@ -222,7 +222,7 @@ qint64 LimitedNodeList::writeDatagram(const NLPacket& packet, const HifiSockAddr
     if (!connectionSecret.isNull() && !NON_VERIFIED_PACKETS.contains(packet.getType())) {
         const_cast<NLPacket&>(packet).writeVerificationHash(packet.payloadHashWithConnectionUUID(connectionSecret));
     }
-    return writeDatagram({packet.getData(), static_cast<int>(packet.getSizeWithHeader())}, destinationSockAddr);
+    return writeDatagram({ packet.getData(), (int)packet.getDataSize() }, destinationSockAddr);
 }
 
 qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr) {
@@ -286,7 +286,7 @@ qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& des
 
 qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr,
                                        const QUuid& connectionSecret) {
-    qint64 bytesSent{ 0 };
+    qint64 bytesSent = 0;
     
     // close the last packet in the list
     packetList.closeCurrentPacket();
@@ -612,7 +612,7 @@ bool LimitedNodeList::processSTUNResponse(QSharedPointer<NLPacket> packet) {
                sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER)) == 0) {
 
         // enumerate the attributes to find XOR_MAPPED_ADDRESS_TYPE
-        while (attributeStartIndex < packet->getSizeWithHeader()) {
+        while (attributeStartIndex < packet->getDataSize()) {
             if (memcmp(packet->getData() + attributeStartIndex, &XOR_MAPPED_ADDRESS_TYPE, sizeof(XOR_MAPPED_ADDRESS_TYPE)) == 0) {
                 const int NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH = 4;
                 const int NUM_BYTES_FAMILY_ALIGN = 1;

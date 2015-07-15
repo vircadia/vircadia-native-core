@@ -937,7 +937,7 @@ void AudioClient::handleAudioInput() {
 
             if (_audioPacket->getType() != PacketType::SilentAudioFrame) {
                 // audio samples have already been packed (written to networkAudioSamples)
-                _audioPacket->setSizeUsed(_audioPacket->getSizeUsed() + numNetworkBytes);
+                _audioPacket->setPayloadSize(_audioPacket->getPayloadSize() + numNetworkBytes);
             }
 
             _stats.sentPacket();

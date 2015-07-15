@@ -71,8 +71,8 @@ Packet::Packet(PacketType::Value type, qint64 size) :
 
     _packetSize = localHeaderSize(type) + size;
     _packet.reset(new char[_packetSize]);
-    _capacity = size;
-    _payloadStart = _packet.get() + (_packetSize - _capacity);
+    _payloadCapacity = size;
+    _payloadStart = _packet.get() + (_packetSize - _payloadCapacity);
     
     // Sanity check
     Q_ASSERT(size >= 0 || size < maxPayload);
@@ -93,9 +93,9 @@ Packet::Packet(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& send
 {
     _type = readType();
     _version = readVersion();
-    _capacity = _packetSize - localHeaderSize(_type);
-    _sizeUsed = _capacity;
-    _payloadStart = _packet.get() + (_packetSize - _capacity);
+    _payloadCapacity = _packetSize - localHeaderSize(_type);
+    _payloadSize = _payloadCapacity;
+    _payloadStart = _packet.get() + (_packetSize - _payloadCapacity);
 }
 
 Packet::Packet(const Packet& other) {
@@ -110,9 +110,9 @@ Packet& Packet::operator=(const Packet& other) {
     memcpy(_packet.get(), other._packet.get(), _packetSize);
 
     _payloadStart = _packet.get() + (other._payloadStart - other._packet.get());
-    _capacity = other._capacity;
+    _payloadCapacity = other._payloadCapacity;
 
-    _sizeUsed = other._sizeUsed;
+    _payloadSize = other._payloadSize;
 
     return *this;
 }
@@ -128,11 +128,29 @@ Packet& Packet::operator=(Packet&& other) {
     _packet = std::move(other._packet);
 
     _payloadStart = other._payloadStart;
-    _capacity = other._capacity;
+    _payloadCapacity = other._payloadCapacity;
 
-    _sizeUsed = other._sizeUsed;
+    _payloadSize = other._payloadSize;
 
     return *this;
+}
+
+void Packet::setPayloadSize(qint64 payloadSize) {
+    if (isWritable()) {
+        Q_ASSERT(payloadSize <= _payloadCapacity);
+        _payloadSize = std::max(payloadSize, _payloadCapacity);
+    } else {
+        qDebug() << "You can not call setPayloadSize for a non-writeable Packet.";
+        Q_ASSERT(false);
+    }
+}
+
+bool Packet::reset() {
+    if (isWritable()) {
+        setPayloadSize(0);
+    }
+    
+    return QIODevice::reset();
 }
 
 void Packet::setType(PacketType::Value type) {
@@ -197,13 +215,13 @@ qint64 Packet::writeData(const char* data, qint64 maxSize) {
     if (maxSize <= bytesAvailableForWrite()) {
         qint64 currentPos = pos();
         
-        Q_ASSERT(currentPos < _capacity);
+        Q_ASSERT(currentPos < _payloadCapacity);
 
         // good to go - write the data
         memcpy(_payloadStart + currentPos, data, maxSize);
 
-        // keep track of _sizeUsed so we can just write the actual data when packet is about to be sent
-        _sizeUsed = std::max(currentPos + maxSize, _sizeUsed);
+        // keep track of _payloadSize so we can just write the actual data when packet is about to be sent
+        _payloadSize = std::max(currentPos + maxSize, _payloadSize);
 
         // return the number of bytes written
         return maxSize;
@@ -215,7 +233,7 @@ qint64 Packet::writeData(const char* data, qint64 maxSize) {
 
 qint64 Packet::readData(char* dest, qint64 maxSize) {
     // we're either reading what is left from the current position or what was asked to be read
-    qint64 numBytesToRead = std::min(bytesAvailable(), maxSize);
+    qint64 numBytesToRead = std::min(bytesLeftToRead(), maxSize);
 
     if (numBytesToRead > 0) {
         int currentPosition = pos();

@@ -56,7 +56,7 @@ void AvatarHashMap::processAvatarDataPacket(QSharedPointer<NLPacket> packet, Sha
 
     // enumerate over all of the avatars in this packet
     // only add them if mixerWeakPointer points to something (meaning that mixer is still around)
-    while (packet->bytesAvailable()) {
+    while (packet->bytesLeftToRead()) {
         QUuid sessionUUID = QUuid::fromRfc4122(packet->read(NUM_BYTES_RFC4122_UUID));
 
         if (sessionUUID != _lastOwnerSessionUUID) {
@@ -121,7 +121,7 @@ void AvatarHashMap::processAvatarBillboardPacket(QSharedPointer<NLPacket> packet
         avatar = addAvatar(sessionUUID, sendingNode);
     }
 
-    QByteArray billboard = packet->read(packet->bytesAvailable());
+    QByteArray billboard = packet->read(packet->bytesLeftToRead());
     if (avatar->getBillboard() != billboard) {
         avatar->setBillboard(billboard);
     }
