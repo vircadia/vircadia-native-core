@@ -214,8 +214,8 @@ bool LimitedNodeList::packetSourceAndHashMatch(const NLPacket& packet, SharedNod
     return false;
 }
 
-qint64 LimitedNodeList::writeDatagram(const NLPacket& packet, const HifiSockAddr& destinationSockAddr,
-                                      const QUuid& connectionSecret) {
+qint64 LimitedNodeList::writePacket(const NLPacket& packet, const HifiSockAddr& destinationSockAddr,
+                                    const QUuid& connectionSecret) {
     if (!NON_SOURCED_PACKETS.contains(packet.getType())) {
         const_cast<NLPacket&>(packet).writeSourceID(getSessionUUID());
     }
@@ -254,7 +254,7 @@ qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const Node&
 
 qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr,
                                              const QUuid& connectionSecret) {
-    return writeDatagram(packet, sockAddr, connectionSecret);
+    return writePacket(packet, sockAddr, connectionSecret);
 }
 
 qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode) {
@@ -270,7 +270,7 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
 
 qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr,
                                    const QUuid& connectionSecret) {
-    return writeDatagram(*packet, sockAddr, connectionSecret);
+    return writePacket(*packet, sockAddr, connectionSecret);
 }
 
 qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& destinationNode) {
@@ -491,7 +491,7 @@ unsigned int LimitedNodeList::broadcastToNodes(std::unique_ptr<NLPacket> packet,
     
     eachNode([&](const SharedNodePointer& node){
         if (destinationNodeTypes.contains(node->getType())) {
-            writeDatagram(*packet, *node->getActiveSocket());
+            writePacket(*packet, *node->getActiveSocket(), node->getConnectionSecret());
             ++n;
         }
     });
