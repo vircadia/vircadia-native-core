@@ -110,10 +110,10 @@ int InboundAudioStream::parseData(NLPacket& packet) {
     packetReceivedUpdateTimingStats();
 
     int networkSamples;
-
+    
     // parse the info after the seq number and before the audio data (the stream properties)
     int propertyBytes = parseStreamProperties(packet.getType(),
-                                              QByteArray::fromRawData(packet.getPayload(), packet.pos()),
+                                              QByteArray::fromRawData(packet.getPayload(), packet.bytesLeftToRead()),
                                               networkSamples);
     packet.seek(packet.pos() + propertyBytes);
 

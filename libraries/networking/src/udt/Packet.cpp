@@ -147,7 +147,7 @@ void Packet::setPayloadSize(qint64 payloadSize) {
 
 bool Packet::reset() {
     if (isWritable()) {
-        setPayloadSize(0);
+        _payloadSize = 0;
     }
     
     return QIODevice::reset();
