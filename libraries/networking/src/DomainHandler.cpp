@@ -38,12 +38,6 @@ DomainHandler::DomainHandler(QObject* parent) :
 {
     // if we get a socket that make sure our NetworkPeer ping timer stops
     connect(this, &DomainHandler::completedSocketDiscovery, &_icePeer, &NetworkPeer::stopPingTimer);
-
-    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-
-    packetReceiver.registerListener(PacketType::ICEServerPeerInformation, this, "processICEResponsePacket");
-    packetReceiver.registerListener(PacketType::DomainServerRequireDTLS, this, "processDTLSRequirementPacket");
-    packetReceiver.registerListener(PacketType::ICEPingReply, this, "processICEPingReplyPacket");
 }
 
 void DomainHandler::clearConnectionInfo() {

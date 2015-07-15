@@ -104,7 +104,7 @@ QMetaMethod PacketReceiver::matchingMethodForListener(PacketType::Value type, QO
                 << possibleSignatures.toList() << "- but such a method was not found.";
     }
 
-    Q_ASSERT(methodIndex >= 0);
+    assert(methodIndex >= 0);
 
     // return the converted QMetaMethod
     if (methodIndex >= 0) {
