@@ -56,7 +56,9 @@ ViveControllerManager::ViveControllerManager() :
     _isInitialized(false),
     _isEnabled(true),
     _trackedControllers(0),
-    _modelLoaded(false)
+    _modelLoaded(false),
+    _leftHandRenderID(0),
+    _rightHandRenderID(0)
 {
     
 }
@@ -144,11 +146,11 @@ void ViveControllerManager::activate() {
         
         gpu::Element formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA);
         gpu::Element formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA);
-        texture = gpu::TexturePointer(
+        _texture = gpu::TexturePointer(
             gpu::Texture::create2D(formatGPU, model.diffuseTexture.unWidth, model.diffuseTexture.unHeight,
             gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
-        texture->assignStoredMip(0, formatMip, model.diffuseTexture.unWidth * model.diffuseTexture.unHeight * 4 * sizeof(uint8_t), model.diffuseTexture.rubTextureMapData);
-        texture->autoGenerateMips(-1);
+        _texture->assignStoredMip(0, formatMip, model.diffuseTexture.unWidth * model.diffuseTexture.unHeight * 4 * sizeof(uint8_t), model.diffuseTexture.rubTextureMapData);
+        _texture->autoGenerateMips(-1);
 
         _modelLoaded = true;
     }
@@ -156,21 +158,30 @@ void ViveControllerManager::activate() {
     _isInitialized = true;
 }
 
-void ViveControllerManager::render(RenderArgs* args) {
-    PerformanceTimer perfTimer("ViveControllerManager::render");
+void ViveControllerManager::updateRendering(RenderArgs* args, render::ScenePointer scene, render::PendingChanges pendingChanges) {
+    PerformanceTimer perfTimer("ViveControllerManager::updateRendering");
 
     if (_modelLoaded) {
+        //auto controllerPayload = new render::Payload<ViveControllerManager>(this);
+        //auto controllerPayloadPointer = ViveControllerManager::PayloadPointer(controllerPayload);
+        //if (_leftHandRenderID == 0) {
+        //    _leftHandRenderID = scene->allocateID();
+        //    pendingChanges.resetItem(_leftHandRenderID, controllerPayloadPointer);
+        //}
+        //pendingChanges.updateItem(_leftHandRenderID, );
+
+
         UserInputMapper::PoseValue leftHand = _poseStateMap[makeInput(JointChannel::LEFT_HAND).getChannel()];
         UserInputMapper::PoseValue rightHand = _poseStateMap[makeInput(JointChannel::RIGHT_HAND).getChannel()];
 
         gpu::Batch batch;
         auto geometryCache = DependencyManager::get<GeometryCache>();
         geometryCache->useSimpleDrawPipeline(batch);
-        DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
+        DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true);
 
         auto mesh = _modelGeometry.getMesh();
         batch.setInputFormat(mesh->getVertexFormat());
-        //batch.setUniformTexture(0, texture);
+        //batch._glBindTexture(GL_TEXTURE_2D, _uexture);
 
         if (leftHand.isValid()) {
             renderHand(leftHand, batch, LEFT_HAND);

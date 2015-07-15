@@ -19,14 +19,16 @@
 
 #include <model/Geometry.h>
 #include <gpu/Texture.h>
-#include "plugins/Plugin.h"
+#include "InputPlugin.h"
 #include <RenderArgs.h>
+#include <render/Scene.h>
 #include "UserInputMapper.h"
 
-class ViveControllerManager : public Plugin {
+class ViveControllerManager : public InputPlugin {
 public:
     virtual const QString& getName() const override;
     virtual bool isSupported() const override;
+    virtual bool isHandController() { return true; }
 
     /// Called when plugin is initially loaded, typically at application start
     virtual void init() override;
@@ -68,7 +70,7 @@ public:
     
     void focusOutEvent();
 
-    void render(RenderArgs* args);
+    void updateRendering(RenderArgs* args, render::ScenePointer scene, render::PendingChanges pendingChanges);
     void update();
     
     static ViveControllerManager& getInstance();
@@ -106,7 +108,10 @@ private:
 
     bool _modelLoaded;
     model::Geometry _modelGeometry;
-    gpu::TexturePointer texture;
+    gpu::TexturePointer _texture;
+
+    int _leftHandRenderID;
+    int _rightHandRenderID;
 
     static const QString NAME;
 

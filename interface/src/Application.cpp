@@ -2226,6 +2226,9 @@ void Application::loadSettings() {
     DependencyManager::get<AudioClient>()->loadSettings();
     DependencyManager::get<LODManager>()->loadSettings();
 
+    // DONT CHECK IN
+    //DependencyManager::get<LODManager>()->setAutomaticLODAdjust(false);
+
     Menu::getInstance()->loadSettings();
     _myAvatar->loadData();
 }
