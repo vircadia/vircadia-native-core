@@ -107,10 +107,6 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     _packetReceiver.registerListener(PacketType::StunResponse, this, "processSTUNResponse");
 }
 
-LimitedNodeList::~LimitedNodeList() {
-    disconnect(&_nodeSocket, &QUdpSocket::readyRead, 0, 0);
-}
-
 void LimitedNodeList::setSessionUUID(const QUuid& sessionUUID) {
     QUuid oldUUID = _sessionUUID;
     _sessionUUID = sessionUUID;
