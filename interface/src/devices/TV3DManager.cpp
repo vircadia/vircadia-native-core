@@ -107,6 +107,7 @@ void TV3DManager::display(RenderArgs* renderArgs, Camera& whichCamera) {
         _activeEye = &eye;
         glViewport(portalX, portalY, portalW, portalH);
         glScissor(portalX, portalY, portalW, portalH);
+        renderArgs->_viewport = glm::ivec4(portalX, portalY, portalW, portalH);
 
         glm::mat4 projection = glm::frustum<float>(eye.left, eye.right, eye.bottom, eye.top, nearZ, farZ);
         projection = glm::translate(projection, vec3(eye.modelTranslation, 0, 0));
@@ -118,6 +119,7 @@ void TV3DManager::display(RenderArgs* renderArgs, Camera& whichCamera) {
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         renderArgs->_renderSide = RenderArgs::MONO;
+        
         qApp->displaySide(renderArgs, eyeCamera, false);
         qApp->getApplicationCompositor().displayOverlayTexture(renderArgs);
         _activeEye = NULL;

@@ -206,6 +206,7 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
     geometryCache->useSimpleDrawPipeline(batch);
+    batch.setViewportTransform(glm::ivec4(0, 0, deviceSize.width(), deviceSize.height()));
     batch.setModelTransform(Transform());
     batch.setViewTransform(Transform());
     batch.setProjectionTransform(mat4());
