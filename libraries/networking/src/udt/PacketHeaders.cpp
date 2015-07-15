@@ -20,9 +20,7 @@ using namespace PacketType;
 const QSet<PacketType::Value> NON_VERIFIED_PACKETS = QSet<PacketType::Value>()
     << NodeJsonStats << EntityQuery
     << OctreeDataNack << EntityEditNack
-    << DomainListRequest
-    << Ping
-    << PingReply << StopNode;
+    << DomainListRequest << StopNode;
 
 const QSet<PacketType::Value> SEQUENCE_NUMBERED_PACKETS = QSet<PacketType::Value>() << AvatarData;
 
