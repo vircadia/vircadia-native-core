@@ -19,7 +19,23 @@
 class PacketTests : public QObject {
     Q_OBJECT
 private slots:
+    // Test the base state of Packet
+    void emptyPacketTest();
+
+    // Test Packet writes
+    void writeTest();
+
+    // Test Packet reads
     void readTest();
+
+    // Test Packet writing past capacity
+    void writePastCapacityTest();
+
+    // Test primitive reads and writes
+    void primitiveTest();
+
+    // Test set/get packet type
+    void packetTypeTest();
 };
 
 #endif // hifi_PacketTests_h
