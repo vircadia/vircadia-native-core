@@ -22,7 +22,7 @@ PacketList::PacketList(PacketType::Value packetType) :
 }
 
 void PacketList::startSegment() {
-    _segmentStartIndex = _currentPacket->pos();
+    _segmentStartIndex = _currentPacket ? _currentPacket->pos() : 0;
 }
 
 void PacketList::endSegment() {
