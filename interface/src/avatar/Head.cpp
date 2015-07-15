@@ -130,13 +130,14 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         const float AVERAGE_SACCADE_INTERVAL = 6.0f;
         const float MICROSACCADE_MAGNITUDE = 0.002f;
         const float SACCADE_MAGNITUDE = 0.04f;
+        const float NOMINAL_FRAME_RATE = 60.0f;
 
         if (randFloat() < deltaTime / AVERAGE_MICROSACCADE_INTERVAL) {
             _saccadeTarget = MICROSACCADE_MAGNITUDE * randVector();
         } else if (randFloat() < deltaTime / AVERAGE_SACCADE_INTERVAL) {
             _saccadeTarget = SACCADE_MAGNITUDE * randVector();
         }
-        _saccade += (_saccadeTarget - _saccade) * 0.5f;
+        _saccade += (_saccadeTarget - _saccade) * pow(0.5f, NOMINAL_FRAME_RATE * deltaTime);
 
         //  Detect transition from talking to not; force blink after that and a delay
         bool forceBlink = false;
