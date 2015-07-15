@@ -49,9 +49,11 @@ public:
     
     PacketVersion getVersion() const { return _version; }
     
-    qint64 getSizeWithHeader() const { return localHeaderSize() + getSizeUsed(); }
+    qint64 getSizeWithHeader() const { return totalHeadersSize() + getSizeUsed(); }
     qint64 getSizeUsed() const { return _sizeUsed; }
     void setSizeUsed(qint64 sizeUsed) { _sizeUsed = sizeUsed; }
+
+    qint64 bytesAvailableForWrite() const { return _capacity - _sizeUsed; }
 
     HifiSockAddr& getSenderSockAddr() { return _senderSockAddr; }
     const HifiSockAddr& getSenderSockAddr() const { return _senderSockAddr; }

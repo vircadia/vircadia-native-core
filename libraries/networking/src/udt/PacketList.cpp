@@ -15,7 +15,10 @@
 
 #include "Packet.h"
 
-PacketList::PacketList(PacketType::Value packetType) : _packetType(packetType) {
+PacketList::PacketList(PacketType::Value packetType) :
+    _packetType(packetType)
+{
+    QIODevice::open(WriteOnly);
 }
 
 void PacketList::startSegment() {

@@ -192,7 +192,7 @@ void Packet::writeSequenceNumber(SequenceNumber seqNum) {
 static const qint64 PACKET_WRITE_ERROR = -1;
 qint64 Packet::writeData(const char* data, qint64 maxSize) {
     // make sure we have the space required to write this block
-    if (maxSize <= bytesAvailable()) {
+    if (maxSize <= bytesAvailableForWrite()) {
         qint64 currentPos = pos();
 
         // good to go - write the data
@@ -202,7 +202,7 @@ qint64 Packet::writeData(const char* data, qint64 maxSize) {
         seek(currentPos + maxSize);
 
         // keep track of _sizeUsed so we can just write the actual data when packet is about to be sent
-        _sizeUsed = std::max(pos() + 1, _sizeUsed);
+        _sizeUsed = std::max(pos(), _sizeUsed);
 
         // return the number of bytes written
         return maxSize;
