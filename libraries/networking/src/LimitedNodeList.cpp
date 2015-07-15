@@ -227,7 +227,7 @@ void writePacketHeader(const NLPacket& packet, const QUuid& sessionUUID = QUuid(
 qint64 LimitedNodeList::writeDatagram(const NLPacket& packet, const HifiSockAddr& destinationSockAddr,
                                       const QUuid& connectionSecret) {
     writePacketHeader(packet, getSessionUUID(), connectionSecret);
-    return writeDatagram({packet.getData(), static_cast<int>(packet.getSizeWithHeader())}, destinationSockAddr);
+    return writeDatagram({ packet.getData(), (int) packet.getDataSize() }, destinationSockAddr);
 }
 
 qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr) {
