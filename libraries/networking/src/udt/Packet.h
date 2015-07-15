@@ -63,7 +63,7 @@ public:
     // Returns the number of bytes allocated for the payload
     qint64 getPayloadCapacity() const  { return _payloadCapacity; }
 
-    qint64 bytesLeftToRead() const { return _payloadCapacity - pos(); }
+    qint64 bytesLeftToRead() const { return _payloadSize - pos(); }
     qint64 bytesAvailableForWrite() const { return _payloadCapacity - pos(); }
 
     HifiSockAddr& getSenderSockAddr() { return _senderSockAddr; }
