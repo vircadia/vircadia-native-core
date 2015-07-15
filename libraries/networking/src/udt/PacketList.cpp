@@ -56,7 +56,7 @@ qint64 PacketList::writeData(const char* data, qint64 maxSize) {
     }
     
     // check if this block of data can fit into the currentPacket
-    if (maxSize <= _currentPacket->bytesAvailable()) {
+    if (maxSize <= _currentPacket->bytesAvailableForWrite()) {
         // it fits, just write it to the current packet
         _currentPacket->write(data, maxSize);
         
@@ -73,7 +73,7 @@ qint64 PacketList::writeData(const char* data, qint64 maxSize) {
                 // We need to try and pull the first part of the segment out to our new packet
                 
                 // check now to see if this is an unsupported write
-                int numBytesToEnd = _currentPacket->bytesAvailable();
+                int numBytesToEnd = _currentPacket->bytesAvailableForWrite();
                 
                 if ((newPacket->size() - numBytesToEnd) < maxSize) {
                     // this is an unsupported case - the segment is bigger than the size of an individual packet
@@ -108,7 +108,7 @@ qint64 PacketList::writeData(const char* data, qint64 maxSize) {
             // we're an ordered PacketList - let's fit what we can into the current packet and then put the leftover
             // into a new packet
             
-            int numBytesToEnd = _currentPacket->bytesAvailable();
+            int numBytesToEnd = _currentPacket->bytesAvailableForWrite();
             _currentPacket->write(data, numBytesToEnd);
             
             // move the current packet to our list of packets

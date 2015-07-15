@@ -218,7 +218,7 @@ void OctreeQueryNode::writeToPacket(const unsigned char* buffer, unsigned int by
         OCTREE_PACKET_INTERNAL_SECTION_SIZE sectionSize = bytes;
         _octreePacket->writePrimitive(sectionSize);
     }
-    if (bytes <= _octreePacket->bytesAvailable()) {
+    if (bytes <= _octreePacket->bytesAvailableForWrite()) {
         _octreePacket->write(reinterpret_cast<const char*>(buffer), bytes);
         _octreePacketWaiting = true;
     }

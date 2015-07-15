@@ -255,7 +255,7 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType::Value type, QByt
                 } else {
                     // If we're switching type, then we send the last one and start over
                     if ((type != bufferedPacket->getType() && bufferedPacket->getSizeUsed() > 0) ||
-                        (editMessage.size() >= bufferedPacket->bytesAvailable())) {
+                        (editMessage.size() >= bufferedPacket->bytesAvailableForWrite())) {
 
                         // create the new packet and swap it with the packet in _pendingEditPackets
                         auto packetToRelease = initializePacket(type, node->getClockSkewUsec());

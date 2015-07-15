@@ -70,7 +70,7 @@ Packet::Packet(PacketType::Value type, qint64 size) :
     }
 
     _packetSize = localHeaderSize(type) + size;
-    _packet.reset(new char(_packetSize));
+    _packet.reset(new char[_packetSize]);
     _capacity = size;
     _payloadStart = _packet.get() + (_packetSize - _capacity);
     
@@ -222,9 +222,6 @@ qint64 Packet::readData(char* dest, qint64 maxSize) {
 
         // read out the data
         memcpy(dest, _payloadStart + currentPosition, numBytesToRead);
-
-        // seek to the end of the read
-        seek(currentPosition + numBytesToRead);
     }
 
     return numBytesToRead;
