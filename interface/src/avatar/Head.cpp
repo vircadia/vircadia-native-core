@@ -343,7 +343,8 @@ glm::quat Head::getCameraOrientation() const {
 
 glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {
     glm::quat orientation = getOrientation();
-    return rotationBetween(orientation * IDENTITY_FRONT, _lookAtPosition + _saccade - eyePosition) * orientation;
+    glm::vec3 lookAtDelta = _lookAtPosition - eyePosition;
+    return rotationBetween(orientation * IDENTITY_FRONT, lookAtDelta + glm::length(lookAtDelta) * _saccade) * orientation;
 }
 
 glm::vec3 Head::getScalePivot() const {
