@@ -327,8 +327,6 @@ Menu::Menu() {
 
     MenuWrapper* developerMenu = addMenu("Developer");
 
-    addActionToQMenuAndActionHash(developerMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
-
     MenuWrapper* renderOptionsMenu = developerMenu->addMenu("Render");
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Atmosphere,
         0, // QML Qt::SHIFT | Qt::Key_A,
@@ -491,6 +489,7 @@ Menu::Menu() {
 #endif
 
     MenuWrapper* networkMenu = developerMenu->addMenu("Network");
+    addActionToQMenuAndActionHash(networkMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
     addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::DisableNackPackets, 0, false);
     addCheckableActionToQMenuAndActionHash(networkMenu,
                                            MenuOption::DisableActivityLogger,
