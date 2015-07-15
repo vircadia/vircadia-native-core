@@ -159,6 +159,7 @@ void NodeList::timePingReply(QSharedPointer<NLPacket> packet, const SharedNodePo
 }
 
 void NodeList::processPingPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+    
     // send back a reply
     auto replyPacket = constructPingReplyPacket(*packet);
     const HifiSockAddr& senderSockAddr = packet->getSenderSockAddr();
