@@ -248,8 +248,6 @@ protected:
     LimitedNodeList(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
     
-    ~LimitedNodeList();
-    
     qint64 writePacket(const NLPacket& packet, const HifiSockAddr& destinationSockAddr,
                        const QUuid& connectionSecret = QUuid());
     qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr);

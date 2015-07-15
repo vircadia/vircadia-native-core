@@ -182,7 +182,7 @@ void PacketReceiver::processDatagrams() {
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
 
-    while (nodeList->getNodeSocket().hasPendingDatagrams()) {
+    while (nodeList && nodeList->getNodeSocket().hasPendingDatagrams()) {
         // setup a buffer to read the packet into
         int packetSizeWithHeader = nodeList->getNodeSocket().pendingDatagramSize();
         std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[packetSizeWithHeader]);
