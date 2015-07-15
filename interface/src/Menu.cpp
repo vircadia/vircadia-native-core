@@ -581,20 +581,6 @@ Menu::Menu() {
         audioScopeFramesGroup->addAction(fiftyFrames);
     }
 
-//    auto statsRenderer = DependencyManager::get<AudioIOStatsRenderer>();
-//    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStats,
-//                                           Qt::CTRL | Qt::SHIFT | Qt::Key_A,
-//                                           false,
-//                                           statsRenderer.data(),
-//                                           SLOT(toggle()));
-
-//    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStatsShowInjectedStreams,
-//                                            0,
-//                                            false,
-//                                            statsRenderer.data(),
-//                                            SLOT(toggleShowInjectedStreams()));
-//
-
     MenuWrapper* physicsOptionsMenu = developerMenu->addMenu("Physics");
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowOwned);
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowHulls);

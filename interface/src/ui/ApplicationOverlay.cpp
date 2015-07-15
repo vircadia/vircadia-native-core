@@ -23,7 +23,6 @@
 #include <OffscreenUi.h>
 
 #include "AudioClient.h"
-//#include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
 #include "audio/AudioToolBox.h"
 #include "Application.h"
@@ -935,7 +934,6 @@ void ApplicationOverlay::renderAudioMeter() {
 
     auto canvasSize = qApp->getCanvasSize();
     DependencyManager::get<AudioScope>()->render(canvasSize.x, canvasSize.y);
-    //DependencyManager::get<AudioIOStatsRenderer>()->render(WHITE_TEXT, canvasSize.x, canvasSize.y);
 
     audioMeterY += AUDIO_METER_HEIGHT;
 
@@ -994,6 +992,8 @@ void ApplicationOverlay::renderAudioMeter() {
 
 void ApplicationOverlay::renderStatsAndLogs() {
     Application* application = Application::getInstance();
+    
+    SharedNodePointer audioMixerNodePointer = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::AudioMixer);
     
     QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
 
