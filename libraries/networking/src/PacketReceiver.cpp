@@ -243,13 +243,11 @@ void PacketReceiver::processDatagrams() {
                             static const QByteArray SHARED_NODE_NORMALIZED = QMetaObject::normalizedType("SharedNodePointer");
 
                             if (metaMethod.parameterTypes().contains(SHARED_NODE_NORMALIZED)) {
-                                qDebug() << "invoking with matchingNode" << matchingNode;
                                 success = metaMethod.invoke(listener.first,
                                         Q_ARG(QSharedPointer<NLPacket>, QSharedPointer<NLPacket>(packet.release())),
                                         Q_ARG(SharedNodePointer, matchingNode));
 
                             } else if (metaMethod.parameterTypes().contains(QSHAREDPOINTER_NODE_NORMALIZED)) {
-                                qDebug() << "invoking with matchingNode" << matchingNode;
                                 success = metaMethod.invoke(listener.first,
                                         Q_ARG(QSharedPointer<NLPacket>, QSharedPointer<NLPacket>(packet.release())),
                                         Q_ARG(QSharedPointer<Node>, matchingNode));
