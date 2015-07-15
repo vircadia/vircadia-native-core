@@ -21,7 +21,6 @@ class OctreePacketProcessor : public ReceivedPacketProcessor, public PacketListe
     Q_OBJECT
 public:
     OctreePacketProcessor();
-    ~OctreePacketProcessor();
 
 signals:
     void packetVersionMismatch();
