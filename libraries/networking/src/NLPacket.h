@@ -40,6 +40,9 @@ public:
     QByteArray payloadHashWithConnectionUUID(const QUuid& connectionUUID) const;
 
 protected:
+    
+    void adjustPayloadStartAndCapacity();
+    
     NLPacket(PacketType::Value type);
     NLPacket(PacketType::Value type, qint64 size);
     NLPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);

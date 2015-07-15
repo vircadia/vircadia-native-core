@@ -51,6 +51,7 @@ private:
     HifiSockAddr _assignmentServerSocket;
     QTimer _requestTimer; // timer for requesting and assignment
     QTimer _statsTimerACM; // timer for sending stats to assignment client monitor
+    QUuid _childAssignmentUUID = QUuid::createUuid();
 
  protected:
     HifiSockAddr _assignmentClientMonitorSocket;

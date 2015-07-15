@@ -78,27 +78,33 @@ NLPacket::NLPacket(PacketType::Value type, qint64 size) :
 {
     Q_ASSERT(size >= 0);
     
-    qint64 headerSize = localHeaderSize(type);
-    _payloadStart += headerSize;
-    _payloadCapacity -= headerSize;
+    adjustPayloadStartAndCapacity();
 }
 
 NLPacket::NLPacket(PacketType::Value type) :
     Packet(type, -1)
 {
-    qint64 headerSize = localHeaderSize(type);
-    _payloadStart += headerSize;
-    _payloadCapacity -= headerSize;
+    adjustPayloadStartAndCapacity();
 }
 
 NLPacket::NLPacket(const NLPacket& other) : Packet(other) {
+    
 }
 
 NLPacket::NLPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr) :
     Packet(std::move(data), size, senderSockAddr)
 {
+    adjustPayloadStartAndCapacity();
+    _payloadSize = _payloadCapacity;
+    
     readSourceID();
     readVerificationHash();
+}
+
+void NLPacket::adjustPayloadStartAndCapacity() {
+    qint64 headerSize = localHeaderSize(_type);
+    _payloadStart += headerSize;
+    _payloadCapacity -= headerSize;
 }
 
 void NLPacket::readSourceID() {

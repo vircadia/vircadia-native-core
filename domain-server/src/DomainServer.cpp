@@ -940,7 +940,7 @@ int DomainServer::parseNodeData(QDataStream& packetStream, NodeType_t& nodeType,
                                 const HifiSockAddr& senderSockAddr) {
     packetStream >> nodeType;
     packetStream >> publicSockAddr >> localSockAddr;
-
+    
     if (publicSockAddr.getAddress().isNull()) {
         // this node wants to use us its STUN server
         // so set the node public address to whatever we perceive the public address to be

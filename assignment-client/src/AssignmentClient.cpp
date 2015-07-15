@@ -73,11 +73,6 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     // put the NodeList on the node thread
     nodeList->moveToThread(nodeThread);
 
-    // make up a uuid for this child so the parent can tell us apart.  This id will be changed
-    // when the domain server hands over an assignment.
-    QUuid nodeUUID = QUuid::createUuid();
-    nodeList->setSessionUUID(nodeUUID);
-
     // set the logging target to the the CHILD_TARGET_NAME
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
 
@@ -197,7 +192,7 @@ void AssignmentClient::sendStatusPacketToACM() {
 
     auto statusPacket = NLPacket::create(PacketType::AssignmentClientStatus, sizeof(assignmentType) + NUM_BYTES_RFC4122_UUID);
 
-    statusPacket->write(nodeList->getSessionUUID().toRfc4122());
+    statusPacket->write(_childAssignmentUUID.toRfc4122());
     statusPacket->writePrimitive(assignmentType);
     
     nodeList->sendPacket(std::move(statusPacket), _assignmentClientMonitorSocket);
