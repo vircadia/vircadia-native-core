@@ -170,7 +170,7 @@ void NodeList::processPingPacket(QSharedPointer<NLPacket> packet, SharedNodePoin
     // send back a reply
     auto replyPacket = constructPingReplyPacket(*packet);
     const HifiSockAddr& senderSockAddr = packet->getSenderSockAddr();
-    sendPacket(std::move(replyPacket), sendingNode, senderSockAddr);
+    sendPacket(std::move(replyPacket), *sendingNode, senderSockAddr);
 
     // If we don't have a symmetric socket for this node and this socket doesn't match
     // what we have for public and local then set it as the symmetric.

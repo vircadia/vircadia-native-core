@@ -208,20 +208,6 @@ bool LimitedNodeList::packetSourceAndHashMatch(const NLPacket& packet, SharedNod
     return false;
 }
 
-qint64 LimitedNodeList::readDatagram(QByteArray& incomingPacket, QHostAddress* address = 0, quint16* port = 0) {
-    qint64 result = getNodeSocket().readDatagram(incomingPacket.data(), incomingPacket.size(), address, port);
-
-    SharedNodePointer sendingNode = sendingNodeForPacket(incomingPacket);
-    if (sendingNode) {
-        emit dataReceived(sendingNode->getType(), incomingPacket.size());
-    } else {
-        emit dataReceived(NodeType::Unassigned, incomingPacket.size());
-    }
-
-    return result;
-}
-
-
 qint64 LimitedNodeList::writeDatagram(const NLPacket& packet, const HifiSockAddr& destinationSockAddr) {
     return writeDatagram({packet.getData(), static_cast<int>(packet.getSizeWithHeader())}, destinationSockAddr);
 }
