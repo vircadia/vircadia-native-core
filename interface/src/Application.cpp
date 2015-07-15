@@ -3952,9 +3952,6 @@ int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingN
         qCDebug(interfaceapp, "stats from new %s server... [%f, %f, %f, %f]",
                 qPrintable(serverType),
                 (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
-        } else {
-            jurisdiction->unlock();
-        }
     } else {
         jurisdiction->unlock();
     }
