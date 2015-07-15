@@ -56,11 +56,11 @@ public:
     
 private:
     // audio stats methods for rendering
-    QVector<QString> *_audioMixerStats;
-    QVector<QString> *_upstreamClientStats;
-    QVector<QString> *_upstreamMixerStats;
-    QVector<QString> *_downstreamStats;
-    QVector<QString> *_upstreamInjectedStats;
+    QVector<QString> _audioMixerStats;
+    QVector<QString> _upstreamClientStats;
+    QVector<QString> _upstreamMixerStats;
+    QVector<QString> _downstreamStats;
+    QVector<QString> _upstreamInjectedStats;
     
     void initializeChannel(QFormLayout* form, const unsigned int index, QVector<QString>* stats, const unsigned color);
     void updateStats(const unsigned index, QVector<QString>* stats);
@@ -69,7 +69,7 @@ private:
     void renderAudioStreamStats(const AudioStreamStats* streamStats, QVector<QString>* audioStreamstats, bool isDownstreamStats);
     
     const static int DISPLAY_CHANNELS = 5;
-    QVector<AudioStatsDisplay *> *_audioDisplayChannels[DISPLAY_CHANNELS];
+    QVector<AudioStatsDisplay*> _audioDisplayChannels[DISPLAY_CHANNELS];
     
     const AudioIOStats* _stats;
     QFormLayout* _form;

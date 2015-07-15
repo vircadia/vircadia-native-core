@@ -61,54 +61,54 @@ AudioStatsDialog::AudioStatsDialog(QWidget* parent) :
     
     _shouldShowInjectedStreams = false;
     
-    this->setWindowTitle("Audio Network Statistics");
+    setWindowTitle("Audio Network Statistics");
     
     // Get statistics from the Audio Client
     _stats = &DependencyManager::get<AudioClient>()->getStats();
         
     // Create layouter
     _form = new QFormLayout();
-    this->QDialog::setLayout(_form);
+    QDialog::setLayout(_form);
     
-    // Initialize vectors for stat channels
-    _audioMixerStats = new QVector<QString>();
-    _upstreamClientStats = new QVector<QString>();
-    _upstreamMixerStats = new QVector<QString>();
-    _downstreamStats = new QVector<QString>();
-    _upstreamInjectedStats = new QVector<QString>();
+//    // Initialize vectors for stat channels
+//    _audioMixerStats = *new QVector<QString>();
+//    _upstreamClientStats = *new QVector<QString>();
+//    _upstreamMixerStats = *new QVector<QString>();
+//    _downstreamStats = *new QVector<QString>();
+//    _upstreamInjectedStats = *new QVector<QString>();
     
     // Load and initilize
-    this->renderStats();
+    renderStats();
     
-    this->initializeChannel(_form, 0, _audioMixerStats, COLOR0);
-    this->initializeChannel(_form, 1, _upstreamClientStats, COLOR1);
-    this->initializeChannel(_form, 2, _upstreamMixerStats, COLOR2);
-    this->initializeChannel(_form, 3, _downstreamStats, COLOR3);
-    this->initializeChannel(_form, 4, _upstreamInjectedStats, COLOR0);
+    initializeChannel(_form, 0, &_audioMixerStats, COLOR0);
+    initializeChannel(_form, 1, &_upstreamClientStats, COLOR1);
+    initializeChannel(_form, 2, &_upstreamMixerStats, COLOR2);
+    initializeChannel(_form, 3, &_downstreamStats, COLOR3);
+    initializeChannel(_form, 4, &_upstreamInjectedStats, COLOR0);
     
 }
 
 void AudioStatsDialog::initializeChannel(QFormLayout* form, const unsigned int index, QVector<QString> *stats, const unsigned color) {
     
-    _audioDisplayChannels[index] = new QVector<AudioStatsDisplay *>();
+//    _audioDisplayChannels[index] = new QVector<AudioStatsDisplay *>();
     
     for (int i = 0; i < stats->size(); i++)
         // Create new display label
-        _audioDisplayChannels[index]->push_back(new AudioStatsDisplay(form, stats->at(i), color));
+        _audioDisplayChannels[index].push_back(new AudioStatsDisplay(form, stats->at(i), color));
     
 }
 
 void AudioStatsDialog::updateStats(const unsigned int index, QVector<QString>* stats) {
     // Update all stat displays at specified channel
     for (int i = 0; i < stats->size(); i++)
-        _audioDisplayChannels[index]->at(i)->updatedDisplay(stats->at(i));
+        _audioDisplayChannels[index].at(i)->updatedDisplay(stats->at(i));
 }
 
 
 void AudioStatsDialog::renderStats() {
     
     // Clear current stats from all vectors
-    this->clearAllChannels();
+    clearAllChannels();
     
     double audioInputBufferLatency = 0.0,
            inputRingBufferLatency = 0.0,
@@ -132,51 +132,51 @@ void AudioStatsDialog::renderStats() {
     double totalLatency = audioInputBufferLatency + inputRingBufferLatency + networkRoundtripLatency + mixerRingBufferLatency
         + outputRingBufferLatency + audioOutputBufferLatency;
         
-    _audioMixerStats->push_back(QString("Audio input buffer: %1ms").arg(
+    _audioMixerStats.push_back(QString("Audio input buffer: %1ms").arg(
                                                                        QString::number(audioInputBufferLatency, 'f', 2)) + QString("   - avg msecs of samples read to the audio input buffer in last 10s"));
     
-    _audioMixerStats->push_back(QString("Input ring buffer: %1ms").arg(
+    _audioMixerStats.push_back(QString("Input ring buffer: %1ms").arg(
                                                                       QString::number(inputRingBufferLatency, 'f', 2)) + QString("  - avg msecs of samples read to the input ring buffer in last 10s"));
-    _audioMixerStats->push_back(QString("Network to mixer: %1ms").arg(
+    _audioMixerStats.push_back(QString("Network to mixer: %1ms").arg(
                                                                      QString::number((networkRoundtripLatency / 2.0), 'f', 2)) + QString("  - half of last ping value calculated by the node list"));
-    _audioMixerStats->push_back(QString("Network to client: %1ms").arg(
+    _audioMixerStats.push_back(QString("Network to client: %1ms").arg(
                                                                       QString::number((mixerRingBufferLatency / 2.0),'f', 2)) + QString("  - half of last ping value calculated by the node list"));
-    _audioMixerStats->push_back(QString("Output ring buffer: %1ms").arg(
+    _audioMixerStats.push_back(QString("Output ring buffer: %1ms").arg(
                                                                        QString::number(outputRingBufferLatency,'f', 2)) + QString("  - avg msecs of samples in output ring buffer in last 10s"));
-    _audioMixerStats->push_back(QString("Audio output buffer: %1ms").arg(
+    _audioMixerStats.push_back(QString("Audio output buffer: %1ms").arg(
                                                                         QString::number(mixerRingBufferLatency,'f', 2)) + QString("  - avg msecs of samples in audio output buffer in last 10s"));
-    _audioMixerStats->push_back(QString("TOTAL: %1ms").arg(
+    _audioMixerStats.push_back(QString("TOTAL: %1ms").arg(
                                                           QString::number(totalLatency, 'f', 2)) +QString("  - avg msecs of samples in audio output buffer in last 10s"));
     
        
     const MovingMinMaxAvg<quint64>& packetSentTimeGaps = _stats->getPacketSentTimeGaps();
     
-     _upstreamClientStats->push_back(
+     _upstreamClientStats.push_back(
                                      QString("\nUpstream Mic Audio Packets Sent Gaps (by client):"));
         
-    _upstreamClientStats->push_back(
+    _upstreamClientStats.push_back(
                                     QString("Inter-packet timegaps (overall) | min: %1, max: %2, avg: %3").arg(formatUsecTime(packetSentTimeGaps.getMin()).toLatin1().data()).arg(formatUsecTime(                                                                            packetSentTimeGaps.getMax()).toLatin1().data()).arg(formatUsecTime(                                                                                                                                                                                                                                                     packetSentTimeGaps.getAverage()).toLatin1().data()));
-    _upstreamClientStats->push_back(
+    _upstreamClientStats.push_back(
                                     QString("Inter-packet timegaps (last 30s) | min: %1, max: %2, avg: %3").arg(formatUsecTime(packetSentTimeGaps.getWindowMin()).toLatin1().data()).arg(formatUsecTime(packetSentTimeGaps.getWindowMax()).toLatin1().data()).arg(formatUsecTime(packetSentTimeGaps.getWindowAverage()).toLatin1().data()));
     
-    _upstreamMixerStats->push_back(QString("\nUpstream mic audio stats (received and reported by audio-mixer):"));
+    _upstreamMixerStats.push_back(QString("\nUpstream mic audio stats (received and reported by audio-mixer):"));
         
-    renderAudioStreamStats(&_stats->getMixerAvatarStreamStats(), _upstreamMixerStats, true);
+    renderAudioStreamStats(&_stats->getMixerAvatarStreamStats(), &_upstreamMixerStats, true);
     
-    _downstreamStats->push_back(QString("\nDownstream mixed audio stats:"));
+    _downstreamStats.push_back(QString("\nDownstream mixed audio stats:"));
         
     AudioStreamStats downstreamStats = _stats->getMixerDownstreamStats();
     
-    renderAudioStreamStats(&downstreamStats, _downstreamStats, true);
+    renderAudioStreamStats(&downstreamStats, &_downstreamStats, true);
    
     
     if (_shouldShowInjectedStreams) {
 
         foreach(const AudioStreamStats& injectedStreamAudioStats, _stats->getMixerInjectedStreamStatsMap()) {
             
-            _upstreamInjectedStats->push_back(QString("\nUpstream injected audio stats:      stream ID: %1").arg(                    injectedStreamAudioStats._streamIdentifier.toString().toLatin1().data()));
+            _upstreamInjectedStats.push_back(QString("\nUpstream injected audio stats:      stream ID: %1").arg(                    injectedStreamAudioStats._streamIdentifier.toString().toLatin1().data()));
             
-            renderAudioStreamStats(&injectedStreamAudioStats, _upstreamInjectedStats, true);
+            renderAudioStreamStats(&injectedStreamAudioStats, &_upstreamInjectedStats, true);
         }
  
     }
@@ -211,24 +211,24 @@ void AudioStatsDialog::renderAudioStreamStats(const AudioStreamStats* streamStat
 }
 
 void AudioStatsDialog::clearAllChannels() {
-    _audioMixerStats->clear();
-    _upstreamClientStats->clear();
-    _upstreamMixerStats->clear();
-    _downstreamStats->clear();
-    _upstreamInjectedStats->clear();
+    _audioMixerStats.clear();
+    _upstreamClientStats.clear();
+    _upstreamMixerStats.clear();
+    _downstreamStats.clear();
+    _upstreamInjectedStats.clear();
 }
 
 
 void AudioStatsDialog::updateTimerTimeout() {
     
     // Update all audio stats
-    this->renderStats();
+    renderStats();
     
-    this->updateStats(0, _audioMixerStats);
-    this->updateStats(1, _upstreamClientStats);
-    this->updateStats(2, _upstreamMixerStats);
-    this->updateStats(3, _downstreamStats);
-    this->updateStats(4, _upstreamInjectedStats);
+    updateStats(0, &_audioMixerStats);
+    updateStats(1, &_upstreamClientStats);
+    updateStats(2, &_upstreamMixerStats);
+    updateStats(3, &_downstreamStats);
+    updateStats(4, &_upstreamInjectedStats);
     
 }
 
@@ -237,37 +237,32 @@ void AudioStatsDialog::paintEvent(QPaintEvent* event) {
     
     // Repaint each statistic in each section
     for (int i = 0; i < DISPLAY_CHANNELS; i++) {
-        for(int j = 0; j < _audioDisplayChannels[i]->size(); j++) {
-            _audioDisplayChannels[i]->at(j)->paint();
+        for(int j = 0; j < _audioDisplayChannels[i].size(); j++) {
+            _audioDisplayChannels[i].at(j)->paint();
         }
     }
-    this->QDialog::paintEvent(event);
-    this->setFixedSize(this->width(), this->height());
+    QDialog::paintEvent(event);
+    setFixedSize(width(), height());
 }
 
 void AudioStatsDialog::reject() {
     // Just regularly close upon ESC
-    this->QDialog::close();
+    QDialog::close();
 }
 
 void AudioStatsDialog::closeEvent(QCloseEvent* event) {
-    this->QDialog::closeEvent(event);
+    QDialog::closeEvent(event);
     emit closed();
 }
 
 AudioStatsDialog::~AudioStatsDialog() {
-    this->clearAllChannels();
-    
-    delete _audioMixerStats;
-    delete _upstreamClientStats;
-    delete _upstreamMixerStats;
-    delete _downstreamStats;
-    delete _upstreamInjectedStats;
+    clearAllChannels();
+
     
     for (int i = 0; i < DISPLAY_CHANNELS; i++) {
-        _audioDisplayChannels[i]->clear();
-        for(int j = 0; j < _audioDisplayChannels[i]->size(); j++) {
-            delete _audioDisplayChannels[i]->at(j);
+        _audioDisplayChannels[i].clear();
+        for(int j = 0; j < _audioDisplayChannels[i].size(); j++) {
+            delete _audioDisplayChannels[i].at(j);
         }
     }
     
