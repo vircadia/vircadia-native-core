@@ -49,11 +49,11 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     LogUtils::init();
 
     QSettings::setDefaultFormat(QSettings::IniFormat);
-
-    // create a NodeList as an unassigned client
-    DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
+ 
     auto addressManager = DependencyManager::set<AddressManager>();
-    auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned); // Order is important
+
+    // create a NodeList as an unassigned client, must be after addressManager
+    auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned);
 
     auto animationCache = DependencyManager::set<AnimationCache>();
     auto avatarHashMap = DependencyManager::set<AvatarHashMap>();

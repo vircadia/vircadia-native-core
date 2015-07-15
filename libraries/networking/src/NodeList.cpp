@@ -101,6 +101,10 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     packetReceiver.registerListener(PacketType::Ping, this, "processPingPacket");
     packetReceiver.registerListener(PacketType::PingReply, this, "processPingReplyPacket");
     packetReceiver.registerListener(PacketType::ICEPing, this, "processICEPingPacket");
+
+    packetReceiver.registerListener(PacketType::ICEServerPeerInformation, &_domainHandler, "processICEResponsePacket");
+    packetReceiver.registerListener(PacketType::DomainServerRequireDTLS, &_domainHandler, "processDTLSRequirementPacket");
+    packetReceiver.registerListener(PacketType::ICEPingReply, &_domainHandler, "processICEPingReplyPacket");
 }
 
 qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination) {
