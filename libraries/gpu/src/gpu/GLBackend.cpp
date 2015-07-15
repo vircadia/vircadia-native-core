@@ -87,10 +87,12 @@ GLBackend::GLBackend() :
     _pipeline(),
     _output()
 {
+    initInput();
     initTransform();
 }
 
 GLBackend::~GLBackend() {
+    killInput();
     killTransform();
 }
 

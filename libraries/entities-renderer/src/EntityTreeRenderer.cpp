@@ -546,7 +546,7 @@ const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(EntityItemP
             Model* model = modelEntityItem->getModel(this);
             if (model) {
                 const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = model->getCollisionGeometry();
-                if (!collisionNetworkGeometry.isNull()) {
+                if (collisionNetworkGeometry && collisionNetworkGeometry->isLoaded()) {
                     result = &collisionNetworkGeometry->getFBXGeometry();
                 }
             }
@@ -805,7 +805,7 @@ void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityS
     connect(this, &EntityTreeRenderer::leaveEntity, entityScriptingInterface, &EntityScriptingInterface::leaveEntity);
     connect(this, &EntityTreeRenderer::collisionWithEntity, entityScriptingInterface, &EntityScriptingInterface::collisionWithEntity);
 
-    connect(&(*DependencyManager::get<SceneScriptingInterface>()), &SceneScriptingInterface::shouldRenderEntitiesChanged, this, &EntityTreeRenderer::updateEntityRenderStatus, Qt::QueuedConnection);
+    connect(DependencyManager::get<SceneScriptingInterface>().data(), &SceneScriptingInterface::shouldRenderEntitiesChanged, this, &EntityTreeRenderer::updateEntityRenderStatus, Qt::QueuedConnection);
 }
 
 QScriptValueList EntityTreeRenderer::createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID) {

@@ -294,7 +294,7 @@ AudioInjector* AudioInjector::playSound(const QString& soundUrl, const float vol
     if (soundCache.isNull()) {
         return NULL;
     }
-    SharedSoundPointer sound = soundCache.data()->getSound(QUrl(soundUrl));
+    SharedSoundPointer sound = soundCache->getSound(QUrl(soundUrl));
     if (sound.isNull() || !sound->isReady()) {
         return NULL;
     }
