@@ -133,7 +133,8 @@ int InboundAudioStream::parseData(NLPacket& packet) {
             if (packet.getType() == PacketType::SilentAudioFrame) {
                 writeDroppableSilentSamples(networkSamples);
             } else {
-                int audioBytes = parseAudioData(packet.getType(), QByteArray::fromRawData(packet.getPayload(), packet.pos()),
+                int audioBytes = parseAudioData(packet.getType(), QByteArray::fromRawData(packet.getPayload(),
+                                                                                          packet.bytesLeftToRead()),
                                                 networkSamples);
                 packet.seek(packet.pos() + audioBytes);
             }
