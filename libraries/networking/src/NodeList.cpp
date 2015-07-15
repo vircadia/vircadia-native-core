@@ -93,6 +93,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     packetReceiver.registerListener(PacketType::Ping, this, "processPingPacket");
     packetReceiver.registerListener(PacketType::PingReply, this, "processPingReplyPacket");
     packetReceiver.registerListener(PacketType::ICEPing, this, "processICEPingPacket");
+    packetReceiver.registerListener(PacketType::DomainServerAddedNode, this, "processDomainServerAddedNode");
 
     packetReceiver.registerListener(PacketType::ICEServerPeerInformation, &_domainHandler, "processICEResponsePacket");
     packetReceiver.registerListener(PacketType::DomainServerRequireDTLS, &_domainHandler, "processDTLSRequirementPacket");
