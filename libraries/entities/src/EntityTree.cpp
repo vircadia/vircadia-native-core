@@ -796,7 +796,7 @@ std::unique_ptr<NLPacket> EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_S
                 ++numberOfIDs;
 
                 // check to make sure we have room for one more ID
-                if (NUM_BYTES_RFC4122_UUID > deletesPacket->bytesAvailable()) {
+                if (NUM_BYTES_RFC4122_UUID > deletesPacket->bytesAvailableForWrite()) {
                     hasFilledPacket = true;
                     break;
                 }

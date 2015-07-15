@@ -70,7 +70,7 @@ Packet::Packet(PacketType::Value type, qint64 size) :
     }
 
     _packetSize = localHeaderSize(type) + size;
-    _packet.reset(new char(_packetSize));
+    _packet.reset(new char[_packetSize]);
     _capacity = size;
     _payloadStart = _packet.get() + (_packetSize - _capacity);
     
@@ -196,15 +196,14 @@ qint64 Packet::writeData(const char* data, qint64 maxSize) {
     // make sure we have the space required to write this block
     if (maxSize <= bytesAvailableForWrite()) {
         qint64 currentPos = pos();
+        
+        Q_ASSERT(currentPos < _capacity);
 
         // good to go - write the data
         memcpy(_payloadStart + currentPos, data, maxSize);
 
-        // seek to the new position based on where our write just finished
-        seek(currentPos + maxSize);
-
         // keep track of _sizeUsed so we can just write the actual data when packet is about to be sent
-        _sizeUsed = std::max(pos(), _sizeUsed);
+        _sizeUsed = std::max(currentPos + maxSize, _sizeUsed);
 
         // return the number of bytes written
         return maxSize;
@@ -223,9 +222,6 @@ qint64 Packet::readData(char* dest, qint64 maxSize) {
 
         // read out the data
         memcpy(dest, _payloadStart + currentPosition, numBytesToRead);
-
-        // seek to the end of the read
-        seek(currentPosition + numBytesToRead);
     }
 
     return numBytesToRead;

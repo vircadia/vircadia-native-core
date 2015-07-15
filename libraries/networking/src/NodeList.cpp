@@ -284,7 +284,7 @@ void NodeList::sendDomainServerCheckIn() {
 
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendDSCheckIn);
 
-        if (!isUsingDTLS) {
+        if (!isUsingDTLS) {            
             sendPacket(std::move(domainPacket), _domainHandler.getSockAddr());
         }
 
@@ -336,7 +336,7 @@ void NodeList::sendDSPathQuery(const QString& newPath) {
         // get the size of the UTF8 representation of the desired path
         qint64 numPathBytes = pathQueryUTF8.size();
 
-        if (numPathBytes + ((qint64) sizeof(numPathBytes)) < pathQueryPacket->bytesAvailable()) {
+        if (numPathBytes + ((qint64) sizeof(numPathBytes)) < pathQueryPacket->bytesAvailableForWrite()) {
             // append the size of the path to the query packet
             pathQueryPacket->writePrimitive(numPathBytes);
 
@@ -473,7 +473,7 @@ void NodeList::processDomainServerList(QSharedPointer<NLPacket> packet) {
     quint8 thisNodeCanRez;
     packetStream >> thisNodeCanRez;
     setThisNodeCanRez((bool) thisNodeCanRez);
-
+    
     // pull each node in the packet
     while (packetStream.device()->pos() < packet->getSizeUsed()) {
         parseNodeFromPacketStream(packetStream);
