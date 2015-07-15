@@ -27,7 +27,6 @@
 #include <PerfStat.h>
 
 #include "AudioClient.h"
-#include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
 #include "Application.h"
 #include "ApplicationOverlay.h"
