@@ -966,12 +966,14 @@ void Application::paintGL() {
         // Always use the default eye position, not the actual head eye position.
         // Using the latter will cause the camera to wobble with idle animations,
         // or with changes from the face tracker
-        _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
+
         if (!getActiveDisplayPlugin()->isHmd()) {
-            // If not using an HMD, grab the camera orientation directly
+            _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
             _myCamera.setRotation(_myAvatar->getHead()->getCameraOrientation());
         } else {
-            _myCamera.setRotation(glm::quat_cast(_myAvatar->getSensorToWorldMatrix() * getHMDSensorPose()));
+            auto camMat = _myAvatar->getSensorToWorldMatrix() * getHMDSensorPose();
+            _myCamera.setPosition(extractTranslation(camMat));
+            _myCamera.setRotation(glm::quat_cast(camMat));
         }
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         if (isHMDMode()) {
@@ -3729,7 +3731,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             }
             renderArgs->_debugFlags = renderDebugFlags;
             _entities.render(renderArgs);
-            ViveControllerManager::getInstance().render(renderArgs);
+            ViveControllerManager::getInstance().updateRendering(renderArgs, _main3DScene, pendingChanges);
         }
 
         // render the ambient occlusion effect if enabled
