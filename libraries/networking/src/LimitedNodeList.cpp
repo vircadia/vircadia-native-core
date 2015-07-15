@@ -496,7 +496,7 @@ unsigned int LimitedNodeList::broadcastToNodes(std::unique_ptr<NLPacket> packet,
     unsigned int n = 0;
     
     eachNode([&](const SharedNodePointer& node){
-        if (!node->getActiveSocket()->isNull() && destinationNodeTypes.contains(node->getType())) {
+        if (node->getActiveSocket() && destinationNodeTypes.contains(node->getType())) {
             writePacket(*packet, *node->getActiveSocket(), node->getConnectionSecret());
             ++n;
         }
