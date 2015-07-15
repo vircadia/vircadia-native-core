@@ -284,7 +284,7 @@ void NodeList::sendDomainServerCheckIn() {
 
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendDSCheckIn);
 
-        if (!isUsingDTLS) {            
+        if (!isUsingDTLS) {
             sendPacket(std::move(domainPacket), _domainHandler.getSockAddr());
         }
 

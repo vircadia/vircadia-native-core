@@ -221,7 +221,10 @@ void writePacketHeader(const NLPacket& packet, const QUuid& sessionUUID = QUuid(
     if (!NON_SOURCED_PACKETS.contains(packet.getType())) {
         const_cast<NLPacket&>(packet).writeSourceID(sessionUUID);
     }
-    if (!connectionSecret.isNull() && !NON_VERIFIED_PACKETS.contains(packet.getType())) {
+    
+    if (!connectionSecret.isNull()
+        && !NON_SOURCED_PACKETS.contains(packet.getType())
+        && !NON_VERIFIED_PACKETS.contains(packet.getType())) {
         const_cast<NLPacket&>(packet).writeVerificationHash(packet.payloadHashWithConnectionUUID(connectionSecret));
     }
 }
