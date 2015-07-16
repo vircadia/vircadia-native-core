@@ -48,7 +48,7 @@ int AvatarAudioStream::parseStreamProperties(PacketType::Value type, const QByte
 
         // read the positional data
         readBytes += parsePositionalData(packetAfterSeqNum.mid(readBytes));
-
+        
         // calculate how many samples are in this packet
         int numAudioBytes = packetAfterSeqNum.size() - readBytes;
         numAudioSamples = numAudioBytes / sizeof(int16_t);
