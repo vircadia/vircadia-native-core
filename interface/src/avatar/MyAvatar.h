@@ -45,16 +45,19 @@ public:
     void preRender(RenderArgs* renderArgs);
     void updateFromTrackers(float deltaTime);
 
-    void setHMDSensorMatrix(const glm::mat4& hmdSensorMatrix);
     const glm::mat4& getHMDSensorMatrix() const { return _hmdSensorMatrix; }
     const glm::vec3& getHMDSensorPosition() const { return _hmdSensorPosition; }
     const glm::quat& getHMDSensorOrientation() const { return _hmdSensorOrientation; }
-
     glm::mat4 getSensorToWorldMatrix() const { return _sensorToWorldMatrix; }
 
-    // these are overriden, because they must update the sensor matrix
-    virtual void setPosition(const glm::vec3 position, bool overideReferential = false) override;
-    virtual void setOrientation(const glm::quat& orientation, bool overideReferential = false) override;
+    // best called at start of main loop just after we have a fresh hmd pose.
+    // update internal body position from new hmd pose.
+    void updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix);
+
+    // best called at end of main loop, just before rendering.
+    // update sensor to world matrix from current body position and hmd sensor.
+    // This is so the correct camera can be used for rendering.
+    void updateSensorToWorldMatrix();
 
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting = false) override;
     virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel = 0.0f) override;
@@ -238,10 +241,6 @@ signals:
 
 private:
 
-    // these set the avatars position in world space without effecting the sensor location.
-    void setAvatarPosition(glm::vec3 pos);
-    void setAvatarOrientation(glm::quat quat);
-
     glm::vec3 getWorldBodyPosition() const;
     glm::quat getWorldBodyOrientation() const;
 
@@ -327,7 +326,6 @@ private:
     // cache of the current body position and orientation of the avatar's body,
     // in sensor space.
     glm::mat4 _bodySensorMatrix;
-    glm::mat4 _inverseBodySensorMatrix;
 
     // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
     glm::mat4 _sensorToWorldMatrix;

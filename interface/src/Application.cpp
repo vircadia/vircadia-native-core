@@ -2589,6 +2589,9 @@ void Application::update(float deltaTime) {
     updateLOD();
     updateMouseRay(); // check what's under the mouse and update the mouse voxel
 
+    // update the avatar with a fresh HMD pose
+    _myAvatar->updateFromHMDSensorMatrix(getHMDSensorPose());
+
     {
         PerformanceTimer perfTimer("devices");
         DeviceTracker::updateAll();
@@ -2693,7 +2696,6 @@ void Application::update(float deltaTime) {
         _entitySimulation.applyActionChanges();
         _entitySimulation.unlock();
 
-
         AvatarManager* avatarManager = DependencyManager::get<AvatarManager>().data();
         _physicsEngine.deleteObjects(avatarManager->getObjectsToDelete());
         _physicsEngine.addObjects(avatarManager->getObjectsToAdd());
@@ -2702,9 +2704,6 @@ void Application::update(float deltaTime) {
         _entities.getTree()->lockForWrite();
         _physicsEngine.stepSimulation();
         _entities.getTree()->unlock();
-
-        // update the avatar with the current HMD pose
-        _myAvatar->setHMDSensorMatrix(getHMDSensorPose());
 
         if (_physicsEngine.hasOutgoingChanges()) {
             _entities.getTree()->lockForWrite();
@@ -2803,6 +2802,9 @@ void Application::update(float deltaTime) {
             QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
         }
     }
+
+    // update sensorToWorldMatrix for rendering camera.
+    _myAvatar->updateSensorToWorldMatrix();
 }
 
 void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, int index) {
