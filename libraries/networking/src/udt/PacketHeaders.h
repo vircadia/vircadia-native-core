@@ -77,6 +77,7 @@ namespace PacketType {
         ICEPingReply
    };
 };
+
 const int MAX_PACKET_SIZE = 1450;
 
 typedef char PacketVersion;
