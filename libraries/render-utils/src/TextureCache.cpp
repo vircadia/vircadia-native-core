@@ -110,24 +110,14 @@ const gpu::TexturePointer& TextureCache::getPermutationNormalTexture() {
 
         _permutationNormalTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB), 256, 2));
         _permutationNormalTexture->assignStoredMip(0, _blueTexture->getTexelFormat(), sizeof(data), data);
-
-       // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-       // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     }
     return _permutationNormalTexture;
 }
 
 const unsigned char OPAQUE_WHITE[] = { 0xFF, 0xFF, 0xFF, 0xFF };
-//const unsigned char TRANSPARENT_WHITE[] = { 0xFF, 0xFF, 0xFF, 0x0 };
-//const unsigned char OPAQUE_BLACK[] = { 0x0, 0x0, 0x0, 0xFF };
+const unsigned char OPAQUE_GRAY[] = { 0x80, 0x80, 0x80, 0xFF };
 const unsigned char OPAQUE_BLUE[] = { 0x80, 0x80, 0xFF, 0xFF };
-
-/*
-static void loadSingleColorTexture(const unsigned char* color) {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, color);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-}
-*/
+const unsigned char OPAQUE_BLACK[] = { 0x00, 0x00, 0x00, 0xFF };
 
 const gpu::TexturePointer& TextureCache::getWhiteTexture() {
     if (!_whiteTexture) {
@@ -137,12 +127,28 @@ const gpu::TexturePointer& TextureCache::getWhiteTexture() {
     return _whiteTexture;
 }
 
+const gpu::TexturePointer& TextureCache::getGrayTexture() {
+    if (!_grayTexture) {
+        _grayTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), 1, 1));
+        _grayTexture->assignStoredMip(0, _whiteTexture->getTexelFormat(), sizeof(OPAQUE_WHITE), OPAQUE_GRAY);
+    }
+    return _grayTexture;
+}
+
 const gpu::TexturePointer& TextureCache::getBlueTexture() {
     if (!_blueTexture) {
         _blueTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), 1, 1));
         _blueTexture->assignStoredMip(0, _blueTexture->getTexelFormat(), sizeof(OPAQUE_BLUE), OPAQUE_BLUE);
     }
     return _blueTexture;
+}
+
+const gpu::TexturePointer& TextureCache::getBlackTexture() {
+    if (!_blackTexture) {
+        _blackTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), 1, 1));
+        _blackTexture->assignStoredMip(0, _whiteTexture->getTexelFormat(), sizeof(OPAQUE_BLACK), OPAQUE_BLACK);
+    }
+    return _blackTexture;
 }
 
 /// Extra data for creating textures.

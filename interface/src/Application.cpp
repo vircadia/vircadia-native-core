@@ -66,7 +66,6 @@
 #include <display-plugins/DisplayPlugin.h>
 #include <EntityScriptingInterface.h>
 #include <ErrorDialog.h>
-#include <GlowEffect.h>
 #include <GlWindow.h>
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
@@ -114,7 +113,6 @@
 
 #include "avatar/AvatarManager.h"
 
-#include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
 
 #include "devices/DdeFaceTracker.h"
@@ -286,11 +284,9 @@ bool setupEssentials(int& argc, char** argv) {
     auto geometryCache = DependencyManager::set<GeometryCache>();
     auto scriptCache = DependencyManager::set<ScriptCache>();
     auto soundCache = DependencyManager::set<SoundCache>();
-    auto glowEffect = DependencyManager::set<GlowEffect>();
     auto faceshift = DependencyManager::set<Faceshift>();
     auto audio = DependencyManager::set<AudioClient>();
     auto audioScope = DependencyManager::set<AudioScope>();
-    auto audioIOStatsRenderer = DependencyManager::set<AudioIOStatsRenderer>();
     auto deferredLightingEffect = DependencyManager::set<DeferredLightingEffect>();
     auto ambientOcclusionEffect = DependencyManager::set<AmbientOcclusionEffect>();
     auto textureCache = DependencyManager::set<TextureCache>();
@@ -352,7 +348,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _mousePressed(false),
         _enableProcessOctreeThread(true),
         _octreeProcessor(),
-        _nodeBoundsDisplay(this),
         _runningScriptsWidget(NULL),
         _runningScriptsWidgetWasVisible(false),
         _trayIcon(new QSystemTrayIcon(_window)),
@@ -728,6 +723,14 @@ void Application::cleanupBeforeQuit() {
 #endif
 }
 
+void Application::emptyLocalCache() {
+    QNetworkDiskCache* cache = qobject_cast<QNetworkDiskCache*>(NetworkAccessManager::getInstance().cache());
+    if (cache) {
+        qDebug() << "DiskCacheEditor::clear(): Clearing disk cache.";
+        cache->clear();
+    }
+}
+
 Application::~Application() {
     EntityTree* tree = _entities.getTree();
     tree->lockForWrite();
@@ -992,18 +995,17 @@ void Application::paintGL() {
     }
 
     renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
-    DependencyManager::get<GlowEffect>()->prepare(&renderArgs);
-    // Primary rendering pass
-    auto primaryFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
-    auto finalFbo = primaryFbo;
-    glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFbo));
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    // Viewport is assigned to the size of the framebuffer
-    QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
 
-    // Primary scene rendering
+    // Primary rendering pass
     {
         PROFILE_RANGE(__FUNCTION__ "/mainRender");
+        auto primaryFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+        GLuint fbo = gpu::GLBackend::getFramebufferID(primaryFbo);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        // Viewport is assigned to the size of the framebuffer
+        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
+
         if (displayPlugin->isStereo()) {
             QRect r(QPoint(0, 0), QSize(size.width() / 2, size.height()));
             glEnable(GL_SCISSOR_TEST);
@@ -1037,10 +1039,12 @@ void Application::paintGL() {
         }
     }
 
-    // Overlay Composition
-    finalFbo = DependencyManager::get<GlowEffect>()->render(&renderArgs);
+    // Overlay Composition, needs to occur after screen space effects have completed
     {
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
+        PROFILE_RANGE(__FUNCTION__ "/compositor");
+        auto primaryFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFbo));
+        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
         if (displayPlugin->isStereo()) {
             QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
             QRect r(QPoint(0, 0), QSize(size.width() / 2, size.height()));
@@ -1062,28 +1066,30 @@ void Application::paintGL() {
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     }
 
-#if 0
-        renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            renderRearViewMirror(&renderArgs, _mirrorViewRect);
-        }
-        renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
-#endif
-
     // deliver final composited scene to the display plugin
     {
-        GLuint finalTexture = gpu::GLBackend::getTextureID(finalFbo->getRenderBuffer(0));
+        PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
+        auto primaryFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
+        GLuint finalTexture = gpu::GLBackend::getTextureID(primaryFbo->getRenderBuffer(0));
         uvec2 finalSize = toGlm(size);
+#ifdef Q_OS_MAC
+        glFinish();
+#else
         // Ensure the rendering context commands are completed when rendering 
         GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-        glFinish();
+#endif
         _offscreenContext->doneCurrent();
         Q_ASSERT(!QOpenGLContext::currentContext());
         displayPlugin->preDisplay();
         Q_ASSERT(QOpenGLContext::currentContext());
+
+#ifdef Q_OS_MAC
+#else
         // FIXME? make the sync a parameter to preDisplay and let the plugin manage this
         glWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
         glDeleteSync(sync);
+#endif
 
         {
             PROFILE_RANGE(__FUNCTION__ "/pluginDisplay");
@@ -1664,7 +1670,9 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         return;
     }
 
-    _keyboardMouseDevice.mouseMoveEvent(event, deviceID);
+    if (deviceID == 0) {
+        _keyboardMouseDevice.mouseMoveEvent(event, deviceID);
+    }
 
 }
 
@@ -1685,7 +1693,9 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
 
     if (hasFocus()) {
-        _keyboardMouseDevice.mousePressEvent(event);
+        if (deviceID == 0) {
+            _keyboardMouseDevice.mousePressEvent(event);
+        }
 
         if (event->button() == Qt::LeftButton) {
             _mouseDragStarted = getTrueMouse();
@@ -1725,7 +1735,9 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
     }
 
     if (hasFocus()) {
-        _keyboardMouseDevice.mouseReleaseEvent(event);
+        if (deviceID == 0) {
+            _keyboardMouseDevice.mouseReleaseEvent(event);
+        }
 
         if (event->button() == Qt::LeftButton) {
             _mousePressed = false;
@@ -2327,10 +2339,6 @@ void Application::init() {
     _entityClipboardRenderer.setViewFrustum(getViewFrustum());
     _entityClipboardRenderer.setTree(&_entityClipboard);
 
-    // initialize the GlowEffect with our widget
-    bool glow = Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect);
-    DependencyManager::get<GlowEffect>()->init(glow);
-
     // Make sure any new sounds are loaded as soon as know about them.
     connect(tree, &EntityTree::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
     connect(_myAvatar, &MyAvatar::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
@@ -2510,6 +2518,15 @@ void Application::cameraMenuChanged() {
             _myCamera.setMode(CAMERA_MODE_INDEPENDENT);
         }
     }
+}
+
+void Application::reloadResourceCaches() {
+    emptyLocalCache();
+    
+    DependencyManager::get<AnimationCache>()->refreshAll();
+    DependencyManager::get<GeometryCache>()->refreshAll();
+    DependencyManager::get<SoundCache>()->refreshAll();
+    DependencyManager::get<TextureCache>()->refreshAll();
 }
 
 void Application::rotationModeChanged() {
@@ -3252,9 +3269,6 @@ QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
     glClear(GL_COLOR_BUFFER_BIT);
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
 
-    // the "glow" here causes an alpha of one
-    Glower glower(renderArgs);
-
     const int BILLBOARD_SIZE = 64;
 #if 0
     renderRearViewMirror(renderArgs, QRect(0, _glWidget->getDeviceHeight() - BILLBOARD_SIZE,
@@ -3568,8 +3582,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
                 });
     }
 
-    if (true) {
-    //if (!billboard) {
+    if (!billboard) {
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
@@ -3634,26 +3647,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     }
 
     if (!selfAvatarOnly) {
-        _nodeBoundsDisplay.draw();
-
-        // render octree fades if they exist
-        if (_octreeFades.size() > 0) {
-            PerformanceTimer perfTimer("octreeFades");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... octree fades...");
-
-            _octreeFadesLock.lockForWrite();
-            for(std::vector<OctreeFade>::iterator fade = _octreeFades.begin(); fade != _octreeFades.end();) {
-                fade->render(renderArgs);
-                if(fade->isDone()) {
-                    fade = _octreeFades.erase(fade);
-                } else {
-                    ++fade;
-                }
-            }
-            _octreeFadesLock.unlock();
-        }
-
         // give external parties a change to hook in
         {
             PerformanceTimer perfTimer("inWorldInterface");
@@ -3757,6 +3750,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
         QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
         glViewport(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
         glScissor(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
+        renderArgs->_viewport = glm::ivec4(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
     } else {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
         QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
@@ -3764,6 +3758,8 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
         int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
         glViewport(x, size.height() - y - height, width, height);
         glScissor(x, size.height() - y - height, width, height);
+    
+        renderArgs->_viewport = glm::ivec4(x, size.height() - y - height, width, height);
     }
     glEnable(GL_SCISSOR_TEST);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -3774,6 +3770,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     glPopMatrix();
 
     // reset Viewport and projection matrix
+    renderArgs->_viewport = glm::ivec4(viewport[0], viewport[1], viewport[2], viewport[3]);
     glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
     glDisable(GL_SCISSOR_TEST);
 }
@@ -3914,17 +3911,6 @@ void Application::nodeKilled(SharedNodePointer node) {
             qCDebug(interfaceapp, "model server going away...... v[%f, %f, %f, %f]",
                     (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
 
-            // Add the jurisditionDetails object to the list of "fade outs"
-            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnOctreeServerChanges)) {
-                OctreeFade fade(OctreeFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
-                fade.voxelDetails = rootDetails;
-                const float slightly_smaller = 0.99f;
-                fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
-                _octreeFadesLock.lockForWrite();
-                _octreeFades.push_back(fade);
-                _octreeFadesLock.unlock();
-            }
-
             // If the model server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
             _entityServerJurisdictions.lockForWrite();
             _entityServerJurisdictions.erase(_entityServerJurisdictions.find(nodeUUID));
@@ -4001,16 +3987,6 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
                     qPrintable(serverType),
                     (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
 
-            // Add the jurisditionDetails object to the list of "fade outs"
-            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnOctreeServerChanges)) {
-                OctreeFade fade(OctreeFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
-                fade.voxelDetails = rootDetails;
-                const float slightly_smaller = 0.99f;
-                fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
-                _octreeFadesLock.lockForWrite();
-                _octreeFades.push_back(fade);
-                _octreeFadesLock.unlock();
-            }
         } else {
             jurisdiction->unlock();
         }

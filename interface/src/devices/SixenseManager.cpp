@@ -244,14 +244,6 @@ void SixenseManager::update(float deltaTime) {
             palm->setTrigger(data->trigger);
             palm->setJoystick(data->joystick_x, data->joystick_y);
 
-            handleButtonEvent(data->buttons, numActiveControllers - 1);
-            handleAxisEvent(data->joystick_x, data->joystick_y, data->trigger, numActiveControllers - 1);
-
-            // Emulate the mouse so we can use scripts
-            if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput) && !_controllersAtBase) {
-                emulateMouse(palm, numActiveControllers - 1);
-            }
-
             // NOTE: Sixense API returns pos data in millimeters but we IMMEDIATELY convert to meters.
             glm::vec3 position(data->pos[0], data->pos[1], data->pos[2]);
             position *= METERS_PER_MILLIMETER;
@@ -260,6 +252,15 @@ void SixenseManager::update(float deltaTime) {
             const float CONTROLLER_AT_BASE_DISTANCE = 0.075f;
             if (glm::length(position) < CONTROLLER_AT_BASE_DISTANCE) {
                 numControllersAtBase++;
+                palm->setActive(false);
+            } else {
+                handleButtonEvent(data->buttons, numActiveControllers - 1);
+                handleAxisEvent(data->joystick_x, data->joystick_y, data->trigger, numActiveControllers - 1);
+                
+                // Emulate the mouse so we can use scripts
+                if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput) && !_controllersAtBase) {
+                    emulateMouse(palm, numActiveControllers - 1);
+                }
             }
 
             // Transform the measured position into body frame.

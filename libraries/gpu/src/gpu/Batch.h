@@ -40,11 +40,8 @@
 namespace gpu {
 
 enum ReservedSlot {
-/*    TRANSFORM_OBJECT_SLOT = 6,
+    TRANSFORM_OBJECT_SLOT = 6,
     TRANSFORM_CAMERA_SLOT = 7,
-    */
-    TRANSFORM_OBJECT_SLOT = 1,
-    TRANSFORM_CAMERA_SLOT = 2,
 };
 
 class Batch {
@@ -89,7 +86,7 @@ public:
     // Then by the inverse of the ViewTransform from world space to eye space
     // finaly projected into the clip space by the projection transform
     // WARNING: ViewTransform transform from eye space to world space, its inverse is composed
-    // with the ModelTransformu to create the equivalent of the glModelViewMatrix
+    // with the ModelTransform to create the equivalent of the gl ModelViewMatrix
     void setModelTransform(const Transform& model);
     void setViewTransform(const Transform& view);
     void setProjectionTransform(const Mat4& proj);
@@ -117,7 +114,7 @@ public:
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
     // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
-    // For now, instead of calling the raw glCall, use the equivalent call on the batch so the call is beeing recorded
+    // For now, instead of calling the raw gl Call, use the equivalent call on the batch so the call is beeing recorded
     // THe implementation of these functions is in GLBackend.cpp
 
     void _glEnable(GLenum cap);

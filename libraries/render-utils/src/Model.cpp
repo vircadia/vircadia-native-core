@@ -32,7 +32,6 @@
 #include "AbstractViewStateInterface.h"
 #include "AnimationHandle.h"
 #include "DeferredLightingEffect.h"
-#include "GlowEffect.h"
 #include "Model.h"
 #include "RenderUtilsLogging.h"
 
@@ -55,10 +54,6 @@
 #include "model_lightmap_normal_specular_map_frag.h"
 #include "model_lightmap_specular_map_frag.h"
 #include "model_translucent_frag.h"
-
-
-#define GLBATCH( call ) batch._##call
-//#define GLBATCH( call ) call
 
 using namespace std;
 
@@ -457,7 +452,8 @@ bool Model::updateGeometry() {
         } 
         deleteGeometry();
         _dilatedTextures.clear();
-        _geometry = geometry;
+        setGeometry(geometry);
+        
         _meshGroupsKnown = false;
         _readyWhenAdded = false; // in case any of our users are using scenes
         invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
@@ -824,7 +820,7 @@ void Model::renderSetup(RenderArgs* args) {
         }
     }
     
-    if (!_meshGroupsKnown && isLoadedWithTextures()) {
+    if (!_meshGroupsKnown && isLoaded()) {
         segregateMeshGroups();
     }
 }
@@ -883,7 +879,7 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
 
 
 bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
-    if (!_meshGroupsKnown && isLoadedWithTextures()) {
+    if (!_meshGroupsKnown && isLoaded()) {
         segregateMeshGroups();
     }
 
@@ -913,7 +909,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
 }
 
 bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges, render::Item::Status::Getters& statusGetters) {
-    if (!_meshGroupsKnown && isLoadedWithTextures()) {
+    if (!_meshGroupsKnown && isLoaded()) {
         segregateMeshGroups();
     }
 
@@ -1142,10 +1138,29 @@ void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bo
     onInvalidate();
 
     // if so instructed, keep the current geometry until the new one is loaded 
-    _nextBaseGeometry = _nextGeometry = DependencyManager::get<GeometryCache>()->getGeometry(url, fallback, delayLoad);
+    _nextGeometry = DependencyManager::get<GeometryCache>()->getGeometry(url, fallback, delayLoad);
     _nextLODHysteresis = NetworkGeometry::NO_HYSTERESIS;
     if (!retainCurrent || !isActive() || (_nextGeometry && _nextGeometry->isLoaded())) {
         applyNextGeometry();
+    }
+}
+
+void Model::geometryRefreshed() {
+    QObject* sender = QObject::sender();
+    
+    if (sender == _geometry) {
+        _readyWhenAdded = false; // reset out render items.
+        _needsReload = true;
+        invalidCalculatedMeshBoxes();
+        
+        onInvalidate();
+        
+        // if so instructed, keep the current geometry until the new one is loaded
+        _nextGeometry = DependencyManager::get<GeometryCache>()->getGeometry(_url);
+        _nextLODHysteresis = NetworkGeometry::NO_HYSTERESIS;
+        applyNextGeometry();
+    } else {
+        sender->disconnect(this, SLOT(geometryRefreshed()));
     }
 }
 
@@ -1156,7 +1171,11 @@ const QSharedPointer<NetworkGeometry> Model::getCollisionGeometry(bool delayLoad
         _collisionGeometry = DependencyManager::get<GeometryCache>()->getGeometry(_collisionUrl, QUrl(), delayLoad);
     }
 
-    return _collisionGeometry;
+    if (_collisionGeometry && _collisionGeometry->isLoaded()) {
+        return _collisionGeometry;
+    }
+    
+    return QSharedPointer<NetworkGeometry>();
 }
 
 void Model::setCollisionModelURL(const QUrl& url) {
@@ -1776,6 +1795,18 @@ void Model::setBlendedVertices(int blendNumber, const QWeakPointer<NetworkGeomet
     }
 }
 
+void Model::setGeometry(const QSharedPointer<NetworkGeometry>& newGeometry) {
+    if (_geometry == newGeometry) {
+        return;
+    }
+    
+    if (_geometry) {
+        _geometry->disconnect(_geometry.data(), &Resource::onRefresh, this, &Model::geometryRefreshed);
+    }
+    _geometry = newGeometry;
+    QObject::connect(_geometry.data(), &Resource::onRefresh, this, &Model::geometryRefreshed);
+}
+
 void Model::applyNextGeometry() {
     // delete our local geometry and custom textures
     deleteGeometry();
@@ -1783,13 +1814,12 @@ void Model::applyNextGeometry() {
     _lodHysteresis = _nextLODHysteresis;
     
     // we retain a reference to the base geometry so that its reference count doesn't fall to zero
-    _baseGeometry = _nextBaseGeometry;
-    _geometry = _nextGeometry;
+    setGeometry(_nextGeometry);
+    
     _meshGroupsKnown = false;
     _readyWhenAdded = false; // in case any of our users are using scenes
     _needsReload = false; // we are loaded now!
     invalidCalculatedMeshBoxes();
-    _nextBaseGeometry.reset();
     _nextGeometry.reset();
 }
 
@@ -1814,22 +1844,6 @@ void Model::deleteGeometry() {
     }
     
     _blendedBlendshapeCoefficients.clear();
-}
-
-void Model::setupBatchTransform(gpu::Batch& batch, RenderArgs* args) {
-    
-    // Capture the view matrix once for the rendering of this model
-    if (_transforms.empty()) {
-        _transforms.push_back(Transform());
-    }
-
-    // We should be able to use the Frustum viewpoint onstead of the "viewTransform"
-    // but it s still buggy in some cases, so let's s wait and fix it...
-    _transforms[0] = _viewState->getViewTransform();
-
-    _transforms[0].preTranslate(-_translation);
-
-    batch.setViewTransform(_transforms[0]);
 }
 
 AABox Model::getPartBounds(int meshIndex, int partIndex) {
@@ -1966,7 +1980,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
     
     if (isSkinned) {
-        GLBATCH(glUniformMatrix4fv)(locations->clusterMatrices, state.clusterMatrices.size(), false,
+        batch._glUniformMatrix4fv(locations->clusterMatrices, state.clusterMatrices.size(), false,
             (const float*)state.clusterMatrices.constData());
        _transforms[0] = Transform();
        _transforms[0].preTranslate(_translation);
@@ -1987,7 +2001,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
 
     if (mesh.colors.isEmpty()) {
-        GLBATCH(glColor4f)(1.0f, 1.0f, 1.0f, 1.0f);
+        batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
     // guard against partially loaded meshes
@@ -2029,12 +2043,10 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                     }
                 }
             }
-            static bool showDiffuse = true;
-            if (showDiffuse && diffuseMap) {
+            if (diffuseMap && static_cast<NetworkTexture*>(diffuseMap)->isLoaded()) {
                 batch.setResourceTexture(0, diffuseMap->getGPUTexture());
-            
             } else {
-                batch.setResourceTexture(0, textureCache->getWhiteTexture());
+                batch.setResourceTexture(0, textureCache->getGrayTexture());
             }
 
             if (locations->texcoordMatrices >= 0) {
@@ -2045,20 +2057,19 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                 if (!part.emissiveTexture.transform.isIdentity()) {
                     part.emissiveTexture.transform.getMatrix(texcoordTransform[1]);
                 }
-                GLBATCH(glUniformMatrix4fv)(locations->texcoordMatrices, 2, false, (const float*) &texcoordTransform);
+                batch._glUniformMatrix4fv(locations->texcoordMatrices, 2, false, (const float*) &texcoordTransform);
             }
 
             if (!mesh.tangents.isEmpty()) {                 
-                Texture* normalMap = networkPart.normalTexture.data();
-                batch.setResourceTexture(1, !normalMap ?
-                    textureCache->getBlueTexture() : normalMap->getGPUTexture());
-
+                NetworkTexture* normalMap = networkPart.normalTexture.data();
+                batch.setResourceTexture(1, (!normalMap || !normalMap->isLoaded()) ?
+                                        textureCache->getBlueTexture() : normalMap->getGPUTexture());
             }
     
             if (locations->specularTextureUnit >= 0) {
-                Texture* specularMap = networkPart.specularTexture.data();
-                batch.setResourceTexture(locations->specularTextureUnit, !specularMap ?
-                                            textureCache->getWhiteTexture() : specularMap->getGPUTexture());
+                NetworkTexture* specularMap = networkPart.specularTexture.data();
+                batch.setResourceTexture(locations->specularTextureUnit, (!specularMap || !specularMap->isLoaded()) ?
+                                        textureCache->getBlackTexture() : specularMap->getGPUTexture());
             }
 
             if (args) {
@@ -2071,11 +2082,11 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                 //  assert(locations->emissiveParams >= 0); // we should have the emissiveParams defined in the shader
                 float emissiveOffset = part.emissiveParams.x;
                 float emissiveScale = part.emissiveParams.y;
-                GLBATCH(glUniform2f)(locations->emissiveParams, emissiveOffset, emissiveScale);
+                batch._glUniform2f(locations->emissiveParams, emissiveOffset, emissiveScale);
                 
-                Texture* emissiveMap = networkPart.emissiveTexture.data();
-                batch.setResourceTexture(locations->emissiveTextureUnit, !emissiveMap ?
-                                        textureCache->getWhiteTexture() : emissiveMap->getGPUTexture());
+                NetworkTexture* emissiveMap = networkPart.emissiveTexture.data();
+                batch.setResourceTexture(locations->emissiveTextureUnit, (!emissiveMap || !emissiveMap->isLoaded()) ?
+                                        textureCache->getGrayTexture() : emissiveMap->getGPUTexture());
             }
             
             if (translucent && locations->lightBufferUnit >= 0) {
@@ -2179,16 +2190,17 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
     batch.setPipeline((*pipeline).second._pipeline);
 
     if ((locations->alphaThreshold > -1) && (mode != RenderArgs::SHADOW_RENDER_MODE)) {
-        GLBATCH(glUniform1f)(locations->alphaThreshold, alphaThreshold);
+        batch._glUniform1f(locations->alphaThreshold, alphaThreshold);
     }
 
     if ((locations->glowIntensity > -1) && (mode != RenderArgs::SHADOW_RENDER_MODE)) {
-        GLBATCH(glUniform1f)(locations->glowIntensity, DependencyManager::get<GlowEffect>()->getIntensity());
+        const float DEFAULT_GLOW_INTENSITY = 1.0f; // FIXME - glow is removed
+        batch._glUniform1f(locations->glowIntensity, DEFAULT_GLOW_INTENSITY);
     }
 }
 
 bool Model::initWhenReady(render::ScenePointer scene) {
-    if (isActive() && isRenderable() && !_meshGroupsKnown && isLoadedWithTextures()) {
+    if (isActive() && isRenderable() && !_meshGroupsKnown && isLoaded()) {
         segregateMeshGroups();
 
         render::PendingChanges pendingChanges;

@@ -14,6 +14,11 @@
 #include <GeometryCache.h>
 #include <RegisteredMetaTypes.h>
 
+#include "qapplication.h"
+
+#include "gpu/Context.h"
+#include "gpu/StandardShaderLib.h"
+
 ImageOverlay::ImageOverlay() :
     _imageURL(),
     _renderImage(false),
@@ -57,9 +62,12 @@ void ImageOverlay::render(RenderArgs* args) {
         return;
     }
 
+    gpu::Batch& batch = *args->_batch;
+
     if (_renderImage) {
-        glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, _texture->getID());
+        batch.setResourceTexture(0, _texture->getGPUTexture());
+    } else {
+        batch.setResourceTexture(0, args->_whiteTexture);
     }
 
     const float MAX_COLOR = 255.0f;
@@ -74,6 +82,8 @@ void ImageOverlay::render(RenderArgs* args) {
 
     glm::vec2 topLeft(left, top);
     glm::vec2 bottomRight(right, bottom);
+
+    batch.setModelTransform(Transform());
 
     // if for some reason our image is not over 0 width or height, don't attempt to render the image
     if (_renderImage) {
@@ -104,14 +114,14 @@ void ImageOverlay::render(RenderArgs* args) {
 
             glm::vec2 texCoordTopLeft(x, y);
             glm::vec2 texCoordBottomRight(x + w, y + h);
+            glm::vec4 texcoordRect(texCoordTopLeft, w, h);
 
-            DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, quadColor);
+            DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, quadColor);
         } else {
-            DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);
+            DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, quadColor);
         }
-        glDisable(GL_TEXTURE_2D);
     } else {
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);
+        DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, quadColor);
     }
 }
 
