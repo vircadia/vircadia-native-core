@@ -100,9 +100,24 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
     QReadLocker lock(&_lock);
     gpu::Batch batch;
     renderArgs->_batch = &batch;
-    
+
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    auto textureCache = DependencyManager::get<TextureCache>();
+    int width = renderArgs->_viewport.z;
+    int height = renderArgs->_viewport.w;
+    mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
+
 
     foreach(Overlay::Pointer thisOverlay, _overlaysHUD) {
+    
+        // Reset all batch pipeline settings between overlay
+        geometryCache->useSimpleDrawPipeline(batch);
+        batch.setResourceTexture(0, textureCache->getWhiteTexture());
+        batch.setProjectionTransform(legacyProjection);
+        batch.setModelTransform(Transform());
+        batch.setViewTransform(Transform());
+        batch._glLineWidth(1.0f); // default
+
         thisOverlay->render(renderArgs);
     }
 

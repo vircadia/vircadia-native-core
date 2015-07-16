@@ -38,6 +38,7 @@ AudioScope::AudioScope() :
     _scopeOutputLeft(NULL),
     _scopeOutputRight(NULL),
     _scopeLastFrame(),
+    _audioScopeBackground(DependencyManager::get<GeometryCache>()->allocateID()),
     _audioScopeGrid(DependencyManager::get<GeometryCache>()->allocateID()),
     _inputID(DependencyManager::get<GeometryCache>()->allocateID()),
     _outputLeftID(DependencyManager::get<GeometryCache>()->allocateID()),
@@ -135,7 +136,8 @@ void AudioScope::render(RenderArgs* renderArgs, int width, int height) {
     batch.setProjectionTransform(legacyProjection);
     batch.setModelTransform(Transform());
     batch.setViewTransform(Transform());
-    geometryCache->renderQuad(batch, x, y, w, h, backgroundColor);
+    batch._glLineWidth(1.0f); // default
+    geometryCache->renderQuad(batch, x, y, w, h, backgroundColor, _audioScopeBackground);
     geometryCache->renderGrid(batch, x, y, w, h, gridRows, gridCols, gridColor, _audioScopeGrid);
     renderLineStrip(batch, _inputID, inputColor, x, y, _samplesPerScope, _scopeInputOffset, _scopeInput);
     renderLineStrip(batch, _outputLeftID, outputLeftColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputLeft);
