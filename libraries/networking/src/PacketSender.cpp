@@ -49,12 +49,12 @@ PacketSender::~PacketSender() {
 
 
 void PacketSender::queuePacketForSending(const SharedNodePointer& destinationNode, std::unique_ptr<NLPacket> packet) {
+    _totalPacketsQueued++;
+    _totalBytesQueued += packet->getDataSize();
+    
     lock();
     _packets.push_back({destinationNode, std::move(packet)});
     unlock();
-
-    _totalPacketsQueued++;
-    _totalBytesQueued += packet->getDataSize();
 
     // Make sure to  wake our actual processing thread because we  now have packets for it to process.
     _hasPackets.wakeAll();
