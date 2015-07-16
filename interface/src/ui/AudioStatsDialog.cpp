@@ -69,41 +69,40 @@ AudioStatsDialog::AudioStatsDialog(QWidget* parent) :
     // Create layouter
     _form = new QFormLayout();
     QDialog::setLayout(_form);
-    
-    // Load and initilize
+        
+    // Load and initilize all channels
     renderStats();
     
-    _channelIndex = 0;
+    _audioDisplayChannels = QVector<QVector<AudioStatsDisplay*>>(1);
         
-    addChannel(_form, _audioMixerStats, COLOR0);
-    addChannel(_form, _upstreamClientStats, COLOR1);
-    addChannel(_form, _upstreamMixerStats, COLOR2);
-    addChannel(_form, _downstreamStats, COLOR3);
-    addChannel(_form, _upstreamInjectedStats, COLOR0);
+    _audioMixerID = addChannel(_form, _audioMixerStats, COLOR0);
+    _upstreamClientID = addChannel(_form, _upstreamClientStats, COLOR1);
+    _upstreamMixerID = addChannel(_form, _upstreamMixerStats, COLOR2);
+    _downstreamID = addChannel(_form, _downstreamStats, COLOR3);
+    _upstreamInjectedID = addChannel(_form, _upstreamInjectedStats, COLOR0);
     
 }
 
-void AudioStatsDialog::addChannel(QFormLayout* form, QVector<QString>& stats, const unsigned color) {
+int AudioStatsDialog::addChannel(QFormLayout* form, QVector<QString>& stats, const unsigned color) {
     
-    if(_channelIndex < DISPLAY_CHANNELS) {
-        for (int i = 0; i < stats.size(); i++)
-            // Create new display label
-            _audioDisplayChannels[_channelIndex].push_back(new AudioStatsDisplay(form, stats.at(i), color));
-        
-        _channelIndex++;
-    }
+    int channelID = _audioDisplayChannels.size() - 1;
     
+    for (int i = 0; i < stats.size(); i++)
+        // Create new display label
+        _audioDisplayChannels[channelID].push_back(new AudioStatsDisplay(form, stats.at(i), color));
+    
+    // Expand vector to fit next channel
+    _audioDisplayChannels.resize(_audioDisplayChannels.size() + 1);
+    
+    return channelID;
 }
 
-void AudioStatsDialog::updateStats(QVector<QString>& stats) {
+void AudioStatsDialog::updateStats(QVector<QString>& stats, int channelID) {
     
-    if(_channelIndex < DISPLAY_CHANNELS) {
-        // Update all stat displays at specified channel
-        for (int i = 0; i < stats.size(); i++)
-            _audioDisplayChannels[_channelIndex].at(i)->updatedDisplay(stats.at(i));
+    // Update all stat displays at specified channel
+    for (int i = 0; i < stats.size(); i++)
+        _audioDisplayChannels[channelID].at(i)->updatedDisplay(stats.at(i));
     
-        _channelIndex++;
-    }
 }
 
 
@@ -226,25 +225,24 @@ void AudioStatsDialog::updateTimerTimeout() {
     // Update all audio stats
     renderStats();
     
-    _channelIndex = 0;
-    
-    updateStats(_audioMixerStats);
-    updateStats(_upstreamClientStats);
-    updateStats(_upstreamMixerStats);
-    updateStats(_downstreamStats);
-    updateStats(_upstreamInjectedStats);
+    updateStats(_audioMixerStats, _audioMixerID);
+    updateStats(_upstreamClientStats, _upstreamClientID);
+    updateStats(_upstreamMixerStats, _upstreamMixerID);
+    updateStats(_downstreamStats, _downstreamID);
+    updateStats(_upstreamInjectedStats, _upstreamInjectedID);
     
 }
 
 
 void AudioStatsDialog::paintEvent(QPaintEvent* event) {
     
-    // Repaint each statistic in each section
-    for (int i = 0; i < DISPLAY_CHANNELS; i++) {
+    // Repaint each stat in each channel
+    for (int i = 0; i < _audioDisplayChannels.size(); i++) {
         for(int j = 0; j < _audioDisplayChannels[i].size(); j++) {
             _audioDisplayChannels[i].at(j)->paint();
         }
     }
+    
     QDialog::paintEvent(event);
     setFixedSize(width(), height());
 }
@@ -262,8 +260,7 @@ void AudioStatsDialog::closeEvent(QCloseEvent* event) {
 AudioStatsDialog::~AudioStatsDialog() {
     clearAllChannels();
 
-    
-    for (int i = 0; i < DISPLAY_CHANNELS; i++) {
+    for (int i = 0; i < _audioDisplayChannels.size(); i++) {
         _audioDisplayChannels[i].clear();
         for(int j = 0; j < _audioDisplayChannels[i].size(); j++) {
             delete _audioDisplayChannels[i].at(j);

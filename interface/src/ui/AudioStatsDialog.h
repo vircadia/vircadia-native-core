@@ -62,19 +62,24 @@ private:
     QVector<QString> _downstreamStats;
     QVector<QString> _upstreamInjectedStats;
     
-    void addChannel(QFormLayout* form, QVector<QString>& stats, const unsigned color);
-    void updateStats(QVector<QString>& stats);
+    int _audioMixerID;
+    int _upstreamClientID;
+    int _upstreamMixerID;
+    int _downstreamID;
+    int _upstreamInjectedID;
+    
+    QVector<QVector<AudioStatsDisplay*>> _audioDisplayChannels;
+    
+    int addChannel(QFormLayout* form, QVector<QString>& stats, const unsigned color);
+    void updateStats(QVector<QString>& stats, const int channelID);
     void renderStats();
     void clearAllChannels();
     void renderAudioStreamStats(const AudioStreamStats* streamStats, QVector<QString>* audioStreamstats, bool isDownstreamStats);
     
-    const static int DISPLAY_CHANNELS = 5;
-    QVector<AudioStatsDisplay*> _audioDisplayChannels[DISPLAY_CHANNELS];
     
     const AudioIOStats* _stats;
     QFormLayout* _form;
     
-    int _channelIndex;
     bool _isEnabled;
     bool _shouldShowInjectedStreams;
         
