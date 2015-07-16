@@ -656,7 +656,9 @@ function mouseMove(event) {
 
 function handleIdleMouse() {
     idleMouseTimerId = null;
-    highlightEntityUnderCursor(lastMousePosition, true);
+    if (isActive) {
+        highlightEntityUnderCursor(lastMousePosition, true);
+    }
 }
 
 function highlightEntityUnderCursor(position, accurateRay) {
