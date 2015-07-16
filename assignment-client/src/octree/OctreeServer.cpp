@@ -813,14 +813,16 @@ void OctreeServer::parsePayload() {
 }
 
 void OctreeServer::handleOctreeQueryPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
-    // If we got a query packet, then we're talking to an agent, and we
-    // need to make sure we have it in our nodeList.
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->updateNodeWithDataFromPacket(packet, senderNode);
-
-    OctreeQueryNode* nodeData = dynamic_cast<OctreeQueryNode*>(senderNode->getLinkedData());
-    if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
-        nodeData->initializeOctreeSendThread(this, senderNode);
+    if (!_isFinished) {
+        // If we got a query packet, then we're talking to an agent, and we
+        // need to make sure we have it in our nodeList.
+        auto nodeList = DependencyManager::get<NodeList>();
+        nodeList->updateNodeWithDataFromPacket(packet, senderNode);
+        
+        OctreeQueryNode* nodeData = dynamic_cast<OctreeQueryNode*>(senderNode->getLinkedData());
+        if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
+            nodeData->initializeOctreeSendThread(this, senderNode);
+        }
     }
 }
 
