@@ -166,10 +166,10 @@ QByteArray AvatarData::toByteArray() {
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getFinalYaw());
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getFinalRoll());
 
-    // // Body lean
-    // destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_leanForward);
-    // destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_leanSideways);
-    // destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_torsoTwist);
+    // Body lean
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_leanForward);
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_leanSideways);
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_torsoTwist);
 
     // Lookat Position
     memcpy(destinationBuffer, &_headData->_lookAtPosition, sizeof(_headData->_lookAtPosition));
@@ -369,6 +369,22 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         _headData->setBasePitch(headPitch);
         _headData->setBaseYaw(headYaw);
         _headData->setBaseRoll(headRoll);
+    } // 6 bytes
+
+    { // Head lean (relative to pelvis)
+        float leanForward, leanSideways, torsoTwist;
+        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*)sourceBuffer, &leanForward);
+        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*)sourceBuffer, &leanSideways);
+        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*)sourceBuffer, &torsoTwist);
+        if (glm::isnan(leanForward) || glm::isnan(leanSideways)) {
+            if (shouldLogError(now)) {
+                qCDebug(avatars) << "Discard nan AvatarData::leanForward,leanSideways,torsoTwise; displayName = '" << _displayName << "'";
+            }
+            return maxAvailableSize;
+        }
+        _headData->_leanForward = leanForward;
+        _headData->_leanSideways = leanSideways;
+        _headData->_torsoTwist = torsoTwist;
     } // 6 bytes
 
     { // Lookat Position
