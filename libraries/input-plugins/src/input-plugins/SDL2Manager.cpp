@@ -121,19 +121,21 @@ void SDL2Manager::pluginUpdate(float deltaTime) {
                     HFBackEvent backEvent(backType);
                     
                     qApp->sendEvent(qApp, &backEvent);
-                } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_A) {
-                    // this will either start or stop a global action event
-                    QEvent::Type actionType = (event.type == SDL_CONTROLLERBUTTONDOWN)
-                    ? HFActionEvent::startType()
-                    : HFActionEvent::endType();
-                    
-                    // global action events fire in the center of the screen
-                    Application* app = Application::getInstance();
-                    PickRay pickRay = app->getCamera()->computePickRay(app->getTrueMouseX(),
-                                                                       app->getTrueMouseY());
-                    HFActionEvent actionEvent(actionType, pickRay);
-                    qApp->sendEvent(qApp, &actionEvent);
                 }
+                // TODO: This will probably end up being deleted
+                //else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_A) {
+                //    // this will either start or stop a global action event
+                //    QEvent::Type actionType = (event.type == SDL_CONTROLLERBUTTONDOWN)
+                //    ? HFActionEvent::startType()
+                //    : HFActionEvent::endType();
+                //    
+                //    // global action events fire in the center of the screen
+                //    Application* app = Application::getInstance();
+                //    PickRay pickRay = app->getCamera()->computePickRay(app->getTrueMouseX(),
+                //                                                       app->getTrueMouseY());
+                //    HFActionEvent actionEvent(actionType, pickRay);
+                //    qApp->sendEvent(qApp, &actionEvent);
+                //}
                 
             } else if (event.type == SDL_CONTROLLERDEVICEADDED) {
                 SDL_GameController* controller = SDL_GameControllerOpen(event.cdevice.which);

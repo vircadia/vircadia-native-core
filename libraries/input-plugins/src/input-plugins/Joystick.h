@@ -22,7 +22,7 @@
 
 #include "InputDevice.h"
 
-class Joystick : public QObject, InputDevice {
+class Joystick : public QObject, public InputDevice {
     Q_OBJECT
     Q_PROPERTY(QString name READ getName)
 
