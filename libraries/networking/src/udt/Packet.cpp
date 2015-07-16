@@ -106,7 +106,7 @@ Packet& Packet::operator=(const Packet& other) {
     _type = other._type;
     
     _packetSize = other._packetSize;
-    _packet = std::unique_ptr<char>(new char(_packetSize));
+    _packet = std::unique_ptr<char>(new char[_packetSize]);
     memcpy(_packet.get(), other._packet.get(), _packetSize);
 
     _payloadStart = _packet.get() + (other._payloadStart - other._packet.get());
