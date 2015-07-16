@@ -386,7 +386,6 @@ function resetToHand() { // For use with controllers, puts the sword in contact 
 function mouseMoveEvent(event) {
     //When a controller like the hydra gives a mouse event, the x/y is not meaningful to us, but we can detect with a truty deviceID
     if (event.deviceID || !isFighting() || isControllerActive()) {
-        print('Attempting attachment reset');
         resetToHand();
         return;
     }
