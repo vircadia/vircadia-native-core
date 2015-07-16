@@ -2366,13 +2366,12 @@ void Application::updateMyAvatarLookAtPosition() {
             float eyeYaw = tracker->getEstimatedEyeYaw();
             const float GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT = 0.1f;
             glm::vec3 origin = _myAvatar->getHead()->getEyePosition();
-            float pitchSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? -1.0f : 1.0f;
             float deflection = tracker->getEyeDeflection();
             if (isLookingAtSomeone) {
                 deflection *= GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT;
             }
             lookAtSpot = origin + _myCamera.getRotation() * glm::quat(glm::radians(glm::vec3(
-                eyePitch * pitchSign * deflection, eyeYaw * deflection, 0.0f))) *
+                eyePitch * deflection, eyeYaw * deflection, 0.0f))) *
                 glm::inverse(_myCamera.getRotation()) * (lookAtSpot - origin);
         }
     }
