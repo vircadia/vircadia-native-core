@@ -28,22 +28,22 @@
 
 namespace PacketType {
    enum Value {
-        Unknown, // 0
+        Unknown,
         StunResponse,
         DomainList,
         Ping,
         PingReply,
-        KillAvatar, // 5
+        KillAvatar,
         AvatarData,
         InjectAudio,
         MixedAudio,
         MicrophoneAudioNoEcho,
-        MicrophoneAudioWithEcho, // 10
+        MicrophoneAudioWithEcho,
         BulkAvatarData,
         SilentAudioFrame,
         EnvironmentData,
         DomainListRequest,
-        RequestAssignment, // 15
+        RequestAssignment,
         CreateAssignment,
         DomainConnectionDenied,
         MuteEnvironment,
@@ -52,27 +52,27 @@ namespace PacketType {
         DomainServerPathResponse,
         DomainServerAddedNode,
         ICEServerPeerInformation,
-        ICEServerQuery, // 25
+        ICEServerQuery,
         OctreeStats,
         Jurisdiction,
         JurisdictionRequest,
         AssignmentClientStatus,
         NoisyMute,
-        AvatarIdentity, // 35
+        AvatarIdentity,
         AvatarBillboard,
         DomainConnectRequest,
         DomainServerRequireDTLS,
         NodeJsonStats,
-        EntityQuery, // 40
+        EntityQuery,
         EntityData,
         EntityAdd,
         EntityErase,
         EntityEdit,
-        OctreeDataNack, // 45
+        OctreeDataNack,
         StopNode,
         AudioEnvironment,
         EntityEditNack,
-        ICEServerHeartbeat, // 50
+        ICEServerHeartbeat,
         ICEPing,
         ICEPingReply
    };
