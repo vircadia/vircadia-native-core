@@ -89,7 +89,7 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     // 2) clear it...
     //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glm::vec4 color { 0.0f, 0.0f, 0.0f, 0.0f };
-    float depth = 1.0f;
+    float depth = 0.0f;
     int stencil = 0;
     batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLORS | gpu::Framebuffer::BUFFER_DEPTH, color, depth, stencil);
     //batch.clearColorFramebuffer(_overlayFramebuffer->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
@@ -97,14 +97,8 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     int width = _overlayFramebuffer ? _overlayFramebuffer->getWidth() : 0;
     int height = _overlayFramebuffer ? _overlayFramebuffer->getHeight() : 0;
 
-    glViewport(0, 0, width, height);
-
-    qDebug() << "ApplicationOverlay::renderOverlay()... ";
-    qDebug() << "    renderArgs->batch:" << (void*)renderArgs->_batch;
-    qDebug() << "    renderArgs->_viewport:" << renderArgs->_viewport.z << "," << renderArgs->_viewport.w;
-    qDebug() << "    getDeviceSize:" << qApp->getDeviceSize();
-    qDebug() << "    getCanvasSize:" << qApp->getCanvasSize();
-    qDebug() << "    _overlayFramebuffer size:" << width << "," << height;
+    //glViewport(0, 0, width, height);
+    batch.setViewportTransform(glm::ivec4(0, 0, width, height));
 
     // Now render the overlay components together into a single texture
     renderOverlays(renderArgs); // renders Scripts Overlay and AudioScope
@@ -113,7 +107,7 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture
 
     //_overlayFramebuffer->release(); // now we're done for later composition
-    batch.setFramebuffer(nullptr);
+    //batch.setFramebuffer(nullptr);
 
     renderArgs->_context->syncCache();
     renderArgs->_context->render(batch);
