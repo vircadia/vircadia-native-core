@@ -100,7 +100,7 @@ void InboundAudioStream::perSecondCallbackForUpdatingStats() {
 }
 
 int InboundAudioStream::parseData(NLPacket& packet) {
-
+    
     // parse sequence number and track it
     quint16 sequence;
     packet.readPrimitive(&sequence);
@@ -133,8 +133,9 @@ int InboundAudioStream::parseData(NLPacket& packet) {
             if (packet.getType() == PacketType::SilentAudioFrame) {
                 writeDroppableSilentSamples(networkSamples);
             } else {
-                int audioBytes = parseAudioData(packet.getType(), QByteArray::fromRawData(packet.getPayload() + packet.pos(),
-                                                                                          packet.bytesLeftToRead()),
+                int audioBytes = parseAudioData(packet.getType(),
+                                                QByteArray::fromRawData(packet.getPayload() + packet.pos(),
+                                                                        packet.bytesLeftToRead()),
                                                 networkSamples);
                 packet.seek(packet.pos() + audioBytes);
             }

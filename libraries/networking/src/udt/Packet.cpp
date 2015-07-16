@@ -138,7 +138,7 @@ Packet& Packet::operator=(Packet&& other) {
 void Packet::setPayloadSize(qint64 payloadSize) {
     if (isWritable()) {
         Q_ASSERT(payloadSize <= _payloadCapacity);
-        _payloadSize = std::max(payloadSize, _payloadCapacity);
+        _payloadSize = payloadSize;
     } else {
         qDebug() << "You can not call setPayloadSize for a non-writeable Packet.";
         Q_ASSERT(false);
