@@ -126,35 +126,9 @@ QString nameForPacketType(PacketType::Value packetType) {
     return QString("unexpected");
 }
 
-int numBytesForPacketHeader(const QByteArray& packet) {
-    PacketType::Value packetType = packetTypeForPacket(packet);
-    return numBytesForPacketHeaderGivenPacketType(packetType);
-}
-
-int numBytesForPacketHeader(const char* packet) {
-    PacketType::Value packetType = packetTypeForPacket(packet);
-    return numBytesForPacketHeaderGivenPacketType(packetType);
-}
-
 int numBytesForArithmeticCodedPacketType(PacketType::Value packetType) {
     return (int) ceilf((float) packetType / 255);
 }
-
-int numBytesForPacketHeaderGivenPacketType(PacketType::Value packetType) {
-    return numBytesForArithmeticCodedPacketType(packetType)
-    + numHashBytesForType(packetType)
-    + numSequenceNumberBytesForType(packetType)
-    + NUM_STATIC_HEADER_BYTES;
-}
-
-int numHashBytesForType(PacketType::Value packetType) {
-    return (NON_VERIFIED_PACKETS.contains(packetType) ? 0 : NUM_BYTES_MD5_HASH);
-}
-
-int numSequenceNumberBytesForType(PacketType::Value packetType) {
-    return (SEQUENCE_NUMBERED_PACKETS.contains(packetType) ? sizeof(PacketSequenceNumber) : 0);
-}
-
 
 PacketType::Value packetTypeForPacket(const QByteArray& packet) {
     return (PacketType::Value) arithmeticCodingValueFromBuffer(packet.data());

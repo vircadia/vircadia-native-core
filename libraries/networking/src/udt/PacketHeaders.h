@@ -92,13 +92,7 @@ extern const QSet<PacketType::Value> SEQUENCE_NUMBERED_PACKETS;
 extern const QSet<PacketType::Value> NON_SOURCED_PACKETS;
 
 const int NUM_BYTES_MD5_HASH = 16;
-const int NUM_STATIC_HEADER_BYTES = sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
-const int MAX_PACKET_HEADER_BYTES = sizeof(PacketType::Value) + NUM_BYTES_MD5_HASH + NUM_STATIC_HEADER_BYTES;
 
-PacketType::Value packetTypeForPacket(const QByteArray& packet);
-PacketType::Value packetTypeForPacket(const char* packet);
-
-PacketVersion versionForPacketType(PacketType::Value packetType);
 QString nameForPacketType(PacketType::Value packetType);
 
 const QUuid nullUUID = QUuid();
