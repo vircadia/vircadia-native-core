@@ -48,7 +48,6 @@ namespace PacketType {
         DomainConnectionDenied,
         MuteEnvironment,
         AudioStreamStats,
-        UNUSED, // 20
         DomainServerPathQuery,
         DomainServerPathResponse,
         DomainServerAddedNode,
@@ -58,11 +57,7 @@ namespace PacketType {
         Jurisdiction,
         JurisdictionRequest,
         AssignmentClientStatus,
-        UNUSED_7, // 30
-        UNUSED_8,
-        UNUSED_9,
         NoisyMute,
-        UNUSED_10,
         AvatarIdentity, // 35
         AvatarBillboard,
         DomainConnectRequest,
@@ -77,7 +72,6 @@ namespace PacketType {
         StopNode,
         AudioEnvironment,
         EntityEditNack,
-        SignedTransactionPayment,
         ICEServerHeartbeat, // 50
         ICEPing,
         ICEPingReply

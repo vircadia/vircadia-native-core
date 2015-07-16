@@ -64,50 +64,12 @@ int packArithmeticallyCodedValue(int value, char* destination) {
 
 PacketVersion versionForPacketType(PacketType::Value packetType) {
     switch (packetType) {
-        case MicrophoneAudioNoEcho:
-        case MicrophoneAudioWithEcho:
-            return 3;
-        case SilentAudioFrame:
-            return 5;
-        case MixedAudio:
-            return 2;
-        case InjectAudio:
-            return 2;
-        case AvatarData:
-            return 7;
-        case AvatarIdentity:
-            return 2;
-        case EnvironmentData:
-            return 3;
-        case DomainList:
-        case DomainListRequest:
-            return 6;
-        case DomainConnectRequest:
-            return 2;
-        case CreateAssignment:
-        case RequestAssignment:
-            return 3;
-        case OctreeStats:
-            return 2;
-        case OctreeDataNack:
-            return 2;
-        case StopNode:
-            return 2;
         case EntityAdd:
         case EntityEdit:
         case EntityData:
             return VERSION_ENTITIES_NEW_PROTOCOL_LAYER;
-        case EntityEditNack:
-            return 2;
-        case EntityErase:
-            return 3;
-        case AudioStreamStats:
-            return 2;
-        case ICEServerHeartbeat:
-        case ICEServerQuery:
-            return 2;
         default:
-            return 1;
+            return 10;
     }
 }
 
@@ -150,7 +112,6 @@ QString nameForPacketType(PacketType::Value packetType) {
             PACKET_TYPE_NAME_LOOKUP(StopNode);
             PACKET_TYPE_NAME_LOOKUP(AudioEnvironment);
             PACKET_TYPE_NAME_LOOKUP(EntityEditNack);
-            PACKET_TYPE_NAME_LOOKUP(SignedTransactionPayment);
             PACKET_TYPE_NAME_LOOKUP(ICEServerHeartbeat);
             PACKET_TYPE_NAME_LOOKUP(DomainServerAddedNode);
             PACKET_TYPE_NAME_LOOKUP(ICEServerQuery);
