@@ -73,26 +73,37 @@ AudioStatsDialog::AudioStatsDialog(QWidget* parent) :
     // Load and initilize
     renderStats();
     
-    initializeChannel(_form, 0, _audioMixerStats, COLOR0);
-    initializeChannel(_form, 1, _upstreamClientStats, COLOR1);
-    initializeChannel(_form, 2, _upstreamMixerStats, COLOR2);
-    initializeChannel(_form, 3, _downstreamStats, COLOR3);
-    initializeChannel(_form, 4, _upstreamInjectedStats, COLOR0);
+    _channelIndex = 0;
+        
+    addChannel(_form, _audioMixerStats, COLOR0);
+    addChannel(_form, _upstreamClientStats, COLOR1);
+    addChannel(_form, _upstreamMixerStats, COLOR2);
+    addChannel(_form, _downstreamStats, COLOR3);
+    addChannel(_form, _upstreamInjectedStats, COLOR0);
     
 }
 
-void AudioStatsDialog::initializeChannel(QFormLayout* form, const unsigned int index, QVector<QString>& stats, const unsigned color) {
+void AudioStatsDialog::addChannel(QFormLayout* form, QVector<QString>& stats, const unsigned color) {
     
-    for (int i = 0; i < stats.size(); i++)
-        // Create new display label
-        _audioDisplayChannels[index].push_back(new AudioStatsDisplay(form, stats.at(i), color));
+    if(_channelIndex < DISPLAY_CHANNELS) {
+        for (int i = 0; i < stats.size(); i++)
+            // Create new display label
+            _audioDisplayChannels[_channelIndex].push_back(new AudioStatsDisplay(form, stats.at(i), color));
+        
+        _channelIndex++;
+    }
     
 }
 
-void AudioStatsDialog::updateStats(const unsigned int index, QVector<QString>& stats) {
-    // Update all stat displays at specified channel
-    for (int i = 0; i < stats.size(); i++)
-        _audioDisplayChannels[index].at(i)->updatedDisplay(stats.at(i));
+void AudioStatsDialog::updateStats(QVector<QString>& stats) {
+    
+    if(_channelIndex < DISPLAY_CHANNELS) {
+        // Update all stat displays at specified channel
+        for (int i = 0; i < stats.size(); i++)
+            _audioDisplayChannels[_channelIndex].at(i)->updatedDisplay(stats.at(i));
+    
+        _channelIndex++;
+    }
 }
 
 
@@ -215,11 +226,13 @@ void AudioStatsDialog::updateTimerTimeout() {
     // Update all audio stats
     renderStats();
     
-    updateStats(0, _audioMixerStats);
-    updateStats(1, _upstreamClientStats);
-    updateStats(2, _upstreamMixerStats);
-    updateStats(3, _downstreamStats);
-    updateStats(4, _upstreamInjectedStats);
+    _channelIndex = 0;
+    
+    updateStats(_audioMixerStats);
+    updateStats(_upstreamClientStats);
+    updateStats(_upstreamMixerStats);
+    updateStats(_downstreamStats);
+    updateStats(_upstreamInjectedStats);
     
 }
 
