@@ -135,7 +135,6 @@ QString nameForPacketType(PacketType::Value packetType) {
             PACKET_TYPE_NAME_LOOKUP(DomainConnectionDenied);
             PACKET_TYPE_NAME_LOOKUP(MuteEnvironment);
             PACKET_TYPE_NAME_LOOKUP(AudioStreamStats);
-            PACKET_TYPE_NAME_LOOKUP(DataServerConfirm);
             PACKET_TYPE_NAME_LOOKUP(OctreeStats);
             PACKET_TYPE_NAME_LOOKUP(Jurisdiction);
             PACKET_TYPE_NAME_LOOKUP(JurisdictionRequest);

@@ -48,7 +48,7 @@ namespace PacketType {
         DomainConnectionDenied,
         MuteEnvironment,
         AudioStreamStats,
-        DataServerConfirm, // 20
+        UNUSED, // 20
         DomainServerPathQuery,
         DomainServerPathResponse,
         DomainServerAddedNode,
