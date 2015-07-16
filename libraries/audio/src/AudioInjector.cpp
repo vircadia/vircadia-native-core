@@ -238,10 +238,12 @@ void AudioInjector::injectToMixer() {
 
             // grab our audio mixer from the NodeList, if it exists
             SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
-
-            // send off this audio packet
-            nodeList->sendUnreliablePacket(*audioPacket, *audioMixer);
-            outgoingInjectedAudioSequenceNumber++;
+            
+            if (audioMixer) {
+                // send off this audio packet
+                nodeList->sendUnreliablePacket(*audioPacket, *audioMixer);
+                outgoingInjectedAudioSequenceNumber++;
+            }
 
             _currentSendPosition += bytesToCopy;
 
