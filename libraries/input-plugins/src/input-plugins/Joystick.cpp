@@ -21,6 +21,7 @@ const float CONTROLLER_THRESHOLD = 0.3f;
 const float MAX_AXIS = 32768.0f;
 
 Joystick::Joystick(SDL_JoystickID instanceId, const QString& name, SDL_GameController* sdlGameController) :
+        InputDevice(name),
     _sdlGameController(sdlGameController),
     _sdlJoystick(SDL_GameControllerGetJoystick(_sdlGameController)),
     _instanceId(instanceId)
@@ -40,7 +41,7 @@ void Joystick::closeJoystick() {
 #endif
 }
 
-void Joystick::update() {
+void Joystick::update(float deltaTime) {
     for (auto axisState : _axisStateMap) {
         if (fabsf(axisState.second) < CONTROLLER_THRESHOLD) {
             _axisStateMap[axisState.first] = 0.0f;
@@ -210,26 +211,6 @@ void Joystick::assignDefaultInputMapping(UserInputMapper& mapper) {
     mapper.addInputChannel(UserInputMapper::ACTION1, makeInput(SDL_CONTROLLER_BUTTON_B));
     mapper.addInputChannel(UserInputMapper::ACTION2, makeInput(SDL_CONTROLLER_BUTTON_A));
 #endif
-}
-
-float Joystick::getButton(int channel) const {
-    if (!_buttonPressedMap.empty()) {
-        if (_buttonPressedMap.find(channel) != _buttonPressedMap.end()) {
-            return 1.0f;
-        } else {
-            return 0.0f;
-        }
-    }
-    return 0.0f;
-}
-
-float Joystick::getAxis(int channel) const {
-    auto axis = _axisStateMap.find(channel);
-    if (axis != _axisStateMap.end()) {
-        return (*axis).second;
-    } else {
-        return 0.0f;
-    }
 }
 
 #ifdef HAVE_SDL2

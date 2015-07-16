@@ -9,9 +9,14 @@
 
 #include <plugins/Plugin.h>
 
+const float DEFAULT_HAND_RETICLE_MOVE_SPEED = 37.5f;
+
 class InputPlugin : public Plugin {
-    Q_OBJECT
 public:
-    virtual bool isHandController() = 0;
+    virtual bool isHandController() const = 0;
+
+    virtual void pluginFocusOutEvent() = 0;
+
+    virtual void pluginUpdate(float deltaTime) = 0;
 };
 

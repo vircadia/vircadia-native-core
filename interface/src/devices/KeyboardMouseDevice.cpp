@@ -11,7 +11,9 @@
 //
 #include "KeyboardMouseDevice.h"
 
-void KeyboardMouseDevice::update() {
+const QString KeyboardMouseDevice::NAME = "Keyboard";
+
+void KeyboardMouseDevice::update(float deltaTime) {
     _axisStateMap.clear();
 
     // For touch event, we need to check that the last event is not too long ago
@@ -27,7 +29,7 @@ void KeyboardMouseDevice::update() {
     }
 }
 
-void KeyboardMouseDevice::focusOutEvent(QFocusEvent* event) {
+void KeyboardMouseDevice::focusOutEvent() {
     _buttonPressedMap.clear();
 };
 
@@ -159,7 +161,7 @@ void KeyboardMouseDevice::registerToUserInputMapper(UserInputMapper& mapper) {
     // Grab the current free device ID
     _deviceID = mapper.getFreeDeviceID();
 
-    auto proxy = UserInputMapper::DeviceProxy::Pointer(new UserInputMapper::DeviceProxy("Keyboard"));
+    auto proxy = UserInputMapper::DeviceProxy::Pointer(new UserInputMapper::DeviceProxy(_name));
     proxy->getButton = [this] (const UserInputMapper::Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
     proxy->getAxis = [this] (const UserInputMapper::Input& input, int timestamp) -> float { return this->getAxis(input.getChannel()); };
     proxy->getAvailabeInputs = [this] () -> QVector<UserInputMapper::InputPair> {
@@ -280,25 +282,5 @@ void KeyboardMouseDevice::assignDefaultInputMapping(UserInputMapper& mapper) {
     mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(Qt::Key_Space));
     mapper.addInputChannel(UserInputMapper::ACTION1, makeInput(Qt::Key_R));
     mapper.addInputChannel(UserInputMapper::ACTION2, makeInput(Qt::Key_T));
-}
-
-float KeyboardMouseDevice::getButton(int channel) const {
-    if (!_buttonPressedMap.empty()) {
-        if (_buttonPressedMap.find(channel) != _buttonPressedMap.end()) {
-            return 1.0f;
-        } else {
-            return 0.0f;
-        }
-    }
-    return 0.0f;
-}
-
-float KeyboardMouseDevice::getAxis(int channel) const {
-    auto axis = _axisStateMap.find(channel);
-    if (axis != _axisStateMap.end()) {
-        return (*axis).second;
-    } else {
-        return 0.0f;
-    }
 }
 

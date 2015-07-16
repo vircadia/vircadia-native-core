@@ -21,12 +21,6 @@
 #include "NumericalConstants.h"
 #include "UserActivityLogger.h"
 
-#include <QLoggingCategory>
-Q_DECLARE_LOGGING_CATEGORY(inputplugins)
-Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
-
-const QString ViveControllerManager::NAME("OpenVR (Vive) Hand Controllers");
-
 extern vr::IVRSystem *_hmd;
 extern vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 extern mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
@@ -47,12 +41,15 @@ const unsigned int TRIGGER_BUTTON = 1U << 4;
 const float CONTROLLER_LENGTH_OFFSET = 0.175f;
 const QString CONTROLLER_MODEL_STRING = "vr_controller_05_wireless_b";
 
+const QString ViveControllerManager::NAME = "OpenVR";
+
 ViveControllerManager& ViveControllerManager::getInstance() {
     static ViveControllerManager sharedInstance;
     return sharedInstance;
 }
 
 ViveControllerManager::ViveControllerManager() :
+        InputDevice("SteamVR Controller"),
     _isInitialized(false),
     _isEnabled(true),
     _trackedControllers(0),
@@ -67,41 +64,15 @@ ViveControllerManager::~ViveControllerManager() {
 
 }
 
-const QString& ViveControllerManager::getName() const {
-    return NAME;
-}
-
 bool ViveControllerManager::isSupported() const {
     return vr::VR_IsHmdPresent();
 }
 
-void ViveControllerManager::init() {
-    ;
-}
-
 void ViveControllerManager::deinit() {
-    ;
+    // TODO: deinit openvr?  avoid conflicts with display plugin
 }
 
-void ViveControllerManager::activate(PluginContainer * container) {
-    activate();
-}
-
-/// Called when a plugin is no longer being used.  May be called multiple times.
-void ViveControllerManager::deactivate() {
-    ;
-}
-
-/**
- * Called by the application during it's idle phase.  If the plugin needs to do
- * CPU intensive work, it should launch a thread for that, rather than trying to
- * do long operations in the idle call
- */
-void ViveControllerManager::idle() {
-    update();
-}
-
-void ViveControllerManager::activate() {
+void ViveControllerManager::init() {
     if (!_hmd) {
         vr::HmdError eError = vr::HmdError_None;
         _hmd = vr::VR_Init(&eError);
@@ -220,7 +191,7 @@ void ViveControllerManager::renderHand(UserInputMapper::PoseValue pose, gpu::Bat
     batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
 }
 
-void ViveControllerManager::update() {
+void ViveControllerManager::update(float deltaTime) {
     if (!_hmd) {
         return;
     }
@@ -333,7 +304,7 @@ void ViveControllerManager::registerToUserInputMapper(UserInputMapper& mapper) {
     // Grab the current free device ID
     _deviceID = mapper.getFreeDeviceID();
     
-    auto proxy = UserInputMapper::DeviceProxy::Pointer(new UserInputMapper::DeviceProxy("SteamVR Controller"));
+    auto proxy = UserInputMapper::DeviceProxy::Pointer(new UserInputMapper::DeviceProxy(_name));
     proxy->getButton = [this] (const UserInputMapper::Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
     proxy->getAxis = [this] (const UserInputMapper::Input& input, int timestamp) -> float { return this->getAxis(input.getChannel()); };
     proxy->getPose = [this](const UserInputMapper::Input& input, int timestamp) -> UserInputMapper::PoseValue { return this->getPose(input.getChannel()); };
@@ -403,35 +374,6 @@ void ViveControllerManager::assignDefaultInputMapping(UserInputMapper& mapper) {
     // Hands
     mapper.addInputChannel(UserInputMapper::LEFT_HAND, makeInput(LEFT_HAND));
     mapper.addInputChannel(UserInputMapper::RIGHT_HAND, makeInput(RIGHT_HAND));
-}
-
-float ViveControllerManager::getButton(int channel) const {
-    if (!_buttonPressedMap.empty()) {
-        if (_buttonPressedMap.find(channel) != _buttonPressedMap.end()) {
-            return 1.0f;
-        } else {
-            return 0.0f;
-        }
-    }
-    return 0.0f;
-}
-
-float ViveControllerManager::getAxis(int channel) const {
-    auto axis = _axisStateMap.find(channel);
-    if (axis != _axisStateMap.end()) {
-        return (*axis).second;
-    } else {
-        return 0.0f;
-    }
-}
-
-UserInputMapper::PoseValue ViveControllerManager::getPose(int channel) const {
-    auto pose = _poseStateMap.find(channel);
-    if (pose != _poseStateMap.end()) {
-        return (*pose).second;
-    } else {
-        return UserInputMapper::PoseValue();
-    }
 }
 
 UserInputMapper::Input ViveControllerManager::makeInput(unsigned int button, int index) {

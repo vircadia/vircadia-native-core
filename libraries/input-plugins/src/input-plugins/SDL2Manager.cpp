@@ -17,6 +17,8 @@
 
 #include "SDL2Manager.h"
 
+const QString SDL2Manager::NAME = "SDL2";
+
 #ifdef HAVE_SDL2
 SDL_JoystickID SDL2Manager::getInstanceId(SDL_GameController* controller) {
     SDL_Joystick* joystick = SDL_GameControllerGetJoystick(controller);
@@ -72,7 +74,15 @@ SDL2Manager* SDL2Manager::getInstance() {
     return &sharedInstance;
 }
 
-void SDL2Manager::focusOutEvent() {
+bool SDL2Manager::isSupported() const {
+#ifdef HAVE_SDL2
+    return true;
+#else
+    return false;
+#endif
+}
+
+void SDL2Manager::pluginFocusOutEvent() {
 #ifdef HAVE_SDL2
     for (auto joystick : _openJoysticks) {
         joystick->focusOutEvent();
@@ -80,12 +90,12 @@ void SDL2Manager::focusOutEvent() {
 #endif
 }
 
-void SDL2Manager::update() {
+void SDL2Manager::pluginUpdate(float deltaTime) {
 #ifdef HAVE_SDL2
     if (_isInitialized) {
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
         for (auto joystick : _openJoysticks) {
-            joystick->update();
+            joystick->update(deltaTime);
         }
         
         PerformanceTimer perfTimer("SDL2Manager::update");

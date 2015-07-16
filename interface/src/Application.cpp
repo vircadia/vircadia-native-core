@@ -124,6 +124,7 @@
 #include "devices/RealSense.h"
 #include "devices/MIDIManager.h"
 #include <input-plugins/SDL2Manager.h>
+#include <input-plugins/SixenseManager.h>
 #include <input-plugins/ViveControllerManager.h>
 #include "RenderDeferredTask.h"
 #include "scripting/AccountScriptingInterface.h"
@@ -675,9 +676,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(ddeTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
 #endif
 
-    ViveControllerManager::getInstance().init();
     if (ViveControllerManager::getInstance().isSupported()) {
-        ViveControllerManager::getInstance().activate();
+        ViveControllerManager::getInstance().init();
+        ViveControllerManager::getInstance().activate(NULL);
     }
 
     _oldHandMouseX[0] = -1;
@@ -1640,10 +1641,10 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 }
 
 void Application::focusOutEvent(QFocusEvent* event) {
-    _keyboardMouseDevice.focusOutEvent(event);
-    SixenseManager::getInstance().focusOutEvent();
-    SDL2Manager::getInstance()->focusOutEvent();
-    ViveControllerManager::getInstance().focusOutEvent();
+    _keyboardMouseDevice.pluginFocusOutEvent();
+    SixenseManager::getInstance().pluginFocusOutEvent();
+    SDL2Manager::getInstance()->pluginFocusOutEvent();
+    ViveControllerManager::getInstance().pluginFocusOutEvent();
 
     // synthesize events for keys currently pressed, since we may not get their release events
     foreach (int key, _keysPressed) {
@@ -2615,15 +2616,16 @@ void Application::update(float deltaTime) {
             _lastFaceTrackerUpdate = 0;
         }
 
-        SixenseManager::getInstance().update(deltaTime);
-        SDL2Manager::getInstance()->update();
-        ViveControllerManager::getInstance().update();
     }
 
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     userInputMapper->setSensorToWorldMat(_myAvatar->getSensorToWorldMatrix());
     userInputMapper->update(deltaTime);
-    _keyboardMouseDevice.update();
+
+    _keyboardMouseDevice.pluginUpdate(deltaTime);
+    SixenseManager::getInstance().pluginUpdate(deltaTime);
+    SDL2Manager::getInstance()->pluginUpdate(deltaTime);
+    ViveControllerManager::getInstance().pluginUpdate(deltaTime);
 
     // Dispatch input events
     _controllerScriptingInterface.updateInputControllers();
@@ -3734,7 +3736,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             }
             renderArgs->_debugFlags = renderDebugFlags;
             _entities.render(renderArgs);
-            ViveControllerManager::getInstance().updateRendering(renderArgs, _main3DScene, pendingChanges);
+            //ViveControllerManager::getInstance().updateRendering(renderArgs, _main3DScene, pendingChanges);
         }
 
         // render the ambient occlusion effect if enabled

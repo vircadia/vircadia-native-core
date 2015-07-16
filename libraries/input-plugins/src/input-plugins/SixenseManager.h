@@ -12,9 +12,6 @@
 #ifndef hifi_SixenseManager_h
 #define hifi_SixenseManager_h
 
-#include <QObject>
-#include <unordered_set>
-
 #ifdef HAVE_SIXENSE
     #include <glm/glm.hpp>
     #include <glm/gtc/quaternion.hpp>
@@ -26,7 +23,8 @@
 
 #endif
 
-#include <input-plugins/UserInputMapper.h>
+#include "InputPlugin.h"
+#include "InputDevice.h"
 
 const unsigned int BUTTON_0 = 1U << 0; // the skinny button between 1 and 2
 const unsigned int BUTTON_1 = 1U << 5;
@@ -36,15 +34,10 @@ const unsigned int BUTTON_4 = 1U << 4;
 const unsigned int BUTTON_FWD = 1U << 7;
 const unsigned int BUTTON_TRIGGER = 1U << 8;
 
-// Event type that represents using the controller
-const unsigned int CONTROLLER_0_EVENT = 1500U;
-const unsigned int CONTROLLER_1_EVENT = 1501U;
-
-const float DEFAULT_SIXENSE_RETICLE_MOVE_SPEED = 37.5f;
 const bool DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS = false;
 
-/// Handles interaction with the Sixense SDK (e.g., Razer Hydra).
-class SixenseManager : public QObject {
+// Handles interaction with the Sixense SDK (e.g., Razer Hydra).
+class SixenseManager : public InputPlugin, public InputDevice {
     Q_OBJECT
 public:
     enum JoystickAxisChannel {
@@ -61,13 +54,31 @@ public:
     };
     
     static SixenseManager& getInstance();
-    
-    void initialize();
+
+    // Plugin functions
+    virtual bool isSupported() const override;
+    virtual bool isHandController() const override { return false; }
+    const QString& getName() const { return NAME; }
+
+    virtual void init() override;
+    virtual void deinit() override {};
+    virtual void activate(PluginContainer * container) override {};
+    virtual void deactivate() override {};
+    virtual void idle() override {};
+
+    virtual void pluginFocusOutEvent() override { focusOutEvent(); }
+    virtual void pluginUpdate(float deltaTime) override { update(deltaTime); }
+
+    // Device functions
+    virtual void registerToUserInputMapper(UserInputMapper& mapper) override;
+    virtual void assignDefaultInputMapping(UserInputMapper& mapper) override;
+    virtual void update(float deltaTime) override;
+    virtual void focusOutEvent() override;
+
     bool isInitialized() const { return _isInitialized; }
     
     void setIsEnabled(bool isEnabled) { _isEnabled = isEnabled; }
     
-    void update(float deltaTime);
     float getCursorPixelRangeMult() const;
     
     float getReticleMoveSpeed() const { return _reticleMoveSpeed; }
@@ -75,22 +86,9 @@ public:
     bool getInvertButtons() const { return _invertButtons; }
     void setInvertButtons(bool invertSixenseButtons) { _invertButtons = invertSixenseButtons; }
     
-    typedef std::unordered_set<int> ButtonPressedMap;
-    typedef std::map<int, float> AxisStateMap;
-    typedef std::map<int, UserInputMapper::PoseValue> PoseStateMap;
-    
-    float getButton(int channel) const;
-    float getAxis(int channel) const;
-    UserInputMapper::PoseValue getPose(int channel) const;
-    
     UserInputMapper::Input makeInput(unsigned int button, int index);
     UserInputMapper::Input makeInput(JoystickAxisChannel axis, int index);
     UserInputMapper::Input makeInput(JointChannel joint);
-    
-    void registerToUserInputMapper(UserInputMapper& mapper);
-    void assignDefaultInputMapping(UserInputMapper& mapper);
-    
-    void focusOutEvent();
     
 public slots:
     void toggleSixense(bool shouldEnable);
@@ -137,15 +135,10 @@ private:
     bool _lowVelocityFilter;
     bool _controllersAtBase;
     
-    float _reticleMoveSpeed = DEFAULT_SIXENSE_RETICLE_MOVE_SPEED;
+    float _reticleMoveSpeed = DEFAULT_HAND_RETICLE_MOVE_SPEED;
     bool _invertButtons = DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS;
 
-protected:
-    int _deviceID = 0;
-    
-    ButtonPressedMap _buttonPressedMap;
-    AxisStateMap _axisStateMap;
-    PoseStateMap _poseStateMap;
+    static const QString NAME;
 };
 
 #endif // hifi_SixenseManager_h

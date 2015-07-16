@@ -16,22 +16,33 @@
 #include <SDL.h>
 #endif
 
+#include "InputPlugin.h"
 #include "UserInputMapper.h"
 
 #include "Joystick.h"
 
-class SDL2Manager : public QObject {
+class SDL2Manager : public InputPlugin {
     Q_OBJECT
     
 public:
     SDL2Manager();
     ~SDL2Manager();
-    
-    void focusOutEvent();
-    
-    void update();
-    
+
     static SDL2Manager* getInstance();
+
+    // Plugin functions
+    virtual bool isSupported() const override;
+    virtual bool isHandController() const override { return false; }
+    const QString& getName() const { return NAME; }
+
+    virtual void init() override {};
+    virtual void deinit() override {};
+    virtual void activate(PluginContainer * container) override {};
+    virtual void deactivate() override {};
+    virtual void idle() override {};
+    
+    virtual void pluginFocusOutEvent() override;
+    virtual void pluginUpdate(float deltaTime) override;
     
 signals:
     void joystickAdded(Joystick* joystick);
@@ -70,12 +81,11 @@ private:
     
     int buttonPressed() const { return SDL_PRESSED; }
     int buttonRelease() const { return SDL_RELEASED; }
-#endif
-    
-#ifdef HAVE_SDL2
+
     QMap<SDL_JoystickID, Joystick*> _openJoysticks;
 #endif
     bool _isInitialized;
+    static const QString NAME;
 };
 
 #endif // hifi__SDL2Manager_h

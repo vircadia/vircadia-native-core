@@ -20,11 +20,10 @@
 #undef main
 #endif
 
-#include "UserInputMapper.h"
+#include "InputDevice.h"
 
-class Joystick : public QObject {
+class Joystick : public QObject, InputDevice {
     Q_OBJECT
-    
     Q_PROPERTY(QString name READ getName)
 
 #ifdef HAVE_SDL2
@@ -44,26 +43,22 @@ public:
         RIGHT_SHOULDER,
         LEFT_SHOULDER,
     };
+
+    const QString& getName() const { return _name; }
+
+    // Device functions
+    virtual void registerToUserInputMapper(UserInputMapper& mapper) override;
+    virtual void assignDefaultInputMapping(UserInputMapper& mapper) override;
+    virtual void update(float deltaTime) override;
+    virtual void focusOutEvent() override;
     
-    Joystick();
+    Joystick() : InputDevice("Joystick") {}
     ~Joystick();
-    
-    typedef std::unordered_set<int> ButtonPressedMap;
-    typedef std::map<int, float> AxisStateMap;
-    
-    float getButton(int channel) const;
-    float getAxis(int channel) const;
     
 #ifdef HAVE_SDL2
     UserInputMapper::Input makeInput(SDL_GameControllerButton button);
 #endif
     UserInputMapper::Input makeInput(Joystick::JoystickAxisChannel axis);
-    
-    void registerToUserInputMapper(UserInputMapper& mapper);
-    void assignDefaultInputMapping(UserInputMapper& mapper);
-    
-    void update();
-    void focusOutEvent();
     
 #ifdef HAVE_SDL2
     Joystick(SDL_JoystickID instanceId, const QString& name, SDL_GameController* sdlGameController);
@@ -76,12 +71,9 @@ public:
     void handleButtonEvent(const SDL_ControllerButtonEvent& event);
 #endif
     
-    const QString& getName() const { return _name; }
 #ifdef HAVE_SDL2
     int getInstanceId() const { return _instanceId; }
 #endif
-    
-    int getDeviceID() { return _deviceID; }
     
 private:
 #ifdef HAVE_SDL2
@@ -89,14 +81,6 @@ private:
     SDL_Joystick* _sdlJoystick;
     SDL_JoystickID _instanceId;
 #endif
-
-    QString _name;
-    
-protected:
-    int _deviceID = 0;
-    
-    ButtonPressedMap _buttonPressedMap;
-    AxisStateMap _axisStateMap;
 };
 
 #endif // hifi_Joystick_h

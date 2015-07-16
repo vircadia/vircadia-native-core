@@ -14,11 +14,12 @@
 
 #include <QTouchEvent>
 #include <chrono>
-#include <input-plugins/UserInputMapper.h>
+#include <input-plugins/InputDevice.h>
+#include <input-plugins/InputPlugin.h>
 
-class KeyboardMouseDevice {
+class KeyboardMouseDevice : public InputPlugin, public InputDevice {
+    Q_OBJECT
 public:
-
     enum KeyboardChannel {
         KEYBOARD_FIRST = 0,
         KEYBOARD_LAST = 255,
@@ -53,10 +54,27 @@ public:
         TOUCH_BUTTON_PRESS = TOUCH_AXIS_Y_NEG + 1,
     };
 
-    typedef std::unordered_set<int> ButtonPressedMap;
-    typedef std::map<int, float> AxisStateMap; // 8 axes
+    KeyboardMouseDevice() : InputDevice("Keyboard") {}
 
-    void focusOutEvent(QFocusEvent* event);
+    // Plugin functions
+    virtual bool isSupported() const override { return true; }
+    virtual bool isHandController() const override { return false; }
+    const QString& getName() const { return NAME; }
+
+    virtual void init() override {};
+    virtual void deinit() override {};
+    virtual void activate(PluginContainer * container) override {};
+    virtual void deactivate() override {};
+    virtual void idle() override {};
+
+    virtual void pluginFocusOutEvent() override { focusOutEvent(); }
+    virtual void pluginUpdate(float deltaTime) override { update(deltaTime); }
+
+    // Device functions
+    virtual void registerToUserInputMapper(UserInputMapper& mapper) override;
+    virtual void assignDefaultInputMapping(UserInputMapper& mapper) override;
+    virtual void update(float deltaTime) override;
+    virtual void focusOutEvent() override;
  
     void keyPressEvent(QKeyEvent* event);
     void keyReleaseEvent(QKeyEvent* event);
@@ -70,32 +88,15 @@ public:
     void touchUpdateEvent(const QTouchEvent* event);
 
     void wheelEvent(QWheelEvent* event);
-
-    // Get current state for each channels
-    float getButton(int channel) const;
-    float getAxis(int channel) const;
-
+    
     // Let's make it easy for Qt because we assume we love Qt forever
     UserInputMapper::Input makeInput(Qt::Key code);
     UserInputMapper::Input makeInput(Qt::MouseButton code);
     UserInputMapper::Input makeInput(KeyboardMouseDevice::MouseAxisChannel axis);
     UserInputMapper::Input makeInput(KeyboardMouseDevice::TouchAxisChannel axis);
     UserInputMapper::Input makeInput(KeyboardMouseDevice::TouchButtonChannel button);
-    
-    KeyboardMouseDevice() {}
-
-    void registerToUserInputMapper(UserInputMapper& mapper);
-    void assignDefaultInputMapping(UserInputMapper& mapper);
-
-    // Update call MUST be called once per simulation loop
-    // It takes care of updating the action states and deltas
-    void update();
 
 protected:
-    ButtonPressedMap _buttonPressedMap;
-    AxisStateMap _axisStateMap;
-    
-    int _deviceID = 0;
     QPoint _lastCursor;
     glm::vec2 _lastTouch;
     bool _isTouching = false;
@@ -103,6 +104,9 @@ protected:
     glm::vec2 evalAverageTouchPoints(const QList<QTouchEvent::TouchPoint>& points) const;
     std::chrono::high_resolution_clock _clock;
     std::chrono::high_resolution_clock::time_point _lastTouchTime;
+
+private:
+    static const QString NAME;
 };
 
 #endif // hifi_KeyboardMouseDevice_h

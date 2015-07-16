@@ -19,34 +19,14 @@
 
 #include <model/Geometry.h>
 #include <gpu/Texture.h>
+#include "InputDevice.h"
 #include "InputPlugin.h"
 #include <RenderArgs.h>
 #include <render/Scene.h>
-#include "UserInputMapper.h"
 
-class ViveControllerManager : public InputPlugin {
+class ViveControllerManager : public InputPlugin, public InputDevice {
+    Q_OBJECT
 public:
-    virtual const QString& getName() const override;
-    virtual bool isSupported() const override;
-    virtual bool isHandController() { return true; }
-
-    /// Called when plugin is initially loaded, typically at application start
-    virtual void init() override;
-    /// Called when application is shutting down
-    virtual void deinit() override ;
-
-    /// Called when a plugin is being activated for use.  May be called multiple times.
-    virtual void activate(PluginContainer * container) override;
-    /// Called when a plugin is no longer being used.  May be called multiple times.
-    virtual void deactivate() override;
-
-    /**
-     * Called by the application during it's idle phase.  If the plugin needs to do
-     * CPU intensive work, it should launch a thread for that, rather than trying to
-     * do long operations in the idle call
-     */
-    virtual void idle() override;
-
     enum JoystickAxisChannel {
         AXIS_Y_POS = 1U << 1,
         AXIS_Y_NEG = 1U << 2,
@@ -67,30 +47,34 @@ public:
         LEFT_HAND = 0,
         RIGHT_HAND,
     };
-    
-    void focusOutEvent();
+
+    static ViveControllerManager& getInstance();
+
+    // Plugin functions
+    virtual bool isSupported() const override;
+    virtual bool isHandController() const override { return true; }
+    const QString& getName() const { return NAME; }
+
+    virtual void init() override;
+    virtual void deinit() override;
+    virtual void activate(PluginContainer * container) override {};
+    virtual void deactivate() override {};
+    virtual void idle() override {};
+
+    virtual void pluginFocusOutEvent() override { focusOutEvent(); }
+    virtual void pluginUpdate(float deltaTime) override { update(deltaTime); }
+
+    // Device functions
+    virtual void registerToUserInputMapper(UserInputMapper& mapper) override;
+    virtual void assignDefaultInputMapping(UserInputMapper& mapper) override;
+    virtual void update(float deltaTime) override;
+    virtual void focusOutEvent() override;
 
     void updateRendering(RenderArgs* args, render::ScenePointer scene, render::PendingChanges pendingChanges);
-    void update();
-    
-    static ViveControllerManager& getInstance();
-    
-    typedef std::unordered_set<int> ButtonPressedMap;
-    typedef std::map<int, float> AxisStateMap;
-    typedef std::map<int, UserInputMapper::PoseValue> PoseStateMap;
-    
-    float getButton(int channel) const;
-    float getAxis(int channel) const;
-    UserInputMapper::PoseValue getPose(int channel) const;
     
     UserInputMapper::Input makeInput(unsigned int button, int index);
     UserInputMapper::Input makeInput(JoystickAxisChannel axis, int index);
     UserInputMapper::Input makeInput(JointChannel joint);
-    
-    void registerToUserInputMapper(UserInputMapper& mapper);
-    void assignDefaultInputMapping(UserInputMapper& mapper);
-    
-    void activate();
     
 private:
     ViveControllerManager();
@@ -114,13 +98,6 @@ private:
     int _rightHandRenderID;
 
     static const QString NAME;
-
-protected:
-    int _deviceID = 0;
-    
-    ButtonPressedMap _buttonPressedMap;
-    AxisStateMap _axisStateMap;
-    PoseStateMap _poseStateMap;
 };
 
 

@@ -11,13 +11,16 @@
 
 #include <vector>
 
-#include <avatar/AvatarManager.h>
 #include <PerfStat.h>
 
-#include "Application.h"
+#include "NumericalConstants.h"
 #include "SixenseManager.h"
 #include "UserActivityLogger.h"
-#include "InterfaceLogging.h"
+
+// TODO: This should not be here
+#include <QLoggingCategory>
+Q_DECLARE_LOGGING_CATEGORY(inputplugins)
+Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
 
 // These bits aren't used for buttons, so they can be used as masks:
 const unsigned int LEFT_MASK = 0;
@@ -46,12 +49,15 @@ typedef int (*SixenseTakeIntAndSixenseControllerData)(int, sixenseControllerData
 
 #endif
 
+const QString SixenseManager::NAME = "Sixense";
+
 SixenseManager& SixenseManager::getInstance() {
     static SixenseManager sharedInstance;
     return sharedInstance;
 }
 
 SixenseManager::SixenseManager() :
+        InputDevice("Hydra"),
 #if defined(HAVE_SIXENSE) && defined(__APPLE__)
     _sixenseLibrary(NULL),
 #endif
@@ -80,7 +86,15 @@ SixenseManager::~SixenseManager() {
 #endif
 }
 
-void SixenseManager::initialize() {
+bool SixenseManager::isSupported() const {
+#ifdef HAVE_SIXENSE
+    return true;
+#else
+    return false;
+#endif
+}
+
+void SixenseManager::init() {
 #ifdef HAVE_SIXENSE
 
     if (!_isInitialized) {
@@ -144,18 +158,21 @@ void SixenseManager::setFilter(bool filter) {
 
 void SixenseManager::update(float deltaTime) {
 #ifdef HAVE_SIXENSE
-    Hand* hand = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHand();
+    //Hand* hand = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHand();
     if (_isInitialized && _isEnabled) {
         _buttonPressedMap.clear();
+
 #ifdef __APPLE__
         SixenseBaseFunction sixenseGetNumActiveControllers =
         (SixenseBaseFunction) _sixenseLibrary->resolve("sixenseGetNumActiveControllers");
 #endif
 
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+
         if (sixenseGetNumActiveControllers() == 0) {
             _hydrasConnected = false;
             if (_deviceID != 0) {
-                Application::getUserInputMapper()->removeDevice(_deviceID);
+                userInputMapper->removeDevice(_deviceID);
                 _deviceID = 0;
                 _poseStateMap.clear();
 //                if (_prevPalms[0]) {
@@ -171,8 +188,8 @@ void SixenseManager::update(float deltaTime) {
         PerformanceTimer perfTimer("sixense");
         if (!_hydrasConnected) {
             _hydrasConnected = true;
-            registerToUserInputMapper(*Application::getUserInputMapper());
-            getInstance().assignDefaultInputMapping(*Application::getUserInputMapper());
+            registerToUserInputMapper(*userInputMapper);
+            getInstance().assignDefaultInputMapping(*userInputMapper);
             UserActivityLogger::getInstance().connectedDevice("spatial_controller", "hydra");
         }
 
@@ -240,7 +257,7 @@ void SixenseManager::update(float deltaTime) {
                 glm::quat rotation(data->rot_quat[3], -data->rot_quat[0], data->rot_quat[1], -data->rot_quat[2]);
                 rotation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)) * _orbRotation * rotation;
                 
-                handlePoseEvent(position, rotation, numActiveControlers - 1);
+                handlePoseEvent(position, rotation, numActiveControllers - 1);
             } else {
                 _poseStateMap.clear();
             }
@@ -292,9 +309,9 @@ float SixenseManager::getCursorPixelRangeMult() const {
 
 void SixenseManager::toggleSixense(bool shouldEnable) {
     if (shouldEnable && !isInitialized()) {
-        initialize();
-        setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
-        setLowVelocityFilter(Menu::getInstance()->isOptionChecked(MenuOption::LowVelocityFilter));
+        init();
+        //setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
+        //setLowVelocityFilter(Menu::getInstance()->isOptionChecked(MenuOption::LowVelocityFilter));
     }
     setIsEnabled(shouldEnable);
 }
@@ -337,11 +354,11 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
                 glm::vec3 zAxis = glm::normalize(glm::cross(xAxis, yAxis));
                 xAxis = glm::normalize(glm::cross(yAxis, zAxis));
                 _orbRotation = glm::inverse(glm::quat_cast(glm::mat3(xAxis, yAxis, zAxis)));
-                qCDebug(interfaceapp, "succeess: sixense calibration");
+                qCDebug(inputplugins, "succeess: sixense calibration");
             }
             break;
             default:
-                qCDebug(interfaceapp, "failed: sixense calibration");
+                qCDebug(inputplugins, "failed: sixense calibration");
                 break;
         }
 
@@ -360,7 +377,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
     if (_calibrationState == CALIBRATION_STATE_IDLE) {
         float reach = glm::distance(positionLeft, positionRight);
         if (reach > 2.0f * MINIMUM_ARM_REACH) {
-            qCDebug(interfaceapp, "started: sixense calibration");
+            qCDebug(inputplugins, "started: sixense calibration");
             _averageLeft = positionLeft;
             _averageRight = positionRight;
             _reachLeft = _averageLeft;
@@ -393,7 +410,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
             _lastDistance = 0.0f;
             _reachUp = 0.5f * (_reachLeft + _reachRight);
             _calibrationState = CALIBRATION_STATE_Y;
-            qCDebug(interfaceapp, "success: sixense calibration: left");
+            qCDebug(inputplugins, "success: sixense calibration: left");
         }
     }
     else if (_calibrationState == CALIBRATION_STATE_Y) {
@@ -412,7 +429,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
                 _lastDistance = 0.0f;
                 _lockExpiry = now + LOCK_DURATION;
                 _calibrationState = CALIBRATION_STATE_Z;
-                qCDebug(interfaceapp, "success: sixense calibration: up");
+                qCDebug(inputplugins, "success: sixense calibration: up");
             }
         }
     }
@@ -434,7 +451,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
             if (fabsf(_lastDistance) > 0.05f * MINIMUM_ARM_REACH) {
                 // lock has expired so clamp the data and move on
                 _calibrationState = CALIBRATION_STATE_COMPLETE;
-                qCDebug(interfaceapp, "success: sixense calibration: forward");
+                qCDebug(inputplugins, "success: sixense calibration: forward");
                 // TODO: it is theoretically possible to detect that the controllers have been
                 // accidentally switched (left hand is holding right controller) and to swap the order.
             }
@@ -547,7 +564,7 @@ void SixenseManager::registerToUserInputMapper(UserInputMapper& mapper) {
     // Grab the current free device ID
     _deviceID = mapper.getFreeDeviceID();
     
-    auto proxy = UserInputMapper::DeviceProxy::Pointer(new UserInputMapper::DeviceProxy("Hydra"));
+    auto proxy = UserInputMapper::DeviceProxy::Pointer(new UserInputMapper::DeviceProxy(_name));
     proxy->getButton = [this] (const UserInputMapper::Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
     proxy->getAxis = [this] (const UserInputMapper::Input& input, int timestamp) -> float { return this->getAxis(input.getChannel()); };
     proxy->getPose = [this](const UserInputMapper::Input& input, int timestamp) -> UserInputMapper::PoseValue { return this->getPose(input.getChannel()); };
@@ -631,35 +648,6 @@ void SixenseManager::assignDefaultInputMapping(UserInputMapper& mapper) {
     mapper.addInputChannel(UserInputMapper::LEFT_HAND_CLICK, makeInput(BUTTON_FWD, 0));
     mapper.addInputChannel(UserInputMapper::LEFT_HAND_CLICK, makeInput(BUTTON_FWD, 1));
 
-}
-
-float SixenseManager::getButton(int channel) const {
-    if (!_buttonPressedMap.empty()) {
-        if (_buttonPressedMap.find(channel) != _buttonPressedMap.end()) {
-            return 1.0f;
-        } else {
-            return 0.0f;
-        }
-    }
-    return 0.0f;
-}
-
-float SixenseManager::getAxis(int channel) const {
-    auto axis = _axisStateMap.find(channel);
-    if (axis != _axisStateMap.end()) {
-        return (*axis).second;
-    } else {
-        return 0.0f;
-    }
-}
-
-UserInputMapper::PoseValue SixenseManager::getPose(int channel) const {
-    auto pose = _poseStateMap.find(channel);
-    if (pose != _poseStateMap.end()) {
-        return (*pose).second;
-    } else {
-        return UserInputMapper::PoseValue();
-    }
 }
 
 UserInputMapper::Input SixenseManager::makeInput(unsigned int button, int index) {
