@@ -433,8 +433,6 @@ void GeometryCache::renderGrid(gpu::Batch& batch, int x, int y, int width, int h
         }
         // Draw vertical grid lines
         for (int i = cols + 1; --i >= 0; ) {
-            //glVertex2i(tx, y);
-            //glVertex2i(tx, y + height);
             *(vertex++) = tx;
             *(vertex++) = y;
 
