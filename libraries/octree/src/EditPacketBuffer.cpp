@@ -27,4 +27,4 @@ EditPacketBuffer::EditPacketBuffer(PacketType type, unsigned char* buffer, size_
     _satoshiCost(satoshiCost)
 {
     memcpy(_currentBuffer, buffer, length);
-};
+}

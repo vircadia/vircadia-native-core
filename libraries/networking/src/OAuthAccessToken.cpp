@@ -16,7 +16,7 @@
 OAuthAccessToken::OAuthAccessToken() :
     token(),
     refreshToken(),
-    expiryTimestamp(0),
+    expiryTimestamp(-1),
     tokenType()
 {
     
@@ -31,7 +31,7 @@ OAuthAccessToken::OAuthAccessToken(const QJsonObject& jsonObject) :
     
 }
 
-OAuthAccessToken::OAuthAccessToken(const OAuthAccessToken& otherToken) {
+OAuthAccessToken::OAuthAccessToken(const OAuthAccessToken& otherToken) : QObject() {
     token = otherToken.token;
     refreshToken = otherToken.refreshToken;
     expiryTimestamp = otherToken.expiryTimestamp;

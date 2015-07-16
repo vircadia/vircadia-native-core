@@ -1,0 +1,43 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  model_specular_map.frag
+//  fragment shader
+//
+//  Created by Andrzej Kapolka on 5/6/14.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include DeferredBufferWrite.slh@>
+
+<@include model/Material.slh@>
+
+// the diffuse texture
+uniform sampler2D diffuseMap;
+
+// the specular texture
+uniform sampler2D specularMap;
+
+// the interpolated normal
+varying vec4 interpolatedNormal;
+
+varying vec3 color;
+
+void main(void) {
+    // set the diffuse, normal, specular data
+    vec4 diffuse = texture2D(diffuseMap, gl_TexCoord[0].st);
+    vec3 specular = texture2D(specularMap, gl_TexCoord[0].st).rgb;
+
+    Material mat = getMaterial();
+
+    packDeferredFragment(
+        normalize(interpolatedNormal.xyz), 
+        evalOpaqueFinalAlpha(getMaterialOpacity(mat), diffuse.a),
+        getMaterialDiffuse(mat) * diffuse.rgb * color,
+        specular, //getMaterialSpecular(mat),
+        getMaterialShininess(mat));
+}

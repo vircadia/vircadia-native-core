@@ -1,0 +1,51 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  model_lightmap.vert
+//  vertex shader
+//
+//  Created by Sam Gateau on 11/21/14.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Transform.slh@>
+
+<$declareStandardTransform()$>
+
+const int MAX_TEXCOORDS = 2;
+
+uniform mat4 texcoordMatrices[MAX_TEXCOORDS];
+
+attribute vec2 texcoord1;
+
+// the interpolated normal
+varying vec4 interpolatedNormal;
+
+// the interpolated texcoord1
+varying vec2 interpolatedTexcoord1;
+
+varying vec3 color;
+
+
+void main(void) {
+    // pass along the diffuse color
+    color = gl_Color.xyz;
+    
+    // and the texture coordinates
+    gl_TexCoord[0] = texcoordMatrices[0] * vec4(gl_MultiTexCoord0.xy, 0.0, 1.0);
+  //  interpolatedTexcoord1 = vec2(texcoordMatrices[1] * vec4(gl_MultiTexCoord0.xy, 0.0, 1.0)).xy;
+    interpolatedTexcoord1 = vec2(texcoordMatrices[1] * vec4(texcoord1.xy, 0.0, 1.0)).xy;
+
+    // standard transform
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    <$transformModelToClipPos(cam, obj, gl_Vertex, gl_Position)$>
+    <$transformModelToEyeDir(cam, obj, gl_Normal, interpolatedNormal.xyz)$>
+
+    interpolatedNormal = vec4(normalize(interpolatedNormal.xyz), 0.0);
+}
+

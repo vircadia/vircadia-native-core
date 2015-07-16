@@ -12,20 +12,25 @@
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QGridLayout>
+#include <QFileInfo>
 #include <QHeaderView>
+#include <QLineEdit>
 #include <QMessageBox>
+#include <QNetworkReply>
+#include <QNetworkRequest>
+#include <QThread>
 #include <QUrl>
+#include <QUrlQuery>
 #include <QXmlStreamReader>
 
 #include <NetworkAccessManager.h>
-
-#include "Application.h"
+#include <SharedUtil.h>
 
 #include "ModelsBrowser.h"
 
-const char* MODEL_TYPE_NAMES[] = { "entities", "heads", "skeletons", "attachments" };
+const char* MODEL_TYPE_NAMES[] = { "entities", "heads", "skeletons", "skeletons", "attachments" };
 
-static const QString S3_URL = "http://highfidelity-public.s3-us-west-1.amazonaws.com";
+static const QString S3_URL = "http://s3.amazonaws.com/hifi-public";
 static const QString PUBLIC_URL = "http://public.highfidelity.io";
 static const QString MODELS_LOCATION = "models/";
 
@@ -66,7 +71,7 @@ static const QString propertiesIds[MODEL_METADATA_COUNT] = {
     "Tags"
 };
 
-ModelsBrowser::ModelsBrowser(ModelType modelsType, QWidget* parent) :
+ModelsBrowser::ModelsBrowser(FSTReader::ModelType modelsType, QWidget* parent) :
     QWidget(parent, Qt::WindowStaysOnTopHint),
     _handler(new ModelHandler(modelsType))
 {
@@ -80,6 +85,7 @@ ModelsBrowser::ModelsBrowser(ModelType modelsType, QWidget* parent) :
     
     // Setup and launch update thread
     QThread* thread = new QThread();
+    thread->setObjectName("Models Browser");
     thread->connect(_handler, SIGNAL(destroyed()), SLOT(quit()));
     thread->connect(thread, SIGNAL(finished()), SLOT(deleteLater()));
     _handler->moveToThread(thread);
@@ -178,7 +184,7 @@ void ModelsBrowser::browse() {
 }
 
 
-ModelHandler::ModelHandler(ModelType modelsType, QWidget* parent) :
+ModelHandler::ModelHandler(FSTReader::ModelType modelsType, QWidget* parent) :
     QObject(parent),
     _initiateExit(false),
     _type(modelsType),
@@ -220,8 +226,9 @@ void ModelHandler::update() {
     }
     for (int i = 0; i < _model.rowCount(); ++i) {
         QUrl url(_model.item(i,0)->data(Qt::UserRole).toString());
-        NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkRequest request(url);
+        request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
         QNetworkReply* reply = networkAccessManager.head(request);
         connect(reply, SIGNAL(finished()), SLOT(downloadFinished()));
     }
@@ -271,8 +278,9 @@ void ModelHandler::queryNewFiles(QString marker) {
     
     // Download
     url.setQuery(query);
-    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     QNetworkReply* reply = networkAccessManager.get(request);
     connect(reply, SIGNAL(finished()), SLOT(downloadFinished()));
             

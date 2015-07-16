@@ -14,7 +14,18 @@
 
 #include "DeviceTracker.h"
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 #include <glm/glm.hpp>
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+
+
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -37,7 +48,7 @@ public:
 
     // Semantic and Index types to retreive the JointTrackers of this MotionTracker
     typedef std::string Semantic;
-    typedef int Index;
+    typedef int32_t Index;
     static const Index INVALID_SEMANTIC = -1;
     static const Index INVALID_PARENT = -2;
 

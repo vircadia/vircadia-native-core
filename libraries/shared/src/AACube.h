@@ -1,6 +1,6 @@
 //
 //  AACube.h
-//  libraries/octree/src
+//  libraries/shared/src
 //
 //  Created by Brad Hefta-Gaub on 04/11/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -17,38 +17,51 @@
 
 #include <glm/glm.hpp>
 
+#include <QDebug>
+
 #include "BoxBase.h"
 
 class AABox;
+class Extents;
 
 class AACube {
 
 public:
+    AACube(const AABox& other);
+    AACube(const Extents& other);
     AACube(const glm::vec3& corner, float size);
     AACube();
     ~AACube() {};
 
-     void setBox(const glm::vec3& corner, float scale);
-     glm::vec3 getVertexP(const glm::vec3& normal) const;
-     glm::vec3 getVertexN(const glm::vec3& normal) const;
-     void scale(float scale);
-     const glm::vec3& getCorner() const { return _corner; }
-     float getScale() const { return _scale; }
-     glm::vec3 getDimensions() const { return glm::vec3(_scale,_scale,_scale); }
+    void setBox(const glm::vec3& corner, float scale);
+    glm::vec3 getVertexP(const glm::vec3& normal) const;
+    glm::vec3 getVertexN(const glm::vec3& normal) const;
+    void scale(float scale);
+    const glm::vec3& getCorner() const { return _corner; }
+    float getScale() const { return _scale; }
+    glm::vec3 getDimensions() const { return glm::vec3(_scale,_scale,_scale); }
+    float getLargestDimension() const { return _scale; }
 
-     glm::vec3 calcCenter() const;
-     glm::vec3 calcTopFarLeft() const;
-     glm::vec3 getVertex(BoxVertex vertex) const;
-     bool contains(const glm::vec3& point) const;
-     bool contains(const AACube& otherCube) const;
-     bool touches(const AACube& otherCube) const;
-     bool contains(const AABox& otherBox) const;
-     bool touches(const AABox& otherBox) const;
-     bool expandedContains(const glm::vec3& point, float expansion) const;
-     bool expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& end, float expansion) const;
-     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
-     bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) const;
-     bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration) const;
+    glm::vec3 calcCenter() const;
+    glm::vec3 calcTopFarLeft() const;
+    glm::vec3 getVertex(BoxVertex vertex) const;
+
+    const glm::vec3& getMinimumPoint() const { return _corner; }
+    glm::vec3 getMaximumPoint() const { return calcTopFarLeft(); }
+
+    bool contains(const glm::vec3& point) const;
+    bool contains(const AACube& otherCube) const;
+    bool touches(const AACube& otherCube) const;
+    bool contains(const AABox& otherBox) const;
+    bool touches(const AABox& otherBox) const;
+    bool expandedContains(const glm::vec3& point, float expansion) const;
+    bool expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& end, float expansion) const;
+    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
+    bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) const;
+    bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration) const;
+
+    AABox clamp(const glm::vec3& min, const glm::vec3& max) const;
+    AABox clamp(float min, float max) const;
 
 private:
     glm::vec3 getClosestPointOnFace(const glm::vec3& point, BoxFace face) const;
@@ -60,5 +73,23 @@ private:
     glm::vec3 _corner;
     float _scale;
 };
+
+inline bool operator==(const AACube& a, const AACube& b) {
+    return a.getCorner() == b.getCorner() && a.getScale() == b.getScale();
+}
+
+inline bool operator!=(const AACube& a, const AACube& b) {
+    return a.getCorner() != b.getCorner() || a.getScale() != b.getScale();
+}
+
+inline QDebug operator<<(QDebug debug, const AACube& cube) {
+    debug << "AACube[ (" 
+            << cube.getCorner().x << "," << cube.getCorner().y << "," << cube.getCorner().z << " ) to ("
+            << cube.calcTopFarLeft().x << "," << cube.calcTopFarLeft().y << "," << cube.calcTopFarLeft().z << ") size: ("
+            << cube.getDimensions().x << "," << cube.getDimensions().y << "," << cube.getDimensions().z << ")"
+            << "]";
+    return debug;
+}
+
 
 #endif // hifi_AACube_h

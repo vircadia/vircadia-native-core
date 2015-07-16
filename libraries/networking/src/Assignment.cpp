@@ -25,24 +25,12 @@ Assignment::Type Assignment::typeForNodeType(NodeType_t nodeType) {
             return Assignment::AvatarMixerType;
         case NodeType::Agent:
             return Assignment::AgentType;
-        case NodeType::VoxelServer:
-            return Assignment::VoxelServerType;
-        case NodeType::ParticleServer:
-            return Assignment::ParticleServerType;
-        case NodeType::ModelServer:
-            return Assignment::ModelServerType;
-        case NodeType::MetavoxelServer:
-            return Assignment::MetavoxelServerType;
+        case NodeType::EntityServer:
+            return Assignment::EntityServerType;
         default:
             return Assignment::AllTypes;
     }
 }
-
-#ifdef WIN32
-//warning C4351: new behavior: elements of array 'Assignment::_payload' will be default initialized 
-// We're disabling this warning because the new behavior which is to initialize the array with 0 is acceptable to us.
-#pragma warning(disable:4351) 
-#endif
 
 Assignment::Assignment() :
     _uuid(),
@@ -135,12 +123,8 @@ const char* Assignment::getTypeName() const {
             return "avatar-mixer";
         case Assignment::AgentType:
             return "agent";
-        case Assignment::VoxelServerType:
-            return "voxel-server";
-        case Assignment::ParticleServerType:
-            return "particle-server";
-        case Assignment::MetavoxelServerType:
-            return "metavoxel-server";
+        case Assignment::EntityServerType:
+            return "entity-server";
         default:
             return "unknown";
     }

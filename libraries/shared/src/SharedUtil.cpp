@@ -29,7 +29,9 @@
 #include <QElapsedTimer>
 #include <QThread>
 
+#include "NumericalConstants.h"
 #include "OctalCode.h"
+#include "SharedLogging.h"
 #include "SharedUtil.h"
 
 static int usecTimestampNowAdjust = 0; // in usec
@@ -37,7 +39,7 @@ void usecTimestampNowForceClockSkew(int clockSkew) {
     ::usecTimestampNowAdjust = clockSkew;
 }
 
-quint64 usecTimestampNow() {
+quint64 usecTimestampNow(bool wantDebug) {
     static bool usecTimestampNowIsInitialized = false;
     static qint64 TIME_REFERENCE = 0; // in usec
     static QElapsedTimer timestampTimer;
@@ -48,12 +50,76 @@ quint64 usecTimestampNow() {
         usecTimestampNowIsInitialized = true;
     }
     
-    //          usec                       nsec to usec                   usec
-    return TIME_REFERENCE + timestampTimer.nsecsElapsed() / 1000 + ::usecTimestampNowAdjust;
+    quint64 now;
+    quint64 nsecsElapsed = timestampTimer.nsecsElapsed();
+    quint64 usecsElapsed = nsecsElapsed / 1000;  // nsec to usec
+    
+    // QElapsedTimer may not advance if the CPU has gone to sleep. In which case it
+    // will begin to deviate from real time. We detect that here, and reset if necessary
+    quint64 msecsCurrentTime = QDateTime::currentMSecsSinceEpoch();
+    quint64 msecsEstimate = (TIME_REFERENCE + usecsElapsed) / 1000; // usecs to msecs
+    int possibleSkew = msecsEstimate - msecsCurrentTime;
+    const int TOLERANCE = 10000; // up to 10 seconds of skew is tolerated
+    if (abs(possibleSkew) > TOLERANCE) {
+        // reset our TIME_REFERENCE and timer
+        TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * 1000; // ms to usec
+        timestampTimer.restart();
+        now = TIME_REFERENCE + ::usecTimestampNowAdjust;
+
+        if (wantDebug) {
+            qCDebug(shared) << "usecTimestampNow() - resetting QElapsedTimer. ";
+            qCDebug(shared) << "    msecsCurrentTime:" << msecsCurrentTime;
+            qCDebug(shared) << "       msecsEstimate:" << msecsEstimate;
+            qCDebug(shared) << "        possibleSkew:" << possibleSkew;
+            qCDebug(shared) << "           TOLERANCE:" << TOLERANCE;
+            
+            qCDebug(shared) << "        nsecsElapsed:" << nsecsElapsed;
+            qCDebug(shared) << "        usecsElapsed:" << usecsElapsed;
+
+            QDateTime currentLocalTime = QDateTime::currentDateTime();
+
+            quint64 msecsNow = now / 1000; // usecs to msecs
+            QDateTime nowAsString;
+            nowAsString.setMSecsSinceEpoch(msecsNow);
+
+            qCDebug(shared) << "                 now:" << now;
+            qCDebug(shared) << "            msecsNow:" << msecsNow;
+
+            qCDebug(shared) << "         nowAsString:" << nowAsString.toString("yyyy-MM-dd hh:mm:ss.zzz");
+            qCDebug(shared) << "    currentLocalTime:" << currentLocalTime.toString("yyyy-MM-dd hh:mm:ss.zzz");
+        }
+    } else {
+        now = TIME_REFERENCE + usecsElapsed + ::usecTimestampNowAdjust;
+    }
+
+    if (wantDebug) {
+        QDateTime currentLocalTime = QDateTime::currentDateTime();
+
+        quint64 msecsNow = now / 1000; // usecs to msecs
+        QDateTime nowAsString;
+        nowAsString.setMSecsSinceEpoch(msecsNow);
+
+        quint64 msecsTimeReference = TIME_REFERENCE / 1000; // usecs to msecs
+        QDateTime timeReferenceAsString;
+        timeReferenceAsString.setMSecsSinceEpoch(msecsTimeReference);
+
+        qCDebug(shared) << "usecTimestampNow() - details... ";
+        qCDebug(shared) << "           TIME_REFERENCE:" << TIME_REFERENCE;
+        qCDebug(shared) << "    timeReferenceAsString:" << timeReferenceAsString.toString("yyyy-MM-dd hh:mm:ss.zzz");
+        qCDebug(shared) << "   usecTimestampNowAdjust:" << usecTimestampNowAdjust;
+        qCDebug(shared) << "             nsecsElapsed:" << nsecsElapsed;
+        qCDebug(shared) << "             usecsElapsed:" << usecsElapsed;
+        qCDebug(shared) << "                      now:" << now;
+        qCDebug(shared) << "                 msecsNow:" << msecsNow;
+        qCDebug(shared) << "              nowAsString:" << nowAsString.toString("yyyy-MM-dd hh:mm:ss.zzz");
+        qCDebug(shared) << "         currentLocalTime:" << currentLocalTime.toString("yyyy-MM-dd hh:mm:ss.zzz");
+    }
+    
+    return now;
 }
 
 float randFloat() {
-    return (rand() % 10000)/10000.f;
+    return (rand() % 10000)/10000.0f;
 }
 
 int randIntInRange (int min, int max) {
@@ -61,7 +127,7 @@ int randIntInRange (int min, int max) {
 }
 
 float randFloatInRange (float min,float max) {
-    return min + ((rand() % 10000)/10000.f * (max-min));
+    return min + ((rand() % 10000)/10000.0f * (max-min));
 }
 
 float randomSign() {
@@ -363,16 +429,16 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
 
 void printVoxelCode(unsigned char* voxelCode) {
     unsigned char octets = voxelCode[0];
-	unsigned int voxelSizeInBits = octets*3;
-	unsigned int voxelSizeInBytes = (voxelSizeInBits/8)+1;
-	unsigned int voxelSizeInOctets = (voxelSizeInBits/3);
-	unsigned int voxelBufferSize = voxelSizeInBytes+1+3; // 1 for size, 3 for color
+    unsigned int voxelSizeInBits = octets*3;
+    unsigned int voxelSizeInBytes = (voxelSizeInBits/8)+1;
+    unsigned int voxelSizeInOctets = (voxelSizeInBits/3);
+    unsigned int voxelBufferSize = voxelSizeInBytes+1+3; // 1 for size, 3 for color
 
-    qDebug("octets=%d",octets);
-    qDebug("voxelSizeInBits=%d",voxelSizeInBits);
-    qDebug("voxelSizeInBytes=%d",voxelSizeInBytes);
-    qDebug("voxelSizeInOctets=%d",voxelSizeInOctets);
-    qDebug("voxelBufferSize=%d",voxelBufferSize);
+    qCDebug(shared, "octets=%d",octets);
+    qCDebug(shared, "voxelSizeInBits=%d",voxelSizeInBits);
+    qCDebug(shared, "voxelSizeInBytes=%d",voxelSizeInBytes);
+    qCDebug(shared, "voxelSizeInOctets=%d",voxelSizeInOctets);
+    qCDebug(shared, "voxelBufferSize=%d",voxelBufferSize);
 
     for(unsigned int i=0; i < voxelBufferSize; i++) {
         QDebug voxelBufferDebug = qDebug();
@@ -456,8 +522,8 @@ int removeFromSortedArrays(void* value, void** valueArray, float* keyArray, int*
     return -1; // error case
 }
 
-float SMALL_LIMIT = 10.f;
-float LARGE_LIMIT = 1000.f;
+float SMALL_LIMIT = 10.0f;
+float LARGE_LIMIT = 1000.0f;
 
 int packFloatRatioToTwoByte(unsigned char* buffer, float ratio) {
     // if the ratio is less than 10, then encode it as a positive number scaled from 0 to int16::max()
@@ -571,3 +637,44 @@ QString formatUsecTime(float usecs, int prec) {
     }
     return result;
 }
+
+QString formatSecondsElapsed(float seconds) {
+    QString result;
+
+    const float SECONDS_IN_DAY = 60.0f * 60.0f * 24.0f;        
+    if (seconds > SECONDS_IN_DAY) {
+        float days = floor(seconds / SECONDS_IN_DAY);
+        float rest = seconds - (days * SECONDS_IN_DAY);
+        result = QString::number((int)days);
+        if (days > 1.0f) {
+            result += " days ";
+        } else {
+            result += " day ";
+        }
+        result += QDateTime::fromTime_t(rest).toUTC().toString("h 'hours' m 'minutes' s 'seconds'");
+    } else {
+        result = QDateTime::fromTime_t(seconds).toUTC().toString("h 'hours' m 'minutes' s 'seconds'");
+    }
+    return result;
+}
+
+bool similarStrings(const QString& stringA, const QString& stringB) {
+    QStringList aWords = stringA.split(" ");
+    QStringList bWords = stringB.split(" ");
+    float aWordsInB = 0.0f;
+    foreach(QString aWord, aWords) {
+        if (bWords.contains(aWord)) {
+            aWordsInB += 1.0f;
+        }
+    }
+    float bWordsInA = 0.0f;
+    foreach(QString bWord, bWords) {
+        if (aWords.contains(bWord)) {
+            bWordsInA += 1.0f;
+        }
+    }
+    float similarity = 0.5f * (aWordsInB / (float)bWords.size()) + 0.5f * (bWordsInA / (float)aWords.size());
+    const float SIMILAR_ENOUGH = 0.5f; // half the words the same is similar enough for us
+    return similarity >= SIMILAR_ENOUGH;
+}
+

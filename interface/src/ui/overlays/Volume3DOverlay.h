@@ -14,31 +14,29 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
-#include <QGLWidget>
-#include <QScriptValue>
-
 #include "Base3DOverlay.h"
 
 class Volume3DOverlay : public Base3DOverlay {
     Q_OBJECT
     
 public:
-    Volume3DOverlay();
-    ~Volume3DOverlay();
-
-    // getters
-    float getSize() const { return _size; }
-    bool getIsSolid() const { return _isSolid; }
-
-    // setters
-    void setSize(float size) { _size = size; }
-    void setIsSolid(bool isSolid) { _isSolid = isSolid; }
+    Volume3DOverlay() {}
+    Volume3DOverlay(const Volume3DOverlay* volume3DOverlay);
+    
+    virtual AABox getBounds() const;
+    
+    const glm::vec3& getDimensions() const { return _localBoundingBox.getDimensions(); }
+    void setDimensions(float value) { _localBoundingBox.setBox(glm::vec3(-value / 2.0f), value); }
+    void setDimensions(const glm::vec3& value) { _localBoundingBox.setBox(-value / 2.0f, value); }
 
     virtual void setProperties(const QScriptValue& properties);
+    virtual QScriptValue getProperty(const QString& property);
 
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face);
+    
 protected:
-    float _size;
-    bool _isSolid;
+    // Centered local bounding box
+    AABox _localBoundingBox;
 };
 
  

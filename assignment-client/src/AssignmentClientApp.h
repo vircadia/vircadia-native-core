@@ -1,0 +1,35 @@
+//
+//  AssignmentClientapp.h
+//  assignment-client/src
+//
+//  Created by Seth Alves on 2/19/15.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+#ifndef hifi_AssignmentClientApp_h
+#define hifi_AssignmentClientApp_h
+
+
+#include <QApplication>
+
+const QString ASSIGNMENT_TYPE_OVERRIDE_OPTION = "t";
+const QString ASSIGNMENT_POOL_OPTION = "pool";
+const QString ASSIGNMENT_WALLET_DESTINATION_ID_OPTION = "wallet";
+const QString CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION = "a";
+const QString CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION = "p";
+const QString ASSIGNMENT_NUM_FORKS_OPTION = "n";
+const QString ASSIGNMENT_MIN_FORKS_OPTION = "min";
+const QString ASSIGNMENT_MAX_FORKS_OPTION = "max";
+const QString ASSIGNMENT_CLIENT_MONITOR_PORT_OPTION = "monitor-port";
+
+
+class AssignmentClientApp : public QCoreApplication {
+    Q_OBJECT
+public:
+    AssignmentClientApp(int argc, char* argv[]);
+};
+
+#endif // hifi_AssignmentClientApp_h

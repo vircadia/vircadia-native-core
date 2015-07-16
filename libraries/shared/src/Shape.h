@@ -14,33 +14,44 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <QDebug>
 #include <QtGlobal>
 #include <QVector>
 
+#include "RayIntersectionInfo.h"
+
 class PhysicsEntity;
-class VerletPoint;
 
 const float MAX_SHAPE_MASS = 1.0e18f; // something less than sqrt(FLT_MAX)
 
+// DANGER: until ShapeCollider goes away the order of these values matter.  Specifically, 
+// UNKNOWN_SHAPE must be equal to the number of shapes that ShapeCollider actually supports.
+const quint8 SPHERE_SHAPE = 0;
+const quint8 CAPSULE_SHAPE = 1;
+const quint8 PLANE_SHAPE = 2;
+const quint8 AACUBE_SHAPE = 3;
+const quint8 LIST_SHAPE = 4;
+const quint8 UNKNOWN_SHAPE = 5;
+const quint8 INVALID_SHAPE = 5;
+
+// new shapes to be supported by Bullet
+const quint8 BOX_SHAPE = 7;
+const quint8 CYLINDER_SHAPE = 8;
+
 class Shape {
 public:
+
+    typedef quint8 Type;
+
     static quint32 getNextID() { static quint32 nextID = 0; return ++nextID; }
 
-    enum Type{
-        UNKNOWN_SHAPE = 0,
-        SPHERE_SHAPE,
-        CAPSULE_SHAPE,
-        PLANE_SHAPE,
-        LIST_SHAPE
-    };
-
-    Shape() : _type(UNKNOWN_SHAPE), _owningEntity(NULL), _boundingRadius(0.f), 
-            _translation(0.f), _rotation(), _mass(MAX_SHAPE_MASS) {
+    Shape() : _type(UNKNOWN_SHAPE), _owningEntity(NULL), _boundingRadius(0.0f), 
+            _translation(0.0f), _rotation(), _mass(MAX_SHAPE_MASS) {
         _id = getNextID();
     }
     virtual ~Shape() { }
 
-    int getType() const { return _type; }
+    Type getType() const { return _type; }
     quint32 getID() const { return _id; }
 
     void setEntity(PhysicsEntity* entity) { _owningEntity = entity; }
@@ -57,7 +68,7 @@ public:
     virtual void setMass(float mass) { _mass = mass; }
     virtual float getMass() const { return _mass; }
 
-    virtual bool findRayIntersection(const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) const = 0;
+    virtual bool findRayIntersection(RayIntersectionInfo& intersection) const = 0;
 
     /// \param penetration of collision
     /// \param contactPoint of collision
@@ -75,33 +86,59 @@ public:
     /// \return volume of shape in cubic meters
     virtual float getVolume() const { return 1.0; }
 
-    virtual void getVerletPoints(QVector<VerletPoint*>& points) {}
+    virtual QDebug& dumpToDebug(QDebug& debugConext) const;
 
 protected:
     // these ctors are protected (used by derived classes only)
-    Shape(Type type) : _type(type), _owningEntity(NULL), _boundingRadius(0.f), _translation(0.f), _rotation() {
+    Shape(Type type) : _type(type), _owningEntity(NULL), 
+            _boundingRadius(0.0f), _translation(0.0f), 
+            _rotation(), _mass(MAX_SHAPE_MASS) {
         _id = getNextID();
     }
 
-    Shape(Type type, const glm::vec3& position) 
-        : _type(type), _owningEntity(NULL), _boundingRadius(0.f), _translation(position), _rotation() {
+    Shape(Type type, const glm::vec3& position) : 
+            _type(type), _owningEntity(NULL), 
+            _boundingRadius(0.0f), _translation(position), 
+            _rotation(), _mass(MAX_SHAPE_MASS) {
         _id = getNextID();
     }
 
-    Shape(Type type, const glm::vec3& position, const glm::quat& rotation) 
-        : _type(type), _owningEntity(NULL), _boundingRadius(0.f), _translation(position), _rotation(rotation) {
+    Shape(Type type, const glm::vec3& position, const glm::quat& rotation) : _type(type), _owningEntity(NULL), 
+            _boundingRadius(0.0f), _translation(position), 
+            _rotation(rotation), _mass(MAX_SHAPE_MASS) {
         _id = getNextID();
     }
 
     void setBoundingRadius(float radius) { _boundingRadius = radius; }
 
-    int _type;
-    unsigned int _id;
+    Type _type;
+    quint32 _id;
     PhysicsEntity* _owningEntity;
     float _boundingRadius;
     glm::vec3 _translation;
     glm::quat _rotation;
     float _mass;
 };
+
+inline QDebug& Shape::dumpToDebug(QDebug& debugConext) const {
+    debugConext << "Shape[ (" 
+            << "type: " << getType()
+            << "position: "
+            << getTranslation().x << ", " << getTranslation().y << ", " << getTranslation().z
+            << "radius: "
+            << getBoundingRadius()
+            << "]";
+
+    return debugConext;
+}
+
+inline QDebug operator<<(QDebug debug, const Shape& shape) {
+    return shape.dumpToDebug(debug);
+}
+
+inline QDebug operator<<(QDebug debug, const Shape* shape) {
+    return shape->dumpToDebug(debug);
+}
+
 
 #endif // hifi_Shape_h

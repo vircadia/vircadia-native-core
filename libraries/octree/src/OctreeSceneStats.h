@@ -13,8 +13,9 @@
 #define hifi_OctreeSceneStats_h
 
 #include <stdint.h>
+
 #include <NodeList.h>
-#include <SharedUtil.h>
+
 #include "JurisdictionMap.h"
 #include "OctreePacketData.h"
 #include "SequenceNumberStats.h"
@@ -147,7 +148,7 @@ public:
     /// Returns list of OctCodes for end elements of the jurisdiction of this particular octree server
     const std::vector<unsigned char*>& getJurisdictionEndNodes() const { return _jurisdictionEndNodes; }
     
-    bool isMoving() const { return _isMoving; };
+    bool isMoving() const { return _isMoving; }
     quint64 getTotalElements() const { return _totalElements; }
     quint64 getTotalInternal() const { return _totalInternal; }
     quint64 getTotalLeaves() const { return _totalLeaves; }

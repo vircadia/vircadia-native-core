@@ -21,17 +21,20 @@
 
 #include "Application.h"
 
+#include "../octree/OctreePacketProcessor.h"
 #include "ui/OctreeStatsDialog.h"
 
 OctreeStatsDialog::OctreeStatsDialog(QWidget* parent, NodeToOctreeSceneStats* model) :
     QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint),
-    _model(model) {
+    _model(model),
+     _averageUpdatesPerSecond(SAMPLES_PER_SECOND)
+{
     
     _statCount = 0;
-    _voxelServerLabelsCount = 0;
+    _octreeServerLabelsCount = 0;
 
     for (int i = 0; i < MAX_VOXEL_SERVERS; i++) {
-        _voxelServerLables[i] = 0;
+        _octreeServerLables[i] = 0;
         _extraServerDetails[i] = LESS;
     }
 
@@ -46,11 +49,18 @@ OctreeStatsDialog::OctreeStatsDialog(QWidget* parent, NodeToOctreeSceneStats* mo
     this->QDialog::setLayout(_form);
 
     // Setup stat items
-    _serverVoxels = AddStatItem("Elements on Servers");
-    _localVoxels = AddStatItem("Local Elements");
-    _localVoxelsMemory = AddStatItem("Elements Memory");
-    _voxelsRendered = AddStatItem("Voxels Rendered");
+    _serverElements = AddStatItem("Elements on Servers");
+    _localElements = AddStatItem("Local Elements");
+    _localElementsMemory = AddStatItem("Elements Memory");
     _sendingMode = AddStatItem("Sending Mode");
+
+    _processedPackets = AddStatItem("Entity Packets");
+    _processedPacketsElements = AddStatItem("Processed Packets Elements");
+    _processedPacketsEntities = AddStatItem("Processed Packets Entities");
+    _processedPacketsTiming = AddStatItem("Processed Packets Timing");
+
+    _entityUpdateTime = AddStatItem("Entity Update Time");
+    _entityUpdates = AddStatItem("Entity Updates");
     
     layout()->setSizeConstraint(QLayout::SetFixedSize); 
 }
@@ -120,37 +130,51 @@ OctreeStatsDialog::~OctreeStatsDialog() {
 
 void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
 
+    // Processed Entities Related stats
+    auto entities = Application::getInstance()->getEntities();
+    auto entitiesTree = entities->getTree();
+
+    // Do this ever paint event... even if we don't update
+    auto totalTrackedEdits = entitiesTree->getTotalTrackedEdits();
+    
+    // track our updated per second
+    const quint64 SAMPLING_WINDOW = USECS_PER_SECOND / SAMPLES_PER_SECOND;
+    quint64 now = usecTimestampNow();
+    quint64 sinceLastWindow = now - _lastWindowAt;
+    auto editsInLastWindow = totalTrackedEdits - _lastKnownTrackedEdits;
+    float sinceLastWindowInSeconds = (float)sinceLastWindow / (float)USECS_PER_SECOND;
+    float recentUpdatesPerSecond = (float)editsInLastWindow / sinceLastWindowInSeconds;
+    if (sinceLastWindow > SAMPLING_WINDOW) {
+        _averageUpdatesPerSecond.updateAverage(recentUpdatesPerSecond);
+        _lastWindowAt = now;
+        _lastKnownTrackedEdits = totalTrackedEdits;
+    }
+
+    // Only refresh our stats every once in a while, unless asked for realtime
+    quint64 REFRESH_AFTER = Menu::getInstance()->isOptionChecked(MenuOption::ShowRealtimeEntityStats) ? 0 : USECS_PER_SECOND;
+    quint64 sinceLastRefresh = now - _lastRefresh;
+    if (sinceLastRefresh < REFRESH_AFTER) {
+        return QDialog::paintEvent(event);
+    }
+    const int FLOATING_POINT_PRECISION = 3;
+
+    _lastRefresh = now;
+
     // Update labels
 
-    VoxelSystem* voxels = Application::getInstance()->getVoxels();
     QLabel* label;
     QLocale locale(QLocale::English);
     std::stringstream statsValue;
     statsValue.precision(4);
 
-    // Voxels Rendered    
-    label = _labels[_voxelsRendered];
-    statsValue << "Max: " << voxels->getMaxVoxels() / 1000.f << "K " << 
-        "Drawn: " << voxels->getVoxelsWritten() / 1000.f << "K " <<
-        "Abandoned: " << voxels->getAbandonedVoxels() / 1000.f << "K " <<
-        "ReadBuffer: " << voxels->getVoxelsRendered() / 1000.f << "K " <<
-        "Changed: " << voxels->getVoxelsUpdated() / 1000.f << "K ";
-    label->setText(statsValue.str().c_str());
-
-    // Voxels Memory Usage
-    label = _labels[_localVoxelsMemory];
+    // Octree Elements Memory Usage
+    label = _labels[_localElementsMemory];
     statsValue.str("");
-    statsValue << 
-        "Elements RAM: " << OctreeElement::getTotalMemoryUsage() / 1000000.f << "MB "
-        "Geometry RAM: " << voxels->getVoxelMemoryUsageRAM() / 1000000.f << "MB " <<
-        "VBO: " << voxels->getVoxelMemoryUsageVBO() / 1000000.f << "MB ";
-    if (voxels->hasVoxelMemoryUsageGPU()) {
-        statsValue << "GPU: " << voxels->getVoxelMemoryUsageGPU() / 1000000.f << "MB ";
-    }
+    statsValue << "Elements RAM: " << OctreeElement::getTotalMemoryUsage() / 1000000.0f << "MB ";
     label->setText(statsValue.str().c_str());
 
-    // Local Voxels
-    label = _labels[_localVoxels];
+    // Local Elements
+    label = _labels[_localElements];
     unsigned long localTotal = OctreeElement::getNodeCount();
     unsigned long localInternal = OctreeElement::getInternalNodeCount();
     unsigned long localLeaves = OctreeElement::getLeafNodeCount();
@@ -165,7 +189,7 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
         "Leaves: " << qPrintable(localLeavesString) << "";
     label->setText(statsValue.str().c_str());
 
-    // iterate all the current voxel stats, and list their sending modes, total their voxels, etc...
+    // iterate all the current octree stats, and list their sending modes, total their octree elements, etc...
     std::stringstream sendingMode("");
 
     int serverCount = 0;
@@ -208,11 +232,11 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
     label = _labels[_sendingMode];
     label->setText(sendingMode.str().c_str());
     
-    // Server Voxels
+    // Server Elements
     QString serversTotalString = locale.toString((uint)totalNodes); // consider adding: .rightJustified(10, ' ');
     QString serversInternalString = locale.toString((uint)totalInternal);
     QString serversLeavesString = locale.toString((uint)totalLeaves);
-    label = _labels[_serverVoxels];
+    label = _labels[_serverElements];
     statsValue.str("");
     statsValue << 
         "Total: " << qPrintable(serversTotalString) << " / " <<
@@ -220,28 +244,124 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
         "Leaves: " << qPrintable(serversLeavesString) << "";
     label->setText(statsValue.str().c_str());
 
+    // Processed Packets Elements
+    auto averageElementsPerPacket = entities->getAverageElementsPerPacket();
+    auto averageEntitiesPerPacket = entities->getAverageEntitiesPerPacket();
+
+    auto averageElementsPerSecond = entities->getAverageElementsPerSecond();
+    auto averageEntitiesPerSecond = entities->getAverageEntitiesPerSecond();
+
+    auto averageWaitLockPerPacket = entities->getAverageWaitLockPerPacket();
+    auto averageUncompressPerPacket = entities->getAverageUncompressPerPacket();
+    auto averageReadBitstreamPerPacket = entities->getAverageReadBitstreamPerPacket();
+
+    QString averageElementsPerPacketString = locale.toString(averageElementsPerPacket, 'f', FLOATING_POINT_PRECISION);
+    QString averageEntitiesPerPacketString = locale.toString(averageEntitiesPerPacket, 'f', FLOATING_POINT_PRECISION);
+
+    QString averageElementsPerSecondString = locale.toString(averageElementsPerSecond, 'f', FLOATING_POINT_PRECISION);
+    QString averageEntitiesPerSecondString = locale.toString(averageEntitiesPerSecond, 'f', FLOATING_POINT_PRECISION);
+
+    QString averageWaitLockPerPacketString = locale.toString(averageWaitLockPerPacket);
+    QString averageUncompressPerPacketString = locale.toString(averageUncompressPerPacket);
+    QString averageReadBitstreamPerPacketString = locale.toString(averageReadBitstreamPerPacket);
+
+    label = _labels[_processedPackets];
+    const OctreePacketProcessor& entitiesPacketProcessor =  Application::getInstance()->getOctreePacketProcessor();
+
+    auto incomingPPS = entitiesPacketProcessor.getIncomingPPS();
+    auto processedPPS = entitiesPacketProcessor.getProcessedPPS();
+    auto treeProcessedPPS = entities->getAveragePacketsPerSecond();
+
+    QString incomingPPSString = locale.toString(incomingPPS, 'f', FLOATING_POINT_PRECISION);
+    QString processedPPSString = locale.toString(processedPPS, 'f', FLOATING_POINT_PRECISION);
+    QString treeProcessedPPSString = locale.toString(treeProcessedPPS, 'f', FLOATING_POINT_PRECISION);
+
+    statsValue.str("");
+    statsValue << 
+        "Network IN: " << qPrintable(incomingPPSString) << " PPS / " <<
+        "Queue OUT: " << qPrintable(processedPPSString) << " PPS / " <<
+        "Tree IN: " << qPrintable(treeProcessedPPSString) << " PPS";
+        
+    label->setText(statsValue.str().c_str());
+
+    label = _labels[_processedPacketsElements];
+    statsValue.str("");
+    statsValue << 
+        "" << qPrintable(averageElementsPerPacketString) << " per packet / " <<
+        "" << qPrintable(averageElementsPerSecondString) << " per second";
+        
+    label->setText(statsValue.str().c_str());
+
+    label = _labels[_processedPacketsEntities];
+    statsValue.str("");
+    statsValue << 
+        "" << qPrintable(averageEntitiesPerPacketString) << " per packet / " <<
+        "" << qPrintable(averageEntitiesPerSecondString) << " per second";
+        
+    label->setText(statsValue.str().c_str());
+
+    label = _labels[_processedPacketsTiming];
+    statsValue.str("");
+    statsValue << 
+        "Lock Wait:" << qPrintable(averageWaitLockPerPacketString) << " (usecs) / " <<
+        "Uncompress:" << qPrintable(averageUncompressPerPacketString) << " (usecs) / " <<
+        "Process:" << qPrintable(averageReadBitstreamPerPacketString) << " (usecs)";
+        
+    label->setText(statsValue.str().c_str());
+
+    // Entity Edits update time
+    label = _labels[_entityUpdateTime];
+    auto averageEditDelta = entitiesTree->getAverageEditDeltas();
+    auto maxEditDelta = entitiesTree->getMaxEditDelta();
+
+    QString averageEditDeltaString = locale.toString((uint)averageEditDelta);
+    QString maxEditDeltaString = locale.toString((uint)maxEditDelta);
+
+    statsValue.str("");
+    statsValue << 
+        "Average: " << qPrintable(averageEditDeltaString) << " (usecs) / " <<
+        "Max: " << qPrintable(maxEditDeltaString) << " (usecs)";
+        
+    label->setText(statsValue.str().c_str());
+
+    // Entity Edits
+    label = _labels[_entityUpdates];
+    auto bytesPerEdit = entitiesTree->getAverageEditBytes();
+    
+    auto updatesPerSecond = _averageUpdatesPerSecond.getAverage();
+    if (updatesPerSecond < 1) {
+        updatesPerSecond = 0; // we don't really care about small updates per second so suppress those
+    }
+
+    QString totalTrackedEditsString = locale.toString((uint)totalTrackedEdits);
+    QString updatesPerSecondString = locale.toString(updatesPerSecond, 'f', FLOATING_POINT_PRECISION);
+    QString bytesPerEditString = locale.toString(bytesPerEdit);
+
+    statsValue.str("");
+    statsValue << 
+        "" << qPrintable(updatesPerSecondString) << " updates per second / " <<
+        "" << qPrintable(totalTrackedEditsString) << " total updates / " <<
+        "Average Size: " << qPrintable(bytesPerEditString) << " bytes ";
+        
+    label->setText(statsValue.str().c_str());
+
     showAllOctreeServers();
 
-    this->QDialog::paintEvent(event);
+    QDialog::paintEvent(event);
 }
 void OctreeStatsDialog::showAllOctreeServers() {
     int serverCount = 0;
 
-    showOctreeServersOfType(serverCount, NodeType::VoxelServer, "Voxel",
-            Application::getInstance()->getVoxelServerJurisdictions());
-    showOctreeServersOfType(serverCount, NodeType::ParticleServer, "Particle",
-            Application::getInstance()->getParticleServerJurisdictions());
+    showOctreeServersOfType(serverCount, NodeType::EntityServer, "Entity",
+            Application::getInstance()->getEntityServerJurisdictions());
 
-    showOctreeServersOfType(serverCount, NodeType::ModelServer, "Model",
-            Application::getInstance()->getModelServerJurisdictions());
-
-    if (_voxelServerLabelsCount > serverCount) {
-        for (int i = serverCount; i < _voxelServerLabelsCount; i++) {
-            int serverLabel = _voxelServerLables[i];
+    if (_octreeServerLabelsCount > serverCount) {
+        for (int i = serverCount; i < _octreeServerLabelsCount; i++) {
+            int serverLabel = _octreeServerLables[i];
             RemoveStatItem(serverLabel);
-            _voxelServerLables[i] = 0;
+            _octreeServerLables[i] = 0;
         }
-        _voxelServerLabelsCount = serverCount;
+        _octreeServerLabelsCount = serverCount;
     }
 }
 
@@ -250,21 +370,20 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                                                 
     QLocale locale(QLocale::English);
     
-    NodeList* nodeList = NodeList::getInstance();
-
-    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->eachNode([&](const SharedNodePointer& node){
+        
         // only send to the NodeTypes that are NodeType_t_VOXEL_SERVER
         if (node->getType() == serverType) {
             serverCount++;
             
-            if (serverCount > _voxelServerLabelsCount) {
-                char label[128] = { 0 };
-                sprintf(label, "%s Server %d", serverTypeName, serverCount);
-                int thisServerRow = _voxelServerLables[serverCount-1] = AddStatItem(label);
+            if (serverCount > _octreeServerLabelsCount) {
+                QString label = QString("%1 Server %2").arg(serverTypeName).arg(serverCount);
+                int thisServerRow = _octreeServerLables[serverCount-1] = AddStatItem(label.toUtf8().constData());
                 _labels[thisServerRow]->setTextFormat(Qt::RichText);
                 _labels[thisServerRow]->setTextInteractionFlags(Qt::TextBrowserInteraction);
                 connect(_labels[thisServerRow], SIGNAL(linkActivated(const QString&)), this, SLOT(moreless(const QString&)));
-                _voxelServerLabelsCount++;
+                _octreeServerLabelsCount++;
             }
             
             std::stringstream serverDetails("");
@@ -296,7 +415,6 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
                     AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
-                    serverBounds.scale(TREE_SCALE);
                     serverDetails << " jurisdiction: "
                     << qPrintable(rootCodeHex)
                     << " ["
@@ -357,7 +475,7 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                             
                             serverDetails << "<br/>" << "Node UUID: " << qPrintable(nodeUUID.toString()) << " ";
                             
-                            serverDetails << "<br/>" << "Voxels: " <<
+                            serverDetails << "<br/>" << "Elements: " <<
                                 qPrintable(totalString) << " total " <<
                                 qPrintable(internalString) << " internal " <<
                                 qPrintable(leavesString) << " leaves ";
@@ -421,9 +539,9 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                 linkDetails << "   " << " [<a href='most-" << serverCount << "'>most...</a>]";
             }
             serverDetails << linkDetails.str();
-            _labels[_voxelServerLables[serverCount - 1]]->setText(serverDetails.str().c_str());
+            _labels[_octreeServerLables[serverCount - 1]]->setText(serverDetails.str().c_str());
         } // is VOXEL_SERVER
-    }
+    });
 }
 
 void OctreeStatsDialog::reject() {

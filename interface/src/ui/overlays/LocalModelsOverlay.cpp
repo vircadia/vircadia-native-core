@@ -13,28 +13,37 @@
 
 #include "LocalModelsOverlay.h"
 
-LocalModelsOverlay::LocalModelsOverlay(ModelTreeRenderer* modelTreeRenderer) :
+LocalModelsOverlay::LocalModelsOverlay(EntityTreeRenderer* entityTreeRenderer) :
     Volume3DOverlay(),
-    _modelTreeRenderer(modelTreeRenderer) {
+    _entityTreeRenderer(entityTreeRenderer) {
 }
 
-LocalModelsOverlay::~LocalModelsOverlay() {
+LocalModelsOverlay::LocalModelsOverlay(const LocalModelsOverlay* localModelsOverlay) :
+    Volume3DOverlay(localModelsOverlay),
+    _entityTreeRenderer(localModelsOverlay->_entityTreeRenderer)
+{
 }
 
 void LocalModelsOverlay::update(float deltatime) {
-    _modelTreeRenderer->update();
+    _entityTreeRenderer->update();
 }
 
-void LocalModelsOverlay::render() {
+void LocalModelsOverlay::render(RenderArgs* args) {
     if (_visible) {
-        glPushMatrix(); {
-            Application* app = Application::getInstance();
-            glm::vec3 oldTranslation = app->getViewMatrixTranslation();
-            app->setViewMatrixTranslation(oldTranslation + _position);
-
-            _modelTreeRenderer->render();
-
-            Application::getInstance()->setViewMatrixTranslation(oldTranslation);
-        } glPopMatrix();
+        float glowLevel = getGlowLevel(); // FIXME, glowing removed for now
+        
+        auto batch = args ->_batch;
+        Application* app = Application::getInstance();
+        glm::vec3 oldTranslation = app->getViewMatrixTranslation();
+        Transform transform = Transform();
+        transform.setTranslation(oldTranslation + getPosition());
+        batch->setViewTransform(transform);
+        _entityTreeRenderer->render(args);
+        transform.setTranslation(oldTranslation);
+        batch->setViewTransform(transform);
     }
+}
+
+LocalModelsOverlay* LocalModelsOverlay::createClone() const {
+    return new LocalModelsOverlay(this);
 }

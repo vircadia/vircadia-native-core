@@ -1,63 +1,78 @@
 <!--#include file="header.html"-->
-  <div id="nodes-lead" class="table-lead"><h3>Nodes</h3><div class="lead-line"></div></div>
-  <div style="clear:both;"></div>
-  <button type="button" class="btn btn-danger" id="kill-all-btn">
-    <span class="glyphicon glyphicon-fire"></span> Kill all Nodes
-  </button>
-  <table id="nodes-table" class="table table-striped">
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>UUID</th>
-        <th>Pool</th>
-        <th>Username</th>
-        <th>Public</th>
-        <th>Local</th>
-        <th>Uptime (s)</th>
-        <th>Pending Credits</th>
-        <th>Kill?</th>
-      </tr>
-    </thead>
-    <tbody>
-      <script id="nodes-template" type="text/template">
-        <% _.each(nodes, function(node, node_index){ %>
+<div class="col-md-10 col-md-offset-1">
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h3 class="panel-title">Nodes</h3>
+    </div>
+    <div class="panel-body">
+      <table id="nodes-table" class="table table-striped">
+        <thead>
           <tr>
-            <td><%- node.type %></td>
-            <td><a href="stats/?uuid=<%- node.uuid %>"><%- node.uuid %></a></td>
-            <td><%- node.pool %></td>
-            <td><%- node.username %></td>
-            <td><%- node.public.ip %><span class='port'>:<%- node.public.port %></span></td>
-            <td><%- node.local.ip %><span class='port'>:<%- node.local.port %></span></td>
-            <td><%- ((Date.now() - node.wake_timestamp) /  1000).toLocaleString() %></td>
-            <td><%- (typeof node.pending_credits == 'number' ? node.pending_credits.toLocaleString() : 'N/A') %></td>
-            <td><span class='glyphicon glyphicon-remove' data-uuid="<%- node.uuid %>"></span></td>
+            <th>Type</th>
+            <th>UUID</th>
+            <th>Pool</th>
+            <th>Username</th>
+            <th>Public</th>
+            <th>Local</th>
+            <th>Uptime (s)</th>
+            <th>Pending Credits</th>
+            <th>Kill?</th>
           </tr>
-        <% }); %>
-      </script>
-  </table>
+        </thead>
+        <tbody>
+          <script id="nodes-template" type="text/template">
+            <% _.each(nodes, function(node, node_index){ %>
+              <tr>
+                <td><%- node.type %></td>
+                <td><a href="stats/?uuid=<%- node.uuid %>"><%- node.uuid %></a></td>
+                <td><%- node.pool %></td>
+                <td><%- node.username %></td>
+                <td><%- node.public.ip %><span class='port'>:<%- node.public.port %></span></td>
+                <td><%- node.local.ip %><span class='port'>:<%- node.local.port %></span></td>
+                <td><%- ((Date.now() - node.wake_timestamp) /  1000).toLocaleString() %></td>
+                <td><%- (typeof node.pending_credits == 'number' ? node.pending_credits.toLocaleString() : 'N/A') %></td>
+                <td><span class='glyphicon glyphicon-remove' data-uuid="<%- node.uuid %>"></span></td>
+              </tr>
+            <% }); %>
+          </script>
+      </table>
+    </div>
+    <div class="panel-footer">
+      <button type="button" class="btn btn-danger" id="kill-all-btn">
+        <span class="glyphicon glyphicon-remove-circle"></span> Kill all Nodes
+      </button>
+    </div>
+  </div>
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h3 class="panel-title">Queued Assignments</h3>
+    </div>
+    <div class="panel-body">
+      <table id="assignments-table" class="table table-striped">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>UUID</th>
+            <th>Pool</th>
+          </tr>
+        </thead>
+        <tbody>
+          <script id="queued-template" type="text/template">
+            <% _.each(queued, function(assignment, uuid){ %>
+            <tr>
+              <td><%- assignment.type %></td>
+              <td><%- uuid %></td>
+              <td><%- assignment.pool %></td>
+            </tr>
+            <% }); %>
+          </script>
+        </tbody>
+      </table>
+    <div>
+  </div>
+</div>
   
-  <div id="queued-lead" class="table-lead"><h3>Queued Assignments</h3><div class="lead-line"></div></div>
-  <table id="assignments-table" class="table table-striped">
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>UUID</th>
-        <th>Pool</th>
-      </tr>
-    </thead>
-    <tbody>
-      <script id="queued-template" type="text/template">
-        <% _.each(queued, function(assignment, uuid){ %>
-        <tr>
-          <td><%- assignment.type %></td>
-          <td><%- uuid %></td>
-          <td><%- assignment.pool %></td>
-        </tr>
-        <% }); %>
-      </script>
-    </tbody>
-  </table>
 <!--#include file="footer.html"-->
+<script src='js/underscore-min.js'></script>
 <script src='js/tables.js'></script>
-<script src='js/underscore-1.5.0.min.js'></script>
 <!--#include file="page-end.html"-->

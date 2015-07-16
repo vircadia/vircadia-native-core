@@ -1,0 +1,87 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  spot_light.frag
+//  fragment shader
+//
+//  Created by Andrzej Kapolka on 9/18/14.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+// Everything about deferred buffer
+<@include DeferredBuffer.slh@>
+
+//Everything about deferred lighting
+<@include DeferredLighting.slh@>
+
+// Everything about light
+<@include model/Light.slh@>
+
+// The view Matrix
+uniform mat4 invViewMat;
+
+void main(void) {
+    // Grab the fragment data from the uv
+    vec2 texCoord = gl_TexCoord[0].st / gl_TexCoord[0].q;
+    DeferredFragment frag = unpackDeferredFragment(texCoord);
+
+    // Kill if in front of the light volume
+    float depth = frag.depthVal;
+    if (depth < gl_FragCoord.z) {
+        discard;
+    }
+
+    // Need the light now
+    Light light = getLight();
+
+    // Make the Light vector going from fragment to light center in world space
+    vec4 fragPos = invViewMat * frag.position;
+    vec3 fragLightVec = getLightPosition(light) - fragPos.xyz;
+
+    // Kill if too far from the light center
+    if (dot(fragLightVec, fragLightVec) > getLightSquareRadius(light)) {
+        discard;
+    }
+
+    // Allright we re valid in the volume
+    float fragLightDistance = length(fragLightVec);
+    vec3 fragLightDir = fragLightVec / fragLightDistance;
+
+    // Kill if not in the spot light (ah ah !)
+    vec3 lightSpotDir = getLightDirection(light);
+    float cosSpotAngle = max(-dot(fragLightDir, lightSpotDir), 0.0);
+    if (cosSpotAngle < getLightSpotAngleCos(light)) {
+       discard;
+    }
+
+    // Eval shading
+    vec3 fragNormal = vec3(invViewMat * vec4(frag.normal, 0.0));
+    vec4 fragEyeVector = invViewMat * vec4(-frag.position.xyz, 0.0);
+    vec3 fragEyeDir = normalize(fragEyeVector.xyz);
+    vec4 shading = evalFragShading(fragNormal, fragLightDir, fragEyeDir, frag.specular, frag.gloss);
+ 
+    // Eval attenuation
+    float radialAttenuation = evalLightAttenuation(light, fragLightDistance);
+    float angularAttenuation = evalLightSpotAttenuation(light, cosSpotAngle);
+
+    // Final Lighting color
+    vec3 fragColor = shading.w * (frag.diffuse + shading.xyz);
+    gl_FragColor = vec4(fragColor * angularAttenuation * radialAttenuation * getLightColor(light) * getLightIntensity(light), 0.0);
+
+    if (getLightShowContour(light) > 0.0) {
+        // Show edges
+        float edgeDistR = (getLightRadius(light) - fragLightDistance);
+        float edgeDistS = dot(fragLightDistance * vec2(cosSpotAngle, sqrt(1.0 - cosSpotAngle * cosSpotAngle)), -getLightSpotOutsideNormal2(light));
+        float edgeDist = min(edgeDistR, edgeDistS);
+        float edge =  abs(2.0 * (edgeDist / (0.1)) - 1.0);
+        if (edge < 1) {
+            float edgeCoord = exp2(-8.0*edge*edge);
+            gl_FragColor = vec4(edgeCoord * edgeCoord * getLightColor(light), 0.0);
+        }
+    }
+}
+

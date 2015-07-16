@@ -23,8 +23,10 @@ public:
     OAuthAccessToken(const QJsonObject& jsonObject);
     OAuthAccessToken(const OAuthAccessToken& otherToken);
     OAuthAccessToken& operator=(const OAuthAccessToken& otherToken);
+    
+    QByteArray authorizationHeaderValue() const { return QString("Bearer %1").arg(token).toUtf8(); }
      
-    bool isExpired() const { return expiryTimestamp <= QDateTime::currentMSecsSinceEpoch(); }
+    bool isExpired() const { return expiryTimestamp != -1 && expiryTimestamp <= QDateTime::currentMSecsSinceEpoch(); }
     
     QString token;
     QString refreshToken;

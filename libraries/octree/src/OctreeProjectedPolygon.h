@@ -110,7 +110,7 @@ public:
     
     BoundingBox getBoundingBox() const { 
         return BoundingBox(glm::vec2(_minX,_minY), glm::vec2(_maxX - _minX, _maxY - _minY)); 
-    };
+    }
 
     void printDebugDetails() const;
     

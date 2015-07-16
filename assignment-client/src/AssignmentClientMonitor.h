@@ -13,22 +13,52 @@
 #define hifi_AssignmentClientMonitor_h
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/qpointer.h>
 #include <QtCore/QProcess>
+#include <QtCore/QDateTime>
 
 #include <Assignment.h>
 
+#include "AssignmentClientChildData.h"
+
 extern const char* NUM_FORKS_PARAMETER;
 
-class AssignmentClientMonitor : public QCoreApplication {
+
+class AssignmentClientMonitor : public QObject {
     Q_OBJECT
 public:
-    AssignmentClientMonitor(int &argc, char **argv, int numAssignmentClientForks);
+    AssignmentClientMonitor(const unsigned int numAssignmentClientForks, const unsigned int minAssignmentClientForks,
+                            const unsigned int maxAssignmentClientForks, Assignment::Type requestAssignmentType,
+                            QString assignmentPool, QUuid walletUUID, QString assignmentServerHostname,
+                            quint16 assignmentServerPort);
+    ~AssignmentClientMonitor();
+
+    void stopChildProcesses();
 private slots:
-    void childProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
+    void readPendingDatagrams();
+    void checkSpares();
+    void childProcessFinished();
+    
+public slots:
+    void aboutToQuit();
+
 private:
     void spawnChildClient();
-    
-    QStringList _childArguments;
+    void simultaneousWaitOnChildren(int waitMsecs);
+
+    QTimer _checkSparesTimer; // every few seconds see if it need fewer or more spare children
+
+    const unsigned int _numAssignmentClientForks;
+    const unsigned int _minAssignmentClientForks;
+    const unsigned int _maxAssignmentClientForks;
+
+    Assignment::Type _requestAssignmentType;
+    QString _assignmentPool;
+    QUuid _walletUUID;
+    QString _assignmentServerHostname;
+    quint16 _assignmentServerPort;
+
+    QMap<qint64, QProcess*> _childProcesses;
 };
 
 #endif // hifi_AssignmentClientMonitor_h

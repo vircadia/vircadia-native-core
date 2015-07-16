@@ -20,12 +20,12 @@
 #include <glm/gtc/quaternion.hpp>
 
 // degrees
-const float MIN_HEAD_YAW = -180.f;
-const float MAX_HEAD_YAW = 180.f;
-const float MIN_HEAD_PITCH = -60.f;
-const float MAX_HEAD_PITCH = 60.f;
-const float MIN_HEAD_ROLL = -50.f;
-const float MAX_HEAD_ROLL = 50.f;
+const float MIN_HEAD_YAW = -180.0f;
+const float MAX_HEAD_YAW = 180.0f;
+const float MIN_HEAD_PITCH = -60.0f;
+const float MAX_HEAD_PITCH = 60.0f;
+const float MIN_HEAD_ROLL = -50.0f;
+const float MAX_HEAD_ROLL = 50.0f;
 
 class AvatarData;
 
@@ -41,6 +41,10 @@ public:
     void setBasePitch(float pitch) { _basePitch = glm::clamp(pitch, MIN_HEAD_PITCH, MAX_HEAD_PITCH); }
     float getBaseRoll() const { return _baseRoll; }
     void setBaseRoll(float roll) { _baseRoll = glm::clamp(roll, MIN_HEAD_ROLL, MAX_HEAD_ROLL); }
+    
+    virtual void setFinalYaw(float finalYaw) { _baseYaw = finalYaw; }
+    virtual void setFinalPitch(float finalPitch) { _basePitch = finalPitch; }
+    virtual void setFinalRoll(float finalRoll) { _baseRoll = finalRoll; }
     virtual float getFinalYaw() const { return _baseYaw; }
     virtual float getFinalPitch() const { return _basePitch; }
     virtual float getFinalRoll() const { return _baseRoll; }
@@ -61,22 +65,19 @@ public:
     float getPupilDilation() const { return _pupilDilation; }
     void setPupilDilation(float pupilDilation) { _pupilDilation = pupilDilation; }
     
-    // degrees
-    void addYaw(float yaw);
-    void addPitch(float pitch);
-    void addRoll(float roll);
-    
     const glm::vec3& getLookAtPosition() const { return _lookAtPosition; }
     void setLookAtPosition(const glm::vec3& lookAtPosition) { _lookAtPosition = lookAtPosition; }
     
     
     float getLeanSideways() const { return _leanSideways; }
     float getLeanForward() const { return _leanForward; }
+    float getTorsoTwist() const { return _torsoTwist; }
     virtual float getFinalLeanSideways() const { return _leanSideways; }
     virtual float getFinalLeanForward() const { return _leanForward; }
     
     void setLeanSideways(float leanSideways) { _leanSideways = leanSideways; }
     void setLeanForward(float leanForward) { _leanForward = leanForward; }
+    void setTorsoTwist(float torsoTwist) { _torsoTwist = torsoTwist; }
     
     friend class AvatarData;
     
@@ -87,10 +88,11 @@ protected:
     float _baseRoll;
     float _leanSideways;
     float _leanForward;
+    float _torsoTwist;
 
     glm::vec3 _lookAtPosition;
     float _audioLoudness;
-    bool _isFaceshiftConnected;
+    bool _isFaceTrackerConnected;
     float _leftEyeBlink;
     float _rightEyeBlink;
     float _averageLoudness;

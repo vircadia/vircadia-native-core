@@ -8,215 +8,237 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Overlays.h"
+
+#include <QScriptValueIterator>
+
+#include <limits>
+
 #include <Application.h>
+#include <render/Scene.h>
+#include <gpu/GLBackend.h>
 
 #include "BillboardOverlay.h"
+#include "Circle3DOverlay.h"
 #include "Cube3DOverlay.h"
 #include "ImageOverlay.h"
 #include "Line3DOverlay.h"
 #include "LocalModelsOverlay.h"
-#include "LocalVoxelsOverlay.h"
 #include "ModelOverlay.h"
-#include "Overlays.h"
+#include "Rectangle3DOverlay.h"
 #include "Sphere3DOverlay.h"
+#include "Grid3DOverlay.h"
 #include "TextOverlay.h"
+#include "Text3DOverlay.h"
+
 
 Overlays::Overlays() : _nextOverlayID(1) {
 }
 
 Overlays::~Overlays() {
-    
     {
         QWriteLocker lock(&_lock);
-        foreach(Overlay* thisOverlay, _overlays2D) {
-            delete thisOverlay;
+        QWriteLocker deleteLock(&_deleteLock);
+        foreach(Overlay::Pointer overlay, _overlaysHUD) {
+            _overlaysToDelete.push_back(overlay);
         }
-        _overlays2D.clear();
-        foreach(Overlay* thisOverlay, _overlays3D) {
-            delete thisOverlay;
+        foreach(Overlay::Pointer overlay, _overlaysWorld) {
+            _overlaysToDelete.push_back(overlay);
         }
-        _overlays3D.clear();
+        _overlaysHUD.clear();
+        _overlaysWorld.clear();
     }
     
-    if (!_overlaysToDelete.isEmpty()) {
-        QWriteLocker lock(&_deleteLock);
-        do {
-            delete _overlaysToDelete.takeLast();
-        } while (!_overlaysToDelete.isEmpty());
-    }
-    
+    cleanupOverlaysToDelete();
 }
 
-void Overlays::init(QGLWidget* parent) {
-    _parent = parent;
+void Overlays::init() {
+    _scriptEngine = new QScriptEngine();
 }
 
 void Overlays::update(float deltatime) {
 
     {
         QWriteLocker lock(&_lock);
-        foreach(Overlay* thisOverlay, _overlays2D) {
+        foreach(Overlay::Pointer thisOverlay, _overlaysHUD) {
             thisOverlay->update(deltatime);
         }
-        foreach(Overlay* thisOverlay, _overlays3D) {
+        foreach(Overlay::Pointer thisOverlay, _overlaysWorld) {
             thisOverlay->update(deltatime);
         }
     }
 
+    cleanupOverlaysToDelete();
+}
+
+void Overlays::cleanupOverlaysToDelete() {
     if (!_overlaysToDelete.isEmpty()) {
-        QWriteLocker lock(&_deleteLock);
-        do {
-            delete _overlaysToDelete.takeLast();
-        } while (!_overlaysToDelete.isEmpty());
-    }
-    
-}
+        render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+        render::PendingChanges pendingChanges;
 
-void Overlays::render2D() {
-    QReadLocker lock(&_lock);
-    foreach(Overlay* thisOverlay, _overlays2D) {
-        thisOverlay->render();
-    }
-}
+        {
+            QWriteLocker lock(&_deleteLock);
 
-void Overlays::render3D() {
-    QReadLocker lock(&_lock);
-    if (_overlays3D.size() == 0) {
-        return;
-    }
-    bool myAvatarComputed = false;
-    MyAvatar* avatar = NULL;
-    glm::quat myAvatarRotation;
-    glm::vec3 myAvatarPosition(0.0f);
-    float angle = 0.0f;
-    glm::vec3 axis(0.0f, 1.0f, 0.0f);
-    float myAvatarScale = 1.0f;
+            do {
+                Overlay::Pointer overlay = _overlaysToDelete.takeLast();
 
-    foreach(Overlay* thisOverlay, _overlays3D) {
-        glPushMatrix();
-        switch (thisOverlay->getAnchor()) {
-            case Overlay::MY_AVATAR:
-                if (!myAvatarComputed) {
-                    avatar = Application::getInstance()->getAvatar();
-                    myAvatarRotation = avatar->getOrientation();
-                    myAvatarPosition = avatar->getPosition();
-                    angle = glm::degrees(glm::angle(myAvatarRotation));
-                    axis = glm::axis(myAvatarRotation);
-                    myAvatarScale = avatar->getScale();
-                    
-                    myAvatarComputed = true;
+                auto itemID = overlay->getRenderItemID();
+                if (itemID != render::Item::INVALID_ITEM_ID) {
+                    overlay->removeFromScene(overlay, scene, pendingChanges);
                 }
-                
-                glTranslatef(myAvatarPosition.x, myAvatarPosition.y, myAvatarPosition.z);
-                glRotatef(angle, axis.x, axis.y, axis.z);
-                glScalef(myAvatarScale, myAvatarScale, myAvatarScale);
-                break;
-            default:
-                break;
+            } while (!_overlaysToDelete.isEmpty());
         }
-        thisOverlay->render();
-        glPopMatrix();
+
+        if (pendingChanges._removedItems.size() > 0) {
+            scene->enqueuePendingChanges(pendingChanges);
+        }
     }
+}
+
+void Overlays::renderHUD(RenderArgs* renderArgs) {
+    PROFILE_RANGE(__FUNCTION__);
+    QReadLocker lock(&_lock);
+    gpu::Batch batch;
+    renderArgs->_batch = &batch;
+    
+
+    foreach(Overlay::Pointer thisOverlay, _overlaysHUD) {
+        thisOverlay->render(renderArgs);
+    }
+
+    renderArgs->_context->syncCache();
+    renderArgs->_context->render(batch);
 }
 
 unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& properties) {
     unsigned int thisID = 0;
-    bool created = false;
-    bool is3D = false;
     Overlay* thisOverlay = NULL;
     
+    bool created = true;
     if (type == "image") {
         thisOverlay = new ImageOverlay();
-        thisOverlay->init(_parent);
-        thisOverlay->setProperties(properties);
-        created = true;
     } else if (type == "text") {
         thisOverlay = new TextOverlay();
-        thisOverlay->init(_parent);
-        thisOverlay->setProperties(properties);
-        created = true;
+    } else if (type == "text3d") {
+        thisOverlay = new Text3DOverlay();
     } else if (type == "cube") {
         thisOverlay = new Cube3DOverlay();
-        thisOverlay->init(_parent);
-        thisOverlay->setProperties(properties);
-        created = true;
-        is3D = true;
     } else if (type == "sphere") {
         thisOverlay = new Sphere3DOverlay();
-        thisOverlay->init(_parent);
-        thisOverlay->setProperties(properties);
-        created = true;
-        is3D = true;
+    } else if (type == "circle3d") {
+        thisOverlay = new Circle3DOverlay();
+    } else if (type == "rectangle3d") {
+        thisOverlay = new Rectangle3DOverlay();
     } else if (type == "line3d") {
         thisOverlay = new Line3DOverlay();
-        thisOverlay->init(_parent);
-        thisOverlay->setProperties(properties);
-        created = true;
-        is3D = true;
-    } else if (type == "localvoxels") {
-        thisOverlay = new LocalVoxelsOverlay();
-        thisOverlay->init(_parent);
-        thisOverlay->setProperties(properties);
-        created = true;
-        is3D = true;
+    } else if (type == "grid") {
+        thisOverlay = new Grid3DOverlay();
     } else if (type == "localmodels") {
-        thisOverlay = new LocalModelsOverlay(Application::getInstance()->getModelClipboardRenderer());
-        thisOverlay->init(_parent);
-        thisOverlay->setProperties(properties);
-        created = true;
-        is3D = true;
+        thisOverlay = new LocalModelsOverlay(Application::getInstance()->getEntityClipboardRenderer());
     } else if (type == "model") {
         thisOverlay = new ModelOverlay();
-        thisOverlay->init(_parent);
-        thisOverlay->setProperties(properties);
-        created = true;
-        is3D = true;
     } else if (type == "billboard") {
         thisOverlay = new BillboardOverlay();
-        thisOverlay->init(_parent);
-        thisOverlay->setProperties(properties);
-        created = true;
-        is3D = true;
+    } else {
+        created = false;
     }
 
     if (created) {
-        QWriteLocker lock(&_lock);
-        thisID = _nextOverlayID;
-        _nextOverlayID++;
-        if (is3D) {
-            _overlays3D[thisID] = thisOverlay;
-        } else {
-            _overlays2D[thisID] = thisOverlay;
-        }
+        thisOverlay->setProperties(properties);
+        thisID = addOverlay(thisOverlay);
     }
 
     return thisID; 
 }
 
-bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
-    Overlay* thisOverlay = NULL;
+unsigned int Overlays::addOverlay(Overlay* overlay) {
+    Overlay::Pointer overlayPointer(overlay);
+    overlay->init(_scriptEngine);
+
     QWriteLocker lock(&_lock);
-    if (_overlays2D.contains(id)) {
-        thisOverlay = _overlays2D[id];
-    } else if (_overlays3D.contains(id)) {
-        thisOverlay = _overlays3D[id];
+    unsigned int thisID = _nextOverlayID;
+    _nextOverlayID++;
+    if (overlay->is3D()) {
+        Base3DOverlay* overlay3D = static_cast<Base3DOverlay*>(overlay);
+        if (overlay3D->getDrawOnHUD()) {
+            _overlaysHUD[thisID] = overlayPointer;
+        } else {
+            _overlaysWorld[thisID] = overlayPointer;
+
+            render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+            render::PendingChanges pendingChanges;
+
+            overlayPointer->addToScene(overlayPointer, scene, pendingChanges);
+
+            scene->enqueuePendingChanges(pendingChanges);
+        }
+    } else {
+        _overlaysHUD[thisID] = overlayPointer;
     }
+    
+    return thisID;
+}
+
+unsigned int Overlays::cloneOverlay(unsigned int id) {
+    Overlay::Pointer thisOverlay = NULL;
+    if (_overlaysHUD.contains(id)) {
+        thisOverlay = _overlaysHUD[id];
+    } else if (_overlaysWorld.contains(id)) {
+        thisOverlay = _overlaysWorld[id];
+    }
+
     if (thisOverlay) {
-        thisOverlay->setProperties(properties);
+        return addOverlay(thisOverlay->createClone());
+    } 
+    
+    return 0;  // Not found
+}
+
+bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
+    QWriteLocker lock(&_lock);
+    Overlay::Pointer thisOverlay;
+
+    if (_overlaysHUD.contains(id)) {
+        thisOverlay = _overlaysHUD[id];
+    } else if (_overlaysWorld.contains(id)) {
+        thisOverlay = _overlaysWorld[id];
+    }
+
+    if (thisOverlay) {
+        if (thisOverlay->is3D()) {
+            Base3DOverlay* overlay3D = static_cast<Base3DOverlay*>(thisOverlay.get());
+
+            bool oldDrawOnHUD = overlay3D->getDrawOnHUD();
+            thisOverlay->setProperties(properties);
+            bool drawOnHUD = overlay3D->getDrawOnHUD();
+
+            if (drawOnHUD != oldDrawOnHUD) {
+                if (drawOnHUD) {
+                    _overlaysWorld.remove(id);
+                    _overlaysHUD[id] = thisOverlay;
+                } else {
+                    _overlaysHUD.remove(id);
+                    _overlaysWorld[id] = thisOverlay;
+                }
+            }
+        } else {
+            thisOverlay->setProperties(properties);
+        }
+
         return true;
     }
     return false;
 }
 
 void Overlays::deleteOverlay(unsigned int id) {
-    Overlay* overlayToDelete;
+    Overlay::Pointer overlayToDelete;
 
     {
         QWriteLocker lock(&_lock);
-        if (_overlays2D.contains(id)) {
-            overlayToDelete = _overlays2D.take(id);
-        } else if (_overlays3D.contains(id)) {
-            overlayToDelete = _overlays3D.take(id);
+        if (_overlaysHUD.contains(id)) {
+            overlayToDelete = _overlaysHUD.take(id);
+        } else if (_overlaysWorld.contains(id)) {
+            overlayToDelete = _overlaysWorld.take(id);
         } else {
             return;
         }
@@ -227,30 +249,223 @@ void Overlays::deleteOverlay(unsigned int id) {
 }
 
 unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
+    glm::vec2 pointCopy = point;
+    if (qApp->isHMDMode()) {
+        pointCopy = qApp->getApplicationCompositor().screenToOverlay(point);
+    }
+    
     QReadLocker lock(&_lock);
-    QMapIterator<unsigned int, Overlay*> i(_overlays2D);
+    QMapIterator<unsigned int, Overlay::Pointer> i(_overlaysHUD);
+    i.toBack();
+
+    const float LARGE_NEGATIVE_FLOAT = -9999999;
+    glm::vec3 origin(pointCopy.x, pointCopy.y, LARGE_NEGATIVE_FLOAT);
+    glm::vec3 direction(0, 0, 1);
+    BoxFace thisFace;
+    float distance;
+
+    while (i.hasPrevious()) {
+        i.previous();
+        unsigned int thisID = i.key();
+        if (i.value()->is3D()) {
+            Base3DOverlay* thisOverlay = static_cast<Base3DOverlay*>(i.value().get());
+            if (!thisOverlay->getIgnoreRayIntersection()) {
+                if (thisOverlay->findRayIntersection(origin, direction, distance, thisFace)) {
+                    return thisID;
+                }
+            }
+        } else {
+            Overlay2D* thisOverlay = static_cast<Overlay2D*>(i.value().get());
+            if (thisOverlay->getVisible() && thisOverlay->isLoaded() &&
+                thisOverlay->getBoundingRect().contains(pointCopy.x, pointCopy.y, false)) {
+                return thisID;
+            }
+        }
+    }
+
+    return 0; // not found
+}
+
+OverlayPropertyResult Overlays::getProperty(unsigned int id, const QString& property) {
+    OverlayPropertyResult result;
+    Overlay::Pointer thisOverlay;
+    QReadLocker lock(&_lock);
+    if (_overlaysHUD.contains(id)) {
+        thisOverlay = _overlaysHUD[id];
+    } else if (_overlaysWorld.contains(id)) {
+        thisOverlay = _overlaysWorld[id];
+    }
+    if (thisOverlay) {
+        result.value = thisOverlay->getProperty(property);
+    }
+    return result;
+}
+
+OverlayPropertyResult::OverlayPropertyResult() :
+    value(QScriptValue())
+{
+}
+
+QScriptValue OverlayPropertyResultToScriptValue(QScriptEngine* engine, const OverlayPropertyResult& result)
+{
+    if (!result.value.isValid()) {
+        return QScriptValue::UndefinedValue;
+    }
+
+    QScriptValue object = engine->newObject();
+    if (result.value.isObject()) {
+        QScriptValueIterator it(result.value);
+        while (it.hasNext()) {
+            it.next();
+            object.setProperty(it.name(), QScriptValue(it.value().toString()));
+        }
+
+    } else {
+        object = result.value;
+    }
+    return object;
+}
+
+void OverlayPropertyResultFromScriptValue(const QScriptValue& value, OverlayPropertyResult& result)
+{
+    result.value = value;
+}
+
+RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray) {
+    float bestDistance = std::numeric_limits<float>::max();
+    bool bestIsFront = false;
+    RayToOverlayIntersectionResult result;
+    QMapIterator<unsigned int, Overlay::Pointer> i(_overlaysWorld);
     i.toBack();
     while (i.hasPrevious()) {
         i.previous();
         unsigned int thisID = i.key();
-        Overlay2D* thisOverlay = static_cast<Overlay2D*>(i.value());
-        if (thisOverlay->getVisible() && thisOverlay->isLoaded() && thisOverlay->getBounds().contains(point.x, point.y, false)) {
-            return thisID;
+        Base3DOverlay* thisOverlay = static_cast<Base3DOverlay*>(i.value().get());
+        if (thisOverlay->getVisible() && !thisOverlay->getIgnoreRayIntersection() && thisOverlay->isLoaded()) {
+            float thisDistance;
+            BoxFace thisFace;
+            QString thisExtraInfo;
+            if (thisOverlay->findRayIntersectionExtraInfo(ray.origin, ray.direction, thisDistance, thisFace, thisExtraInfo)) {
+                bool isDrawInFront = thisOverlay->getDrawInFront();
+                if (thisDistance < bestDistance && (!bestIsFront || isDrawInFront)) {
+                    bestIsFront = isDrawInFront;
+                    bestDistance = thisDistance;
+                    result.intersects = true;
+                    result.distance = thisDistance;
+                    result.face = thisFace;
+                    result.overlayID = thisID;
+                    result.intersection = ray.origin + (ray.direction * thisDistance);
+                    result.extraInfo = thisExtraInfo;
+                }
+            }
         }
     }
-    return 0; // not found
+    return result;
+}
+
+RayToOverlayIntersectionResult::RayToOverlayIntersectionResult() : 
+    intersects(false), 
+    overlayID(-1),
+    distance(0),
+    face(),
+    intersection(),
+    extraInfo()
+{ 
+}
+
+QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, const RayToOverlayIntersectionResult& value) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("intersects", value.intersects);
+    obj.setProperty("overlayID", value.overlayID);
+    obj.setProperty("distance", value.distance);
+
+    QString faceName = "";    
+    // handle BoxFace
+    switch (value.face) {
+        case MIN_X_FACE:
+            faceName = "MIN_X_FACE";
+            break;
+        case MAX_X_FACE:
+            faceName = "MAX_X_FACE";
+            break;
+        case MIN_Y_FACE:
+            faceName = "MIN_Y_FACE";
+            break;
+        case MAX_Y_FACE:
+            faceName = "MAX_Y_FACE";
+            break;
+        case MIN_Z_FACE:
+            faceName = "MIN_Z_FACE";
+            break;
+        case MAX_Z_FACE:
+            faceName = "MAX_Z_FACE";
+            break;
+        default:
+        case UNKNOWN_FACE:
+            faceName = "UNKNOWN_FACE";
+            break;
+    }
+    obj.setProperty("face", faceName);
+    QScriptValue intersection = vec3toScriptValue(engine, value.intersection);
+    obj.setProperty("intersection", intersection);
+    obj.setProperty("extraInfo", value.extraInfo);
+    return obj;
+}
+
+void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, RayToOverlayIntersectionResult& value) {
+    value.intersects = object.property("intersects").toVariant().toBool();
+    value.overlayID = object.property("overlayID").toVariant().toInt();
+    value.distance = object.property("distance").toVariant().toFloat();
+
+    QString faceName = object.property("face").toVariant().toString();
+    if (faceName == "MIN_X_FACE") {
+        value.face = MIN_X_FACE;
+    } else if (faceName == "MAX_X_FACE") {
+        value.face = MAX_X_FACE;
+    } else if (faceName == "MIN_Y_FACE") {
+        value.face = MIN_Y_FACE;
+    } else if (faceName == "MAX_Y_FACE") {
+        value.face = MAX_Y_FACE;
+    } else if (faceName == "MIN_Z_FACE") {
+        value.face = MIN_Z_FACE;
+    } else if (faceName == "MAX_Z_FACE") {
+        value.face = MAX_Z_FACE;
+    } else {
+        value.face = UNKNOWN_FACE;
+    };
+    QScriptValue intersection = object.property("intersection");
+    if (intersection.isValid()) {
+        vec3FromScriptValue(intersection, value.intersection);
+    }
+    value.extraInfo = object.property("extraInfo").toVariant().toString();
 }
 
 bool Overlays::isLoaded(unsigned int id) {
     QReadLocker lock(&_lock);
-    Overlay* overlay = _overlays2D.value(id);
-    if (!overlay) {
-        _overlays3D.value(id);
-    }
-    if (!overlay) {
+    Overlay::Pointer thisOverlay = NULL;
+    if (_overlaysHUD.contains(id)) {
+        thisOverlay = _overlaysHUD[id];
+    } else if (_overlaysWorld.contains(id)) {
+        thisOverlay = _overlaysWorld[id];
+    } else {
         return false; // not found
     }
-
-    return overlay->isLoaded();
+    return thisOverlay->isLoaded();
 }
 
+QSizeF Overlays::textSize(unsigned int id, const QString& text) const {
+    Overlay::Pointer thisOverlay = _overlaysHUD[id];
+    if (thisOverlay) {
+        if (typeid(*thisOverlay) == typeid(TextOverlay)) {
+            return static_cast<TextOverlay*>(thisOverlay.get())->textSize(text);
+        }
+    } else {
+        thisOverlay = _overlaysWorld[id];
+        if (thisOverlay) {
+            if (typeid(*thisOverlay) == typeid(Text3DOverlay)) {
+                return static_cast<Text3DOverlay*>(thisOverlay.get())->textSize(text);
+            }
+        }
+    }
+    return QSizeF(0.0f, 0.0f);
+}

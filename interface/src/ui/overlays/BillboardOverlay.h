@@ -12,37 +12,39 @@
 #ifndef hifi_BillboardOverlay_h
 #define hifi_BillboardOverlay_h
 
-#include <QScopedPointer>
-#include <QUrl>
+#include <TextureCache.h>
 
-#include "Base3DOverlay.h"
-#include "../../renderer/TextureCache.h"
+#include "Planar3DOverlay.h"
 
-class BillboardOverlay : public Base3DOverlay {
+class BillboardOverlay : public Planar3DOverlay {
     Q_OBJECT
 public:
     BillboardOverlay();
-    
-    virtual void render();
+    BillboardOverlay(const BillboardOverlay* billboardOverlay);
+
+    virtual void render(RenderArgs* args);
+
+    // setters
+    void setURL(const QString& url);
+    void setIsFacingAvatar(bool isFacingAvatar) { _isFacingAvatar = isFacingAvatar; }
+
     virtual void setProperties(const QScriptValue& properties);
     void setClipFromSource(const QRect& bounds) { _fromImage = bounds; }
+    virtual QScriptValue getProperty(const QString& property);
+
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face);
     
-private slots:
-    void replyFinished();
+    virtual BillboardOverlay* createClone() const;
 
 private:
-    void setBillboardURL(const QUrl url);
+    void setBillboardURL(const QString& url);
     
-    QUrl _url;
-    QByteArray _billboard;
-    QSize _size;
-    QScopedPointer<Texture> _billboardTexture;
+    QString _url;
+    NetworkTexturePointer _texture;
     
     QRect _fromImage; // where from in the image to sample
-    
-    glm::quat _rotation;
-    float _scale;
-    bool _isFacingAvatar;
+
+    bool _isFacingAvatar = true;
 };
 
 #endif // hifi_BillboardOverlay_h

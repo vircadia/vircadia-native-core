@@ -17,44 +17,81 @@
 #include <QtCore/QSharedPointer>
 
 #include <AvatarHashMap.h>
+#include <PhysicsEngine.h>
 
 #include "Avatar.h"
+#include "AvatarMotionState.h"
 
 class MyAvatar;
 
 class AvatarManager : public AvatarHashMap {
     Q_OBJECT
+    SINGLETON_DEPENDENCY
 
 public:
-    AvatarManager(QObject* parent = 0);
+    
+    /// Registers the script types associated with the avatar manager.
+    static void registerMetaTypes(QScriptEngine* engine);
 
     void init();
 
-    MyAvatar* getMyAvatar() { return _myAvatar.data(); }
+    MyAvatar* getMyAvatar() { return _myAvatar.get(); }
     
+    void updateMyAvatar(float deltaTime);
     void updateOtherAvatars(float deltaTime);
-    void renderAvatars(Avatar::RenderMode renderMode, bool selfAvatarOnly = false);
     
     void clearOtherAvatars();
+   
+    bool shouldShowReceiveStats() const { return _shouldShowReceiveStats; }
+
+    class LocalLight {
+    public:
+        glm::vec3 color;
+        glm::vec3 direction;
+    };
     
-    Q_INVOKABLE void setLocalLights(const QVector<Model::LocalLight>& localLights);
-    Q_INVOKABLE QVector<Model::LocalLight> getLocalLights() const;
-    
+    Q_INVOKABLE void setLocalLights(const QVector<AvatarManager::LocalLight>& localLights);
+    Q_INVOKABLE QVector<AvatarManager::LocalLight> getLocalLights() const;
+
+    VectorOfMotionStates& getObjectsToDelete();
+    VectorOfMotionStates& getObjectsToAdd();
+    VectorOfMotionStates& getObjectsToChange();
+    void handleOutgoingChanges(VectorOfMotionStates& motionStates);
+    void handleCollisionEvents(CollisionEvents& collisionEvents);
+
+    void updateAvatarPhysicsShape(const QUuid& id);
+   
+public slots:
+    void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
+    void updateAvatarRenderStatus(bool shouldRenderAvatars);
+
 private:
+    AvatarManager(QObject* parent = 0);
     AvatarManager(const AvatarManager& other);
 
     void simulateAvatarFades(float deltaTime);
-    void renderAvatarFades(const glm::vec3& cameraPosition, Avatar::RenderMode renderMode);
     
-    AvatarSharedPointer newSharedAvatar();
-    
-    // virtual override
-    AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
+    // virtual overrides
+    virtual AvatarSharedPointer newSharedAvatar();
+    virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
+    void removeAvatarMotionState(AvatarSharedPointer avatar);
+    virtual void removeAvatar(const QUuid& sessionUUID);
     
     QVector<AvatarSharedPointer> _avatarFades;
-    QSharedPointer<MyAvatar> _myAvatar;
+    std::shared_ptr<MyAvatar> _myAvatar;
+    quint64 _lastSendAvatarDataTime = 0; // Controls MyAvatar send data rate.
     
-    QVector<Model::LocalLight> _localLights;
+    QVector<AvatarManager::LocalLight> _localLights;
+
+    bool _shouldShowReceiveStats = false;
+
+    SetOfAvatarMotionStates _avatarMotionStates;
+    SetOfMotionStates _motionStatesToAdd;
+    VectorOfMotionStates _motionStatesToDelete;
+    VectorOfMotionStates _tempMotionStates;
 };
+
+Q_DECLARE_METATYPE(AvatarManager::LocalLight)
+Q_DECLARE_METATYPE(QVector<AvatarManager::LocalLight>)
 
 #endif // hifi_AvatarManager_h

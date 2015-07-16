@@ -13,18 +13,19 @@
 
 #include "SphereShape.h"
 
-bool SphereShape::findRayIntersection(const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) const {
+bool SphereShape::findRayIntersection(RayIntersectionInfo& intersection) const {
     float r2 = _boundingRadius * _boundingRadius;
 
     // compute closest approach (CA)
-    float a = glm::dot(_translation - rayStart, rayDirection); // a = distance from ray-start to CA
-    float b2 = glm::distance2(_translation, rayStart + a * rayDirection); // b2 = squared distance from sphere-center to CA
+    float a = glm::dot(_translation - intersection._rayStart, intersection._rayDirection); // a = distance from ray-start to CA
+    float b2 = glm::distance2(_translation, intersection._rayStart + a * intersection._rayDirection); // b2 = squared distance from sphere-center to CA
     if (b2 > r2) {
         // ray does not hit sphere
         return false;
     }
-    float c = sqrtf(r2 - b2); // c = distance from CA to sphere surface along rayDirection
-    float d2 = glm::distance2(rayStart, _translation); // d2 = squared distance from sphere-center to ray-start
+    float c = sqrtf(r2 - b2); // c = distance from CA to sphere surface along intersection._rayDirection
+    float d2 = glm::distance2(intersection._rayStart, _translation); // d2 = squared distance from sphere-center to ray-start
+    float distance = FLT_MAX;
     if (a < 0.0f) {
         // ray points away from sphere-center
         if (d2 > r2) {
@@ -40,5 +41,11 @@ bool SphereShape::findRayIntersection(const glm::vec3& rayStart, const glm::vec3
         // ray starts inside sphere
         distance = a + c;
     }
-    return true;
+    if (distance > 0.0f && distance < intersection._rayLength && distance < intersection._hitDistance) {
+        intersection._hitDistance = distance;
+        intersection._hitNormal = glm::normalize(intersection._rayStart + distance * intersection._rayDirection - _translation);
+        intersection._hitShape = const_cast<SphereShape*>(this);
+        return true;
+    }
+    return false;
 }

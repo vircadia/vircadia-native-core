@@ -13,15 +13,12 @@
 
 #include "NetworkAccessManager.h"
 
-QThreadStorage<NetworkAccessManager*> networkAccessManagers;
+QThreadStorage<QNetworkAccessManager*> networkAccessManagers;
 
-NetworkAccessManager& NetworkAccessManager::getInstance() {
+QNetworkAccessManager& NetworkAccessManager::getInstance() {
     if (!networkAccessManagers.hasLocalData()) {
-            networkAccessManagers.setLocalData(new NetworkAccessManager());
+        networkAccessManagers.setLocalData(new QNetworkAccessManager());
     }
     
     return *networkAccessManagers.localData();
-}
-
-NetworkAccessManager::NetworkAccessManager() {
 }

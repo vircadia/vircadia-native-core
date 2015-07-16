@@ -2,7 +2,7 @@
 name= defaultAvatar_head
 filename=defaultAvatar/head.fbx
 texdir=defaultAvatar
-scale=80
+scale=5.333
 rx=0
 ry=0
 rz=0

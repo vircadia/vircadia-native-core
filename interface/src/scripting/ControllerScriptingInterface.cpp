@@ -9,24 +9,131 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <avatar/AvatarManager.h>
+#include <avatar/MyAvatar.h>
+#include <GLCanvas.h>
 #include <HandData.h>
+#include <HFBackEvent.h>
+
 #include "Application.h"
+#include "devices/MotionTracker.h"
 #include "devices/SixenseManager.h"
 #include "ControllerScriptingInterface.h"
-#include "devices/MotionTracker.h"
+
 
 ControllerScriptingInterface::ControllerScriptingInterface() :
     _mouseCaptured(false),
     _touchCaptured(false),
     _wheelCaptured(false)
 {
+
 }
 
+static int actionMetaTypeId = qRegisterMetaType<UserInputMapper::Action>();
+static int inputChannelMetaTypeId = qRegisterMetaType<UserInputMapper::InputChannel>();
+static int inputMetaTypeId = qRegisterMetaType<UserInputMapper::Input>();
+static int inputPairMetaTypeId = qRegisterMetaType<UserInputMapper::InputPair>();
+
+QScriptValue inputToScriptValue(QScriptEngine* engine, const UserInputMapper::Input& input);
+void inputFromScriptValue(const QScriptValue& object, UserInputMapper::Input& input);
+QScriptValue inputChannelToScriptValue(QScriptEngine* engine, const UserInputMapper::InputChannel& inputChannel);
+void inputChannelFromScriptValue(const QScriptValue& object, UserInputMapper::InputChannel& inputChannel);
+QScriptValue actionToScriptValue(QScriptEngine* engine, const UserInputMapper::Action& action);
+void actionFromScriptValue(const QScriptValue& object, UserInputMapper::Action& action);
+QScriptValue inputPairToScriptValue(QScriptEngine* engine, const UserInputMapper::InputPair& inputPair);
+void inputPairFromScriptValue(const QScriptValue& object, UserInputMapper::InputPair& inputPair);
+
+QScriptValue inputToScriptValue(QScriptEngine* engine, const UserInputMapper::Input& input) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("device", input.getDevice());
+    obj.setProperty("channel", input.getChannel());
+    obj.setProperty("type", (unsigned short) input.getType());
+    obj.setProperty("id", input.getID());
+    return obj;
+}
+
+void inputFromScriptValue(const QScriptValue& object, UserInputMapper::Input& input) {
+    input.setDevice(object.property("device").toUInt16());
+    input.setChannel(object.property("channel").toUInt16());
+    input.setType(object.property("type").toUInt16());
+    input.setID(object.property("id").toInt32());
+}
+
+QScriptValue inputChannelToScriptValue(QScriptEngine* engine, const UserInputMapper::InputChannel& inputChannel) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("input", inputToScriptValue(engine, inputChannel.getInput()));
+    obj.setProperty("modifier", inputToScriptValue(engine, inputChannel.getModifier()));
+    obj.setProperty("action", inputChannel.getAction());
+    obj.setProperty("scale", inputChannel.getScale());
+    return obj;
+}
+
+void inputChannelFromScriptValue(const QScriptValue& object, UserInputMapper::InputChannel& inputChannel) {
+    UserInputMapper::Input input;
+    UserInputMapper::Input modifier;
+    inputFromScriptValue(object.property("input"), input);
+    inputChannel.setInput(input);
+    inputFromScriptValue(object.property("modifier"), modifier);
+    inputChannel.setModifier(modifier);
+    inputChannel.setAction(UserInputMapper::Action(object.property("action").toVariant().toInt()));
+    inputChannel.setScale(object.property("scale").toVariant().toFloat());
+}
+
+QScriptValue actionToScriptValue(QScriptEngine* engine, const UserInputMapper::Action& action) {
+    QScriptValue obj = engine->newObject();
+    QVector<UserInputMapper::InputChannel> inputChannels = Application::getUserInputMapper()->getInputChannelsForAction(action);
+    QScriptValue _inputChannels = engine->newArray(inputChannels.size());
+    for (int i = 0; i < inputChannels.size(); i++) {
+        _inputChannels.setProperty(i, inputChannelToScriptValue(engine, inputChannels[i]));
+    }
+    obj.setProperty("action", (int) action);
+    obj.setProperty("actionName", Application::getUserInputMapper()->getActionName(action));
+    obj.setProperty("inputChannels", _inputChannels);
+    return obj;
+}
+
+void actionFromScriptValue(const QScriptValue& object, UserInputMapper::Action& action) {
+    action = UserInputMapper::Action(object.property("action").toVariant().toInt());
+}
+
+QScriptValue inputPairToScriptValue(QScriptEngine* engine, const UserInputMapper::InputPair& inputPair) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("input", inputToScriptValue(engine, inputPair.first));
+    obj.setProperty("inputName", inputPair.second);
+    return obj;
+}
+
+void inputPairFromScriptValue(const QScriptValue& object, UserInputMapper::InputPair& inputPair) {
+    inputFromScriptValue(object.property("input"), inputPair.first);
+    inputPair.second = QString(object.property("inputName").toVariant().toString());
+}
+
+void ControllerScriptingInterface::registerControllerTypes(QScriptEngine* engine) {
+    qScriptRegisterSequenceMetaType<QVector<UserInputMapper::Action> >(engine);
+    qScriptRegisterSequenceMetaType<QVector<UserInputMapper::InputChannel> >(engine);
+    qScriptRegisterSequenceMetaType<QVector<UserInputMapper::InputPair> >(engine);
+    qScriptRegisterMetaType(engine, actionToScriptValue, actionFromScriptValue);
+    qScriptRegisterMetaType(engine, inputChannelToScriptValue, inputChannelFromScriptValue);
+    qScriptRegisterMetaType(engine, inputToScriptValue, inputFromScriptValue);
+    qScriptRegisterMetaType(engine, inputPairToScriptValue, inputPairFromScriptValue);
+}
+
+void ControllerScriptingInterface::handleMetaEvent(HFMetaEvent* event) {
+    if (event->type() == HFActionEvent::startType()) {
+        emit actionStartEvent(static_cast<HFActionEvent&>(*event));
+    } else if (event->type() == HFActionEvent::endType()) {
+        emit actionEndEvent(static_cast<HFActionEvent&>(*event));
+    } else if (event->type() == HFBackEvent::startType()) {
+        emit backStartEvent();
+    } else if (event->type() == HFBackEvent::endType()) {
+        emit backEndEvent();
+    }
+}
 
 const PalmData* ControllerScriptingInterface::getPrimaryPalm() const {
     int leftPalmIndex, rightPalmIndex;
 
-    const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
+    const HandData* handData = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHandData();
     handData->getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
     
     if (rightPalmIndex != -1) {
@@ -37,7 +144,7 @@ const PalmData* ControllerScriptingInterface::getPrimaryPalm() const {
 }
 
 int ControllerScriptingInterface::getNumberOfActivePalms() const {
-    const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
+    const HandData* handData = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHandData();
     int numberOfPalms = handData->getNumPalms();
     int numberOfActivePalms = 0;
     for (int i = 0; i < numberOfPalms; i++) {
@@ -49,12 +156,12 @@ int ControllerScriptingInterface::getNumberOfActivePalms() const {
 }
 
 const PalmData* ControllerScriptingInterface::getPalm(int palmIndex) const {
-    const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
+    const HandData* handData = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHandData();
     return &handData->getPalms()[palmIndex];
 }
 
 const PalmData* ControllerScriptingInterface::getActivePalm(int palmIndex) const {
-    const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
+    const HandData* handData = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHandData();
     int numberOfPalms = handData->getNumPalms();
     int numberOfActivePalms = 0;
     for (int i = 0; i < numberOfPalms; i++) {
@@ -191,6 +298,21 @@ glm::quat ControllerScriptingInterface::getSpatialControlRawRotation(int control
     }
     return glm::quat(); // bad index
 }
+    
+glm::vec3 ControllerScriptingInterface::getSpatialControlRawAngularVelocity(int controlIndex) const {
+    int palmIndex = controlIndex / NUMBER_OF_SPATIALCONTROLS_PER_PALM;
+    int controlOfPalm = controlIndex % NUMBER_OF_SPATIALCONTROLS_PER_PALM;
+    const PalmData* palmData = getActivePalm(palmIndex);
+    if (palmData) {
+        switch (controlOfPalm) {
+            case PALM_SPATIALCONTROL:
+                return palmData->getRawAngularVelocity();
+            case TIP_SPATIALCONTROL:
+                return palmData->getRawAngularVelocity();  //  Tip = palm angular velocity        
+        }
+    }
+    return glm::vec3(0); // bad index
+}
 
 glm::vec3 ControllerScriptingInterface::getSpatialControlNormal(int controlIndex) const {
     int palmIndex = controlIndex / NUMBER_OF_SPATIALCONTROLS_PER_PALM;
@@ -213,10 +335,7 @@ bool ControllerScriptingInterface::isKeyCaptured(QKeyEvent* event) const {
 
 bool ControllerScriptingInterface::isKeyCaptured(const KeyEvent& event) const {
     // if we've captured some combination of this key it will be in the map
-    if (_capturedKeys.contains(event.key, event)) {
-        return true;
-    }
-    return false;
+    return _capturedKeys.contains(event.key, event);
 }
 
 void ControllerScriptingInterface::captureKeyEvents(const KeyEvent& event) {
@@ -255,9 +374,8 @@ void ControllerScriptingInterface::releaseJoystick(int joystickIndex) {
     }
 }
 
-glm::vec2 ControllerScriptingInterface::getViewportDimensions() const { 
-    QGLWidget* widget = Application::getInstance()->getGLWidget();
-    return glm::vec2(widget->width(), widget->height()); 
+glm::vec2 ControllerScriptingInterface::getViewportDimensions() const {
+    return Application::getInstance()->getCanvasSize();
 }
 
 AbstractInputController* ControllerScriptingInterface::createInputController(const QString& deviceName, const QString& tracker) {
@@ -297,6 +415,10 @@ AbstractInputController* ControllerScriptingInterface::createInputController(con
     }
 }
 
+void ControllerScriptingInterface::releaseInputController(AbstractInputController* input) {
+    _inputControllers.erase(input->getKey());
+}
+
 void ControllerScriptingInterface::updateInputControllers() {
     //TODO C++11 for (auto it = _inputControllers.begin(); it != _inputControllers.end(); it++) {
     for (InputControllerMap::iterator it = _inputControllers.begin(); it != _inputControllers.end(); it++) {
@@ -304,11 +426,51 @@ void ControllerScriptingInterface::updateInputControllers() {
     }
 }
 
+QVector<UserInputMapper::Action> ControllerScriptingInterface::getAllActions() {
+    return Application::getUserInputMapper()->getAllActions();
+}
+
+QVector<UserInputMapper::InputChannel> ControllerScriptingInterface::getInputChannelsForAction(UserInputMapper::Action action) {
+    return Application::getUserInputMapper()->getInputChannelsForAction(action);
+}
+
+QString ControllerScriptingInterface::getDeviceName(unsigned int device) {
+    return Application::getUserInputMapper()->getDeviceName((unsigned short) device);
+}
+
+QVector<UserInputMapper::InputChannel> ControllerScriptingInterface::getAllInputsForDevice(unsigned int device) {
+    return Application::getUserInputMapper()->getAllInputsForDevice(device);
+}
+
+bool ControllerScriptingInterface::addInputChannel(UserInputMapper::InputChannel inputChannel) {
+    return Application::getUserInputMapper()->addInputChannel(inputChannel._action, inputChannel._input, inputChannel._modifier, inputChannel._scale);
+}
+
+bool ControllerScriptingInterface::removeInputChannel(UserInputMapper::InputChannel inputChannel) {
+    return Application::getUserInputMapper()->removeInputChannel(inputChannel);
+}
+
+QVector<UserInputMapper::InputPair> ControllerScriptingInterface::getAvailableInputs(unsigned int device) {
+    return Application::getUserInputMapper()->getAvailableInputs((unsigned short) device);
+}
+
+void ControllerScriptingInterface::resetAllDeviceBindings() {
+    Application::getUserInputMapper()->resetAllDeviceBindings();
+}
+
+void ControllerScriptingInterface::resetDevice(unsigned int device) {
+    Application::getUserInputMapper()->resetDevice(device);
+}
+
+int ControllerScriptingInterface::findDevice(QString name) {
+    return Application::getUserInputMapper()->findDevice(name);
+}
 
 InputController::InputController(int deviceTrackerId, int subTrackerId, QObject* parent) :
     AbstractInputController(),
     _deviceTrackerId(deviceTrackerId),
-    _subTrackerId(subTrackerId)
+    _subTrackerId(subTrackerId),
+    _isActive(false)
 {
 }
 
@@ -318,7 +480,7 @@ void InputController::update() {
     // TODO for now the InputController is only supporting a JointTracker from a MotionTracker
     MotionTracker* motionTracker = dynamic_cast< MotionTracker*> (DeviceTracker::getDevice(_deviceTrackerId));
     if (motionTracker) {
-        if (_subTrackerId < motionTracker->numJointTrackers()) {
+        if ((int)_subTrackerId < motionTracker->numJointTrackers()) {
             const MotionTracker::JointTracker* joint = motionTracker->getJointTracker(_subTrackerId);
 
             if (joint->isActive()) {

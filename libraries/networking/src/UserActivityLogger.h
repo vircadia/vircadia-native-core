@@ -30,7 +30,7 @@ public slots:
     void logAction(QString action, QJsonObject details = QJsonObject(), JSONCallbackParameters params = JSONCallbackParameters());
     
     void launch(QString applicationVersion);
-    void close(int delayTime);
+    
     void changedDisplayName(QString displayName);
     void changedModel(QString typeOfModel, QString modelURL);
     void changedDomain(QString domainURL);
@@ -39,8 +39,8 @@ public slots:
     void wentTo(QString destinationType, QString destinationName);
     
 private slots:
-    void requestFinished(const QJsonObject& object);
-    void requestError(QNetworkReply::NetworkError error,const QString& string);
+    void requestFinished(QNetworkReply& requestReply);
+    void requestError(QNetworkReply& errorReply);
     
 private:
     UserActivityLogger();

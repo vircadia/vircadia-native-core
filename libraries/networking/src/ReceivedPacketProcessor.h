@@ -21,7 +21,7 @@
 class ReceivedPacketProcessor : public GenericThread {
     Q_OBJECT
 public:
-    ReceivedPacketProcessor() { }
+    ReceivedPacketProcessor();
 
     /// Add packet from network receive thread to the processing queue.
     void queueReceivedPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);
@@ -47,6 +47,11 @@ public:
     /// How many received packets waiting are to be processed
     int packetsToProcessCount() const { return _packets.size(); }
 
+    float getIncomingPPS() const { return _incomingPPS.getAverage(); }
+    float getProcessedPPS() const { return _processedPPS.getAverage(); }
+
+    virtual void terminating();
+
 public slots:
     void nodeKilled(SharedNodePointer node);
 
@@ -71,8 +76,6 @@ protected:
     /// Override to do work after the packets processing loop.  Default does nothing.
     virtual void postProcess() { }
 
-    virtual void terminating();
-
 protected:
 
     QVector<NetworkPacket> _packets;
@@ -80,6 +83,12 @@ protected:
 
     QWaitCondition _hasPackets;
     QMutex _waitingOnPacketsMutex;
+
+    quint64 _lastWindowAt = 0;
+    int _lastWindowIncomingPackets = 0;
+    int _lastWindowProcessedPackets = 0;
+    SimpleMovingAverage _incomingPPS;
+    SimpleMovingAverage _processedPPS;
 };
 
 #endif // hifi_ReceivedPacketProcessor_h

@@ -18,19 +18,28 @@ class Line3DOverlay : public Base3DOverlay {
     
 public:
     Line3DOverlay();
+    Line3DOverlay(const Line3DOverlay* line3DOverlay);
     ~Line3DOverlay();
-    virtual void render();
+    virtual void render(RenderArgs* args);
+    virtual AABox getBounds() const;
 
     // getters
+    const glm::vec3& getStart() const { return _start; }
     const glm::vec3& getEnd() const { return _end; }
 
     // setters
+    void setStart(const glm::vec3& start) { _start = start; }
     void setEnd(const glm::vec3& end) { _end = end; }
 
     virtual void setProperties(const QScriptValue& properties);
+    virtual QScriptValue getProperty(const QString& property);
+
+    virtual Line3DOverlay* createClone() const;
 
 protected:
+    glm::vec3 _start;
     glm::vec3 _end;
+    int _geometryCacheID;
 };
 
  

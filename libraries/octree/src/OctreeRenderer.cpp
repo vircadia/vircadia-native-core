@@ -12,8 +12,12 @@
 #include <glm/glm.hpp>
 #include <stdint.h>
 
-#include <SharedUtil.h>
+#include <NumericalConstants.h>
 #include <PerfStat.h>
+#include <RenderArgs.h>
+#include <SharedUtil.h>
+
+#include "OctreeLogging.h"
 #include "OctreeRenderer.h"
 
 OctreeRenderer::OctreeRenderer() :
@@ -48,11 +52,11 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
     bool extraDebugging = false;
     
     if (extraDebugging) {
-        qDebug() << "OctreeRenderer::processDatagram()";
+        qCDebug(octree) << "OctreeRenderer::processDatagram()";
     }
 
     if (!_tree) {
-        qDebug() << "OctreeRenderer::processDatagram() called before init, calling init()...";
+        qCDebug(octree) << "OctreeRenderer::processDatagram() called before init, calling init()...";
         this->init();
     }
 
@@ -64,7 +68,8 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
     unsigned int numBytesPacketHeader = numBytesForPacketHeader(dataByteArray);
     QUuid sourceUUID = uuidFromPacketHeader(dataByteArray);
     PacketType expectedType = getExpectedPacketType();
-    PacketVersion expectedVersion = _tree->expectedVersion(); // TODO: would be better to read this from the packet!
+    // packetVersion is the second byte
+    PacketVersion packetVersion = dataByteArray[1];
     
     if(command == expectedType) {
         PerformanceWarning warn(showTimingDetails, "OctreeRenderer::processDatagram expected PacketType", showTimingDetails);
@@ -92,11 +97,20 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
         unsigned int dataBytes = packetLength - (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE);
 
         if (extraDebugging) {
-            qDebug("OctreeRenderer::processDatagram() ... Got Packet Section"
+            qCDebug(octree, "OctreeRenderer::processDatagram() ... Got Packet Section"
                    " color:%s compressed:%s sequence: %u flight:%d usec size:%u data:%u",
                    debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
                    sequence, flightTime, packetLength, dataBytes);
         }
+        
+        _packetsInLastWindow++;
+        
+        int elementsPerPacket = 0;
+        int entitiesPerPacket = 0;
+        
+        quint64 totalWaitingForLock = 0;
+        quint64 totalUncompress = 0;
+        quint64 totalReadBitsteam = 0;
         
         int subsection = 1;
         while (dataBytes > 0) {
@@ -116,26 +130,76 @@ void OctreeRenderer::processDatagram(const QByteArray& dataByteArray, const Shar
             if (sectionLength) {
                 // ask the VoxelTree to read the bitstream into the tree
                 ReadBitstreamToTreeParams args(packetIsColored ? WANT_COLOR : NO_COLOR, WANT_EXISTS_BITS, NULL, 
-                                                sourceUUID, sourceNode, false, expectedVersion);
+                                                sourceUUID, sourceNode, false, packetVersion);
+                quint64 startLock = usecTimestampNow();
+
+                // FIXME STUTTER - there may be an opportunity to bump this lock outside of the
+                // loop to reduce the amount of locking/unlocking we're doing
                 _tree->lockForWrite();
+                quint64 startUncompress = usecTimestampNow();
                 OctreePacketData packetData(packetIsCompressed);
                 packetData.loadFinalizedContent(dataAt, sectionLength);
                 if (extraDebugging) {
-                    qDebug("OctreeRenderer::processDatagram() ... Got Packet Section"
+                    qCDebug(octree, "OctreeRenderer::processDatagram() ... Got Packet Section"
                            " color:%s compressed:%s sequence: %u flight:%d usec size:%u data:%u"
                            " subsection:%d sectionLength:%d uncompressed:%d",
                            debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
                            sequence, flightTime, packetLength, dataBytes, subsection, sectionLength,
                            packetData.getUncompressedSize());
                 }
+                if (extraDebugging) {
+                    qCDebug(octree) << "OctreeRenderer::processDatagram() ******* START _tree->readBitstreamToTree()...";
+                }
+                quint64 startReadBitsteam = usecTimestampNow();
                 _tree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
+                quint64 endReadBitsteam = usecTimestampNow();
+                if (extraDebugging) {
+                    qCDebug(octree) << "OctreeRenderer::processDatagram() ******* END _tree->readBitstreamToTree()...";
+                }
                 _tree->unlock();
-            
+                
                 dataBytes -= sectionLength;
                 dataAt += sectionLength;
+
+                elementsPerPacket += args.elementsPerPacket;
+                entitiesPerPacket += args.entitiesPerPacket;
+
+                _elementsInLastWindow += args.elementsPerPacket;
+                _entitiesInLastWindow += args.entitiesPerPacket;
+
+                totalWaitingForLock += (startUncompress - startLock);
+                totalUncompress += (startReadBitsteam - startUncompress);
+                totalReadBitsteam += (endReadBitsteam - startReadBitsteam);
+
             }
+            subsection++;
         }
-        subsection++;
+        _elementsPerPacket.updateAverage(elementsPerPacket);
+        _entitiesPerPacket.updateAverage(entitiesPerPacket);
+
+        _waitLockPerPacket.updateAverage(totalWaitingForLock);
+        _uncompressPerPacket.updateAverage(totalUncompress);
+        _readBitstreamPerPacket.updateAverage(totalReadBitsteam);
+        
+        quint64 now = usecTimestampNow();
+        if (_lastWindowAt == 0) {
+            _lastWindowAt = now;
+        }
+        quint64 sinceLastWindow = now - _lastWindowAt;
+        
+        if (sinceLastWindow > USECS_PER_SECOND) {
+            float packetsPerSecondInWindow = (float)_packetsInLastWindow / (float)(sinceLastWindow / USECS_PER_SECOND);
+            float elementsPerSecondInWindow = (float)_elementsInLastWindow / (float)(sinceLastWindow / USECS_PER_SECOND);
+            float entitiesPerSecondInWindow = (float)_entitiesInLastWindow / (float)(sinceLastWindow / USECS_PER_SECOND);
+            _packetsPerSecond.updateAverage(packetsPerSecondInWindow);
+            _elementsPerSecond.updateAverage(elementsPerSecondInWindow);
+            _entitiesPerSecond.updateAverage(entitiesPerSecondInWindow);
+
+            _lastWindowAt = now;
+            _packetsInLastWindow = 0;
+            _elementsInLastWindow = 0;
+            _entitiesInLastWindow = 0;
+        }
     }
 }
 
@@ -155,11 +219,11 @@ bool OctreeRenderer::renderOperation(OctreeElement* element, void* extraData) {
     return false;
 }
 
-void OctreeRenderer::render(RenderMode renderMode) {
-    RenderArgs args = { this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, 0, 0, 0 };
+void OctreeRenderer::render(RenderArgs* renderArgs) {
     if (_tree) {
+        renderArgs->_renderer = this;
         _tree->lockForRead();
-        _tree->recurseTreeWithOperation(renderOperation, &args);
+        _tree->recurseTreeWithOperation(renderOperation, renderArgs);
         _tree->unlock();
     }
 }

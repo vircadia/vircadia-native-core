@@ -1,0 +1,42 @@
+//
+//  Planar3DOverlay.h
+//  interface/src/ui/overlays
+//
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+#ifndef hifi_Planar3DOverlay_h
+#define hifi_Planar3DOverlay_h
+
+// include this before QGLWidget, which includes an earlier version of OpenGL
+#include "InterfaceConfig.h"
+
+#include "Base3DOverlay.h"
+
+class Planar3DOverlay : public Base3DOverlay {
+    Q_OBJECT
+    
+public:
+    Planar3DOverlay() {}
+    Planar3DOverlay(const Planar3DOverlay* planar3DOverlay);
+    
+    AABox getBounds() const;
+    
+    glm::vec2 getDimensions() const { return _dimensions; }
+    void setDimensions(float value) { _dimensions = glm::vec2(value); }
+    void setDimensions(const glm::vec2& value) { _dimensions = value; }
+    
+    virtual void setProperties(const QScriptValue& properties);
+    virtual QScriptValue getProperty(const QString& property);
+
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face);
+    
+protected:
+    glm::vec2 _dimensions{1.0f, 1.0f};
+};
+
+ 
+#endif // hifi_Planar3DOverlay_h

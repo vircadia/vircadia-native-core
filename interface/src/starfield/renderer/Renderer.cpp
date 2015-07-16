@@ -11,6 +11,7 @@
 //
 
 #include "starfield/renderer/Renderer.h"
+#include "Application.h"
 
 using namespace starfield;
 
@@ -52,6 +53,10 @@ void Renderer::render(float perspective, float aspect, mat4 const& orientation, 
     matrix[3][1] = 0.0f;
     matrix[3][2] = 0.0f;
 
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadMatrixf(glm::value_ptr(qApp->getDisplayViewFrustum()->getProjection()));
+    glMatrixMode(GL_MODELVIEW);
     // extract local z vector
     vec3 ahead = vec3(matrix[2]);
 
@@ -74,6 +79,10 @@ void Renderer::render(float perspective, float aspect, mat4 const& orientation, 
     floodFill(cursor, TileSelection(*this, _tileArray, _tileArray + _tiling.getTileCount(), (TileSelection::Cursor*) _batchCountArray));
 
     this->glBatch(glm::value_ptr(matrix), prepareBatch((unsigned*) _batchOffs, _outIndexPos), alpha);
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+
 }
 
 // renderer construction
@@ -212,6 +221,7 @@ void Renderer::glUpload(GLsizei numStars) {
 void Renderer::glBatch(GLfloat const* matrix, GLsizei n_ranges, float alpha) {
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
+    glEnable(GL_BLEND);
 
     // setup modelview matrix
     glPushMatrix();

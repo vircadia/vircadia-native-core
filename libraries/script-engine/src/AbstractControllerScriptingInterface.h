@@ -17,7 +17,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include "EventTypes.h"
+#include "HFActionEvent.h"
+#include "KeyEvent.h"
+#include "MouseEvent.h"
+#include "SpatialEvent.h"
+#include "TouchEvent.h"
+#include "WheelEvent.h"
 
 class AbstractInputController : public QObject {
     Q_OBJECT
@@ -47,6 +52,8 @@ class AbstractControllerScriptingInterface : public QObject {
     Q_OBJECT
 
 public slots:
+    virtual void registerControllerTypes(QScriptEngine* engine) = 0;
+    
     virtual bool isPrimaryButtonPressed() const = 0;
     virtual glm::vec2 getPrimaryJoystickPosition() const = 0;
 
@@ -76,6 +83,9 @@ public slots:
 
     virtual void captureWheelEvents() = 0;
     virtual void releaseWheelEvents() = 0;
+    
+    virtual void captureActionEvents() = 0;
+    virtual void releaseActionEvents() = 0;
 
     virtual void captureJoystick(int joystickIndex) = 0;
     virtual void releaseJoystick(int joystickIndex) = 0;
@@ -88,9 +98,16 @@ public slots:
 signals:
     void keyPressEvent(const KeyEvent& event);
     void keyReleaseEvent(const KeyEvent& event);
+    
+    void actionStartEvent(const HFActionEvent& event);
+    void actionEndEvent(const HFActionEvent& event);
+    
+    void backStartEvent();
+    void backEndEvent();
 
     void mouseMoveEvent(const MouseEvent& event, unsigned int deviceID = 0);
     void mousePressEvent(const MouseEvent& event, unsigned int deviceID = 0);
+    void mouseDoublePressEvent(const MouseEvent& event, unsigned int deviceID = 0);
     void mouseReleaseEvent(const MouseEvent& event, unsigned int deviceID = 0);
 
     void touchBeginEvent(const TouchEvent& event);
@@ -98,6 +115,8 @@ signals:
     void touchUpdateEvent(const TouchEvent& event);
     
     void wheelEvent(const WheelEvent& event);
+    
+    void actionEvent(int action, float state);
 
 };
 

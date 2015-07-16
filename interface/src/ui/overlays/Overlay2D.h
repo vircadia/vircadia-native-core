@@ -14,12 +14,7 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
-#include <QGLWidget>
 #include <QRect>
-#include <QScriptValue>
-#include <QString>
-
-#include <SharedUtil.h> // for xColor
 
 #include "Overlay.h"
 
@@ -27,24 +22,29 @@ class Overlay2D : public Overlay {
     Q_OBJECT
     
 public:
-    Overlay2D();
-    ~Overlay2D();
+    Overlay2D() {}
+    Overlay2D(const Overlay2D* overlay2D);
+    
+    virtual AABox getBounds() const;
+    
+    virtual bool is3D() const { return false; }
 
     // getters
     int getX() const { return _bounds.x(); }
     int getY() const { return _bounds.y(); }
     int getWidth() const { return _bounds.width(); }
     int getHeight() const { return _bounds.height(); }
-    const QRect& getBounds() const { return _bounds; }
-
+    const QRect& getBoundingRect() const { return _bounds; }
+    
     // setters
     void setX(int x) { _bounds.setX(x); }
     void setY(int y) { _bounds.setY(y);  }
     void setWidth(int width) { _bounds.setWidth(width); }
-    void setHeight(int height) {  _bounds.setHeight(height); }
+    void setHeight(int height) { _bounds.setHeight(height); }
     void setBounds(const QRect& bounds) { _bounds = bounds; }
 
     virtual void setProperties(const QScriptValue& properties);
+    virtual QScriptValue getProperty(const QString& property);
 
 protected:
     QRect _bounds; // where on the screen to draw

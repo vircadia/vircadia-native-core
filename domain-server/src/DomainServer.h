@@ -19,6 +19,7 @@
 #include <QtCore/QSharedPointer>
 #include <QtCore/QStringList>
 #include <QtCore/QUrl>
+#include <QAbstractNativeEventFilter>
 
 #include <Assignment.h>
 #include <HTTPSConnection.h>
@@ -33,94 +34,135 @@
 typedef QSharedPointer<Assignment> SharedAssignmentPointer;
 typedef QMultiHash<QUuid, WalletTransaction*> TransactionHash;
 
+
 class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
     Q_OBJECT
 public:
     DomainServer(int argc, char* argv[]);
-    
-    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
-    bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url);
-    
-    void exit(int retCode = 0);
-    
+
+    static int const EXIT_CODE_REBOOT;
+
+    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false);
+    bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url, bool skipSubHandler = false);
+
 public slots:
     /// Called by NodeList to inform us a node has been added
     void nodeAdded(SharedNodePointer node);
     /// Called by NodeList to inform us a node has been killed
     void nodeKilled(SharedNodePointer node);
-    
+
+    void publicKeyJSONCallback(QNetworkReply& requestReply);
     void transactionJSONCallback(const QJsonObject& data);
-    
+
+    void restart();
+
 private slots:
+    void aboutToQuit();
+
     void loginFailed();
     void readAvailableDatagrams();
     void setupPendingAssignmentCredits();
     void sendPendingTransactionsToServer();
+
+    void performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr);
+    void sendHeartbeatToDataServer() { sendHeartbeatToDataServer(QString()); }
+    void sendHeartbeatToIceServer();
+    void handlePeerPingTimeout();
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
     bool optionallySetupOAuth();
     bool optionallyReadX509KeyAndCertificate();
     bool optionallySetupAssignmentPayment();
-    
+
+    bool didSetupAccountManagerWithAccessToken();
+    bool resetAccountManagerAccessToken();
+
+    void setupAutomaticNetworking();
+    void sendHeartbeatToDataServer(const QString& networkAddress);
+    void processICEPingReply(const QByteArray& packet, const HifiSockAddr& senderSockAddr);
+    void processICEPeerInformation(const QByteArray& packet);
+
+    void pingPunchForConnectingPeer(const SharedNetworkPeer& peer);
+
     void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
-    
+
     void handleConnectRequest(const QByteArray& packet, const HifiSockAddr& senderSockAddr);
-    int parseNodeDataFromByteArray(NodeType_t& nodeType, HifiSockAddr& publicSockAddr,
-                                    HifiSockAddr& localSockAddr, const QByteArray& packet, const HifiSockAddr& senderSockAddr);
-    NodeSet nodeInterestListFromPacket(const QByteArray& packet, int numPreceedingBytes);
+    unsigned int countConnectedUsers();
+    bool verifyUsersKey (const QString& username, const QByteArray& usernameSignature, QString& reasonReturn);
+    bool shouldAllowConnectionFromNode(const QString& username, const QByteArray& usernameSignature,
+                                       const HifiSockAddr& senderSockAddr, QString& reasonReturn);
+
+    void preloadAllowedUserPublicKeys();
+    void requestUserPublicKey(const QString& username);
+
+    int parseNodeDataFromByteArray(QDataStream& packetStream,
+                                   NodeType_t& nodeType,
+                                   HifiSockAddr& publicSockAddr,
+                                   HifiSockAddr& localSockAddr,
+                                   const HifiSockAddr& senderSockAddr);
     void sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr& senderSockAddr,
-                              const NodeSet& nodeInterestList);
-    
+                              const NodeSet& nodeInterestSet);
+
+    QUuid connectionSecretForNodes(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB);
+    void broadcastNewNode(const SharedNodePointer& node);
+
     void parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes);
     void addStaticAssignmentToAssignmentHash(Assignment* newAssignment);
-    void createScriptedAssignmentsFromArray(const QJsonArray& configArray);
-    void createStaticAssignmentsForType(Assignment::Type type, const QJsonArray& configArray);
+    void createStaticAssignmentsForType(Assignment::Type type, const QVariantList& configList);
     void populateDefaultStaticAssignmentsExcludingTypes(const QSet<Assignment::Type>& excludedTypes);
-    
+    void populateStaticScriptedAssignmentsFromSettings();
+
     SharedAssignmentPointer matchingQueuedAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType);
     SharedAssignmentPointer deployableAssignmentForRequest(const Assignment& requestAssignment);
     void removeMatchingAssignmentFromQueue(const SharedAssignmentPointer& removableAssignment);
     void refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer& assignment);
     void addStaticAssignmentsToQueue();
-    
+
+    void respondToPathQuery(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
+
     QUrl oauthRedirectURL();
     QUrl oauthAuthorizationURL(const QUuid& stateUUID = QUuid::createUuid());
-    
+
     bool isAuthenticatedRequest(HTTPConnection* connection, const QUrl& url);
 
     void handleTokenRequestFinished();
     QNetworkReply* profileRequestGivenTokenReply(QNetworkReply* tokenReply);
     void handleProfileRequestFinished();
     Headers setupCookieHeadersFromProfileReply(QNetworkReply* profileReply);
-    
+
     void loadExistingSessionsFromSettings();
-    
+
     QJsonObject jsonForSocket(const HifiSockAddr& socket);
     QJsonObject jsonObjectForNode(const SharedNodePointer& node);
-    
+
     HTTPManager _httpManager;
     HTTPSManager* _httpsManager;
-    
+
     QHash<QUuid, SharedAssignmentPointer> _allAssignments;
     QQueue<SharedAssignmentPointer> _unfulfilledAssignments;
     QHash<QUuid, PendingAssignedNodeData*> _pendingAssignedNodes;
     TransactionHash _pendingAssignmentCredits;
-    
-    QVariantMap _argumentVariantMap;
-    
+
     bool _isUsingDTLS;
-    
+
     QUrl _oauthProviderURL;
     QString _oauthClientID;
     QString _oauthClientSecret;
     QString _hostname;
-    QMap<QNetworkReply*, QUuid> _networkReplyUUIDMap;
-    QHash<QUuid, QString> _sessionAuthenticationHash;
-    
+
     QSet<QUuid> _webAuthenticationStateSet;
     QHash<QUuid, DomainServerWebSessionData> _cookieSessionHash;
-    
+
+    QHash<QString, QByteArray> _userPublicKeys;
+
+    QHash<QUuid, SharedNetworkPeer> _icePeers;
+
+    QString _automaticNetworkingSetting;
+
     DomainServerSettingsManager _settingsManager;
+
+    HifiSockAddr _iceServerSocket;
 };
+
 
 #endif // hifi_DomainServer_h

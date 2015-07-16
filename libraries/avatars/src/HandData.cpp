@@ -27,7 +27,7 @@ HandData::HandData(AvatarData* owningAvatar) :
 }
 
 glm::vec3 HandData::worldToLocalVector(const glm::vec3& worldVector) const {
-    return glm::inverse(getBaseOrientation()) * worldVector;
+    return glm::inverse(getBaseOrientation()) * worldVector / getBaseScale();
 }
 
 PalmData& HandData::addNewPalm()  {
@@ -64,11 +64,11 @@ void HandData::getLeftRightPalmIndices(int& leftPalmIndex, int& rightPalmIndex) 
 }
 
 PalmData::PalmData(HandData* owningHandData) :
-_rawRotation(0.f, 0.f, 0.f, 1.f),
-_rawPosition(0.f),
-_rawVelocity(0.f),
-_rotationalVelocity(0.f),
-_totalPenetration(0.f),
+_rawRotation(0.0f, 0.0f, 0.0f, 1.0f),
+_rawPosition(0.0f),
+_rawVelocity(0.0f),
+_rawAngularVelocity(0.0f),
+_totalPenetration(0.0f),
 _controllerButtons(0),
 _isActive(false),
 _sixenseID(SIXENSEID_INVALID),
@@ -108,15 +108,19 @@ glm::quat HandData::getBaseOrientation() const {
 glm::vec3 HandData::getBasePosition() const {
     return _owningAvatarData->getPosition();
 }
+
+float HandData::getBaseScale() const {
+    return _owningAvatarData->getTargetScale();
+}
         
 glm::vec3 PalmData::getFingerDirection() const {
     const glm::vec3 LOCAL_FINGER_DIRECTION(0.0f, 0.0f, 1.0f);
-    return _owningHandData->localToWorldDirection(_rawRotation * LOCAL_FINGER_DIRECTION);
+    return glm::normalize(_owningHandData->localToWorldDirection(_rawRotation * LOCAL_FINGER_DIRECTION));
 }
 
 glm::vec3 PalmData::getNormal() const {
     const glm::vec3 LOCAL_PALM_DIRECTION(0.0f, -1.0f, 0.0f);
-    return _owningHandData->localToWorldDirection(_rawRotation * LOCAL_PALM_DIRECTION);
+    return glm::normalize(_owningHandData->localToWorldDirection(_rawRotation * LOCAL_PALM_DIRECTION));
 }
 
 

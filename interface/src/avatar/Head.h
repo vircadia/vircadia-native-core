@@ -18,17 +18,10 @@
 
 #include <HeadData.h>
 
-#include <VoxelConstants.h>
-
 #include "FaceModel.h"
 #include "InterfaceConfig.h"
 #include "world.h"
 
-enum eyeContactTargets {
-    LEFT_EYE, 
-    RIGHT_EYE, 
-    MOUTH
-};
 
 const float EYE_EAR_GAP = 0.08f;
 
@@ -42,7 +35,7 @@ public:
     void init();
     void reset();
     void simulate(float deltaTime, bool isMine, bool billboard = false);
-    void render(float alpha, Model::RenderMode mode);
+    void render(RenderArgs* renderArgs, float alpha, ViewFrustum* renderFrustum, bool postLighting);
     void setScale(float scale);
     void setPosition(glm::vec3 position) { _position = position; }
     void setAverageLoudness(float averageLoudness) { _averageLoudness = averageLoudness; }
@@ -57,9 +50,11 @@ public:
 
     /// \return orientationBody * orientationBasePitch
     glm::quat getCameraOrientation () const;
-
-    const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
-    void setAngularVelocity(glm::vec3 angularVelocity) { _angularVelocity = angularVelocity; }
+    
+    void setCorrectedLookAtPosition(glm::vec3 correctedLookAtPosition);
+    glm::vec3 getCorrectedLookAtPosition();
+    void clearCorrectedLookAtPosition() { _isLookingAtMe = false; }
+    bool getIsLookingAtMe() { return _isLookingAtMe; }
     
     float getScale() const { return _scale; }
     glm::vec3 getPosition() const { return _position; }
@@ -77,11 +72,12 @@ public:
     const glm::vec3& getLeftEyePosition() const { return _leftEyePosition; }
     glm::vec3 getRightEarPosition() const { return _rightEyePosition + (getRightDirection() * EYE_EAR_GAP) + (getFrontDirection() * -EYE_EAR_GAP); }
     glm::vec3 getLeftEarPosition() const { return _leftEyePosition + (getRightDirection() * -EYE_EAR_GAP) + (getFrontDirection() * -EYE_EAR_GAP); }
+    glm::vec3 getMouthPosition() const { return _eyePosition - getUpDirection() * glm::length(_rightEyePosition - _leftEyePosition); }
 
     FaceModel& getFaceModel() { return _faceModel; }
     const FaceModel& getFaceModel() const { return _faceModel; }
     
-    const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
+    bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() const { return _averageLoudness; }
     /// \return the point about which scaling occurs.
     glm::vec3 getScalePivot() const;
@@ -95,6 +91,9 @@ public:
     void setDeltaRoll(float roll) { _deltaRoll = roll; }
     float getDeltaRoll() const { return _deltaRoll; }
     
+    virtual void setFinalYaw(float finalYaw);
+    virtual void setFinalPitch(float finalPitch);
+    virtual void setFinalRoll(float finalRoll);
     virtual float getFinalPitch() const;
     virtual float getFinalYaw() const;
     virtual float getFinalRoll() const;
@@ -103,7 +102,7 @@ public:
     void addLeanDeltas(float sideways, float forward);
     
 private:
-    glm::vec3 calculateAverageEyePosition() const { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
+    glm::vec3 calculateAverageEyePosition() const { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * 0.5f; }
 
     // disallow copies of the Head, copy of owning Avatar is disallowed too
     Head(const Head&);
@@ -118,8 +117,12 @@ private:
     
     float _scale;
     float _lastLoudness;
+    float _longTermAverageLoudness;
     float _audioAttack;
-    glm::vec3 _angularVelocity;
+    float _audioJawOpen;
+    float _mouth2;
+    float _mouth3;
+    float _mouth4;
     bool _renderLookatVectors;
     glm::vec3 _saccade;
     glm::vec3 _saccadeTarget;
@@ -137,10 +140,18 @@ private:
     float _deltaLeanForward;
 
     bool _isCameraMoving;
+    bool _isLookingAtMe;
     FaceModel _faceModel;
     
+    glm::vec3 _correctedLookAtPosition;
+
+    int _leftEyeLookAtID;
+    int _rightEyeLookAtID;
+    
     // private methods
-    void renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
+    void renderLookatVectors(RenderArgs* renderArgs, glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
+    void calculateMouthShapes();
+    void applyEyelidOffset(glm::quat headOrientation);
 
     friend class FaceModel;
 };

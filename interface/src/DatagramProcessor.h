@@ -19,16 +19,23 @@ class DatagramProcessor : public QObject {
 public:
     DatagramProcessor(QObject* parent = 0);
     
-    int getPacketCount() const { return _packetCount; }
-    int getByteCount() const { return _byteCount; }
+    int getInPacketCount() const { return _inPacketCount; }
+    int getOutPacketCount() const { return _outPacketCount; }
+    int getInByteCount() const { return _inByteCount; }
+    int getOutByteCount() const { return _outByteCount; }
     
-    void resetCounters() { _packetCount = 0; _byteCount = 0; }
+    void resetCounters() { _inPacketCount = 0; _outPacketCount = 0; _inByteCount = 0; _outByteCount = 0; }
+
+    void shutdown() { _isShuttingDown = true; }
 public slots:
     void processDatagrams();
     
 private:
-    int _packetCount;
-    int _byteCount;
+    int _inPacketCount = 0;
+    int _outPacketCount = 0;
+    int _inByteCount = 0;
+    int _outByteCount = 0;
+    bool _isShuttingDown = false;
 };
 
 #endif // hifi_DatagramProcessor_h

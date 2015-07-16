@@ -16,6 +16,7 @@
 #include <QtNetwork/QTcpSocket>
 
 #include "HTTPConnection.h"
+#include "EmbeddedWebserverLogging.h"
 #include "HTTPManager.h"
 
 HTTPManager::HTTPManager(quint16 port, const QString& documentRoot, HTTPRequestHandler* requestHandler, QObject* parent) :
@@ -25,7 +26,7 @@ HTTPManager::HTTPManager(quint16 port, const QString& documentRoot, HTTPRequestH
 {
     // start listening on the passed port
     if (!listen(QHostAddress("0.0.0.0"), port)) {
-        qDebug() << "Failed to open HTTP server socket:" << errorString();
+        qCDebug(embeddedwebserver) << "Failed to open HTTP server socket:" << errorString();
         return;
     }
 }
@@ -40,8 +41,8 @@ void HTTPManager::incomingConnection(qintptr socketDescriptor) {
     }
 }
 
-bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QUrl& url) {
-    if (requestHandledByRequestHandler(connection, url)) {
+bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
+    if (!skipSubHandler && requestHandledByRequestHandler(connection, url)) {
         // this request was handled by our request handler object
         // so we don't need to attempt to do so in the document root
         return true;
@@ -127,7 +128,7 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QUrl& url)
                         
                         replacementString = QString(includedFile.readAll());
                     } else {
-                        qDebug() << "SSI include directive referenced a missing file:" << includeFilePath;
+                        qCDebug(embeddedwebserver) << "SSI include directive referenced a missing file:" << includeFilePath;
                     }
                     
                     // replace the match with the contents of the file, or an empty string if the file was not found

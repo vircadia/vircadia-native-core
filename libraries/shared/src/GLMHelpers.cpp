@@ -11,6 +11,8 @@
 
 #include "GLMHelpers.h"
 
+#include "NumericalConstants.h"
+
 //  Safe version of glm::mix; based on the code in Nick Bobick's article,
 //  http://www.gamasutra.com/features/19980703/quaternions_01.htm (via Clyde,
 //  https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Quaternion.java)
@@ -72,26 +74,27 @@ int unpackFloatVec3FromSignedTwoByteFixed(const unsigned char* sourceBuffer, glm
 
 
 int packFloatAngleToTwoByte(unsigned char* buffer, float degrees) {
-    const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.f);
+    const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.0f);
     
-    uint16_t angleHolder = floorf((degrees + 180.f) * ANGLE_CONVERSION_RATIO);
+    uint16_t angleHolder = floorf((degrees + 180.0f) * ANGLE_CONVERSION_RATIO);
     memcpy(buffer, &angleHolder, sizeof(uint16_t));
     
     return sizeof(uint16_t);
 }
 
 int unpackFloatAngleFromTwoByte(const uint16_t* byteAnglePointer, float* destinationPointer) {
-    *destinationPointer = (*byteAnglePointer / (float) std::numeric_limits<uint16_t>::max()) * 360.f - 180.f;
+    *destinationPointer = (*byteAnglePointer / (float) std::numeric_limits<uint16_t>::max()) * 360.0f - 180.0f;
     return sizeof(uint16_t);
 }
 
 int packOrientationQuatToBytes(unsigned char* buffer, const glm::quat& quatInput) {
-    const float QUAT_PART_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 2.f);
+    glm::quat quatNormalized = glm::normalize(quatInput);
+    const float QUAT_PART_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 2.0f);
     uint16_t quatParts[4];
-    quatParts[0] = floorf((quatInput.x + 1.f) * QUAT_PART_CONVERSION_RATIO);
-    quatParts[1] = floorf((quatInput.y + 1.f) * QUAT_PART_CONVERSION_RATIO);
-    quatParts[2] = floorf((quatInput.z + 1.f) * QUAT_PART_CONVERSION_RATIO);
-    quatParts[3] = floorf((quatInput.w + 1.f) * QUAT_PART_CONVERSION_RATIO);
+    quatParts[0] = floorf((quatNormalized.x + 1.0f) * QUAT_PART_CONVERSION_RATIO);
+    quatParts[1] = floorf((quatNormalized.y + 1.0f) * QUAT_PART_CONVERSION_RATIO);
+    quatParts[2] = floorf((quatNormalized.z + 1.0f) * QUAT_PART_CONVERSION_RATIO);
+    quatParts[3] = floorf((quatNormalized.w + 1.0f) * QUAT_PART_CONVERSION_RATIO);
     
     memcpy(buffer, &quatParts, sizeof(quatParts));
     return sizeof(quatParts);
@@ -101,10 +104,10 @@ int unpackOrientationQuatFromBytes(const unsigned char* buffer, glm::quat& quatO
     uint16_t quatParts[4];
     memcpy(&quatParts, buffer, sizeof(quatParts));
     
-    quatOutput.x = ((quatParts[0] / (float) std::numeric_limits<uint16_t>::max()) * 2.f) - 1.f;
-    quatOutput.y = ((quatParts[1] / (float) std::numeric_limits<uint16_t>::max()) * 2.f) - 1.f;
-    quatOutput.z = ((quatParts[2] / (float) std::numeric_limits<uint16_t>::max()) * 2.f) - 1.f;
-    quatOutput.w = ((quatParts[3] / (float) std::numeric_limits<uint16_t>::max()) * 2.f) - 1.f;
+    quatOutput.x = ((quatParts[0] / (float) std::numeric_limits<uint16_t>::max()) * 2.0f) - 1.0f;
+    quatOutput.y = ((quatParts[1] / (float) std::numeric_limits<uint16_t>::max()) * 2.0f) - 1.0f;
+    quatOutput.z = ((quatParts[2] / (float) std::numeric_limits<uint16_t>::max()) * 2.0f) - 1.0f;
+    quatOutput.w = ((quatParts[3] / (float) std::numeric_limits<uint16_t>::max()) * 2.0f) - 1.0f;
     
     return sizeof(quatParts);
 }
@@ -202,6 +205,13 @@ glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
     return glm::angleAxis(angle, axis);
 }
 
+bool isPointBehindTrianglesPlane(glm::vec3 point, glm::vec3 p0, glm::vec3 p1, glm::vec3 p2) {
+    glm::vec3 v1 = p0 - p1, v2 = p2 - p1; // Non-collinear vectors contained in the plane
+    glm::vec3 n = glm::cross(v1, v2); // Plane's normal vector, pointing out of the triangle
+    float d = -glm::dot(n, p0); // Compute plane's equation constant
+    return (glm::dot(n, point) + d) >= 0;
+}
+
 glm::vec3 extractTranslation(const glm::mat4& matrix) {
     return glm::vec3(matrix[3][0], matrix[3][1], matrix[3][2]);
 }
@@ -228,7 +238,7 @@ glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal) {
             float sd10 = previous[0][1] * previous[2][2] - previous[2][1] * previous[0][2];
             float sd20 = previous[0][1] * previous[1][2] - previous[1][1] * previous[0][2];
             float det = previous[0][0] * sd00 + previous[2][0] * sd20 - previous[1][0] * sd10;
-            if (fabs(det) == 0.0f) {
+            if (fabsf(det) == 0.0f) {
                 // determinant is zero; matrix is not invertible
                 break;
             }
@@ -283,6 +293,11 @@ QByteArray createByteArray(const glm::vec3& vector) {
     return QByteArray::number(vector.x) + ',' + QByteArray::number(vector.y) + ',' + QByteArray::number(vector.z);
 }
 
+QByteArray createByteArray(const glm::quat& quat) {
+    return QByteArray::number(quat.x) + ',' + QByteArray::number(quat.y) + "," + QByteArray::number(quat.z) + ","
+        + QByteArray::number(quat.w);
+}
+
 bool isSimilarOrientation(const glm::quat& orientionA, const glm::quat& orientionB, float similarEnough) {
     // Compute the angular distance between the two orientations
     float angleOrientation = orientionA == orientionB ? 0.0f : glm::degrees(glm::angle(orientionA * glm::inverse(orientionB)));
@@ -297,3 +312,39 @@ bool isSimilarPosition(const glm::vec3& positionA, const glm::vec3& positionB, f
     float positionDistance = glm::distance(positionA, positionB);
     return (positionDistance <= similarEnough);
 }
+
+glm::uvec2 toGlm(const QSize & size) {
+    return glm::uvec2(size.width(), size.height());
+}
+
+glm::ivec2 toGlm(const QPoint & pt) {
+    return glm::ivec2(pt.x(), pt.y());
+}
+
+glm::vec2 toGlm(const QPointF & pt) {
+    return glm::vec2(pt.x(), pt.y());
+}
+
+glm::vec3 toGlm(const xColor & color) {
+    static const float MAX_COLOR = 255.0f;
+    return std::move(glm::vec3(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR));
+}
+
+glm::vec4 toGlm(const QColor & color) {
+    return glm::vec4(color.redF(), color.greenF(), color.blueF(), color.alphaF());
+}
+
+QMatrix4x4 fromGlm(const glm::mat4 & m) {
+  return QMatrix4x4(&m[0][0]).transposed();
+}
+
+QSize fromGlm(const glm::ivec2 & v) {
+    return QSize(v.x, v.y);
+}
+
+QRectF glmToRect(const glm::vec2 & pos, const glm::vec2 & size) {
+    QRectF result(pos.x, pos.y, size.x, size.y);
+    return result;
+}
+
+

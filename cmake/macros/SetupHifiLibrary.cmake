@@ -9,25 +9,27 @@
 
 macro(SETUP_HIFI_LIBRARY)
   
-  project(${TARGET_NAME})
+  project(${TARGET_NAME})  
 
   # grab the implemenation and header files
-  file(GLOB LIB_SRCS src/*.h src/*.cpp)
-  set(LIB_SRCS ${LIB_SRCS})
+  file(GLOB_RECURSE LIB_SRCS "src/*.h" "src/*.cpp")
+  list(APPEND ${TARGET_NAME}_SRCS ${LIB_SRCS})
 
   # create a library and set the property so it can be referenced later
-  add_library(${TARGET_NAME} ${LIB_SRCS} ${AUTOMTC_SRC})
+  if (${${TARGET_NAME}_SHARED})
+    add_library(${TARGET_NAME} SHARED ${LIB_SRCS} ${AUTOMTC_SRC} ${AUTOSCRIBE_SHADER_LIB_SRC} ${QT_RESOURCES_FILE})
+  else ()
+    add_library(${TARGET_NAME} ${LIB_SRCS} ${AUTOMTC_SRC} ${AUTOSCRIBE_SHADER_LIB_SRC} ${QT_RESOURCES_FILE})
+  endif ()
   
-  set(QT_MODULES_TO_LINK ${ARGN})
-  list(APPEND QT_MODULES_TO_LINK Core)
+  set(${TARGET_NAME}_DEPENDENCY_QT_MODULES ${ARGN})
+  list(APPEND ${TARGET_NAME}_DEPENDENCY_QT_MODULES Core)
   
-  find_package(Qt5 COMPONENTS ${QT_MODULES_TO_LINK} REQUIRED)
-  
-  foreach(QT_MODULE ${QT_MODULES_TO_LINK})
-    get_target_property(QT_LIBRARY_LOCATION Qt5::${QT_MODULE} LOCATION)
-    
-    # add the actual path to the Qt module to our LIBRARIES_TO_LINK variable
+  # find these Qt modules and link them to our own target
+  find_package(Qt5 COMPONENTS ${${TARGET_NAME}_DEPENDENCY_QT_MODULES} REQUIRED)
+
+  foreach(QT_MODULE ${${TARGET_NAME}_DEPENDENCY_QT_MODULES})
     target_link_libraries(${TARGET_NAME} Qt5::${QT_MODULE})
-    list(APPEND ${TARGET_NAME}_QT_MODULES_TO_LINK ${QT_LIBRARY_LOCATION})
   endforeach()
+  
 endmacro(SETUP_HIFI_LIBRARY)

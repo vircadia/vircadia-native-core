@@ -10,31 +10,14 @@
 //
 
 #include <GLMHelpers.h>
+#include <PacketHeaders.h>
 
 #include "OctreeConstants.h"
 #include "OctreeQuery.h"
 
-OctreeQuery::OctreeQuery() :
-    NodeData(),
-    _cameraPosition(0,0,0),
-    _cameraOrientation(),
-    _cameraFov(0.0f),
-    _cameraAspectRatio(0.0f),
-    _cameraNearClip(0.0f),
-    _cameraFarClip(0.0f),
-    _wantColor(true),
-    _wantDelta(true),
-    _wantLowResMoving(true),
-    _wantOcclusionCulling(false), // disabled by default
-    _wantCompression(false), // disabled by default
-    _maxOctreePPS(DEFAULT_MAX_OCTREE_PPS),
-    _octreeElementSizeScale(DEFAULT_OCTREE_SIZE_SCALE)
-{
-    
-}
 
-OctreeQuery::~OctreeQuery() {
-    // nothing to do
+OctreeQuery::OctreeQuery() {
+    _maxQueryPPS = DEFAULT_MAX_OCTREE_PPS;
 }
 
 int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
@@ -66,8 +49,8 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
     *destinationBuffer++ = bitItems;
 
     // desired Max Octree PPS
-    memcpy(destinationBuffer, &_maxOctreePPS, sizeof(_maxOctreePPS));
-    destinationBuffer += sizeof(_maxOctreePPS);
+    memcpy(destinationBuffer, &_maxQueryPPS, sizeof(_maxQueryPPS));
+    destinationBuffer += sizeof(_maxQueryPPS);
 
     // desired voxelSizeScale
     memcpy(destinationBuffer, &_octreeElementSizeScale, sizeof(_octreeElementSizeScale));
@@ -110,8 +93,8 @@ int OctreeQuery::parseData(const QByteArray& packet) {
     _wantCompression = oneAtBit(bitItems, WANT_COMPRESSION);
 
     // desired Max Octree PPS
-    memcpy(&_maxOctreePPS, sourceBuffer, sizeof(_maxOctreePPS));
-    sourceBuffer += sizeof(_maxOctreePPS);
+    memcpy(&_maxQueryPPS, sourceBuffer, sizeof(_maxQueryPPS));
+    sourceBuffer += sizeof(_maxQueryPPS);
 
     // desired _octreeElementSizeScale
     memcpy(&_octreeElementSizeScale, sourceBuffer, sizeof(_octreeElementSizeScale));

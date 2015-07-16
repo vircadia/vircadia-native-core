@@ -14,31 +14,43 @@
 
 #include <QtCore/QObject>
 #include <QtNetwork/QNetworkReply>
+#include <QtScript/qscriptengine.h>
 
-class Sound : public QObject {
+#include <ResourceCache.h>
+
+class Sound : public Resource {
     Q_OBJECT
     
-    Q_PROPERTY(bool downloaded READ hasDownloaded)
+    Q_PROPERTY(bool downloaded READ isReady)
 public:
-    Sound(const QUrl& sampleURL, QObject* parent = NULL);
-    Sound(float volume, float frequency, float duration, float decay, QObject* parent = NULL);
-    Sound(const QByteArray byteArray, QObject* parent = NULL);
-    void append(const QByteArray byteArray);
+    Sound(const QUrl& url, bool isStereo = false);
     
-    bool hasDownloaded() const { return _hasDownloaded; }
-    
+    bool isStereo() const { return _isStereo; }    
+    bool isReady() const { return _isReady; }
+     
     const QByteArray& getByteArray() { return _byteArray; }
 
 private:
     QByteArray _byteArray;
-    bool _hasDownloaded;
+    bool _isStereo;
+    bool _isReady;
     
+    void trimFrames();
     void downSample(const QByteArray& rawAudioByteArray);
     void interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray);
-
-private slots:
-    void replyFinished();
-    void replyError(QNetworkReply::NetworkError code);
+    
+    virtual void downloadFinished(QNetworkReply* reply);
 };
+
+typedef QSharedPointer<Sound> SharedSoundPointer;
+
+Q_DECLARE_METATYPE(SharedSoundPointer)
+QScriptValue soundSharedPointerToScriptValue(QScriptEngine* engine, SharedSoundPointer const& in);
+void soundSharedPointerFromScriptValue(const QScriptValue& object, SharedSoundPointer &out);
+
+Q_DECLARE_METATYPE(Sound*)
+QScriptValue soundPointerToScriptValue(QScriptEngine* engine, Sound* const& in);
+void soundPointerFromScriptValue(const QScriptValue& object, Sound* &out);
+
 
 #endif // hifi_Sound_h

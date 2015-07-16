@@ -19,6 +19,6 @@
 const int MAX_FILENAME_LENGTH = 1024;
 const int INTERVALS_PER_SECOND = 60;
 const int OCTREE_SEND_INTERVAL_USECS = (1000 * 1000)/INTERVALS_PER_SECOND;
-const int SENDING_TIME_TO_SPARE = 5 * 1000; // usec of sending interval to spare for calculating voxels
+const int SENDING_TIME_TO_SPARE = 5 * 1000; // usec of sending interval to spare for sending octree elements
 
 #endif // hifi_OctreeServerConsts_h

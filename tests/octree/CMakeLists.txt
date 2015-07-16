@@ -1,10 +1,10 @@
-set(TARGET_NAME octree-tests)
 
-setup_hifi_project(Script Network)
+# Declare dependencies
+macro (setup_testcase_dependencies)
+  # link in the shared libraries
+  link_hifi_libraries(shared octree gpu model fbx networking environment entities avatars audio animation script-engine physics)
 
-include_glm()
+  copy_dlls_beside_windows_executable()
+endmacro ()
 
-# link in the shared libraries
-link_hifi_libraries(animation fbx models networking octree shared)
-
-link_shared_dependencies()
+setup_hifi_testcase(Script Network)

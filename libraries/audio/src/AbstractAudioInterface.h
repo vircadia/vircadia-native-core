@@ -13,16 +13,26 @@
 #define hifi_AbstractAudioInterface_h
 
 #include <QtCore/QObject>
+#include <QtMultimedia/qaudiooutput.h>
+
+#include "AudioInjectorOptions.h"
+
+class AudioInjector;
+class AudioInjectorLocalBuffer;
 
 class AbstractAudioInterface : public QObject {
     Q_OBJECT
 public:
     AbstractAudioInterface(QObject* parent = 0) : QObject(parent) {};
     
-    virtual void startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen) = 0;
-    virtual void startDrumSound(float volume, float frequency, float duration, float decay) = 0;
 public slots:
-    virtual void handleAudioByteArray(const QByteArray& audioByteArray) = 0;
+    virtual bool outputLocalInjector(bool isStereo, AudioInjector* injector) = 0;
+    
+    virtual void enableAudioSourceInject(bool enable) = 0;
+    virtual void selectAudioSourcePinkNoise() = 0;
+    virtual void selectAudioSourceSine440() = 0;
+
+    virtual void setIsStereoInput(bool stereo) = 0;
 };
 
 Q_DECLARE_METATYPE(AbstractAudioInterface*)

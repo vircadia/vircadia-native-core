@@ -16,44 +16,44 @@
 #include <QtCore/QSharedPointer>
 #include <QtCore/QUuid>
 
+#include <memory>
+
+#include <DependencyManager.h>
 #include <Node.h>
 
 #include "AvatarData.h"
+#include <glm/glm.hpp>
 
-typedef QSharedPointer<AvatarData> AvatarSharedPointer;
-typedef QHash<QUuid, AvatarSharedPointer> AvatarHash;
-
-class AvatarHashMap : public QObject {
+class AvatarHashMap : public QObject, public Dependency {
     Q_OBJECT
-public:
-    AvatarHashMap();
+    SINGLETON_DEPENDENCY
     
+public:
     const AvatarHash& getAvatarHash() { return _avatarHash; }
-    int size() const { return _avatarHash.size(); }
-
-    virtual void insert(const QUuid& sessionUUID, AvatarSharedPointer avatar);
+    int size() { return _avatarHash.size(); }
     
 public slots:
     void processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer);
-    bool containsAvatarWithDisplayName(const QString& displayName);
+    bool isAvatarInRange(const glm::vec3 & position, const float range);
     
 private slots:
     void sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID);
     
 protected:
-    virtual AvatarHash::iterator erase(const AvatarHash::iterator& iterator);
-    
-    bool shouldKillAvatar(const AvatarSharedPointer& sharedAvatar);
+    AvatarHashMap();
     
     virtual AvatarSharedPointer newSharedAvatar();
-    AvatarSharedPointer matchingOrNewAvatar(const QUuid& nodeUUID, const QWeakPointer<Node>& mixerWeakPointer);
+    virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
+    virtual void removeAvatar(const QUuid& sessionUUID);
     
+    AvatarHash _avatarHash;
+
+private:
     void processAvatarDataPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
     void processAvatarIdentityPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
     void processAvatarBillboardPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
     void processKillAvatar(const QByteArray& datagram);
 
-    AvatarHash _avatarHash;
     QUuid _lastOwnerSessionUUID;
 };
 

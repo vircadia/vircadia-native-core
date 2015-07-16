@@ -9,8 +9,12 @@
 //
 
 #include <limits>
+#include "NetworkLogging.h"
 #include "SentPacketHistory.h"
 #include <qdebug.h>
+
+
+
 
 SentPacketHistory::SentPacketHistory(int size)
     : _sentPackets(size),
@@ -24,7 +28,7 @@ void SentPacketHistory::packetSent(uint16_t sequenceNumber, const QByteArray& pa
     // the code calling this function
     uint16_t expectedSequenceNumber = _newestSequenceNumber + (uint16_t)1;
     if (sequenceNumber != expectedSequenceNumber) {
-        qDebug() << "Unexpected sequence number passed to SentPacketHistory::packetSent()!"
+        qCDebug(networking) << "Unexpected sequence number passed to SentPacketHistory::packetSent()!"
             << "Expected:" << expectedSequenceNumber << "Actual:" << sequenceNumber;
     }
     _newestSequenceNumber = sequenceNumber;

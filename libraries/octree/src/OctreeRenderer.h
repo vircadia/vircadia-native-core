@@ -18,6 +18,7 @@
 #include <QObject>
 
 #include <PacketHeaders.h>
+#include <RenderArgs.h>
 #include <SharedUtil.h>
 
 #include "Octree.h"
@@ -25,7 +26,6 @@
 #include "ViewFrustum.h"
 
 class OctreeRenderer;
-class RenderArgs;
 
 
 // Generic client side Octree renderer class.
@@ -35,7 +35,6 @@ public:
     OctreeRenderer();
     virtual ~OctreeRenderer();
 
-    virtual Octree* createTree() = 0;
     virtual char getMyNodeType() const = 0;
     virtual PacketType getMyQueryMessageType() const = 0;
     virtual PacketType getExpectedPacketType() const = 0;
@@ -51,10 +50,8 @@ public:
     /// initialize and GPU/rendering related resources
     virtual void init();
 
-    enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE };
-
     /// render the content of the octree
-    virtual void render(RenderMode renderMode = DEFAULT_RENDER_MODE);
+    virtual void render(RenderArgs* renderArgs);
 
     ViewFrustum* getViewFrustum() const { return _viewFrustum; }
     void setViewFrustum(ViewFrustum* viewFrustum) { _viewFrustum = viewFrustum; }
@@ -63,24 +60,41 @@ public:
 
     /// clears the tree
     virtual void clear();
+
+    float getAverageElementsPerPacket() const { return _elementsPerPacket.getAverage(); }
+    float getAverageEntitiesPerPacket() const { return _entitiesPerPacket.getAverage(); }
+
+    float getAveragePacketsPerSecond() const { return _packetsPerSecond.getAverage(); }
+    float getAverageElementsPerSecond() const { return _elementsPerSecond.getAverage(); }
+    float getAverageEntitiesPerSecond() const { return _entitiesPerSecond.getAverage(); }
+
+    float getAverageWaitLockPerPacket() const { return _waitLockPerPacket.getAverage(); }
+    float getAverageUncompressPerPacket() const { return _uncompressPerPacket.getAverage(); }
+    float getAverageReadBitstreamPerPacket() const { return _readBitstreamPerPacket.getAverage(); }
+    
 protected:
+    virtual Octree* createTree() = 0;
+
     Octree* _tree;
     bool _managedTree;
     ViewFrustum* _viewFrustum;
+
+    SimpleMovingAverage _elementsPerPacket;
+    SimpleMovingAverage _entitiesPerPacket;
+
+    SimpleMovingAverage _packetsPerSecond;
+    SimpleMovingAverage _elementsPerSecond;
+    SimpleMovingAverage _entitiesPerSecond;
+
+    SimpleMovingAverage _waitLockPerPacket;
+    SimpleMovingAverage _uncompressPerPacket;
+    SimpleMovingAverage _readBitstreamPerPacket;
+
+    quint64 _lastWindowAt = 0;
+    int _packetsInLastWindow = 0;
+    int _elementsInLastWindow = 0;
+    int _entitiesInLastWindow = 0;
+
 };
-
-class RenderArgs {
-public:
-    OctreeRenderer* _renderer;
-    ViewFrustum* _viewFrustum;
-    float _sizeScale;
-    int _boundaryLevelAdjust;
-    OctreeRenderer::RenderMode _renderMode;
-
-    int _elementsTouched;
-    int _itemsRendered;
-    int _itemsOutOfView;
-};
-
 
 #endif // hifi_OctreeRenderer_h

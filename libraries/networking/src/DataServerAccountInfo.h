@@ -14,6 +14,7 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QUuid>
+#include <QtNetwork/qnetworkreply.h>
 
 #include "OAuthAccessToken.h"
 
@@ -27,6 +28,7 @@ public:
     DataServerAccountInfo& operator=(const DataServerAccountInfo& otherInfo);
 
     const OAuthAccessToken& getAccessToken() const { return _accessToken; }
+    void setAccessToken(const OAuthAccessToken& accessToken) { _accessToken = accessToken; }
     void setAccessTokenFromJSON(const QJsonObject& jsonObject);
 
     const QString& getUsername() const { return _username; }
@@ -40,13 +42,17 @@ public:
     
     const QUuid& getWalletID() const { return _walletID; }
     void setWalletID(const QUuid& walletID);
+    
+    const QByteArray& getUsernameSignature();
+    bool hasPrivateKey() const { return !_privateKey.isEmpty(); }
+    void setPrivateKey(const QByteArray& privateKey);
 
     qint64 getBalance() const { return _balance; }
     float getBalanceInSatoshis() const { return _balance / SATOSHIS_PER_CREDIT; }
     void setBalance(qint64 balance);
     bool hasBalance() const { return _hasBalance; }
     void setHasBalance(bool hasBalance) { _hasBalance = hasBalance; }
-    Q_INVOKABLE void setBalanceFromJSON(const QJsonObject& jsonObject);
+    Q_INVOKABLE void setBalanceFromJSON(QNetworkReply& requestReply);
 
     bool hasProfile() const;
 
@@ -66,6 +72,8 @@ private:
     QUuid _walletID;
     qint64 _balance;
     bool _hasBalance;
+    QByteArray _privateKey;
+    QByteArray _usernameSignature;
 };
 
 #endif // hifi_DataServerAccountInfo_h

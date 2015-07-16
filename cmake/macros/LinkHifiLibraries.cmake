@@ -16,6 +16,7 @@ macro(LINK_HIFI_LIBRARIES)
   foreach(HIFI_LIBRARY ${LIBRARIES_TO_LINK})    
     if (NOT TARGET ${HIFI_LIBRARY})
       add_subdirectory("${RELATIVE_LIBRARY_DIR_PATH}/${HIFI_LIBRARY}" "${RELATIVE_LIBRARY_DIR_PATH}/${HIFI_LIBRARY}")
+      set_target_properties(${HIFI_LIBRARY} PROPERTIES FOLDER "Libraries")
     endif ()
   
     include_directories("${HIFI_LIBRARY_DIR}/${HIFI_LIBRARY}/src")
@@ -25,10 +26,11 @@ macro(LINK_HIFI_LIBRARIES)
     # link the actual library - it is static so don't bubble it up
     target_link_libraries(${TARGET_NAME} ${HIFI_LIBRARY})
     
-    # ask the library what its dynamic dependencies are and link them
-    get_target_property(LINKED_TARGET_DEPENDENCY_LIBRARIES ${HIFI_LIBRARY} DEPENDENCY_LIBRARIES)
-    list(APPEND ${TARGET_NAME}_LIBRARIES_TO_LINK ${LINKED_TARGET_DEPENDENCY_LIBRARIES})
-    
+    # ask the library what its include dependencies are and link them
+    get_target_property(LINKED_TARGET_DEPENDENCY_INCLUDES ${HIFI_LIBRARY} DEPENDENCY_INCLUDES)
+
+    if(LINKED_TARGET_DEPENDENCY_INCLUDES)
+      list(APPEND ${TARGET_NAME}_DEPENDENCY_INCLUDES ${LINKED_TARGET_DEPENDENCY_INCLUDES})
+    endif()
   endforeach()
-  
 endmacro(LINK_HIFI_LIBRARIES)

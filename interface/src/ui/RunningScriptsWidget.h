@@ -18,15 +18,14 @@
 #include <QSortFilterProxyModel>
 
 #include "ScriptsModel.h"
-#include "FramelessDialog.h"
+#include "ScriptsModelFilter.h"
 #include "ScriptsTableWidget.h"
 
 namespace Ui {
     class RunningScriptsWidget;
 }
 
-class RunningScriptsWidget : public FramelessDialog
-{
+class RunningScriptsWidget : public QWidget {
     Q_OBJECT
 public:
     explicit RunningScriptsWidget(QWidget* parent = NULL);
@@ -34,8 +33,10 @@ public:
 
     void setRunningScripts(const QStringList& list);
 
+    const ScriptsModel* getScriptsModel() { return &_scriptsModel; }
+
 signals:
-    void stopScriptName(const QString& name);
+    void stopScriptName(const QString& name, bool restart = false);
 
 protected:
     virtual bool eventFilter(QObject* sender, QEvent* event);
@@ -45,8 +46,10 @@ protected:
 
 public slots:
     void scriptStopped(const QString& scriptName);
-    void setBoundary(const QRect& rect);
-
+    QVariantList getRunning();
+    QVariantList getPublic();
+    QVariantList getLocal();
+    
 private slots:
     void allScriptsStopped();
     void updateFileFilter(const QString& filter);
@@ -56,13 +59,15 @@ private slots:
 
 private:
     Ui::RunningScriptsWidget* ui;
-    QSignalMapper _signalMapper;
-    QSortFilterProxyModel _proxyModel;
+    QSignalMapper _reloadSignalMapper;
+    QSignalMapper _stopSignalMapper;
+    ScriptsModelFilter _scriptsModelFilter;
     ScriptsModel _scriptsModel;
     ScriptsTableWidget* _recentlyLoadedScriptsTable;
     QStringList _recentlyLoadedScripts;
     QString _lastStoppedScript;
-    QRect _boundary;
+
+    QVariantList getPublicChildNodes(TreeNodeFolder* parent);
 };
 
 #endif // hifi_RunningScriptsWidget_h

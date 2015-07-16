@@ -11,10 +11,10 @@
 
 #include "InterfaceConfig.h"
 
-#include <QOpenGLFramebufferObject>
-
 #include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
+#include "gpu/GLBackend.h"
 #include "Application.h"
 
 #include "TV3DManager.h"
@@ -25,6 +25,7 @@ int TV3DManager::_screenHeight = 1;
 double TV3DManager::_aspect = 1.0;
 eyeFrustum TV3DManager::_leftEye;
 eyeFrustum TV3DManager::_rightEye;
+eyeFrustum* TV3DManager::_activeEye = NULL;
 
 
 bool TV3DManager::isConnected() {
@@ -32,12 +33,8 @@ bool TV3DManager::isConnected() {
 }
 
 void TV3DManager::connect() {
-    Application* app = Application::getInstance();
-    int width = app->getGLWidget()->width();
-    int height = app->getGLWidget()->height();
-    Camera& camera = *app->getCamera();
-
-    configureCamera(camera, width, height);
+    auto deviceSize = qApp->getDeviceSize();
+    configureCamera(*(qApp->getCamera()), deviceSize.width(), deviceSize.height());
 }
 
 
@@ -46,9 +43,9 @@ void TV3DManager::connect() {
 void TV3DManager::setFrustum(Camera& whichCamera) {
     const double DTR = 0.0174532925; // degree to radians
     const double IOD = 0.05; //intraocular distance
-    double fovy = whichCamera.getFieldOfView(); // field of view in y-axis
-    double nearZ = whichCamera.getNearClip(); // near clipping plane
-    double screenZ = Application::getInstance()->getViewFrustum()->getFocalLength(); // screen projection plane
+    double fovy = DEFAULT_FIELD_OF_VIEW_DEGREES; // field of view in y-axis
+    double nearZ = DEFAULT_NEAR_CLIP; // near clipping plane
+    double screenZ = 0.25f; // screen projection plane
 
     double top = nearZ * tan(DTR * fovy / 2.0); //sets top of frustum based on fovy and near clipping plane
     double right = _aspect * top; // sets right of frustum based on aspect ratio
@@ -83,91 +80,84 @@ void TV3DManager::configureCamera(Camera& whichCamera, int screenWidth, int scre
     glLoadIdentity();
 }
 
-void TV3DManager::display(Camera& whichCamera) {
-    double nearZ = whichCamera.getNearClip(); // near clipping plane
-    double farZ = whichCamera.getFarClip(); // far clipping plane
+void TV3DManager::display(RenderArgs* renderArgs, Camera& whichCamera) {
+
+#ifdef THIS_CURRENTLY_BROKEN_WAITING_FOR_DISPLAY_PLUGINS 
+
+    double nearZ = DEFAULT_NEAR_CLIP; // near clipping plane
+    double farZ = DEFAULT_FAR_CLIP; // far clipping plane
 
     // left eye portal
     int portalX = 0;
     int portalY = 0;
-    int portalW = Application::getInstance()->getGLWidget()->width() / 2;
-    int portalH = Application::getInstance()->getGLWidget()->height();
+    QSize deviceSize = qApp->getDeviceSize() *
+        qApp->getRenderResolutionScale();
+    int portalW = deviceSize.width() / 2;
+    int portalH = deviceSize.height();
 
-    const bool glowEnabled = Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect);
 
-    ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
-
-    // We only need to render the overlays to a texture once, then we just render the texture as a quad
-    // PrioVR will only work if renderOverlay is called, calibration is connected to Application::renderingOverlay() 
-    applicationOverlay.renderOverlay(true);
-    const bool displayOverlays = Menu::getInstance()->isOptionChecked(MenuOption::UserInterface);
-
-    if (glowEnabled) {
-        Application::getInstance()->getGlowEffect()->prepare();
-    }
-
+    // FIXME - glow effect is removed, 3D TV mode broken until we get display plugins working
+    DependencyManager::get<GlowEffect>()->prepare(renderArgs);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glEnable(GL_SCISSOR_TEST);
-    // render left side view
-    glViewport(portalX, portalY, portalW, portalH);
-    glScissor(portalX, portalY, portalW, portalH);
+    Camera eyeCamera;
+    eyeCamera.setRotation(whichCamera.getRotation());
+    eyeCamera.setPosition(whichCamera.getPosition());
 
+    glEnable(GL_SCISSOR_TEST);
     glPushMatrix();
-    {
+    forEachEye([&](eyeFrustum& eye){
+        _activeEye = &eye;
+        glViewport(portalX, portalY, portalW, portalH);
+        glScissor(portalX, portalY, portalW, portalH);
+        renderArgs->_viewport = glm::ivec4(portalX, portalY, portalW, portalH);
+
+        glm::mat4 projection = glm::frustum<float>(eye.left, eye.right, eye.bottom, eye.top, nearZ, farZ);
+        projection = glm::translate(projection, vec3(eye.modelTranslation, 0, 0));
+        eyeCamera.setProjection(projection);
+
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity(); // reset projection matrix
+        glLoadMatrixf(glm::value_ptr(projection));
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+        renderArgs->_renderSide = RenderArgs::MONO;
         
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity(); // reset projection matrix
-        glFrustum(_leftEye.left, _leftEye.right, _leftEye.bottom, _leftEye.top, nearZ, farZ); // set left view frustum
-        GLfloat p[4][4];
-        glGetFloatv(GL_PROJECTION_MATRIX, &(p[0][0]));
-        GLfloat cotangent = p[1][1];
-        GLfloat fov = atan(1.0f / cotangent);
-        glTranslatef(_leftEye.modelTranslation, 0.0, 0.0); // translate to cancel parallax
-
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
-        Application::getInstance()->displaySide(whichCamera);
-
-        if (displayOverlays) {
-            applicationOverlay.displayOverlayTexture3DTV(whichCamera, _aspect, fov);
-        }
-    }
+        qApp->displaySide(renderArgs, eyeCamera, false);
+        qApp->getApplicationCompositor().displayOverlayTexture(renderArgs);
+        _activeEye = NULL;
+    }, [&]{
+        // render right side view
+        portalX = deviceSize.width() / 2;
+    });
     glPopMatrix();
     glDisable(GL_SCISSOR_TEST);
 
-    // render right side view
-    portalX = Application::getInstance()->getGLWidget()->width() / 2;
-    glEnable(GL_SCISSOR_TEST);
-    // render left side view
-    glViewport(portalX, portalY, portalW, portalH);
-    glScissor(portalX, portalY, portalW, portalH);
-    glPushMatrix();
-    {
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity(); // reset projection matrix
-        glFrustum(_rightEye.left, _rightEye.right, _rightEye.bottom, _rightEye.top, nearZ, farZ); // set left view frustum
-        GLfloat p[4][4];
-        glGetFloatv(GL_PROJECTION_MATRIX, &(p[0][0]));
-        GLfloat cotangent = p[1][1];
-        GLfloat fov = atan(1.0f / cotangent);
-        glTranslatef(_rightEye.modelTranslation, 0.0, 0.0); // translate to cancel parallax
+    // FIXME - glow effect is removed, 3D TV mode broken until we get display plugins working
+    auto finalFbo = DependencyManager::get<GlowEffect>()->render(renderArgs);
+    auto fboSize = finalFbo->getSize();
+    // Get the ACTUAL device size for the BLIT
+    deviceSize = qApp->getDeviceSize();
 
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
-        Application::getInstance()->displaySide(whichCamera);
-
-        if (displayOverlays) {
-            applicationOverlay.displayOverlayTexture3DTV(whichCamera, _aspect, fov);
-        }
-    }
-    glPopMatrix();
-    glDisable(GL_SCISSOR_TEST);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0, 0, fboSize.x, fboSize.y,
+                      0, 0, deviceSize.width(), deviceSize.height(),
+                        GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
     // reset the viewport to how we started
-    glViewport(0, 0, Application::getInstance()->getGLWidget()->width(), Application::getInstance()->getGLWidget()->height());
+    glViewport(0, 0, deviceSize.width(), deviceSize.height());
 
-    if (glowEnabled) {
-        Application::getInstance()->getGlowEffect()->render();
+#endif 
+}
+
+void TV3DManager::overrideOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
+        float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) {
+    if (_activeEye) {
+        left = _activeEye->left;
+        right = _activeEye->right;
+        bottom = _activeEye->bottom;
+        top = _activeEye->top;
     }
 }

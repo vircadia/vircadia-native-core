@@ -15,9 +15,9 @@
 
 #include "StreamUtils.h"
 
-const char* hex_digits = "0123456789abcdef";
 
 void StreamUtil::dump(std::ostream& s, const QByteArray& buffer) {
+    const char* hex_digits = "0123456789abcdef";
     int row_size = 32;
     int i = 0;
     while (i < buffer.size()) {
@@ -66,7 +66,9 @@ QDataStream& operator>>(QDataStream& in, glm::quat& quaternion) {
 }
 
 // less common utils can be enabled with DEBUG
-#ifdef DEBUG
+// FIXME, remove the second defined clause once these compile, or remove the
+// functions.
+#if defined(DEBUG) && defined(FIXED_STREAMS)
 
 std::ostream& operator<<(std::ostream& s, const CollisionInfo& c) {
     s << "{penetration=" << c._penetration 
@@ -86,7 +88,7 @@ std::ostream& operator<<(std::ostream& s, const SphereShape& sphere) {
 std::ostream& operator<<(std::ostream& s, const CapsuleShape& capsule) {
     s << "{type='capsule', center=" << capsule.getPosition()
         << ", radius=" << capsule.getRadius()
-        << ", length=" << (2.f * capsule.getHalfHeight())
+        << ", length=" << (2.0f * capsule.getHalfHeight())
         << ", begin=" << capsule.getStartPoint()
         << ", end=" << capsule.getEndPoint()
         << "}";
@@ -98,11 +100,29 @@ std::ostream& operator<<(std::ostream& s, const CapsuleShape& capsule) {
 #ifndef QT_NO_DEBUG_STREAM
 #include <QDebug>
 
+QDebug& operator<<(QDebug& dbg, const glm::vec2& v) {
+    dbg.nospace() << "{type='glm::vec2'"
+        ", x=" << v.x <<
+        ", y=" << v.y <<
+        "}";
+    return dbg;
+}
+
 QDebug& operator<<(QDebug& dbg, const glm::vec3& v) {
     dbg.nospace() << "{type='glm::vec3'"
         ", x=" << v.x <<
         ", y=" << v.y <<
         ", z=" << v.z <<
+        "}";
+    return dbg;
+}
+
+QDebug& operator<<(QDebug& dbg, const glm::vec4& v) {
+    dbg.nospace() << "{type='glm::vec4'"
+        ", x=" << v.x <<
+        ", y=" << v.y <<
+        ", z=" << v.z <<
+        ", w=" << v.w <<
         "}";
     return dbg;
 }
@@ -123,6 +143,14 @@ QDebug& operator<<(QDebug& dbg, const glm::mat4& m) {
         dbg << ' ' << m[0][j] << ' ' << m[1][j] << ' ' << m[2][j] << ' ' << m[3][j] << ';';
     }
     return dbg << " ]}";
+}
+
+QDebug& operator<<(QDebug& dbg, const QVariantHash& v) {
+    dbg.nospace() << "[";
+    for (QVariantHash::const_iterator it = v.constBegin(); it != v.constEnd(); it++) {
+        dbg << it.key() << ":" << it.value();
+    }
+    return dbg << " ]";
 }
 
 #endif // QT_NO_DEBUG_STREAM

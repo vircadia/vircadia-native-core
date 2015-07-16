@@ -9,14 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QtCore/QSettings>
-#include <QtCore/QString>
-#include <QtCore/QStringList>
+#include <QSettings>
+#include <QString>
+#include <QStringList>
 #include <QDebug>
 
+#include <DependencyManager.h>
+#include <NodeList.h>
 #include <PacketHeaders.h>
 #include <OctalCode.h>
 
+#include "OctreeLogging.h"
 #include "JurisdictionMap.h"
 
 
@@ -26,23 +29,6 @@ JurisdictionMap& JurisdictionMap::operator=(const JurisdictionMap& other) {
     copyContents(other);
     return *this;
 }
-
-#ifdef HAS_MOVE_SEMANTICS
-// Move constructor
-JurisdictionMap::JurisdictionMap(JurisdictionMap&& other) : _rootOctalCode(NULL) {
-    init(other._rootOctalCode, other._endNodes);
-    other._rootOctalCode = NULL;
-    other._endNodes.clear();
-}
-
-// move assignment
-JurisdictionMap& JurisdictionMap::operator=(JurisdictionMap&& other) {
-    init(other._rootOctalCode, other._endNodes);
-    other._rootOctalCode = NULL;
-    other._endNodes.clear();
-    return *this;
-}
-#endif
 
 // Copy constructor
 JurisdictionMap::JurisdictionMap(const JurisdictionMap& other) : _rootOctalCode(NULL) {
@@ -148,12 +134,12 @@ void myDebugPrintOctalCode(const unsigned char* octalCode, bool withNewLine) {
 
 JurisdictionMap::JurisdictionMap(const char* rootHexCode, const char* endNodesHexCodes) {
 
-    qDebug("JurisdictionMap::JurisdictionMap(const char* rootHexCode=[%p] %s, const char* endNodesHexCodes=[%p] %s)",
+    qCDebug(octree, "JurisdictionMap::JurisdictionMap(const char* rootHexCode=[%p] %s, const char* endNodesHexCodes=[%p] %s)",
         rootHexCode, rootHexCode, endNodesHexCodes, endNodesHexCodes);
 
     _rootOctalCode = hexStringToOctalCode(QString(rootHexCode));
 
-    qDebug("JurisdictionMap::JurisdictionMap() _rootOctalCode=%p octalCode=", _rootOctalCode);
+    qCDebug(octree, "JurisdictionMap::JurisdictionMap() _rootOctalCode=%p octalCode=", _rootOctalCode);
     myDebugPrintOctalCode(_rootOctalCode, true);
     
     QString endNodesHexStrings(endNodesHexCodes);
@@ -165,13 +151,13 @@ JurisdictionMap::JurisdictionMap(const char* rootHexCode, const char* endNodesHe
 
         unsigned char* endNodeOctcode = hexStringToOctalCode(endNodeHexString);
         
-        qDebug("JurisdictionMap::JurisdictionMap()  endNodeList(%d)=%s",
+        qCDebug(octree, "JurisdictionMap::JurisdictionMap()  endNodeList(%d)=%s",
             i, endNodeHexString.toLocal8Bit().constData());
         
         //printOctalCode(endNodeOctcode);
         _endNodes.push_back(endNodeOctcode);
 
-        qDebug("JurisdictionMap::JurisdictionMap() endNodeOctcode=%p octalCode=", endNodeOctcode);
+        qCDebug(octree, "JurisdictionMap::JurisdictionMap() endNodeOctcode=%p octalCode=", endNodeOctcode);
         myDebugPrintOctalCode(endNodeOctcode, true);
 
     }    
@@ -209,10 +195,10 @@ JurisdictionMap::Area JurisdictionMap::isMyJurisdiction(const unsigned char* nod
 
 
 bool JurisdictionMap::readFromFile(const char* filename) {
-    QString     settingsFile(filename);
-    QSettings   settings(settingsFile, QSettings::IniFormat);
-    QString     rootCode = settings.value("root","00").toString();
-    qDebug() << "rootCode=" << rootCode;
+    QString settingsFile(filename);
+    QSettings settings(settingsFile, QSettings::IniFormat);
+    QString rootCode = settings.value("root","00").toString();
+    qCDebug(octree) << "rootCode=" << rootCode;
 
     _rootOctalCode = hexStringToOctalCode(rootCode);
     printOctalCode(_rootOctalCode);
@@ -223,7 +209,7 @@ bool JurisdictionMap::readFromFile(const char* filename) {
     foreach (const QString &childKey, childKeys) {
         QString childValue = settings.value(childKey).toString();
         values.insert(childKey, childValue);
-        qDebug() << childKey << "=" << childValue;
+        qCDebug(octree) << childKey << "=" << childValue;
 
         unsigned char* octcode = hexStringToOctalCode(childValue);
         printOctalCode(octcode);
@@ -237,11 +223,11 @@ bool JurisdictionMap::readFromFile(const char* filename) {
 void JurisdictionMap::displayDebugDetails() const {
     QString rootNodeValue = octalCodeToHexString(_rootOctalCode);
 
-    qDebug() << "root:" << rootNodeValue;
+    qCDebug(octree) << "root:" << rootNodeValue;
     
     for (size_t i = 0; i < _endNodes.size(); i++) {
         QString value = octalCodeToHexString(_endNodes[i]);
-        qDebug() << "End node[" << i << "]: " << rootNodeValue;
+        qCDebug(octree) << "End node[" << i << "]: " << rootNodeValue;
     }
 }
 
@@ -267,8 +253,9 @@ bool JurisdictionMap::writeToFile(const char* filename) {
 
 int JurisdictionMap::packEmptyJurisdictionIntoMessage(NodeType_t type, unsigned char* destinationBuffer, int availableBytes) {
     unsigned char* bufferStart = destinationBuffer;
-    
-    int headerLength = populatePacketHeader(reinterpret_cast<char*>(destinationBuffer), PacketTypeJurisdiction);
+
+    int headerLength = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(destinationBuffer), 
+                                                                                 PacketTypeJurisdiction);
     destinationBuffer += headerLength;
 
     // Pack the Node Type in first byte
@@ -286,7 +273,8 @@ int JurisdictionMap::packEmptyJurisdictionIntoMessage(NodeType_t type, unsigned 
 int JurisdictionMap::packIntoMessage(unsigned char* destinationBuffer, int availableBytes) {
     unsigned char* bufferStart = destinationBuffer;
     
-    int headerLength = populatePacketHeader(reinterpret_cast<char*>(destinationBuffer), PacketTypeJurisdiction);
+    int headerLength = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(destinationBuffer), 
+                                                                                PacketTypeJurisdiction);
     destinationBuffer += headerLength;
 
     // Pack the Node Type in first byte

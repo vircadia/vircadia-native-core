@@ -1,4 +1,4 @@
 set(TARGET_NAME mtc)
 setup_hifi_project()
 
-link_shared_dependencies()
+copy_dlls_beside_windows_executable()

@@ -12,47 +12,47 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QEventLoop>
 #include <QtCore/QStandardPaths>
-#include <QtCore/QTimer>
 #include <QtNetwork/QNetworkDiskCache>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 
-#include <AudioRingBuffer.h>
-#include <AvatarData.h>
+#include <AvatarHashMap.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <ResourceCache.h>
+#include <SoundCache.h>
 #include <UUID.h>
-#include <VoxelConstants.h>
 
-#include <ParticlesScriptingInterface.h> // TODO: consider moving to scriptengine.h
-#include <ModelsScriptingInterface.h> // TODO: consider moving to scriptengine.h
+#include <EntityScriptingInterface.h> // TODO: consider moving to scriptengine.h
 
 #include "avatars/ScriptableAvatar.h"
 
 #include "Agent.h"
 
+static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
+
 Agent::Agent(const QByteArray& packet) :
     ThreadedAssignment(packet),
-    _voxelEditSender(),
-    _particleEditSender(),
-    _modelEditSender(),
-    _receivedAudioStream(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, 1, false, 1, 0, false),
-    _avatarHashMap()
+    _entityEditSender(),
+    _receivedAudioStream(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES,
+        InboundAudioStream::Settings(0, false, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, false,
+        DEFAULT_WINDOW_STARVE_THRESHOLD, DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES,
+        DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION, false))
 {
     // be the parent of the script engine so it gets moved when we do
     _scriptEngine.setParent(this);
     
-    _scriptEngine.getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
-    _scriptEngine.getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
-    _scriptEngine.getModelsScriptingInterface()->setPacketSender(&_modelEditSender);
+    DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
+
+    DependencyManager::set<ResourceCacheSharedItems>();
+    DependencyManager::set<SoundCache>();
 }
 
 void Agent::readPendingDatagrams() {
     QByteArray receivedPacket;
     HifiSockAddr senderSockAddr;
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     
     while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
         if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
@@ -66,49 +66,16 @@ void Agent::readPendingDatagrams() {
                 if (matchedNode) {
                     // PacketType_JURISDICTION, first byte is the node type...
                     switch (receivedPacket[headerBytes]) {
-                        case NodeType::VoxelServer:
-                            _scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener()->
-                                                                queueReceivedPacket(matchedNode,receivedPacket);
-                            break;
-                        case NodeType::ParticleServer:
-                            _scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener()->
-                                                                queueReceivedPacket(matchedNode, receivedPacket);
-                            break;
-                        case NodeType::ModelServer:
-                            _scriptEngine.getModelsScriptingInterface()->getJurisdictionListener()->
-                                                                queueReceivedPacket(matchedNode, receivedPacket);
+                        case NodeType::EntityServer:
+                            DependencyManager::get<EntityScriptingInterface>()->getJurisdictionListener()->
+                                queueReceivedPacket(matchedNode, receivedPacket);
                             break;
                     }
                 }
                 
-            } else if (datagramPacketType == PacketTypeParticleAddResponse) {
-                // this will keep creatorTokenIDs to IDs mapped correctly
-                Particle::handleAddParticleResponse(receivedPacket);
-                
-                // also give our local particle tree a chance to remap any internal locally created particles
-                _particleViewer.getTree()->handleAddParticleResponse(receivedPacket);
-
-                // Make sure our Node and NodeList knows we've heard from this node.
-                SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);
-                sourceNode->setLastHeardMicrostamp(usecTimestampNow());
-
-            } else if (datagramPacketType == PacketTypeModelAddResponse) {
-                // this will keep creatorTokenIDs to IDs mapped correctly
-                ModelItem::handleAddModelResponse(receivedPacket);
-                
-                // also give our local particle tree a chance to remap any internal locally created particles
-                _modelViewer.getTree()->handleAddModelResponse(receivedPacket);
-
-                // Make sure our Node and NodeList knows we've heard from this node.
-                SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);
-                sourceNode->setLastHeardMicrostamp(usecTimestampNow());
-
-            } else if (datagramPacketType == PacketTypeParticleData
-                        || datagramPacketType == PacketTypeParticleErase
-                        || datagramPacketType == PacketTypeOctreeStats
-                        || datagramPacketType == PacketTypeVoxelData
-                        || datagramPacketType == PacketTypeModelData
-                        || datagramPacketType == PacketTypeModelErase
+            } else if (datagramPacketType == PacketTypeOctreeStats
+                        || datagramPacketType == PacketTypeEntityData
+                        || datagramPacketType == PacketTypeEntityErase
             ) {
                 // Make sure our Node and NodeList knows we've heard from this node.
                 SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);
@@ -126,7 +93,7 @@ void Agent::readPendingDatagrams() {
                         // TODO: this needs to be fixed, the goal is to test the packet version for the piggyback, but
                         //       this is testing the version and hash of the original packet
                         //       need to use numBytesArithmeticCodingFromBuffer()...
-                        if (!NodeList::getInstance()->packetVersionAndHashMatch(receivedPacket)) {
+                        if (!DependencyManager::get<NodeList>()->packetVersionAndHashMatch(receivedPacket)) {
                             return; // bail since piggyback data doesn't match our versioning
                         }
                     } else {
@@ -136,19 +103,11 @@ void Agent::readPendingDatagrams() {
                     datagramPacketType = packetTypeForPacket(mutablePacket);
                 } // fall through to piggyback message
 
-                if (datagramPacketType == PacketTypeParticleData || datagramPacketType == PacketTypeParticleErase) {
-                    _particleViewer.processDatagram(mutablePacket, sourceNode);
-                }
-
-                if (datagramPacketType == PacketTypeModelData || datagramPacketType == PacketTypeModelErase) {
-                    _modelViewer.processDatagram(mutablePacket, sourceNode);
+                if (datagramPacketType == PacketTypeEntityData || datagramPacketType == PacketTypeEntityErase) {
+                    _entityViewer.processDatagram(mutablePacket, sourceNode);
                 }
                 
-                if (datagramPacketType == PacketTypeVoxelData) {
-                    _voxelViewer.processDatagram(mutablePacket, sourceNode);
-                }
-
-            } else if (datagramPacketType == PacketTypeMixedAudio) {
+            } else if (datagramPacketType == PacketTypeMixedAudio || datagramPacketType == PacketTypeSilentAudioFrame) {
 
                 _receivedAudioStream.parseData(receivedPacket);
 
@@ -158,19 +117,19 @@ void Agent::readPendingDatagrams() {
                 
                 // let this continue through to the NodeList so it updates last heard timestamp
                 // for the sending audio mixer
-                NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
+                DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, receivedPacket);
             } else if (datagramPacketType == PacketTypeBulkAvatarData
                        || datagramPacketType == PacketTypeAvatarIdentity
                        || datagramPacketType == PacketTypeAvatarBillboard
                        || datagramPacketType == PacketTypeKillAvatar) {
                 // let the avatar hash map process it
-                _avatarHashMap.processAvatarMixerDatagram(receivedPacket, nodeList->sendingNodeForPacket(receivedPacket));
+                DependencyManager::get<AvatarHashMap>()->processAvatarMixerDatagram(receivedPacket, nodeList->sendingNodeForPacket(receivedPacket));
                 
                 // let this continue through to the NodeList so it updates last heard timestamp
                 // for the sending avatar-mixer
-                NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
+                DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, receivedPacket);
             } else {
-                NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
+                DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, receivedPacket);
             }
         }
     }
@@ -181,28 +140,28 @@ const QString AGENT_LOGGING_NAME = "agent";
 void Agent::run() {
     ThreadedAssignment::commonInit(AGENT_LOGGING_NAME, NodeType::Agent);
     
-    NodeList* nodeList = NodeList::getInstance();
+    auto nodeList = DependencyManager::get<NodeList>();
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet()
                                                  << NodeType::AudioMixer
                                                  << NodeType::AvatarMixer
-                                                 << NodeType::VoxelServer
-                                                 << NodeType::ParticleServer
-                                                 << NodeType::ModelServer
+                                                 << NodeType::EntityServer
                                                 );
     
     // figure out the URL for the script for this agent assignment
     QUrl scriptURL;
     if (_payload.isEmpty())  {
         scriptURL = QUrl(QString("http://%1:%2/assignment/%3")
-            .arg(NodeList::getInstance()->getDomainHandler().getIP().toString())
+            .arg(DependencyManager::get<NodeList>()->getDomainHandler().getIP().toString())
             .arg(DOMAIN_SERVER_HTTP_PORT)
             .arg(uuidStringWithoutCurlyBraces(_uuid)));
     } else {
         scriptURL = QUrl(_payload);
     }
    
-    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-    QNetworkReply *reply = networkAccessManager.get(QNetworkRequest(scriptURL));
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkRequest networkRequest = QNetworkRequest(scriptURL);
+    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    QNetworkReply* reply = networkAccessManager.get(networkRequest);
     
     QNetworkDiskCache* cache = new QNetworkDiskCache();
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
@@ -217,12 +176,13 @@ void Agent::run() {
     loop.exec();
     
     QString scriptContents(reply->readAll());
+    delete reply;
     
     qDebug() << "Downloaded script:" << scriptContents;
     
     // setup an Avatar for the script to use
     ScriptableAvatar scriptedAvatar(&_scriptEngine);
-    scriptedAvatar.setForceFaceshiftConnected(true);
+    scriptedAvatar.setForceFaceTrackerConnected(true);
 
     // call model URL setters with empty URLs so our avatar, if user, will have the default models
     scriptedAvatar.setFaceModelURL(QUrl());
@@ -230,31 +190,21 @@ void Agent::run() {
     
     // give this AvatarData object to the script engine
     _scriptEngine.setAvatarData(&scriptedAvatar, "Avatar");
-    _scriptEngine.setAvatarHashMap(&_avatarHashMap, "AvatarList");
+    _scriptEngine.setAvatarHashMap(DependencyManager::get<AvatarHashMap>().data(), "AvatarList");
     
     // register ourselves to the script engine
     _scriptEngine.registerGlobalObject("Agent", this);
 
     _scriptEngine.init(); // must be done before we set up the viewers
-
-    _scriptEngine.registerGlobalObject("VoxelViewer", &_voxelViewer);
-    // connect the VoxelViewer and the VoxelScriptingInterface to each other
-    JurisdictionListener* voxelJL = _scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener();
-    _voxelViewer.setJurisdictionListener(voxelJL);
-    _voxelViewer.init();
-    _scriptEngine.getVoxelsScriptingInterface()->setVoxelTree(_voxelViewer.getTree());
     
-    _scriptEngine.registerGlobalObject("ParticleViewer", &_particleViewer);
-    JurisdictionListener* particleJL = _scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener();
-    _particleViewer.setJurisdictionListener(particleJL);
-    _particleViewer.init();
-    _scriptEngine.getParticlesScriptingInterface()->setParticleTree(_particleViewer.getTree());
+    _scriptEngine.registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
 
-    _scriptEngine.registerGlobalObject("ModelViewer", &_modelViewer);
-    JurisdictionListener* modelJL = _scriptEngine.getModelsScriptingInterface()->getJurisdictionListener();
-    _modelViewer.setJurisdictionListener(modelJL);
-    _modelViewer.init();
-    _scriptEngine.getModelsScriptingInterface()->setModelTree(_modelViewer.getTree());
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+
+    _scriptEngine.registerGlobalObject("EntityViewer", &_entityViewer);
+    _entityViewer.setJurisdictionListener(entityScriptingInterface->getJurisdictionListener());
+    _entityViewer.init();
+    entityScriptingInterface->setEntityTree(_entityViewer.getTree());
 
     _scriptEngine.setScriptContents(scriptContents);
     _scriptEngine.run();
@@ -263,5 +213,7 @@ void Agent::run() {
 
 void Agent::aboutToFinish() {
     _scriptEngine.stop();
-    NetworkAccessManager::getInstance().clearAccessCache();
+    
+    // our entity tree is going to go away so tell that to the EntityScriptingInterface
+    DependencyManager::get<EntityScriptingInterface>()->setEntityTree(NULL);
 }

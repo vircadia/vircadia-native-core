@@ -3,9 +3,13 @@
   <head>
     <title>domain-server</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Bootstrap -->
+
     <link href="/css/bootstrap.min.css" rel="stylesheet" media="screen">
     <link href="/css/style.css" rel="stylesheet" media="screen">
+    <link href="/css/sweetalert.css" rel="stylesheet" media="screen">
+    <link href="/css/bootstrap-switch.min.css" rel="stylesheet" media="screen">
+    <link href="/stats/css/json.human.css" rel="stylesheet" media="screen">
+
   </head>
   <body>
     <nav class="navbar navbar-default" role="navigation">
@@ -20,21 +24,20 @@
           </button>
           <a class="navbar-brand" href="/">domain-server</a>
         </div>
-        
+
         <!-- Collect the nav links, forms, and other content for toggling -->
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
           <ul class="nav navbar-nav">
             <li><a href="/">Nodes</a></li>
-            <li><a href="/settings/">Settings</a></li>
             <li class="dropdown">
-            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Assignments <span class="caret"></span></a>
-            <ul class="dropdown-menu" role="menu">
-              <li><a href="/assignment">New Assignment</a></li>
-            </ul>
-          </li>
-            
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown">Assignments <span class="caret"></span></a>
+                <ul class="dropdown-menu" role="menu">
+                  <li><a href="/assignment">New Assignment</a></li>
+                </ul>
+            </li>
+            <li><a href="/settings/">Settings</a></li>
           </ul>
         </div>
       </div><!-- /.container-fluid -->
     </nav>
-    <div class="container">
+    <div class="container-fluid">

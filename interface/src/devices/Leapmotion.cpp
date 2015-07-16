@@ -8,8 +8,11 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "SharedUtil.h"
+
 #include "Leapmotion.h"
+#include "Menu.h"
+
+#include <NumericalConstants.h>
 
 const int PALMROOT_NUM_JOINTS = 3;
 const int FINGER_NUM_JOINTS = 4;
@@ -48,6 +51,11 @@ void Leapmotion::init() {
 }
 
 // static
+void Leapmotion::destroy() {
+    DeviceTracker::destroyDevice(NAME);
+}
+
+// static
 Leapmotion* Leapmotion::getInstance() {
     DeviceTracker* device = DeviceTracker::getDevice(NAME);
     if (!device) {
@@ -69,8 +77,8 @@ Leapmotion::Leapmotion() :
 
     std::vector< Semantic > rootBones;
     rootBones.push_back("elbow");
-    rootBones.push_back("hand");
     rootBones.push_back("wrist");
+    rootBones.push_back("hand");
 
     std::vector< Semantic > fingers;
     fingers.push_back("thumb");
@@ -101,6 +109,12 @@ Leapmotion::Leapmotion() :
             }
         }
     }
+
+#ifdef HAVE_LEAPMOTION
+    if (Menu::getInstance()->isOptionChecked(MenuOption::LeapMotionOnHMD)) {
+        _controller.setPolicyFlags(Leap::Controller::POLICY_OPTIMIZE_HMD);
+    }
+#endif
 }
 
 Leapmotion::~Leapmotion() {
@@ -128,16 +142,20 @@ glm::vec3 vec3FromLeapVector(const Leap::Vector& vec) {
 
 void Leapmotion::update() {
 #ifdef HAVE_LEAPMOTION
-    // Check that the controller is actually active
+    bool wasActive = _active;
     _active = _controller.isConnected();
-    if (!_active) {
-        return;
+
+    if (_active || wasActive) {
+        // Go through all the joints and increment their counter since last update.
+        // Increment all counters once after controller first becomes inactive so that each joint reports itself as inactive.
+        // TODO C++11 for (auto jointIt = _jointsArray.begin(); jointIt != _jointsArray.end(); jointIt++) {
+        for (JointTracker::Vector::iterator jointIt = _jointsArray.begin(); jointIt != _jointsArray.end(); jointIt++) {
+            (*jointIt).tickNewFrame();
+        }
     }
 
-    // go through all the joints and increment their counter since last update
-    // TODO C++11 for (auto jointIt = _jointsArray.begin(); jointIt != _jointsArray.end(); jointIt++) {
-    for (JointTracker::Vector::iterator jointIt = _jointsArray.begin(); jointIt != _jointsArray.end(); jointIt++) {
-        (*jointIt).tickNewFrame();
+    if (!_active) {
+        return;
     }
 
     // Get the most recent frame and report some basic information
@@ -149,7 +167,7 @@ void Leapmotion::update() {
     if (lastFrameID >= newFrameID)
         return;
 
-    glm::vec3 delta(0.f);
+    glm::vec3 delta(0.0f);
     glm::quat handOri;
     if (!frame.hands().isEmpty()) {
         for (int handNum = 0; handNum < frame.hands().count(); handNum++) {

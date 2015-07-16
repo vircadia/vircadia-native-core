@@ -30,11 +30,11 @@ public:
     static const int DEFAULT_PACKETS_PER_SECOND = 1;
     static const int NO_SERVER_CHECK_RATE = 60; // if no servers yet detected, keep checking at 60fps
 
-    JurisdictionListener(NodeType_t type = NodeType::VoxelServer);
+    JurisdictionListener(NodeType_t type = NodeType::EntityServer);
     
     virtual bool process();
 
-    NodeToJurisdictionMap* getJurisdictions() { return &_jurisdictions; };
+    NodeToJurisdictionMap* getJurisdictions() { return &_jurisdictions; }
 
 
     NodeType_t getNodeType() const { return _nodeType; }

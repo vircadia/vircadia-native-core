@@ -12,6 +12,7 @@
 #include <GLMHelpers.h>
 
 #include "AvatarData.h"
+#include "AvatarLogging.h"
 #include "Referential.h"
 
 Referential::Referential(Type type, AvatarData* avatar) :
@@ -51,23 +52,20 @@ int Referential::packReferential(unsigned char* destinationBuffer) const {
     char size = packExtraData(destinationBuffer);
     *sizePosition = size; // write extra data size in saved spot here
     destinationBuffer += size;
-    
     return destinationBuffer - startPosition;
 }
 
 int Referential::unpackReferential(const unsigned char* sourceBuffer) {
     const unsigned char* startPosition = sourceBuffer;
     sourceBuffer += unpack(sourceBuffer);
-    
     char expectedSize = *sourceBuffer++;
     char bytesRead = unpackExtraData(sourceBuffer, expectedSize);
     _isValid = (bytesRead == expectedSize);
     if (!_isValid) {
         // Will occur if the new instance unpacking is of the wrong type
-        qDebug() << "[ERROR] Referential extra data overflow";
+        qCDebug(avatars) << "[ERROR] Referential extra data overflow";
     }
     sourceBuffer += expectedSize;
-    
     return sourceBuffer - startPosition;
 }
 
@@ -79,14 +77,13 @@ int Referential::pack(unsigned char* destinationBuffer) const {
     
     destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, _translation, 0);
     destinationBuffer += packOrientationQuatToBytes(destinationBuffer, _rotation);
-    destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, _scale, 0);
     return destinationBuffer - startPosition;
 }
 
 int Referential::unpack(const unsigned char* sourceBuffer) {
     const unsigned char* startPosition = sourceBuffer;
     _type = (Type)*sourceBuffer++;
-    if (_type < 0 || _type >= NUM_TYPE) {
+    if (_type < 0 || _type >= NUM_TYPES) {
         _type = UNKNOWN;
     }
     memcpy(&_version, sourceBuffer, sizeof(_version));
@@ -94,7 +91,6 @@ int Referential::unpack(const unsigned char* sourceBuffer) {
     
     sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, _translation, 0);
     sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, _rotation);
-    sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((const int16_t*) sourceBuffer, &_scale, 0);
     return sourceBuffer - startPosition;
 }
 
@@ -107,7 +103,7 @@ int Referential::packExtraData(unsigned char *destinationBuffer) const {
 
 int Referential::unpackExtraData(const unsigned char* sourceBuffer, int size) {
     _extraDataBuffer.clear();
-    _extraDataBuffer.setRawData(reinterpret_cast<const char*>(sourceBuffer), size);
+    _extraDataBuffer.append(reinterpret_cast<const char*>(sourceBuffer), size);
     return size;
 }
 

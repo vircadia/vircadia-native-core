@@ -8,18 +8,19 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <gpu/GPUConfig.h> // hack to get windows to build
+
 #include <QImage>
 
-#include <NodeList.h>
-
 #include <GeometryUtil.h>
+#include <NodeList.h>
+#include <ProgramObject.h>
 
-#include "Application.h"
-#include "Avatar.h"
+#include "AvatarManager.h"
 #include "Hand.h"
 #include "Menu.h"
+#include "MyAvatar.h"
 #include "Util.h"
-#include "renderer/ProgramObject.h"
 
 using namespace std;
 
@@ -68,7 +69,7 @@ void Hand::collideAgainstAvatar(Avatar* avatar, bool isMyHand) {
         skeletonModel.getHandShapes(jointIndex, shapes);
 
         if (avatar->findCollisions(shapes, handCollisions)) {
-            glm::vec3 totalPenetration(0.f);
+            glm::vec3 totalPenetration(0.0f);
             glm::vec3 averageContactPoint;
             for (int j = 0; j < handCollisions.size(); ++j) {
                 CollisionInfo* collision = handCollisions.getCollision(j);
@@ -101,8 +102,9 @@ void Hand::resolvePenetrations() {
     }
 }
 
-void Hand::render(bool isMine, Model::RenderMode renderMode) {
-    if (renderMode != Model::SHADOW_RENDER_MODE && 
+void Hand::render(RenderArgs* renderArgs, bool isMine) {
+    gpu::Batch& batch = *renderArgs->_batch;
+    if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE &&
                 Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes)) {
         // draw a green sphere at hand joint location, which is actually near the wrist)
         for (size_t i = 0; i < getNumPalms(); i++) {
@@ -111,33 +113,25 @@ void Hand::render(bool isMine, Model::RenderMode renderMode) {
                 continue;
             }
             glm::vec3 position = palm.getPosition();
-            glPushMatrix();
-            glTranslatef(position.x, position.y, position.z);
-            glColor3f(0.0f, 1.0f, 0.0f);
-            glutSolidSphere(PALM_COLLISION_RADIUS * _owningAvatar->getScale(), 10, 10);
-            glPopMatrix();
+            Transform transform = Transform();
+            transform.setTranslation(position);
+            batch.setModelTransform(transform);
+            DependencyManager::get<GeometryCache>()->renderSphere(batch, PALM_COLLISION_RADIUS * _owningAvatar->getScale(), 10, 10, glm::vec3(0.0f, 1.0f, 0.0f));
         }
     }
     
-    if (renderMode != Model::SHADOW_RENDER_MODE && Menu::getInstance()->isOptionChecked(MenuOption::DisplayHands)) {
-        renderHandTargets(isMine);
+    if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE && Menu::getInstance()->isOptionChecked(MenuOption::DisplayHands)) {
+        renderHandTargets(renderArgs, isMine);
     }
 
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_RESCALE_NORMAL);
-} 
+}
 
-void Hand::renderHandTargets(bool isMine) {
-    glPushMatrix();
-
-    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
-    const float avatarScale = Application::getInstance()->getAvatar()->getScale();
+void Hand::renderHandTargets(RenderArgs* renderArgs, bool isMine) {
+    gpu::Batch& batch = *renderArgs->_batch;
+    const float avatarScale = DependencyManager::get<AvatarManager>()->getMyAvatar()->getScale();
 
     const float alpha = 1.0f;
     const glm::vec3 handColor(1.0, 0.0, 0.0); //  Color the hand targets red to be different than skin
-    
-    glEnable(GL_DEPTH_TEST);
-    glDepthMask(GL_TRUE);
 
     if (isMine && Menu::getInstance()->isOptionChecked(MenuOption::DisplayHandTargets)) {
         for (size_t i = 0; i < getNumPalms(); ++i) {
@@ -146,13 +140,12 @@ void Hand::renderHandTargets(bool isMine) {
                 continue;
             }
             glm::vec3 targetPosition = palm.getTipPosition();
-            glPushMatrix();
-            glTranslatef(targetPosition.x, targetPosition.y, targetPosition.z);
+            Transform transform = Transform();
+            transform.setTranslation(targetPosition);
+            batch.setModelTransform(transform);
         
             const float collisionRadius = 0.05f;
-            glColor4f(0.5f,0.5f,0.5f, alpha);
-            glutWireSphere(collisionRadius, 10.f, 10.f);
-            glPopMatrix();
+            DependencyManager::get<GeometryCache>()->renderSphere(batch, collisionRadius, 10, 10, glm::vec4(0.5f,0.5f,0.5f, alpha), false);
         }
     }
     
@@ -165,28 +158,21 @@ void Hand::renderHandTargets(bool isMine) {
     for (size_t i = 0; i < getNumPalms(); ++i) {
         PalmData& palm = getPalms()[i];
         if (palm.isActive()) {
-            glColor4f(handColor.r, handColor.g, handColor.b, alpha);
             glm::vec3 tip = palm.getTipPosition();
             glm::vec3 root = palm.getPosition();
+            Transform transform = Transform();
+            transform.setTranslation(glm::vec3());
+            batch.setModelTransform(transform);
+            Avatar::renderJointConnectingCone(batch, root, tip, PALM_FINGER_ROD_RADIUS, PALM_FINGER_ROD_RADIUS, glm::vec4(handColor.r, handColor.g, handColor.b, alpha));
 
-            //Scale the positions based on avatar scale
-            myAvatar->scaleVectorRelativeToPosition(tip);
-            myAvatar->scaleVectorRelativeToPosition(root);
-
-            Avatar::renderJointConnectingCone(root, tip, PALM_FINGER_ROD_RADIUS, PALM_FINGER_ROD_RADIUS);
             //  Render sphere at palm/finger root
             glm::vec3 offsetFromPalm = root + palm.getNormal() * PALM_DISK_THICKNESS;
-            Avatar::renderJointConnectingCone(root, offsetFromPalm, PALM_DISK_RADIUS, 0.0f);
-            glPushMatrix();
-            glTranslatef(root.x, root.y, root.z);
-            glutSolidSphere(PALM_BALL_RADIUS, 20.0f, 20.0f);
-            glPopMatrix();
+            Avatar::renderJointConnectingCone(batch, root, offsetFromPalm, PALM_DISK_RADIUS, 0.0f, glm::vec4(handColor.r, handColor.g, handColor.b, alpha));
+            transform = Transform();
+            transform.setTranslation(root);
+            batch.setModelTransform(transform);
+            DependencyManager::get<GeometryCache>()->renderSphere(batch, PALM_BALL_RADIUS, 20.0f, 20.0f, glm::vec4(handColor.r, handColor.g, handColor.b, alpha));
         }
     }
-
-    glDepthMask(GL_TRUE);
-    glEnable(GL_DEPTH_TEST);
-
-    glPopMatrix();
 }
 

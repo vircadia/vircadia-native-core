@@ -21,36 +21,56 @@
 #include <PacketHeaders.h>
 #include <UUID.h>
 
-PositionalAudioStream::PositionalAudioStream(PositionalAudioStream::Type type, bool isStereo, bool dynamicJitterBuffers,
-    int staticDesiredJitterBufferFrames, int maxFramesOverDesired) :
-    InboundAudioStream(isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
-    AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY, dynamicJitterBuffers, staticDesiredJitterBufferFrames, maxFramesOverDesired),
+PositionalAudioStream::PositionalAudioStream(PositionalAudioStream::Type type, bool isStereo, const InboundAudioStream::Settings& settings) :
+    InboundAudioStream(isStereo
+                       ? AudioConstants::NETWORK_FRAME_SAMPLES_STEREO
+                       : AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL,
+    AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY, settings),
     _type(type),
     _position(0.0f, 0.0f, 0.0f),
     _orientation(0.0f, 0.0f, 0.0f, 0.0f),
     _shouldLoopbackForNode(false),
     _isStereo(isStereo),
+    _ignorePenumbra(false),
     _lastPopOutputTrailingLoudness(0.0f),
-    _listenerUnattenuatedZone(NULL)
+    _lastPopOutputLoudness(0.0f),
+    _quietestTrailingFrameLoudness(std::numeric_limits<float>::max()),
+    _quietestFrameLoudness(0.0f),
+    _frameCounter(0)
 {
 }
 
-void PositionalAudioStream::updateLastPopOutputTrailingLoudness() {
-    float lastPopLoudness = _ringBuffer.getFrameLoudness(_lastPopOutput);
+void PositionalAudioStream::resetStats() {
+    _lastPopOutputTrailingLoudness = 0.0f;
+    _lastPopOutputLoudness = 0.0f;
+}
 
-    const int TRAILING_AVERAGE_FRAMES = 100;
-    const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
+void PositionalAudioStream::updateLastPopOutputLoudnessAndTrailingLoudness() {
+    _lastPopOutputLoudness = _ringBuffer.getFrameLoudness(_lastPopOutput);
+
+    const int TRAILING_MUTE_THRESHOLD_FRAMES = 400;
+    const int TRAILING_LOUDNESS_FRAMES = 200;
+    const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_LOUDNESS_FRAMES;
     const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
     const float LOUDNESS_EPSILON = 0.000001f;
 
-    if (lastPopLoudness >= _lastPopOutputTrailingLoudness) {
-        _lastPopOutputTrailingLoudness = lastPopLoudness;
+    if (_lastPopOutputLoudness >= _lastPopOutputTrailingLoudness) {
+        _lastPopOutputTrailingLoudness = _lastPopOutputLoudness;
     } else {
-        _lastPopOutputTrailingLoudness = (_lastPopOutputTrailingLoudness * PREVIOUS_FRAMES_RATIO) + (CURRENT_FRAME_RATIO * lastPopLoudness);
+        _lastPopOutputTrailingLoudness = (_lastPopOutputTrailingLoudness * PREVIOUS_FRAMES_RATIO) + (CURRENT_FRAME_RATIO * _lastPopOutputLoudness);
 
         if (_lastPopOutputTrailingLoudness < LOUDNESS_EPSILON) {
             _lastPopOutputTrailingLoudness = 0;
         }
+    }
+    if (_frameCounter++ == TRAILING_MUTE_THRESHOLD_FRAMES) {
+        _quietestFrameLoudness = _quietestTrailingFrameLoudness;
+        _frameCounter = 0;
+        _quietestTrailingFrameLoudness = std::numeric_limits<float>::max();
+
+    }
+    if (_lastPopOutputLoudness < _quietestTrailingFrameLoudness) {
+        _quietestTrailingFrameLoudness = _lastPopOutputLoudness;
     }
 }
 

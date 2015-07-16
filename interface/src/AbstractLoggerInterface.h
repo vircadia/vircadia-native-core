@@ -24,7 +24,7 @@ public:
     inline bool extraDebugging() { return _extraDebugging; }
     inline void setExtraDebugging(bool debugging) { _extraDebugging = debugging; }
 
-    virtual void addMessage(QString) = 0;
+    virtual void addMessage(const QString&) = 0;
     virtual QString getLogData() = 0;
     virtual void locateLog() = 0;
 
@@ -32,7 +32,7 @@ signals:
     void logReceived(QString message);
 
 private:
-    bool _extraDebugging;
+    bool _extraDebugging{ false };
 };
 
 #endif // hifi_AbstractLoggerInterface_h

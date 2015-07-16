@@ -11,6 +11,7 @@
 
 #include "SnapshotShareDialog.h"
 #include "AccountManager.h"
+#include "SharedUtil.h"
 
 #include <QFile>
 #include <QHttpMultiPart>
@@ -112,6 +113,7 @@ void SnapshotShareDialog::uploadSnapshot() {
 
     QUrl url(FORUM_UPLOADS_URL);
     QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
 
     QNetworkReply* reply = NetworkAccessManager::getInstance().post(request, multiPart);
     connect(reply, &QNetworkReply::finished, this, &SnapshotShareDialog::uploadRequestFinished);
@@ -124,6 +126,7 @@ void SnapshotShareDialog::uploadSnapshot() {
 void SnapshotShareDialog::sendForumPost(QString snapshotPath) {
     // post to Discourse forum
     QNetworkRequest request;
+    request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     QUrl forumUrl(FORUM_POST_URL);
 
     QUrlQuery query;
@@ -148,6 +151,7 @@ void SnapshotShareDialog::postRequestFinished() {
 
     QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
     QJsonDocument jsonResponse = QJsonDocument::fromJson(requestReply->readAll());
+    requestReply->deleteLater();
     const QJsonObject& responseObject = jsonResponse.object();
 
     if (responseObject.contains("id")) {

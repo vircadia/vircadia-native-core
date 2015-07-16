@@ -2,16 +2,19 @@ set(TARGET_NAME assignment-client)
 
 setup_hifi_project(Core Gui Network Script Widgets)
 
-include_glm()
+add_dependency_external_projects(glm)
+find_package(GLM REQUIRED)
+target_include_directories(${TARGET_NAME} PRIVATE ${GLM_INCLUDE_DIRS})
 
 # link in the shared libraries
 link_hifi_libraries( 
-  audio avatars octree voxels fbx particles models metavoxels 
+  audio avatars octree environment gpu model fbx entities 
   networking animation shared script-engine embedded-webserver
+  physics
 )
 
 if (UNIX)
-  list(APPEND ${TARGET_NAME}_LIBRARIES_TO_LINK ${CMAKE_DL_LIBS})
+  target_link_libraries(${TARGET_NAME} ${CMAKE_DL_LIBS})
 endif (UNIX)
 
-link_shared_dependencies()
+copy_dlls_beside_windows_executable()

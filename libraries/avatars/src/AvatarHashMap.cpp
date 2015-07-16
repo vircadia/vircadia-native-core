@@ -9,33 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QtCore/QDataStream>
+
 #include <NodeList.h>
 #include <PacketHeaders.h>
+#include <SharedUtil.h>
 
+#include "AvatarLogging.h"
 #include "AvatarHashMap.h"
 
-AvatarHashMap::AvatarHashMap() :
-    _avatarHash(),
-    _lastOwnerSessionUUID()
-{
-    connect(NodeList::getInstance(), &NodeList::uuidChanged, this, &AvatarHashMap::sessionUUIDChanged);
-}
-
-void AvatarHashMap::insert(const QUuid& sessionUUID, AvatarSharedPointer avatar) {
-    _avatarHash.insert(sessionUUID, avatar);
-    avatar->setSessionUUID(sessionUUID);
-}
-
-AvatarHash::iterator AvatarHashMap::erase(const AvatarHash::iterator& iterator) {
-    qDebug() << "Removing Avatar with UUID" << iterator.key() << "from AvatarHashMap.";
-    return _avatarHash.erase(iterator);
-}
-
-const qint64 AVATAR_SILENCE_THRESHOLD_MSECS = 5 * 1000;
-
-bool AvatarHashMap::shouldKillAvatar(const AvatarSharedPointer& sharedAvatar) {
-    return (sharedAvatar->getOwningAvatarMixer() == NULL
-            || sharedAvatar->getLastUpdateTimer().elapsed() > AVATAR_SILENCE_THRESHOLD_MSECS);
+AvatarHashMap::AvatarHashMap() {
+    connect(DependencyManager::get<NodeList>().data(), &NodeList::uuidChanged, this, &AvatarHashMap::sessionUUIDChanged);
 }
 
 void AvatarHashMap::processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer) {
@@ -57,29 +41,14 @@ void AvatarHashMap::processAvatarMixerDatagram(const QByteArray& datagram, const
     }
 }
 
-bool AvatarHashMap::containsAvatarWithDisplayName(const QString& displayName) {
-    
-    AvatarHash::iterator avatarIterator = _avatarHash.begin();
-    while (avatarIterator != _avatarHash.end()) {
-        AvatarSharedPointer sharedAvatar = avatarIterator.value();
-        if (avatarIterator.value()->getDisplayName() == displayName) {
-            // this is a match
-            // check if this avatar should still be around
-            if (!shouldKillAvatar(sharedAvatar)) {
-                // we have a match, return true
-                return true;
-            } else {
-                // we should remove this avatar, do that now
-                erase(avatarIterator);
-            }
-            
-            break;
-        } else {
-            ++avatarIterator;
+bool AvatarHashMap::isAvatarInRange(const glm::vec3& position, const float range) {
+    foreach(const AvatarSharedPointer& sharedAvatar, _avatarHash) {
+        glm::vec3 avatarPosition = sharedAvatar->getPosition();
+        float distance = glm::distance(avatarPosition, position);
+        if (distance < range) {
+            return true;
         }
     }
-    
-    // return false, no match
     return false;
 }
 
@@ -87,20 +56,15 @@ AvatarSharedPointer AvatarHashMap::newSharedAvatar() {
     return AvatarSharedPointer(new AvatarData());
 }
 
-AvatarSharedPointer AvatarHashMap::matchingOrNewAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
-    AvatarSharedPointer matchingAvatar = _avatarHash.value(sessionUUID);
-    
-    if (!matchingAvatar) {
-        // insert the new avatar into our hash
-        matchingAvatar = newSharedAvatar();
-    
-        qDebug() << "Adding avatar with sessionUUID " << sessionUUID << "to AvatarHashMap.";
-        _avatarHash.insert(sessionUUID, matchingAvatar);
-        
-        matchingAvatar->setOwningAvatarMixer(mixerWeakPointer);
-    }
-    
-    return matchingAvatar;
+AvatarSharedPointer AvatarHashMap::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
+    qCDebug(avatars) << "Adding avatar with sessionUUID " << sessionUUID << "to AvatarHashMap.";
+
+    AvatarSharedPointer avatar = newSharedAvatar();
+    avatar->setSessionUUID(sessionUUID);
+    avatar->setOwningAvatarMixer(mixerWeakPointer);
+    _avatarHash.insert(sessionUUID, avatar);
+
+    return avatar;
 }
 
 void AvatarHashMap::processAvatarDataPacket(const QByteArray &datagram, const QWeakPointer<Node> &mixerWeakPointer) {
@@ -113,10 +77,13 @@ void AvatarHashMap::processAvatarDataPacket(const QByteArray &datagram, const QW
         bytesRead += NUM_BYTES_RFC4122_UUID;
         
         if (sessionUUID != _lastOwnerSessionUUID) {
-            AvatarSharedPointer matchingAvatarData = matchingOrNewAvatar(sessionUUID, mixerWeakPointer);
+            AvatarSharedPointer avatar = _avatarHash.value(sessionUUID);
+            if (!avatar) {
+                avatar = addAvatar(sessionUUID, mixerWeakPointer);
+            }
             
             // have the matching (or new) avatar parse the data from the packet
-            bytesRead += matchingAvatarData->parseDataAtOffset(datagram, bytesRead);
+            bytesRead += avatar->parseDataAtOffset(datagram, bytesRead);
         } else {
             // create a dummy AvatarData class to throw this data on the ground
             AvatarData dummyData;
@@ -140,24 +107,24 @@ void AvatarHashMap::processAvatarIdentityPacket(const QByteArray &packet, const 
         identityStream >> sessionUUID >> faceMeshURL >> skeletonURL >> attachmentData >> displayName;
         
         // mesh URL for a UUID, find avatar in our list
-        AvatarSharedPointer matchingAvatar = matchingOrNewAvatar(sessionUUID, mixerWeakPointer);
-        if (matchingAvatar) {
-            
-            if (matchingAvatar->getFaceModelURL() != faceMeshURL) {
-                matchingAvatar->setFaceModelURL(faceMeshURL);
-            }
-            
-            if (matchingAvatar->getSkeletonModelURL() != skeletonURL) {
-                matchingAvatar->setSkeletonModelURL(skeletonURL);
-            }
-            
-            if (matchingAvatar->getAttachmentData() != attachmentData) {
-                matchingAvatar->setAttachmentData(attachmentData);
-            }
-            
-            if (matchingAvatar->getDisplayName() != displayName) {
-                matchingAvatar->setDisplayName(displayName);
-            }
+        AvatarSharedPointer avatar = _avatarHash.value(sessionUUID);
+        if (!avatar) {
+            avatar = addAvatar(sessionUUID, mixerWeakPointer);
+        }
+        if (avatar->getFaceModelURL() != faceMeshURL) {
+            avatar->setFaceModelURL(faceMeshURL);
+        }
+        
+        if (avatar->getSkeletonModelURL() != skeletonURL) {
+            avatar->setSkeletonModelURL(skeletonURL);
+        }
+        
+        if (avatar->getAttachmentData() != attachmentData) {
+            avatar->setAttachmentData(attachmentData);
+        }
+        
+        if (avatar->getDisplayName() != displayName) {
+            avatar->setDisplayName(displayName);
         }
     }
 }
@@ -166,24 +133,25 @@ void AvatarHashMap::processAvatarBillboardPacket(const QByteArray& packet, const
     int headerSize = numBytesForPacketHeader(packet);
     QUuid sessionUUID = QUuid::fromRfc4122(QByteArray::fromRawData(packet.constData() + headerSize, NUM_BYTES_RFC4122_UUID));
     
-    AvatarSharedPointer matchingAvatar = matchingOrNewAvatar(sessionUUID, mixerWeakPointer);
-    if (matchingAvatar) {
-        QByteArray billboard = packet.mid(headerSize + NUM_BYTES_RFC4122_UUID);
-        if (matchingAvatar->getBillboard() != billboard) {
-            matchingAvatar->setBillboard(billboard);
-        }
+    AvatarSharedPointer avatar = _avatarHash.value(sessionUUID);
+    if (!avatar) {
+        avatar = addAvatar(sessionUUID, mixerWeakPointer);
+    }
+
+    QByteArray billboard = packet.mid(headerSize + NUM_BYTES_RFC4122_UUID);
+    if (avatar->getBillboard() != billboard) {
+        avatar->setBillboard(billboard);
     }
 }
 
 void AvatarHashMap::processKillAvatar(const QByteArray& datagram) {
     // read the node id
     QUuid sessionUUID = QUuid::fromRfc4122(datagram.mid(numBytesForPacketHeader(datagram), NUM_BYTES_RFC4122_UUID));
-    
-    // remove the avatar with that UUID from our hash, if it exists
-    AvatarHash::iterator matchedAvatar = _avatarHash.find(sessionUUID);
-    if (matchedAvatar != _avatarHash.end()) {
-        erase(matchedAvatar);
-    }
+    removeAvatar(sessionUUID);
+}
+
+void AvatarHashMap::removeAvatar(const QUuid& sessionUUID) {
+    _avatarHash.remove(sessionUUID);
 }
 
 void AvatarHashMap::sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID) {

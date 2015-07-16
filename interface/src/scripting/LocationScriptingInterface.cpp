@@ -9,9 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <glm/glm.hpp>
-
-#include "NodeList.h"
+#include <AddressManager.h>
 
 #include "LocationScriptingInterface.h"
 
@@ -20,30 +18,16 @@ LocationScriptingInterface* LocationScriptingInterface::getInstance() {
     return &sharedInstance;
 }
 
-QString LocationScriptingInterface::getHref() {
-    return getProtocol() + "//" + getHostname() + getPathname();
-}
-
-QString LocationScriptingInterface::getPathname() {
-    const glm::vec3& position = Application::getInstance()->getAvatar()->getPosition();
-    QString path;
-    path.sprintf("/%.4f,%.4f,%.4f", position.x, position.y, position.z);
-    return path;
-}
-
-QString LocationScriptingInterface::getHostname() {
-    return NodeList::getInstance()->getDomainHandler().getHostname();
-}
-
-void LocationScriptingInterface::assign(const QString& url) {
-    QMetaObject::invokeMethod(Menu::getInstance(), "goToURL", Q_ARG(const QString&, url));
-}
-
 QScriptValue LocationScriptingInterface::locationGetter(QScriptContext* context, QScriptEngine* engine) {
-    return engine->newQObject(getInstance());
+    return engine->newQObject(DependencyManager::get<AddressManager>().data());
 }
 
 QScriptValue LocationScriptingInterface::locationSetter(QScriptContext* context, QScriptEngine* engine) {
-    LocationScriptingInterface::getInstance()->assign(context->argument(0).toString());
+    const QVariant& argumentVariant = context->argument(0).toVariant();
+    
+    // just try and convert the argument to a string, should be a hifi:// address
+    QMetaObject::invokeMethod(DependencyManager::get<AddressManager>().data(), "handleLookupString",
+                              Q_ARG(const QString&, argumentVariant.toString()));
+    
     return QScriptValue::UndefinedValue;
 }

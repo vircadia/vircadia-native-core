@@ -28,7 +28,7 @@ void ScriptableAvatar::startAnimation(const QString& url, float fps, float prior
                                   Q_ARG(float, lastFrame), Q_ARG(const QStringList&, maskedJoints));
         return;
     }
-    _animation = _scriptEngine->getAnimationCache()->getAnimation(url);
+    _animation = DependencyManager::get<AnimationCache>()->getAnimation(url);
     _animationDetails = AnimationDetails("", QUrl(url), fps, 0, loop, hold, false, firstFrame, lastFrame, true, firstFrame);
     _maskedJoints = maskedJoints;
 }
@@ -53,7 +53,7 @@ AnimationDetails ScriptableAvatar::getAnimationDetails() {
 
 void ScriptableAvatar::update(float deltatime) {
     // Run animation
-    if (_animation != NULL && _animation->isValid() && _animation->getFrames().size() > 0) {
+    if (_animation && _animation->isLoaded() && _animation->getFrames().size() > 0) {
         QStringList modelJoints = getJointNames();
         QStringList animationJoints = _animation->getJointNames();
         

@@ -22,12 +22,25 @@
 class OctreePersistThread : public GenericThread {
     Q_OBJECT
 public:
-    static const int DEFAULT_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
+    class BackupRule {
+    public:
+        QString name;
+        int interval;
+        QString extensionFormat;
+        int maxBackupVersions;
+        quint64 lastBackup;
+    };
 
-    OctreePersistThread(Octree* tree, const QString& filename, int persistInterval = DEFAULT_PERSIST_INTERVAL);
+    static const int DEFAULT_PERSIST_INTERVAL;
+
+    OctreePersistThread(Octree* tree, const QString& filename, int persistInterval = DEFAULT_PERSIST_INTERVAL, 
+                        bool wantBackup = false, const QJsonObject& settings = QJsonObject(), 
+                        bool debugTimestampNow = false, QString persistAsFileType="svo");
 
     bool isInitialLoadComplete() const { return _initialLoadComplete; }
     quint64 getLoadElapsedTime() const { return _loadTimeUSecs; }
+
+    void aboutToFinish(); /// call this to inform the persist thread that the owner is about to finish to support final persist
 
 signals:
     void loadCompleted();
@@ -35,6 +48,15 @@ signals:
 protected:
     /// Implements generic processing behavior for this thread.
     virtual bool process();
+    
+    void persist();
+    void backup();
+    void rollOldBackupVersions(const BackupRule& rule);
+    void restoreFromMostRecentBackup();
+    bool getMostRecentBackup(const QString& format, QString& mostRecentBackupFileName, QDateTime& mostRecentBackupTime);
+    quint64 getMostRecentBackupTimeInUsecs(const QString& format);
+    void parseSettings(const QJsonObject& settings);
+    
 private:
     Octree* _tree;
     QString _filename;
@@ -42,7 +64,16 @@ private:
     bool _initialLoadComplete;
 
     quint64 _loadTimeUSecs;
+
+    time_t _lastPersistTime;
     quint64 _lastCheck;
+    bool _wantBackup;
+    QVector<BackupRule> _backupRules;
+    
+    bool _debugTimestampNow;
+    quint64 _lastTimeDebug;
+
+    QString _persistAsFileType;
 };
 
 #endif // hifi_OctreePersistThread_h

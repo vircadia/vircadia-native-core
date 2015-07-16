@@ -38,7 +38,16 @@
 **
 ****************************************************************************/
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#endif
+
 #include <QtWidgets>
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 #include "FlowLayout.h"
 //! [1]

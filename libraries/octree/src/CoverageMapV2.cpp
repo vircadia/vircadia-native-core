@@ -16,6 +16,7 @@
 
 #include <SharedUtil.h>
 
+#include "OctreeLogging.h"
 #include "CoverageMapV2.h"
 
 int CoverageMapV2::_mapCount = 0;
@@ -23,7 +24,7 @@ int CoverageMapV2::_checkMapRootCalls = 0;
 int CoverageMapV2::_notAllInView = 0;
 bool CoverageMapV2::wantDebugging = false;
 
-const BoundingBox CoverageMapV2::ROOT_BOUNDING_BOX = BoundingBox(glm::vec2(-1.f,-1.f), glm::vec2(2.f,2.f));
+const BoundingBox CoverageMapV2::ROOT_BOUNDING_BOX = BoundingBox(glm::vec2(-1.0f,-1.0f), glm::vec2(2.0f,2.0f));
 
 // Coverage Map's polygon coordinates are from -1 to 1 in the following mapping to screen space.
 //
@@ -64,7 +65,6 @@ CoverageMapV2::CoverageMapV2(BoundingBox boundingBox, bool isRoot, bool isCovere
 { 
     _mapCount++;
     init(); 
-    //qDebug("CoverageMapV2 created... _mapCount=%d\n",_mapCount);
 };
 
 CoverageMapV2::~CoverageMapV2() {
@@ -81,11 +81,11 @@ void CoverageMapV2::erase() {
     }
 
     if (_isRoot && wantDebugging) {
-        qDebug("CoverageMapV2 last to be deleted...");
-        qDebug("MINIMUM_POLYGON_AREA_TO_STORE=%f",MINIMUM_POLYGON_AREA_TO_STORE);
-        qDebug("_mapCount=%d",_mapCount);
-        qDebug("_checkMapRootCalls=%d",_checkMapRootCalls);
-        qDebug("_notAllInView=%d",_notAllInView);
+        qCDebug(octree, "CoverageMapV2 last to be deleted...");
+        qCDebug(octree, "MINIMUM_POLYGON_AREA_TO_STORE=%f", (double)MINIMUM_POLYGON_AREA_TO_STORE);
+        qCDebug(octree, "_mapCount=%d",_mapCount);
+        qCDebug(octree, "_checkMapRootCalls=%d",_checkMapRootCalls);
+        qCDebug(octree, "_notAllInView=%d",_notAllInView);
         _mapCount = 0;
         _checkMapRootCalls = 0;
         _notAllInView = 0;

@@ -17,7 +17,7 @@ OctreeElementBag::OctreeElementBag() :
 {
     OctreeElement::addDeleteHook(this);
     _hooked = true;
-};
+}
 
 OctreeElementBag::~OctreeElementBag() {
     unhookNotifications();

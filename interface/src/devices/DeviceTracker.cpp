@@ -38,7 +38,7 @@ DeviceTracker* DeviceTracker::getDevice(const Name& name) {
 }
 
 DeviceTracker* DeviceTracker::getDevice(DeviceTracker::ID deviceID) {
-    if ((deviceID >= 0) && (deviceID < Singleton::get()->_devicesVector.size())) {
+    if ((deviceID >= 0) && (deviceID < (int)(Singleton::get()->_devicesVector.size()))) {
         return Singleton::get()->_devicesVector[ deviceID ];
     } else {
         return NULL;
@@ -64,6 +64,14 @@ DeviceTracker::ID DeviceTracker::registerDevice(const Name& name, DeviceTracker*
     device->assignIDAndName(deviceID, name);
 
     return deviceID;
+}
+
+void DeviceTracker::destroyDevice(const Name& name) {
+    DeviceTracker::ID deviceID = getDeviceID(name);
+    if (deviceID != INVALID_DEVICE) {
+        delete Singleton::get()->_devicesVector[getDeviceID(name)];
+        Singleton::get()->_devicesVector[getDeviceID(name)] = nullptr;
+    }
 }
 
 void DeviceTracker::updateAll() {

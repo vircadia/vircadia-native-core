@@ -10,20 +10,19 @@
 //
 
 #include "CollisionInfo.h"
-
+#include "NumericalConstants.h"
 #include "Shape.h"
-#include "SharedUtil.h"
 
 CollisionInfo::CollisionInfo() :
         _data(NULL),
         _intData(0),
         _shapeA(NULL),
         _shapeB(NULL),
-        _damping(0.f),
-        _elasticity(1.f),
-        _contactPoint(0.f), 
-        _penetration(0.f), 
-        _addedVelocity(0.f) {
+        _damping(0.0f),
+        _elasticity(1.0f),
+        _contactPoint(0.0f), 
+        _penetration(0.0f), 
+        _addedVelocity(0.0f) {
 }
 
 quint64 CollisionInfo::getShapePairKey() const {

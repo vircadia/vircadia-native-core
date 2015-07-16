@@ -62,21 +62,19 @@ public:
 
     // Subclasses must implement these methods
     virtual OctreeQueryNode* createOctreeQueryNode() = 0;
-    virtual Octree* createTree() = 0;
     virtual char getMyNodeType() const = 0;
     virtual PacketType getMyQueryMessageType() const = 0;
     virtual const char* getMyServerName() const = 0;
     virtual const char* getMyLoggingServerTargetName() const = 0;
     virtual const char* getMyDefaultPersistFilename() const = 0;
     virtual PacketType getMyEditNackType() const = 0;
+    virtual QString getMyDomainSettingsKey() const { return QString("octree_server_settings"); }
 
     // subclass may implement these method
-    virtual void beforeRun() { };
+    virtual void beforeRun() { }
     virtual bool hasSpecialPacketToSend(const SharedNodePointer& node) { return false; }
     virtual int sendSpecialPacket(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent) { return 0; }
 
-    static void attachQueryNodeToNode(Node* newNode);
-    
     static float SKIP_TIME; // use this for trackXXXTime() calls for non-times
 
     static void trackLoopTime(float time) { _averageLoopTime.updateAverage(time); }
@@ -115,22 +113,28 @@ public:
     static int howManyThreadsDidHandlePacketSend(quint64 since = 0);
     static int howManyThreadsDidCallWriteDatagram(quint64 since = 0);
 
-    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
+    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler);
 
     virtual void aboutToFinish();
     void forceNodeShutdown(SharedNodePointer node);
     
 public slots:
-    /// runs the voxel server assignment
+    /// runs the octree server assignment
     void run();
-    void readPendingDatagrams();
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void sendStatsPacket();
     
-    void handleSignedTransactionPaymentResponse(const QJsonObject& jsonObject);
+    void readPendingDatagrams() { }; // this will not be called since our datagram processing thread will handle
+    void readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
 
 protected:
+    virtual Octree* createTree() = 0;
+    bool readOptionBool(const QString& optionName, const QJsonObject& settingsSectionObject, bool& result);
+    bool readOptionInt(const QString& optionName, const QJsonObject& settingsSectionObject, int& result);
+    bool readOptionString(const QString& optionName, const QJsonObject& settingsSectionObject, QString& result);
+    void readConfiguration();
+    virtual void readAdditionalConfiguration(const QJsonObject& settingsSectionObject) { };
     void parsePayload();
     void initHTTPManager(int port);
     void resetSendingStats();
@@ -139,28 +143,39 @@ protected:
     QString getConfiguration();
     QString getStatusLink();
 
-    void handleSignedTransactionPayment(PacketType packetType, const QByteArray& datagram);
-    
+    void setupDatagramProcessingThread();
+
     int _argc;
     const char** _argv;
     char** _parsedArgV;
+    QJsonObject _settings;
+
+    bool _isShuttingDown = false;
 
     HTTPManager* _httpManager;
     int _statusPort;
     QString _statusHost;
 
     char _persistFilename[MAX_FILENAME_LENGTH];
+    QString _persistAsFileType;
     int _packetsPerClientPerInterval;
     int _packetsTotalPerInterval;
     Octree* _tree; // this IS a reaveraging tree
     bool _wantPersist;
     bool _debugSending;
     bool _debugReceiving;
+    bool _debugTimestampNow;
     bool _verboseDebug;
     JurisdictionMap* _jurisdiction;
     JurisdictionSender* _jurisdictionSender;
     OctreeInboundPacketProcessor* _octreeInboundPacketProcessor;
     OctreePersistThread* _persistThread;
+    
+    int _persistInterval;
+    bool _wantBackup;
+    QString _backupExtensionFormat;
+    int _backupInterval;
+    int _maxBackupVersions;
 
     static OctreeServer* _instance;
 

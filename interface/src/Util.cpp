@@ -19,171 +19,72 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/detail/func_common.hpp>
 
-#include <SharedUtil.h>
-
 #include <QThread>
 
+#include <ByteCountCoding.h>
+#include <SharedUtil.h>
+#include <TextRenderer.h>
+
 #include "InterfaceConfig.h"
-#include "ui/TextRenderer.h"
-#include "VoxelConstants.h"
 #include "world.h"
+#include "Application.h"
+#include "InterfaceLogging.h"
 
 #include "Util.h"
 
 using namespace std;
 
-// no clue which versions are affected...
-#define WORKAROUND_BROKEN_GLUT_STROKES
-// see http://www.opengl.org/resources/libraries/glut/spec3/node78.html
+void renderWorldBox(gpu::Batch& batch) {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
 
-void eulerToOrthonormals(glm::vec3 * angles, glm::vec3 * front, glm::vec3 * right, glm::vec3 * up) {
-    //
-    //  Converts from three euler angles to the associated orthonormal vectors
-    //
-    //  Angles contains (pitch, yaw, roll) in radians
-    //
-
-    //  First, create the quaternion associated with these euler angles
-    glm::quat q(glm::vec3(angles->x, -(angles->y), angles->z));
-
-    //  Next, create a rotation matrix from that quaternion
-    glm::mat4 rotation;
-    rotation = glm::mat4_cast(q);
-
-    //  Transform the original vectors by the rotation matrix to get the new vectors
-    glm::vec4 qup(0,1,0,0);
-    glm::vec4 qright(-1,0,0,0);
-    glm::vec4 qfront(0,0,1,0);
-    glm::vec4 upNew    = qup*rotation;
-    glm::vec4 rightNew = qright*rotation;
-    glm::vec4 frontNew = qfront*rotation;
-
-    //  Copy the answers to output vectors
-    up->x = upNew.x;  up->y = upNew.y;  up->z = upNew.z;
-    right->x = rightNew.x;  right->y = rightNew.y;  right->z = rightNew.z;
-    front->x = frontNew.x;  front->y = frontNew.y;  front->z = frontNew.z;
-}
-
-void printVector(glm::vec3 vec) {
-    qDebug("%4.2f, %4.2f, %4.2f", vec.x, vec.y, vec.z);
-}
-
-
-//  Return the azimuth angle (in radians) between two points.
-float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos) {
-    return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z);
-}
-
-// Return the angle (in radians) between the head and an object in the scene.  
-// The value is zero if you are looking right at it.
-// The angle is negative if the object is to your right.
-float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float head_yaw) {
-    return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z) + render_yaw + head_yaw;
-}
-
-//  Draw a 3D vector floating in space
-void drawVector(glm::vec3 * vector) {
-    glDisable(GL_LIGHTING);
-    glEnable(GL_POINT_SMOOTH);
-    glPointSize(3.0);
-    glLineWidth(2.0);
-
-    //  Draw axes
-    glBegin(GL_LINES);
-    glColor3f(1,0,0);
-    glVertex3f(0,0,0);
-    glVertex3f(1,0,0);
-    glColor3f(0,1,0);
-    glVertex3f(0,0,0);
-    glVertex3f(0, 1, 0);
-    glColor3f(0,0,1);
-    glVertex3f(0,0,0);
-    glVertex3f(0, 0, 1);
-    glEnd();
-
-    // Draw the vector itself
-    glBegin(GL_LINES);
-    glColor3f(1,1,1);
-    glVertex3f(0,0,0);
-    glVertex3f(vector->x, vector->y, vector->z);
-    glEnd();
-
-    // Draw spheres for magnitude
-    glPushMatrix();
-    glColor3f(1,0,0);
-    glTranslatef(vector->x, 0, 0);
-    glutSolidSphere(0.02, 10, 10);
-    glColor3f(0,1,0);
-    glTranslatef(-vector->x, vector->y, 0);
-    glutSolidSphere(0.02, 10, 10);
-    glColor3f(0,0,1);
-    glTranslatef(0, -vector->y, vector->z);
-    glutSolidSphere(0.02, 10, 10);
-    glPopMatrix();
-
-}
-
-void renderWorldBox() {
     //  Show edge of world
-    float red[] = {1, 0, 0};
-    float green[] = {0, 1, 0};
-    float blue[] = {0, 0, 1};
-    float gray[] = {0.5, 0.5, 0.5};
+    static const glm::vec3 red(1.0f, 0.0f, 0.0f);
+    static const glm::vec3 green(0.0f, 1.0f, 0.0f);
+    static const glm::vec3 blue(0.0f, 0.0f, 1.0f);
+    static const glm::vec3 grey(0.5f, 0.5f, 0.5f);
 
-    glDisable(GL_LIGHTING);
-    glLineWidth(1.0);
-    glBegin(GL_LINES);
-    glColor3fv(red);
-    glVertex3f(0, 0, 0);
-    glVertex3f(TREE_SCALE, 0, 0);
-    glColor3fv(green);
-    glVertex3f(0, 0, 0);
-    glVertex3f(0, TREE_SCALE, 0);
-    glColor3fv(blue);
-    glVertex3f(0, 0, 0);
-    glVertex3f(0, 0, TREE_SCALE);
-    glColor3fv(gray);
-    glVertex3f(0, 0, TREE_SCALE);
-    glVertex3f(TREE_SCALE, 0, TREE_SCALE);
-    glVertex3f(TREE_SCALE, 0, TREE_SCALE);
-    glVertex3f(TREE_SCALE, 0, 0);
-    glEnd();
+    auto transform = Transform{};
+    batch.setModelTransform(transform);
+    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(TREE_SCALE, 0.0f, 0.0f), red);
+    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, TREE_SCALE, 0.0f), green);
+    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, TREE_SCALE), blue);
+    geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, TREE_SCALE), glm::vec3(TREE_SCALE, 0.0f, TREE_SCALE), grey);
+    geometryCache->renderLine(batch, glm::vec3(TREE_SCALE, 0.0f, TREE_SCALE), glm::vec3(TREE_SCALE, 0.0f, 0.0f), grey);
+
     //  Draw meter markers along the 3 axis to help with measuring things
-    const float MARKER_DISTANCE = 1.f;
+    const float MARKER_DISTANCE = 1.0f;
     const float MARKER_RADIUS = 0.05f;
-    glEnable(GL_LIGHTING);
-    glPushMatrix();
-    glTranslatef(MARKER_DISTANCE, 0, 0);
-    glColor3fv(red);
-    glutSolidSphere(MARKER_RADIUS, 10, 10);
-    glPopMatrix();
-    glPushMatrix();
-    glTranslatef(0, MARKER_DISTANCE, 0);
-    glColor3fv(green);
-    glutSolidSphere(MARKER_RADIUS, 10, 10);
-    glPopMatrix();
-    glPushMatrix();
-    glTranslatef(0, 0, MARKER_DISTANCE);
-    glColor3fv(blue);
-    glutSolidSphere(MARKER_RADIUS, 10, 10);
-    glPopMatrix();
-    glPushMatrix();
-    glColor3fv(gray);
-    glTranslatef(MARKER_DISTANCE, 0, MARKER_DISTANCE);
-    glutSolidSphere(MARKER_RADIUS, 10, 10);
-    glPopMatrix();
 
+    geometryCache->renderSphere(batch, MARKER_RADIUS, 10, 10, red);
+
+    transform.setTranslation(glm::vec3(MARKER_DISTANCE, 0.0f, 0.0f));
+    batch.setModelTransform(transform);
+    geometryCache->renderSphere(batch, MARKER_RADIUS, 10, 10, red);
+
+    transform.setTranslation(glm::vec3(0.0f, MARKER_DISTANCE, 0.0f));
+    batch.setModelTransform(transform);
+    geometryCache->renderSphere(batch, MARKER_RADIUS, 10, 10, green);
+
+    transform.setTranslation(glm::vec3(0.0f, 0.0f, MARKER_DISTANCE));
+    batch.setModelTransform(transform);
+    geometryCache->renderSphere(batch, MARKER_RADIUS, 10, 10, blue);
+
+    transform.setTranslation(glm::vec3(MARKER_DISTANCE, 0.0f, MARKER_DISTANCE));
+    batch.setModelTransform(transform);
+    geometryCache->renderSphere(batch, MARKER_RADIUS, 10, 10, grey);
 }
 
 //  Return a random vector of average length 1
 const glm::vec3 randVector() {
-    return glm::vec3(randFloat() - 0.5f, randFloat() - 0.5f, randFloat() - 0.5f) * 2.f;
+    return glm::vec3(randFloat() - 0.5f, randFloat() - 0.5f, randFloat() - 0.5f) * 2.0f;
 }
 
 static TextRenderer* textRenderer(int mono) {
-    static TextRenderer* monoRenderer = new TextRenderer(MONO_FONT_FAMILY); 
-    static TextRenderer* proportionalRenderer = new TextRenderer(SANS_FONT_FAMILY, -1, -1, false, TextRenderer::SHADOW_EFFECT); 
-    static TextRenderer* inconsolataRenderer = new TextRenderer(INCONSOLATA_FONT_FAMILY, -1, QFont::Bold, false);
+    static TextRenderer* monoRenderer = TextRenderer::getInstance(MONO_FONT_FAMILY);
+    static TextRenderer* proportionalRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY,
+        -1, -1, false, TextRenderer::SHADOW_EFFECT);
+    static TextRenderer* inconsolataRenderer = TextRenderer::getInstance(INCONSOLATA_FONT_FAMILY, -1, INCONSOLATA_FONT_WEIGHT,
+        false);
     switch (mono) {
         case 1:
             return monoRenderer;
@@ -196,207 +97,14 @@ static TextRenderer* textRenderer(int mono) {
 }
 
 int widthText(float scale, int mono, char const* string) {
-    return textRenderer(mono)->computeWidth(string) * (scale / 0.10);
-}
-
-float widthChar(float scale, int mono, char ch) {
-    return textRenderer(mono)->computeWidth(ch) * (scale / 0.10);
-}
-
-void drawText(int x, int y, float scale, float radians, int mono,
-              char const* string, const float* color) {
-    //
-    //  Draws text on screen as stroked so it can be resized
-    //
-    glPushMatrix();
-    glTranslatef(static_cast<float>(x), static_cast<float>(y), 0.0f);
-    glColor3fv(color);
-    glRotated(double(radians * DEGREES_PER_RADIAN), 0.0, 0.0, 1.0);
-    glScalef(scale / 0.1f, scale / 0.1f, 1.f);
-    textRenderer(mono)->draw(0, 0, string);
-    glPopMatrix();
-}
-
-
-void drawvec3(int x, int y, float scale, float radians, float thick, int mono, glm::vec3 vec, float r, float g, float b) {
-    //
-    //  Draws vec3 on screen as stroked so it can be resized
-    //
-    char vectext[20];
-    sprintf(vectext,"%3.1f,%3.1f,%3.1f", vec.x, vec.y, vec.z);
-    int len, i;
-    glPushMatrix();
-    glTranslatef(static_cast<float>(x), static_cast<float>(y), 0);
-    glColor3f(r,g,b);
-    glRotated(180.0 + double(radians * DEGREES_PER_RADIAN), 0.0, 0.0, 1.0);
-    glRotated(180.0, 0.0, 1.0, 0.0);
-    glLineWidth(thick);
-    glScalef(scale, scale, 1.f);
-    len = (int) strlen(vectext);
-	for (i = 0; i < len; i++) {
-        if (!mono) glutStrokeCharacter(GLUT_STROKE_ROMAN, int(vectext[i]));
-        else glutStrokeCharacter(GLUT_STROKE_MONO_ROMAN, int(vectext[i]));
-	}
-    glPopMatrix();
+    return textRenderer(mono)->computeExtent(string).x;  // computeWidth(string) * (scale / 0.10);
 }
 
 void renderCollisionOverlay(int width, int height, float magnitude, float red, float blue, float green) {
     const float MIN_VISIBLE_COLLISION = 0.01f;
     if (magnitude > MIN_VISIBLE_COLLISION) {
-        glColor4f(red, blue, green, magnitude);
-        glBegin(GL_QUADS);
-        glVertex2f(0, 0);
-        glVertex2d(width, 0);
-        glVertex2d(width, height);
-        glVertex2d(0, height);
-        glEnd();
+        DependencyManager::get<GeometryCache>()->renderQuad(0, 0, width, height, glm::vec4(red, blue, green, magnitude));
     }
-}
-
-void renderSphereOutline(glm::vec3 position, float radius, int numSides, glm::vec3 cameraPosition) {
-    glm::vec3 vectorToPosition(glm::normalize(position - cameraPosition));
-    glm::vec3 right = glm::cross(vectorToPosition, glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::vec3 up    = glm::cross(right, vectorToPosition);
-
-    glBegin(GL_LINE_STRIP);
-    for (int i=0; i<numSides+1; i++) {
-        float r = ((float)i / (float)numSides) * TWO_PI;
-        float s = radius * sinf(r);
-        float c = radius * cosf(r);
-
-        glVertex3f
-        (
-            position.x + right.x * s + up.x * c,
-            position.y + right.y * s + up.y * c,
-            position.z + right.z * s + up.z * c
-        );
-    }
-
-    glEnd();
-}
-
-
-void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int numSides) {
-    glm::vec3 perp1 = glm::vec3(surfaceNormal.y, surfaceNormal.z, surfaceNormal.x);
-    glm::vec3 perp2 = glm::vec3(surfaceNormal.z, surfaceNormal.x, surfaceNormal.y);
-
-    glBegin(GL_LINE_STRIP);
-
-    for (int i=0; i<numSides+1; i++) {
-        float r = ((float)i / (float)numSides) * TWO_PI;
-        float s = radius * sinf(r);
-        float c = radius * cosf(r);
-        glVertex3f
-        (
-            position.x + perp1.x * s + perp2.x * c,
-            position.y + perp1.y * s + perp2.y * c,
-            position.z + perp1.z * s + perp2.z * c
-        );
-    }
-    glEnd();
-}
-
-
-void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistance) {
-    glBegin(GL_POLYGON);
-    
-    // left side
-    glVertex2f(x, y + bevelDistance);
-    glVertex2f(x, y + height - bevelDistance);
-    
-    // top side
-    glVertex2f(x + bevelDistance,  y + height);
-    glVertex2f(x + width - bevelDistance, y + height);
-    
-    // right
-    glVertex2f(x + width, y + height - bevelDistance);
-    glVertex2f(x + width, y + bevelDistance);
-    
-    // bottom
-    glVertex2f(x + width - bevelDistance,  y);
-    glVertex2f(x +bevelDistance, y);
-
-    glEnd();
-}
-
-void renderRoundedCornersRect(int x, int y, int width, int height, int radius, int numPointsCorner) {
-#define MAX_POINTS_CORNER 50
-    // At least "2" is needed
-    if (numPointsCorner <= 1) {
-        return;
-    }
-    if (numPointsCorner > MAX_POINTS_CORNER) {
-        numPointsCorner = MAX_POINTS_CORNER;
-    }
-
-    // Precompute sin and cos for [0, PI/2) for the number of points (numPointCorner)
-    double radiusTimesSin[MAX_POINTS_CORNER];
-    double radiusTimesCos[MAX_POINTS_CORNER];
-    int i = 0;
-    for (int i = 0; i < numPointsCorner; i++) {
-        double t = (double)i * (double)PI_OVER_TWO / (double)(numPointsCorner - 1); 
-        radiusTimesSin[i] = radius * sin(t);
-        radiusTimesCos[i] = radius * cos(t);
-    }
-
-    glm::dvec2 cornerCenter;
-    glBegin(GL_POINTS);
-   
-    // Top left corner
-    cornerCenter = glm::vec2(x + radius, y + height - radius);
-    for (i = 0; i < numPointsCorner; i++) {
-        glVertex2d(cornerCenter.x - radiusTimesCos[i], cornerCenter.y + radiusTimesSin[i]); 
-    }
-
-    // Top rigth corner
-    cornerCenter = glm::vec2(x + width - radius, y + height - radius);
-    for (i = 0; i < numPointsCorner; i++) {
-        glVertex2d(cornerCenter.x + radiusTimesSin[i], cornerCenter.y + radiusTimesCos[i]); 
-    }
-
-    // Bottom right
-    cornerCenter = glm::vec2(x + width - radius, y + radius);
-    for (i = 0; i < numPointsCorner; i++) {
-        glVertex2d(cornerCenter.x + radiusTimesCos[i], cornerCenter.y - radiusTimesSin[i]); 
-    }
-
-    // Bottom left
-    cornerCenter = glm::vec2(x + radius, y + radius);
-    for (i = 0; i < numPointsCorner; i++) {
-        glVertex2d(cornerCenter.x - radiusTimesSin[i], cornerCenter.y - radiusTimesCos[i]); 
-    }
-    glEnd();
-}
-
-
-void renderOrientationDirections(glm::vec3 position, const glm::quat& orientation, float size) {
-	glm::vec3 pRight	= position + orientation * IDENTITY_RIGHT * size;
-	glm::vec3 pUp		= position + orientation * IDENTITY_UP    * size;
-	glm::vec3 pFront	= position + orientation * IDENTITY_FRONT * size;
-
-	glColor3f(1.0f, 0.0f, 0.0f);
-	glBegin(GL_LINE_STRIP);
-	glVertex3f(position.x, position.y, position.z);
-	glVertex3f(pRight.x, pRight.y, pRight.z);
-	glEnd();
-
-	glColor3f(0.0f, 1.0f, 0.0f);
-	glBegin(GL_LINE_STRIP);
-	glVertex3f(position.x, position.y, position.z);
-	glVertex3f(pUp.x, pUp.y, pUp.z);
-	glEnd();
-
-	glColor3f(0.0f, 0.0f, 1.0f);
-	glBegin(GL_LINE_STRIP);
-	glVertex3f(position.x, position.y, position.z);
-	glVertex3f(pFront.x, pFront.y, pFront.z);
-	glEnd();
-}
-
-bool closeEnoughForGovernmentWork(float a, float b) {
-    float distance = std::abs(a-b);
-    //qDebug("closeEnoughForGovernmentWork() a=%1.10f b=%1.10f distance=%1.10f\n",a,b,distance);
-    return (distance < 0.00001f);
 }
 
 //  Do some basic timing tests and report the results
@@ -409,46 +117,46 @@ void runTimingTests() {
     QElapsedTimer startTime;
     startTime.start();
     float elapsedUsecs;
-    
+
     float NSEC_TO_USEC = 1.0f / 1000.0f;
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("QElapsedTimer::nsecElapsed() usecs: %f", elapsedUsecs);
-    
+    qCDebug(interfaceapp, "QElapsedTimer::nsecElapsed() usecs: %f", (double)elapsedUsecs);
+
     // Test sleep functions for accuracy
     startTime.start();
     QThread::msleep(1);
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("QThread::msleep(1) ms: %f", elapsedUsecs / 1000.0f);
+    qCDebug(interfaceapp, "QThread::msleep(1) ms: %f", (double)(elapsedUsecs / 1000.0f));
 
     startTime.start();
     QThread::sleep(1);
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("QThread::sleep(1) ms: %f", elapsedUsecs / 1000.0f);
+    qCDebug(interfaceapp, "QThread::sleep(1) ms: %f", (double)(elapsedUsecs / 1000.0f));
 
     startTime.start();
     usleep(1);
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("usleep(1) ms: %f", elapsedUsecs / 1000.0f);
+    qCDebug(interfaceapp, "usleep(1) ms: %f", (double)(elapsedUsecs / 1000.0f));
 
     startTime.start();
     usleep(10);
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("usleep(10) ms: %f", elapsedUsecs / 1000.0f);
+    qCDebug(interfaceapp, "usleep(10) ms: %f", (double)(elapsedUsecs / 1000.0f));
 
     startTime.start();
     usleep(100);
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("usleep(100) ms: %f", elapsedUsecs / 1000.0f);
+    qCDebug(interfaceapp, "usleep(100) ms: %f", (double)(elapsedUsecs / 1000.0f));
 
     startTime.start();
     usleep(1000);
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("usleep(1000) ms: %f", elapsedUsecs / 1000.0f);
+    qCDebug(interfaceapp, "usleep(1000) ms: %f", (double)(elapsedUsecs / 1000.0f));
 
     startTime.start();
     usleep(15000);
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("usleep(15000) ms: %f", elapsedUsecs / 1000.0f);
+    qCDebug(interfaceapp, "usleep(15000) ms: %f", (double)(elapsedUsecs / 1000.0f));
 
     // Random number generation
     startTime.start();
@@ -456,7 +164,8 @@ void runTimingTests() {
         iResults[i] = rand();
     }
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("rand() stored in array usecs: %f, first result:%d", elapsedUsecs / (float) numTests, iResults[0]);
+    qCDebug(interfaceapp, "rand() stored in array usecs: %f, first result:%d",
+            (double)(elapsedUsecs / numTests), iResults[0]);
 
     // Random number generation using randFloat()
     startTime.start();
@@ -464,7 +173,8 @@ void runTimingTests() {
         fResults[i] = randFloat();
     }
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("randFloat() stored in array usecs: %f, first result: %f", elapsedUsecs / (float) numTests, fResults[0]);
+    qCDebug(interfaceapp, "randFloat() stored in array usecs: %f, first result: %f",
+            (double)(elapsedUsecs / numTests), (double)(fResults[0]));
 
     free(iResults);
     free(fResults);
@@ -476,7 +186,7 @@ void runTimingTests() {
         fTest = powf(fTest, 0.5f);
     }
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("powf(f, 0.5) usecs: %f", elapsedUsecs / (float) numTests);
+    qCDebug(interfaceapp, "powf(f, 0.5) usecs: %f", (double)(elapsedUsecs / (float) numTests));
 
     //  Vector Math
     float distance;
@@ -488,28 +198,58 @@ void runTimingTests() {
         distance = glm::distance(pointA, pointB);
     }
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("vector math usecs: %f [%f usecs total for %d tests], last result:%f",
-           elapsedUsecs / (float) numTests, elapsedUsecs, numTests, distance);
+    qCDebug(interfaceapp, "vector math usecs: %f [%f usecs total for %d tests], last result:%f",
+            (double)(elapsedUsecs / (float) numTests), (double)elapsedUsecs, numTests, (double)distance);
 
     //  Vec3 test
     glm::vec3 vecA(randVector()), vecB(randVector());
     float result;
-    
+
     startTime.start();
     for (int i = 0; i < numTests; i++) {
         glm::vec3 temp = vecA-vecB;
         result = glm::dot(temp,temp);
     }
     elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
-    qDebug("vec3 assign and dot() usecs: %f, last result:%f", elapsedUsecs / (float) numTests, result);
-}
+    qCDebug(interfaceapp, "vec3 assign and dot() usecs: %f, last result:%f",
+            (double)(elapsedUsecs / numTests), (double)result);
 
-float loadSetting(QSettings* settings, const char* name, float defaultValue) {
-    float value = settings->value(name, defaultValue).toFloat();
-    if (glm::isnan(value)) {
-        value = defaultValue;
+
+    quint64 BYTE_CODE_MAX_TEST_VALUE = 99999999;
+    quint64 BYTE_CODE_TESTS_SKIP = 999;
+
+    QByteArray extraJunk;
+    const int EXTRA_JUNK_SIZE = 200;
+    extraJunk.append((unsigned char)255);
+    for (int i = 0; i < EXTRA_JUNK_SIZE; i++) {
+        extraJunk.append(QString("junk"));
     }
-    return value;
+
+    {
+        startTime.start();
+        quint64 tests = 0;
+        quint64 failed = 0;
+        for (quint64 value = 0; value < BYTE_CODE_MAX_TEST_VALUE; value += BYTE_CODE_TESTS_SKIP) {
+            quint64 valueA = value; // usecTimestampNow();
+            ByteCountCoded<quint64> codedValueA = valueA;
+            QByteArray codedValueABuffer = codedValueA;
+            codedValueABuffer.append(extraJunk);
+            ByteCountCoded<quint64> decodedValueA;
+            decodedValueA.decode(codedValueABuffer);
+            quint64 valueADecoded = decodedValueA;
+            tests++;
+            if (valueA != valueADecoded) {
+                qDebug() << "FAILED! value:" << valueA << "decoded:" << valueADecoded;
+                failed++;
+            }
+
+        }
+        elapsedUsecs = (float)startTime.nsecsElapsed() * NSEC_TO_USEC;
+        qCDebug(interfaceapp) << "ByteCountCoded<quint64> usecs: " << elapsedUsecs
+                                << "per test:" << (double) (elapsedUsecs / tests)
+                                << "tests:" << tests
+                                << "failed:" << failed;
+    }
 }
 
 bool rayIntersectsSphere(const glm::vec3& rayStarting, const glm::vec3& rayNormalizedDirection,
@@ -552,3 +292,39 @@ bool pointInSphere(glm::vec3& point, glm::vec3& sphereCenter, double sphereRadiu
     }
     return false;
 }
+
+void runUnitTests() {
+
+    quint64 LAST_TEST = 10;
+    quint64 SKIP_BY = 1;
+    
+    for (quint64 value = 0; value <= LAST_TEST; value += SKIP_BY) {
+        qDebug() << "value:" << value;
+
+        ByteCountCoded<quint64> codedValue = value;
+    
+        QByteArray codedValueBuffer = codedValue;
+        
+        codedValueBuffer.append((unsigned char)255);
+        codedValueBuffer.append(QString("junk"));
+        
+        qDebug() << "codedValueBuffer:";
+        outputBufferBits((const unsigned char*)codedValueBuffer.constData(), codedValueBuffer.size());
+
+        ByteCountCoded<quint64> valueDecoder;
+        size_t bytesConsumed =  valueDecoder.decode(codedValueBuffer);
+        quint64 valueDecoded = valueDecoder;
+        qDebug() << "valueDecoded:" << valueDecoded;
+        qDebug() << "bytesConsumed:" << bytesConsumed;
+        
+
+        if (value == valueDecoded) {
+            qDebug() << "SUCCESS!";
+        } else {
+            qDebug() << "FAILED!";
+        }
+
+    }
+}
+
+

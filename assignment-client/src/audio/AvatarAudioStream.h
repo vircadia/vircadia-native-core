@@ -18,15 +18,14 @@
 
 class AvatarAudioStream : public PositionalAudioStream {
 public:
-    AvatarAudioStream(bool isStereo, bool dynamicJitterBuffer, int staticDesiredJitterBufferFrames, int maxFramesOverDesired);
-
+    AvatarAudioStream(bool isStereo, const InboundAudioStream::Settings& settings);
+    
 private:
     // disallow copying of AvatarAudioStream objects
     AvatarAudioStream(const AvatarAudioStream&);
     AvatarAudioStream& operator= (const AvatarAudioStream&);
 
     int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples);
-    int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples);
 };
 
 #endif // hifi_AvatarAudioStream_h

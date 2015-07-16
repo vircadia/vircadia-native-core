@@ -11,14 +11,23 @@
 
 #include "InterfaceConfig.h"
 
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#endif
+
 #include <QDesktopWidget>
 #include <QTextBlock>
 #include <QtGui>
 
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
+#include <PathUtils.h>
 #include <SharedUtil.h>
 
 #include "Application.h"
-
 #include "ui/LogDialog.h"
 
 const int TOP_BAR_HEIGHT = 46;
@@ -44,9 +53,9 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : QDialog
     setWindowTitle("Log");
     setAttribute(Qt::WA_DeleteOnClose);
 
-    QFile styleSheet(Application::resourcesPath() + "styles/log_dialog.qss");
+    QFile styleSheet(PathUtils::resourcesPath() + "styles/log_dialog.qss");
     if (styleSheet.open(QIODevice::ReadOnly)) {
-        QDir::setCurrent(Application::resourcesPath());
+        QDir::setCurrent(PathUtils::resourcesPath());
         setStyleSheet(styleSheet.readAll());
     }
 

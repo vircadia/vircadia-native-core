@@ -13,10 +13,11 @@
 #include <QLabel>
 #include <QScrollBar>
 
-#include "Application.h"
-#include "ScriptHighlighting.h"
+#include <PathUtils.h>
 
+#include "Application.h"
 #include "JSConsole.h"
+#include "ScriptHighlighting.h"
 
 const int NO_CURRENT_HISTORY_COMMAND = -1;
 const int MAX_HISTORY_SIZE = 64;
@@ -41,9 +42,9 @@ JSConsole::JSConsole(QWidget* parent, ScriptEngine* scriptEngine) :
     _ui->promptTextEdit->setWordWrapMode(QTextOption::NoWrap);
     _ui->promptTextEdit->installEventFilter(this);
 
-    QFile styleSheet(Application::resourcesPath() + "styles/console.qss");
+    QFile styleSheet(PathUtils::resourcesPath() + "styles/console.qss");
     if (styleSheet.open(QIODevice::ReadOnly)) {
-        QDir::setCurrent(Application::resourcesPath());
+        QDir::setCurrent(PathUtils::resourcesPath());
         setStyleSheet(styleSheet.readAll());
     }
 
@@ -52,12 +53,13 @@ JSConsole::JSConsole(QWidget* parent, ScriptEngine* scriptEngine) :
 
 
     if (_scriptEngine == NULL) {
-        _scriptEngine = Application::getInstance()->loadScript();
+        _scriptEngine = Application::getInstance()->loadScript(QString(), false);
     }
 
     connect(_scriptEngine, SIGNAL(evaluationFinished(QScriptValue, bool)),
             this, SLOT(handleEvalutationFinished(QScriptValue, bool)));
     connect(_scriptEngine, SIGNAL(printedMessage(const QString&)), this, SLOT(handlePrint(const QString&)));
+    connect(_scriptEngine, SIGNAL(errorMessage(const QString&)), this, SLOT(handleError(const QString&)));
 
     resizeTextInput();
 }
@@ -93,6 +95,10 @@ void JSConsole::handleEvalutationFinished(QScriptValue result, bool isException)
     QString resultColor = (isException || result.isError()) ? RESULT_ERROR_STYLE : RESULT_SUCCESS_STYLE;
     QString resultStr = "<span style='" + resultColor + "'>" + result.toString().toHtmlEscaped()  + "</span>";
     appendMessage(gutter, resultStr);
+}
+
+void JSConsole::handleError(const QString& message) {
+    appendMessage(GUTTER_ERROR, "<span style='" + RESULT_ERROR_STYLE + "'>" + message.toHtmlEscaped() + "</span>");
 }
 
 void JSConsole::handlePrint(const QString& message) {

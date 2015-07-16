@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QFileDialog>
+
 #include "ui_scriptEditorWindow.h"
 #include "ScriptEditorWindow.h"
 #include "ScriptEditorWidget.h"
@@ -28,10 +30,10 @@
 #include "Application.h"
 #include "FlowLayout.h"
 #include "JSConsole.h"
+#include "PathUtils.h"
 
-const int CONSOLE_HEIGHT = 150;
-
-ScriptEditorWindow::ScriptEditorWindow() :
+ScriptEditorWindow::ScriptEditorWindow(QWidget* parent) :
+    QWidget(parent),
     _ScriptEditorWindowUI(new Ui::ScriptEditorWindow),
     _loadMenu(new QMenu),
     _saveMenu(new QMenu)
@@ -39,8 +41,8 @@ ScriptEditorWindow::ScriptEditorWindow() :
     setAttribute(Qt::WA_DeleteOnClose);
 
     _ScriptEditorWindowUI->setupUi(this);
+
     this->setWindowFlags(Qt::Tool);
-    show();
     addScriptEditorWidget("New script");
     connect(_loadMenu, &QMenu::aboutToShow, this, &ScriptEditorWindow::loadMenuAboutToShow);
     _ScriptEditorWindowUI->loadButton->setMenu(_loadMenu);
@@ -53,6 +55,11 @@ ScriptEditorWindow::ScriptEditorWindow() :
     connect(new QShortcut(QKeySequence("Ctrl+S"), this), &QShortcut::activated, this,&ScriptEditorWindow::saveScriptClicked);
     connect(new QShortcut(QKeySequence("Ctrl+O"), this), &QShortcut::activated, this, &ScriptEditorWindow::loadScriptClicked);
     connect(new QShortcut(QKeySequence("F5"), this), &QShortcut::activated, this, &ScriptEditorWindow::toggleRunScriptClicked);
+
+    _ScriptEditorWindowUI->loadButton->setIcon(QIcon(QPixmap(PathUtils::resourcesPath() + "icons/load-script.svg")));
+    _ScriptEditorWindowUI->newButton->setIcon(QIcon(QPixmap(PathUtils::resourcesPath() + "icons/new-script.svg")));
+    _ScriptEditorWindowUI->saveButton->setIcon(QIcon(QPixmap(PathUtils::resourcesPath() + "icons/save-script.svg")));
+    _ScriptEditorWindowUI->toggleRunButton->setIcon(QIcon(QPixmap(PathUtils::resourcesPath() + "icons/start-script.svg")));
 
     QWidget* console = new JSConsole(this);
     console->setFixedHeight(CONSOLE_HEIGHT);

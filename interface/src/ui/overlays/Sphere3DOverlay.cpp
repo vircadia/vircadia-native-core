@@ -11,38 +11,39 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
-#include <QGLWidget>
 #include <SharedUtil.h>
 
 #include "Sphere3DOverlay.h"
+#include "Application.h"
 
-Sphere3DOverlay::Sphere3DOverlay() {
+
+Sphere3DOverlay::Sphere3DOverlay(const Sphere3DOverlay* Sphere3DOverlay) :
+    Volume3DOverlay(Sphere3DOverlay)
+{
 }
 
-Sphere3DOverlay::~Sphere3DOverlay() {
-}
-
-void Sphere3DOverlay::render() {
+void Sphere3DOverlay::render(RenderArgs* args) {
     if (!_visible) {
         return; // do nothing if we're not visible
     }
 
-    const float MAX_COLOR = 255;
-    glColor4f(_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, _alpha);
+    const int SLICES = 15;
+    float alpha = getAlpha();
+    xColor color = getColor();
+    const float MAX_COLOR = 255.0f;
+    glm::vec4 sphereColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
+    auto batch = args->_batch;
 
-    glDisable(GL_LIGHTING);
-    glPushMatrix();
-    glTranslatef(_position.x,
-                 _position.y,
-                 _position.z);
-    glLineWidth(_lineWidth);
-    const int slices = 15;
-    if (_isSolid) {
-        glutSolidSphere(_size, slices, slices);
-    } else {
-        glutWireSphere(_size, slices, slices);
+    if (batch) {
+        Transform transform = _transform;
+        transform.postScale(getDimensions());
+        batch->setModelTransform(transform);
+        DependencyManager::get<GeometryCache>()->renderSphere(*batch, 1.0f, SLICES, SLICES, sphereColor, _isSolid);
     }
-    glPopMatrix();
 
+}
+
+Sphere3DOverlay* Sphere3DOverlay::createClone() const {
+    return new Sphere3DOverlay(this);
 }

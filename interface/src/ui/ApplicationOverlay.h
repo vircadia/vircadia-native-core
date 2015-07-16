@@ -12,69 +12,39 @@
 #ifndef hifi_ApplicationOverlay_h
 #define hifi_ApplicationOverlay_h
 
-class Overlays;
+#include <gpu/Texture.h>
 class QOpenGLFramebufferObject;
 
-const float MAGNIFY_WIDTH = 160.0f;
-const float MAGNIFY_HEIGHT = 80.0f;
-const float MAGNIFY_MULT = 4.0f;
-
 // Handles the drawing of the overlays to the screen
-class ApplicationOverlay {
+// TODO, move divide up the rendering, displaying and input handling
+// facilities of this class
+class ApplicationOverlay : public QObject {
+    Q_OBJECT
 public:
-
     ApplicationOverlay();
     ~ApplicationOverlay();
 
-    void renderOverlay(bool renderToTexture = false);
-    void displayOverlayTexture();
-    void displayOverlayTextureOculus(Camera& whichCamera);
-    void displayOverlayTexture3DTV(Camera& whichCamera, float aspectRatio, float fov);
-    void computeOculusPickRay(float x, float y, glm::vec3& direction) const;
-    void getClickLocation(int &x, int &y) const;
-    QPoint getPalmClickLocation(const PalmData *palm) const;
-    bool calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const;
+    void renderOverlay(RenderArgs* renderArgs);
+    GLuint getOverlayTexture();
 
-
-    // Getters
-    QOpenGLFramebufferObject* getFramebufferObject();
-    float getAlpha() const { return _alpha; }
-  
 private:
-    // Interleaved vertex data
-    struct TextureVertex {
-        glm::vec3 position;
-        glm::vec2 uv;
-    };
+    void renderStatsAndLogs(RenderArgs* renderArgs);
+    void renderDomainConnectionStatusBorder(RenderArgs* renderArgs);
+    void renderRearViewToFbo(RenderArgs* renderArgs);
+    void renderRearView(RenderArgs* renderArgs);
+    void renderQmlUi(RenderArgs* renderArgs);
+    void renderOverlays(RenderArgs* renderArgs);
+    void buildFramebufferObject();
 
-    typedef QPair<GLuint, GLuint> VerticesIndices;
+    float _alpha{ 1.0f };
+    float _trailingAudioLoudness{ 0.0f };
+    GLuint _uiTexture{ 0 };
 
-    void renderPointers();
-    void renderControllerPointers();
-    void renderPointersOculus(const glm::vec3& eyePos);
-    void renderMagnifier(int mouseX, int mouseY, float sizeMult, bool showBorder) const;
-    void renderAudioMeter();
-    void renderStatsAndLogs();
-    void renderTexturedHemisphere();
-    void renderDomainConnectionStatusBorder();
+    int _domainStatusBorder;
+    int _magnifierBorder;
 
-    QOpenGLFramebufferObject* _framebufferObject;
-    float _trailingAudioLoudness;
-    float _textureFov;
-    
-    enum MagnifyDevices { MOUSE, LEFT_CONTROLLER, RIGHT_CONTROLLER, NUMBER_OF_MAGNIFIERS = RIGHT_CONTROLLER + 1 };
-    bool _reticleActive[NUMBER_OF_MAGNIFIERS];
-    int _mouseX[NUMBER_OF_MAGNIFIERS];
-    int _mouseY[NUMBER_OF_MAGNIFIERS];
-    bool _magActive[NUMBER_OF_MAGNIFIERS];
-    int _magX[NUMBER_OF_MAGNIFIERS];
-    int _magY[NUMBER_OF_MAGNIFIERS];
-    float _magSizeMult[NUMBER_OF_MAGNIFIERS];
-    
-    float _alpha;
-    float _oculusuiRadius;
-
-    GLuint _crosshairTexture;
+    ivec2 _previousBorderSize{ -1 };
+    QOpenGLFramebufferObject* _overlayFramebuffer{ nullptr };
 };
 
 #endif // hifi_ApplicationOverlay_h

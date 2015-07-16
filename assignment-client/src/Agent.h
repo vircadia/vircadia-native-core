@@ -18,17 +18,11 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 
-#include <AvatarHashMap.h>
-#include <ModelEditPacketSender.h>
-#include <ModelTree.h>
-#include <ModelTreeHeadlessViewer.h>
-#include <ParticleEditPacketSender.h>
-#include <ParticleTree.h>
-#include <ParticleTreeHeadlessViewer.h>
+#include <EntityEditPacketSender.h>
+#include <EntityTree.h>
+#include <EntityTreeHeadlessViewer.h>
 #include <ScriptEngine.h>
 #include <ThreadedAssignment.h>
-#include <VoxelEditPacketSender.h>
-#include <VoxelTreeHeadlessViewer.h>
 
 #include "MixedAudioStream.h"
 
@@ -63,18 +57,11 @@ public slots:
 
 private:
     ScriptEngine _scriptEngine;
-    VoxelEditPacketSender _voxelEditSender;
-    ParticleEditPacketSender _particleEditSender;
-    ModelEditPacketSender _modelEditSender;
-
-    ParticleTreeHeadlessViewer _particleViewer;
-    VoxelTreeHeadlessViewer _voxelViewer;
-    ModelTreeHeadlessViewer _modelViewer;
+    EntityEditPacketSender _entityEditSender;
+    EntityTreeHeadlessViewer _entityViewer;
     
     MixedAudioStream _receivedAudioStream;
     float _lastReceivedAudioLoudness;
-
-    AvatarHashMap _avatarHashMap;
 };
 
 #endif // hifi_Agent_h

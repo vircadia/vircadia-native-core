@@ -6,7 +6,7 @@
   </head>
   <body>
     <pre id='editor' style='font-size: 14px;'><!--#include file="placeholder.js"--></object></pre>
-    <script src='../js/jquery-2.0.3.min.js'></script>
+    <script src='../js/jquery.min.js'></script>
     <script src='js/ace/ace.js' type='text/javascript'></script>
     <script src='js/assignment.js' type='text/javascript'></script>
     <div class='big-button' id='deploy-button'>

@@ -18,7 +18,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include "SharedUtil.h"
+#include <NumericalConstants.h>
 
 class AvatarData;
 class PalmData;
@@ -36,11 +36,11 @@ public:
     
     // position conversion
     glm::vec3 localToWorldPosition(const glm::vec3& localPosition) {
-        return getBasePosition() + getBaseOrientation() * localPosition;
+        return getBasePosition() + getBaseOrientation() * localPosition * getBaseScale();
     }
 
     glm::vec3 localToWorldDirection(const glm::vec3& localVector) {
-        return getBaseOrientation() * localVector;
+        return getBaseOrientation() * localVector * getBaseScale();
     }
 
     glm::vec3 worldToLocalVector(const glm::vec3& worldVector) const;
@@ -71,6 +71,7 @@ protected:
     
     glm::quat getBaseOrientation() const;
     glm::vec3 getBasePosition() const;
+    float getBaseScale() const;
     
 private:
     // privatize copy ctor and assignment operator so copies of this object cannot be made
@@ -97,10 +98,12 @@ public:
     void setRawPosition(const glm::vec3& pos)  { _rawPosition = pos; }
     void setRawVelocity(const glm::vec3& velocity) { _rawVelocity = velocity; }
     const glm::vec3& getRawVelocity()  const { return _rawVelocity; }
+    void setRawAngularVelocity(const glm::vec3& angularVelocity) { _rawAngularVelocity = angularVelocity; }
+    const glm::vec3& getRawAngularVelocity() const { return _rawAngularVelocity; }
     void addToPosition(const glm::vec3& delta);
 
     void addToPenetration(const glm::vec3& penetration) { _totalPenetration += penetration; }
-    void resolvePenetrations() { addToPosition(-_totalPenetration); _totalPenetration = glm::vec3(0.f); }
+    void resolvePenetrations() { addToPosition(-_totalPenetration); _totalPenetration = glm::vec3(0.0f); }
     
     void setTipPosition(const glm::vec3& position) { _tipPosition = position; }
     const glm::vec3 getTipPosition() const { return _owningHandData->localToWorldPosition(_tipPosition); }
@@ -147,7 +150,7 @@ private:
     glm::quat _rawRotation;
     glm::vec3 _rawPosition;
     glm::vec3 _rawVelocity;
-    glm::vec3 _rotationalVelocity;
+    glm::vec3 _rawAngularVelocity;
     glm::quat _lastRotation;
     
     glm::vec3 _tipPosition;

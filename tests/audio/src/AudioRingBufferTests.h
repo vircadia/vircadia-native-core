@@ -12,13 +12,16 @@
 #ifndef hifi_AudioRingBufferTests_h
 #define hifi_AudioRingBufferTests_h
 
+#include <QtTest/QtTest>
+
 #include "AudioRingBuffer.h"
 
 
-namespace AudioRingBufferTests {
-
+class AudioRingBufferTests : public QObject {
+    Q_OBJECT
+private slots:
     void runAllTests();
-
+private:
     void assertBufferSize(const AudioRingBuffer& buffer, int samples);
 };
 

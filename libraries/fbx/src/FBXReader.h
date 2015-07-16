@@ -12,53 +12,31 @@
 #ifndef hifi_FBXReader_h
 #define hifi_FBXReader_h
 
+#define USE_MODEL_MESH 1
+
 #include <QMetaType>
 #include <QUrl>
 #include <QVarLengthArray>
 #include <QVariant>
 #include <QVector>
 
-#include <Shape.h>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <Extents.h>
+#include <Transform.h>
+#include <ShapeInfo.h>
+
+#include <model/Geometry.h>
+#include <model/Material.h>
+
+class QIODevice;
 class FBXNode;
 
 typedef QList<FBXNode> FBXNodeList;
 
-/// The names of the blendshapes expected by Faceshift, terminated with an empty string.
-extern const char* FACESHIFT_BLENDSHAPES[];
-/// The size of FACESHIFT_BLENDSHAPES
-extern const int NUM_FACESHIFT_BLENDSHAPES;
-
 /// The names of the joints in the Maya HumanIK rig, terminated with an empty string.
 extern const char* HUMANIK_JOINTS[];
-
-class Extents {
-public:
-    /// set minimum and maximum to FLT_MAX and -FLT_MAX respectively
-    void reset();
-
-    /// \param extents another intance of extents
-    /// expand current limits to contain other extents
-    void addExtents(const Extents& extents);
-
-    /// \param point new point to compare against existing limits
-    /// compare point to current limits and expand them if necessary to contain point
-    void addPoint(const glm::vec3& point);
-
-    /// \param point
-    /// \return true if point is within current limits
-    bool containsPoint(const glm::vec3& point) const;
-
-    /// \return whether or not the extents are empty
-    bool isEmpty() const { return minimum == maximum; }
-    bool isValid() const { return !((minimum == glm::vec3(FLT_MAX)) && (maximum == glm::vec3(-FLT_MAX))); }
-
-    glm::vec3 minimum;
-    glm::vec3 maximum;
-};
 
 /// A node within an FBX document.
 class FBXNode {
@@ -102,7 +80,8 @@ public:
     QString name;
     glm::vec3 shapePosition;  // in joint frame
     glm::quat shapeRotation;  // in joint frame
-    Shape::Type shapeType;
+    quint8 shapeType;
+    bool isSkeletonJoint;
 };
 
 
@@ -117,9 +96,13 @@ public:
 /// A texture map in an FBX document.
 class FBXTexture {
 public:
-    
+    QString name;
     QByteArray filename;
     QByteArray content;
+    
+    Transform transform;
+    int texcoordSet;
+    QString texcoordSetName;
 };
 
 /// A single part of a mesh (with the same material).
@@ -131,11 +114,18 @@ public:
     
     glm::vec3 diffuseColor;
     glm::vec3 specularColor;
+    glm::vec3 emissiveColor;
+    glm::vec2 emissiveParams;
     float shininess;
+    float opacity;
     
     FBXTexture diffuseTexture;
     FBXTexture normalTexture;
     FBXTexture specularTexture;
+    FBXTexture emissiveTexture;
+
+    QString materialID;
+    model::MaterialPointer _material;
 };
 
 /// A single mesh (with optional blendshapes) extracted from an FBX document.
@@ -149,18 +139,26 @@ public:
     QVector<glm::vec3> tangents;
     QVector<glm::vec3> colors;
     QVector<glm::vec2> texCoords;
+    QVector<glm::vec2> texCoords1;
     QVector<glm::vec4> clusterIndices;
     QVector<glm::vec4> clusterWeights;
     
     QVector<FBXCluster> clusters;
 
     Extents meshExtents;
-    
+    glm::mat4 modelTransform;
+
     bool isEye;
     
     QVector<FBXBlendshape> blendshapes;
     
     bool hasSpecularTexture() const;
+    bool hasEmissiveTexture() const;
+
+    unsigned int meshIndex; // the order the meshes appeared in the object file
+#   if USE_MODEL_MESH
+    model::Mesh _mesh;
+#   endif
 };
 
 /// A single animation frame extracted from an FBX document.
@@ -170,19 +168,26 @@ public:
     QVector<glm::quat> rotations;
 };
 
+/// A light in an FBX document.
+class FBXLight {
+public:
+    QString name;
+    Transform transform;
+    float intensity;
+    float fogValue;
+    glm::vec3 color;
+
+    FBXLight() :
+        name(),
+        transform(),
+        intensity(1.0f),
+        fogValue(0.0f),
+        color(1.0f)
+    {}
+};
+
 Q_DECLARE_METATYPE(FBXAnimationFrame)
 Q_DECLARE_METATYPE(QVector<FBXAnimationFrame>)
-
-/// An attachment to an FBX document.
-class FBXAttachment {
-public:
-    
-    int jointIndex;
-    QUrl url;
-    glm::vec3 translation;
-    glm::quat rotation;
-    glm::vec3 scale;
-};
 
 /// A point where an avatar can sit
 class SittingPoint {
@@ -191,6 +196,16 @@ public:
     glm::vec3 position; // relative postion
     glm::quat rotation; // relative orientation
 };
+
+inline bool operator==(const SittingPoint& lhs, const SittingPoint& rhs)
+{
+    return (lhs.name == rhs.name) && (lhs.position == rhs.position) && (lhs.rotation == rhs.rotation);
+}
+
+inline bool operator!=(const SittingPoint& lhs, const SittingPoint& rhs)
+{
+    return (lhs.name != rhs.name) || (lhs.position != rhs.position) || (lhs.rotation != rhs.rotation);
+}
 
 /// A set of meshes extracted from an FBX document.
 class FBXGeometry {
@@ -201,19 +216,22 @@ public:
 
     QVector<FBXJoint> joints;
     QHash<QString, int> jointIndices; ///< 1-based, so as to more easily detect missing indices
+    bool hasSkeletonJoints;
     
     QVector<FBXMesh> meshes;
     
     glm::mat4 offset;
     
-    int leftEyeJointIndex;
-    int rightEyeJointIndex;
-    int neckJointIndex;
-    int rootJointIndex;
-    int leanJointIndex;
-    int headJointIndex;
-    int leftHandJointIndex;
-    int rightHandJointIndex;
+    int leftEyeJointIndex = -1;
+    int rightEyeJointIndex = -1;
+    int neckJointIndex = -1;
+    int rootJointIndex = -1;
+    int leanJointIndex = -1;
+    int headJointIndex = -1;
+    int leftHandJointIndex = -1;
+    int rightHandJointIndex = -1;
+    int leftToeJointIndex = -1;
+    int rightToeJointIndex = -1;
     
     QVector<int> humanIKJointIndices;
     
@@ -227,30 +245,33 @@ public:
     Extents meshExtents;
     
     QVector<FBXAnimationFrame> animationFrames;
-    
-    QVector<FBXAttachment> attachments;
-    
+        
     int getJointIndex(const QString& name) const { return jointIndices.value(name) - 1; }
     QStringList getJointNames() const;
     
     bool hasBlendedMeshes() const;
+
+    /// Returns the unscaled extents of the model's mesh
+    Extents getUnscaledMeshExtents() const;
+
+    bool convexHullContains(const glm::vec3& point) const;
+
+    QHash<int, QString> meshIndicesToModelNames;
+    
+    /// given a meshIndex this will return the name of the model that mesh belongs to if known
+    QString getModelNameOfMesh(int meshIndex) const;
+    
+    QList<QString> blendshapeChannelNames;
 };
 
 Q_DECLARE_METATYPE(FBXGeometry)
 
-/// Reads an FST mapping from the supplied data.
-QVariantHash readMapping(const QByteArray& data);
-
-/// Writes an FST mapping to a byte array.
-QByteArray writeMapping(const QVariantHash& mapping);
+/// Reads FBX geometry from the supplied model and mapping data.
+/// \exception QString if an error occurs in parsing
+FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping);
-
-/// Reads SVO geometry from the supplied model data.
-FBXGeometry readSVO(const QByteArray& model);
-
-void calculateRotatedExtents(Extents& extents, const glm::quat& rotation);
+FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 #endif // hifi_FBXReader_h

@@ -9,34 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <Logging.h>
-#include <SharedUtil.h>
+#include "AssignmentClientApp.h"
 
-#include "Assignment.h"
-#include "AssignmentClient.h"
-#include "AssignmentClientMonitor.h"
+#include <QtCore/QDebug>
 
 int main(int argc, char* argv[]) {
-#ifndef WIN32
-    setvbuf(stdout, NULL, _IOLBF, 0);
-#endif
-
-    // use the verbose message handler in Logging
-    qInstallMessageHandler(Logging::verboseMessageHandler);
+    AssignmentClientApp app(argc, argv);
     
-    const char* numForksString = getCmdOption(argc, (const char**)argv, NUM_FORKS_PARAMETER);
+    int acReturn = app.exec();
+    qDebug() << "assignment-client process" <<  app.applicationPid() << "exiting with status code" << acReturn;
     
-    int numForks = 0;
-    
-    if (numForksString) {
-        numForks = atoi(numForksString);
-    }
-    
-    if (numForks) {
-        AssignmentClientMonitor monitor(argc, argv, numForks);
-        return monitor.exec();
-    } else {
-        AssignmentClient client(argc, argv);
-        return client.exec();
-    }
+    return acReturn;
 }

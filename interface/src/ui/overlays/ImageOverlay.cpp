@@ -8,106 +8,120 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
-#include <QGLWidget>
-#include <QPainter>
-#include <QSvgRenderer>
-#include <SharedUtil.h>
-
 #include "ImageOverlay.h"
 
+#include <DependencyManager.h>
+#include <GeometryCache.h>
+#include <RegisteredMetaTypes.h>
+
+#include "qapplication.h"
+
+#include "gpu/Context.h"
+#include "gpu/StandardShaderLib.h"
+
 ImageOverlay::ImageOverlay() :
-    _textureID(0),
+    _imageURL(),
     _renderImage(false),
-    _textureBound(false),
     _wantClipFromImage(false)
 {
-    _isLoaded = false;
 }
 
-ImageOverlay::~ImageOverlay() {
-    if (_parent && _textureID) {
-        // do we need to call this?
-        //_parent->deleteTexture(_textureID);
-    }
+ImageOverlay::ImageOverlay(const ImageOverlay* imageOverlay) :
+    Overlay2D(imageOverlay),
+    _imageURL(imageOverlay->_imageURL),
+    _textureImage(imageOverlay->_textureImage),
+    _texture(imageOverlay->_texture),
+    _fromImage(imageOverlay->_fromImage),
+    _renderImage(imageOverlay->_renderImage),
+    _wantClipFromImage(imageOverlay->_wantClipFromImage)
+{
 }
 
 // TODO: handle setting image multiple times, how do we manage releasing the bound texture?
 void ImageOverlay::setImageURL(const QUrl& url) {
-    _isLoaded = false;
-    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-    QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
-    connect(reply, &QNetworkReply::finished, this, &ImageOverlay::replyFinished);
-}
-
-void ImageOverlay::replyFinished() {
-    QNetworkReply* reply = static_cast<QNetworkReply*>(sender());
-    
-    // replace our byte array with the downloaded data
-    QByteArray rawData = reply->readAll();
-    _textureImage.loadFromData(rawData);
-    _renderImage = true;
-    _isLoaded = true;
-}
-
-void ImageOverlay::render() {
-    if (!_visible || !_isLoaded) {
-        return; // do nothing if we're not visible
-    }
-    if (_renderImage && !_textureBound) {
-        _textureID = _parent->bindTexture(_textureImage);
-        _textureBound = true;
-    }
-
-    if (_renderImage) {
-        glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, _textureID);
-    }
-    const float MAX_COLOR = 255;
-    glColor4f(_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, _alpha);
-
-    float imageWidth = _textureImage.width();
-    float imageHeight = _textureImage.height();
-    
-    QRect fromImage;
-    if (_wantClipFromImage) {
-        fromImage = _fromImage;
+    _imageURL = url;
+    if (url.isEmpty()) {
+        _isLoaded = true;
+        _renderImage = false;
+        _texture.clear();
     } else {
-        fromImage.setX(0);
-        fromImage.setY(0);
-        fromImage.setWidth(imageWidth);
-        fromImage.setHeight(imageHeight);
+        _isLoaded = false;
+        _renderImage = true;
     }
-    float x = fromImage.x() / imageWidth;
-    float y = fromImage.y() / imageHeight;
-    float w = fromImage.width() / imageWidth; // ?? is this what we want? not sure
-    float h = fromImage.height() / imageHeight;
+}
 
-    glBegin(GL_QUADS);
-        if (_renderImage) {
-            glTexCoord2f(x, 1.0f - y);
-        }
-        glVertex2f(_bounds.left(), _bounds.top());
+void ImageOverlay::render(RenderArgs* args) {
+    if (!_isLoaded && _renderImage) {
+        _isLoaded = true;
+        _texture = DependencyManager::get<TextureCache>()->getTexture(_imageURL);
+    }
 
-        if (_renderImage) {
-            glTexCoord2f(x + w, 1.0f - y);
-        }
-        glVertex2f(_bounds.right(), _bounds.top());
+    // If we are not visible or loaded, return.  If we are trying to render an
+    // image but the texture hasn't loaded, return.
+    if (!_visible || !_isLoaded || (_renderImage && !_texture->isLoaded())) {
+        return;
+    }
 
-        if (_renderImage) {
-            glTexCoord2f(x + w, 1.0f - (y + h));
-        }
-        glVertex2f(_bounds.right(), _bounds.bottom());
+    gpu::Batch& batch = *args->_batch;
 
-        if (_renderImage) {
-            glTexCoord2f(x, 1.0f - (y + h));
-        }
-        glVertex2f(_bounds.left(), _bounds.bottom());
-    glEnd();
     if (_renderImage) {
-        glDisable(GL_TEXTURE_2D);
+        batch.setResourceTexture(0, _texture->getGPUTexture());
+    } else {
+        batch.setResourceTexture(0, args->_whiteTexture);
+    }
+
+    const float MAX_COLOR = 255.0f;
+    xColor color = getColor();
+    float alpha = getAlpha();
+    glm::vec4 quadColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
+
+    int left = _bounds.left();
+    int right = _bounds.right() + 1;
+    int top = _bounds.top();
+    int bottom = _bounds.bottom() + 1;
+
+    glm::vec2 topLeft(left, top);
+    glm::vec2 bottomRight(right, bottom);
+
+    batch.setModelTransform(Transform());
+
+    // if for some reason our image is not over 0 width or height, don't attempt to render the image
+    if (_renderImage) {
+        float imageWidth = _texture->getWidth();
+        float imageHeight = _texture->getHeight();
+        if (imageWidth > 0 && imageHeight > 0) {
+            QRect fromImage;
+            if (_wantClipFromImage) {
+                float scaleX = imageWidth / _texture->getOriginalWidth();
+                float scaleY = imageHeight / _texture->getOriginalHeight();
+
+                fromImage.setX(scaleX * _fromImage.x());
+                fromImage.setY(scaleY * _fromImage.y());
+                fromImage.setWidth(scaleX * _fromImage.width());
+                fromImage.setHeight(scaleY * _fromImage.height());
+            }
+            else {
+                fromImage.setX(0);
+                fromImage.setY(0);
+                fromImage.setWidth(imageWidth);
+                fromImage.setHeight(imageHeight);
+            }
+
+            float x = fromImage.x() / imageWidth;
+            float y = fromImage.y() / imageHeight;
+            float w = fromImage.width() / imageWidth; // ?? is this what we want? not sure
+            float h = fromImage.height() / imageHeight;
+
+            glm::vec2 texCoordTopLeft(x, y);
+            glm::vec2 texCoordBottomRight(x + w, y + h);
+            glm::vec4 texcoordRect(texCoordTopLeft, w, h);
+
+            DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, quadColor);
+        } else {
+            DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, quadColor);
+        }
+    } else {
+        DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, quadColor);
     }
 }
 
@@ -139,7 +153,7 @@ void ImageOverlay::setProperties(const QScriptValue& properties) {
             subImageRect.setHeight(oldSubImageRect.height());
         }
         setClipFromSource(subImageRect);
-    }    
+    }
 
     QScriptValue imageURL = properties.property("imageURL");
     if (imageURL.isValid()) {
@@ -147,4 +161,16 @@ void ImageOverlay::setProperties(const QScriptValue& properties) {
     }
 }
 
+QScriptValue ImageOverlay::getProperty(const QString& property) {
+    if (property == "subImage") {
+        return qRectToScriptValue(_scriptEngine, _fromImage);
+    }
+    if (property == "imageURL") {
+        return _imageURL.toString();
+    }
 
+    return Overlay2D::getProperty(property);
+}
+ImageOverlay* ImageOverlay::createClone() const {
+    return new ImageOverlay(this);
+}

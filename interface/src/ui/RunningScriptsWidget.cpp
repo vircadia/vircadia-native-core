@@ -17,89 +17,87 @@
 #include <QFileInfo>
 #include <QKeyEvent>
 #include <QPainter>
+#include <QScreen>
 #include <QTableWidgetItem>
+#include <QWindow>
+
+#include <PathUtils.h>
 
 #include "Application.h"
 #include "Menu.h"
 #include "ScriptsModel.h"
+#include "UIUtil.h"
 
 RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
-    FramelessDialog(parent, 0, POSITION_LEFT),
+    QWidget(parent, Qt::Window | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowMinMaxButtonsHint |
+            Qt::WindowCloseButtonHint),
     ui(new Ui::RunningScriptsWidget),
-    _signalMapper(this),
-    _proxyModel(this),
+    _reloadSignalMapper(this),
+    _stopSignalMapper(this),
+    _scriptsModelFilter(this),
     _scriptsModel(this) {
     ui->setupUi(this);
 
     setAttribute(Qt::WA_DeleteOnClose, false);
 
-    setAllowResize(false);
-
-    ui->hideWidgetButton->setIcon(QIcon(Application::resourcesPath() + "images/close.svg"));
-    ui->reloadAllButton->setIcon(QIcon(Application::resourcesPath() + "images/reload.svg"));
-    ui->stopAllButton->setIcon(QIcon(Application::resourcesPath() + "images/stop.svg"));
-    ui->loadScriptButton->setIcon(QIcon(Application::resourcesPath() + "images/plus-white.svg"));
-
-    ui->recentlyLoadedScriptsArea->hide();
-
     ui->filterLineEdit->installEventFilter(this);
 
-    connect(&_proxyModel, &QSortFilterProxyModel::modelReset,
+    connect(&_scriptsModelFilter, &QSortFilterProxyModel::modelReset,
             this, &RunningScriptsWidget::selectFirstInList);
 
-    _proxyModel.setSourceModel(&_scriptsModel);
-    _proxyModel.sort(0, Qt::AscendingOrder);
-    _proxyModel.setDynamicSortFilter(true);
-    ui->scriptListView->setModel(&_proxyModel);
+    // FIXME: menu isn't prepared at this point.
+    //QString shortcutText = Menu::getInstance()->getActionForOption(MenuOption::ReloadAllScripts)->shortcut().toString(QKeySequence::NativeText);
+    //ui->tipLabel->setText("Tip: Use " + shortcutText + " to reload all scripts.");
+
+    _scriptsModelFilter.setSourceModel(&_scriptsModel);
+    _scriptsModelFilter.sort(0, Qt::AscendingOrder);
+    _scriptsModelFilter.setDynamicSortFilter(true);
+    ui->scriptTreeView->setModel(&_scriptsModelFilter);
 
     connect(ui->filterLineEdit, &QLineEdit::textChanged, this, &RunningScriptsWidget::updateFileFilter);
-    connect(ui->scriptListView, &QListView::doubleClicked, this, &RunningScriptsWidget::loadScriptFromList);
+    connect(ui->scriptTreeView, &QTreeView::doubleClicked, this, &RunningScriptsWidget::loadScriptFromList);
 
-    _recentlyLoadedScriptsTable = new ScriptsTableWidget(ui->recentlyLoadedScriptsTableWidget);
-    _recentlyLoadedScriptsTable->setColumnCount(1);
-    _recentlyLoadedScriptsTable->setColumnWidth(0, 265);
-
-    connect(ui->hideWidgetButton, &QPushButton::clicked,
-            Application::getInstance(), &Application::toggleRunningScriptsWidget);
     connect(ui->reloadAllButton, &QPushButton::clicked,
             Application::getInstance(), &Application::reloadAllScripts);
     connect(ui->stopAllButton, &QPushButton::clicked,
             this, &RunningScriptsWidget::allScriptsStopped);
-    connect(ui->loadScriptButton, &QPushButton::clicked,
+    connect(ui->loadScriptFromDiskButton, &QPushButton::clicked,
             Application::getInstance(), &Application::loadDialog);
-    connect(&_signalMapper, SIGNAL(mapped(QString)), Application::getInstance(), SLOT(stopScript(const QString&)));
+    connect(ui->loadScriptFromURLButton, &QPushButton::clicked,
+            Application::getInstance(), &Application::loadScriptURLDialog);
+    connect(&_reloadSignalMapper, SIGNAL(mapped(QString)), Application::getInstance(), SLOT(reloadOneScript(const QString&)));
+    connect(&_stopSignalMapper, SIGNAL(mapped(QString)), Application::getInstance(), SLOT(stopScript(const QString&)));
+
+    UIUtil::scaleWidgetFontSizes(this);
 }
 
 RunningScriptsWidget::~RunningScriptsWidget() {
     delete ui;
+    _scriptsModel.deleteLater();
 }
 
 void RunningScriptsWidget::updateFileFilter(const QString& filter) {
     QRegExp regex("^.*" + QRegExp::escape(filter) + ".*$", Qt::CaseInsensitive);
-    _proxyModel.setFilterRegExp(regex);
+    _scriptsModelFilter.setFilterRegExp(regex);
     selectFirstInList();
 }
 
 void RunningScriptsWidget::loadScriptFromList(const QModelIndex& index) {
-    QVariant scriptFile = _proxyModel.data(index, ScriptsModel::ScriptPath);
-    Application::getInstance()->loadScript(scriptFile.toString(), false, false);
+    QVariant scriptFile = _scriptsModelFilter.data(index, ScriptsModel::ScriptPath);
+    Application::getInstance()->loadScript(scriptFile.toString());
 }
 
 void RunningScriptsWidget::loadSelectedScript() {
-    QModelIndex selectedIndex = ui->scriptListView->currentIndex();
+    QModelIndex selectedIndex = ui->scriptTreeView->currentIndex();
     if (selectedIndex.isValid()) {
         loadScriptFromList(selectedIndex);
     }
 }
 
-void RunningScriptsWidget::setBoundary(const QRect& rect) {
-    _boundary = rect;
-}
-
 void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
     setUpdatesEnabled(false);
     QLayoutItem* widget;
-    while ((widget = ui->scrollAreaWidgetContents->layout()->takeAt(0)) != NULL) {
+    while ((widget = ui->scriptListWidget->layout()->takeAt(0)) != NULL) {
         delete widget->widget();
         delete widget;
     }
@@ -109,7 +107,8 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
         if (!hash.contains(list.at(i))) {
             hash.insert(list.at(i), 1);
         }
-        QWidget* row = new QWidget(ui->scrollAreaWidgetContents);
+        QWidget* row = new QWidget(ui->scriptListWidget);
+        row->setFont(ui->scriptListWidget->font());
         row->setLayout(new QHBoxLayout(row));
 
         QUrl url = QUrl(list.at(i));
@@ -118,16 +117,26 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
             name->setText(name->text() + "(" + QString::number(hash.find(list.at(i)).value()) + ")");
         }
         ++hash[list.at(i)];
+
+        QPushButton* reloadButton = new QPushButton(row);
+        reloadButton->setFlat(true);
+        reloadButton->setIcon(
+            QIcon(QPixmap(PathUtils::resourcesPath() + "images/reload-script.svg").scaledToHeight(CLOSE_ICON_HEIGHT)));
+        reloadButton->setSizePolicy(QSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred));
+        reloadButton->setStyleSheet("border: 0;");
+        reloadButton->setCursor(Qt::PointingHandCursor);
+        connect(reloadButton, SIGNAL(clicked()), &_reloadSignalMapper, SLOT(map()));
+        _reloadSignalMapper.setMapping(reloadButton, url.toString());
+
         QPushButton* closeButton = new QPushButton(row);
         closeButton->setFlat(true);
         closeButton->setIcon(
-            QIcon(QPixmap(Application::resourcesPath() + "images/kill-script.svg").scaledToHeight(CLOSE_ICON_HEIGHT)));
+            QIcon(QPixmap(PathUtils::resourcesPath() + "images/kill-script.svg").scaledToHeight(CLOSE_ICON_HEIGHT)));
         closeButton->setSizePolicy(QSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred));
         closeButton->setStyleSheet("border: 0;");
         closeButton->setCursor(Qt::PointingHandCursor);
-
-        connect(closeButton, SIGNAL(clicked()), &_signalMapper, SLOT(map()));
-        _signalMapper.setMapping(closeButton, url.toString());
+        connect(closeButton, SIGNAL(clicked()), &_stopSignalMapper, SLOT(map()));
+        _stopSignalMapper.setMapping(closeButton, url.toString());
 
         row->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed));
 
@@ -135,6 +144,7 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
         row->layout()->setSpacing(0);
 
         row->layout()->addWidget(name);
+        row->layout()->addWidget(reloadButton);
         row->layout()->addWidget(closeButton);
 
         row->setToolTip(url.toString());
@@ -143,8 +153,8 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
         line->setFrameShape(QFrame::HLine);
         line->setStyleSheet("color: #E1E1E1; margin-left: 6px; margin-right: 6px;");
 
-        ui->scrollAreaWidgetContents->layout()->addWidget(row);
-        ui->scrollAreaWidgetContents->layout()->addWidget(line);
+        ui->scriptListWidget->layout()->addWidget(row);
+        ui->scriptListWidget->layout()->addWidget(line);
     }
 
 
@@ -152,7 +162,7 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
     ui->reloadAllButton->setVisible(!list.isEmpty());
     ui->stopAllButton->setVisible(!list.isEmpty());
 
-    ui->scrollAreaWidgetContents->updateGeometry();
+    ui->scriptListWidget->updateGeometry();
     setUpdatesEnabled(true);
     Application::processEvents();
     repaint();
@@ -163,12 +173,19 @@ void RunningScriptsWidget::showEvent(QShowEvent* event) {
         ui->filterLineEdit->setFocus();
     }
 
-    FramelessDialog::showEvent(event);
+    QRect parentGeometry = Application::getInstance()->getDesirableApplicationGeometry();
+    int titleBarHeight = UIUtil::getWindowTitleBarHeight(this);
+    int topMargin = titleBarHeight;
+
+    setGeometry(parentGeometry.topLeft().x(), parentGeometry.topLeft().y() + topMargin,
+                size().width(), parentWidget()->height() - topMargin);
+
+    QWidget::showEvent(event);
 }
 
 void RunningScriptsWidget::selectFirstInList() {
-    if (_proxyModel.rowCount() > 0) {
-        ui->scriptListView->setCurrentIndex(_proxyModel.index(0, 0));
+    if (_scriptsModelFilter.rowCount() > 0) {
+        ui->scriptTreeView->setCurrentIndex(_scriptsModelFilter.index(0, 0));
     }
 }
 
@@ -179,7 +196,7 @@ bool RunningScriptsWidget::eventFilter(QObject* sender, QEvent* event) {
         }
         QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
         if (keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter) {
-            QModelIndex selectedIndex = ui->scriptListView->currentIndex();
+            QModelIndex selectedIndex = ui->scriptTreeView->currentIndex();
             if (selectedIndex.isValid()) {
                 loadScriptFromList(selectedIndex);
             }
@@ -189,21 +206,91 @@ bool RunningScriptsWidget::eventFilter(QObject* sender, QEvent* event) {
         return false;
     }
 
-    return FramelessDialog::eventFilter(sender, event);
+    return QWidget::eventFilter(sender, event);
 }
 
 void RunningScriptsWidget::keyPressEvent(QKeyEvent *keyEvent) {
     if (keyEvent->key() == Qt::Key_Escape) {
         return;
     } else {
-        FramelessDialog::keyPressEvent(keyEvent);
+        QWidget::keyPressEvent(keyEvent);
     }
 }
 
 void RunningScriptsWidget::scriptStopped(const QString& scriptName) {
-    // _recentlyLoadedScripts.prepend(scriptName);
 }
 
 void RunningScriptsWidget::allScriptsStopped() {
     Application::getInstance()->stopAllScripts();
+}
+
+QVariantList RunningScriptsWidget::getRunning() {
+    const int WINDOWS_DRIVE_LETTER_SIZE = 1;
+    QVariantList result;
+    QStringList runningScripts = Application::getInstance()->getRunningScripts();
+    for (int i = 0; i < runningScripts.size(); i++) {
+        QUrl runningScriptURL = QUrl(runningScripts.at(i));
+        if (runningScriptURL.scheme().size() <= WINDOWS_DRIVE_LETTER_SIZE) {
+            runningScriptURL = QUrl::fromLocalFile(runningScriptURL.toDisplayString(QUrl::FormattingOptions(QUrl::FullyEncoded)));
+        }
+        QVariantMap resultNode;
+        resultNode.insert("name", runningScriptURL.fileName());
+        resultNode.insert("url", runningScriptURL.toDisplayString(QUrl::FormattingOptions(QUrl::FullyEncoded)));
+        resultNode.insert("local", runningScriptURL.isLocalFile());
+        result.append(resultNode);
+    }
+    return result;
+}
+
+QVariantList RunningScriptsWidget::getPublic() {
+    return getPublicChildNodes(NULL);
+}
+
+QVariantList RunningScriptsWidget::getPublicChildNodes(TreeNodeFolder* parent) {
+    QVariantList result;
+    QList<TreeNodeBase*> treeNodes = Application::getInstance()->getRunningScriptsWidget()->getScriptsModel()
+        ->getFolderNodes(parent);
+    for (int i = 0; i < treeNodes.size(); i++) {
+        TreeNodeBase* node = treeNodes.at(i);
+        if (node->getType() == TREE_NODE_TYPE_FOLDER) {
+            TreeNodeFolder* folder = static_cast<TreeNodeFolder*>(node);
+            QVariantMap resultNode;
+            resultNode.insert("name", node->getName());
+            resultNode.insert("type", "folder");
+            resultNode.insert("children", getPublicChildNodes(folder));
+            result.append(resultNode);
+            continue;
+        }
+        TreeNodeScript* script = static_cast<TreeNodeScript*>(node);
+        if (script->getOrigin() == ScriptOrigin::SCRIPT_ORIGIN_LOCAL) {
+            continue;
+        }
+        QVariantMap resultNode;
+        resultNode.insert("name", node->getName());
+        resultNode.insert("type", "script");
+        resultNode.insert("url", script->getFullPath());
+        result.append(resultNode);
+    }
+    return result;
+}
+
+QVariantList RunningScriptsWidget::getLocal() {
+    QVariantList result;
+    QList<TreeNodeBase*> treeNodes = Application::getInstance()->getRunningScriptsWidget()->getScriptsModel()
+        ->getFolderNodes(NULL);
+    for (int i = 0; i < treeNodes.size(); i++) {
+        TreeNodeBase* node = treeNodes.at(i);
+        if (node->getType() != TREE_NODE_TYPE_SCRIPT) {
+            continue;
+        }
+        TreeNodeScript* script = static_cast<TreeNodeScript*>(node);
+        if (script->getOrigin() != ScriptOrigin::SCRIPT_ORIGIN_LOCAL) {
+            continue;
+        }
+        QVariantMap resultNode;
+        resultNode.insert("name", node->getName());
+        resultNode.insert("path", script->getFullPath());
+        result.append(resultNode);
+    }
+    return result;
 }

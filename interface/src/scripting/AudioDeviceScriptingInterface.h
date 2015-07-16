@@ -12,15 +12,14 @@
 #ifndef hifi_AudioDeviceScriptingInterface_h
 #define hifi_AudioDeviceScriptingInterface_h
 
-#include <QDebug>
 #include <QObject>
 #include <QString>
+#include <QVector>
 
-#include "Application.h"
+class AudioEffectOptions;
 
 class AudioDeviceScriptingInterface : public QObject {
     Q_OBJECT
-    AudioDeviceScriptingInterface() { };
 public:
     static AudioDeviceScriptingInterface* getInstance();
 
@@ -39,6 +38,18 @@ public slots:
 
     float getInputVolume();
     void setInputVolume(float volume);
+    void setReverb(bool reverb);
+    void setReverbOptions(const AudioEffectOptions* options);
+
+    bool getMuted();
+    void toggleMute();
+    
+private:
+    AudioDeviceScriptingInterface();
+
+signals:
+    void muteToggled();
+    void deviceChanged();
 };
 
 #endif // hifi_AudioDeviceScriptingInterface_h

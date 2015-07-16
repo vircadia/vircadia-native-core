@@ -52,7 +52,9 @@ else ()
   set(_OPENSSL_ROOT_HINTS_AND_PATHS ${OPENSSL_SEARCH_DIRS})
 endif ()
 
-find_path(OPENSSL_INCLUDE_DIR NAMES openssl/ssl.h HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} ${_OPENSSL_INCLUDEDIR} PATH_SUFFIXES include)
+find_path(OPENSSL_INCLUDE_DIR NAMES openssl/ssl.h HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} ${_OPENSSL_INCLUDEDIR} 
+  PATH_SUFFIXES include
+)
 
 if (WIN32 AND NOT CYGWIN)
   if (MSVC)
@@ -96,6 +98,9 @@ if (WIN32 AND NOT CYGWIN)
     select_library_configurations(SSL_EAY)
 
     set(OPENSSL_LIBRARIES ${SSL_EAY_LIBRARY} ${LIB_EAY_LIBRARY})
+    
+    find_path(OPENSSL_DLL_PATH NAMES ssleay32.dll PATH_SUFFIXES "bin" ${_OPENSSL_ROOT_HINTS_AND_PATHS})
+    
   elseif (MINGW)
     # same player, for MinGW
     set(LIB_EAY_NAMES libeay32)
@@ -133,7 +138,9 @@ else()
     PATH_SUFFIXES lib
   )
 
-  find_library(OPENSSL_CRYPTO_LIBRARY NAMES crypto HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} ${_OPENSSL_LIBDIR} PATH_SUFFIXES lib)
+  find_library(OPENSSL_CRYPTO_LIBRARY NAMES crypto HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} ${_OPENSSL_LIBDIR} 
+    PATH_SUFFIXES lib
+  )
 
   mark_as_advanced(OPENSSL_CRYPTO_LIBRARY OPENSSL_SSL_LIBRARY)
 
@@ -179,8 +186,8 @@ endfunction()
 if (OPENSSL_INCLUDE_DIR)
   if(OPENSSL_INCLUDE_DIR AND EXISTS "${OPENSSL_INCLUDE_DIR}/openssl/opensslv.h")
     file(STRINGS "${OPENSSL_INCLUDE_DIR}/openssl/opensslv.h" openssl_version_str
-         REGEX "^#define[\t ]+OPENSSL_VERSION_NUMBER[\t ]+0x([0-9a-fA-F])+.*")
-
+         REGEX "^#[ ]?define[\t ]+OPENSSL_VERSION_NUMBER[\t ]+0x([0-9a-fA-F])+.*")
+    
     # The version number is encoded as 0xMNNFFPPS: major minor fix patch status
     # The status gives if this is a developer or prerelease and is ignored here.
     # Major, minor, and fix directly translate into the version numbers shown in
@@ -214,11 +221,15 @@ endif ()
 
 include(FindPackageHandleStandardArgs)
 
+set(OPENSSL_REQUIREMENTS OPENSSL_LIBRARIES OPENSSL_INCLUDE_DIR)
+if (WIN32)
+  list(APPEND OPENSSL_REQUIREMENTS OPENSSL_DLL_PATH)
+endif ()
+
 if (OPENSSL_VERSION)
   find_package_handle_standard_args(OpenSSL
     REQUIRED_VARS
-      OPENSSL_LIBRARIES
-      OPENSSL_INCLUDE_DIR
+      ${OPENSSL_REQUIREMENTS}
     VERSION_VAR
       OPENSSL_VERSION
     FAIL_MESSAGE
@@ -226,9 +237,12 @@ if (OPENSSL_VERSION)
   )
 else ()
   find_package_handle_standard_args(OpenSSL "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR"
-    OPENSSL_LIBRARIES
-    OPENSSL_INCLUDE_DIR
+    ${OPENSSL_REQUIREMENTS}
   )
+endif ()
+
+if (WIN32)
+  add_paths_to_fixup_libs(${OPENSSL_DLL_PATH})
 endif ()
 
 mark_as_advanced(OPENSSL_INCLUDE_DIR OPENSSL_LIBRARIES OPENSSL_SEARCH_DIRS)

@@ -14,13 +14,6 @@
 #ifndef hifi_NetworkPacket_h
 #define hifi_NetworkPacket_h
 
-#include <stdlib.h>
-
-#ifndef _WIN32
-#include <arpa/inet.h> // not available on windows
-#include <ifaddrs.h>
-#endif
-
 #include "NodeList.h"
 
 /// Storage of not-yet processed inbound, or not yet sent outbound generic UDP network packet
@@ -29,12 +22,6 @@ public:
     NetworkPacket() { }
     NetworkPacket(const NetworkPacket& packet); // copy constructor
     NetworkPacket& operator= (const NetworkPacket& other);    // copy assignment
-
-#ifdef HAS_MOVE_SEMANTICS
-    NetworkPacket(NetworkPacket&& packet); // move?? // same as copy, but other packet won't be used further
-    NetworkPacket& operator= (NetworkPacket&& other);         // move assignment
-#endif
-
     NetworkPacket(const SharedNodePointer& node, const QByteArray& byteArray);
 
     const SharedNodePointer& getNode() const { return _node; }

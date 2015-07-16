@@ -10,26 +10,39 @@
 //
 
 #include <QColor>
+#include <QUrl>
+#include <QUuid>
+#include <QRect>
+
+#include <glm/gtc/quaternion.hpp>
 
 #include "RegisteredMetaTypes.h"
 
 static int vec4MetaTypeId = qRegisterMetaType<glm::vec4>();
 static int vec3MetaTypeId = qRegisterMetaType<glm::vec3>();
+static int qVectorVec3MetaTypeId = qRegisterMetaType<QVector<glm::vec3>>();
 static int vec2MetaTypeId = qRegisterMetaType<glm::vec2>();
 static int quatMetaTypeId = qRegisterMetaType<glm::quat>();
 static int xColorMetaTypeId = qRegisterMetaType<xColor>();
 static int pickRayMetaTypeId = qRegisterMetaType<PickRay>();
-static int collisionMetaTypeId = qRegisterMetaType<CollisionInfo>();
+static int collisionMetaTypeId = qRegisterMetaType<Collision>();
+
+
 
 void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, vec4toScriptValue, vec4FromScriptValue);
     qScriptRegisterMetaType(engine, vec3toScriptValue, vec3FromScriptValue);
+    qScriptRegisterMetaType(engine, qVectorVec3ToScriptValue, qVectorVec3FromScriptValue);
     qScriptRegisterMetaType(engine, vec2toScriptValue, vec2FromScriptValue);
     qScriptRegisterMetaType(engine, quatToScriptValue, quatFromScriptValue);
+    qScriptRegisterMetaType(engine, qRectToScriptValue, qRectFromScriptValue);
     qScriptRegisterMetaType(engine, xColorToScriptValue, xColorFromScriptValue);
     qScriptRegisterMetaType(engine, qColorToScriptValue, qColorFromScriptValue);
+    qScriptRegisterMetaType(engine, qURLToScriptValue, qURLFromScriptValue);
     qScriptRegisterMetaType(engine, pickRayToScriptValue, pickRayFromScriptValue);
     qScriptRegisterMetaType(engine, collisionToScriptValue, collisionFromScriptValue);
+    qScriptRegisterMetaType(engine, quuidToScriptValue, quuidFromScriptValue);
+    qScriptRegisterMetaType(engine, qSizeFToScriptValue, qSizeFFromScriptValue);
 }
 
 QScriptValue vec4toScriptValue(QScriptEngine* engine, const glm::vec4& vec4) {
@@ -50,6 +63,10 @@ void vec4FromScriptValue(const QScriptValue& object, glm::vec4& vec4) {
 
 QScriptValue vec3toScriptValue(QScriptEngine* engine, const glm::vec3 &vec3) {
     QScriptValue obj = engine->newObject();
+    if (vec3.x != vec3.x || vec3.y != vec3.y || vec3.z != vec3.z) {
+        // if vec3 contains a NaN don't try to convert it
+        return obj;
+    }
     obj.setProperty("x", vec3.x);
     obj.setProperty("y", vec3.y);
     obj.setProperty("z", vec3.z);
@@ -60,6 +77,36 @@ void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3) {
     vec3.x = object.property("x").toVariant().toFloat();
     vec3.y = object.property("y").toVariant().toFloat();
     vec3.z = object.property("z").toVariant().toFloat();
+}
+
+QScriptValue qVectorVec3ToScriptValue(QScriptEngine* engine, const QVector<glm::vec3>& vector){
+    QScriptValue array = engine->newArray();
+    for (int i = 0; i < vector.size(); i++) {
+        array.setProperty(i, vec3toScriptValue(engine, vector.at(i)));
+    }
+    return array;
+}
+
+QVector<glm::vec3> qVectorVec3FromScriptValue(const QScriptValue& array){
+    QVector<glm::vec3> newVector;
+    int length = array.property("length").toInteger();
+    
+    for (int i = 0; i < length; i++) {
+        glm::vec3 newVec3 = glm::vec3();
+        vec3FromScriptValue(array.property(i), newVec3);
+        newVector << newVec3;
+    }
+    return newVector;
+}
+
+void qVectorVec3FromScriptValue(const QScriptValue& array, QVector<glm::vec3>& vector ) {
+    int length = array.property("length").toInteger();
+    
+    for (int i = 0; i < length; i++) {
+        glm::vec3 newVec3 = glm::vec3();
+        vec3FromScriptValue(array.property(i), newVec3);
+        vector << newVec3;
+    }
 }
 
 QScriptValue vec2toScriptValue(QScriptEngine* engine, const glm::vec2 &vec2) {
@@ -88,6 +135,22 @@ void quatFromScriptValue(const QScriptValue &object, glm::quat& quat) {
     quat.y = object.property("y").toVariant().toFloat();
     quat.z = object.property("z").toVariant().toFloat();
     quat.w = object.property("w").toVariant().toFloat();
+}
+
+QScriptValue qRectToScriptValue(QScriptEngine* engine, const QRect& rect) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("x", rect.x());
+    obj.setProperty("y", rect.y());
+    obj.setProperty("width", rect.width());
+    obj.setProperty("height", rect.height());
+    return obj;
+}
+
+void qRectFromScriptValue(const QScriptValue &object, QRect& rect) {
+    rect.setX(object.property("x").toVariant().toInt());
+    rect.setY(object.property("y").toVariant().toInt());
+    rect.setWidth(object.property("width").toVariant().toInt());
+    rect.setHeight(object.property("height").toVariant().toInt());
 }
 
 QScriptValue xColorToScriptValue(QScriptEngine *engine, const xColor& color) {
@@ -127,6 +190,14 @@ void qColorFromScriptValue(const QScriptValue& object, QColor& color) {
     }
 }
 
+QScriptValue qURLToScriptValue(QScriptEngine* engine, const QUrl& url) {
+    return url.toString();
+}
+
+void qURLFromScriptValue(const QScriptValue& object, QUrl& url) {
+    url = object.toString();
+}
+
 QScriptValue pickRayToScriptValue(QScriptEngine* engine, const PickRay& pickRay) {
     QScriptValue obj = engine->newObject();
     QScriptValue origin = vec3toScriptValue(engine, pickRay.origin);
@@ -151,14 +222,47 @@ void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay) {
     }
 }
 
-QScriptValue collisionToScriptValue(QScriptEngine* engine, const CollisionInfo& collision) {
+QScriptValue collisionToScriptValue(QScriptEngine* engine, const Collision& collision) {
     QScriptValue obj = engine->newObject();
-    obj.setProperty("penetration", vec3toScriptValue(engine, collision._penetration));
-    obj.setProperty("contactPoint", vec3toScriptValue(engine, collision._contactPoint));
+    obj.setProperty("type", collision.type);
+    obj.setProperty("idA", quuidToScriptValue(engine, collision.idA));
+    obj.setProperty("idB", quuidToScriptValue(engine, collision.idB));
+    obj.setProperty("penetration", vec3toScriptValue(engine, collision.penetration));
+    obj.setProperty("contactPoint", vec3toScriptValue(engine, collision.contactPoint));
+    obj.setProperty("velocityChange", vec3toScriptValue(engine, collision.velocityChange));
     return obj;
 }
 
-void collisionFromScriptValue(const QScriptValue &object, CollisionInfo& collision) {
+void collisionFromScriptValue(const QScriptValue &object, Collision& collision) {
     // TODO: implement this when we know what it means to accept collision events from JS
 }
 
+QScriptValue quuidToScriptValue(QScriptEngine* engine, const QUuid& uuid) {
+    if (uuid.isNull()) {
+        return QScriptValue::NullValue;
+    }
+    QScriptValue obj(uuid.toString());
+    return obj;
+}
+
+void quuidFromScriptValue(const QScriptValue& object, QUuid& uuid) {
+    if (object.isNull()) {
+        uuid = QUuid();
+        return;
+    }
+    QString uuidAsString = object.toVariant().toString();
+    QUuid fromString(uuidAsString);
+    uuid = fromString;
+}
+
+QScriptValue qSizeFToScriptValue(QScriptEngine* engine, const QSizeF& qSizeF) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("width", qSizeF.width());
+    obj.setProperty("height", qSizeF.height());
+    return obj;
+}
+
+void qSizeFFromScriptValue(const QScriptValue& object, QSizeF& qSizeF) {
+    qSizeF.setWidth(object.property("width").toVariant().toFloat());
+    qSizeF.setHeight(object.property("height").toVariant().toFloat());
+}

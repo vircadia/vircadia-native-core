@@ -13,86 +13,47 @@
 #ifndef hifi_OculusManager_h
 #define hifi_OculusManager_h
 
-#ifdef HAVE_LIBOVR
-#include <OVR.h>
-#endif
+#include <ProgramObject.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
-#include "renderer/ProgramObject.h"
+#include "RenderArgs.h"
 
-const float DEFAULT_OCULUS_UI_ANGULAR_SIZE = 72.0f;
-
+class QOpenGLContext;
 class Camera;
-class PalmData;
 
 /// Handles interaction with the Oculus Rift.
 class OculusManager {
 public:
-    static void connect();
+    static void connect(QOpenGLContext* shareContext);
     static void disconnect();
     static bool isConnected();
+    static void recalibrate();
+    static void abandonCalibration();
     static void beginFrameTiming();
     static void endFrameTiming();
-    static void configureCamera(Camera& camera, int screenWidth, int screenHeight);
-    static void display(const glm::quat &bodyOrientation, const glm::vec3 &position, Camera& whichCamera);
+    static bool allowSwap();
+    static void configureCamera(Camera& camera);
+    static void display(QGLWidget * glCanvas, RenderArgs* renderArgs, const glm::quat &bodyOrientation, const glm::vec3 &position, Camera& whichCamera);
     static void reset();
     
-    /// param \yaw[out] yaw in radians
-    /// param \pitch[out] pitch in radians
-    /// param \roll[out] roll in radians
-    static void getEulerAngles(float& yaw, float& pitch, float& roll);
     static glm::vec3 getRelativePosition();
+    static glm::quat getOrientation();
     static QSize getRenderTargetSize();
     
-private:
-#ifdef HAVE_LIBOVR
-    static void generateDistortionMesh();
-    static void renderDistortionMesh(ovrPosef eyeRenderPose[ovrEye_Count]);
-
-    struct DistortionVertex {
-        glm::vec2 pos;
-        glm::vec2 texR;
-        glm::vec2 texG;
-        glm::vec2 texB;
-        struct {
-            GLubyte r;
-            GLubyte g;
-            GLubyte b;
-            GLubyte a;
-        } color;
-    };
-
-    static ProgramObject _program;
-    //Uniforms
-    static int _textureLocation;
-    static int _eyeToSourceUVScaleLocation;
-    static int _eyeToSourceUVOffsetLocation;
-    static int _eyeRotationStartLocation;
-    static int _eyeRotationEndLocation;
-    //Attributes
-    static int _positionAttributeLocation;
-    static int _colorAttributeLocation;
-    static int _texCoord0AttributeLocation;
-    static int _texCoord1AttributeLocation;
-    static int _texCoord2AttributeLocation;
-
-    static bool _isConnected;
+    static void overrideOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
+        float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane);
     
-    static ovrHmd _ovrHmd;
-    static ovrHmdDesc _ovrHmdDesc;
-    static ovrFovPort _eyeFov[ovrEye_Count];
-    static ovrEyeRenderDesc _eyeRenderDesc[ovrEye_Count];
-    static ovrSizei _renderTargetSize;
-    static ovrVector2f _UVScaleOffset[ovrEye_Count][2];
-    static GLuint _vertices[ovrEye_Count];
-    static GLuint _indices[ovrEye_Count];
-    static GLsizei _meshSize[ovrEye_Count];
-    static ovrFrameTiming _hmdFrameTiming;
-    static ovrRecti _eyeRenderViewport[ovrEye_Count];
-    static unsigned int _frameIndex;
-    static bool _frameTimingActive;
-    static bool _programInitialized;
-    static Camera* _camera;
-#endif
+    static glm::vec3 getLeftEyePosition();
+    static glm::vec3 getRightEyePosition();
+    static glm::vec3 getMidEyePosition();
+    
+    static int getHMDScreen();
+
+    static glm::mat4 getEyeProjection(int eye);
+    static glm::mat4 getEyePose(int eye);
+    static glm::mat4 getHeadPose();
 };
 
 #endif // hifi_OculusManager_h

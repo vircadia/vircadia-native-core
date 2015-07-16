@@ -12,14 +12,12 @@
 #ifndef hifi_SkeletonModel_h
 #define hifi_SkeletonModel_h
 
-#include "renderer/Model.h"
 
 #include <CapsuleShape.h>
-#include "SkeletonRagdoll.h"
+#include <Model.h>
 
 class Avatar;
 class MuscleConstraint;
-class SkeletonRagdoll;
 
 /// A skeleton loaded from a model.
 class SkeletonModel : public Model {
@@ -30,7 +28,7 @@ public:
     SkeletonModel(Avatar* owningAvatar, QObject* parent = NULL);
     ~SkeletonModel();
    
-    void setJointStates(QVector<JointState> states);
+    virtual void initJointStates(QVector<JointState> states);
 
     void simulate(float deltaTime, bool fullUpdate = true);
 
@@ -38,10 +36,7 @@ public:
     /// \param shapes[out] list in which is stored pointers to hand shapes
     void getHandShapes(int jointIndex, QVector<const Shape*>& shapes) const;
 
-    ///  \param shapes[out] list of shapes for body collisions
-    void getBodyShapes(QVector<const Shape*>& shapes) const;
-
-    void renderIKConstraints();
+    void renderIKConstraints(gpu::Batch& batch);
     
     /// Returns the index of the left hand joint, or -1 if not found.
     int getLeftHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().leftHandJointIndex : -1; }
@@ -97,23 +92,35 @@ public:
     /// \return whether or not both eye meshes were found
     bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
 
-    virtual void updateVisibleJointStates();
+    /// Gets the default position of the mid eye point in model frame coordinates.
+    /// \return whether or not the head was found.
+    glm::vec3 getDefaultEyeModelPosition() const;
 
-    SkeletonRagdoll* buildRagdoll();
-    SkeletonRagdoll* getRagdoll() { return _ragdoll; }
-    
-    void moveShapesTowardJoints(float fraction);
+    /// skeleton offset caused by moving feet
+    void updateStandingFoot();
+    const glm::vec3& getStandingOffset() const { return _standingOffset; }
 
     void computeBoundingShape(const FBXGeometry& geometry);
-    void renderBoundingCollisionShapes(float alpha);
-    void renderJointCollisionShapes(float alpha);
+    void renderBoundingCollisionShapes(gpu::Batch& batch, float alpha);
     float getBoundingShapeRadius() const { return _boundingShape.getRadius(); }
     const CapsuleShape& getBoundingShape() const { return _boundingShape; }
+    const glm::vec3 getBoundingShapeOffset() const { return _boundingShapeLocalOffset; }
 
     void resetShapePositionsToDefaultPose(); // DEBUG method
 
-    void renderRagdoll();
-    
+    bool hasSkeleton();
+
+    float getHeadClipDistance() const { return _headClipDistance; }
+
+    void setIsFirstPerson(bool value) { _isFirstPerson = value; }
+    bool getIsFirstPerson() const { return _isFirstPerson; }
+
+    virtual void onInvalidate() override;
+
+signals:
+
+    void skeletonLoaded();
+
 protected:
 
     void buildShapes();
@@ -127,24 +134,48 @@ protected:
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);   
     
-    void maybeUpdateLeanRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
+    void maybeUpdateLeanRotation(const JointState& parentState, JointState& state);
     void maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
     void maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
-    
+
+    void cauterizeHead();
+    void initHeadBones();
+    void invalidateHeadBones();
+
 private:
 
-    void renderJointConstraints(int jointIndex);
+    void renderJointConstraints(gpu::Batch& batch, int jointIndex);
+    void renderOrientationDirections(int jointIndex, glm::vec3 position, const glm::quat& orientation, float size);
+    
+    struct OrientationLineIDs {
+        int _up;
+        int _front;
+        int _right;
+    };
+    QHash<int, OrientationLineIDs> _jointOrientationLines;
+    int _triangleFanID;
 
     /// \param jointIndex index of joint in model
     /// \param position position of joint in model-frame
     /// \param rotation rotation of joint in model-frame
     void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation);
+
+    bool getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
     
     Avatar* _owningAvatar;
 
     CapsuleShape _boundingShape;
     glm::vec3 _boundingShapeLocalOffset;
-    SkeletonRagdoll* _ragdoll;
+
+    glm::vec3 _defaultEyeModelPosition;
+    int _standingFoot;
+    glm::vec3 _standingOffset;
+    glm::vec3 _clampedFootPosition;
+
+    float _headClipDistance;  // Near clip distance to use if no separate head model
+
+    bool _isFirstPerson;
+    std::vector<int> _headBones;
 };
 
 #endif // hifi_SkeletonModel_h

@@ -13,24 +13,42 @@
 #define hifi_AssignmentClient_h
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QPointer>
 
 #include "ThreadedAssignment.h"
 
-class AssignmentClient : public QCoreApplication {
+class QSharedMemory;
+
+class AssignmentClient : public QObject {
     Q_OBJECT
 public:
-    AssignmentClient(int &argc, char **argv);
-    static const SharedAssignmentPointer& getCurrentAssignment() { return _currentAssignment; }
+
+    AssignmentClient(Assignment::Type requestAssignmentType, QString assignmentPool,
+                     QUuid walletUUID, QString assignmentServerHostname, quint16 assignmentServerPort,
+                     quint16 assignmentMonitorPort);
 private slots:
     void sendAssignmentRequest();
     void readPendingDatagrams();
     void assignmentCompleted();
     void handleAuthenticationRequest();
+    void sendStatsPacketToACM();
+    void stopAssignmentClient();
+
+public slots:
+    void aboutToQuit();
 
 private:
+    void setUpStatsToMonitor();
+
     Assignment _requestAssignment;
-    static SharedAssignmentPointer _currentAssignment;
+    QPointer<ThreadedAssignment> _currentAssignment;
     QString _assignmentServerHostname;
+    HifiSockAddr _assignmentServerSocket;
+    QTimer _requestTimer; // timer for requesting and assignment
+    QTimer _statsTimerACM; // timer for sending stats to assignment client monitor
+
+ protected:
+    HifiSockAddr _assignmentClientMonitorSocket;
 };
 
 #endif // hifi_AssignmentClient_h

@@ -24,7 +24,7 @@ class HTTPSConnection;
 class HTTPRequestHandler {
 public:
     /// Handles an HTTP request.
-    virtual bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url) = 0;
+    virtual bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false) = 0;
 };
 
 /// Handles HTTP connections
@@ -34,7 +34,7 @@ public:
     /// Initializes the manager.
     HTTPManager(quint16 port, const QString& documentRoot, HTTPRequestHandler* requestHandler = NULL, QObject* parent = 0);
     
-    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
+    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false);
     
 protected:
     /// Accepts all pending connections

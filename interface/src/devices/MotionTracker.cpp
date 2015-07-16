@@ -83,8 +83,10 @@ MotionTracker::Index MotionTracker::addJoint(const Semantic& semantic, Index par
 
     // Check that the semantic is not already in use
     Index foundIndex = findJointIndex(semantic);
-    if (foundIndex >= 0)
+    if (foundIndex >= 0) {
         return INVALID_SEMANTIC;
+    }
+    
 
     // All good then allocate the joint
     Index newIndex = _jointsArray.size();
@@ -97,8 +99,10 @@ MotionTracker::Index MotionTracker::addJoint(const Semantic& semantic, Index par
 MotionTracker::Index MotionTracker::findJointIndex(const Semantic& semantic) const {
     // TODO C++11 auto jointIt = _jointsMap.find(semantic);
     JointTracker::Map::const_iterator jointIt = _jointsMap.find(semantic);
-    if (jointIt != _jointsMap.end())
+    if (jointIt != _jointsMap.end()) {
         return (*jointIt).second;
+    }
+    
     return INVALID_SEMANTIC;
 }
 
@@ -119,14 +123,14 @@ MotionTracker::JointTracker::JointTracker() :
     _absFrame(),
     _semantic(""),
     _parent(INVALID_PARENT),
-    _lastUpdate(0)
+    _lastUpdate(1)  // Joint inactive
 {
 }
 
 MotionTracker::JointTracker::JointTracker(const Semantic& semantic, Index parent) :
     _semantic(semantic),
     _parent(parent),
-    _lastUpdate(0)
+    _lastUpdate(1)  // Joint inactive
 {
 }
 
@@ -167,9 +171,9 @@ MotionTracker::Frame::Frame() :
 
 void MotionTracker::Frame::setRotation(const glm::quat& rotation) {
     glm::mat3x3 rot = glm::mat3_cast(rotation);
-    _transform[0] = glm::vec4(rot[0], 0.f);
-    _transform[1] = glm::vec4(rot[1], 0.f);
-    _transform[2] = glm::vec4(rot[2], 0.f);
+    _transform[0] = glm::vec4(rot[0], 0.0f);
+    _transform[1] = glm::vec4(rot[1], 0.0f);
+    _transform[2] = glm::vec4(rot[2], 0.0f);
 }
 
 void MotionTracker::Frame::getRotation(glm::quat& rotation) const {
@@ -177,7 +181,7 @@ void MotionTracker::Frame::getRotation(glm::quat& rotation) const {
 }
 
 void MotionTracker::Frame::setTranslation(const glm::vec3& translation) {
-    _transform[3] = glm::vec4(translation, 1.f);
+    _transform[3] = glm::vec4(translation, 1.0f);
 }
 
 void MotionTracker::Frame::getTranslation(glm::vec3& translation) const {

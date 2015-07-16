@@ -3,7 +3,8 @@ CMakeCache.txt
 CMakeFiles/
 CMakeScripts/
 cmake_install.cmake
-build/
+build*/
+ext/
 Makefile
 *.user
 
@@ -34,3 +35,14 @@ interface/external/*/*
 
 # Ignore interfaceCache for Linux users
 interface/interfaceCache/
+
+# ignore audio-client externals 
+libraries/audio-client/external/*/*
+!libraries/audio-client/external/*/readme.txt
+
+gvr-interface/assets/oculussig*
+gvr-interface/libs/*
+
+# ignore files for various dev environments
+TAGS
+*.swp

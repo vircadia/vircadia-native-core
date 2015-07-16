@@ -8,9 +8,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("lookWithTouch.js");
-Script.include("editVoxels.js");
-Script.include("editModels.js");
-Script.include("selectAudioDevice.js");
-Script.include("hydraMove.js");
-Script.include("inspect.js");
+Script.load("progress.js");
+Script.load("edit.js");
+Script.load("selectAudioDevice.js");
+Script.load("inspect.js");
+Script.load("notifications.js");
+Script.load("users.js");
+Script.load("grab.js");
+Script.load("directory.js");
+Script.load("mouseLook.js");
+Script.load("hmdControls.js");
+Script.load("dialTone.js");

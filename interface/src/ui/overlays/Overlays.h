@@ -11,23 +11,61 @@
 #ifndef hifi_Overlays_h
 #define hifi_Overlays_h
 
+#include <QReadWriteLock>
 #include <QScriptValue>
 
 #include "Overlay.h"
 
+class PickRay;
+
+class OverlayPropertyResult {
+public:
+    OverlayPropertyResult();
+    QScriptValue value;
+};
+
+Q_DECLARE_METATYPE(OverlayPropertyResult);
+
+QScriptValue OverlayPropertyResultToScriptValue(QScriptEngine* engine, const OverlayPropertyResult& value);
+void OverlayPropertyResultFromScriptValue(const QScriptValue& object, OverlayPropertyResult& value);
+
+class RayToOverlayIntersectionResult {
+public:
+    RayToOverlayIntersectionResult();
+    bool intersects;
+    int overlayID;
+    float distance;
+    BoxFace face;
+    glm::vec3 intersection;
+    QString extraInfo;
+};
+
+
+Q_DECLARE_METATYPE(RayToOverlayIntersectionResult);
+
+QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, const RayToOverlayIntersectionResult& value);
+void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, RayToOverlayIntersectionResult& value);
+
 class Overlays : public QObject {
     Q_OBJECT
+    
 public:
     Overlays();
     ~Overlays();
-    void init(QGLWidget* parent);
+    
+    void init();
     void update(float deltatime);
-    void render3D();
-    void render2D();
+    void renderHUD(RenderArgs* renderArgs);
 
 public slots:
     /// adds an overlay with the specific properties
     unsigned int addOverlay(const QString& type, const QScriptValue& properties);
+
+    /// adds an overlay that's already been created
+    unsigned int addOverlay(Overlay* overlay);
+
+    /// clones an existing overlay
+    unsigned int cloneOverlay(unsigned int id);
 
     /// edits an overlay updating only the included properties, will return the identified OverlayID in case of
     /// successful edit, if the input id is for an unknown overlay this function will have no effect
@@ -36,21 +74,33 @@ public slots:
     /// deletes a particle
     void deleteOverlay(unsigned int id);
 
-    /// returns the top most overlay at the screen point, or 0 if not overlay at that point
+    /// returns the top most 2D overlay at the screen point, or 0 if not overlay at that point
     unsigned int getOverlayAtPoint(const glm::vec2& point);
+
+    /// returns the value of specified property, or null if there is no such property
+    OverlayPropertyResult getProperty(unsigned int id, const QString& property);
+
+    /// returns details about the closest 3D Overlay hit by the pick ray
+    RayToOverlayIntersectionResult findRayIntersection(const PickRay& ray);
     
     /// returns whether the overlay's assets are loaded or not
     bool isLoaded(unsigned int id);
 
+    /// returns the size of the given text in the specified overlay if it is a text overlay: in pixels if it is a 2D text
+    /// overlay; in meters if it is a 3D text overlay
+    QSizeF textSize(unsigned int id, const QString& text) const;
+
 private:
-    QMap<unsigned int, Overlay*> _overlays2D;
-    QMap<unsigned int, Overlay*> _overlays3D;
-    QList<Overlay*> _overlaysToDelete;
+    void cleanupOverlaysToDelete();
+    QMap<unsigned int, Overlay::Pointer> _overlaysHUD;
+    QMap<unsigned int, Overlay::Pointer> _overlaysWorld;
+    QList<Overlay::Pointer> _overlaysToDelete;
     unsigned int _nextOverlayID;
-    QGLWidget* _parent;
     QReadWriteLock _lock;
     QReadWriteLock _deleteLock;
+    QScriptEngine* _scriptEngine;
 };
+
 
  
 #endif // hifi_Overlays_h

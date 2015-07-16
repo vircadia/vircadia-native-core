@@ -15,30 +15,31 @@
 #include <QScriptEngine>
 #include <QScriptValue>
 
-#include <ResourceCache.h>
-
+#include <DependencyManager.h>
 #include <FBXReader.h>
+#include <ResourceCache.h>
 
 class Animation;
 
 typedef QSharedPointer<Animation> AnimationPointer;
 
 /// Scriptable interface for FBX animation loading.
-class AnimationCache : public ResourceCache {
+class AnimationCache : public ResourceCache, public Dependency  {
     Q_OBJECT
+    SINGLETON_DEPENDENCY
 
 public:
-
-    AnimationCache(QObject* parent = NULL);
-
     Q_INVOKABLE AnimationPointer getAnimation(const QString& url) { return getAnimation(QUrl(url)); }
-    
     Q_INVOKABLE AnimationPointer getAnimation(const QUrl& url);
 
 protected:
     
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
-        const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra);
+                const QSharedPointer<Resource>& fallback, bool delayLoad, const void* extra);
+private:
+    AnimationCache(QObject* parent = NULL);
+    virtual ~AnimationCache() { }
+
 };
 
 Q_DECLARE_METATYPE(AnimationPointer)
@@ -56,8 +57,6 @@ public:
     Q_INVOKABLE QStringList getJointNames() const;
     
     Q_INVOKABLE QVector<FBXAnimationFrame> getFrames() const;
-
-    bool isValid() const { return _isValid; }
     
 protected:
 
@@ -68,7 +67,6 @@ protected:
 private:
     
     FBXGeometry _geometry;
-    bool _isValid;
 };
 
 
@@ -93,6 +91,5 @@ public:
 Q_DECLARE_METATYPE(AnimationDetails);
 QScriptValue animationDetailsToScriptValue(QScriptEngine* engine, const AnimationDetails& event);
 void animationDetailsFromScriptValue(const QScriptValue& object, AnimationDetails& event);
-
 
 #endif // hifi_AnimationCache_h

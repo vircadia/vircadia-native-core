@@ -4,11 +4,6 @@
 <context>
     <name>Application</name>
     <message>
-        <location filename="src/Application.cpp" line="1481"/>
-        <source>Export Voxels</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="src/Application.cpp" line="1482"/>
         <source>Sparse Voxel Octree Files (*.svo)</source>
         <translation type="unfinished"></translation>
@@ -226,43 +221,21 @@
     <message>
         <location filename="ui/preferencesDialog.ui" line="1125"/>
         <location filename="../build/interface/ui_preferencesDialog.h" line="636"/>
-        <source>Voxels</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="ui/preferencesDialog.ui" line="1157"/>
-        <location filename="../build/interface/ui_preferencesDialog.h" line="637"/>
-        <source>Maximum voxels</source>
+        <source>Octree</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="ui/preferencesDialog.ui" line="1236"/>
         <location filename="../build/interface/ui_preferencesDialog.h" line="638"/>
-        <source>Max voxels sent each second</source>
+        <source>Max packets sent each second</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>QObject</name>
     <message>
-        <location filename="src/ui/VoxelImportDialog.cpp" line="22"/>
-        <location filename="src/ui/VoxelImportDialog.cpp" line="23"/>
-        <source>Import Voxels</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="src/ui/VoxelImportDialog.cpp" line="24"/>
         <source>Loading ...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="src/ui/VoxelImportDialog.cpp" line="25"/>
-        <source>Place voxels</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="src/ui/VoxelImportDialog.cpp" line="26"/>
-        <source>&lt;b&gt;Import&lt;/b&gt; %1 as voxels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

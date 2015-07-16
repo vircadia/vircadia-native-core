@@ -10,7 +10,7 @@
 //
 
 
-var buttonImageUrl = "https://worklist-prod.s3.amazonaws.com/attachment/0aca88e1-9bd8-5c1d.svg";
+var buttonImageUrl = "https://s3.amazonaws.com/hifi-public/images/tools/sit.svg";
 
 var windowDimensions = Controller.getViewportDimensions();
 
@@ -167,11 +167,11 @@ function standUp() {
 var models = new Object();
 function SeatIndicator(modelProperties, seatIndex) {
     this.position =  Vec3.sum(modelProperties.position,
-                              Vec3.multiply(Vec3.multiplyQbyV(modelProperties.modelRotation,
+                              Vec3.multiply(Vec3.multiplyQbyV(modelProperties.rotation,
                                                               modelProperties.sittingPoints[seatIndex].position),
                                             modelProperties.radius));
                               
-    this.orientation = Quat.multiply(modelProperties.modelRotation,
+    this.orientation = Quat.multiply(modelProperties.rotation,
                                      modelProperties.sittingPoints[seatIndex].rotation);
     this.scale = MyAvatar.scale / 12;
     
@@ -269,8 +269,7 @@ function update(deltaTime){
     }
 
     var locationChanged = false;
-    if (location.hostname != oldHost) {
-        print("Changed domain");
+    if (location.hostname != oldHost || !location.isConnected) {
         for (model in models) {
             removeIndicators(models[model]);
         }
@@ -285,7 +284,7 @@ function update(deltaTime){
         avatarOldPosition = MyAvatar.position;
         
         var SEARCH_RADIUS = 50;
-        var foundModels = Models.findModels(MyAvatar.position, SEARCH_RADIUS);
+        var foundModels = Entities.findEntities(MyAvatar.position, SEARCH_RADIUS);
         // Let's remove indicator that got out of radius
         for (model in models) {
             if (Vec3.distance(models[model].properties.position, MyAvatar.position) > SEARCH_RADIUS) {
@@ -297,7 +296,7 @@ function update(deltaTime){
         for (var i = 0; i < foundModels.length; ++i) {
             var model = foundModels[i];
             if (typeof(models[model.id]) == "undefined") {
-                model.properties = Models.getModelProperties(model);
+                model.properties = Entities.getEntityProperties(model);
                 if (Vec3.distance(model.properties.position, MyAvatar.position) < SEARCH_RADIUS) {
                     addIndicators(model);
                 }
@@ -317,9 +316,9 @@ function addIndicators(modelID) {
             modelID.properties.sittingPoints[i].indicator = new SeatIndicator(modelID.properties, i);
         }
         
-        models[modelID.id] = modelID;
+        models[modelID] = modelID;
     } else {
-        Models.editModel(modelID, { glowLevel: 0.0 });
+        Entities.editEntity(modelID, { glowLevel: 0.0 });
     }
 }
 
@@ -327,7 +326,7 @@ function removeIndicators(modelID) {
     for (var i = 0; i < modelID.properties.sittingPoints.length; ++i) {
         modelID.properties.sittingPoints[i].indicator.cleanup();
     }
-    delete models[modelID.id];
+    delete models[modelID];
 }
 
 function showIndicators(doShow) {

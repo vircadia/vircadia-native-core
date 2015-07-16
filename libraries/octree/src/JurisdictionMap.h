@@ -31,18 +31,12 @@ public:
     };
     
     // standard constructors
-    JurisdictionMap(NodeType_t type = NodeType::VoxelServer); // default constructor
+    JurisdictionMap(NodeType_t type = NodeType::EntityServer); // default constructor
     JurisdictionMap(const JurisdictionMap& other); // copy constructor
 
     // standard assignment
     JurisdictionMap& operator=(const JurisdictionMap& other);    // copy assignment
 
-#ifdef HAS_MOVE_SEMANTICS
-    // move constructor and assignment
-    JurisdictionMap(JurisdictionMap&& other); // move constructor
-    JurisdictionMap& operator= (JurisdictionMap&& other);         // move assignment
-#endif
-    
     // application constructors    
     JurisdictionMap(const char* filename);
     JurisdictionMap(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes);

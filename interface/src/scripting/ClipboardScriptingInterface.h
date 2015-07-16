@@ -12,7 +12,6 @@
 #define hifi_ClipboardScriptingInterface_h
 
 #include <QObject>
-#include <VoxelDetail.h>
 
 class ClipboardScriptingInterface : public QObject {
     Q_OBJECT
@@ -23,32 +22,11 @@ signals:
     void readyToImport();
     
 public slots:
-    void cutVoxel(const VoxelDetail& sourceVoxel);
-    void cutVoxel(float x, float y, float z, float s);
-
-    void copyVoxel(const VoxelDetail& sourceVoxel);
-    void copyVoxel(float x, float y, float z, float s);
-
-    void pasteVoxel(const VoxelDetail& destinationVoxel);
-    void pasteVoxel(float x, float y, float z, float s);
-
-    void deleteVoxel(const VoxelDetail& sourceVoxel);
-    void deleteVoxel(float x, float y, float z, float s);
-
-    void exportVoxel(const VoxelDetail& sourceVoxel);
-    void exportVoxel(float x, float y, float z, float s);
-
-    bool importVoxels();
-    bool importVoxels(const QString& filename);
-    bool importVoxels(const QString& filename, float x, float y, float z, float s);
-    bool importVoxels(const QString& filename, const VoxelDetail& destinationVoxel);
-
-    void nudgeVoxel(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec);
-    void nudgeVoxel(float x, float y, float z, float s, const glm::vec3& nudgeVec);
-
-    bool importModels(const QString& filename);
-    bool exportModels(const QString& filename, float x, float y, float z, float s);
-    void pasteModels(float x, float y, float z, float s);
+    float getClipboardContentsLargestDimension(); /// returns the largest dimension of everything on the clipboard
+    bool importEntities(const QString& filename);
+    bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
+    bool exportEntities(const QString& filename, float x, float y, float z, float s);
+    QVector<EntityItemID> pasteEntities(glm::vec3 position);
 };
 
 #endif // hifi_ClipboardScriptingInterface_h

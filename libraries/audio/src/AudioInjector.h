@@ -13,31 +13,78 @@
 #define hifi_AudioInjector_h
 
 #include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QThread>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include "AudioInjectorLocalBuffer.h"
 #include "AudioInjectorOptions.h"
 #include "Sound.h"
 
+class AbstractAudioInterface;
+
+// In order to make scripting cleaner for the AudioInjector, the script now holds on to the AudioInjector object
+// until it dies. 
+
 class AudioInjector : public QObject {
     Q_OBJECT
+    
+    Q_PROPERTY(AudioInjectorOptions options WRITE setOptions READ getOptions)
 public:
     AudioInjector(QObject* parent);
     AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions);
+    AudioInjector(const QByteArray& audioData, const AudioInjectorOptions& injectorOptions);
+    
+    bool isFinished() const { return _isFinished; }
+    
+    int getCurrentSendPosition() const { return _currentSendPosition; }
+    
+    AudioInjectorLocalBuffer* getLocalBuffer() const { return _localBuffer; }
+    bool isLocalOnly() const { return _options.localOnly; }
+    
+    void setLocalAudioInterface(AbstractAudioInterface* localAudioInterface) { _localAudioInterface = localAudioInterface; }
+
+    static AudioInjector* playSound(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface);
+    static AudioInjector* playSound(const QString& soundUrl, const float volume, const float stretchFactor, const glm::vec3 position);
+
 public slots:
     void injectAudio();
-    void stop() { _shouldStop = true; }
-    void setOptions(AudioInjectorOptions& options);
+    void restart();
+    
+    void stop();
+    void triggerDeleteAfterFinish() { _shouldDeleteAfterFinish = true; }
+    void stopAndDeleteLater();
+    
+    const AudioInjectorOptions& getOptions() const { return _options; }
+    void setOptions(const AudioInjectorOptions& options) { _options = options; }
+    
+    void setCurrentSendPosition(int currentSendPosition) { _currentSendPosition = currentSendPosition; }
+    float getLoudness() const { return _loudness; }
+    bool isPlaying() const { return !_isFinished; }
+    void restartPortionAfterFinished();
+    
 signals:
     void finished();
+
 private:
-    Sound* _sound;
+    void injectToMixer();
+    void injectLocally();
+    
+    void setIsFinished(bool isFinished);
+    
+    QByteArray _audioData;
     AudioInjectorOptions _options;
-    bool _shouldStop;
+    bool _shouldStop = false;
+    float _loudness = 0.0f;
+    bool _isStarted = false;
+    bool _isFinished = false;
+    bool _shouldDeleteAfterFinish = false;
+    int _currentSendPosition = 0;
+    AbstractAudioInterface* _localAudioInterface = NULL;
+    AudioInjectorLocalBuffer* _localBuffer = NULL;
 };
 
-Q_DECLARE_METATYPE(AudioInjector*)
 
 #endif // hifi_AudioInjector_h

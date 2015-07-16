@@ -9,18 +9,58 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "MainWindow.h"
-#include "Menu.h"
-
+#include <QApplication>
+#include <QDesktopWidget>
 #include <QEvent>
 #include <QMoveEvent>
 #include <QResizeEvent>
 #include <QShowEvent>
 #include <QHideEvent>
 #include <QWindowStateChangeEvent>
+#include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QMimeData>
+
+#include "MainWindow.h"
+#include "Menu.h"
+#include "Util.h"
 
 MainWindow::MainWindow(QWidget* parent) :
-    QMainWindow(parent) {
+    QMainWindow(parent),
+    _windowGeometry("WindowGeometry"),
+    _windowState("WindowState", 0)
+{
+    setAcceptDrops(true);
+}
+
+void MainWindow::restoreGeometry() {
+    // Did not use setGeometry() on purpose,
+    // see http://doc.qt.io/qt-5/qsettings.html#restoring-the-state-of-a-gui-application
+    QRect geometry = _windowGeometry.get(qApp->desktop()->availableGeometry());
+    move(geometry.topLeft());
+    resize(geometry.size());
+
+    // Restore to maximized or full screen after restoring to windowed so that going windowed goes to good position and sizes.
+    Qt::WindowStates state = (Qt::WindowStates)_windowState.get(Qt::WindowNoState);
+    if (state != Qt::WindowNoState) {
+        setWindowState(state);
+    }
+}
+
+void MainWindow::saveGeometry() {
+    // Did not use geometry() on purpose,
+    // see http://doc.qt.io/qt-5/qsettings.html#restoring-the-state-of-a-gui-application
+    _windowState.set((int)windowState());
+
+    // Save position and size only if windowed so that have good values for windowed after starting maximized or full screen.
+    if (windowState() == Qt::WindowNoState) {
+        QRect geometry(pos(), size());
+        _windowGeometry.set(geometry);
+    }
+}
+
+void MainWindow::closeEvent(QCloseEvent* event) {
+    qApp->quit();
 }
 
 void MainWindow::moveEvent(QMoveEvent* event) {
@@ -51,13 +91,13 @@ void MainWindow::changeEvent(QEvent* event) {
     if (event->type() == QEvent::WindowStateChange) {
         QWindowStateChangeEvent* stateChangeEvent = static_cast<QWindowStateChangeEvent*>(event);
         if ((stateChangeEvent->oldState() == Qt::WindowNoState ||
-             stateChangeEvent->oldState() == Qt::WindowMaximized) &&
-             windowState() == Qt::WindowMinimized) {
+            stateChangeEvent->oldState() == Qt::WindowMaximized) &&
+            windowState() == Qt::WindowMinimized) {
             emit windowShown(false);
         } else {
             emit windowShown(true);
         }
-        
+
         if (isFullScreen() != Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen)) {
             Menu::getInstance()->setIsOptionChecked(MenuOption::Fullscreen, isFullScreen());
         }
@@ -69,4 +109,14 @@ void MainWindow::changeEvent(QEvent* event) {
         }
     }
     QMainWindow::changeEvent(event);
+}
+
+void MainWindow::dragEnterEvent(QDragEnterEvent* event) {
+    if (event->mimeData()) {
+        event->acceptProposedAction();
+    }
+}
+
+void MainWindow::dropEvent(QDropEvent* event) {
+    QCoreApplication::sendEvent(QCoreApplication::instance(), event);
 }

@@ -12,10 +12,27 @@
 #ifndef hifi_AudioMixerClientData_h
 #define hifi_AudioMixerClientData_h
 
+#include <QtCore/QJsonObject>
+
 #include <AABox.h>
+#include <AudioFormat.h> // For AudioFilterHSF1s and _penumbraFilter
+#include <AudioBuffer.h> // For AudioFilterHSF1s and _penumbraFilter
+#include <AudioFilter.h> // For AudioFilterHSF1s and _penumbraFilter
+#include <AudioFilterBank.h> // For AudioFilterHSF1s and _penumbraFilter
 
 #include "PositionalAudioStream.h"
 #include "AvatarAudioStream.h"
+
+class PerListenerSourcePairData {
+public:
+    PerListenerSourcePairData() { 
+        _penumbraFilter.initialize(AudioConstants::SAMPLE_RATE, AudioConstants::NETWORK_FRAME_SAMPLES_STEREO / 2);
+    };
+    AudioFilterHSF1s& getPenumbraFilter() { return _penumbraFilter; }
+
+private:
+    AudioFilterHSF1s _penumbraFilter;
+};
 
 class AudioMixerClientData : public NodeData {
 public:
@@ -27,11 +44,11 @@ public:
     
     int parseData(const QByteArray& packet);
 
-    void checkBuffersBeforeFrameSend(AABox* checkSourceZone, AABox* listenerZone);
+    void checkBuffersBeforeFrameSend();
 
     void removeDeadInjectedStreams();
 
-    QString getAudioStreamStatsString() const;
+    QJsonObject getAudioStreamStats() const;
     
     void sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode);
     
@@ -40,11 +57,15 @@ public:
 
     void printUpstreamDownstreamStats() const;
 
+    PerListenerSourcePairData* getListenerSourcePairData(const QUuid& sourceUUID);
 private:
     void printAudioStreamStats(const AudioStreamStats& streamStats) const;
 
 private:
     QHash<QUuid, PositionalAudioStream*> _audioStreams;     // mic stream stored under key of null UUID
+
+    // TODO: how can we prune this hash when a stream is no longer present?
+    QHash<QUuid, PerListenerSourcePairData*> _listenerSourcePairData;
 
     quint16 _outgoingMixedAudioSequenceNumber;
 

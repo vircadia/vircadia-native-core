@@ -38,12 +38,12 @@ void HTTPSManager::incomingConnection(qintptr socketDescriptor) {
     }
 }
 
-bool HTTPSManager::handleHTTPRequest(HTTPConnection* connection, const QUrl &url) {
-    return handleHTTPSRequest(reinterpret_cast<HTTPSConnection*>(connection), url);
+bool HTTPSManager::handleHTTPRequest(HTTPConnection* connection, const QUrl &url, bool skipSubHandler) {
+    return handleHTTPSRequest(reinterpret_cast<HTTPSConnection*>(connection), url, skipSubHandler);
 }
 
-bool HTTPSManager::handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url) {
-    return HTTPManager::handleHTTPRequest(connection, url);
+bool HTTPSManager::handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url, bool skipSubHandler) {
+    return HTTPManager::handleHTTPRequest(connection, url, skipSubHandler);
 }
 
 bool HTTPSManager::requestHandledByRequestHandler(HTTPConnection* connection, const QUrl& url) {

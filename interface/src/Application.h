@@ -12,149 +12,152 @@
 #ifndef hifi_Application_h
 #define hifi_Application_h
 
-#include <map>
-#include <time.h>
+#include <gpu/GPUConfig.h>
 
 #include <QApplication>
-#include <QMainWindow>
-#include <QAction>
 #include <QHash>
 #include <QImage>
-#include <QList>
 #include <QPointer>
 #include <QSet>
-#include <QSettings>
 #include <QStringList>
-#include <QHash>
-#include <QTouchEvent>
 #include <QUndoStack>
-#include <QSystemTrayIcon>
+#include <functional>
 
-#include <ModelEditPacketSender.h>
+#include <AbstractScriptingServicesInterface.h>
+#include <AbstractViewStateInterface.h>
+#include <EntityEditPacketSender.h>
+#include <EntityTreeRenderer.h>
+#include <GeometryCache.h>
 #include <NetworkPacket.h>
 #include <NodeList.h>
-#include <PacketHeaders.h>
-#include <ParticleCollisionSystem.h>
-#include <ParticleEditPacketSender.h>
-#include <ScriptEngine.h>
 #include <OctreeQuery.h>
+#include <OffscreenUi.h>
+#include <PacketHeaders.h>
+#include <PhysicalEntitySimulation.h>
+#include <PhysicsEngine.h>
+#include <ScriptEngine.h>
+#include <ShapeManager.h>
+#include <StDev.h>
+#include <TextureCache.h>
 #include <ViewFrustum.h>
-#include <VoxelEditPacketSender.h>
 
-#include "MainWindow.h"
-#include "Audio.h"
-#include "AudioReflector.h"
-#include "BuckyBalls.h"
+#include "AudioClient.h"
+#include "Bookmarks.h"
 #include "Camera.h"
 #include "DatagramProcessor.h"
 #include "Environment.h"
 #include "FileLogger.h"
 #include "GLCanvas.h"
 #include "Menu.h"
-#include "MetavoxelSystem.h"
 #include "PacketHeaders.h"
+#include "Physics.h"
 #include "Stars.h"
 #include "avatar/Avatar.h"
-#include "avatar/AvatarManager.h"
 #include "avatar/MyAvatar.h"
-#include "devices/Faceplus.h"
-#include "devices/Faceshift.h"
-#include "devices/JoystickManager.h"
-#include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
-#include "devices/Visage.h"
-#include "devices/CaraFaceTracker.h"
-#include "devices/DdeFaceTracker.h"
-#include "models/ModelTreeRenderer.h"
-#include "particles/ParticleTreeRenderer.h"
-#include "renderer/AmbientOcclusionEffect.h"
-#include "renderer/GeometryCache.h"
-#include "renderer/GlowEffect.h"
-#include "renderer/PointShader.h"
-#include "renderer/TextureCache.h"
-#include "renderer/VoxelShader.h"
 #include "scripting/ControllerScriptingInterface.h"
+#include "scripting/WebWindowClass.h"
 #include "ui/BandwidthDialog.h"
-#include "ui/BandwidthMeter.h"
+#include "ui/HMDToolsDialog.h"
 #include "ui/ModelsBrowser.h"
-#include "ui/NodeBounds.h"
 #include "ui/OctreeStatsDialog.h"
-#include "ui/RearMirrorTools.h"
 #include "ui/SnapshotShareDialog.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
-#include "ui/UpdateDialog.h"
 #include "ui/overlays/Overlays.h"
 #include "ui/ApplicationOverlay.h"
+#include "ui/ApplicationCompositor.h"
 #include "ui/RunningScriptsWidget.h"
-#include "ui/VoxelImportDialog.h"
-#include "voxels/VoxelFade.h"
-#include "voxels/VoxelHideShowThread.h"
-#include "voxels/VoxelImporter.h"
-#include "voxels/OctreePacketProcessor.h"
-#include "voxels/VoxelSystem.h"
+#include "ui/ToolWindow.h"
+#include "ui/UserInputMapper.h"
+#include "devices/KeyboardMouseDevice.h"
+#include "octree/OctreePacketProcessor.h"
+#include "UndoStackScriptingInterface.h"
 
+#include "render/Engine.h"
 
-class QAction;
-class QActionGroup;
 class QGLWidget;
 class QKeyEvent;
 class QMouseEvent;
-class QSettings;
+class QSystemTrayIcon;
+class QTouchEvent;
 class QWheelEvent;
 
+class FaceTracker;
+class MainWindow;
 class Node;
 class ProgramObject;
-
-static const float NODE_ADDED_RED   = 0.0f;
-static const float NODE_ADDED_GREEN = 1.0f;
-static const float NODE_ADDED_BLUE  = 0.0f;
-static const float NODE_KILLED_RED   = 1.0f;
-static const float NODE_KILLED_GREEN = 0.0f;
-static const float NODE_KILLED_BLUE  = 0.0f;
+class ScriptEngine;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
-static const QString CUSTOM_URL_SCHEME = "hifi:";
+static const QString SVO_EXTENSION  = ".svo";
+static const QString SVO_JSON_EXTENSION  = ".svo.json";
+static const QString JS_EXTENSION  = ".js";
+static const QString FST_EXTENSION  = ".fst";
 
 static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
-static const float BILLBOARD_DISTANCE = 5.0f;       // meters
+static const float BILLBOARD_DISTANCE = 5.56f;       // meters
 
 static const int MIRROR_VIEW_TOP_PADDING = 5;
 static const int MIRROR_VIEW_LEFT_PADDING = 10;
 static const int MIRROR_VIEW_WIDTH = 265;
 static const int MIRROR_VIEW_HEIGHT = 215;
-static const float MIRROR_FULLSCREEN_DISTANCE = 0.35f;
-static const float MIRROR_REARVIEW_DISTANCE = 0.65f;
-static const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
+static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
+static const float MIRROR_REARVIEW_DISTANCE = 0.722f;
+static const float MIRROR_REARVIEW_BODY_DISTANCE = 2.56f;
 static const float MIRROR_FIELD_OF_VIEW = 30.0f;
 
 static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
 
-class Application : public QApplication {
+static const QString INFO_HELP_PATH = "html/interface-welcome.html";
+static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-commands.html";
+
+#ifdef Q_OS_WIN
+static const UINT UWM_IDENTIFY_INSTANCES = 
+    RegisterWindowMessage("UWM_IDENTIFY_INSTANCES_{8AB82783-B74A-4258-955B-8188C22AA0D6}_" + qgetenv("USERNAME"));
+static const UINT UWM_SHOW_APPLICATION =
+    RegisterWindowMessage("UWM_SHOW_APPLICATION_{71123FD6-3DA8-4DC1-9C27-8A12A6250CBA}_" + qgetenv("USERNAME"));
+#endif
+
+class Application;
+#if defined(qApp)
+#undef qApp
+#endif
+#define qApp (static_cast<Application*>(QCoreApplication::instance()))
+
+typedef bool (Application::* AcceptURLMethod)(const QString &);
+
+class Application : public QApplication, public AbstractViewStateInterface, AbstractScriptingServicesInterface {
     Q_OBJECT
 
     friend class OctreePacketProcessor;
-    friend class VoxelEditPacketSender;
     friend class DatagramProcessor;
 
 public:
-    static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
-    static QString& resourcesPath();
+    static Application* getInstance() { return qApp; } // TODO: replace fully by qApp
+    static const glm::vec3& getPositionForPath() { return getInstance()->_myAvatar->getPosition(); }
+    static glm::quat getOrientationForPath() { return getInstance()->_myAvatar->getOrientation(); }
+    static glm::vec3 getPositionForAudio() { return getInstance()->_myAvatar->getHead()->getPosition(); }
+    static glm::quat getOrientationForAudio() { return getInstance()->_myAvatar->getHead()->getFinalOrientationInWorldFrame(); }
+    static UserInputMapper* getUserInputMapper() { return &getInstance()->_userInputMapper; }
+    static void initPlugins();
+    static void shutdownPlugins();
 
     Application(int& argc, char** argv, QElapsedTimer &startup_time);
     ~Application();
 
-    void restoreSizeAndPosition();
+    void postLambdaEvent(std::function<void()> f);
+
     void loadScripts();
     QString getPreviousScriptLocation();
     void setPreviousScriptLocation(const QString& previousScriptLocation);
-    void storeSizeAndPosition();
     void clearScriptsBeforeRunning();
-    void saveScripts();
     void initializeGL();
+    void initializeUi();
     void paintGL();
-    void resizeGL(int width, int height);
-    void urlGoTo(int argc, const char * constArgv[]);
+    void resizeGL();
+
+    void resizeEvent(QResizeEvent * size);
 
     void keyPressEvent(QKeyEvent* event);
     void keyReleaseEvent(QKeyEvent* event);
@@ -164,6 +167,7 @@ public:
 
     void mouseMoveEvent(QMouseEvent* event, unsigned int deviceID = 0);
     void mousePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
+    void mouseDoublePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
     void mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID = 0);
 
     void touchBeginEvent(QTouchEvent* event);
@@ -171,97 +175,101 @@ public:
     void touchUpdateEvent(QTouchEvent* event);
 
     void wheelEvent(QWheelEvent* event);
-    void dropEvent(QDropEvent *event);
+    void dropEvent(QDropEvent* event);
+    void dragEnterEvent(QDragEnterEvent* event);
 
     bool event(QEvent* event);
+    bool eventFilter(QObject* object, QEvent* event);
 
-    void makeVoxel(glm::vec3 position,
-                   float scale,
-                   unsigned char red,
-                   unsigned char green,
-                   unsigned char blue,
-                   bool isDestructive);
+    glm::uvec2 getCanvasSize() const;
+    QSize getDeviceSize() const;
+    bool hasFocus() const;
+    PickRay computePickRay() const;
+    PickRay computeViewPickRay(float xRatio, float yRatio) const;
 
-    void removeVoxel(glm::vec3 position, float scale);
+    bool isThrottleRendering() const;
 
-    glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVoxel);
-
-    QGLWidget* getGLWidget() { return _glWidget; }
-    bool isThrottleRendering() const { return _glWidget->isThrottleRendering(); }
-    MyAvatar* getAvatar() { return _myAvatar; }
-    Audio* getAudio() { return &_audio; }
-    const AudioReflector* getAudioReflector() const { return &_audioReflector; }
     Camera* getCamera() { return &_myCamera; }
-    ViewFrustum* getViewFrustum() { return &_viewFrustum; }
+    // Represents the current view frustum of the avatar.  
+    ViewFrustum* getViewFrustum();
+    const ViewFrustum* getViewFrustum() const;
+    // Represents the view frustum of the current rendering pass, 
+    // which might be different from the viewFrustum, i.e. shadowmap 
+    // passes, mirror window passes, etc
+    ViewFrustum* getDisplayViewFrustum();
+    const ViewFrustum* getDisplayViewFrustum() const;
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
-    VoxelImporter* getVoxelImporter() { return &_voxelImporter; }
-    VoxelSystem* getVoxels() { return &_voxels; }
-    VoxelTree* getVoxelTree() { return _voxels.getTree(); }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
-    ParticleTreeRenderer* getParticles() { return &_particles; }
-    MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
-    ModelTreeRenderer* getModels() { return &_models; }
-    bool getImportSucceded() { return _importSucceded; }
-    VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
-    VoxelTree* getClipboard() { return &_clipboard; }
-    ModelTree* getModelClipboard() { return &_modelClipboard; }
-    ModelTreeRenderer* getModelClipboardRenderer() { return &_modelClipboardRenderer; }
-    Environment* getEnvironment() { return &_environment; }
+    EntityTreeRenderer* getEntities() { return &_entities; }
+    QUndoStack* getUndoStack() { return &_undoStack; }
+    MainWindow* getWindow() { return _window; }
+    OctreeQuery& getOctreeQuery() { return _octreeQuery; }
+    EntityTree* getEntityClipboard() { return &_entityClipboard; }
+    EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
+    
     bool isMousePressed() const { return _mousePressed; }
-    bool isMouseHidden() const { return _mouseHidden; }
+    bool isMouseHidden() const { return !_cursorVisible; }
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
-    int getMouseX() const { return _mouseX; }
-    int getMouseY() const { return _mouseY; }
-    bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated;; }
-    Faceplus* getFaceplus() { return &_faceplus; }
-    Faceshift* getFaceshift() { return &_faceshift; }
-    Visage* getVisage() { return &_visage; }
-    DdeFaceTracker* getDDE() { return &_dde; }
-    CaraFaceTracker* getCara() { return &_cara; }
+    bool mouseOnScreen() const;
+
+    ivec2 getMouse() const;
+    ivec2 getTrueMouse() const;
+    ivec2 getMouseDragStarted() const;
+    ivec2 getTrueMouseDragStarted() const;
+
+    // TODO get rid of these and use glm types directly
+    int getMouseX() const { return getMouse().x; }
+    int getMouseY() const { return getMouse().y; }
+    int getTrueMouseX() const { return getTrueMouse().x; }
+    int getTrueMouseY() const { return getTrueMouse().y; }
+    int getMouseDragStartedX() const { return getMouseDragStarted().x; }
+    int getMouseDragStartedY() const { return getMouseDragStarted().y; }
+    int getTrueMouseDragStartedX() const { return getTrueMouseDragStarted().x; }
+    int getTrueMouseDragStartedY() const { return getTrueMouseDragStarted().y; }
+    bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
+    
     FaceTracker* getActiveFaceTracker();
-    SixenseManager* getSixenseManager() { return &_sixenseManager; }
-    PrioVR* getPrioVR() { return &_prioVR; }
-    JoystickManager* getJoystickManager() { return &_joystickManager; }
-    BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
-    QUndoStack* getUndoStack() { return &_undoStack; }
+    FaceTracker* getSelectedFaceTracker();
+
     QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
+    const ApplicationOverlay& getApplicationOverlay() const { return _applicationOverlay; }
+    ApplicationCompositor& getApplicationCompositor() { return _compositor; }
+    const ApplicationCompositor& getApplicationCompositor() const { return _compositor; }
     Overlays& getOverlays() { return _overlays; }
 
     float getFps() const { return _fps; }
-    float getPacketsPerSecond() const { return _packetsPerSecond; }
-    float getBytesPerSecond() const { return _bytesPerSecond; }
     const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
     void setViewMatrixTranslation(const glm::vec3& translation) { _viewMatrixTranslation = translation; }
 
-    /// if you need to access the application settings, use lockSettings()/unlockSettings()
-    QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }
-    void unlockSettings() { _settingsMutex.unlock(); }
+    virtual const Transform& getViewTransform() const { return _viewTransform; }
+    void setViewTransform(const Transform& view);
+    
+    float getFieldOfView() { return _fieldOfView.get(); }
+    void setFieldOfView(float fov) { _fieldOfView.set(fov); }
 
-    void saveSettings();
+    bool importSVOFromURL(const QString& urlString);
 
-    MainWindow* getWindow() { return _window; }
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
     void unlockOctreeSceneStats() { _octreeSceneStatsLock.unlock(); }
 
-    GeometryCache* getGeometryCache() { return &_geometryCache; }
-    AnimationCache* getAnimationCache() { return &_animationCache; }
-    TextureCache* getTextureCache() { return &_textureCache; }
-    GlowEffect* getGlowEffect() { return &_glowEffect; }
-    ControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
+    ToolWindow* getToolWindow() { return _toolWindow ; }
 
-    AvatarManager& getAvatarManager() { return _avatarManager; }
+    virtual AbstractControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
+    virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
+
     void resetProfile(const QString& username);
 
     void controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
 
-    void setupWorldLight();
+    virtual void setupWorldLight();
+    virtual bool shouldRenderMesh(float largestDimension, float distanceToCamera);
 
-    QImage renderAvatarBillboard();
+    QImage renderAvatarBillboard(RenderArgs* renderArgs);
 
-    void displaySide(Camera& whichCamera, bool selfAvatarOnly = false);
+    void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false, bool billboard = false);
 
     /// Stores the current modelview matrix as the untranslated view matrix to use for transforms and the supplied vector as
     /// the view matrix translation.
@@ -276,28 +284,72 @@ public:
     void getModelViewMatrix(glm::dmat4* modelViewMatrix);
     void getProjectionMatrix(glm::dmat4* projectionMatrix);
 
-    const glm::vec3& getShadowDistances() const { return _shadowDistances; }
+    virtual const glm::vec3& getShadowDistances() const { return _shadowDistances; }
 
     /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
-    void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
+    virtual void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
 
-    NodeBounds& getNodeBoundsDisplay()  { return _nodeBoundsDisplay; }
+    virtual ViewFrustum* getCurrentViewFrustum() { return getDisplayViewFrustum(); }
+    virtual bool getShadowsEnabled();
+    virtual bool getCascadeShadowsEnabled();
+    virtual QThread* getMainThread() { return thread(); }
+    virtual float getSizeScale() const;
+    virtual int getBoundaryLevelAdjust() const;
+    virtual PickRay computePickRay(float x, float y) const;
+    virtual const glm::vec3& getAvatarPosition() const { return _myAvatar->getPosition(); }
+    virtual void overrideEnvironmentData(const EnvironmentData& newData) { _environment.override(newData); }
+    virtual void endOverrideEnvironmentData() { _environment.endOverride(); }
+    virtual qreal getDevicePixelRatio();
 
-    VoxelShader& getVoxelShader() { return _voxelShader; }
-    PointShader& getPointShader() { return _pointShader; }
     FileLogger* getLogger() { return _logger; }
 
-    glm::vec2 getViewportDimensions() const{ return glm::vec2(_glWidget->width(),_glWidget->height()); }
-    NodeToJurisdictionMap& getVoxelServerJurisdictions() { return _voxelServerJurisdictions; }
-    NodeToJurisdictionMap& getParticleServerJurisdictions() { return _particleServerJurisdictions; }
-    NodeToJurisdictionMap& getModelServerJurisdictions() { return _modelServerJurisdictions; }
-    void pasteVoxelsToOctalCode(const unsigned char* octalCodeDestination);
+    glm::vec2 getViewportDimensions() const;
 
-    void skipVersion(QString latestVersion);
+    NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
 
     QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
     ScriptEngine* getScriptEngine(QString scriptHash) { return _scriptEnginesHash.contains(scriptHash) ? _scriptEnginesHash[scriptHash] : NULL; }
+    
+    bool isLookingAtMyAvatar(Avatar* avatar);
+
+    float getRenderResolutionScale() const;
+    int getRenderAmbientLight() const;
+
+    unsigned int getRenderTargetFramerate() const;
+    bool isVSyncOn() const;
+    bool isVSyncEditable() const;
+    bool isAboutToQuit() const { return _aboutToQuit; }
+
+    // the isHMDmode is true whenever we use the interface from an HMD and not a standard flat display
+    // rendering of several elements depend on that
+    // TODO: carry that information on the Camera as a setting
+    bool isHMDMode() const;
+    glm::quat getHeadOrientation() const;
+    glm::vec3 getHeadPosition() const;
+    glm::mat4 getHeadPose() const;
+    glm::mat4 getEyePose(int eye) const;
+    glm::mat4 getEyeProjection(int eye) const;
+
+    QRect getDesirableApplicationGeometry();
+    RunningScriptsWidget* getRunningScriptsWidget() { return _runningScriptsWidget; }
+
+    Bookmarks* getBookmarks() const { return _bookmarks; }
+    
+    QString getScriptsLocation();
+    void setScriptsLocation(const QString& scriptsLocation);
+    
+    void initializeAcceptedFiles();
+    bool canAcceptURL(const QString& url);
+    bool acceptURL(const QString& url);
+
+    void setMaxOctreePacketsPerSecond(int maxOctreePPS);
+    int getMaxOctreePacketsPerSecond();
+    
+    render::ScenePointer getMain3DScene() { return _main3DScene; }
+    render::EnginePointer getRenderEngine() { return _renderEngine; }
+
+    render::ScenePointer getMain3DScene() const { return _main3DScene; }
 
 signals:
 
@@ -312,142 +364,170 @@ signals:
 
     /// Fired when the import window is closed
     void importDone();
+    
+    void scriptLocationChanged(const QString& newPath);
+
+    void svoImportRequested(const QString& url);
+
+    void checkBackgroundDownloads();
+    void domainConnectionRefused(const QString& reason);
+
+    void headURLChanged(const QString& newValue, const QString& modelName);
+    void bodyURLChanged(const QString& newValue, const QString& modelName);
+    void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
+    
+    void beforeAboutToQuit();
 
 public slots:
+    void setSessionUUID(const QUuid& sessionUUID);
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
-    void updateLocationInServer();
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
 
-    void pasteModels(float x, float y, float z);
-    bool exportModels(const QString& filename, float x, float y, float z, float scale);
-    bool importModels(const QString& filename);
+    QVector<EntityItemID> pasteEntities(float x, float y, float z);
+    bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
+    bool exportEntities(const QString& filename, float x, float y, float z, float scale);
+    bool importEntities(const QString& url);
 
-    void importVoxels(); // doesn't include source voxel because it goes to clipboard
-    void cutVoxels(const VoxelDetail& sourceVoxel);
-    void copyVoxels(const VoxelDetail& sourceVoxel);
-    void pasteVoxels(const VoxelDetail& sourceVoxel);
-    void deleteVoxels(const VoxelDetail& sourceVoxel);
-    void exportVoxels(const VoxelDetail& sourceVoxel);
-    void nudgeVoxelsByVector(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec);
-
-    void setRenderVoxels(bool renderVoxels);
     void setLowVelocityFilter(bool lowVelocityFilter);
-    void doKillLocalVoxels();
     void loadDialog();
     void loadScriptURLDialog();
     void toggleLogDialog();
-    void initAvatarAndViewFrustum();
-    ScriptEngine* loadScript(const QString& fileNameString = QString(), bool loadScriptFromEditor = false, bool activateMainWindow = false);
+    bool acceptSnapshot(const QString& urlString);
+    bool askToSetAvatarUrl(const QString& url);
+    bool askToLoadScript(const QString& scriptFilenameOrURL);
+
+    ScriptEngine* loadScript(const QString& scriptFilename = QString(), bool isUserLoaded = true, 
+        bool loadScriptFromEditor = false, bool activateMainWindow = false, bool reload = false);
+    void reloadScript(const QString& scriptName, bool isUserLoaded = true);
     void scriptFinished(const QString& scriptName);
     void stopAllScripts(bool restart = false);
-    void stopScript(const QString& scriptName);
+    void stopScript(const QString& scriptName, bool restart = false);
     void reloadAllScripts();
+    void reloadOneScript(const QString& scriptName);
     void loadDefaultScripts();
     void toggleRunningScriptsWidget();
+    void saveScripts();
 
-    void uploadHead();
-    void uploadSkeleton();
-    void uploadAttachment();
+    void showFriendsWindow();
+    void friendsWindowClosed();
 
-    void bumpSettings() { ++_numChangedSettings; }
+    void packageModel();
+    
+    void openUrl(const QUrl& url);
+
+    void updateMyAvatarTransform();
     
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
+    void setVSyncEnabled();
+
+    void resetSensors();
+    void setActiveFaceTracker();
+    void toggleFaceTrackerMute();
+
+    void aboutApp();
+    void showEditEntitiesHelp();
+    
+    void loadSettings();
+    void saveSettings();
+
+    void notifyPacketVersionMismatch();
+
+    void domainConnectionDenied(const QString& reason);
+    
+    void cameraMenuChanged();
+    
+    void reloadResourceCaches();
+
 private slots:
-    void timer();
+    void clearDomainOctreeDetails();
+    void checkFPS();
     void idle();
+    void aboutToQuit();
+    
+    void handleScriptEngineLoaded(const QString& scriptFilename);
+    void handleScriptLoadError(const QString& scriptFilename);
 
     void connectedToDomain(const QString& hostname);
 
+    friend class HMDToolsDialog;
     void setFullscreen(bool fullscreen);
     void setEnable3DTVMode(bool enable3DTVMode);
     void setEnableVRMode(bool enableVRMode);
-    void cameraMenuChanged();
+    
+    void rotationModeChanged();
 
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
 
     void closeMirrorView();
     void restoreMirrorView();
     void shrinkMirrorView();
-    void resetSensors();
-
-    void parseVersionXml();
 
     void manageRunningScriptsWidgetVisibility(bool shown);
+    
+    void runTests();
+    
+    void audioMuteToggled();
+    void faceTrackerMuteToggled();
+
+    void setCursorVisible(bool visible);
 
 private:
-    void resetCamerasOnResizeGL(Camera& camera, int width, int height);
+    void resetCameras(Camera& camera, const glm::uvec2& size);
     void updateProjectionMatrix();
     void updateProjectionMatrix(Camera& camera, bool updateViewFrustum = true);
 
-    static bool sendVoxelsOperation(OctreeElement* node, void* extraData);
     void sendPingPackets();
 
     void initDisplay();
     void init();
+    
+    void cleanupBeforeQuit();
+    
+    void emptyLocalCache();
 
     void update(float deltaTime);
 
     // Various helper functions called during update()
     void updateLOD();
     void updateMouseRay();
-    void updateFaceplus();
-    void updateFaceshift();
-    void updateVisage();
-    void updateDDE();
-    void updateCara();
     void updateMyAvatarLookAtPosition();
     void updateThreads(float deltaTime);
-    void updateMetavoxels(float deltaTime);
     void updateCamera(float deltaTime);
     void updateDialogs(float deltaTime);
     void updateCursor(float deltaTime);
 
     Avatar* findLookatTargetAvatar(glm::vec3& eyePosition, QUuid &nodeUUID);
-    bool isLookingAtMyAvatar(Avatar* avatar);
 
     void renderLookatIndicator(glm::vec3 pointOfInterest);
 
-    void updateMyAvatar(float deltaTime);
     void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
 
     glm::vec3 getSunDirection();
 
-    void updateShadowMap();
-    void renderRearViewMirror(const QRect& region, bool billboard = false);
-    void renderViewFrustum(ViewFrustum& viewFrustum);
-
-    void checkBandwidthMeterClick();
-
-    void deleteVoxelAt(const VoxelDetail& voxel);
-    void eyedropperVoxelUnderCursor();
-
+    void updateShadowMap(RenderArgs* renderArgs);
+    void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard = false);
     void setMenuShortcutsEnabled(bool enabled);
-
-    void uploadModel(ModelType modelType);
 
     static void attachNewHeadToNode(Node *newNode);
     static void* networkReceive(void* args); // network receive thread
 
     int sendNackPackets();
 
+    bool _dependencyManagerIsSetup;
     MainWindow* _window;
-    GLCanvas* _glWidget; // our GLCanvas has a couple extra features
 
-    BandwidthMeter _bandwidthMeter;
-
-    QThread* _nodeThread;
-    DatagramProcessor _datagramProcessor;
-
-    QMutex _settingsMutex;
-    QSettings* _settings;
-    int _numChangedSettings;
+    ToolWindow* _toolWindow;
+    WebWindowClass* _friendsWindow;
+    
+    DatagramProcessor* _datagramProcessor;
 
     QUndoStack _undoStack;
+    UndoStackScriptingInterface _undoStackScriptingInterface;
 
     glm::vec3 _gravity;
 
@@ -459,59 +539,38 @@ private:
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
     bool _justStarted;
-    Stars _stars;
 
-    BuckyBalls _buckyBalls;
+    ShapeManager _shapeManager;
+    PhysicalEntitySimulation _entitySimulation;
+    PhysicsEngine _physicsEngine;
 
-    VoxelSystem _voxels;
-    VoxelTree _clipboard; // if I copy/paste
-    VoxelImportDialog* _voxelImportDialog;
-    VoxelImporter _voxelImporter;
-    bool _importSucceded;
-    VoxelSystem _sharedVoxelSystem;
-    ViewFrustum _sharedVoxelSystemViewFrustum;
-
-    ParticleTreeRenderer _particles;
-    ParticleCollisionSystem _particleCollisionSystem;
-
-    ModelTreeRenderer _models;
-    ModelTreeRenderer _modelClipboardRenderer;
-    ModelTree _modelClipboard;
-
-    QByteArray _voxelsFilename;
-    bool _wantToKillLocalVoxels;
-
-    MetavoxelSystem _metavoxels;
+    EntityTreeRenderer _entities;
+    EntityTreeRenderer _entityClipboardRenderer;
+    EntityTree _entityClipboard;
 
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
-    ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels, particles)
+    ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)
+    ViewFrustum _displayViewFrustum;
     ViewFrustum _shadowViewFrustum;
     quint64 _lastQueriedTime;
 
     float _trailingAudioLoudness;
 
-    OctreeQuery _octreeQuery; // NodeData derived class for querying voxels from voxel server
+    OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
 
-    AvatarManager _avatarManager;
-    MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
-
-    Faceplus _faceplus;
-    Faceshift _faceshift;
-    Visage _visage;
-    CaraFaceTracker _cara;
-    DdeFaceTracker _dde;
-
-    SixenseManager _sixenseManager;
-    PrioVR _prioVR;
-    JoystickManager _joystickManager;
-
-    Camera _myCamera;                  // My view onto the world
-    Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
+    KeyboardMouseDevice _keyboardMouseDevice;   // Default input device, the good old keyboard mouse and maybe touchpad
+    UserInputMapper _userInputMapper;           // User input mapper allowing to mapp different real devices to the action channels that the application has to offer
+    MyAvatar* _myAvatar;                        // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
+    Camera _myCamera;                           // My view onto the world
     Camera _mirrorCamera;              // Cammera for mirror view
     QRect _mirrorViewRect;
-    RearMirrorTools* _rearMirrorTools;
+    
+    Setting::Handle<bool>       _firstRun;
+    Setting::Handle<QString>    _previousScriptLocation;
+    Setting::Handle<QString>    _scriptsLocationHandle;
+    Setting::Handle<float>      _fieldOfView;
 
-    float _cameraPushback;
+    Transform _viewTransform;
     glm::mat4 _untranslatedViewMatrix;
     glm::vec3 _viewMatrixTranslation;
     glm::mat4 _projectionMatrix;
@@ -526,93 +585,92 @@ private:
 
     Environment _environment;
 
-    int _mouseX;
-    int _mouseY;
-    int _mouseDragStartedX;
-    int _mouseDragStartedY;
+    bool _cursorVisible;
+    ivec2 _mouseDragStarted;
+
     quint64 _lastMouseMove;
     bool _lastMouseMoveWasSimulated;
-    bool _mouseHidden;
-    bool _seenMouseMove;
 
     glm::vec3 _mouseRayOrigin;
     glm::vec3 _mouseRayDirection;
 
-    float _touchAvgX;
-    float _touchAvgY;
-    float _touchDragStartedAvgX;
-    float _touchDragStartedAvgY;
+    vec2 _touchAvg;
+    vec2 _touchDragStartedAvg;
+
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
 
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
 
     QSet<int> _keysPressed;
 
+    bool _enableProcessOctreeThread;
 
-    GeometryCache _geometryCache;
-    AnimationCache _animationCache;
-    TextureCache _textureCache;
-
-    GlowEffect _glowEffect;
-    AmbientOcclusionEffect _ambientOcclusionEffect;
-    VoxelShader _voxelShader;
-    PointShader _pointShader;
-
-    Audio _audio;
-
-    bool _enableProcessVoxelsThread;
     OctreePacketProcessor _octreeProcessor;
-    VoxelHideShowThread _voxelHideShowThread;
-    VoxelEditPacketSender _voxelEditSender;
-    ParticleEditPacketSender _particleEditSender;
-    ModelEditPacketSender _modelEditSender;
-
-    int _packetsPerSecond;
-    int _bytesPerSecond;
+    EntityEditPacketSender _entityEditSender;
 
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
 
     int parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sendingNode);
-    void trackIncomingVoxelPacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket);
+    void trackIncomingOctreePacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket);
 
-    NodeToJurisdictionMap _voxelServerJurisdictions;
-    NodeToJurisdictionMap _particleServerJurisdictions;
-    NodeToJurisdictionMap _modelServerJurisdictions;
+    NodeToJurisdictionMap _entityServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;
     QReadWriteLock _octreeSceneStatsLock;
 
-    NodeBounds _nodeBoundsDisplay;
-
-    std::vector<VoxelFade> _voxelFades;
-    QReadWriteLock _voxelFadesLock;
     ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;
     QPointer<SnapshotShareDialog> _snapshotShareDialog;
 
-    QString _previousScriptLocation;
-
     FileLogger* _logger;
 
-    void checkVersion();
-    void displayUpdateDialog();
-    bool shouldSkipVersion(QString latestVersion);
     void takeSnapshot();
 
     TouchEvent _lastTouchEvent;
 
-    Overlays _overlays;
-    ApplicationOverlay _applicationOverlay;
-
-    AudioReflector _audioReflector;
     RunningScriptsWidget* _runningScriptsWidget;
     QHash<QString, ScriptEngine*> _scriptEnginesHash;
     bool _runningScriptsWidgetWasVisible;
+    QString _scriptsLocation;
 
     QSystemTrayIcon* _trayIcon;
 
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
+
+    bool _isVSyncOn;
+    
+    bool _aboutToQuit;
+
+    Bookmarks* _bookmarks;
+
+    bool _notifiedPacketVersionMismatchThisDomain;
+    
+    QThread _settingsThread;
+    QTimer _settingsTimer;
+    
+    GLCanvas* _glWidget = new GLCanvas(); // our GLCanvas has a couple extra features
+
+    void checkSkeleton();
+
+    QWidget* _fullscreenMenuWidget = new QWidget();
+    int _menuBarHeight;
+    
+    QHash<QString, AcceptURLMethod> _acceptedExtensions;
+
+    QList<QString> _domainConnectionRefusals;
+    glm::uvec2 _renderResolution;
+
+    int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;
+
+    quint64 _lastFaceTrackerUpdate;
+
+    render::ScenePointer _main3DScene{ new render::Scene() };
+    render::EnginePointer _renderEngine{ new render::Engine() };
+
+    Overlays _overlays;
+    ApplicationOverlay _applicationOverlay;
+    ApplicationCompositor _compositor;
 };
 
 #endif // hifi_Application_h

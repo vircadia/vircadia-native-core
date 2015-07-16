@@ -23,7 +23,6 @@ class Shape;
 const quint32 COLLISION_GROUP_ENVIRONMENT = 1U << 0;
 const quint32 COLLISION_GROUP_AVATARS     = 1U << 1;
 const quint32 COLLISION_GROUP_VOXELS      = 1U << 2;
-const quint32 COLLISION_GROUP_PARTICLES   = 1U << 3;
 const quint32 VALID_COLLISION_GROUPS = 0x0f;
 
 // CollisionInfo contains details about the collision between two things: BodyA and BodyB.
@@ -53,6 +52,8 @@ public:
 
     const Shape* _shapeA;  // pointer to shapeA in this collision
     const Shape* _shapeB;  // pointer to shapeB in this collision
+
+    void* _extraData;  // pointer to extraData for this collision, opaque to the collision info, useful for external data
 
     float _damping;           // range [0,1] of friction coeficient
     float _elasticity;        // range [0,1] of energy conservation

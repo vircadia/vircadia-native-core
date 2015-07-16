@@ -11,8 +11,10 @@
 
 #include "ui_scriptEditorWidget.h"
 #include "ScriptEditorWidget.h"
+#include "ScriptEditorWindow.h"
 
 #include <QGridLayout>
+#include <QFileDialog>
 #include <QFrame>
 #include <QLayoutItem>
 #include <QMainWindow>
@@ -22,6 +24,8 @@
 #include <QSizePolicy>
 #include <QTimer>
 #include <QWidget>
+
+#include <NetworkAccessManager.h>
 
 #include "Application.h"
 #include "ScriptHighlighting.h"
@@ -93,7 +97,7 @@ bool ScriptEditorWidget::setRunning(bool run) {
 
     if (run) {
         const QString& scriptURLString = QUrl(_currentScript).toString();
-        _scriptEngine = Application::getInstance()->loadScript(scriptURLString, true);
+        _scriptEngine = Application::getInstance()->loadScript(scriptURLString, true, true);
         connect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
         connect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
         connect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);
@@ -148,13 +152,17 @@ void ScriptEditorWidget::loadFile(const QString& scriptPath) {
             disconnect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
         }
     } else {
-        NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-        QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
+        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+        QNetworkRequest networkRequest = QNetworkRequest(url);
+        networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+        QNetworkReply* reply = networkAccessManager.get(networkRequest);
         qDebug() << "Downloading included script at" << scriptPath;
         QEventLoop loop;
         QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
         loop.exec();
         _scriptEditorWidgetUI->scriptEdit->setPlainText(reply->readAll());
+        delete reply;
+        
         if (!saveAs()) {
             static_cast<ScriptEditorWindow*>(this->parent()->parent()->parent())->terminateCurrentTab();
         }

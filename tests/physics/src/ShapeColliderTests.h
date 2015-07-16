@@ -12,8 +12,21 @@
 #ifndef hifi_ShapeColliderTests_h
 #define hifi_ShapeColliderTests_h
 
-namespace ShapeColliderTests {
+#include <QtTest/QtTest>
+#include <QtGlobal>
 
+// Add additional qtest functionality (the include order is important!)
+#include "BulletTestUtils.h"
+#include "GlmTestUtils.h"
+#include "../QTestExtensions.h"
+
+
+class ShapeColliderTests : public QObject {
+    Q_OBJECT
+
+private slots:
+    void initTestCase();
+    
     void sphereMissesSphere();
     void sphereTouchesSphere();
 
@@ -25,7 +38,11 @@ namespace ShapeColliderTests {
 
     void sphereTouchesAACubeFaces();
     void sphereTouchesAACubeEdges();
+    void sphereTouchesAACubeCorners();
     void sphereMissesAACube();
+
+    void capsuleMissesAACube();
+    void capsuleTouchesAACube();
 
     void rayHitsSphere();
     void rayBarelyHitsSphere();
@@ -34,8 +51,10 @@ namespace ShapeColliderTests {
     void rayMissesCapsule();
     void rayHitsPlane();
     void rayMissesPlane();
+    void rayHitsAACube();
+    void rayMissesAACube();
 
-    void runAllTests(); 
-}
+    void measureTimeOfCollisionDispatch();
+};
 
 #endif // hifi_ShapeColliderTests_h

@@ -30,11 +30,11 @@ void TypedArrayPrototype::set(QScriptValue array, qint32 offset) {
             engine()->evaluate("throw \"ArgumentError: negative offset\"");
         }
         quint32 length = array.property("length").toInt32();
-        if (offset + length > thisObject().data().property(typedArray->_lengthName).toInt32()) {
+        if (offset + (qint32)length > thisObject().data().property(typedArray->_lengthName).toInt32()) {
             engine()->evaluate("throw \"ArgumentError: array does not fit\"");
             return;
         }
-        for (int i = 0; i < length; ++i) {
+        for (quint32 i = 0; i < length; ++i) {
             thisObject().setProperty(QString::number(offset + i), array.property(QString::number(i)));
         }
     } else {
