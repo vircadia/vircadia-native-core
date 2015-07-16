@@ -121,8 +121,7 @@ void OctreeEditPacketSender::processPreServerExistsPackets() {
     // First send out all the single message packets...
     _pendingPacketsLock.lock();
     while (!_preServerSingleMessagePackets.empty()) {
-        std::unique_ptr<NLPacket> packet = std::move(_preServerSingleMessagePackets.front());
-        queuePacketToNodes(std::move(packet));
+        queuePacketToNodes(std::move(_preServerSingleMessagePackets.front()));
         _preServerSingleMessagePackets.pop_front();
     }
 

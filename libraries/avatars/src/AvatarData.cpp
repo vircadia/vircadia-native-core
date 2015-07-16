@@ -371,6 +371,22 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         _headData->setBaseRoll(headRoll);
     } // 6 bytes
 
+    { // Head lean (relative to pelvis)
+        float leanForward, leanSideways, torsoTwist;
+        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*)sourceBuffer, &leanForward);
+        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*)sourceBuffer, &leanSideways);
+        sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*)sourceBuffer, &torsoTwist);
+        if (glm::isnan(leanForward) || glm::isnan(leanSideways)) {
+            if (shouldLogError(now)) {
+                qCDebug(avatars) << "Discard nan AvatarData::leanForward,leanSideways,torsoTwise; displayName = '" << _displayName << "'";
+            }
+            return maxAvailableSize;
+        }
+        _headData->_leanForward = leanForward;
+        _headData->_leanSideways = leanSideways;
+        _headData->_torsoTwist = torsoTwist;
+    } // 6 bytes
+
     { // Lookat Position
         glm::vec3 lookAt;
         memcpy(&lookAt, sourceBuffer, sizeof(lookAt));

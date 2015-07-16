@@ -24,6 +24,8 @@ class Packet : public QIODevice {
 public:
     using SequenceNumber = uint16_t;
 
+    static const qint64 PACKET_WRITE_ERROR;
+
     static std::unique_ptr<Packet> create(PacketType::Value type, qint64 size = -1);
     static std::unique_ptr<Packet> fromReceivedPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
     
@@ -61,7 +63,7 @@ public:
     // Returns the number of bytes allocated for the payload
     qint64 getPayloadCapacity() const  { return _payloadCapacity; }
 
-    qint64 bytesLeftToRead() const { return _payloadCapacity - pos(); }
+    qint64 bytesLeftToRead() const { return _payloadSize - pos(); }
     qint64 bytesAvailableForWrite() const { return _payloadCapacity - pos(); }
 
     HifiSockAddr& getSenderSockAddr() { return _senderSockAddr; }
@@ -113,7 +115,6 @@ protected:
 
     HifiSockAddr _senderSockAddr;  // sender address for packet (only used on receiving end)
 };
-
 
 template<typename T> qint64 Packet::peekPrimitive(T* data) {
     return QIODevice::peek(reinterpret_cast<char*>(data), sizeof(T));

@@ -117,7 +117,7 @@ public:
 
     bool packetSourceAndHashMatch(const NLPacket& packet, SharedNodePointer& matchingNode);
 
-    PacketReceiver& getPacketReceiver() { return _packetReceiver; }
+    PacketReceiver& getPacketReceiver() { return *_packetReceiver; }
 
     qint64 sendUnreliablePacket(const NLPacket& packet, const Node& destinationNode);
     qint64 sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr,
@@ -277,7 +277,7 @@ protected:
     HifiSockAddr _publicSockAddr;
     HifiSockAddr _stunSockAddr;
 
-    PacketReceiver _packetReceiver;
+    PacketReceiver* _packetReceiver;
 
     // XXX can BandwidthRecorder be used for this?
     int _numCollectedPackets;
