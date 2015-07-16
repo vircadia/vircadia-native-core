@@ -92,7 +92,6 @@
 #include <SettingHandle.h>
 #include <SimpleAverage.h>
 #include <SoundCache.h>
-#include <TextRenderer.h>
 #include <Tooltip.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
