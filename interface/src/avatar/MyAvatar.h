@@ -331,6 +331,10 @@ private:
     glm::mat4 _sensorToWorldMatrix;
 
     bool _standingHMDSensorMode;
+
+    bool _goToPending;
+    glm::vec3 _goToPosition;
+    glm::quat _goToOrientation;
 };
 
 #endif // hifi_MyAvatar_h
