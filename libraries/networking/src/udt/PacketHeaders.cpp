@@ -90,7 +90,6 @@ QString nameForPacketType(PacketType::Value packetType) {
             PACKET_TYPE_NAME_LOOKUP(MicrophoneAudioWithEcho);
             PACKET_TYPE_NAME_LOOKUP(BulkAvatarData);
             PACKET_TYPE_NAME_LOOKUP(SilentAudioFrame);
-            PACKET_TYPE_NAME_LOOKUP(EnvironmentData);
             PACKET_TYPE_NAME_LOOKUP(DomainListRequest);
             PACKET_TYPE_NAME_LOOKUP(RequestAssignment);
             PACKET_TYPE_NAME_LOOKUP(CreateAssignment);

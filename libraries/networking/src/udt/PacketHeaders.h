@@ -41,7 +41,6 @@ namespace PacketType {
         MicrophoneAudioWithEcho,
         BulkAvatarData,
         SilentAudioFrame,
-        EnvironmentData,
         DomainListRequest,
         RequestAssignment,
         CreateAssignment,

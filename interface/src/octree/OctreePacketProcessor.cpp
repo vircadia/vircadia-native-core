@@ -21,7 +21,7 @@ OctreePacketProcessor::OctreePacketProcessor() {
     
     QSet<PacketType::Value> types {
         PacketType::OctreeStats, PacketType::EntityData,
-        PacketType::EntityErase, PacketType::OctreeStats, PacketType::EnvironmentData
+        PacketType::EntityErase, PacketType::OctreeStats
     };
 
     packetReceiver.registerDirectListenerForTypes(types, this, "handleOctreePacket");
@@ -104,10 +104,6 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
             if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
                 app->_entities.processDatagram(*packet, sendingNode);
             }
-        } break;
-
-        case PacketType::EnvironmentData: {
-            app->_environment.processPacket(*packet);
         } break;
 
         default: {
