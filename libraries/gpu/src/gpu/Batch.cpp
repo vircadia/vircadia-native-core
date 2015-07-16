@@ -102,9 +102,10 @@ void Batch::drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, ui
     _params.push_back(nbInstances);
 }
 
-void Batch::clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil) {
+void Batch::clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil, bool enableScissor) {
     ADD_COMMAND(clearFramebuffer);
 
+    _params.push_back(enableScissor);
     _params.push_back(stencil);
     _params.push_back(depth);
     _params.push_back(color.w);
@@ -114,20 +115,20 @@ void Batch::clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, floa
     _params.push_back(targets);
 }
 
-void Batch::clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color) {
-    clearFramebuffer(targets & Framebuffer::BUFFER_COLORS, color, 1.0f, 0);
+void Batch::clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color, bool enableScissor) {
+    clearFramebuffer(targets & Framebuffer::BUFFER_COLORS, color, 1.0f, 0, enableScissor);
 }
 
-void Batch::clearDepthFramebuffer(float depth) {
-    clearFramebuffer(Framebuffer::BUFFER_DEPTH, Vec4(0.0f), depth, 0);
+void Batch::clearDepthFramebuffer(float depth, bool enableScissor) {
+    clearFramebuffer(Framebuffer::BUFFER_DEPTH, Vec4(0.0f), depth, 0, enableScissor);
 }
 
-void Batch::clearStencilFramebuffer(int stencil) {
-    clearFramebuffer(Framebuffer::BUFFER_STENCIL, Vec4(0.0f), 1.0f, stencil);
+void Batch::clearStencilFramebuffer(int stencil, bool enableScissor) {
+    clearFramebuffer(Framebuffer::BUFFER_STENCIL, Vec4(0.0f), 1.0f, stencil, enableScissor);
 }
 
-void Batch::clearDepthStencilFramebuffer(float depth, int stencil) {
-    clearFramebuffer(Framebuffer::BUFFER_DEPTHSTENCIL, Vec4(0.0f), depth, stencil);
+void Batch::clearDepthStencilFramebuffer(float depth, int stencil, bool enableScissor) {
+    clearFramebuffer(Framebuffer::BUFFER_DEPTHSTENCIL, Vec4(0.0f), depth, stencil, enableScissor);
 }
 
 

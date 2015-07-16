@@ -62,11 +62,12 @@ public:
 
     // Clear framebuffer layers
     // Targets can be any of the render buffers contained in the Framebuffer
-    void clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil);
-    void clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color); // not a command, just a shortcut for clearFramebuffer, mask out targets to make sure it touches only color targets
-    void clearDepthFramebuffer(float depth); // not a command, just a shortcut for clearFramebuffer, it touches only depth target
-    void clearStencilFramebuffer(int stencil); // not a command, just a shortcut for clearFramebuffer, it touches only stencil target
-    void clearDepthStencilFramebuffer(float depth, int stencil); // not a command, just a shortcut for clearFramebuffer, it touches depth and stencil target
+    // Optionally the scissor test can be enabled locally for this command and to restrict the clearing command to the pixels contained in the scissor rectangle
+    void clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil, bool enableScissor = false);
+    void clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, mask out targets to make sure it touches only color targets
+    void clearDepthFramebuffer(float depth, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches only depth target
+    void clearStencilFramebuffer(int stencil, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches only stencil target
+    void clearDepthStencilFramebuffer(float depth, int stencil, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches depth and stencil target
     
     // Input Stage
     // InputFormat
@@ -90,12 +91,17 @@ public:
     void setModelTransform(const Transform& model);
     void setViewTransform(const Transform& view);
     void setProjectionTransform(const Mat4& proj);
-    void setViewportTransform(const Vec4i& viewport); // Viewport is xy = low left corner in the framebuffer, zw = width height of the viewport
+    // Viewport is xy = low left corner in framebuffer, zw = width height of the viewport, expressed in pixels
+    void setViewportTransform(const Vec4i& viewport);
 
     // Pipeline Stage
     void setPipeline(const PipelinePointer& pipeline);
 
     void setStateBlendFactor(const Vec4& factor);
+
+    // Set the Scissor rect
+    // the rect coordinates are xy for the low left corner of the rect and zw for the width and height of the rect, expressed in pixels
+    void setStateScissorRect(const Vec4i& rect);
 
     void setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size);
     void setUniformBuffer(uint32 slot, const BufferView& view); // not a command, just a shortcut from a BufferView
@@ -173,6 +179,7 @@ public:
 
         COMMAND_setPipeline,
         COMMAND_setStateBlendFactor,
+        COMMAND_setStateScissorRect,
 
         COMMAND_setUniformBuffer,
         COMMAND_setResourceTexture,
