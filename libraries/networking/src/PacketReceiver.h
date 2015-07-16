@@ -22,6 +22,7 @@
 #include "NLPacket.h"
 #include "udt/PacketHeaders.h"
 
+class OctreePacketProcessor;
 class PacketListener;
 
 class PacketReceiver : public QObject {
@@ -39,8 +40,8 @@ public:
     
     void resetCounters() { _inPacketCount = 0; _inByteCount = 0; }
 
-    void registerListenerForTypes(const QSet<PacketType::Value>& types, PacketListener* listener, const char* slot);
-    void registerListener(PacketType::Value type, PacketListener* listener, const char* slot);
+    bool registerListenerForTypes(const QSet<PacketType::Value>& types, PacketListener* listener, const char* slot);
+    bool registerListener(PacketType::Value type, PacketListener* listener, const char* slot);
     void unregisterListener(PacketListener* listener);
 
 public slots:
@@ -52,6 +53,10 @@ signals:
     void packetVersionMismatch(PacketType::Value type);
     
 private:
+    // this is a brutal hack for now - ideally GenericThread / ReceivedPacketProcessor
+    // should be changed to have a true event loop and be able to handle our QMetaMethod::invoke
+    void registerDirectListenerForTypes(const QSet<PacketType::Value>& types, PacketListener* listener, const char* slot);
+    
     bool packetVersionMatch(const NLPacket& packet);
 
     QMetaMethod matchingMethodForListener(PacketType::Value type, QObject* object, const char* slot) const;
@@ -64,6 +69,10 @@ private:
     int _inPacketCount = 0;
     int _inByteCount = 0;
     bool _shouldDropPackets = false;
+    QMutex _directConnectSetMutex;
+    QSet<QObject*> _directlyConnectedObjects;
+    
+    friend class OctreePacketProcessor;
 };
 
 #endif // hifi_PacketReceiver_h

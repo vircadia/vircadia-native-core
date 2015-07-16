@@ -110,7 +110,7 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, std::uniqu
             // add packet to history
             _sentPacketHistories[nodeUUID].packetSent(sequence, *packet);
 
-            queuePacketForSending(node, std::move(packet));
+            queuePacketForSending(node, NLPacket::createCopy(*packet));
         }
     });
 }
@@ -251,7 +251,7 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType::Value type, QByt
                 std::unique_ptr<NLPacket>& bufferedPacket = _pendingEditPackets[nodeUUID];
 
                 if (!bufferedPacket) {
-                    bufferedPacket = NLPacket::create(type);
+                    bufferedPacket = std::move(NLPacket::create(type));
                 } else {
                     // If we're switching type, then we send the last one and start over
                     if ((type != bufferedPacket->getType() && bufferedPacket->getPayloadSize() > 0) ||
@@ -291,15 +291,18 @@ void OctreeEditPacketSender::releaseQueuedMessages() {
         _releaseQueuedMessagesPending = true;
     } else {
         _packetsQueueLock.lock();
-        for (auto i = _pendingEditPackets.begin(); i != _pendingEditPackets.end(); i++) {
-            // construct a null unique_ptr to an NL packet
-            std::unique_ptr<NLPacket> releasedPacket;
-
-            // swap the null ptr with the packet we want to release
-            i->second.swap(releasedPacket);
-
-            // move and release the queued packet
-            releaseQueuedPacket(i->first, std::move(releasedPacket));
+        for (auto& i : _pendingEditPackets) {
+            if (i.second) {
+                // construct a null unique_ptr to an NL packet
+                std::unique_ptr<NLPacket> releasedPacket;
+                
+                // swap the null ptr with the packet we want to release
+                i.second.swap(releasedPacket);
+                
+                // move and release the queued packet
+                releaseQueuedPacket(i.first, std::move(releasedPacket));
+            }
+            
         }
         _packetsQueueLock.unlock();
     }
