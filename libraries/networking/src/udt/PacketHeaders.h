@@ -94,14 +94,8 @@ extern const QSet<PacketType::Value> NON_SOURCED_PACKETS;
 const int NUM_BYTES_MD5_HASH = 16;
 
 QString nameForPacketType(PacketType::Value packetType);
+PacketVersion versionForPacketType(PacketType::Value packetType);
 
-const QUuid nullUUID = QUuid();
-
-int numHashBytesForType(PacketType::Value packetType);
-int numSequenceNumberBytesForType(PacketType::Value packetType);
-
-int numBytesForPacketHeader(const QByteArray& packet);
-int numBytesForPacketHeader(const char* packet);
 int numBytesForArithmeticCodedPacketType(PacketType::Value packetType);
 int numBytesForPacketHeaderGivenPacketType(PacketType::Value packetType);
 int packArithmeticallyCodedValue(int value, char* destination);
