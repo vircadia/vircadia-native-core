@@ -107,7 +107,6 @@ MyAvatar::MyAvatar() :
     _hmdSensorOrientation(),
     _hmdSensorPosition(),
     _bodySensorMatrix(),
-    _inverseBodySensorMatrix(),
     _sensorToWorldMatrix(),
     _standingHMDSensorMode(false)
 {
@@ -251,13 +250,31 @@ void MyAvatar::simulate(float deltaTime) {
     maybeUpdateBillboard();
 }
 
-void MyAvatar::setHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
-     _hmdSensorMatrix = hmdSensorMatrix;
-     _hmdSensorPosition = extractTranslation(hmdSensorMatrix);
-     _hmdSensorOrientation = glm::quat_cast(hmdSensorMatrix);
+// best called at end of main loop, just before rendering.
+// update sensor to world matrix from current body position and hmd sensor.
+// This is so the correct camera can be used for rendering.
+void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
 
-     _bodySensorMatrix = deriveBodyFromHMDSensor();
-     _inverseBodySensorMatrix = glm::inverse(_bodySensorMatrix);
+    // update the sensorMatrices based on the new hmd pose
+    _hmdSensorMatrix = hmdSensorMatrix;
+    _hmdSensorPosition = extractTranslation(hmdSensorMatrix);
+    _hmdSensorOrientation = glm::quat_cast(hmdSensorMatrix);
+    _bodySensorMatrix = deriveBodyFromHMDSensor();
+
+    // set the body position/orientation to reflect motion due to the head.
+    auto worldMat = _sensorToWorldMatrix * _bodySensorMatrix;
+    setPosition(extractTranslation(worldMat));
+    setOrientation(glm::quat_cast(worldMat));
+}
+
+// best called at end of main loop, just before rendering.
+// update sensor to world matrix from current body position and hmd sensor.
+// This is so the correct camera can be used for rendering.
+void MyAvatar::updateSensorToWorldMatrix() {
+    // update the sensor mat so that the body position will end up in the desired
+    // position when driven from the head.
+    glm::mat4 desiredMat = createMatFromQuatAndPos(getOrientation(), getPosition());
+    _sensorToWorldMatrix = desiredMat * glm::inverse(_BodySensorMatrix);
 }
 
 //  Update avatar head rotation with sensor data
@@ -1330,18 +1347,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
     getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
 
     glm::quat twist = glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta, 0.0f) * deltaTime));
-
-    // AJT: FIXME move this into a method. also, why doesn't plain ole getOrientation, setOrientation work here?
-    // update sensor mat, so that rotation will take effect when room tracking.
-    glm::vec3 bodyPosition = getWorldBodyPosition();
-    glm::quat bodyOrientation = getWorldBodyOrientation();
-    glm::mat4 bodyMat = createMatFromQuatAndPos(bodyOrientation, bodyPosition);
-    glm::mat4 sensorOffset = bodyMat * glm::mat4_cast(twist) * glm::inverse(bodyMat);
-    _sensorToWorldMatrix = sensorOffset * _sensorToWorldMatrix;
-
-    if (!(qApp->isHMDMode() && getStandingHMDSensorMode())) {
-        setOrientation(twist * getOrientation());
-    }
+    setOrientation(twist * getOrientation());
 
     // decay body rotation momentum
     const float BODY_SPIN_FRICTION = 7.5f;
@@ -1353,9 +1359,11 @@ void MyAvatar::updateOrientation(float deltaTime) {
     if (fabs(_bodyYawDelta) < MINIMUM_ROTATION_RATE) { _bodyYawDelta = 0.0f; }
 
     if (qApp->isHMDMode()) {
-        // these angles will be in radians
         glm::quat orientation = glm::quat_cast(getSensorToWorldMatrix()) * getHMDSensorOrientation();
+        glm::quat bodyOrientation = getWorldBodyOrientation();
         glm::quat localOrientation = glm::inverse(bodyOrientation) * orientation;
+
+        // these angles will be in radians
         // ... so they need to be converted to degrees before we do math...
         glm::vec3 euler = glm::eulerAngles(localOrientation) * DEGREES_PER_RADIAN;
 
@@ -1369,9 +1377,6 @@ void MyAvatar::updateOrientation(float deltaTime) {
         head->setBaseYaw(YAW(euler));
         head->setBasePitch(PITCH(euler));
         head->setBaseRoll(ROLL(euler));
-
-        // AJT: FIXME, I might be able to do just a setOrientation here right?
-        Avatar::setOrientation(getWorldBodyOrientation());
     }
 }
 
@@ -1524,16 +1529,11 @@ void MyAvatar::updatePosition(float deltaTime) {
         // update position ourselves
         applyPositionDelta(deltaTime * _targetVelocity);
         measureMotionDerivatives(deltaTime);
-        setPosition(getPosition()); // seems redundant, but we should do this to update the sensorMat.
     } // else physics will move avatar later
 
     // update _moving flag based on speed
     const float MOVING_SPEED_THRESHOLD = 0.01f;
     _moving = speed > MOVING_SPEED_THRESHOLD;
-
-    if (qApp->isHMDMode() && getStandingHMDSensorMode()) {
-        Avatar::setPosition(getWorldBodyPosition());
-    }
 }
 
 void MyAvatar::updateCollisionSound(const glm::vec3 &penetration, float deltaTime, float frequency) {
@@ -1730,32 +1730,12 @@ void MyAvatar::relayDriveKeysToCharacterController() {
     }
 }
 
-void MyAvatar::setPosition(const glm::vec3 position, bool overideReferential) {
-
-    // update the sensor mat so that the body position will end up in the desired
-    // position when driven from the head.
-    glm::mat4 desiredMat = createMatFromQuatAndPos(getOrientation(), position);
-    _sensorToWorldMatrix = desiredMat * _inverseBodySensorMatrix;
-
-    Avatar::setPosition(position);
-}
-
-void MyAvatar::setOrientation(const glm::quat& orientation, bool overideReferential) {
-
-    // update the sensor mat so that the body position will end up in the desired
-    // position when driven from the head.
-    glm::mat4 desiredMat = createMatFromQuatAndPos(orientation, getPosition());
-    _sensorToWorldMatrix = desiredMat * _inverseBodySensorMatrix;
-
-    Avatar::setOrientation(orientation);
-}
-
 glm::vec3 MyAvatar::getWorldBodyPosition() const {
     return transformPoint(_sensorToWorldMatrix, extractTranslation(_bodySensorMatrix));
 }
 
 glm::quat MyAvatar::getWorldBodyOrientation() const {
-    return glm::quat_cast(_sensorToWorldMatrix *_bodySensorMatrix);
+    return glm::quat_cast(_sensorToWorldMatrix * _bodySensorMatrix);
 }
 
 // derive avatar body position and orientation from the current HMD Sensor location.
