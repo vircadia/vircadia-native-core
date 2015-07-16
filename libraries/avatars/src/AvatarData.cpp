@@ -166,10 +166,10 @@ QByteArray AvatarData::toByteArray() {
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getFinalYaw());
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->getFinalRoll());
 
-    // Body lean
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_leanForward);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_leanSideways);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_torsoTwist);
+    // // Body lean
+    // destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_leanForward);
+    // destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_leanSideways);
+    // destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_torsoTwist);
 
     // Lookat Position
     memcpy(destinationBuffer, &_headData->_lookAtPosition, sizeof(_headData->_lookAtPosition));
