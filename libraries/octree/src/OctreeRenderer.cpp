@@ -67,7 +67,7 @@ void OctreeRenderer::processDatagram(NLPacket& packet, SharedNodePointer sourceN
         PerformanceWarning warn(showTimingDetails, "OctreeRenderer::processDatagram expected PacketType", showTimingDetails);
         // if we are getting inbound packets, then our tree is also viewing, and we should remember that fact.
         _tree->setIsViewing(true);
-
+        
         OCTREE_PACKET_FLAGS flags;
         packet.readPrimitive(&flags);
         

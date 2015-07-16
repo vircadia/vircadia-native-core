@@ -89,6 +89,9 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
     }
 
     app->trackIncomingOctreePacket(*packet, sendingNode, wasStatsPacket);
+    
+    // seek back to beginning of packet after tracking
+    packet->seek(0);
 
     switch(packetType) {
         case PacketType::EntityErase: {
