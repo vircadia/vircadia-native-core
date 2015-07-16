@@ -1,10 +1,10 @@
-//  stick.js
+//  sword.js
 //  examples
 //
 //  Created by Seth Alves on 2015-6-10
 //  Copyright 2015 High Fidelity, Inc.
 //
-//  Allow avatar to hold a stick
+//  Allow avatar to hold a sword
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -21,7 +21,7 @@ var hand = "right";
 var nullActionID = "00000000-0000-0000-0000-000000000000";
 var controllerID;
 var controllerActive;
-var stickID = null;
+var swordID = null;
 var actionID = nullActionID;
 var dimensions = {
     x: 0.3,
@@ -30,33 +30,9 @@ var dimensions = {
 };
 var BUTTON_SIZE = 32;
 
-var Y_AXIS = {
-    x: 0,
-    y: 1,
-    z: 0
-};
-var X_AXIS = {
-    x: 1,
-    y: 0,
-    z: 0
-};
-
-var theta = 0.0;
-
-var RAD_TO_DEG = 180.0 / Math.PI;
-
-function orientationOf(vector) {
-    var direction, yaw, pitch;
-    direction = Vec3.normalize(vector);
-    yaw = Quat.angleAxis(Math.atan2(direction.x, direction.z) * RAD_TO_DEG, Y_AXIS);
-    pitch = Quat.angleAxis(Math.asin(-direction.y) * RAD_TO_DEG, X_AXIS);
-    return Quat.multiply(yaw, pitch);
-}
-
-
-var stickModel = "https://hifi-public.s3.amazonaws.com/eric/models/stick.fbx";
 var swordModel = "https://hifi-public.s3.amazonaws.com/ozan/props/sword/sword.fbx";
-var swordCollisionShape = "https://hifi-public.s3.amazonaws.com/ozan/props/sword/sword.obj";
+// var swordCollisionShape = "https://hifi-public.s3.amazonaws.com/ozan/props/sword/sword.obj";
+var swordCollisionShape = "https://hifi-public.s3.amazonaws.com/eric/models/noHandleSwordCollisionShape.obj?=v1";
 var swordCollisionSoundURL = "http://public.highfidelity.io/sounds/Collisions-hitsandslaps/swordStrike1.wav";
 var avatarCollisionSoundURL = "https://s3.amazonaws.com/hifi-public/sounds/Collisions-hitsandslaps/airhockey_hit1.wav";
 var whichModel = "sword";
@@ -121,6 +97,7 @@ function clearFlash() {
 }
 
 function flash(color) {
+    return;
     clearFlash();
     flasher = {};
     flasher.overlay = Overlays.addOverlay("text", {
@@ -224,7 +201,7 @@ function gotHit(collision) {
 
 
 function isFighting() {
-    return stickID && (actionID !== nullActionID);
+    return swordID && (actionID !== nullActionID);
 }
 
 
@@ -239,11 +216,11 @@ function isControllerActive() {
 
 
 function removeSword() {
-    if (stickID) {
-        print('deleting action ' + actionID + ' and entity ' + stickID);
-        Entities.deleteAction(stickID, actionID);
-        Entities.deleteEntity(stickID);
-        stickID = null;
+    if (swordID) {
+        print('deleting action ' + actionID + ' and entity ' + swordID);
+        Entities.deleteAction(swordID, actionID);
+        Entities.deleteEntity(swordID);
+        swordID = null;
         actionID = nullActionID;
         Controller.mouseMoveEvent.disconnect(mouseMoveEvent);
         MyAvatar.collisionWithEntity.disconnect(gotHit);
@@ -269,7 +246,7 @@ function makeSword() {
     var swordPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(5, Quat.getFront(MyAvatar.orientation)));
     var orientationAdjustment = Quat.fromPitchYawRollDegrees(90, 0, 0);
 
-    stickID = Entities.addEntity({
+    swordID = Entities.addEntity({
         type: "Model",
         name: "sword",
         modelURL: swordModel,
@@ -281,7 +258,6 @@ function makeSword() {
         collisionSoundURL: swordCollisionSoundURL,
         restitution: 0.01,
         collisionsWillMove: true,
-        collideWithMyAvatar: true
     });
 
     if (originalAvatarCollisionSound === undefined) {
@@ -308,13 +284,13 @@ function grabSword(hand) {
     } else if (hand === "left") {
         handRotation = MyAvatar.getLeftPalmRotation();
     }
-    var swordRotation = Entities.getEntityProperties(stickID).rotation;
+    var swordRotation = Entities.getEntityProperties(swordID).rotation;
     var offsetRotation = Quat.multiply(Quat.inverse(handRotation), swordRotation);
-    actionID = Entities.addAction("hold", stickID, {
+    actionID = Entities.addAction("hold", swordID, {
         relativePosition: {
             x: 0.0,
             y: 0.0,
-            z: -dimensions.z * 0.7
+            z: -dimensions.z * 0.5
         },
         relativeRotation:offsetRotation,
         hand: hand,
@@ -329,9 +305,9 @@ function grabSword(hand) {
 }
 
 function releaseSword() {
-    Entities.deleteAction(stickID, actionID);
+    Entities.deleteAction(swordID, actionID);
     actionID = nullActionID;
-    Entities.editEntity(stickID, {
+    Entities.editEntity(swordID, {
         velocity: {
             x: 0,
             y: 0,
@@ -380,25 +356,25 @@ randInt = function(low, high) {
     return Math.floor(randFloat(low, high));
 }
 
-function positionStick(stickOrientation) {
+function positionSword(swordOrientation) {
     var reorient = Quat.fromPitchYawRollDegrees(0, -90, 0);
     var baseOffset = {x: -dimensions.z * 0.8, y: 0, z: 0};
     var offset = Vec3.multiplyQbyV(reorient, baseOffset);
-    stickOrientation = Quat.multiply(reorient, stickOrientation);
+    swordOrientation = Quat.multiply(reorient, swordOrientation);
     inHand = false;
-    Entities.updateAction(stickID, actionID, {
+    Entities.updateAction(swordID, actionID, {
         relativePosition: offset,
-        relativeRotation: stickOrientation,
+        relativeRotation: swordOrientation,
         hand: "right"
     });
 }
 function resetToHand() { // For use with controllers, puts the sword in contact with the hand.
-    // Maybe coordinate with positionStick?
+    // Maybe coordinate with positionSword?
     if (inHand) { // Optimization: bail if we're already inHand.
         return;
     }
     print('Reset to hand');
-    Entities.updateAction(stickID, actionID, {
+    Entities.updateAction(swordID, actionID, {
         relativePosition: {x: 0.0, y: 0.0, z: -dimensions.z * 0.5},
         relativeRotation: Quat.fromVec3Degrees({x: 45.0, y: 0.0, z: 0.0}),
         hand: "right",   // It should not be necessary to repeat these two, but there seems to be a bug in that that
@@ -408,12 +384,12 @@ function resetToHand() { // For use with controllers, puts the sword in contact 
 }
 
 function mouseMoveEvent(event) {
-    // When a controller like the hydra gives a mouse event, the x/y is not meaningful to us, but we can detect with a truty deviceID
-    // if (event.deviceID || !isFighting() || isControllerActive()) {
-    //     print('Attempting attachment reset');
-    //     resetToHand();
-    //     return;
-    // }
+    //When a controller like the hydra gives a mouse event, the x/y is not meaningful to us, but we can detect with a truty deviceID
+    if (event.deviceID || !isFighting() || isControllerActive()) {
+        print('Attempting attachment reset');
+        resetToHand();
+        return;
+    }
     var windowCenterX = Window.innerWidth / 2;
     var windowCenterY = Window.innerHeight / 2;
     var mouseXCenterOffset = event.x - windowCenterX;
@@ -421,15 +397,15 @@ function mouseMoveEvent(event) {
     var mouseXRatio = mouseXCenterOffset / windowCenterX;
     var mouseYRatio = mouseYCenterOffset / windowCenterY;
 
-    var stickOrientation = Quat.fromPitchYawRollDegrees(mouseYRatio * 90, mouseXRatio * 90, 0);
-    positionStick(stickOrientation);
+    var swordOrientation = Quat.fromPitchYawRollDegrees(mouseYRatio * 90, mouseXRatio * 90, 0);
+    positionSword(swordOrientation);
 }
 
 
 function onClick(event) {
     switch (Overlays.getOverlayAtPoint(event)) {
         case swordButton:
-            if (!stickID) {
+            if (!swordID) {
                 makeSword();
             } else {
                 removeSword();
