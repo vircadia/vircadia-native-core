@@ -31,7 +31,7 @@ void PacketList::endSegment() {
 
 std::unique_ptr<Packet> PacketList::createPacket() {
     // use the static create method to create a new packet
-    return std::move(Packet::create(getType()));
+    return Packet::create(getType());
 }
 
 std::unique_ptr<Packet> PacketList::createPacketWithExtendedHeader() {
@@ -46,7 +46,7 @@ std::unique_ptr<Packet> PacketList::createPacketWithExtendedHeader() {
         }
     }
     
-    return std::move(packet);
+    return packet;
 }
 
 qint64 PacketList::writeData(const char* data, qint64 maxSize) {

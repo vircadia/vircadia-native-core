@@ -80,7 +80,7 @@ template<typename T> std::unique_ptr<T> PacketList::takeFront() {
     
     auto packet = std::move(_packets.front());
     _packets.pop_front();
-    return std::move(std::unique_ptr<T>(dynamic_cast<T*>(packet.release())));
+    return std::unique_ptr<T>(dynamic_cast<T*>(packet.release()));
 }
 
 #endif // hifi_PacketList_h

@@ -1797,7 +1797,7 @@ void Application::sendPingPackets() {
                 return false;
         }
     }, [nodeList](const SharedNodePointer& node) {
-        nodeList->sendPacket(std::move(nodeList->constructPingPacket()), *node);
+        nodeList->sendPacket(nodeList->constructPingPacket(), *node);
     });
 }
 

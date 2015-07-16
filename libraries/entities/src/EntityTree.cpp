@@ -826,7 +826,7 @@ std::unique_ptr<NLPacket> EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_S
     deletesPacket->seek(numberOfIDsPos);
     deletesPacket->writePrimitive(numberOfIDs);
 
-    return std::move(deletesPacket);
+    return deletesPacket;
 }
 
 

@@ -17,6 +17,6 @@ NLPacketList::NLPacketList(PacketType::Value packetType) : PacketList(packetType
 }
 
 std::unique_ptr<Packet> NLPacketList::createPacket() {
-    return std::move(NLPacket::create(getType()));
+    return NLPacket::create(getType());
 }
 
