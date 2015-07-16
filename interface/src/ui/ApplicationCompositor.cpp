@@ -197,7 +197,6 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     updateTooltips();
 
     auto deviceSize = qApp->getDeviceSize();
-    glViewport(0, 0, deviceSize.width(), deviceSize.height());
 
     //Handle fading and deactivation/activation of UI
     gpu::Batch batch;

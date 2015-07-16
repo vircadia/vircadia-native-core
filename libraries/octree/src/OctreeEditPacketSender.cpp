@@ -121,8 +121,7 @@ void OctreeEditPacketSender::processPreServerExistsPackets() {
     // First send out all the single message packets...
     _pendingPacketsLock.lock();
     while (!_preServerSingleMessagePackets.empty()) {
-        std::unique_ptr<NLPacket> packet = std::move(_preServerSingleMessagePackets.front());
-        queuePacketToNodes(std::move(packet));
+        queuePacketToNodes(std::move(_preServerSingleMessagePackets.front()));
         _preServerSingleMessagePackets.pop_front();
     }
 
@@ -251,7 +250,7 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType::Value type, QByt
                 std::unique_ptr<NLPacket>& bufferedPacket = _pendingEditPackets[nodeUUID];
 
                 if (!bufferedPacket) {
-                    bufferedPacket = std::move(NLPacket::create(type));
+                    bufferedPacket = initializePacket(type, node->getClockSkewUsec());
                 } else {
                     // If we're switching type, then we send the last one and start over
                     if ((type != bufferedPacket->getType() && bufferedPacket->getPayloadSize() > 0) ||

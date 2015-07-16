@@ -71,7 +71,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
     PacketType::Value packetType = packet->getType();
 
     // check version of piggyback packet against expected version
-    if (packetType != versionForPacketType(packet->getType())) {
+    if (packet->getVersion() != versionForPacketType(packet->getType())) {
         static QMultiMap<QUuid, PacketType::Value> versionDebugSuppressMap;
 
         const QUuid& senderUUID = packet->getSourceID();
@@ -89,6 +89,9 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
     }
 
     app->trackIncomingOctreePacket(*packet, sendingNode, wasStatsPacket);
+    
+    // seek back to beginning of packet after tracking
+    packet->seek(0);
 
     switch(packetType) {
         case PacketType::EntityErase: {

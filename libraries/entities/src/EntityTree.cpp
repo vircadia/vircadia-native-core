@@ -598,7 +598,8 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
             EntityItemID entityItemID;
             EntityItemProperties properties;
             startDecode = usecTimestampNow();
-            bool validEditPacket = EntityItemProperties::decodeEntityEditPacket(packet, processedBytes,
+           
+            bool validEditPacket = EntityItemProperties::decodeEntityEditPacket(editData, maxLength, processedBytes,
                                                                                 entityItemID, properties);
             endDecode = usecTimestampNow();
 
@@ -825,7 +826,7 @@ std::unique_ptr<NLPacket> EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_S
     deletesPacket->seek(numberOfIDsPos);
     deletesPacket->writePrimitive(numberOfIDs);
 
-    return std::move(deletesPacket);
+    return deletesPacket;
 }
 
 

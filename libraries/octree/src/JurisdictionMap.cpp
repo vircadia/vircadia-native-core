@@ -260,7 +260,7 @@ std::unique_ptr<NLPacket> JurisdictionMap::packEmptyJurisdictionIntoMessage(Node
     // No root or end node details to pack!
     packet->writePrimitive(bytes);
 
-    return std::move(packet); // includes header!
+    return packet; // includes header!
 }
 
 std::unique_ptr<NLPacket> JurisdictionMap::packIntoPacket() {
@@ -295,7 +295,7 @@ std::unique_ptr<NLPacket> JurisdictionMap::packIntoPacket() {
         packet->writePrimitive(bytes);
     }
 
-    return std::move(packet);
+    return packet;
 }
 
 int JurisdictionMap::unpackFromPacket(NLPacket& packet) {

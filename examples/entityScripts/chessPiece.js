@@ -130,10 +130,10 @@
         var others = Entities.findEntities(this.properties.position, this.properties.dimensions.y);
         
         for (var i = 0; i < others.length; i++) {
-            var piece = others[i];
+            var pieceID = others[i];
   
-            if (piece.id != this.entityID) {
-                var properties = Entities.getEntityProperties(piece);
+            if (pieceID != this.entityID) {
+                var properties = Entities.getEntityProperties(pieceID);
          
                 var isWhite = properties.modelURL.search("White") !== -1;
                 var type = (properties.modelURL.search("King") !== -1) ?  4 :
@@ -147,7 +147,7 @@
                 if (myPos.i === piecePos.i && myPos.j === piecePos.j && type !== -2) {
                     var position = this.getAbsolutePosition((isWhite) ? { i: type, j: -1 } : { i: 7 - type, j: 8 },
                     properties.dimensions.y / 2.0);
-                    Entities.editEntity(piece, {
+                    Entities.editEntity(pieceID, {
                         position: position
                     });
                     break;

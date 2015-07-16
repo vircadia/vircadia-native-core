@@ -290,7 +290,7 @@ qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& des
     packetList.closeCurrentPacket();
     
     while (!packetList._packets.empty()) {
-        bytesSent += sendPacket(std::move(packetList.takeFront<NLPacket>()), destinationNode);
+        bytesSent += sendPacket(packetList.takeFront<NLPacket>(), destinationNode);
     }
     
     return bytesSent;
@@ -304,7 +304,7 @@ qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const HifiSockA
     packetList.closeCurrentPacket();
     
     while (!packetList._packets.empty()) {
-        bytesSent += sendPacket(std::move(packetList.takeFront<NLPacket>()), sockAddr, connectionSecret);
+        bytesSent += sendPacket(packetList.takeFront<NLPacket>(), sockAddr, connectionSecret);
     }
     
     return bytesSent;
