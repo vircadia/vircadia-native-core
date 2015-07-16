@@ -80,6 +80,7 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     // Execute the batch into our framebuffer
 
     gpu::Batch batch;
+    renderArgs->_batch = &batch;
 
     // 1) bind the framebuffer
     //_overlayFramebuffer->bind();
@@ -113,13 +114,17 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
 
     //_overlayFramebuffer->release(); // now we're done for later composition
     batch.setFramebuffer(nullptr);
+
+    renderArgs->_context->syncCache();
+    renderArgs->_context->render(batch);
+
     CHECK_GL_ERROR();
 }
 
 void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
     PROFILE_RANGE(__FUNCTION__);
     if (_uiTexture) {
-        gpu::Batch batch;
+        gpu::Batch& batch = *renderArgs->_batch;
         auto geometryCache = DependencyManager::get<GeometryCache>();
 
         geometryCache->useSimpleDrawPipeline(batch);
@@ -130,15 +135,15 @@ void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
 
         geometryCache->renderUnitQuad(batch, glm::vec4(1));
         
-        renderArgs->_context->syncCache();
-        renderArgs->_context->render(batch);
+        //renderArgs->_context->syncCache();
+        //renderArgs->_context->render(batch);
     }
 }
 
 void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     PROFILE_RANGE(__FUNCTION__);
 
-    gpu::Batch batch;
+    gpu::Batch& batch = *renderArgs->_batch;
     auto geometryCache = DependencyManager::get<GeometryCache>();
     geometryCache->useSimpleDrawPipeline(batch);
     auto textureCache = DependencyManager::get<TextureCache>();
@@ -163,8 +168,8 @@ void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
         DependencyManager::get<AudioScope>()->render(renderArgs, width, height);
     }
     
-    renderArgs->_context->syncCache();
-    renderArgs->_context->render(batch);
+    //renderArgs->_context->syncCache();
+    //renderArgs->_context->render(batch);
 }
 
 void ApplicationOverlay::renderRearViewToFbo(RenderArgs* renderArgs) {
@@ -208,7 +213,7 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder(RenderArgs* renderAr
     });
     auto nodeList = DependencyManager::get<NodeList>();
     if (nodeList && !nodeList->getDomainHandler().isConnected()) {
-        gpu::Batch batch;
+        gpu::Batch& batch = *renderArgs->_batch;
         auto geometryCache = DependencyManager::get<GeometryCache>();
         geometryCache->useSimpleDrawPipeline(batch);
         batch.setProjectionTransform(mat4());
@@ -223,8 +228,8 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder(RenderArgs* renderAr
         //batch.setModelTransform(glm::scale(mat4(), vec3(scaleAmount)));
 
         geometryCache->renderVertices(batch, gpu::LINE_STRIP, _domainStatusBorder);
-        renderArgs->_context->syncCache();
-        renderArgs->_context->render(batch);
+        //renderArgs->_context->syncCache();
+        //renderArgs->_context->render(batch);
     }
 }
 

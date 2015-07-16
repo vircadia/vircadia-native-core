@@ -98,8 +98,7 @@ void Overlays::cleanupOverlaysToDelete() {
 void Overlays::renderHUD(RenderArgs* renderArgs) {
     PROFILE_RANGE(__FUNCTION__);
     QReadLocker lock(&_lock);
-    gpu::Batch batch;
-    renderArgs->_batch = &batch;
+    gpu::Batch& batch = *renderArgs->_batch;
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
     auto textureCache = DependencyManager::get<TextureCache>();
@@ -121,8 +120,8 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
         thisOverlay->render(renderArgs);
     }
 
-    renderArgs->_context->syncCache();
-    renderArgs->_context->render(batch);
+    //renderArgs->_context->syncCache();
+    //renderArgs->_context->render(batch);
 }
 
 unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& properties) {
