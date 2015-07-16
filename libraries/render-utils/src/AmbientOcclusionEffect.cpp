@@ -27,6 +27,7 @@
 #include "TextureCache.h"
 #include "DependencyManager.h"
 #include "ViewFrustum.h"
+#include "GeometryCache.h"
 
 #include "ambient_occlusion_vert.h"
 #include "ambient_occlusion_frag.h"
@@ -190,10 +191,10 @@ const gpu::PipelinePointer& AmbientOcclusion::getAOPipeline() {
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
-        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+        state->setDepthTest(false, false, gpu::LESS_EQUAL);
 
         // Blend on transparent
-        state->setBlendFunction(true,
+        state->setBlendFunction(false,
             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
             gpu::State::DEST_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ZERO);
 
@@ -225,11 +226,17 @@ void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, cons
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewMat);
     batch.setModelTransform(Transform());
+    batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getPrimaryDepthTexture());
 
     // bind the one gpu::Pipeline we need
     batch.setPipeline(getAOPipeline());
 
-    //renderFullscreenQuad();
+    glm::vec4 color(0.0f, 0.0f, 0.0f, 1.0f);
+    glm::vec2 bottomLeft(0.5f, -1.0f);
+    glm::vec2 topRight(1.0f, -0.5f);
+    glm::vec2 texCoordTopLeft(0.0f, 0.0f);
+    glm::vec2 texCoordBottomRight(1.0f, 1.0f);
+    DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color);
 
     args->_context->syncCache();
     renderContext->args->_context->syncCache();

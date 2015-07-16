@@ -59,6 +59,7 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _jobs.push_back(Job(new ResetGLState::JobModel()));
     _jobs.push_back(Job(new RenderDeferred::JobModel("RenderDeferred")));
     _jobs.push_back(Job(new ResolveDeferred::JobModel("ResolveDeferred")));
+    _jobs.push_back(Job(new AmbientOcclusion::JobModel("AmbientOcclusion")));
     _jobs.push_back(Job(new FetchItems::JobModel("FetchTransparent",
          FetchItems(
             ItemFilter::Builder::transparentShape().withoutLayered(),
@@ -77,8 +78,9 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _jobs.back().setEnabled(false);
     _drawStatusJobIndex = _jobs.size() - 1;
 
+    //_jobs.push_back(Job(new AmbientOcclusion::JobModel("AmbientOcclusion")));
     _jobs.push_back(Job(new DrawOverlay3D::JobModel("DrawOverlay3D")));
-    _jobs.push_back(Job(new AmbientOcclusion::JobModel("AmbientOcclusion")));
+
     _jobs.push_back(Job(new ResetGLState::JobModel()));
 
     // Give ourselves 3 frmaes of timer queries

@@ -2,11 +2,11 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  simple.frag
+//  ambient_occlusion.frag
 //  fragment shader
 //
-//  Created by Andrzej Kapolka on 9/15/14.
-//  Copyright 2014 High Fidelity, Inc.
+//  Created by Niraj Venkat on 7/15/15.
+//  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -17,6 +17,16 @@
 // the interpolated normal
 //varying vec4 interpolatedNormal;
 
+varying vec2 varTexcoord;
+
+uniform sampler2D depthTexture;
+
 void main(void) {
-    gl_FragColor = vec4(0.0, 1.0, 1.0, 1.0);
+	vec4 depthColor = texture2D(depthTexture, varTexcoord.xy);
+    float z = depthColor.r;                       // fetch the z-value from our depth texture
+    float n = 1.0;                                // the near plane
+    float f = 30.0;                               // the far plane
+    float c = (2.0 * n) / (f + n - z * (f - n));  // convert to linear values 
+
+    gl_FragColor = vec4(c, c, c, 1.0); 
 }
