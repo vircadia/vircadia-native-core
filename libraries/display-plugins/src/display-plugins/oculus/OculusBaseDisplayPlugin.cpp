@@ -54,7 +54,9 @@ glm::mat4 OculusBaseDisplayPlugin::getProjection(Eye eye, const glm::mat4& baseP
 }
 
 glm::mat4 OculusBaseDisplayPlugin::getModelview(Eye eye, const glm::mat4& baseModelview) const {
-    return baseModelview * toGlm(_eyePoses[eye]);
+    auto eyeOffsetMat = glm::mat4();
+    setTranslation(eyeOffsetMat, toGlm(_eyeOffsets[eye]));
+    return baseModelview * eyeOffsetMat;
 }
 
 void OculusBaseDisplayPlugin::resetSensors() {

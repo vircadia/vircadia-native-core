@@ -250,6 +250,14 @@ void MyAvatar::simulate(float deltaTime) {
     maybeUpdateBillboard();
 }
 
+glm::mat4 MyAvatar::getSensorToWorldMatrix() const {
+    if (getStandingHMDSensorMode()) {
+        return _sensorToWorldMatrix;
+    } else {
+        return createMatFromQuatAndPos(getWorldAlignedOrientation(), getDefaultEyePosition());
+    }
+}
+
 // best called at end of main loop, just before rendering.
 // update sensor to world matrix from current body position and hmd sensor.
 // This is so the correct camera can be used for rendering.
@@ -261,10 +269,12 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     _hmdSensorOrientation = glm::quat_cast(hmdSensorMatrix);
     _bodySensorMatrix = deriveBodyFromHMDSensor();
 
-    // set the body position/orientation to reflect motion due to the head.
-    auto worldMat = _sensorToWorldMatrix * _bodySensorMatrix;
-    setPosition(extractTranslation(worldMat));
-    setOrientation(glm::quat_cast(worldMat));
+    if (getStandingHMDSensorMode()) {
+        // set the body position/orientation to reflect motion due to the head.
+        auto worldMat = _sensorToWorldMatrix * _bodySensorMatrix;
+        setPosition(extractTranslation(worldMat));
+        setOrientation(glm::quat_cast(worldMat));
+    }
 }
 
 // best called at end of main loop, just before rendering.

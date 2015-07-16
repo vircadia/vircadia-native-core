@@ -48,7 +48,7 @@ public:
     const glm::mat4& getHMDSensorMatrix() const { return _hmdSensorMatrix; }
     const glm::vec3& getHMDSensorPosition() const { return _hmdSensorPosition; }
     const glm::quat& getHMDSensorOrientation() const { return _hmdSensorOrientation; }
-    glm::mat4 getSensorToWorldMatrix() const { return _sensorToWorldMatrix; }
+    glm::mat4 getSensorToWorldMatrix() const;
 
     // best called at start of main loop just after we have a fresh hmd pose.
     // update internal body position from new hmd pose.
