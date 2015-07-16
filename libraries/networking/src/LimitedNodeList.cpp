@@ -401,6 +401,7 @@ void LimitedNodeList::processKillNode(NLPacket& packet) {
 
 void LimitedNodeList::handleNodeKill(const SharedNodePointer& node) {
     qCDebug(networking) << "Killed" << *node;
+    node->stopPingTimer();
     emit nodeKilled(node);
 }
 
