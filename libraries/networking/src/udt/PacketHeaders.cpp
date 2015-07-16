@@ -129,11 +129,3 @@ QString nameForPacketType(PacketType::Value packetType) {
 int numBytesForArithmeticCodedPacketType(PacketType::Value packetType) {
     return (int) ceilf((float) packetType / 255);
 }
-
-PacketType::Value packetTypeForPacket(const QByteArray& packet) {
-    return (PacketType::Value) arithmeticCodingValueFromBuffer(packet.data());
-}
-
-PacketType::Value packetTypeForPacket(const char* packet) {
-    return (PacketType::Value) arithmeticCodingValueFromBuffer(packet);
-}
