@@ -82,6 +82,9 @@ void IceServer::processDatagrams() {
             SharedNetworkPeer matchingPeer = _activePeers.value(connectRequestID);
 
             if (matchingPeer) {
+                
+                qDebug() << "Sending information for peer" << connectRequestID << "to peer" << senderUUID;
+                
                 // we have the peer they want to connect to - send them pack the information for that peer
                 sendPeerInformationPacket(*(matchingPeer.data()), &sendingSockAddr);
 
@@ -90,6 +93,8 @@ void IceServer::processDatagrams() {
 
                 NetworkPeer dummyPeer(senderUUID, publicSocket, localSocket);
                 sendPeerInformationPacket(dummyPeer, matchingPeer->getActiveSocket());
+            } else {
+                qDebug() << "Peer" << senderUUID << "asked for" << connectRequestID << "but no matching peer found";
             }
         }
     }

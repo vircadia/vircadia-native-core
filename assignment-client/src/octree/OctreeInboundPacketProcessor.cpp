@@ -250,7 +250,7 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
 
         QUuid nodeUUID = i.key();
         SingleSenderStats nodeStats = i.value();
-
+        
         // check if this node is still alive.  Remove its stats if it's dead.
         if (!isAlive(nodeUUID)) {
             i = _singleSenderStats.erase(i);
@@ -260,7 +260,7 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
         // if there are packets from _node that are waiting to be processed,
         // don't send a NACK since the missing packets may be among those waiting packets.
         if (hasPacketsToProcessFrom(nodeUUID)) {
-            i++;
+            ++i;
             continue;
         }
 
@@ -290,6 +290,8 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
             // send the list of nack packets
             nodeList->sendPacketList(nackPacketList, *destinationNode);
         }
+        
+        ++i;
     }
 
     return packetsSent;

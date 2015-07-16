@@ -374,21 +374,11 @@ const NLPacket* OctreeQueryNode::getNextNackedPacket() {
     return nullptr;
 }
 
-void OctreeQueryNode::parseNackPacket(const QByteArray& packet) {
-
-    int numBytesPacketHeader = numBytesForPacketHeader(packet);
-    const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data()) + numBytesPacketHeader;
-
-    // TODO: This no longer has the number of sequence numbers - just read to the end of the packet in sequence number blocks
-
-    // read number of sequence numbers
-    uint16_t numSequenceNumbers = (*(uint16_t*)dataAt);
-    dataAt += sizeof(uint16_t);
-
+void OctreeQueryNode::parseNackPacket(NLPacket& packet) {
     // read sequence numbers
-    for (int i = 0; i < numSequenceNumbers; i++) {
-        OCTREE_PACKET_SEQUENCE sequenceNumber = (*(OCTREE_PACKET_SEQUENCE*)dataAt);
+    while (packet.bytesLeftToRead()) {
+        OCTREE_PACKET_SEQUENCE sequenceNumber;
+        packet.readPrimitive(&sequenceNumber);
         _nackedSequenceNumbers.enqueue(sequenceNumber);
-        dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
     }
 }
