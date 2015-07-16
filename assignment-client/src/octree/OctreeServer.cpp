@@ -831,7 +831,7 @@ void OctreeServer::handleOctreeDataNackPacket(QSharedPointer<NLPacket> packet, S
     // need to make sure we have it in our nodeList.
     OctreeQueryNode* nodeData = dynamic_cast<OctreeQueryNode*>(senderNode->getLinkedData());
     if (nodeData) {
-        nodeData->parseNackPacket(packet->getData());
+        nodeData->parseNackPacket(*packet);
     }
 }
 
