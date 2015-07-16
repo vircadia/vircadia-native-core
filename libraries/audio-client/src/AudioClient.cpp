@@ -934,12 +934,12 @@ void AudioClient::handleAudioInput() {
 
             // pack the orientation
             _audioPacket->writePrimitive(headOrientation);
-
+            
             if (_audioPacket->getType() != PacketType::SilentAudioFrame) {
                 // audio samples have already been packed (written to networkAudioSamples)
                 _audioPacket->setPayloadSize(_audioPacket->getPayloadSize() + numNetworkBytes);
             }
-
+            
             _stats.sentPacket();
 
             nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendAudioPacket);
