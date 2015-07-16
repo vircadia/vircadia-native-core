@@ -136,7 +136,10 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
     if (id != _uuid) {
         // re-set the domain info to connect to new domain
         hardReset();
-
+        
+        // refresh our ICE client UUID to something new
+        _iceClientID = QUuid::createUuid();
+        
         _iceDomainID = id;
 
         HifiSockAddr* replaceableSockAddr = &_iceServerSockAddr;
@@ -153,10 +156,6 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
         } else {
             completedIceServerHostnameLookup();
         }
-
-
-        // refresh our ICE client UUID to something new
-        _iceClientID = QUuid::createUuid();
 
         qCDebug(networking) << "ICE required to connect to domain via ice server at" << iceServerHostname;
     }
@@ -313,7 +312,8 @@ void DomainHandler::processDTLSRequirementPacket(QSharedPointer<NLPacket> dtlsRe
 }
 
 void DomainHandler::processICEResponsePacket(QSharedPointer<NLPacket> icePacket) {
-    if (!_icePeer.hasSockets()) {
+    if (_icePeer.hasSockets()) {
+        qDebug() << "Received an ICE peer packet for domain-server but we already have sockets. Not processing.";
         // bail on processing this packet if our ice peer doesn't have sockets
         return;
     }
