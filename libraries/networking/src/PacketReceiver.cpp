@@ -235,7 +235,7 @@ void PacketReceiver::processDatagrams() {
 
         // setup an NLPacket from the data we just read
         auto packet = NLPacket::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
-
+        
         _inPacketCount++;
         _inByteCount += packetSizeWithHeader;
 
@@ -271,7 +271,7 @@ void PacketReceiver::processDatagrams() {
                         _directConnectSetMutex.unlock();
                         
                         PacketType::Value packetType = packet->getType();
-
+                        
                         if (matchingNode) {
                             // if this was a sequence numbered packet we should store the last seq number for
                             // a packet of this type for this node

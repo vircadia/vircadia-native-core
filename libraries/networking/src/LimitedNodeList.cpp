@@ -788,7 +788,7 @@ void LimitedNodeList::sendPacketToIceServer(PacketType::Value packetType, const 
 
     QDataStream iceDataStream(icePacket.get());
     iceDataStream << clientID << _publicSockAddr << _localSockAddr;
-
+    
     if (packetType == PacketType::ICEServerQuery) {
         assert(!peerID.isNull());
 
