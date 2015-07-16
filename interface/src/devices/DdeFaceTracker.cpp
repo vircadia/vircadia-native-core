@@ -157,6 +157,10 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
     _reset(false),
     _leftBlinkIndex(0), // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes
     _rightBlinkIndex(1),
+    _leftEyeDownIndex(4),
+    _rightEyeDownIndex(5),
+    _leftEyeInIndex(6),
+    _rightEyeInIndex(7),
     _leftEyeOpenIndex(8),
     _rightEyeOpenIndex(9),
     _browDownLeftIndex(14),
@@ -173,6 +177,8 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
     _filteredHeadTranslation(glm::vec3(0.0f)),
     _lastBrowUp(0.0f),
     _filteredBrowUp(0.0f),
+    _eyeGazePitch(0.0f),
+    _eyeGazeYaw(0.0f),
     _lastEyeBlinks(),
     _filteredEyeBlinks(),
     _lastEyeCoefficients(),
@@ -435,6 +441,15 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         static const float SMILE_THRESHOLD = 0.5f;
         _coefficients[_mouthSmileLeftIndex] = _coefficients[_mouthSmileLeftIndex] - SMILE_THRESHOLD;
         _coefficients[_mouthSmileRightIndex] = _coefficients[_mouthSmileRightIndex] - SMILE_THRESHOLD;
+
+        // Eye pitch and yaw
+        // EyeDown coefficients work better over both +ve and -ve values than EyeUp values.
+        // EyeIn coefficients work better over both +ve and -ve values than EyeOut values.
+        // Confusingly, the sign of the EyeIn_R value is the same of EyeIn_L.
+        const float EYE_GAZE_PITCH_SCALE = -1500.0f;  // Sign, scale, and average to be similar to Faceshift values.
+        _eyeGazePitch = EYE_GAZE_PITCH_SCALE * (_coefficients[_leftEyeDownIndex] + _coefficients[_rightEyeDownIndex]);
+        const float EYE_GAZE_YAW_SCALE = 2500.0f;  // Scale and average to be similar to Faceshift values.
+        _eyeGazeYaw = EYE_GAZE_YAW_SCALE * (_coefficients[_leftEyeInIndex] + _coefficients[_rightEyeInIndex]);
 
         // Velocity filter EyeBlink values
         const float DDE_EYEBLINK_SCALE = 3.0f;

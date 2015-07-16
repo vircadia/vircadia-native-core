@@ -93,6 +93,11 @@ private:
     int _leftEyeOpenIndex;
     int _rightEyeOpenIndex;
 
+    int _leftEyeDownIndex;
+    int _rightEyeDownIndex;
+    int _leftEyeInIndex;
+    int _rightEyeInIndex;
+
     int _browDownLeftIndex;
     int _browDownRightIndex;
     int _browUpCenterIndex;
@@ -114,6 +119,9 @@ private:
 
     float _lastBrowUp;
     float _filteredBrowUp;
+
+    float _eyeGazePitch;  // Degrees
+    float _eyeGazeYaw;
 
     enum EyeState {
         EYE_UNCONTROLLED,
