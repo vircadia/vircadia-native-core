@@ -26,7 +26,6 @@
 const float EYE_EAR_GAP = 0.08f;
 
 class Avatar;
-class ProgramObject;
 
 class Head : public HeadData {
 public:

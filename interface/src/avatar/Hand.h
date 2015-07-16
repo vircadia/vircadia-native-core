@@ -30,11 +30,6 @@
 
 
 class Avatar;
-class ProgramObject;
-
-const float HAND_PADDLE_OFFSET = 0.1f;
-const float HAND_PADDLE_THICKNESS = 0.01f;
-const float HAND_PADDLE_RADIUS = 0.15f;
 
 class Hand : public HandData {
 public:
@@ -42,8 +37,6 @@ public:
     
     void simulate(float deltaTime, bool isMine);
     void render(RenderArgs* renderArgs, bool isMine);
-
-    void collideAgainstAvatar(Avatar* avatar, bool isMyHand);
 
     void resolvePenetrations();
 

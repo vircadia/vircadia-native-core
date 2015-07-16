@@ -14,6 +14,7 @@
 
 #include <SettingHandle.h>
 #include <DynamicCharacterController.h>
+#include <Rig.h>
 
 #include "Avatar.h"
 
@@ -285,6 +286,7 @@ private:
     QString _bodyModelName;
     QString _fullAvatarModelName;
 
+    Rig _rig;
     // used for rendering when in first person view or when in an HMD.
     SkeletonModel _firstPersonSkeletonModel;
     bool _prevShouldDrawHead;
