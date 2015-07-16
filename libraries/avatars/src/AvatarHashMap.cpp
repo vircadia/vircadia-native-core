@@ -68,12 +68,12 @@ void AvatarHashMap::processAvatarDataPacket(QSharedPointer<NLPacket> packet, Sha
             }
 
             // have the matching (or new) avatar parse the data from the packet
-            int bytesRead = avatar->parseDataFromBuffer(QByteArray::fromRawData(packet->getPayload(), packet->pos()));
+            int bytesRead = avatar->parseDataFromBuffer(QByteArray::fromRawData(packet->getPayload(), packet->getPayloadSize()));
             packet->seek(packet->pos() + bytesRead);
         } else {
             // create a dummy AvatarData class to throw this data on the ground
             AvatarData dummyData;
-            int bytesRead = dummyData.parseDataFromBuffer(QByteArray::fromRawData(packet->getPayload(), packet->pos()));
+            int bytesRead = dummyData.parseDataFromBuffer(QByteArray::fromRawData(packet->getPayload(), packet->getPayloadSize()));
             packet->seek(packet->pos() + bytesRead);
         }
     }
