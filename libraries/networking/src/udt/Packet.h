@@ -66,7 +66,8 @@ public:
 
     HifiSockAddr& getSenderSockAddr() { return _senderSockAddr; }
     const HifiSockAddr& getSenderSockAddr() const { return _senderSockAddr; }
-
+    
+    void writeSequenceNumber(SequenceNumber seqNum);
     SequenceNumber readSequenceNumber() const;
     bool readIsControlPacket() const;
 
@@ -98,7 +99,6 @@ protected:
 
     // Header writers
     void writePacketTypeAndVersion(PacketType::Value type);
-    void writeSequenceNumber(SequenceNumber seqNum);
 
     PacketType::Value _type;       // Packet type
     PacketVersion _version;        // Packet version
