@@ -39,7 +39,6 @@ bool ReceivedPacketProcessor::process() {
     quint64 now = usecTimestampNow();
     quint64 sinceLastWindow = now - _lastWindowAt;
 
-
     if (sinceLastWindow > USECS_PER_SECOND) {
         lock();
         float secondsSinceLastWindow = sinceLastWindow / USECS_PER_SECOND;
