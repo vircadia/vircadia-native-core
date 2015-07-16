@@ -591,38 +591,6 @@ void Octree::eraseAllOctreeElements(bool createNewRoot) {
     _isDirty = true;
 }
 
-void Octree::processRemoveOctreeElementsBitstream(const unsigned char* bitstream, int bufferSizeBytes) {
-    //unsigned short int itemNumber = (*((unsigned short int*)&bitstream[sizeof(PACKET_HEADER)]));
-
-    int numBytesPacketHeader = numBytesForPacketHeader(reinterpret_cast<const char*>(bitstream));
-    unsigned short int sequence = (*((unsigned short int*)(bitstream + numBytesPacketHeader)));
-    quint64 sentAt = (*((quint64*)(bitstream + numBytesPacketHeader + sizeof(sequence))));
-
-    int atByte = numBytesPacketHeader + sizeof(sequence) + sizeof(sentAt);
-
-    unsigned char* voxelCode = (unsigned char*)&bitstream[atByte];
-    while (atByte < bufferSizeBytes) {
-        int maxSize = bufferSizeBytes - atByte;
-        int codeLength = numberOfThreeBitSectionsInCode(voxelCode, maxSize);
-
-        if (codeLength == OVERFLOWED_OCTCODE_BUFFER) {
-            qCDebug(octree, "WARNING! Got remove voxel bitstream that would overflow buffer in numberOfThreeBitSectionsInCode(),"
-                   " bailing processing of packet!");
-            break;
-        }
-        int voxelDataSize = bytesRequiredForCodeLength(codeLength) + SIZE_OF_COLOR_DATA;
-
-        if (atByte + voxelDataSize <= bufferSizeBytes) {
-            deleteOctalCodeFromTree(voxelCode, COLLAPSE_EMPTY_TREE);
-            voxelCode += voxelDataSize;
-            atByte += voxelDataSize;
-        } else {
-            qCDebug(octree, "WARNING! Got remove voxel bitstream that would overflow buffer, bailing processing!");
-            break;
-        }
-    }
-}
-
 // Note: this is an expensive call. Don't call it unless you really need to reaverage the entire tree (from startElement)
 void Octree::reaverageOctreeElements(OctreeElement* startElement) {
     if (!startElement) {
