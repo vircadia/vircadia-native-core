@@ -78,7 +78,10 @@ namespace PacketType {
    };
 };
 
+const int NUM_BYTES_MD5_HASH = 16;
+
 const int MAX_PACKET_SIZE = 1450;
+const int MAX_PACKET_HEADER_BYTES = 4 + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
 
 typedef char PacketVersion;
 
@@ -90,8 +93,6 @@ typedef std::map<PacketType::Value, PacketSequenceNumber> PacketTypeSequenceMap;
 extern const QSet<PacketType::Value> NON_VERIFIED_PACKETS;
 extern const QSet<PacketType::Value> SEQUENCE_NUMBERED_PACKETS;
 extern const QSet<PacketType::Value> NON_SOURCED_PACKETS;
-
-const int NUM_BYTES_MD5_HASH = 16;
 
 QString nameForPacketType(PacketType::Value packetType);
 PacketVersion versionForPacketType(PacketType::Value packetType);
