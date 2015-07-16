@@ -2367,7 +2367,7 @@ void Application::updateMyAvatarLookAtPosition() {
             const float GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT = 0.1f;
             glm::vec3 origin = _myAvatar->getHead()->getEyePosition();
             float pitchSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? -1.0f : 1.0f;
-            float deflection = DependencyManager::get<Faceshift>()->getEyeDeflection();
+            float deflection = tracker->getEyeDeflection();
             if (isLookingAtSomeone) {
                 deflection *= GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT;
             }
