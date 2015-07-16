@@ -799,19 +799,24 @@ void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha
     transform.setTranslation(endPoint);
     batch.setModelTransform(transform);
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    geometryCache->renderSphere(batch, _boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, glm::vec4(0.6f, 0.6f, 0.8f, alpha));
+    geometryCache->renderSphere(batch, _boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, 
+                                glm::vec4(0.6f, 0.6f, 0.8f, alpha));
 
     // draw a yellow sphere at the capsule startpoint
     glm::vec3 startPoint;
     _boundingShape.getStartPoint(startPoint);
     startPoint = startPoint - _translation;
     glm::vec3 axis = endPoint - startPoint;
-    glTranslatef(-axis.x, -axis.y, -axis.z);
-    geometryCache->renderSphere(_boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, glm::vec4(0.8f, 0.8f, 0.6f, alpha));
+    Transform axisTransform = Transform();
+    axisTransform.setTranslation(-axis);
+    batch.setModelTransform(axisTransform);
+    geometryCache->renderSphere(batch, _boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, 
+                                glm::vec4(0.8f, 0.8f, 0.6f, alpha));
 
     // draw a green cylinder between the two points
     glm::vec3 origin(0.0f);
-    Avatar::renderJointConnectingCone(batch,  origin, axis, _boundingShape.getRadius(), _boundingShape.getRadius(), glm::vec4(0.6f, 0.8f, 0.6f, alpha));
+    Avatar::renderJointConnectingCone(batch, origin, axis, _boundingShape.getRadius(), _boundingShape.getRadius(), 
+                                      glm::vec4(0.6f, 0.8f, 0.6f, alpha));
 }
 
 bool SkeletonModel::hasSkeleton() {
