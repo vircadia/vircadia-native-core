@@ -548,7 +548,13 @@ void AddressManager::setHost(const QString& host, LookupTrigger trigger) {
 
 
 void AddressManager::setDomainInfo(const QString& hostname, quint16 port, LookupTrigger trigger) {
-    setHost(hostname, trigger);
+    
+    QString domainHostString = hostname;
+    if (port != DEFAULT_DOMAIN_SERVER_PORT) {
+        domainHostString.append(QString(":%1").arg(port));
+    }
+    
+    setHost(domainHostString, trigger);
 
     _rootPlaceID = QUuid();
 
