@@ -3820,9 +3820,11 @@ void Application::domainChanged(const QString& domainHostname) {
 }
 
 void Application::handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet) {
-    quint16 size;
-    packet->readPrimitive(&size);
-    QString reason = QString::fromUtf8(packet->read(size));
+    // Read deny reason from packet
+    quint16 reasonSize;
+    packet->readPrimitive(&reasonSize);
+    QString reason = QString::fromUtf8(packet->getPayload() + packet->pos(), reasonSize);
+    packet->seek(packet->pos() + reasonSize);
 
     // output to the log so the user knows they got a denied connection request
     // and check and signal for an access token so that we can make sure they are logged in
