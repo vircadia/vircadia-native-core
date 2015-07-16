@@ -20,6 +20,8 @@ JurisdictionListener::JurisdictionListener(NodeType_t type) :
     _nodeType(type),
     _packetSender(JurisdictionListener::DEFAULT_PACKETS_PER_SECOND)
 {
+    setObjectName("Jurisdiction Listener");
+    
     connect(DependencyManager::get<NodeList>().data(), &NodeList::nodeKilled, this, &JurisdictionListener::nodeKilled);
     
     // tell our NodeList we want to hear about nodes with our node type
@@ -34,7 +36,7 @@ void JurisdictionListener::nodeKilled(SharedNodePointer node) {
 
 bool JurisdictionListener::queueJurisdictionRequest() {
     auto packet = NLPacket::create(PacketType::JurisdictionRequest, 0);
-
+    
     auto nodeList = DependencyManager::get<NodeList>();
 
     int nodeCount = 0;
