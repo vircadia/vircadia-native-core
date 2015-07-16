@@ -128,7 +128,7 @@ void OctreeInboundPacketProcessor::processPacket(QSharedPointer<NLPacket> packet
         }
 
         if (debugProcessPacket) {
-            qDebug() << "    numBytesPacketHeader=" << packet->localHeaderSize();
+            qDebug() << "    numBytesPacketHeader=" << packet->totalHeadersSize();
             qDebug() << "    sizeof(sequence)=" << sizeof(sequence);
             qDebug() << "    sizeof(sentAt)=" << sizeof(sentAt);
         }
@@ -143,7 +143,7 @@ void OctreeInboundPacketProcessor::processPacket(QSharedPointer<NLPacket> packet
         }
         
         const unsigned char* editData = nullptr;
-
+        
         while (packet->bytesLeftToRead() > 0) {
 
             editData = reinterpret_cast<const unsigned char*>(packet->getPayload() + packet->pos());

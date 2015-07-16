@@ -598,7 +598,8 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
             EntityItemID entityItemID;
             EntityItemProperties properties;
             startDecode = usecTimestampNow();
-            bool validEditPacket = EntityItemProperties::decodeEntityEditPacket(packet, processedBytes,
+           
+            bool validEditPacket = EntityItemProperties::decodeEntityEditPacket(editData, maxLength, processedBytes,
                                                                                 entityItemID, properties);
             endDecode = usecTimestampNow();
 

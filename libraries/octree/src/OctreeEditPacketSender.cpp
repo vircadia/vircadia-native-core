@@ -251,7 +251,7 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType::Value type, QByt
                 std::unique_ptr<NLPacket>& bufferedPacket = _pendingEditPackets[nodeUUID];
 
                 if (!bufferedPacket) {
-                    bufferedPacket = std::move(NLPacket::create(type));
+                    bufferedPacket = initializePacket(type, node->getClockSkewUsec());
                 } else {
                     // If we're switching type, then we send the last one and start over
                     if ((type != bufferedPacket->getType() && bufferedPacket->getPayloadSize() > 0) ||
