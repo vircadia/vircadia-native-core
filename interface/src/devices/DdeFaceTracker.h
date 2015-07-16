@@ -31,6 +31,7 @@ class DdeFaceTracker : public FaceTracker, public Dependency {
 public:
     virtual void init();
     virtual void reset();
+    virtual void update(float deltaTime);
 
     virtual bool isActive() const;
     virtual bool isTracking() const;

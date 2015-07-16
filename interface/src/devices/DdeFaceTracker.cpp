@@ -294,6 +294,17 @@ void DdeFaceTracker::reset() {
     }
 }
 
+void DdeFaceTracker::update(float deltaTime) {
+    if (!isActive()) {
+        return;
+    }
+    FaceTracker::update(deltaTime);
+
+    glm::vec3 headEulers = glm::degrees(glm::eulerAngles(_headRotation));
+    _estimatedEyePitch = _eyePitch - headEulers.x;
+    _estimatedEyeYaw = _eyeYaw - headEulers.y;
+}
+
 bool DdeFaceTracker::isActive() const {
     return (_ddeProcess != NULL);
 }
