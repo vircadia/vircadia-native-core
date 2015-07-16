@@ -24,7 +24,7 @@ qint64 Packet::maxPayloadSize(PacketType::Value type) {
 std::unique_ptr<Packet> Packet::create(PacketType::Value type, qint64 size) {
     auto packet = std::unique_ptr<Packet>(new Packet(type, size));
     
-    packet->open(QIODevice::WriteOnly);
+    packet->open(QIODevice::ReadWrite);
    
     return packet;
 }
