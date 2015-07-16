@@ -29,10 +29,6 @@ public:
         const glm::vec4* color, EffectType effectType,
         const glm::vec2& bound);
 
-    void drawString2D(gpu::Batch& batch, float x, float y, const QString& str,
-        const glm::vec4* color, EffectType effectType,
-        const glm::vec2& bound);
-
     static Font* load(QIODevice& fontFile);
     static Font* load(const QString& family);
 
@@ -65,7 +61,6 @@ private:
 
     // gpu structures
     gpu::PipelinePointer _pipeline;
-    gpu::PipelinePointer _pipeline2D;
     gpu::TexturePointer _texture;
     gpu::Stream::FormatPointer _format;
     gpu::BufferPointer _verticesBuffer;
@@ -75,9 +70,6 @@ private:
     int _fontLoc = -1;
     int _outlineLoc = -1;
     int _colorLoc = -1;
-    int _fontLoc2D = -1;
-    int _outlineLoc2D = -1;
-    int _colorLoc2D = -1;
 
     // last string render characteristics
     QString _lastStringRendered;

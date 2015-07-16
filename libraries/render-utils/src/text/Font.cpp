@@ -7,8 +7,6 @@
 
 #include "sdf_text3D_vert.h"
 #include "sdf_text3D_frag.h"
-#include "sdf_text_vert.h"
-#include "sdf_text_frag.h"
 
 #include "../RenderUtilsLogging.h"
 #include "FontFamilies.h"
@@ -53,10 +51,10 @@ Font* Font::load(QIODevice& fontFile) {
 Font* Font::load(const QString& family) {
     if (!LOADED_FONTS.contains(family)) {
 
-        const QString SDFF_COURIER_PRIME_FILENAME = ":/CourierPrime.sdff";
-        const QString SDFF_INCONSOLATA_MEDIUM_FILENAME = ":/InconsolataMedium.sdff";
-        const QString SDFF_ROBOTO_FILENAME = ":/Roboto.sdff";
-        const QString SDFF_TIMELESS_FILENAME = ":/Timeless.sdff";
+        static const QString SDFF_COURIER_PRIME_FILENAME{ ":/CourierPrime.sdff" };
+        static const QString SDFF_INCONSOLATA_MEDIUM_FILENAME{ ":/InconsolataMedium.sdff" };
+        static const QString SDFF_ROBOTO_FILENAME{ ":/Roboto.sdff" };
+        static const QString SDFF_TIMELESS_FILENAME{ ":/Timeless.sdff" };
 
         QString loadFilename;
 
@@ -234,27 +232,6 @@ void Font::setupGPU() {
             _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
         }
 
-        {
-            auto vertexShader = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(sdf_text_vert)));
-            auto pixelShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(sdf_text_frag)));
-            gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
-
-            gpu::Shader::BindingSet slotBindings;
-            gpu::Shader::makeProgram(*program, slotBindings);
-
-            _fontLoc2D = program->getTextures().findLocation("Font");
-            _outlineLoc2D = program->getUniforms().findLocation("Outline");
-            _colorLoc2D = program->getUniforms().findLocation("Color");
-
-            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-            state->setCullMode(gpu::State::CULL_BACK);
-            state->setDepthTest(false);
-            state->setBlendFunction(false,
-                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-            _pipeline2D = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
-        }
-
         // Sanity checks
         static const int OFFSET = offsetof(TextureVertex, tex);
         assert(OFFSET == sizeof(glm::vec2));
@@ -339,27 +316,6 @@ void Font::drawString(gpu::Batch& batch, float x, float y, const QString& str, c
     batch._glUniform1i(_outlineLoc, (effectType == OUTLINE_EFFECT));
     batch._glUniform4fv(_colorLoc, 1, (const GLfloat*)color);
 
-    batch.setInputFormat(_format);
-    batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);
-    batch.draw(gpu::QUADS, _numVertices, 0);
-}
-
-void Font::drawString2D(gpu::Batch& batch, float x, float y, const QString& str, const glm::vec4* color,
-    EffectType effectType, const glm::vec2& bounds) {
-    if (str == "") {
-        return;
-    }
-
-    if (str != _lastStringRendered || bounds != _lastBounds) {
-        rebuildVertices(x, y, str, bounds);
-    }
-
-    setupGPU();
-
-    batch.setPipeline(_pipeline2D);
-    batch.setResourceTexture(_fontLoc2D, _texture);
-    batch._glUniform1i(_outlineLoc2D, (effectType == OUTLINE_EFFECT));
-    batch._glUniform4fv(_colorLoc2D, 1, (const GLfloat*)color);
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);
     batch.draw(gpu::QUADS, _numVertices, 0);
