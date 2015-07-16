@@ -41,7 +41,7 @@ std::unique_ptr<NLPacket> NLPacket::create(PacketType::Value type, qint64 size) 
         packet = std::unique_ptr<NLPacket>(new NLPacket(type, size));
     }
         
-    packet->open(QIODevice::WriteOnly);
+    packet->open(QIODevice::ReadWrite);
     
     return packet;
 }

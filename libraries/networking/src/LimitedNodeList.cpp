@@ -436,44 +436,38 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
 
 std::unique_ptr<NLPacket> LimitedNodeList::constructPingPacket(PingType_t pingType) {
     int packetSize = sizeof(PingType_t) + sizeof(quint64);
+    
     auto pingPacket = NLPacket::create(PacketType::Ping, packetSize);
+    
+    pingPacket->writePrimitive(pingType);
+    pingPacket->writePrimitive(usecTimestampNow());
 
-    QDataStream packetStream(pingPacket.get());
-
-    packetStream << pingType;
-    packetStream << usecTimestampNow();
-
-    return pingPacket;
+    return std::move(pingPacket);
 }
 
 std::unique_ptr<NLPacket> LimitedNodeList::constructPingReplyPacket(NLPacket& pingPacket) {
-    QDataStream pingPacketStream(&pingPacket);
-
     PingType_t typeFromOriginalPing;
-    pingPacketStream >> typeFromOriginalPing;
-
     quint64 timeFromOriginalPing;
-    pingPacketStream >> timeFromOriginalPing;
+    pingPacket.readPrimitive(&typeFromOriginalPing);
+    pingPacket.readPrimitive(&timeFromOriginalPing);
 
     int packetSize = sizeof(PingType_t) + sizeof(quint64) + sizeof(quint64);
-
     auto replyPacket = NLPacket::create(PacketType::PingReply, packetSize);
+    replyPacket->writePrimitive(typeFromOriginalPing);
+    replyPacket->writePrimitive(timeFromOriginalPing);
+    replyPacket->writePrimitive(usecTimestampNow());
 
-    QDataStream packetStream(replyPacket.get());
-    packetStream << typeFromOriginalPing << timeFromOriginalPing << usecTimestampNow();
-
-    return replyPacket;
+    return std::move(replyPacket);
 }
 
 std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingPacket(PingType_t pingType, const QUuid& iceID) {
     int packetSize = NUM_BYTES_RFC4122_UUID + sizeof(PingType_t);
 
     auto icePingPacket = NLPacket::create(PacketType::ICEPing, packetSize);
-
     icePingPacket->write(iceID.toRfc4122());
     icePingPacket->writePrimitive(pingType);
 
-    return icePingPacket;
+    return std::move(icePingPacket);
 }
 
 std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingReplyPacket(NLPacket& pingPacket, const QUuid& iceID) {

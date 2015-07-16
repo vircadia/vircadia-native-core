@@ -21,7 +21,6 @@
 
 #include "AbstractViewStateInterface.h"
 #include "AmbientOcclusionEffect.h"
-#include "GlowEffect.h"
 #include "ProgramObject.h"
 #include "RenderUtil.h"
 #include "TextureCache.h"
@@ -107,7 +106,7 @@ void AmbientOcclusionEffect::render() {
     glBindTexture(GL_TEXTURE_2D, _rotationTextureID);
     
     // render with the occlusion shader to the secondary/tertiary buffer
-    auto freeFramebuffer = DependencyManager::get<GlowEffect>()->getFreeFramebuffer();
+    auto freeFramebuffer = nullptr; // DependencyManager::get<GlowEffect>()->getFreeFramebuffer(); // FIXME
     glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(freeFramebuffer));
     
     float left, right, bottom, top, nearVal, farVal;
@@ -150,7 +149,7 @@ void AmbientOcclusionEffect::render() {
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_ZERO, GL_SRC_COLOR, GL_ZERO, GL_ONE);
     
-    auto freeFramebufferTexture = freeFramebuffer->getRenderBuffer(0);
+    auto freeFramebufferTexture = nullptr; // freeFramebuffer->getRenderBuffer(0); // FIXME
     glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(freeFramebufferTexture));
     
     _blurProgram->bind();

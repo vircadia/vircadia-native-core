@@ -777,7 +777,7 @@ void AudioMixer::run() {
                     std::unique_ptr<NLPacket> mixPacket;
 
                     if (streamsMixed > 0) {
-                        int mixPacketBytes = sizeof(quint16) + AudioConstants::NETWORK_FRAME_BYTES_STEREO * sizeof(int16_t);
+                        int mixPacketBytes = sizeof(quint16) + AudioConstants::NETWORK_FRAME_BYTES_STEREO;
                         mixPacket = NLPacket::create(PacketType::MixedAudio, mixPacketBytes);
 
                         // pack sequence number
@@ -786,7 +786,7 @@ void AudioMixer::run() {
 
                         // pack mixed audio samples
                         mixPacket->write(reinterpret_cast<char*>(_mixSamples),
-                                         AudioConstants::NETWORK_FRAME_BYTES_STEREO * sizeof(int16_t));
+                                         AudioConstants::NETWORK_FRAME_BYTES_STEREO);
                     } else {
                         int silentPacketBytes = sizeof(quint16) + sizeof(quint16);
                         mixPacket = NLPacket::create(PacketType::SilentAudioFrame, silentPacketBytes);
