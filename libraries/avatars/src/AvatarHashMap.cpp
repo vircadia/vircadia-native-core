@@ -61,6 +61,8 @@ void AvatarHashMap::processAvatarDataPacket(QSharedPointer<NLPacket> packet, Sha
     while (packet->bytesLeftToRead()) {
         QUuid sessionUUID = QUuid::fromRfc4122(packet->read(NUM_BYTES_RFC4122_UUID));
 
+        QByteArray byteArray = QByteArray::fromRawData(packet->getPayload() + packet->pos(),
+                                                       packet->bytesLeftToRead());
         if (sessionUUID != _lastOwnerSessionUUID) {
             AvatarSharedPointer avatar = _avatarHash.value(sessionUUID);
             if (!avatar) {
@@ -68,12 +70,12 @@ void AvatarHashMap::processAvatarDataPacket(QSharedPointer<NLPacket> packet, Sha
             }
 
             // have the matching (or new) avatar parse the data from the packet
-            int bytesRead = avatar->parseDataFromBuffer(QByteArray::fromRawData(packet->getPayload(), packet->getPayloadSize()));
+            int bytesRead = avatar->parseDataFromBuffer(byteArray);
             packet->seek(packet->pos() + bytesRead);
         } else {
             // create a dummy AvatarData class to throw this data on the ground
             AvatarData dummyData;
-            int bytesRead = dummyData.parseDataFromBuffer(QByteArray::fromRawData(packet->getPayload(), packet->getPayloadSize()));
+            int bytesRead = dummyData.parseDataFromBuffer(byteArray);
             packet->seek(packet->pos() + bytesRead);
         }
     }
