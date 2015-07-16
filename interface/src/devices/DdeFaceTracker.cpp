@@ -177,8 +177,14 @@ DdeFaceTracker::DdeFaceTracker(const QHostAddress& host, quint16 serverPort, qui
     _filteredHeadTranslation(glm::vec3(0.0f)),
     _lastBrowUp(0.0f),
     _filteredBrowUp(0.0f),
-    _eyeGazePitch(0.0f),
-    _eyeGazeYaw(0.0f),
+    _eyePitch(0.0f),
+    _eyeYaw(0.0f),
+    _lastEyePitch(0.0f),
+    _lastEyeYaw(0.0f),
+    _filteredEyePitch(0.0f),
+    _filteredEyeYaw(0.0f),
+    _longTermAverageEyePitch(0.0f),
+    _longTermAverageEyeYaw(0.0f),
     _lastEyeBlinks(),
     _filteredEyeBlinks(),
     _lastEyeCoefficients(),
@@ -445,11 +451,24 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
         // Eye pitch and yaw
         // EyeDown coefficients work better over both +ve and -ve values than EyeUp values.
         // EyeIn coefficients work better over both +ve and -ve values than EyeOut values.
-        // Confusingly, the sign of the EyeIn_R value is the same of EyeIn_L.
-        const float EYE_GAZE_PITCH_SCALE = -1500.0f;  // Sign, scale, and average to be similar to Faceshift values.
-        _eyeGazePitch = EYE_GAZE_PITCH_SCALE * (_coefficients[_leftEyeDownIndex] + _coefficients[_rightEyeDownIndex]);
-        const float EYE_GAZE_YAW_SCALE = 2500.0f;  // Scale and average to be similar to Faceshift values.
-        _eyeGazeYaw = EYE_GAZE_YAW_SCALE * (_coefficients[_leftEyeInIndex] + _coefficients[_rightEyeInIndex]);
+        // Pitch and yaw values are relative to the screen.
+        const float EYE_PITCH_SCALE = -1500.0f;  // Sign, scale, and average to be similar to Faceshift values.
+        _eyePitch = EYE_PITCH_SCALE * (_coefficients[_leftEyeDownIndex] + _coefficients[_rightEyeDownIndex]);
+        const float EYE_YAW_SCALE = 2000.0f;  // Scale and average to be similar to Faceshift values.
+        _eyeYaw = EYE_YAW_SCALE * (_coefficients[_leftEyeInIndex] + _coefficients[_rightEyeInIndex]);
+        if (isFiltering) {
+            const float EYE_VELOCITY_FILTER_STRENGTH = 0.005f;
+            float pitchVelocity = fabsf(_eyePitch - _lastEyePitch) / _averageMessageTime;
+            float pitchVelocityFilter = glm::clamp(pitchVelocity * EYE_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f);
+            _filteredEyePitch = pitchVelocityFilter * _eyePitch + (1.0f - pitchVelocityFilter) * _filteredEyePitch;
+            _lastEyePitch = _eyePitch;
+            _eyePitch = _filteredEyePitch;
+            float yawVelocity = fabsf(_eyeYaw - _lastEyeYaw) / _averageMessageTime;
+            float yawVelocityFilter = glm::clamp(yawVelocity * EYE_VELOCITY_FILTER_STRENGTH, 0.0f, 1.0f);
+            _filteredEyeYaw = yawVelocityFilter * _eyeYaw + (1.0f - yawVelocityFilter) * _filteredEyeYaw;
+            _lastEyeYaw = _eyeYaw;
+            _eyeYaw = _filteredEyeYaw;
+        }
 
         // Velocity filter EyeBlink values
         const float DDE_EYEBLINK_SCALE = 3.0f;

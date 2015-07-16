@@ -120,8 +120,15 @@ private:
     float _lastBrowUp;
     float _filteredBrowUp;
 
-    float _eyeGazePitch;  // Degrees
-    float _eyeGazeYaw;
+    float _eyePitch;  // Degrees, relative to screen
+    float _eyeYaw;
+    float _lastEyePitch;
+    float _lastEyeYaw;
+    float _filteredEyePitch;
+    float _filteredEyeYaw;
+    float _longTermAverageEyePitch = 0.0f;
+    float _longTermAverageEyeYaw = 0.0f;
+    bool _longTermAverageInitialized = false;
 
     enum EyeState {
         EYE_UNCONTROLLED,
