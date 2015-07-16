@@ -339,35 +339,24 @@ bool OctreeEditPacketSender::process() {
     return PacketSender::process();
 }
 
-void OctreeEditPacketSender::processNackPacket(const QByteArray& packet) {
+void OctreeEditPacketSender::processNackPacket(NLPacket& packet, SharedNodePointer sendingNode) {
     // parse sending node from packet, retrieve packet history for that node
-    QUuid sendingNodeUUID = uuidFromPacketHeader(packet);
 
     // if packet history doesn't exist for the sender node (somehow), bail
-    if (_sentPacketHistories.count(sendingNodeUUID) == 0) {
+    if (_sentPacketHistories.count(sendingNode->getUUID()) == 0) {
         return;
     }
-    const SentPacketHistory& sentPacketHistory = _sentPacketHistories[sendingNodeUUID];
-
-    // TODO: these NAK packets no longer send the number of sequence numbers - just read out sequence numbers in blocks
-
-    int numBytesPacketHeader = numBytesForPacketHeader(packet);
-    const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data()) + numBytesPacketHeader;
-
-    // read number of sequence numbers
-    uint16_t numSequenceNumbers = (*(uint16_t*)dataAt);
-    dataAt += sizeof(uint16_t);
+    const SentPacketHistory& sentPacketHistory = _sentPacketHistories[sendingNode->getSourceID()];
 
     // read sequence numbers and queue packets for resend
-    for (int i = 0; i < numSequenceNumbers; i++) {
-        unsigned short int sequenceNumber = (*(unsigned short int*)dataAt);
-        dataAt += sizeof(unsigned short int);
-
+    while (packet.bytesLeftToRead() > 0) {
+        unsigned short int sequenceNumber;
+        packet.readPrimitive(&sequenceNumber);
+        
         // retrieve packet from history
         const NLPacket* packet = sentPacketHistory.getPacket(sequenceNumber);
         if (packet) {
-            const SharedNodePointer& node = DependencyManager::get<NodeList>()->nodeWithUUID(sendingNodeUUID);
-            queuePacketForSending(node, NLPacket::createCopy(*packet));
+            queuePacketForSending(sendingNode, NLPacket::createCopy(*packet));
         }
     }
 }

@@ -155,32 +155,6 @@ int numSequenceNumberBytesForType(PacketType::Value packetType) {
     return (SEQUENCE_NUMBERED_PACKETS.contains(packetType) ? sizeof(PacketSequenceNumber) : 0);
 }
 
-QUuid uuidFromPacketHeader(const QByteArray& packet) {
-    return QUuid::fromRfc4122(packet.mid(numBytesArithmeticCodingFromBuffer(packet.data()) + sizeof(PacketVersion),
-                                         NUM_BYTES_RFC4122_UUID));
-}
-
-int hashOffsetForPacketType(PacketType::Value packetType) {
-    return numBytesForArithmeticCodedPacketType(packetType) + NUM_STATIC_HEADER_BYTES;
-}
-
-int sequenceNumberOffsetForPacketType(PacketType::Value packetType) {
-    return numBytesForPacketHeaderGivenPacketType(packetType) - sizeof(PacketSequenceNumber);
-}
-
-PacketSequenceNumber sequenceNumberFromHeader(const QByteArray& packet, PacketType::Value packetType) {
-    if (packetType == PacketType::Unknown) {
-        packetType = packetTypeForPacket(packet);
-    }
-
-    PacketSequenceNumber result = DEFAULT_SEQUENCE_NUMBER;
-
-    if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
-        memcpy(&result, packet.data() + sequenceNumberOffsetForPacketType(packetType), sizeof(PacketSequenceNumber));
-    }
-
-    return result;
-}
 
 PacketType::Value packetTypeForPacket(const QByteArray& packet) {
     return (PacketType::Value) arithmeticCodingValueFromBuffer(packet.data());

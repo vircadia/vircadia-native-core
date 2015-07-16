@@ -112,16 +112,6 @@ int numBytesForArithmeticCodedPacketType(PacketType::Value packetType);
 int numBytesForPacketHeaderGivenPacketType(PacketType::Value packetType);
 int packArithmeticallyCodedValue(int value, char* destination);
 
-QUuid uuidFromPacketHeader(const QByteArray& packet);
-
-int hashOffsetForPacketType(PacketType::Value packetType);
-int sequenceNumberOffsetForPacketType(PacketType::Value packetType);
-
-// NOTE: The following four methods accept a PacketType::Value which defaults to PacketType::Unknown.
-// If the caller has already looked at the packet type and can provide it then the methods below won't have to look it up.
-
-PacketSequenceNumber sequenceNumberFromHeader(const QByteArray& packet, PacketType::Value packetType = PacketType::Unknown);
-
 int arithmeticCodingValueFromBuffer(const char* checkValue);
 int numBytesArithmeticCodingFromBuffer(const char* checkValue);
 
