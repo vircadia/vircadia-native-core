@@ -19,6 +19,7 @@
 
 #include <QtCore/QTimer>
 
+#include <gpu/GPUConfig.h>
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <AnimationHandle.h>
@@ -31,7 +32,7 @@
 #include <PerfStat.h>
 #include <ShapeCollider.h>
 #include <SharedUtil.h>
-#include <TextRenderer.h>
+#include <TextRenderer3D.h>
 #include <UserActivityLogger.h>
 
 #include "devices/Faceshift.h"

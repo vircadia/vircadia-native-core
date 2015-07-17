@@ -772,6 +772,9 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                         entityItemID = entityItem->getEntityItemID();
                         _myTree->setContainingElement(entityItemID, this);
                         _myTree->postAddEntity(entityItem);
+                        if (entityItem->getCreated() == UNKNOWN_CREATED_TIME) {
+                            entityItem->recordCreationTime();
+                        }
                     }
                 }
                 // Move the buffer forward to read more entities
