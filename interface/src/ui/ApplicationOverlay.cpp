@@ -91,7 +91,7 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     // 2) clear it...
     //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glm::vec4 color { 0.0f, 0.0f, 0.0f, 0.0f };
-    float depth = 0.0f;
+    float depth = 1.0f;
     int stencil = 0;
     batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLORS | gpu::Framebuffer::BUFFER_DEPTH, color, depth, stencil);
     //batch.clearColorFramebuffer(_overlayFramebuffer->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
@@ -252,7 +252,7 @@ void ApplicationOverlay::buildFramebufferObject() {
     // glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     // glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
-   auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
+   auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
    _overlayColorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
    _overlayFramebuffer->setRenderBuffer(0, _overlayColorTexture);
 
