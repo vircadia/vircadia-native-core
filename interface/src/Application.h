@@ -56,6 +56,7 @@
 #include "devices/SixenseManager.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/WebWindowClass.h"
+#include "ui/AudioStatsDialog.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/HMDToolsDialog.h"
 #include "ui/ModelsBrowser.h"
