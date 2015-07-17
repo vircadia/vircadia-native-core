@@ -100,23 +100,6 @@ int widthText(float scale, int mono, char const* string) {
     return textRenderer(mono)->computeExtent(string).x;  // computeWidth(string) * (scale / 0.10);
 }
 
-void drawText(int x, int y, float scale, float radians, int mono,
-              char const* string, const float* color) {
-    //
-    //  Draws text on screen as stroked so it can be resized
-    //
-    glPushMatrix();
-    glTranslatef(static_cast<float>(x), static_cast<float>(y), 0.0f);
-
-
-    glRotated(double(radians * DEGREES_PER_RADIAN), 0.0, 0.0, 1.0);
-    glScalef(scale / 0.1f, scale / 0.1f, 1.0f);
-
-    glm::vec4 colorV4 = {color[0], color[1], color[2], 1.0f };
-    textRenderer(mono)->draw(0, 0, string, colorV4);
-    glPopMatrix();
-}
-
 void renderCollisionOverlay(int width, int height, float magnitude, float red, float blue, float green) {
     const float MIN_VISIBLE_COLLISION = 0.01f;
     if (magnitude > MIN_VISIBLE_COLLISION) {

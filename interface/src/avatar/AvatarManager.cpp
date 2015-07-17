@@ -25,7 +25,6 @@
 #endif
 
 
-#include <GlowEffect.h>
 #include <PerfStat.h>
 #include <RegisteredMetaTypes.h>
 #include <UUID.h>

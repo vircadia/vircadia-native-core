@@ -76,8 +76,9 @@ PacketVersion versionForPacketType(PacketType::Value packetType) {
         case InjectAudio:
             return 1;
         case AvatarData:
-            return 6;
+            return 7;
         case AvatarIdentity:
+            return 7;
             return 1;
         case EnvironmentData:
             return 2;

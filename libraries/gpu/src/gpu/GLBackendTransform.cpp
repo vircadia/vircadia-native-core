@@ -82,8 +82,6 @@ void GLBackend::syncTransformStateCache() {
 }
 
 void GLBackend::updateTransform() {
-    GLint originalMatrixMode;
-    glGetIntegerv(GL_MATRIX_MODE, &originalMatrixMode);
     // Check all the dirty flags and update the state accordingly
     if (_transform._invalidViewport) {
         _transform._transformCamera._viewport = glm::vec4(_transform._viewport);
@@ -138,6 +136,9 @@ void GLBackend::updateTransform() {
 
 #if (GPU_TRANSFORM_PROFILE == GPU_LEGACY)
     // Do it again for fixed pipeline until we can get rid of it
+     GLint originalMatrixMode;
+     glGetIntegerv(GL_MATRIX_MODE, &originalMatrixMode);
+    
     if (_transform._invalidProj) {
         if (_transform._lastMode != GL_PROJECTION) {
             glMatrixMode(GL_PROJECTION);
@@ -173,12 +174,12 @@ void GLBackend::updateTransform() {
         }
         (void) CHECK_GL_ERROR();
     }
+
+    glMatrixMode(originalMatrixMode);
 #endif
 
     // Flags are clean
     _transform._invalidView = _transform._invalidProj = _transform._invalidModel = _transform._invalidViewport = false;
-
-    glMatrixMode(originalMatrixMode);
 }
 
 

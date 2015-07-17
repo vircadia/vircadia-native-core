@@ -175,10 +175,12 @@ function positionStick(stickOrientation) {
     inHand = false;
     Entities.updateAction(stickID, actionID, {
         relativePosition: offset,
-        relativeRotation: stickOrientation
+        relativeRotation: stickOrientation,
+        hand: "right"
     });
 }
-function resetToHand() { // Maybe coordinate with positionStick?
+function resetToHand() { // For use with controllers, puts the sword in contact with the hand.
+    // Maybe coordinate with positionStick?
     if (inHand) { // Optimization: bail if we're already inHand.
         return;
     }
@@ -191,14 +193,14 @@ function resetToHand() { // Maybe coordinate with positionStick?
     });
     inHand = true;
 }
+function isControllerActive() {
+    // I don't think the hydra API provides any reliable way to know whether a particular controller is active. Ask for both.
+    controllerActive = (Vec3.length(Controller.getSpatialControlPosition(3)) > 0) || Vec3.length(Controller.getSpatialControlPosition(4)) > 0;
+    return controllerActive;
+}
 function mouseMoveEvent(event) {
-    if (event.deviceID) { // Not a MOUSE mouse event, but a (e.g., hydra) mouse event, with x/y that is not meaningful for us.
-        resetToHand(); // Can only happen when controller is uncradled, so let's drive with that, resetting our attachement.
-        return;
-    }
-    controllerActive = (Vec3.length(Controller.getSpatialControlPosition(controllerID)) > 0);
-    //print("Mouse move with hand controller " + (controllerActive ? "active" : "inactive") + JSON.stringify(event));
-    if (controllerActive || !isFighting()) {
+    // When a controller like the hydra gives a mouse event, the x/y is not meaningful to us, but we can detect with a truty deviceID
+    if (event.deviceID || !isFighting() || isControllerActive()) {
         print('Attempting attachment reset');
         resetToHand();
         return;
@@ -244,12 +246,20 @@ function cleanUp(leaveButtons) {
 }
 function makeSword() {
     initControls();
+    var swordPosition;
+    if (!isControllerActive()) { // Dont' knock yourself with sword
+        swordPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(MyAvatar.orientation)));
+    } else if (hand === 'right') {
+        swordPosition = MyAvatar.getRightPalmPosition();
+    } else {
+        swordPosition = MyAvatar.getLeftPalmPosition();
+    }
     stickID = Entities.addEntity({
         type: "Model",
         modelURL: swordModel,
         compoundShapeURL: swordCollisionShape,
         dimensions: dimensions,
-        position: (hand === 'right') ? MyAvatar.getRightPalmPosition() : MyAvatar.getLeftPalmPosition(), // initial position doesn't matter, as long as it's close
+        position: swordPosition,
         rotation: MyAvatar.orientation,
         damping: 0.1,
         collisionSoundURL: swordCollisionSoundURL,

@@ -30,23 +30,6 @@ JurisdictionMap& JurisdictionMap::operator=(const JurisdictionMap& other) {
     return *this;
 }
 
-#ifdef HAS_MOVE_SEMANTICS
-// Move constructor
-JurisdictionMap::JurisdictionMap(JurisdictionMap&& other) : _rootOctalCode(NULL) {
-    init(other._rootOctalCode, other._endNodes);
-    other._rootOctalCode = NULL;
-    other._endNodes.clear();
-}
-
-// move assignment
-JurisdictionMap& JurisdictionMap::operator=(JurisdictionMap&& other) {
-    init(other._rootOctalCode, other._endNodes);
-    other._rootOctalCode = NULL;
-    other._endNodes.clear();
-    return *this;
-}
-#endif
-
 // Copy constructor
 JurisdictionMap::JurisdictionMap(const JurisdictionMap& other) : _rootOctalCode(NULL) {
     copyContents(other);
