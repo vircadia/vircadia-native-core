@@ -232,7 +232,7 @@ QScriptValue TextOverlay::getProperty(const QString& property) {
 QSizeF TextOverlay::textSize(const QString& text) const {
     int lines = 1;
     foreach(QChar c, text) {
-        if (c == "\n") {
+        if (c == QChar('\n')) {
             ++lines;
         }
     }
