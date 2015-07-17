@@ -286,7 +286,7 @@ private:
     QString _bodyModelName;
     QString _fullAvatarModelName;
 
-    Rig _rig;
+    RigPointer _rig;
     // used for rendering when in first person view or when in an HMD.
     SkeletonModel _firstPersonSkeletonModel;
     bool _prevShouldDrawHead;

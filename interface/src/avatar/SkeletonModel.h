@@ -25,7 +25,7 @@ class SkeletonModel : public Model {
     
 public:
 
-    SkeletonModel(Avatar* owningAvatar, QObject* parent = NULL);
+    SkeletonModel(Avatar* owningAvatar, QObject* parent = nullptr, RigPointer rig = nullptr);
     ~SkeletonModel();
    
     virtual void initJointStates(QVector<JointState> states);
