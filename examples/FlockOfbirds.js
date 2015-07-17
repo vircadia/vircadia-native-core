@@ -117,7 +117,6 @@ function updateBirds(deltaTime) {
                     Entities.editEntity(birds[i].entityId, { dimensions: { x: BIRD_SIZE, y: BIRD_SIZE, z: BIRD_SIZE }});
                     birds[i].audioId = false; 
                     numPlaying--;
-                    print("num playing" + numPlaying);
                 } 
             }
 
