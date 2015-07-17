@@ -579,9 +579,9 @@ const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
 void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) {
     NodeType_t nodeType;
     HifiSockAddr publicSockAddr, localSockAddr;
+    
 
     if (packet->getPayloadSize() == 0) {
-        // TODO: We know what size the connect packet should be (minimally) - check for that here
         return;
     }
 
@@ -593,6 +593,11 @@ void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) 
     const HifiSockAddr& senderSockAddr = packet->getSenderSockAddr();
 
     parseNodeData(packetStream, nodeType, publicSockAddr, localSockAddr, senderSockAddr);
+    
+    if (localSockAddr.isNull() || senderSockAddr.isNull()) {
+        qDebug() << "Unexpected data received for node local socket or public socket. Will not allow connection.";
+        return;
+    }
 
     // check if this connect request matches an assignment in the queue
     bool isAssignment = _pendingAssignedNodes.contains(connectUUID);
