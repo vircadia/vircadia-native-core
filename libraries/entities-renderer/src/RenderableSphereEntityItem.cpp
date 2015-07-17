@@ -39,15 +39,7 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
     
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
-#define USE_MAGIC_WORKAROUND
-#ifdef USE_MAGIC_WORKAROUND
-    // It's a mystery how this actually works!
-    Transform transform = getTransformToCenter();
-    transform.setScale(transform.getScale());
-    batch.setModelTransform(transform); // use a transform with scale, rotation, registration point and translation
-#else // USE_MAGIC_WORKAROUND
     batch.setModelTransform(getTransformToCenter()); // use a transform with scale, rotation, registration point and translation
-#endif // USE_MAGIC_WORKAROUND
     DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, 0.5f, SLICES, STACKS, sphereColor);
 
     RenderableDebugableEntityItem::render(this, args);
