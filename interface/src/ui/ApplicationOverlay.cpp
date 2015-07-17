@@ -163,6 +163,7 @@ void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
 }
 
 void ApplicationOverlay::renderStatsAndLogs(RenderArgs* renderArgs) {
+
     //  Display stats and log text onscreen
 
     // Determine whether to compute timing details

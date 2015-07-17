@@ -55,15 +55,15 @@ void ImageOverlay::render(RenderArgs* args) {
         _isLoaded = true;
         _texture = DependencyManager::get<TextureCache>()->getTexture(_imageURL);
     }
-
     // If we are not visible or loaded, return.  If we are trying to render an
     // image but the texture hasn't loaded, return.
     if (!_visible || !_isLoaded || (_renderImage && !_texture->isLoaded())) {
         return;
     }
 
+    auto geometryCache = DependencyManager::get<GeometryCache>();
     gpu::Batch& batch = *args->_batch;
-
+    geometryCache->useSimpleDrawPipeline(batch);
     if (_renderImage) {
         batch.setResourceTexture(0, _texture->getGPUTexture());
     } else {
