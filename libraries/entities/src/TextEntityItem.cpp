@@ -37,7 +37,6 @@ TextEntityItem::TextEntityItem(const EntityItemID& entityItemID, const EntityIte
         EntityItem(entityItemID) 
 {
     _type = EntityTypes::Text;
-    _created = properties.getCreated();
     setProperties(properties);
 }
 

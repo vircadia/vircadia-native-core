@@ -85,11 +85,6 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _lastUpdated = now;
 }
 
-EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) : EntityItem(entityItemID)
-{
-    setProperties(properties);
-}
-
 EntityItem::~EntityItem() {
     // clear out any left-over actions
     EntityTree* entityTree = _element ? _element->getTree() : nullptr;
@@ -1077,6 +1072,8 @@ void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) c
 
 bool EntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
+    // just in case _created must be properly set before the rest we do it first
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(created, updateCreated);
 
     // these affect TerseUpdate properties
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulationOwner, setSimulationOwner);
@@ -1099,7 +1096,6 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(friction, updateFriction);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ignoreForCollisions, updateIgnoreForCollisions);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, updateCollisionsWillMove);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(created, updateCreated);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, updateLifetime);
 
     // non-simulation properties below
