@@ -1,9 +1,9 @@
 //
 //  AudioStatsDialog.cpp
-//  hifi
+//  interface/src/ui
 //
 //  Created by Bridget Went on 7/9/15.
-//
+//  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -72,7 +72,7 @@ AudioStatsDialog::AudioStatsDialog(QWidget* parent) :
         
     // Load and initilize all channels
     renderStats();
-    
+
     _audioDisplayChannels = QVector<QVector<AudioStatsDisplay*>>(1);
         
     _audioMixerID = addChannel(_form, _audioMixerStats, COLOR0);
@@ -80,7 +80,11 @@ AudioStatsDialog::AudioStatsDialog(QWidget* parent) :
     _upstreamMixerID = addChannel(_form, _upstreamMixerStats, COLOR2);
     _downstreamID = addChannel(_form, _downstreamStats, COLOR3);
     _upstreamInjectedID = addChannel(_form, _upstreamInjectedStats, COLOR0);
-    
+        
+        
+    connect(averageUpdateTimer, SIGNAL(timeout()), this, SLOT(updateTimerTimeout()));
+    averageUpdateTimer->start(1000);
+
 }
 
 int AudioStatsDialog::addChannel(QFormLayout* form, QVector<QString>& stats, const unsigned color) {
@@ -98,16 +102,13 @@ int AudioStatsDialog::addChannel(QFormLayout* form, QVector<QString>& stats, con
 }
 
 void AudioStatsDialog::updateStats(QVector<QString>& stats, int channelID) {
-    
     // Update all stat displays at specified channel
     for (int i = 0; i < stats.size(); i++)
         _audioDisplayChannels[channelID].at(i)->updatedDisplay(stats.at(i));
-    
 }
 
-
 void AudioStatsDialog::renderStats() {
-    
+
     // Clear current stats from all vectors
     clearAllChannels();
     
@@ -181,9 +182,6 @@ void AudioStatsDialog::renderStats() {
         }
  
     }
-    
-    connect(averageUpdateTimer, SIGNAL(timeout()), this, SLOT(updateTimerTimeout()));
-    averageUpdateTimer->start(1000);
 }
 
 
@@ -222,9 +220,9 @@ void AudioStatsDialog::clearAllChannels() {
 
 void AudioStatsDialog::updateTimerTimeout() {
     
-    // Update all audio stats
     renderStats();
     
+    // Update all audio stats
     updateStats(_audioMixerStats, _audioMixerID);
     updateStats(_upstreamClientStats, _upstreamClientID);
     updateStats(_upstreamMixerStats, _upstreamMixerID);
@@ -259,7 +257,6 @@ void AudioStatsDialog::closeEvent(QCloseEvent* event) {
 
 AudioStatsDialog::~AudioStatsDialog() {
     clearAllChannels();
-
     for (int i = 0; i < _audioDisplayChannels.size(); i++) {
         _audioDisplayChannels[i].clear();
         for(int j = 0; j < _audioDisplayChannels[i].size(); j++) {
