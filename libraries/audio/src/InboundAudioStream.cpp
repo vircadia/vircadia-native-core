@@ -112,8 +112,9 @@ int InboundAudioStream::parseData(NLPacket& packet) {
     int networkSamples;
     
     // parse the info after the seq number and before the audio data (the stream properties)
+    int oldPos = packet.pos();
     int propertyBytes = parseStreamProperties(packet.getType(), packet.read(packet.bytesLeftToRead()), networkSamples);
-    packet.seek(packet.pos() + propertyBytes);
+    packet.seek(oldPos + propertyBytes);
 
     // handle this packet based on its arrival status.
     switch (arrivalInfo._status) {
