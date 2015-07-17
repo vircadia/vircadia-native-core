@@ -385,7 +385,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         dataAt += encodedID.size();
         bytesRead += encodedID.size();
         Q_ASSERT(id == _id);
-        Q_ASSERT(parser.offset() == bytesRead);
+        Q_ASSERT(parser.offset() == (unsigned int) bytesRead);
     }
 #endif
 
@@ -400,8 +400,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     quint32 type = typeCoder;
     EntityTypes::EntityType oldType = (EntityTypes::EntityType)type;
     Q_ASSERT(oldType == _type);
-    Q_ASSERT(parser.offset() == bytesRead);
-#endif    
+    Q_ASSERT(parser.offset() == (unsigned int) bytesRead);
+#endif
 
     bool overwriteLocalData = true; // assume the new content overwrites our local data
     quint64 now = usecTimestampNow();
@@ -417,9 +417,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             dataAt += sizeof(createdFromBuffer2);
             bytesRead += sizeof(createdFromBuffer2);
             Q_ASSERT(createdFromBuffer2 == createdFromBuffer);
-            Q_ASSERT(parser.offset() == bytesRead);
+            Q_ASSERT(parser.offset() == (unsigned int) bytesRead);
         }
-#endif        
+#endif
         if (_created == UNKNOWN_CREATED_TIME) {
             // we don't yet have a _created timestamp, so we accept this one
             createdFromBuffer -= clockSkew;
@@ -458,9 +458,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         dataAt += sizeof(lastEditedFromBuffer2);
         bytesRead += sizeof(lastEditedFromBuffer2);
         Q_ASSERT(lastEditedFromBuffer2 == lastEditedFromBuffer);
-        Q_ASSERT(parser.offset() == bytesRead);
+        Q_ASSERT(parser.offset() == (unsigned int) bytesRead);
     }
-#endif        
+#endif
     quint64 lastEditedFromBufferAdjusted = lastEditedFromBuffer - clockSkew;
     if (lastEditedFromBufferAdjusted > now) {
         lastEditedFromBufferAdjusted = now;
@@ -534,10 +534,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         encodedUpdateDelta = updateDeltaCoder; // determine true length
         dataAt += encodedUpdateDelta.size();
         bytesRead += encodedUpdateDelta.size();
-        Q_ASSERT(parser.offset() == bytesRead);
+        Q_ASSERT(parser.offset() == (unsigned int) bytesRead);
     }
-#endif        
-    
+#endif
+
     if (overwriteLocalData) {
         _lastUpdated = lastEditedFromBufferAdjusted + updateDelta; // don't adjust for clock skew since we already did that
         #ifdef WANT_DEBUG
@@ -562,7 +562,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             encodedSimulatedDelta = simulatedDeltaCoder; // determine true length
             dataAt += encodedSimulatedDelta.size();
             bytesRead += encodedSimulatedDelta.size();
-            Q_ASSERT(parser.offset() == bytesRead);
+            Q_ASSERT(parser.offset() == (unsigned int) bytesRead);
         }
 #endif
 
@@ -599,7 +599,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         dataAt += propertyFlags.getEncodedLength();
         bytesRead += propertyFlags.getEncodedLength();
         Q_ASSERT(propertyFlags2 == propertyFlags);
-        Q_ASSERT(parser.offset() == bytesRead);
+        Q_ASSERT(parser.offset() == (unsigned int)bytesRead);
     }
 #endif
 
@@ -610,6 +610,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     int bytesRead = parser.offset();
 #endif
 
+    auto nodeList = DependencyManager::get<NodeList>();
+    const QUuid& myNodeID = nodeList->getSessionUUID();
+    bool weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
 
     if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_SIMULATION_OWNER_AND_ACTIONS_OVER_WIRE) {
         // pack SimulationOwner and terse update properties near each other
@@ -632,10 +635,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         }
         {   // When we own the simulation we don't accept updates to the entity's transform/velocities
             // but since we're using macros below we have to temporarily modify overwriteLocalData.
-            auto nodeList = DependencyManager::get<NodeList>();
-            bool weOwnIt = _simulationOwner.matchesValidID(nodeList->getSessionUUID());
             bool oldOverwrite = overwriteLocalData;
-            overwriteLocalData = overwriteLocalData && !weOwnIt;
+            overwriteLocalData = overwriteLocalData && !weOwnSimulation;
             READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
             READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotation);
             READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocity);
@@ -657,6 +658,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
     } else {
         // legacy order of packing here
+        // TODO: purge this logic in a few months from now (2015.07)
         READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
         READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensions);
         READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotation);
@@ -702,7 +704,16 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_HREF, QString, setHref);
     READ_ENTITY_PROPERTY(PROP_DESCRIPTION, QString, setDescription);
 
-    READ_ENTITY_PROPERTY(PROP_ACTION_DATA, QByteArray, setActionData);
+    {   // When we own the simulation we don't accept updates to the entity's actions
+        // but since we're using macros below we have to temporarily modify overwriteLocalData.
+        // NOTE: this prevents userB from adding an action to an object1 when UserA 
+        // has simulation ownership of it.
+        // TODO: figure out how to allow multiple users to update actions simultaneously
+        bool oldOverwrite = overwriteLocalData;
+        overwriteLocalData = overwriteLocalData && !weOwnSimulation;
+        READ_ENTITY_PROPERTY(PROP_ACTION_DATA, QByteArray, setActionData);
+        overwriteLocalData = oldOverwrite;
+    }
 
     bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                                                   propertyFlags, overwriteLocalData);
@@ -713,7 +724,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     // NOTE: we had a bad version of the stream that we added stream data after the subclass. We can attempt to recover
     // by doing this parsing here... but it's not likely going to fully recover the content.
     //
-    // TODO: Remove this conde once we've sufficiently migrated content past this damaged version
+    // TODO: Remove this code once we've sufficiently migrated content past this damaged version
     if (args.bitstreamVersion == VERSION_ENTITIES_HAS_MARKETPLACE_ID_DAMAGED) {
         READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
     }
@@ -738,8 +749,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         }
     }
 
-    auto nodeList = DependencyManager::get<NodeList>();
-    const QUuid& myNodeID = nodeList->getSessionUUID();
     if (overwriteLocalData) {
         if (!_simulationOwner.matchesValidID(myNodeID)) {
             

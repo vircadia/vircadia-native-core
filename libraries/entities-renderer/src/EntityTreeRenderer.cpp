@@ -20,7 +20,6 @@
 #include <AbstractScriptingServicesInterface.h>
 #include <AbstractViewStateInterface.h>
 #include <DeferredLightingEffect.h>
-#include <GlowEffect.h>
 #include <Model.h>
 #include <NetworkAccessManager.h>
 #include <PerfStat.h>
@@ -95,16 +94,18 @@ void EntityTreeRenderer::clear() {
     foreach (const EntityItemID& entityID, _entityScripts.keys()) {
         checkAndCallUnload(entityID);
     }
-    OctreeRenderer::clear();
     _entityScripts.clear();
 
     auto scene = _viewState->getMain3DScene();
     render::PendingChanges pendingChanges;
+    
     foreach(auto entity, _entitiesInScene) {
         entity->removeFromScene(entity, scene, pendingChanges);
     }
     scene->enqueuePendingChanges(pendingChanges);
     _entitiesInScene.clear();
+
+    OctreeRenderer::clear();
 }
 
 void EntityTreeRenderer::init() {
@@ -546,7 +547,7 @@ const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(EntityItemP
             Model* model = modelEntityItem->getModel(this);
             if (model) {
                 const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = model->getCollisionGeometry();
-                if (!collisionNetworkGeometry.isNull()) {
+                if (collisionNetworkGeometry && collisionNetworkGeometry->isLoaded()) {
                     result = &collisionNetworkGeometry->getFBXGeometry();
                 }
             }
@@ -805,7 +806,7 @@ void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityS
     connect(this, &EntityTreeRenderer::leaveEntity, entityScriptingInterface, &EntityScriptingInterface::leaveEntity);
     connect(this, &EntityTreeRenderer::collisionWithEntity, entityScriptingInterface, &EntityScriptingInterface::collisionWithEntity);
 
-    connect(&(*DependencyManager::get<SceneScriptingInterface>()), &SceneScriptingInterface::shouldRenderEntitiesChanged, this, &EntityTreeRenderer::updateEntityRenderStatus, Qt::QueuedConnection);
+    connect(DependencyManager::get<SceneScriptingInterface>().data(), &SceneScriptingInterface::shouldRenderEntitiesChanged, this, &EntityTreeRenderer::updateEntityRenderStatus, Qt::QueuedConnection);
 }
 
 QScriptValueList EntityTreeRenderer::createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID) {
@@ -1005,7 +1006,7 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
         checkAndCallUnload(entityID);
     }
     _entityScripts.remove(entityID);
-    
+
     // here's where we remove the entity payload from the scene
     if (_entitiesInScene.contains(entityID)) {
         auto entity = _entitiesInScene.take(entityID);
@@ -1166,6 +1167,7 @@ void EntityTreeRenderer::updateEntityRenderStatus(bool shouldRenderEntities) {
     } else {
         _entityIDsLastInScene = _entitiesInScene.keys();
         for (auto entityID : _entityIDsLastInScene) {
+            // FIXME - is this really right? do we want to do the deletingEntity() code or just remove from the scene.
             deletingEntity(entityID);
         }
     }

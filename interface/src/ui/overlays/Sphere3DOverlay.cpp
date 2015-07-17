@@ -11,7 +11,6 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
-#include <GlowEffect.h>
 #include <SharedUtil.h>
 
 #include "Sphere3DOverlay.h"

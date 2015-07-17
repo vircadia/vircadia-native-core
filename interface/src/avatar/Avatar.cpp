@@ -24,7 +24,6 @@
 
 #include <DeferredLightingEffect.h>
 #include <GeometryUtil.h>
-#include <GlowEffect.h>
 #include <LODManager.h>
 #include <NodeList.h>
 #include <NumericalConstants.h>
@@ -410,9 +409,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
         float GLOW_FROM_AVERAGE_LOUDNESS = ((this == DependencyManager::get<AvatarManager>()->getMyAvatar())
                                             ? 0.0f
                                             : MAX_GLOW * getHeadData()->getAudioLoudness() / GLOW_MAX_LOUDNESS);
-        if (!Menu::getInstance()->isOptionChecked(MenuOption::GlowWhenSpeaking)) {
-            GLOW_FROM_AVERAGE_LOUDNESS = 0.0f;
-        }
+        GLOW_FROM_AVERAGE_LOUDNESS = 0.0f;
 
         float glowLevel = _moving && distanceToTarget > GLOW_DISTANCE && renderArgs->_renderMode == RenderArgs::NORMAL_RENDER_MODE
                       ? 1.0f
@@ -453,22 +450,36 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
             }
         }
 
+        // Stack indicator spheres
+        float indicatorOffset = 0.0f;
+        if (!_displayName.isEmpty() && _displayNameAlpha != 0.0f) {
+            const float DISPLAY_NAME_INDICATOR_OFFSET = 0.22f;
+            indicatorOffset = DISPLAY_NAME_INDICATOR_OFFSET;
+        }
+        const float INDICATOR_RADIUS = 0.03f;
+        const float INDICATOR_INDICATOR_OFFSET = 3.0f * INDICATOR_RADIUS;
+
         // If this is the avatar being looked at, render a little ball above their head
         if (_isLookAtTarget && Menu::getInstance()->isOptionChecked(MenuOption::RenderFocusIndicator)) {
-            const float LOOK_AT_INDICATOR_RADIUS = 0.03f;
-            const float LOOK_AT_INDICATOR_OFFSET = 0.22f;
             const glm::vec4 LOOK_AT_INDICATOR_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
-            glm::vec3 position;
-            if (_displayName.isEmpty() || _displayNameAlpha == 0.0f) {
-                position = glm::vec3(_position.x, getDisplayNamePosition().y, _position.z);
-            } else {
-                position = glm::vec3(_position.x, getDisplayNamePosition().y + LOOK_AT_INDICATOR_OFFSET, _position.z);
-            }
+            glm::vec3 position = glm::vec3(_position.x, getDisplayNamePosition().y + indicatorOffset, _position.z);
             Transform transform;
             transform.setTranslation(position);
             batch.setModelTransform(transform);
-            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, LOOK_AT_INDICATOR_RADIUS
-                                                                                , 15, 15, LOOK_AT_INDICATOR_COLOR);
+            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, INDICATOR_RADIUS,
+                15, 15, LOOK_AT_INDICATOR_COLOR);
+            indicatorOffset += INDICATOR_INDICATOR_OFFSET;
+        }
+
+        // If the avatar is looking at me, render an indication that they area
+        if (getHead()->getIsLookingAtMe() && Menu::getInstance()->isOptionChecked(MenuOption::ShowWhosLookingAtMe)) {
+            const glm::vec4 LOOKING_AT_ME_COLOR = { 0.8f, 0.65f, 0.0f, 0.1f };
+            glm::vec3 position = glm::vec3(_position.x, getDisplayNamePosition().y + indicatorOffset, _position.z);
+            Transform transform;
+            transform.setTranslation(position);
+            batch.setModelTransform(transform);
+            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, INDICATOR_RADIUS,
+                15, 15, LOOKING_AT_ME_COLOR);
         }
 
         // quick check before falling into the code below:
@@ -565,8 +576,6 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool
     fixupModelsInScene();
     
     {
-        Glower glower(renderArgs, glowLevel);
-
         if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
             if (postLighting || renderArgs->_renderMode == RenderArgs::SHADOW_RENDER_MODE) {
                 // render the billboard until both models are loaded
@@ -622,7 +631,7 @@ void Avatar::renderBillboard(RenderArgs* renderArgs) {
         _billboardTexture = DependencyManager::get<TextureCache>()->getTexture(
             uniqueUrl, DEFAULT_TEXTURE, false, _billboard);
     }
-    if (!_billboardTexture->isLoaded()) {
+    if (!_billboardTexture || !_billboardTexture->isLoaded()) {
         return;
     }
     // rotate about vertical to face the camera

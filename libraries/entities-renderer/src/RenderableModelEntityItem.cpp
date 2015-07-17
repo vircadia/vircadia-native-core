@@ -63,11 +63,11 @@ void RenderableModelEntityItem::remapTextures() {
         return; // nothing to do if we don't have a model
     }
     
-    if (!_model->isLoadedWithTextures()) {
-        return; // nothing to do if the model has not yet loaded its default textures
+    if (!_model->isLoaded()) {
+        return; // nothing to do if the model has not yet loaded
     }
     
-    if (!_originalTexturesRead && _model->isLoadedWithTextures()) {
+    if (!_originalTexturesRead) {
         const QSharedPointer<NetworkGeometry>& networkGeometry = _model->getGeometry();
         if (networkGeometry) {
             _originalTextures = networkGeometry->getTextureNames();
@@ -119,7 +119,7 @@ bool RenderableModelEntityItem::readyToAddToScene(RenderArgs* renderArgs) {
         EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(renderArgs->_renderer);
         getModel(renderer);
     }
-    if (renderArgs && _model && _needsInitialSimulation && _model->isActive() && _model->isLoadedWithTextures()) {
+    if (renderArgs && _model && _needsInitialSimulation && _model->isActive() && _model->isLoaded()) {
         _model->setScaleToFit(true, getDimensions());
         _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
         _model->setRotation(getRotation());
@@ -189,6 +189,7 @@ void makeEntityItemStatusGetters(RenderableModelEntityItem* entity, render::Item
 
 bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
                                             render::PendingChanges& pendingChanges) {
+
     _myMetaItem = scene->allocateID();
     
     auto renderData = RenderableModelEntityItemMeta::Pointer(new RenderableModelEntityItemMeta(self));
@@ -199,7 +200,10 @@ bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_p
     if (_model) {
         render::Item::Status::Getters statusGetters;
         makeEntityItemStatusGetters(this, statusGetters);
-        return _model->addToScene(scene, pendingChanges, statusGetters);
+        
+        // note: we don't care if the model fails to add items, we always added our meta item and therefore we return
+        // true so that the system knows our meta item is in the scene!
+        _model->addToScene(scene, pendingChanges, statusGetters);
     }
 
     return true;
@@ -397,8 +401,8 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
         const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
         const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
     
-        if ((! collisionNetworkGeometry.isNull() && collisionNetworkGeometry->isLoadedWithTextures()) &&
-            (! renderNetworkGeometry.isNull() && renderNetworkGeometry->isLoadedWithTextures())) {
+        if ((collisionNetworkGeometry && collisionNetworkGeometry->isLoaded()) &&
+            (renderNetworkGeometry && renderNetworkGeometry->isLoaded())) {
             // we have both URLs AND both geometries AND they are both fully loaded.
             return true;
         }
@@ -419,7 +423,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
 
         // should never fall in here when collision model not fully loaded
         // hence we assert collisionNetworkGeometry is not NULL
-        assert(!collisionNetworkGeometry.isNull());
+        assert(collisionNetworkGeometry);
 
         const FBXGeometry& collisionGeometry = collisionNetworkGeometry->getFBXGeometry();
         const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
