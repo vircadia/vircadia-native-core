@@ -256,7 +256,6 @@ void TextOverlay::setFontSize(int fontSize) {
 
 void TextOverlay::setText(const QString& text) {
     _text = text;
-    qDebug() << text;
     _qmlElement->settext(text);
 }
 
