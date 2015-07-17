@@ -373,6 +373,8 @@ Menu::Menu() {
         addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::RenderTargetFramerateVSyncOn, 0, true,
                                                qApp, SLOT(setVSyncEnabled()));
 #endif
+        addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ThrottleFPSIfNotFocus, 0, true,
+            qApp, SLOT(setThrottleFPSEnabled()));
     }
 
 
