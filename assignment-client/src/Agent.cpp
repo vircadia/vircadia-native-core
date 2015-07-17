@@ -59,7 +59,6 @@ Agent::Agent(NLPacket& packet) :
         this, "handleOctreePacket");
     packetReceiver.registerListener(PacketType::Jurisdiction, this, "handleJurisdictionPacket");
     
-    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "processKillAvatar");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "processAvatarIdentityPacket");
