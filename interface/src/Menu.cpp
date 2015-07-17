@@ -435,8 +435,7 @@ Menu::Menu() {
 #if defined(HAVE_FACESHIFT) || defined(HAVE_DDE)
     faceTrackingMenu->addSeparator();
     addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::MuteFaceTracking,
-        Qt::CTRL | Qt::SHIFT | Qt::Key_F, true,  // DDE face tracking is on by default
-        qApp, SLOT(toggleFaceTrackerMute()));
+        Qt::CTRL | Qt::SHIFT | Qt::Key_F, true);  // DDE face tracking is on by default
     addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::AutoMuteAudio, 0, false);
 #endif
 

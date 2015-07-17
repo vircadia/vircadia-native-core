@@ -2041,13 +2041,6 @@ void Application::setActiveFaceTracker() {
 #endif
 }
 
-void Application::toggleFaceTrackerMute() {
-    FaceTracker* faceTracker = getSelectedFaceTracker();
-    if (faceTracker) {
-        faceTracker->toggleMute();
-    }
-}
-
 bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
     QVector<EntityItemPointer> entities;
 
@@ -2480,7 +2473,13 @@ void Application::update(float deltaTime) {
     {
         PerformanceTimer perfTimer("devices");
         DeviceTracker::updateAll();
-        FaceTracker* tracker = getActiveFaceTracker();
+
+        FaceTracker* tracker = getSelectedFaceTracker();
+        if (tracker && Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking) != tracker->isMuted()) {
+            tracker->toggleMute();
+        }
+
+        tracker = getActiveFaceTracker();
         if (tracker && !tracker->isMuted()) {
             tracker->update(deltaTime);
 
