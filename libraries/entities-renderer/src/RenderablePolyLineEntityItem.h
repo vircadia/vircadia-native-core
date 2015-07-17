@@ -31,12 +31,12 @@ public:
     
     static gpu::PipelinePointer _pipeline;
     static gpu::Stream::FormatPointer _format;
+    static gpu::TexturePointer _texture;
     
 protected:
     void updateGeometry();
     gpu::BufferPointer _verticesBuffer;
     unsigned int _numVertices;
-    gpu::TexturePointer _texture;
 
 };
 
