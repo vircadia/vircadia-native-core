@@ -236,7 +236,11 @@ QSizeF TextOverlay::textSize(const QString& text) const {
             ++lines;
         }
     }
+#ifdef Q_OS_MAC
+    QFontMetrics fm(QFont(SANS_FONT_FAMILY, _fontSize * 1.2));
+#else
     QFontMetrics fm(QFont(SANS_FONT_FAMILY, _fontSize));
+#endif
     QSizeF result = QSizeF(fm.width(text), fm.lineSpacing() * lines);
     return result; 
 }
