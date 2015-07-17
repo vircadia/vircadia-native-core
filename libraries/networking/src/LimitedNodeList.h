@@ -39,7 +39,6 @@
 #include "NLPacket.h"
 #include "udt/PacketHeaders.h"
 #include "PacketReceiver.h"
-#include "PacketListener.h"
 #include "NLPacketList.h"
 #include "UUIDHasher.h"
 
@@ -74,7 +73,7 @@ namespace PingType {
     const PingType_t Symmetric = 3;
 }
 
-class LimitedNodeList : public QObject, public Dependency, public PacketListener {
+class LimitedNodeList : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 public:

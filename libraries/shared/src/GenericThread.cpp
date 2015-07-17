@@ -35,7 +35,6 @@ void GenericThread::initialize(bool isThreaded, QThread::Priority priority) {
 
         // match the thread name to our object name
         _thread->setObjectName(objectName());
-        _thread->setPriority(priority);
 
         // when the worker thread is started, call our engine's run..
         connect(_thread, SIGNAL(started()), this, SLOT(threadRoutine()));
@@ -44,6 +43,8 @@ void GenericThread::initialize(bool isThreaded, QThread::Priority priority) {
 
         // Starts an event loop, and emits _thread->started()
         _thread->start();
+        
+        _thread->setPriority(priority);
     }
 }
 

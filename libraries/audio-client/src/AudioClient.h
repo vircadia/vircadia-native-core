@@ -39,7 +39,6 @@
 #include <NLPacket.h>
 #include <MixedProcessedAudioStream.h>
 #include <RingBufferHistory.h>
-#include <PacketListener.h>
 #include <SettingHandle.h>
 #include <Sound.h>
 #include <StDev.h>
@@ -81,7 +80,7 @@ typedef glm::quat (*AudioOrientationGetter)();
 
 class NLPacket;
 
-class AudioClient : public AbstractAudioInterface, public Dependency, public PacketListener {
+class AudioClient : public AbstractAudioInterface, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 public:
