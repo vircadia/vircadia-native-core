@@ -264,6 +264,8 @@ void PacketReceiver::processDatagrams() {
                 }
 
                 _packetListenerLock.lock();
+                
+                bool listenerIsDead = false;
 
                 auto it = _packetListenerMap.find(packet->getType());
 
@@ -297,27 +299,33 @@ void PacketReceiver::processDatagrams() {
 
                             static const QByteArray QSHAREDPOINTER_NODE_NORMALIZED = QMetaObject::normalizedType("QSharedPointer<Node>");
                             static const QByteArray SHARED_NODE_NORMALIZED = QMetaObject::normalizedType("SharedNodePointer");
-
-                            if (metaMethod.parameterTypes().contains(SHARED_NODE_NORMALIZED)) {
-                                success = metaMethod.invoke(listener.first,
-                                                            connectionType,
-                                                            Q_ARG(QSharedPointer<NLPacket>,
-                                                                  QSharedPointer<NLPacket>(packet.release())),
-                                                            Q_ARG(SharedNodePointer, matchingNode));
-
-                            } else if (metaMethod.parameterTypes().contains(QSHAREDPOINTER_NODE_NORMALIZED)) {
-                                success = metaMethod.invoke(listener.first,
-                                                            connectionType,
-                                                            Q_ARG(QSharedPointer<NLPacket>,
-                                                                  QSharedPointer<NLPacket>(packet.release())),
-                                                            Q_ARG(QSharedPointer<Node>, matchingNode));
-
+                            
+                            // one final check on the QPointer before we go to invoke
+                            if (listener.first) {
+                                if (metaMethod.parameterTypes().contains(SHARED_NODE_NORMALIZED)) {
+                                    success = metaMethod.invoke(listener.first,
+                                                                connectionType,
+                                                                Q_ARG(QSharedPointer<NLPacket>,
+                                                                      QSharedPointer<NLPacket>(packet.release())),
+                                                                Q_ARG(SharedNodePointer, matchingNode));
+                                    
+                                } else if (metaMethod.parameterTypes().contains(QSHAREDPOINTER_NODE_NORMALIZED)) {
+                                    success = metaMethod.invoke(listener.first,
+                                                                connectionType,
+                                                                Q_ARG(QSharedPointer<NLPacket>,
+                                                                      QSharedPointer<NLPacket>(packet.release())),
+                                                                Q_ARG(QSharedPointer<Node>, matchingNode));
+                                    
+                                } else {
+                                    success = metaMethod.invoke(listener.first,
+                                                                connectionType,
+                                                                Q_ARG(QSharedPointer<NLPacket>,
+                                                                      QSharedPointer<NLPacket>(packet.release())));
+                                }
                             } else {
-                                success = metaMethod.invoke(listener.first,
-                                                            connectionType,
-                                                            Q_ARG(QSharedPointer<NLPacket>,
-                                                                  QSharedPointer<NLPacket>(packet.release())));
+                                listenerIsDead = true;
                             }
+                            
                         } else {
                             emit dataReceived(NodeType::Unassigned, packet->getDataSize());
 
@@ -332,11 +340,16 @@ void PacketReceiver::processDatagrams() {
                         }
 
                     } else {
+                        listenerIsDead = true;
+                    }
+                    
+                    if (listenerIsDead) {
                         qDebug().nospace() << "Listener for packet" << packet->getType()
                             << " (" << qPrintable(nameForPacketType(packet->getType())) << ")"
                             << " has been destroyed. Removing from listener map.";
                         it = _packetListenerMap.erase(it);
                     }
+                    
                 } else {
                     qWarning() << "No listener found for packet type " << nameForPacketType(packet->getType());
                     
