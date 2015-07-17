@@ -30,7 +30,7 @@ void LocalModelsOverlay::update(float deltatime) {
 
 void LocalModelsOverlay::render(RenderArgs* args) {
     if (_visible) {
-        float glowLevel = getGlowLevel(); // FIXME, glowing removed for now
+        // float glowLevel = getGlowLevel(); // FIXME, glowing removed for now
         
         auto batch = args ->_batch;
         Application* app = Application::getInstance();

@@ -29,8 +29,8 @@ enum StandingFootState {
     NO_FOOT
 };
 
-SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) : 
-    Model(parent),
+SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer rig) :
+    Model(parent, rig),
     _triangleFanID(DependencyManager::get<GeometryCache>()->allocateID()),
     _owningAvatar(owningAvatar),
     _boundingShape(),

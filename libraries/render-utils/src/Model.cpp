@@ -62,7 +62,7 @@ static int weakNetworkGeometryPointerTypeId = qRegisterMetaType<QWeakPointer<Net
 static int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
 float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
 
-Model::Model(QObject* parent) :
+Model::Model(QObject* parent, RigPointer rig) :
     QObject(parent),
     _scale(1.0f, 1.0f, 1.0f),
     _scaleToFit(false),
@@ -83,7 +83,8 @@ Model::Model(QObject* parent) :
     _calculatedMeshTrianglesValid(false),
     _meshGroupsKnown(false),
     _isWireframe(false),
-    _renderCollisionHull(false) {
+    _renderCollisionHull(false),
+    _rig(rig) {
     
     // we may have been created in the network thread, but we live in the main thread
     if (_viewState) {
@@ -1255,17 +1256,6 @@ QStringList Model::getJointNames() const {
     return isActive() ? _geometry->getFBXGeometry().getJointNames() : QStringList();
 }
 
-uint qHash(const WeakAnimationHandlePointer& handle, uint seed) {
-    return qHash(handle.data(), seed);
-}
-
-AnimationHandlePointer Model::createAnimationHandle() {
-    AnimationHandlePointer handle(new AnimationHandle(this));
-    handle->_self = handle;
-    _animationHandles.insert(handle);
-    return handle;
-}
-
 // virtual override from PhysicsEntity
 void Model::buildShapes() {
     // TODO: figure out how to load/build collision shapes for general models
@@ -1529,8 +1519,9 @@ void Model::updateVisibleJointStates() {
     }
 }
 
-bool Model::setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation, bool useRotation,
-       int lastFreeIndex, bool allIntermediatesFree, const glm::vec3& alignment, float priority) {
+bool Model::setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation,
+                             bool useRotation, int lastFreeIndex, bool allIntermediatesFree, const glm::vec3& alignment,
+                             float priority) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
     }
@@ -1615,7 +1606,8 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position, const gl
     return true;
 }
 
-void Model::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority) {
+void Model::inverseKinematics(int endIndex, glm::vec3 targetPosition,
+                              const glm::quat& targetRotation, float priority) {
     // NOTE: targetRotation is from bind- to model-frame
 
     if (endIndex == -1 || _jointStates.isEmpty()) {
@@ -1830,9 +1822,9 @@ void Model::deleteGeometry() {
     clearShapes();
     
     for (QSet<WeakAnimationHandlePointer>::iterator it = _animationHandles.begin(); it != _animationHandles.end(); ) {
-        AnimationHandlePointer handle = it->toStrongRef();
+        AnimationHandlePointer handle = it->lock();
         if (handle) {
-            handle->_jointMappings.clear();
+            handle->clearJoints();
             it++;
         } else {
             it = _animationHandles.erase(it);

@@ -35,7 +35,6 @@ void Cube3DOverlay::render(RenderArgs* args) {
 
     // TODO: handle registration point??
     glm::vec3 position = getPosition();
-    glm::vec3 center = getCenter();
     glm::vec3 dimensions = getDimensions();
     glm::quat rotation = getRotation();
 

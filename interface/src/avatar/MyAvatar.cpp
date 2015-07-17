@@ -79,7 +79,7 @@ const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 
 MyAvatar::MyAvatar() :
-	Avatar(),
+    Avatar(),
     _gravity(0.0f, 0.0f, 0.0f),
     _wasPushing(false),
     _isPushing(false),
@@ -102,7 +102,8 @@ MyAvatar::MyAvatar() :
     _eyeContactTarget(LEFT_EYE),
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
-    _firstPersonSkeletonModel(this),
+    _rig(),
+    _firstPersonSkeletonModel(this, nullptr, _rig),
     _prevShouldDrawHead(true)
 {
     _firstPersonSkeletonModel.setIsFirstPerson(true);
@@ -488,7 +489,7 @@ void MyAvatar::loadLastRecording() {
 }
 
 AnimationHandlePointer MyAvatar::addAnimationHandle() {
-    AnimationHandlePointer handle = _skeletonModel.createAnimationHandle();
+    AnimationHandlePointer handle = _rig->createAnimationHandle();
     _animationHandles.append(handle);
     return handle;
 }
@@ -506,7 +507,7 @@ void MyAvatar::startAnimation(const QString& url, float fps, float priority,
             Q_ARG(float, lastFrame), Q_ARG(const QStringList&, maskedJoints));
         return;
     }
-    AnimationHandlePointer handle = _skeletonModel.createAnimationHandle();
+    AnimationHandlePointer handle = _rig->createAnimationHandle();
     handle->setURL(url);
     handle->setFPS(fps);
     handle->setPriority(priority);
@@ -534,7 +535,7 @@ void MyAvatar::startAnimationByRole(const QString& role, const QString& url, flo
         }
     }
     // no joy; use the parameters provided
-    AnimationHandlePointer handle = _skeletonModel.createAnimationHandle();
+    AnimationHandlePointer handle = _rig->createAnimationHandle();
     handle->setRole(role);
     handle->setURL(url);
     handle->setFPS(fps);
