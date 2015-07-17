@@ -62,7 +62,6 @@ public:
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting = false) override;
     virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel = 0.0f) override;
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const override;
-    void renderDebugBodyPoints();
 
     // setters
     void setLeanScale(float scale) { _leanScale = scale; }

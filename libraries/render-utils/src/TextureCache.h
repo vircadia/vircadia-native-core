@@ -52,8 +52,14 @@ public:
     /// Returns an opaque white texture (useful for a default).
     const gpu::TexturePointer& getWhiteTexture();
 
+    /// Returns an opaque gray texture (useful for a default).
+    const gpu::TexturePointer& getGrayTexture();
+
     /// Returns the a pale blue texture (useful for a normal map).
     const gpu::TexturePointer& getBlueTexture();
+
+    /// Returns the a black texture (useful for a default).
+    const gpu::TexturePointer& getBlackTexture();
 
     /// Returns a texture version of an image file
     static gpu::TexturePointer getImageTexture(const QString& path);
@@ -112,7 +118,9 @@ private:
  
     gpu::TexturePointer _permutationNormalTexture;
     gpu::TexturePointer _whiteTexture;
+    gpu::TexturePointer _grayTexture;
     gpu::TexturePointer _blueTexture;
+    gpu::TexturePointer _blackTexture;
 
     
     QHash<QUrl, QWeakPointer<NetworkTexture> > _dilatableNetworkTextures;

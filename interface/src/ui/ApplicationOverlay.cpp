@@ -27,7 +27,6 @@
 #include <PerfStat.h>
 
 #include "AudioClient.h"
-#include "audio/AudioIOStatsRenderer.h"
 #include "audio/AudioScope.h"
 #include "Application.h"
 #include "ApplicationOverlay.h"
@@ -127,6 +126,7 @@ void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     glDisable(GL_LIGHTING);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glUseProgram(0);
 
     // give external parties a change to hook in
     emit qApp->renderingOverlay();
@@ -164,19 +164,6 @@ void ApplicationOverlay::renderStatsAndLogs(RenderArgs* renderArgs) {
         drawText(canvasSize.x - 100, canvasSize.y - timerBottom,
             0.30f, 0.0f, 0, frameTimer.toUtf8().constData(), WHITE_TEXT);
     }
-
-    glPointSize(1.0f);
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    NodeBounds& nodeBoundsDisplay = qApp->getNodeBoundsDisplay();
-    nodeBoundsDisplay.drawOverlay();
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_LIGHTING);
-    glEnable(GL_BLEND);
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
-    fboViewport(_overlayFramebuffer);
     */
 }
 

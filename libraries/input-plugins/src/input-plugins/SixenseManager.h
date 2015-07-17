@@ -127,7 +127,6 @@ private:
     bool _hydrasConnected;
     
     bool _lowVelocityFilter;
-    bool _controllersAtBase;
 
     bool _invertButtons = DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS;
 

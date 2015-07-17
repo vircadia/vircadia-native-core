@@ -18,7 +18,6 @@
 #include "AbstractViewStateInterface.h"
 #include "DeferredLightingEffect.h"
 #include "GeometryCache.h"
-#include "GlowEffect.h"
 #include "RenderUtil.h"
 #include "TextureCache.h"
 
@@ -114,9 +113,9 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     loadLightProgram(deferred_light_spot_vert, spot_light_frag, true, _spotLight, _spotLightLocations);
 
     {
-        auto VSFS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto PSBlit = gpu::StandardShaderLib::getDrawTexturePS();
-        auto blitProgram = gpu::ShaderPointer(gpu::Shader::createProgram(VSFS, PSBlit));
+        //auto VSFS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
+        //auto PSBlit = gpu::StandardShaderLib::getDrawTexturePS();
+        auto blitProgram = gpu::StandardShaderLib::getProgram(gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS, gpu::StandardShaderLib::getDrawTexturePS);
         gpu::Shader::makeProgram(*blitProgram);
         gpu::StatePointer blitState = gpu::StatePointer(new gpu::State());
         blitState->setBlendFunction(true,
@@ -238,8 +237,10 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     QSize framebufferSize = textureCache->getFrameBufferSize();
     
     // binding the first framebuffer
-    auto freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebuffer();
+    auto freeFBO = DependencyManager::get<TextureCache>()->getSecondaryFramebuffer();
     batch.setFramebuffer(freeFBO);
+
+    batch.setViewportTransform(args->_viewport);
  
     batch.clearColorFramebuffer(freeFBO->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
     
@@ -251,18 +252,10 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     
     batch.setResourceTexture(3, textureCache->getPrimaryDepthTexture());
         
-    // get the viewport side (left, right, both)
-    int viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-    const int VIEWPORT_X_INDEX = 0;
-    const int VIEWPORT_Y_INDEX = 1;
-    const int VIEWPORT_WIDTH_INDEX = 2;
-    const int VIEWPORT_HEIGHT_INDEX = 3;
-
-    float sMin = viewport[VIEWPORT_X_INDEX] / (float)framebufferSize.width();
-    float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)framebufferSize.width();
-    float tMin = viewport[VIEWPORT_Y_INDEX] / (float)framebufferSize.height();
-    float tHeight = viewport[VIEWPORT_HEIGHT_INDEX] / (float)framebufferSize.height();
+    float sMin = args->_viewport.x / (float)framebufferSize.width();
+    float sWidth = args->_viewport.z / (float)framebufferSize.width();
+    float tMin = args->_viewport.y / (float)framebufferSize.height();
+    float tHeight = args->_viewport.w / (float)framebufferSize.height();
 
     bool useSkyboxCubemap = (_skybox) && (_skybox->getCubemap());
 
@@ -546,7 +539,7 @@ void DeferredLightingEffect::copyBack(RenderArgs* args) {
     auto textureCache = DependencyManager::get<TextureCache>();
     QSize framebufferSize = textureCache->getFrameBufferSize();
 
-    auto freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebuffer();
+    auto freeFBO = DependencyManager::get<TextureCache>()->getSecondaryFramebuffer();
 
     batch.setFramebuffer(textureCache->getPrimaryFramebuffer());
     batch.setPipeline(_blitLightBuffer);
@@ -555,26 +548,18 @@ void DeferredLightingEffect::copyBack(RenderArgs* args) {
 
     batch.setProjectionTransform(glm::mat4());
     batch.setViewTransform(Transform());
+    
+    float sMin = args->_viewport.x / (float)framebufferSize.width();
+    float sWidth = args->_viewport.z / (float)framebufferSize.width();
+    float tMin = args->_viewport.y / (float)framebufferSize.height();
+    float tHeight = args->_viewport.w / (float)framebufferSize.height();
 
-    int viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-    const int VIEWPORT_X_INDEX = 0;
-    const int VIEWPORT_Y_INDEX = 1;
-    const int VIEWPORT_WIDTH_INDEX = 2;
-    const int VIEWPORT_HEIGHT_INDEX = 3;
-
-    float sMin = viewport[VIEWPORT_X_INDEX] / (float)framebufferSize.width();
-    float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)framebufferSize.width();
-    float tMin = viewport[VIEWPORT_Y_INDEX] / (float)framebufferSize.height();
-    float tHeight = viewport[VIEWPORT_HEIGHT_INDEX] / (float)framebufferSize.height();
+    batch.setViewportTransform(args->_viewport);
 
     Transform model;
     model.setTranslation(glm::vec3(sMin, tMin, 0.0));
     model.setScale(glm::vec3(sWidth, tHeight, 1.0));
     batch.setModelTransform(model);
-
-
-    batch.setViewportTransform(glm::ivec4(viewport[0], viewport[1], viewport[2], viewport[3]));
 
     batch.draw(gpu::TRIANGLE_STRIP, 4);
 

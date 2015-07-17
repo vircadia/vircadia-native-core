@@ -63,6 +63,7 @@ public:
    
 public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
+    void updateAvatarRenderStatus(bool shouldRenderAvatars);
 
 private:
     AvatarManager(QObject* parent = 0);

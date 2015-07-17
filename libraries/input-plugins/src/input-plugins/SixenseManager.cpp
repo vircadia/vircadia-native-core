@@ -81,7 +81,6 @@ void SixenseManager::init() {
 
     if (!_isInitialized) {
         _lowVelocityFilter = false;
-        _controllersAtBase = true;
         _calibrationState = CALIBRATION_STATE_IDLE;
         // By default we assume the _neckBase (in orb frame) is as high above the orb
         // as the "torso" is below it.
@@ -234,26 +233,21 @@ void SixenseManager::update(float deltaTime) {
 //                _prevPalms[numActiveControllers - 1] = palm;
 //                qCDebug(interfaceapp, "Found new Sixense controller, ID %i", data->controller_index);
 //            }
-            
             // NOTE: Sixense API returns pos data in millimeters but we IMMEDIATELY convert to meters.
             glm::vec3 position(data->pos[0], data->pos[1], data->pos[2]);
             position *= METERS_PER_MILLIMETER;
             
             // Check to see if this hand/controller is on the base
             const float CONTROLLER_AT_BASE_DISTANCE = 0.075f;
-            if (glm::length(position) < CONTROLLER_AT_BASE_DISTANCE) {
-                numControllersAtBase++;
-            }
-            _controllersAtBase = (numControllersAtBase == 2);
-            
-            if (!_controllersAtBase) {
+            if (glm::length(position) >= CONTROLLER_AT_BASE_DISTANCE) {
+                handleButtonEvent(data->buttons, numActiveControllers - 1);
+                handleAxisEvent(data->joystick_x, data->joystick_y, data->trigger, numActiveControllers - 1);
+
                 //  Rotation of Palm
                 glm::quat rotation(data->rot_quat[3], -data->rot_quat[0], data->rot_quat[1], -data->rot_quat[2]);
                 rotation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)) * _orbRotation * rotation;
-                
+
                 handlePoseEvent(position, rotation, numActiveControllers - 1);
-            } else {
-                _poseStateMap.clear();
             }
 
 //            // Disable the hands (and return to default pose) if both controllers are at base station
@@ -268,8 +262,8 @@ void SixenseManager::update(float deltaTime) {
 //            palm->setTrigger(data->trigger);
 //            palm->setJoystick(data->joystick_x, data->joystick_y);
 
-            handleButtonEvent(data->buttons, numActiveControllers - 1);
-            handleAxisEvent(data->joystick_x, data->joystick_y, data->trigger, numActiveControllers - 1);
+            //handleButtonEvent(data->buttons, numActiveControllers - 1);
+            //handleAxisEvent(data->joystick_x, data->joystick_y, data->trigger, numActiveControllers - 1);
 
 //            // Emulate the mouse so we can use scripts
 //            if (Menu::getInstance()->isOptionChecked(MenuOption::HandMouseInput) && !_controllersAtBase) {

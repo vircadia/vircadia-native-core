@@ -141,7 +141,7 @@ protected:
     bool _jointMappingCompleted;
     QVector<int> _jointMapping;
 
-    static Animation* getAnimation(const QString& url);
+    static AnimationPointer getAnimation(const QString& url);
     static QMap<QString, AnimationPointer> _loadedAnimations;
     static AnimationCache _animationCache;
 
