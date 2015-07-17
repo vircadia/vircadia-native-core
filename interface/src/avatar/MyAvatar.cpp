@@ -108,7 +108,10 @@ MyAvatar::MyAvatar() :
     _hmdSensorPosition(),
     _bodySensorMatrix(),
     _sensorToWorldMatrix(),
-    _standingHMDSensorMode(false)
+    _standingHMDSensorMode(false),
+    _goToPending(false),
+    _goToPosition(),
+    _goToOrientation()
 {
     _firstPersonSkeletonModel.setIsFirstPerson(true);
 
@@ -158,6 +161,12 @@ void MyAvatar::reset() {
 }
 
 void MyAvatar::update(float deltaTime) {
+
+    if (_goToPending) {
+        setPosition(_goToPosition);
+        setOrientation(_goToOrientation);
+        _goToPending = false;
+    }
 
     if (_referential) {
         _referential->update();
@@ -250,21 +259,30 @@ void MyAvatar::simulate(float deltaTime) {
     maybeUpdateBillboard();
 }
 
+glm::mat4 MyAvatar::getSensorToWorldMatrix() const {
+    if (getStandingHMDSensorMode()) {
+        return _sensorToWorldMatrix;
+    } else {
+        return createMatFromQuatAndPos(getWorldAlignedOrientation(), getDefaultEyePosition());
+    }
+}
+
 // best called at end of main loop, just before rendering.
 // update sensor to world matrix from current body position and hmd sensor.
 // This is so the correct camera can be used for rendering.
 void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
-
     // update the sensorMatrices based on the new hmd pose
     _hmdSensorMatrix = hmdSensorMatrix;
     _hmdSensorPosition = extractTranslation(hmdSensorMatrix);
     _hmdSensorOrientation = glm::quat_cast(hmdSensorMatrix);
     _bodySensorMatrix = deriveBodyFromHMDSensor();
 
-    // set the body position/orientation to reflect motion due to the head.
-    auto worldMat = _sensorToWorldMatrix * _bodySensorMatrix;
-    setPosition(extractTranslation(worldMat));
-    setOrientation(glm::quat_cast(worldMat));
+    if (getStandingHMDSensorMode()) {
+        // set the body position/orientation to reflect motion due to the head.
+        auto worldMat = _sensorToWorldMatrix * _bodySensorMatrix;
+        setPosition(extractTranslation(worldMat));
+        setOrientation(glm::quat_cast(worldMat));
+    }
 }
 
 // best called at end of main loop, just before rendering.
@@ -1604,35 +1622,27 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
     qCDebug(interfaceapp).nospace() << "MyAvatar goToLocation - moving to " << newPosition.x << ", "
         << newPosition.y << ", " << newPosition.z;
 
-    if (qApp->isHMDMode() && getStandingHMDSensorMode()) {
-        // AJT: FIXME, does not work with orientation.
-        // AJT: FIXME, does not work with shouldFaceLocation flag.
-        // Set the orientation of the sensor room, not the avatar itself.
-        glm::mat4 m;
-        m[3] = glm::vec4(newPosition, 1);
-        _sensorToWorldMatrix = m;
-    } else {
-        glm::vec3 shiftedPosition = newPosition;
-        if (hasOrientation) {
-            qCDebug(interfaceapp).nospace() << "MyAvatar goToLocation - new orientation is "
-                                            << newOrientation.x << ", " << newOrientation.y << ", " << newOrientation.z << ", " << newOrientation.w;
+    _goToPending = true;
+    _goToPosition = newPosition;
+    _goToOrientation = getOrientation();
+    if (hasOrientation) {
+        qCDebug(interfaceapp).nospace() << "MyAvatar goToLocation - new orientation is "
+                                        << newOrientation.x << ", " << newOrientation.y << ", " << newOrientation.z << ", " << newOrientation.w;
 
-            // orient the user to face the target
-            glm::quat quatOrientation = newOrientation;
+        // orient the user to face the target
+        glm::quat quatOrientation = newOrientation;
 
-            if (shouldFaceLocation) {
-                quatOrientation = newOrientation * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        if (shouldFaceLocation) {
+            quatOrientation = newOrientation * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
 
-                // move the user a couple units away
-                const float DISTANCE_TO_USER = 2.0f;
-                shiftedPosition = newPosition - quatOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
-            }
-
-            setOrientation(quatOrientation);
+            // move the user a couple units away
+            const float DISTANCE_TO_USER = 2.0f;
+            _goToPosition = newPosition - quatOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
         }
 
-        slamPosition(shiftedPosition);
+        _goToOrientation = quatOrientation;
     }
+
     emit transformChanged();
 }
 
