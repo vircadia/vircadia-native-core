@@ -19,11 +19,10 @@
 #include <AudioStreamStats.h>
 #include <Node.h>
 #include <NLPacket.h>
-#include <PacketListener.h>
 
 class MixedProcessedAudioStream;
 
-class AudioIOStats : public QObject, public PacketListener {
+class AudioIOStats : public QObject {
     Q_OBJECT
 public:
     AudioIOStats(MixedProcessedAudioStream* receivedAudioStream);

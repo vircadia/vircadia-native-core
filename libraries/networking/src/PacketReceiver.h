@@ -17,13 +17,13 @@
 #include <QtCore/QMetaMethod>
 #include <QtCore/QMutex>
 #include <QtCore/QObject>
+#include <QtCore/QPointer>
 #include <QtCore/QSet>
 
 #include "NLPacket.h"
 #include "udt/PacketHeaders.h"
 
 class OctreePacketProcessor;
-class PacketListener;
 
 class PacketReceiver : public QObject {
     Q_OBJECT
@@ -40,9 +40,9 @@ public:
     
     void resetCounters() { _inPacketCount = 0; _inByteCount = 0; }
 
-    bool registerListenerForTypes(const QSet<PacketType::Value>& types, PacketListener* listener, const char* slot);
-    bool registerListener(PacketType::Value type, PacketListener* listener, const char* slot);
-    void unregisterListener(PacketListener* listener);
+    bool registerListenerForTypes(const QSet<PacketType::Value>& types, QObject* listener, const char* slot);
+    bool registerListener(PacketType::Value type, QObject* listener, const char* slot);
+    void unregisterListener(QObject* listener);
 
 public slots:
     void processDatagrams();
@@ -55,14 +55,14 @@ signals:
 private:
     // this is a brutal hack for now - ideally GenericThread / ReceivedPacketProcessor
     // should be changed to have a true event loop and be able to handle our QMetaMethod::invoke
-    void registerDirectListenerForTypes(const QSet<PacketType::Value>& types, PacketListener* listener, const char* slot);
+    void registerDirectListenerForTypes(const QSet<PacketType::Value>& types, QObject* listener, const char* slot);
     
     bool packetVersionMatch(const NLPacket& packet);
 
     QMetaMethod matchingMethodForListener(PacketType::Value type, QObject* object, const char* slot) const;
     void registerVerifiedListener(PacketType::Value type, QObject* listener, const QMetaMethod& slot);
     
-    using ObjectMethodPair = std::pair<QObject*, QMetaMethod>;
+    using ObjectMethodPair = std::pair<QPointer<QObject>, QMetaMethod>;
 
     QMutex _packetListenerLock;
     QHash<PacketType::Value, ObjectMethodPair> _packetListenerMap;
