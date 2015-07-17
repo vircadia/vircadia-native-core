@@ -63,6 +63,17 @@ bool PacketReceiver::registerListenerForTypes(const QSet<PacketType::Value>& typ
     return true;
 }
 
+void PacketReceiver::registerDirectListener(PacketType::Value type, QObject* listener, const char* slot) {
+    bool success = registerListener(type, listener, slot);
+    if (success) {
+        _directConnectSetMutex.lock();
+        
+        // if we successfully registered, add this object to the set of objects that are directly connected
+        _directlyConnectedObjects.insert(listener);
+        
+        _directConnectSetMutex.unlock();
+    }
+}
 
 void PacketReceiver::registerDirectListenerForTypes(const QSet<PacketType::Value>& types,
                                                     QObject* listener, const char* slot) {
@@ -72,7 +83,7 @@ void PacketReceiver::registerDirectListenerForTypes(const QSet<PacketType::Value
         _directConnectSetMutex.lock();
         
         // if we successfully registered, add this object to the set of objects that are directly connected
-        _directlyConnectedObjects.insert(dynamic_cast<QObject*>(listener));
+        _directlyConnectedObjects.insert(listener);
         
         _directConnectSetMutex.unlock();
     }
