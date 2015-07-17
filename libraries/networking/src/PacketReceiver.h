@@ -23,6 +23,7 @@
 #include "NLPacket.h"
 #include "udt/PacketHeaders.h"
 
+class EntityEditPacketSender;
 class OctreePacketProcessor;
 
 class PacketReceiver : public QObject {
@@ -53,9 +54,10 @@ signals:
     void packetVersionMismatch(PacketType::Value type);
     
 private:
-    // this is a brutal hack for now - ideally GenericThread / ReceivedPacketProcessor
+    // these are brutal hacks for now - ideally GenericThread / ReceivedPacketProcessor
     // should be changed to have a true event loop and be able to handle our QMetaMethod::invoke
     void registerDirectListenerForTypes(const QSet<PacketType::Value>& types, QObject* listener, const char* slot);
+    void registerDirectListener(PacketType::Value type, QObject* listener, const char* slot);
     
     bool packetVersionMatch(const NLPacket& packet);
 
@@ -72,6 +74,7 @@ private:
     QMutex _directConnectSetMutex;
     QSet<QObject*> _directlyConnectedObjects;
     
+    friend class EntityEditPacketSender;
     friend class OctreePacketProcessor;
 };
 
