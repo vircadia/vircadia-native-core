@@ -17,7 +17,7 @@
 #include <GeometryUtil.h>
 #include <NumericalConstants.h>
 #include <OctreePacketData.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <PathUtils.h>
 #include <SharedUtil.h>
 
@@ -194,30 +194,6 @@ bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3
         }
     }
     return found;
-}
-
-int Environment::processPacket(NLPacket& packet) {
-    // push past flags, sequence, timestamp
-    packet.seek(sizeof(OCTREE_PACKET_FLAGS) + sizeof(OCTREE_PACKET_SEQUENCE) + sizeof(OCTREE_PACKET_SENT_TIME));
-    
-    // get the lock for the duration of the call
-    QMutexLocker locker(&_mutex);
-    
-    EnvironmentData newData;
-    
-    while (packet.bytesAvailable() > 0) {
-        int dataLength = newData.parseData(reinterpret_cast<const unsigned char*>(packet.getPayload() + packet.pos()),
-                                           packet.bytesAvailable());
-        packet.seek(packet.pos() + dataLength);
-        
-        // update the mapping by address/ID
-        _data[packet.getSourceID()][newData.getID()] = newData;
-    }
-    
-    // remove the default mapping, if any
-    _data.remove(QUuid());
-    
-    return packet.pos();
 }
 
 void Environment::renderAtmosphere(gpu::Batch& batch, ViewFrustum& camera, const EnvironmentData& data) {

@@ -13,7 +13,7 @@
 #define hifi_OctreeEditPacketSender_h
 
 #include <PacketSender.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 
 #include "JurisdictionMap.h"
 #include "SentPacketHistory.h"
@@ -83,7 +83,7 @@ public:
     virtual char getMyNodeType() const = 0;
     virtual void adjustEditPacketForClockSkew(PacketType::Value type, QByteArray& buffer, int clockSkew) { }
 
-    void processNackPacket(const QByteArray& packet);
+    void processNackPacket(NLPacket& packet, SharedNodePointer sendingNode);
 
 public slots:
     void nodeKilled(SharedNodePointer node);

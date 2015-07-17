@@ -12,7 +12,7 @@
 #ifndef hifi_OctreeHeadlessViewer_h
 #define hifi_OctreeHeadlessViewer_h
 
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 
 #include "JurisdictionListener.h"

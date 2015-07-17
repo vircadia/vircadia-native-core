@@ -14,13 +14,12 @@
 #include <AddressManager.h>
 #include <JSONBreakableMarshal.h>
 #include <LogHandler.h>
+#include <udt/PacketHeaders.h>
 
 #include "AssignmentClientMonitor.h"
 #include "AssignmentClientApp.h"
 #include "AssignmentClientChildData.h"
-#include "PacketHeaders.h"
 #include "SharedUtil.h"
-
 
 const QString ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME = "assignment-client-monitor";
 const int WAIT_FOR_CHILD_MSECS = 1000;
@@ -176,7 +175,7 @@ void AssignmentClientMonitor::checkSpares() {
         AssignmentClientChildData* childData = static_cast<AssignmentClientChildData*>(node->getLinkedData());
         totalCount ++;
         if (childData->getChildType() == Assignment::Type::AllTypes) {
-            spareCount ++;
+            ++spareCount;
             aSpareId = node->getUUID();
         }
     });
@@ -197,13 +196,14 @@ void AssignmentClientMonitor::checkSpares() {
             childNode->activateLocalSocket();
 
             auto diePacket = NLPacket::create(PacketType::StopNode, 0);
-            nodeList->sendPacket(std::move(diePacket), childNode);
+            nodeList->sendPacket(std::move(diePacket), *childNode);
         }
     }
 }
 
 void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<NLPacket> packet) {
-    QUuid senderID = QUuid::fromRfc4122(QByteArray::fromRawData(packet->getData(), NUM_BYTES_RFC4122_UUID));
+    // read out the sender ID
+    QUuid senderID = QUuid::fromRfc4122(packet->read(NUM_BYTES_RFC4122_UUID));
 
     auto nodeList = DependencyManager::get<NodeList>();
 

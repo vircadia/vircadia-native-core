@@ -20,7 +20,7 @@
 
 #include <LogHandler.h>
 #include <NodeList.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 #include <UUID.h>
 #include <TryLocker.h>
@@ -219,7 +219,7 @@ void AvatarMixer::broadcastAvatarData() {
             }
 
             // setup a PacketList for the avatarPackets
-            NLPacketList avatarPacketList(PacketType::AvatarData);
+            NLPacketList avatarPacketList(PacketType::BulkAvatarData);
 
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
@@ -318,7 +318,7 @@ void AvatarMixer::broadcastAvatarData() {
                         billboardPacket->write(rfcUUID);
                         billboardPacket->write(billboard);
 
-                        nodeList->sendPacket(std::move(billboardPacket), node);
+                        nodeList->sendPacket(std::move(billboardPacket), *node);
 
                         ++_sumBillboardPackets;
                     }
@@ -336,14 +336,17 @@ void AvatarMixer::broadcastAvatarData() {
 
                         identityPacket->write(individualData);
 
-                        nodeList->sendPacket(std::move(identityPacket), node);
+                        nodeList->sendPacket(std::move(identityPacket), *node);
 
                         ++_sumIdentityPackets;
                     }
             });
+            
+            // close the current packet so that we're always sending something
+            avatarPacketList.closeCurrentPacket(true);
 
             // send the avatar data PacketList
-            nodeList->sendPacketList(avatarPacketList, node);
+            nodeList->sendPacketList(avatarPacketList, *node);
 
             // record the bytes sent for other avatar data in the AvatarMixerClientData
             nodeData->recordSentAvatarData(numAvatarDataBytes);

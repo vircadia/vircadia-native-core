@@ -31,14 +31,13 @@
 #include <NodeList.h>
 #include <OctreeQuery.h>
 #include <OffscreenUi.h>
-#include <PacketHeaders.h>
-#include <PacketListener.h>
 #include <PhysicalEntitySimulation.h>
 #include <PhysicsEngine.h>
 #include <ScriptEngine.h>
 #include <ShapeManager.h>
 #include <StDev.h>
 #include <TextureCache.h>
+#include <udt/PacketHeaders.h>
 #include <ViewFrustum.h>
 
 #include "AudioClient.h"
@@ -48,7 +47,6 @@
 #include "FileLogger.h"
 #include "GLCanvas.h"
 #include "Menu.h"
-#include "PacketHeaders.h"
 #include "Physics.h"
 #include "Stars.h"
 #include "avatar/Avatar.h"
@@ -127,10 +125,7 @@ class Application;
 
 typedef bool (Application::* AcceptURLMethod)(const QString &);
 
-class Application : public QApplication,
-    public AbstractViewStateInterface,
-    AbstractScriptingServicesInterface,
-    public PacketListener {
+class Application : public QApplication, public AbstractViewStateInterface, public AbstractScriptingServicesInterface {
     Q_OBJECT
 
     friend class OctreePacketProcessor;

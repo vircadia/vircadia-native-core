@@ -12,7 +12,7 @@
 #ifndef hifi_EntityNodeData_h
 #define hifi_EntityNodeData_h
 
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 
 #include "../octree/OctreeQueryNode.h"
 

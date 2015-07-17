@@ -67,7 +67,7 @@ void OctreeRenderer::processDatagram(NLPacket& packet, SharedNodePointer sourceN
         PerformanceWarning warn(showTimingDetails, "OctreeRenderer::processDatagram expected PacketType", showTimingDetails);
         // if we are getting inbound packets, then our tree is also viewing, and we should remember that fact.
         _tree->setIsViewing(true);
-
+        
         OCTREE_PACKET_FLAGS flags;
         packet.readPrimitive(&flags);
         
@@ -90,7 +90,7 @@ void OctreeRenderer::processDatagram(NLPacket& packet, SharedNodePointer sourceN
             qCDebug(octree, "OctreeRenderer::processDatagram() ... Got Packet Section"
                    " color:%s compressed:%s sequence: %u flight:%d usec size:%lld data:%lld",
                    debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
-                   sequence, flightTime, packet.getSizeWithHeader(), packet.bytesAvailable());
+                   sequence, flightTime, packet.getDataSize(), packet.bytesLeftToRead());
         }
         
         _packetsInLastWindow++;
@@ -108,16 +108,16 @@ void OctreeRenderer::processDatagram(NLPacket& packet, SharedNodePointer sourceN
         
         bool error = false;
         
-        while (packet.bytesAvailable() > 0 && !error) {
+        while (packet.bytesLeftToRead() > 0 && !error) {
             if (packetIsCompressed) {
-                if (packet.bytesAvailable() > (qint64) sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE)) {
+                if (packet.bytesLeftToRead() > (qint64) sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE)) {
                     packet.readPrimitive(&sectionLength);
                 } else {
                     sectionLength = 0;
                     error = true;
                 }
             } else {
-                sectionLength = packet.bytesAvailable();
+                sectionLength = packet.bytesLeftToRead();
             }
             
             if (sectionLength) {
@@ -139,7 +139,7 @@ void OctreeRenderer::processDatagram(NLPacket& packet, SharedNodePointer sourceN
                            " color:%s compressed:%s sequence: %u flight:%d usec size:%lld data:%lld"
                            " subsection:%d sectionLength:%d uncompressed:%d",
                            debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
-                           sequence, flightTime, packet.getSizeWithHeader(), packet.bytesAvailable(), subsection, sectionLength,
+                           sequence, flightTime, packet.getDataSize(), packet.bytesLeftToRead(), subsection, sectionLength,
                            packetData.getUncompressedSize());
                 }
                 

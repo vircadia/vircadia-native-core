@@ -1,6 +1,6 @@
 //
 //  EntityEditPacketSender.h
-//  libraries/models/src
+//  libraries/entities/src
 //
 //  Created by Brad Hefta-Gaub on 8/12/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -14,12 +14,10 @@
 
 #include <OctreeEditPacketSender.h>
 
-#include <PacketListener.h>
-
 #include "EntityItem.h"
 
 /// Utility for processing, packing, queueing and sending of outbound edit voxel messages.
-class EntityEditPacketSender :  public OctreeEditPacketSender, public PacketListener {
+class EntityEditPacketSender :  public OctreeEditPacketSender {
     Q_OBJECT
 public:
     EntityEditPacketSender();
@@ -32,16 +30,15 @@ public:
 
     void queueEraseEntityMessage(const EntityItemID& entityItemID);
 
-    void processEntityEditNackPacket(QSharedPointer<NLPacket> packet);
-
     // My server type is the model server
     virtual char getMyNodeType() const { return NodeType::EntityServer; }
     virtual void adjustEditPacketForClockSkew(PacketType::Value type, QByteArray& buffer, int clockSkew);
 
 public slots:
-    void toggleNackPackets() { _shouldNack = !_shouldNack; }
+    void processEntityEditNackPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void toggleNackPackets() { _shouldProcessNack = !_shouldProcessNack; }
 
 private:
-    bool _shouldNack = false;
+    bool _shouldProcessNack = true;
 };
 #endif // hifi_EntityEditPacketSender_h

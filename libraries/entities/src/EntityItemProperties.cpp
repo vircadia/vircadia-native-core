@@ -900,14 +900,11 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType::Value command, Ent
 //
 // TODO: Implement support for script and visible properties.
 //
-bool EntityItemProperties::decodeEntityEditPacket(NLPacket& packet, int& processedBytes,
+bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
                                                   EntityItemID& entityID, EntityItemProperties& properties) {
     bool valid = false;
     
-    const unsigned char* data = reinterpret_cast<const unsigned char*>(packet.getPayload());
     const unsigned char* dataAt = data;
-    
-    int bytesToRead = packet.getSizeUsed();
     processedBytes = 0;
 
     // the first part of the data is an octcode, this is a required element of the edit packet format, but we don't
@@ -933,10 +930,9 @@ bool EntityItemProperties::decodeEntityEditPacket(NLPacket& packet, int& process
     //   2) if the edit is to a new entity, the created time is the last edited time
 
     // encoded id
-    QByteArray encodedID((const char*)dataAt, NUM_BYTES_RFC4122_UUID); // maximum possible size
-    QUuid editID = QUuid::fromRfc4122(encodedID);
-    dataAt += encodedID.size();
-    processedBytes += encodedID.size();
+    QUuid editID = QUuid::fromRfc4122(QByteArray::fromRawData(reinterpret_cast<const char*>(dataAt), NUM_BYTES_RFC4122_UUID));
+    dataAt += NUM_BYTES_RFC4122_UUID;
+    processedBytes += NUM_BYTES_RFC4122_UUID;
 
     entityID = editID;
     valid = true;

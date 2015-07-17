@@ -179,7 +179,7 @@ public:
 
     static bool encodeEraseEntityMessage(const EntityItemID& entityItemID, QByteArray& buffer);
 
-    static bool decodeEntityEditPacket(NLPacket& packet, int& processedBytes,
+    static bool decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
                                        EntityItemID& entityID, EntityItemProperties& properties);
 
     bool glowLevelChanged() const { return _glowLevelChanged; }

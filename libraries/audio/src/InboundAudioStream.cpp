@@ -15,7 +15,6 @@
 #include <Node.h>
 
 #include "InboundAudioStream.h"
-#include "PacketHeaders.h"
 
 const int STARVE_HISTORY_CAPACITY = 50;
 
@@ -100,7 +99,7 @@ void InboundAudioStream::perSecondCallbackForUpdatingStats() {
 }
 
 int InboundAudioStream::parseData(NLPacket& packet) {
-
+    
     // parse sequence number and track it
     quint16 sequence;
     packet.readPrimitive(&sequence);
@@ -110,13 +109,12 @@ int InboundAudioStream::parseData(NLPacket& packet) {
     packetReceivedUpdateTimingStats();
 
     int networkSamples;
-
+    
     // parse the info after the seq number and before the audio data (the stream properties)
-    int propertyBytes = parseStreamProperties(packet.getType(),
-                                              QByteArray::fromRawData(packet.getPayload(), packet.pos()),
-                                              networkSamples);
-    packet.seek(packet.pos() + propertyBytes);
-
+    int prePropertyPosition = packet.pos();
+    int propertyBytes = parseStreamProperties(packet.getType(), packet.read(packet.bytesLeftToRead()), networkSamples);
+    packet.seek(prePropertyPosition + propertyBytes);
+    
     // handle this packet based on its arrival status.
     switch (arrivalInfo._status) {
         case SequenceNumberStats::Early: {
@@ -133,9 +131,7 @@ int InboundAudioStream::parseData(NLPacket& packet) {
             if (packet.getType() == PacketType::SilentAudioFrame) {
                 writeDroppableSilentSamples(networkSamples);
             } else {
-                int audioBytes = parseAudioData(packet.getType(), QByteArray::fromRawData(packet.getPayload(), packet.pos()),
-                                                networkSamples);
-                packet.seek(packet.pos() + audioBytes);
+                parseAudioData(packet.getType(), packet.read(packet.bytesLeftToRead()), networkSamples);
             }
             break;
         }

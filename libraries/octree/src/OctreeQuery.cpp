@@ -10,7 +10,7 @@
 //
 
 #include <GLMHelpers.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 
 #include "OctreeConstants.h"
 #include "OctreeQuery.h"

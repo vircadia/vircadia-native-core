@@ -1,6 +1,6 @@
 //
 //  EntityEditPacketSender.cpp
-//  libraries/models/src
+//  libraries/entities/src
 //
 //  Created by Brad Hefta-Gaub on 8/12/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -12,19 +12,19 @@
 #include <assert.h>
 #include <PerfStat.h>
 #include <OctalCode.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include "EntityEditPacketSender.h"
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
 
 EntityEditPacketSender::EntityEditPacketSender() {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::EntityEditNack, this, "processEntityEditNackPacket");
+    packetReceiver.registerDirectListener(PacketType::EntityEditNack, this, "processEntityEditNackPacket");
 }
 
-void EntityEditPacketSender::processEntityEditNackPacket(QSharedPointer<NLPacket> packet) {
-    if (_shouldNack) {
-        processNackPacket(QByteArray::fromRawData(packet->getData(), packet->getSizeWithHeader()));
+void EntityEditPacketSender::processEntityEditNackPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+    if (_shouldProcessNack) {
+        processNackPacket(*packet, sendingNode);
     }
 }
 

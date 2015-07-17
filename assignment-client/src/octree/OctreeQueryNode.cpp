@@ -14,7 +14,7 @@
 #include <cstring>
 #include <cstdio>
 
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 #include <UUID.h>
 
@@ -108,10 +108,10 @@ bool OctreeQueryNode::packetIsDuplicate() const {
     // since our packets now include header information, like sequence number, and createTime, we can't just do a memcmp
     // of the entire packet, we need to compare only the packet content...
 
-    if (_lastOctreePacketLength == _octreePacket->getSizeUsed()) {
+    if (_lastOctreePacketLength == _octreePacket->getPayloadSize()) {
         if (memcmp(_lastOctreePayload + OCTREE_PACKET_EXTRA_HEADERS_SIZE,
                    _octreePacket->getPayload() + OCTREE_PACKET_EXTRA_HEADERS_SIZE,
-                   _octreePacket->getSizeUsed() - OCTREE_PACKET_EXTRA_HEADERS_SIZE) == 0) {
+                   _octreePacket->getPayloadSize() - OCTREE_PACKET_EXTRA_HEADERS_SIZE) == 0) {
             return true;
         }
     }
@@ -176,7 +176,7 @@ void OctreeQueryNode::resetOctreePacket() {
     // changed since we last reset it. Since we know that no two packets can ever be identical without being the same
     // scene information, (e.g. the root node packet of a static scene), we can use this as a strategy for reducing
     // packet send rate.
-    _lastOctreePacketLength = _octreePacket->getSizeUsed();
+    _lastOctreePacketLength = _octreePacket->getPayloadSize();
     memcpy(_lastOctreePayload, _octreePacket->getPayload(), _lastOctreePacketLength);
 
     // If we're moving, and the client asked for low res, then we force monochrome, otherwise, use
@@ -218,7 +218,7 @@ void OctreeQueryNode::writeToPacket(const unsigned char* buffer, unsigned int by
         OCTREE_PACKET_INTERNAL_SECTION_SIZE sectionSize = bytes;
         _octreePacket->writePrimitive(sectionSize);
     }
-    if (bytes <= _octreePacket->bytesAvailable()) {
+    if (bytes <= _octreePacket->bytesAvailableForWrite()) {
         _octreePacket->write(reinterpret_cast<const char*>(buffer), bytes);
         _octreePacketWaiting = true;
     }
@@ -374,21 +374,11 @@ const NLPacket* OctreeQueryNode::getNextNackedPacket() {
     return nullptr;
 }
 
-void OctreeQueryNode::parseNackPacket(const QByteArray& packet) {
-
-    int numBytesPacketHeader = numBytesForPacketHeader(packet);
-    const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data()) + numBytesPacketHeader;
-
-    // TODO: This no longer has the number of sequence numbers - just read to the end of the packet in sequence number blocks
-
-    // read number of sequence numbers
-    uint16_t numSequenceNumbers = (*(uint16_t*)dataAt);
-    dataAt += sizeof(uint16_t);
-
+void OctreeQueryNode::parseNackPacket(NLPacket& packet) {
     // read sequence numbers
-    for (int i = 0; i < numSequenceNumbers; i++) {
-        OCTREE_PACKET_SEQUENCE sequenceNumber = (*(OCTREE_PACKET_SEQUENCE*)dataAt);
+    while (packet.bytesLeftToRead()) {
+        OCTREE_PACKET_SEQUENCE sequenceNumber;
+        packet.readPrimitive(&sequenceNumber);
         _nackedSequenceNumbers.enqueue(sequenceNumber);
-        dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
     }
 }

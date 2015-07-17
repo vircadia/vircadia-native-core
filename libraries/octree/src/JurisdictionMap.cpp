@@ -16,7 +16,7 @@
 
 #include <DependencyManager.h>
 #include <NodeList.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <OctalCode.h>
 
 #include "OctreeLogging.h"
@@ -260,7 +260,7 @@ std::unique_ptr<NLPacket> JurisdictionMap::packEmptyJurisdictionIntoMessage(Node
     // No root or end node details to pack!
     packet->writePrimitive(bytes);
 
-    return std::move(packet); // includes header!
+    return packet; // includes header!
 }
 
 std::unique_ptr<NLPacket> JurisdictionMap::packIntoPacket() {
@@ -295,7 +295,7 @@ std::unique_ptr<NLPacket> JurisdictionMap::packIntoPacket() {
         packet->writePrimitive(bytes);
     }
 
-    return std::move(packet);
+    return packet;
 }
 
 int JurisdictionMap::unpackFromPacket(NLPacket& packet) {
@@ -305,7 +305,7 @@ int JurisdictionMap::unpackFromPacket(NLPacket& packet) {
     int bytes = 0;
     packet.readPrimitive(&bytes);
 
-    if (bytes > 0 && bytes <= packet.bytesAvailable()) {
+    if (bytes > 0 && bytes <= packet.bytesLeftToRead()) {
         _rootOctalCode = new unsigned char[bytes];
         packet.read(reinterpret_cast<char*>(_rootOctalCode), bytes);
 
@@ -317,7 +317,7 @@ int JurisdictionMap::unpackFromPacket(NLPacket& packet) {
             int bytes = 0;
             packet.readPrimitive(&bytes);
 
-            if (bytes <= packet.bytesAvailable()) {
+            if (bytes <= packet.bytesLeftToRead()) {
                 unsigned char* endNodeCode = new unsigned char[bytes];
                 packet.read(reinterpret_cast<char*>(endNodeCode), bytes);
 
