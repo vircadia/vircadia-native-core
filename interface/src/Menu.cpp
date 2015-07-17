@@ -226,6 +226,10 @@ Menu::Menu() {
     MenuWrapper* avatarMenu = addMenu("Avatar");
     QObject* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
+    MenuWrapper* inputModeMenu = addMenu(MenuOption::InputMenu);
+    QActionGroup* inputModeGroup = new QActionGroup(inputModeMenu);
+    inputModeGroup->setExclusive(false);
+    
     MenuWrapper* avatarSizeMenu = avatarMenu->addMenu("Size");
     addActionToQMenuAndActionHash(avatarSizeMenu,
                                   MenuOption::IncreaseAvatarSize,

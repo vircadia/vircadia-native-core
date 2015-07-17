@@ -22,7 +22,8 @@
 #include "Tooltip.h"
 
 #include "Application.h"
-#include <input-plugins\SixenseManager.h> // TODO: any references to sixense should be removed here
+#include <input-plugins/SixenseManager.h> // TODO: any references to sixense should be removed here
+#include <input-plugins/InputDevice.h>
 
 
 // Used to animate the magnification windows
@@ -506,7 +507,7 @@ void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
             float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)M_PI_2));
 
             // Get the pixel range over which the xAngle and yAngle are scaled
-            float cursorRange = canvasSize.x * SixenseManager::getInstance().getCursorPixelRangeMult();
+            float cursorRange = canvasSize.x * InputDevice::getCursorPixelRangeMult();
 
             mouseX = (canvasSize.x / 2.0f + cursorRange * xAngle);
             mouseY = (canvasSize.y / 2.0f + cursorRange * yAngle);

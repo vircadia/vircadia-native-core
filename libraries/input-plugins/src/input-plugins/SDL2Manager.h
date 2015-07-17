@@ -26,20 +26,16 @@ class SDL2Manager : public InputPlugin {
     
 public:
     SDL2Manager();
-    ~SDL2Manager();
-
-    static SDL2Manager* getInstance();
-
+    
     // Plugin functions
     virtual bool isSupported() const override;
-    virtual bool isHandController() const override { return false; }
+    virtual bool isJointController() const override { return false; }
     const QString& getName() const { return NAME; }
 
-    virtual void init() override {};
-    virtual void deinit() override {};
+    virtual void init() override;
+    virtual void deinit() override;
     virtual void activate(PluginContainer * container) override {};
     virtual void deactivate() override {};
-    virtual void idle() override {};
     
     virtual void pluginFocusOutEvent() override;
     virtual void pluginUpdate(float deltaTime) override;

@@ -54,6 +54,7 @@
 #include "Stars.h"
 #include "avatar/Avatar.h"
 #include "avatar/MyAvatar.h"
+#include <input-plugins/KeyboardMouseDevice.h>
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/WebWindowClass.h"
 #include "ui/BandwidthDialog.h"
@@ -68,11 +69,11 @@
 #include "ui/ApplicationCompositor.h"
 #include "ui/RunningScriptsWidget.h"
 #include "ui/ToolWindow.h"
-#include "devices/KeyboardMouseDevice.h"
 #include "octree/OctreeFade.h"
 #include "octree/OctreePacketProcessor.h"
 #include "UndoStackScriptingInterface.h"
 #include "DisplayPlugins.h"
+#include "InputPlugins.h"
 #include "render/Engine.h"
 
 class QGLWidget;
@@ -385,6 +386,7 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
     void updateDisplayMode();
+    void updateInputModes();
 
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
@@ -513,6 +515,7 @@ private:
 
     OffscreenGlCanvas* _offscreenContext;
     DisplayPluginPointer _displayPlugin;
+    InputPluginList _activeInputPlugins;
 
     MainWindow* _window;
 
@@ -553,10 +556,10 @@ private:
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
 
-    KeyboardMouseDevice _keyboardMouseDevice;   // Default input device, the good old keyboard mouse and maybe touchpad
-    MyAvatar* _myAvatar;                        // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
-    Camera _myCamera;                           // My view onto the world
-    Camera _mirrorCamera;              // Cammera for mirror view
+    KeyboardMouseDevice* _keyboardMouseDevice;   // Default input device, the good old keyboard mouse and maybe touchpad
+    MyAvatar* _myAvatar;                         // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
+    Camera _myCamera;                            // My view onto the world
+    Camera _mirrorCamera;                        // Cammera for mirror view
     QRect _mirrorViewRect;
     
     Setting::Handle<bool>       _firstRun;

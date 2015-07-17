@@ -22,6 +22,7 @@
 #include "UserActivityLogger.h"
 
 extern vr::IVRSystem *_hmd;
+extern int hmdRefCount;
 extern vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 extern mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
 
@@ -43,15 +44,8 @@ const QString CONTROLLER_MODEL_STRING = "vr_controller_05_wireless_b";
 
 const QString ViveControllerManager::NAME = "OpenVR";
 
-ViveControllerManager& ViveControllerManager::getInstance() {
-    static ViveControllerManager sharedInstance;
-    return sharedInstance;
-}
-
 ViveControllerManager::ViveControllerManager() :
         InputDevice("SteamVR Controller"),
-    _isInitialized(false),
-    _isEnabled(true),
     _trackedControllers(0),
     _modelLoaded(false),
     _leftHandRenderID(0),
@@ -60,19 +54,12 @@ ViveControllerManager::ViveControllerManager() :
     
 }
 
-ViveControllerManager::~ViveControllerManager() {
-
-}
-
 bool ViveControllerManager::isSupported() const {
     return vr::VR_IsHmdPresent();
 }
 
-void ViveControllerManager::deinit() {
-    // TODO: deinit openvr?  avoid conflicts with display plugin
-}
-
-void ViveControllerManager::init() {
+void ViveControllerManager::activate(PluginContainer* container) {
+    hmdRefCount++;
     if (!_hmd) {
         vr::HmdError eError = vr::HmdError_None;
         _hmd = vr::VR_Init(&eError);
@@ -125,8 +112,16 @@ void ViveControllerManager::init() {
 
         _modelLoaded = true;
     }
+}
 
-    _isInitialized = true;
+void ViveControllerManager::deactivate() {
+    hmdRefCount--;
+
+    if (hmdRefCount == 0 && _hmd) {
+        vr::VR_Shutdown();
+        _hmd = nullptr;
+    }
+    _poseStateMap.clear();
 }
 
 void ViveControllerManager::updateRendering(RenderArgs* args, render::ScenePointer scene, render::PendingChanges pendingChanges) {
@@ -192,68 +187,68 @@ void ViveControllerManager::renderHand(UserInputMapper::PoseValue pose, gpu::Bat
 }
 
 void ViveControllerManager::update(float deltaTime) {
+    // TODO: This shouldn't be necessary
     if (!_hmd) {
         return;
     }
+
     _buttonPressedMap.clear();
-    if (_isInitialized && _isEnabled) {
         
-        PerformanceTimer perfTimer("ViveControllerManager::update");
+    PerformanceTimer perfTimer("ViveControllerManager::update");
 
-        int numTrackedControllers = 0;
+    int numTrackedControllers = 0;
         
-        for (vr::TrackedDeviceIndex_t device = vr::k_unTrackedDeviceIndex_Hmd + 1;
-             device < vr::k_unMaxTrackedDeviceCount && numTrackedControllers < 2; ++device) {
+    for (vr::TrackedDeviceIndex_t device = vr::k_unTrackedDeviceIndex_Hmd + 1;
+            device < vr::k_unMaxTrackedDeviceCount && numTrackedControllers < 2; ++device) {
             
-            if (!_hmd->IsTrackedDeviceConnected(device)) {
-                continue;
-            }
+        if (!_hmd->IsTrackedDeviceConnected(device)) {
+            continue;
+        }
             
-            if(_hmd->GetTrackedDeviceClass(device) != vr::TrackedDeviceClass_Controller) {
-                continue;
-            }
+        if(_hmd->GetTrackedDeviceClass(device) != vr::TrackedDeviceClass_Controller) {
+            continue;
+        }
 
-            if (!_trackedDevicePose[device].bPoseIsValid) {
-                continue;
-            }
+        if (!_trackedDevicePose[device].bPoseIsValid) {
+            continue;
+        }
             
-            numTrackedControllers++;
+        numTrackedControllers++;
             
-            const mat4& mat = _trackedDevicePoseMat4[device];
+        const mat4& mat = _trackedDevicePoseMat4[device];
                         
-            handlePoseEvent(mat, numTrackedControllers - 1);
+        handlePoseEvent(mat, numTrackedControllers - 1);
             
-            // handle inputs
-            vr::VRControllerState_t controllerState = vr::VRControllerState_t();
-            if (_hmd->GetControllerState(device, &controllerState)) {
-                //qDebug() << (numTrackedControllers == 1 ? "Left: " : "Right: ");
-                //qDebug() << "Trackpad: " << controllerState.rAxis[0].x << " " << controllerState.rAxis[0].y;
-                //qDebug() << "Trigger: " << controllerState.rAxis[1].x << " " << controllerState.rAxis[1].y;
-                handleButtonEvent(controllerState.ulButtonPressed, numTrackedControllers - 1);
-                for (int i = 0; i < vr::k_unControllerStateAxisCount; i++) {
-                    handleAxisEvent(Axis(i), controllerState.rAxis[i].x, controllerState.rAxis[i].y, numTrackedControllers - 1);
-                }
+        // handle inputs
+        vr::VRControllerState_t controllerState = vr::VRControllerState_t();
+        if (_hmd->GetControllerState(device, &controllerState)) {
+            //qDebug() << (numTrackedControllers == 1 ? "Left: " : "Right: ");
+            //qDebug() << "Trackpad: " << controllerState.rAxis[0].x << " " << controllerState.rAxis[0].y;
+            //qDebug() << "Trigger: " << controllerState.rAxis[1].x << " " << controllerState.rAxis[1].y;
+            handleButtonEvent(controllerState.ulButtonPressed, numTrackedControllers - 1);
+            for (int i = 0; i < vr::k_unControllerStateAxisCount; i++) {
+                handleAxisEvent(Axis(i), controllerState.rAxis[i].x, controllerState.rAxis[i].y, numTrackedControllers - 1);
             }
         }
-        
-        auto userInputMapper = DependencyManager::get<UserInputMapper>();
-        
-        if (numTrackedControllers == 0) {
-            if (_deviceID != 0) {
-                userInputMapper->removeDevice(_deviceID);
-                _deviceID = 0;
-                _poseStateMap.clear();
-            }
-        }
-        
-        if (_trackedControllers == 0 && numTrackedControllers > 0) {
-            registerToUserInputMapper(*userInputMapper);
-            assignDefaultInputMapping(*userInputMapper);
-            UserActivityLogger::getInstance().connectedDevice("spatial_controller", "steamVR");
-        }
-        
-        _trackedControllers = numTrackedControllers;
     }
+        
+    auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        
+    if (numTrackedControllers == 0) {
+        if (_deviceID != 0) {
+            userInputMapper->removeDevice(_deviceID);
+            _deviceID = 0;
+            _poseStateMap.clear();
+        }
+    }
+        
+    if (_trackedControllers == 0 && numTrackedControllers > 0) {
+        registerToUserInputMapper(*userInputMapper);
+        assignDefaultInputMapping(*userInputMapper);
+        UserActivityLogger::getInstance().connectedDevice("spatial_controller", "steamVR");
+    }
+        
+    _trackedControllers = numTrackedControllers;
 }
 
 void ViveControllerManager::focusOutEvent() {

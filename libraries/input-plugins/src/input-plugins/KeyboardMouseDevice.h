@@ -14,8 +14,8 @@
 
 #include <QTouchEvent>
 #include <chrono>
-#include <input-plugins/InputDevice.h>
-#include <input-plugins/InputPlugin.h>
+#include "InputDevice.h"
+#include "InputPlugin.h"
 
 class KeyboardMouseDevice : public InputPlugin, public InputDevice {
     Q_OBJECT
@@ -58,14 +58,11 @@ public:
 
     // Plugin functions
     virtual bool isSupported() const override { return true; }
-    virtual bool isHandController() const override { return false; }
+    virtual bool isJointController() const override { return false; }
     const QString& getName() const { return NAME; }
 
-    virtual void init() override {};
-    virtual void deinit() override {};
     virtual void activate(PluginContainer * container) override {};
     virtual void deactivate() override {};
-    virtual void idle() override {};
 
     virtual void pluginFocusOutEvent() override { focusOutEvent(); }
     virtual void pluginUpdate(float deltaTime) override { update(deltaTime); }
@@ -96,6 +93,8 @@ public:
     UserInputMapper::Input makeInput(KeyboardMouseDevice::TouchAxisChannel axis);
     UserInputMapper::Input makeInput(KeyboardMouseDevice::TouchButtonChannel button);
 
+    static const QString NAME;
+
 protected:
     QPoint _lastCursor;
     glm::vec2 _lastTouch;
@@ -104,9 +103,6 @@ protected:
     glm::vec2 evalAverageTouchPoints(const QList<QTouchEvent::TouchPoint>& points) const;
     std::chrono::high_resolution_clock _clock;
     std::chrono::high_resolution_clock::time_point _lastTouchTime;
-
-private:
-    static const QString NAME;
 };
 
 #endif // hifi_KeyboardMouseDevice_h

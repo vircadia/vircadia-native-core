@@ -36,6 +36,7 @@ const QString & OpenVrDisplayPlugin::getName() const {
 }
 
 vr::IVRSystem *_hmd{ nullptr };
+int hmdRefCount = 0;
 static vr::IVRCompositor* _compositor{ nullptr };
 vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
@@ -79,6 +80,7 @@ bool OpenVrDisplayPlugin::isSupported() const {
 }
 
 void OpenVrDisplayPlugin::activate(PluginContainer * container) {
+    hmdRefCount++;
 	vr::HmdError eError = vr::HmdError_None;
     if (!_hmd) {
         _hmd = vr::VR_Init(&eError);
@@ -119,8 +121,12 @@ void OpenVrDisplayPlugin::activate(PluginContainer * container) {
 }
 
 void OpenVrDisplayPlugin::deactivate() {
-    vr::VR_Shutdown();
-    _hmd = nullptr;
+    hmdRefCount--;
+
+    if (hmdRefCount == 0 && _hmd) {
+        vr::VR_Shutdown();
+        _hmd = nullptr;
+    }
     _compositor = nullptr;
 }
 

@@ -52,19 +52,20 @@ public:
         LEFT_HAND = 0,
         RIGHT_HAND,
     };
+
+    SixenseManager();
     
     static SixenseManager& getInstance();
 
     // Plugin functions
     virtual bool isSupported() const override;
-    virtual bool isHandController() const override { return false; }
+    virtual bool isJointController() const override { return true; }
     const QString& getName() const { return NAME; }
 
     virtual void init() override;
-    virtual void deinit() override {};
+    virtual void deinit() override;
     virtual void activate(PluginContainer * container) override {};
-    virtual void deactivate() override {};
-    virtual void idle() override {};
+    virtual void deactivate() override { _poseStateMap.clear(); };
 
     virtual void pluginFocusOutEvent() override { focusOutEvent(); }
     virtual void pluginUpdate(float deltaTime) override { update(deltaTime); }
@@ -79,10 +80,6 @@ public:
     
     void setIsEnabled(bool isEnabled) { _isEnabled = isEnabled; }
     
-    float getCursorPixelRangeMult() const;
-    
-    float getReticleMoveSpeed() const { return _reticleMoveSpeed; }
-    void setReticleMoveSpeed(float sixenseReticleMoveSpeed) { _reticleMoveSpeed = sixenseReticleMoveSpeed; }
     bool getInvertButtons() const { return _invertButtons; }
     void setInvertButtons(bool invertSixenseButtons) { _invertButtons = invertSixenseButtons; }
     
@@ -95,10 +92,7 @@ public slots:
     void setFilter(bool filter);
     void setLowVelocityFilter(bool lowVelocityFilter) { _lowVelocityFilter = lowVelocityFilter; };
 
-private:
-    SixenseManager();
-    ~SixenseManager();
-    
+private:    
     void handleButtonEvent(unsigned int buttons, int index);
     void handleAxisEvent(float x, float y, float trigger, int index);
     void handlePoseEvent(glm::vec3 position, glm::quat rotation, int index);
@@ -134,8 +128,7 @@ private:
     
     bool _lowVelocityFilter;
     bool _controllersAtBase;
-    
-    float _reticleMoveSpeed = DEFAULT_HAND_RETICLE_MOVE_SPEED;
+
     bool _invertButtons = DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS;
 
     static const QString NAME;

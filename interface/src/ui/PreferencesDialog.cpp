@@ -182,7 +182,7 @@ void PreferencesDialog::loadPreferences() {
 #endif
 
     SixenseManager& sixense = SixenseManager::getInstance();
-    ui.sixenseReticleMoveSpeedSpin->setValue(sixense.getReticleMoveSpeed());
+    ui.sixenseReticleMoveSpeedSpin->setValue(InputDevice::getReticleMoveSpeed());
     ui.invertSixenseButtonsCheckBox->setChecked(sixense.getInvertButtons());
 
     // LOD items
@@ -246,7 +246,7 @@ void PreferencesDialog::savePreferences() {
     qApp->getApplicationCompositor().setHmdUIAngularSize(ui.oculusUIAngularSizeSpin->value());
     
     SixenseManager& sixense = SixenseManager::getInstance();
-    sixense.setReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
+    InputDevice::setReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
     sixense.setInvertButtons(ui.invertSixenseButtonsCheckBox->isChecked());
 
     auto audio = DependencyManager::get<AudioClient>();

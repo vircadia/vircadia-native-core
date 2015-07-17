@@ -80,6 +80,13 @@ public:
                                            const QKeySequence& shortcut = 0,
                                            QAction::MenuRole role = QAction::NoRole,
                                            int menuItemLocation = UNSPECIFIED_POSITION);
+    QAction* addCheckableActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
+                                                    const QString& actionName,
+                                                    const QKeySequence& shortcut = 0,
+                                                    const bool checked = false,
+                                                    const QObject* receiver = NULL,
+                                                    const char* member = NULL,
+                                                    int menuItemLocation = UNSPECIFIED_POSITION);
 
     void removeAction(MenuWrapper* menu, const QString& actionName);
 
@@ -108,14 +115,6 @@ private:
     /// helper method to have separators with labels that are also compatible with OS X
     void addDisabledActionAndSeparator(MenuWrapper* destinationMenu, const QString& actionName,
                                        int menuItemLocation = UNSPECIFIED_POSITION);
-
-    QAction* addCheckableActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
-                                                    const QString& actionName,
-                                                    const QKeySequence& shortcut = 0,
-                                                    const bool checked = false,
-                                                    const QObject* receiver = NULL,
-                                                    const char* member = NULL,
-                                                    int menuItemLocation = UNSPECIFIED_POSITION);
 
     QAction* getActionFromName(const QString& menuName, MenuWrapper* menu);
     MenuWrapper* getSubMenuFromName(const QString& menuName, MenuWrapper* menu);
@@ -203,6 +202,7 @@ namespace MenuOption {
     const QString HandLasers = "Enable Hand UI Lasers";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IndependentMode = "Independent Mode";
+    const QString InputMenu = "Avatar>Input Devices";
     const QString KeyboardMotorControl = "Enable Keyboard Motor Control";
     const QString LeapMotionOnHMD = "Leap Motion on HMD";
     const QString LoadScript = "Open and Run Script File...";

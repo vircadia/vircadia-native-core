@@ -40,6 +40,10 @@ public:
 
     int getDeviceID() { return _deviceID; }
 
+    static float getCursorPixelRangeMult();
+    static float getReticleMoveSpeed() { return reticleMoveSpeed; }
+    static void setReticleMoveSpeed(float sixenseReticleMoveSpeed) { reticleMoveSpeed = sixenseReticleMoveSpeed; }
+
 protected:
     int _deviceID = 0;
 
@@ -48,4 +52,7 @@ protected:
     ButtonPressedMap _buttonPressedMap;
     AxisStateMap _axisStateMap;
     PoseStateMap _poseStateMap;
+
+private:
+    static float reticleMoveSpeed;
 };

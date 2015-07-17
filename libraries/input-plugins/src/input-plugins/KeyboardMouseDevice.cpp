@@ -11,7 +11,7 @@
 //
 #include "KeyboardMouseDevice.h"
 
-const QString KeyboardMouseDevice::NAME = "Keyboard";
+const QString KeyboardMouseDevice::NAME = "Keyboard/Mouse";
 
 void KeyboardMouseDevice::update(float deltaTime) {
     _axisStateMap.clear();

@@ -64,6 +64,7 @@
 #include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <display-plugins/DisplayPlugin.h>
+
 #include <EntityScriptingInterface.h>
 #include <ErrorDialog.h>
 #include <GlowEffect.h>
@@ -74,6 +75,9 @@
 #include <HFActionEvent.h>
 #include <HFBackEvent.h>
 #include <InfoView.h>
+#include <input-plugins/InputPlugin.h>
+#include <input-plugins/Joystick.h> // this should probably be removed
+#include <input-plugins/SixenseManager.h> // this definitely should be removed
 #include <LogHandler.h>
 #include <MainWindow.h>
 #include <MessageDialog.h>
@@ -123,9 +127,6 @@
 #include "devices/Leapmotion.h"
 #include "devices/RealSense.h"
 #include "devices/MIDIManager.h"
-#include <input-plugins/SDL2Manager.h>
-#include <input-plugins/SixenseManager.h>
-#include <input-plugins/ViveControllerManager.h>
 #include "RenderDeferredTask.h"
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
@@ -621,9 +622,19 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, &_controllerScriptingInterface, &AbstractControllerScriptingInterface::actionEvent);
 
+    auto inputPlugins = getInputPlugins();
+    foreach(auto inputPlugin, inputPlugins) {
+        QString name = inputPlugin->getName();
+        if (name == KeyboardMouseDevice::NAME) {
+            _keyboardMouseDevice = static_cast<KeyboardMouseDevice*>(inputPlugin.data()); // TODO: this seems super hacky
+        }
+    }
+
+    //updateInputModes(); // TODO: shouldn't have to call this explicitly
+
     // Setup the keyboardMouseDevice and the user input mapper with the default bindings
-    _keyboardMouseDevice.registerToUserInputMapper(*userInputMapper);
-    _keyboardMouseDevice.assignDefaultInputMapping(*userInputMapper);
+    _keyboardMouseDevice->registerToUserInputMapper(*userInputMapper);
+    _keyboardMouseDevice->assignDefaultInputMapping(*userInputMapper);
 
     // check first run...
     if (_firstRun.get()) {
@@ -675,11 +686,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     ddeTracker->init();
     connect(ddeTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
 #endif
-
-    if (ViveControllerManager::getInstance().isSupported()) {
-        ViveControllerManager::getInstance().init();
-        ViveControllerManager::getInstance().activate(NULL);
-    }
 
     _oldHandMouseX[0] = -1;
     _oldHandMouseY[0] = -1;
@@ -770,6 +776,15 @@ Application::~Application() {
     ModelEntityItem::cleanupLoadedAnimations();
 
     getActiveDisplayPlugin()->deactivate();
+
+    auto inputPlugins = getInputPlugins();
+    foreach(auto inputPlugin, inputPlugins) {
+        QString name = inputPlugin->getName();
+        QAction* action = Menu::getInstance()->getActionForOption(name);
+        if (action->isChecked()) {
+            inputPlugin->deactivate();
+        }
+    }
 
     // remove avatars from physics engine
     DependencyManager::get<AvatarManager>()->clearOtherAvatars();
@@ -1344,7 +1359,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
     }
 
     if (hasFocus()) {
-        _keyboardMouseDevice.keyPressEvent(event);
+        if (Menu::getInstance()->isOptionChecked(KeyboardMouseDevice::NAME)) {
+            _keyboardMouseDevice->keyPressEvent(event);
+        }
 
         bool isShifted = event->modifiers().testFlag(Qt::ShiftModifier);
         bool isMeta = event->modifiers().testFlag(Qt::ControlModifier);
@@ -1614,7 +1631,9 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
         return;
     }
 
-    _keyboardMouseDevice.keyReleaseEvent(event);
+    if (Menu::getInstance()->isOptionChecked(KeyboardMouseDevice::NAME)) {
+        _keyboardMouseDevice->keyReleaseEvent(event);
+    }
 
     switch (event->key()) {
         case Qt::Key_Space: {
@@ -1641,10 +1660,14 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 }
 
 void Application::focusOutEvent(QFocusEvent* event) {
-    _keyboardMouseDevice.pluginFocusOutEvent();
-    SixenseManager::getInstance().pluginFocusOutEvent();
-    SDL2Manager::getInstance()->pluginFocusOutEvent();
-    ViveControllerManager::getInstance().pluginFocusOutEvent();
+    auto inputPlugins = getInputPlugins();
+    foreach(auto inputPlugin, inputPlugins) {
+        QString name = inputPlugin->getName();
+        QAction* action = Menu::getInstance()->getActionForOption(name);
+        if (action->isChecked()) {
+            inputPlugin->pluginFocusOutEvent();
+        }
+    }
 
     // synthesize events for keys currently pressed, since we may not get their release events
     foreach (int key, _keysPressed) {
@@ -1687,7 +1710,9 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         return;
     }
 
-    _keyboardMouseDevice.mouseMoveEvent(event, deviceID);
+    if (Menu::getInstance()->isOptionChecked(KeyboardMouseDevice::NAME)) {
+        _keyboardMouseDevice->mouseMoveEvent(event, deviceID);
+    }
 
 }
 
@@ -1708,7 +1733,9 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
 
     if (hasFocus()) {
-        _keyboardMouseDevice.mousePressEvent(event);
+        if (Menu::getInstance()->isOptionChecked(KeyboardMouseDevice::NAME)) {
+            _keyboardMouseDevice->mousePressEvent(event);
+        }
 
         if (event->button() == Qt::LeftButton) {
             _mouseDragStarted = getTrueMouse();
@@ -1748,7 +1775,9 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
     }
 
     if (hasFocus()) {
-        _keyboardMouseDevice.mouseReleaseEvent(event);
+        if (Menu::getInstance()->isOptionChecked(KeyboardMouseDevice::NAME)) {
+            _keyboardMouseDevice->mouseReleaseEvent(event);
+        }
 
         if (event->button() == Qt::LeftButton) {
             _mousePressed = false;
@@ -1775,7 +1804,9 @@ void Application::touchUpdateEvent(QTouchEvent* event) {
         return;
     }
 
-    _keyboardMouseDevice.touchUpdateEvent(event);
+    if (Menu::getInstance()->isOptionChecked(KeyboardMouseDevice::NAME)) {
+        _keyboardMouseDevice->touchUpdateEvent(event);
+    }
 
     bool validTouch = false;
     if (hasFocus()) {
@@ -1809,7 +1840,9 @@ void Application::touchBeginEvent(QTouchEvent* event) {
         return;
     }
 
-    _keyboardMouseDevice.touchBeginEvent(event);
+    if (Menu::getInstance()->isOptionChecked(KeyboardMouseDevice::NAME)) {
+        _keyboardMouseDevice->touchBeginEvent(event);
+    }
 
 }
 
@@ -1824,7 +1857,9 @@ void Application::touchEndEvent(QTouchEvent* event) {
         return;
     }
 
-    _keyboardMouseDevice.touchEndEvent(event);
+    if (Menu::getInstance()->isOptionChecked(KeyboardMouseDevice::NAME)) {
+        _keyboardMouseDevice->touchEndEvent(event);
+    }
 
     // put any application specific touch behavior below here..
     _touchDragStartedAvg = _touchAvg;
@@ -1840,8 +1875,10 @@ void Application::wheelEvent(QWheelEvent* event) {
     if (_controllerScriptingInterface.isWheelCaptured()) {
         return;
     }
-
-    _keyboardMouseDevice.wheelEvent(event);
+    
+    if (Menu::getInstance()->isOptionChecked(KeyboardMouseDevice::NAME)) {
+        _keyboardMouseDevice->wheelEvent(event);
+    }
 }
 
 void Application::dropEvent(QDropEvent *event) {
@@ -1964,6 +2001,14 @@ void Application::idle() {
             PerformanceTimer perfTimer("updateGL");
             PerformanceWarning warn(showWarnings, "Application::idle()... updateGL()");
             getActiveDisplayPlugin()->idle();
+            auto inputPlugins = getInputPlugins();
+            foreach(auto inputPlugin, inputPlugins) {
+                QString name = inputPlugin->getName();
+                QAction* action = Menu::getInstance()->getActionForOption(name);
+                if (action->isChecked()) {
+                    inputPlugin->idle();
+                }
+            }
         }
         {
             PerformanceTimer perfTimer("rest");
@@ -2625,10 +2670,14 @@ void Application::update(float deltaTime) {
     userInputMapper->setSensorToWorldMat(_myAvatar->getSensorToWorldMatrix());
     userInputMapper->update(deltaTime);
 
-    _keyboardMouseDevice.pluginUpdate(deltaTime);
-    SixenseManager::getInstance().pluginUpdate(deltaTime);
-    SDL2Manager::getInstance()->pluginUpdate(deltaTime);
-    ViveControllerManager::getInstance().pluginUpdate(deltaTime);
+    auto inputPlugins = getInputPlugins();
+    foreach(auto inputPlugin, inputPlugins) {
+        QString name = inputPlugin->getName();
+        QAction* action = Menu::getInstance()->getActionForOption(name);
+        if (action->isChecked()) {
+            inputPlugin->pluginUpdate(deltaTime); // add flag to prevent multiple devices from modifying joints
+        }
+    }
 
     // Dispatch input events
     _controllerScriptingInterface.updateInputControllers();
@@ -2826,7 +2875,7 @@ void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, int i
     
     palm->setActive(pose.isValid());
     
-    // TODO: velocity filters, tip velocities, et.c
+    // TODO: velocity filters, tip velocities, etc.
     // see SixenseManager
 
     // transform from sensor space, to world space, to avatar model space.
@@ -2872,8 +2921,7 @@ void Application::emulateMouse(Hand* hand, float click, float shift, int index) 
         float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)M_PI_2));
         auto canvasSize = qApp->getCanvasSize();
         // Get the pixel range over which the xAngle and yAngle are scaled
-        // TODO: move this from SixenseManager
-        float cursorRange = canvasSize.x * SixenseManager::getInstance().getCursorPixelRangeMult();
+        float cursorRange = canvasSize.x * InputDevice::getCursorPixelRangeMult();
 
         pos.setX(canvasSize.x / 2.0f + cursorRange * xAngle);
         pos.setY(canvasSize.y / 2.0f + cursorRange * yAngle);
@@ -5128,6 +5176,51 @@ void Application::updateDisplayMode() {
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
 }
 
+static QVector<QPair<QString, QString>> _currentInputPluginActions;
+
+void Application::updateInputModes() {
+    auto menu = Menu::getInstance();
+    auto inputPlugins = getInputPlugins();
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+
+    InputPluginPointer newInputPlugin = InputPluginPointer(nullptr);
+    InputPluginPointer removedInputPlugin = InputPluginPointer(nullptr);
+    foreach(InputPluginPointer inputPlugin, inputPlugins) {
+        QString name = inputPlugin->getName();
+        QAction* action = menu->getActionForOption(name);
+        if (action->isChecked() && !_activeInputPlugins.contains(inputPlugin)) {
+            _activeInputPlugins.append(inputPlugin);
+            newInputPlugin = inputPlugin;
+            break;
+        } else if (!action->isChecked() && _activeInputPlugins.contains(inputPlugin)) {
+            _activeInputPlugins.removeOne(inputPlugin);
+            removedInputPlugin = inputPlugin;
+            break;
+        }
+    }
+
+    // A plugin was checked
+    if (newInputPlugin) {
+        newInputPlugin->activate(this);
+        newInputPlugin->installEventFilter(qApp);
+        newInputPlugin->installEventFilter(offscreenUi.data());
+    } else if (removedInputPlugin) { // A plugin was unchecked
+        removedInputPlugin->deactivate();
+        removedInputPlugin->removeEventFilter(qApp);
+        removedInputPlugin->removeEventFilter(offscreenUi.data());
+    }
+
+    if (newInputPlugin || removedInputPlugin) {
+        if (!_currentInputPluginActions.isEmpty()) {
+            auto menu = Menu::getInstance();
+            foreach(auto itemInfo, _currentInputPluginActions) {
+                menu->removeMenuItem(itemInfo.first, itemInfo.second);
+            }
+            _currentInputPluginActions.clear();
+        }
+    }
+}
+
 void Application::addMenuItem(const QString& path, const QString& name, std::function<void()> onClicked, bool checkable, bool checked, const QString& groupName) {
     auto menu = Menu::getInstance();
     MenuWrapper* parentItem = menu->getMenu(path);
@@ -5136,6 +5229,7 @@ void Application::addMenuItem(const QString& path, const QString& name, std::fun
         onClicked();
     });
     _currentDisplayPluginActions.push_back({ path, name });
+    _currentInputPluginActions.push_back({ path, name });
 }
 
 GlWindow* Application::getVisibleWindow() {

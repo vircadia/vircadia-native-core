@@ -48,18 +48,15 @@ public:
         RIGHT_HAND,
     };
 
-    static ViveControllerManager& getInstance();
+    ViveControllerManager();
 
     // Plugin functions
     virtual bool isSupported() const override;
-    virtual bool isHandController() const override { return true; }
+    virtual bool isJointController() const override { return true; }
     const QString& getName() const { return NAME; }
 
-    virtual void init() override;
-    virtual void deinit() override;
-    virtual void activate(PluginContainer * container) override {};
-    virtual void deactivate() override {};
-    virtual void idle() override {};
+    virtual void activate(PluginContainer * container) override;
+    virtual void deactivate() override;
 
     virtual void pluginFocusOutEvent() override { focusOutEvent(); }
     virtual void pluginUpdate(float deltaTime) override { update(deltaTime); }
@@ -77,17 +74,12 @@ public:
     UserInputMapper::Input makeInput(JointChannel joint);
     
 private:
-    ViveControllerManager();
-    ~ViveControllerManager();
-
     void renderHand(UserInputMapper::PoseValue pose, gpu::Batch& batch, int index);
     
     void handleButtonEvent(uint64_t buttons, int index);
     void handleAxisEvent(Axis axis, float x, float y, int index);
     void handlePoseEvent(const mat4& mat, int index);
     
-    bool _isInitialized;
-    bool _isEnabled;
     int _trackedControllers;
 
     bool _modelLoaded;

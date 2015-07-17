@@ -32,15 +32,18 @@ _openJoysticks(),
 #endif
 _isInitialized(false)
 {
+}
+
+void SDL2Manager::init() {
 #ifdef HAVE_SDL2
     bool initSuccess = (SDL_Init(SDL_INIT_GAMECONTROLLER) == 0);
-    
+
     if (initSuccess) {
         int joystickCount = SDL_NumJoysticks();
-        
+
         for (int i = 0; i < joystickCount; i++) {
             SDL_GameController* controller = SDL_GameControllerOpen(i);
-            
+
             if (controller) {
                 SDL_JoystickID id = getInstanceId(controller);
                 if (!_openJoysticks.contains(id)) {
@@ -53,25 +56,21 @@ _isInitialized(false)
                 }
             }
         }
-        
+
         _isInitialized = true;
-    } else {
+    }
+    else {
         qDebug() << "Error initializing SDL2 Manager";
     }
 #endif
 }
 
-SDL2Manager::~SDL2Manager() {
+void SDL2Manager::deinit() {
 #ifdef HAVE_SDL2
     qDeleteAll(_openJoysticks);
-    
+
     SDL_Quit();
 #endif
-}
-
-SDL2Manager* SDL2Manager::getInstance() {
-    static SDL2Manager sharedInstance;
-    return &sharedInstance;
 }
 
 bool SDL2Manager::isSupported() const {

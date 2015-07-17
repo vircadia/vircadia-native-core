@@ -68,24 +68,6 @@ SixenseManager::SixenseManager() :
 
 }
 
-SixenseManager::~SixenseManager() {
-#ifdef HAVE_SIXENSE_
-
-    if (_isInitialized) {
-#ifdef __APPLE__
-        SixenseBaseFunction sixenseExit = (SixenseBaseFunction) _sixenseLibrary->resolve("sixenseExit");
-#endif
-
-        sixenseExit();
-    }
-
-#ifdef __APPLE__
-    delete _sixenseLibrary;
-#endif
-
-#endif
-}
-
 bool SixenseManager::isSupported() const {
 #ifdef HAVE_SIXENSE
     return true;
@@ -138,6 +120,24 @@ void SixenseManager::init() {
 #endif
 }
 
+void SixenseManager::deinit() {
+#ifdef HAVE_SIXENSE_
+
+    if (_isInitialized) {
+#ifdef __APPLE__
+        SixenseBaseFunction sixenseExit = (SixenseBaseFunction)_sixenseLibrary->resolve("sixenseExit");
+#endif
+
+        sixenseExit();
+    }
+
+#ifdef __APPLE__
+    delete _sixenseLibrary;
+#endif
+
+#endif
+}
+
 void SixenseManager::setFilter(bool filter) {
 #ifdef HAVE_SIXENSE
 
@@ -175,12 +175,6 @@ void SixenseManager::update(float deltaTime) {
                 userInputMapper->removeDevice(_deviceID);
                 _deviceID = 0;
                 _poseStateMap.clear();
-//                if (_prevPalms[0]) {
-//                    _prevPalms[0]->setActive(false);
-//                }
-//                if (_prevPalms[1]) {
-//                    _prevPalms[1]->setActive(false);
-//                }
             }
             return;
         }
@@ -294,17 +288,6 @@ void SixenseManager::update(float deltaTime) {
         }
     }
 #endif  // HAVE_SIXENSE
-}
-
-//Constants for getCursorPixelRangeMultiplier()
-const float MIN_PIXEL_RANGE_MULT = 0.4f;
-const float MAX_PIXEL_RANGE_MULT = 2.0f;
-const float RANGE_MULT = (MAX_PIXEL_RANGE_MULT - MIN_PIXEL_RANGE_MULT) * 0.01f;
-
-//Returns a multiplier to be applied to the cursor range for the controllers
-float SixenseManager::getCursorPixelRangeMult() const {
-    //scales (0,100) to (MINIMUM_PIXEL_RANGE_MULT, MAXIMUM_PIXEL_RANGE_MULT)
-    return _reticleMoveSpeed * RANGE_MULT + MIN_PIXEL_RANGE_MULT;
 }
 
 void SixenseManager::toggleSixense(bool shouldEnable) {
