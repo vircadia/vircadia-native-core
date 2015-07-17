@@ -17,7 +17,7 @@ TextOverlayElement {
             font.family: root.fontFamily
             font.pixelSize: root.fontSize
             lineHeightMode: Text.FixedHeight
-            lineHeight: root.fontSize * 1.2
+            lineHeight: root.lineHeight
         }
     }
 }

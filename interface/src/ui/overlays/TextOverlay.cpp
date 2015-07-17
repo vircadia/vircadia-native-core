@@ -47,6 +47,7 @@ private:
     TEXT_OVERLAY_PROPERTY(QString, textColor, "#ffffffff")
     TEXT_OVERLAY_PROPERTY(QString, backgroundColor, "#B2000000")
     TEXT_OVERLAY_PROPERTY(qreal, fontSize, 18)
+    TEXT_OVERLAY_PROPERTY(qreal, lineHeight, 18)
     TEXT_OVERLAY_PROPERTY(qreal, leftMargin, 0)
     TEXT_OVERLAY_PROPERTY(qreal, topMargin, 0)
 
@@ -58,6 +59,7 @@ signals:
     void textChanged();
     void fontFamilyChanged();
     void fontSizeChanged();
+    void lineHeightChanged();
     void leftMarginChanged();
     void topMarginChanged();
     void textColorChanged();
@@ -167,6 +169,10 @@ void TextOverlay::setProperties(const QScriptValue& properties) {
         if (font.property("size").isValid()) {
             setFontSize(font.property("size").toInt32());
         }
+        QFont font(_qmlElement->fontFamily());
+        font.setPixelSize(_qmlElement->fontSize());
+        QFontMetrics fm(font);
+        _qmlElement->setlineHeight(fm.lineSpacing() * 1.2);
     }
 
     QScriptValue text = properties.property("text");
@@ -236,9 +242,10 @@ QSizeF TextOverlay::textSize(const QString& text) const {
             ++lines;
         }
     }
-    QFontMetrics fm(QFont(SANS_FONT_FAMILY, _fontSize));
-    QSizeF result = QSizeF(fm.width(text), fm.lineSpacing() * lines);
-    result.rheight() *= 1.2;
+    QFont font(_qmlElement->fontFamily());
+    font.setPixelSize(_qmlElement->fontSize());
+    QFontMetrics fm(font);
+    QSizeF result = QSizeF(fm.width(text), _qmlElement->lineHeight() * lines);
     return result; 
 }
 
