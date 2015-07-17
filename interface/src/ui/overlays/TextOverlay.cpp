@@ -71,6 +71,12 @@ void TextOverlay::render(RenderArgs* args) {
         return; // do nothing if we're not visible
     }
 
+    if (!args->_batch) {
+        return; // do nothing if the batch is not valid
+    }
+
+    gpu::Batch& batch = *args->_batch;
+
     const float MAX_COLOR = 255.0f;
     xColor backgroundColor = getBackgroundColor();
     glm::vec4 quadColor(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR,
@@ -84,7 +90,7 @@ void TextOverlay::render(RenderArgs* args) {
     glm::vec2 topLeft(left, top);
     glm::vec2 bottomRight(right, bottom);
     glBindTexture(GL_TEXTURE_2D, 0);
-    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);
+    DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, quadColor);
     
     const int leftAdjust = -1; // required to make text render relative to left edge of bounds
     const int topAdjust = -2; // required to make text render relative to top edge of bounds

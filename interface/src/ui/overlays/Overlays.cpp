@@ -113,7 +113,7 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
     
         // Reset all batch pipeline settings between overlay
         geometryCache->useSimpleDrawPipeline(batch);
-        batch.setResourceTexture(0, textureCache->getWhiteTexture());
+        batch.setResourceTexture(0, textureCache->getWhiteTexture()); // FIXME - do we really need to do this??
         batch.setProjectionTransform(legacyProjection);
         batch.setModelTransform(Transform());
         batch.setViewTransform(Transform());
