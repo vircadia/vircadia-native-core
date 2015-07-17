@@ -898,8 +898,8 @@ void Application::paintGL() {
         
         // NOTE: the ApplicationOverlay class assumes it's viewport is setup to be the device size
         // There is no batch associated with this renderArgs
-        QSize size = qApp->getDeviceSize();
-        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
+        glm::vec2 size = getCanvasSize();
+        renderArgs._viewport = glm::ivec4(0, 0, size.x, size.y);
         _applicationOverlay.renderOverlay(&renderArgs);
     }
 
