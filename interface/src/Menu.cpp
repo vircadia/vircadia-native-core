@@ -263,19 +263,6 @@ Menu::Menu() {
 
     addActionToQMenuAndActionHash(viewMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
 
-#if 0
-    addCheckableActionToQMenuAndActionHash(viewMenu,
-                                           MenuOption::Fullscreen,
-#ifdef Q_OS_MAC
-                                           Qt::CTRL | Qt::META | Qt::Key_F,
-#else
-                                           Qt::CTRL | Qt::Key_F,
-#endif
-                                           false,
-                                           qApp,
-                                           SLOT(setFullscreen(bool)));
-#endif
-
     MenuWrapper* cameraModeMenu = viewMenu->addMenu("Camera Mode");
     QActionGroup* cameraModeGroup = new QActionGroup(cameraModeMenu);
     cameraModeGroup->setExclusive(true);
@@ -302,17 +289,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::CenterPlayerInView,
                                            0, false, qApp, SLOT(rotationModeChanged()));
 
-#if 0
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools,
-#ifdef Q_OS_MAC
-                                           Qt::META | Qt::Key_H,
-#else
-                                           Qt::CTRL | Qt::Key_H,
-#endif
-                                           false,
-                                           dialogsManager.data(),
-                                           SLOT(hmdTools(bool)));
-#endif
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
 

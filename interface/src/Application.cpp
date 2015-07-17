@@ -121,7 +121,7 @@
 #include "devices/RealSense.h"
 #include "devices/SDL2Manager.h"
 #include "devices/MIDIManager.h"
-#include "RenderDeferredTask.h"
+
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
@@ -171,22 +171,6 @@ public:
     void call() { _fun(); }
 };
 
-
-template <typename F>
-void with_stable_stack_check(F f) {
-    GLint mvDepth, prDepth;
-    glGetIntegerv(GL_MODELVIEW_STACK_DEPTH, &mvDepth);
-    glGetIntegerv(GL_PROJECTION_STACK_DEPTH, &prDepth);
-    f();
-    GLint mvDepthFinal, prDepthFinal;
-    glGetIntegerv(GL_MODELVIEW_STACK_DEPTH, &mvDepthFinal);
-    glGetIntegerv(GL_PROJECTION_STACK_DEPTH, &prDepthFinal);
-    Q_ASSERT(mvDepth == mvDepthFinal);
-    Q_ASSERT(prDepth == prDepthFinal);
-    if (mvDepth != mvDepthFinal || prDepth != prDepthFinal) {
-        qFatal("Failed to preserve GL stack depth");
-    }
-}
 
 using namespace std;
 
@@ -338,6 +322,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _previousScriptLocation("LastScriptLocation"),
         _scriptsLocationHandle("scriptsLocation"),
         _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
+        _viewTransform(),
         _scaleMirror(1.0f),
         _rotateMirror(0.0f),
         _raiseMirror(0.0f),
@@ -361,7 +346,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastFaceTrackerUpdate(0),
         _applicationOverlay()
 {
-    _offscreenContext = new OffscreenGlCanvas();
     setInstance(this);
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
@@ -537,6 +521,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     ResourceCache::setRequestLimit(3);
 
+    _offscreenContext = new OffscreenGlCanvas();
     _offscreenContext->create();
     _offscreenContext->makeCurrent();
 
@@ -565,16 +550,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // enable mouse tracking; otherwise, we only get drag events
     container->setMouseTracking(true);
-
-    _menuBarHeight = Menu::getInstance()->height();
-
-#if 0
-    _fullscreenMenuWidget->setParent(_glWidget);
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen)) {
-        setFullscreen(true);  // Initialize menu bar show/hide
-    }
-#endif
-
 
     _toolWindow = new ToolWindow();
     _toolWindow->setWindowFlags(_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint);
@@ -901,13 +876,9 @@ void Application::initializeUi() {
 }
 
 void Application::paintGL() {
-    if (getCanvasSize() == uvec2(0)) {
-        return;
-    }
     PROFILE_RANGE(__FUNCTION__);
     auto displayPlugin = getActiveDisplayPlugin();
     displayPlugin->preRender();
-
     _offscreenContext->makeCurrent();
 
     auto lodManager = DependencyManager::get<LODManager>();
@@ -1649,19 +1620,6 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         return;
     }
     
-#if 0
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen)) {
-        // Show/hide menu bar in fullscreen
-        if (event->globalY() > _menuBarHeight) {
-            _fullscreenMenuWidget->setFixedHeight(0);
-            Menu::getInstance()->setFixedHeight(0);
-        } else {
-            _fullscreenMenuWidget->setFixedHeight(_menuBarHeight);
-            Menu::getInstance()->setFixedHeight(_menuBarHeight);
-        }
-    }
-#endif
-
     _entities.mouseMoveEvent(event, deviceID);
 
     _controllerScriptingInterface.emitMouseMoveEvent(event, deviceID); // send events to any registered scripts
@@ -1976,94 +1934,6 @@ void Application::idle() {
     emit checkBackgroundDownloads();
     lastIdleEnd = usecTimestampNow();
 }
-
-#if 0
-void Application::setFullscreen(bool fullscreen) {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen) != fullscreen) {
-        Menu::getInstance()->getActionForOption(MenuOption::Fullscreen)->setChecked(fullscreen);
-    }
-
-    // The following code block is useful on platforms that can have a visible
-    // app menu in a fullscreen window.  However the OSX mechanism hides the
-    // application menu for fullscreen apps, so the check is not required.
-#ifndef Q_OS_MAC
-    if (getActiveDisplayPlugin()->isHmd()) {
-        if (fullscreen) {
-            // Menu hide() disables menu commands, and show() after hide() doesn't work with Rift VR display.
-            // So set height instead.
-            _window->menuBar()->setMaximumHeight(0);
-        } else {
-            _window->menuBar()->setMaximumHeight(QWIDGETSIZE_MAX);
-        }
-    } else {
-        if (fullscreen) {
-            // Move menu to a QWidget floating above _glWidget so that show/hide doesn't adjust viewport.
-            _menuBarHeight = Menu::getInstance()->height();
-            Menu::getInstance()->setParent(_fullscreenMenuWidget);
-            Menu::getInstance()->setFixedWidth(_window->windowHandle()->screen()->size().width());
-            _fullscreenMenuWidget->show();
-        } else {
-            // Restore menu to being part of MainWindow.
-            _fullscreenMenuWidget->hide();
-            _window->setMenuBar(Menu::getInstance());
-            _window->menuBar()->setMaximumHeight(QWIDGETSIZE_MAX);
-        }
-    }
-#endif
-
-    // Work around Qt bug that prevents floating menus being shown when in fullscreen mode.
-    // https://bugreports.qt.io/browse/QTBUG-41883
-    // Known issue: Top-level menu items don't highlight when cursor hovers. This is probably a side-effect of the work-around.
-    // TODO: Remove this work-around once the bug has been fixed and restore the following lines.
-    //_window->setWindowState(fullscreen ? (_window->windowState() | Qt::WindowFullScreen) :
-    //    (_window->windowState() & ~Qt::WindowFullScreen));
-    _window->hide();
-    if (fullscreen) {
-        _window->setWindowState(_window->windowState() | Qt::WindowFullScreen);
-        // The next line produces the following warning in the log:
-        // [WARNING][03 / 06 12:17 : 58] QWidget::setMinimumSize: (/ MainWindow) Negative sizes
-        //   (0, -1) are not possible
-        // This is better than the alternative which is to have the window slightly less than fullscreen with a visible line
-        // of pixels for the remainder of the screen.
-        _window->setContentsMargins(0, 0, 0, -1);
-    } else {
-        _window->setWindowState(_window->windowState() & ~Qt::WindowFullScreen);
-        _window->setContentsMargins(0, 0, 0, 0);
-    }
-
-    if (!_aboutToQuit) {
-        _window->show();
-    }
-}
-
-void Application::setEnable3DTVMode(bool enable3DTVMode) {
-    resizeGL();
-}
-
-void Application::setEnableVRMode(bool enableVRMode) {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode) != enableVRMode) {
-        Menu::getInstance()->getActionForOption(MenuOption::EnableVRMode)->setChecked(enableVRMode);
-    }
-
-    if (enableVRMode) {
-        if (!OculusManager::isConnected()) {
-            // attempt to reconnect the Oculus manager - it's possible this was a workaround
-            // for the sixense crash
-            OculusManager::disconnect();
-            OculusManager::connect(_glWidget->context()->contextHandle());
-            _glWidget->setFocus();
-            _glWidget->makeCurrent();
-            glClear(GL_COLOR_BUFFER_BIT);
-        }
-        OculusManager::recalibrate();
-    } else {
-        OculusManager::abandonCalibration();
-        OculusManager::disconnect();
-    }
-
-    resizeGL();
-}
-#endif
 
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
     SixenseManager::getInstance().setLowVelocityFilter(lowVelocityFilter);
