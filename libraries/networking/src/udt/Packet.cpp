@@ -210,6 +210,13 @@ void Packet::writeSequenceNumber(SequenceNumber seqNum) {
            &seqNum, sizeof(seqNum));
 }
 
+QByteArray Packet::read(qint64 maxSize) {
+    qint64 sizeToRead = std::min(size() - pos(), maxSize);
+    QByteArray data { QByteArray::fromRawData(getPayload() + pos(), sizeToRead) };
+    seek(pos() + sizeToRead);
+    return data;
+}
+
 qint64 Packet::writeData(const char* data, qint64 maxSize) {
     
     // make sure we have the space required to write this block

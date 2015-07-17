@@ -112,11 +112,10 @@ int InboundAudioStream::parseData(NLPacket& packet) {
     int networkSamples;
     
     // parse the info after the seq number and before the audio data (the stream properties)
-    int propertyBytes = parseStreamProperties(packet.getType(),
-                                              QByteArray::fromRawData(packet.getPayload() + packet.pos(), packet.bytesLeftToRead()),
-                                              networkSamples);
-    packet.seek(packet.pos() + propertyBytes);
-
+    int prePropertyPosition = packet.pos();
+    int propertyBytes = parseStreamProperties(packet.getType(), packet.read(packet.bytesLeftToRead()), networkSamples);
+    packet.seek(prePropertyPosition + propertyBytes);
+    
     // handle this packet based on its arrival status.
     switch (arrivalInfo._status) {
         case SequenceNumberStats::Early: {
@@ -133,11 +132,7 @@ int InboundAudioStream::parseData(NLPacket& packet) {
             if (packet.getType() == PacketType::SilentAudioFrame) {
                 writeDroppableSilentSamples(networkSamples);
             } else {
-                int audioBytes = parseAudioData(packet.getType(),
-                                                QByteArray::fromRawData(packet.getPayload() + packet.pos(),
-                                                                        packet.bytesLeftToRead()),
-                                                networkSamples);
-                packet.seek(packet.pos() + audioBytes);
+                parseAudioData(packet.getType(), packet.read(packet.bytesLeftToRead()), networkSamples);
             }
             break;
         }

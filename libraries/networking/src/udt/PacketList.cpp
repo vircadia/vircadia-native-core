@@ -15,14 +15,15 @@
 
 #include "Packet.h"
 
-PacketList::PacketList(PacketType::Value packetType) :
-    _packetType(packetType)
+PacketList::PacketList(PacketType::Value packetType, QByteArray extendedHeader) :
+    _packetType(packetType),
+    _extendedHeader(extendedHeader)
 {
     QIODevice::open(WriteOnly);
 }
 
 void PacketList::startSegment() {
-    _segmentStartIndex = _currentPacket ? _currentPacket->pos() : 0;
+    _segmentStartIndex = _currentPacket ? _currentPacket->pos() : _extendedHeader.size();
 }
 
 void PacketList::endSegment() {
@@ -83,11 +84,13 @@ qint64 PacketList::writeData(const char* data, qint64 maxSize) {
                     Q_ASSERT(false);
                 }
                 
+                int segmentSize = _currentPacket->pos() - _segmentStartIndex;
+                
                 // copy from currentPacket where the segment started to the beginning of the newPacket
-                newPacket->write(_currentPacket->getPayload() + _segmentStartIndex, numBytesToEnd);
+                newPacket->write(_currentPacket->getPayload() + _segmentStartIndex, segmentSize);
                 
                 // the current segment now starts at the beginning of the new packet
-                _segmentStartIndex = 0;
+                _segmentStartIndex = _extendedHeader.size();
                 
                 // shrink the current payload to the actual size of the packet
                 _currentPacket->setPayloadSize(_segmentStartIndex);
