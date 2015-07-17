@@ -555,6 +555,18 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     container->setFocus();
     container->installEventFilter(DependencyManager::get<OffscreenUi>().data());
 
+    // must be before initializeGL()
+    _activeInputPlugins.clear();
+    auto inputPlugins = getInputPlugins();
+    foreach(auto inputPlugin, inputPlugins) {
+        QString name = inputPlugin->getName();
+        if (name == KeyboardMouseDevice::NAME) {
+            _keyboardMouseDevice = static_cast<KeyboardMouseDevice*>(inputPlugin.data()); // TODO: this seems super hacky
+            break;
+        }
+    }
+    updateInputModes();
+
     _offscreenContext->makeCurrent();
     initializeGL();
     // initialization continues in initializeGL when OpenGL context is ready
@@ -616,16 +628,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // Setup the userInputMapper with the actions
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, &_controllerScriptingInterface, &AbstractControllerScriptingInterface::actionEvent);
-
-    auto inputPlugins = getInputPlugins();
-    foreach(auto inputPlugin, inputPlugins) {
-        QString name = inputPlugin->getName();
-        if (name == KeyboardMouseDevice::NAME) {
-            _keyboardMouseDevice = static_cast<KeyboardMouseDevice*>(inputPlugin.data()); // TODO: this seems super hacky
-        }
-    }
-
-    //updateInputModes(); // TODO: shouldn't have to call this explicitly
 
     // Setup the keyboardMouseDevice and the user input mapper with the default bindings
     _keyboardMouseDevice->registerToUserInputMapper(*userInputMapper);
@@ -5153,42 +5155,45 @@ void Application::updateInputModes() {
     auto inputPlugins = getInputPlugins();
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
-    InputPluginPointer newInputPlugin = InputPluginPointer(nullptr);
-    InputPluginPointer removedInputPlugin = InputPluginPointer(nullptr);
-    foreach(InputPluginPointer inputPlugin, inputPlugins) {
+    InputPluginList newInputPlugins;
+    InputPluginList removedInputPlugins;
+    foreach(auto inputPlugin, inputPlugins) {
         QString name = inputPlugin->getName();
         QAction* action = menu->getActionForOption(name);
         if (action->isChecked() && !_activeInputPlugins.contains(inputPlugin)) {
             _activeInputPlugins.append(inputPlugin);
-            newInputPlugin = inputPlugin;
-            break;
+            newInputPlugins.append(inputPlugin);
         } else if (!action->isChecked() && _activeInputPlugins.contains(inputPlugin)) {
             _activeInputPlugins.removeOne(inputPlugin);
-            removedInputPlugin = inputPlugin;
-            break;
+            removedInputPlugins.append(inputPlugin);
         }
     }
 
     // A plugin was checked
-    if (newInputPlugin) {
-        newInputPlugin->activate(this);
-        newInputPlugin->installEventFilter(qApp);
-        newInputPlugin->installEventFilter(offscreenUi.data());
-    } else if (removedInputPlugin) { // A plugin was unchecked
-        removedInputPlugin->deactivate();
-        removedInputPlugin->removeEventFilter(qApp);
-        removedInputPlugin->removeEventFilter(offscreenUi.data());
-    }
-
-    if (newInputPlugin || removedInputPlugin) {
-        if (!_currentInputPluginActions.isEmpty()) {
-            auto menu = Menu::getInstance();
-            foreach(auto itemInfo, _currentInputPluginActions) {
-                menu->removeMenuItem(itemInfo.first, itemInfo.second);
-            }
-            _currentInputPluginActions.clear();
+    if (newInputPlugins.size() > 0) {
+        foreach(auto newInputPlugin, newInputPlugins) {
+            newInputPlugin->activate(this);
+            //newInputPlugin->installEventFilter(qApp);
+            //newInputPlugin->installEventFilter(offscreenUi.data());
         }
     }
+    if (removedInputPlugins.size() > 0) { // A plugin was unchecked
+        foreach(auto removedInputPlugin, removedInputPlugins) {
+            removedInputPlugin->deactivate();
+            //removedInputPlugin->removeEventFilter(qApp);
+            //removedInputPlugin->removeEventFilter(offscreenUi.data());
+        }
+    }
+
+    //if (newInputPlugins.size() > 0 || removedInputPlugins.size() > 0) {
+    //    if (!_currentInputPluginActions.isEmpty()) {
+    //        auto menu = Menu::getInstance();
+    //        foreach(auto itemInfo, _currentInputPluginActions) {
+    //            menu->removeMenuItem(itemInfo.first, itemInfo.second);
+    //        }
+    //        _currentInputPluginActions.clear();
+    //    }
+    //}
 }
 
 void Application::addMenuItem(const QString& path, const QString& name, std::function<void()> onClicked, bool checkable, bool checked, const QString& groupName) {

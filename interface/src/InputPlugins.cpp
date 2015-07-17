@@ -31,9 +31,8 @@ static void addInputPluginToMenu(InputPluginPointer inputPlugin, bool active = f
         name, 0, true, qApp,
         SLOT(updateInputModes()));
     inputPluginGroup->addAction(action);
+    inputPluginGroup->setExclusive(false);
     Q_ASSERT(menu->menuItemExists(MenuOption::InputMenu, name));
-
-    qApp->updateInputModes(); // TODO: this should be called automatically
 }
 
 // FIXME move to a plugin manager class
