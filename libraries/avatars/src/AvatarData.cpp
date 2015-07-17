@@ -386,7 +386,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         _headData->_leanSideways = leanSideways;
         _headData->_torsoTwist = torsoTwist;
     } // 6 bytes
-
+    
     { // Lookat Position
         glm::vec3 lookAt;
         memcpy(&lookAt, sourceBuffer, sizeof(lookAt));

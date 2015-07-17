@@ -359,6 +359,11 @@ void PacketReceiver::processDatagrams() {
                             << " (" << qPrintable(nameForPacketType(packet->getType())) << ")"
                             << " has been destroyed. Removing from listener map.";
                         it = _packetListenerMap.erase(it);
+                        
+                        // if it exists, remove the listener from _directlyConnectedObjects
+                        _directConnectSetMutex.lock();
+                        _directlyConnectedObjects.remove(listener.first);
+                        _directConnectSetMutex.unlock();
                     }
                     
                 } else {
