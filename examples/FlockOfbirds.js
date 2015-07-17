@@ -41,6 +41,8 @@ var MAKE_FLOOR = false;
 var averageVelocity = { x: 0, y: 0, z: 0 };
 var averagePosition = { x: 0, y: 0, z: 0 };
 
+var birdsLoaded = false; 
+
 var birds = [];
 var playing = [];
 
@@ -49,6 +51,14 @@ function randomVector(scale) {
 }
 
 function updateBirds(deltaTime) {
+    if (!Entities.serversExist() || !Entities.canRez()) {
+        return;
+    }
+    if (!birdsLoaded) {
+        loadBirds(NUM_BIRDS);
+        birdsLoaded = true;
+        return;
+    }
     var sumVelocity = { x: 0, y: 0, z: 0 };
     var sumPosition = { x: 0, y: 0, z: 0 };
     var birdPositionsCounted = 0;
@@ -163,16 +173,6 @@ function updateBirds(deltaTime) {
     }
 }
 
-loadBirds(NUM_BIRDS);
-if (MAKE_FLOOR) {
-    var FLOOR_THICKNESS = 0.05;
-    floor = Entities.addEntity({ type: "Box", position: {   x: lowerCorner.x + (upperCorner.x - lowerCorner.x) / 2.0, 
-                                                            y: lowerCorner.y, 
-                                                            z: lowerCorner.z + (upperCorner.z - lowerCorner.z) / 2.0  },
-                                               dimensions: { x: (upperCorner.x - lowerCorner.x), y: FLOOR_THICKNESS, z: (upperCorner.z - lowerCorner.z)},
-                                               color: {red: 100, green: 100, blue: 100}
-                                });
-}
 // Connect a call back that happens every frame
 Script.update.connect(updateBirds);
 
@@ -187,6 +187,8 @@ Script.scriptEnding.connect(function() {
 });
 
 function loadBirds(howMany) {
+  while (!Entities.serversExist() || !Entities.canRez()) {
+  }
   var sound_filenames = ["bushtit_1.raw", "bushtit_2.raw", "bushtit_3.raw"];
   /* Here are more sounds/species you can use
                         , "mexicanWhipoorwill.raw", 
@@ -251,5 +253,14 @@ function loadBirds(howMany) {
         audioId: false,
         isPlaying: false
       });
-  }
+    }
+    if (MAKE_FLOOR) {
+        var FLOOR_THICKNESS = 0.05;
+        floor = Entities.addEntity({ type: "Box", position: {   x: lowerCorner.x + (upperCorner.x - lowerCorner.x) / 2.0, 
+                                                                y: lowerCorner.y, 
+                                                                z: lowerCorner.z + (upperCorner.z - lowerCorner.z) / 2.0  },
+                                                   dimensions: { x: (upperCorner.x - lowerCorner.x), y: FLOOR_THICKNESS, z: (upperCorner.z - lowerCorner.z)},
+                                                   color: {red: 100, green: 100, blue: 100}
+                                    });
+    }
 }
