@@ -46,7 +46,6 @@ std::unique_ptr<Packet> PacketList::createPacketWithExtendedHeader() {
     auto packet = createPacket();
     
     if (!_extendedHeader.isEmpty()) {
-        qDebug() << "Writing a header of" << _extendedHeader.size();
         // add the extended header to the front of the packet
         if (packet->write(_extendedHeader) == -1) {
             qDebug() << "Could not write extendedHeader in PacketList::createPacketWithExtendedHeader"
