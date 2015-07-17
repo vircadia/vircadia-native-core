@@ -100,8 +100,11 @@ Packet::Packet(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& send
     _payloadStart = _packet.get() + (_packetSize - _payloadCapacity);
 }
 
-Packet::Packet(const Packet& other) {
+Packet::Packet(const Packet& other) :
+    QIODevice()
+{
     *this = other;
+    this->seek(other.pos());
 }
 
 Packet& Packet::operator=(const Packet& other) {
