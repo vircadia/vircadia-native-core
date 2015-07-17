@@ -26,10 +26,6 @@ float rand(vec2 point){
 void main(void) {
     int frontCondition = 1 -int(gl_FrontFacing) * 2;
     vec3 color = gl_Color.rgb;
-    color.r = mix(0, -1.0, modelPosition.x);
-    if(color.r > 1.0) {
-        color.b = 1.0;
-    }
     
     packDeferredFragment(
         newNormal * frontCondition,

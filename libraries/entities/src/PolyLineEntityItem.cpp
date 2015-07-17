@@ -114,21 +114,24 @@ bool PolyLineEntityItem::setStrokeWidths(const QVector<float>& strokeWidths ) {
 
 bool PolyLineEntityItem::setNormals(const QVector<glm::vec3>& normals) {
     _normals = normals;
-    if( _normals.size() != _points.size()) {
-//        qDebug() << "normals dont equal points!";
-        return false;
-    }
-    
     if (_points.size () < 2) {
 //        qDebug() << "points size is less than 2!";
         return false;
+    }
+    
+    int minVectorSize = _normals.size();
+    if (_points.size() < minVectorSize) {
+        minVectorSize = _points.size();
+    }
+    if (_strokeWidths.size() < minVectorSize) {
+        minVectorSize = _strokeWidths.size();
     }
     
 //    int minArraySize = glm::min(_normals.size(), _points.size())
     _vertices.clear();
     glm::vec3 v1, v2, tangent, binormal, point;
   
-    for (int i = 0; i < _points.size()-1; i++) {
+    for (int i = 0; i < minVectorSize-1; i++) {
         float width = _strokeWidths.at(i);
         point = _points.at(i);
         
