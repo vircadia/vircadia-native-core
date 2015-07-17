@@ -38,6 +38,7 @@ public:
     // standard assignment
     JurisdictionMap& operator=(const JurisdictionMap& other);    // copy assignment
 
+    // application constructors
     JurisdictionMap(const char* filename);
     JurisdictionMap(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes);
     JurisdictionMap(const char* rootHextString, const char* endNodesHextString);
