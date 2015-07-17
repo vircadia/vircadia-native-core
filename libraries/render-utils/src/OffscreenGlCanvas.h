@@ -13,7 +13,6 @@
 #define hifi_OffscreenGlCanvas_h
 
 #include <mutex>
-
 #include <QOpenGLContext>
 #include <QOffscreenSurface>
 

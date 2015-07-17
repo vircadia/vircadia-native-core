@@ -334,11 +334,12 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         batch._glUniformMatrix4fv(locations->invViewMat, 1, false, reinterpret_cast< const GLfloat* >(&invViewMat));
     }
 
-    auto& viewFrustum = args->_viewFrustum;
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
-    viewFrustum->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    args->_viewFrustum->computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+
     batch._glUniform1f(locations->nearLocation, nearVal);
+
     float depthScale = (farVal - nearVal) / farVal;
     batch._glUniform1f(locations->depthScale, depthScale);
 
@@ -387,8 +388,8 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     // enlarge the scales slightly to account for tesselation
     const float SCALE_EXPANSION = 0.05f;
 
-    const glm::vec3& eyePoint = viewFrustum->getPosition();
-    float nearRadius = glm::distance(eyePoint, viewFrustum->getNearTopLeft());
+    auto eyePoint = args->_viewFrustum->getPosition();
+    float nearRadius = glm::distance(eyePoint, args->_viewFrustum->getNearTopLeft());
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
     

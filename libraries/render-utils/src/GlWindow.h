@@ -11,7 +11,6 @@
 #define hifi_GlWindow_h
 
 #include <mutex>
-
 #include <QWindow>
 
 class QOpenGLContext;
@@ -25,7 +24,6 @@ public:
     bool makeCurrent();
     void doneCurrent();
     void swapBuffers();
-
 private:
     std::once_flag _reportOnce;
     QOpenGLContext* _context{ nullptr };

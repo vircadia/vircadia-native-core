@@ -849,20 +849,17 @@ void Application::initializeUi() {
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     offscreenUi->load("Root.qml");
     offscreenUi->load("RootMenu.qml");
-
+    VrMenu::load();
+    VrMenu::executeQueuedLambdas();
     offscreenUi->setMouseTranslator([=](const QPointF& pt) {
         QPointF result = pt;
         auto displayPlugin = getActiveDisplayPlugin();
         if (displayPlugin->isHmd()) {
             auto resultVec = _compositor.screenToOverlay(toGlm(pt));
             result = QPointF(resultVec.x, resultVec.y);
-        } else if (displayPlugin->isStereo()) {
-        } 
+        }
         return result;
     });
-
-    VrMenu::load();
-    VrMenu::executeQueuedLambdas();
     offscreenUi->resume();
     connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect & r){
         static qreal oldDevicePixelRatio = 0;
@@ -1222,8 +1219,7 @@ bool Application::event(QEvent* event) {
 
 bool Application::eventFilter(QObject* object, QEvent* event) {
     if (event->type() == QEvent::ShortcutOverride) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        if (offscreenUi->shouldSwallowShortcut(event)) {
+        if (DependencyManager::get<OffscreenUi>()->shouldSwallowShortcut(event)) {
             event->accept();
             return true;
         }
@@ -1434,11 +1430,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_J:
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() - 0.1f);
-#if 0
-                    if (TV3DManager::isConnected()) {
-                        TV3DManager::configureCamera(_myCamera, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
-                    }
-#endif
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
                 }
@@ -1448,11 +1439,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_M:
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() + 0.1f);
-#if 0
-                    if (TV3DManager::isConnected()) {
-                        TV3DManager::configureCamera(_myCamera, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
-                    }
-#endif
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0.001, 0, 0));
                 }
@@ -1615,11 +1601,11 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
     if (!_lastMouseMoveWasSimulated) {
         _lastMouseMove = usecTimestampNow();
     }
-     
+
     if (_aboutToQuit) {
         return;
     }
-    
+
     _entities.mouseMoveEvent(event, deviceID);
 
     _controllerScriptingInterface.emitMouseMoveEvent(event, deviceID); // send events to any registered scripts
@@ -2133,7 +2119,6 @@ void Application::init() {
     DependencyManager::get<DialogsManager>()->toggleLoginDialog();
 
     _environment.init();
-    Q_ASSERT(_offscreenContext->getContext() == QOpenGLContext::currentContext());
 
     DependencyManager::get<DeferredLightingEffect>()->init(this);
     DependencyManager::get<AmbientOcclusionEffect>()->init(this);
@@ -2143,15 +2128,6 @@ void Application::init() {
     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
 
     _mirrorCamera.setMode(CAMERA_MODE_MIRROR);
-
-#if 0
-    TV3DManager::connect();
-    if (TV3DManager::isConnected()) {
-        QMetaObject::invokeMethod(Menu::getInstance()->getActionForOption(MenuOption::Fullscreen),
-                                  "trigger",
-                                  Qt::QueuedConnection);
-    }
-#endif
 
     _timerStart.start();
     _lastTimeUpdated.start();
@@ -2287,16 +2263,13 @@ void Application::updateMyAvatarLookAtPosition() {
     bool isLookingAtSomeone = false;
     glm::vec3 lookAtSpot;
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-        //  When I am in mirror mode, just look right at the camera (myself)
-        lookAtSpot = _myCamera.getPosition();
-#if 0
-        // FIXME is this really necessary?
         //  When I am in mirror mode, just look right at the camera (myself); don't switch gaze points because when physically
         //  looking in a mirror one's eyes appear steady.
-        if (isHMDMode()) {
-            lookAtSpot = _myCamera.getPosition() + OculusManager::getMidEyePosition();
+        if (!isHMDMode()) {
+            lookAtSpot = _myCamera.getPosition();
+        } else {
+            lookAtSpot = _myCamera.getPosition() + vec3(getHeadPose()[3]);
         }
-#endif
     } else {
         AvatarSharedPointer lookingAt = _myAvatar->getLookAtTargetAvatar().lock();
         if (lookingAt && _myAvatar != lookingAt.get()) {
@@ -2915,28 +2888,7 @@ bool Application::isHMDMode() const {
 }
 
 QRect Application::getDesirableApplicationGeometry() {
-    QRect applicationGeometry = getWindow()->geometry();
-#if 0    
-
-    // If our parent window is on the HMD, then don't use its geometry, instead use
-    // the "main screen" geometry.
-    HMDToolsDialog* hmdTools = DependencyManager::get<DialogsManager>()->getHMDToolsDialog();
-    if (hmdTools && hmdTools->hasHMDScreen()) {
-        QScreen* hmdScreen = hmdTools->getHMDScreen();
-        QWindow* appWindow = getWindow()->windowHandle();
-        QScreen* appScreen = appWindow->screen();
-
-        // if our app's screen is the hmd screen, we don't want to place the
-        // running scripts widget on it. So we need to pick a better screen.
-        // we will use the screen for the HMDTools since it's a guarenteed
-        // better screen.
-        if (appScreen == hmdScreen) {
-            QScreen* betterScreen = hmdTools->windowHandle()->screen();
-            applicationGeometry = betterScreen->geometry();
-        }
-    }
-#endif
-    return applicationGeometry;
+    return getWindow()->geometry();
 }
 
 glm::vec3 Application::getSunDirection() {
@@ -3313,7 +3265,8 @@ namespace render {
                     PerformanceTimer perfTimer("atmosphere");
                     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                         "Application::displaySide() ... atmosphere...");
-                    background->_environment->renderAtmospheres(batch, args->_viewFrustum->getPosition());
+
+                    background->_environment->renderAtmospheres(batch, *(args->_viewFrustum));
                 }
 
             }
@@ -3331,6 +3284,7 @@ namespace render {
         gpu::GLBackend::renderBatch(batch, true);
     }
 }
+
 
 void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool selfAvatarOnly, bool billboard) {
 
@@ -3541,22 +3495,6 @@ void Application::setViewTransform(const Transform& view) {
     _viewTransform = view;
 }
 
-//void Application::updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation) {
-//    glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
-//    _viewMatrixTranslation = viewMatrixTranslation;
-//}
-//
-//void Application::loadTranslatedViewMatrix(const glm::vec3& translation) {
-//    glLoadMatrixf((const GLfloat*)&_untranslatedViewMatrix);
-//    glTranslatef(translation.x + _viewMatrixTranslation.x, translation.y + _viewMatrixTranslation.y,
-//        translation.z + _viewMatrixTranslation.z);
-//}
-//
-//void Application::getModelViewMatrix(glm::dmat4* modelViewMatrix) {
-//    (*modelViewMatrix) =_untranslatedViewMatrix;
-//    (*modelViewMatrix)[3] = _untranslatedViewMatrix * glm::vec4(_viewMatrixTranslation, 1);
-//}
-
 void Application::getModelViewMatrix(glm::dmat4* modelViewMatrix) {
     (*modelViewMatrix) = glm::inverse(_displayViewFrustum.getView());
 }
@@ -3651,13 +3589,6 @@ void Application::resetSensors() {
 
     getActiveDisplayPlugin()->resetSensors();
     //_leapmotion.reset();
-
-#if 0
-    QScreen* currentScreen = _window->windowHandle()->screen();
-    QWindow* mainWindow = _window->windowHandle();
-    QPoint windowCenter = mainWindow->geometry().center();
-    _glWidget->cursor().setPos(currentScreen, windowCenter);
-#endif
 
     _myAvatar->reset();
 
@@ -4711,6 +4642,29 @@ qreal Application::getDevicePixelRatio() {
     return _window ? _window->windowHandle()->devicePixelRatio() : 1.0;
 }
 
+mat4 Application::getEyeProjection(int eye) const {
+    if (isHMDMode()) {
+        return getActiveDisplayPlugin()->getProjection((Eye)eye, _viewFrustum.getProjection());
+    } 
+      
+    return _viewFrustum.getProjection();
+}
+
+mat4 Application::getEyePose(int eye) const {
+    if (isHMDMode()) {
+        return getActiveDisplayPlugin()->getEyePose((Eye)eye);
+    }
+
+    return mat4();
+}
+
+mat4 Application::getHeadPose() const {
+    if (isHMDMode()) {
+        return getActiveDisplayPlugin()->getHeadPose();
+    }
+    return mat4();
+}
+
 DisplayPlugin * Application::getActiveDisplayPlugin() {
     if (nullptr == _displayPlugin) {
         updateDisplayMode();
@@ -4798,25 +4752,3 @@ GlWindow* Application::getVisibleWindow() {
     return _glWindow;
 }
 
-mat4 Application::getEyeProjection(int eye) const {
-    if (isHMDMode()) {
-        return getActiveDisplayPlugin()->getProjection((Eye)eye, _viewFrustum.getProjection());
-    } 
-      
-    return _viewFrustum.getProjection();
-}
-
-mat4 Application::getEyePose(int eye) const {
-    if (isHMDMode()) {
-        return getActiveDisplayPlugin()->getEyePose((Eye)eye);
-    }
-
-    return mat4();
-}
-
-mat4 Application::getHeadPose() const {
-    if (isHMDMode()) {
-        return getActiveDisplayPlugin()->getHeadPose();
-    }
-    return mat4();
-}

@@ -201,6 +201,7 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     //Handle fading and deactivation/activation of UI
     gpu::Batch batch;
 
+    renderArgs->_context->syncCache();
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
     geometryCache->useSimpleDrawPipeline(batch);

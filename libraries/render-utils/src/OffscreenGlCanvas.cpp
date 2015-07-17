@@ -14,7 +14,6 @@
 #include <QOpenGLDebugLogger>
 #include <GLHelpers.cpp>
 
-
 OffscreenGlCanvas::OffscreenGlCanvas() {
 }
 
@@ -38,6 +37,7 @@ void OffscreenGlCanvas::create(QOpenGLContext* sharedContext) {
         _context.setFormat(getDefaultOpenGlSurfaceFormat());
     }
     _context.create();
+
     _offscreenSurface.setFormat(_context.format());
     _offscreenSurface.create();
 
