@@ -2224,7 +2224,7 @@ void DomainServer::processPathQueryPacket(QSharedPointer<NLPacket> packet) {
 
                 // are we going to be able to fit this response viewpoint in a packet?
                 if (numPathBytes + numViewpointBytes + sizeof(numViewpointBytes) + sizeof(numPathBytes)
-                        < (unsigned long) pathResponsePacket->bytesLeftToRead()) {
+                        < (unsigned long) pathResponsePacket->bytesAvailableForWrite()) {
                     // append the number of bytes this path is
                     pathResponsePacket->writePrimitive(numPathBytes);
 
