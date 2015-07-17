@@ -121,7 +121,6 @@ function updateBirds(deltaTime) {
             } else if (birds[i].audioId) {
                 // If bird is playing a chirp 
                 if (!birds[i].audioId.isPlaying) {
-                    // clear ID if playing has stopped 
                     Entities.editEntity(birds[i].entityId, { dimensions: { x: BIRD_SIZE, y: BIRD_SIZE, z: BIRD_SIZE }});
                     numPlaying--;
                 } 
