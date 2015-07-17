@@ -23,7 +23,7 @@ EntityEditPacketSender::EntityEditPacketSender() {
 }
 
 void EntityEditPacketSender::processEntityEditNackPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
-    if (_shouldNack) {
+    if (_shouldProcessNack) {
         processNackPacket(*packet, sendingNode);
     }
 }

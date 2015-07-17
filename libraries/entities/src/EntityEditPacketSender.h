@@ -36,9 +36,9 @@ public:
 
 public slots:
     void processEntityEditNackPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
-    void toggleNackPackets() { _shouldNack = !_shouldNack; }
+    void toggleNackPackets() { _shouldProcessNack = !_shouldProcessNack; }
 
 private:
-    bool _shouldNack = true;
+    bool _shouldProcessNack = true;
 };
 #endif // hifi_EntityEditPacketSender_h
