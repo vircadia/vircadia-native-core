@@ -189,19 +189,35 @@ bool PacketReceiver::packetVersionMatch(const NLPacket& packet) {
     if (packet.getVersion() != versionForPacketType(packet.getType())
         && packet.getType() != PacketType::StunResponse) {
 
-        static QMultiMap<QUuid, PacketType::Value> versionDebugSuppressMap;
+        static QMultiHash<QUuid, PacketType::Value> sourcedVersionDebugSuppressMap;
+        static QMultiHash<HifiSockAddr, PacketType::Value> versionDebugSuppressMap;
 
-        const QUuid& senderID = packet.getSourceID();
+        bool hasBeenOutput = false;
+        QString senderString;
+        
+        if (NON_SOURCED_PACKETS.contains(packet.getType())) {
+            const HifiSockAddr& senderSockAddr = packet.getSenderSockAddr();
+            hasBeenOutput = versionDebugSuppressMap.contains(senderSockAddr, packet.getType());
+            
+            if (!hasBeenOutput) {
+                versionDebugSuppressMap.insert(senderSockAddr, packet.getType());
+                senderString = QString("%1:%2").arg(senderSockAddr.getAddress().toString()).arg(senderSockAddr.getPort());
+            }
+        } else {
+            hasBeenOutput = sourcedVersionDebugSuppressMap.contains(packet.getSourceID(), packet.getType());
+            
+            if (!hasBeenOutput) {
+                sourcedVersionDebugSuppressMap.insert(packet.getSourceID(), packet.getType());
+                senderString = uuidStringWithoutCurlyBraces(packet.getSourceID().toString());
+            }
+        }
 
-        if (!versionDebugSuppressMap.contains(senderID, packet.getType())) {
-
+        if (!hasBeenOutput) {
             qCDebug(networking) << "Packet version mismatch on" << packet.getType() << "- Sender"
-                << senderID << "sent" << qPrintable(QString::number(packet.getVersion())) << "but"
+                << senderString << "sent" << qPrintable(QString::number(packet.getVersion())) << "but"
                 << qPrintable(QString::number(versionForPacketType(packet.getType()))) << "expected.";
 
             emit packetVersionMismatch(packet.getType());
-
-            versionDebugSuppressMap.insert(senderID, packet.getType());
         }
 
         return false;
