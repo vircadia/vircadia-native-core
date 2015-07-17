@@ -14,7 +14,7 @@
 
 #include <memory>
 
-#include <QIODevice>
+#include <QtCore/QIODevice>
 
 #include "../HifiSockAddr.h"
 #include "PacketHeaders.h"
