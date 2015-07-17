@@ -37,8 +37,6 @@ public:
     
     EnvironmentData getClosestData(const glm::vec3& position);
 
-    int processPacket(NLPacket& packet);
-    
 private:
     glm::vec3 getGravity (const glm::vec3& position); // NOTE: Deprecated
     bool findCapsulePenetration(const glm::vec3& start,

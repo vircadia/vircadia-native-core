@@ -14,12 +14,10 @@
 
 #include <OctreeEditPacketSender.h>
 
-#include <PacketListener.h>
-
 #include "EntityItem.h"
 
 /// Utility for processing, packing, queueing and sending of outbound edit voxel messages.
-class EntityEditPacketSender :  public OctreeEditPacketSender, public PacketListener {
+class EntityEditPacketSender :  public OctreeEditPacketSender {
     Q_OBJECT
 public:
     EntityEditPacketSender();
@@ -37,7 +35,7 @@ public:
     virtual void adjustEditPacketForClockSkew(PacketType::Value type, QByteArray& buffer, int clockSkew);
 
 public slots:
-    void processEntityEditNackPacket(QSharedPointer<NLPacket> packet);
+    void processEntityEditNackPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
     void toggleNackPackets() { _shouldNack = !_shouldNack; }
 
 private:

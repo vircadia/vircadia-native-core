@@ -341,6 +341,9 @@ void AvatarMixer::broadcastAvatarData() {
                         ++_sumIdentityPackets;
                     }
             });
+            
+            // close the current packet so that we're always sending something
+            avatarPacketList.closeCurrentPacket(true);
 
             // send the avatar data PacketList
             nodeList->sendPacketList(avatarPacketList, *node);

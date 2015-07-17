@@ -21,12 +21,11 @@
 #include <DependencyManager.h>
 #include <NLPacket.h>
 #include <Node.h>
-#include <PacketListener.h>
 
 #include "AvatarData.h"
 #include <glm/glm.hpp>
 
-class AvatarHashMap : public QObject, public Dependency, public PacketListener {
+class AvatarHashMap : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
@@ -36,13 +35,14 @@ public:
 
 public slots:
     bool isAvatarInRange(const glm::vec3 & position, const float range);
-
-private slots:
-    void sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID);
+    
     void processAvatarDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
     void processAvatarIdentityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
     void processAvatarBillboardPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
     void processKillAvatar(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+
+private slots:
+    void sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID);
 
 protected:
     AvatarHashMap();

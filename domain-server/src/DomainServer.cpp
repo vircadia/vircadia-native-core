@@ -636,7 +636,7 @@ void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) 
         // this is an agent and we've decided we won't let them connect - send them a packet to deny connection
 
         QByteArray utfString = reason.toUtf8();
-        qint16 payloadSize = utfString.size();
+        quint16 payloadSize = utfString.size();
 
         auto connectionDeniedPacket = NLPacket::create(PacketType::DomainConnectionDenied, payloadSize + sizeof(payloadSize));
         connectionDeniedPacket->writePrimitive(payloadSize);
@@ -2224,7 +2224,7 @@ void DomainServer::processPathQueryPacket(QSharedPointer<NLPacket> packet) {
 
                 // are we going to be able to fit this response viewpoint in a packet?
                 if (numPathBytes + numViewpointBytes + sizeof(numViewpointBytes) + sizeof(numPathBytes)
-                        < (unsigned long) pathResponsePacket->bytesLeftToRead()) {
+                        < (unsigned long) pathResponsePacket->bytesAvailableForWrite()) {
                     // append the number of bytes this path is
                     pathResponsePacket->writePrimitive(numPathBytes);
 

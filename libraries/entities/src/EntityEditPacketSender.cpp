@@ -22,9 +22,9 @@ EntityEditPacketSender::EntityEditPacketSender() {
     packetReceiver.registerListener(PacketType::EntityEditNack, this, "processEntityEditNackPacket");
 }
 
-void EntityEditPacketSender::processEntityEditNackPacket(QSharedPointer<NLPacket> packet) {
+void EntityEditPacketSender::processEntityEditNackPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
     if (_shouldNack) {
-        processNackPacket(QByteArray::fromRawData(packet->getData(), packet->getDataSize()));
+        processNackPacket(*packet, sendingNode);
     }
 }
 

@@ -14,11 +14,9 @@
 
 #include <QtCore/QSharedPointer>
 
-#include "PacketListener.h"
-
 #include "Assignment.h"
 
-class ThreadedAssignment : public Assignment, public PacketListener {
+class ThreadedAssignment : public Assignment {
     Q_OBJECT
 public:
     ThreadedAssignment(NLPacket& packet);

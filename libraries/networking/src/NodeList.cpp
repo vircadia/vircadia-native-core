@@ -98,6 +98,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     packetReceiver.registerListener(PacketType::ICEServerPeerInformation, &_domainHandler, "processICEResponsePacket");
     packetReceiver.registerListener(PacketType::DomainServerRequireDTLS, &_domainHandler, "processDTLSRequirementPacket");
     packetReceiver.registerListener(PacketType::ICEPingReply, &_domainHandler, "processICEPingReplyPacket");
+    packetReceiver.registerListener(PacketType::DomainServerPathResponse, this, "processDomainServerPathResponse");
 }
 
 qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination) {
@@ -339,9 +340,9 @@ void NodeList::sendDSPathQuery(const QString& newPath) {
         QByteArray pathQueryUTF8 = newPath.toUtf8();
 
         // get the size of the UTF8 representation of the desired path
-        qint64 numPathBytes = pathQueryUTF8.size();
+        quint16 numPathBytes = pathQueryUTF8.size();
 
-        if (numPathBytes + ((qint64) sizeof(numPathBytes)) < pathQueryPacket->bytesAvailableForWrite()) {
+        if (numPathBytes + ((qint16) sizeof(numPathBytes)) < pathQueryPacket->bytesAvailableForWrite()) {
             // append the size of the path to the query packet
             pathQueryPacket->writePrimitive(numPathBytes);
 
@@ -360,35 +361,41 @@ void NodeList::sendDSPathQuery(const QString& newPath) {
     }
 }
 
-void NodeList::processDomainServerPathQueryResponse(QSharedPointer<NLPacket> packet) {
+void NodeList::processDomainServerPathResponse(QSharedPointer<NLPacket> packet) {
     // This is a response to a path query we theoretically made.
     // In the future we may want to check that this was actually from our DS and for a query we actually made.
 
     // figure out how many bytes the path query is
-    qint16 numPathBytes;
+    quint16 numPathBytes;
     packet->readPrimitive(&numPathBytes);
 
     // pull the path from the packet
-    QString pathQuery = QString::fromUtf8(packet->read(numPathBytes));
+    if (packet->bytesLeftToRead() < numPathBytes) {
+        qCDebug(networking) << "Could not read query path from DomainServerPathQueryResponse. Bailing.";
+        return;
+    }
+    
+    QString pathQuery = QString::fromUtf8(packet->getPayload() + packet->pos(), numPathBytes);
+    packet->seek(packet->pos() + numPathBytes);
 
     // figure out how many bytes the viewpoint is
-    qint16 numViewpointBytes;
+    quint16 numViewpointBytes;
     packet->readPrimitive(&numViewpointBytes);
 
+    if (packet->bytesLeftToRead() < numViewpointBytes) {
+        qCDebug(networking) << "Could not read resulting viewpoint from DomainServerPathQueryReponse. Bailing";
+        return;
+    }
+    
     // pull the viewpoint from the packet
-    auto stringData = packet->read(numViewpointBytes);
-    if (stringData.size() == numViewpointBytes) {
-        QString viewpoint = QString::fromUtf8(stringData);
-
-        // Hand it off to the AddressManager so it can handle it as a relative viewpoint
-        if (DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, pathQuery)) {
-            qCDebug(networking) << "Going to viewpoint" << viewpoint << "which was the lookup result for path" << pathQuery;
-        } else {
-            qCDebug(networking) << "Could not go to viewpoint" << viewpoint
-                << "which was the lookup result for path" << pathQuery;
-        }
+    QString viewpoint = QString::fromUtf8(packet->getPayload() + packet->pos(), numViewpointBytes);
+    
+    // Hand it off to the AddressManager so it can handle it as a relative viewpoint
+    if (DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, pathQuery)) {
+        qCDebug(networking) << "Going to viewpoint" << viewpoint << "which was the lookup result for path" << pathQuery;
     } else {
-        qCDebug(networking) << "Error loading viewpoint from path query response";
+        qCDebug(networking) << "Could not go to viewpoint" << viewpoint
+            << "which was the lookup result for path" << pathQuery;
     }
 }
 

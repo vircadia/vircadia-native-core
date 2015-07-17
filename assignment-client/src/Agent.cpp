@@ -161,7 +161,16 @@ void Agent::run() {
 
     // give this AvatarData object to the script engine
     _scriptEngine.setAvatarData(&scriptedAvatar, "Avatar");
-    _scriptEngine.setAvatarHashMap(DependencyManager::get<AvatarHashMap>().data(), "AvatarList");
+    
+    auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
+   
+    _scriptEngine.setAvatarHashMap(avatarHashMap.data(), "AvatarList");
+    
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::BulkAvatarData, avatarHashMap.data(), "processAvatarDataPacket");
+    packetReceiver.registerListener(PacketType::KillAvatar, avatarHashMap.data(), "processKillAvatar");
+    packetReceiver.registerListener(PacketType::AvatarIdentity, avatarHashMap.data(), "processAvatarIdentityPacket");
+    packetReceiver.registerListener(PacketType::AvatarBillboard, avatarHashMap.data(), "processAvatarBillboardPacket");
 
     // register ourselves to the script engine
     _scriptEngine.registerGlobalObject("Agent", this);
@@ -184,6 +193,9 @@ void Agent::run() {
 
 void Agent::aboutToFinish() {
     _scriptEngine.stop();
+    
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.unregisterListener(DependencyManager::get<AvatarHashMap>().data());
 
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(NULL);

@@ -254,7 +254,6 @@ public:
 
     virtual void eraseAllOctreeElements(bool createNewRoot = true);
 
-    void processRemoveOctreeElementsBitstream(const unsigned char* bitstream, int bufferSizeBytes);
     void readBitstreamToTree(const unsigned char* bitstream,  unsigned long int bufferSizeBytes, ReadBitstreamToTreeParams& args);
     void deleteOctalCodeFromTree(const unsigned char* codeBuffer, bool collapseEmptyTrees = DONT_COLLAPSE);
     void reaverageOctreeElements(OctreeElement* startElement = NULL);

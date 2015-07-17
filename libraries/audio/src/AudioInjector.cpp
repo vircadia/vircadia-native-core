@@ -214,6 +214,11 @@ void AudioInjector::injectToMixer() {
                 (AudioConstants::MAX_SAMPLE_VALUE / 2.0f);
             }
             _loudness /= (float)(bytesToCopy / sizeof(int16_t));
+            
+            audioPacket->seek(0);
+            
+            // pack the sequence number
+            audioPacket->writePrimitive(outgoingInjectedAudioSequenceNumber);
 
             audioPacket->seek(positionOptionOffset);
             audioPacket->writePrimitive(_options.position);
@@ -225,9 +230,6 @@ void AudioInjector::injectToMixer() {
 
             audioPacket->seek(audioDataOffset);
 
-            // pack the sequence number
-            audioPacket->writePrimitive(outgoingInjectedAudioSequenceNumber);
-
             // copy the next NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL bytes to the packet
             audioPacket->write(_audioData.data() + _currentSendPosition, bytesToCopy);
 
@@ -236,10 +238,12 @@ void AudioInjector::injectToMixer() {
 
             // grab our audio mixer from the NodeList, if it exists
             SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
-
-            // send off this audio packet
-            nodeList->sendUnreliablePacket(*audioPacket, *audioMixer);
-            outgoingInjectedAudioSequenceNumber++;
+            
+            if (audioMixer) {
+                // send off this audio packet
+                nodeList->sendUnreliablePacket(*audioPacket, *audioMixer);
+                outgoingInjectedAudioSequenceNumber++;
+            }
 
             _currentSendPosition += bytesToCopy;
 
