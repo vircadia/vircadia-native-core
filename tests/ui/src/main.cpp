@@ -131,7 +131,6 @@ public:
         EditEntitiesHelp,
         Enable3DTVMode,
         EnableCharacterController,
-        EnableGlowEffect,
         EnableVRMode,
         ExpandMyAvatarSimulateTiming,
         ExpandMyAvatarTiming,

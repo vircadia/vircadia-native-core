@@ -197,7 +197,6 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     updateTooltips();
 
     auto deviceSize = qApp->getDeviceSize();
-    glViewport(0, 0, deviceSize.width(), deviceSize.height());
 
     //Handle fading and deactivation/activation of UI
     gpu::Batch batch;
@@ -206,6 +205,7 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
     geometryCache->useSimpleDrawPipeline(batch);
+    batch.setViewportTransform(glm::ivec4(0, 0, deviceSize.width(), deviceSize.height()));
     batch.setModelTransform(Transform());
     batch.setViewTransform(Transform());
     batch.setProjectionTransform(mat4());
@@ -533,75 +533,6 @@ void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
                                                             glm::vec4(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], 1.0f));
 
     }
-}
-
-//Renders a small magnification of the currently bound texture at the coordinates
-void ApplicationCompositor::renderMagnifier(gpu::Batch& batch, const glm::vec2& magPos, float sizeMult, bool showBorder) {
-    if (!_magnifier) {
-        return;
-    }
-    auto canvasSize = qApp->getCanvasSize();
-
-    const int widgetWidth = canvasSize.x;
-    const int widgetHeight = canvasSize.y;
-
-    const float halfWidth = (MAGNIFY_WIDTH / _textureAspectRatio) * sizeMult / 2.0f;
-    const float halfHeight = MAGNIFY_HEIGHT * sizeMult / 2.0f;
-    // Magnification Texture Coordinates
-    const float magnifyULeft = (magPos.x - halfWidth) / (float)widgetWidth;
-    const float magnifyURight = (magPos.x + halfWidth) / (float)widgetWidth;
-    const float magnifyVTop = 1.0f - (magPos.y - halfHeight) / (float)widgetHeight;
-    const float magnifyVBottom = 1.0f - (magPos.y + halfHeight) / (float)widgetHeight;
-
-    const float newHalfWidth = halfWidth * MAGNIFY_MULT;
-    const float newHalfHeight = halfHeight * MAGNIFY_MULT;
-    //Get yaw / pitch value for the corners
-    const glm::vec2 topLeftYawPitch = overlayToSpherical(glm::vec2(magPos.x - newHalfWidth,
-                                                                   magPos.y - newHalfHeight));
-    const glm::vec2 bottomRightYawPitch = overlayToSpherical(glm::vec2(magPos.x + newHalfWidth,
-                                                                       magPos.y + newHalfHeight));
-
-    const glm::vec3 bottomLeft = getPoint(topLeftYawPitch.x, bottomRightYawPitch.y);
-    const glm::vec3 bottomRight = getPoint(bottomRightYawPitch.x, bottomRightYawPitch.y);
-    const glm::vec3 topLeft = getPoint(topLeftYawPitch.x, topLeftYawPitch.y);
-    const glm::vec3 topRight = getPoint(bottomRightYawPitch.x, topLeftYawPitch.y);
-
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-
-    if (bottomLeft != _previousMagnifierBottomLeft || bottomRight != _previousMagnifierBottomRight
-        || topLeft != _previousMagnifierTopLeft || topRight != _previousMagnifierTopRight) {
-        QVector<glm::vec3> border;
-        border << topLeft;
-        border << bottomLeft;
-        border << bottomRight;
-        border << topRight;
-        border << topLeft;
-        geometryCache->updateVertices(_magnifierBorder, border, glm::vec4(1.0f, 0.0f, 0.0f, _alpha));
-
-        _previousMagnifierBottomLeft = bottomLeft;
-        _previousMagnifierBottomRight = bottomRight;
-        _previousMagnifierTopLeft = topLeft;
-        _previousMagnifierTopRight = topRight;
-    }
-
-    glPushMatrix(); {
-        if (showBorder) {
-            glDisable(GL_TEXTURE_2D);
-            glLineWidth(1.0f);
-            //Outer Line
-            geometryCache->renderVertices(gpu::LINE_STRIP, _magnifierBorder);
-            glEnable(GL_TEXTURE_2D);
-        }
-        glm::vec4 magnifierColor = { 1.0f, 1.0f, 1.0f, _alpha };
-
-        DependencyManager::get<GeometryCache>()->renderQuad(bottomLeft, bottomRight, topRight, topLeft,
-                                                    glm::vec2(magnifyULeft, magnifyVBottom),
-                                                    glm::vec2(magnifyURight, magnifyVBottom),
-                                                    glm::vec2(magnifyURight, magnifyVTop),
-                                                    glm::vec2(magnifyULeft, magnifyVTop),
-                                                    magnifierColor, _magnifierQuad);
-
-    } glPopMatrix();
 }
 
 void ApplicationCompositor::buildHemiVertices(

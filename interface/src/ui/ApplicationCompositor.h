@@ -77,7 +77,6 @@ private:
     void updateTooltips();
 
     void renderPointers(gpu::Batch& batch);
-    void renderMagnifier(gpu::Batch& batch, const glm::vec2& magPos, float sizeMult, bool showBorder);
     void renderControllerPointers(gpu::Batch& batch);
     void renderPointersOculus(gpu::Batch& batch);
 

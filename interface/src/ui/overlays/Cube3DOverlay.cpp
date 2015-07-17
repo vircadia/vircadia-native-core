@@ -12,7 +12,6 @@
 #include "InterfaceConfig.h"
 
 #include <DeferredLightingEffect.h>
-#include <GlowEffect.h>
 #include <SharedUtil.h>
 #include <StreamUtils.h>
 
@@ -33,8 +32,6 @@ void Cube3DOverlay::render(RenderArgs* args) {
     xColor color = getColor();
     const float MAX_COLOR = 255.0f;
     glm::vec4 cubeColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
-
-    //glDisable(GL_LIGHTING);
 
     // TODO: handle registration point??
     glm::vec3 position = getPosition();

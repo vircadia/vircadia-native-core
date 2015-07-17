@@ -65,7 +65,6 @@
 #include <DependencyManager.h>
 #include <EntityScriptingInterface.h>
 #include <ErrorDialog.h>
-#include <GlowEffect.h>
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
 #include <gpu/GLBackend.h>
@@ -269,7 +268,6 @@ bool setupEssentials(int& argc, char** argv) {
     auto geometryCache = DependencyManager::set<GeometryCache>();
     auto scriptCache = DependencyManager::set<ScriptCache>();
     auto soundCache = DependencyManager::set<SoundCache>();
-    auto glowEffect = DependencyManager::set<GlowEffect>();
     auto faceshift = DependencyManager::set<Faceshift>();
     auto audio = DependencyManager::set<AudioClient>();
     auto audioScope = DependencyManager::set<AudioScope>();
@@ -974,12 +972,16 @@ void Application::paintGL() {
     } else {
         PROFILE_RANGE(__FUNCTION__ "/mainRender");
 
-        DependencyManager::get<GlowEffect>()->prepare(&renderArgs);
+        auto primaryFBO = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+        GLuint fbo = gpu::GLBackend::getFramebufferID(primaryFBO);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Viewport is assigned to the size of the framebuffer
         QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
         glViewport(0, 0, size.width(), size.height());
-
+        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
+        
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
         glLoadIdentity();
@@ -993,8 +995,7 @@ void Application::paintGL() {
 
         renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
 
-        auto finalFbo = DependencyManager::get<GlowEffect>()->render(&renderArgs);
-
+        auto finalFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
 
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
@@ -1002,6 +1003,8 @@ void Application::paintGL() {
                           0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height(),
                             GL_COLOR_BUFFER_BIT, GL_LINEAR);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    
+        glBindTexture(GL_TEXTURE_2D, 0); // ???
 
         _compositor.displayOverlayTexture(&renderArgs);
     }
@@ -1565,7 +1568,9 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         return;
     }
 
-    _keyboardMouseDevice.mouseMoveEvent(event, deviceID);
+    if (deviceID == 0) {
+        _keyboardMouseDevice.mouseMoveEvent(event, deviceID);
+    }
 
 }
 
@@ -1586,7 +1591,9 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
 
     if (activeWindow() == _window) {
-        _keyboardMouseDevice.mousePressEvent(event);
+        if (deviceID == 0) {
+            _keyboardMouseDevice.mousePressEvent(event);
+        }
 
         if (event->button() == Qt::LeftButton) {
             _mouseDragStarted = getTrueMouse();
@@ -1626,7 +1633,9 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
     }
 
     if (activeWindow() == _window) {
-        _keyboardMouseDevice.mouseReleaseEvent(event);
+        if (deviceID == 0) {
+            _keyboardMouseDevice.mouseReleaseEvent(event);
+        }
 
         if (event->button() == Qt::LeftButton) {
             _mousePressed = false;
@@ -2229,10 +2238,6 @@ void Application::init() {
     _entityClipboardRenderer.init();
     _entityClipboardRenderer.setViewFrustum(getViewFrustum());
     _entityClipboardRenderer.setTree(&_entityClipboard);
-
-    // initialize the GlowEffect with our widget
-    bool glow = Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect);
-    DependencyManager::get<GlowEffect>()->init(glow);
 
     // Make sure any new sounds are loaded as soon as know about them.
     connect(tree, &EntityTree::newCollisionSoundURL, DependencyManager::get<SoundCache>().data(), &SoundCache::getSound);
@@ -3193,9 +3198,6 @@ QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
     glClear(GL_COLOR_BUFFER_BIT);
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
 
-    // the "glow" here causes an alpha of one
-    Glower glower(renderArgs);
-
     const int BILLBOARD_SIZE = 64;
     // TODO: Pass a RenderArgs to renderAvatarBillboard
     renderRearViewMirror(renderArgs, QRect(0, _glWidget->getDeviceHeight() - BILLBOARD_SIZE,
@@ -3716,6 +3718,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
         QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
         glViewport(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
         glScissor(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
+        renderArgs->_viewport = glm::ivec4(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
     } else {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
         QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
@@ -3723,6 +3726,8 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
         int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
         glViewport(x, size.height() - y - height, width, height);
         glScissor(x, size.height() - y - height, width, height);
+    
+        renderArgs->_viewport = glm::ivec4(x, size.height() - y - height, width, height);
     }
     bool updateViewFrustum = false;
     updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
@@ -3735,6 +3740,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     glPopMatrix();
 
     // reset Viewport and projection matrix
+    renderArgs->_viewport = glm::ivec4(viewport[0], viewport[1], viewport[2], viewport[3]);
     glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
     glDisable(GL_SCISSOR_TEST);
     updateProjectionMatrix(_myCamera, updateViewFrustum);
