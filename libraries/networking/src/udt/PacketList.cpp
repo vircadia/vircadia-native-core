@@ -18,11 +18,18 @@
 PacketList::PacketList(PacketType::Value packetType) :
     _packetType(packetType)
 {
+    
+}
+
+PacketList::PacketList(PacketType::Value packetType, const QByteArray& extendedHeader) :
+    _packetType(packetType),
+    _extendedHeader(extendedHeader)
+{
     QIODevice::open(WriteOnly);
 }
 
 void PacketList::startSegment() {
-    _segmentStartIndex = _currentPacket ? _currentPacket->pos() : 0;
+    _segmentStartIndex = _currentPacket ? _currentPacket->pos() : _extendedHeader.size();
 }
 
 void PacketList::endSegment() {
@@ -39,6 +46,7 @@ std::unique_ptr<Packet> PacketList::createPacketWithExtendedHeader() {
     auto packet = createPacket();
     
     if (!_extendedHeader.isEmpty()) {
+        qDebug() << "Writing a header of" << _extendedHeader.size();
         // add the extended header to the front of the packet
         if (packet->write(_extendedHeader) == -1) {
             qDebug() << "Could not write extendedHeader in PacketList::createPacketWithExtendedHeader"
@@ -89,7 +97,7 @@ qint64 PacketList::writeData(const char* data, qint64 maxSize) {
                 newPacket->write(_currentPacket->getPayload() + _segmentStartIndex, segmentSize);
                 
                 // the current segment now starts at the beginning of the new packet
-                _segmentStartIndex = 0;
+                _segmentStartIndex = _extendedHeader.size();
                 
                 // shrink the current payload to the actual size of the packet
                 _currentPacket->setPayloadSize(_segmentStartIndex);

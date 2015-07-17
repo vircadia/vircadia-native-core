@@ -55,8 +55,8 @@ void AvatarHashMap::processAvatarDataPacket(QSharedPointer<NLPacket> packet, Sha
     while (packet->bytesLeftToRead()) {
         QUuid sessionUUID = QUuid::fromRfc4122(packet->read(NUM_BYTES_RFC4122_UUID));
 
-        QByteArray byteArray = QByteArray::fromRawData(packet->getPayload() + packet->pos(),
-                                                       packet->bytesLeftToRead());
+        QByteArray byteArray = packet->read(packet->bytesLeftToRead());
+        
         if (sessionUUID != _lastOwnerSessionUUID) {
             AvatarSharedPointer avatar = _avatarHash.value(sessionUUID);
             if (!avatar) {

@@ -22,6 +22,7 @@ class PacketList : public QIODevice {
     Q_OBJECT
 public:
     PacketList(PacketType::Value packetType);
+    PacketList(PacketType::Value packetType, const QByteArray& extendedHeader);
     
     virtual bool isSequential() const { return true; }
     
@@ -32,8 +33,6 @@ public:
     int getNumPackets() const { return _packets.size() + (_currentPacket ? 1 : 0); }
     
     void closeCurrentPacket(bool shouldSendEmpty = false);
-    
-    void setExtendedHeader(const QByteArray& extendedHeader) { _extendedHeader = extendedHeader; }
     
     template<typename T> qint64 readPrimitive(T* data);
     template<typename T> qint64 writePrimitive(const T& data);

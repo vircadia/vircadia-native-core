@@ -971,13 +971,13 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     // this data is at the beginning of each of the domain list packets
     QByteArray extendedHeader(NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES, 0);
     QDataStream extendedHeaderStream(&extendedHeader, QIODevice::WriteOnly);
+   
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
     
     extendedHeaderStream << limitedNodeList->getSessionUUID();
     extendedHeaderStream << node->getUUID();
     extendedHeaderStream << (quint8) node->getCanAdjustLocks();
     extendedHeaderStream << (quint8) node->getCanRez();
-    
-    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
     NLPacketList domainListPackets(PacketType::DomainList, extendedHeader);
 

@@ -204,8 +204,7 @@ void AssignmentClientMonitor::checkSpares() {
 
 void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<NLPacket> packet) {
     // read out the sender ID
-    QUuid senderID = QUuid::fromRfc4122(QByteArray::fromRawData(packet->getPayload(), NUM_BYTES_RFC4122_UUID));
-    packet->seek(NUM_BYTES_RFC4122_UUID);
+    QUuid senderID = QUuid::fromRfc4122(packet->read(NUM_BYTES_RFC4122_UUID));
 
     auto nodeList = DependencyManager::get<NodeList>();
 
