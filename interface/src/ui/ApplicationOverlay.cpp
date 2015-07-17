@@ -76,14 +76,16 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     AvatarInputs::getInstance()->update();
 
     buildFramebufferObject();
+    
+    if (!_overlayFramebuffer) {
+        return; // we can't do anything without our frame buffer.
+    }
 
     // Execute the batch into our framebuffer
-
     gpu::Batch batch;
     renderArgs->_batch = &batch;
 
     // 1) bind the framebuffer
-    //_overlayFramebuffer->bind();
     batch.setFramebuffer(_overlayFramebuffer);
 
     // 2) clear it...
@@ -94,10 +96,9 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLORS | gpu::Framebuffer::BUFFER_DEPTH, color, depth, stencil);
     //batch.clearColorFramebuffer(_overlayFramebuffer->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
 
-    int width = _overlayFramebuffer ? _overlayFramebuffer->getWidth() : 0;
-    int height = _overlayFramebuffer ? _overlayFramebuffer->getHeight() : 0;
+    int width = _overlayFramebuffer->getWidth();
+    int height = _overlayFramebuffer->getHeight();
 
-    //glViewport(0, 0, width, height);
     batch.setViewportTransform(glm::ivec4(0, 0, width, height));
 
     // Now render the overlay components together into a single texture
@@ -106,11 +107,10 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     renderDomainConnectionStatusBorder(renderArgs); // renders the connected domain line
     renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture
 
-    //_overlayFramebuffer->release(); // now we're done for later composition
-    //batch.setFramebuffer(nullptr);
-
     renderArgs->_context->syncCache();
     renderArgs->_context->render(batch);
+
+    renderArgs->_batch = nullptr; // so future users of renderArgs don't try to use our batch
 
     CHECK_GL_ERROR();
 }
@@ -128,9 +128,6 @@ void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
         batch._glBindTexture(GL_TEXTURE_2D, _uiTexture);
 
         geometryCache->renderUnitQuad(batch, glm::vec4(1));
-        
-        //renderArgs->_context->syncCache();
-        //renderArgs->_context->render(batch);
     }
 }
 
@@ -161,9 +158,6 @@ void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
         int height = _overlayFramebuffer ? _overlayFramebuffer->getHeight() : 0;
         DependencyManager::get<AudioScope>()->render(renderArgs, width, height);
     }
-    
-    //renderArgs->_context->syncCache();
-    //renderArgs->_context->render(batch);
 }
 
 void ApplicationOverlay::renderRearViewToFbo(RenderArgs* renderArgs) {
@@ -222,8 +216,6 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder(RenderArgs* renderAr
         //batch.setModelTransform(glm::scale(mat4(), vec3(scaleAmount)));
 
         geometryCache->renderVertices(batch, gpu::LINE_STRIP, _domainStatusBorder);
-        //renderArgs->_context->syncCache();
-        //renderArgs->_context->render(batch);
     }
 }
 
@@ -252,61 +244,20 @@ void ApplicationOverlay::buildFramebufferObject() {
    auto width = desiredSize.width();
    auto height = desiredSize.height();
 
+    // NOTE: I need to make sure this gpu::Sampler is using these values...
+    //
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    // glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    // glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    // glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
    auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
    _overlayColorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
    _overlayFramebuffer->setRenderBuffer(0, _overlayColorTexture);
-
 
    auto depthFormat = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH);
    _overlayDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, width, height, defaultSampler));
 
    _overlayFramebuffer->setDepthStencilBuffer(_overlayDepthTexture, depthFormat);
-   
-   
-    /*    
-    
-    // This code essentially created a frame buffer, then sets a bunch of the parameters for that texture.
-    _overlayFramebuffer = new QOpenGLFramebufferObject(fboSize, QOpenGLFramebufferObject::Depth);
-
-    GLfloat borderColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-
-    gpu::Batch batch;
-    batch._glBindTexture(GL_TEXTURE_2D, getOverlayTexture());
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    batch._glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-    batch._glBindTexture(GL_TEXTURE_2D, 0);
-    */
-
-    /*
-    glBindTexture(GL_TEXTURE_2D, getOverlayTexture());
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    */
-
-
-
-    /**** Example code...
-    batch._glBindTexture(GL_TEXTURE_2D, texture);
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-
-    // this stuff is what would actually render from the texture
-
-    geometryCache->useSimpleDrawPipeline(batch);
-    batch.setViewportTransform(glm::ivec4(0, 0, deviceSize.width(), deviceSize.height()));
-    batch.setModelTransform(Transform());
-    batch.setViewTransform(Transform());
-    batch.setProjectionTransform(mat4());
-    batch._glBindTexture(GL_TEXTURE_2D, texture);
-    geometryCache->renderUnitQuad(batch, vec4(vec3(1), _alpha));
-    ****/
-
 }

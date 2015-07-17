@@ -210,10 +210,12 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     batch.setModelTransform(Transform());
     batch.setViewTransform(Transform());
     batch.setProjectionTransform(mat4());
+
+    // FIXME - Is this the proper technique for selecting the source 2D texture used by the renderUnitQuad???
+    //         And, how do we make sure we're getting the right blend/resampler?
     //batch._glBindTexture(GL_TEXTURE_2D, texture);
     //batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     //batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
     batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));
 
     geometryCache->renderUnitQuad(batch, vec4(vec3(1), _alpha));
