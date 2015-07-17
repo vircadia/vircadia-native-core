@@ -720,12 +720,6 @@ void ScriptEngine::run() {
         }
     }
 
-    // If we were on a thread, then wait till it's done
-    // Unless we're an assignment-client, in which case that's handled for us
-    if (thread() && !_isAgent) {
-        thread()->quit();
-    }
-
     emit finished(_fileNameString);
 
     _isRunning = false;
