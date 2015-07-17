@@ -12,6 +12,8 @@
 #ifndef hifi_PacketList_h
 #define hifi_PacketList_h
 
+#include <memory>
+
 #include <QtCore/QIODevice>
 
 #include "PacketHeaders.h"
