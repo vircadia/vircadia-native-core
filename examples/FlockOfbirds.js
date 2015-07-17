@@ -108,14 +108,11 @@ function updateBirds(deltaTime) {
                 // Change size 
                 Entities.editEntity(birds[i].entityId, { dimensions: Vec3.multiply(1.5, properties.dimensions)});
                 
-            }
-
-            if (birds[i].audioId) {
+            } else if (birds[i].audioId) {
                 // If bird is playing a chirp 
                 if (!birds[i].audioId.isPlaying) {
                     // clear ID if playing has stopped 
                     Entities.editEntity(birds[i].entityId, { dimensions: { x: BIRD_SIZE, y: BIRD_SIZE, z: BIRD_SIZE }});
-                    birds[i].audioId = false; 
                     numPlaying--;
                 } 
             }
@@ -251,7 +248,8 @@ function loadBirds(howMany) {
                     collisionsWillMove: true,
                     color: colors[whichBird]
         }),
-        audioId: false
+        audioId: false,
+        isPlaying: false
       });
   }
 }
