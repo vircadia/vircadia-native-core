@@ -151,6 +151,7 @@ void PacketReceiver::registerVerifiedListener(PacketType::Value type, QObject* o
 
     if (_packetListenerMap.contains(type)) {
         qDebug() << "Warning: Registering a packet listener for packet type" << type
+            << "(" << qPrintable(nameForPacketType(type)) << ")"
             << "that will remove a previously registered listener";
     }
 

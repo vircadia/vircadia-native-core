@@ -20,12 +20,6 @@
 
 AvatarHashMap::AvatarHashMap() {
     connect(DependencyManager::get<NodeList>().data(), &NodeList::uuidChanged, this, &AvatarHashMap::sessionUUIDChanged);
-
-    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
-    packetReceiver.registerListener(PacketType::KillAvatar, this, "processKillAvatar");
-    packetReceiver.registerListener(PacketType::AvatarIdentity, this, "processAvatarIdentityPacket");
-    packetReceiver.registerListener(PacketType::AvatarBillboard, this, "processAvatarBillboardPacket");
 }
 
 bool AvatarHashMap::isAvatarInRange(const glm::vec3& position, const float range) {

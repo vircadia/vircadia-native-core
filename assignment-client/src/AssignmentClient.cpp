@@ -56,7 +56,6 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned);
 
     auto animationCache = DependencyManager::set<AnimationCache>();
-    auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
     auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>();
 
     DependencyManager::registerInheritance<EntityActionFactoryInterface, AssignmentActionFactory>();

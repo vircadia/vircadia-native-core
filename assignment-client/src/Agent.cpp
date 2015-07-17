@@ -58,6 +58,12 @@ Agent::Agent(NLPacket& packet) :
         { PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
         this, "handleOctreePacket");
     packetReceiver.registerListener(PacketType::Jurisdiction, this, "handleJurisdictionPacket");
+    
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
+    packetReceiver.registerListener(PacketType::KillAvatar, this, "processKillAvatar");
+    packetReceiver.registerListener(PacketType::AvatarIdentity, this, "processAvatarIdentityPacket");
+    packetReceiver.registerListener(PacketType::AvatarBillboard, this, "processAvatarBillboardPacket");
 }
 
 void Agent::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
@@ -161,7 +167,16 @@ void Agent::run() {
 
     // give this AvatarData object to the script engine
     _scriptEngine.setAvatarData(&scriptedAvatar, "Avatar");
-    _scriptEngine.setAvatarHashMap(DependencyManager::get<AvatarHashMap>().data(), "AvatarList");
+    
+    auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
+   
+    _scriptEngine.setAvatarHashMap(avatarHashMap.data(), "AvatarList");
+    
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::BulkAvatarData, avatarHashMap.data(), "processAvatarDataPacket");
+    packetReceiver.registerListener(PacketType::KillAvatar, avatarHashMap.data(), "processKillAvatar");
+    packetReceiver.registerListener(PacketType::AvatarIdentity, avatarHashMap.data(), "processAvatarIdentityPacket");
+    packetReceiver.registerListener(PacketType::AvatarBillboard, avatarHashMap.data(), "processAvatarBillboardPacket");
 
     // register ourselves to the script engine
     _scriptEngine.registerGlobalObject("Agent", this);
