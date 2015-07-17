@@ -143,15 +143,16 @@ void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     batch._glLineWidth(1.0f); // default
     
     {
+        // Render the audio scope
+        //int width = _overlayFramebuffer ? _overlayFramebuffer->getWidth() : 0;
+        //int height = _overlayFramebuffer ? _overlayFramebuffer->getHeight() : 0;
+        DependencyManager::get<AudioScope>()->render(renderArgs, width, height);
+
         // Render all of the Script based "HUD" aka 2D overlays.
         // note: we call them HUD, as opposed to 2D, only because there are some cases of 3D HUD overlays, like the
         // cameral controls for the edit.js
         qApp->getOverlays().renderHUD(renderArgs);
         
-        // Render the audio scope
-        int width = _overlayFramebuffer ? _overlayFramebuffer->getWidth() : 0;
-        int height = _overlayFramebuffer ? _overlayFramebuffer->getHeight() : 0;
-        DependencyManager::get<AudioScope>()->render(renderArgs, width, height);
     }
 }
 

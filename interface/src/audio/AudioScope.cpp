@@ -127,11 +127,14 @@ void AudioScope::render(RenderArgs* renderArgs, int width, int height) {
     int w = (int)SCOPE_WIDTH;
     int h = (int)SCOPE_HEIGHT;
 
-    gpu::Batch batch;
+    gpu::Batch& batch = *renderArgs->_batch;
     auto geometryCache = DependencyManager::get<GeometryCache>();
     geometryCache->useSimpleDrawPipeline(batch);
     auto textureCache = DependencyManager::get<TextureCache>();
     batch.setResourceTexture(0, textureCache->getWhiteTexture());
+    
+    // FIXME - do we really need to reset this here? we know that we're called inside of ApplicationOverlay::renderOverlays
+    //         which already set up our batch for us to have these settings
     mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
     batch.setProjectionTransform(legacyProjection);
     batch.setModelTransform(Transform());
@@ -142,8 +145,6 @@ void AudioScope::render(RenderArgs* renderArgs, int width, int height) {
     renderLineStrip(batch, _inputID, inputColor, x, y, _samplesPerScope, _scopeInputOffset, _scopeInput);
     renderLineStrip(batch, _outputLeftID, outputLeftColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputLeft);
     renderLineStrip(batch, _outputRightD, outputRightColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputRight);
-    renderArgs->_context->syncCache();
-    renderArgs->_context->render(batch);
 }
 
 void AudioScope::renderLineStrip(gpu::Batch& batch, int id, const glm::vec4& color, int x, int y, int n, int offset, const QByteArray* byteArray) {
