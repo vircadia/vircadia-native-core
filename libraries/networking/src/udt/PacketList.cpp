@@ -83,8 +83,10 @@ qint64 PacketList::writeData(const char* data, qint64 maxSize) {
                     Q_ASSERT(false);
                 }
                 
+                int segmentSize = _currentPacket->pos() - _segmentStartIndex;
+                
                 // copy from currentPacket where the segment started to the beginning of the newPacket
-                newPacket->write(_currentPacket->getPayload() + _segmentStartIndex, numBytesToEnd);
+                newPacket->write(_currentPacket->getPayload() + _segmentStartIndex, segmentSize);
                 
                 // the current segment now starts at the beginning of the new packet
                 _segmentStartIndex = 0;
