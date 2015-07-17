@@ -18,7 +18,6 @@
 #include "AbstractViewStateInterface.h"
 #include "DeferredLightingEffect.h"
 #include "GeometryCache.h"
-#include "GlowEffect.h"
 #include "RenderUtil.h"
 #include "TextureCache.h"
 
@@ -238,7 +237,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     QSize framebufferSize = textureCache->getFrameBufferSize();
     
     // binding the first framebuffer
-    auto freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebuffer();
+    auto freeFBO = DependencyManager::get<TextureCache>()->getSecondaryFramebuffer();
     batch.setFramebuffer(freeFBO);
 
     batch.setViewportTransform(args->_viewport);
@@ -541,7 +540,7 @@ void DeferredLightingEffect::copyBack(RenderArgs* args) {
     auto textureCache = DependencyManager::get<TextureCache>();
     QSize framebufferSize = textureCache->getFrameBufferSize();
 
-    auto freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebuffer();
+    auto freeFBO = DependencyManager::get<TextureCache>()->getSecondaryFramebuffer();
 
     batch.setFramebuffer(textureCache->getPrimaryFramebuffer());
     batch.setPipeline(_blitLightBuffer);

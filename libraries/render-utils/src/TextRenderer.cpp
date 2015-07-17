@@ -504,9 +504,6 @@ glm::vec2 Font::drawString(float x, float y, const QString & str,
     _vao->release();
     _texture->release(); // TODO: Brad & Sam, let's discuss this. Without this non-textured quads get their colors borked.
     _program->release();
-    // FIXME, needed?
-    // glDisable(GL_TEXTURE_2D);
-    
     
     return advance;
 }

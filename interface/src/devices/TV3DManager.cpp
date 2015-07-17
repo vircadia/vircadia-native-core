@@ -14,7 +14,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <GlowEffect.h>
 #include "gpu/GLBackend.h"
 #include "Application.h"
 
@@ -82,6 +81,9 @@ void TV3DManager::configureCamera(Camera& whichCamera, int screenWidth, int scre
 }
 
 void TV3DManager::display(RenderArgs* renderArgs, Camera& whichCamera) {
+
+#ifdef THIS_CURRENTLY_BROKEN_WAITING_FOR_DISPLAY_PLUGINS 
+
     double nearZ = DEFAULT_NEAR_CLIP; // near clipping plane
     double farZ = DEFAULT_FAR_CLIP; // far clipping plane
 
@@ -94,6 +96,7 @@ void TV3DManager::display(RenderArgs* renderArgs, Camera& whichCamera) {
     int portalH = deviceSize.height();
 
 
+    // FIXME - glow effect is removed, 3D TV mode broken until we get display plugins working
     DependencyManager::get<GlowEffect>()->prepare(renderArgs);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -130,6 +133,7 @@ void TV3DManager::display(RenderArgs* renderArgs, Camera& whichCamera) {
     glPopMatrix();
     glDisable(GL_SCISSOR_TEST);
 
+    // FIXME - glow effect is removed, 3D TV mode broken until we get display plugins working
     auto finalFbo = DependencyManager::get<GlowEffect>()->render(renderArgs);
     auto fboSize = finalFbo->getSize();
     // Get the ACTUAL device size for the BLIT
@@ -144,6 +148,8 @@ void TV3DManager::display(RenderArgs* renderArgs, Camera& whichCamera) {
 
     // reset the viewport to how we started
     glViewport(0, 0, deviceSize.width(), deviceSize.height());
+
+#endif 
 }
 
 void TV3DManager::overrideOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,

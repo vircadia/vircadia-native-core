@@ -87,20 +87,20 @@ public:
     const Vec3& getTranslation() const;
     void setTranslation(const Vec3& translation); // [new this] = [translation] * [this.rotation] * [this.scale]
     void preTranslate(const Vec3& translation);   // [new this] = [translation] * [this]
-    void postTranslate(const Vec3& translation);  // [new this] = [this] * [translation] equivalent to glTranslate
+    void postTranslate(const Vec3& translation);  // [new this] = [this] * [translation] equivalent to:glTranslate
 
     const Quat& getRotation() const;
     void setRotation(const Quat& rotation); // [new this] = [this.translation] * [rotation] * [this.scale]
     void preRotate(const Quat& rotation);   // [new this] = [rotation] * [this]
-    void postRotate(const Quat& rotation);  // [new this] = [this] * [rotation] equivalent to glRotate
+    void postRotate(const Quat& rotation);  // [new this] = [this] * [rotation] equivalent to:glRotate
 
     const Vec3& getScale() const;
     void setScale(float scale);
     void setScale(const Vec3& scale);  // [new this] = [this.translation] * [this.rotation] * [scale]
     void preScale(float scale);
     void preScale(const Vec3& scale);
-    void postScale(float scale);       // [new this] = [this] * [scale] equivalent to glScale
-    void postScale(const Vec3& scale); // [new this] = [this] * [scale] equivalent to glScale
+    void postScale(float scale);       // [new this] = [this] * [scale] equivalent to:glScale
+    void postScale(const Vec3& scale); // [new this] = [this] * [scale] equivalent to:glScale
 
     bool isIdentity() const { return (_flags & ~Flags(FLAG_CACHE_INVALID_BITSET)).none(); }
     bool isTranslating() const { return _flags[FLAG_TRANSLATION]; }
