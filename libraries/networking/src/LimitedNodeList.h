@@ -232,6 +232,8 @@ public slots:
     void killNodeWithUUID(const QUuid& nodeUUID);
 
 signals:
+    void dataSent(quint8 channelType, int bytes);
+
     void uuidChanged(const QUuid& ownerUUID, const QUuid& oldUUID);
     void nodeAdded(SharedNodePointer);
     void nodeKilled(SharedNodePointer);

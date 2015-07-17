@@ -48,7 +48,6 @@ public slots:
     void processDatagrams();
 
 signals:
-    void dataSent(quint8 channelType, int bytes);
     void dataReceived(quint8 channelType, int bytes);
     void packetVersionMismatch(PacketType::Value type);
     
