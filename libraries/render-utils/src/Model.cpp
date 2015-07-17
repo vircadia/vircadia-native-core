@@ -1255,17 +1255,6 @@ QStringList Model::getJointNames() const {
     return isActive() ? _geometry->getFBXGeometry().getJointNames() : QStringList();
 }
 
-uint qHash(const WeakAnimationHandlePointer& handle, uint seed) {
-    return qHash(handle.data(), seed);
-}
-
-AnimationHandlePointer Model::createAnimationHandle() {
-    AnimationHandlePointer handle(new AnimationHandle(this));
-    handle->_self = handle;
-    _animationHandles.insert(handle);
-    return handle;
-}
-
 // virtual override from PhysicsEntity
 void Model::buildShapes() {
     // TODO: figure out how to load/build collision shapes for general models
@@ -1830,9 +1819,9 @@ void Model::deleteGeometry() {
     clearShapes();
     
     for (QSet<WeakAnimationHandlePointer>::iterator it = _animationHandles.begin(); it != _animationHandles.end(); ) {
-        AnimationHandlePointer handle = it->toStrongRef();
+        AnimationHandlePointer handle = it->lock();
         if (handle) {
-            handle->_jointMappings.clear();
+            handle->clearJoints();
             it++;
         } else {
             it = _animationHandles.erase(it);

@@ -209,7 +209,6 @@ public:
 
     QStringList getJointNames() const;
     
-    AnimationHandlePointer createAnimationHandle();
 
     const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
    

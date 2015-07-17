@@ -488,7 +488,7 @@ void MyAvatar::loadLastRecording() {
 }
 
 AnimationHandlePointer MyAvatar::addAnimationHandle() {
-    AnimationHandlePointer handle = _skeletonModel.createAnimationHandle();
+    AnimationHandlePointer handle = _rig.createAnimationHandle();
     _animationHandles.append(handle);
     return handle;
 }
@@ -506,7 +506,7 @@ void MyAvatar::startAnimation(const QString& url, float fps, float priority,
             Q_ARG(float, lastFrame), Q_ARG(const QStringList&, maskedJoints));
         return;
     }
-    AnimationHandlePointer handle = _skeletonModel.createAnimationHandle();
+    AnimationHandlePointer handle = _rig.createAnimationHandle();
     handle->setURL(url);
     handle->setFPS(fps);
     handle->setPriority(priority);
@@ -534,7 +534,7 @@ void MyAvatar::startAnimationByRole(const QString& role, const QString& url, flo
         }
     }
     // no joy; use the parameters provided
-    AnimationHandlePointer handle = _skeletonModel.createAnimationHandle();
+    AnimationHandlePointer handle = _rig.createAnimationHandle();
     handle->setRole(role);
     handle->setURL(url);
     handle->setFPS(fps);
