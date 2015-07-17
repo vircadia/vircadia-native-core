@@ -39,6 +39,6 @@ public slots:
     void toggleNackPackets() { _shouldNack = !_shouldNack; }
 
 private:
-    bool _shouldNack = false;
+    bool _shouldNack = true;
 };
 #endif // hifi_EntityEditPacketSender_h
