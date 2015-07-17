@@ -30,13 +30,19 @@ var dimensions = {
 };
 var BUTTON_SIZE = 32;
 
+var health = 100;
+var healthLossOnHit = 10;
+
 var swordModel = "https://hifi-public.s3.amazonaws.com/ozan/props/sword/sword.fbx";
 // var swordCollisionShape = "https://hifi-public.s3.amazonaws.com/ozan/props/sword/sword.obj";
-var swordCollisionShape = "https://hifi-public.s3.amazonaws.com/eric/models/noHandleSwordCollisionShape.obj?=v1";
+var swordCollisionShape = "https://hifi-public.s3.amazonaws.com/eric/models/noHandleSwordCollisionShape.obj?=v2";
 var swordCollisionSoundURL = "http://public.highfidelity.io/sounds/Collisions-hitsandslaps/swordStrike1.wav";
-var avatarCollisionSoundURL = "https://s3.amazonaws.com/hifi-public/sounds/Collisions-hitsandslaps/airhockey_hit1.wav";
+var avatarCollisionSoundURL = "https://hifi-public.s3.amazonaws.com/eric/sounds/blankSound.wav"; //Just to avoid no collision callback bug
+var zombieGameScriptURL = "https://hifi-public.s3.amazonaws.com/eric/scripts/zombieFight.js";
 var whichModel = "sword";
 var originalAvatarCollisionSound;
+
+var avatarCollisionSounds = [SoundCache.getSound("https://hifi-public.s3.amazonaws.com/eric/sounds/avatarHit.wav"), SoundCache.getSound("https://hifi-public.s3.amazonaws.com/eric/sounds/avatarHit2.wav?=v2")];
 
 var toolBar = new ToolBar(0, 0, ToolBar.vertical, "highfidelity.sword.toolbar", function() {
     return {
@@ -44,6 +50,8 @@ var toolBar = new ToolBar(0, 0, ToolBar.vertical, "highfidelity.sword.toolbar", 
         y: 380
     };
 });
+
+var gameStarted = false;
 
 var SWORD_IMAGE = "https://hifi-public.s3.amazonaws.com/images/sword/sword.svg"; // Toggle between brandishing/sheathing sword (creating if necessary)
 var TARGET_IMAGE = "https://hifi-public.s3.amazonaws.com/images/sword/dummy2.svg"; // Create a target dummy
@@ -109,7 +117,7 @@ function flash(color) {
     flasher.timer = Script.setTimeout(clearFlash, 500);
 }
 
-var health = 100;
+
 var display2d, display3d;
 
 function trackAvatarWithText() {
@@ -126,7 +134,6 @@ function trackAvatarWithText() {
 function updateDisplay() {
     var text = health.toString();
     if (!display2d) {
-        health = 100;
         display2d = Overlays.addOverlay("text", {
             text: text,
             font: {
@@ -190,7 +197,24 @@ function removeDisplay() {
 
 
 function gotHit(collision) {
-    health -= 1;
+    Audio.playSound(avatarCollisionSounds[randInt(0, avatarCollisionSounds.length)], {
+        position: MyAvatar.position,
+        volume: 0.5
+    });
+    health -= healthLossOnHit;
+    if (health <= 30) {
+        Overlays.editOverlay(display2d, {
+            color: {
+                red: 200,
+                green: 10,
+                blue: 10
+            }
+        });
+    }
+
+    if (health <= 0 && zombieFight) {
+        zombieFight.loseGame();
+    }
     flash({
         red: 255,
         green: 0,
@@ -239,6 +263,7 @@ function cleanUp(leaveButtons) {
         toolBar.cleanup();
     }
     removeSword();
+    gameStarted = false;
     zombieFight.cleanup();
 }
 
@@ -265,7 +290,7 @@ function makeSword() {
         SoundCache.getSound(avatarCollisionSoundURL); // Interface does not currently "preload" this? (Bug?)
     }
 
-    if(!isControllerActive()) {
+    if (!isControllerActive()) {
         grabSword("right");
     }
     MyAvatar.collisionSoundURL = avatarCollisionSoundURL;
@@ -277,6 +302,10 @@ function makeSword() {
 
 
 function grabSword(hand) {
+    if (!swordID) {
+        print("Create a sword by clicking on sword icon!")
+        return;
+    }
     var handRotation;
     if (hand === "right") {
         handRotation = MyAvatar.getRightPalmRotation();
@@ -292,7 +321,7 @@ function grabSword(hand) {
             y: 0.0,
             z: -dimensions.z * 0.5
         },
-        relativeRotation:offsetRotation,
+        relativeRotation: offsetRotation,
         hand: hand,
         timeScale: 0.05
     });
@@ -358,7 +387,11 @@ randInt = function(low, high) {
 
 function positionSword(swordOrientation) {
     var reorient = Quat.fromPitchYawRollDegrees(0, -90, 0);
-    var baseOffset = {x: -dimensions.z * 0.8, y: 0, z: 0};
+    var baseOffset = {
+        x: -dimensions.z * 0.8,
+        y: 0,
+        z: 0
+    };
     var offset = Vec3.multiplyQbyV(reorient, baseOffset);
     swordOrientation = Quat.multiply(reorient, swordOrientation);
     inHand = false;
@@ -368,6 +401,7 @@ function positionSword(swordOrientation) {
         hand: "right"
     });
 }
+
 function resetToHand() { // For use with controllers, puts the sword in contact with the hand.
     // Maybe coordinate with positionSword?
     if (inHand) { // Optimization: bail if we're already inHand.
@@ -375,10 +409,18 @@ function resetToHand() { // For use with controllers, puts the sword in contact 
     }
     print('Reset to hand');
     Entities.updateAction(swordID, actionID, {
-        relativePosition: {x: 0.0, y: 0.0, z: -dimensions.z * 0.5},
-        relativeRotation: Quat.fromVec3Degrees({x: 45.0, y: 0.0, z: 0.0}),
-        hand: "right",   // It should not be necessary to repeat these two, but there seems to be a bug in that that
-        timeScale: 0.05  // they do not retain their earlier values if you don't repeat them.
+        relativePosition: {
+            x: 0.0,
+            y: 0.0,
+            z: -dimensions.z * 0.5
+        },
+        relativeRotation: Quat.fromVec3Degrees({
+            x: 45.0,
+            y: 0.0,
+            z: 0.0
+        }),
+        hand: "right", // It should not be necessary to repeat these two, but there seems to be a bug in that that
+        timeScale: 0.05 // they do not retain their earlier values if you don't repeat them.
     });
     inHand = true;
 }
@@ -411,9 +453,14 @@ function onClick(event) {
             }
             break;
         case targetButton:
-            Script.include("zombieFight.js?v1");
+            if (gameStarted) {
+                return;
+            }
+            Script.include("https://hifi-public.s3.amazonaws.com/eric/scripts/zombieFight.js");
             zombieFight = new ZombieFight();
             zombieFight.initiateZombieApocalypse();
+            gameStarted = true;
+
             break;
         case cleanupButton:
             cleanUp('leaveButtons');
