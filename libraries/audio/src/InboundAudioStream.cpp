@@ -132,7 +132,7 @@ int InboundAudioStream::parseData(NLPacket& packet) {
             if (packet.getType() == PacketType::SilentAudioFrame) {
                 writeDroppableSilentSamples(networkSamples);
             } else {
-                int audioBytes = parseAudioData(packet.getType(), packet.read(packet.bytesLeftToRead()), networkSamples);
+                parseAudioData(packet.getType(), packet.read(packet.bytesLeftToRead()), networkSamples);
             }
             break;
         }
