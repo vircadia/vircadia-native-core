@@ -21,14 +21,10 @@ OctreePacketProcessor::OctreePacketProcessor() {
     
     QSet<PacketType::Value> types {
         PacketType::OctreeStats, PacketType::EntityData,
-        PacketType::EntityErase, PacketType::OctreeStats, PacketType::EnvironmentData
+        PacketType::EntityErase, PacketType::OctreeStats
     };
 
-    packetReceiver.registerListenerForTypes(types, this, "handleOctreePacket");
-}
-
-OctreePacketProcessor::~OctreePacketProcessor() {
-    DependencyManager::get<NodeList>()->getPacketReceiver().unregisterListener(this);
+    packetReceiver.registerDirectListenerForTypes(types, this, "handleOctreePacket");
 }
 
 void OctreePacketProcessor::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
@@ -57,7 +53,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
         int statsMessageLength = app->processOctreeStats(*packet, sendingNode);
 
         wasStatsPacket = true;
-        int piggybackBytes = packet->getSizeUsed() - statsMessageLength;
+        int piggybackBytes = packet->getPayloadSize() - statsMessageLength;
         
         if (piggybackBytes) {
             // construct a new packet from the piggybacked one
@@ -75,7 +71,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
     PacketType::Value packetType = packet->getType();
 
     // check version of piggyback packet against expected version
-    if (packetType != versionForPacketType(packet->getType())) {
+    if (packet->getVersion() != versionForPacketType(packet->getType())) {
         static QMultiMap<QUuid, PacketType::Value> versionDebugSuppressMap;
 
         const QUuid& senderUUID = packet->getSourceID();
@@ -93,6 +89,9 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
     }
 
     app->trackIncomingOctreePacket(*packet, sendingNode, wasStatsPacket);
+    
+    // seek back to beginning of packet after tracking
+    packet->seek(0);
 
     switch(packetType) {
         case PacketType::EntityErase: {
@@ -105,10 +104,6 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
             if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
                 app->_entities.processDatagram(*packet, sendingNode);
             }
-        } break;
-
-        case PacketType::EnvironmentData: {
-            app->_environment.processPacket(*packet);
         } break;
 
         default: {

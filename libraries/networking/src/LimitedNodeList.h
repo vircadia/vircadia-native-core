@@ -37,13 +37,10 @@
 #include "DomainHandler.h"
 #include "Node.h"
 #include "NLPacket.h"
-#include "PacketHeaders.h"
+#include "udt/PacketHeaders.h"
 #include "PacketReceiver.h"
-#include "PacketListener.h"
 #include "NLPacketList.h"
 #include "UUIDHasher.h"
-
-const int MAX_PACKET_SIZE = 1450;
 
 const quint64 NODE_SILENCE_THRESHOLD_MSECS = 2 * 1000;
 
@@ -76,7 +73,7 @@ namespace PingType {
     const PingType_t Symmetric = 3;
 }
 
-class LimitedNodeList : public QObject, public Dependency, public PacketListener {
+class LimitedNodeList : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 public:
@@ -119,16 +116,19 @@ public:
 
     bool packetSourceAndHashMatch(const NLPacket& packet, SharedNodePointer& matchingNode);
 
-    PacketReceiver& getPacketReceiver() { return _packetReceiver; }
+    PacketReceiver& getPacketReceiver() { return *_packetReceiver; }
 
-    qint64 sendUnreliablePacket(const NLPacket& packet, const SharedNodePointer& destinationNode) { assert(false); return 0; }
-    qint64 sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr) { assert(false); return 0; }
+    qint64 sendUnreliablePacket(const NLPacket& packet, const Node& destinationNode);
+    qint64 sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr,
+                                const QUuid& connectionSecret = QUuid());
 
-    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const SharedNodePointer& destinationNode) { assert(false); return 0; }
-    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr) { assert(false); return 0; }
+    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode);
+    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr,
+                      const QUuid& connectionSecret = QUuid());
 
-    qint64 sendPacketList(NLPacketList& packetList, const SharedNodePointer& destinationNode) { assert(false); return 0; }
-    qint64 sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr) { assert(false); return 0; }
+    qint64 sendPacketList(NLPacketList& packetList, const Node& destinationNode);
+    qint64 sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr,
+                          const QUuid& connectionSecret = QUuid());
 
     void (*linkedDataCreateCallback)(Node *);
 
@@ -150,7 +150,7 @@ public:
 
     int updateNodeWithDataFromPacket(QSharedPointer<NLPacket> packet, SharedNodePointer matchingNode);
 
-    unsigned broadcastToNodes(std::unique_ptr<NLPacket> packet, const NodeSet& destinationNodeTypes) { assert(false); return 0; }
+    unsigned int broadcastToNodes(std::unique_ptr<NLPacket> packet, const NodeSet& destinationNodeTypes);
     SharedNodePointer soloNodeOfType(char nodeType);
 
     void getPacketStats(float &packetsPerSecond, float &bytesPerSecond);
@@ -161,8 +161,6 @@ public:
 
     std::unique_ptr<NLPacket> constructICEPingPacket(PingType_t pingType, const QUuid& iceID);
     std::unique_ptr<NLPacket> constructICEPingReplyPacket(NLPacket& pingPacket, const QUuid& iceID);
-
-    virtual bool processSTUNResponse(QSharedPointer<NLPacket> packet);
 
     void sendHeartbeatToIceServer(const HifiSockAddr& iceServerSockAddr);
     void sendPeerQueryToIceServer(const HifiSockAddr& iceServerSockAddr, const QUuid& clientID, const QUuid& peerID);
@@ -229,10 +227,13 @@ public slots:
 
     void startSTUNPublicSocketUpdate();
     virtual void sendSTUNRequest();
+    bool processSTUNResponse(QSharedPointer<NLPacket> packet);
 
     void killNodeWithUUID(const QUuid& nodeUUID);
 
 signals:
+    void dataSent(quint8 channelType, int bytes);
+
     void uuidChanged(const QUuid& ownerUUID, const QUuid& oldUUID);
     void nodeAdded(SharedNodePointer);
     void nodeKilled(SharedNodePointer);
@@ -247,7 +248,10 @@ protected:
     LimitedNodeList(unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);
     LimitedNodeList(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
-
+    
+    qint64 writePacket(const NLPacket& packet, const Node& destinationNode);
+    qint64 writePacket(const NLPacket& packet, const HifiSockAddr& destinationSockAddr,
+                       const QUuid& connectionSecret = QUuid());
     qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr);
 
     PacketSequenceNumber getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType::Value packetType);
@@ -261,9 +265,8 @@ protected:
     void sendPacketToIceServer(PacketType::Value packetType, const HifiSockAddr& iceServerSockAddr, const QUuid& clientID,
                                const QUuid& peerRequestID = QUuid());
 
-    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const SharedNodePointer& destinationNode,
-                      const HifiSockAddr& overridenSockAddr)
-         { assert(false); return 0; }
+    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode,
+                      const HifiSockAddr& overridenSockAddr);
 
 
     QUuid _sessionUUID;
@@ -275,7 +278,7 @@ protected:
     HifiSockAddr _publicSockAddr;
     HifiSockAddr _stunSockAddr;
 
-    PacketReceiver _packetReceiver;
+    PacketReceiver* _packetReceiver;
 
     // XXX can BandwidthRecorder be used for this?
     int _numCollectedPackets;

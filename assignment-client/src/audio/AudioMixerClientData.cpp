@@ -12,7 +12,7 @@
 #include <QtCore/QDebug>
 #include <QtCore/QJsonArray>
 
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <UUID.h>
 
 #include "InjectedAudioStream.h"
@@ -164,10 +164,7 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
     int numStreamStatsRemaining = _audioStreams.size();
     QHash<QUuid, PositionalAudioStream*>::ConstIterator audioStreamsIterator = _audioStreams.constBegin();
 
-    NLPacketList statsPacketList(PacketType::AudioStreamStats);
-
     while (numStreamStatsRemaining > 0) {
-
         auto statsPacket = NLPacket::create(PacketType::AudioStreamStats);
 
         // pack the append flag in this packet
@@ -195,7 +192,7 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
         numStreamStatsRemaining -= numStreamStatsToPack;
 
         // send the current packet
-        nodeList->sendPacket(std::move(statsPacket), destinationNode);
+        nodeList->sendPacket(std::move(statsPacket), *destinationNode);
     }
 }
 

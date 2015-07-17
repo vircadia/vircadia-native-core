@@ -58,7 +58,6 @@ public:
 
     const QString& getHost() const { return _host; }
 
-
     void setPositionGetter(PositionGetter positionGetter) { _positionGetter = positionGetter; }
     void setOrientationGetter(OrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
 
@@ -109,7 +108,7 @@ private slots:
 
     void goToAddressFromObject(const QVariantMap& addressMap, const QNetworkReply& reply);
 private:
-    void setHost(const QString& host, LookupTrigger trigger);
+    void setHost(const QString& host, LookupTrigger trigger, quint16 port = 0);
     void setDomainInfo(const QString& hostname, quint16 port, LookupTrigger trigger);
 
     const JSONCallbackParameters& apiCallbackParameters();
@@ -129,9 +128,10 @@ private:
     void addCurrentAddressToHistory(LookupTrigger trigger);
 
     QString _host;
+    quint16 _port;
     QUuid _rootPlaceID;
-    PositionGetter _positionGetter;
-    OrientationGetter _orientationGetter;
+    PositionGetter _positionGetter { nullptr };
+    OrientationGetter _orientationGetter { nullptr };
 
     QStack<QUrl> _backStack;
     QStack<QUrl> _forwardStack;

@@ -28,61 +28,59 @@
 
 namespace PacketType {
    enum Value {
-        Unknown, // 0
+        Unknown,
         StunResponse,
         DomainList,
         Ping,
         PingReply,
-        KillAvatar, // 5
+        KillAvatar,
         AvatarData,
         InjectAudio,
         MixedAudio,
         MicrophoneAudioNoEcho,
-        MicrophoneAudioWithEcho, // 10
+        MicrophoneAudioWithEcho,
         BulkAvatarData,
         SilentAudioFrame,
-        EnvironmentData,
         DomainListRequest,
-        RequestAssignment, // 15
+        RequestAssignment,
         CreateAssignment,
         DomainConnectionDenied,
         MuteEnvironment,
         AudioStreamStats,
-        DataServerConfirm, // 20
         DomainServerPathQuery,
         DomainServerPathResponse,
         DomainServerAddedNode,
         ICEServerPeerInformation,
-        ICEServerQuery, // 25
+        ICEServerQuery,
         OctreeStats,
         Jurisdiction,
         JurisdictionRequest,
         AssignmentClientStatus,
-        UNUSED_7, // 30
-        UNUSED_8,
-        UNUSED_9,
         NoisyMute,
-        UNUSED_10,
-        AvatarIdentity, // 35
+        AvatarIdentity,
         AvatarBillboard,
         DomainConnectRequest,
         DomainServerRequireDTLS,
         NodeJsonStats,
-        EntityQuery, // 40
+        EntityQuery,
         EntityData,
         EntityAdd,
         EntityErase,
         EntityEdit,
-        OctreeDataNack, // 45
+        OctreeDataNack,
         StopNode,
         AudioEnvironment,
         EntityEditNack,
-        SignedTransactionPayment,
-        ICEServerHeartbeat, // 50
+        ICEServerHeartbeat,
         ICEPing,
         ICEPingReply
    };
 };
+
+const int NUM_BYTES_MD5_HASH = 16;
+
+const int MAX_PACKET_SIZE = 1450;
+const int MAX_PACKET_HEADER_BYTES = 4 + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
 
 typedef char PacketVersion;
 
@@ -95,36 +93,12 @@ extern const QSet<PacketType::Value> NON_VERIFIED_PACKETS;
 extern const QSet<PacketType::Value> SEQUENCE_NUMBERED_PACKETS;
 extern const QSet<PacketType::Value> NON_SOURCED_PACKETS;
 
-const int NUM_BYTES_MD5_HASH = 16;
-const int NUM_STATIC_HEADER_BYTES = sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
-const int MAX_PACKET_HEADER_BYTES = sizeof(PacketType::Value) + NUM_BYTES_MD5_HASH + NUM_STATIC_HEADER_BYTES;
-
-PacketType::Value packetTypeForPacket(const QByteArray& packet);
-PacketType::Value packetTypeForPacket(const char* packet);
-
-PacketVersion versionForPacketType(PacketType::Value packetType);
 QString nameForPacketType(PacketType::Value packetType);
+PacketVersion versionForPacketType(PacketType::Value packetType);
 
-const QUuid nullUUID = QUuid();
-
-int numHashBytesForType(PacketType::Value packetType);
-int numSequenceNumberBytesForType(PacketType::Value packetType);
-
-int numBytesForPacketHeader(const QByteArray& packet);
-int numBytesForPacketHeader(const char* packet);
 int numBytesForArithmeticCodedPacketType(PacketType::Value packetType);
 int numBytesForPacketHeaderGivenPacketType(PacketType::Value packetType);
 int packArithmeticallyCodedValue(int value, char* destination);
-
-QUuid uuidFromPacketHeader(const QByteArray& packet);
-
-int hashOffsetForPacketType(PacketType::Value packetType);
-int sequenceNumberOffsetForPacketType(PacketType::Value packetType);
-
-// NOTE: The following four methods accept a PacketType::Value which defaults to PacketType::Unknown.
-// If the caller has already looked at the packet type and can provide it then the methods below won't have to look it up.
-
-PacketSequenceNumber sequenceNumberFromHeader(const QByteArray& packet, PacketType::Value packetType = PacketType::Unknown);
 
 int arithmeticCodingValueFromBuffer(const char* checkValue);
 int numBytesArithmeticCodingFromBuffer(const char* checkValue);
@@ -164,5 +138,6 @@ const PacketVersion VERSION_ENTITIES_FACE_CAMERA = 30;
 const PacketVersion VERSION_ENTITIES_SCRIPT_TIMESTAMP = 31;
 const PacketVersion VERSION_ENTITIES_SCRIPT_TIMESTAMP_FIX = 32;
 const PacketVersion VERSION_ENTITIES_HAVE_SIMULATION_OWNER_AND_ACTIONS_OVER_WIRE = 33;
+const PacketVersion VERSION_ENTITIES_NEW_PROTOCOL_LAYER = 34;
 
 #endif // hifi_PacketHeaders_h

@@ -19,7 +19,7 @@
 #include <AvatarHashMap.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <ResourceCache.h>
 #include <SoundCache.h>
 #include <UUID.h>
@@ -42,7 +42,8 @@ Agent::Agent(NLPacket& packet) :
 {
     // be the parent of the script engine so it gets moved when we do
     _scriptEngine.setParent(this);
-
+    _scriptEngine.setIsAgent(true);
+    
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
     DependencyManager::set<ResourceCacheSharedItems>();
@@ -65,9 +66,9 @@ void Agent::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointe
     if (packetType == PacketType::OctreeStats) {
 
         int statsMessageLength = OctreeHeadlessViewer::parseOctreeStats(packet, senderNode);
-        if (packet->getSizeUsed() > statsMessageLength) {
+        if (packet->getPayloadSize() > statsMessageLength) {
             // pull out the piggybacked packet and create a new QSharedPointer<NLPacket> for it
-            int piggyBackedSizeWithHeader = packet->getSizeUsed() - statsMessageLength;
+            int piggyBackedSizeWithHeader = packet->getPayloadSize() - statsMessageLength;
             
             std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[piggyBackedSizeWithHeader]);
             memcpy(buffer.get(), packet->getPayload() + statsMessageLength, piggyBackedSizeWithHeader);
@@ -160,7 +161,16 @@ void Agent::run() {
 
     // give this AvatarData object to the script engine
     _scriptEngine.setAvatarData(&scriptedAvatar, "Avatar");
-    _scriptEngine.setAvatarHashMap(DependencyManager::get<AvatarHashMap>().data(), "AvatarList");
+    
+    auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
+   
+    _scriptEngine.setAvatarHashMap(avatarHashMap.data(), "AvatarList");
+    
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::BulkAvatarData, avatarHashMap.data(), "processAvatarDataPacket");
+    packetReceiver.registerListener(PacketType::KillAvatar, avatarHashMap.data(), "processKillAvatar");
+    packetReceiver.registerListener(PacketType::AvatarIdentity, avatarHashMap.data(), "processAvatarIdentityPacket");
+    packetReceiver.registerListener(PacketType::AvatarBillboard, avatarHashMap.data(), "processAvatarBillboardPacket");
 
     // register ourselves to the script engine
     _scriptEngine.registerGlobalObject("Agent", this);
@@ -183,7 +193,7 @@ void Agent::run() {
 
 void Agent::aboutToFinish() {
     _scriptEngine.stop();
-
+    
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(NULL);
 }

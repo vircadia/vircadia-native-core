@@ -27,7 +27,7 @@
 #include <QUuid>
 
 #include <LimitedNodeList.h> // for MAX_PACKET_SIZE
-#include <PacketHeaders.h> // for MAX_PACKET_HEADER_BYTES
+#include <udt/PacketHeaders.h> // for MAX_PACKET_HEADER_BYTES
 #include <SharedUtil.h>
 #include <ShapeInfo.h>
 #include <BackgroundMode.h>

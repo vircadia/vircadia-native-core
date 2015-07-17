@@ -26,7 +26,7 @@
 #include <LogUtils.h>
 #include <LimitedNodeList.h>
 #include <NodeList.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 #include <ShutdownEventListener.h>
 #include <SoundCache.h>
@@ -49,14 +49,13 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     LogUtils::init();
 
     QSettings::setDefaultFormat(QSettings::IniFormat);
-
-    // create a NodeList as an unassigned client
-    DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
+ 
     auto addressManager = DependencyManager::set<AddressManager>();
-    auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned); // Order is important
+
+    // create a NodeList as an unassigned client, must be after addressManager
+    auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned);
 
     auto animationCache = DependencyManager::set<AnimationCache>();
-    auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
     auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>();
 
     DependencyManager::registerInheritance<EntityActionFactoryInterface, AssignmentActionFactory>();
@@ -72,11 +71,6 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
 
     // put the NodeList on the node thread
     nodeList->moveToThread(nodeThread);
-
-    // make up a uuid for this child so the parent can tell us apart.  This id will be changed
-    // when the domain server hands over an assignment.
-    QUuid nodeUUID = QUuid::createUuid();
-    nodeList->setSessionUUID(nodeUUID);
 
     // set the logging target to the the CHILD_TARGET_NAME
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
@@ -197,7 +191,7 @@ void AssignmentClient::sendStatusPacketToACM() {
 
     auto statusPacket = NLPacket::create(PacketType::AssignmentClientStatus, sizeof(assignmentType) + NUM_BYTES_RFC4122_UUID);
 
-    statusPacket->write(nodeList->getSessionUUID().toRfc4122());
+    statusPacket->write(_childAssignmentUUID.toRfc4122());
     statusPacket->writePrimitive(assignmentType);
     
     nodeList->sendPacket(std::move(statusPacket), _assignmentClientMonitorSocket);

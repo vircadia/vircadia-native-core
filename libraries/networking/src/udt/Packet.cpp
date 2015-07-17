@@ -11,7 +11,7 @@
 
 #include "Packet.h"
 
-#include "LimitedNodeList.h"
+const qint64 Packet::PACKET_WRITE_ERROR = -1;
 
 qint64 Packet::localHeaderSize(PacketType::Value type) {
     qint64 size = numBytesForArithmeticCodedPacketType(type) + sizeof(PacketVersion) +
@@ -24,7 +24,11 @@ qint64 Packet::maxPayloadSize(PacketType::Value type) {
 }
 
 std::unique_ptr<Packet> Packet::create(PacketType::Value type, qint64 size) {
-    return std::unique_ptr<Packet>(new Packet(type, size));
+    auto packet = std::unique_ptr<Packet>(new Packet(type, size));
+    
+    packet->open(QIODevice::ReadWrite);
+   
+    return packet;
 }
 
 std::unique_ptr<Packet> Packet::fromReceivedPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr) {
@@ -32,11 +36,21 @@ std::unique_ptr<Packet> Packet::fromReceivedPacket(std::unique_ptr<char> data, q
     Q_ASSERT(size >= 0);
 
     // allocate memory
-    return std::unique_ptr<Packet>(new Packet(std::move(data), size, senderSockAddr));
+    auto packet = std::unique_ptr<Packet>(new Packet(std::move(data), size, senderSockAddr));
+
+    packet->open(QIODevice::ReadOnly);
+
+    return packet;
 }
 
 std::unique_ptr<Packet> Packet::createCopy(const Packet& other) {
-    return std::unique_ptr<Packet>(new Packet(other));
+    auto packet  = std::unique_ptr<Packet>(new Packet(other));
+    
+    if (other.isOpen()) {
+        packet->open(other.openMode());
+    }
+
+    return packet;
 }
 
 qint64 Packet::totalHeadersSize() const {
@@ -49,11 +63,7 @@ qint64 Packet::localHeaderSize() const {
 
 Packet::Packet(PacketType::Value type, qint64 size) :
     _type(type),
-    _version(0),
-    _packetSize(localHeaderSize(_type) + size),
-    _packet(new char(_packetSize)),
-    _payloadStart(_packet.get() + localHeaderSize(_type)),
-    _capacity(size)
+    _version(0)
 {
     auto maxPayload = maxPayloadSize(type);
     if (size == -1) {
@@ -61,12 +71,17 @@ Packet::Packet(PacketType::Value type, qint64 size) :
         size = maxPayload;
     }
 
+    _packetSize = localHeaderSize(type) + size;
+    _packet.reset(new char[_packetSize]);
+    _payloadCapacity = size;
+    _payloadStart = _packet.get() + (_packetSize - _payloadCapacity);
+    
     // Sanity check
     Q_ASSERT(size >= 0 || size < maxPayload);
-
+    
     // copy packet type and version in header
     writePacketTypeAndVersion(type);
-
+    
     // Set control bit and sequence number to 0 if necessary
     if (SEQUENCE_NUMBERED_PACKETS.contains(type)) {
         writeSequenceNumber(0);
@@ -80,9 +95,9 @@ Packet::Packet(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& send
 {
     _type = readType();
     _version = readVersion();
-    _capacity = _packetSize - localHeaderSize(_type);
-    _sizeUsed = _capacity;
-    _payloadStart = _packet.get() + (_packetSize - _capacity);
+    _payloadCapacity = _packetSize - localHeaderSize(_type);
+    _payloadSize = _payloadCapacity;
+    _payloadStart = _packet.get() + (_packetSize - _payloadCapacity);
 }
 
 Packet::Packet(const Packet& other) {
@@ -93,13 +108,13 @@ Packet& Packet::operator=(const Packet& other) {
     _type = other._type;
     
     _packetSize = other._packetSize;
-    _packet = std::unique_ptr<char>(new char(_packetSize));
+    _packet = std::unique_ptr<char>(new char[_packetSize]);
     memcpy(_packet.get(), other._packet.get(), _packetSize);
 
     _payloadStart = _packet.get() + (other._payloadStart - other._packet.get());
-    _capacity = other._capacity;
+    _payloadCapacity = other._payloadCapacity;
 
-    _sizeUsed = other._sizeUsed;
+    _payloadSize = other._payloadSize;
 
     return *this;
 }
@@ -115,11 +130,29 @@ Packet& Packet::operator=(Packet&& other) {
     _packet = std::move(other._packet);
 
     _payloadStart = other._payloadStart;
-    _capacity = other._capacity;
+    _payloadCapacity = other._payloadCapacity;
 
-    _sizeUsed = other._sizeUsed;
+    _payloadSize = other._payloadSize;
 
     return *this;
+}
+
+void Packet::setPayloadSize(qint64 payloadSize) {
+    if (isWritable()) {
+        Q_ASSERT(payloadSize <= _payloadCapacity);
+        _payloadSize = payloadSize;
+    } else {
+        qDebug() << "You can not call setPayloadSize for a non-writeable Packet.";
+        Q_ASSERT(false);
+    }
+}
+
+bool Packet::reset() {
+    if (isWritable()) {
+        _payloadSize = 0;
+    }
+    
+    return QIODevice::reset();
 }
 
 void Packet::setType(PacketType::Value type) {
@@ -177,20 +210,19 @@ void Packet::writeSequenceNumber(SequenceNumber seqNum) {
            &seqNum, sizeof(seqNum));
 }
 
-static const qint64 PACKET_WRITE_ERROR = -1;
 qint64 Packet::writeData(const char* data, qint64 maxSize) {
+    
     // make sure we have the space required to write this block
-    if (maxSize <= bytesAvailable()) {
+    if (maxSize <= bytesAvailableForWrite()) {
         qint64 currentPos = pos();
+        
+        Q_ASSERT(currentPos < _payloadCapacity);
 
         // good to go - write the data
         memcpy(_payloadStart + currentPos, data, maxSize);
 
-        // seek to the new position based on where our write just finished
-        seek(currentPos + maxSize);
-
-        // keep track of _sizeUsed so we can just write the actual data when packet is about to be sent
-        _sizeUsed = std::max(pos() + 1, _sizeUsed);
+        // keep track of _payloadSize so we can just write the actual data when packet is about to be sent
+        _payloadSize = std::max(currentPos + maxSize, _payloadSize);
 
         // return the number of bytes written
         return maxSize;
@@ -202,16 +234,13 @@ qint64 Packet::writeData(const char* data, qint64 maxSize) {
 
 qint64 Packet::readData(char* dest, qint64 maxSize) {
     // we're either reading what is left from the current position or what was asked to be read
-    qint64 numBytesToRead = std::min(bytesAvailable(), maxSize);
+    qint64 numBytesToRead = std::min(bytesLeftToRead(), maxSize);
 
     if (numBytesToRead > 0) {
         int currentPosition = pos();
 
         // read out the data
         memcpy(dest, _payloadStart + currentPosition, numBytesToRead);
-
-        // seek to the end of the read
-        seek(currentPosition + numBytesToRead);
     }
 
     return numBytesToRead;

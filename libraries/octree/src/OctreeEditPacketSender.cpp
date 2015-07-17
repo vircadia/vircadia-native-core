@@ -14,7 +14,7 @@
 #include <PerfStat.h>
 
 #include <OctalCode.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include "OctreeLogging.h"
 #include "OctreeEditPacketSender.h"
 
@@ -103,14 +103,14 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, std::uniqu
                 quint64 transitTime = queuedAt - createdAt;
 
                 qCDebug(octree) << "OctreeEditPacketSender::queuePacketToNode() queued " << packet->getType()
-                    << " - command to node bytes=" << packet->getSizeWithHeader()
+                    << " - command to node bytes=" << packet->getDataSize()
                     << " sequence=" << sequence << " transitTimeSoFar=" << transitTime << " usecs";
             }
 
             // add packet to history
             _sentPacketHistories[nodeUUID].packetSent(sequence, *packet);
 
-            queuePacketForSending(node, std::move(packet));
+            queuePacketForSending(node, NLPacket::createCopy(*packet));
         }
     });
 }
@@ -121,8 +121,7 @@ void OctreeEditPacketSender::processPreServerExistsPackets() {
     // First send out all the single message packets...
     _pendingPacketsLock.lock();
     while (!_preServerSingleMessagePackets.empty()) {
-        std::unique_ptr<NLPacket> packet = std::move(_preServerSingleMessagePackets.front());
-        queuePacketToNodes(std::move(packet));
+        queuePacketToNodes(std::move(_preServerSingleMessagePackets.front()));
         _preServerSingleMessagePackets.pop_front();
     }
 
@@ -251,11 +250,11 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType::Value type, QByt
                 std::unique_ptr<NLPacket>& bufferedPacket = _pendingEditPackets[nodeUUID];
 
                 if (!bufferedPacket) {
-                    bufferedPacket = NLPacket::create(type);
+                    bufferedPacket = initializePacket(type, node->getClockSkewUsec());
                 } else {
                     // If we're switching type, then we send the last one and start over
-                    if ((type != bufferedPacket->getType() && bufferedPacket->getSizeUsed() > 0) ||
-                        (editMessage.size() >= bufferedPacket->bytesAvailable())) {
+                    if ((type != bufferedPacket->getType() && bufferedPacket->getPayloadSize() > 0) ||
+                        (editMessage.size() >= bufferedPacket->bytesAvailableForWrite())) {
 
                         // create the new packet and swap it with the packet in _pendingEditPackets
                         auto packetToRelease = initializePacket(type, node->getClockSkewUsec());
@@ -291,15 +290,18 @@ void OctreeEditPacketSender::releaseQueuedMessages() {
         _releaseQueuedMessagesPending = true;
     } else {
         _packetsQueueLock.lock();
-        for (auto i = _pendingEditPackets.begin(); i != _pendingEditPackets.end(); i++) {
-            // construct a null unique_ptr to an NL packet
-            std::unique_ptr<NLPacket> releasedPacket;
-
-            // swap the null ptr with the packet we want to release
-            i->second.swap(releasedPacket);
-
-            // move and release the queued packet
-            releaseQueuedPacket(i->first, std::move(releasedPacket));
+        for (auto& i : _pendingEditPackets) {
+            if (i.second) {
+                // construct a null unique_ptr to an NL packet
+                std::unique_ptr<NLPacket> releasedPacket;
+                
+                // swap the null ptr with the packet we want to release
+                i.second.swap(releasedPacket);
+                
+                // move and release the queued packet
+                releaseQueuedPacket(i.first, std::move(releasedPacket));
+            }
+            
         }
         _packetsQueueLock.unlock();
     }
@@ -307,7 +309,7 @@ void OctreeEditPacketSender::releaseQueuedMessages() {
 
 void OctreeEditPacketSender::releaseQueuedPacket(const QUuid& nodeID, std::unique_ptr<NLPacket> packet) {
     _releaseQueuedPacketMutex.lock();
-    if (packet->getSizeUsed() > 0 && packet->getType() != PacketType::Unknown) {
+    if (packet->getPayloadSize() > 0 && packet->getType() != PacketType::Unknown) {
         queuePacketToNode(nodeID, std::move(packet));
     }
     _releaseQueuedPacketMutex.unlock();
@@ -337,35 +339,24 @@ bool OctreeEditPacketSender::process() {
     return PacketSender::process();
 }
 
-void OctreeEditPacketSender::processNackPacket(const QByteArray& packet) {
+void OctreeEditPacketSender::processNackPacket(NLPacket& packet, SharedNodePointer sendingNode) {
     // parse sending node from packet, retrieve packet history for that node
-    QUuid sendingNodeUUID = uuidFromPacketHeader(packet);
 
     // if packet history doesn't exist for the sender node (somehow), bail
-    if (_sentPacketHistories.count(sendingNodeUUID) == 0) {
+    if (_sentPacketHistories.count(sendingNode->getUUID()) == 0) {
         return;
     }
-    const SentPacketHistory& sentPacketHistory = _sentPacketHistories[sendingNodeUUID];
-
-    // TODO: these NAK packets no longer send the number of sequence numbers - just read out sequence numbers in blocks
-
-    int numBytesPacketHeader = numBytesForPacketHeader(packet);
-    const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data()) + numBytesPacketHeader;
-
-    // read number of sequence numbers
-    uint16_t numSequenceNumbers = (*(uint16_t*)dataAt);
-    dataAt += sizeof(uint16_t);
+    const SentPacketHistory& sentPacketHistory = _sentPacketHistories[sendingNode->getUUID()];
 
     // read sequence numbers and queue packets for resend
-    for (int i = 0; i < numSequenceNumbers; i++) {
-        unsigned short int sequenceNumber = (*(unsigned short int*)dataAt);
-        dataAt += sizeof(unsigned short int);
-
+    while (packet.bytesLeftToRead() > 0) {
+        unsigned short int sequenceNumber;
+        packet.readPrimitive(&sequenceNumber);
+        
         // retrieve packet from history
         const NLPacket* packet = sentPacketHistory.getPacket(sequenceNumber);
         if (packet) {
-            const SharedNodePointer& node = DependencyManager::get<NodeList>()->nodeWithUUID(sendingNodeUUID);
-            queuePacketForSending(node, NLPacket::createCopy(*packet));
+            queuePacketForSending(sendingNode, NLPacket::createCopy(*packet));
         }
     }
 }

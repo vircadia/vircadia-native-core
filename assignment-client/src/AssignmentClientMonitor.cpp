@@ -18,7 +18,7 @@
 #include "AssignmentClientMonitor.h"
 #include "AssignmentClientApp.h"
 #include "AssignmentClientChildData.h"
-#include "PacketHeaders.h"
+#include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
 
 
@@ -176,7 +176,7 @@ void AssignmentClientMonitor::checkSpares() {
         AssignmentClientChildData* childData = static_cast<AssignmentClientChildData*>(node->getLinkedData());
         totalCount ++;
         if (childData->getChildType() == Assignment::Type::AllTypes) {
-            spareCount ++;
+            ++spareCount;
             aSpareId = node->getUUID();
         }
     });
@@ -197,13 +197,15 @@ void AssignmentClientMonitor::checkSpares() {
             childNode->activateLocalSocket();
 
             auto diePacket = NLPacket::create(PacketType::StopNode, 0);
-            nodeList->sendPacket(std::move(diePacket), childNode);
+            nodeList->sendPacket(std::move(diePacket), *childNode);
         }
     }
 }
 
 void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<NLPacket> packet) {
-    QUuid senderID = QUuid::fromRfc4122(QByteArray::fromRawData(packet->getData(), NUM_BYTES_RFC4122_UUID));
+    // read out the sender ID
+    QUuid senderID = QUuid::fromRfc4122(QByteArray::fromRawData(packet->getPayload(), NUM_BYTES_RFC4122_UUID));
+    packet->seek(NUM_BYTES_RFC4122_UUID);
 
     auto nodeList = DependencyManager::get<NodeList>();
 

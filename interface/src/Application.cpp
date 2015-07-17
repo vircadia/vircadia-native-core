@@ -80,7 +80,7 @@
 #include <ObjectMotionState.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <PhysicsEngine.h>
@@ -574,10 +574,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // hook up bandwidth estimator
     QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
-    connect(nodeList.data(), SIGNAL(dataSent(const quint8, const int)),
-            bandwidthRecorder.data(), SLOT(updateOutboundData(const quint8, const int)));
-    connect(nodeList.data(), SIGNAL(dataReceived(const quint8, const int)),
-            bandwidthRecorder.data(), SLOT(updateInboundData(const quint8, const int)));
+    connect(nodeList.data(), &LimitedNodeList::dataSent,
+            bandwidthRecorder.data(), &BandwidthRecorder::updateOutboundData);
+    connect(&nodeList->getPacketReceiver(), &PacketReceiver::dataReceived,
+            bandwidthRecorder.data(), &BandwidthRecorder::updateInboundData);
 
     connect(&_myAvatar->getSkeletonModel(), &SkeletonModel::skeletonLoaded,
             this, &Application::checkSkeleton, Qt::QueuedConnection);
@@ -1797,7 +1797,7 @@ void Application::sendPingPackets() {
                 return false;
         }
     }, [nodeList](const SharedNodePointer& node) {
-        nodeList->sendPacket(std::move(nodeList->constructPingPacket()), node);
+        nodeList->sendPacket(nodeList->constructPingPacket(), *node);
     });
 }
 
@@ -2740,7 +2740,7 @@ int Application::sendNackPackets() {
                 packetsSent += nackPacketList.getNumPackets();
 
                 // send the packet list
-                nodeList->sendPacketList(nackPacketList, node);
+                nodeList->sendPacketList(nackPacketList, *node);
             }
         }
     });
@@ -2918,10 +2918,10 @@ void Application::queryOctree(NodeType_t serverType, PacketType::Value packetTyp
 
             // encode the query data
             int packetSize = _octreeQuery.getBroadcastData(reinterpret_cast<unsigned char*>(queryPacket->getPayload()));
-            queryPacket->setSizeUsed(packetSize);
+            queryPacket->setPayloadSize(packetSize);
 
             // make sure we still have an active socket
-            nodeList->sendUnreliablePacket(*queryPacket, node);
+            nodeList->sendUnreliablePacket(*queryPacket, *node);
         }
     });
 }
@@ -3820,10 +3820,11 @@ void Application::domainChanged(const QString& domainHostname) {
 }
 
 void Application::handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet) {
-    QDataStream packetStream(packet.data());
-
-    QString reason;
-    packetStream >> reason;
+    // Read deny reason from packet
+    quint16 reasonSize;
+    packet->readPrimitive(&reasonSize);
+    QString reason = QString::fromUtf8(packet->getPayload() + packet->pos(), reasonSize);
+    packet->seek(packet->pos() + reasonSize);
 
     // output to the log so the user knows they got a denied connection request
     // and check and signal for an access token so that we can make sure they are logged in
@@ -4110,10 +4111,13 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     // when the worker thread is started, call our engine's run..
     connect(workerThread, &QThread::started, scriptEngine, &ScriptEngine::run);
-
+    
     // when the thread is terminated, add both scriptEngine and thread to the deleteLater queue
-    connect(scriptEngine, SIGNAL(doneRunning()), scriptEngine, SLOT(deleteLater()));
-    connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
+    connect(scriptEngine, &ScriptEngine::doneRunning, scriptEngine, &ScriptEngine::deleteLater());
+    connect(workerThread, &QThread::finished, workerThread, &Qthread::deleteLater);
+    
+    // tell the thread to stop when the script engine is done
+    connect(scriptEngine, &ScriptEngine::destroyed, workerThread, &QThread::quit);
 
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::nodeKilled, scriptEngine, &ScriptEngine::nodeKilled);

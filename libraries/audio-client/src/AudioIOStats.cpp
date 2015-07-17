@@ -102,6 +102,10 @@ void AudioIOStats::sendDownstreamAudioStatsPacket() {
     _receivedAudioStream->perSecondCallbackForUpdatingStats();
 
     auto nodeList = DependencyManager::get<NodeList>();
+    SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
+    if (!audioMixer) {
+        return;
+    }
 
     quint8 appendFlag = 0;
     quint16 numStreamStatsToPack = 1;
@@ -118,8 +122,7 @@ void AudioIOStats::sendDownstreamAudioStatsPacket() {
 
     // pack downstream audio stream stats
     statsPacket->writePrimitive(stats);
-
+    
     // send packet
-    SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
-    nodeList->sendPacket(std::move(statsPacket), audioMixer);
+    nodeList->sendPacket(std::move(statsPacket), *audioMixer);
 }

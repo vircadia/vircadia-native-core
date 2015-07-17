@@ -9,10 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <cstring>
+#include <string>
 
 #include "EnvironmentData.h"
-#include "PacketHeaders.h"
 
 // initial values from Sean O'Neil's GPU Gems entry (http://http.developer.nvidia.com/GPUGems2/gpugems2_chapter16.html),
 // GameEngine.cpp

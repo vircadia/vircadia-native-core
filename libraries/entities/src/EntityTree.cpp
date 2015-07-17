@@ -598,7 +598,8 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
             EntityItemID entityItemID;
             EntityItemProperties properties;
             startDecode = usecTimestampNow();
-            bool validEditPacket = EntityItemProperties::decodeEntityEditPacket(packet, processedBytes,
+           
+            bool validEditPacket = EntityItemProperties::decodeEntityEditPacket(editData, maxLength, processedBytes,
                                                                                 entityItemID, properties);
             endDecode = usecTimestampNow();
 
@@ -796,7 +797,7 @@ std::unique_ptr<NLPacket> EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_S
                 ++numberOfIDs;
 
                 // check to make sure we have room for one more ID
-                if (NUM_BYTES_RFC4122_UUID > deletesPacket->bytesAvailable()) {
+                if (NUM_BYTES_RFC4122_UUID > deletesPacket->bytesAvailableForWrite()) {
                     hasFilledPacket = true;
                     break;
                 }
@@ -825,7 +826,7 @@ std::unique_ptr<NLPacket> EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_S
     deletesPacket->seek(numberOfIDsPos);
     deletesPacket->writePrimitive(numberOfIDs);
 
-    return std::move(deletesPacket);
+    return deletesPacket;
 }
 
 
@@ -867,7 +868,7 @@ int EntityTree::processEraseMessage(NLPacket& packet, const SharedNodePointer& s
 
         for (size_t i = 0; i < numberOfIDs; i++) {
 
-            if (NUM_BYTES_RFC4122_UUID > packet.bytesAvailable()) {
+            if (NUM_BYTES_RFC4122_UUID > packet.bytesLeftToRead()) {
                 qCDebug(entities) << "EntityTree::processEraseMessage().... bailing because not enough bytes in buffer";
                 break; // bail to prevent buffer overflow
             }

@@ -12,7 +12,7 @@
 #include <QtCore/QDataStream>
 
 #include <NodeList.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 
 #include "AvatarLogging.h"
@@ -20,12 +20,6 @@
 
 AvatarHashMap::AvatarHashMap() {
     connect(DependencyManager::get<NodeList>().data(), &NodeList::uuidChanged, this, &AvatarHashMap::sessionUUIDChanged);
-
-    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
-    packetReceiver.registerListener(PacketType::KillAvatar, this, "processKillAvatar");
-    packetReceiver.registerListener(PacketType::AvatarIdentity, this, "processAvatarIdentityPacket");
-    packetReceiver.registerListener(PacketType::AvatarBillboard, this, "processAvatarBillboardPacket");
 }
 
 bool AvatarHashMap::isAvatarInRange(const glm::vec3& position, const float range) {
@@ -58,9 +52,11 @@ void AvatarHashMap::processAvatarDataPacket(QSharedPointer<NLPacket> packet, Sha
 
     // enumerate over all of the avatars in this packet
     // only add them if mixerWeakPointer points to something (meaning that mixer is still around)
-    while (packet->bytesAvailable()) {
+    while (packet->bytesLeftToRead()) {
         QUuid sessionUUID = QUuid::fromRfc4122(packet->read(NUM_BYTES_RFC4122_UUID));
 
+        QByteArray byteArray = QByteArray::fromRawData(packet->getPayload() + packet->pos(),
+                                                       packet->bytesLeftToRead());
         if (sessionUUID != _lastOwnerSessionUUID) {
             AvatarSharedPointer avatar = _avatarHash.value(sessionUUID);
             if (!avatar) {
@@ -68,12 +64,12 @@ void AvatarHashMap::processAvatarDataPacket(QSharedPointer<NLPacket> packet, Sha
             }
 
             // have the matching (or new) avatar parse the data from the packet
-            int bytesRead = avatar->parseDataFromBuffer(QByteArray::fromRawData(packet->getPayload(), packet->pos()));
+            int bytesRead = avatar->parseDataFromBuffer(byteArray);
             packet->seek(packet->pos() + bytesRead);
         } else {
             // create a dummy AvatarData class to throw this data on the ground
             AvatarData dummyData;
-            int bytesRead = dummyData.parseDataFromBuffer(QByteArray::fromRawData(packet->getPayload(), packet->pos()));
+            int bytesRead = dummyData.parseDataFromBuffer(byteArray);
             packet->seek(packet->pos() + bytesRead);
         }
     }
@@ -123,7 +119,7 @@ void AvatarHashMap::processAvatarBillboardPacket(QSharedPointer<NLPacket> packet
         avatar = addAvatar(sessionUUID, sendingNode);
     }
 
-    QByteArray billboard = packet->read(packet->bytesAvailable());
+    QByteArray billboard = packet->read(packet->bytesLeftToRead());
     if (avatar->getBillboard() != billboard) {
         avatar->setBillboard(billboard);
     }

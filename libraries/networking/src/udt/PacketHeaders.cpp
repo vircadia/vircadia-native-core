@@ -18,23 +18,21 @@
 using namespace PacketType;
 
 const QSet<PacketType::Value> NON_VERIFIED_PACKETS = QSet<PacketType::Value>()
-    << CreateAssignment << RequestAssignment << StunResponse
     << NodeJsonStats << EntityQuery
     << OctreeDataNack << EntityEditNack
-    << DomainListRequest
-    << Ping
-    << PingReply << StopNode;
+    << DomainListRequest << StopNode;
 
 const QSet<PacketType::Value> SEQUENCE_NUMBERED_PACKETS = QSet<PacketType::Value>() << AvatarData;
 
 const QSet<PacketType::Value> NON_SOURCED_PACKETS = QSet<PacketType::Value>()
+    << StunResponse << CreateAssignment << RequestAssignment
     << DomainServerRequireDTLS << DomainConnectRequest
     << DomainList << DomainConnectionDenied
     << DomainServerPathQuery << DomainServerPathResponse
     << DomainServerAddedNode
     << ICEServerPeerInformation << ICEServerQuery << ICEServerHeartbeat
     << ICEPing << ICEPingReply
-    << AssignmentClientStatus;
+    << AssignmentClientStatus << StopNode;
 
 int arithmeticCodingValueFromBuffer(const char* checkValue) {
     if (((uchar) *checkValue) < 255) {
@@ -66,51 +64,12 @@ int packArithmeticallyCodedValue(int value, char* destination) {
 
 PacketVersion versionForPacketType(PacketType::Value packetType) {
     switch (packetType) {
-        case MicrophoneAudioNoEcho:
-        case MicrophoneAudioWithEcho:
-            return 2;
-        case SilentAudioFrame:
-            return 4;
-        case MixedAudio:
-            return 1;
-        case InjectAudio:
-            return 1;
-        case AvatarData:
-            return 7;
-        case AvatarIdentity:
-            return 7;
-            return 1;
-        case EnvironmentData:
-            return 2;
-        case DomainList:
-        case DomainListRequest:
-            return 5;
-        case DomainConnectRequest:
-            return 1;
-        case CreateAssignment:
-        case RequestAssignment:
-            return 2;
-        case OctreeStats:
-            return 1;
-        case OctreeDataNack:
-            return 1;
-        case StopNode:
-            return 1;
         case EntityAdd:
         case EntityEdit:
         case EntityData:
-            return VERSION_ENTITIES_HAVE_SIMULATION_OWNER_AND_ACTIONS_OVER_WIRE;
-        case EntityEditNack:
-            return 1;
-        case EntityErase:
-            return 2;
-        case AudioStreamStats:
-            return 1;
-        case ICEServerHeartbeat:
-        case ICEServerQuery:
-            return 1;
+            return VERSION_ENTITIES_NEW_PROTOCOL_LAYER;
         default:
-            return 0;
+            return 10;
     }
 }
 
@@ -131,14 +90,12 @@ QString nameForPacketType(PacketType::Value packetType) {
             PACKET_TYPE_NAME_LOOKUP(MicrophoneAudioWithEcho);
             PACKET_TYPE_NAME_LOOKUP(BulkAvatarData);
             PACKET_TYPE_NAME_LOOKUP(SilentAudioFrame);
-            PACKET_TYPE_NAME_LOOKUP(EnvironmentData);
             PACKET_TYPE_NAME_LOOKUP(DomainListRequest);
             PACKET_TYPE_NAME_LOOKUP(RequestAssignment);
             PACKET_TYPE_NAME_LOOKUP(CreateAssignment);
             PACKET_TYPE_NAME_LOOKUP(DomainConnectionDenied);
             PACKET_TYPE_NAME_LOOKUP(MuteEnvironment);
             PACKET_TYPE_NAME_LOOKUP(AudioStreamStats);
-            PACKET_TYPE_NAME_LOOKUP(DataServerConfirm);
             PACKET_TYPE_NAME_LOOKUP(OctreeStats);
             PACKET_TYPE_NAME_LOOKUP(Jurisdiction);
             PACKET_TYPE_NAME_LOOKUP(JurisdictionRequest);
@@ -154,7 +111,6 @@ QString nameForPacketType(PacketType::Value packetType) {
             PACKET_TYPE_NAME_LOOKUP(StopNode);
             PACKET_TYPE_NAME_LOOKUP(AudioEnvironment);
             PACKET_TYPE_NAME_LOOKUP(EntityEditNack);
-            PACKET_TYPE_NAME_LOOKUP(SignedTransactionPayment);
             PACKET_TYPE_NAME_LOOKUP(ICEServerHeartbeat);
             PACKET_TYPE_NAME_LOOKUP(DomainServerAddedNode);
             PACKET_TYPE_NAME_LOOKUP(ICEServerQuery);
@@ -169,66 +125,6 @@ QString nameForPacketType(PacketType::Value packetType) {
     return QString("unexpected");
 }
 
-int numBytesForPacketHeader(const QByteArray& packet) {
-    PacketType::Value packetType = packetTypeForPacket(packet);
-    return numBytesForPacketHeaderGivenPacketType(packetType);
-}
-
-int numBytesForPacketHeader(const char* packet) {
-    PacketType::Value packetType = packetTypeForPacket(packet);
-    return numBytesForPacketHeaderGivenPacketType(packetType);
-}
-
 int numBytesForArithmeticCodedPacketType(PacketType::Value packetType) {
     return (int) ceilf((float) packetType / 255);
-}
-
-int numBytesForPacketHeaderGivenPacketType(PacketType::Value packetType) {
-    return numBytesForArithmeticCodedPacketType(packetType)
-    + numHashBytesForType(packetType)
-    + numSequenceNumberBytesForType(packetType)
-    + NUM_STATIC_HEADER_BYTES;
-}
-
-int numHashBytesForType(PacketType::Value packetType) {
-    return (NON_VERIFIED_PACKETS.contains(packetType) ? 0 : NUM_BYTES_MD5_HASH);
-}
-
-int numSequenceNumberBytesForType(PacketType::Value packetType) {
-    return (SEQUENCE_NUMBERED_PACKETS.contains(packetType) ? sizeof(PacketSequenceNumber) : 0);
-}
-
-QUuid uuidFromPacketHeader(const QByteArray& packet) {
-    return QUuid::fromRfc4122(packet.mid(numBytesArithmeticCodingFromBuffer(packet.data()) + sizeof(PacketVersion),
-                                         NUM_BYTES_RFC4122_UUID));
-}
-
-int hashOffsetForPacketType(PacketType::Value packetType) {
-    return numBytesForArithmeticCodedPacketType(packetType) + NUM_STATIC_HEADER_BYTES;
-}
-
-int sequenceNumberOffsetForPacketType(PacketType::Value packetType) {
-    return numBytesForPacketHeaderGivenPacketType(packetType) - sizeof(PacketSequenceNumber);
-}
-
-PacketSequenceNumber sequenceNumberFromHeader(const QByteArray& packet, PacketType::Value packetType) {
-    if (packetType == PacketType::Unknown) {
-        packetType = packetTypeForPacket(packet);
-    }
-
-    PacketSequenceNumber result = DEFAULT_SEQUENCE_NUMBER;
-
-    if (SEQUENCE_NUMBERED_PACKETS.contains(packetType)) {
-        memcpy(&result, packet.data() + sequenceNumberOffsetForPacketType(packetType), sizeof(PacketSequenceNumber));
-    }
-
-    return result;
-}
-
-PacketType::Value packetTypeForPacket(const QByteArray& packet) {
-    return (PacketType::Value) arithmeticCodingValueFromBuffer(packet.data());
-}
-
-PacketType::Value packetTypeForPacket(const char* packet) {
-    return (PacketType::Value) arithmeticCodingValueFromBuffer(packet);
 }

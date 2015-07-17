@@ -23,8 +23,7 @@
 
 extern const char* NUM_FORKS_PARAMETER;
 
-
-class AssignmentClientMonitor : public QObject, public PacketListener {
+class AssignmentClientMonitor : public QObject {
     Q_OBJECT
 public:
     AssignmentClientMonitor(const unsigned int numAssignmentClientForks, const unsigned int minAssignmentClientForks,
