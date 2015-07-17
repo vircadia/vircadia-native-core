@@ -16,7 +16,7 @@
 
 #include <QObject>
 
-#include "JointState.h"
+#include "JointState.h"  // We might want to change this (later) to something that doesn't depend on gpu, fbx and model. -HRS
 
 class AnimationHandle;
 typedef std::shared_ptr<AnimationHandle> AnimationHandlePointer;
