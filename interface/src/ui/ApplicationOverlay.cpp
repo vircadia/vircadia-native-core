@@ -85,6 +85,11 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     gpu::Batch batch;
     renderArgs->_batch = &batch;
 
+    int width = _overlayFramebuffer->getWidth();
+    int height = _overlayFramebuffer->getHeight();
+
+    batch.setViewportTransform(glm::ivec4(0, 0, width, height));
+
     // 1) bind the framebuffer
     batch.setFramebuffer(_overlayFramebuffer);
 
@@ -93,13 +98,7 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     glm::vec4 color { 0.0f, 0.0f, 0.0f, 0.0f };
     float depth = 1.0f;
     int stencil = 0;
-    batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLORS | gpu::Framebuffer::BUFFER_DEPTH, color, depth, stencil);
-    //batch.clearColorFramebuffer(_overlayFramebuffer->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
-
-    int width = _overlayFramebuffer->getWidth();
-    int height = _overlayFramebuffer->getHeight();
-
-    batch.setViewportTransform(glm::ivec4(0, 0, width, height));
+    batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_DEPTH, color, depth, stencil);
 
     // Now render the overlay components together into a single texture
     renderOverlays(renderArgs); // renders Scripts Overlay and AudioScope
