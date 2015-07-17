@@ -89,12 +89,8 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     int height = _overlayFramebuffer->getHeight();
 
     batch.setViewportTransform(glm::ivec4(0, 0, width, height));
-
-    // 1) bind the framebuffer
     batch.setFramebuffer(_overlayFramebuffer);
 
-    // 2) clear it...
-    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glm::vec4 color { 0.0f, 0.0f, 0.0f, 0.0f };
     float depth = 1.0f;
     int stencil = 0;
@@ -242,14 +238,6 @@ void ApplicationOverlay::buildFramebufferObject() {
    auto colorFormat = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
    auto width = desiredSize.width();
    auto height = desiredSize.height();
-
-    // NOTE: I need to make sure this gpu::Sampler is using these values...
-    //
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    // glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    // glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    // glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
    auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
    _overlayColorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));

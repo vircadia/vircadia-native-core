@@ -121,9 +121,6 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
 
         thisOverlay->render(renderArgs);
     }
-
-    //renderArgs->_context->syncCache();
-    //renderArgs->_context->render(batch);
 }
 
 unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& properties) {
