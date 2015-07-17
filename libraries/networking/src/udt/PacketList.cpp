@@ -42,7 +42,7 @@ std::unique_ptr<Packet> PacketList::createPacketWithExtendedHeader() {
         // add the extended header to the front of the packet
         if (packet->write(_extendedHeader) == -1) {
             qDebug() << "Could not write extendedHeader in PacketList::createPacketWithExtendedHeader"
-            << "- make sure that _extendedHeader is not larger than the payload capacity.";
+                << "- make sure that _extendedHeader is not larger than the payload capacity.";
         }
     }
     
