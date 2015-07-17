@@ -87,7 +87,7 @@ public:
     template<typename T> qint64 writePrimitive(const T& data);
 
 protected:
-    Packet(PacketType::Value type, int64_t size);
+    Packet(PacketType::Value type, qint64 size);
     Packet(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
     Packet(const Packet& other);
     Packet& operator=(const Packet& other);
