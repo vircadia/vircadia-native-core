@@ -226,6 +226,8 @@ qint64 LimitedNodeList::writePacket(const NLPacket& packet, const Node& destinat
         PacketSequenceNumber sequenceNumber = getNextSequenceNumberForPacket(destinationNode.getUUID(), packet.getType());
         const_cast<NLPacket&>(packet).writeSequenceNumber(sequenceNumber);
     }
+
+    emit dataSent(destinationNode.getType(), packet.getDataSize());
     
     return writePacket(packet, *destinationNode.getActiveSocket(), destinationNode.getConnectionSecret());
 }
@@ -241,6 +243,8 @@ qint64 LimitedNodeList::writePacket(const NLPacket& packet, const HifiSockAddr& 
         && !NON_VERIFIED_PACKETS.contains(packet.getType())) {
         const_cast<NLPacket&>(packet).writeVerificationHash(packet.payloadHashWithConnectionUUID(connectionSecret));
     }
+
+    emit dataSent(NodeType::Unassigned, packet.getDataSize());
     
     return writeDatagram(QByteArray::fromRawData(packet.getData(), packet.getDataSize()), destinationSockAddr);
 }
