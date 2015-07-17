@@ -22,6 +22,7 @@ class ProgramObject;
 /// A screen space ambient occlusion effect.  See John Chapman's tutorial at
 /// http://john-chapman-graphics.blogspot.co.uk/2013/01/ssao-tutorial.html for reference.
 
+/*
 class AmbientOcclusionEffect : public Dependency {
     SINGLETON_DEPENDENCY
 
@@ -53,6 +54,7 @@ private:
     GLuint _rotationTextureID;
     AbstractViewStateInterface* _viewState;
 };
+*/
 
 class AmbientOcclusion {
 public:
@@ -62,11 +64,23 @@ public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
     typedef render::Job::Model<AmbientOcclusion> JobModel;
 
-    const gpu::PipelinePointer& AmbientOcclusion::getAOPipeline();
+    const gpu::PipelinePointer& AmbientOcclusion::getOcclusionPipeline();
+    const gpu::PipelinePointer& AmbientOcclusion::getHBlurPipeline();
+    const gpu::PipelinePointer& AmbientOcclusion::getVBlurPipeline();
 
 private:
 
-    gpu::PipelinePointer _AOPipeline;
+    gpu::PipelinePointer _occlusionPipeline;
+    gpu::PipelinePointer _hBlurPipeline;
+    gpu::PipelinePointer _vBlurPipeline;
+
+    gpu::FramebufferPointer _occlusionBuffer;
+    gpu::FramebufferPointer _hBlurBuffer;
+    gpu::FramebufferPointer _vBlurBuffer;
+
+    gpu::TexturePointer _occlusionTexture;
+    gpu::TexturePointer _hBlurTexture;
+    gpu::TexturePointer _vBlurTexture;
 };
 
 #endif // hifi_AmbientOcclusionEffect_h

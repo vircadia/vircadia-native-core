@@ -14,9 +14,6 @@
 
 <@include DeferredBufferWrite.slh@>
 
-// the interpolated normal
-//varying vec4 interpolatedNormal;
-
 varying vec2 varTexcoord;
 
 uniform sampler2D depthTexture;

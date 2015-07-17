@@ -16,8 +16,6 @@
 
 <$declareStandardTransform()$>
 
-// the interpolated normal
-//varying vec4 interpolatedNormal;
 varying vec2 varTexcoord;
 
 void main(void) {
