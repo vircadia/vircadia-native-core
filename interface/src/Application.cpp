@@ -2444,6 +2444,12 @@ void Application::updateDialogs(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateDialogs()");
     auto dialogsManager = DependencyManager::get<DialogsManager>();
 
+    // Update audio stats dialog, if any
+    AudioStatsDialog* audioStatsDialog = dialogsManager->getAudioStatsDialog();
+    if(audioStatsDialog) {
+        audioStatsDialog->update();
+    }
+    
     // Update bandwidth dialog, if any
     BandwidthDialog* bandwidthDialog = dialogsManager->getBandwidthDialog();
     if (bandwidthDialog) {
