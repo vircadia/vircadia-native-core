@@ -4113,8 +4113,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     connect(workerThread, &QThread::started, scriptEngine, &ScriptEngine::run);
     
     // when the thread is terminated, add both scriptEngine and thread to the deleteLater queue
-    connect(scriptEngine, &ScriptEngine::doneRunning, scriptEngine, &ScriptEngine::deleteLater());
-    connect(workerThread, &QThread::finished, workerThread, &Qthread::deleteLater);
+    connect(scriptEngine, &ScriptEngine::doneRunning, scriptEngine, &ScriptEngine::deleteLater);
+    connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
     
     // tell the thread to stop when the script engine is done
     connect(scriptEngine, &ScriptEngine::destroyed, workerThread, &QThread::quit);
