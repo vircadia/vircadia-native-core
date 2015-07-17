@@ -16,8 +16,7 @@
 
 class NLPacketList : public PacketList {
 public:
-    NLPacketList(PacketType::Value packetType);
-    NLPacketList(PacketType::Value packetType, const QByteArray& extendedHeader);
+    NLPacketList(PacketType::Value packetType, QByteArray extendedHeader = QByteArray());
     
 private:
     NLPacketList(const NLPacketList& other) = delete;

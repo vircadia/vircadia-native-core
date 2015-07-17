@@ -13,13 +13,7 @@
 
 #include "NLPacket.h"
 
-NLPacketList::NLPacketList(PacketType::Value packetType) :
-    PacketList(packetType)
-{
-    
-}
-
-NLPacketList::NLPacketList(PacketType::Value packetType, const QByteArray& extendedHeader) :
+NLPacketList::NLPacketList(PacketType::Value packetType, QByteArray extendedHeader) :
     PacketList(packetType, extendedHeader)
 {
 

@@ -21,8 +21,7 @@ class Packet;
 class PacketList : public QIODevice {
     Q_OBJECT
 public:
-    PacketList(PacketType::Value packetType);
-    PacketList(PacketType::Value packetType, const QByteArray& extendedHeader);
+    PacketList(PacketType::Value packetType, QByteArray extendedHeader = QByteArray());
     
     virtual bool isSequential() const { return true; }
     

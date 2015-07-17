@@ -15,13 +15,7 @@
 
 #include "Packet.h"
 
-PacketList::PacketList(PacketType::Value packetType) :
-    _packetType(packetType)
-{
-    
-}
-
-PacketList::PacketList(PacketType::Value packetType, const QByteArray& extendedHeader) :
+PacketList::PacketList(PacketType::Value packetType, QByteArray extendedHeader) :
     _packetType(packetType),
     _extendedHeader(extendedHeader)
 {
