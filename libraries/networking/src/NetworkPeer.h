@@ -12,6 +12,8 @@
 #ifndef hifi_NetworkPeer_h
 #define hifi_NetworkPeer_h
 
+#include <atomic>
+
 #include <QtCore/QObject>
 #include <QtCore/QTimer>
 #include <QtCore/QUuid>
