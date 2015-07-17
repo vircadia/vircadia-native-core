@@ -33,7 +33,7 @@ EntityItemPointer ModelEntityItem::factory(const EntityItemID& entityID, const E
 }
 
 ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties)
+        EntityItem(entityItemID)
 {
     _type = EntityTypes::Model;
     setProperties(properties);
