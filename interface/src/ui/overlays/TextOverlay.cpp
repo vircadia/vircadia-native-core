@@ -165,7 +165,7 @@ void TextOverlay::setProperties(const QScriptValue& properties) {
     QScriptValue font = properties.property("font");
     if (font.isObject()) {
         if (font.property("size").isValid()) {
-            setFontSize(font.property("size").toInt32() / 1.2);
+            setFontSize(font.property("size").toInt32());
         }
     }
 

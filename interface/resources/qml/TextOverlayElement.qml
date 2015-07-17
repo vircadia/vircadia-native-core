@@ -15,7 +15,7 @@ TextOverlayElement {
             text: root.text
             color: root.textColor
             font.family: root.fontFamily
-            font.pointSize: root.fontSize
+            font.pixelSize: root.fontSize
         }
     }
 }
