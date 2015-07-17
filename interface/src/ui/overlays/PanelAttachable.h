@@ -28,6 +28,7 @@ public:
     void setAttachedPanel(FloatingUIPanel* panel) { _attachedPanel = panel; }
 
     glm::vec3 getTranslatedPosition(glm::vec3 avatarPosition) const;
+    glm::quat getTranslatedRotation(glm::quat offsetRotation) const;
 
 private:
     FloatingUIPanel* _attachedPanel;

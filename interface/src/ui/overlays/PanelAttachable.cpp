@@ -31,3 +31,20 @@ glm::vec3 PanelAttachable::getTranslatedPosition(glm::vec3 avatarPosition) const
     }
     return glm::vec3();
 }
+
+glm::quat PanelAttachable::getTranslatedRotation(glm::quat offsetRotation) const {
+    glm::quat rotation = offsetRotation;
+    if (getAttachedPanel()) {
+        rotation *= getAttachedPanel()->getOffsetRotation() *
+        getAttachedPanel()->getFacingRotation();
+        //            if (getAttachedPanel()->getFacingRotation() != glm::quat(0, 0, 0, 0)) {
+        //                rotation *= getAttachedPanel()->getFacingRotation();
+        //            } else if (getAttachedPanel()->getOffsetRotation() != glm::quat(0, 0, 0, 0)) {
+        //                rotation *= getAttachedPanel()->getOffsetRotation();
+        //            } else {
+        //                rotation *= Application::getInstance()->getCamera()->getOrientation() *
+        //                            glm::quat(0, 0, 1, 0);
+        //            }
+    }
+    return rotation;
+}
