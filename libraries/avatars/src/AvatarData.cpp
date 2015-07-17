@@ -298,7 +298,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     // = 51 bytes
     int minPossibleSize = 51;
     
-    int maxAvailableSize = packet.size() - offset;
+    int maxAvailableSize = buffer.size();
     if (minPossibleSize > maxAvailableSize) {
         if (shouldLogError(now)) {
             qCDebug(avatars) << "Malformed AvatarData packet at the start; "
