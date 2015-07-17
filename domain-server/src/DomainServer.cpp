@@ -965,26 +965,24 @@ int DomainServer::parseNodeData(QDataStream& packetStream, NodeType_t& nodeType,
 
 void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr &senderSockAddr,
                                         const NodeSet& nodeInterestSet) {
-    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-
-    NLPacketList domainListPackets(PacketType::DomainList);
-
-    // always send the node their own UUID back
-    QDataStream domainListStream(&domainListPackets);
-
     const int NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES = NUM_BYTES_RFC4122_UUID + NUM_BYTES_RFC4122_UUID + 2;
-
+    
     // setup the extended header for the domain list packets
     // this data is at the beginning of each of the domain list packets
     QByteArray extendedHeader(NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES, 0);
     QDataStream extendedHeaderStream(&extendedHeader, QIODevice::WriteOnly);
-
+    
     extendedHeaderStream << limitedNodeList->getSessionUUID();
     extendedHeaderStream << node->getUUID();
     extendedHeaderStream << (quint8) node->getCanAdjustLocks();
     extendedHeaderStream << (quint8) node->getCanRez();
+    
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
-    domainListPackets.setExtendedHeader(extendedHeader);
+    NLPacketList domainListPackets(PacketType::DomainList, extendedHeader);
+
+    // always send the node their own UUID back
+    QDataStream domainListStream(&domainListPackets);
 
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
 
