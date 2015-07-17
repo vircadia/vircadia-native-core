@@ -321,6 +321,8 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(viewMenu, MenuOption::Log,
         Qt::CTRL | Qt::SHIFT | Qt::Key_L,
         qApp, SLOT(toggleLogDialog()));
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::AudioNetworkStats, 0,
+                                  dialogsManager.data(), SLOT(audioStatsDetails()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0,
                                   dialogsManager.data(), SLOT(bandwidthDetails()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0,
@@ -585,15 +587,6 @@ Menu::Menu() {
         audioScopeFramesGroup->addAction(twentyFrames);
         audioScopeFramesGroup->addAction(fiftyFrames);
     }
-
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStats,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_A,
-                                           false); //, statsRenderer.data(), SLOT(toggle())); // TODO: convert to dialogbox
-
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStatsShowInjectedStreams,
-                                            0,
-                                           false); //, statsRenderer.data(), SLOT(toggleShowInjectedStreams)); // TODO: convert to dialogbox
-
 
     MenuWrapper* physicsOptionsMenu = developerMenu->addMenu("Physics");
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowOwned);
