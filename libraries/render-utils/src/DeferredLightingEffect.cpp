@@ -9,21 +9,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <gpu/GPUConfig.h>
+#include "DeferredLightingEffect.h"
 
 #include <GLMHelpers.h>
+#include <gpu/GPUConfig.h>
+#include <gpu/Batch.h>
+#include <gpu/Context.h>
+#include <gpu/StandardShaderLib.h>
 #include <PathUtils.h>
 #include <ViewFrustum.h>
 
 #include "AbstractViewStateInterface.h"
-#include "DeferredLightingEffect.h"
 #include "GeometryCache.h"
 #include "RenderUtil.h"
 #include "TextureCache.h"
 
-#include "gpu/Batch.h"
-#include "gpu/Context.h"
-#include "gpu/StandardShaderLib.h"
 
 #include "simple_vert.h"
 #include "simple_textured_frag.h"

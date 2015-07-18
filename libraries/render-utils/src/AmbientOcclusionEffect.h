@@ -12,6 +12,7 @@
 #ifndef hifi_AmbientOcclusionEffect_h
 #define hifi_AmbientOcclusionEffect_h
 
+#include <stdint.h>
 #include <DependencyManager.h>
 
 class AbstractViewStateInterface;
@@ -43,7 +44,7 @@ private:
     ProgramObject* _blurProgram;
     int _blurScaleLocation;
     
-    GLuint _rotationTextureID;
+    uint32_t _rotationTextureID;
     AbstractViewStateInterface* _viewState;
 };
 

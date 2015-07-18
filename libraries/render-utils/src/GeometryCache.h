@@ -12,11 +12,7 @@
 #ifndef hifi_GeometryCache_h
 #define hifi_GeometryCache_h
 
-// include this before QOpenGLBuffer, which includes an earlier version of OpenGL
-#include <gpu/GPUConfig.h>
-
 #include <QMap>
-#include <QOpenGLBuffer>
 
 #include <DependencyManager.h>
 #include <ResourceCache.h>
@@ -264,12 +260,7 @@ private:
     virtual ~GeometryCache();
     
     typedef QPair<int, int> IntPair;
-    typedef QPair<GLuint, GLuint> VerticesIndices;
-    struct BufferDetails {
-        QOpenGLBuffer buffer;
-        int vertices;
-        int vertexSize;
-    };
+    typedef QPair<unsigned int, unsigned int> VerticesIndices;
 
     gpu::PipelinePointer _standardDrawPipeline;
     QHash<float, gpu::BufferPointer> _cubeVerticies;

@@ -84,7 +84,6 @@
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <PhysicsEngine.h>
-#include <ProgramObject.h>
 #include <RenderDeferredTask.h>
 #include <ResourceCache.h>
 #include <SceneScriptingInterface.h>
@@ -100,6 +99,7 @@
 #include "Application.h"
 #include "AudioClient.h"
 #include "DiscoverabilityManager.h"
+#include "GLCanvas.h"
 #include "InterfaceVersion.h"
 #include "LODManager.h"
 #include "Menu.h"
@@ -174,8 +174,6 @@ public:
 using namespace std;
 
 //  Starfield information
-static unsigned STARFIELD_NUM_STARS = 50000;
-static unsigned STARFIELD_SEED = 1;
 static uint8_t THROTTLED_IDLE_TIMER_DELAY = 10;
 
 const qint64 MAXIMUM_CACHE_SIZE = 10 * BYTES_PER_GIGABYTES;  // 10GB
@@ -343,7 +341,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _domainConnectionRefusals(QList<QString>()),
         _maxOctreePPS(maxOctreePacketsPerSecond.get()),
         _lastFaceTrackerUpdate(0),
-        _applicationOverlay()
+        _applicationOverlay(),
+        _glWidget(new GLCanvas())
 {
     setInstance(this);
 #ifdef Q_OS_WIN
@@ -976,39 +975,41 @@ void Application::paintGL() {
     } else {
         PROFILE_RANGE(__FUNCTION__ "/mainRender");
 
-        auto primaryFBO = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
-        GLuint fbo = gpu::GLBackend::getFramebufferID(primaryFBO);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // Viewport is assigned to the size of the framebuffer
-        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
-        glViewport(0, 0, size.width(), size.height());
-        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
-        
-        glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
-        glLoadIdentity();
+        {
+            gpu::Batch batch;
+            auto primaryFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+            batch.setFramebuffer(primaryFbo);
+            // clear the normal and specular buffers
+            batch.clearFramebuffer(
+                gpu::Framebuffer::BUFFER_COLOR0 | 
+                gpu::Framebuffer::BUFFER_COLOR1 |
+                gpu::Framebuffer::BUFFER_COLOR2 |
+                gpu::Framebuffer::BUFFER_DEPTH,
+                vec4(vec3(0), 1), 1.0, 0.0);
+
+            // Viewport is assigned to the size of the framebuffer
+            QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
+            renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
+            batch.setViewportTransform(renderArgs._viewport);
+            renderArgs._context->render(batch);
+        }
+
         displaySide(&renderArgs, _myCamera);
-        glPopMatrix();
-
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
             renderRearViewMirror(&renderArgs, _mirrorViewRect);
         }
-
         renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
 
-        auto finalFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
-
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
-        glBlitFramebuffer(0, 0, _renderResolution.x, _renderResolution.y,
-                          0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height(),
-                            GL_COLOR_BUFFER_BIT, GL_LINEAR);
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-    
-        glBindTexture(GL_TEXTURE_2D, 0); // ???
+        {
+            auto geometryCache = DependencyManager::get<GeometryCache>();
+            auto primaryFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+            gpu::Batch batch;
+            batch.blit(primaryFbo, glm::ivec4(0, 0, _renderResolution.x, _renderResolution.y),
+                nullptr, glm::ivec4(0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height()));
+            renderArgs._context->render(batch);
+        }
 
         _compositor.displayOverlayTexture(&renderArgs);
     }
@@ -1078,11 +1079,7 @@ void Application::resizeGL() {
     if (_renderResolution != toGlm(renderSize)) {
         _renderResolution = toGlm(renderSize);
         DependencyManager::get<TextureCache>()->setFrameBufferSize(renderSize);
-
-        glViewport(0, 0, _renderResolution.x, _renderResolution.y); // shouldn't this account for the menu???
-
         updateProjectionMatrix();
-        glLoadIdentity();
     }
 
     resetCameras(_myCamera, _renderResolution);
@@ -1101,16 +1098,10 @@ void Application::updateProjectionMatrix() {
 
 void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum) {
     _projectionMatrix = camera.getProjection();
-
-    glMatrixMode(GL_PROJECTION);
-    glLoadMatrixf(glm::value_ptr(_projectionMatrix));
-
     // Tell our viewFrustum about this change, using the application camera
     if (updateViewFrustum) {
         loadViewFrustum(camera, _viewFrustum);
     }
-
-    glMatrixMode(GL_MODELVIEW);
 }
 
 void Application::controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {
@@ -1954,7 +1945,6 @@ void Application::setEnableVRMode(bool enableVRMode) {
             OculusManager::connect(_glWidget->context()->contextHandle());
             _glWidget->setFocus();
             _glWidget->makeCurrent();
-            glClear(GL_COLOR_BUFFER_BIT);
         }
         OculusManager::recalibrate();
     } else {
@@ -2157,12 +2147,6 @@ QVector<EntityItemID> Application::pasteEntities(float x, float y, float z) {
 }
 
 void Application::initDisplay() {
-    glEnable(GL_BLEND);
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
-    glShadeModel(GL_SMOOTH);
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-    glEnable(GL_DEPTH_TEST);
 }
 
 void Application::init() {
@@ -3322,9 +3306,6 @@ namespace render {
                 PerformanceTimer perfTimer("stars");
                 PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                     "Application::payloadRender<BackgroundRenderData>() ... stars...");
-                if (!background->_stars.isStarsLoaded()) {
-                    background->_stars.generate(STARFIELD_NUM_STARS, STARFIELD_SEED);
-                }
                 // should be the first rendering pass - w/o depth buffer / lighting
 
                 // compute starfield alpha based on distance from atmosphere
@@ -3372,7 +3353,7 @@ namespace render {
 
                 // finally render the starfield
                 if (hasStars) {
-                    background->_stars.render(args->_viewFrustum->getFieldOfView(), args->_viewFrustum->getAspectRatio(), args->_viewFrustum->getNearClip(), alpha);
+                    background->_stars.render(args, alpha);
                 }
 
                 // draw the sky dome
@@ -3416,14 +3397,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     // load the view frustum
     loadViewFrustum(theCamera, _displayViewFrustum);
 
-    // transform view according to theCamera
-    // could be myCamera (if in normal mode)
-    // or could be viewFrustumOffsetCamera if in offset mode
-
-    glm::quat rotation = theCamera.getRotation();
-    glm::vec3 axis = glm::axis(rotation);
-    glRotatef(-glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-
     // store view matrix without translation, which we'll use for precision-sensitive objects
     updateUntranslatedViewMatrix(-theCamera.getPosition());
 
@@ -3432,7 +3405,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     // this is what is used for rendering the Entities and avatars
     Transform viewTransform;
     viewTransform.setTranslation(theCamera.getPosition());
-    viewTransform.setRotation(rotation);
+    viewTransform.setRotation(theCamera.getRotation());
     if (renderArgs->_renderSide != RenderArgs::MONO) {
         glm::mat4 invView = glm::inverse(_untranslatedViewMatrix);
 
@@ -3441,8 +3414,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     }
 
     setViewTransform(viewTransform);
-
-    glTranslatef(_viewMatrixTranslation.x, _viewMatrixTranslation.y, _viewMatrixTranslation.z);
 
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
     {

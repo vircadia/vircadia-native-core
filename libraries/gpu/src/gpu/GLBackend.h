@@ -394,6 +394,8 @@ protected:
 
     // Output stage
     void do_setFramebuffer(Batch& batch, uint32 paramOffset);
+    void do_blit(Batch& batch, uint32 paramOffset);
+
 
     struct OutputStageState {
 

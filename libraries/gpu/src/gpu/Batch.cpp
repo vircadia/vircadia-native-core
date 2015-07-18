@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "Batch.h"
+#include "GPUConfig.h"
 
 #include <QDebug>
 
@@ -252,6 +253,22 @@ void Batch::setFramebuffer(const FramebufferPointer& framebuffer) {
 
     _params.push_back(_framebuffers.cache(framebuffer));
 
+}
+
+void Batch::blit(const FramebufferPointer& src, const Vec4i& srcViewport,
+    const FramebufferPointer& dst, const Vec4i& dstViewport) {
+    ADD_COMMAND(blit);
+
+    _params.push_back(_framebuffers.cache(src));
+    _params.push_back(srcViewport.x);
+    _params.push_back(srcViewport.y);
+    _params.push_back(srcViewport.z);
+    _params.push_back(srcViewport.w);
+    _params.push_back(_framebuffers.cache(dst));
+    _params.push_back(dstViewport.x);
+    _params.push_back(dstViewport.y);
+    _params.push_back(dstViewport.z);
+    _params.push_back(dstViewport.w);
 }
 
 void Batch::beginQuery(const QueryPointer& query) {

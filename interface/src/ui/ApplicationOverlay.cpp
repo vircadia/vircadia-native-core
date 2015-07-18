@@ -11,9 +11,6 @@
 
 #include "InterfaceConfig.h"
 
-#include <QOpenGLFramebufferObject>
-#include <QOpenGLTexture>
-
 #include <glm/gtc/type_ptr.hpp>
 
 #include <avatar/AvatarManager.h>

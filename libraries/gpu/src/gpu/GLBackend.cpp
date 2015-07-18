@@ -39,6 +39,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_setResourceTexture),
 
     (&::gpu::GLBackend::do_setFramebuffer),
+    (&::gpu::GLBackend::do_blit),
 
     (&::gpu::GLBackend::do_beginQuery),
     (&::gpu::GLBackend::do_endQuery),

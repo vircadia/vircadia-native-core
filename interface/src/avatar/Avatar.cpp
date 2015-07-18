@@ -11,8 +11,6 @@
 
 #include <vector>
 
-#include <gpu/GPUConfig.h>
-
 #include <QDesktopWidget>
 #include <QWindow>
 
@@ -708,6 +706,9 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, floa
     // Compute pixel alignment offset
     float clipToPix = 0.5f * windowSizeY / p1.w; // Got from clip to pixel coordinates
     glm::vec4 screenPos = clipToPix * p1; // in pixels coords
+// WTF?
+#undef round
+
     glm::vec4 screenOffset = (glm::round(screenPos) - screenPos) / clipToPix; // in clip coords
     glm::vec3 worldOffset = glm::vec3(screenOffset.x, screenOffset.y, 0.0f) / (float)pixelHeight;
     

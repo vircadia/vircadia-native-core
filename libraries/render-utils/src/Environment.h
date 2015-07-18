@@ -21,7 +21,6 @@
 #include <EnvironmentData.h>
 
 class ViewFrustum;
-class ProgramObject;
 
 class Environment {
 public:

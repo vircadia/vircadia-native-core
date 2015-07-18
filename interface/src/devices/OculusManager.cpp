@@ -10,16 +10,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "InterfaceConfig.h"
 #include "OculusManager.h"
-#include "ui/overlays/Text3DOverlay.h"
+#include <gpu/GPUConfig.h>
 
-#include <CursorManager.h>
 #include <QDesktopWidget>
 #include <QGuiApplication>
 #include <QScreen>
 #include <QOpenGLTimerQuery>
+#include <QGLWidget>
 
+#include <CursorManager.h>
 #include <glm/glm.hpp>
 
 #include <avatar/AvatarManager.h>
@@ -35,6 +35,7 @@
 
 #include "InterfaceLogging.h"
 #include "Application.h"
+#include "ui/overlays/Text3DOverlay.h"
 
 template <typename Function>
 void for_each_eye(Function function) {
