@@ -92,7 +92,6 @@
 #include <SettingHandle.h>
 #include <SimpleAverage.h>
 #include <SoundCache.h>
-#include <TextRenderer.h>
 #include <Tooltip.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
@@ -895,6 +894,11 @@ void Application::paintGL() {
 
     {
         PerformanceTimer perfTimer("renderOverlay");
+        
+        // NOTE: There is no batch associated with this renderArgs
+        // the ApplicationOverlay class assumes it's viewport is setup to be the device size
+        QSize size = qApp->getDeviceSize();
+        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());    
         _applicationOverlay.renderOverlay(&renderArgs);
     }
 
@@ -1568,7 +1572,9 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         return;
     }
 
-    _keyboardMouseDevice.mouseMoveEvent(event, deviceID);
+    if (deviceID == 0) {
+        _keyboardMouseDevice.mouseMoveEvent(event, deviceID);
+    }
 
 }
 
@@ -1589,7 +1595,9 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
 
     if (activeWindow() == _window) {
-        _keyboardMouseDevice.mousePressEvent(event);
+        if (deviceID == 0) {
+            _keyboardMouseDevice.mousePressEvent(event);
+        }
 
         if (event->button() == Qt::LeftButton) {
             _mouseDragStarted = getTrueMouse();
@@ -1629,7 +1637,9 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
     }
 
     if (activeWindow() == _window) {
-        _keyboardMouseDevice.mouseReleaseEvent(event);
+        if (deviceID == 0) {
+            _keyboardMouseDevice.mouseReleaseEvent(event);
+        }
 
         if (event->button() == Qt::LeftButton) {
             _mousePressed = false;
@@ -2438,6 +2448,12 @@ void Application::updateDialogs(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateDialogs()");
     auto dialogsManager = DependencyManager::get<DialogsManager>();
 
+    // Update audio stats dialog, if any
+    AudioStatsDialog* audioStatsDialog = dialogsManager->getAudioStatsDialog();
+    if(audioStatsDialog) {
+        audioStatsDialog->update();
+    }
+    
     // Update bandwidth dialog, if any
     BandwidthDialog* bandwidthDialog = dialogsManager->getBandwidthDialog();
     if (bandwidthDialog) {

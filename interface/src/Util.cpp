@@ -23,7 +23,6 @@
 
 #include <ByteCountCoding.h>
 #include <SharedUtil.h>
-#include <TextRenderer.h>
 
 #include "InterfaceConfig.h"
 #include "world.h"
@@ -77,27 +76,6 @@ void renderWorldBox(gpu::Batch& batch) {
 //  Return a random vector of average length 1
 const glm::vec3 randVector() {
     return glm::vec3(randFloat() - 0.5f, randFloat() - 0.5f, randFloat() - 0.5f) * 2.0f;
-}
-
-static TextRenderer* textRenderer(int mono) {
-    static TextRenderer* monoRenderer = TextRenderer::getInstance(MONO_FONT_FAMILY);
-    static TextRenderer* proportionalRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY,
-        -1, -1, false, TextRenderer::SHADOW_EFFECT);
-    static TextRenderer* inconsolataRenderer = TextRenderer::getInstance(INCONSOLATA_FONT_FAMILY, -1, INCONSOLATA_FONT_WEIGHT,
-        false);
-    switch (mono) {
-        case 1:
-            return monoRenderer;
-        case 2:
-            return inconsolataRenderer;
-        case 0:
-        default:
-            return proportionalRenderer;
-    }
-}
-
-int widthText(float scale, int mono, char const* string) {
-    return textRenderer(mono)->computeExtent(string).x;  // computeWidth(string) * (scale / 0.10);
 }
 
 void renderCollisionOverlay(int width, int height, float magnitude, float red, float blue, float green) {

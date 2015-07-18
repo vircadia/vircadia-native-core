@@ -45,9 +45,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _lastEditedFromRemoteInRemoteTime(0),
     _created(UNKNOWN_CREATED_TIME),
     _changedOnServer(0),
-    _transform(ENTITY_ITEM_DEFAULT_ROTATION,
-               ENTITY_ITEM_DEFAULT_DIMENSIONS,
-               ENTITY_ITEM_DEFAULT_POSITION),
+    _transform(),
     _glowLevel(ENTITY_ITEM_DEFAULT_GLOW_LEVEL),
     _localRenderAlpha(ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA),
     _density(ENTITY_ITEM_DEFAULT_DENSITY),
@@ -80,14 +78,13 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _physicsInfo(nullptr),
     _simulated(false)
 {
+    // explicitly set transform parts to set dirty flags used by batch rendering
+    _transform.setTranslation(ENTITY_ITEM_DEFAULT_POSITION);
+    _transform.setRotation(ENTITY_ITEM_DEFAULT_ROTATION);
+    _transform.setScale(ENTITY_ITEM_DEFAULT_DIMENSIONS);
     quint64 now = usecTimestampNow();
     _lastSimulated = now;
     _lastUpdated = now;
-}
-
-EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) : EntityItem(entityItemID)
-{
-    setProperties(properties);
 }
 
 EntityItem::~EntityItem() {

@@ -55,10 +55,6 @@
 #include "model_lightmap_specular_map_frag.h"
 #include "model_translucent_frag.h"
 
-
-#define GLBATCH( call ) batch._##call
-//#define GLBATCH( call ) call
-
 using namespace std;
 
 static int modelPointerTypeId = qRegisterMetaType<QPointer<Model> >();
@@ -1850,22 +1846,6 @@ void Model::deleteGeometry() {
     _blendedBlendshapeCoefficients.clear();
 }
 
-void Model::setupBatchTransform(gpu::Batch& batch, RenderArgs* args) {
-    
-    // Capture the view matrix once for the rendering of this model
-    if (_transforms.empty()) {
-        _transforms.push_back(Transform());
-    }
-
-    // We should be able to use the Frustum viewpoint onstead of the "viewTransform"
-    // but it s still buggy in some cases, so let's s wait and fix it...
-    _transforms[0] = _viewState->getViewTransform();
-
-    _transforms[0].preTranslate(-_translation);
-
-    batch.setViewTransform(_transforms[0]);
-}
-
 AABox Model::getPartBounds(int meshIndex, int partIndex) {
 
     if (meshIndex < _meshStates.size()) {
@@ -2000,7 +1980,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
     
     if (isSkinned) {
-        GLBATCH(glUniformMatrix4fv)(locations->clusterMatrices, state.clusterMatrices.size(), false,
+        batch._glUniformMatrix4fv(locations->clusterMatrices, state.clusterMatrices.size(), false,
             (const float*)state.clusterMatrices.constData());
        _transforms[0] = Transform();
        _transforms[0].preTranslate(_translation);
@@ -2021,7 +2001,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
 
     if (mesh.colors.isEmpty()) {
-        GLBATCH(glColor4f)(1.0f, 1.0f, 1.0f, 1.0f);
+        batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
     // guard against partially loaded meshes
@@ -2077,7 +2057,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                 if (!part.emissiveTexture.transform.isIdentity()) {
                     part.emissiveTexture.transform.getMatrix(texcoordTransform[1]);
                 }
-                GLBATCH(glUniformMatrix4fv)(locations->texcoordMatrices, 2, false, (const float*) &texcoordTransform);
+                batch._glUniformMatrix4fv(locations->texcoordMatrices, 2, false, (const float*) &texcoordTransform);
             }
 
             if (!mesh.tangents.isEmpty()) {                 
@@ -2102,7 +2082,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
                 //  assert(locations->emissiveParams >= 0); // we should have the emissiveParams defined in the shader
                 float emissiveOffset = part.emissiveParams.x;
                 float emissiveScale = part.emissiveParams.y;
-                GLBATCH(glUniform2f)(locations->emissiveParams, emissiveOffset, emissiveScale);
+                batch._glUniform2f(locations->emissiveParams, emissiveOffset, emissiveScale);
                 
                 NetworkTexture* emissiveMap = networkPart.emissiveTexture.data();
                 batch.setResourceTexture(locations->emissiveTextureUnit, (!emissiveMap || !emissiveMap->isLoaded()) ?
@@ -2210,12 +2190,12 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
     batch.setPipeline((*pipeline).second._pipeline);
 
     if ((locations->alphaThreshold > -1) && (mode != RenderArgs::SHADOW_RENDER_MODE)) {
-        GLBATCH(glUniform1f)(locations->alphaThreshold, alphaThreshold);
+        batch._glUniform1f(locations->alphaThreshold, alphaThreshold);
     }
 
     if ((locations->glowIntensity > -1) && (mode != RenderArgs::SHADOW_RENDER_MODE)) {
         const float DEFAULT_GLOW_INTENSITY = 1.0f; // FIXME - glow is removed
-        GLBATCH(glUniform1f)(locations->glowIntensity, DEFAULT_GLOW_INTENSITY);
+        batch._glUniform1f(locations->glowIntensity, DEFAULT_GLOW_INTENSITY);
     }
 }
 
