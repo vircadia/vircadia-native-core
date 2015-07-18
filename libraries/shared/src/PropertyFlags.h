@@ -208,7 +208,7 @@ inline size_t PropertyFlags<Enum>::decode(const uint8_t* data, size_t size) {
     int bitAt = 0;
     int expectedBitCount; // unknown at this point
     int lastValueBit;
-    for (int byte = 0; byte < size; byte++) {
+    for (unsigned int byte = 0; byte < size; byte++) {
         char originalByte = data[byte];
         bytesConsumed++;
         unsigned char maskBit = 0x80; // LEFT MOST BIT set

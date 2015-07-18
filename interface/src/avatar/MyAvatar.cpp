@@ -19,6 +19,7 @@
 
 #include <QtCore/QTimer>
 
+#include <gpu/GPUConfig.h>
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <AnimationHandle.h>
@@ -31,7 +32,7 @@
 #include <PerfStat.h>
 #include <ShapeCollider.h>
 #include <SharedUtil.h>
-#include <TextRenderer.h>
+#include <TextRenderer3D.h>
 #include <UserActivityLogger.h>
 
 #include "devices/Faceshift.h"
@@ -323,28 +324,6 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 }
 
 
-void MyAvatar::renderDebugBodyPoints() {
-    glm::vec3 torsoPosition(getPosition());
-    glm::vec3 headPosition(getHead()->getEyePosition());
-    float torsoToHead = glm::length(headPosition - torsoPosition);
-    glm::vec3 position;
-    qCDebug(interfaceapp, "head-above-torso %.2f, scale = %0.2f", (double)torsoToHead, (double)getScale());
-
-    //  Torso Sphere
-    position = torsoPosition;
-    glPushMatrix();
-    glTranslatef(position.x, position.y, position.z);
-    DependencyManager::get<GeometryCache>()->renderSphere(0.2f, 10.0f, 10.0f, glm::vec4(0, 1, 0, .5f));
-    glPopMatrix();
-
-    //  Head Sphere
-    position = headPosition;
-    glPushMatrix();
-    glTranslatef(position.x, position.y, position.z);
-    DependencyManager::get<GeometryCache>()->renderSphere(0.15f, 10.0f, 10.0f, glm::vec4(0, 1, 0, .5f));
-    glPopMatrix();
-}
-
 // virtual
 void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting) {
     // don't render if we've been asked to disable local rendering
@@ -355,8 +334,9 @@ void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, b
     Avatar::render(renderArgs, cameraPosition, postLighting);
 
     // don't display IK constraints in shadow mode
-    if (Menu::getInstance()->isOptionChecked(MenuOption::ShowIKConstraints) && postLighting) {
-        _skeletonModel.renderIKConstraints();
+    if (Menu::getInstance()->isOptionChecked(MenuOption::ShowIKConstraints) &&
+        renderArgs && renderArgs->_batch) {
+        _skeletonModel.renderIKConstraints(*renderArgs->_batch);
     }
 }
 

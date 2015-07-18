@@ -30,7 +30,6 @@ WebEntityItem::WebEntityItem(const EntityItemID& entityItemID, const EntityItemP
         EntityItem(entityItemID) 
 {
     _type = EntityTypes::Web;
-    _created = properties.getCreated();
     setProperties(properties);
 }
 

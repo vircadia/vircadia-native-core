@@ -37,7 +37,6 @@ ZoneEntityItem::ZoneEntityItem(const EntityItemID& entityItemID, const EntityIte
         EntityItem(entityItemID) 
 {
     _type = EntityTypes::Zone;
-    _created = properties.getCreated();
 
     _keyLightColor[RED_INDEX] = DEFAULT_KEYLIGHT_COLOR.red;
     _keyLightColor[GREEN_INDEX] = DEFAULT_KEYLIGHT_COLOR.green;

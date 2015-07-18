@@ -10,6 +10,7 @@
 //
 
 #include "TextRenderer3D.h"
+#include <StreamHelpers.h>
 
 #include <gpu/GPUConfig.h>
 #include <gpu/GLBackend.h>
@@ -19,6 +20,8 @@
 #include <QImage>
 #include <QStringList>
 #include <QFile>
+
+#include "text/Font.h"
 
 #include "GLMHelpers.h"
 #include "MatrixStack.h"
@@ -30,6 +33,7 @@
 #include "GeometryCache.h"
 #include "DeferredLightingEffect.h"
 
+<<<<<<< HEAD
 // Helper functions for reading binary data from an IO device
 template<class T>
 void readStream(QIODevice& in, T& t) {
@@ -431,20 +435,23 @@ void Font3D::drawString(gpu::Batch& batch, float x, float y, const QString& str,
     batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);
     batch.draw(gpu::QUADS, _numVertices, 0);
 }
+=======
+const float TextRenderer3D::DEFAULT_POINT_SIZE = 12;
 
-TextRenderer3D* TextRenderer3D::getInstance(const char* family,
-        int weight, bool italic, EffectType effect, int effectThickness) {
-    return new TextRenderer3D(family, weight, italic, effect, effectThickness);
+TextRenderer3D* TextRenderer3D::getInstance(const char* family, float pointSize,
+    bool bold, bool italic, EffectType effect, int effectThickness) {
+    return new TextRenderer3D(family, pointSize, false, italic, effect, effectThickness);
 }
 
-TextRenderer3D::TextRenderer3D(const char* family, int weight, bool italic,
-                           EffectType effect, int effectThickness) :
+TextRenderer3D::TextRenderer3D(const char* family, float pointSize, int weight, bool italic,
+        EffectType effect, int effectThickness) :
+    _pointSize(pointSize),
     _effectType(effect),
     _effectThickness(effectThickness),
-    _font(loadFont3D(family)) {
+    _font(Font::load(family)) {
     if (!_font) {
         qWarning() << "Unable to load font with family " << family;
-        _font = loadFont3D("Courier");
+        _font = Font::load("Courier");
     }
     if (1 != _effectThickness) {
         qWarning() << "Effect thickness not currently supported";

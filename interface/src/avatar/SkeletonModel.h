@@ -36,7 +36,7 @@ public:
     /// \param shapes[out] list in which is stored pointers to hand shapes
     void getHandShapes(int jointIndex, QVector<const Shape*>& shapes) const;
 
-    void renderIKConstraints();
+    void renderIKConstraints(gpu::Batch& batch);
     
     /// Returns the index of the left hand joint, or -1 if not found.
     int getLeftHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().leftHandJointIndex : -1; }
@@ -144,7 +144,7 @@ protected:
 
 private:
 
-    void renderJointConstraints(int jointIndex);
+    void renderJointConstraints(gpu::Batch& batch, int jointIndex);
     void renderOrientationDirections(int jointIndex, glm::vec3 position, const glm::quat& orientation, float size);
     
     struct OrientationLineIDs {

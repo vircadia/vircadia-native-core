@@ -14,11 +14,9 @@
 
 #include <gpu/GPUConfig.h>
 
-#include <GlowEffect.h>
 #include <DeferredLightingEffect.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
-#include <TextRenderer.h>
 #include <OffscreenQmlSurface.h>
 #include <AbstractViewStateInterface.h>
 #include <GLMHelpers.h>
@@ -169,7 +167,6 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     _webSurface->resize(QSize(dims.x, dims.y));
     currentContext->makeCurrent(currentSurface);
 
-    Glower glow(0.0f);
     PerformanceTimer perfTimer("RenderableWebEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Web);
     static const glm::vec2 texMin(0.0f), texMax(1.0f), topLeft(-0.5f), bottomRight(0.5f);

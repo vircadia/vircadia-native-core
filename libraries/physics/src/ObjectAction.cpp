@@ -129,3 +129,10 @@ void ObjectAction::setAngularVelocity(glm::vec3 angularVelocity) {
     rigidBody->activate();
 }
 
+void ObjectAction::activateBody() {
+    auto rigidBody = getRigidBody();
+    if (rigidBody) {
+        rigidBody->activate();
+    }
+}
+

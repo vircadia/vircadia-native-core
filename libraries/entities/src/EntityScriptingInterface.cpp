@@ -543,6 +543,9 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
     }
 
     bool success = actor(simulation, entity);
+    if (success) {
+        _entityTree->entityChanged(entity);
+    }
     _entityTree->unlock();
 
     // transmit the change

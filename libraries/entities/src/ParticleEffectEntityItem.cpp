@@ -61,7 +61,7 @@ EntityItemPointer ParticleEffectEntityItem::factory(const EntityItemID& entityID
 
 // our non-pure virtual subclass for now...
 ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-    EntityItem(entityItemID, properties),
+    EntityItem(entityItemID),
     _maxParticles(DEFAULT_MAX_PARTICLES),
     _lifespan(DEFAULT_LIFESPAN),
     _emitRate(DEFAULT_EMIT_RATE),

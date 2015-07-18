@@ -13,6 +13,7 @@
 
 #include <QtCore/QDateTime>
 #include <QtCore/QDebug>
+#include <QtCore/QDataStream>
 
 #include <SharedUtil.h>
 #include <UUID.h>

@@ -40,11 +40,8 @@
 namespace gpu {
 
 enum ReservedSlot {
-/*    TRANSFORM_OBJECT_SLOT = 6,
+    TRANSFORM_OBJECT_SLOT = 6,
     TRANSFORM_CAMERA_SLOT = 7,
-    */
-    TRANSFORM_OBJECT_SLOT = 1,
-    TRANSFORM_CAMERA_SLOT = 2,
 };
 
 class Batch {
@@ -65,11 +62,12 @@ public:
 
     // Clear framebuffer layers
     // Targets can be any of the render buffers contained in the Framebuffer
-    void clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil);
-    void clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color); // not a command, just a shortcut for clearFramebuffer, mask out targets to make sure it touches only color targets
-    void clearDepthFramebuffer(float depth); // not a command, just a shortcut for clearFramebuffer, it touches only depth target
-    void clearStencilFramebuffer(int stencil); // not a command, just a shortcut for clearFramebuffer, it touches only stencil target
-    void clearDepthStencilFramebuffer(float depth, int stencil); // not a command, just a shortcut for clearFramebuffer, it touches depth and stencil target
+    // Optionally the scissor test can be enabled locally for this command and to restrict the clearing command to the pixels contained in the scissor rectangle
+    void clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil, bool enableScissor = false);
+    void clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, mask out targets to make sure it touches only color targets
+    void clearDepthFramebuffer(float depth, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches only depth target
+    void clearStencilFramebuffer(int stencil, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches only stencil target
+    void clearDepthStencilFramebuffer(float depth, int stencil, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches depth and stencil target
     
     // Input Stage
     // InputFormat
@@ -89,22 +87,27 @@ public:
     // Then by the inverse of the ViewTransform from world space to eye space
     // finaly projected into the clip space by the projection transform
     // WARNING: ViewTransform transform from eye space to world space, its inverse is composed
-    // with the ModelTransformu to create the equivalent of the glModelViewMatrix
+    // with the ModelTransform to create the equivalent of the gl ModelViewMatrix
     void setModelTransform(const Transform& model);
     void setViewTransform(const Transform& view);
     void setProjectionTransform(const Mat4& proj);
-    void setViewportTransform(const Vec4i& viewport); // Viewport is xy = low left corner in the framebuffer, zw = width height of the viewport
+    // Viewport is xy = low left corner in framebuffer, zw = width height of the viewport, expressed in pixels
+    void setViewportTransform(const Vec4i& viewport);
 
     // Pipeline Stage
     void setPipeline(const PipelinePointer& pipeline);
 
     void setStateBlendFactor(const Vec4& factor);
 
+    // Set the Scissor rect
+    // the rect coordinates are xy for the low left corner of the rect and zw for the width and height of the rect, expressed in pixels
+    void setStateScissorRect(const Vec4i& rect);
+
     void setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size);
     void setUniformBuffer(uint32 slot, const BufferView& view); // not a command, just a shortcut from a BufferView
 
-    void setUniformTexture(uint32 slot, const TexturePointer& view);
-    void setUniformTexture(uint32 slot, const TextureView& view); // not a command, just a shortcut from a TextureView
+    void setResourceTexture(uint32 slot, const TexturePointer& view);
+    void setResourceTexture(uint32 slot, const TextureView& view); // not a command, just a shortcut from a TextureView
 
     // Framebuffer Stage
     void setFramebuffer(const FramebufferPointer& framebuffer);
@@ -117,7 +120,7 @@ public:
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
     // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
-    // For now, instead of calling the raw glCall, use the equivalent call on the batch so the call is beeing recorded
+    // For now, instead of calling the raw gl Call, use the equivalent call on the batch so the call is beeing recorded
     // THe implementation of these functions is in GLBackend.cpp
 
     void _glEnable(GLenum cap);
@@ -176,9 +179,10 @@ public:
 
         COMMAND_setPipeline,
         COMMAND_setStateBlendFactor,
+        COMMAND_setStateScissorRect,
 
         COMMAND_setUniformBuffer,
-        COMMAND_setUniformTexture,
+        COMMAND_setResourceTexture,
 
         COMMAND_setFramebuffer,
 
