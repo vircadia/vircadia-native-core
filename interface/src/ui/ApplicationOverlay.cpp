@@ -97,10 +97,10 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_DEPTH, color, depth, stencil);
 
     // Now render the overlay components together into a single texture
+    renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture
     renderOverlays(renderArgs); // renders Scripts Overlay and AudioScope
     renderStatsAndLogs(renderArgs);  // currently renders nothing
     renderDomainConnectionStatusBorder(renderArgs); // renders the connected domain line
-    renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture
 
     renderArgs->_context->syncCache();
     renderArgs->_context->render(batch);
