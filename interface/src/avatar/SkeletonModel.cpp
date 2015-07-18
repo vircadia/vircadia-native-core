@@ -120,8 +120,8 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     Hand* hand = _owningAvatar->getHand();
     hand->getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
 
-    const float HAND_RESTORATION_RATE = 0.25f;    
-    if (leftPalmIndex == -1 || rightPalmIndex == -1) {
+    const float HAND_RESTORATION_RATE = 0.25f;
+    if (leftPalmIndex == -1 && rightPalmIndex == -1) {
         // palms are not yet set, use mouse
         if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
             restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
@@ -138,8 +138,16 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
 
     } else {
-        applyPalmData(geometry.leftHandJointIndex, hand->getPalms()[leftPalmIndex]);
-        applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[rightPalmIndex]);
+        if (leftPalmIndex != -1) {
+            applyPalmData(geometry.leftHandJointIndex, hand->getPalms()[leftPalmIndex]);
+        } else {
+            restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
+        }
+        if (rightPalmIndex != -1) {
+            applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[rightPalmIndex]);
+        } else {
+            restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
+        }
     }
 
     if (_isFirstPerson) {
@@ -791,19 +799,24 @@ void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha
     transform.setTranslation(endPoint);
     batch.setModelTransform(transform);
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    geometryCache->renderSphere(batch, _boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, glm::vec4(0.6f, 0.6f, 0.8f, alpha));
+    geometryCache->renderSphere(batch, _boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, 
+                                glm::vec4(0.6f, 0.6f, 0.8f, alpha));
 
     // draw a yellow sphere at the capsule startpoint
     glm::vec3 startPoint;
     _boundingShape.getStartPoint(startPoint);
     startPoint = startPoint - _translation;
     glm::vec3 axis = endPoint - startPoint;
-    glTranslatef(-axis.x, -axis.y, -axis.z);
-    geometryCache->renderSphere(_boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, glm::vec4(0.8f, 0.8f, 0.6f, alpha));
+    Transform axisTransform = Transform();
+    axisTransform.setTranslation(-axis);
+    batch.setModelTransform(axisTransform);
+    geometryCache->renderSphere(batch, _boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, 
+                                glm::vec4(0.8f, 0.8f, 0.6f, alpha));
 
     // draw a green cylinder between the two points
     glm::vec3 origin(0.0f);
-    Avatar::renderJointConnectingCone(batch,  origin, axis, _boundingShape.getRadius(), _boundingShape.getRadius(), glm::vec4(0.6f, 0.8f, 0.6f, alpha));
+    Avatar::renderJointConnectingCone(batch, origin, axis, _boundingShape.getRadius(), _boundingShape.getRadius(), 
+                                      glm::vec4(0.6f, 0.8f, 0.6f, alpha));
 }
 
 bool SkeletonModel::hasSkeleton() {

@@ -40,12 +40,6 @@ const float CONNECTION_STATUS_BORDER_LINE_WIDTH = 4.0f;
 static const float ORTHO_NEAR_CLIP = -10000;
 static const float ORTHO_FAR_CLIP = 10000;
 
-// TODO move somewhere useful
-static void fboViewport(QOpenGLFramebufferObject* fbo) {
-    auto size = fbo->size();
-    glViewport(0, 0, size.width(), size.height());
-}
-
 ApplicationOverlay::ApplicationOverlay()
 {
     auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -82,63 +76,97 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     AvatarInputs::getInstance()->update();
 
     buildFramebufferObject();
+    
+    if (!_overlayFramebuffer) {
+        return; // we can't do anything without our frame buffer.
+    }
 
     // Execute the batch into our framebuffer
-    _overlayFramebuffer->bind();
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    fboViewport(_overlayFramebuffer);
+    gpu::Batch batch;
+    renderArgs->_batch = &batch;
+
+    int width = _overlayFramebuffer->getWidth();
+    int height = _overlayFramebuffer->getHeight();
+
+    batch.setViewportTransform(glm::ivec4(0, 0, width, height));
+    batch.setFramebuffer(_overlayFramebuffer);
+
+    glm::vec4 color { 0.0f, 0.0f, 0.0f, 0.0f };
+    float depth = 1.0f;
+    int stencil = 0;
+    batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_DEPTH, color, depth, stencil);
 
     // Now render the overlay components together into a single texture
-    renderOverlays(renderArgs);
-    renderStatsAndLogs(renderArgs);
-    renderDomainConnectionStatusBorder(renderArgs);
-    renderQmlUi(renderArgs);
-    _overlayFramebuffer->release();
+    renderDomainConnectionStatusBorder(renderArgs); // renders the connected domain line
+    renderAudioScope(renderArgs); // audio scope in the very back
+    renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture, and the text overlays from scripts
+    renderOverlays(renderArgs); // renders Scripts Overlay and AudioScope
+    renderStatsAndLogs(renderArgs);  // currently renders nothing
+
+    renderArgs->_context->syncCache();
+    renderArgs->_context->render(batch);
+
+    renderArgs->_batch = nullptr; // so future users of renderArgs don't try to use our batch
+
     CHECK_GL_ERROR();
 }
 
 void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
     PROFILE_RANGE(__FUNCTION__);
     if (_uiTexture) {
-        gpu::Batch batch;
+        gpu::Batch& batch = *renderArgs->_batch;
         auto geometryCache = DependencyManager::get<GeometryCache>();
+
         geometryCache->useSimpleDrawPipeline(batch);
         batch.setProjectionTransform(mat4());
-        batch.setModelTransform(mat4());
+        batch.setModelTransform(Transform());
+        batch.setViewTransform(Transform());
         batch._glBindTexture(GL_TEXTURE_2D, _uiTexture);
+
         geometryCache->renderUnitQuad(batch, glm::vec4(1));
-        renderArgs->_context->syncCache();
-        renderArgs->_context->render(batch);
     }
+}
+
+void ApplicationOverlay::renderAudioScope(RenderArgs* renderArgs) {
+    PROFILE_RANGE(__FUNCTION__);
+
+    gpu::Batch& batch = *renderArgs->_batch;
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    geometryCache->useSimpleDrawPipeline(batch);
+    auto textureCache = DependencyManager::get<TextureCache>();
+    batch.setResourceTexture(0, textureCache->getWhiteTexture());
+    int width = renderArgs->_viewport.z;
+    int height = renderArgs->_viewport.w;
+    mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
+    batch.setProjectionTransform(legacyProjection);
+    batch.setModelTransform(Transform());
+    batch.setViewTransform(Transform());
+    batch._glLineWidth(1.0f); // default
+    
+    // Render the audio scope
+    DependencyManager::get<AudioScope>()->render(renderArgs, width, height);
 }
 
 void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     PROFILE_RANGE(__FUNCTION__);
-    glm::vec2 size = qApp->getCanvasSize();
 
-    mat4 legacyProjection = glm::ortho<float>(0, size.x, size.y, 0, ORTHO_NEAR_CLIP, ORTHO_FAR_CLIP);
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadMatrixf(glm::value_ptr(legacyProjection));
-    glMatrixMode(GL_MODELVIEW);
-
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glUseProgram(0);
-
-    // give external parties a change to hook in
-    emit qApp->renderingOverlay();
+    gpu::Batch& batch = *renderArgs->_batch;
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    geometryCache->useSimpleDrawPipeline(batch);
+    auto textureCache = DependencyManager::get<TextureCache>();
+    batch.setResourceTexture(0, textureCache->getWhiteTexture());
+    int width = renderArgs->_viewport.z;
+    int height = renderArgs->_viewport.w;
+    mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
+    batch.setProjectionTransform(legacyProjection);
+    batch.setModelTransform(Transform());
+    batch.setViewTransform(Transform());
+    batch._glLineWidth(1.0f); // default
+    
+    // Render all of the Script based "HUD" aka 2D overlays.
+    // note: we call them HUD, as opposed to 2D, only because there are some cases of 3D HUD overlays, like the
+    // cameral controls for the edit.js
     qApp->getOverlays().renderHUD(renderArgs);
-
-    DependencyManager::get<AudioScope>()->render(renderArgs, _overlayFramebuffer->size().width(), _overlayFramebuffer->size().height());
-
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-
-    fboViewport(_overlayFramebuffer);
 }
 
 void ApplicationOverlay::renderRearViewToFbo(RenderArgs* renderArgs) {
@@ -148,6 +176,7 @@ void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
 }
 
 void ApplicationOverlay::renderStatsAndLogs(RenderArgs* renderArgs) {
+
     //  Display stats and log text onscreen
 
     // Determine whether to compute timing details
@@ -182,7 +211,7 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder(RenderArgs* renderAr
     });
     auto nodeList = DependencyManager::get<NodeList>();
     if (nodeList && !nodeList->getDomainHandler().isConnected()) {
-        gpu::Batch batch;
+        gpu::Batch& batch = *renderArgs->_batch;
         auto geometryCache = DependencyManager::get<GeometryCache>();
         geometryCache->useSimpleDrawPipeline(batch);
         batch.setProjectionTransform(mat4());
@@ -197,37 +226,40 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder(RenderArgs* renderAr
         //batch.setModelTransform(glm::scale(mat4(), vec3(scaleAmount)));
 
         geometryCache->renderVertices(batch, gpu::LINE_STRIP, _domainStatusBorder);
-        renderArgs->_context->syncCache();
-        renderArgs->_context->render(batch);
     }
-}
-
-GLuint ApplicationOverlay::getOverlayTexture() {
-    if (!_overlayFramebuffer) {
-        return 0;
-    }
-    return _overlayFramebuffer->texture();
 }
 
 void ApplicationOverlay::buildFramebufferObject() {
     PROFILE_RANGE(__FUNCTION__);
-    QSize fboSize = qApp->getDeviceSize();
-    if (_overlayFramebuffer && fboSize == _overlayFramebuffer->size()) {
+
+    QSize desiredSize = qApp->getDeviceSize();
+    int currentWidth = _overlayFramebuffer ? _overlayFramebuffer->getWidth() : 0;
+    int currentHeight = _overlayFramebuffer ? _overlayFramebuffer->getHeight() : 0;
+    QSize frameBufferCurrentSize(currentWidth, currentHeight);
+    
+    if (_overlayFramebuffer && desiredSize == frameBufferCurrentSize) {
         // Already built
         return;
     }
     
     if (_overlayFramebuffer) {
-        delete _overlayFramebuffer;
+        _overlayFramebuffer.reset();
+        _overlayDepthTexture.reset();
+        _overlayColorTexture.reset();
     }
-    
-    _overlayFramebuffer = new QOpenGLFramebufferObject(fboSize, QOpenGLFramebufferObject::Depth);
-    glBindTexture(GL_TEXTURE_2D, getOverlayTexture());
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    GLfloat borderColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-    glBindTexture(GL_TEXTURE_2D, 0);
+
+    _overlayFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+
+   auto colorFormat = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
+   auto width = desiredSize.width();
+   auto height = desiredSize.height();
+
+   auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
+   _overlayColorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
+   _overlayFramebuffer->setRenderBuffer(0, _overlayColorTexture);
+
+   auto depthFormat = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH);
+   _overlayDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, width, height, defaultSampler));
+
+   _overlayFramebuffer->setDepthStencilBuffer(_overlayDepthTexture, depthFormat);
 }

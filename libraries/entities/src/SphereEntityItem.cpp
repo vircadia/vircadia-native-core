@@ -30,7 +30,7 @@ EntityItemPointer SphereEntityItem::factory(const EntityItemID& entityID, const 
 
 // our non-pure virtual subclass for now...
 SphereEntityItem::SphereEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties) 
+        EntityItem(entityItemID) 
 { 
     _type = EntityTypes::Sphere;
     setProperties(properties);

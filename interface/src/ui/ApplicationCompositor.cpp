@@ -189,15 +189,14 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
         return;
     }
 
-    GLuint texture = qApp->getApplicationOverlay().getOverlayTexture();
-    if (!texture) {
+    gpu::FramebufferPointer overlayFramebuffer = qApp->getApplicationOverlay().getOverlayFramebuffer();
+    if (!overlayFramebuffer) {
         return;
     }
 
     updateTooltips();
 
     auto deviceSize = qApp->getDeviceSize();
-    glViewport(0, 0, deviceSize.width(), deviceSize.height());
 
     //Handle fading and deactivation/activation of UI
     gpu::Batch batch;
@@ -210,9 +209,7 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     batch.setModelTransform(Transform());
     batch.setViewTransform(Transform());
     batch.setProjectionTransform(mat4());
-    batch._glBindTexture(GL_TEXTURE_2D, texture);
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));
     geometryCache->renderUnitQuad(batch, vec4(vec3(1), _alpha));
 
     // Doesn't actually render
@@ -259,8 +256,8 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
         return;
     }
 
-    GLuint texture = qApp->getApplicationOverlay().getOverlayTexture();
-    if (!texture) {
+    gpu::FramebufferPointer overlayFramebuffer = qApp->getApplicationOverlay().getOverlayFramebuffer();
+    if (!overlayFramebuffer) {
         return;
     }
 
@@ -276,9 +273,12 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
     geometryCache->useSimpleDrawPipeline(batch);
     batch._glDisable(GL_DEPTH_TEST);
     batch._glDisable(GL_CULL_FACE);
-    batch._glBindTexture(GL_TEXTURE_2D, texture);
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    //batch._glBindTexture(GL_TEXTURE_2D, texture);
+    //batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    //batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));
+
     batch.setViewTransform(Transform());
     batch.setProjectionTransform(qApp->getEyeProjection(eye));
 

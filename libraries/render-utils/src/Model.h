@@ -407,7 +407,6 @@ private:
 
     // helper functions used by render() or renderInScene()
 
-    void setupBatchTransform(gpu::Batch& batch, RenderArgs* args);
     static void pickPrograms(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args,
                             Locations*& locations);
