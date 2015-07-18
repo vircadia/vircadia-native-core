@@ -144,17 +144,13 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
     gpu::Batch batch;
     batch.setInputFormat(streamFormat);
     batch.setInputBuffer(VERTICES_SLOT, gpu::BufferView(vertexBuffer, positionElement));
-    Transform tr;
-//    tr.setTranslation(renderArgs->_viewFrustum->getPosition());
-    tr.setRotation(glm::inverse(renderArgs->_viewFrustum->getOrientation()));
     batch.setViewTransform(Transform());
-    batch.setModelTransform(tr);
     batch.setProjectionTransform(renderArgs->_viewFrustum->getProjection());
+    batch.setModelTransform(Transform().setRotation(glm::inverse(renderArgs->_viewFrustum->getOrientation())));
     auto geometryCache = DependencyManager::get<GeometryCache>();
     auto textureCache = DependencyManager::get<TextureCache>();
     geometryCache->useSimpleDrawPipeline(batch);
     batch.setResourceTexture(0, textureCache->getWhiteTexture());
     batch.draw(gpu::Primitive::POINTS, STARFIELD_NUM_STARS);
-    renderArgs->_context->syncCache();
     renderArgs->_context->render(batch);
 }
