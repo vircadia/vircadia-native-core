@@ -918,7 +918,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
     foreach (auto renderItem, _transparentRenderItems) {
         auto item = scene->allocateID();
         auto renderData = MeshPartPayload::Pointer(renderItem);
-        auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
+        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
         renderPayload->addStatusGetters(statusGetters);
         pendingChanges.resetItem(item, renderPayload);
         _renderItems.insert(item, renderPayload);
@@ -928,7 +928,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
     foreach (auto renderItem, _opaqueRenderItems) {
         auto item = scene->allocateID();
         auto renderData = MeshPartPayload::Pointer(renderItem);
-        auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
+        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
         renderPayload->addStatusGetters(statusGetters);
         pendingChanges.resetItem(item, renderPayload);
         _renderItems.insert(item, renderPayload);
@@ -1260,7 +1260,7 @@ uint qHash(const WeakAnimationHandlePointer& handle, uint seed) {
 }
 
 AnimationHandlePointer Model::createAnimationHandle() {
-    AnimationHandlePointer handle(new AnimationHandle(this));
+    auto handle = AnimationHandlePointer::create(this);
     handle->_self = handle;
     _animationHandles.insert(handle);
     return handle;

@@ -34,10 +34,10 @@
 const bool VERBOSE_HTTP_REQUEST_DEBUGGING = false;
 
 AccountManager& AccountManager::getInstance(bool forceReset) {
-    static std::unique_ptr<AccountManager> sharedInstance(new AccountManager());
+    static auto sharedInstance = std::make_shared<AccountManager>();
     
     if (forceReset) {
-        sharedInstance.reset(new AccountManager());
+        sharedInstance = std::make_shared<AccountManager>();
     }
     
     return *sharedInstance;

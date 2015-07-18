@@ -759,7 +759,7 @@ DilatableNetworkTexture::DilatableNetworkTexture(const QUrl& url, const QByteArr
 QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilation) {
     QSharedPointer<Texture> texture = _dilatedTextures.value(dilation);
     if (texture.isNull()) {
-        texture = QSharedPointer<Texture>(new Texture());
+        texture = QSharedPointer<Texture>::create();
         
         if (!_image.isNull()) {
             QImage dilatedImage = _image;

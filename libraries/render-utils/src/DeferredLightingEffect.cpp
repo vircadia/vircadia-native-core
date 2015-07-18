@@ -117,7 +117,7 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
         //auto PSBlit = gpu::StandardShaderLib::getDrawTexturePS();
         auto blitProgram = gpu::StandardShaderLib::getProgram(gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS, gpu::StandardShaderLib::getDrawTexturePS);
         gpu::Shader::makeProgram(*blitProgram);
-        gpu::StatePointer blitState = gpu::StatePointer(new gpu::State());
+        auto blitState = std::make_shared<gpu::State>();
         blitState->setBlendFunction(true,
                                 gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
@@ -614,7 +614,7 @@ void DeferredLightingEffect::loadLightProgram(const char* vertSource, const char
     locations.atmosphereBufferUnit = program->getUniforms().findLocation("atmosphereBufferUnit");
 #endif
 
-    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    auto state = std::make_shared<gpu::State>();
     if (lightVolume) {
         state->setCullMode(gpu::State::CULL_BACK);
         
@@ -657,7 +657,7 @@ void DeferredLightingEffect::setGlobalSkybox(const model::SkyboxPointer& skybox)
 
 model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
     if (!_spotLightMesh) {
-        _spotLightMesh.reset(new model::Mesh());
+        _spotLightMesh = std::make_shared<model::Mesh>();
 
         int slices = 32;
         int rings = 3;
