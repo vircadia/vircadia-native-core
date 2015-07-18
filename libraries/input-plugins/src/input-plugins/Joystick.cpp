@@ -41,7 +41,7 @@ void Joystick::closeJoystick() {
 #endif
 }
 
-void Joystick::update(float deltaTime) {
+void Joystick::update(float deltaTime, bool jointsCaptured) {
     for (auto axisState : _axisStateMap) {
         if (fabsf(axisState.second) < CONTROLLER_THRESHOLD) {
             _axisStateMap[axisState.first] = 0.0f;

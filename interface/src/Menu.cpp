@@ -464,26 +464,17 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::HandMouseInput, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::HandLasers, 0, false);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::LowVelocityFilter, 0, true,
+                                           qApp, SLOT(setLowVelocityFilter(bool)));
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::ShowIKConstraints, 0, false);
 
     MenuWrapper* sixenseOptionsMenu = handOptionsMenu->addMenu("Sixense");
-    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
-                                           MenuOption::SixenseEnabled,
-                                           0, false,
-                                           &SixenseManager::getInstance(),
-                                           SLOT(toggleSixense(bool)));
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
                                            MenuOption::FilterSixense,
                                            0,
                                            true,
                                            &SixenseManager::getInstance(),
                                            SLOT(setFilter(bool)));
-    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
-                                           MenuOption::LowVelocityFilter,
-                                           0,
-                                           true,
-                                           qApp,
-                                           SLOT(setLowVelocityFilter(bool)));
 
     MenuWrapper* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
     addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);

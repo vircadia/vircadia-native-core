@@ -7,6 +7,8 @@
 //
 #include "InputDevice.h"
 
+bool InputDevice::_lowVelocityFilter = false;
+
 const float DEFAULT_HAND_RETICLE_MOVE_SPEED = 37.5f;
 float InputDevice::reticleMoveSpeed = DEFAULT_HAND_RETICLE_MOVE_SPEED;
 

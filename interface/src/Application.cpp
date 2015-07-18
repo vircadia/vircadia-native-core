@@ -76,7 +76,6 @@
 #include <InfoView.h>
 #include <input-plugins/InputPlugin.h>
 #include <input-plugins/Joystick.h> // this should probably be removed
-#include <input-plugins/SixenseManager.h> // this definitely should be removed
 #include <LogHandler.h>
 #include <MainWindow.h>
 #include <MessageDialog.h>
@@ -2130,7 +2129,7 @@ void Application::setEnableVRMode(bool enableVRMode) {
 #endif
 
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
-    SixenseManager::getInstance().setLowVelocityFilter(lowVelocityFilter);
+    InputDevice::setLowVelocityFilter(lowVelocityFilter);
 }
 
 bool Application::mouseOnScreen() const {
@@ -2364,18 +2363,7 @@ void Application::init() {
     DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
 
     qCDebug(interfaceapp) << "Loaded settings";
-
-#ifdef __APPLE__
-    if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseEnabled)) {
-        // on OS X we only setup sixense if the user wants it on - this allows running without the hid_init crash
-        // if hydra support is temporarily not required
-        SixenseManager::getInstance().toggleSixense(true);
-    }
-#else
-    // setup sixense
-    SixenseManager::getInstance().toggleSixense(true);
-#endif
-
+    
     Leapmotion::init();
     RealSense::init();
 
@@ -2683,12 +2671,17 @@ void Application::update(float deltaTime) {
     userInputMapper->setSensorToWorldMat(_myAvatar->getSensorToWorldMatrix());
     userInputMapper->update(deltaTime);
 
+    // This needs to go after userInputMapper->update() because of the keyboard
+    bool jointsCaptured = false;
     auto inputPlugins = getInputPlugins();
     foreach(auto inputPlugin, inputPlugins) {
         QString name = inputPlugin->getName();
         QAction* action = Menu::getInstance()->getActionForOption(name);
         if (action->isChecked()) {
-            inputPlugin->pluginUpdate(deltaTime); // add flag to prevent multiple devices from modifying joints
+            inputPlugin->pluginUpdate(deltaTime, jointsCaptured);
+            if (inputPlugin->isJointController()) {
+                jointsCaptured = true;
+            }
         }
     }
 
@@ -2716,8 +2709,8 @@ void Application::update(float deltaTime) {
     UserInputMapper::PoseValue leftHand = userInputMapper->getPoseState(UserInputMapper::LEFT_HAND);
     UserInputMapper::PoseValue rightHand = userInputMapper->getPoseState(UserInputMapper::RIGHT_HAND);
     Hand* hand = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHand();
-    setPalmData(hand, leftHand, LEFT_HAND_INDEX);
-    setPalmData(hand, rightHand, RIGHT_HAND_INDEX);
+    setPalmData(hand, leftHand, deltaTime, LEFT_HAND_INDEX);
+    setPalmData(hand, rightHand, deltaTime, RIGHT_HAND_INDEX);
     if (Menu::getInstance()->isOptionChecked(MenuOption::HandMouseInput)) {
         emulateMouse(hand, userInputMapper->getActionState(UserInputMapper::LEFT_HAND_CLICK),
             userInputMapper->getActionState(UserInputMapper::SHIFT), LEFT_HAND_INDEX);
@@ -2869,7 +2862,7 @@ void Application::update(float deltaTime) {
     _myAvatar->updateSensorToWorldMatrix();
 }
 
-void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, int index) {
+void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float deltaTime, int index) {
     PalmData* palm;
     bool foundHand = false;
     for (size_t j = 0; j < hand->getNumPalms(); j++) {
@@ -2887,12 +2880,54 @@ void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, int i
     }
     
     palm->setActive(pose.isValid());
+
+    glm::vec3 position = pose.getTranslation();
+    glm::quat rotation = pose.getRotation();
+
+    // TODO: velocity and tip position information should be converted to model space
+    //  Compute current velocity from position change
+    glm::vec3 rawVelocity;
+    if (deltaTime > 0.0f) {
+        rawVelocity = (position - palm->getRawPosition()) / deltaTime;
+    } else {
+        rawVelocity = glm::vec3(0.0f);
+    }
+    palm->setRawVelocity(rawVelocity);   //  meters/sec
     
-    // TODO: velocity filters, tip velocities, etc.
-    // see SixenseManager
+    //  Angular Velocity of Palm
+    glm::quat deltaRotation = rotation * glm::inverse(palm->getRawRotation());
+    glm::vec3 angularVelocity(0.0f);
+    float rotationAngle = glm::angle(deltaRotation);
+    if ((rotationAngle > EPSILON) && (deltaTime > 0.0f)) {
+        angularVelocity = glm::normalize(glm::axis(deltaRotation));
+        angularVelocity *= (rotationAngle / deltaTime);
+        palm->setRawAngularVelocity(angularVelocity);
+    } else {
+        palm->setRawAngularVelocity(glm::vec3(0.0f));
+    }
+
+    if (InputDevice::getLowVelocityFilter()) {
+        //  Use a velocity sensitive filter to damp small motions and preserve large ones with
+        //  no latency.
+        float velocityFilter = glm::clamp(1.0f - glm::length(rawVelocity), 0.0f, 1.0f);
+        position = palm->getRawPosition() * velocityFilter + position * (1.0f - velocityFilter);
+        rotation = safeMix(palm->getRawRotation(), rotation, 1.0f - velocityFilter);
+    }
+
+    // Store the one fingertip in the palm structure so we can track velocity
+    const float FINGER_LENGTH = 0.3f;   //  meters
+    const glm::vec3 FINGER_VECTOR(0.0f, 0.0f, FINGER_LENGTH);
+    const glm::vec3 newTipPosition = position + rotation * FINGER_VECTOR;
+    glm::vec3 oldTipPosition = palm->getTipRawPosition();
+    if (deltaTime > 0.0f) {
+        palm->setTipVelocity((newTipPosition - oldTipPosition) / deltaTime);
+    } else {
+        palm->setTipVelocity(glm::vec3(0.0f));
+    }
+    palm->setTipPosition(newTipPosition);
 
     // transform from sensor space, to world space, to avatar model space.
-    glm::mat4 poseMat = createMatFromQuatAndPos(pose.getRotation(), pose.getTranslation());
+    glm::mat4 poseMat = createMatFromQuatAndPos(rotation, position);
     glm::mat4 sensorToWorldMat = _myAvatar->getSensorToWorldMatrix();
     glm::mat4 modelMat = createMatFromQuatAndPos(_myAvatar->getOrientation(), _myAvatar->getPosition());
     glm::mat4 objectPose = glm::inverse(modelMat) * sensorToWorldMat * poseMat;

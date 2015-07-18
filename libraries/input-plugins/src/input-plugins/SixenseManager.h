@@ -62,24 +62,19 @@ public:
     virtual bool isJointController() const override { return true; }
     const QString& getName() const { return NAME; }
 
-    virtual void init() override;
     virtual void deinit() override;
-    virtual void activate(PluginContainer * container) override {};
-    virtual void deactivate() override { _poseStateMap.clear(); };
+    virtual void activate(PluginContainer * container) override;
+    virtual void deactivate() override { _poseStateMap.clear(); }
 
     virtual void pluginFocusOutEvent() override { focusOutEvent(); }
-    virtual void pluginUpdate(float deltaTime) override { update(deltaTime); }
+    virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override { update(deltaTime, jointsCaptured); }
 
     // Device functions
     virtual void registerToUserInputMapper(UserInputMapper& mapper) override;
     virtual void assignDefaultInputMapping(UserInputMapper& mapper) override;
-    virtual void update(float deltaTime) override;
+    virtual void update(float deltaTime, bool jointsCaptured) override;
     virtual void focusOutEvent() override;
 
-    bool isInitialized() const { return _isInitialized; }
-    
-    void setIsEnabled(bool isEnabled) { _isEnabled = isEnabled; }
-    
     bool getInvertButtons() const { return _invertButtons; }
     void setInvertButtons(bool invertSixenseButtons) { _invertButtons = invertSixenseButtons; }
     
@@ -88,9 +83,7 @@ public:
     UserInputMapper::Input makeInput(JointChannel joint);
     
 public slots:
-    void toggleSixense(bool shouldEnable);
     void setFilter(bool filter);
-    void setLowVelocityFilter(bool lowVelocityFilter) { _lowVelocityFilter = lowVelocityFilter; };
 
 private:    
     void handleButtonEvent(unsigned int buttons, int index);
@@ -122,11 +115,7 @@ private:
 #endif
     
 #endif
-    bool _isInitialized;
-    bool _isEnabled;
     bool _hydrasConnected;
-    
-    bool _lowVelocityFilter;
 
     bool _invertButtons = DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS;
 

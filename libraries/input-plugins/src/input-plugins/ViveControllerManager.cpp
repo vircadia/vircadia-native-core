@@ -186,7 +186,8 @@ void ViveControllerManager::renderHand(UserInputMapper::PoseValue pose, gpu::Bat
     batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
 }
 
-void ViveControllerManager::update(float deltaTime) {
+void ViveControllerManager::update(float deltaTime, bool jointsCaptured) {
+    _poseStateMap.clear();
     // TODO: This shouldn't be necessary
     if (!_hmd) {
         return;
@@ -216,8 +217,10 @@ void ViveControllerManager::update(float deltaTime) {
         numTrackedControllers++;
             
         const mat4& mat = _trackedDevicePoseMat4[device];
-                        
-        handlePoseEvent(mat, numTrackedControllers - 1);
+                  
+        if (!jointsCaptured) {
+            handlePoseEvent(mat, numTrackedControllers - 1);
+        }
             
         // handle inputs
         vr::VRControllerState_t controllerState = vr::VRControllerState_t();

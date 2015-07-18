@@ -65,12 +65,12 @@ public:
     virtual void deactivate() override {};
 
     virtual void pluginFocusOutEvent() override { focusOutEvent(); }
-    virtual void pluginUpdate(float deltaTime) override { update(deltaTime); }
+    virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override { update(deltaTime, jointsCaptured); }
 
     // Device functions
     virtual void registerToUserInputMapper(UserInputMapper& mapper) override;
     virtual void assignDefaultInputMapping(UserInputMapper& mapper) override;
-    virtual void update(float deltaTime) override;
+    virtual void update(float deltaTime, bool jointsCaptured) override;
     virtual void focusOutEvent() override;
  
     void keyPressEvent(QKeyEvent* event);

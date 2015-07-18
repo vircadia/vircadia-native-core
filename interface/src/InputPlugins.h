@@ -7,6 +7,8 @@
 //
 #pragma once
 
+#include <plugins/PluginContainer.h>
+
 class InputPlugin;
 
 #include <QVector>

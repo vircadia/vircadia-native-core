@@ -34,7 +34,7 @@ public:
 
     // Update call MUST be called once per simulation loop
     // It takes care of updating the action states and deltas
-    virtual void update(float deltaTime) = 0;
+    virtual void update(float deltaTime, bool jointsCaptured) = 0;
 
     virtual void focusOutEvent() = 0;
 
@@ -44,6 +44,11 @@ public:
     static float getReticleMoveSpeed() { return reticleMoveSpeed; }
     static void setReticleMoveSpeed(float sixenseReticleMoveSpeed) { reticleMoveSpeed = sixenseReticleMoveSpeed; }
 
+    static bool getLowVelocityFilter() { return _lowVelocityFilter; };
+
+public slots:
+    static void setLowVelocityFilter(bool newLowVelocityFilter) { _lowVelocityFilter = newLowVelocityFilter; };
+
 protected:
     int _deviceID = 0;
 
@@ -52,6 +57,8 @@ protected:
     ButtonPressedMap _buttonPressedMap;
     AxisStateMap _axisStateMap;
     PoseStateMap _poseStateMap;
+
+    static bool _lowVelocityFilter;
 
 private:
     static float reticleMoveSpeed;

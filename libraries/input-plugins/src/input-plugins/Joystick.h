@@ -49,7 +49,7 @@ public:
     // Device functions
     virtual void registerToUserInputMapper(UserInputMapper& mapper) override;
     virtual void assignDefaultInputMapping(UserInputMapper& mapper) override;
-    virtual void update(float deltaTime) override;
+    virtual void update(float deltaTime, bool jointsCaptured) override;
     virtual void focusOutEvent() override;
     
     Joystick() : InputDevice("Joystick") {}

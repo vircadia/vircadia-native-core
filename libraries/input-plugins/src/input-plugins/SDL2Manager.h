@@ -38,7 +38,7 @@ public:
     virtual void deactivate() override {};
     
     virtual void pluginFocusOutEvent() override;
-    virtual void pluginUpdate(float deltaTime) override;
+    virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override;
     
 signals:
     void joystickAdded(Joystick* joystick);

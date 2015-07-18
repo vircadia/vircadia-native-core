@@ -61,8 +61,6 @@ SixenseManager::SixenseManager() :
 #if defined(HAVE_SIXENSE) && defined(__APPLE__)
     _sixenseLibrary(NULL),
 #endif
-    _isInitialized(false),
-    _isEnabled(true),
     _hydrasConnected(false)
 {
 
@@ -76,59 +74,50 @@ bool SixenseManager::isSupported() const {
 #endif
 }
 
-void SixenseManager::init() {
+void SixenseManager::activate(PluginContainer* container) {
 #ifdef HAVE_SIXENSE
-
-    if (!_isInitialized) {
-        _lowVelocityFilter = false;
-        _calibrationState = CALIBRATION_STATE_IDLE;
-        // By default we assume the _neckBase (in orb frame) is as high above the orb
-        // as the "torso" is below it.
-        _neckBase = glm::vec3(NECK_X, -NECK_Y, NECK_Z);
+    _calibrationState = CALIBRATION_STATE_IDLE;
+    // By default we assume the _neckBase (in orb frame) is as high above the orb
+    // as the "torso" is below it.
+    _neckBase = glm::vec3(NECK_X, -NECK_Y, NECK_Z);
 
 #ifdef __APPLE__
 
-        if (!_sixenseLibrary) {
+    if (!_sixenseLibrary) {
 
 #ifdef SIXENSE_LIB_FILENAME
-            _sixenseLibrary = new QLibrary(SIXENSE_LIB_FILENAME);
+        _sixenseLibrary = new QLibrary(SIXENSE_LIB_FILENAME);
 #else
-            const QString SIXENSE_LIBRARY_NAME = "libsixense_x64";
-            QString frameworkSixenseLibrary = QCoreApplication::applicationDirPath() + "/../Frameworks/"
-                + SIXENSE_LIBRARY_NAME;
+        const QString SIXENSE_LIBRARY_NAME = "libsixense_x64";
+        QString frameworkSixenseLibrary = QCoreApplication::applicationDirPath() + "/../Frameworks/"
+            + SIXENSE_LIBRARY_NAME;
 
-            _sixenseLibrary = new QLibrary(frameworkSixenseLibrary);
+        _sixenseLibrary = new QLibrary(frameworkSixenseLibrary);
 #endif
-        }
-
-        if (_sixenseLibrary->load()){
-            qCDebug(interfaceapp) << "Loaded sixense library for hydra support -" << _sixenseLibrary->fileName();
-        } else {
-            qCDebug(interfaceapp) << "Sixense library at" << _sixenseLibrary->fileName() << "failed to load."
-                << "Continuing without hydra support.";
-            return;
-        }
-
-        SixenseBaseFunction sixenseInit = (SixenseBaseFunction) _sixenseLibrary->resolve("sixenseInit");
-#endif
-        sixenseInit();
-
-        _isInitialized = true;
     }
 
+    if (_sixenseLibrary->load()){
+        qCDebug(interfaceapp) << "Loaded sixense library for hydra support -" << _sixenseLibrary->fileName();
+    } else {
+        qCDebug(interfaceapp) << "Sixense library at" << _sixenseLibrary->fileName() << "failed to load."
+            << "Continuing without hydra support.";
+        return;
+    }
+
+    SixenseBaseFunction sixenseInit = (SixenseBaseFunction) _sixenseLibrary->resolve("sixenseInit");
+#endif
+    sixenseInit();
 #endif
 }
 
 void SixenseManager::deinit() {
 #ifdef HAVE_SIXENSE_
 
-    if (_isInitialized) {
 #ifdef __APPLE__
-        SixenseBaseFunction sixenseExit = (SixenseBaseFunction)_sixenseLibrary->resolve("sixenseExit");
+    SixenseBaseFunction sixenseExit = (SixenseBaseFunction)_sixenseLibrary->resolve("sixenseExit");
 #endif
 
-        sixenseExit();
-    }
+    sixenseExit();
 
 #ifdef __APPLE__
     delete _sixenseLibrary;
@@ -139,141 +128,101 @@ void SixenseManager::deinit() {
 
 void SixenseManager::setFilter(bool filter) {
 #ifdef HAVE_SIXENSE
-
-    if (_isInitialized) {
 #ifdef __APPLE__
-        SixenseTakeIntFunction sixenseSetFilterEnabled = (SixenseTakeIntFunction) _sixenseLibrary->resolve("sixenseSetFilterEnabled");
+    SixenseTakeIntFunction sixenseSetFilterEnabled = (SixenseTakeIntFunction) _sixenseLibrary->resolve("sixenseSetFilterEnabled");
 #endif
-
-        if (filter) {
-            sixenseSetFilterEnabled(1);
-        } else {
-            sixenseSetFilterEnabled(0);
-        }
-    }
-
+    int newFilter = filter ? 1 : 0;
+    sixenseSetFilterEnabled(newFilter);
 #endif
 }
 
-void SixenseManager::update(float deltaTime) {
+void SixenseManager::update(float deltaTime, bool jointsCaptured) {
 #ifdef HAVE_SIXENSE
-    //Hand* hand = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHand();
-    if (_isInitialized && _isEnabled) {
-        _buttonPressedMap.clear();
+    _buttonPressedMap.clear();
 
 #ifdef __APPLE__
-        SixenseBaseFunction sixenseGetNumActiveControllers =
-        (SixenseBaseFunction) _sixenseLibrary->resolve("sixenseGetNumActiveControllers");
+    SixenseBaseFunction sixenseGetNumActiveControllers =
+    (SixenseBaseFunction) _sixenseLibrary->resolve("sixenseGetNumActiveControllers");
 #endif
 
-        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+    auto userInputMapper = DependencyManager::get<UserInputMapper>();
 
-        if (sixenseGetNumActiveControllers() == 0) {
-            _hydrasConnected = false;
-            if (_deviceID != 0) {
-                userInputMapper->removeDevice(_deviceID);
-                _deviceID = 0;
+    if (sixenseGetNumActiveControllers() == 0) {
+        _hydrasConnected = false;
+        if (_deviceID != 0) {
+            userInputMapper->removeDevice(_deviceID);
+            _deviceID = 0;
+            _poseStateMap.clear();
+        }
+        return;
+    }
+
+    PerformanceTimer perfTimer("sixense");
+    if (!_hydrasConnected) {
+        _hydrasConnected = true;
+        registerToUserInputMapper(*userInputMapper);
+        assignDefaultInputMapping(*userInputMapper);
+        UserActivityLogger::getInstance().connectedDevice("spatial_controller", "hydra");
+    }
+
+#ifdef __APPLE__
+    SixenseBaseFunction sixenseGetMaxControllers =
+    (SixenseBaseFunction) _sixenseLibrary->resolve("sixenseGetMaxControllers");
+#endif
+
+    int maxControllers = sixenseGetMaxControllers();
+
+    // we only support two controllers
+    sixenseControllerData controllers[2];
+
+#ifdef __APPLE__
+    SixenseTakeIntFunction sixenseIsControllerEnabled =
+    (SixenseTakeIntFunction) _sixenseLibrary->resolve("sixenseIsControllerEnabled");
+
+    SixenseTakeIntAndSixenseControllerData sixenseGetNewestData =
+    (SixenseTakeIntAndSixenseControllerData) _sixenseLibrary->resolve("sixenseGetNewestData");
+#endif
+
+    int numActiveControllers = 0;
+    for (int i = 0; i < maxControllers && numActiveControllers < 2; i++) {
+        if (!sixenseIsControllerEnabled(i)) {
+            continue;
+        }
+        sixenseControllerData* data = controllers + numActiveControllers;
+        ++numActiveControllers;
+        sixenseGetNewestData(i, data);
+
+        // NOTE: Sixense API returns pos data in millimeters but we IMMEDIATELY convert to meters.
+        glm::vec3 position(data->pos[0], data->pos[1], data->pos[2]);
+        position *= METERS_PER_MILLIMETER;
+            
+        // Check to see if this hand/controller is on the base
+        const float CONTROLLER_AT_BASE_DISTANCE = 0.075f;
+        if (glm::length(position) >= CONTROLLER_AT_BASE_DISTANCE) {
+            handleButtonEvent(data->buttons, numActiveControllers - 1);
+            handleAxisEvent(data->joystick_x, data->joystick_y, data->trigger, numActiveControllers - 1);
+
+            //  Rotation of Palm
+            glm::quat rotation(data->rot_quat[3], -data->rot_quat[0], data->rot_quat[1], -data->rot_quat[2]);
+            rotation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)) * _orbRotation * rotation;
+
+            if (!jointsCaptured) {
+                handlePoseEvent(position, rotation, numActiveControllers - 1);
+            } else {
                 _poseStateMap.clear();
             }
-            return;
+        } else {
+            _poseStateMap[(numActiveControllers - 1) == 0 ? LEFT_HAND : RIGHT_HAND] = UserInputMapper::PoseValue();
         }
-
-        PerformanceTimer perfTimer("sixense");
-        if (!_hydrasConnected) {
-            _hydrasConnected = true;
-            registerToUserInputMapper(*userInputMapper);
-            getInstance().assignDefaultInputMapping(*userInputMapper);
-            UserActivityLogger::getInstance().connectedDevice("spatial_controller", "hydra");
-        }
-
-#ifdef __APPLE__
-        SixenseBaseFunction sixenseGetMaxControllers =
-        (SixenseBaseFunction) _sixenseLibrary->resolve("sixenseGetMaxControllers");
-#endif
-
-        int maxControllers = sixenseGetMaxControllers();
-
-        // we only support two controllers
-        sixenseControllerData controllers[2];
-
-#ifdef __APPLE__
-        SixenseTakeIntFunction sixenseIsControllerEnabled =
-        (SixenseTakeIntFunction) _sixenseLibrary->resolve("sixenseIsControllerEnabled");
-
-        SixenseTakeIntAndSixenseControllerData sixenseGetNewestData =
-        (SixenseTakeIntAndSixenseControllerData) _sixenseLibrary->resolve("sixenseGetNewestData");
-#endif
-        int numControllersAtBase = 0;
-        int numActiveControllers = 0;
-        for (int i = 0; i < maxControllers && numActiveControllers < 2; i++) {
-            if (!sixenseIsControllerEnabled(i)) {
-                continue;
-            }
-            sixenseControllerData* data = controllers + numActiveControllers;
-            ++numActiveControllers;
-            sixenseGetNewestData(i, data);
-
-            //  Set palm position and normal based on Hydra position/orientation
-
-//            // Either find a palm matching the sixense controller, or make a new one
-//            PalmData* palm;
-//            bool foundHand = false;
-//            for (size_t j = 0; j < hand->getNumPalms(); j++) {
-//                if (hand->getPalms()[j].getSixenseID() == data->controller_index) {
-//                    palm = &(hand->getPalms()[j]);
-//                    _prevPalms[numActiveControllers - 1] = palm;
-//                    foundHand = true;
-//                }
-//            }
-//            if (!foundHand) {
-//                PalmData newPalm(hand);
-//                hand->getPalms().push_back(newPalm);
-//                palm = &(hand->getPalms()[hand->getNumPalms() - 1]);
-//                palm->setSixenseID(data->controller_index);
-//                _prevPalms[numActiveControllers - 1] = palm;
-//                qCDebug(interfaceapp, "Found new Sixense controller, ID %i", data->controller_index);
-//            }
-            // NOTE: Sixense API returns pos data in millimeters but we IMMEDIATELY convert to meters.
-            glm::vec3 position(data->pos[0], data->pos[1], data->pos[2]);
-            position *= METERS_PER_MILLIMETER;
             
-            // Check to see if this hand/controller is on the base
-            const float CONTROLLER_AT_BASE_DISTANCE = 0.075f;
-            if (glm::length(position) >= CONTROLLER_AT_BASE_DISTANCE) {
-                handleButtonEvent(data->buttons, numActiveControllers - 1);
-                handleAxisEvent(data->joystick_x, data->joystick_y, data->trigger, numActiveControllers - 1);
-
-                //  Rotation of Palm
-                glm::quat rotation(data->rot_quat[3], -data->rot_quat[0], data->rot_quat[1], -data->rot_quat[2]);
-                rotation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)) * _orbRotation * rotation;
-
-                handlePoseEvent(position, rotation, numActiveControllers - 1);
-            }
-
-//            // Disable the hands (and return to default pose) if both controllers are at base station
-//            if (foundHand) {
-//                palm->setActive(!_controllersAtBase);
-//            } else {
-//                palm->setActive(false); // if this isn't a Sixsense ID palm, always make it inactive
-//            }
-
 //            //  Read controller buttons and joystick into the hand
 //            palm->setControllerButtons(data->buttons);
 //            palm->setTrigger(data->trigger);
 //            palm->setJoystick(data->joystick_x, data->joystick_y);
+    }
 
-            //handleButtonEvent(data->buttons, numActiveControllers - 1);
-            //handleAxisEvent(data->joystick_x, data->joystick_y, data->trigger, numActiveControllers - 1);
-
-//            // Emulate the mouse so we can use scripts
-//            if (Menu::getInstance()->isOptionChecked(MenuOption::HandMouseInput) && !_controllersAtBase) {
-//                emulateMouse(palm, numActiveControllers - 1);
-//            }
-        }
-
-        if (numActiveControllers == 2) {
-            updateCalibration(controllers);
-        }
+    if (numActiveControllers == 2) {
+        updateCalibration(controllers);
     }
     
     for (auto axisState : _axisStateMap) {
@@ -282,15 +231,6 @@ void SixenseManager::update(float deltaTime) {
         }
     }
 #endif  // HAVE_SIXENSE
-}
-
-void SixenseManager::toggleSixense(bool shouldEnable) {
-    if (shouldEnable && !isInitialized()) {
-        init();
-        //setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
-        //setLowVelocityFilter(Menu::getInstance()->isOptionChecked(MenuOption::LowVelocityFilter));
-    }
-    setIsEnabled(shouldEnable);
 }
 
 #ifdef HAVE_SIXENSE
@@ -483,55 +423,9 @@ void SixenseManager::handlePoseEvent(glm::vec3 position, glm::quat rotation, int
     neck.y = 0.0f;
     position = _orbRotation * (position - neck);
     
-//    //  Compute current velocity from position change
-//    glm::vec3 rawVelocity;
-//    if (deltaTime > 0.0f) {
-//        rawVelocity = (position - palm->getRawPosition()) / deltaTime;
-//    } else {
-//        rawVelocity = glm::vec3(0.0f);
-//    }
-//    palm->setRawVelocity(rawVelocity);   //  meters/sec
-    
     // adjustment for hydra controllers fit into hands
     float sign = (index == 0) ? -1.0f : 1.0f;
     rotation *= glm::angleAxis(sign * PI/4.0f, glm::vec3(0.0f, 0.0f, 1.0f));
-    
-//    //  Angular Velocity of Palm
-//    glm::quat deltaRotation = rotation * glm::inverse(palm->getRawRotation());
-//    glm::vec3 angularVelocity(0.0f);
-//    float rotationAngle = glm::angle(deltaRotation);
-//    if ((rotationAngle > EPSILON) && (deltaTime > 0.0f)) {
-//        angularVelocity = glm::normalize(glm::axis(deltaRotation));
-//        angularVelocity *= (rotationAngle / deltaTime);
-//        palm->setRawAngularVelocity(angularVelocity);
-//    } else {
-//        palm->setRawAngularVelocity(glm::vec3(0.0f));
-//    }
-    
-//    if (_lowVelocityFilter) {
-//        //  Use a velocity sensitive filter to damp small motions and preserve large ones with
-//        //  no latency.
-//        float velocityFilter = glm::clamp(1.0f - glm::length(rawVelocity), 0.0f, 1.0f);
-//        position = palm->getRawPosition() * velocityFilter + position * (1.0f - velocityFilter);
-//        rotation = safeMix(palm->getRawRotation(), rotation, 1.0f - velocityFilter);
-//        palm->setRawPosition(position);
-//        palm->setRawRotation(rotation);
-//    } else {
-//        palm->setRawPosition(position);
-//        palm->setRawRotation(rotation);
-//    }
-    
-//    // Store the one fingertip in the palm structure so we can track velocity
-//    const float FINGER_LENGTH = 0.3f;   //  meters
-//    const glm::vec3 FINGER_VECTOR(0.0f, 0.0f, FINGER_LENGTH);
-//    const glm::vec3 newTipPosition = position + rotation * FINGER_VECTOR;
-//    glm::vec3 oldTipPosition = palm->getTipRawPosition();
-//    if (deltaTime > 0.0f) {
-//        palm->setTipVelocity((newTipPosition - oldTipPosition) / deltaTime);
-//    } else {
-//        palm->setTipVelocity(glm::vec3(0.0f));
-//    }
-//    palm->setTipPosition(newTipPosition);
     
     _poseStateMap[makeInput(JointChannel(index)).getChannel()] = UserInputMapper::PoseValue(position, rotation);
 #endif // HAVE_SIXENSE

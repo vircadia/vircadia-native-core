@@ -15,6 +15,6 @@ public:
 
     virtual void pluginFocusOutEvent() = 0;
 
-    virtual void pluginUpdate(float deltaTime) = 0;
+    virtual void pluginUpdate(float deltaTime, bool jointsCaptured) = 0;
 };
 

@@ -181,8 +181,9 @@ void PreferencesDialog::loadPreferences() {
     ui.oculusUIAngularSizeSpin->setValue(qApp->getApplicationCompositor().getHmdUIAngularSize());
 #endif
 
-    SixenseManager& sixense = SixenseManager::getInstance();
     ui.sixenseReticleMoveSpeedSpin->setValue(InputDevice::getReticleMoveSpeed());
+
+    SixenseManager& sixense = SixenseManager::getInstance();
     ui.invertSixenseButtonsCheckBox->setChecked(sixense.getInvertButtons());
 
     // LOD items

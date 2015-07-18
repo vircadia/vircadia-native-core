@@ -192,7 +192,9 @@ void UserInputMapper::update(float deltaTime) {
                     break;
                 }
                 case ChannelType::POSE: {
-                    _poseStates[channelInput.first] = deviceProxy->getPose(inputID, currentTimestamp);
+                    if (!_poseStates[channelInput.first].isValid()) {
+                        _poseStates[channelInput.first] = deviceProxy->getPose(inputID, currentTimestamp);
+                    }
                     break;
                 }
                 default: {

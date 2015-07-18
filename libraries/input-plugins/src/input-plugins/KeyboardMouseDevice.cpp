@@ -13,7 +13,7 @@
 
 const QString KeyboardMouseDevice::NAME = "Keyboard/Mouse";
 
-void KeyboardMouseDevice::update(float deltaTime) {
+void KeyboardMouseDevice::update(float deltaTime, bool jointsCaptured) {
     _axisStateMap.clear();
 
     // For touch event, we need to check that the last event is not too long ago
