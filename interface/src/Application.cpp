@@ -3130,27 +3130,19 @@ void Application::updateShadowMap(RenderArgs* renderArgs) {
     activeRenderingThread = nullptr;
 }
 
-const GLfloat WORLD_AMBIENT_COLOR[] = { 0.525f, 0.525f, 0.6f };
-const GLfloat WORLD_DIFFUSE_COLOR[] = { 0.6f, 0.525f, 0.525f };
-const GLfloat WORLD_SPECULAR_COLOR[] = { 0.08f, 0.08f, 0.08f, 1.0f };
+static gpu::Light defaultLight{
+    vec3( 0.525f, 0.525f, 0.6f), // ambient
+    vec3( 0.6f, 0.525f, 0.525f), // diffuse
+    vec4(0.08f, 0.08f, 0.08f, 1.0f), // specular
+    vec4( 0, 0, 0, 0 ), // position
+    96 // shininess
+};
 
-const glm::vec3 GLOBAL_LIGHT_COLOR = {  0.6f, 0.525f, 0.525f };
-
-void Application::setupWorldLight() {
-
-    //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
-    glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-
-    glm::vec3 sunDirection = getSunDirection();
-    GLfloat light_position0[] = { sunDirection.x, sunDirection.y, sunDirection.z, 0.0 };
-    glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
-    glLightfv(GL_LIGHT0, GL_AMBIENT, WORLD_AMBIENT_COLOR);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, WORLD_DIFFUSE_COLOR);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, WORLD_SPECULAR_COLOR);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, WORLD_SPECULAR_COLOR);
-    glMateriali(GL_FRONT, GL_SHININESS, 96);
-
+void Application::setupWorldLight(RenderArgs* renderArgs) {
+    gpu::Batch batch;
+    defaultLight._position = vec4(getSunDirection(), 0);
+    batch.setLight(0, defaultLight);
+    renderArgs->_context->render(batch);
 }
 
 bool Application::shouldRenderMesh(float largestDimension, float distanceToCamera) {
@@ -3418,7 +3410,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
     {
         PerformanceTimer perfTimer("lights");
-        setupWorldLight();
+        setupWorldLight(renderArgs);
     }
 
     // setup shadow matrices (again, after the camera transform)

@@ -288,3 +288,26 @@ void Batch::getQuery(const QueryPointer& query) {
 
     _params.push_back(_queries.cache(query));
 }
+
+void push_back(Batch::Params& params, const vec3& v) {
+    params.push_back(v.x);
+    params.push_back(v.y);
+    params.push_back(v.z);
+}
+
+void push_back(Batch::Params& params, const vec4& v) {
+    params.push_back(v.x);
+    params.push_back(v.y);
+    params.push_back(v.z);
+    params.push_back(v.a);
+}
+
+void Batch::setLight(uint8_t index, const Light& light) {
+    ADD_COMMAND(setLight);
+    _params.push_back(index);
+    push_back(_params, light._ambientColor);
+    push_back(_params, light._diffuseColor);
+    push_back(_params, light._position);
+    push_back(_params, light._specularColor);
+    _params.push_back(light._shininess);
+}

@@ -107,10 +107,6 @@ public:
     static GLShader* syncGPUObject(const Shader& shader);
     static GLuint getShaderID(const ShaderPointer& shader);
 
-    // FIXME: Please remove these 2 calls once the text renderer doesn't use naked gl calls anymore
-    static void loadMatrix(GLenum target, const glm::mat4 & m);
-    static void fetchMatrix(GLenum target, glm::mat4 & m);
-
     class GLState : public GPUObject {
     public:
         class Command {
@@ -256,6 +252,8 @@ protected:
     void do_setInputFormat(Batch& batch, uint32 paramOffset);
     void do_setInputBuffer(Batch& batch, uint32 paramOffset);
     void do_setIndexBuffer(Batch& batch, uint32 paramOffset);
+
+    void do_setLight(Batch& batch, uint32 paramOffset);
 
     void initInput();
     void killInput();

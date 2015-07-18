@@ -262,7 +262,7 @@ public:
 
     void controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
 
-    virtual void setupWorldLight();
+    virtual void setupWorldLight(RenderArgs* renderArgs);
     virtual bool shouldRenderMesh(float largestDimension, float distanceToCamera);
 
     QImage renderAvatarBillboard(RenderArgs* renderArgs);
