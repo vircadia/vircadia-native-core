@@ -227,7 +227,7 @@ void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
     int stencil = batch._params[paramOffset + 0]._float;
 
     GLuint glmask = 0;
-    if (masks & Framebuffer::BUFFER_DEPTH) {
+    if (masks & Framebuffer::BUFFER_STENCIL) {
         glClearStencil(stencil);
         glmask |= GL_STENCIL_BUFFER_BIT;
     }

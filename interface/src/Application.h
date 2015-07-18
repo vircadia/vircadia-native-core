@@ -360,9 +360,6 @@ signals:
     /// Fired when we're rendering in-world interface elements; allows external parties to hook in.
     void renderingInWorldInterface();
 
-    /// Fired when we're rendering the overlay.
-    void renderingOverlay();
-
     /// Fired when the import window is closed
     void importDone();
     
