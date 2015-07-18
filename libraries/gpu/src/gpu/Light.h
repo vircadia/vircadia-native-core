@@ -16,7 +16,7 @@ namespace gpu {
 struct Light {
     Light() {}
     Light(const vec3& ambient, const vec3& diffuse, const vec4& position, const vec4& specular = vec4(), int shininess = 0) :
-        _ambientColor(ambient), _diffuseColor(diffuse), _specularColor(specular), _position(position), _shininess(shininess) {
+        _ambientColor(ambient), _diffuseColor(diffuse), _position(position), _specularColor(specular), _shininess(shininess) {
 
     }
     vec3 _ambientColor;
