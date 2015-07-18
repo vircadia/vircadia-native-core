@@ -337,8 +337,9 @@ private:
     QHash<int, BatchItemDetails> _registeredDashedLines;
 
     QHash<IntPair, gpu::BufferPointer> _gridBuffers;
-    QHash<int, gpu::BufferPointer> _registeredAlternateGridBuffers;
     QHash<Vec3Pair, gpu::BufferPointer> _alternateGridBuffers;
+    QHash<int, gpu::BufferPointer> _registeredAlternateGridBuffers;
+    QHash<int, Vec3Pair> _lastRegisteredAlternateGridBuffers;
     QHash<Vec3Pair, gpu::BufferPointer> _gridColors;
 
     QHash<Vec2Pair, gpu::BufferPointer> _sphereVertices;
