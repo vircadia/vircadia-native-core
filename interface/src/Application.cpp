@@ -2991,15 +2991,26 @@ glm::vec3 Application::getSunDirection() {
 static QThread * activeRenderingThread = nullptr;
 
 void Application::updateShadowMap(RenderArgs* renderArgs) {
+    // TODO fix shadows and make them use the GPU library
+#if 0
     activeRenderingThread = QThread::currentThread();
 
     PerformanceTimer perfTimer("shadowMap");
     auto shadowFramebuffer = DependencyManager::get<TextureCache>()->getShadowFramebuffer();
-    glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(shadowFramebuffer));
 
-    glEnable(GL_DEPTH_TEST);
-    glClear(GL_DEPTH_BUFFER_BIT);
-
+    {
+        gpu::Batch batch;
+        auto primaryFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+        batch.setFramebuffer(shadowFramebuffer);
+        // clear the normal and specular buffers
+        batch.clearFramebuffer(
+            gpu::Framebuffer::BUFFER_DEPTH,
+            vec4(vec3(0), 1), 1.0, 0.0);
+        // Viewport is assigned to the size of the framebuffer
+        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
+        renderArgs->_context->render(batch);
+    }
+    
     glm::vec3 lightDirection = getSunDirection();
     glm::quat rotation = rotationBetween(IDENTITY_FRONT, lightDirection);
     glm::quat inverseRotation = glm::inverse(rotation);
@@ -3079,30 +3090,13 @@ void Application::updateShadowMap(RenderArgs* renderArgs) {
         _shadowViewFrustum.setProjection(glm::ortho(minima.x, maxima.x, minima.y, maxima.y, minima.z, maxima.z));
         _shadowViewFrustum.calculate();
 
-        glMatrixMode(GL_PROJECTION);
-        glPushMatrix();
-        glLoadIdentity();
-        glOrtho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z);
-
-        glm::mat4 projAgain;
-        glGetFloatv(GL_PROJECTION_MATRIX, (GLfloat*)&projAgain);
-
-
-        glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
-        glLoadIdentity();
-        glm::vec3 axis = glm::axis(inverseRotation);
-        glRotatef(glm::degrees(glm::angle(inverseRotation)), axis.x, axis.y, axis.z);
-
         // store view matrix without translation, which we'll use for precision-sensitive objects
         updateUntranslatedViewMatrix();
-
         // Equivalent to what is happening with _untranslatedViewMatrix and the _viewMatrixTranslation
         // the viewTransofmr object is updatded with the correct values and saved,
         // this is what is used for rendering the Entities and avatars
         Transform viewTransform;
         viewTransform.setRotation(rotation);
-    //    viewTransform.postTranslate(shadowFrustumCenter);
         setViewTransform(viewTransform);
 
 
@@ -3115,19 +3109,11 @@ void Application::updateShadowMap(RenderArgs* renderArgs) {
         }
 
         glDisable(GL_POLYGON_OFFSET_FILL);
-
-        glPopMatrix();
-
-        glMatrixMode(GL_PROJECTION);
-        glPopMatrix();
-
-        glMatrixMode(GL_MODELVIEW);
     }
-
-   // fbo->release();
 
     glViewport(0, 0, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
     activeRenderingThread = nullptr;
+#endif
 }
 
 static gpu::Light defaultLight{
@@ -3412,7 +3398,9 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         PerformanceTimer perfTimer("lights");
         setupWorldLight(renderArgs);
     }
-
+    
+    // TODO fix shadows and make them use the GPU library
+#if 0
     // setup shadow matrices (again, after the camera transform)
     int shadowMatrixCount = 0;
     if (Menu::getInstance()->isOptionChecked(MenuOption::SimpleShadows)) {
@@ -3426,7 +3414,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         glTexGenfv(GL_T, GL_EYE_PLANE, (const GLfloat*)&_shadowMatrices[i][1]);
         glTexGenfv(GL_R, GL_EYE_PLANE, (const GLfloat*)&_shadowMatrices[i][2]);
     }
-
+#endif
     // The pending changes collecting the changes here
     render::PendingChanges pendingChanges;
 
@@ -3444,11 +3432,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }
 
-    glEnable(GL_LIGHTING);
-    glEnable(GL_DEPTH_TEST);
-    
    // Assuming nothing get's rendered through that
-
     if (!selfAvatarOnly) {
         if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
             // render models...
@@ -3574,7 +3558,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 }
 
 void Application::updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation) {
-    glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
     _viewMatrixTranslation = viewMatrixTranslation;
 }
 
@@ -3583,9 +3566,6 @@ void Application::setViewTransform(const Transform& view) {
 }
 
 void Application::loadTranslatedViewMatrix(const glm::vec3& translation) {
-    glLoadMatrixf((const GLfloat*)&_untranslatedViewMatrix);
-    glTranslatef(translation.x + _viewMatrixTranslation.x, translation.y + _viewMatrixTranslation.y,
-        translation.z + _viewMatrixTranslation.z);
 }
 
 void Application::getModelViewMatrix(glm::dmat4* modelViewMatrix) {

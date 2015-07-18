@@ -11,7 +11,37 @@
 
 #include "Stars.h"
 
+#include <mutex>
+
+#include <QElapsedTimer>
+
+#include <gpu/Batch.h>
+#include <gpu/Context.h>
 #include <NumericalConstants.h>
+#include <DependencyManager.h>
+#include <GeometryCache.h>
+#include <TextureCache.h>
+#include <RenderArgs.h>
+#include <ViewFrustum.h>
+
+static const unsigned int STARFIELD_NUM_STARS = 50000;
+static const unsigned int STARFIELD_SEED = 1;
+static const float STAR_COLORIZATION = 0.1f;
+
+static const float TAU = 6.28318530717958f;
+static const float HALF_TAU = TAU / 2.0f;
+static const float QUARTER_TAU = TAU / 4.0f;
+static const float MILKY_WAY_WIDTH = TAU / 30.0f; // width in radians of one half of the Milky Way
+static const float MILKY_WAY_INCLINATION = 0.0f; // angle of Milky Way from horizontal in degrees
+static const float MILKY_WAY_RATIO = 0.4f;
+
+#include "../../libraries/render-utils/standardTransformPNTC_vert.h"
+
+const char stars_frag[] = R"SCRIBE(#version 430 compatibility
+void main(void) {
+    gl_FragColor = vec4( 1.0 ); 
+}
+)SCRIBE";
 
 Stars::Stars() {
 }
@@ -19,69 +49,42 @@ Stars::Stars() {
 Stars::~Stars() {
 }
 
-void Stars::render(RenderArgs* args, float alpha) {
+// Produce a random float value between 0 and 1
+static float frand() {
+    return (float)rand() / (float)RAND_MAX;
+}
+
+// Produce a random radian value between 0 and 2 PI (TAU)
+static float rrand() {
+    return frand() * TAU;
+}
+
+// http://mathworld.wolfram.com/SpherePointPicking.html
+static vec2 randPolar() {
+    vec2 result(frand(), frand());
+    result.x *= TAU;
+    result.y = powf(result.y, 2.0) / 2.0f;
+    if (frand() > 0.5f) {
+        result.y = 0.5f - result.y;
+    } else {
+        result.y += 0.5f;
+    }
+    result.y = acos((2.0f * result.y) - 1.0f);
+    return result;
 }
 
 
-/*
-static unsigned STARFIELD_NUM_STARS = 50000;
-static unsigned STARFIELD_SEED = 1;
-const float Generator::STAR_COLORIZATION = 0.1f;
-const float PI_OVER_180 = 3.14159265358979f / 180.0f;
-
-void Generator::computeStarPositions(InputVertices& destination, unsigned limit, unsigned seed) {
-    InputVertices* vertices = &destination;
-    //_limit = limit;
-
-    QElapsedTimer startTime;
-    startTime.start();
-
-    srand(seed);
-
-    vertices->clear();
-    vertices->reserve(limit);
-
-    const unsigned MILKY_WAY_WIDTH = 12.0; // width in degrees of one half of the Milky Way
-    const float MILKY_WAY_INCLINATION = 0.0f; // angle of Milky Way from horizontal in degrees
-    const float MILKY_WAY_RATIO = 0.4f;
-    const unsigned NUM_DEGREES = 360;
-
-    for (int star = 0; star < floor(limit * (1 - MILKY_WAY_RATIO)); ++star) {
-        float azimuth, altitude;
-        azimuth = (((float)rand() / (float)RAND_MAX) * NUM_DEGREES) - (NUM_DEGREES / 2);
-        altitude = (acos((2.0f * ((float)rand() / (float)RAND_MAX)) - 1.0f) / PI_OVER_180) + 90;
-        vertices->push_back(InputVertex(azimuth, altitude, computeStarColor(STAR_COLORIZATION)));
-    }
-
-    for (int star = 0; star < ceil(limit * MILKY_WAY_RATIO); ++star) {
-        float azimuth = ((float)rand() / (float)RAND_MAX) * NUM_DEGREES;
-        float altitude = powf(randFloat()*0.5f, 2.0f) / 0.25f * MILKY_WAY_WIDTH;
-        if (randFloat() > 0.5f) {
-            altitude *= -1.0f;
-        }
-
-        // we need to rotate the Milky Way band to the correct orientation in the sky
-        // convert from spherical coordinates to cartesian, rotate the point and then convert back.
-        // An improvement would be to convert all stars to cartesian at this point and not have to convert back.
-
-        float tempX = sin(azimuth * PI_OVER_180) * cos(altitude * PI_OVER_180);
-        float tempY = sin(altitude * PI_OVER_180);
-        float tempZ = -cos(azimuth * PI_OVER_180) * cos(altitude * PI_OVER_180);
-
-        float xangle = MILKY_WAY_INCLINATION * PI_OVER_180;
-        float newX = (tempX * cos(xangle)) - (tempY * sin(xangle));
-        float newY = (tempX * sin(xangle)) + (tempY * cos(xangle));
-        float newZ = tempZ;
-
-        azimuth = (atan2(newX, -newZ) + Radians::pi()) / PI_OVER_180;
-        altitude = atan2(-newY, hypotf(newX, newZ)) / PI_OVER_180;
-
-        vertices->push_back(InputVertex(azimuth, altitude, computeStarColor(STAR_COLORIZATION)));
-    }
-
-    double timeDiff = (double)startTime.nsecsElapsed() / 1000000.0; // ns to ms
-    qDebug() << "Total time to generate stars: " << timeDiff << " msec";
+static vec3 fromPolar(const vec2& polar) {
+    float sinTheta = sin(polar.x);
+    float cosTheta = cos(polar.x);
+    float sinPhi = sin(polar.y);
+    float cosPhi = cos(polar.y);
+    return vec3(
+        cosTheta * sinPhi,
+        cosPhi,
+        sinTheta * sinPhi);
 }
+
 
 // computeStarColor
 // - Generate a star color.
@@ -90,7 +93,7 @@ void Generator::computeStarPositions(InputVertices& destination, unsigned limit,
 //
 // 0 = completely black & white
 // 1 = very colorful
-unsigned Generator::computeStarColor(float colorization) {
+unsigned computeStarColor(float colorization) {
     unsigned char red, green, blue;
     if (randFloat() < 0.3f) {
         // A few stars are colorful
@@ -103,4 +106,55 @@ unsigned Generator::computeStarColor(float colorization) {
     }
     return red | (green << 8) | (blue << 16);
 }
-*/
+
+// FIXME star colors
+void Stars::render(RenderArgs* renderArgs, float alpha) {
+    static gpu::BufferPointer vertexBuffer;
+    static gpu::Stream::FormatPointer streamFormat;
+    static gpu::Element positionElement, colorElement;
+
+    const int VERTICES_SLOT = 0;
+    const int COLOR_SLOT = 2;
+
+    static std::once_flag once;
+
+    std::call_once(once, [&] {
+        QElapsedTimer startTime;
+        startTime.start();
+
+        vertexBuffer.reset(new gpu::Buffer);
+
+        srand(STARFIELD_SEED);
+        unsigned limit = STARFIELD_NUM_STARS;
+        std::vector<vec3> points;
+        points.reserve(limit);
+        for (size_t star = 0; star < limit; ++star) {
+            points[star] = fromPolar(randPolar());
+            //auto color = computeStarColor(STAR_COLORIZATION);
+            //vertexBuffer->append(sizeof(color), (const gpu::Byte*)&color);
+        }
+        vertexBuffer->append(sizeof(vec3) * limit, (const gpu::Byte*)&points[0]);
+        streamFormat.reset(new gpu::Stream::Format()); // 1 for everyone
+        streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
+        positionElement = streamFormat->getAttributes().at(gpu::Stream::POSITION)._element;
+        double timeDiff = (double)startTime.nsecsElapsed() / 1000000.0; // ns to ms
+        qDebug() << "Total time to generate stars: " << timeDiff << " msec";
+    });
+
+    gpu::Batch batch;
+    batch.setInputFormat(streamFormat);
+    batch.setInputBuffer(VERTICES_SLOT, gpu::BufferView(vertexBuffer, positionElement));
+    Transform tr;
+//    tr.setTranslation(renderArgs->_viewFrustum->getPosition());
+    tr.setRotation(glm::inverse(renderArgs->_viewFrustum->getOrientation()));
+    batch.setViewTransform(Transform());
+    batch.setModelTransform(tr);
+    batch.setProjectionTransform(renderArgs->_viewFrustum->getProjection());
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    auto textureCache = DependencyManager::get<TextureCache>();
+    geometryCache->useSimpleDrawPipeline(batch);
+    batch.setResourceTexture(0, textureCache->getWhiteTexture());
+    batch.draw(gpu::Primitive::POINTS, STARFIELD_NUM_STARS);
+    renderArgs->_context->syncCache();
+    renderArgs->_context->render(batch);
+}

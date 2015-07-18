@@ -51,7 +51,6 @@ ApplicationOverlay::ApplicationOverlay()
     connect(offscreenUi.data(), &OffscreenUi::textureUpdated, this, [&](GLuint textureId) {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         offscreenUi->lockTexture(textureId);
-        assert(!glGetError());
         std::swap(_uiTexture, textureId);
         if (textureId) {
             offscreenUi->releaseTexture(textureId);
