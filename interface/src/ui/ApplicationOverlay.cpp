@@ -97,10 +97,11 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_DEPTH, color, depth, stencil);
 
     // Now render the overlay components together into a single texture
-    renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture
+    renderDomainConnectionStatusBorder(renderArgs); // renders the connected domain line
+    renderAudioScope(renderArgs); // audio scope in the very back
+    renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture, and the text overlays from scripts
     renderOverlays(renderArgs); // renders Scripts Overlay and AudioScope
     renderStatsAndLogs(renderArgs);  // currently renders nothing
-    renderDomainConnectionStatusBorder(renderArgs); // renders the connected domain line
 
     renderArgs->_context->syncCache();
     renderArgs->_context->render(batch);
@@ -126,6 +127,26 @@ void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
     }
 }
 
+void ApplicationOverlay::renderAudioScope(RenderArgs* renderArgs) {
+    PROFILE_RANGE(__FUNCTION__);
+
+    gpu::Batch& batch = *renderArgs->_batch;
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    geometryCache->useSimpleDrawPipeline(batch);
+    auto textureCache = DependencyManager::get<TextureCache>();
+    batch.setResourceTexture(0, textureCache->getWhiteTexture());
+    int width = renderArgs->_viewport.z;
+    int height = renderArgs->_viewport.w;
+    mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
+    batch.setProjectionTransform(legacyProjection);
+    batch.setModelTransform(Transform());
+    batch.setViewTransform(Transform());
+    batch._glLineWidth(1.0f); // default
+    
+    // Render the audio scope
+    DependencyManager::get<AudioScope>()->render(renderArgs, width, height);
+}
+
 void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     PROFILE_RANGE(__FUNCTION__);
 
@@ -142,18 +163,10 @@ void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     batch.setViewTransform(Transform());
     batch._glLineWidth(1.0f); // default
     
-    {
-        // Render the audio scope
-        //int width = _overlayFramebuffer ? _overlayFramebuffer->getWidth() : 0;
-        //int height = _overlayFramebuffer ? _overlayFramebuffer->getHeight() : 0;
-        DependencyManager::get<AudioScope>()->render(renderArgs, width, height);
-
-        // Render all of the Script based "HUD" aka 2D overlays.
-        // note: we call them HUD, as opposed to 2D, only because there are some cases of 3D HUD overlays, like the
-        // cameral controls for the edit.js
-        qApp->getOverlays().renderHUD(renderArgs);
-        
-    }
+    // Render all of the Script based "HUD" aka 2D overlays.
+    // note: we call them HUD, as opposed to 2D, only because there are some cases of 3D HUD overlays, like the
+    // cameral controls for the edit.js
+    qApp->getOverlays().renderHUD(renderArgs);
 }
 
 void ApplicationOverlay::renderRearViewToFbo(RenderArgs* renderArgs) {
