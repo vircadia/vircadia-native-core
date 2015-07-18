@@ -982,11 +982,11 @@ void Application::paintGL() {
         glViewport(0, 0, size.width(), size.height());
         renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
         
-        glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
-        glLoadIdentity();
+     //   glMatrixMode(GL_MODELVIEW);
+     //   glPushMatrix();
+      //  glLoadIdentity();
         displaySide(&renderArgs, _myCamera);
-        glPopMatrix();
+     //   glPopMatrix();
 
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
@@ -1004,7 +1004,7 @@ void Application::paintGL() {
                             GL_COLOR_BUFFER_BIT, GL_LINEAR);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
     
-        glBindTexture(GL_TEXTURE_2D, 0); // ???
+    //    glBindTexture(GL_TEXTURE_2D, 0); // ???
 
         _compositor.displayOverlayTexture(&renderArgs);
     }
@@ -3683,6 +3683,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     // Grab current viewport to reset it at the end
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
+    auto masterViewport = renderArgs->_viewport;
     float aspect = (float)region.width() / region.height();
     float fov = MIRROR_FIELD_OF_VIEW;
 
@@ -3737,18 +3738,27 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     }
     bool updateViewFrustum = false;
     updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
-    glEnable(GL_SCISSOR_TEST);
+  /*  glEnable(GL_SCISSOR_TEST);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glDisable(GL_SCISSOR_TEST);
+    */
+    gpu::Batch batch;
+    batch.setViewportTransform(renderArgs->_viewport);
+  //  batch.setStateScissorRect(scissor);
+    batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLORS | gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(0.0f), 1.0f, 0, true);
+
+    renderArgs->_context->syncCache();
+    renderArgs->_context->render(batch);
 
     // render rear mirror view
-    glPushMatrix();
+ //   glPushMatrix();
     displaySide(renderArgs, _mirrorCamera, true, billboard);
-    glPopMatrix();
-
+  //  glPopMatrix();
+ 
     // reset Viewport and projection matrix
     renderArgs->_viewport = glm::ivec4(viewport[0], viewport[1], viewport[2], viewport[3]);
     glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
-    glDisable(GL_SCISSOR_TEST);
+  //  glDisable(GL_SCISSOR_TEST);
     updateProjectionMatrix(_myCamera, updateViewFrustum);
 }
 
