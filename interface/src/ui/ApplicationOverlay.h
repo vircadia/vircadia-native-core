@@ -25,7 +25,8 @@ public:
     ~ApplicationOverlay();
 
     void renderOverlay(RenderArgs* renderArgs);
-    GLuint getOverlayTexture();
+
+    gpu::FramebufferPointer getOverlayFramebuffer() const { return _overlayFramebuffer; }
 
 private:
     void renderStatsAndLogs(RenderArgs* renderArgs);
@@ -44,7 +45,11 @@ private:
     int _magnifierBorder;
 
     ivec2 _previousBorderSize{ -1 };
-    QOpenGLFramebufferObject* _overlayFramebuffer{ nullptr };
+
+    gpu::TexturePointer _overlayDepthTexture;
+    gpu::TexturePointer _overlayColorTexture;
+    gpu::FramebufferPointer _overlayFramebuffer;
+
 };
 
 #endif // hifi_ApplicationOverlay_h
