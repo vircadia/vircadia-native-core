@@ -17,8 +17,10 @@ var upperCorner = { x: 10, y: 10, z: 10 };
 var STARTING_FRACTION = 0.25;   
 
 var NUM_BIRDS = 50;
+var UPDATE_INTERVAL = 0.016;
 var playSounds = true; 
 var SOUND_PROBABILITY = 0.001;  
+var STARTING_LIFETIME = (1.0 / SOUND_PROBABILITY) * UPDATE_INTERVAL * 10;
 var numPlaying = 0;
 var BIRD_SIZE = 0.08;
 var BIRD_MASTER_VOLUME = 0.1;
@@ -115,8 +117,9 @@ function updateBirds(deltaTime) {
                     birds[i].audioId = Audio.playSound(birds[i].sound, options);
                 }
                 numPlaying++;
-                // Change size 
-                Entities.editEntity(birds[i].entityId, { dimensions: Vec3.multiply(1.5, properties.dimensions)});
+                // Change size, and update lifetime to keep bird alive
+                Entities.editEntity(birds[i].entityId, { dimensions: Vec3.multiply(1.5, properties.dimensions),
+                                                         lifetime: STARTING_LIFETIME});
                 
             } else if (birds[i].audioId) {
                 // If bird is playing a chirp 
@@ -247,6 +250,7 @@ function loadBirds(howMany) {
                     velocity: { x: 0, y: -0.1, z: 0 },
                     linearDamping: LINEAR_DAMPING,
                     collisionsWillMove: true,
+                    lifetime: STARTING_LIFETIME,
                     color: colors[whichBird]
         }),
         audioId: false,
