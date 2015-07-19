@@ -15,6 +15,7 @@
 
 #include <avatar/AvatarManager.h>
 #include <gpu/GLBackend.h>
+#include <NumericalConstants.h>
 
 #include "CursorManager.h"
 #include "Tooltip.h"
@@ -499,8 +500,8 @@ void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
             glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * palmData->getFingerDirection();
 
             // Get the angles, scaled between (-0.5,0.5)
-            float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
-            float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)M_PI_2));
+            float xAngle = (atan2(direction.z, direction.x) + PI_OVER_TWO);
+            float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)PI_OVER_TWO));
 
             // Get the pixel range over which the xAngle and yAngle are scaled
             float cursorRange = canvasSize.x * SixenseManager::getInstance().getCursorPixelRangeMult();
