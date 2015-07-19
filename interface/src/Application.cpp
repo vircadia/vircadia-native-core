@@ -21,9 +21,6 @@
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include <QAbstractNativeEventFilter>
 #include <QActionGroup>
 #include <QColorDialog>

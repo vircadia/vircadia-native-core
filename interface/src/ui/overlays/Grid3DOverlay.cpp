@@ -11,8 +11,12 @@
 
 #include "Grid3DOverlay.h"
 
+#include <QScriptValue>
+
+#include <DependencyManager.h>
+#include <GeometryCache.h>
 #include <PathUtils.h>
-#include "Application.h"
+#include <ViewFrustum.h>
 
 Grid3DOverlay::Grid3DOverlay() :
     _minorGridWidth(1.0),
