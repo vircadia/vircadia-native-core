@@ -36,34 +36,38 @@ function onMuteStateChanged() {
     Overlays.editOverlay(toggleMuteButton, muted ? {text: "Go Live", leftMargin: 5} : {text: "Go AFK", leftMargin: 5});
 }
 
+function toggleMute() {
+    if (!muted) {
+        if (!AudioDevice.getMuted()) {
+            AudioDevice.toggleMute();
+        }
+        originalOutputDevice = AudioDevice.getOutputDevice();
+        Menu.setIsOptionChecked("Mute Face Tracking", true);
+        originalName = MyAvatar.displayName;
+        AudioDevice.setOutputDevice("none");
+        MyAvatar.displayName = afkText + MyAvatar.displayName;
+        MyAvatar.setJointData("LeftShoulder", Quat.fromPitchYawRollDegrees(0, 180, 0));
+        MyAvatar.setJointData("RightShoulder", Quat.fromPitchYawRollDegrees(0, 180, 0));
+    } else {
+        if (AudioDevice.getMuted()) {
+            AudioDevice.toggleMute();
+        }
+        AudioDevice.setOutputDevice(originalOutputDevice);
+        Menu.setIsOptionChecked("Mute Face Tracking", false);
+        MyAvatar.setJointData("LeftShoulder", Quat.fromPitchYawRollDegrees(0, 0, 0));
+        MyAvatar.setJointData("RightShoulder", Quat.fromPitchYawRollDegrees(0, 0, 0));
+        MyAvatar.clearJointData("LeftShoulder");
+        MyAvatar.clearJointData("RightShoulder");
+        MyAvatar.displayName = originalName;
+    }
+    muted = !muted;
+    onMuteStateChanged();
+}
+
 // Function that adds mousePressEvent functionality to toggle mic mute, AFK message above display name and toggle avatar arms upward.
 function mousePressEvent(event) {
     if (Overlays.getOverlayAtPoint({x: event.x, y: event.y}) == toggleMuteButton) {
-        if (!muted) {
-            if (!AudioDevice.getMuted()) {
-                AudioDevice.toggleMute();
-            }
-            originalOutputDevice = AudioDevice.getOutputDevice();
-            Menu.setIsOptionChecked("Mute Face Tracking", true);
-            originalName = MyAvatar.displayName;
-            AudioDevice.setOutputDevice("none");
-            MyAvatar.displayName = afkText + MyAvatar.displayName;
-            MyAvatar.setJointData("LeftShoulder", Quat.fromPitchYawRollDegrees(0, 180, 0));
-            MyAvatar.setJointData("RightShoulder", Quat.fromPitchYawRollDegrees(0, 180, 0));
-        } else {
-            if (AudioDevice.getMuted()) {
-                AudioDevice.toggleMute();
-            }
-            AudioDevice.setOutputDevice(originalOutputDevice);
-            Menu.setIsOptionChecked("Mute Face Tracking", false);
-            MyAvatar.setJointData("LeftShoulder", Quat.fromPitchYawRollDegrees(0, 0, 0));
-            MyAvatar.setJointData("RightShoulder", Quat.fromPitchYawRollDegrees(0, 0, 0));
-            MyAvatar.clearJointData("LeftShoulder");
-            MyAvatar.clearJointData("RightShoulder");
-            MyAvatar.displayName = originalName;
-        }
-        onMuteStateChanged();
-        muted = !muted;
+        toggleMute();
     }
 }
 
@@ -76,31 +80,7 @@ Controller.mousePressEvent.connect(mousePressEvent);
 // Function that adds keyPressEvent functionality to toggle mic mute, AFK message above display name and toggle avatar arms upward.
 Controller.keyPressEvent.connect(function(event) {
     if (event.text == "y") {
-        if (!muted) {
-            if (!AudioDevice.getMuted()) {
-                AudioDevice.toggleMute();
-            }
-            originalOutputDevice = AudioDevice.getOutputDevice();
-            Menu.setIsOptionChecked("Mute Face Tracking", true);
-            originalName = MyAvatar.displayName;
-            AudioDevice.setOutputDevice("none");
-            MyAvatar.displayName = afkText + MyAvatar.displayName;
-            MyAvatar.setJointData("LeftShoulder", Quat.fromPitchYawRollDegrees(0, 180, 0));
-            MyAvatar.setJointData("RightShoulder", Quat.fromPitchYawRollDegrees(0, 180, 0));
-        } else {
-            if (AudioDevice.getMuted()) {
-                AudioDevice.toggleMute();
-            }
-            AudioDevice.setOutputDevice(originalOutputDevice);
-            Menu.setIsOptionChecked("Mute Face Tracking", false);
-            MyAvatar.setJointData("LeftShoulder", Quat.fromPitchYawRollDegrees(0, 0, 0));
-            MyAvatar.setJointData("RightShoulder", Quat.fromPitchYawRollDegrees(0, 0, 0));
-            MyAvatar.clearJointData("LeftShoulder");
-            MyAvatar.clearJointData("RightShoulder");
-            MyAvatar.displayName = originalName;
-        }
-        onMuteStateChanged();
-        muted = !muted;
+        toggleMute();
     } 
 });
 
