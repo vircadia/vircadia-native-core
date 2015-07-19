@@ -648,12 +648,6 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
     glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFBO));
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-
     glm::quat orientation;
     glm::vec3 trackerPosition;
     auto deviceSize = qApp->getDeviceSize();
@@ -697,12 +691,6 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
         configureCamera(*_camera);
         _camera->update(1.0f / Application::getInstance()->getFps());
 
-        glMatrixMode(GL_PROJECTION);
-        glLoadMatrixf(glm::value_ptr(_camera->getProjection()));
-
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
-
         ovrRecti & vp = _eyeViewports[eye];
         vp.Size.h = _recommendedTexSize.h * _offscreenRenderScale;
         vp.Size.w = _recommendedTexSize.w * _offscreenRenderScale;
@@ -715,14 +703,9 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
     });
     _activeEye = ovrEye_Count;
 
-    glPopMatrix();
-
     gpu::FramebufferPointer finalFbo;
     finalFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
 
     // restore our normal viewport
     glViewport(0, 0, deviceSize.width(), deviceSize.height());

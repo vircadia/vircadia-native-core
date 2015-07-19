@@ -3688,9 +3688,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // render rear mirror view
-    glPushMatrix();
     displaySide(renderArgs, _mirrorCamera, true, billboard);
-    glPopMatrix();
 
     // reset Viewport and projection matrix
     renderArgs->_viewport = glm::ivec4(viewport[0], viewport[1], viewport[2], viewport[3]);

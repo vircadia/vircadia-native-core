@@ -11,9 +11,6 @@
 #ifndef hifi_Text3DOverlay_h
 #define hifi_Text3DOverlay_h
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include <QString>
 
 #include "Planar3DOverlay.h"

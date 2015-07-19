@@ -24,7 +24,6 @@
 #include <PerfStat.h>
 
 #include "BandwidthRecorder.h"
-#include "InterfaceConfig.h"
 #include "Menu.h"
 #include "Util.h"
 #include "SequenceNumberStats.h"

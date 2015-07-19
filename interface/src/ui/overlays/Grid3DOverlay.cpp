@@ -9,16 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include "Grid3DOverlay.h"
 
 #include <PathUtils.h>
-
 #include "Application.h"
-
-ProgramObject Grid3DOverlay::_gridProgram;
 
 Grid3DOverlay::Grid3DOverlay() :
     _minorGridWidth(1.0),
@@ -42,7 +36,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
     const float MAX_COLOR = 255.0f;
 
     // center the grid around the camera position on the plane
-    glm::vec3 rotated = glm::inverse(getRotation()) * Application::getInstance()->getCamera()->getPosition();
+    glm::vec3 rotated = glm::inverse(getRotation()) * args->_viewFrustum->getPosition();
 
     float spacing = _minorGridWidth;
 
@@ -118,3 +112,4 @@ QScriptValue Grid3DOverlay::getProperty(const QString& property) {
 Grid3DOverlay* Grid3DOverlay::createClone() const {
     return new Grid3DOverlay(this);
 }
+

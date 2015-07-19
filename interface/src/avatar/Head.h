@@ -19,7 +19,6 @@
 #include <HeadData.h>
 
 #include "FaceModel.h"
-#include "InterfaceConfig.h"
 #include "world.h"
 
 

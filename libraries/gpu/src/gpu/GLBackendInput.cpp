@@ -101,7 +101,7 @@ void GLBackend::syncInputStateCache() {
     //_input._defaultVAO
     glBindVertexArray(_input._defaultVAO);
 #else
-    int i = 0;
+    size_t i = 0;
 #if defined(SUPPORT_LEGACY_OPENGL)
     for (; i < NUM_CLASSIC_ATTRIBS; i++) {
         _input._attributeActivation[i] = glIsEnabled(attributeSlotToClassicAttribName[i]);

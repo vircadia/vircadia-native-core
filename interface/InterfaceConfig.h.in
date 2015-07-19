@@ -12,6 +12,4 @@
 #ifndef interface__InterfaceConfig__
 #define interface__InterfaceConfig__
 
-#include <windowshacks.h>
-
 #endif

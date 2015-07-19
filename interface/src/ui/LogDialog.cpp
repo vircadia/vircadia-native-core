@@ -18,7 +18,6 @@
 
 #include <QDesktopWidget>
 #include <QTextBlock>
-#include <QtGui>
 
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
