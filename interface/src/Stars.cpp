@@ -126,7 +126,7 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
         srand(STARFIELD_SEED);
         unsigned limit = STARFIELD_NUM_STARS;
         std::vector<vec3> points;
-        points.reserve(limit);
+        points.resize(limit);
         for (size_t star = 0; star < limit; ++star) {
             points[star] = fromPolar(randPolar());
             //auto color = computeStarColor(STAR_COLORIZATION);
