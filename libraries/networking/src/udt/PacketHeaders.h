@@ -27,7 +27,7 @@
 // NOTE: if you want the name of the packet packetType to be available for debugging or logging, update nameForPacketType() as well
 
 namespace PacketType {
-   enum Value {
+    enum Value {
         Unknown,
         StunResponse,
         DomainList,
@@ -62,18 +62,18 @@ namespace PacketType {
         DomainConnectRequest,
         DomainServerRequireDTLS,
         NodeJsonStats,
-        EntityQuery,
-        EntityData,
-        EntityAdd,
-        EntityErase,
-        EntityEdit,
         OctreeDataNack,
         StopNode,
         AudioEnvironment,
         EntityEditNack,
         ICEServerHeartbeat,
         ICEPing,
-        ICEPingReply
+        ICEPingReply,
+        EntityData,
+        EntityQuery,
+        EntityAdd,
+        EntityErase,
+        EntityEdit
    };
 };
 
@@ -138,6 +138,6 @@ const PacketVersion VERSION_ENTITIES_FACE_CAMERA = 30;
 const PacketVersion VERSION_ENTITIES_SCRIPT_TIMESTAMP = 31;
 const PacketVersion VERSION_ENTITIES_SCRIPT_TIMESTAMP_FIX = 32;
 const PacketVersion VERSION_ENTITIES_HAVE_SIMULATION_OWNER_AND_ACTIONS_OVER_WIRE = 33;
-const PacketVersion VERSION_ENTITIES_NEW_PROTOCOL_LAYER = 34;
+const PacketVersion VERSION_ENTITIES_NEW_PROTOCOL_LAYER = 35;
 
 #endif // hifi_PacketHeaders_h

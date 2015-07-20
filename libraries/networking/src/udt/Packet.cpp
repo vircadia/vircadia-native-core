@@ -44,13 +44,7 @@ std::unique_ptr<Packet> Packet::fromReceivedPacket(std::unique_ptr<char> data, q
 }
 
 std::unique_ptr<Packet> Packet::createCopy(const Packet& other) {
-    auto packet  = std::unique_ptr<Packet>(new Packet(other));
-    
-    if (other.isOpen()) {
-        packet->open(other.openMode());
-    }
-
-    return packet;
+    return std::unique_ptr<Packet>(new Packet(other));
 }
 
 qint64 Packet::totalHeadersSize() const {
@@ -104,6 +98,11 @@ Packet::Packet(const Packet& other) :
     QIODevice()
 {
     *this = other;
+    
+    if (other.isOpen()) {
+        this->open(other.openMode());
+    }
+    
     this->seek(other.pos());
 }
 
