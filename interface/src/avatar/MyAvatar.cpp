@@ -102,7 +102,7 @@ MyAvatar::MyAvatar() :
     _eyeContactTarget(LEFT_EYE),
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
-    _rig(),
+    _rig(new Rig()),
     _firstPersonSkeletonModel(this, nullptr, _rig),
     _prevShouldDrawHead(true)
 {
