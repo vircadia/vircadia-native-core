@@ -29,9 +29,9 @@ public:
     quint64 getAverageLockWaitTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalLockWaitTime / _totalPackets; }
     quint64 getTotalElementsProcessed() const { return _totalElementsInPacket; }
     quint64 getTotalPacketsProcessed() const { return _totalPackets; }
-    quint64 getAverageProcessTimePerElement() const 
+    quint64 getAverageProcessTimePerElement() const
                 { return _totalElementsInPacket == 0 ? 0 : _totalProcessTime / _totalElementsInPacket; }
-    quint64 getAverageLockWaitTimePerElement() const 
+    quint64 getAverageLockWaitTimePerElement() const
                 { return _totalElementsInPacket == 0 ? 0 : _totalLockWaitTime / _totalElementsInPacket; }
     
     const SequenceNumberStats& getIncomingEditSequenceNumberStats() const { return _incomingEditSequenceNumberStats; }
@@ -40,7 +40,7 @@ public:
     void trackInboundPacket(unsigned short int incomingSequence, quint64 transitTime,
         int editsInPacket, quint64 processTime, quint64 lockWaitTime);
 
-    quint64 _totalTransitTime; 
+    quint64 _totalTransitTime;
     quint64 _totalProcessTime;
     quint64 _totalLockWaitTime;
     quint64 _totalElementsInPacket;
@@ -53,7 +53,7 @@ typedef QHash<QUuid, SingleSenderStats>::iterator NodeToSenderStatsMapIterator;
 typedef QHash<QUuid, SingleSenderStats>::const_iterator NodeToSenderStatsMapConstIterator;
 
 
-/// Handles processing of incoming network packets for the octee servers. As with other ReceivedPacketProcessor classes 
+/// Handles processing of incoming network packets for the octee servers. As with other ReceivedPacketProcessor classes
 /// the user is responsible for reading inbound packets and adding them to the processing queue by calling queueReceivedPacket()
 class OctreeInboundPacketProcessor : public ReceivedPacketProcessor {
     Q_OBJECT
@@ -65,9 +65,9 @@ public:
     quint64 getAverageLockWaitTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalLockWaitTime / _totalPackets; }
     quint64 getTotalElementsProcessed() const { return _totalElementsInPacket; }
     quint64 getTotalPacketsProcessed() const { return _totalPackets; }
-    quint64 getAverageProcessTimePerElement() const 
+    quint64 getAverageProcessTimePerElement() const
                 { return _totalElementsInPacket == 0 ? 0 : _totalProcessTime / _totalElementsInPacket; }
-    quint64 getAverageLockWaitTimePerElement() const 
+    quint64 getAverageLockWaitTimePerElement() const
                 { return _totalElementsInPacket == 0 ? 0 : _totalLockWaitTime / _totalElementsInPacket; }
 
     void resetStats();
@@ -78,7 +78,7 @@ public:
 
 protected:
 
-    virtual void processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);
+    virtual void processPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
 
     virtual unsigned long getMaxWait() const;
     virtual void preProcess();
@@ -88,13 +88,13 @@ private:
     int sendNackPackets();
 
 private:
-    void trackInboundPacket(const QUuid& nodeUUID, unsigned short int sequence, quint64 transitTime, 
+    void trackInboundPacket(const QUuid& nodeUUID, unsigned short int sequence, quint64 transitTime,
             int elementsInPacket, quint64 processTime, quint64 lockWaitTime);
 
     OctreeServer* _myServer;
     int _receivedPacketCount;
     
-    quint64 _totalTransitTime; 
+    quint64 _totalTransitTime;
     quint64 _totalProcessTime;
     quint64 _totalLockWaitTime;
     quint64 _totalElementsInPacket;

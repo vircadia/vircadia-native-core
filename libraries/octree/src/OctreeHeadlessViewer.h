@@ -12,7 +12,7 @@
 #ifndef hifi_OctreeHeadlessViewer_h
 #define hifi_OctreeHeadlessViewer_h
 
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 
 #include "JurisdictionListener.h"
@@ -37,7 +37,7 @@ public:
 
     void setJurisdictionListener(JurisdictionListener* jurisdictionListener) { _jurisdictionListener = jurisdictionListener; }
 
-    static int parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sourceNode);
+    static int parseOctreeStats(QSharedPointer<NLPacket> packet, SharedNodePointer sourceNode);
     static void trackIncomingOctreePacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket);
 
 public slots:

@@ -388,7 +388,6 @@ Menu::Menu() {
         0, // QML Qt::Key_Asterisk,
         true);
 
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Wireframe, Qt::ALT | Qt::Key_W, false);
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools,
         0, // QML Qt::SHIFT | Qt::Key_L,
         dialogsManager.data(), SLOT(lodTools()));
@@ -491,7 +490,9 @@ Menu::Menu() {
 #endif
 
     MenuWrapper* networkMenu = developerMenu->addMenu("Network");
-    addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::DisableNackPackets, 0, false);
+    addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::DisableNackPackets, 0, false,
+                                           qApp->getEntityEditPacketSender(),
+                                           SLOT(toggleNackPackets()));
     addCheckableActionToQMenuAndActionHash(networkMenu,
                                            MenuOption::DisableActivityLogger,
                                            0,
