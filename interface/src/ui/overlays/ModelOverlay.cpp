@@ -12,8 +12,6 @@
 #include "ModelOverlay.h"
 
 #include <Application.h>
-#include <GlowEffect.h>
-
 
 ModelOverlay::ModelOverlay()
     : _model(),

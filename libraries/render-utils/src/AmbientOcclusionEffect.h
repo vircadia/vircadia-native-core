@@ -64,9 +64,9 @@ public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
     typedef render::Job::Model<AmbientOcclusion> JobModel;
 
-    const gpu::PipelinePointer& AmbientOcclusion::getOcclusionPipeline();
-    const gpu::PipelinePointer& AmbientOcclusion::getHBlurPipeline();
-    const gpu::PipelinePointer& AmbientOcclusion::getVBlurPipeline();
+    const gpu::PipelinePointer& getOcclusionPipeline();
+    const gpu::PipelinePointer& getHBlurPipeline();
+    const gpu::PipelinePointer& getVBlurPipeline();
 
 private:
 

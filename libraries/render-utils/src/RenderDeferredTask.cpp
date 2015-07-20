@@ -193,9 +193,6 @@ void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const
     args->_context->syncCache();
     args->_context->render((*args->_batch));
     args->_batch = nullptr;
-    
-    // reset blend function to standard...
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
 }
 
 gpu::PipelinePointer DrawOverlay3D::_opaquePipeline;

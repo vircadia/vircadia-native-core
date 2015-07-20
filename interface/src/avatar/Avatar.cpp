@@ -24,7 +24,6 @@
 
 #include <DeferredLightingEffect.h>
 #include <GeometryUtil.h>
-#include <GlowEffect.h>
 #include <LODManager.h>
 #include <NodeList.h>
 #include <NumericalConstants.h>
@@ -282,7 +281,7 @@ enum TextRendererType {
 
 static TextRenderer3D* textRenderer(TextRendererType type) {
     static TextRenderer3D* chatRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, -1,
-        false, TextRenderer3D::SHADOW_EFFECT);
+        false, SHADOW_EFFECT);
     static TextRenderer3D* displayNameRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY);
 
     switch(type) {
@@ -410,9 +409,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
         float GLOW_FROM_AVERAGE_LOUDNESS = ((this == DependencyManager::get<AvatarManager>()->getMyAvatar())
                                             ? 0.0f
                                             : MAX_GLOW * getHeadData()->getAudioLoudness() / GLOW_MAX_LOUDNESS);
-        if (!Menu::getInstance()->isOptionChecked(MenuOption::GlowWhenSpeaking)) {
-            GLOW_FROM_AVERAGE_LOUDNESS = 0.0f;
-        }
+        GLOW_FROM_AVERAGE_LOUDNESS = 0.0f;
 
         float glowLevel = _moving && distanceToTarget > GLOW_DISTANCE && renderArgs->_renderMode == RenderArgs::NORMAL_RENDER_MODE
                       ? 1.0f
@@ -526,7 +523,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
 
     auto cameraMode = Application::getInstance()->getCamera()->getMode();
     if (!isMyAvatar() || cameraMode != CAMERA_MODE_FIRST_PERSON) {
-        renderDisplayName(batch, *renderArgs->_viewFrustum);
+        renderDisplayName(batch, *renderArgs->_viewFrustum, renderArgs->_viewport);
     }
 }
 
@@ -579,8 +576,6 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool
     fixupModelsInScene();
     
     {
-        Glower glower(renderArgs, glowLevel);
-
         if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
             if (postLighting || renderArgs->_renderMode == RenderArgs::SHADOW_RENDER_MODE) {
                 // render the billboard until both models are loaded
@@ -679,7 +674,7 @@ glm::vec3 Avatar::getDisplayNamePosition() const {
     return namePosition;
 }
 
-Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, float fontSize) const {
+Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, float fontSize, const glm::ivec4& viewport) const {
     Transform result;
     // We assume textPosition is whithin the frustum
     glm::vec3 textPosition = getDisplayNamePosition();
@@ -698,12 +693,7 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, floa
     glm::vec4 p0 = viewProj * glm::vec4(testPoint0, 1.0);
     glm::vec4 p1 = viewProj * glm::vec4(testPoint1, 1.0);
     
-    // TODO REMOVE vvv
-    GLint viewportMatrix[4];
-    glGetIntegerv(GL_VIEWPORT, viewportMatrix);
-    glm::dmat4 modelViewMatrix;
-    float windowSizeY = viewportMatrix[3] - viewportMatrix[1];
-    // TODO REMOVE ^^^
+    float windowSizeY = viewport.w;
     
     const float DESIRED_HIGHT_ON_SCREEN = 20; // In pixels (this is double on retinas)
     
@@ -736,7 +726,7 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, floa
 
 }
 
-void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum) const {
+void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, const glm::ivec4& viewport) const {
     bool shouldShowReceiveStats = DependencyManager::get<AvatarManager>()->shouldShowReceiveStats() && !isMyAvatar();
 
     // If we have nothing to draw, or it's tottaly transparent, return
@@ -778,7 +768,7 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum) co
                               (_displayNameAlpha / DISPLAYNAME_ALPHA) * DISPLAYNAME_BACKGROUND_ALPHA);
     
     // Compute display name transform
-    auto textTransform = calculateDisplayNameTransform(frustum, renderer->getFontSize());
+    auto textTransform = calculateDisplayNameTransform(frustum, renderer->getFontSize(), viewport);
     batch.setModelTransform(textTransform);
 
     DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, false, true, true, true);

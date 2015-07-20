@@ -17,13 +17,32 @@
 varying vec2 varTexcoord;
 
 uniform sampler2D depthTexture;
+uniform sampler2D normalTexture;
 
+float getRandom(vec2 co) {
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+}
+/*
+float doAmbientOcclusion(vec2 tcoord, vec2 uv, vec3 p, vec3 cnorm) {
+    vec3 diff = getPosition(tcoord + uv) - p;
+    vec3 v = normalize(diff);
+    float d = length(diff) * g_scale;
+    return max(0.0, dot(cnorm, v) - g_bias) * (1.0/(1.0 + d)) * g_intensity;
+}
+*/
 void main(void) {
-	vec4 depthColor = texture2D(depthTexture, varTexcoord.xy);
+
+    vec4 depthColor = texture2D(depthTexture, varTexcoord.xy);
+	vec4 normalColor = texture2D(normalTexture, varTexcoord.xy);
     float z = depthColor.r;                       // fetch the z-value from our depth texture
     float n = 1.0;                                // the near plane
     float f = 30.0;                               // the far plane
     float c = (2.0 * n) / (f + n - z * (f - n));  // convert to linear values 
 
-    gl_FragColor = vec4(c, c, c, 1.0); 
+    //gl_FragColor = vec4(c, c, c, 1.0); 
+    gl_FragColor = normalColor; 
+
+    //vec3 p = getPosition(i.uv);
+    //vec3 n = getNormal(i.uv);
+    vec2 rand = vec2(getRandom(varTexcoord.xy), getRandom(varTexcoord.yx));
 }
