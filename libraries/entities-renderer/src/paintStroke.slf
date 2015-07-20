@@ -14,23 +14,30 @@
 
 <@include DeferredBufferWrite.slh@>
 
+
+// the diffuse texture
+uniform sampler2D originalTexture;
 // the interpolated normal
 varying vec4 interpolatedNormal;
 varying vec4 modelPosition;
 vec3 newNormal = normalize(interpolatedNormal.xyz);
 
+varying vec2 varTexcoord;
+
 float rand(vec2 point){
     return fract(sin(dot(point.xy ,vec2(12.9898,78.233))) * 43758.5453);
 }
 
+
+
 void main(void) {
+    vec4 texel = texture2D(originalTexture, varTexcoord);
     int frontCondition = 1 -int(gl_FrontFacing) * 2;
     vec3 color = gl_Color.rgb;
-    
     packDeferredFragment(
         newNormal * frontCondition,
-        glowIntensity,
-        color,
+        glowIntensity * texel.a,
+        color * texel.rgb,
         gl_FrontMaterial.specular.rgb,
         gl_FrontMaterial.shininess);
 }

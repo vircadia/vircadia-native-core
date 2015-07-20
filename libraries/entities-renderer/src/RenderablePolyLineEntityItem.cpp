@@ -41,26 +41,29 @@ gpu::TexturePointer RenderablePolyLineEntityItem::_texture;
 
 void RenderablePolyLineEntityItem::createPipeline() {
     static const int NORMAL_OFFSET = 12;
-    static const int COLOR_OFFSET = 24;
+//    static const int COLOR_OFFSET = 24;
+    static const int TEXTURE_OFFSET = 24;
     
     auto textureCache = DependencyManager::get<TextureCache>();
-   _texture = textureCache->getImageTexture(PathUtils::resourcesPath() + "images/paintStrokeTexture.png");
+   _texture = textureCache->getImageTexture(PathUtils::resourcesPath() + "images/paintStrokeTexture.jpeg");
     
     
     _format.reset(new gpu::Stream::Format());
     _format->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     _format->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), NORMAL_OFFSET);
-    _format->setAttribute(gpu::Stream::COLOR, 0, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), COLOR_OFFSET);
+//    _format->setAttribute(gpu::Stream::COLOR, 0, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), COLOR_OFFSET);
+    _format->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), TEXTURE_OFFSET);
     
     auto VS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(paintStroke_vert)));
     auto PS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(paintStroke_frag)));
     gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PS));
     
     gpu::Shader::BindingSet slotBindings;
+//    const GLint PAINTSTROKE_GPU_SLOT = 0;
+//    slotBindings.insert(gpu::Shader::Binding(std::string("paintStrokeTextureBinding"), PAINTSTROKE_GPU_SLOT));
     gpu::Shader::makeProgram(*program, slotBindings);
     
     gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-    //state->setCullMode(gpu::State::CULL_BACK);
     state->setDepthTest(true, true, gpu::LESS_EQUAL);
     state->setBlendFunction(false,
                             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
@@ -72,17 +75,30 @@ void RenderablePolyLineEntityItem::updateGeometry() {
     _numVertices = 0;
     _verticesBuffer.reset(new gpu::Buffer());
     int vertexIndex = 0;
+    vec2 uv;
     for (int i = 0; i < _normals.size(); i++) {
-
+        if(i % 2 == 0){
+            uv = vec2(0.0, 1.0);
+        } else {
+            uv = vec2(1.0, 1.0);
+        }
+     
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
-        vertexIndex++;
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
-        _verticesBuffer->append(sizeof(int), (gpu::Byte*)&_color);
+//        _verticesBuffer->append(sizeof(int), (gpu::Byte*)&_color);
+        _verticesBuffer->append(sizeof(glm::vec2), (gpu::Byte*)&uv);
+        vertexIndex++;
         
+        if(i % 2 == 0){
+            uv = vec2(0.0, 0.0);
+        } else {
+            uv = vec2(1, 1.0);
+        }
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
-        vertexIndex++;
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
-        _verticesBuffer->append(sizeof(int), (gpu::Byte*)_color);
+//        _verticesBuffer->append(sizeof(int), (gpu::Byte*)_color);
+        _verticesBuffer->append(sizeof(glm::vec2), (const gpu::Byte*)&uv);
+        vertexIndex++;
         
         _numVertices +=2;
     }
