@@ -13,11 +13,15 @@
 /*jslint vars: true*/
 var Script, Entities, MyAvatar, Window, Overlays, Controller, Vec3, Quat, print, ToolBar, Settings; // Referenced globals provided by High Fidelity.
 Script.include("http://s3.amazonaws.com/hifi-public/scripts/libraries/toolBars.js");
+var zombieGameScriptURL = "https://hifi-public.s3.amazonaws.com/eric/scripts/zombieFight.js?v2";
+// var zombieGameScriptURL = "zombieFight.js";
+Script.include(zombieGameScriptURL);
 
-var zombieFight;
+
+var zombieFight = new ZombieFight();
 
 var hand = "right";
-
+var zombieFight;
 var nullActionID = "00000000-0000-0000-0000-000000000000";
 var controllerID;
 var controllerActive;
@@ -78,7 +82,7 @@ var cleanupButton = toolBar.addOverlay("image", {
 
 var flasher;
 
-var leftTriggerButton = 0;
+var leftHandClick = 14;
 var leftTriggerValue = 0;
 var prevLeftTriggerValue = 0;
 
@@ -88,7 +92,7 @@ var RIGHT = 1;
 
 var leftPalm = 2 * LEFT;
 var rightPalm = 2 * RIGHT;
-var rightTriggerButton = 1;
+var rightHandClick = 15;
 var prevRightTriggerValue = 0;
 var rightTriggerValue = 0;
 var TRIGGER_THRESHOLD = 0.2;
@@ -357,8 +361,8 @@ function update() {
 }
 
 function updateControllerState() {
-    rightTriggerValue = Controller.getTriggerValue(rightTriggerButton);
-    leftTriggerValue = Controller.getTriggerValue(leftTriggerButton);
+    rightTriggerValue = Controller.getActionValue(rightHandClick);
+    leftTriggerValue = Controller.getActionValue(leftHandClick);
 
     if (rightTriggerValue > TRIGGER_THRESHOLD && !swordHeld) {
         grabSword("right")

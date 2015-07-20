@@ -420,8 +420,8 @@ void SixenseManager::handlePoseEvent(glm::vec3 position, glm::quat rotation, int
 #ifdef HAVE_SIXENSE
     // Transform the measured position into body frame.
     glm::vec3 neck = _neckBase;
-    // Zeroing y component of the "neck" effectively raises the measured position a little bit.
-    neck.y = 0.0f;
+    // Set y component of the "neck" to raise the measured position a little bit.
+    neck.y = 0.5f;
     position = _orbRotation * (position - neck);
     
     // adjustment for hydra controllers fit into hands
