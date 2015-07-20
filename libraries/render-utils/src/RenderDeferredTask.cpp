@@ -16,6 +16,7 @@
 #include "ViewFrustum.h"
 #include "RenderArgs.h"
 #include "TextureCache.h"
+#include "HitEffect.h"
 
 #include "render/DrawStatus.h"
 
@@ -54,6 +55,7 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortOpaque", _jobs.back().getOutput())));
     auto& renderedOpaques = _jobs.back().getOutput();
     _jobs.push_back(Job(new DrawOpaqueDeferred::JobModel("DrawOpaqueDeferred", _jobs.back().getOutput())));
+  
     _jobs.push_back(Job(new DrawLight::JobModel("DrawLight")));
     _jobs.push_back(Job(new ResetGLState::JobModel()));
     _jobs.push_back(Job(new RenderDeferred::JobModel("RenderDeferred")));
@@ -75,7 +77,9 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _drawStatusJobIndex = _jobs.size() - 1;
 
     _jobs.push_back(Job(new DrawOverlay3D::JobModel("DrawOverlay3D")));
+    _jobs.push_back(Job(new HitEffect::JobModel("HitEffect")));
     _jobs.push_back(Job(new ResetGLState::JobModel()));
+    
 
     // Give ourselves 3 frmaes of timer queries
     _timerQueries.push_back(gpu::QueryPointer(new gpu::Query()));
