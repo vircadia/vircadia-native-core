@@ -130,8 +130,13 @@ Controller.mousePressEvent.connect(mousePressEvent);
 streamWindow.setVisible(false);
 
 // Function to delete overlays upon exit.
-function scriptEnding() {
+function onScriptEnding() {
     Overlays.deleteOverlay(toggleStreamURLButton);
     Overlays.deleteOverlay(toggleStreamPlayButton);
     Overlays.deleteOverlay(toggleStreamStopButton);
+    Overlays.deleteOverlay(toggleIncreaseVolumeButton);
+    Overlays.deleteOverlay(toggleDecreaseVolumeButton);
 }
+
+// Call function.
+Script.scriptEnding.connect(onScriptEnding);
