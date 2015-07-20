@@ -56,6 +56,8 @@ public:
     void init();
     void update(float deltatime);
     void renderHUD(RenderArgs* renderArgs);
+    void disable();
+    void enable();
 
 public slots:
     /// adds an overlay with the specific properties
@@ -99,6 +101,7 @@ private:
     QReadWriteLock _lock;
     QReadWriteLock _deleteLock;
     QScriptEngine* _scriptEngine;
+    bool _enabled = true;
 };
 
 

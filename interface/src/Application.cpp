@@ -1123,6 +1123,7 @@ void Application::audioMuteToggled() {
 }
 
 void Application::faceTrackerMuteToggled() {
+    
     QAction* muteAction = Menu::getInstance()->getActionForOption(MenuOption::MuteFaceTracking);
     Q_CHECK_PTR(muteAction);
     bool isMuted = getSelectedFaceTracker()->isMuted();
@@ -1682,6 +1683,9 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
         } else if (event->button() == Qt::RightButton) {
             // right click items here
+
+            // toggle the overlay
+            _overlayConductor.setEnabled(!_overlayConductor.getEnabled());
         }
     }
 }
@@ -1973,17 +1977,13 @@ void Application::idle() {
                 _idleLoopStdev.reset();
             }
         }
-        
-        // depending on whether we're throttling or not.
-        // Once rendering is off on another thread we should be able to have Application::idle run at start(0) in
-        // perpetuity and not expect events to get backed up.
-        
-        static const int IDLE_TIMER_DELAY_MS = 0;
-        int desiredInterval = getActiveDisplayPlugin()->isThrottled() ? THROTTLED_IDLE_TIMER_DELAY : IDLE_TIMER_DELAY_MS;
-        
-        if (idleTimer->interval() != desiredInterval) {
-            idleTimer->start(desiredInterval);
-        }
+
+        float secondsSinceLastUpdate = (float)timeSinceLastUpdate / 1000.0f;
+        _overlayConductor.update(secondsSinceLastUpdate);
+
+        // After finishing all of the above work, ensure the idle timer is set to the proper interval,
+        // depending on whether we're throttling or not
+        idleTimer->start(getActiveDisplayPlugin()->isThrottled() ? THROTTLED_IDLE_TIMER_DELAY : 0);
     }
 
     // check for any requested background downloads.
@@ -4877,6 +4877,15 @@ mat4 Application::getEyeProjection(int eye) const {
 mat4 Application::getEyePose(int eye) const {
     if (isHMDMode()) {
         return getActiveDisplayPlugin()->getEyePose((Eye)eye);
+    }
+
+    return mat4();
+}
+
+mat4 Application::getEyeOffset(int eye) const {
+    if (isHMDMode()) {
+        mat4 identity;
+        return getActiveDisplayPlugin()->getModelview((Eye)eye, identity);
     }
 
     return mat4();

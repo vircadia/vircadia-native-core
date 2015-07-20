@@ -64,6 +64,14 @@ public:
     void computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const;
     uint32_t getOverlayTexture() const;
 
+    void setCameraTransform(const Transform& transform) { _cameraTransform = transform; }
+    void setModelTransform(const Transform& transform) { _modelTransform = transform; }
+
+    void fadeIn() { _fadeInAlpha = true; }
+    void fadeOut() { _fadeInAlpha = false; }
+    void toggle() { _fadeInAlpha = !_fadeInAlpha; }
+    void update(float dt);
+
     static glm::vec2 directionToSpherical(const glm::vec3 & direction);
     static glm::vec3 sphericalToDirection(const glm::vec2 & sphericalPos);
     static glm::vec2 screenToSpherical(const glm::vec2 & screenPos);
@@ -100,6 +108,8 @@ private:
     bool _magnifier{ true };
 
     float _alpha{ 1.0f };
+    float _prevAlpha{ 1.0f };
+    float _fadeInAlpha{ true };
     float _oculusUIRadius{ 1.0f };
 
     QMap<uint16_t, gpu::TexturePointer> _cursors;
@@ -115,6 +125,9 @@ private:
     glm::vec3 _previousMagnifierBottomRight;
     glm::vec3 _previousMagnifierTopLeft;
     glm::vec3 _previousMagnifierTopRight;
+
+    Transform _modelTransform;
+    Transform _cameraTransform;
 };
 
 #endif // hifi_ApplicationCompositor_h

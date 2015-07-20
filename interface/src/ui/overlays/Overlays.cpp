@@ -124,6 +124,16 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
     }
 }
 
+void Overlays::disable() {
+    QWriteLocker lock(&_lock);
+    _enabled = false;
+}
+
+void Overlays::enable() {
+    QWriteLocker lock(&_lock);
+    _enabled = true;
+}
+
 unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& properties) {
     unsigned int thisID = 0;
     Overlay* thisOverlay = NULL;
@@ -269,6 +279,9 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
     }
     
     QReadLocker lock(&_lock);
+    if (!_enabled) {
+        return 0;
+    }
     QMapIterator<unsigned int, Overlay::Pointer> i(_overlaysHUD);
     i.toBack();
 
