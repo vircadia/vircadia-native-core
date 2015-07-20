@@ -9,35 +9,50 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
-#include <gpu/GPUConfig.h>
+#include "AmbientOcclusionEffect.h"
+
+#include <QFile>
+#include <QTextStream>
 
 #include <gpu/GLBackend.h>
-
 #include <glm/gtc/random.hpp>
-
 #include <PathUtils.h>
 #include <SharedUtil.h>
 
 #include "AbstractViewStateInterface.h"
-#include "AmbientOcclusionEffect.h"
-#include "ProgramObject.h"
 #include "RenderUtil.h"
 #include "TextureCache.h"
 
 const int ROTATION_WIDTH = 4;
 const int ROTATION_HEIGHT = 4;
     
+static QString readFile(const QString& path) {
+    QFile file(path);
+    QString result;
+    if (file.open(QFile::ReadOnly | QFile::Text)) {
+        QTextStream in(&file);
+        result = in.readAll();
+    }
+    return result;
+}
+
 void AmbientOcclusionEffect::init(AbstractViewStateInterface* viewState) {
+#if 0
     _viewState = viewState; // we will use this for view state services
-    
-    _occlusionProgram = new ProgramObject();
-    _occlusionProgram->addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath()
-                                               + "shaders/ambient_occlusion.vert");
-    _occlusionProgram->addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath()
-                                               + "shaders/ambient_occlusion.frag");
-    _occlusionProgram->link();
-    
+
+    {
+        gpu::Shader::Source vertexSource = std::string(readFile(PathUtils::resourcesPath()
+            + "shaders/ambient_occlusion.vert").toLocal8Bit().data());
+        gpu::Shader::Source fragmentSource = std::string(readFile(PathUtils::resourcesPath()
+            + "shaders/ambient_occlusion.frag").toLocal8Bit().data());
+        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(vertexSource));
+        auto fs = gpu::ShaderPointer(gpu::Shader::createPixel(fragmentSource));
+        _occlusionProgram = gpu::ShaderPointer(gpu::Shader::createProgram(vs, fs));
+    }
+    foreach(auto uniform, _occlusionProgram->getUniforms()) {
+        qDebug() << uniform._location;
+    }
+
     // create the sample kernel: an array of hemispherically distributed offset vectors
     const int SAMPLE_KERNEL_SIZE = 16;
     QVector3D sampleKernel[SAMPLE_KERNEL_SIZE];
@@ -51,20 +66,20 @@ void AmbientOcclusionEffect::init(AbstractViewStateInterface* viewState) {
         sampleKernel[i] = QVector3D(vector.x, vector.y, vector.z);
     }
     
-    _occlusionProgram->bind();
-    _occlusionProgram->setUniformValue("depthTexture", 0);
-    _occlusionProgram->setUniformValue("rotationTexture", 1);
-    _occlusionProgram->setUniformValueArray("sampleKernel", sampleKernel, SAMPLE_KERNEL_SIZE);
-    _occlusionProgram->setUniformValue("radius", 0.1f);
-    _occlusionProgram->release();
-    
-    _nearLocation = _occlusionProgram->uniformLocation("near");
-    _farLocation = _occlusionProgram->uniformLocation("far");
-    _leftBottomLocation = _occlusionProgram->uniformLocation("leftBottom");
-    _rightTopLocation = _occlusionProgram->uniformLocation("rightTop");
-    _noiseScaleLocation = _occlusionProgram->uniformLocation("noiseScale");
-    _texCoordOffsetLocation = _occlusionProgram->uniformLocation("texCoordOffset");
-    _texCoordScaleLocation = _occlusionProgram->uniformLocation("texCoordScale");
+    glUseProgram(gpu::GLBackend::getShaderID(_occlusionProgram));
+    glUniform1i(_occlusionProgram->getUniforms().findLocation("depthTexture"), 0);
+    glUniform1i(_occlusionProgram->getUniforms().findLocation("rotationTexture"), 1);
+    glUniform1f(_occlusionProgram->getUniforms().findLocation("radius"), 0.1f);
+    //_occlusionProgram->setUniformValueArray("sampleKernel", sampleKernel, SAMPLE_KERNEL_SIZE);
+    glUseProgram(0);
+
+    _nearLocation = _occlusionProgram->getUniforms().findLocation("near");
+    _farLocation = _occlusionProgram->getUniforms().findLocation("far");
+    _leftBottomLocation = _occlusionProgram->getUniforms().findLocation("leftBottom");
+    _rightTopLocation = _occlusionProgram->getUniforms().findLocation("rightTop");
+    _noiseScaleLocation = _occlusionProgram->getUniforms().findLocation("noiseScale");
+    _texCoordOffsetLocation = _occlusionProgram->getUniforms().findLocation("texCoordOffset");
+    _texCoordScaleLocation = _occlusionProgram->getUniforms().findLocation("texCoordScale");
     
     // generate the random rotation texture
     glGenTextures(1, &_rotationTextureID);
@@ -82,20 +97,29 @@ void AmbientOcclusionEffect::init(AbstractViewStateInterface* viewState) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glBindTexture(GL_TEXTURE_2D, 0);
-    
-    _blurProgram = new ProgramObject();
-    _blurProgram->addShaderFromSourceFile(QGLShader::Vertex, PathUtils::resourcesPath() + "shaders/ambient_occlusion.vert");
-    _blurProgram->addShaderFromSourceFile(QGLShader::Fragment, PathUtils::resourcesPath() + "shaders/occlusion_blur.frag");
-    _blurProgram->link();
-    
-    _blurProgram->bind();
-    _blurProgram->setUniformValue("originalTexture", 0);
-    _blurProgram->release();
-    
-    _blurScaleLocation = _blurProgram->uniformLocation("blurScale");
+
+    {
+        gpu::Shader::Source vertexSource = std::string(readFile(PathUtils::resourcesPath()
+            + "shaders/ambient_occlusion.vert").toLocal8Bit().data());
+        gpu::Shader::Source fragmentSource = std::string(readFile(PathUtils::resourcesPath()
+            + "shaders/occlusion_blur.frag").toLocal8Bit().data());
+        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(vertexSource));
+        auto fs = gpu::ShaderPointer(gpu::Shader::createPixel(fragmentSource));
+        _blurProgram = gpu::ShaderPointer(gpu::Shader::createProgram(vs, fs));
+    }
+
+    glUseProgram(gpu::GLBackend::getShaderID(_blurProgram));
+    foreach(auto uniform, _blurProgram->getUniforms()) {
+        qDebug() << uniform._location;
+    }
+    glUniform1f(_blurProgram->getUniforms().findLocation("originalTexture"), 0);
+    glUseProgram(0);
+    _blurScaleLocation = _blurProgram->getUniforms().findLocation("blurScale");
+#endif
 }
 
 void AmbientOcclusionEffect::render() {
+#if 0
     glDisable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
     glDepthMask(GL_FALSE);
@@ -122,19 +146,19 @@ void AmbientOcclusionEffect::render() {
     float sMin = viewport[VIEWPORT_X_INDEX] / (float)framebufferSize.width();
     float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)framebufferSize.width();
     
-    _occlusionProgram->bind();
-    _occlusionProgram->setUniformValue(_nearLocation, nearVal);
-    _occlusionProgram->setUniformValue(_farLocation, farVal);
-    _occlusionProgram->setUniformValue(_leftBottomLocation, left, bottom);
-    _occlusionProgram->setUniformValue(_rightTopLocation, right, top);
-    _occlusionProgram->setUniformValue(_noiseScaleLocation, viewport[VIEWPORT_WIDTH_INDEX] / (float)ROTATION_WIDTH,
+    glUseProgram(gpu::GLBackend::getShaderID(_occlusionProgram));
+    glUniform1f(_nearLocation, nearVal);
+    glUniform1f(_farLocation, farVal);
+    glUniform2f(_leftBottomLocation, left, bottom);
+    glUniform2f(_rightTopLocation, right, top);
+    glUniform2f(_noiseScaleLocation, viewport[VIEWPORT_WIDTH_INDEX] / (float)ROTATION_WIDTH,
         framebufferSize.height() / (float)ROTATION_HEIGHT);
-    _occlusionProgram->setUniformValue(_texCoordOffsetLocation, sMin, 0.0f);
-    _occlusionProgram->setUniformValue(_texCoordScaleLocation, sWidth, 1.0f);
+    glUniform2f(_texCoordOffsetLocation, sMin, 0.0f);
+    glUniform2f(_texCoordScaleLocation, sWidth, 1.0f);
     
     renderFullscreenQuad();
     
-    _occlusionProgram->release();
+    glUseProgram(0);
     
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -152,16 +176,17 @@ void AmbientOcclusionEffect::render() {
     auto freeFramebufferTexture = nullptr; // freeFramebuffer->getRenderBuffer(0); // FIXME
     glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(freeFramebufferTexture));
     
-    _blurProgram->bind();
-    _blurProgram->setUniformValue(_blurScaleLocation, 1.0f / framebufferSize.width(), 1.0f / framebufferSize.height());
+    glUseProgram(gpu::GLBackend::getShaderID(_occlusionProgram));
+    glUniform2f(_blurScaleLocation, 1.0f / framebufferSize.width(), 1.0f / framebufferSize.height());
     
     renderFullscreenQuad(sMin, sMin + sWidth);
     
-    _blurProgram->release();
-    
+    glUseProgram(0);
+
     glBindTexture(GL_TEXTURE_2D, 0);
     
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
+#endif
 }

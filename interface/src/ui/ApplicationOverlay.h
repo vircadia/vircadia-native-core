@@ -40,7 +40,7 @@ private:
 
     float _alpha{ 1.0f };
     float _trailingAudioLoudness{ 0.0f };
-    GLuint _uiTexture{ 0 };
+    uint32_t _uiTexture{ 0 };
 
     int _domainStatusBorder;
     int _magnifierBorder;

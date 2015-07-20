@@ -32,6 +32,7 @@ void GLBackend::do_setProjectionTransform(Batch& batch, uint32 paramOffset) {
 
 void GLBackend::do_setViewportTransform(Batch& batch, uint32 paramOffset) {
     memcpy(&_transform._viewport, batch.editData(batch._params[paramOffset]._uint), sizeof(Vec4i));
+    glViewport(_transform._viewport.x, _transform._viewport.y, _transform._viewport.z, _transform._viewport.w);
     _transform._invalidViewport = true;
 }
 
