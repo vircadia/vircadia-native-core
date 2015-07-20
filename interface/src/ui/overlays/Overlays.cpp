@@ -14,10 +14,11 @@
 
 #include <limits>
 
-#include <Application.h>
 #include <render/Scene.h>
 #include <gpu/GLBackend.h>
+#include <RegisteredMetaTypes.h>
 
+#include "Application.h"
 #include "BillboardOverlay.h"
 #include "Circle3DOverlay.h"
 #include "Cube3DOverlay.h"
@@ -98,16 +99,29 @@ void Overlays::cleanupOverlaysToDelete() {
 void Overlays::renderHUD(RenderArgs* renderArgs) {
     PROFILE_RANGE(__FUNCTION__);
     QReadLocker lock(&_lock);
-    gpu::Batch batch;
-    renderArgs->_batch = &batch;
-    
+    gpu::Batch& batch = *renderArgs->_batch;
+
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    auto textureCache = DependencyManager::get<TextureCache>();
+
+    auto size = qApp->getCanvasSize();
+    int width = size.x;
+    int height = size.y;
+    mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
+
 
     foreach(Overlay::Pointer thisOverlay, _overlaysHUD) {
+    
+        // Reset all batch pipeline settings between overlay
+        geometryCache->useSimpleDrawPipeline(batch);
+        batch.setResourceTexture(0, textureCache->getWhiteTexture()); // FIXME - do we really need to do this??
+        batch.setProjectionTransform(legacyProjection);
+        batch.setModelTransform(Transform());
+        batch.setViewTransform(Transform());
+        batch._glLineWidth(1.0f); // default
+
         thisOverlay->render(renderArgs);
     }
-
-    renderArgs->_context->syncCache();
-    renderArgs->_context->render(batch);
 }
 
 unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& properties) {

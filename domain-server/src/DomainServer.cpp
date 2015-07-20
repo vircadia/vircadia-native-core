@@ -29,7 +29,7 @@
 #include <JSONBreakableMarshal.h>
 #include <LogUtils.h>
 #include <NetworkingConstants.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <SettingHandle.h>
 #include <SharedUtil.h>
 #include <ShutdownEventListener.h>
@@ -111,6 +111,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 }
 
 void DomainServer::aboutToQuit() {
+
     // clear the log handler so that Qt doesn't call the destructor on LogHandler
     qInstallMessageHandler(0);
 }
@@ -278,8 +279,17 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     connect(nodeList.data(), &LimitedNodeList::nodeAdded, this, &DomainServer::nodeAdded);
     connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &DomainServer::nodeKilled);
 
-    connect(&nodeList->getNodeSocket(), SIGNAL(readyRead()), SLOT(readAvailableDatagrams()));
-
+    // register as the packet receiver for the types we want
+    PacketReceiver& packetReceiver = nodeList->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::RequestAssignment, this, "processRequestAssignmentPacket");
+    packetReceiver.registerListener(PacketType::DomainConnectRequest, this, "processConnectRequestPacket");
+    packetReceiver.registerListener(PacketType::DomainListRequest, this, "processListRequestPacket");
+    packetReceiver.registerListener(PacketType::DomainServerPathQuery, this, "processPathQueryPacket");
+    packetReceiver.registerListener(PacketType::NodeJsonStats, this, "processNodeJSONStatsPacket");
+    packetReceiver.registerListener(PacketType::ICEPing, this, "processICEPingPacket");
+    packetReceiver.registerListener(PacketType::ICEPingReply, this, "processICEPingReplyPacket");
+    packetReceiver.registerListener(PacketType::ICEServerPeerInformation, this, "processICEPeerInformationPacket");
+    
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
 }
@@ -566,40 +576,52 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
 const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
     << NodeType::AvatarMixer << NodeType::EntityServer;
 
-void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSockAddr& senderSockAddr) {
+void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) {
     NodeType_t nodeType;
     HifiSockAddr publicSockAddr, localSockAddr;
+    
 
-    QDataStream packetStream(packet);
-    packetStream.skipRawData(numBytesForPacketHeader(packet));
+    if (packet->getPayloadSize() == 0) {
+        return;
+    }
 
-    parseNodeDataFromByteArray(packetStream, nodeType, publicSockAddr, localSockAddr, senderSockAddr);
+    QDataStream packetStream(packet.data());
 
-    QUuid packetUUID = uuidFromPacketHeader(packet);
+    QUuid connectUUID;
+    packetStream >> connectUUID;
+
+    const HifiSockAddr& senderSockAddr = packet->getSenderSockAddr();
+
+    parseNodeData(packetStream, nodeType, publicSockAddr, localSockAddr, senderSockAddr);
+    
+    if (localSockAddr.isNull() || senderSockAddr.isNull()) {
+        qDebug() << "Unexpected data received for node local socket or public socket. Will not allow connection.";
+        return;
+    }
 
     // check if this connect request matches an assignment in the queue
-    bool isAssignment = _pendingAssignedNodes.contains(packetUUID);
+    bool isAssignment = _pendingAssignedNodes.contains(connectUUID);
     SharedAssignmentPointer matchingQueuedAssignment = SharedAssignmentPointer();
     PendingAssignedNodeData* pendingAssigneeData = NULL;
 
     if (isAssignment) {
-        pendingAssigneeData = _pendingAssignedNodes.value(packetUUID);
+        pendingAssigneeData = _pendingAssignedNodes.value(connectUUID);
 
         if (pendingAssigneeData) {
             matchingQueuedAssignment = matchingQueuedAssignmentForCheckIn(pendingAssigneeData->getAssignmentUUID(), nodeType);
 
             if (matchingQueuedAssignment) {
-                qDebug() << "Assignment deployed with" << uuidStringWithoutCurlyBraces(packetUUID)
+                qDebug() << "Assignment deployed with" << uuidStringWithoutCurlyBraces(connectUUID)
                     << "matches unfulfilled assignment"
                     << uuidStringWithoutCurlyBraces(matchingQueuedAssignment->getUUID());
 
                 // remove this unique assignment deployment from the hash of pending assigned nodes
                 // cleanup of the PendingAssignedNodeData happens below after the node has been added to the LimitedNodeList
-                _pendingAssignedNodes.remove(packetUUID);
+                _pendingAssignedNodes.remove(connectUUID);
             } else {
                 // this is a node connecting to fulfill an assignment that doesn't exist
                 // don't reply back to them so they cycle back and re-request an assignment
-                qDebug() << "No match for assignment deployed with" << uuidStringWithoutCurlyBraces(packetUUID);
+                qDebug() << "No match for assignment deployed with" << uuidStringWithoutCurlyBraces(connectUUID);
                 return;
             }
         }
@@ -617,11 +639,16 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     QString reason;
     if (!isAssignment && !shouldAllowConnectionFromNode(username, usernameSignature, senderSockAddr, reason)) {
         // this is an agent and we've decided we won't let them connect - send them a packet to deny connection
-        QByteArray connectionDeniedByteArray = limitedNodeList->byteArrayWithPopulatedHeader(PacketTypeDomainConnectionDenied);
-        QDataStream out(&connectionDeniedByteArray, QIODevice::WriteOnly | QIODevice::Append);
-        out << reason;
+
+        QByteArray utfString = reason.toUtf8();
+        quint16 payloadSize = utfString.size();
+
+        auto connectionDeniedPacket = NLPacket::create(PacketType::DomainConnectionDenied, payloadSize + sizeof(payloadSize));
+        connectionDeniedPacket->writePrimitive(payloadSize);
+        connectionDeniedPacket->write(utfString);
+
         // tell client it has been refused.
-        DependencyManager::get<LimitedNodeList>()->writeUnverifiedDatagram(connectionDeniedByteArray, senderSockAddr);
+        limitedNodeList->sendPacket(std::move(connectionDeniedPacket), senderSockAddr);
 
         return;
     }
@@ -633,18 +660,18 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         QUuid nodeUUID;
 
         HifiSockAddr discoveredSocket = senderSockAddr;
-        SharedNetworkPeer connectedPeer = _icePeers.value(packetUUID);
+        SharedNetworkPeer connectedPeer = _icePeers.value(connectUUID);
 
         if (connectedPeer) {
             //  this user negotiated a connection with us via ICE, so re-use their ICE client ID
-            nodeUUID = packetUUID;
+            nodeUUID = connectUUID;
 
             if (connectedPeer->getActiveSocket()) {
                 // set their discovered socket to whatever the activated socket on the network peer object was
                 discoveredSocket = *connectedPeer->getActiveSocket();
             }
         } else {
-            // we got a packetUUID we didn't recognize, just add the node
+            // we got a connectUUID we didn't recognize, just add the node with a new UUID
             nodeUUID = QUuid::createUuid();
         }
 
@@ -701,12 +728,30 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
 
         nodeData->setSendingSockAddr(senderSockAddr);
 
-        // reply back to the user with a PacketTypeDomainList
+        // reply back to the user with a PacketType::DomainList
         sendDomainListToNode(newNode, senderSockAddr, nodeInterestList.toSet());
 
         // send out this node to our other connected nodes
         broadcastNewNode(newNode);
     }
+}
+
+void DomainServer::processListRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+    
+    NodeType_t throwawayNodeType;
+    HifiSockAddr nodePublicAddress, nodeLocalAddress;
+
+    QDataStream packetStream(packet.data());
+
+    parseNodeData(packetStream, throwawayNodeType, nodePublicAddress, nodeLocalAddress, packet->getSenderSockAddr());
+
+    sendingNode->setPublicSocket(nodePublicAddress);
+    sendingNode->setLocalSocket(nodeLocalAddress);
+
+    QList<NodeType_t> nodeInterestList;
+    packetStream >> nodeInterestList;
+
+    sendDomainListToNode(sendingNode, packet->getSenderSockAddr(), nodeInterestList.toSet());
 }
 
 unsigned int DomainServer::countConnectedUsers() {
@@ -896,12 +941,12 @@ QUrl DomainServer::oauthAuthorizationURL(const QUuid& stateUUID) {
     return authorizationURL;
 }
 
-int DomainServer::parseNodeDataFromByteArray(QDataStream& packetStream, NodeType_t& nodeType,
-                                             HifiSockAddr& publicSockAddr, HifiSockAddr& localSockAddr,
-                                             const HifiSockAddr& senderSockAddr) {
+int DomainServer::parseNodeData(QDataStream& packetStream, NodeType_t& nodeType,
+                                HifiSockAddr& publicSockAddr, HifiSockAddr& localSockAddr,
+                                const HifiSockAddr& senderSockAddr) {
     packetStream >> nodeType;
     packetStream >> publicSockAddr >> localSockAddr;
-
+    
     if (publicSockAddr.getAddress().isNull()) {
         // this node wants to use us its STUN server
         // so set the node public address to whatever we perceive the public address to be
@@ -920,16 +965,24 @@ int DomainServer::parseNodeDataFromByteArray(QDataStream& packetStream, NodeType
 
 void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr &senderSockAddr,
                                         const NodeSet& nodeInterestSet) {
+    const int NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES = NUM_BYTES_RFC4122_UUID + NUM_BYTES_RFC4122_UUID + 2;
+    
+    // setup the extended header for the domain list packets
+    // this data is at the beginning of each of the domain list packets
+    QByteArray extendedHeader(NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES, 0);
+    QDataStream extendedHeaderStream(&extendedHeader, QIODevice::WriteOnly);
+   
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-    QByteArray broadcastPacket = limitedNodeList->byteArrayWithPopulatedHeader(PacketTypeDomainList);
+    
+    extendedHeaderStream << limitedNodeList->getSessionUUID();
+    extendedHeaderStream << node->getUUID();
+    extendedHeaderStream << (quint8) node->getCanAdjustLocks();
+    extendedHeaderStream << (quint8) node->getCanRez();
+
+    NLPacketList domainListPackets(PacketType::DomainList, extendedHeader);
 
     // always send the node their own UUID back
-    QDataStream broadcastDataStream(&broadcastPacket, QIODevice::Append);
-    broadcastDataStream << node->getUUID();
-    broadcastDataStream << node->getCanAdjustLocks();
-    broadcastDataStream << node->getCanRez();
-
-    int numBroadcastPacketLeadBytes = broadcastDataStream.device()->pos();
+    QDataStream domainListStream(&domainListPackets);
 
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
 
@@ -938,44 +991,32 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
 
     if (nodeInterestSet.size() > 0) {
 
-//        DTLSServerSession* dtlsSession = _isUsingDTLS ? _dtlsSessions[senderSockAddr] : NULL;
-        int dataMTU = MAX_PACKET_SIZE;
-
+        // DTLSServerSession* dtlsSession = _isUsingDTLS ? _dtlsSessions[senderSockAddr] : NULL;
         if (nodeData->isAuthenticated()) {
             // if this authenticated node has any interest types, send back those nodes as well
             limitedNodeList->eachNode([&](const SharedNodePointer& otherNode){
-                // reset our nodeByteArray and nodeDataStream
-                QByteArray nodeByteArray;
-                QDataStream nodeDataStream(&nodeByteArray, QIODevice::Append);
-
                 if (otherNode->getUUID() != node->getUUID() && nodeInterestSet.contains(otherNode->getType())) {
+                    // since we're about to add a node to the packet we start a segment
+                    domainListPackets.startSegment();
 
                     // don't send avatar nodes to other avatars, that will come from avatar mixer
-                    nodeDataStream << *otherNode.data();
+                    domainListStream << *otherNode.data();
 
                     // pack the secret that these two nodes will use to communicate with each other
-                    nodeDataStream << connectionSecretForNodes(node, otherNode);
+                    domainListStream << connectionSecretForNodes(node, otherNode);
 
-                    if (broadcastPacket.size() +  nodeByteArray.size() > dataMTU) {
-                        // we need to break here and start a new packet
-                        // so send the current one
-
-                        limitedNodeList->writeUnverifiedDatagram(broadcastPacket, node, senderSockAddr);
-
-                        // reset the broadcastPacket structure
-                        broadcastPacket.resize(numBroadcastPacketLeadBytes);
-                        broadcastDataStream.device()->seek(numBroadcastPacketLeadBytes);
-                    }
-
-                    // append the nodeByteArray to the current state of broadcastDataStream
-                    broadcastPacket.append(nodeByteArray);
+                    // we've added the node we wanted so end the segment now
+                    domainListPackets.endSegment();
                 }
             });
         }
     }
+    
+    // send an empty list to the node, in case there were no other nodes
+    domainListPackets.closeCurrentPacket(true);
 
-    // always write the last broadcastPacket
-    limitedNodeList->writeUnverifiedDatagram(broadcastPacket, node);
+    // write the PacketList to this node
+    limitedNodeList->sendPacketList(domainListPackets, *node);
 }
 
 QUuid DomainServer::connectionSecretForNodes(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB) {
@@ -1003,13 +1044,14 @@ void DomainServer::broadcastNewNode(const SharedNodePointer& addedNode) {
 
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
+    auto addNodePacket = NLPacket::create(PacketType::DomainServerAddedNode);
+
     // setup the add packet for this new node
-    QByteArray addNodePacket = limitedNodeList->byteArrayWithPopulatedHeader(PacketTypeDomainServerAddedNode);
-    QDataStream addNodeStream(&addNodePacket, QIODevice::Append);
+    QDataStream addNodeStream(addNodePacket.get());
 
     addNodeStream << *addedNode.data();
 
-    int connectionSecretIndex = addNodePacket.size();
+    int connectionSecretIndex = addNodePacket->pos();
 
     limitedNodeList->eachMatchingNode(
         [&](const SharedNodePointer& node)->bool {
@@ -1022,104 +1064,81 @@ void DomainServer::broadcastNewNode(const SharedNodePointer& addedNode) {
             }
         },
         [&](const SharedNodePointer& node) {
+            addNodePacket->seek(connectionSecretIndex);
+
             QByteArray rfcConnectionSecret = connectionSecretForNodes(node, addedNode).toRfc4122();
 
             // replace the bytes at the end of the packet for the connection secret between these nodes
-            addNodePacket.replace(connectionSecretIndex, NUM_BYTES_RFC4122_UUID, rfcConnectionSecret);
+            addNodePacket->write(rfcConnectionSecret);
 
             // send off this packet to the node
-            limitedNodeList->writeUnverifiedDatagram(addNodePacket, node);
+            limitedNodeList->sendUnreliablePacket(*addNodePacket, *node);
         }
     );
 }
 
-void DomainServer::readAvailableDatagrams() {
-    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+void DomainServer::processRequestAssignmentPacket(QSharedPointer<NLPacket> packet) {
+    // construct the requested assignment from the packet data
+    Assignment requestAssignment(*packet);
 
-    HifiSockAddr senderSockAddr;
-    QByteArray receivedPacket;
+    // Suppress these for Assignment::AgentType to once per 5 seconds
+    static QElapsedTimer noisyMessageTimer;
+    static bool wasNoisyTimerStarted = false;
 
-    static QByteArray assignmentPacket = limitedNodeList->byteArrayWithPopulatedHeader(PacketTypeCreateAssignment);
-    static int numAssignmentPacketHeaderBytes = assignmentPacket.size();
+    if (!wasNoisyTimerStarted) {
+        noisyMessageTimer.start();
+        wasNoisyTimerStarted = true;
+    }
 
-    while (limitedNodeList->getNodeSocket().hasPendingDatagrams()) {
-        receivedPacket.resize(limitedNodeList->getNodeSocket().pendingDatagramSize());
-        limitedNodeList->getNodeSocket().readDatagram(receivedPacket.data(), receivedPacket.size(),
-                                               senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
-        if (packetTypeForPacket(receivedPacket) == PacketTypeRequestAssignment
-            && limitedNodeList->packetVersionAndHashMatch(receivedPacket)) {
+    const qint64 NOISY_MESSAGE_INTERVAL_MSECS = 5 * 1000;
 
-            // construct the requested assignment from the packet data
-            Assignment requestAssignment(receivedPacket);
+    if (requestAssignment.getType() != Assignment::AgentType
+        || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS) {
+        static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
+            ("Received a request for assignment type [^ ]+ from [^ ]+");
+        qDebug() << "Received a request for assignment type" << requestAssignment.getType()
+                 << "from" << packet->getSenderSockAddr();
+        noisyMessageTimer.restart();
+    }
 
-            // Suppress these for Assignment::AgentType to once per 5 seconds
-            static QElapsedTimer noisyMessageTimer;
-            static bool wasNoisyTimerStarted = false;
+    SharedAssignmentPointer assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
 
-            if (!wasNoisyTimerStarted) {
-                noisyMessageTimer.start();
-                wasNoisyTimerStarted = true;
-            }
+    if (assignmentToDeploy) {
+        qDebug() << "Deploying assignment -" << *assignmentToDeploy.data() << "- to" << packet->getSenderSockAddr();
 
-            const qint64 NOISY_MESSAGE_INTERVAL_MSECS = 5 * 1000;
+        // give this assignment out, either the type matches or the requestor said they will take any
+        static std::unique_ptr<NLPacket> assignmentPacket;
 
-            if (requestAssignment.getType() != Assignment::AgentType
-                || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS) {
-                static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
-                    ("Received a request for assignment type [^ ]+ from [^ ]+");
-                qDebug() << "Received a request for assignment type" << requestAssignment.getType()
-                         << "from" << senderSockAddr;
-                noisyMessageTimer.restart();
-            }
+        if (!assignmentPacket) {
+            assignmentPacket = NLPacket::create(PacketType::CreateAssignment);
+        }
 
-            SharedAssignmentPointer assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
+        // setup a copy of this assignment that will have a unique UUID, for packaging purposes
+        Assignment uniqueAssignment(*assignmentToDeploy.data());
+        uniqueAssignment.setUUID(QUuid::createUuid());
 
-            if (assignmentToDeploy) {
-                qDebug() << "Deploying assignment -" << *assignmentToDeploy.data() << "- to" << senderSockAddr;
+        // reset the assignmentPacket
+        assignmentPacket->reset();
 
-                // give this assignment out, either the type matches or the requestor said they will take any
-                assignmentPacket.resize(numAssignmentPacketHeaderBytes);
+        QDataStream assignmentStream(assignmentPacket.get());
 
-                // setup a copy of this assignment that will have a unique UUID, for packaging purposes
-                Assignment uniqueAssignment(*assignmentToDeploy.data());
-                uniqueAssignment.setUUID(QUuid::createUuid());
+        assignmentStream << uniqueAssignment;
 
-                QDataStream assignmentStream(&assignmentPacket, QIODevice::Append);
+        auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+        limitedNodeList->sendUnreliablePacket(*assignmentPacket, packet->getSenderSockAddr());
 
-                assignmentStream << uniqueAssignment;
-
-                limitedNodeList->getNodeSocket().writeDatagram(assignmentPacket,
-                                                        senderSockAddr.getAddress(), senderSockAddr.getPort());
-
-                // add the information for that deployed assignment to the hash of pending assigned nodes
-                PendingAssignedNodeData* pendingNodeData = new PendingAssignedNodeData(assignmentToDeploy->getUUID(),
-                                                                                       requestAssignment.getWalletUUID());
-                _pendingAssignedNodes.insert(uniqueAssignment.getUUID(), pendingNodeData);
-            } else {
-                if (requestAssignment.getType() != Assignment::AgentType
-                    || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS) {
-                    static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
-                        ("Unable to fulfill assignment request of type [^ ]+ from [^ ]+");
-                    qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
-                        << "from" << senderSockAddr;
-                    noisyMessageTimer.restart();
-                }
-            }
-        } else if (!_isUsingDTLS) {
-            // not using DTLS, process datagram normally
-            processDatagram(receivedPacket, senderSockAddr);
-        } else {
-            // we're using DTLS, so tell the sender to get back to us using DTLS
-            static QByteArray dtlsRequiredPacket = limitedNodeList->byteArrayWithPopulatedHeader(PacketTypeDomainServerRequireDTLS);
-            static int numBytesDTLSHeader = numBytesForPacketHeaderGivenPacketType(PacketTypeDomainServerRequireDTLS);
-
-            if (dtlsRequiredPacket.size() == numBytesDTLSHeader) {
-                // pack the port that we accept DTLS traffic on
-                unsigned short dtlsPort = limitedNodeList->getDTLSSocket().localPort();
-                dtlsRequiredPacket.replace(numBytesDTLSHeader, sizeof(dtlsPort), reinterpret_cast<const char*>(&dtlsPort));
-            }
-
-            limitedNodeList->writeUnverifiedDatagram(dtlsRequiredPacket, senderSockAddr);
+        // add the information for that deployed assignment to the hash of pending assigned nodes
+        PendingAssignedNodeData* pendingNodeData = new PendingAssignedNodeData(assignmentToDeploy->getUUID(),
+                                                                               requestAssignment.getWalletUUID());
+        _pendingAssignedNodes.insert(uniqueAssignment.getUUID(), pendingNodeData);
+    } else {
+        if (requestAssignment.getType() != Assignment::AgentType
+            || noisyMessageTimer.elapsed() > NOISY_MESSAGE_INTERVAL_MSECS) {
+            static QString repeatedMessage = LogHandler::getInstance().addOnlyOnceMessageRegex
+                ("Unable to fulfill assignment request of type [^ ]+ from [^ ]+");
+            qDebug() << "Unable to fulfill assignment request of type" << requestAssignment.getType()
+                << "from" << packet->getSenderSockAddr();
+            noisyMessageTimer.restart();
         }
     }
 }
@@ -1322,14 +1341,14 @@ void DomainServer::pingPunchForConnectingPeer(const SharedNetworkPeer& peer) {
 
         _icePeers.remove(peer->getUUID());
     } else {
-        auto nodeList = DependencyManager::get<LimitedNodeList>();
+        auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
         // send the ping packet to the local and public sockets for this node
-        QByteArray localPingPacket = nodeList->constructPingPacket(PingType::Local, false);
-        nodeList->writeUnverifiedDatagram(localPingPacket, peer->getLocalSocket());
+        auto localPingPacket = limitedNodeList->constructICEPingPacket(PingType::Local, limitedNodeList->getSessionUUID());
+        limitedNodeList->sendPacket(std::move(localPingPacket), peer->getLocalSocket());
 
-        QByteArray publicPingPacket = nodeList->constructPingPacket(PingType::Public, false);
-        nodeList->writeUnverifiedDatagram(publicPingPacket, peer->getPublicSocket());
+        auto publicPingPacket = limitedNodeList->constructICEPingPacket(PingType::Public, limitedNodeList->getSessionUUID());
+        limitedNodeList->sendPacket(std::move(publicPingPacket), peer->getPublicSocket());
 
         peer->incrementConnectionAttempts();
     }
@@ -1347,11 +1366,10 @@ void DomainServer::handlePeerPingTimeout() {
     }
 }
 
-void DomainServer::processICEPeerInformation(const QByteArray& packet) {
+void DomainServer::processICEPeerInformationPacket(QSharedPointer<NLPacket> packet) {
     // loop through the packet and pull out network peers
     // any peer we don't have we add to the hash, otherwise we update
-    QDataStream iceResponseStream(packet);
-    iceResponseStream.skipRawData(numBytesForPacketHeader(packet));
+    QDataStream iceResponseStream(packet.data());
 
     NetworkPeer* receivedPeer = new NetworkPeer;
     iceResponseStream >> *receivedPeer;
@@ -1376,86 +1394,31 @@ void DomainServer::processICEPeerInformation(const QByteArray& packet) {
     }
 }
 
-void DomainServer::processICEPingReply(const QByteArray& packet, const HifiSockAddr& senderSockAddr) {
-    QUuid nodeUUID = uuidFromPacketHeader(packet);
+void DomainServer::processICEPingPacket(QSharedPointer<NLPacket> packet) {
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+    auto pingReplyPacket = limitedNodeList->constructICEPingReplyPacket(*packet, limitedNodeList->getSessionUUID());
+
+    limitedNodeList->sendPacket(std::move(pingReplyPacket), packet->getSenderSockAddr());
+}
+
+void DomainServer::processICEPingReplyPacket(QSharedPointer<NLPacket> packet) {
+    QDataStream packetStream(packet.data());
+    
+    QUuid nodeUUID;
+    packetStream >> nodeUUID;
+
     SharedNetworkPeer sendingPeer = _icePeers.value(nodeUUID);
 
     if (sendingPeer) {
         // we had this NetworkPeer in our connecting list - add the right sock addr to our connected list
-        sendingPeer->activateMatchingOrNewSymmetricSocket(senderSockAddr);
+        sendingPeer->activateMatchingOrNewSymmetricSocket(packet->getSenderSockAddr());
     }
 }
 
-void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
-    auto nodeList = DependencyManager::get<LimitedNodeList>();
-
-    if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
-        PacketType requestType = packetTypeForPacket(receivedPacket);
-        switch (requestType) {
-            case PacketTypeDomainConnectRequest:
-                handleConnectRequest(receivedPacket, senderSockAddr);
-                break;
-            case PacketTypeDomainListRequest: {
-                QUuid nodeUUID = uuidFromPacketHeader(receivedPacket);
-
-                if (!nodeUUID.isNull() && nodeList->nodeWithUUID(nodeUUID)) {
-                    NodeType_t throwawayNodeType;
-                    HifiSockAddr nodePublicAddress, nodeLocalAddress;
-
-                    QDataStream packetStream(receivedPacket);
-                    packetStream.skipRawData(numBytesForPacketHeader(receivedPacket));
-
-                    parseNodeDataFromByteArray(packetStream, throwawayNodeType, nodePublicAddress, nodeLocalAddress,
-                                               senderSockAddr);
-
-                    SharedNodePointer checkInNode = nodeList->nodeWithUUID(nodeUUID);
-                    checkInNode->setPublicSocket(nodePublicAddress);
-                    checkInNode->setLocalSocket(nodeLocalAddress);
-
-                    // update last receive to now
-                    quint64 timeNow = usecTimestampNow();
-                    checkInNode->setLastHeardMicrostamp(timeNow);
-
-                    QList<NodeType_t> nodeInterestList;
-                    packetStream >> nodeInterestList;
-
-                    sendDomainListToNode(checkInNode, senderSockAddr, nodeInterestList.toSet());
-                }
-
-                break;
-            }
-            case PacketTypeDomainServerPathQuery: {
-                // have our private method attempt to respond to this path query
-                respondToPathQuery(receivedPacket, senderSockAddr);
-                break;
-            }
-            case PacketTypeNodeJsonStats: {
-                SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
-                if (matchingNode) {
-                    reinterpret_cast<DomainServerNodeData*>(matchingNode->getLinkedData())->parseJSONStatsPacket(receivedPacket);
-                }
-
-                break;
-            }
-            case PacketTypeStunResponse:
-                nodeList->processSTUNResponse(receivedPacket);
-                break;
-            case PacketTypeUnverifiedPing: {
-                QByteArray pingReplyPacket = nodeList->constructPingReplyPacket(receivedPacket);
-                nodeList->writeUnverifiedDatagram(pingReplyPacket, senderSockAddr);
-
-                break;
-            }
-            case PacketTypeUnverifiedPingReply: {
-                processICEPingReply(receivedPacket, senderSockAddr);
-                break;
-            }
-            case PacketTypeIceServerPeerInformation:
-                processICEPeerInformation(receivedPacket);
-                break;
-            default:
-                break;
-        }
+void DomainServer::processNodeJSONStatsPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+    auto nodeData = dynamic_cast<DomainServerNodeData*>(sendingNode->getLinkedData());
+    if (nodeData) {
+        nodeData->processJSONStatsPacket(*packet);
     }
 }
 
@@ -2223,19 +2186,17 @@ void DomainServer::addStaticAssignmentsToQueue() {
     }
 }
 
-void DomainServer::respondToPathQuery(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
+void DomainServer::processPathQueryPacket(QSharedPointer<NLPacket> packet) {
     // this is a query for the viewpoint resulting from a path
     // first pull the query path from the packet
 
-    int numHeaderBytes = numBytesForPacketHeaderGivenPacketType(PacketTypeDomainServerPathQuery);
-    const char* packetDataStart = receivedPacket.data() + numHeaderBytes;
-
     // figure out how many bytes the sender said this path is
-    quint16 numPathBytes = *packetDataStart;
+    quint16 numPathBytes;
+    packet->readPrimitive(&numPathBytes);
 
-    if (numPathBytes <= receivedPacket.size() - numHeaderBytes - sizeof(numPathBytes)) {
+    if (numPathBytes <= packet->bytesLeftToRead()) {
         // the number of path bytes makes sense for the sent packet - pull out the path
-        QString pathQuery = QString::fromUtf8(packetDataStart + sizeof(numPathBytes), numPathBytes);
+        QString pathQuery = QString::fromUtf8(packet->getPayload() + packet->pos(), numPathBytes);
 
         // our settings contain paths that start with a leading slash, so make sure this query has that
         if (!pathQuery.startsWith("/")) {
@@ -2259,31 +2220,31 @@ void DomainServer::respondToPathQuery(const QByteArray& receivedPacket, const Hi
                 QByteArray viewpointUTF8 = responseViewpoint.toUtf8();
 
                 // prepare a packet for the response
-                QByteArray pathResponsePacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeDomainServerPathResponse);
+                auto pathResponsePacket = NLPacket::create(PacketType::DomainServerPathResponse);
 
                 // check the number of bytes the viewpoint is
-                quint16 numViewpointBytes = responseViewpoint.toUtf8().size();
+                quint16 numViewpointBytes = viewpointUTF8.size();
 
                 // are we going to be able to fit this response viewpoint in a packet?
-                if (numPathBytes + numViewpointBytes + pathResponsePacket.size() + sizeof(numViewpointBytes)
-                        < MAX_PACKET_SIZE) {
+                if (numPathBytes + numViewpointBytes + sizeof(numViewpointBytes) + sizeof(numPathBytes)
+                        < (unsigned long) pathResponsePacket->bytesAvailableForWrite()) {
                     // append the number of bytes this path is
-                    pathResponsePacket.append(reinterpret_cast<char*>(&numPathBytes), sizeof(numPathBytes));
+                    pathResponsePacket->writePrimitive(numPathBytes);
 
                     // append the path itself
-                    pathResponsePacket.append(pathQuery.toUtf8());
+                    pathResponsePacket->write(pathQuery.toUtf8());
 
                     // append the number of bytes the resulting viewpoint is
-                    pathResponsePacket.append(reinterpret_cast<char*>(&numViewpointBytes), sizeof(numViewpointBytes));
+                    pathResponsePacket->writePrimitive(numViewpointBytes);
 
                     // append the viewpoint itself
-                    pathResponsePacket.append(viewpointUTF8);
+                    pathResponsePacket->write(viewpointUTF8);
 
                     qDebug() << "Sending a viewpoint response for path query" << pathQuery << "-" << viewpointUTF8;
 
                     // send off the packet - see if we can associate this outbound data to a particular node
                     // TODO: does this senderSockAddr always work for a punched DS client?
-                    nodeList->writeUnverifiedDatagram(pathResponsePacket, senderSockAddr);
+                    nodeList->sendPacket(std::move(pathResponsePacket), packet->getSenderSockAddr());
                 }
             }
 

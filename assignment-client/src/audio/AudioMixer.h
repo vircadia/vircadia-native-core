@@ -28,19 +28,20 @@ const int READ_DATAGRAMS_STATS_WINDOW_SECONDS = 30;
 class AudioMixer : public ThreadedAssignment {
     Q_OBJECT
 public:
-    AudioMixer(const QByteArray& packet);
+    AudioMixer(NLPacket& packet);
 
     void deleteLater() { qDebug() << "DELETE LATER CALLED?"; QObject::deleteLater(); }
 public slots:
     /// threaded run of assignment
     void run();
 
-    void readPendingDatagrams() { }; // this will not be called since our datagram processing thread will handle
-    void readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
-
     void sendStatsPacket();
 
     static const InboundAudioStream::Settings& getStreamSettings() { return _streamSettings; }
+
+private slots:
+    void handleNodeAudioPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
 
 private:
     /// adds one stream to the mix for a listening node

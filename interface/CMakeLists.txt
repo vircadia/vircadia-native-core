@@ -22,22 +22,12 @@ else ()
   set(BUILD_SEQ "dev")
 endif ()
 
-if (APPLE)
-  set(GL_HEADERS "#include <OpenGL/glext.h>")
-elseif (UNIX)
-  # include the right GL headers for UNIX
-  set(GL_HEADERS "#include <GL/gl.h>\n#include <GL/glext.h>")
-elseif (WIN32)
-  add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h
-  add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines
+if (WIN32)
+  add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h		
+  add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines		
+endif()
 
-  set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/wglew.h>")
-endif ()
-
-# create the InterfaceConfig.h file based on GL_HEADERS above
-configure_file(InterfaceConfig.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceConfig.h")
 configure_file(InterfaceVersion.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceVersion.h")
-
 
 macro(GroupSources curdir)
    file(GLOB children RELATIVE ${PROJECT_SOURCE_DIR}/${curdir} ${PROJECT_SOURCE_DIR}/${curdir}/*)
@@ -105,10 +95,10 @@ if (APPLE)
   # set where in the bundle to put the resources file
   SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/icon/${ICON_FILENAME} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
   
-  set(DISCOVERED_RESOURCES "") 
+  set(DISCOVERED_RESOURCES "")
 
   # use the add_resources_to_os_x_bundle macro to recurse into resources
-  add_resources_to_os_x_bundle("${CMAKE_CURRENT_SOURCE_DIR}/resources") 
+  add_resources_to_os_x_bundle("${CMAKE_CURRENT_SOURCE_DIR}/resources")
 
   # append the discovered resources to our list of interface sources
   list(APPEND INTERFACE_SRCS ${DISCOVERED_RESOURCES})
@@ -136,12 +126,19 @@ target_include_directories(${TARGET_NAME} PRIVATE ${LIBOVR_INCLUDE_DIRS})
 target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
 
 find_package(Bullet REQUIRED)
-target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BULLET_INCLUDE_DIRS})
+
+# perform the system include hack for OS X to ignore warnings
+if (APPLE)
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${BULLET_INCLUDE_DIRS}")
+else()
+  target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BULLET_INCLUDE_DIRS})
+endif()
+
 target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
 
 # link required hifi libraries
-link_hifi_libraries(shared octree environment gpu model render fbx networking entities avatars 
-                    audio audio-client animation script-engine physics 
+link_hifi_libraries(shared octree environment gpu model render fbx networking entities avatars
+                    audio audio-client animation script-engine physics
                     render-utils entities-renderer ui auto-updater)
 
 add_dependency_external_projects(sdl2)
@@ -185,7 +182,7 @@ foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
 endforeach()
 
 # special OS X modifications for RtMidi library
-if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI AND APPLE)  
+if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI AND APPLE)
   find_library(CoreMIDI CoreMIDI)
   add_definitions(-D__MACOSX_CORE__)
   target_link_libraries(${TARGET_NAME} ${CoreMIDI})

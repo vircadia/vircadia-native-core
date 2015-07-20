@@ -57,7 +57,6 @@ PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID, const Ent
     _voxelSurfaceStyle(PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE)
 {
     _type = EntityTypes::PolyVox;
-    _created = properties.getCreated();
     setProperties(properties);
 }
 

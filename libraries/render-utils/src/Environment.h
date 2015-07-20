@@ -21,7 +21,6 @@
 #include <EnvironmentData.h>
 
 class ViewFrustum;
-class ProgramObject;
 
 class Environment {
 public:
@@ -36,13 +35,10 @@ public:
     void endOverride() { _environmentIsOverridden = false; }
     
     EnvironmentData getClosestData(const glm::vec3& position);
-    
-    
-    int parseData(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
-    
+
 private:
     glm::vec3 getGravity (const glm::vec3& position); // NOTE: Deprecated
-    bool findCapsulePenetration(const glm::vec3& start, 
+    bool findCapsulePenetration(const glm::vec3& start,
             const glm::vec3& end, float radius, glm::vec3& penetration); // NOTE: Deprecated
 
     void renderAtmosphere(gpu::Batch& batch, ViewFrustum& camera, const EnvironmentData& data);
@@ -79,7 +75,7 @@ private:
     
     typedef QHash<int, EnvironmentData> ServerData;
     
-    QHash<HifiSockAddr, ServerData> _data;
+    QHash<QUuid, ServerData> _data;
     EnvironmentData _overrideData;
     bool _environmentIsOverridden = false;
     

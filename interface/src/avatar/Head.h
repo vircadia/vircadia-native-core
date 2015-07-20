@@ -19,14 +19,12 @@
 #include <HeadData.h>
 
 #include "FaceModel.h"
-#include "InterfaceConfig.h"
 #include "world.h"
 
 
 const float EYE_EAR_GAP = 0.08f;
 
 class Avatar;
-class ProgramObject;
 
 class Head : public HeadData {
 public:

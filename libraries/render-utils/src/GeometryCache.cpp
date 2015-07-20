@@ -10,8 +10,6 @@
 //
 
 // include this before QOpenGLBuffer, which includes an earlier version of OpenGL
-#include <gpu/GPUConfig.h>
-
 #include <cmath>
 
 #include <QNetworkReply>
@@ -392,7 +390,6 @@ void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, in
     gpu::GLBackend::renderBatch(batch);
 }
 
-// TODO: properly handle the x,y,w,h changing for an ID
 // TODO: why do we seem to create extra BatchItemDetails when we resize the window?? what's that??
 void GeometryCache::renderGrid(gpu::Batch& batch, int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id) {
     #ifdef WANT_DEBUG
@@ -410,8 +407,23 @@ void GeometryCache::renderGrid(gpu::Batch& batch, int x, int y, int width, int h
     Vec3Pair colorKey(glm::vec3(color.x, color.y, rows), glm::vec3(color.z, color.y, cols));
 
     int vertices = (cols + 1 + rows + 1) * 2;
-    if ((registered && !_registeredAlternateGridBuffers.contains(id)) || (!registered && !_alternateGridBuffers.contains(key))) {
+    if ((registered && (!_registeredAlternateGridBuffers.contains(id) || _lastRegisteredAlternateGridBuffers[id] != key))
+        || (!registered && !_alternateGridBuffers.contains(key))) {
+
+        if (registered && _registeredAlternateGridBuffers.contains(id)) {
+            _registeredAlternateGridBuffers[id].reset();
+            #ifdef WANT_DEBUG
+                qCDebug(renderutils) << "renderGrid()... RELEASING REGISTERED VERTICES BUFFER";
+            #endif
+        }
+
         gpu::BufferPointer verticesBuffer(new gpu::Buffer());
+        if (registered) {
+            _registeredAlternateGridBuffers[id] = verticesBuffer;
+            _lastRegisteredAlternateGridBuffers[id] = key;
+        } else {
+            _alternateGridBuffers[key] = verticesBuffer;
+        }
 
         GLfloat* vertexData = new GLfloat[vertices * 2];
         GLfloat* vertex = vertexData;
@@ -433,6 +445,8 @@ void GeometryCache::renderGrid(gpu::Batch& batch, int x, int y, int width, int h
         }
         // Draw vertical grid lines
         for (int i = cols + 1; --i >= 0; ) {
+            //glVertex2i(tx, y);
+            //glVertex2i(tx, y + height);
             *(vertex++) = tx;
             *(vertex++) = y;
 
@@ -443,12 +457,6 @@ void GeometryCache::renderGrid(gpu::Batch& batch, int x, int y, int width, int h
 
         verticesBuffer->append(sizeof(GLfloat) * vertices * 2, (gpu::Byte*) vertexData);
         delete[] vertexData;
-        
-        if (registered) {
-            _registeredAlternateGridBuffers[id] = verticesBuffer;
-        } else {
-            _alternateGridBuffers[key] = verticesBuffer;
-        }
     }
 
     if (!_gridColors.contains(colorKey)) {

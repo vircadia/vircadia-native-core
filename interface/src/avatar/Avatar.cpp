@@ -11,8 +11,6 @@
 
 #include <vector>
 
-#include <gpu/GPUConfig.h>
-
 #include <QDesktopWidget>
 #include <QWindow>
 
@@ -27,7 +25,7 @@
 #include <LODManager.h>
 #include <NodeList.h>
 #include <NumericalConstants.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
@@ -281,7 +279,7 @@ enum TextRendererType {
 
 static TextRenderer3D* textRenderer(TextRendererType type) {
     static TextRenderer3D* chatRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, -1,
-        false, TextRenderer3D::SHADOW_EFFECT);
+        false, SHADOW_EFFECT);
     static TextRenderer3D* displayNameRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY);
 
     switch(type) {
@@ -992,7 +990,7 @@ void Avatar::setBillboard(const QByteArray& billboard) {
     _billboardTexture.reset();
 }
 
-int Avatar::parseDataAtOffset(const QByteArray& packet, int offset) {
+int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
     if (!_initialized) {
         // now that we have data for this Avatar we are go for init
         init();
@@ -1001,7 +999,7 @@ int Avatar::parseDataAtOffset(const QByteArray& packet, int offset) {
     // change in position implies movement
     glm::vec3 oldPosition = _position;
 
-    int bytesRead = AvatarData::parseDataAtOffset(packet, offset);
+    int bytesRead = AvatarData::parseDataFromBuffer(buffer);
 
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, _position) > MOVE_DISTANCE_THRESHOLD;
@@ -1127,7 +1125,7 @@ void Avatar::setShowDisplayName(bool showDisplayName) {
     }
 }
 
-// virtual 
+// virtual
 void Avatar::computeShapeInfo(ShapeInfo& shapeInfo) {
     const CapsuleShape& capsule = _skeletonModel.getBoundingShape();
     shapeInfo.setCapsuleY(capsule.getRadius(), capsule.getHalfHeight());

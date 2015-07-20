@@ -26,12 +26,12 @@
 #include <DependencyManager.h>
 #include <GeometryUtil.h>
 #include <NodeList.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <ShapeCollider.h>
 #include <SharedUtil.h>
-#include <TextRenderer.h>
+#include <TextRenderer3D.h>
 #include <UserActivityLogger.h>
 
 #include "devices/Faceshift.h"
@@ -849,18 +849,16 @@ AttachmentData MyAvatar::loadAttachmentData(const QUrl& modelURL, const QString&
     return attachment;
 }
 
-int MyAvatar::parseDataAtOffset(const QByteArray& packet, int offset) {
+int MyAvatar::parseDataFromBuffer(const QByteArray& buffer) {
     qCDebug(interfaceapp) << "Error: ignoring update packet for MyAvatar"
-        << " packetLength = " << packet.size()
-        << "  offset = " << offset;
+        << " packetLength = " << buffer.size();
     // this packet is just bad, so we pretend that we unpacked it ALL
-    return packet.size() - offset;
+    return buffer.size();
 }
 
 void MyAvatar::sendKillAvatar() {
-    auto nodeList = DependencyManager::get<NodeList>();
-    QByteArray killPacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeKillAvatar);
-    nodeList->broadcastToNodes(killPacket, NodeSet() << NodeType::AvatarMixer);
+    auto killPacket = NLPacket::create(PacketType::KillAvatar, 0);
+    DependencyManager::get<NodeList>()->broadcastToNodes(std::move(killPacket), NodeSet() << NodeType::AvatarMixer);
 }
 
 void MyAvatar::updateLookAtTargetAvatar() {
@@ -1411,7 +1409,7 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
             }
         }
     }
-    
+
     float boomChange = _driveKeys[BOOM_OUT] - _driveKeys[BOOM_IN];
     _boomLength += 2.0f * _boomLength * boomChange + boomChange * boomChange;
     _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);

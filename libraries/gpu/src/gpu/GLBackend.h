@@ -107,10 +107,6 @@ public:
     static GLShader* syncGPUObject(const Shader& shader);
     static GLuint getShaderID(const ShaderPointer& shader);
 
-    // FIXME: Please remove these 2 calls once the text renderer doesn't use naked gl calls anymore
-    static void loadMatrix(GLenum target, const glm::mat4 & m);
-    static void fetchMatrix(GLenum target, glm::mat4 & m);
-
     class GLState : public GPUObject {
     public:
         class Command {
@@ -350,6 +346,7 @@ protected:
     // Pipeline Stage
     void do_setPipeline(Batch& batch, uint32 paramOffset);
     void do_setStateBlendFactor(Batch& batch, uint32 paramOffset);
+    void do_setStateScissorRect(Batch& batch, uint32 paramOffset);
     
     // Standard update pipeline check that the current Program and current State or good to go for a
     void updatePipeline();
@@ -393,6 +390,8 @@ protected:
 
     // Output stage
     void do_setFramebuffer(Batch& batch, uint32 paramOffset);
+    void do_blit(Batch& batch, uint32 paramOffset);
+
 
     struct OutputStageState {
 

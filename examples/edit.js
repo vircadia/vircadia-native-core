@@ -53,6 +53,10 @@ var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
 var toolHeight = 50;
 var toolWidth = 50;
 
+var DEGREES_TO_RADIANS = Math.PI / 180.0;
+var RADIANS_TO_DEGREES = 180.0 / Math.PI;
+var epsilon = 0.001;
+
 var MIN_ANGULAR_SIZE = 2;
 var MAX_ANGULAR_SIZE = 45;
 var allowLargeModels = true;
@@ -656,7 +660,9 @@ function mouseMove(event) {
 
 function handleIdleMouse() {
     idleMouseTimerId = null;
-    highlightEntityUnderCursor(lastMousePosition, true);
+    if (isActive) {
+        highlightEntityUnderCursor(lastMousePosition, true);
+    }   
 }
 
 function highlightEntityUnderCursor(position, accurateRay) {
@@ -1205,6 +1211,49 @@ PropertiesTool = function(opts) {
         webView.setVisible(visible);
     };
 
+    vecToPolar = function(direction) {
+        var x = direction.x;
+        var y = direction.y;
+        var z = direction.z;
+        var pitch, yaw;
+        pitch = -Math.asin(y);
+        var c = Math.cos(-pitch);
+        if (Math.abs(pitch) > (Math.PI / 2.0 - epsilon)) {
+            //handle gymbal lock
+            if (pitch > 0) {
+                pitch = Math.PI / 2.0;
+            } else {
+                pitch = -Math.PI / 2.0;
+            }
+            yaw = 0.0;
+            } else {
+                if (z < 0) {
+                    if(x > 0 && x < 1) {
+                        yaw = Math.PI - Math.asin(x / c); 
+                    } else {
+                        yaw = -Math.asin(x / c) - Math.PI;
+                    }
+                } else {
+                    yaw = Math.asin(x / c);
+                }  
+            }
+            return {
+                x: pitch * RADIANS_TO_DEGREES,
+                y: yaw * RADIANS_TO_DEGREES,
+                z: 0.0 //discard roll component
+            };
+    };
+
+    polarToVec = function(orientation) {
+        var pitch = orientation.x * DEGREES_TO_RADIANS;
+        var yaw = orientation.y * DEGREES_TO_RADIANS;
+        return {
+            x: Math.cos(pitch) * Math.sin(yaw),
+            y: Math.sin(-pitch),
+            z: Math.cos(pitch) * Math.cos(yaw)
+        };
+    }
+
     selectionManager.addEventListener(function() {
         data = {
             type: 'update',
@@ -1214,7 +1263,12 @@ PropertiesTool = function(opts) {
             var entity = {};
             entity.id = selectionManager.selections[i];
             entity.properties = Entities.getEntityProperties(selectionManager.selections[i]);
-            entity.properties.rotation = Quat.safeEulerAngles(entity.properties.rotation);
+            if (entity.properties.rotation !== undefined) {
+                entity.properties.rotation = Quat.safeEulerAngles(entity.properties.rotation);
+            }
+            if (entity.properties.keyLightDirection !== undefined) {
+                entity.properties.keyLightDirection = vecToPolar(entity.properties.keyLightDirection);
+            }
             selections.push(entity);
         }
         data.selections = selections;
@@ -1242,6 +1296,9 @@ PropertiesTool = function(opts) {
                     var rotation = data.properties.rotation;
                     data.properties.rotation = Quat.fromPitchYawRollDegrees(rotation.x, rotation.y, rotation.z);
                 }
+                if (data.properties.keyLightDirection !== undefined) {
+                    data.properties.keyLightDirection = polarToVec(data.properties.keyLightDirection);
+                } 
                 Entities.editEntity(selectionManager.selections[0], data.properties);
                 if (data.properties.name != undefined) {
                     entityListTool.sendUpdate();
