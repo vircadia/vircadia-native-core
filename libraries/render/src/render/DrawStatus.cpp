@@ -9,20 +9,20 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "DrawStatus.h"
+
 #include <algorithm>
 #include <assert.h>
 
-#include "DrawStatus.h"
-
 #include <PerfStat.h>
-#include "gpu/GPULogging.h"
 
+#include <gpu/Batch.h>
+#include <gpu/Context.h>
+#include <gpu/GPUConfig.h>
+#include <gpu/GPULogging.h>
 
-#include "gpu/Batch.h"
-#include "gpu/Context.h"
-
-#include "ViewFrustum.h"
-#include "RenderArgs.h"
+#include <ViewFrustum.h>
+#include <RenderArgs.h>
 
 #include "drawItemBounds_vert.h"
 #include "drawItemBounds_frag.h"

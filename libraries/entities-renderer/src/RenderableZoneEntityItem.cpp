@@ -11,7 +11,6 @@
 
 #include "RenderableZoneEntityItem.h"
 
-#include <gpu/GPUConfig.h>
 #include <gpu/Batch.h>
 
 #include <AbstractViewStateInterface.h>

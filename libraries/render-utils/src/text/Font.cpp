@@ -314,7 +314,7 @@ void Font::drawString(gpu::Batch& batch, float x, float y, const QString& str, c
     batch.setPipeline(_pipeline);
     batch.setResourceTexture(_fontLoc, _texture);
     batch._glUniform1i(_outlineLoc, (effectType == OUTLINE_EFFECT));
-    batch._glUniform4fv(_colorLoc, 1, (const GLfloat*)color);
+    batch._glUniform4fv(_colorLoc, 1, (const float*)color);
 
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);

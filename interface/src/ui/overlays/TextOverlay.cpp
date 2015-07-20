@@ -8,21 +8,22 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-#include "Application.h"
 #include "TextOverlay.h"
-#include "OffscreenUi.h"
-#include "text/FontFamilies.h"
-#include <gpu/GLBackend.h>
+
+#include <QQuickItem>
+
 #include <DependencyManager.h>
 #include <GeometryCache.h>
-#include <TextureCache.h>
 #include <GLMHelpers.h>
+#include <gpu/GLBackend.h>
+#include <OffscreenUi.h>
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h>
+#include <TextureCache.h>
 #include <ViewFrustum.h>
-#include <QQuickItem>
+
+#include "Application.h"
+#include "text/FontFamilies.h"
 
 #define TEXT_OVERLAY_PROPERTY(type, name, initialValue) \
     Q_PROPERTY(type name READ name WRITE set##name NOTIFY name##Changed) \

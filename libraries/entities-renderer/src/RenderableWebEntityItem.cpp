@@ -8,11 +8,13 @@
 
 #include "RenderableWebEntityItem.h"
 
+#include <gpu/GPUConfig.h>
 #include <QMouseEvent>
+#include <QQuickItem>
+#include <QQuickWindow>
+#include <QOpenGLContext>
 
 #include <glm/gtx/quaternion.hpp>
-
-#include <gpu/GPUConfig.h>
 
 #include <DeferredLightingEffect.h>
 #include <GeometryCache.h>

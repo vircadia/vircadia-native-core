@@ -237,18 +237,6 @@ GLuint TextureCache::getPrimaryDepthTextureID() {
     return gpu::GLBackend::getTextureID(getPrimaryDepthTexture());
 }
 
-GLuint TextureCache::getPrimaryColorTextureID() {
-    return gpu::GLBackend::getTextureID(getPrimaryColorTexture());
-}
-
-GLuint TextureCache::getPrimaryNormalTextureID() {
-    return gpu::GLBackend::getTextureID(getPrimaryNormalTexture());
-}
-
-GLuint TextureCache::getPrimarySpecularTextureID() {
-    return gpu::GLBackend::getTextureID(getPrimarySpecularTexture());
-}
-
 void TextureCache::setPrimaryDrawBuffers(bool color, bool normal, bool specular) {
     gpu::Batch batch;
     setPrimaryDrawBuffers(batch, color, normal, specular);
@@ -284,7 +272,6 @@ gpu::FramebufferPointer TextureCache::getTertiaryFramebuffer() {
     return _tertiaryFramebuffer;
 }
 
-
 gpu::FramebufferPointer TextureCache::getShadowFramebuffer() {
     if (!_shadowFramebuffer) {
         const int SHADOW_MAP_SIZE = 2048;
@@ -293,12 +280,6 @@ gpu::FramebufferPointer TextureCache::getShadowFramebuffer() {
         _shadowTexture = _shadowFramebuffer->getDepthStencilBuffer();
     }
     return _shadowFramebuffer;
-}
-
-GLuint TextureCache::getShadowDepthTextureID() {
-    // ensure that the shadow framebuffer object is initialized before returning the depth texture id
-    getShadowFramebuffer();
-    return gpu::GLBackend::getTextureID(_shadowTexture);
 }
 
 /// Returns a texture version of an image file
@@ -329,10 +310,6 @@ Texture::Texture() {
 }
 
 Texture::~Texture() {
-}
-
-GLuint Texture::getID() const {
-    return gpu::GLBackend::getTextureID(_gpuTexture);
 }
 
 NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArray& content) :
