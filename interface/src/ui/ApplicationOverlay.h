@@ -13,7 +13,6 @@
 #define hifi_ApplicationOverlay_h
 
 #include <gpu/Texture.h>
-//class QOpenGLFramebufferObject;
 
 // Handles the drawing of the overlays to the screen
 // TODO, move divide up the rendering, displaying and input handling
