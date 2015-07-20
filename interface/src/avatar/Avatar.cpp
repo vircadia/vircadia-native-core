@@ -485,7 +485,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
         // quick check before falling into the code below:
         // (a 10 degree breadth of an almost 2 meter avatar kicks in at about 12m)
         const float MIN_VOICE_SPHERE_DISTANCE = 12.0f;
-        if (postLighting && Menu::getInstance()->isOptionChecked(MenuOption::BlueSpeechSphere)
+        if (Menu::getInstance()->isOptionChecked(MenuOption::BlueSpeechSphere)
             && distanceToTarget > MIN_VOICE_SPHERE_DISTANCE) {
 
             // render voice intensity sphere for avatars that are farther away
@@ -499,7 +499,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
             float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
             float sphereRadius = getHead()->getAverageLoudness() * SPHERE_LOUDNESS_SCALING;
 
-            if (renderArgs->_renderMode == RenderArgs::NORMAL_RENDER_MODE && (sphereRadius > MIN_SPHERE_SIZE) &&
+            if (renderArgs->_renderMode == RenderArgs::DEFAULT_RENDER_MODE && (sphereRadius > MIN_SPHERE_SIZE) &&
                     (angle < MAX_SPHERE_ANGLE) && (angle > MIN_SPHERE_ANGLE)) {
                 Transform transform;
                 transform.setTranslation(_position);
