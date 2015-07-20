@@ -1,0 +1,29 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  ambient_occlusion.frag
+//  fragment shader
+//
+//  Created by Eric Levin on 7/20
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+<@include gpu/Transform.slh@>
+<$declareStandardTransform()$>
+<@include DeferredBufferWrite.slh@>
+
+void main(void) {
+
+  TransformCamera cam = getTransformCamera();
+  vec4 myViewport;
+  <$transformCameraViewport(cam, myViewport)$>
+  vec2 center = vec2(myViewport.z/2.0, myViewport.w/2.0);
+  float distFromCenter = distance(center, gl_FragCoord.xy);
+  //normalize
+  distFromCenter = distFromCenter/myViewport.z;
+  float alpha = mix(0.0, 1.0, distFromCenter);
+  gl_FragColor = vec4(0.7, 0.0, 0.0, alpha);
+}
