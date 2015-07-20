@@ -54,7 +54,7 @@ void mainVR( out vec4 fragColor, in vec2 fragCoord, in vec3 fragRayOri, in vec3 
         c += meridian(polar, float(i) * merdianDist);
     }
     const vec3 col_lines = vec3(102.0 / 255.0, 136.0 / 255.0, 221.0 / 255.0);
-    fragColor = vec4(c * col_lines, 1.0);
+    fragColor = vec4(c * col_lines, 0.2);
 }
 
 void main(void) {
