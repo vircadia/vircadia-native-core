@@ -333,11 +333,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isThrottleFPSEnabled(false),
         _aboutToQuit(false),
         _notifiedPacketVersionMismatchThisDomain(false),
+        _glWidget(new GLCanvas()),
         _domainConnectionRefusals(QList<QString>()),
         _maxOctreePPS(maxOctreePacketsPerSecond.get()),
         _lastFaceTrackerUpdate(0),
-        _applicationOverlay(),
-        _glWidget(new GLCanvas())
+        _applicationOverlay()
 {
     setInstance(this);
 #ifdef Q_OS_WIN
