@@ -20,6 +20,8 @@
 #include "Application.h"
 #include "GeometryUtil.h"
 
+#include "DeferredLightingEffect.h"
+
 #include <GLMHelpers.h>
 
 
@@ -100,12 +102,13 @@ void BillboardOverlay::render(RenderArgs* args) {
 
     if (batch) {
         Transform transform = _transform;
-        transform.postScale(glm::vec3(getDimensions(), 1.0f));
         transform.setRotation(rotation);
+        transform.postScale(glm::vec3(getDimensions(), 1.0f));
 
         batch->setModelTransform(transform);
         batch->setResourceTexture(0, _texture->getGPUTexture());
         
+        DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(*batch, true, true, true);
         DependencyManager::get<GeometryCache>()->renderQuad(
             *batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
             glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha)
