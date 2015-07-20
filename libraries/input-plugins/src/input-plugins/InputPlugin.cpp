@@ -1,4 +1,7 @@
 //
+//  InputPlugin.cpp
+//  input-plugins/src/input-plugins
+//
 //  Created by Sam Gondelman on 7/13/2015
 //  Copyright 2015 High Fidelity, Inc.
 //

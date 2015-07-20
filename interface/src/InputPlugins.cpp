@@ -1,5 +1,5 @@
 //
-//  Created by Bradley Austin Davis on 2015/05/30
+//  Created by Sam Gondelman on 7/16/2015
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.

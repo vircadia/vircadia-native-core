@@ -1,7 +1,4 @@
 //
-//  Joystick.cpp
-//  interface/src/devices
-//
 //  Created by Stephen Birarda on 2014-09-23.
 //  Copyright 2014 High Fidelity, Inc.
 //

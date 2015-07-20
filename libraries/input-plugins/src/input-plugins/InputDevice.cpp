@@ -1,4 +1,7 @@
 //
+//  InputDevice.cpp
+//  input-plugins/src/input-plugins
+//
 //  Created by Sam Gondelman on 7/15/2015
 //  Copyright 2015 High Fidelity, Inc.
 //

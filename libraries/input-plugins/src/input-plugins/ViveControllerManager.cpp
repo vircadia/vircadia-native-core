@@ -1,6 +1,6 @@
 //
 //  ViveControllerManager.cpp
-//  interface/src/devices
+//  input-plugins/src/input-plugins
 //
 //  Created by Sam Gondelman on 6/29/15.
 //  Copyright 2013 High Fidelity, Inc.
@@ -21,7 +21,7 @@
 #include "NumericalConstants.h"
 #include "UserActivityLogger.h"
 
-extern vr::IVRSystem *_hmd;
+extern vr::IVRSystem* _hmd;
 extern int hmdRefCount;
 extern vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 extern mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];

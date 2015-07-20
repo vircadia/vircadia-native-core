@@ -1,6 +1,6 @@
 //
 //  UserInputMapper.h
-//  interface/src/ui
+//  input-plugins/src/input-plugins
 //
 //  Created by Sam Gateau on 4/27/15.
 //  Copyright 2015 High Fidelity, Inc.

@@ -28,7 +28,7 @@
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/RealSense.h"
-#include <input-plugins\SixenseManager.h> // TODO: should be able to remove this once input plugin architecture is finished
+#include <input-plugins/SixenseManager.h> // TODO: should be able to remove this once input plugin architecture is finished
 #include "MainWindow.h"
 #include "scripting/MenuScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)

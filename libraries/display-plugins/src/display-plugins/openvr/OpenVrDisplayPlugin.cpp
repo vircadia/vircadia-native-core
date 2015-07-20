@@ -35,7 +35,7 @@ const QString & OpenVrDisplayPlugin::getName() const {
     return NAME;
 }
 
-vr::IVRSystem *_hmd{ nullptr };
+vr::IVRSystem* _hmd{ nullptr };
 int hmdRefCount = 0;
 static vr::IVRCompositor* _compositor{ nullptr };
 vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];

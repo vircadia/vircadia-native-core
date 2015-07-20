@@ -1,6 +1,6 @@
 //
 //  SixenseManager.h
-//  interface/src/devices
+//  input-plugins/src/input-plugins
 //
 //  Created by Andrzej Kapolka on 11/15/13.
 //  Copyright 2013 High Fidelity, Inc.

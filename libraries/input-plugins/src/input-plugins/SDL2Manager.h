@@ -1,6 +1,6 @@
 //
 //  SDL2Manager.h
-//  interface/src/devices
+//  input-plugins/src/input-plugins
 //
 //  Created by Sam Gondelman on 6/5/15.
 //  Copyright 2015 High Fidelity, Inc.
