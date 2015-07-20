@@ -16,8 +16,14 @@
 
 class DialogsManagerScriptingInterface : public QObject {
     Q_OBJECT
+public:
+    DialogsManagerScriptingInterface();
+
 public slots:
     void toggleAddressBar();
+
+signals:
+    void addressBarToggled();
 };
 
 #endif
