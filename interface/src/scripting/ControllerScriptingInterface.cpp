@@ -468,6 +468,10 @@ int ControllerScriptingInterface::findDevice(QString name) {
     return DependencyManager::get<UserInputMapper>()->findDevice(name);
 }
 
+float ControllerScriptingInterface::getActionValue(int action) {
+    return DependencyManager::get<UserInputMapper>()->getActionState(UserInputMapper::Action(action));
+}
+
 InputController::InputController(int deviceTrackerId, int subTrackerId, QObject* parent) :
     AbstractInputController(),
     _deviceTrackerId(deviceTrackerId),
