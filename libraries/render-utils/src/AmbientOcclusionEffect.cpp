@@ -21,7 +21,6 @@
 
 #include "AbstractViewStateInterface.h"
 #include "AmbientOcclusionEffect.h"
-#include "ProgramObject.h"
 #include "RenderUtil.h"
 #include "TextureCache.h"
 #include "DependencyManager.h"
@@ -33,6 +32,8 @@
 #include "gaussian_blur_vertical_vert.h"
 #include "gaussian_blur_horizontal_vert.h"
 #include "gaussian_blur_frag.h"
+#include "occlusion_blend_vert.h"
+#include "occlusion_blend_frag.h"
 
 const int ROTATION_WIDTH = 4;
 const int ROTATION_HEIGHT = 4;
@@ -187,6 +188,9 @@ const gpu::PipelinePointer& AmbientOcclusion::getOcclusionPipeline() {
         gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
 
         gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("depthTexture"), 0));
+        slotBindings.insert(gpu::Shader::Binding(std::string("normalTexture"), 1));
+
         gpu::Shader::makeProgram(*program, slotBindings);
 
         //_drawItemBoundPosLoc = program->getUniforms().findLocation("inBoundPos");
@@ -282,6 +286,39 @@ const gpu::PipelinePointer& AmbientOcclusion::getHBlurPipeline() {
     return _hBlurPipeline;
 }
 
+const gpu::PipelinePointer& AmbientOcclusion::getBlendPipeline() {
+    if (!_blendPipeline) {
+        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(occlusion_blend_vert)));
+        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(occlusion_blend_frag)));
+        gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+
+        gpu::Shader::BindingSet slotBindings;
+        gpu::Shader::makeProgram(*program, slotBindings);
+
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+
+        state->setDepthTest(false, false, gpu::LESS_EQUAL);
+
+        // Blend on transparent
+        state->setBlendFunction(true,
+            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+            gpu::State::DEST_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ZERO);
+
+        // Link the horizontal blur FBO to texture
+        _hBlurBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_RGBA_32,
+            DependencyManager::get<TextureCache>()->getFrameBufferSize().width(), DependencyManager::get<TextureCache>()->getFrameBufferSize().height()));
+        auto format = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
+        auto width = _hBlurBuffer->getWidth();
+        auto height = _hBlurBuffer->getHeight();
+        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
+        _hBlurTexture = gpu::TexturePointer(gpu::Texture::create2D(format, width, height, defaultSampler));
+
+        // Good to go add the brand new pipeline
+        _blendPipeline.reset(gpu::Pipeline::create(program, state));
+    }
+    return _blendPipeline;
+}
+
 void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
 
     // create a simple pipeline that does:
@@ -308,7 +345,7 @@ void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, cons
     // Occlusion step
     getOcclusionPipeline();
     batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getPrimaryDepthTexture());
-    batch.setResourceTexture(1, DependencyManager::get<TextureCache>()->getPrimaryNormalTexture());
+    batch.setResourceTexture(1, DependencyManager::get<TextureCache>()->getPrimaryFramebuffer()->getRenderBuffer(0));
     _occlusionBuffer->setRenderBuffer(0, _occlusionTexture);
     batch.setFramebuffer(_occlusionBuffer);
 
@@ -339,7 +376,7 @@ void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, cons
     _hBlurBuffer->setRenderBuffer(0, _hBlurTexture);
     batch.setFramebuffer(_hBlurBuffer);
 
-    // bind the second gpu::Pipeline we need - for calculating blur buffer
+    // bind the third gpu::Pipeline we need - for calculating blur buffer
     batch.setPipeline(getHBlurPipeline());
 
     DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color);
@@ -348,8 +385,8 @@ void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, cons
     batch.setResourceTexture(0, _hBlurTexture);
     batch.setFramebuffer(DependencyManager::get<TextureCache>()->getPrimaryFramebuffer());
 
-    // bind the second gpu::Pipeline we need
-    batch.setPipeline(getOcclusionPipeline());
+    // bind the fourth gpu::Pipeline we need - for 
+    batch.setPipeline(getBlendPipeline());
 
     glm::vec2 bottomLeftSmall(0.5f, -1.0f);
     glm::vec2 topRightSmall(1.0f, -0.5f);

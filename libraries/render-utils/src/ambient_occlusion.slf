@@ -40,9 +40,9 @@ void main(void) {
     float c = (2.0 * n) / (f + n - z * (f - n));  // convert to linear values 
 
     //gl_FragColor = vec4(c, c, c, 1.0); 
-    gl_FragColor = normalColor; 
+    gl_FragColor = mix(depthColor, normalColor, normalColor.a);
 
     //vec3 p = getPosition(i.uv);
     //vec3 n = getNormal(i.uv);
-    vec2 rand = vec2(getRandom(varTexcoord.xy), getRandom(varTexcoord.yx));
+    //vec2 rand = vec2(getRandom(varTexcoord.xy), getRandom(varTexcoord.yx));
 }

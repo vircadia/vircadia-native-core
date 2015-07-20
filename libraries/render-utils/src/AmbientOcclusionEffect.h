@@ -16,46 +16,6 @@
 
 #include "render/DrawTask.h"
 
-class AbstractViewStateInterface;
-class ProgramObject;
-
-/// A screen space ambient occlusion effect.  See John Chapman's tutorial at
-/// http://john-chapman-graphics.blogspot.co.uk/2013/01/ssao-tutorial.html for reference.
-
-/*
-class AmbientOcclusionEffect : public Dependency {
-    SINGLETON_DEPENDENCY
-
-public:
-
-    void init(AbstractViewStateInterface* viewState);
-
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-    typedef render::Job::Model<AmbientOcclusionEffect> JobModel;
-
-
-    AmbientOcclusionEffect() {}
-    virtual ~AmbientOcclusionEffect() {}
-
-private:
-
-    ProgramObject* _occlusionProgram;
-    int _nearLocation;
-    int _farLocation;
-    int _leftBottomLocation;
-    int _rightTopLocation;
-    int _noiseScaleLocation;
-    int _texCoordOffsetLocation;
-    int _texCoordScaleLocation;
-
-    ProgramObject* _blurProgram;
-    int _blurScaleLocation;
-
-    GLuint _rotationTextureID;
-    AbstractViewStateInterface* _viewState;
-};
-*/
-
 class AmbientOcclusion {
 public:
 
@@ -67,12 +27,14 @@ public:
     const gpu::PipelinePointer& getOcclusionPipeline();
     const gpu::PipelinePointer& getHBlurPipeline();
     const gpu::PipelinePointer& getVBlurPipeline();
+    const gpu::PipelinePointer& getBlendPipeline();
 
 private:
 
     gpu::PipelinePointer _occlusionPipeline;
     gpu::PipelinePointer _hBlurPipeline;
     gpu::PipelinePointer _vBlurPipeline;
+    gpu::PipelinePointer _blendPipeline;
 
     gpu::FramebufferPointer _occlusionBuffer;
     gpu::FramebufferPointer _hBlurBuffer;
