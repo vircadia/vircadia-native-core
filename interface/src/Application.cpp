@@ -321,7 +321,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _previousScriptLocation("LastScriptLocation"),
         _scriptsLocationHandle("scriptsLocation"),
         _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
-        _viewTransform(),
         _scaleMirror(1.0f),
         _rotateMirror(0.0f),
         _raiseMirror(0.0f),
@@ -1079,10 +1078,12 @@ void Application::resizeGL() {
         _renderResolution = toGlm(renderSize);
         DependencyManager::get<TextureCache>()->setFrameBufferSize(renderSize);
 
-        glViewport(0, 0, _renderResolution.x, _renderResolution.y); // shouldn't this account for the menu???
+      //  glViewport(0, 0, _renderResolution.x, _renderResolution.y); // shouldn't this account for the menu???
 
-        updateProjectionMatrix();
-        glLoadIdentity();
+        //updateProjectionMatrix();
+       // glLoadIdentity();
+
+        loadViewFrustum(_myCamera, _viewFrustum);
     }
 
     resetCameras(_myCamera, _renderResolution);
@@ -1094,11 +1095,14 @@ void Application::resizeGL() {
     _glWidget->makeCurrent();
 
 }
-
+/*
 void Application::updateProjectionMatrix() {
-    updateProjectionMatrix(_myCamera);
+ //   _projectionMatrix = _myCamera.getProjection();
+     loadViewFrustum(_myCamera, _viewFrustum);
+//    updateProjectionMatrix(_myCamera);
 }
-
+*/
+/*
 void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum) {
     _projectionMatrix = camera.getProjection();
 
@@ -1112,7 +1116,7 @@ void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum)
 
     glMatrixMode(GL_MODELVIEW);
 }
-
+*/
 void Application::controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {
     foreach(NodeType_t type, destinationNodeTypes) {
         // Perform the broadcast for one type
@@ -3118,8 +3122,7 @@ void Application::updateShadowMap(RenderArgs* renderArgs) {
         // this is what is used for rendering the Entities and avatars
         Transform viewTransform;
         viewTransform.setRotation(rotation);
-    //    viewTransform.postTranslate(shadowFrustumCenter);
-        setViewTransform(viewTransform);
+       // setViewTransform(viewTransform);
 
 
         glEnable(GL_POLYGON_OFFSET_FILL);
@@ -3440,7 +3443,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         viewTransform.preTranslate(_viewMatrixTranslation);
     }
 
-    setViewTransform(viewTransform);
+//    setViewTransform(viewTransform);
 
     glTranslatef(_viewMatrixTranslation.x, _viewMatrixTranslation.y, _viewMatrixTranslation.z);
 
@@ -3615,9 +3618,9 @@ void Application::updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTransl
     _viewMatrixTranslation = viewMatrixTranslation;
 }
 
-void Application::setViewTransform(const Transform& view) {
+/*void Application::setViewTransform(const Transform& view) {
     _viewTransform = view;
-}
+}*/
 
 void Application::loadTranslatedViewMatrix(const glm::vec3& translation) {
     glLoadMatrixf((const GLfloat*)&_untranslatedViewMatrix);
@@ -3685,8 +3688,8 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
 
 void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard) {
     // Grab current viewport to reset it at the end
-    int viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
+  //  int viewport[4];
+//    glGetIntegerv(GL_VIEWPORT, viewport);
     auto masterViewport = renderArgs->_viewport;
     float aspect = (float)region.width() / region.height();
     float fov = MIRROR_FIELD_OF_VIEW;
@@ -3727,16 +3730,16 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     // set the bounds of rear mirror view
     if (billboard) {
         QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
-        glViewport(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
-        glScissor(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
+      //  glViewport(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
+     //   glScissor(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
         renderArgs->_viewport = glm::ivec4(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
     } else {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
         QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
         float ratio = (float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale();
         int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
-        glViewport(x, size.height() - y - height, width, height);
-        glScissor(x, size.height() - y - height, width, height);
+     //   glViewport(x, size.height() - y - height, width, height);
+    //   glScissor(x, size.height() - y - height, width, height);
     
         renderArgs->_viewport = glm::ivec4(x, size.height() - y - height, width, height);
     }
@@ -3748,7 +3751,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     */
     gpu::Batch batch;
     batch.setViewportTransform(renderArgs->_viewport);
-  //  batch.setStateScissorRect(scissor);
+    batch.setStateScissorRect(renderArgs->_viewport);
     batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLORS | gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(0.0f), 1.0f, 0, true);
 
     renderArgs->_context->syncCache();
@@ -3760,9 +3763,9 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
   //  glPopMatrix();
  
     // reset Viewport and projection matrix
-    renderArgs->_viewport = glm::ivec4(viewport[0], viewport[1], viewport[2], viewport[3]);
-    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
-  //  glDisable(GL_SCISSOR_TEST);
+    //renderArgs->_viewport = glm::ivec4(viewport[0], viewport[1], viewport[2], viewport[3]);
+    renderArgs->_viewport =  masterViewport;
+   // glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
     updateProjectionMatrix(_myCamera, updateViewFrustum);
 }
 

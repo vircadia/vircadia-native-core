@@ -241,11 +241,11 @@ public:
     Overlays& getOverlays() { return _overlays; }
 
     float getFps() const { return _fps; }
-    const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
-    void setViewMatrixTranslation(const glm::vec3& translation) { _viewMatrixTranslation = translation; }
+  //  const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
+  //  void setViewMatrixTranslation(const glm::vec3& translation) { _viewMatrixTranslation = translation; }
 
-    virtual const Transform& getViewTransform() const { return _viewTransform; }
-    void setViewTransform(const Transform& view);
+  //  virtual const Transform& getViewTransform() const { return _viewTransform; }
+  //  void setViewTransform(const Transform& view);
     
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov) { _fieldOfView.set(fov); }
@@ -276,14 +276,14 @@ public:
     /// the view matrix translation.
     void updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation = glm::vec3());
 
-    const glm::mat4& getUntranslatedViewMatrix() const { return _untranslatedViewMatrix; }
+//    const glm::mat4& getUntranslatedViewMatrix() const { return _untranslatedViewMatrix; }
 
     /// Loads a view matrix that incorporates the specified model translation without the precision issues that can
     /// result from matrix multiplication at high translation magnitudes.
-    void loadTranslatedViewMatrix(const glm::vec3& translation);
+   // void loadTranslatedViewMatrix(const glm::vec3& translation);
 
-    void getModelViewMatrix(glm::dmat4* modelViewMatrix);
-    void getProjectionMatrix(glm::dmat4* projectionMatrix);
+  //  void getModelViewMatrix(glm::dmat4* modelViewMatrix);
+  //  void getProjectionMatrix(glm::dmat4* projectionMatrix);
 
     virtual const glm::vec3& getShadowDistances() const { return _shadowDistances; }
 
@@ -475,8 +475,8 @@ private slots:
 
 private:
     void resetCameras(Camera& camera, const glm::uvec2& size);
-    void updateProjectionMatrix();
-    void updateProjectionMatrix(Camera& camera, bool updateViewFrustum = true);
+ //   void updateProjectionMatrix();
+ //   void updateProjectionMatrix(Camera& camera, bool updateViewFrustum = true);
 
     void sendPingPackets();
 
@@ -568,10 +568,10 @@ private:
     Setting::Handle<QString>    _scriptsLocationHandle;
     Setting::Handle<float>      _fieldOfView;
 
-    Transform _viewTransform;
-    glm::mat4 _untranslatedViewMatrix;
-    glm::vec3 _viewMatrixTranslation;
-    glm::mat4 _projectionMatrix;
+    //Transform _viewTransform;
+    //glm::mat4 _untranslatedViewMatrix;
+    //glm::vec3 _viewMatrixTranslation;
+    //glm::mat4 _projectionMatrix;
 
     float _scaleMirror;
     float _rotateMirror;
