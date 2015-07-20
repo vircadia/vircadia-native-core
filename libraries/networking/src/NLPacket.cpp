@@ -64,13 +64,7 @@ std::unique_ptr<NLPacket> NLPacket::fromReceivedPacket(std::unique_ptr<char> dat
 }
 
 std::unique_ptr<NLPacket> NLPacket::createCopy(const NLPacket& other) {
-    auto packet = std::unique_ptr<NLPacket>(new NLPacket(other));
-    
-    if (other.isOpen()) {
-        packet->open(other.openMode());
-    }
-
-    return packet;
+    return std::unique_ptr<NLPacket>(new NLPacket(other));
 }
 
 NLPacket::NLPacket(PacketType::Value type, qint64 size) :

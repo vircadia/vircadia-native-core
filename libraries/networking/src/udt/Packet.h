@@ -81,7 +81,7 @@ public:
 
     using QIODevice::read;
     QByteArray read(qint64 maxSize);
-
+    
     template<typename T> qint64 peekPrimitive(T* data);
     template<typename T> qint64 readPrimitive(T* data);
     template<typename T> qint64 writePrimitive(const T& data);
