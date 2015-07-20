@@ -27,7 +27,7 @@
 // NOTE: if you want the name of the packet packetType to be available for debugging or logging, update nameForPacketType() as well
 
 namespace PacketType {
-   enum Value {
+    enum Value {
         Unknown,
         StunResponse,
         DomainList,
@@ -62,18 +62,18 @@ namespace PacketType {
         DomainConnectRequest,
         DomainServerRequireDTLS,
         NodeJsonStats,
-        EntityQuery,
-        EntityData,
-        EntityAdd,
-        EntityErase,
-        EntityEdit,
         OctreeDataNack,
         StopNode,
         AudioEnvironment,
         EntityEditNack,
         ICEServerHeartbeat,
         ICEPing,
-        ICEPingReply
+        ICEPingReply,
+        EntityData,
+        EntityQuery,
+        EntityAdd,
+        EntityErase,
+        EntityEdit
    };
 };
 
