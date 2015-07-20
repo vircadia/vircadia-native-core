@@ -14,6 +14,7 @@
 #include <QDebug>
 
 #include "ScriptEngineLogging.h"
+#include "NumericalConstants.h"
 #include "Vec3.h"
 
 glm::vec3 Vec3::reflect(const glm::vec3& v1, const glm::vec3& v2) {
@@ -73,3 +74,64 @@ void Vec3::print(const QString& lable, const glm::vec3& v) {
 bool Vec3::equal(const glm::vec3& v1, const glm::vec3& v2) {
     return v1 == v2;
 }
+
+glm::vec3 Vec3::toPolar(const glm::vec3& v) {
+    glm::vec3 u = normalize(v);
+    float pitch, yaw, temp;
+    pitch = glm::asin(-u.y);
+    temp = glm::cos(pitch);
+    if (glm::abs(pitch) >= (PI - EPSILON)) {
+        yaw = 0.0;
+        if (pitch > 0) {
+            pitch = PI_OVER_TWO;
+        } else {
+            pitch = -PI_OVER_TWO;
+        }
+    } else {
+        if (u.z < 0.0) {
+            if (u.x > 0.0 && u.x < 1.0) {
+                yaw = PI - glm::asin(u.x / temp);
+            } else {
+                yaw = -PI - glm::asin(u.x / temp);
+            }
+        } else {
+            yaw = glm::asin(u.x / temp);
+        }
+    }
+    
+    // Round small values to 0
+    if (glm::abs(pitch) < EPSILON) {
+        pitch = 0.0;
+    }
+    if (glm::abs(yaw) < EPSILON) {
+        yaw = 0.0;
+    }
+    
+    // Neglect roll component
+    return glm::vec3(glm::degrees(pitch), glm::degrees(yaw), 0.0);
+}
+
+glm::vec3 Vec3::fromPolar(float pitch, float yaw) {
+    pitch = glm::radians(pitch);
+    yaw = glm::radians(yaw);
+    
+    float x = glm::cos(pitch) * glm::sin(yaw);
+    float y = glm::sin(-pitch);
+    float z = glm::cos(pitch) * glm::cos(yaw);
+    
+    // Round small values to 0
+    if (glm::abs(x) < EPSILON) {
+        x = 0.0;
+    }
+    if (glm::abs(y) < EPSILON) {
+        y = 0.0;
+    }
+    if (glm::abs(z) < EPSILON) {
+        z = 0.0;
+    }
+    
+    return glm::vec3(x, y, z);
+}
+
+
+
