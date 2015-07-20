@@ -12,9 +12,10 @@
 #ifndef hifi_OffscreenGlCanvas_h
 #define hifi_OffscreenGlCanvas_h
 
-#include <QOpenGLContext>
-#include <QOffscreenSurface>
+#include <QObject>
 
+class QOpenGLContext;
+class QOffscreenSurface;
 class QOpenGLDebugLogger;
 
 class OffscreenGlCanvas : public QObject {
@@ -25,12 +26,12 @@ public:
     bool makeCurrent();
     void doneCurrent();
     QOpenGLContext* getContext() {
-        return &_context;
+        return _context;
     }
 
 protected:
-    QOpenGLContext _context;
-    QOffscreenSurface _offscreenSurface;
+    QOpenGLContext* _context;
+    QOffscreenSurface* _offscreenSurface;
 #ifdef DEBUG
     QOpenGLDebugLogger* _logger{ nullptr };
 #endif

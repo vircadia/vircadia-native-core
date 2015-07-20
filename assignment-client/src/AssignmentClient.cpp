@@ -26,7 +26,7 @@
 #include <LogUtils.h>
 #include <LimitedNodeList.h>
 #include <NodeList.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 #include <ShutdownEventListener.h>
 #include <SoundCache.h>
@@ -49,23 +49,28 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     LogUtils::init();
 
     QSettings::setDefaultFormat(QSettings::IniFormat);
-
-    // create a NodeList as an unassigned client
-    DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
+ 
     auto addressManager = DependencyManager::set<AddressManager>();
-    auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned); // Order is important
+
+    // create a NodeList as an unassigned client, must be after addressManager
+    auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned);
 
     auto animationCache = DependencyManager::set<AnimationCache>();
-    auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
     auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>();
 
     DependencyManager::registerInheritance<EntityActionFactoryInterface, AssignmentActionFactory>();
     auto actionFactory = DependencyManager::set<AssignmentActionFactory>();
 
-    // make up a uuid for this child so the parent can tell us apart.  This id will be changed
-    // when the domain server hands over an assignment.
-    QUuid nodeUUID = QUuid::createUuid();
-    nodeList->setSessionUUID(nodeUUID);
+    // setup a thread for the NodeList and its PacketReceiver
+    QThread* nodeThread = new QThread(this);
+    nodeThread->setObjectName("NodeList Thread");
+    nodeThread->start();
+
+    // make sure the node thread is given highest priority
+    nodeThread->setPriority(QThread::TimeCriticalPriority);
+
+    // put the NodeList on the node thread
+    nodeList->moveToThread(nodeThread);
 
     // set the logging target to the the CHILD_TARGET_NAME
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
@@ -104,9 +109,6 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     connect(&_requestTimer, SIGNAL(timeout()), SLOT(sendAssignmentRequest()));
     _requestTimer.start(ASSIGNMENT_REQUEST_INTERVAL_MSECS);
 
-    // connect our readPendingDatagrams method to the readyRead() signal of the socket
-    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &AssignmentClient::readPendingDatagrams);
-
     // connections to AccountManager for authentication
     connect(&AccountManager::getInstance(), &AccountManager::authRequired,
             this, &AssignmentClient::handleAuthenticationRequest);
@@ -121,11 +123,12 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
         qDebug() << "Assignment-client monitor socket is" << _assignmentClientMonitorSocket;
 
         // Hook up a timer to send this child's status to the Monitor once per second
-        setUpStatsToMonitor();
+        setUpStatusToMonitor();
     }
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::CreateAssignment, this, "handleCreateAssignmentPacket");
+    packetReceiver.registerListener(PacketType::StopNode, this, "handleStopNodePacket");
 }
-
-
 void AssignmentClient::stopAssignmentClient() {
     qDebug() << "Forced stop of assignment-client.";
 
@@ -151,6 +154,16 @@ void AssignmentClient::stopAssignmentClient() {
     }
 }
 
+AssignmentClient::~AssignmentClient() {
+    QThread* nodeThread = DependencyManager::get<NodeList>()->thread();
+    
+    // remove the NodeList from the DependencyManager
+    DependencyManager::destroy<NodeList>();
+
+    // ask the node thread to quit and wait until it is done
+    nodeThread->quit();
+    nodeThread->wait();
+}
 
 void AssignmentClient::aboutToQuit() {
     stopAssignmentClient();
@@ -160,23 +173,28 @@ void AssignmentClient::aboutToQuit() {
 }
 
 
-void AssignmentClient::setUpStatsToMonitor() {
+void AssignmentClient::setUpStatusToMonitor() {
     // send a stats packet every 1 seconds
-    connect(&_statsTimerACM, &QTimer::timeout, this, &AssignmentClient::sendStatsPacketToACM);
+    connect(&_statsTimerACM, &QTimer::timeout, this, &AssignmentClient::sendStatusPacketToACM);
     _statsTimerACM.start(1000);
 }
 
-void AssignmentClient::sendStatsPacketToACM() {
+void AssignmentClient::sendStatusPacketToACM() {
     // tell the assignment client monitor what this assignment client is doing (if anything)
-    QJsonObject statsObject;
     auto nodeList = DependencyManager::get<NodeList>();
+    
+    quint8 assignmentType = Assignment::Type::AllTypes;
 
     if (_currentAssignment) {
-        statsObject["assignment_type"] = _currentAssignment->getTypeName();
-    } else {
-        statsObject["assignment_type"] = "none";
+        assignmentType = _currentAssignment->getType();
     }
-    nodeList->sendStats(statsObject, _assignmentClientMonitorSocket);
+
+    auto statusPacket = NLPacket::create(PacketType::AssignmentClientStatus, sizeof(assignmentType) + NUM_BYTES_RFC4122_UUID);
+
+    statusPacket->write(_childAssignmentUUID.toRfc4122());
+    statusPacket->writePrimitive(assignmentType);
+    
+    nodeList->sendPacket(std::move(statusPacket), _assignmentClientMonitorSocket);
 }
 
 void AssignmentClient::sendAssignmentRequest() {
@@ -206,85 +224,64 @@ void AssignmentClient::sendAssignmentRequest() {
     }
 }
 
-void AssignmentClient::readPendingDatagrams() {
-    auto nodeList = DependencyManager::get<NodeList>();
+void AssignmentClient::handleCreateAssignmentPacket(QSharedPointer<NLPacket> packet) {
+    qDebug() << "Received a PacketType::CreateAssignment - attempting to unpack.";
 
-    QByteArray receivedPacket;
-    HifiSockAddr senderSockAddr;
+    // construct the deployed assignment from the packet data
+    _currentAssignment = AssignmentFactory::unpackAssignment(*packet);
 
-    while (nodeList->getNodeSocket().hasPendingDatagrams()) {
-        receivedPacket.resize(nodeList->getNodeSocket().pendingDatagramSize());
-        nodeList->getNodeSocket().readDatagram(receivedPacket.data(), receivedPacket.size(),
-                                               senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
+    if (_currentAssignment) {
+        qDebug() << "Received an assignment -" << *_currentAssignment;
 
-        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
-            if (packetTypeForPacket(receivedPacket) == PacketTypeCreateAssignment) {
+        auto nodeList = DependencyManager::get<NodeList>();
 
-                qDebug() << "Received a PacketTypeCreateAssignment - attempting to unpack.";
+        // switch our DomainHandler hostname and port to whoever sent us the assignment
 
-                // construct the deployed assignment from the packet data
-                _currentAssignment = AssignmentFactory::unpackAssignment(receivedPacket);
+        nodeList->getDomainHandler().setSockAddr(packet->getSenderSockAddr(), _assignmentServerHostname);
+        nodeList->getDomainHandler().setAssignmentUUID(_currentAssignment->getUUID());
 
-                if (_currentAssignment) {
-                    qDebug() << "Received an assignment -" << *_currentAssignment;
+        qDebug() << "Destination IP for assignment is" << nodeList->getDomainHandler().getIP().toString();
 
-                    // switch our DomainHandler hostname and port to whoever sent us the assignment
+        // start the deployed assignment
+        QThread* workerThread = new QThread;
+        workerThread->setObjectName("ThreadedAssignment Worker");
 
-                    nodeList->getDomainHandler().setSockAddr(senderSockAddr, _assignmentServerHostname);
-                    nodeList->getDomainHandler().setAssignmentUUID(_currentAssignment->getUUID());
+        connect(workerThread, &QThread::started, _currentAssignment.data(), &ThreadedAssignment::run);
 
-                    qDebug() << "Destination IP for assignment is" << nodeList->getDomainHandler().getIP().toString();
+        // Once the ThreadedAssignment says it is finished - we ask it to deleteLater
+        // This is a queued connection so that it is put into the event loop to be processed by the worker
+        // thread when it is ready.
+        connect(_currentAssignment.data(), &ThreadedAssignment::finished, _currentAssignment.data(),
+                &ThreadedAssignment::deleteLater, Qt::QueuedConnection);
 
-                    // start the deployed assignment
-                    QThread* workerThread = new QThread;
-                    workerThread->setObjectName("ThreadedAssignment Worker");
+        // once it is deleted, we quit the worker thread
+        connect(_currentAssignment.data(), &ThreadedAssignment::destroyed, workerThread, &QThread::quit);
 
-                    connect(workerThread, &QThread::started, _currentAssignment.data(), &ThreadedAssignment::run);
+        // have the worker thread remove itself once it is done
+        connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
 
-                    // Once the ThreadedAssignment says it is finished - we ask it to deleteLater
-                    // This is a queued connection so that it is put into the event loop to be processed by the worker
-                    // thread when it is ready.
-                    connect(_currentAssignment.data(), &ThreadedAssignment::finished, _currentAssignment.data(),
-                            &ThreadedAssignment::deleteLater, Qt::QueuedConnection);
+        // once the worker thread says it is done, we consider the assignment completed
+        connect(workerThread, &QThread::destroyed, this, &AssignmentClient::assignmentCompleted);
 
-                    // once it is deleted, we quit the worker thread
-                    connect(_currentAssignment.data(), &ThreadedAssignment::destroyed, workerThread, &QThread::quit);
+        _currentAssignment->moveToThread(workerThread);
 
-                    // have the worker thread remove itself once it is done
-                    connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
+        // Starts an event loop, and emits workerThread->started()
+        workerThread->start();
+    } else {
+        qDebug() << "Received an assignment that could not be unpacked. Re-requesting.";
+    }
+}
 
-                    // once the worker thread says it is done, we consider the assignment completed
-                    connect(workerThread, &QThread::destroyed, this, &AssignmentClient::assignmentCompleted);
+void AssignmentClient::handleStopNodePacket(QSharedPointer<NLPacket> packet) {
+    const HifiSockAddr& senderSockAddr = packet->getSenderSockAddr();
+    
+    if (senderSockAddr.getAddress() == QHostAddress::LocalHost ||
+            senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
+        qDebug() << "AssignmentClientMonitor at" << senderSockAddr << "requested stop via PacketType::StopNode.";
 
-                    _currentAssignment->moveToThread(workerThread);
-
-                    // move the NodeList to the thread used for the _current assignment
-                    nodeList->moveToThread(workerThread);
-
-                    // let the assignment handle the incoming datagrams for its duration
-                    disconnect(&nodeList->getNodeSocket(), 0, this, 0);
-                    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, _currentAssignment.data(),
-                            &ThreadedAssignment::readPendingDatagrams);
-
-                    // Starts an event loop, and emits workerThread->started()
-                    workerThread->start();
-                } else {
-                    qDebug() << "Received an assignment that could not be unpacked. Re-requesting.";
-                }
-            } else if (packetTypeForPacket(receivedPacket) == PacketTypeStopNode) {
-                if (senderSockAddr.getAddress() == QHostAddress::LocalHost ||
-                    senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
-                    qDebug() << "AssignmentClientMonitor at" << senderSockAddr << "requested stop via PacketTypeStopNode.";
-
-                    QCoreApplication::quit();
-                } else {
-                    qDebug() << "Got a stop packet from other than localhost.";
-                }
-            } else {
-                // have the NodeList attempt to handle it
-                nodeList->processNodeData(senderSockAddr, receivedPacket);
-            }
-        }
+        QCoreApplication::quit();
+    } else {
+        qDebug() << "Got a stop packet from other than localhost.";
     }
 }
 
@@ -327,8 +324,8 @@ void AssignmentClient::assignmentCompleted() {
 
     auto nodeList = DependencyManager::get<NodeList>();
 
-    // have us handle incoming NodeList datagrams again, and make sure our ThreadedAssignment isn't handling them
-    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &AssignmentClient::readPendingDatagrams);
+    // tell the packet receiver to stop dropping packets
+    nodeList->getPacketReceiver().setShouldDropPackets(false);
 
     // reset our NodeList by switching back to unassigned and clearing the list
     nodeList->setOwnerType(NodeType::Unassigned);

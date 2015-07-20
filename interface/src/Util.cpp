@@ -24,7 +24,6 @@
 #include <ByteCountCoding.h>
 #include <SharedUtil.h>
 
-#include "InterfaceConfig.h"
 #include "world.h"
 #include "Application.h"
 #include "InterfaceLogging.h"

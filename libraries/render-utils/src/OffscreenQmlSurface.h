@@ -9,15 +9,8 @@
 #ifndef hifi_OffscreenQmlSurface_h
 #define hifi_OffscreenQmlSurface_h
 
-#include <QQmlEngine>
-#include <QQmlComponent>
-#include <QQuickItem>
-#include <QQuickWindow>
-#include <QQuickRenderControl>
-#include <QQuickImageProvider>
 #include <QTimer>
-#include <QMessageBox>
-
+#include <QUrl>
 #include <atomic>
 #include <functional>
 
@@ -25,27 +18,19 @@
 #include <ThreadHelpers.h>
 
 #include "OffscreenGlCanvas.h"
-#include "FboCache.h"
+
+class QWindow;
+class QMyQuickRenderControl;
+class QQmlEngine;
+class QQmlContext;
+class QQmlComponent;
+class QQuickWindow;
+class QQuickItem;
+class FboCache;
 
 class OffscreenQmlSurface : public OffscreenGlCanvas {
     Q_OBJECT
-protected:
-    class QMyQuickRenderControl : public QQuickRenderControl {
-    protected:
-        QWindow* renderWindow(QPoint* offset) Q_DECL_OVERRIDE{
-            if (nullptr == _renderWindow) {
-                return QQuickRenderControl::renderWindow(offset);
-            }
-            if (nullptr != offset) {
-                offset->rx() = offset->ry() = 0;
-            }
-            return _renderWindow;
-        }
 
-    private:
-        QWindow* _renderWindow{ nullptr };
-        friend class OffscreenQmlSurface;
-    };
 public:
     OffscreenQmlSurface();
     virtual ~OffscreenQmlSurface();
@@ -76,7 +61,7 @@ public:
     virtual bool eventFilter(QObject* originalDestination, QEvent* event);
 
 signals:
-    void textureUpdated(GLuint texture);
+    void textureUpdated(unsigned int texture);
 
 public slots:
     void requestUpdate();
@@ -95,12 +80,12 @@ protected:
     QQuickWindow* _quickWindow{ nullptr };
 
 private:
-    QMyQuickRenderControl* _renderControl{ new QMyQuickRenderControl };
+    QMyQuickRenderControl* _renderControl{ nullptr };
     QQmlEngine* _qmlEngine{ nullptr };
     QQmlComponent* _qmlComponent{ nullptr };
     QQuickItem* _rootItem{ nullptr };
     QTimer _updateTimer;
-    FboCache _fboCache;
+    FboCache* _fboCache;
     bool _polish{ true };
     bool _paused{ true };
     MouseTranslator _mouseTranslator{ [](const QPointF& p) { return p;  } };

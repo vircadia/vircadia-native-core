@@ -12,8 +12,6 @@
 #include "TextRenderer3D.h"
 #include <StreamHelpers.h>
 
-#include <gpu/GPUConfig.h>
-#include <gpu/GLBackend.h>
 #include <gpu/Shader.h>
 
 #include <QBuffer>

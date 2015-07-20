@@ -16,7 +16,7 @@
 
 class AssignmentFactory {
 public:
-    static ThreadedAssignment* unpackAssignment(const QByteArray& packet);
+    static ThreadedAssignment* unpackAssignment(NLPacket& packet);
 };
 
 #endif // hifi_AssignmentFactory_h

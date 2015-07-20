@@ -30,10 +30,9 @@ NetworkPeer::NetworkPeer(QObject* parent) :
     _symmetricSocket(),
     _activeSocket(NULL),
     _wakeTimestamp(QDateTime::currentMSecsSinceEpoch()),
-    _lastHeardMicrostamp(usecTimestampNow()),
     _connectionAttempts(0)
 {
-
+    _lastHeardMicrostamp.store(usecTimestampNow());
 }
 
 NetworkPeer::NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket, QObject* parent) :
@@ -44,10 +43,9 @@ NetworkPeer::NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, co
     _symmetricSocket(),
     _activeSocket(NULL),
     _wakeTimestamp(QDateTime::currentMSecsSinceEpoch()),
-    _lastHeardMicrostamp(usecTimestampNow()),
     _connectionAttempts(0)
 {
-
+    _lastHeardMicrostamp.store(usecTimestampNow());
 }
 
 void NetworkPeer::setPublicSocket(const HifiSockAddr& publicSocket) {

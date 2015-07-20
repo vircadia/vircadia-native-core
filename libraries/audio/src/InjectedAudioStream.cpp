@@ -14,7 +14,7 @@
 #include <QtCore/QDataStream>
 #include <QtCore/qdebug.h>
 
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <UUID.h>
 
 #include "InjectedAudioStream.h"
@@ -30,7 +30,7 @@ InjectedAudioStream::InjectedAudioStream(const QUuid& streamIdentifier, const bo
 
 const uchar MAX_INJECTOR_VOLUME = 255;
 
-int InjectedAudioStream::parseStreamProperties(PacketType type,
+int InjectedAudioStream::parseStreamProperties(PacketType::Value type,
                                                const QByteArray& packetAfterSeqNum,
                                                int& numAudioSamples) {
     // setup a data stream to read from this packet
