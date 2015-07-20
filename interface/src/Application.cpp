@@ -763,6 +763,20 @@ void Application::initializeGL() {
     }
     #endif
 
+#ifdef WIN32
+    GLenum err = glewInit();
+    if (GLEW_OK != err) {
+        /* Problem: glewInit failed, something is seriously wrong. */
+        qCDebug(interfaceapp, "Error: %s\n", glewGetErrorString(err));
+    }
+    qCDebug(interfaceapp, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+
+    if (wglewGetExtension("WGL_EXT_swap_control")) {
+        int swapInterval = wglGetSwapIntervalEXT();
+        qCDebug(interfaceapp, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+    }
+#endif
+
 #if defined(Q_OS_LINUX)
     // TODO: Write the correct  code for Linux...
     /* if (wglewGetExtension("WGL_EXT_swap_control")) {
