@@ -22,8 +22,9 @@ void main(void) {
   <$transformCameraViewport(cam, myViewport)$>
   vec2 center = vec2(myViewport.z/2.0, myViewport.w/2.0);
   float distFromCenter = distance(center, gl_FragCoord.xy);
-  //normalize
-  distFromCenter = distFromCenter/myViewport.z;
-  float alpha = mix(0.0, 1.0, distFromCenter);
-  gl_FragColor = vec4(0.7, 0.0, 0.0, alpha);
+  //normalize distance from center based on average of screen width and height
+  float normalizationFactor = (myViewport.z + myViewport.w)/2.0;
+  distFromCenter = distFromCenter/normalizationFactor;
+  float alpha = mix(0.0, 1.0, pow(distFromCenter, 1.5));
+  gl_FragColor = vec4(1.0, 0.0, 0.0, alpha);
 }
