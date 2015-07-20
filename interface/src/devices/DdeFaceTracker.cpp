@@ -118,7 +118,7 @@ static const float DDE_COEFFICIENT_SCALES[] = {
     1.0f  // CheekSquint_R
 };
 
-struct Packet {
+struct DDEPacket {
     //roughly in mm
     float focal_length[1];
     float translation[3];
@@ -347,7 +347,7 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
 
         bool isFiltering = Menu::getInstance()->isOptionChecked(MenuOption::VelocityFilter);
 
-        Packet packet;
+        DDEPacket packet;
         int bytesToCopy = glm::min((int)sizeof(packet), buffer.size());
         memset(&packet.name, '\n', MAX_NAME_SIZE + 1);
         memcpy(&packet, buffer.data(), bytesToCopy);

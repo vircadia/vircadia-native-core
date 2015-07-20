@@ -22,7 +22,7 @@
 #include <AvatarData.h>
 #include <NodeData.h>
 #include <NumericalConstants.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <SimpleMovingAverage.h>
 #include <UUIDHasher.h>
 
@@ -31,13 +31,13 @@ const QString OUTBOUND_AVATAR_DATA_STATS_KEY = "outbound_av_data_kbps";
 class AvatarMixerClientData : public NodeData {
     Q_OBJECT
 public:
-    int parseData(const QByteArray& packet);
+    int parseData(NLPacket& packet);
     AvatarData& getAvatar() { return _avatar; }
     
     bool checkAndSetHasReceivedFirstPackets();
 
     PacketSequenceNumber getLastBroadcastSequenceNumber(const QUuid& nodeUUID) const;
-    void setLastBroadcastSequenceNumber(const QUuid& nodeUUID, PacketSequenceNumber sequenceNumber) 
+    void setLastBroadcastSequenceNumber(const QUuid& nodeUUID, PacketSequenceNumber sequenceNumber)
         { _lastBroadcastSequenceNumbers[nodeUUID] = sequenceNumber; }
     Q_INVOKABLE void removeLastBroadcastSequenceNumber(const QUuid& nodeUUID) { _lastBroadcastSequenceNumbers.erase(nodeUUID); }
 
@@ -57,7 +57,7 @@ public:
     void incrementNumAvatarsSentLastFrame() { ++_numAvatarsSentLastFrame; }
     int getNumAvatarsSentLastFrame() const { return _numAvatarsSentLastFrame; }
 
-    void recordNumOtherAvatarStarves(int numAvatarsHeldBack) { _otherAvatarStarves.updateAverage((float) numAvatarsHeldBack); } 
+    void recordNumOtherAvatarStarves(int numAvatarsHeldBack) { _otherAvatarStarves.updateAverage((float) numAvatarsHeldBack); }
     float getAvgNumOtherAvatarStarvesPerSecond() const { return _otherAvatarStarves.getAverageSampleValuePerSecond(); }
 
     void recordNumOtherAvatarSkips(int numOtherAvatarSkips) { _otherAvatarSkips.updateAverage((float) numOtherAvatarSkips); }
@@ -71,7 +71,7 @@ public:
 
     void recordSentAvatarData(int numBytes) { _avgOtherAvatarDataRate.updateAverage((float) numBytes); }
    
-    float getOutboundAvatarDataKbps() const 
+    float getOutboundAvatarDataKbps() const
         { return _avgOtherAvatarDataRate.getAverageSampleValuePerSecond() / (float) BYTES_PER_KILOBIT; }
     
     void loadJSONStats(QJsonObject& jsonObject) const;

@@ -48,13 +48,13 @@ PacketSender::~PacketSender() {
 }
 
 
-void PacketSender::queuePacketForSending(const SharedNodePointer& destinationNode, const QByteArray& packet) {
-    NetworkPacket networkPacket(destinationNode, packet);
-    lock();
-    _packets.push_back(networkPacket);
-    unlock();
+void PacketSender::queuePacketForSending(const SharedNodePointer& destinationNode, std::unique_ptr<NLPacket> packet) {
     _totalPacketsQueued++;
-    _totalBytesQueued += packet.size();
+    _totalBytesQueued += packet->getDataSize();
+    
+    lock();
+    _packets.push_back({destinationNode, std::move(packet)});
+    unlock();
 
     // Make sure to  wake our actual processing thread because we  now have packets for it to process.
     _hasPackets.wakeAll();
@@ -118,7 +118,7 @@ bool PacketSender::threadedProcess() {
 
     // if threaded and we haven't slept? We want to wait for our consumer to signal us with new packets
     if (!hasSlept) {
-        // wait till we have packets        
+        // wait till we have packets
         _waitingOnPacketsMutex.lock();
         _hasPackets.wait(&_waitingOnPacketsMutex);
         _waitingOnPacketsMutex.unlock();
@@ -264,21 +264,25 @@ bool PacketSender::nonThreadedProcess() {
     // Now that we know how many packets to send this call to process, just send them.
     while ((packetsSentThisCall < packetsToSendThisCall) && (packetsLeft > 0)) {
         lock();
-        NetworkPacket& packet = _packets.front();
-        NetworkPacket temporary = packet; // make a copy
-        _packets.erase(_packets.begin());
+
+        NodePacketPair packetPair = std::move(_packets.front());
+        _packets.pop_front();
         packetsLeft = _packets.size();
+
         unlock();
 
         // send the packet through the NodeList...
-        DependencyManager::get<NodeList>()->writeDatagram(temporary.getByteArray(), temporary.getNode());
+        DependencyManager::get<NodeList>()->sendUnreliablePacket(*packetPair.second, *packetPair.first);
+
         packetsSentThisCall++;
         _packetsOverCheckInterval++;
         _totalPacketsSent++;
-        _totalBytesSent += temporary.getByteArray().size();
-        
-        emit packetSent(temporary.getByteArray().size());
-        
+
+        int packetSize = packetPair.second->getDataSize();
+
+        _totalBytesSent += packetSize;
+        emit packetSent(packetSize);
+
         _lastSendTime = now;
     }
     return isStillRunning();

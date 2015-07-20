@@ -76,7 +76,7 @@
 #include <ObjectMotionState.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <PhysicsEngine.h>
@@ -296,7 +296,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _window(new MainWindow(desktop())),
         _toolWindow(NULL),
         _friendsWindow(NULL),
-        _datagramProcessor(),
         _undoStack(),
         _undoStackScriptingInterface(&_undoStack),
         _frameCount(0),
@@ -367,21 +366,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _runningScriptsWidget = new RunningScriptsWidget(_window);
     _renderEngine->addTask(make_shared<RenderDeferredTask>());
     _renderEngine->registerScene(_main3DScene);
-      
+
     // start the nodeThread so its event loop is running
     QThread* nodeThread = new QThread(this);
-    nodeThread->setObjectName("Datagram Processor Thread");
+    nodeThread->setObjectName("NodeList Thread");
     nodeThread->start();
 
     // make sure the node thread is given highest priority
     nodeThread->setPriority(QThread::TimeCriticalPriority);
-
-    _datagramProcessor = new DatagramProcessor(nodeList.data());
-
-    // have the NodeList use deleteLater from DM customDeleter
-    nodeList->setCustomDeleter([](Dependency* dependency) {
-        static_cast<NodeList*>(dependency)->deleteLater();
-    });
 
     // setup a timer for domain-server check ins
     QTimer* domainCheckInTimer = new QTimer(nodeList.data());
@@ -398,9 +390,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     ResourceCache* geometryCache = geometryCacheP.data();
     connect(this, &Application::checkBackgroundDownloads, geometryCache, &ResourceCache::checkAsynchronousGets);
 
-    // connect the DataProcessor processDatagrams slot to the QUDPSocket readyRead() signal
-    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, _datagramProcessor, &DatagramProcessor::processDatagrams);
-
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread();
     audioThread->setObjectName("Audio Thread");
@@ -411,14 +400,27 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     audioIO->setOrientationGetter(getOrientationForAudio);
 
     audioIO->moveToThread(audioThread);
+
+    auto& audioScriptingInterface = AudioScriptingInterface::getInstance();
+    
     connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
     connect(audioIO.data(), &AudioClient::destroyed, audioThread, &QThread::quit);
     connect(audioThread, &QThread::finished, audioThread, &QThread::deleteLater);
     connect(audioIO.data(), &AudioClient::muteToggled, this, &Application::audioMuteToggled);
-    connect(audioIO.data(), &AudioClient::receivedFirstPacket,
-            &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::receivedFirstPacket);
-    connect(audioIO.data(), &AudioClient::disconnected,
-            &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::disconnected);
+    connect(audioIO.data(), &AudioClient::mutedByMixer, &audioScriptingInterface, &AudioScriptingInterface::mutedByMixer);
+    connect(audioIO.data(), &AudioClient::receivedFirstPacket, &audioScriptingInterface, &AudioScriptingInterface::receivedFirstPacket);
+    connect(audioIO.data(), &AudioClient::disconnected, &audioScriptingInterface, &AudioScriptingInterface::disconnected);
+    connect(audioIO.data(), &AudioClient::muteEnvironmentRequested, [](glm::vec3 position, float radius) {
+        auto audioClient = DependencyManager::get<AudioClient>();
+        float distance = glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(),
+                                 position);
+        bool shouldMute = !audioClient->isMuted() && (distance < radius);
+
+        if (shouldMute) {
+            audioClient->toggleMute();
+            AudioScriptingInterface::getInstance().environmentMuted();
+        }
+    });
 
     audioThread->start();
 
@@ -451,7 +453,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(nodeList.data(), &NodeList::uuidChanged, _myAvatar, &MyAvatar::setSessionUUID);
     connect(nodeList.data(), &NodeList::uuidChanged, this, &Application::setSessionUUID);
     connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
-    connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
+    connect(&nodeList->getPacketReceiver(), &PacketReceiver::packetVersionMismatch,
+            this, &Application::notifyPacketVersionMismatch);
 
     // connect to appropriate slots on AccountManager
     AccountManager& accountManager = AccountManager::getInstance();
@@ -531,7 +534,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // the GL surface
     _glWidget->setCursor(Qt::BlankCursor);
 #endif
-    
+
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
 
@@ -565,10 +568,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // hook up bandwidth estimator
     QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
-    connect(nodeList.data(), SIGNAL(dataSent(const quint8, const int)),
-            bandwidthRecorder.data(), SLOT(updateOutboundData(const quint8, const int)));
-    connect(nodeList.data(), SIGNAL(dataReceived(const quint8, const int)),
-            bandwidthRecorder.data(), SLOT(updateInboundData(const quint8, const int)));
+    connect(nodeList.data(), &LimitedNodeList::dataSent,
+            bandwidthRecorder.data(), &BandwidthRecorder::updateOutboundData);
+    connect(&nodeList->getPacketReceiver(), &PacketReceiver::dataReceived,
+            bandwidthRecorder.data(), &BandwidthRecorder::updateInboundData);
 
     connect(&_myAvatar->getSkeletonModel(), &SkeletonModel::skeletonLoaded,
             this, &Application::checkSkeleton, Qt::QueuedConnection);
@@ -600,7 +603,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _settingsTimer.setSingleShot(false);
     _settingsTimer.setInterval(SAVE_SETTINGS_INTERVAL);
     _settingsThread.start();
-    
+
     if (Menu::getInstance()->isOptionChecked(MenuOption::IndependentMode)) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
         cameraMenuChanged();
@@ -631,10 +634,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     ddeTracker->init();
     connect(ddeTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
 #endif
-    
+
     auto applicationUpdater = DependencyManager::get<AutoUpdater>();
     connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
     applicationUpdater->checkForUpdate();
+
+    auto& packetReceiver = nodeList->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::DomainConnectionDenied, this, "handleDomainConnectionDeniedPacket");
 }
 
 void Application::aboutToQuit() {
@@ -647,8 +653,10 @@ void Application::aboutToQuit() {
 void Application::cleanupBeforeQuit() {
 
     _entities.clear(); // this will allow entity scripts to properly shutdown
-
-    _datagramProcessor->shutdown(); // tell the datagram processor we're shutting down, so it can short circuit
+    
+    // tell the packet receiver we're shutting down, so it can drop packets
+    DependencyManager::get<NodeList>()->getPacketReceiver().setShouldDropPackets(true);
+    
     _entities.shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
     ScriptEngine::stopAllScripts(this); // stop all currently running global scripts
 
@@ -731,6 +739,8 @@ Application::~Application() {
     DependencyManager::destroy<SoundCache>();
 
     QThread* nodeThread = DependencyManager::get<NodeList>()->thread();
+    
+    // remove the NodeList from the DependencyManager
     DependencyManager::destroy<NodeList>();
 
     // ask the node thread to quit and wait until it is done
@@ -881,7 +891,7 @@ void Application::paintGL() {
         OculusManager::beginFrameTiming();
     }
 
-  
+
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
@@ -898,7 +908,7 @@ void Application::paintGL() {
     }
 
     glEnable(GL_LINE_SMOOTH);
-    
+
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, _myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
         Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !(_myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN));
@@ -1098,13 +1108,6 @@ void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum)
     // Tell our viewFrustum about this change, using the application camera
     if (updateViewFrustum) {
         loadViewFrustum(camera, _viewFrustum);
-    }
-}
-
-void Application::controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {
-    foreach(NodeType_t type, destinationNodeTypes) {
-        // Perform the broadcast for one type
-        DependencyManager::get<NodeList>()->broadcastToNodes(packet, NodeSet() << type);
     }
 }
 
@@ -1767,10 +1770,21 @@ bool Application::acceptSnapshot(const QString& urlString) {
 }
 
 void Application::sendPingPackets() {
-    QByteArray pingPacket = DependencyManager::get<NodeList>()->constructPingPacket();
-    controlledBroadcastToNodes(pingPacket, NodeSet()
-                               << NodeType::EntityServer
-                               << NodeType::AudioMixer << NodeType::AvatarMixer);
+
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    nodeList->eachMatchingNode([](const SharedNodePointer& node)->bool {
+        switch (node->getType()) {
+            case NodeType::AvatarMixer:
+            case NodeType::AudioMixer:
+            case NodeType::EntityServer:
+                return true;
+            default:
+                return false;
+        }
+    }, [nodeList](const SharedNodePointer& node) {
+        nodeList->sendPacket(nodeList->constructPingPacket(), *node);
+    });
 }
 
 //  Every second, check the frame rates and other stuff
@@ -1783,7 +1797,6 @@ void Application::checkFPS() {
 
     _fps = (float)_frameCount / diffTime;
     _frameCount = 0;
-    _datagramProcessor->resetCounters();
     _timerStart.start();
 }
 
@@ -2631,7 +2644,7 @@ void Application::update(float deltaTime) {
             _lastQueriedTime = now;
 
             if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
-                queryOctree(NodeType::EntityServer, PacketTypeEntityQuery, _entityServerJurisdictions);
+                queryOctree(NodeType::EntityServer, PacketType::EntityQuery, _entityServerJurisdictions);
             }
             _lastQueriedViewFrustum = _viewFrustum;
         }
@@ -2664,22 +2677,23 @@ int Application::sendNackPackets() {
         return 0;
     }
 
-    int packetsSent = 0;
-    char packet[MAX_PACKET_SIZE];
-
-    // iterates thru all nodes in NodeList
+    // iterates through all nodes in NodeList
     auto nodeList = DependencyManager::get<NodeList>();
+
+    int packetsSent = 0;
 
     nodeList->eachNode([&](const SharedNodePointer& node){
 
         if (node->getActiveSocket() && node->getType() == NodeType::EntityServer) {
+
+            NLPacketList nackPacketList(PacketType::OctreeDataNack);
 
             QUuid nodeUUID = node->getUUID();
 
             // if there are octree packets from this node that are waiting to be processed,
             // don't send a NACK since the missing packets may be among those waiting packets.
             if (_octreeProcessor.hasPacketsToProcessFrom(nodeUUID)) {
-                return;
+                packetsSent = 0;
             }
 
             _octreeSceneStatsLock.lockForRead();
@@ -2687,7 +2701,7 @@ int Application::sendNackPackets() {
             // retreive octree scene stats of this node
             if (_octreeServerSceneStats.find(nodeUUID) == _octreeServerSceneStats.end()) {
                 _octreeSceneStatsLock.unlock();
-                return;
+                packetsSent = 0;
             }
 
             // get sequence number stats of node, prune its missing set, and make a copy of the missing set
@@ -2698,46 +2712,27 @@ int Application::sendNackPackets() {
             _octreeSceneStatsLock.unlock();
 
             // construct nack packet(s) for this node
-            int numSequenceNumbersAvailable = missingSequenceNumbers.size();
-            QSet<OCTREE_PACKET_SEQUENCE>::const_iterator missingSequenceNumbersIterator = missingSequenceNumbers.constBegin();
-            while (numSequenceNumbersAvailable > 0) {
+            auto it = missingSequenceNumbers.constBegin();
+            while (it != missingSequenceNumbers.constEnd()) {
+                OCTREE_PACKET_SEQUENCE missingNumber = *it;
+                nackPacketList.writePrimitive(missingNumber);
+                ++it;
+            }
 
-                char* dataAt = packet;
-                int bytesRemaining = MAX_PACKET_SIZE;
+            if (nackPacketList.getNumPackets()) {
+                packetsSent += nackPacketList.getNumPackets();
 
-                // pack header
-                int numBytesPacketHeader = nodeList->populatePacketHeader(packet, PacketTypeOctreeDataNack);
-                dataAt += numBytesPacketHeader;
-                bytesRemaining -= numBytesPacketHeader;
-
-                // calculate and pack the number of sequence numbers
-                int numSequenceNumbersRoomFor = (bytesRemaining - sizeof(uint16_t)) / sizeof(OCTREE_PACKET_SEQUENCE);
-                uint16_t numSequenceNumbers = min(numSequenceNumbersAvailable, numSequenceNumbersRoomFor);
-                uint16_t* numSequenceNumbersAt = (uint16_t*)dataAt;
-                *numSequenceNumbersAt = numSequenceNumbers;
-                dataAt += sizeof(uint16_t);
-
-                // pack sequence numbers
-                for (int i = 0; i < numSequenceNumbers; i++) {
-                    OCTREE_PACKET_SEQUENCE* sequenceNumberAt = (OCTREE_PACKET_SEQUENCE*)dataAt;
-                    *sequenceNumberAt = *missingSequenceNumbersIterator;
-                    dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
-
-                    missingSequenceNumbersIterator++;
-                }
-                numSequenceNumbersAvailable -= numSequenceNumbers;
-
-                // send it
-                nodeList->writeUnverifiedDatagram(packet, dataAt - packet, node);
-                packetsSent++;
+                // send the packet list
+                nodeList->sendPacketList(nackPacketList, *node);
             }
         }
     });
 
+
     return packetsSent;
 }
 
-void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
+void Application::queryOctree(NodeType_t serverType, PacketType::Value packetType, NodeToJurisdictionMap& jurisdictions) {
 
     //qCDebug(interfaceapp) << ">>> inside... queryOctree()... _viewFrustum.getFieldOfView()=" << _viewFrustum.getFieldOfView();
     bool wantExtraDebugging = getLogger()->extraDebugging();
@@ -2760,9 +2755,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     _octreeQuery.setOctreeSizeScale(lodManager->getOctreeSizeScale());
     _octreeQuery.setBoundaryLevelAdjust(lodManager->getBoundaryLevelAdjust());
 
-    unsigned char queryPacket[MAX_PACKET_SIZE];
-
-    // Iterate all of the nodes, and get a count of how many voxel servers we have...
+    // Iterate all of the nodes, and get a count of how many octree servers we have...
     int totalServers = 0;
     int inViewServers = 0;
     int unknownJurisdictionServers = 0;
@@ -2828,6 +2821,8 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     if (wantExtraDebugging) {
         qCDebug(interfaceapp, "perServerPPS: %d perUnknownServer: %d", perServerPPS, perUnknownServer);
     }
+
+    auto queryPacket = NLPacket::create(packetType);
 
     nodeList->eachNode([&](const SharedNodePointer& node){
         // only send to the NodeTypes that are serverType
@@ -2903,19 +2898,13 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             } else {
                 _octreeQuery.setMaxQueryPacketsPerSecond(0);
             }
-            // set up the packet for sending...
-            unsigned char* endOfQueryPacket = queryPacket;
 
-            // insert packet type/version and node UUID
-            endOfQueryPacket += nodeList->populatePacketHeader(reinterpret_cast<char*>(endOfQueryPacket), packetType);
-
-            // encode the query data...
-            endOfQueryPacket += _octreeQuery.getBroadcastData(endOfQueryPacket);
-
-            int packetLength = endOfQueryPacket - queryPacket;
+            // encode the query data
+            int packetSize = _octreeQuery.getBroadcastData(reinterpret_cast<unsigned char*>(queryPacket->getPayload()));
+            queryPacket->setPayloadSize(packetSize);
 
             // make sure we still have an active socket
-            nodeList->writeUnverifiedDatagram(reinterpret_cast<const char*>(queryPacket), packetLength, node);
+            nodeList->sendUnreliablePacket(*queryPacket, *node);
         }
     });
 }
@@ -3166,7 +3155,7 @@ namespace render {
                                                     + APPROXIMATE_DISTANCE_FROM_HORIZON;
                                 alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
                             }
-                        
+
 
                         } else if (height < closestData.getAtmosphereOuterRadius()) {
                             alpha = (height - closestData.getAtmosphereInnerRadius()) /
@@ -3201,7 +3190,7 @@ namespace render {
             }
         } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
             PerformanceTimer perfTimer("skybox");
-            
+
             skybox = skyStage->getSkybox();
             if (skybox) {
                 model::Skybox::render(batch, *(Application::getInstance()->getDisplayViewFrustum()), *skybox);
@@ -3355,7 +3344,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
         // Before the deferred pass, let's try to use the render engine
         _renderEngine->run();
-        
+
         auto engineRC = _renderEngine->getRenderContext();
         sceneInterface->setEngineFeedOpaqueItems(engineRC->_numFeedOpaqueItems);
         sceneInterface->setEngineDrawnOpaqueItems(engineRC->_numDrawnOpaqueItems);
@@ -3615,11 +3604,24 @@ void Application::domainChanged(const QString& domainHostname) {
     _domainConnectionRefusals.clear();
 }
 
-void Application::domainConnectionDenied(const QString& reason) {
+void Application::handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet) {
+    // Read deny reason from packet
+    quint16 reasonSize;
+    packet->readPrimitive(&reasonSize);
+    QString reason = QString::fromUtf8(packet->getPayload() + packet->pos(), reasonSize);
+    packet->seek(packet->pos() + reasonSize);
+
+    // output to the log so the user knows they got a denied connection request
+    // and check and signal for an access token so that we can make sure they are logged in
+    qCDebug(interfaceapp) << "The domain-server denied a connection request: " << reason;
+    qCDebug(interfaceapp) << "You may need to re-log to generate a keypair so you can provide a username signature.";
+
     if (!_domainConnectionRefusals.contains(reason)) {
         _domainConnectionRefusals.append(reason);
         emit domainConnectionRefused(reason);
     }
+
+    AccountManager::getInstance().checkAndSignalForAccessToken();
 }
 
 void Application::connectedToDomain(const QString& hostname) {
@@ -3684,12 +3686,12 @@ void Application::nodeKilled(SharedNodePointer node) {
         DependencyManager::get<AvatarManager>()->clearOtherAvatars();
     }
 }
-
-void Application::trackIncomingOctreePacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket) {
+ 
+void Application::trackIncomingOctreePacket(NLPacket& packet, SharedNodePointer sendingNode, bool wasStatsPacket) {
 
     // Attempt to identify the sender from its address.
     if (sendingNode) {
-        QUuid nodeUUID = sendingNode->getUUID();
+        const QUuid& nodeUUID = sendingNode->getUUID();
 
         // now that we know the node ID, let's add these stats to the stats for that node...
         _octreeSceneStatsLock.lockForWrite();
@@ -3701,60 +3703,60 @@ void Application::trackIncomingOctreePacket(const QByteArray& packet, const Shar
     }
 }
 
-int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sendingNode) {
+int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingNode) {
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server
 
     // parse the incoming stats datas stick it in a temporary object for now, while we
     // determine which server it belongs to
-    OctreeSceneStats temp;
-    int statsMessageLength = temp.unpackFromMessage(reinterpret_cast<const unsigned char*>(packet.data()), packet.size());
+    int statsMessageLength = 0;
 
-    // quick fix for crash... why would voxelServer be NULL?
-    if (sendingNode) {
-        QUuid nodeUUID = sendingNode->getUUID();
+    const QUuid& nodeUUID = sendingNode->getUUID();
+    OctreeSceneStats* octreeStats;
 
-        // now that we know the node ID, let's add these stats to the stats for that node...
-        _octreeSceneStatsLock.lockForWrite();
-        if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
-            _octreeServerSceneStats[nodeUUID].unpackFromMessage(reinterpret_cast<const unsigned char*>(packet.data()),
-                                                                packet.size());
-        } else {
-            _octreeServerSceneStats[nodeUUID] = temp;
-        }
-        _octreeSceneStatsLock.unlock();
+    // now that we know the node ID, let's add these stats to the stats for that node...
+    _octreeSceneStatsLock.lockForWrite();
+    auto it = _octreeServerSceneStats.find(nodeUUID);
+    if (it != _octreeServerSceneStats.end()) {
+        octreeStats = &it->second;
+        statsMessageLength = octreeStats->unpackFromPacket(packet);
+    } else {
+        OctreeSceneStats temp;
+        statsMessageLength = temp.unpackFromPacket(packet);
+        octreeStats = &temp;
+    }
+    _octreeSceneStatsLock.unlock();
 
-        VoxelPositionSize rootDetails;
-        voxelDetailsForCode(temp.getJurisdictionRoot(), rootDetails);
+    VoxelPositionSize rootDetails;
+    voxelDetailsForCode(octreeStats->getJurisdictionRoot(), rootDetails);
 
-        // see if this is the first we've heard of this node...
-        NodeToJurisdictionMap* jurisdiction = NULL;
-        QString serverType;
-        if (sendingNode->getType() == NodeType::EntityServer) {
-            jurisdiction = &_entityServerJurisdictions;
-            serverType = "Entity";
-        }
+    // see if this is the first we've heard of this node...
+    NodeToJurisdictionMap* jurisdiction = NULL;
+    QString serverType;
+    if (sendingNode->getType() == NodeType::EntityServer) {
+        jurisdiction = &_entityServerJurisdictions;
+        serverType = "Entity";
+    }
 
-        jurisdiction->lockForRead();
-        if (jurisdiction->find(nodeUUID) == jurisdiction->end()) {
-            jurisdiction->unlock();
+    jurisdiction->lockForRead();
+    if (jurisdiction->find(nodeUUID) == jurisdiction->end()) {
+        jurisdiction->unlock();
 
-            qCDebug(interfaceapp, "stats from new %s server... [%f, %f, %f, %f]",
-                    qPrintable(serverType),
-                    (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
-
-        } else {
-            jurisdiction->unlock();
-        }
-        // store jurisdiction details for later use
-        // This is bit of fiddling is because JurisdictionMap assumes it is the owner of the values used to construct it
-        // but OctreeSceneStats thinks it's just returning a reference to its contents. So we need to make a copy of the
-        // details from the OctreeSceneStats to construct the JurisdictionMap
-        JurisdictionMap jurisdictionMap;
-        jurisdictionMap.copyContents(temp.getJurisdictionRoot(), temp.getJurisdictionEndNodes());
-        jurisdiction->lockForWrite();
-        (*jurisdiction)[nodeUUID] = jurisdictionMap;
+        qCDebug(interfaceapp, "stats from new %s server... [%f, %f, %f, %f]",
+                qPrintable(serverType),
+                (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
+    } else {
         jurisdiction->unlock();
     }
+    // store jurisdiction details for later use
+    // This is bit of fiddling is because JurisdictionMap assumes it is the owner of the values used to construct it
+    // but OctreeSceneStats thinks it's just returning a reference to its contents. So we need to make a copy of the
+    // details from the OctreeSceneStats to construct the JurisdictionMap
+    JurisdictionMap jurisdictionMap;
+    jurisdictionMap.copyContents(octreeStats->getJurisdictionRoot(), octreeStats->getJurisdictionEndNodes());
+    jurisdiction->lockForWrite();
+    (*jurisdiction)[nodeUUID] = jurisdictionMap;
+    jurisdiction->unlock();
+
     return statsMessageLength;
 }
 
@@ -3894,10 +3896,13 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     // when the worker thread is started, call our engine's run..
     connect(workerThread, &QThread::started, scriptEngine, &ScriptEngine::run);
-
+    
     // when the thread is terminated, add both scriptEngine and thread to the deleteLater queue
-    connect(scriptEngine, SIGNAL(doneRunning()), scriptEngine, SLOT(deleteLater()));
-    connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
+    connect(scriptEngine, &ScriptEngine::doneRunning, scriptEngine, &ScriptEngine::deleteLater);
+    connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
+    
+    // tell the thread to stop when the script engine is done
+    connect(scriptEngine, &ScriptEngine::destroyed, workerThread, &QThread::quit);
 
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::nodeKilled, scriptEngine, &ScriptEngine::nodeKilled);
@@ -4598,7 +4603,7 @@ mat4 Application::getEyeProjection(int eye) const {
     if (isHMDMode()) {
         return OculusManager::getEyeProjection(eye);
     }
-      
+
     return _viewFrustum.getProjection();
 }
 

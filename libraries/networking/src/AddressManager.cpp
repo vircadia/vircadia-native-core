@@ -30,10 +30,7 @@ const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
 Setting::Handle<QUrl> currentAddressHandle(QStringList() << ADDRESS_MANAGER_SETTINGS_GROUP << "address", DEFAULT_HIFI_ADDRESS);
 
 AddressManager::AddressManager() :
-    _host(),
-    _rootPlaceID(),
-    _positionGetter(NULL),
-    _orientationGetter(NULL)
+    _port(0)
 {
 
 }
@@ -47,6 +44,11 @@ const QUrl AddressManager::currentAddress() const {
 
     hifiURL.setScheme(HIFI_URL_SCHEME);
     hifiURL.setHost(_host);
+    
+    if (_port != 0 && _port != DEFAULT_DOMAIN_SERVER_PORT) {
+        hifiURL.setPort(_port);
+    }
+    
     hifiURL.setPath(currentPath());
 
     return hifiURL;
@@ -535,20 +537,24 @@ bool AddressManager::handleUsername(const QString& lookupString) {
     return false;
 }
 
-void AddressManager::setHost(const QString& host, LookupTrigger trigger) {
-    if (host != _host) {
-
+void AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16 port) {
+    if (host != _host || port != _port) {
+        
+        _port = port;
+        
         // if the host is being changed we should store current address in the history
         addCurrentAddressToHistory(trigger);
 
-        _host = host;
-        emit hostChanged(_host);
+        if (host != _host) {
+            _host = host;
+            emit hostChanged(_host);
+        }
     }
 }
 
 
 void AddressManager::setDomainInfo(const QString& hostname, quint16 port, LookupTrigger trigger) {
-    setHost(hostname, trigger);
+    setHost(hostname, trigger, port);
 
     _rootPlaceID = QUuid();
 

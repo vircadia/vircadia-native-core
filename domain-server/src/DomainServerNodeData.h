@@ -17,17 +17,17 @@
 #include <QtCore/QUuid>
 
 #include <HifiSockAddr.h>
+#include <NLPacket.h>
 #include <NodeData.h>
 #include <NodeType.h>
 
 class DomainServerNodeData : public NodeData {
 public:
     DomainServerNodeData();
-    int parseData(const QByteArray& packet) { return 0; }
 
     const QJsonObject& getStatsJSONObject() const { return _statsJSONObject; }
 
-    void parseJSONStatsPacket(const QByteArray& statsPacket);
+    void processJSONStatsPacket(NLPacket& packet);
 
     void setAssignmentUUID(const QUuid& assignmentUUID) { _assignmentUUID = assignmentUUID; }
     const QUuid& getAssignmentUUID() const { return _assignmentUUID; }
