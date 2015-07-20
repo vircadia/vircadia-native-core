@@ -280,6 +280,7 @@ namespace MenuOption {
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString TestPing = "Test Ping";
     const QString ThirdPerson = "Third Person";
+    const QString ThrottleFPSIfNotFocus = "Throttle FPS If Not Focus";
     const QString ToolWindow = "Tool Window";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString TurnWithHead = "Turn using Head";
