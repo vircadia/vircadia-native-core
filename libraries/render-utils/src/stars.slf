@@ -45,7 +45,7 @@ vec2 toPolar(in vec3 dir) {
 void mainVR( out vec4 fragColor, in vec2 fragCoord, in vec3 fragRayOri, in vec3 fragRayDir )
 {
     vec2 polar = toPolar(fragRayDir);
-    polar.x += mod(iGlobalTime / 12.0, PI / 4.0) - PI / 4.0;
+    //polar.x += mod(iGlobalTime / 12.0, PI / 4.0) - PI / 4.0;
     float c = 0.0;
     for (int i = 0; i < latitudeCount - 1; ++i) {
         c += latitude(polar, float(i) * latitudeDist);
