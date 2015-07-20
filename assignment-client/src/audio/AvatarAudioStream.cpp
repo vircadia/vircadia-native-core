@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 
 #include "AvatarAudioStream.h"
 
@@ -18,10 +18,10 @@ AvatarAudioStream::AvatarAudioStream(bool isStereo, const InboundAudioStream::Se
 {
 }
 
-int AvatarAudioStream::parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
+int AvatarAudioStream::parseStreamProperties(PacketType::Value type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
     int readBytes = 0;
 
-    if (type == PacketTypeSilentAudioFrame) {
+    if (type == PacketType::SilentAudioFrame) {
         const char* dataAt = packetAfterSeqNum.constData();
         quint16 numSilentSamples = *(reinterpret_cast<const quint16*>(dataAt));
         readBytes += sizeof(quint16);
@@ -31,7 +31,7 @@ int AvatarAudioStream::parseStreamProperties(PacketType type, const QByteArray& 
         readBytes += parsePositionalData(packetAfterSeqNum.mid(readBytes));
 
     } else {
-        _shouldLoopbackForNode = (type == PacketTypeMicrophoneAudioWithEcho);
+        _shouldLoopbackForNode = (type == PacketType::MicrophoneAudioWithEcho);
 
         // read the channel flag
         quint8 channelFlag = packetAfterSeqNum.at(readBytes);
@@ -48,11 +48,11 @@ int AvatarAudioStream::parseStreamProperties(PacketType type, const QByteArray& 
 
         // read the positional data
         readBytes += parsePositionalData(packetAfterSeqNum.mid(readBytes));
-
+        
         // calculate how many samples are in this packet
         int numAudioBytes = packetAfterSeqNum.size() - readBytes;
         numAudioSamples = numAudioBytes / sizeof(int16_t);
     }
-    
+
     return readBytes;
 }
