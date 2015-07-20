@@ -11,9 +11,6 @@
 #ifndef hifi_Overlay2D_h
 #define hifi_Overlay2D_h
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include <QRect>
 
 #include "Overlay.h"

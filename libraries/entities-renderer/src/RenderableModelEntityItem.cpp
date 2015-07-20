@@ -11,8 +11,6 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <gpu/GPUConfig.h>
-
 #include <QJsonDocument>
 
 #include <AbstractViewStateInterface.h>

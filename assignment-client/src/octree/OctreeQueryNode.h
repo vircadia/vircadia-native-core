@@ -14,7 +14,6 @@
 
 #include <iostream>
 
-
 #include <CoverageMap.h>
 #include <NodeData.h>
 #include <OctreeConstants.h>
@@ -35,20 +34,19 @@ public:
     virtual ~OctreeQueryNode();
 
     void init(); // called after creation to set up some virtual items
-    virtual PacketType getMyPacketType() const = 0;
+    virtual PacketType::Value getMyPacketType() const = 0;
 
     void resetOctreePacket();  // resets octree packet to after "V" header
 
     void writeToPacket(const unsigned char* buffer, unsigned int bytes); // writes to end of packet
 
-    const unsigned char* getPacket() const { return _octreePacket; }
-    unsigned int getPacketLength() const { return (MAX_PACKET_SIZE - _octreePacketAvailableBytes); }
+    NLPacket& getPacket() const { return *_octreePacket; }
     bool isPacketWaiting() const { return _octreePacketWaiting; }
 
     bool packetIsDuplicate() const;
     bool shouldSuppressDuplicatePacket();
-
-    unsigned int getAvailable() const { return _octreePacketAvailableBytes; }
+    
+    unsigned int getAvailable() const { return _octreePacket->bytesAvailableForWrite(); }
     int getMaxSearchLevel() const { return _maxSearchLevel; }
     void resetMaxSearchLevel() { _maxSearchLevel = 1; }
     void incrementMaxSearchLevel() { _maxSearchLevel++; }
@@ -62,7 +60,7 @@ public:
 
     ViewFrustum& getCurrentViewFrustum() { return _currentViewFrustum; }
     ViewFrustum& getLastKnownViewFrustum() { return _lastKnownViewFrustum; }
-    
+
     // These are not classic setters because they are calculating and maintaining state
     // which is set asynchronously through the network receive
     bool updateCurrentViewFrustum();
@@ -86,49 +84,46 @@ public:
     }
 
     bool hasLodChanged() const { return _lodChanged; }
-    
+
     OctreeSceneStats stats;
-    
+
     void initializeOctreeSendThread(OctreeServer* myServer, const SharedNodePointer& node);
     bool isOctreeSendThreadInitalized() { return _octreeSendThread; }
-    
+
     void dumpOutOfView();
-    
+
     quint64 getLastRootTimestamp() const { return _lastRootTimestamp; }
     void setLastRootTimestamp(quint64 timestamp) { _lastRootTimestamp = timestamp; }
     unsigned int getlastOctreePacketLength() const { return _lastOctreePacketLength; }
     int getDuplicatePacketCount() const { return _duplicatePacketCount; }
 
     void sceneStart(quint64 sceneSendStartTime) { _sceneSendStartTime = sceneSendStartTime; }
-    
+
     void nodeKilled();
     void forceNodeShutdown();
     bool isShuttingDown() const { return _isShuttingDown; }
 
-    void octreePacketSent();
-    void packetSent(unsigned char* packet, int packetLength);
-    void packetSent(const QByteArray& packet);
+    void octreePacketSent() { packetSent(*_octreePacket); }
+    void packetSent(const NLPacket& packet);
 
     OCTREE_PACKET_SEQUENCE getSequenceNumber() const { return _sequenceNumber; }
 
-    void parseNackPacket(const QByteArray& packet);
+    void parseNackPacket(NLPacket& packet);
     bool hasNextNackedPacket() const;
-    const QByteArray* getNextNackedPacket();
+    const NLPacket* getNextNackedPacket();
 
 private slots:
     void sendThreadFinished();
-    
+
 private:
     OctreeQueryNode(const OctreeQueryNode &);
     OctreeQueryNode& operator= (const OctreeQueryNode&);
-    
+
     bool _viewSent;
-    unsigned char* _octreePacket;
-    unsigned char* _octreePacketAt;
-    unsigned int _octreePacketAvailableBytes;
+    std::unique_ptr<NLPacket> _octreePacket;
     bool _octreePacketWaiting;
 
-    unsigned char* _lastOctreePacket;
+    char* _lastOctreePayload = nullptr;
     unsigned int _lastOctreePacketLength;
     int _duplicatePacketCount;
     quint64 _firstSuppressedPacket;
@@ -154,8 +149,8 @@ private:
     OCTREE_PACKET_SEQUENCE _sequenceNumber;
 
     quint64 _lastRootTimestamp;
-    
-    PacketType _myPacketType;
+
+    PacketType::Value _myPacketType;
     bool _isShuttingDown;
 
     SentPacketHistory _sentPacketHistory;

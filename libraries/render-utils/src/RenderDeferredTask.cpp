@@ -10,17 +10,18 @@
 //
 #include "RenderDeferredTask.h"
 
-#include "gpu/Batch.h"
-#include "gpu/Context.h"
+#include <gpu/GPUConfig.h>
+#include <gpu/Batch.h>
+#include <gpu/Context.h>
+#include <PerfStat.h>
+#include <RenderArgs.h>
+#include <ViewFrustum.h>
+
 #include "DeferredLightingEffect.h"
-#include "ViewFrustum.h"
-#include "RenderArgs.h"
 #include "TextureCache.h"
 
 #include "render/DrawStatus.h"
 #include "AmbientOcclusionEffect.h"
-
-#include <PerfStat.h>
 
 #include "overlay3D_vert.h"
 #include "overlay3D_frag.h"

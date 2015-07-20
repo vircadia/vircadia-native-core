@@ -9,18 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "DrawTask.h"
+
 #include <algorithm>
 #include <assert.h>
 
-#include "DrawTask.h"
-
+#include <gpu/Batch.h>
+#include <gpu/Context.h>
+#include <gpu/GPUConfig.h>
 #include <PerfStat.h>
-
-#include "gpu/Batch.h"
-#include "gpu/Context.h"
-
-#include "ViewFrustum.h"
-#include "RenderArgs.h"
+#include <RenderArgs.h>
+#include <ViewFrustum.h>
 
 using namespace render;
 

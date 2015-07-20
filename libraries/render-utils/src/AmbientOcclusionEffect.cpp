@@ -158,13 +158,8 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
 
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_ZERO, GL_SRC_COLOR, GL_ZERO, GL_ONE);
-<<<<<<< HEAD
 
     auto freeFramebufferTexture = freeFramebuffer->getRenderBuffer(0);
-=======
-    
-    auto freeFramebufferTexture = nullptr; // freeFramebuffer->getRenderBuffer(0); // FIXME
->>>>>>> 54f618a502390b656d5d5e5c87bf1d339c22b56b
     glBindTexture(GL_TEXTURE_2D, gpu::GLBackend::getTextureID(freeFramebufferTexture));
 
     _blurProgram->bind();

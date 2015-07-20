@@ -62,7 +62,7 @@ public slots:
     
     void setCurrentSendPosition(int currentSendPosition) { _currentSendPosition = currentSendPosition; }
     float getLoudness() const { return _loudness; }
-    bool isPlaying() const { return !_isFinished; }
+    bool isPlaying() const { return _isPlaying; }
     void restartPortionAfterFinished();
     
 signals:
@@ -78,6 +78,7 @@ private:
     AudioInjectorOptions _options;
     bool _shouldStop = false;
     float _loudness = 0.0f;
+    bool _isPlaying = false;
     bool _isStarted = false;
     bool _isFinished = false;
     bool _shouldDeleteAfterFinish = false;
