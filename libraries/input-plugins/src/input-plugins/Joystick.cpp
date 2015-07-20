@@ -1,4 +1,7 @@
 //
+//  Joystick.cpp
+//  input-plugins/src/input-plugins
+//
 //  Created by Stephen Birarda on 2014-09-23.
 //  Copyright 2014 High Fidelity, Inc.
 //
