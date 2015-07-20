@@ -24,6 +24,10 @@
 #include <RenderArgs.h>
 #include <ViewFrustum.h>
 
+#include "../../libraries/render-utils/standardTransformPNTC_vert.h"
+#include "../../libraries/render-utils/stars_frag.h"
+
+static const float TILT = 0.23f;
 static const unsigned int STARFIELD_NUM_STARS = 50000;
 static const unsigned int STARFIELD_SEED = 1;
 static const float STAR_COLORIZATION = 0.1f;
@@ -34,14 +38,9 @@ static const float QUARTER_TAU = TAU / 4.0f;
 static const float MILKY_WAY_WIDTH = TAU / 30.0f; // width in radians of one half of the Milky Way
 static const float MILKY_WAY_INCLINATION = 0.0f; // angle of Milky Way from horizontal in degrees
 static const float MILKY_WAY_RATIO = 0.4f;
+static const char* UNIFORM_TIME_NAME = "iGlobalTime";
 
-#include "../../libraries/render-utils/standardTransformPNTC_vert.h"
 
-const char stars_frag[] = R"SCRIBE(#version 430 compatibility
-void main(void) {
-    gl_FragColor = vec4( 1.0 ); 
-}
-)SCRIBE";
 
 Stars::Stars() {
 }
@@ -112,16 +111,16 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
     static gpu::BufferPointer vertexBuffer;
     static gpu::Stream::FormatPointer streamFormat;
     static gpu::Element positionElement, colorElement;
+    static gpu::PipelinePointer _pipeline;
+    static int32_t _timeSlot{ -1 };
+    static std::once_flag once;
 
     const int VERTICES_SLOT = 0;
     const int COLOR_SLOT = 2;
 
-    static std::once_flag once;
-
     std::call_once(once, [&] {
         QElapsedTimer startTime;
         startTime.start();
-
         vertexBuffer.reset(new gpu::Buffer);
 
         srand(STARFIELD_SEED);
@@ -139,18 +138,45 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
         positionElement = streamFormat->getAttributes().at(gpu::Stream::POSITION)._element;
         double timeDiff = (double)startTime.nsecsElapsed() / 1000000.0; // ns to ms
         qDebug() << "Total time to generate stars: " << timeDiff << " msec";
+
+        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(standardTransformPNTC_vert)));
+        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(stars_frag)));
+        auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        gpu::Shader::makeProgram((*program));
+        _timeSlot = program->getBuffers().findLocation(UNIFORM_TIME_NAME);
+        if (_timeSlot == gpu::Shader::INVALID_LOCATION) {
+            _timeSlot = program->getUniforms().findLocation(UNIFORM_TIME_NAME);
+        }
+        auto state = gpu::StatePointer(new gpu::State());
+        // enable decal blend
+        state->setDepthTest(gpu::State::DepthTest(false));
+        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
+        _pipeline.reset(gpu::Pipeline::create(program, state));
     });
 
-    gpu::Batch batch;
-    batch.setInputFormat(streamFormat);
-    batch.setInputBuffer(VERTICES_SLOT, gpu::BufferView(vertexBuffer, positionElement));
-    batch.setViewTransform(Transform());
-    batch.setProjectionTransform(renderArgs->_viewFrustum->getProjection());
-    batch.setModelTransform(Transform().setRotation(glm::inverse(renderArgs->_viewFrustum->getOrientation())));
     auto geometryCache = DependencyManager::get<GeometryCache>();
     auto textureCache = DependencyManager::get<TextureCache>();
-    geometryCache->useSimpleDrawPipeline(batch);
+
+    gpu::Batch batch;
+    batch.setViewTransform(Transform());
+    batch.setProjectionTransform(renderArgs->_viewFrustum->getProjection());
+    batch.setModelTransform(Transform().setRotation(glm::inverse(renderArgs->_viewFrustum->getOrientation()) *
+        quat(vec3(TILT, 0, 0))));
     batch.setResourceTexture(0, textureCache->getWhiteTexture());
+
+    // Render the world lines
+    batch.setPipeline(_pipeline);
+    static auto start = usecTimestampNow();
+    float msecs = (float)(usecTimestampNow() - start) / (float)USECS_PER_MSEC;
+    float secs = msecs / (float)MSECS_PER_SECOND;
+    batch._glUniform1f(_timeSlot, secs);
+    geometryCache->renderUnitCube(batch);
+
+
+    // Render the stars
+    geometryCache->useSimpleDrawPipeline(batch);
+    batch.setInputFormat(streamFormat);
+    batch.setInputBuffer(VERTICES_SLOT, gpu::BufferView(vertexBuffer, positionElement));
     batch.draw(gpu::Primitive::POINTS, STARFIELD_NUM_STARS);
     renderArgs->_context->render(batch);
 }
