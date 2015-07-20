@@ -289,7 +289,6 @@ namespace MenuOption {
     const QString VisibleToEveryone = "Everyone";
     const QString VisibleToFriends = "Friends";
     const QString VisibleToNoOne = "No one";
-    const QString Wireframe = "Wireframe";
 }
 
 #endif // hifi_Menu_h
