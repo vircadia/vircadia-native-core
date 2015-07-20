@@ -103,4 +103,3 @@ void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, 
         }
     }
 }
-

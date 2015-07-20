@@ -11,10 +11,13 @@
 
 
 #include "OffscreenGlCanvas.h"
-#include <QOpenGLDebugLogger>
-#include <GLHelpers.cpp>
 
-OffscreenGlCanvas::OffscreenGlCanvas() {
+#include <GLHelpers.h>
+#include <QOpenGLDebugLogger>
+#include <QOpenGLContext>
+#include <QOffscreenSurface>
+
+OffscreenGlCanvas::OffscreenGlCanvas() : _context(new QOpenGLContext), _offscreenSurface(new QOffscreenSurface){
 }
 
 OffscreenGlCanvas::~OffscreenGlCanvas() {
@@ -25,26 +28,26 @@ OffscreenGlCanvas::~OffscreenGlCanvas() {
         _logger = nullptr;
     }
 #endif
-    _context.doneCurrent();
+    _context->doneCurrent();
 }
 
 void OffscreenGlCanvas::create(QOpenGLContext* sharedContext) {
     if (nullptr != sharedContext) {
         sharedContext->doneCurrent();
-        _context.setFormat(sharedContext->format());
-        _context.setShareContext(sharedContext);
+        _context->setFormat(sharedContext->format());
+        _context->setShareContext(sharedContext);
     } else {
-        _context.setFormat(getDefaultOpenGlSurfaceFormat());
+        _context->setFormat(getDefaultOpenGlSurfaceFormat());
     }
-    _context.create();
+    _context->create();
 
-    _offscreenSurface.setFormat(_context.format());
-    _offscreenSurface.create();
+    _offscreenSurface->setFormat(_context->format());
+    _offscreenSurface->create();
 
 }
 
 bool OffscreenGlCanvas::makeCurrent() {
-    bool result = _context.makeCurrent(&_offscreenSurface);
+    bool result = _context->makeCurrent(_offscreenSurface);
     Q_ASSERT(result);
     
     std::call_once(_reportOnce, []{
@@ -71,6 +74,6 @@ bool OffscreenGlCanvas::makeCurrent() {
 }
 
 void OffscreenGlCanvas::doneCurrent() {
-    _context.doneCurrent();
+    _context->doneCurrent();
 }
 

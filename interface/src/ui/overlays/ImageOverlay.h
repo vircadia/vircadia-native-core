@@ -12,8 +12,6 @@
 #define hifi_ImageOverlay_h
 
 // include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include <QImage>
 #include <QRect>
 #include <QUrl>

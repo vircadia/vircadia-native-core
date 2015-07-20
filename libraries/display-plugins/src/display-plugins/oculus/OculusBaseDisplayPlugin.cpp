@@ -49,7 +49,7 @@ void OculusBaseDisplayPlugin::preRender() {
     ovrHmd_GetEyePoses(_hmd, _frameIndex, _eyeOffsets, _eyePoses, nullptr);
 }
 
-glm::mat4 OculusBaseDisplayPlu	gin::getProjection(Eye eye, const glm::mat4& baseProjection) const {
+glm::mat4 OculusBaseDisplayPlugin::getProjection(Eye eye, const glm::mat4& baseProjection) const {
     return _eyeProjections[eye];
 }
 

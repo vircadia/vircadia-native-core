@@ -31,7 +31,7 @@
 #include <PerfStat.h>
 #include <ShapeCollider.h>
 #include <SharedUtil.h>
-#include <TextRenderer.h>
+#include <TextRenderer3D.h>
 #include <UserActivityLogger.h>
 
 #include "devices/Faceshift.h"

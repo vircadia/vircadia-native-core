@@ -12,8 +12,6 @@
 #ifndef hifi_Application_h
 #define hifi_Application_h
 
-#include <gpu/GPUConfig.h>
-
 #include <QApplication>
 #include <QHash>
 #include <QImage>
@@ -57,6 +55,7 @@
 #include "devices/SixenseManager.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/WebWindowClass.h"
+#include "ui/AudioStatsDialog.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/ModelsBrowser.h"
 #include "ui/OctreeStatsDialog.h"
@@ -83,10 +82,10 @@ class QTouchEvent;
 class QWheelEvent;
 class OffscreenGlCanvas;
 
+class GLCanvas;
 class FaceTracker;
 class MainWindow;
 class Node;
-class ProgramObject;
 class ScriptEngine;
 class GlWindow;
 
@@ -264,7 +263,7 @@ public:
 
     void controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
 
-    virtual void setupWorldLight();
+    virtual void setupWorldLight(RenderArgs* renderArgs);
     virtual bool shouldRenderMesh(float largestDimension, float distanceToCamera);
 
     QImage renderAvatarBillboard(RenderArgs* renderArgs);
@@ -352,9 +351,6 @@ signals:
     /// Fired when we're rendering in-world interface elements; allows external parties to hook in.
     void renderingInWorldInterface();
 
-    /// Fired when we're rendering the overlay.
-    void renderingOverlay();
-
     /// Fired when the import window is closed
     void importDone();
     
@@ -417,10 +413,12 @@ public slots:
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
     void setVSyncEnabled();
+    
+    void setThrottleFPSEnabled();
+    bool isThrottleFPSEnabled() { return _isThrottleFPSEnabled; }
 
     void resetSensors();
     void setActiveFaceTracker();
-    void toggleFaceTrackerMute();
 
     void aboutApp();
     void showEditEntitiesHelp();
@@ -627,6 +625,7 @@ private:
     quint64 _lastSendDownstreamAudioStats;
 
     bool _isVSyncOn;
+    bool _isThrottleFPSEnabled;
     
     bool _aboutToQuit;
 
@@ -638,6 +637,7 @@ private:
     QTimer _settingsTimer;
     
     GlWindow* _glWindow{ nullptr };
+
     void checkSkeleton();
 
     QHash<QString, AcceptURLMethod> _acceptedExtensions;

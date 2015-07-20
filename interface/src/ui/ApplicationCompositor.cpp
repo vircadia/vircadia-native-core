@@ -9,14 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "InterfaceConfig.h"
-
 #include "ApplicationCompositor.h"
 
 #include <glm/gtc/type_ptr.hpp>
 
 #include <avatar/AvatarManager.h>
 #include <gpu/GLBackend.h>
+#include <NumericalConstants.h>
 
 #include "CursorManager.h"
 #include "Tooltip.h"
@@ -189,8 +188,8 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
         return;
     }
 
-    GLuint texture = qApp->getApplicationOverlay().getOverlayTexture();
-    if (!texture) {
+    gpu::FramebufferPointer overlayFramebuffer = qApp->getApplicationOverlay().getOverlayFramebuffer();
+    if (!overlayFramebuffer) {
         return;
     }
 
@@ -209,9 +208,7 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     batch.setModelTransform(Transform());
     batch.setViewTransform(Transform());
     batch.setProjectionTransform(mat4());
-    batch._glBindTexture(GL_TEXTURE_2D, texture);
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));
     geometryCache->renderUnitQuad(batch, vec4(vec3(1), _alpha));
 
     // Doesn't actually render
@@ -258,8 +255,8 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
         return;
     }
 
-    GLuint texture = qApp->getApplicationOverlay().getOverlayTexture();
-    if (!texture) {
+    gpu::FramebufferPointer overlayFramebuffer = qApp->getApplicationOverlay().getOverlayFramebuffer();
+    if (!overlayFramebuffer) {
         return;
     }
 
@@ -275,9 +272,12 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
     geometryCache->useSimpleDrawPipeline(batch);
     batch._glDisable(GL_DEPTH_TEST);
     batch._glDisable(GL_CULL_FACE);
-    batch._glBindTexture(GL_TEXTURE_2D, texture);
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    //batch._glBindTexture(GL_TEXTURE_2D, texture);
+    //batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    //batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));
+
     batch.setViewTransform(Transform());
     batch.setProjectionTransform(qApp->getEyeProjection(eye));
 
@@ -500,8 +500,8 @@ void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
             glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * palmData->getFingerDirection();
 
             // Get the angles, scaled between (-0.5,0.5)
-            float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
-            float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)M_PI_2));
+            float xAngle = (atan2(direction.z, direction.x) + PI_OVER_TWO);
+            float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)PI_OVER_TWO));
 
             // Get the pixel range over which the xAngle and yAngle are scaled
             float cursorRange = canvasSize.x * SixenseManager::getInstance().getCursorPixelRangeMult();

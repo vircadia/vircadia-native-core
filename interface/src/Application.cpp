@@ -21,9 +21,6 @@
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include <QAbstractNativeEventFilter>
 #include <QActionGroup>
 #include <QColorDialog>
@@ -86,7 +83,6 @@
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <PhysicsEngine.h>
-#include <ProgramObject.h>
 #include <RenderDeferredTask.h>
 #include <ResourceCache.h>
 #include <SceneScriptingInterface.h>
@@ -94,7 +90,6 @@
 #include <SettingHandle.h>
 #include <SimpleAverage.h>
 #include <SoundCache.h>
-#include <TextRenderer.h>
 #include <Tooltip.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
@@ -175,8 +170,6 @@ public:
 using namespace std;
 
 //  Starfield information
-static unsigned STARFIELD_NUM_STARS = 50000;
-static unsigned STARFIELD_SEED = 1;
 static uint8_t THROTTLED_IDLE_TIMER_DELAY = 10;
 
 const qint64 MAXIMUM_CACHE_SIZE = 10 * BYTES_PER_GIGABYTES;  // 10GB
@@ -339,6 +332,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
         _isVSyncOn(true),
+        _isThrottleFPSEnabled(false),
         _aboutToQuit(false),
         _notifiedPacketVersionMismatchThisDomain(false),
         _domainConnectionRefusals(QList<QString>()),
@@ -894,10 +888,10 @@ void Application::paintGL() {
 
     {
         PerformanceTimer perfTimer("renderOverlay");
-        gpu::Context context(new gpu::GLBackend());
-        RenderArgs renderArgs(&context, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
-            lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
-            RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
+        // NOTE: There is no batch associated with this renderArgs
+        // the ApplicationOverlay class assumes it's viewport is setup to be the device size
+        QSize size = qApp->getDeviceSize();
+        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());    
         _applicationOverlay.renderOverlay(&renderArgs);
     }
 
@@ -965,29 +959,42 @@ void Application::paintGL() {
     renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
 
     // Primary rendering pass
+    auto textureCache = DependencyManager::get<TextureCache>();
+    QSize size = textureCache->getFrameBufferSize();
     {
         PROFILE_RANGE(__FUNCTION__ "/mainRender");
-        auto primaryFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
-        GLuint fbo = gpu::GLBackend::getFramebufferID(primaryFbo);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        // Viewport is assigned to the size of the framebuffer
-        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
 
+        auto clearLambda = [&](const gpu::Vec4i& vp) {
+            gpu::Batch batch;
+            auto primaryFbo = textureCache->getPrimaryFramebuffer();
+            batch.setFramebuffer(primaryFbo);
+            // Viewport is assigned to the size of the framebuffer
+            renderArgs._viewport = vp;
+            batch.setViewportTransform(renderArgs._viewport);
+            batch.setStateScissorRect(renderArgs._viewport);
+
+            // clear the normal and specular buffers
+            batch.clearFramebuffer(
+                gpu::Framebuffer::BUFFER_COLOR0 |
+                gpu::Framebuffer::BUFFER_COLOR1 |
+                gpu::Framebuffer::BUFFER_COLOR2 |
+                gpu::Framebuffer::BUFFER_DEPTH,
+                vec4(vec3(0), 1), 1.0, 0.0, true);
+
+            renderArgs._context->render(batch);
+        };
+
+            
         if (displayPlugin->isStereo()) {
             QRect r(QPoint(0, 0), QSize(size.width() / 2, size.height()));
             glEnable(GL_SCISSOR_TEST);
             for_each_eye([&](Eye eye){
-                // FIXME we need to let the display plugin decide how the geometry works for stereo rendering
-                // for instance, an interleaved display should have half the vertical resolution, while a side 
-                // by side display for a temporal interleave should have full resolution
-                glViewport(r.x(), r.y(), r.width(), r.height());
-                glScissor(r.x(), r.y(), r.width(), r.height());
-
                 // Load the view frustum, used by meshes
                 Camera eyeCamera;
                 eyeCamera.setTransform(displayPlugin->getModelview(eye, _myCamera.getTransform()));
                 eyeCamera.setProjection(displayPlugin->getProjection(eye, _myCamera.getProjection()));
+
+                clearLambda(glm::ivec4(r.x(), r.y(), r.width(), r.height()));
                 displaySide(&renderArgs, eyeCamera);
                 if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && 
                     !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
@@ -998,7 +1005,7 @@ void Application::paintGL() {
             });
             glDisable(GL_SCISSOR_TEST);
         } else {
-            glViewport(0, 0, size.width(), size.height());
+            clearLambda(glm::ivec4(0, 0, size.width(), size.height()));
             displaySide(&renderArgs, _myCamera);
             if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && 
                 !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
@@ -1012,9 +1019,7 @@ void Application::paintGL() {
         PROFILE_RANGE(__FUNCTION__ "/compositor");
         auto primaryFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFbo));
-        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
         if (displayPlugin->isStereo()) {
-            QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
             QRect r(QPoint(0, 0), QSize(size.width() / 2, size.height()));
             glClear(GL_DEPTH_BUFFER_BIT);
             for_each_eye([&](Eye eye) {
@@ -1031,14 +1036,12 @@ void Application::paintGL() {
             glViewport(0, 0, size.width(), size.height());
             _compositor.displayOverlayTexture(&renderArgs);
         }
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     }
 
     // deliver final composited scene to the display plugin
     {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
         auto primaryFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
-        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
         GLuint finalTexture = gpu::GLBackend::getTextureID(primaryFbo->getRenderBuffer(0));
         uvec2 finalSize = toGlm(size);
 #ifdef Q_OS_MAC
@@ -1122,14 +1125,27 @@ void Application::resizeGL() {
         // Possible change in aspect ratio
         _myCamera.setProjection(glm::perspective(glm::radians(_fieldOfView.get()),
             aspect(getCanvasSize()), DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
+        updateProjectionMatrix();
     }
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
     auto uiSize = displayPlugin->getRecommendedUiSize();
-    if (offscreenUi->getWindow()->geometry().size() != fromGlm(uiSize)) {
+    if (offscreenUi->size() != fromGlm(uiSize)) {
         offscreenUi->resize(fromGlm(uiSize));
         _offscreenContext->makeCurrent();
+    }
+}
+
+void Application::updateProjectionMatrix() {
+    updateProjectionMatrix(_myCamera);
+}
+
+void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum) {
+    _projectionMatrix = camera.getProjection();
+    // Tell our viewFrustum about this change, using the application camera
+    if (updateViewFrustum) {
+        camera.loadViewFrustum(_viewFrustum);
     }
 }
 
@@ -1994,13 +2010,6 @@ void Application::setActiveFaceTracker() {
 #endif
 }
 
-void Application::toggleFaceTrackerMute() {
-    FaceTracker* faceTracker = getSelectedFaceTracker();
-    if (faceTracker) {
-        faceTracker->toggleMute();
-    }
-}
-
 bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
     QVector<EntityItemPointer> entities;
 
@@ -2106,12 +2115,6 @@ QVector<EntityItemID> Application::pasteEntities(float x, float y, float z) {
 }
 
 void Application::initDisplay() {
-    glEnable(GL_BLEND);
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
-    glShadeModel(GL_SMOOTH);
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-    glEnable(GL_DEPTH_TEST);
 }
 
 void Application::init() {
@@ -2390,6 +2393,12 @@ void Application::updateDialogs(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateDialogs()");
     auto dialogsManager = DependencyManager::get<DialogsManager>();
 
+    // Update audio stats dialog, if any
+    AudioStatsDialog* audioStatsDialog = dialogsManager->getAudioStatsDialog();
+    if(audioStatsDialog) {
+        audioStatsDialog->update();
+    }
+    
     // Update bandwidth dialog, if any
     BandwidthDialog* bandwidthDialog = dialogsManager->getBandwidthDialog();
     if (bandwidthDialog) {
@@ -2426,7 +2435,13 @@ void Application::update(float deltaTime) {
     {
         PerformanceTimer perfTimer("devices");
         DeviceTracker::updateAll();
-        FaceTracker* tracker = getActiveFaceTracker();
+
+        FaceTracker* tracker = getSelectedFaceTracker();
+        if (tracker && Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking) != tracker->isMuted()) {
+            tracker->toggleMute();
+        }
+
+        tracker = getActiveFaceTracker();
         if (tracker && !tracker->isMuted()) {
             tracker->update(deltaTime);
 
@@ -2901,155 +2916,9 @@ glm::vec3 Application::getSunDirection() {
 static QThread * activeRenderingThread = nullptr;
 
 void Application::updateShadowMap(RenderArgs* renderArgs) {
-    activeRenderingThread = QThread::currentThread();
-
-    PerformanceTimer perfTimer("shadowMap");
-    auto shadowFramebuffer = DependencyManager::get<TextureCache>()->getShadowFramebuffer();
-    glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(shadowFramebuffer));
-
-    glEnable(GL_DEPTH_TEST);
-    glClear(GL_DEPTH_BUFFER_BIT);
-
-    glm::vec3 lightDirection = getSunDirection();
-    glm::quat rotation = rotationBetween(IDENTITY_FRONT, lightDirection);
-    glm::quat inverseRotation = glm::inverse(rotation);
-
-    const float SHADOW_MATRIX_DISTANCES[] = { 0.0f, 2.0f, 6.0f, 14.0f, 30.0f };
-    const glm::vec2 MAP_COORDS[] = { glm::vec2(0.0f, 0.0f), glm::vec2(0.5f, 0.0f),
-        glm::vec2(0.0f, 0.5f), glm::vec2(0.5f, 0.5f) };
-
-    float frustumScale = 1.0f / (_viewFrustum.getFarClip() - _viewFrustum.getNearClip());
-    _myCamera.loadViewFrustum(_viewFrustum);
-
-    int matrixCount = 1;
-    //int targetSize = fbo->width();
-    int sourceSize = shadowFramebuffer->getWidth();
-    int targetSize = shadowFramebuffer->getWidth();
-    float targetScale = 1.0f;
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
-        matrixCount = CASCADED_SHADOW_MATRIX_COUNT;
-        targetSize = sourceSize / 2;
-        targetScale = 0.5f;
-    }
-    for (int i = 0; i < matrixCount; i++) {
-        const glm::vec2& coord = MAP_COORDS[i];
-        glViewport(coord.s * sourceSize, coord.t * sourceSize, targetSize, targetSize);
-
-        // if simple shadow then since the resolution is twice as much as with cascaded, cover 2 regions with the map, not just one
-        int regionIncrement = (matrixCount == 1 ? 2 : 1);
-        float nearScale = SHADOW_MATRIX_DISTANCES[i] * frustumScale;
-        float farScale = SHADOW_MATRIX_DISTANCES[i + regionIncrement] * frustumScale;
-        glm::vec3 points[] = {
-            glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), nearScale),
-            glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), nearScale),
-            glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), nearScale),
-            glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), nearScale),
-            glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), farScale),
-            glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), farScale),
-            glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), farScale),
-            glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), farScale) };
-        glm::vec3 center;
-        for (size_t j = 0; j < sizeof(points) / sizeof(points[0]); j++) {
-            center += points[j];
-        }
-        center /= (float)(sizeof(points) / sizeof(points[0]));
-        float radius = 0.0f;
-        for (size_t j = 0; j < sizeof(points) / sizeof(points[0]); j++) {
-            radius = qMax(radius, glm::distance(points[j], center));
-        }
-        if (i < 3) {
-            const float RADIUS_SCALE = 0.5f;
-            _shadowDistances[i] = -glm::distance(_viewFrustum.getPosition(), center) - radius * RADIUS_SCALE;
-        }
-        center = inverseRotation * center;
-
-        // to reduce texture "shimmer," move in texel increments
-        float texelSize = (2.0f * radius) / targetSize;
-        center = glm::vec3(roundf(center.x / texelSize) * texelSize, roundf(center.y / texelSize) * texelSize,
-            roundf(center.z / texelSize) * texelSize);
-
-        glm::vec3 minima(center.x - radius, center.y - radius, center.z - radius);
-        glm::vec3 maxima(center.x + radius, center.y + radius, center.z + radius);
-
-        // stretch out our extents in z so that we get all of the avatars
-        minima.z -= _viewFrustum.getFarClip() * 0.5f;
-        maxima.z += _viewFrustum.getFarClip() * 0.5f;
-
-        // save the combined matrix for rendering
-        _shadowMatrices[i] = glm::transpose(glm::translate(glm::vec3(coord, 0.0f)) *
-            glm::scale(glm::vec3(targetScale, targetScale, 1.0f)) *
-            glm::translate(glm::vec3(0.5f, 0.5f, 0.5f)) * glm::scale(glm::vec3(0.5f, 0.5f, 0.5f)) *
-            glm::ortho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z) * glm::mat4_cast(inverseRotation));
-
-        // update the shadow view frustum
-      //  glm::vec3 shadowFrustumCenter = glm::vec3((minima.x + maxima.x) * 0.5f, (minima.y + maxima.y) * 0.5f, (minima.z + maxima.z) * 0.5f);
-        glm::vec3 shadowFrustumCenter = rotation * ((minima + maxima) * 0.5f);
-        _shadowViewFrustum.setPosition(shadowFrustumCenter);
-        _shadowViewFrustum.setOrientation(rotation);
-        _shadowViewFrustum.setProjection(glm::ortho(minima.x, maxima.x, minima.y, maxima.y, minima.z, maxima.z));
-        _shadowViewFrustum.calculate();
-
-        glMatrixMode(GL_PROJECTION);
-        glPushMatrix();
-        glm::mat4 proj = glm::ortho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z);
-        glLoadMatrixf(glm::value_ptr(proj));
-
-        glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
-        glLoadMatrixf(glm::value_ptr(glm::mat4_cast(inverseRotation)));
-
-        // Equivalent to what is happening with _untranslatedViewMatrix and the _viewMatrixTranslation
-        // the viewTransofmr object is updatded with the correct values and saved,
-        // this is what is used for rendering the Entities and avatars
-        Transform viewTransform;
-        viewTransform.setRotation(rotation);
-        setViewTransform(viewTransform);
-
-
-        glEnable(GL_POLYGON_OFFSET_FILL);
-        glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
-
-        {
-            PerformanceTimer perfTimer("entities");
-            _entities.render(renderArgs);
-        }
-
-        glDisable(GL_POLYGON_OFFSET_FILL);
-
-        glPopMatrix();
-
-        glMatrixMode(GL_PROJECTION);
-        glPopMatrix();
-
-        glMatrixMode(GL_MODELVIEW);
-    }
-
-
-    glViewport(0, 0, getDeviceSize().width(), getDeviceSize().height());
-    activeRenderingThread = nullptr;
 }
 
-const GLfloat WORLD_AMBIENT_COLOR[] = { 0.525f, 0.525f, 0.6f };
-const GLfloat WORLD_DIFFUSE_COLOR[] = { 0.6f, 0.525f, 0.525f };
-const GLfloat WORLD_SPECULAR_COLOR[] = { 0.08f, 0.08f, 0.08f, 1.0f };
-
-const glm::vec3 GLOBAL_LIGHT_COLOR = {  0.6f, 0.525f, 0.525f };
-
-void Application::setupWorldLight() {
-
-    //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
-    glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-
-    glm::vec3 sunDirection = getSunDirection();
-    GLfloat light_position0[] = { sunDirection.x, sunDirection.y, sunDirection.z, 0.0 };
-    glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
-    glLightfv(GL_LIGHT0, GL_AMBIENT, WORLD_AMBIENT_COLOR);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, WORLD_DIFFUSE_COLOR);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, WORLD_SPECULAR_COLOR);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, WORLD_SPECULAR_COLOR);
-    glMateriali(GL_FRONT, GL_SHININESS, 96);
-
+void Application::setupWorldLight(RenderArgs* renderArgs) {
 }
 
 bool Application::shouldRenderMesh(float largestDimension, float distanceToCamera) {
@@ -3207,9 +3076,6 @@ namespace render {
                 PerformanceTimer perfTimer("stars");
                 PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                     "Application::payloadRender<BackgroundRenderData>() ... stars...");
-                if (!background->_stars.isStarsLoaded()) {
-                    background->_stars.generate(STARFIELD_NUM_STARS, STARFIELD_SEED);
-                }
                 // should be the first rendering pass - w/o depth buffer / lighting
 
                 // compute starfield alpha based on distance from atmosphere
@@ -3257,7 +3123,7 @@ namespace render {
 
                 // finally render the starfield
                 if (hasStars) {
-                    background->_stars.render(args->_viewFrustum->getFieldOfView(), args->_viewFrustum->getAspectRatio(), args->_viewFrustum->getNearClip(), alpha);
+                    background->_stars.render(args, alpha);
                 }
 
                 // draw the sky dome
@@ -3300,44 +3166,22 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     // load the view frustum
     theCamera.loadViewFrustum(_displayViewFrustum);
 
-    // Load the legacy GL stacks, used by entities (for now)
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadMatrixf(glm::value_ptr(theCamera.getProjection()));
-
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadMatrixf(glm::value_ptr(glm::inverse(theCamera.getTransform())));
-
-
     glm::quat rotation = theCamera.getRotation();
     // Equivalent to what is happening with _untranslatedViewMatrix and the _viewMatrixTranslation
     // the viewTransofmr object is updatded with the correct values and saved,
     // this is what is used for rendering the Entities and avatars
     Transform viewTransform;
     viewTransform.setTranslation(theCamera.getPosition());
-    viewTransform.setRotation(rotation);
+    viewTransform.setRotation(theCamera.getRotation());
     setViewTransform(viewTransform);
 
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
     {
         PerformanceTimer perfTimer("lights");
-        setupWorldLight();
+        setupWorldLight(renderArgs);
     }
-
-    // setup shadow matrices (again, after the camera transform)
-    int shadowMatrixCount = 0;
-    if (Menu::getInstance()->isOptionChecked(MenuOption::SimpleShadows)) {
-        shadowMatrixCount = 1;
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
-        shadowMatrixCount = CASCADED_SHADOW_MATRIX_COUNT;
-    }
-    for (int i = shadowMatrixCount - 1; i >= 0; i--) {
-        glActiveTexture(GL_TEXTURE0 + i);
-        glTexGenfv(GL_S, GL_EYE_PLANE, (const GLfloat*)&_shadowMatrices[i][0]);
-        glTexGenfv(GL_T, GL_EYE_PLANE, (const GLfloat*)&_shadowMatrices[i][1]);
-        glTexGenfv(GL_R, GL_EYE_PLANE, (const GLfloat*)&_shadowMatrices[i][2]);
-    }
+    
+    // TODO fix shadows and make them use the GPU library
 
     // The pending changes collecting the changes here
     render::PendingChanges pendingChanges;
@@ -3356,11 +3200,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }
 
-    glEnable(GL_LIGHTING);
-    glEnable(GL_DEPTH_TEST);
-    
    // Assuming nothing get's rendered through that
-
     if (!selfAvatarOnly) {
         if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
             // render models...
@@ -3486,8 +3326,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     glPopMatrix();
     glLoadMatrixf(glm::value_ptr(theCamera.getProjection()));
 
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
     activeRenderingThread = nullptr;
 }
 
@@ -3514,9 +3352,8 @@ bool Application::getCascadeShadowsEnabled() {
 }
 
 void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard) {
+    auto originalViewport = renderArgs->_viewport;
     // Grab current viewport to reset it at the end
-    int viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
     float aspect = (float)region.width() / region.height();
     float fov = MIRROR_FIELD_OF_VIEW;
 
@@ -3553,34 +3390,37 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     _mirrorCamera.setProjection(glm::perspective(glm::radians(fov), aspect, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
     _mirrorCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
 
+
     // set the bounds of rear mirror view
+    gpu::Vec4i viewport;
     if (billboard) {
         QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
-        glViewport(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
-        glScissor(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
-        renderArgs->_viewport = glm::ivec4(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
+        viewport = gpu::Vec4i(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
     } else {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
         QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
         float ratio = (float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale();
         int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
-        glViewport(x, size.height() - y - height, width, height);
-        glScissor(x, size.height() - y - height, width, height);
-    
-        renderArgs->_viewport = glm::ivec4(x, size.height() - y - height, width, height);
+        viewport = gpu::Vec4i(x, size.height() - y - height, width, height);
     }
-    glEnable(GL_SCISSOR_TEST);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    renderArgs->_viewport = viewport;
 
-    // render rear mirror view
-    glPushMatrix();
+    {
+        gpu::Batch batch;
+        batch.setViewportTransform(viewport);
+        batch.setStateScissorRect(viewport);
+        batch.clearFramebuffer(
+            gpu::Framebuffer::BUFFER_COLOR0 |
+            gpu::Framebuffer::BUFFER_COLOR1 |
+            gpu::Framebuffer::BUFFER_COLOR2 |
+            gpu::Framebuffer::BUFFER_DEPTH,
+            vec4(vec3(0), 1), 1.0, 0.0, true);
+        renderArgs->_context->render(batch);
+    }
+
+    bool updateViewFrustum = false;
+    updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
     displaySide(renderArgs, _mirrorCamera, true, billboard);
-    glPopMatrix();
-
-    // reset Viewport and projection matrix
-    renderArgs->_viewport = glm::ivec4(viewport[0], viewport[1], viewport[2], viewport[3]);
-    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
-    glDisable(GL_SCISSOR_TEST);
 }
 
 void Application::resetSensors() {
@@ -4434,6 +4274,10 @@ void Application::setVSyncEnabled() {
 #else
     qCDebug(interfaceapp, "V-Sync is FORCED ON on this system\n");
 #endif
+}
+
+void Application::setThrottleFPSEnabled() {
+    _isThrottleFPSEnabled = Menu::getInstance()->isOptionChecked(MenuOption::ThrottleFPSIfNotFocus);
 }
 
 bool Application::isVSyncOn() const {
