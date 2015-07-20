@@ -38,7 +38,6 @@ LineEntityItem::LineEntityItem(const EntityItemID& entityItemID, const EntityIte
     _points(QVector<glm::vec3>(0))
 {
     _type = EntityTypes::Line;
-    _created = properties.getCreated();
     setProperties(properties);
     
     

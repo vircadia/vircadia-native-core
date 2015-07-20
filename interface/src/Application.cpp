@@ -92,7 +92,6 @@
 #include <SettingHandle.h>
 #include <SimpleAverage.h>
 #include <SoundCache.h>
-#include <TextRenderer.h>
 #include <Tooltip.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
@@ -339,6 +338,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
         _isVSyncOn(true),
+        _isThrottleFPSEnabled(false),
         _aboutToQuit(false),
         _notifiedPacketVersionMismatchThisDomain(false),
         _domainConnectionRefusals(QList<QString>()),
@@ -895,6 +895,11 @@ void Application::paintGL() {
 
     {
         PerformanceTimer perfTimer("renderOverlay");
+        
+        // NOTE: There is no batch associated with this renderArgs
+        // the ApplicationOverlay class assumes it's viewport is setup to be the device size
+        QSize size = qApp->getDeviceSize();
+        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());    
         _applicationOverlay.renderOverlay(&renderArgs);
     }
 
@@ -2041,13 +2046,6 @@ void Application::setActiveFaceTracker() {
 #endif
 }
 
-void Application::toggleFaceTrackerMute() {
-    FaceTracker* faceTracker = getSelectedFaceTracker();
-    if (faceTracker) {
-        faceTracker->toggleMute();
-    }
-}
-
 bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
     QVector<EntityItemPointer> entities;
 
@@ -2486,7 +2484,13 @@ void Application::update(float deltaTime) {
     {
         PerformanceTimer perfTimer("devices");
         DeviceTracker::updateAll();
-        FaceTracker* tracker = getActiveFaceTracker();
+
+        FaceTracker* tracker = getSelectedFaceTracker();
+        if (tracker && Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking) != tracker->isMuted()) {
+            tracker->toggleMute();
+        }
+
+        tracker = getActiveFaceTracker();
         if (tracker && !tracker->isMuted()) {
             tracker->update(deltaTime);
 
@@ -4606,6 +4610,10 @@ void Application::setVSyncEnabled() {
 #else
     qCDebug(interfaceapp, "V-Sync is FORCED ON on this system\n");
 #endif
+}
+
+void Application::setThrottleFPSEnabled() {
+    _isThrottleFPSEnabled = Menu::getInstance()->isOptionChecked(MenuOption::ThrottleFPSIfNotFocus);
 }
 
 bool Application::isVSyncOn() const {

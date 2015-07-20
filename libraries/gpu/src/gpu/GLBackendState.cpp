@@ -753,3 +753,14 @@ void GLBackend::do_setStateBlendFactor(Batch& batch, uint32 paramOffset) {
     glBlendColor(factor.x, factor.y, factor.z, factor.w);
     (void) CHECK_GL_ERROR();
 }
+
+void GLBackend::do_setStateScissorRect(Batch& batch, uint32 paramOffset) {
+    
+    Vec4 rect(batch._params[paramOffset + 0]._float,
+                batch._params[paramOffset + 1]._float,
+                batch._params[paramOffset + 2]._float,
+                batch._params[paramOffset + 3]._float);
+
+    glScissor(rect.x, rect.y, rect.z, rect.w);
+    (void) CHECK_GL_ERROR();
+}

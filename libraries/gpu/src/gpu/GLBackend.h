@@ -350,6 +350,7 @@ protected:
     // Pipeline Stage
     void do_setPipeline(Batch& batch, uint32 paramOffset);
     void do_setStateBlendFactor(Batch& batch, uint32 paramOffset);
+    void do_setStateScissorRect(Batch& batch, uint32 paramOffset);
     
     // Standard update pipeline check that the current Program and current State or good to go for a
     void updatePipeline();
