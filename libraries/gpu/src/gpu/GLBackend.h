@@ -253,8 +253,6 @@ protected:
     void do_setInputBuffer(Batch& batch, uint32 paramOffset);
     void do_setIndexBuffer(Batch& batch, uint32 paramOffset);
 
-    void do_setLight(Batch& batch, uint32 paramOffset);
-
     void initInput();
     void killInput();
     void syncInputStateCache();

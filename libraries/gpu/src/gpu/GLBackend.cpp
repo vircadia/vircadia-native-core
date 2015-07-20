@@ -26,8 +26,6 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_setInputBuffer),
     (&::gpu::GLBackend::do_setIndexBuffer),
 
-    (&::gpu::GLBackend::do_setLight),
-
     (&::gpu::GLBackend::do_setModelTransform),
     (&::gpu::GLBackend::do_setViewTransform),
     (&::gpu::GLBackend::do_setProjectionTransform),

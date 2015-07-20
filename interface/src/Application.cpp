@@ -993,11 +993,12 @@ void Application::paintGL() {
         }
 
         displaySide(&renderArgs, _myCamera);
-        renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+
+        if (_myCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+            renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
             renderRearViewMirror(&renderArgs, _mirrorViewRect);
+            renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
         }
-        renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
 
         {
             auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -3113,19 +3114,7 @@ void Application::updateShadowMap(RenderArgs* renderArgs) {
 #endif
 }
 
-static gpu::Light defaultLight{
-    vec3( 0.525f, 0.525f, 0.6f), // ambient
-    vec3( 0.6f, 0.525f, 0.525f), // diffuse
-    vec4(0.08f, 0.08f, 0.08f, 1.0f), // specular
-    vec4( 0, 0, 0, 0 ), // position
-    96 // shininess
-};
-
 void Application::setupWorldLight(RenderArgs* renderArgs) {
-    gpu::Batch batch;
-    defaultLight._position = vec4(getSunDirection(), 0);
-    batch.setLight(0, defaultLight);
-    renderArgs->_context->render(batch);
 }
 
 bool Application::shouldRenderMesh(float largestDimension, float distanceToCamera) {
@@ -3624,9 +3613,8 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
 }
 
 void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard) {
+    auto originalViewport = renderArgs->_viewport;
     // Grab current viewport to reset it at the end
-    int viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
     float aspect = (float)region.width() / region.height();
     float fov = MIRROR_FIELD_OF_VIEW;
 
@@ -3663,35 +3651,45 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     _mirrorCamera.setProjection(glm::perspective(glm::radians(fov), aspect, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
     _mirrorCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
 
+
     // set the bounds of rear mirror view
+    gpu::Vec4i viewport;
     if (billboard) {
         QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
-        glViewport(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
-        glScissor(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
-        renderArgs->_viewport = glm::ivec4(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
+        viewport = gpu::Vec4i(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
     } else {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
         QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
         float ratio = (float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale();
         int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
-        glViewport(x, size.height() - y - height, width, height);
-        glScissor(x, size.height() - y - height, width, height);
-    
-        renderArgs->_viewport = glm::ivec4(x, size.height() - y - height, width, height);
+        viewport = gpu::Vec4i(x, size.height() - y - height, width, height);
     }
+    renderArgs->_viewport = viewport;
+
+    {
+        gpu::Batch batch;
+        batch.setViewportTransform(viewport);
+        batch.setStateScissorRect(viewport);
+        batch.clearFramebuffer(
+            gpu::Framebuffer::BUFFER_COLOR0 |
+            gpu::Framebuffer::BUFFER_COLOR1 |
+            gpu::Framebuffer::BUFFER_COLOR2 |
+            gpu::Framebuffer::BUFFER_DEPTH,
+            vec4(vec3(0), 1), 1.0, 0.0, true);
+        // Viewport is assigned to the size of the framebuffer
+        renderArgs->_context->render(batch);
+    }
+
     bool updateViewFrustum = false;
     updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
-    glEnable(GL_SCISSOR_TEST);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     // render rear mirror view
     displaySide(renderArgs, _mirrorCamera, true, billboard);
-
-    // reset Viewport and projection matrix
-    renderArgs->_viewport = glm::ivec4(viewport[0], viewport[1], viewport[2], viewport[3]);
-    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
-    glDisable(GL_SCISSOR_TEST);
-    updateProjectionMatrix(_myCamera, updateViewFrustum);
+    //{
+    //    gpu::Batch batch;
+    //    renderArgs->_viewport = originalViewport;
+    //    batch.setViewportTransform(originalViewport);
+    //    renderArgs->_context->render(batch);
+    //}
 }
 
 void Application::resetSensors() {

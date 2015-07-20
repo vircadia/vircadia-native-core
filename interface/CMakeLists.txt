@@ -22,6 +22,11 @@ else ()
   set(BUILD_SEQ "dev")
 endif ()
 
+if (WIN32)
+  add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h		
+  add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines		
+endif()
+
 configure_file(InterfaceVersion.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceVersion.h")
 
 macro(GroupSources curdir)

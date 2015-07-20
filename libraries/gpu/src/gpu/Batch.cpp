@@ -13,6 +13,9 @@
 
 #include <QDebug>
 
+#include <GLMHelpers.h>
+
+
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
 
@@ -300,14 +303,4 @@ void push_back(Batch::Params& params, const vec4& v) {
     params.push_back(v.y);
     params.push_back(v.z);
     params.push_back(v.a);
-}
-
-void Batch::setLight(uint8_t index, const Light& light) {
-    ADD_COMMAND(setLight);
-    _params.push_back(index);
-    push_back(_params, light._ambientColor);
-    push_back(_params, light._diffuseColor);
-    push_back(_params, light._position);
-    push_back(_params, light._specularColor);
-    _params.push_back(light._shininess);
 }

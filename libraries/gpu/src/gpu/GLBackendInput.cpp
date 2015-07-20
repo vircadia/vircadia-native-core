@@ -305,24 +305,3 @@ void popParam(Batch::Params& params, uint32& paramOffset, V& v) {
         v[i] = params[paramOffset++]._float;
     }
 }
-
-void GLBackend::do_setLight(Batch& batch, uint32 paramOffset) {
-    int index = batch._params[paramOffset++]._uint;
-    gpu::Light light;
-    popParam(batch._params, paramOffset, light._ambientColor);
-    popParam(batch._params, paramOffset, light._diffuseColor);
-    popParam(batch._params, paramOffset, light._position);
-    popParam(batch._params, paramOffset, light._specularColor);
-    light._shininess = batch._params[paramOffset++]._int;
-
-    //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
-    glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-    glLightfv(GL_LIGHT0 + index, GL_POSITION, &light._position.x);
-    glLightfv(GL_LIGHT0 + index, GL_AMBIENT, &light._ambientColor.r);
-    glLightfv(GL_LIGHT0 + index, GL_DIFFUSE, &light._diffuseColor.r);
-    glLightfv(GL_LIGHT0 + index, GL_SPECULAR, &light._specularColor.r);
-    glMaterialfv(GL_FRONT + index, GL_SPECULAR, &light._specularColor.r);
-    glMateriali(GL_FRONT + index, GL_SHININESS, light._shininess);
-}
-

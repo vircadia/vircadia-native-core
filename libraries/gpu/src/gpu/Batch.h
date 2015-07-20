@@ -14,7 +14,6 @@
 #include <vector>
 
 #include "Framebuffer.h"
-#include "Light.h"
 #include "Pipeline.h"
 #include "Query.h"
 #include "Stream.h"
@@ -76,8 +75,6 @@ public:
 
     void setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset);
     void setIndexBuffer(const BufferView& buffer); // not a command, just a shortcut from a BufferView
-
-    void setLight(uint8_t index, const Light& light);
 
     // Transform Stage
     // Vertex position is transformed by ModelTransform from object space to world space
@@ -171,8 +168,6 @@ public:
         COMMAND_setInputFormat,
         COMMAND_setInputBuffer,
         COMMAND_setIndexBuffer,
-
-        COMMAND_setLight,
 
         COMMAND_setModelTransform,
         COMMAND_setViewTransform,
