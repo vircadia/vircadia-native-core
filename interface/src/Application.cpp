@@ -9,11 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <sstream>
+#include "Application.h"
 
-#include <stdlib.h>
-#include <cmath>
-#include <math.h>
+#include <sstream>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
@@ -92,7 +90,6 @@
 #include <UUID.h>
 #include <VrMenu.h>
 
-#include "Application.h"
 #include "AudioClient.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
@@ -763,25 +760,6 @@ void Application::initializeGL() {
         return;
     } else {
         isInitialized = true;
-    }
-    #endif
-
-    qCDebug(interfaceapp) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
-    qCDebug(interfaceapp) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
-    qCDebug(interfaceapp) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
-    qCDebug(interfaceapp) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
-
-    #ifdef WIN32
-    GLenum err = glewInit();
-    if (GLEW_OK != err) {
-        /* Problem: glewInit failed, something is seriously wrong. */
-        qCDebug(interfaceapp, "Error: %s\n", glewGetErrorString(err));
-    }
-    qCDebug(interfaceapp, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
-
-    if (wglewGetExtension("WGL_EXT_swap_control")) {
-        int swapInterval = wglGetSwapIntervalEXT();
-        qCDebug(interfaceapp, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
     }
     #endif
 
