@@ -34,6 +34,7 @@ private:
     void renderRearViewToFbo(RenderArgs* renderArgs);
     void renderRearView(RenderArgs* renderArgs);
     void renderQmlUi(RenderArgs* renderArgs);
+    void renderAudioScope(RenderArgs* renderArgs);
     void renderOverlays(RenderArgs* renderArgs);
     void buildFramebufferObject();
 

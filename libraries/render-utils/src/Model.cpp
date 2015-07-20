@@ -1260,7 +1260,7 @@ uint qHash(const WeakAnimationHandlePointer& handle, uint seed) {
 }
 
 AnimationHandlePointer Model::createAnimationHandle() {
-    auto handle = AnimationHandlePointer::create(this);
+    AnimationHandlePointer handle(new AnimationHandle(this));
     handle->_self = handle;
     _animationHandles.insert(handle);
     return handle;

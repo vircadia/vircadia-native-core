@@ -421,10 +421,12 @@ public slots:
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
     void setVSyncEnabled();
+    
+    void setThrottleFPSEnabled();
+    bool isThrottleFPSEnabled() { return _isThrottleFPSEnabled; }
 
     void resetSensors();
     void setActiveFaceTracker();
-    void toggleFaceTrackerMute();
 
     void aboutApp();
     void showEditEntitiesHelp();
@@ -637,6 +639,7 @@ private:
     quint64 _lastSendDownstreamAudioStats;
 
     bool _isVSyncOn;
+    bool _isThrottleFPSEnabled;
     
     bool _aboutToQuit;
 
