@@ -101,7 +101,7 @@ void GLBackend::syncInputStateCache() {
     //_input._defaultVAO
     glBindVertexArray(_input._defaultVAO);
 #else
-    int i = 0;
+    size_t i = 0;
 #if defined(SUPPORT_LEGACY_OPENGL)
     for (; i < NUM_CLASSIC_ATTRIBS; i++) {
         _input._attributeActivation[i] = glIsEnabled(attributeSlotToClassicAttribName[i]);
@@ -297,4 +297,11 @@ void GLBackend::do_setIndexBuffer(Batch& batch, uint32 paramOffset) {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
     (void) CHECK_GL_ERROR();
+}
+
+template <typename V>
+void popParam(Batch::Params& params, uint32& paramOffset, V& v) {
+    for (size_t i = 0; i < v.length(); ++i) {
+        v[i] = params[paramOffset++]._float;
+    }
 }

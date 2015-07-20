@@ -22,20 +22,11 @@ else ()
   set(BUILD_SEQ "dev")
 endif ()
 
-if (APPLE)
-  set(GL_HEADERS "#include <OpenGL/glext.h>")
-elseif (UNIX)
-  # include the right GL headers for UNIX
-  set(GL_HEADERS "#include <GL/gl.h>\n#include <GL/glext.h>")
-elseif (WIN32)
-  add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h
-  add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines
+if (WIN32)
+  add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h		
+  add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines		
+endif()
 
-  set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/wglew.h>")
-endif ()
-
-# create the InterfaceConfig.h file based on GL_HEADERS above
-configure_file(InterfaceConfig.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceConfig.h")
 configure_file(InterfaceVersion.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceVersion.h")
 
 # grab the implementation and header files from src dirs

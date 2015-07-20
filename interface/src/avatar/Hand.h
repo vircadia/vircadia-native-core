@@ -11,8 +11,6 @@
 #ifndef hifi_Hand_h
 #define hifi_Hand_h
 
-#include "InterfaceConfig.h"
-
 #include <vector>
 
 #include <QAction>
@@ -30,7 +28,6 @@
 
 
 class Avatar;
-class ProgramObject;
 
 const float HAND_PADDLE_OFFSET = 0.1f;
 const float HAND_PADDLE_THICKNESS = 0.01f;

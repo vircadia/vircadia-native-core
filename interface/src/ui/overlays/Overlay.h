@@ -12,8 +12,6 @@
 #define hifi_Overlay_h
 
 // include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include <SharedUtil.h> // for xColor
 #include <render/Scene.h>
 

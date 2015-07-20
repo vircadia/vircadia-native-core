@@ -57,11 +57,6 @@ void DialogsManager::showUpdateDialog() {
 void DialogsManager::octreeStatsDetails() {
     if (!_octreeStatsDialog) {
         _octreeStatsDialog = new OctreeStatsDialog(qApp->getWindow(), qApp->getOcteeSceneStats());
-#if 0
-        if (_hmdToolsDialog) {
-            _hmdToolsDialog->watchWindow(_octreeStatsDialog->windowHandle());
-        }
-#endif
         connect(_octreeStatsDialog, SIGNAL(closed()), _octreeStatsDialog, SLOT(deleteLater()));
         _octreeStatsDialog->show();
     }
@@ -114,15 +109,20 @@ void DialogsManager::editAnimations() {
     }
 }
 
+void DialogsManager::audioStatsDetails() {
+    if (! _audioStatsDialog) {
+        _audioStatsDialog = new AudioStatsDialog(qApp->getWindow());
+        connect(_audioStatsDialog, SIGNAL(closed()), _audioStatsDialog, SLOT(deleteLater()));
+        
+        _audioStatsDialog->show();
+    }
+    _audioStatsDialog->raise();
+}
+
 void DialogsManager::bandwidthDetails() {
     if (! _bandwidthDialog) {
         _bandwidthDialog = new BandwidthDialog(qApp->getWindow());
         connect(_bandwidthDialog, SIGNAL(closed()), _bandwidthDialog, SLOT(deleteLater()));
-#if 0        
-        if (_hmdToolsDialog) {
-            _hmdToolsDialog->watchWindow(_bandwidthDialog->windowHandle());
-        }
-#endif
         _bandwidthDialog->show();
     }
     _bandwidthDialog->raise();
@@ -141,29 +141,6 @@ void DialogsManager::lodTools() {
 void DialogsManager::toggleToolWindow() {
     QMainWindow* toolWindow = qApp->getToolWindow();
     toolWindow->setVisible(!toolWindow->isVisible());
-}
-
-void DialogsManager::hmdTools(bool showTools) {
-#if 0
-    if (showTools) {
-        if (!_hmdToolsDialog) {
-            maybeCreateDialog(_hmdToolsDialog);
-            connect(_hmdToolsDialog, SIGNAL(closed()), SLOT(hmdToolsClosed()));
-        }
-        _hmdToolsDialog->show();
-        _hmdToolsDialog->raise();
-    } else {
-        hmdToolsClosed();
-    }
-    qApp->getWindow()->activateWindow();
-#endif
-}
-
-void DialogsManager::hmdToolsClosed() {
-#if 0
-    Menu::getInstance()->getActionForOption(MenuOption::HMDTools)->setChecked(false);
-    _hmdToolsDialog->hide();
-#endif
 }
 
 void DialogsManager::showScriptEditor() {

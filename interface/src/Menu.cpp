@@ -9,9 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include <QFileDialog>
 #include <QMenuBar>
 #include <QShortcut>
@@ -267,19 +264,6 @@ Menu::Menu() {
 
     addActionToQMenuAndActionHash(viewMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
 
-#if 0
-    addCheckableActionToQMenuAndActionHash(viewMenu,
-                                           MenuOption::Fullscreen,
-#ifdef Q_OS_MAC
-                                           Qt::CTRL | Qt::META | Qt::Key_F,
-#else
-                                           Qt::CTRL | Qt::Key_F,
-#endif
-                                           false,
-                                           qApp,
-                                           SLOT(setFullscreen(bool)));
-#endif
-
     MenuWrapper* cameraModeMenu = viewMenu->addMenu("Camera Mode");
     QActionGroup* cameraModeGroup = new QActionGroup(cameraModeMenu);
     cameraModeGroup->setExclusive(true);
@@ -306,17 +290,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::CenterPlayerInView,
                                            0, false, qApp, SLOT(rotationModeChanged()));
 
-#if 0
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools,
-#ifdef Q_OS_MAC
-                                           Qt::META | Qt::Key_H,
-#else
-                                           Qt::CTRL | Qt::Key_H,
-#endif
-                                           false,
-                                           dialogsManager.data(),
-                                           SLOT(hmdTools(bool)));
-#endif
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
 
@@ -327,6 +300,8 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(viewMenu, MenuOption::Log,
         Qt::CTRL | Qt::SHIFT | Qt::Key_L,
         qApp, SLOT(toggleLogDialog()));
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::AudioNetworkStats, 0,
+                                  dialogsManager.data(), SLOT(audioStatsDetails()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0,
                                   dialogsManager.data(), SLOT(bandwidthDetails()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0,
@@ -377,6 +352,8 @@ Menu::Menu() {
         addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::RenderTargetFramerateVSyncOn, 0, true,
                                                qApp, SLOT(setVSyncEnabled()));
 #endif
+        addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ThrottleFPSIfNotFocus, 0, false,
+            qApp, SLOT(setThrottleFPSEnabled()));
     }
 
 
@@ -393,7 +370,6 @@ Menu::Menu() {
         0, // QML Qt::Key_Asterisk,
         true);
 
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Wireframe, Qt::ALT | Qt::Key_W, false);
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools,
         0, // QML Qt::SHIFT | Qt::Key_L,
         dialogsManager.data(), SLOT(lodTools()));
@@ -441,8 +417,7 @@ Menu::Menu() {
 #if defined(HAVE_FACESHIFT) || defined(HAVE_DDE)
     faceTrackingMenu->addSeparator();
     addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::MuteFaceTracking,
-        Qt::CTRL | Qt::SHIFT | Qt::Key_F, true,  // DDE face tracking is on by default
-        qApp, SLOT(toggleFaceTrackerMute()));
+        Qt::CTRL | Qt::SHIFT | Qt::Key_F, true);  // DDE face tracking is on by default
     addCheckableActionToQMenuAndActionHash(faceTrackingMenu, MenuOption::AutoMuteAudio, 0, false);
 #endif
 
@@ -580,15 +555,6 @@ Menu::Menu() {
         audioScopeFramesGroup->addAction(twentyFrames);
         audioScopeFramesGroup->addAction(fiftyFrames);
     }
-
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStats,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_A,
-                                           false); //, statsRenderer.data(), SLOT(toggle())); // TODO: convert to dialogbox
-
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStatsShowInjectedStreams,
-                                            0,
-                                           false); //, statsRenderer.data(), SLOT(toggleShowInjectedStreams)); // TODO: convert to dialogbox
-
 
     MenuWrapper* physicsOptionsMenu = developerMenu->addMenu("Physics");
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowOwned);

@@ -11,9 +11,6 @@
 #ifndef hifi_TextOverlay_h
 #define hifi_TextOverlay_h
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include <QString>
 
 #include <SharedUtil.h>
@@ -26,7 +23,7 @@ const int DEFAULT_MARGIN = 10;
 const int DEFAULT_FONTSIZE = 12;
 const int DEFAULT_FONT_WEIGHT = 50;
 
-class TextRenderer;
+class TextOverlayElement;
 
 class TextOverlay : public Overlay2D {
     Q_OBJECT
@@ -45,9 +42,9 @@ public:
     float getBackgroundAlpha() const { return _backgroundAlpha; }
 
     // setters
-    void setText(const QString& text) { _text = text; }
-    void setLeftMargin(int margin) { _leftMargin = margin; }
-    void setTopMargin(int margin) { _topMargin = margin; }
+    void setText(const QString& text);
+    void setLeftMargin(int margin);
+    void setTopMargin(int margin);
     void setFontSize(int fontSize);
 
     virtual void setProperties(const QScriptValue& properties);
@@ -57,9 +54,7 @@ public:
     QSizeF textSize(const QString& text) const;  // Pixels
 
 private:
-    
-    TextRenderer* _textRenderer = nullptr;
-    
+    TextOverlayElement* _qmlElement{ nullptr };
     QString _text;
     xColor _backgroundColor;
     float _backgroundAlpha;

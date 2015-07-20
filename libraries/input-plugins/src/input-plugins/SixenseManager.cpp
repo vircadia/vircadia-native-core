@@ -12,6 +12,7 @@
 #include <vector>
 
 #include <PerfStat.h>
+#include <NumericalConstants.h>
 
 #include "NumericalConstants.h"
 #include "SixenseManager.h"

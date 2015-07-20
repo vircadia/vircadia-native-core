@@ -101,17 +101,17 @@ void Environment::resetToDefault() {
     _data[HifiSockAddr()][0];
 }
 
-void Environment::renderAtmospheres(gpu::Batch& batch, const glm::vec3& position) {
+void Environment::renderAtmospheres(gpu::Batch& batch, ViewFrustum& camera) {
     // get the lock for the duration of the call
     QMutexLocker locker(&_mutex);
 
     if (_environmentIsOverridden) {
-        renderAtmosphere(batch, position, _overrideData);
+        renderAtmosphere(batch, camera, _overrideData);
     } else {
         foreach (const ServerData& serverData, _data) {
             // TODO: do something about EnvironmentData
             foreach (const EnvironmentData& environmentData, serverData) {
-                renderAtmosphere(batch, position, environmentData);
+                renderAtmosphere(batch, camera, environmentData);
             }
         }
     }
@@ -234,14 +234,15 @@ int Environment::parseData(const HifiSockAddr& senderAddress, const QByteArray& 
     return bytesRead;
 }
 
-void Environment::renderAtmosphere(gpu::Batch& batch, const glm::vec3& position, const EnvironmentData& data) {
+void Environment::renderAtmosphere(gpu::Batch& batch, ViewFrustum& camera, const EnvironmentData& data) {
+
     glm::vec3 center = data.getAtmosphereCenter();
     
     Transform transform;
     transform.setTranslation(center);
     batch.setModelTransform(transform);
     
-    glm::vec3 relativeCameraPos = position - center;
+    glm::vec3 relativeCameraPos = camera.getPosition() - center;
     float height = glm::length(relativeCameraPos);
 
     // use the appropriate shader depending on whether we're inside or outside
