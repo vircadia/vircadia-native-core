@@ -2881,10 +2881,15 @@ void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float
     
     palm->setActive(pose.isValid());
 
-    glm::vec3 position = pose.getTranslation();
-    glm::quat rotation = pose.getRotation();
+    // transform from sensor space, to world space, to avatar model space.
+    glm::mat4 poseMat = createMatFromQuatAndPos(pose.getRotation(), pose.getTranslation());
+    glm::mat4 sensorToWorldMat = _myAvatar->getSensorToWorldMatrix();
+    glm::mat4 modelMat = createMatFromQuatAndPos(_myAvatar->getOrientation(), _myAvatar->getPosition());
+    glm::mat4 objectPose = glm::inverse(modelMat) * sensorToWorldMat * poseMat;
 
-    // TODO: velocity and tip position information should be converted to model space
+    glm::vec3 position = extractTranslation(objectPose);
+    glm::quat rotation = glm::quat_cast(objectPose);
+
     //  Compute current velocity from position change
     glm::vec3 rawVelocity;
     if (deltaTime > 0.0f) {
@@ -2913,6 +2918,8 @@ void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float
         position = palm->getRawPosition() * velocityFilter + position * (1.0f - velocityFilter);
         rotation = safeMix(palm->getRawRotation(), rotation, 1.0f - velocityFilter);
     }
+    palm->setRawPosition(position);
+    palm->setRawRotation(rotation);
 
     // Store the one fingertip in the palm structure so we can track velocity
     const float FINGER_LENGTH = 0.3f;   //  meters
@@ -2925,15 +2932,6 @@ void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float
         palm->setTipVelocity(glm::vec3(0.0f));
     }
     palm->setTipPosition(newTipPosition);
-
-    // transform from sensor space, to world space, to avatar model space.
-    glm::mat4 poseMat = createMatFromQuatAndPos(rotation, position);
-    glm::mat4 sensorToWorldMat = _myAvatar->getSensorToWorldMatrix();
-    glm::mat4 modelMat = createMatFromQuatAndPos(_myAvatar->getOrientation(), _myAvatar->getPosition());
-    glm::mat4 objectPose = glm::inverse(modelMat) * sensorToWorldMat * poseMat;
-
-    palm->setRawPosition(extractTranslation(objectPose));
-    palm->setRawRotation(glm::quat_cast(objectPose));
 }
 
 void Application::emulateMouse(Hand* hand, float click, float shift, int index) {
@@ -2947,7 +2945,6 @@ void Application::emulateMouse(Hand* hand, float click, float shift, int index) 
             break;
         }
     }
-    //qDebug() << "emulateMouse" << !foundHand << !palm->isActive();
     if (!foundHand || !palm->isActive()) {
         return;
     }
@@ -2975,9 +2972,7 @@ void Application::emulateMouse(Hand* hand, float click, float shift, int index) 
         pos.setY(canvasSize.y / 2.0f + cursorRange * yAngle);
 
     }
-
-    //qDebug() << index << " " << click << " " << shift <<  " " << pos;
-
+    
     //If we are off screen then we should stop processing, and if a trigger or bumper is pressed,
     //we should unpress them.
     if (pos.x() == INT_MAX) {
