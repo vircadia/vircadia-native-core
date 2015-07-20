@@ -77,61 +77,43 @@ bool Vec3::equal(const glm::vec3& v1, const glm::vec3& v2) {
 
 glm::vec3 Vec3::toPolar(const glm::vec3& v) {
     glm::vec3 u = normalize(v);
-    float pitch, yaw, temp;
-    pitch = glm::asin(-u.y);
-    temp = glm::cos(pitch);
-    if (glm::abs(pitch) >= (PI - EPSILON)) {
-        yaw = 0.0;
-        if (pitch > 0) {
-            pitch = PI_OVER_TWO;
-        } else {
-            pitch = -PI_OVER_TWO;
-        }
-    } else {
-        if (u.z < 0.0) {
-            if (u.x > 0.0 && u.x < 1.0) {
-                yaw = PI - glm::asin(u.x / temp);
-            } else {
-                yaw = -PI - glm::asin(u.x / temp);
-            }
-        } else {
-            yaw = glm::asin(u.x / temp);
-        }
-    }
+    float azimuth, elevation;
     
-    // Round small values to 0
-    if (glm::abs(pitch) < EPSILON) {
-        pitch = 0.0;
-    }
-    if (glm::abs(yaw) < EPSILON) {
-        yaw = 0.0;
-    }
+    azimuth = glm::asin(-u.y);
+    elevation = atan2(v.x, v.z);
     
-    // Neglect roll component
-    return glm::vec3(glm::degrees(pitch), glm::degrees(yaw), 0.0);
+    // Round off small decimal values
+    if (glm::abs(azimuth) < EPSILON) {
+        azimuth = 0.0f;
+    }
+    if (glm::abs(elevation) < EPSILON) {
+        elevation = 0.0f;
+    }
+
+    return glm::vec3(azimuth, elevation, length(v));
 }
 
-glm::vec3 Vec3::fromPolar(float pitch, float yaw) {
-    pitch = glm::radians(pitch);
-    yaw = glm::radians(yaw);
-    
-    float x = glm::cos(pitch) * glm::sin(yaw);
-    float y = glm::sin(-pitch);
-    float z = glm::cos(pitch) * glm::cos(yaw);
+glm::vec3 Vec3::fromPolar(const glm::vec3& polar) {
+    float x = glm::cos(polar.x) * glm::sin(polar.y);
+    float y = glm::sin(-polar.x);
+    float z = glm::cos(polar.x) * glm::cos(polar.y);
     
     // Round small values to 0
     if (glm::abs(x) < EPSILON) {
-        x = 0.0;
+        x = 0.0f;
     }
     if (glm::abs(y) < EPSILON) {
-        y = 0.0;
+        y = 0.0f;
     }
     if (glm::abs(z) < EPSILON) {
-        z = 0.0;
+        z = 0.0f;
     }
     
-    return glm::vec3(x, y, z);
+    return multiply(polar.z, glm::vec3(x, y, z));
 }
 
-
+glm::vec3 Vec3::fromPolar(float azimuth, float elevation) {
+    glm::vec3 v = glm::vec3(azimuth, elevation, 1.0f);
+    return fromPolar(v);
+}
 
