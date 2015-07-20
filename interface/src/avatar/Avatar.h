@@ -24,7 +24,6 @@
 
 #include "Hand.h"
 #include "Head.h"
-#include "InterfaceConfig.h"
 #include "SkeletonModel.h"
 #include "world.h"
 

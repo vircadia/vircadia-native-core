@@ -93,6 +93,7 @@ void AudioInjector::injectAudio() {
 }
 
 void AudioInjector::restart() {
+    _isPlaying = true;
     connect(this, &AudioInjector::finished, this, &AudioInjector::restartPortionAfterFinished);
     if (!_isStarted || _isFinished) {
         emit finished();
@@ -274,6 +275,7 @@ void AudioInjector::injectToMixer() {
     }
 
     setIsFinished(true);
+    _isPlaying = !_isFinished; // Which can be false if a restart was requested
 }
 
 void AudioInjector::stop() {
@@ -281,6 +283,7 @@ void AudioInjector::stop() {
 
     if (_options.localOnly) {
         // we're only a local injector, so we can say we are finished right away too
+        _isPlaying = false;
         setIsFinished(true);
     }
 }
@@ -338,6 +341,7 @@ AudioInjector* AudioInjector::playSound(const QByteArray& buffer, const AudioInj
     injectorThread->setObjectName("Audio Injector Thread");
 
     AudioInjector* injector = new AudioInjector(buffer, options);
+    injector->_isPlaying = true;
     injector->setLocalAudioInterface(localInterface);
 
     injector->moveToThread(injectorThread);

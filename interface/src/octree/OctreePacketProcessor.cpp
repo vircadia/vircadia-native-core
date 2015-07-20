@@ -111,4 +111,3 @@ void OctreePacketProcessor::processPacket(QSharedPointer<NLPacket> packet, Share
         } break;
     }
 }
-

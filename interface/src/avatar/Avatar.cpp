@@ -11,8 +11,6 @@
 
 #include <vector>
 
-#include <gpu/GPUConfig.h>
-
 #include <QDesktopWidget>
 #include <QWindow>
 

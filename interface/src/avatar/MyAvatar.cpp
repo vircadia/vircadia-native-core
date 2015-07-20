@@ -19,7 +19,6 @@
 
 #include <QtCore/QTimer>
 
-#include <gpu/GPUConfig.h>
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <AnimationHandle.h>

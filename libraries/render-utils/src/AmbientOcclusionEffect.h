@@ -12,10 +12,11 @@
 #ifndef hifi_AmbientOcclusionEffect_h
 #define hifi_AmbientOcclusionEffect_h
 
+#include <stdint.h>
 #include <DependencyManager.h>
+#include <gpu/Shader.h>
 
 class AbstractViewStateInterface;
-class ProgramObject;
 
 /// A screen space ambient occlusion effect.  See John Chapman's tutorial at
 /// http://john-chapman-graphics.blogspot.co.uk/2013/01/ssao-tutorial.html for reference.
@@ -31,7 +32,7 @@ private:
     AmbientOcclusionEffect() {}
     virtual ~AmbientOcclusionEffect() {}
 
-    ProgramObject* _occlusionProgram;
+    gpu::ShaderPointer _occlusionProgram;
     int _nearLocation;
     int _farLocation;
     int _leftBottomLocation;
@@ -40,10 +41,10 @@ private:
     int _texCoordOffsetLocation;
     int _texCoordScaleLocation;
     
-    ProgramObject* _blurProgram;
+    gpu::ShaderPointer _blurProgram;
     int _blurScaleLocation;
     
-    GLuint _rotationTextureID;
+    uint32_t _rotationTextureID;
     AbstractViewStateInterface* _viewState;
 };
 
