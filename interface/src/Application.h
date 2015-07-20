@@ -12,8 +12,6 @@
 #ifndef hifi_Application_h
 #define hifi_Application_h
 
-#include <gpu/GPUConfig.h>
-
 #include <QApplication>
 #include <QHash>
 #include <QImage>
@@ -47,7 +45,6 @@
 #include "DatagramProcessor.h"
 #include "Environment.h"
 #include "FileLogger.h"
-#include "GLCanvas.h"
 #include "Menu.h"
 #include "PacketHeaders.h"
 #include "Physics.h"
@@ -84,10 +81,10 @@ class QSystemTrayIcon;
 class QTouchEvent;
 class QWheelEvent;
 
+class GLCanvas;
 class FaceTracker;
 class MainWindow;
 class Node;
-class ProgramObject;
 class ScriptEngine;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
@@ -265,7 +262,7 @@ public:
 
     void controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
 
-    virtual void setupWorldLight();
+    virtual void setupWorldLight(RenderArgs* renderArgs);
     virtual bool shouldRenderMesh(float largestDimension, float distanceToCamera);
 
     QImage renderAvatarBillboard(RenderArgs* renderArgs);
@@ -421,10 +418,12 @@ public slots:
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
     void setVSyncEnabled();
+    
+    void setThrottleFPSEnabled();
+    bool isThrottleFPSEnabled() { return _isThrottleFPSEnabled; }
 
     void resetSensors();
     void setActiveFaceTracker();
-    void toggleFaceTrackerMute();
 
     void aboutApp();
     void showEditEntitiesHelp();
@@ -637,6 +636,7 @@ private:
     quint64 _lastSendDownstreamAudioStats;
 
     bool _isVSyncOn;
+    bool _isThrottleFPSEnabled;
     
     bool _aboutToQuit;
 
@@ -647,7 +647,7 @@ private:
     QThread _settingsThread;
     QTimer _settingsTimer;
     
-    GLCanvas* _glWidget = new GLCanvas(); // our GLCanvas has a couple extra features
+    GLCanvas* _glWidget{ nullptr };
 
     void checkSkeleton();
 

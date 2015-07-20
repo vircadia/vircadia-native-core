@@ -789,7 +789,7 @@ void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha
         // so no need to render it
         return;
     }
-    Application::getInstance()->loadTranslatedViewMatrix(_translation);
+  //  Application::getInstance()->loadTranslatedViewMatrix(_translation);
 
     // draw a blue sphere at the capsule endpoint
     glm::vec3 endPoint;

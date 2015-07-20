@@ -34,12 +34,13 @@ private:
     void renderRearViewToFbo(RenderArgs* renderArgs);
     void renderRearView(RenderArgs* renderArgs);
     void renderQmlUi(RenderArgs* renderArgs);
+    void renderAudioScope(RenderArgs* renderArgs);
     void renderOverlays(RenderArgs* renderArgs);
     void buildFramebufferObject();
 
     float _alpha{ 1.0f };
     float _trailingAudioLoudness{ 0.0f };
-    GLuint _uiTexture{ 0 };
+    uint32_t _uiTexture{ 0 };
 
     int _domainStatusBorder;
     int _magnifierBorder;

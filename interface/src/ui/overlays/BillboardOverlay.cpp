@@ -11,6 +11,12 @@
 
 #include "BillboardOverlay.h"
 
+#include <QScriptValue>
+
+#include <DependencyManager.h>
+#include <GeometryCache.h>
+#include <gpu/Batch.h>
+
 #include "Application.h"
 #include "GeometryUtil.h"
 

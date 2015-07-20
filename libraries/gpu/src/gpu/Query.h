@@ -14,7 +14,6 @@
 #include <assert.h>
 #include <memory>
 #include <vector>
-#include "GPUConfig.h"
 
 #include "Format.h"
 

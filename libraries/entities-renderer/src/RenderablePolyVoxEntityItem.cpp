@@ -23,8 +23,6 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include <gpu/GPUConfig.h>
-
 #include <DeferredLightingEffect.h>
 #include <Model.h>
 #include <PerfStat.h>
