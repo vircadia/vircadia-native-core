@@ -27,7 +27,8 @@
 #include "../../libraries/render-utils/standardTransformPNTC_vert.h"
 #include "../../libraries/render-utils/stars_frag.h"
 
-static const float TILT = 0.23f;
+//static const float TILT = 0.23f;
+static const float TILT = 0.0f;
 static const unsigned int STARFIELD_NUM_STARS = 50000;
 static const unsigned int STARFIELD_SEED = 1;
 static const float STAR_COLORIZATION = 0.1f;
