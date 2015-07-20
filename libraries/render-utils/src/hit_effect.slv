@@ -2,10 +2,10 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  ambient_occlusion.vert
+//  hit_effect.vert
 //  vertex shader
 //
-//  Created by Niraj Venkat on 7/20/15.
+//  Created by Eric Levin on 7/20/15.
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
