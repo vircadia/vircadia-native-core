@@ -55,7 +55,6 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <CursorManager.h>
-#include <AmbientOcclusionEffect.h>
 #include <AudioInjector.h>
 #include <AutoUpdater.h>
 #include <DeferredLightingEffect.h>
@@ -266,7 +265,6 @@ bool setupEssentials(int& argc, char** argv) {
     auto audio = DependencyManager::set<AudioClient>();
     auto audioScope = DependencyManager::set<AudioScope>();
     auto deferredLightingEffect = DependencyManager::set<DeferredLightingEffect>();
-    auto ambientOcclusionEffect = DependencyManager::set<AmbientOcclusionEffect>();
     auto textureCache = DependencyManager::set<TextureCache>();
     auto animationCache = DependencyManager::set<AnimationCache>();
     auto ddeFaceTracker = DependencyManager::set<DdeFaceTracker>();
@@ -1256,12 +1254,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 Menu::getInstance()->triggerOption(MenuOption::Stars);
                 break;
 
-            case Qt::Key_W:
-                if (isOption && !isShifted && !isMeta) {
-                    Menu::getInstance()->triggerOption(MenuOption::Wireframe);
-                }
-                break;
-
             case Qt::Key_S:
                 if (isShifted && isMeta && !isOption) {
                     Menu::getInstance()->triggerOption(MenuOption::SuppressShortTimings);
@@ -2148,7 +2140,6 @@ void Application::init() {
     _environment.init();
 
     DependencyManager::get<DeferredLightingEffect>()->init(this);
-    DependencyManager::get<AmbientOcclusionEffect>()->init(this);
 
     // TODO: move _myAvatar out of Application. Move relevant code to MyAvataar or AvatarManager
     DependencyManager::get<AvatarManager>()->init();
@@ -3278,10 +3269,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
     }
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    }
-
    // Assuming nothing get's rendered through that
     if (!selfAvatarOnly) {
         if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
@@ -3301,14 +3288,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             }
             renderArgs->_debugFlags = renderDebugFlags;
             _entities.render(renderArgs);
-        }
-
-        // render the ambient occlusion effect if enabled
-        if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
-            PerformanceTimer perfTimer("ambientOcclusion");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... AmbientOcclusion...");
-            DependencyManager::get<AmbientOcclusionEffect>()->render();
         }
     }
 
@@ -3398,10 +3377,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             PerformanceTimer perfTimer("inWorldInterface");
             emit renderingInWorldInterface();
         }
-    }
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 
     activeRenderingThread = nullptr;
