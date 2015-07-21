@@ -45,7 +45,7 @@ public:
     bool registerListener(PacketType::Value type, QObject* listener, const char* slot);
     void unregisterListener(QObject* listener);
     
-    void handleVerifiedPacket(std::unique_ptr<Packet> packet);
+    void handleVerifiedPacket(std::unique_ptr<udt::Packet> packet);
 
 signals:
     void dataReceived(quint8 channelType, int bytes);

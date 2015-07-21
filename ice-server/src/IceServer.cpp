@@ -55,7 +55,7 @@ void IceServer::processDatagrams() {
         _serverSocket.readDatagram(buffer.get(), packetSizeWithHeader,
                                    sendingSockAddr.getAddressPointer(), sendingSockAddr.getPortPointer());
         
-        auto packet = Packet::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, sendingSockAddr);
+        auto packet = udt::Packet::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, sendingSockAddr);
 
         PacketType::Value packetType = packet->getType();
 
@@ -100,7 +100,7 @@ void IceServer::processDatagrams() {
     }
 }
 
-SharedNetworkPeer IceServer::addOrUpdateHeartbeatingPeer(Packet& packet) {
+SharedNetworkPeer IceServer::addOrUpdateHeartbeatingPeer(udt::Packet& packet) {
 
     // pull the UUID, public and private sock addrs for this peer
     QUuid senderUUID;
@@ -133,7 +133,7 @@ SharedNetworkPeer IceServer::addOrUpdateHeartbeatingPeer(Packet& packet) {
 }
 
 void IceServer::sendPeerInformationPacket(const NetworkPeer& peer, const HifiSockAddr* destinationSockAddr) {
-    auto peerPacket = Packet::create(PacketType::ICEServerPeerInformation);
+    auto peerPacket = udt::Packet::create(PacketType::ICEServerPeerInformation);
 
     // get the byte array for this peer
     peerPacket->write(peer.toByteArray());

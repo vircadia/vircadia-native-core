@@ -99,12 +99,13 @@ NLPacket::NLPacket(std::unique_ptr<Packet> packet) :
 }
 
 NLPacket::NLPacket(const NLPacket& other) : Packet(other) {
-    *this = other;
+    _sourceID = other._sourceID;
+    _verificationHash = other._verificationHash;
 }
 
 NLPacket& NLPacket::operator=(const NLPacket& other) {
     Packet::operator=(other);
-    
+   
     _sourceID = other._sourceID;
     _verificationHash = other._verificationHash;
     
@@ -123,10 +124,14 @@ NLPacket::NLPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& 
 NLPacket::NLPacket(NLPacket&& other) :
     Packet(other)
 {
-    *this = std::move(other);
+    _sourceID = std::move(other._sourceID);
+    _verificationHash = std::move(other._verificationHash);
 }
 
 NLPacket& NLPacket::operator=(NLPacket&& other) {
+    
+    Packet::operator=(other);
+    
     _sourceID = std::move(other._sourceID);
     _verificationHash = std::move(other._verificationHash);
     

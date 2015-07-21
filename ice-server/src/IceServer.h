@@ -33,7 +33,7 @@ private slots:
     void clearInactivePeers();
 private:
 
-    SharedNetworkPeer addOrUpdateHeartbeatingPeer(Packet& incomingPacket);
+    SharedNetworkPeer addOrUpdateHeartbeatingPeer(udt::Packet& incomingPacket);
     void sendPeerInformationPacket(const NetworkPeer& peer, const HifiSockAddr* destinationSockAddr);
 
     QUuid _id;

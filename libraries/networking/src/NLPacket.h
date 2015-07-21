@@ -16,7 +16,7 @@
 
 #include "udt/Packet.h"
 
-class NLPacket : public Packet {
+class NLPacket : public udt::Packet {
     Q_OBJECT
 public:
     static std::unique_ptr<NLPacket> create(PacketType::Value type, qint64 size = -1);

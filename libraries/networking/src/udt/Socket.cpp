@@ -18,7 +18,7 @@ using namespace udt;
 Socket::Socket(QObject* parent) :
     QObject(parent)
 {
-    
+    connect(&_udpSocket, &QUdpSocket::readyRead, this, &Socket::readPendingDatagrams);
 }
 
 void Socket::rebind() {
@@ -65,4 +65,24 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
     }
     
     return bytesWritten;
+}
+
+void Socket::readPendingDatagrams() {
+    while (_udpSocket.hasPendingDatagrams()) {
+        // setup a HifiSockAddr to read into
+        HifiSockAddr senderSockAddr;
+        
+        // setup a buffer to read the packet into
+        int packetSizeWithHeader = _udpSocket.pendingDatagramSize();
+        std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[packetSizeWithHeader]);
+        
+        // pull the datagram
+        _udpSocket.readDatagram(buffer.get(), packetSizeWithHeader,
+                                senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
+        
+        // setup a Packet from the data we just read
+        auto packet = Packet::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
+        
+        
+    }
 }

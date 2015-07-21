@@ -15,6 +15,8 @@
 
 #include "Packet.h"
 
+using namespace udt;
+
 PacketList::PacketList(PacketType::Value packetType, QByteArray extendedHeader) :
     _packetType(packetType),
     _extendedHeader(extendedHeader)

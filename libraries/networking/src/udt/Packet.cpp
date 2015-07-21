@@ -11,6 +11,8 @@
 
 #include "Packet.h"
 
+using namespace udt;
+
 const qint64 Packet::PACKET_WRITE_ERROR = -1;
 
 qint64 Packet::localHeaderSize(PacketType::Value type) {

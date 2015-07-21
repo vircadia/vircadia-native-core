@@ -19,7 +19,7 @@ NLPacketList::NLPacketList(PacketType::Value packetType, QByteArray extendedHead
 
 }
 
-std::unique_ptr<Packet> NLPacketList::createPacket() {
+std::unique_ptr<udt::Packet> NLPacketList::createPacket() {
     return NLPacket::create(getType());
 }
 

@@ -44,6 +44,10 @@ public:
         { _verifiedPacketFunction = verifiedPacketFunction; }
     
     void setBufferSizes(int numBytes);
+
+private slots:
+    void readPendingDatagrams();
+    
 private:
     QUdpSocket _udpSocket { this };
     VerifiedPacketFunction _verifiedPacketFunction;

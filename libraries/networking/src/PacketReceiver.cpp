@@ -234,7 +234,7 @@ bool PacketReceiver::packetVersionMatch(const NLPacket& packet) {
     }
 }
 
-void PacketReceiver::handleVerifiedPacket(std::unique_ptr<Packet> packet) {
+void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
     
     // if we're supposed to drop this packet then break out here
     if (_shouldDropPackets) {
