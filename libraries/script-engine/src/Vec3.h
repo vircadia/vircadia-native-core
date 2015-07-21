@@ -42,7 +42,7 @@ public slots:
     bool equal(const glm::vec3& v1, const glm::vec3& v2);
     glm::vec3 toPolar(const glm::vec3& v);
     glm::vec3 fromPolar(const glm::vec3& polar);
-    glm::vec3 fromPolar(float pitch, float yaw);
+    glm::vec3 fromPolar(float elevation, float azimuth);
 };
 
 

@@ -80,22 +80,23 @@ glm::vec3 Vec3::toPolar(const glm::vec3& v) {
     if (glm::abs(radius) < EPSILON) {
         return glm::vec3(0.0f, 0.0f, 0.0f);
     }
+    
     glm::vec3 u = v / radius;
     
-    float azimuth, elevation;
+    float elevation, azimuth;
     
-    azimuth = glm::asin(-u.y);
-    elevation = atan2(v.x, v.z);
+    elevation = glm::asin(-u.y);
+    azimuth = atan2(v.x, v.z);
     
     // Round off small decimal values
-    if (glm::abs(azimuth) < EPSILON) {
-        azimuth = 0.0f;
-    }
     if (glm::abs(elevation) < EPSILON) {
         elevation = 0.0f;
     }
+    if (glm::abs(azimuth) < EPSILON) {
+        azimuth = 0.0f;
+    }
 
-    return glm::vec3(azimuth, elevation, radius);
+    return glm::vec3(elevation, azimuth, radius);
 }
 
 glm::vec3 Vec3::fromPolar(const glm::vec3& polar) {
@@ -113,12 +114,12 @@ glm::vec3 Vec3::fromPolar(const glm::vec3& polar) {
     if (glm::abs(z) < EPSILON) {
         z = 0.0f;
     }
-    
+   
     return polar.z * glm::vec3(x, y, z);
 }
 
-glm::vec3 Vec3::fromPolar(float azimuth, float elevation) {
-    glm::vec3 v = glm::vec3(azimuth, elevation, 1.0f);
+glm::vec3 Vec3::fromPolar(float elevation, float azimuth) {
+    glm::vec3 v = glm::vec3(elevation, azimuth, 1.0f);
     return fromPolar(v);
 }
 
