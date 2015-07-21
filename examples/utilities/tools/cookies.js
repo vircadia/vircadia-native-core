@@ -92,7 +92,6 @@ Slider = function(x,y,width,thumbSize) {
         this.isMoving = false;
     };
 
-
     // Public members:
     this.setNormalizedValue = function(value) {
         if (value < 0.0) {
@@ -113,9 +112,18 @@ Slider = function(x,y,width,thumbSize) {
         this.setNormalizedValue(normValue);
     };
 
+    this.reset = function(resetValue) {
+        this.setValue(resetValue);
+        this.onValueChanged(resetValue);
+    };
+
     this.getValue = function() {
         return this.getNormalizedValue() * (this.maxValue - this.minValue) + this.minValue;
     };
+
+    this.getHeight = function() {
+        return 1.5 * this.thumbSize;
+    }
 
     this.onValueChanged = function(value) {};
 
@@ -130,6 +138,7 @@ Slider = function(x,y,width,thumbSize) {
     this.setBackgroundColor = function(color) {
         Overlays.editOverlay(this.background, {backgroundColor: { red: color.x*255, green: color.y*255, blue: color.z*255 }});
     };
+
 }
 
 // The Checkbox class
@@ -158,10 +167,12 @@ Checkbox = function(x,y,width,thumbSize) {
                     visible: true
                 });
 
-    
+
     this.thumbSize = thumbSize;
     var checkX = x + (0.25 * thumbSize);
     var checkY = y + (0.25 * thumbSize);
+    var boxCheckStatus;
+    var clickedBox = false;
 
     
     var checkMark = Overlays.addOverlay("text", {
@@ -181,22 +192,22 @@ Checkbox = function(x,y,width,thumbSize) {
                     width: thumbSize / 2.5,
                     height: thumbSize / 2.5,
                     alpha: 1.0,
-                    visible: boxCheckStatus
+                    visible: !boxCheckStatus
                 });
 
-    
-    var boxCheckStatus;
-    var clickedBox = false;
 
-    this.updateThumb = function() {   
-        if (clickedBox) {
-            boxCheckStatus = !boxCheckStatus;
-            if (boxCheckStatus) {
-                Overlays.editOverlay(unCheckMark, { visible: false });
-            } else {
-                Overlays.editOverlay(unCheckMark, { visible: true });
-            }
+    this.updateThumb = function() { 
+        if(!clickedBox) {
+            return;
+        }  
+       
+        boxCheckStatus = !boxCheckStatus;
+        if (boxCheckStatus) {
+            Overlays.editOverlay(unCheckMark, { visible: false });
+        } else {
+            Overlays.editOverlay(unCheckMark, { visible: true });
         }
+        
     };
 
     this.isClickableOverlayItem = function(item) {
@@ -215,9 +226,11 @@ Checkbox = function(x,y,width,thumbSize) {
         this.onValueChanged(this.getValue());
     };
 
+
     this.onMouseReleaseEvent = function(event) {
         this.clickedBox = false;
     };
+
 
     // Public members:
     this.setNormalizedValue = function(value) {
@@ -232,8 +245,24 @@ Checkbox = function(x,y,width,thumbSize) {
         this.setNormalizedValue(value);
     };
 
+    this.reset = function(resetValue) {
+        this.setValue(resetValue);
+
+        this.onValueChanged(resetValue);
+    };
+
     this.getValue = function() {
         return boxCheckStatus;
+    };
+
+    this.getHeight = function() {
+        return 1.5 * this.thumbSize;
+    }
+
+    this.setterFromWidget = function(value) {
+        var status = boxCheckStatus;
+        this.onValueChanged(boxCheckStatus);
+        this.updateThumb();
     };
 
     this.onValueChanged = function(value) {};
@@ -267,6 +296,8 @@ ColorBox = function(x,y,width,thumbSize) {
     this.green.setBackgroundColor({x: 0, y: 1, z: 0});
     this.blue.setBackgroundColor({x: 0, y: 0, z: 1});
 
+
+
     this.isClickableOverlayItem = function(item) {
         return this.red.isClickableOverlayItem(item) 
             || this.green.isClickableOverlayItem(item)
@@ -292,6 +323,7 @@ ColorBox = function(x,y,width,thumbSize) {
         
         this.blue.onMousePressEvent(event, clickedOverlay);
     };
+
 
     this.onMouseReleaseEvent = function(event) {
         this.red.onMouseReleaseEvent(event);
@@ -323,10 +355,19 @@ ColorBox = function(x,y,width,thumbSize) {
         this.updateRGBSliders(value);  
     };
 
+    this.reset = function(resetValue) {
+        this.setValue(resetValue);
+        this.onValueChanged(resetValue);
+    };
+
     this.getValue = function() {
         var value = {x:this.red.getValue(), y:this.green.getValue(),z:this.blue.getValue()};
         return value;
     };
+
+    this.getHeight = function() {
+        return 1.5 * this.thumbSize;
+    }
 
     this.destroy = function() {
         this.red.destroy();
@@ -345,6 +386,8 @@ DirectionBox = function(x,y,width,thumbSize) {
     var sliderWidth = width;
     this.yaw = new Slider(x, y, width, slideHeight);
     this.pitch = new Slider(x, y + slideHeight, width, slideHeight);
+
+   
     
     this.yaw.setThumbColor({x: 1, y: 0, z: 0});
     this.yaw.minValue = -180;
@@ -400,6 +443,11 @@ DirectionBox = function(x,y,width,thumbSize) {
         this.pitch.setValue(direction.y);
     };
 
+    this.reset = function(resetValue) {
+        this.setValue(resetValue);
+        this.onValueChanged(resetValue);
+    };
+
     this.getValue = function() {
         var dirZ = this.pitch.getValue();
         var yaw = this.yaw.getValue() * Math.PI / 180;
@@ -407,6 +455,10 @@ DirectionBox = function(x,y,width,thumbSize) {
         var value = {x:cosY * Math.cos(yaw), y:dirZ, z: cosY * Math.sin(yaw)};
         return value;
     };
+
+    this.getHeight = function() {
+        return 1.5 * this.thumbSize;
+    }
 
     this.destroy = function() {
         this.yaw.destroy();
@@ -419,6 +471,48 @@ DirectionBox = function(x,y,width,thumbSize) {
 
 
 var textFontSize = 12;
+
+// TODO: Make collapsable
+function CollapsablePanelItem(name, x, y, textWidth, height) {
+    this.name = name;
+    this.height = height;
+
+    var topMargin = (height - textFontSize);
+
+    this.thumb = Overlays.addOverlay("text", {
+                    backgroundColor: { red: 220, green: 220, blue: 220 },
+                    textFontSize: 10,
+                    x: x,
+                    y: y,
+                    width: rawHeight,
+                    height: rawHeight,
+                    alpha: 1.0,
+                    backgroundAlpha: 1.0,
+                    visible: true
+                });
+    
+    this.title = Overlays.addOverlay("text", {
+                    backgroundColor: { red: 255, green: 255, blue: 255 },
+                    x: x + rawHeight,
+                    y: y,
+                    width: textWidth,
+                    height: height,
+                    alpha: 1.0,
+                    backgroundAlpha: 0.5,
+                    visible: true,
+                    text: name,
+                    font: {size: textFontSize},
+                    topMargin: topMargin, 
+                });
+
+    this.destroy = function() {
+        Overlays.deleteOverlay(this.title);
+        Overlays.deleteOverlay(this.thumb);
+        if (this.widget != null) {
+            this.widget.destroy();
+        }
+    } 
+}
 
 function PanelItem(name, setter, getter, displayer, x, y, textWidth, valueWidth, height) {
     //print("creating panel item: " + name);
@@ -548,15 +642,18 @@ Panel = function(x, y) {
 
     // Reset panel item upon double-clicking
     this.mouseDoublePressEvent = function(event) {
+
         var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
         for (var i in this.items) {
 
             var item = this.items[i]; 
             var widget = item.widget;
             
-            if (item.title == clickedOverlay || item.value == clickedOverlay) {
-                widget.updateThumb();
-                widget.onValueChanged(item.resetValue);
+            if (clickedOverlay == item.title) {
+                item.activeWidget = widget;
+        
+                item.activeWidget.reset(item.resetValue);
+            
                 break;
             }    
         }  
@@ -569,8 +666,56 @@ Panel = function(x, y) {
         this.activeWidget = null;
     };
 
-    this.newSlider = function(name, minValue, maxValue, setValue, getValue, displayValue) {
+    this.onMousePressEvent = function(event, clickedOverlay) {
+        for (var i in this.items) {
+            var item = this.items[i];
+            if(item.widget.isClickableOverlayItem(clickedOverlay)) {
+                item.activeWidget = item.widget;
+                item.activeWidget.onMousePressEvent(event,clickedOverlay);
+            }
+        }
+    }
 
+    this.reset = function() {
+        for (var i in this.items) {
+            var item = this.items[i];
+            if (item.activeWidget) {
+                item.activeWidget.reset(item.resetValue); 
+            }
+        }
+    }
+
+    this.onMouseMoveEvent = function(event) {
+        for (var i in this.items) {
+            var item = this.items[i];
+            if (item.activeWidget) {
+                item.activeWidget.onMouseMoveEvent(event);
+            }
+        }
+    }
+
+    this.onMouseReleaseEvent = function(event, clickedOverlay) {
+        for (var i in this.items) {
+            var item = this.items[i];
+            if (item.activeWidget) {
+                item.activeWidget.onMouseReleaseEvent(event);
+            }
+            item.activeWidget = null;
+        }
+    }
+
+    this.onMouseDoublePressEvent = function(event, clickedOverlay) {
+
+        for (var i in this.items) {
+            var item = this.items[i];
+            if (item.activeWidget) {
+                item.activeWidget.onMouseDoublePressEvent(event);
+            }
+        }
+    }
+
+    this.newSlider = function(name, minValue, maxValue, setValue, getValue, displayValue) {
+        this.nextY = this.y + this.getHeight();
         var item = new PanelItem(name, setValue, getValue, displayValue, this.x, this.nextY, textWidth, valueWidth, rawHeight);
 
         var slider = new Slider(this.widgetX, this.nextY, widgetWidth, rawHeight);
@@ -591,6 +736,8 @@ Panel = function(x, y) {
         } else if (displayValue == false) {
             display = function() {return "Off";};
         }
+
+        this.nextY = this.y + this.getHeight();
  
         var item = new PanelItem(name, setValue, getValue, display, this.x, this.nextY, textWidth, valueWidth, rawHeight);
 
@@ -600,11 +747,12 @@ Panel = function(x, y) {
         item.widget.onValueChanged = function(value) { item.setterFromWidget(value); };
         item.setter(getValue()); 
         this.items[name] = item;
-        this.nextY += rawYDelta;
+        
         //print("created Item... checkbox=" + name);     
     };
 
     this.newColorBox = function(name, setValue, getValue, displayValue) {
+        this.nextY = this.y + this.getHeight();
 
         var item = new PanelItem(name, setValue, getValue, displayValue, this.x, this.nextY, textWidth, valueWidth, rawHeight);
 
@@ -618,7 +766,12 @@ Panel = function(x, y) {
       //  print("created Item... colorBox=" + name);     
     };
 
+<<<<<<< Updated upstream
     this.newDirectionBox = function(name, setValue, getValue, displayValue) {
+=======
+    this.newDirectionBox= function(name, setValue, getValue, displayValue) {
+        this.nextY = this.y + this.getHeight();
+>>>>>>> Stashed changes
 
         var item = new PanelItem(name, setValue, getValue, displayValue, this.x, this.nextY, textWidth, valueWidth, rawHeight);
 
@@ -632,6 +785,7 @@ Panel = function(x, y) {
       //  print("created Item... directionBox=" + name);     
     };
 
+<<<<<<< Updated upstream
     this.newSubPanel = function(name) {
         var item = new PanelItem(name, setValue, getValue, displayValue, this.x, this.nextY, textWidth, valueWidth, rawHeight);
 
@@ -645,12 +799,39 @@ Panel = function(x, y) {
 
     };
 
+=======
+    var indentation = 30;
+
+    this.newSubPanel = function(name) {
+        //TODO: make collapsable, fix double-press event
+        this.nextY = this.y + this.getHeight();
+
+        var item = new CollapsablePanelItem(name, this.x, this.nextY, textWidth, rawHeight, panel);
+        item.isSubPanel = true;
+    
+         this.nextY += 1.5 * item.height;
+
+        var subPanel = new Panel(this.x + indentation, this.nextY);
+
+        item.widget = subPanel;
+        this.items[name] = item;
+        return subPanel;
+    //    print("created Item... subPanel=" + name);
+    };
+
+    this.onValueChanged = function(value) {
+        for (var i in this.items) {
+            this.items[i].widget.onValueChanged(value);
+        }
+    }
+>>>>>>> Stashed changes
 
     this.destroy = function() {
         for (var i in this.items) {
             this.items[i].destroy();  
         } 
     }
+
 
     this.set = function(name, value) {
         var item = this.items[name];
@@ -674,6 +855,29 @@ Panel = function(x, y) {
             return item.setter(item.getter());
         }
         return null;
+    }
+
+    this.isClickableOverlayItem = function(item) {
+        for (var i in this.items) {
+            if (this.items[i].widget.isClickableOverlayItem(item)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    this.getHeight = function() {
+        var height = 0;
+
+        for (var i in this.items) {
+            height += this.items[i].widget.getHeight(); 
+            if(this.items[i].isSubPanel) {
+                height += 1.5 * rawHeight;
+            } 
+        }
+
+        
+        return height;
     }
 
 };
