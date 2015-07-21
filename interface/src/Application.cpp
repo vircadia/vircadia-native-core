@@ -1093,22 +1093,6 @@ void Application::resizeGL() {
     _glWidget->makeCurrent();
 
 }
-/*
-void Application::updateProjectionMatrix() {
- //   _projectionMatrix = _myCamera.getProjection();
-     loadViewFrustum(_myCamera, _viewFrustum);
-//    updateProjectionMatrix(_myCamera);
-}
-*/
-/*
-void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum) {
-    _projectionMatrix = camera.getProjection();
-    // Tell our viewFrustum about this change, using the application camera
-    if (updateViewFrustum) {
-        loadViewFrustum(camera, _viewFrustum);
-    }
-}
-*/
 
 bool Application::importSVOFromURL(const QString& urlString) {
     QUrl url(urlString);
@@ -3459,16 +3443,11 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
 
     bool updateViewFrustum = false;
     loadViewFrustum(_mirrorCamera, _viewFrustum);
- //   updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
+
 
     // render rear mirror view
     displaySide(renderArgs, _mirrorCamera, true, billboard);
-    //{
-    //    gpu::Batch batch;
-    //    renderArgs->_viewport = originalViewport;
-    //    batch.setViewportTransform(originalViewport);
-    //    renderArgs->_context->render(batch);
-    //}
+
     renderArgs->_viewport =  originalViewport;
 
 }
