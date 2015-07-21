@@ -21,6 +21,8 @@
 #include "Tooltip.h"
 
 #include "Application.h"
+#include <input-plugins/SixenseManager.h> // TODO: any references to sixense should be removed here
+#include <input-plugins/InputDevice.h>
 
 
 // Used to animate the magnification windows
@@ -351,7 +353,7 @@ void ApplicationCompositor::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& or
     // Intersection UI overlay space
     glm::vec3 worldSpaceDirection = overlayOrientation * overlaySpaceDirection;
     glm::vec3 worldSpaceIntersection = (glm::normalize(worldSpaceDirection) * _oculusUIRadius) + overlayPosition;
-    glm::vec3 worldSpaceHeadPosition = (overlayOrientation * glm::vec3(qApp->getHeadPose()[3])) + overlayPosition;
+    glm::vec3 worldSpaceHeadPosition = (overlayOrientation * extractTranslation(qApp->getHMDSensorPose())) + overlayPosition;
 
     // Intersection in world space
     origin = worldSpaceHeadPosition;
@@ -416,7 +418,7 @@ void ApplicationCompositor::renderPointers(gpu::Batch& batch) {
         _magActive[MOUSE] = _magnifier;
         _reticleActive[LEFT_CONTROLLER] = false;
         _reticleActive[RIGHT_CONTROLLER] = false;
-    } else if (qApp->getLastMouseMoveWasSimulated() && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
+    } else if (qApp->getLastMouseMoveWasSimulated() && Menu::getInstance()->isOptionChecked(MenuOption::HandMouseInput)) {
         //only render controller pointer if we aren't already rendering a mouse pointer
         _reticleActive[MOUSE] = false;
         _magActive[MOUSE] = false;
@@ -491,7 +493,7 @@ void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
 
         auto canvasSize = qApp->getCanvasSize();
         int mouseX, mouseY;
-        if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::HandLasers)) {
             QPoint res = getPalmClickLocation(palmData);
             mouseX = res.x();
             mouseY = res.y();
@@ -504,7 +506,7 @@ void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
             float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)PI_OVER_TWO));
 
             // Get the pixel range over which the xAngle and yAngle are scaled
-            float cursorRange = canvasSize.x * SixenseManager::getInstance().getCursorPixelRangeMult();
+            float cursorRange = canvasSize.x * InputDevice::getCursorPixelRangeMult();
 
             mouseX = (canvasSize.x / 2.0f + cursorRange * xAngle);
             mouseY = (canvasSize.y / 2.0f + cursorRange * yAngle);

@@ -14,7 +14,7 @@
 
 #include <QtCore/QObject>
 
-#include "ui/UserInputMapper.h"
+#include <input-plugins/UserInputMapper.h>
 
 #include <AbstractControllerScriptingInterface.h>
 class PalmData;
@@ -95,6 +95,8 @@ public slots:
     Q_INVOKABLE virtual void resetAllDeviceBindings();
     Q_INVOKABLE virtual void resetDevice(unsigned int device);
     Q_INVOKABLE virtual int findDevice(QString name);
+    Q_INVOKABLE virtual float getActionValue(int action);
+
     virtual bool isPrimaryButtonPressed() const;
     virtual glm::vec2 getPrimaryJoystickPosition() const;
 

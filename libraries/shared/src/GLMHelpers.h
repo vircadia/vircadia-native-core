@@ -150,4 +150,9 @@ T toNormalizedDeviceScale(const T& value, const T& size) {
 #define PITCH(euler) euler.x
 #define ROLL(euler) euler.z
 
+glm::mat4 createMatFromQuatAndPos(const glm::quat& q, const glm::vec3& p);
+glm::quat cancelOutRollAndPitch(const glm::quat& q);
+glm::mat4 cancelOutRollAndPitch(const glm::mat4& m);
+glm::vec3 transformPoint(const glm::mat4& m, const glm::vec3& p);
+
 #endif // hifi_GLMHelpers_h

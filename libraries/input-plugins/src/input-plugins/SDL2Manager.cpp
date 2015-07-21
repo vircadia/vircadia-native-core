@@ -1,6 +1,6 @@
 //
 //  SDL2Manager.cpp
-//  interface/src/devices
+//  input-plugins/src/input-plugins
 //
 //  Created by Sam Gondelman on 6/5/15.
 //  Copyright 2015 High Fidelity, Inc.
@@ -15,9 +15,9 @@
 #include <HFBackEvent.h>
 #include <PerfStat.h>
 
-#include "Application.h"
-
 #include "SDL2Manager.h"
+
+const QString SDL2Manager::NAME = "SDL2";
 
 #ifdef HAVE_SDL2
 SDL_JoystickID SDL2Manager::getInstanceId(SDL_GameController* controller) {
@@ -32,48 +32,56 @@ _openJoysticks(),
 #endif
 _isInitialized(false)
 {
+}
+
+void SDL2Manager::init() {
 #ifdef HAVE_SDL2
     bool initSuccess = (SDL_Init(SDL_INIT_GAMECONTROLLER) == 0);
-    
+
     if (initSuccess) {
         int joystickCount = SDL_NumJoysticks();
-        
+
         for (int i = 0; i < joystickCount; i++) {
             SDL_GameController* controller = SDL_GameControllerOpen(i);
-            
+
             if (controller) {
                 SDL_JoystickID id = getInstanceId(controller);
                 if (!_openJoysticks.contains(id)) {
                     Joystick* joystick = new Joystick(id, SDL_GameControllerName(controller), controller);
                     _openJoysticks[id] = joystick;
-                    joystick->registerToUserInputMapper(*Application::getUserInputMapper());
-                    joystick->assignDefaultInputMapping(*Application::getUserInputMapper());
+                    auto userInputMapper = DependencyManager::get<UserInputMapper>();
+                    joystick->registerToUserInputMapper(*userInputMapper);
+                    joystick->assignDefaultInputMapping(*userInputMapper);
                     emit joystickAdded(joystick);
                 }
             }
         }
-        
+
         _isInitialized = true;
-    } else {
+    }
+    else {
         qDebug() << "Error initializing SDL2 Manager";
     }
 #endif
 }
 
-SDL2Manager::~SDL2Manager() {
+void SDL2Manager::deinit() {
 #ifdef HAVE_SDL2
     qDeleteAll(_openJoysticks);
-    
+
     SDL_Quit();
 #endif
 }
 
-SDL2Manager* SDL2Manager::getInstance() {
-    static SDL2Manager sharedInstance;
-    return &sharedInstance;
+bool SDL2Manager::isSupported() const {
+#ifdef HAVE_SDL2
+    return true;
+#else
+    return false;
+#endif
 }
 
-void SDL2Manager::focusOutEvent() {
+void SDL2Manager::pluginFocusOutEvent() {
 #ifdef HAVE_SDL2
     for (auto joystick : _openJoysticks) {
         joystick->focusOutEvent();
@@ -81,11 +89,12 @@ void SDL2Manager::focusOutEvent() {
 #endif
 }
 
-void SDL2Manager::update() {
+void SDL2Manager::pluginUpdate(float deltaTime, bool jointsCaptured) {
 #ifdef HAVE_SDL2
     if (_isInitialized) {
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
         for (auto joystick : _openJoysticks) {
-            joystick->update();
+            joystick->update(deltaTime, jointsCaptured);
         }
         
         PerformanceTimer perfTimer("SDL2Manager::update");
@@ -111,18 +120,6 @@ void SDL2Manager::update() {
                     HFBackEvent backEvent(backType);
                     
                     qApp->sendEvent(qApp, &backEvent);
-                } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_A) {
-                    // this will either start or stop a global action event
-                    QEvent::Type actionType = (event.type == SDL_CONTROLLERBUTTONDOWN)
-                    ? HFActionEvent::startType()
-                    : HFActionEvent::endType();
-                    
-                    // global action events fire in the center of the screen
-                    Application* app = Application::getInstance();
-                    PickRay pickRay = app->getCamera()->computePickRay(app->getTrueMouseX(),
-                                                                       app->getTrueMouseY());
-                    HFActionEvent actionEvent(actionType, pickRay);
-                    qApp->sendEvent(qApp, &actionEvent);
                 }
                 
             } else if (event.type == SDL_CONTROLLERDEVICEADDED) {
@@ -132,14 +129,14 @@ void SDL2Manager::update() {
                 if (!_openJoysticks.contains(id)) {
                     Joystick* joystick = new Joystick(id, SDL_GameControllerName(controller), controller);
                     _openJoysticks[id] = joystick;
-                    joystick->registerToUserInputMapper(*Application::getUserInputMapper());
-                    joystick->assignDefaultInputMapping(*Application::getUserInputMapper());
+                    joystick->registerToUserInputMapper(*userInputMapper);
+                    joystick->assignDefaultInputMapping(*userInputMapper);
                     emit joystickAdded(joystick);
                 }
             } else if (event.type == SDL_CONTROLLERDEVICEREMOVED) {
                 Joystick* joystick = _openJoysticks[event.cdevice.which];
                 _openJoysticks.remove(event.cdevice.which);
-                Application::getUserInputMapper()->removeDevice(joystick->getDeviceID());
+                userInputMapper->removeDevice(joystick->getDeviceID());
                 emit joystickRemoved(joystick);
             }
         }

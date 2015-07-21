@@ -28,7 +28,7 @@
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/RealSense.h"
-#include "devices/SixenseManager.h"
+#include <input-plugins/SixenseManager.h> // TODO: should be able to remove this once input plugin architecture is finished
 #include "MainWindow.h"
 #include "scripting/MenuScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -223,6 +223,10 @@ Menu::Menu() {
     MenuWrapper* avatarMenu = addMenu("Avatar");
     QObject* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
+    MenuWrapper* inputModeMenu = addMenu(MenuOption::InputMenu);
+    QActionGroup* inputModeGroup = new QActionGroup(inputModeMenu);
+    inputModeGroup->setExclusive(false);
+    
     MenuWrapper* avatarSizeMenu = avatarMenu->addMenu("Size");
     addActionToQMenuAndActionHash(avatarSizeMenu,
                                   MenuOption::IncreaseAvatarSize,
@@ -241,15 +245,15 @@ Menu::Menu() {
                                   SLOT(resetSize()));
 
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::KeyboardMotorControl,
-            Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar, SLOT(updateMotionBehavior()));
+            Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar, SLOT(updateMotionBehaviorFromMenu()));
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ScriptedMotorControl, 0, true,
-            avatar, SLOT(updateMotionBehavior()));
+            avatar, SLOT(updateMotionBehaviorFromMenu()));
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::NamesAboveHeads, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::BlueSpeechSphere, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::EnableCharacterController, 0, true,
-            avatar, SLOT(updateMotionBehavior()));
+            avatar, SLOT(updateMotionBehaviorFromMenu()));
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ShiftHipsForIdleAnimations, 0, false,
-            avatar, SLOT(updateMotionBehavior()));
+            avatar, SLOT(updateMotionBehaviorFromMenu()));
 
     MenuWrapper* viewMenu = addMenu("View");
     {
@@ -288,6 +292,9 @@ Menu::Menu() {
 
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
+
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::StandingHMDSensorMode, 0, false,
+                                           avatar, SLOT(updateStandingHMDModeFromMenu()));
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::Log,
@@ -430,30 +437,19 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlternateIK, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHands, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::HandMouseInput, 0, true);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::HandLasers, 0, false);
+    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::LowVelocityFilter, 0, true,
+                                           qApp, SLOT(setLowVelocityFilter(bool)));
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::ShowIKConstraints, 0, false);
 
     MenuWrapper* sixenseOptionsMenu = handOptionsMenu->addMenu("Sixense");
-#ifdef __APPLE__
-    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
-                                           MenuOption::SixenseEnabled,
-                                           0, false,
-                                           &SixenseManager::getInstance(),
-                                           SLOT(toggleSixense(bool)));
-#endif
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
                                            MenuOption::FilterSixense,
                                            0,
                                            true,
                                            &SixenseManager::getInstance(),
                                            SLOT(setFilter(bool)));
-    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
-                                           MenuOption::LowVelocityFilter,
-                                           0,
-                                           true,
-                                           qApp,
-                                           SLOT(setLowVelocityFilter(bool)));
-    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseMouseInput, 0, true);
-    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseLasers, 0, false);
 
     MenuWrapper* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
     addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);

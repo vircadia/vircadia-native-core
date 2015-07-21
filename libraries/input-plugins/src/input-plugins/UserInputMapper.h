@@ -1,6 +1,6 @@
 //
 //  UserInputMapper.h
-//  interface/src/ui
+//  input-plugins/src/input-plugins
 //
 //  Created by Sam Gateau on 4/27/15.
 //  Copyright 2015 High Fidelity, Inc.
@@ -13,14 +13,17 @@
 #define hifi_UserInputMapper_h
 
 #include <glm/glm.hpp>
-#include <RegisteredMetaTypes.h>
 
 #include <unordered_set>
 #include <functional>
 #include <memory>
+#include <DependencyManager.h>
+#include <RegisteredMetaTypes.h>
+    
 
-class UserInputMapper : public QObject {
+class UserInputMapper : public QObject, public Dependency {
     Q_OBJECT
+    SINGLETON_DEPENDENCY
     Q_ENUMS(Action)
 public:
     typedef unsigned short uint16;
@@ -30,7 +33,7 @@ public:
         UNKNOWN = 0,
         BUTTON = 1,
         AXIS,
-        JOINT,
+        POSE,
     };
 
     // Input is the unique identifier to find a n input channel of a particular device
@@ -61,7 +64,7 @@ public:
 
         bool isButton() const { return getType() == ChannelType::BUTTON; }
         bool isAxis() const { return getType() == ChannelType::AXIS; }
-        bool isJoint() const { return getType() == ChannelType::JOINT; }
+        bool isPose() const { return getType() == ChannelType::POSE; }
 
         // WORKAROUND: the explicit initializer here avoids a bug in GCC-4.8.2 (but not found in 4.9.2)
         // where the default initializer (a C++-11ism) for the union data above is not applied.
@@ -77,19 +80,26 @@ public:
     // Modifiers are just button inputID
     typedef std::vector< Input > Modifiers;
 
-    class JointValue {
+    class PoseValue {
     public:
-        glm::vec3 translation{ 0.0f };
-        glm::quat rotation;
+        glm::vec3 _translation{ 0.0f };
+        glm::quat _rotation;
+        bool _valid;
 
-        JointValue() {};
-        JointValue(const JointValue&) = default;
-        JointValue& operator = (const JointValue&) = default;
+        PoseValue() : _valid(false) {};
+        PoseValue(glm::vec3 translation, glm::quat rotation) : _translation(translation), _rotation(rotation), _valid(true) {}
+        PoseValue(const PoseValue&) = default;
+        PoseValue& operator = (const PoseValue&) = default;
+        bool operator ==(const PoseValue& right) const { return _translation == right.getTranslation() && _rotation == right.getRotation() && _valid == right.isValid(); }
+        
+        bool isValid() const { return _valid; }
+        glm::vec3 getTranslation() const { return _translation; }
+        glm::quat getRotation() const { return _rotation; }
     };
     
     typedef std::function<bool (const Input& input, int timestamp)> ButtonGetter;
     typedef std::function<float (const Input& input, int timestamp)> AxisGetter;
-    typedef std::function<JointValue (const Input& input, int timestamp)> JointGetter;
+    typedef std::function<PoseValue (const Input& input, int timestamp)> PoseGetter;
     typedef QPair<Input, QString> InputPair;
     typedef std::function<QVector<InputPair> ()> AvailableInputGetter;
     typedef std::function<bool ()> ResetBindings;
@@ -102,8 +112,8 @@ public:
        
        QString _name;
        ButtonGetter getButton = [] (const Input& input, int timestamp) -> bool { return false; };
-       AxisGetter getAxis = [] (const Input& input, int timestamp) -> bool { return 0.0f; };
-       JointGetter getJoint = [] (const Input& input, int timestamp) -> JointValue { return JointValue(); };
+       AxisGetter getAxis = [] (const Input& input, int timestamp) -> float { return 0.0f; };
+       PoseGetter getPose = [] (const Input& input, int timestamp) -> PoseValue { return PoseValue(); };
        AvailableInputGetter getAvailabeInputs = [] () -> AvailableInput { return QVector<InputPair>(); };
        ResetBindings resetDeviceBindings = [] () -> bool { return true; };
        
@@ -140,6 +150,12 @@ public:
         BOOM_IN,
         BOOM_OUT,
         
+        LEFT_HAND,
+        RIGHT_HAND,
+
+        LEFT_HAND_CLICK,
+        RIGHT_HAND_CLICK,
+
         SHIFT,
         
         ACTION1,
@@ -154,6 +170,7 @@ public:
     QVector<Action> getAllActions();
     QString getActionName(Action action) { return UserInputMapper::_actionNames[(int) action]; }
     float getActionState(Action action) const { return _actionStates[action]; }
+    PoseValue getPoseState(Action action) const { return _poseStates[action]; }
     void assignDefaulActionScales();
 
     // Add input channel to the mapper and check that all the used channels are registered.
@@ -206,7 +223,14 @@ public:
     // Update means go grab all the device input channels and update the output channel values
     void update(float deltaTime);
     
+    void setSensorToWorldMat(glm::mat4 sensorToWorldMat) { _sensorToWorldMat = sensorToWorldMat; }
+    glm::mat4 getSensorToWorldMat() { return _sensorToWorldMat; }
+    
     UserInputMapper();
+
+signals:
+    void actionEvent(int action, float state);
+
 
 protected:
     typedef std::map<int, DeviceProxy::Pointer> DevicesMap;
@@ -221,6 +245,9 @@ protected:
  
     std::vector<float> _actionStates = std::vector<float>(NUM_ACTIONS, 0.0f);
     std::vector<float> _actionScales = std::vector<float>(NUM_ACTIONS, 1.0f);
+    std::vector<PoseValue> _poseStates = std::vector<PoseValue>(NUM_ACTIONS);
+
+    glm::mat4 _sensorToWorldMat;
 };
 
 Q_DECLARE_METATYPE(UserInputMapper::InputPair)

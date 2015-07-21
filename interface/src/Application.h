@@ -52,7 +52,7 @@
 #include "Stars.h"
 #include "avatar/Avatar.h"
 #include "avatar/MyAvatar.h"
-#include "devices/SixenseManager.h"
+#include <input-plugins/KeyboardMouseDevice.h>
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/WebWindowClass.h"
 #include "ui/AudioStatsDialog.h"
@@ -67,11 +67,10 @@
 #include "ui/ApplicationCompositor.h"
 #include "ui/RunningScriptsWidget.h"
 #include "ui/ToolWindow.h"
-#include "ui/UserInputMapper.h"
-#include "devices/KeyboardMouseDevice.h"
 #include "octree/OctreePacketProcessor.h"
 #include "UndoStackScriptingInterface.h"
 #include "DisplayPlugins.h"
+#include "InputPlugins.h"
 #include "render/Engine.h"
 
 class QGLWidget;
@@ -139,7 +138,6 @@ public:
     static glm::quat getOrientationForPath() { return getInstance()->_myAvatar->getOrientation(); }
     static glm::vec3 getPositionForAudio() { return getInstance()->_myAvatar->getHead()->getPosition(); }
     static glm::quat getOrientationForAudio() { return getInstance()->_myAvatar->getHead()->getFinalOrientationInWorldFrame(); }
-    static UserInputMapper* getUserInputMapper() { return &getInstance()->_userInputMapper; }
     static void initPlugins();
     static void shutdownPlugins();
 
@@ -317,9 +315,7 @@ public:
     // rendering of several elements depend on that
     // TODO: carry that information on the Camera as a setting
     bool isHMDMode() const;
-    glm::quat getHeadOrientation() const;
-    glm::vec3 getHeadPosition() const;
-    glm::mat4 getHeadPose() const;
+    glm::mat4 getHMDSensorPose() const;
     glm::mat4 getEyePose(int eye) const;
     glm::mat4 getEyeProjection(int eye) const;
 
@@ -375,6 +371,7 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
     void updateDisplayMode();
+    void updateInputModes();
 
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
@@ -476,6 +473,9 @@ private:
 
     void update(float deltaTime);
 
+    void setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float deltaTime, int index);
+    void emulateMouse(Hand* hand, float click, float shift, int index);
+
     // Various helper functions called during update()
     void updateLOD();
     void updateMouseRay();
@@ -506,6 +506,7 @@ private:
 
     OffscreenGlCanvas* _offscreenContext;
     DisplayPluginPointer _displayPlugin;
+    InputPluginList _activeInputPlugins;
 
     MainWindow* _window;
 
@@ -546,11 +547,10 @@ private:
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
 
-    KeyboardMouseDevice _keyboardMouseDevice;   // Default input device, the good old keyboard mouse and maybe touchpad
-    UserInputMapper _userInputMapper;           // User input mapper allowing to mapp different real devices to the action channels that the application has to offer
-    MyAvatar* _myAvatar;                        // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
-    Camera _myCamera;                           // My view onto the world
-    Camera _mirrorCamera;              // Cammera for mirror view
+    KeyboardMouseDevice* _keyboardMouseDevice;   // Default input device, the good old keyboard mouse and maybe touchpad
+    MyAvatar* _myAvatar;                         // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
+    Camera _myCamera;                            // My view onto the world
+    Camera _mirrorCamera;                        // Cammera for mirror view
     QRect _mirrorViewRect;
     
     Setting::Handle<bool>       _firstRun;
@@ -655,6 +655,11 @@ private:
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
     ApplicationCompositor _compositor;
+
+    int _oldHandMouseX[2];
+    int _oldHandMouseY[2];
+    bool _oldHandLeftClick[2];
+    bool _oldHandRightClick[2];
 };
 
 #endif // hifi_Application_h

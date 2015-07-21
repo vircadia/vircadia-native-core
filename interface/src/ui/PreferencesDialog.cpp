@@ -16,7 +16,7 @@
 #include <avatar/AvatarManager.h>
 #include <devices/DdeFaceTracker.h>
 #include <devices/Faceshift.h>
-#include <devices/SixenseManager.h>
+#include <input-plugins/SixenseManager.h> // TODO: This should be replaced with InputDevice/InputPlugin, or something similar
 #include <NetworkingConstants.h>
 
 #include "Application.h"
@@ -181,8 +181,9 @@ void PreferencesDialog::loadPreferences() {
     ui.oculusUIAngularSizeSpin->setValue(qApp->getApplicationCompositor().getHmdUIAngularSize());
 #endif
 
+    ui.sixenseReticleMoveSpeedSpin->setValue(InputDevice::getReticleMoveSpeed());
+
     SixenseManager& sixense = SixenseManager::getInstance();
-    ui.sixenseReticleMoveSpeedSpin->setValue(sixense.getReticleMoveSpeed());
     ui.invertSixenseButtonsCheckBox->setChecked(sixense.getInvertButtons());
 
     // LOD items
@@ -246,7 +247,7 @@ void PreferencesDialog::savePreferences() {
     qApp->getApplicationCompositor().setHmdUIAngularSize(ui.oculusUIAngularSizeSpin->value());
     
     SixenseManager& sixense = SixenseManager::getInstance();
-    sixense.setReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
+    InputDevice::setReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
     sixense.setInvertButtons(ui.invertSixenseButtonsCheckBox->isChecked());
 
     auto audio = DependencyManager::get<AudioClient>();

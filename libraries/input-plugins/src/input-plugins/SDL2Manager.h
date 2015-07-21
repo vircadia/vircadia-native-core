@@ -1,6 +1,6 @@
 //
 //  SDL2Manager.h
-//  interface/src/devices
+//  input-plugins/src/input-plugins
 //
 //  Created by Sam Gondelman on 6/5/15.
 //  Copyright 2015 High Fidelity, Inc.
@@ -16,22 +16,29 @@
 #include <SDL.h>
 #endif
 
-#include "ui/UserInputMapper.h"
+#include "InputPlugin.h"
+#include "UserInputMapper.h"
 
-#include "devices/Joystick.h"
+#include "Joystick.h"
 
-class SDL2Manager : public QObject {
+class SDL2Manager : public InputPlugin {
     Q_OBJECT
     
 public:
     SDL2Manager();
-    ~SDL2Manager();
     
-    void focusOutEvent();
+    // Plugin functions
+    virtual bool isSupported() const override;
+    virtual bool isJointController() const override { return false; }
+    const QString& getName() const { return NAME; }
+
+    virtual void init() override;
+    virtual void deinit() override;
+    virtual void activate(PluginContainer * container) override {};
+    virtual void deactivate() override {};
     
-    void update();
-    
-    static SDL2Manager* getInstance();
+    virtual void pluginFocusOutEvent() override;
+    virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override;
     
 signals:
     void joystickAdded(Joystick* joystick);
@@ -70,12 +77,11 @@ private:
     
     int buttonPressed() const { return SDL_PRESSED; }
     int buttonRelease() const { return SDL_RELEASED; }
-#endif
-    
-#ifdef HAVE_SDL2
+
     QMap<SDL_JoystickID, Joystick*> _openJoysticks;
 #endif
     bool _isInitialized;
+    static const QString NAME;
 };
 
 #endif // hifi__SDL2Manager_h

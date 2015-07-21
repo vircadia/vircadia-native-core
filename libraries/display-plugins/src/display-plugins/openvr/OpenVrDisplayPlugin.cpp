@@ -23,7 +23,11 @@
 #include <ViewFrustum.h>
 
 #include "OpenVrHelpers.h"
+#include "GLMHelpers.h"
 
+#include <QLoggingCategory>
+Q_DECLARE_LOGGING_CATEGORY(displayplugins)
+Q_LOGGING_CATEGORY(displayplugins, "hifi.displayplugins")
 
 const QString OpenVrDisplayPlugin::NAME("OpenVR (Vive)");
 
@@ -31,10 +35,11 @@ const QString & OpenVrDisplayPlugin::getName() const {
     return NAME;
 }
 
-static vr::IVRSystem *_hmd{ nullptr };
+vr::IVRSystem* _hmd{ nullptr };
+int hmdRefCount = 0;
 static vr::IVRCompositor* _compositor{ nullptr };
-static vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
-static mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
+vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
+mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
 static mat4 _sensorResetMat;
 static uvec2 _windowSize;
 static ivec2 _windowPosition;
@@ -75,10 +80,13 @@ bool OpenVrDisplayPlugin::isSupported() const {
 }
 
 void OpenVrDisplayPlugin::activate(PluginContainer * container) {
-    vr::HmdError eError = vr::HmdError_None;
-    _hmd = vr::VR_Init(&eError);
-    Q_ASSERT(eError == vr::HmdError_None);
-    Q_ASSERT(_hmd);
+    hmdRefCount++;
+	vr::HmdError eError = vr::HmdError_None;
+    if (!_hmd) {
+        _hmd = vr::VR_Init(&eError);
+		Q_ASSERT(eError == vr::HmdError_None);
+	}
+	Q_ASSERT(_hmd);
 
     _hmd->GetWindowBounds(&_windowPosition.x, &_windowPosition.y, &_windowSize.x, &_windowSize.y);
     _hmd->GetRecommendedRenderTargetSize(&_renderTargetSize.x, &_renderTargetSize.y);
@@ -113,8 +121,12 @@ void OpenVrDisplayPlugin::activate(PluginContainer * container) {
 }
 
 void OpenVrDisplayPlugin::deactivate() {
-    vr::VR_Shutdown();
-    _hmd = nullptr;
+    hmdRefCount--;
+
+    if (hmdRefCount == 0 && _hmd) {
+        vr::VR_Shutdown();
+        _hmd = nullptr;
+    }
     _compositor = nullptr;
 }
 
@@ -126,37 +138,20 @@ mat4 OpenVrDisplayPlugin::getProjection(Eye eye, const mat4& baseProjection) con
     return _eyesData[eye]._projectionMatrix;
 }
 
-mat4 OpenVrDisplayPlugin::getModelview(Eye eye, const mat4& baseModelview) const {
-    return baseModelview * _eyesData[eye]._pose;
+glm::mat4 OpenVrDisplayPlugin::getModelview(Eye eye, const mat4& baseModelview) const {
+    return baseModelview * _eyesData[eye]._eyeOffset;
 }
 
 void OpenVrDisplayPlugin::resetSensors() {
-    // _hmd->ResetSeatedZeroPose(); AJT: not working
-
-    mat4 pose = _trackedDevicePoseMat4[0];
-    vec3 xAxis = vec3(pose[0]);
-    vec3 yAxis = vec3(pose[1]);
-    vec3 zAxis = vec3(pose[2]);
-
-    // cancel out the roll and pitch
-    vec3 newZ = (zAxis.x == 0 && zAxis.z == 0) ? vec3(1, 0, 0) : glm::normalize(vec3(zAxis.x, 0, zAxis.z));
-    vec3 newX = glm::cross(vec3(0, 1, 0), newZ);
-    vec3 newY = glm::cross(newZ, newX);
-
-    mat4 m;
-    m[0] = vec4(newX, 0);
-    m[1] = vec4(newY, 0);
-    m[2] = vec4(newZ, 0);
-    m[3] = pose[3];
-    _sensorResetMat = glm::inverse(m);
+    _sensorResetMat = glm::inverse(cancelOutRollAndPitch(_trackedDevicePoseMat4[0]));
 }
 
 glm::mat4 OpenVrDisplayPlugin::getEyePose(Eye eye) const {
-    return _eyesData[eye]._pose;
+    return getHeadPose() * _eyesData[eye]._eyeOffset;
 }
 
 glm::mat4 OpenVrDisplayPlugin::getHeadPose() const {
-    return _sensorResetMat * _trackedDevicePoseMat4[0];
+    return _trackedDevicePoseMat4[0];
 }
 
 void OpenVrDisplayPlugin::customizeContext(PluginContainer * container) {
@@ -165,8 +160,8 @@ void OpenVrDisplayPlugin::customizeContext(PluginContainer * container) {
 
 void OpenVrDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {
     // Flip y-axis since GL UV coords are backwards.
-    static vr::VRTextureBounds_t leftBounds{ 0, 1, 0.5f, 0 };
-    static vr::VRTextureBounds_t rightBounds{ 0.5f, 1, 1, 0 };
+    static vr::Compositor_TextureBounds leftBounds{ 0, 1, 0.5f, 0 };
+    static vr::Compositor_TextureBounds rightBounds{ 0.5f, 1, 1, 0 };
     _compositor->Submit(vr::Eye_Left, (void*)finalTexture, &leftBounds);
     _compositor->Submit(vr::Eye_Right, (void*)finalTexture, &rightBounds);
     glFinish();
@@ -175,11 +170,12 @@ void OpenVrDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSi
 void OpenVrDisplayPlugin::finishFrame() {
 //    swapBuffers();
     doneCurrent();
-    _compositor->WaitGetPoses(_trackedDevicePose, vr::k_unMaxTrackedDeviceCount,
-                              nullptr, 0);
-    _trackedDevicePoseMat4[0] = toGlm(_trackedDevicePose[0].mDeviceToAbsoluteTracking);
+    _compositor->WaitGetPoses(_trackedDevicePose, vr::k_unMaxTrackedDeviceCount);
+    for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
+        _trackedDevicePoseMat4[i] = _sensorResetMat * toGlm(_trackedDevicePose[i].mDeviceToAbsoluteTracking);
+    }
     openvr_for_each_eye([&](vr::Hmd_Eye eye) {
-        _eyesData[eye]._pose = _sensorResetMat * _trackedDevicePoseMat4[0];
+        _eyesData[eye]._pose = _trackedDevicePoseMat4[0];
     });
 };
 
