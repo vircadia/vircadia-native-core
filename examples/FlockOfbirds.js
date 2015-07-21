@@ -10,8 +10,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-
-//  The area over which the birds will fly 
+//  The rectangular area in the domain where the flock will fly
 var lowerCorner = { x: 0, y: 0, z: 0 };
 var upperCorner = { x: 10, y: 10, z: 10  };
 var STARTING_FRACTION = 0.25;   
@@ -37,6 +36,10 @@ var ALIGNMENT_FORCE = 1.5;
 var COHESION_FORCE = 1.0;
 var MAX_COHESION_VELOCITY = 0.5;
 
+var followBirds = true; 
+var AVATAR_FOLLOW_RATE = 0.001;
+var AVATAR_FOLLOW_VELOCITY_TIMESCALE = 2.0;
+var AVATAR_FOLLOW_ORIENTATION_RATE = 0.005;
 var floor = false; 
 var MAKE_FLOOR = false;
 
@@ -45,12 +48,51 @@ var averagePosition = { x: 0, y: 0, z: 0 };
 
 var birdsLoaded = false; 
 
+var oldAvatarOrientation;
+var oldAvatarPosition;
+
 var birds = [];
 var playing = [];
 
 function randomVector(scale) {
 	return { x: Math.random() * scale - scale / 2.0, y: Math.random() * scale - scale / 2.0, z: Math.random() * scale - scale / 2.0 };
 }
+
+vecToPolar = function(direction) {
+    var epsilon = 0.001;
+    var DEGREES_TO_RADIANS = Math.PI / 180.0;
+    var RADIANS_TO_DEGREES = 180.0 / Math.PI;
+    var x = direction.x;
+    var y = direction.y;
+    var z = direction.z;
+    var pitch, yaw;
+    pitch = -Math.asin(y);
+    var c = Math.cos(-pitch);
+    if (Math.abs(pitch) > (Math.PI / 2.0 - epsilon)) {
+        //handle gymbal lock
+        if (pitch > 0) {
+            pitch = Math.PI / 2.0;
+        } else {
+            pitch = -Math.PI / 2.0;
+        }
+        yaw = 0.0;
+        } else {
+            if (z < 0) {
+                if(x > 0 && x < 1) {
+                    yaw = Math.PI - Math.asin(x / c); 
+                } else {
+                    yaw = -Math.asin(x / c) - Math.PI;
+                }
+            } else {
+                yaw = Math.asin(x / c);
+            }  
+        }
+        return {
+            x: pitch * RADIANS_TO_DEGREES,
+            y: yaw * RADIANS_TO_DEGREES,
+            z: 0.0 //discard roll component
+        };
+};
 
 function updateBirds(deltaTime) {
     if (!Entities.serversExist() || !Entities.canRez()) {
@@ -169,10 +211,24 @@ function updateBirds(deltaTime) {
     if (birdVelocitiesCounted > 0) {
         averageVelocity = Vec3.multiply(1.0 / birdVelocitiesCounted, sumVelocity);
         //print(Vec3.length(averageVelocity));
+        if (followBirds) {
+            MyAvatar.motorVelocity = averageVelocity;
+            MyAvatar.motorTimescale = AVATAR_FOLLOW_VELOCITY_TIMESCALE;
+            var polarAngles = vecToPolar(Vec3.normalize(averageVelocity));
+            if (!isNaN(polarAngles.x) && !isNaN(polarAngles.y)) {
+                var birdDirection = Quat.fromPitchYawRollDegrees(polarAngles.x, polarAngles.y + 180, polarAngles.z);
+                MyAvatar.orientation = Quat.mix(MyAvatar.orientation, birdDirection, AVATAR_FOLLOW_ORIENTATION_RATE);
+            }
+        }
     } 
     if (birdPositionsCounted > 0) {
         averagePosition = Vec3.multiply(1.0 / birdPositionsCounted, sumPosition);
+            //  If Following birds, update position 
+        if (followBirds) {
+            MyAvatar.position = Vec3.sum(Vec3.multiply(AVATAR_FOLLOW_RATE, MyAvatar.position), Vec3.multiply(1.0 - AVATAR_FOLLOW_RATE, averagePosition));
+        }
     }
+
 }
 
 // Connect a call back that happens every frame
@@ -186,11 +242,14 @@ Script.scriptEnding.connect(function() {
     if (floor) {
         Entities.deleteEntity(floor);
     }
+    MyAvatar.orientation = oldAvatarOrientation;
+    MyAvatar.position = oldAvatarPosition;
 });
 
 function loadBirds(howMany) {
-  while (!Entities.serversExist() || !Entities.canRez()) {
-  }
+    oldAvatarOrientation = MyAvatar.orientation; 
+    oldAvatarPosition = MyAvatar.position;
+
   var sound_filenames = ["bushtit_1.raw", "bushtit_2.raw", "bushtit_3.raw"];
   /* Here are more sounds/species you can use
                         , "mexicanWhipoorwill.raw", 
