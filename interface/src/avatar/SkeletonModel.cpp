@@ -791,12 +791,11 @@ void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha
         // so no need to render it
         return;
     }
-    Application::getInstance()->loadTranslatedViewMatrix(_translation);
 
     // draw a blue sphere at the capsule endpoint
     glm::vec3 endPoint;
     _boundingShape.getEndPoint(endPoint);
-    endPoint = endPoint - _translation;
+    endPoint = endPoint + _translation;
     Transform transform = Transform();
     transform.setTranslation(endPoint);
     batch.setModelTransform(transform);
@@ -807,7 +806,7 @@ void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha
     // draw a yellow sphere at the capsule startpoint
     glm::vec3 startPoint;
     _boundingShape.getStartPoint(startPoint);
-    startPoint = startPoint - _translation;
+    startPoint = startPoint + _translation;
     glm::vec3 axis = endPoint - startPoint;
     Transform axisTransform = Transform();
     axisTransform.setTranslation(-axis);

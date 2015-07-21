@@ -114,12 +114,10 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
     gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
     gpu::Shader::makeProgram(*program, slotBindings);
 
-
-    auto locations = std::shared_ptr<Locations>(new Locations());
+    auto locations = std::make_shared<Locations>();
     initLocations(program, *locations);
 
-
-    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    auto state = std::make_shared<gpu::State>();
 
     // Backface on shadow
     if (key.isShadow()) {
@@ -147,8 +145,13 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
     if (!key.isWireFrame()) {
 
         RenderKey wireframeKey(key.getRaw() | RenderKey::IS_WIREFRAME);
+<<<<<<< HEAD
         gpu::StatePointer wireframeState = gpu::StatePointer(new gpu::State(state->getValues()));
 
+=======
+        auto wireframeState = std::make_shared<gpu::State>(state->getValues());
+        
+>>>>>>> cf88bce0820df76a55473370db0fcb8c5fe6763d
         wireframeState->setFillMode(gpu::State::FILL_LINE);
 
         // create a new RenderPipeline with the same shader side and the mirrorState
@@ -160,7 +163,7 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
     if (!key.isShadow()) {
 
         RenderKey mirrorKey(key.getRaw() | RenderKey::IS_MIRROR);
-        gpu::StatePointer mirrorState = gpu::StatePointer(new gpu::State(state->getValues()));
+        auto mirrorState = std::make_shared<gpu::State>(state->getValues());
 
         mirrorState->setFrontFaceClockwise(true);
 
@@ -170,8 +173,13 @@ void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
 
         if (!key.isWireFrame()) {
             RenderKey wireframeKey(key.getRaw() | RenderKey::IS_MIRROR | RenderKey::IS_WIREFRAME);
+<<<<<<< HEAD
             gpu::StatePointer wireframeState = gpu::StatePointer(new gpu::State(state->getValues()));;
 
+=======
+            auto wireframeState = std::make_shared<gpu::State>(state->getValues());
+            
+>>>>>>> cf88bce0820df76a55473370db0fcb8c5fe6763d
             wireframeState->setFillMode(gpu::State::FILL_LINE);
 
             // create a new RenderPipeline with the same shader side and the mirrorState
@@ -491,9 +499,15 @@ bool Model::updateGeometry() {
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
             MeshState state;
             state.clusterMatrices.resize(mesh.clusters.size());
+<<<<<<< HEAD
             _meshStates.append(state);
 
             gpu::BufferPointer buffer(new gpu::Buffer());
+=======
+            _meshStates.append(state);    
+            
+            auto buffer = std::make_shared<gpu::Buffer>();
+>>>>>>> cf88bce0820df76a55473370db0fcb8c5fe6763d
             if (!mesh.blendshapes.isEmpty()) {
                 buffer->resize((mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3));
                 buffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.vertices.constData());
@@ -906,7 +920,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
     foreach (auto renderItem, _transparentRenderItems) {
         auto item = scene->allocateID();
         auto renderData = MeshPartPayload::Pointer(renderItem);
-        auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
+        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
         pendingChanges.resetItem(item, renderPayload);
         _renderItems.insert(item, renderPayload);
         somethingAdded = true;
@@ -915,7 +929,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
     foreach (auto renderItem, _opaqueRenderItems) {
         auto item = scene->allocateID();
         auto renderData = MeshPartPayload::Pointer(renderItem);
-        auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
+        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
         pendingChanges.resetItem(item, renderPayload);
         _renderItems.insert(item, renderPayload);
         somethingAdded = true;
@@ -936,7 +950,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
     foreach (auto renderItem, _transparentRenderItems) {
         auto item = scene->allocateID();
         auto renderData = MeshPartPayload::Pointer(renderItem);
-        auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
+        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
         renderPayload->addStatusGetters(statusGetters);
         pendingChanges.resetItem(item, renderPayload);
         _renderItems.insert(item, renderPayload);
@@ -946,7 +960,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
     foreach (auto renderItem, _opaqueRenderItems) {
         auto item = scene->allocateID();
         auto renderData = MeshPartPayload::Pointer(renderItem);
-        auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
+        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
         renderPayload->addStatusGetters(statusGetters);
         pendingChanges.resetItem(item, renderPayload);
         _renderItems.insert(item, renderPayload);
@@ -2276,9 +2290,9 @@ void Model::segregateMeshGroups() {
         for (int partIndex = 0; partIndex < totalParts; partIndex++) {
             // this is a good place to create our renderPayloads
             if (translucentMesh) {
-                _transparentRenderItems << std::shared_ptr<MeshPartPayload>(new MeshPartPayload(true, this, i, partIndex));
+                _transparentRenderItems << std::make_shared<MeshPartPayload>(true, this, i, partIndex);
             } else {
-                _opaqueRenderItems << std::shared_ptr<MeshPartPayload>(new MeshPartPayload(false, this, i, partIndex));
+                _opaqueRenderItems << std::make_shared<MeshPartPayload>(false, this, i, partIndex);
             }
         }
     }
@@ -2326,7 +2340,7 @@ bool Model::initWhenReady(render::ScenePointer scene) {
         foreach (auto renderItem, _transparentRenderItems) {
             auto item = scene->allocateID();
             auto renderData = MeshPartPayload::Pointer(renderItem);
-            auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
+            auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
             _renderItems.insert(item, renderPayload);
             pendingChanges.resetItem(item, renderPayload);
         }
@@ -2334,7 +2348,7 @@ bool Model::initWhenReady(render::ScenePointer scene) {
         foreach (auto renderItem, _opaqueRenderItems) {
             auto item = scene->allocateID();
             auto renderData = MeshPartPayload::Pointer(renderItem);
-            auto renderPayload = render::PayloadPointer(new MeshPartPayload::Payload(renderData));
+            auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
             _renderItems.insert(item, renderPayload);
             pendingChanges.resetItem(item, renderPayload);
         }
