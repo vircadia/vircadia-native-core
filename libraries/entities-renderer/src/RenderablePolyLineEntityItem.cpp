@@ -79,16 +79,14 @@ void RenderablePolyLineEntityItem::updateGeometry() {
     _verticesBuffer.reset(new gpu::Buffer());
     int vertexIndex = 0;
     vec2 uv;
+    int numTailStrips =  5;
     for (int i = 0; i < _normals.size(); i++) {
-//        if(i % 2 == 0){
-            uv = vec2(0.1, 0.9);
-//        } else {
-//            uv = vec2(1, 1);
-//        }
+        uv = vec2(0.1, 0.9);
+
         
         
-        if(i > _normals.size() -3) {
-            uv = vec2(0.8, 0.01);
+        if(i < numTailStrips) {
+            uv = vec2(0.9, 0.01);
         }
      
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
@@ -96,15 +94,10 @@ void RenderablePolyLineEntityItem::updateGeometry() {
 //        _verticesBuffer->append(sizeof(int), (gpu::Byte*)&_color);
         _verticesBuffer->append(sizeof(glm::vec2), (gpu::Byte*)&uv);
         vertexIndex++;
+        uv = vec2(0.1, 0.2);
         
-//        if(i % 2 == 0){
-            uv = vec2(0.1, 0.2);
-//        } else {
-//            uv = vec2(0, 1);
-//        }
-        
-        if(i > _normals.size() -3) {
-            uv = vec2(0.8, 0.1);
+        if(i < numTailStrips) {
+            uv = vec2(0.9, 0.9);
         }
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
