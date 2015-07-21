@@ -310,9 +310,11 @@ protected:
             functor(it);
         }
     }
+    
 private slots:
     void flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp);
     void possiblyTimeoutSTUNAddressLookup();
+    void addSTUNSockAddrToUnfiltered() { _nodeSocket.addUnfilteredSockAddr(_stunSockAddr); } // called once STUN socket known
 };
 
 #endif // hifi_LimitedNodeList_h

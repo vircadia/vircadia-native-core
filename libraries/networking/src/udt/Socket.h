@@ -46,6 +46,8 @@ public:
         { _verifiedPacketCallback = verifiedPacketCallback; }
     
     void setBufferSizes(int numBytes);
+    
+    void addUnfilteredSockAddr(const HifiSockAddr& senderSockAddr) { _unfilteredSockAddrs.insert(senderSockAddr); }
 
 private slots:
     void readPendingDatagrams();
@@ -54,6 +56,8 @@ private:
     QUdpSocket _udpSocket { this };
     VerifyPacketOperator _verifyPacketOperator;
     VerifiedPacketCallback _verifiedPacketCallback;
+    
+    QSet<HifiSockAddr> _unfilteredSockAddrs;
 };
     
 }

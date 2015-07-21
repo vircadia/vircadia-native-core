@@ -710,6 +710,7 @@ void LimitedNodeList::startSTUNPublicSocketUpdate() {
         // if we don't know the STUN IP yet we need to have ourselves be called once it is known
         if (_stunSockAddr.getAddress().isNull()) {
             connect(&_stunSockAddr, &HifiSockAddr::lookupCompleted, this, &LimitedNodeList::startSTUNPublicSocketUpdate);
+            connect(&_stunSockAddr, &HifiSockAddr::lookupCompleted, this, &LimitedNodeList::addSTUNSockAddrToUnfiltered);
 
             // in case we just completely fail to lookup the stun socket - add a 10s timeout that will trigger the fail case
             const quint64 STUN_DNS_LOOKUP_TIMEOUT_MSECS = 10 * 1000;
