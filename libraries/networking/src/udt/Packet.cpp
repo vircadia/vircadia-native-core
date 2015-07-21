@@ -98,12 +98,6 @@ Packet::Packet(const Packet& other) :
     QIODevice()
 {
     *this = other;
-    
-    if (other.isOpen()) {
-        this->open(other.openMode());
-    }
-    
-    this->seek(other.pos());
 }
 
 Packet& Packet::operator=(const Packet& other) {
@@ -117,6 +111,12 @@ Packet& Packet::operator=(const Packet& other) {
     _payloadCapacity = other._payloadCapacity;
 
     _payloadSize = other._payloadSize;
+    
+    if (other.isOpen() && !isOpen()) {
+        open(other.openMode());
+    }
+    
+    seek(other.pos());
 
     return *this;
 }
@@ -135,6 +135,12 @@ Packet& Packet::operator=(Packet&& other) {
     _payloadCapacity = other._payloadCapacity;
 
     _payloadSize = other._payloadSize;
+    
+    if (other.isOpen() && !isOpen()) {
+        open(other.openMode());
+    }
+    
+    seek(other.pos());
 
     return *this;
 }

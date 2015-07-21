@@ -63,6 +63,14 @@ std::unique_ptr<NLPacket> NLPacket::fromReceivedPacket(std::unique_ptr<char> dat
  
 }
 
+std::unique_ptr<NLPacket> NLPacket::fromBase(std::unique_ptr<Packet> packet) {
+    // Fail with null packet
+    Q_ASSERT(packet);
+    
+    // call our constructor to create an NLPacket from this Packet
+    return std::unique_ptr<NLPacket>(new NLPacket(std::move(packet)));
+}
+
 std::unique_ptr<NLPacket> NLPacket::createCopy(const NLPacket& other) {
     return std::unique_ptr<NLPacket>(new NLPacket(other));
 }
@@ -81,24 +89,59 @@ NLPacket::NLPacket(PacketType::Value type) :
     adjustPayloadStartAndCapacity();
 }
 
-NLPacket::NLPacket(const NLPacket& other) : Packet(other) {
+NLPacket::NLPacket(std::unique_ptr<Packet> packet) :
+    Packet(*packet)
+{
+    adjustPayloadStartAndCapacity(_payloadSize > 0);
     
+    readSourceID();
+    readVerificationHash();
+}
+
+NLPacket::NLPacket(const NLPacket& other) : Packet(other) {
+    *this = other;
+}
+
+NLPacket& NLPacket::operator=(const NLPacket& other) {
+    Packet::operator=(other);
+    
+    _sourceID = other._sourceID;
+    _verificationHash = other._verificationHash;
+    
+    return *this;
 }
 
 NLPacket::NLPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr) :
     Packet(std::move(data), size, senderSockAddr)
 {
     adjustPayloadStartAndCapacity();
-    _payloadSize = _payloadCapacity;
     
     readSourceID();
     readVerificationHash();
 }
 
-void NLPacket::adjustPayloadStartAndCapacity() {
+NLPacket::NLPacket(NLPacket&& other) :
+    Packet(other)
+{
+    *this = std::move(other);
+}
+
+NLPacket& NLPacket::operator=(NLPacket&& other) {
+    _sourceID = std::move(other._sourceID);
+    _verificationHash = std::move(other._verificationHash);
+    
+    return *this;
+}
+
+
+void NLPacket::adjustPayloadStartAndCapacity(bool shouldDecreasePayloadSize) {
     qint64 headerSize = localHeaderSize(_type);
     _payloadStart += headerSize;
     _payloadCapacity -= headerSize;
+    
+    if (shouldDecreasePayloadSize) {
+        _payloadSize -= headerSize;
+    }
 }
 
 void NLPacket::readSourceID() {

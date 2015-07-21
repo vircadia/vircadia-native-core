@@ -44,9 +44,8 @@ public:
     bool registerListenerForTypes(const QSet<PacketType::Value>& types, QObject* listener, const char* slot);
     bool registerListener(PacketType::Value type, QObject* listener, const char* slot);
     void unregisterListener(QObject* listener);
-
-public slots:
-    void processDatagrams();
+    
+    void handleVerifiedPacket(std::unique_ptr<Packet> packet);
 
 signals:
     void dataReceived(quint8 channelType, int bytes);

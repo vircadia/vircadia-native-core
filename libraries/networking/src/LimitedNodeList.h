@@ -37,9 +37,10 @@
 #include "DomainHandler.h"
 #include "Node.h"
 #include "NLPacket.h"
-#include "udt/PacketHeaders.h"
 #include "PacketReceiver.h"
 #include "NLPacketList.h"
+#include "udt/PacketHeaders.h"
+#include "udt/Socket.h"
 #include "UUIDHasher.h"
 
 const quint64 NODE_SILENCE_THRESHOLD_MSECS = 2 * 1000;
@@ -109,9 +110,8 @@ public:
 
     bool getThisNodeCanRez() const { return _thisNodeCanRez; }
     void setThisNodeCanRez(bool canRez);
-
-    void rebindNodeSocket();
-    QUdpSocket& getNodeSocket() { return _nodeSocket; }
+    
+    quint16 getSocketLocalPort() const { return _nodeSocket.localPort(); }
     QUdpSocket& getDTLSSocket();
 
     bool packetSourceAndHashMatch(const NLPacket& packet, SharedNodePointer& matchingNode);
@@ -256,8 +256,6 @@ protected:
 
     PacketSequenceNumber getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType::Value packetType);
 
-    void changeSocketBufferSizes(int numBytes);
-
     void handleNodeKill(const SharedNodePointer& node);
 
     void stopInitialSTUNUpdate(bool success);
@@ -272,7 +270,7 @@ protected:
     QUuid _sessionUUID;
     NodeHash _nodeHash;
     QReadWriteLock _nodeMutex;
-    QUdpSocket _nodeSocket;
+    udt::Socket _nodeSocket;
     QUdpSocket* _dtlsSocket;
     HifiSockAddr _localSockAddr;
     HifiSockAddr _publicSockAddr;

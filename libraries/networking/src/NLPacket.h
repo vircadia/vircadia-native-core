@@ -22,6 +22,8 @@ public:
     static std::unique_ptr<NLPacket> create(PacketType::Value type, qint64 size = -1);
     static std::unique_ptr<NLPacket> fromReceivedPacket(std::unique_ptr<char> data, qint64 size,
                                                         const HifiSockAddr& senderSockAddr);
+    static std::unique_ptr<NLPacket> fromBase(std::unique_ptr<Packet> packet);
+    
     // Provided for convenience, try to limit use
     static std::unique_ptr<NLPacket> createCopy(const NLPacket& other);
 
@@ -41,12 +43,19 @@ public:
 
 protected:
     
-    void adjustPayloadStartAndCapacity();
+    void adjustPayloadStartAndCapacity(bool shouldDecreasePayloadSize = false);
     
     NLPacket(PacketType::Value type);
     NLPacket(PacketType::Value type, qint64 size);
+    
     NLPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
+    NLPacket(std::unique_ptr<Packet> packet);
+    
     NLPacket(const NLPacket& other);
+    NLPacket& operator=(const NLPacket& other);
+    
+    NLPacket(NLPacket&& other);
+    NLPacket& operator=(NLPacket&& other);
 
     void readSourceID();
     void readVerificationHash();

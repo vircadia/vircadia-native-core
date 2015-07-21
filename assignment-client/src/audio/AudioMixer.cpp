@@ -652,9 +652,6 @@ void AudioMixer::run() {
 
     auto nodeList = DependencyManager::get<NodeList>();
 
-    // we do not want this event loop to be the handler for UDP datagrams, so disconnect
-    disconnect(&nodeList->getNodeSocket(), 0, this, 0);
-
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
     nodeList->linkedDataCreateCallback = [](Node* node) {
