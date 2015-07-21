@@ -11,7 +11,6 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <gpu/GPUConfig.h>
 #include <gpu/Batch.h>
 
 #include <DeferredLightingEffect.h>
@@ -21,7 +20,7 @@
 #include "RenderableLightEntityItem.h"
 
 EntityItemPointer RenderableLightEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new RenderableLightEntityItem(entityID, properties));
+    return std::make_shared<RenderableLightEntityItem>(entityID, properties);
 }
 
 void RenderableLightEntityItem::render(RenderArgs* args) {

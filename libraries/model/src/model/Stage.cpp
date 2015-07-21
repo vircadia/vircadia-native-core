@@ -136,7 +136,7 @@ void EarthSunModel::setSunLongitude(float lon) {
 Atmosphere::Atmosphere() {
     // only if created from nothing shall we create the Buffer to store the properties
     Data data;
-    _dataBuffer = gpu::BufferView(new gpu::Buffer(sizeof(Data), (const gpu::Byte*) &data));
+    _dataBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Data), (const gpu::Byte*) &data));
 
     setScatteringWavelength(_scatteringWavelength);
     setRayleighScattering(_rayleighScattering);
@@ -188,8 +188,8 @@ const float NUM_HOURS_PER_DAY = 24.0f;
 const float NUM_HOURS_PER_HALF_DAY = NUM_HOURS_PER_DAY * 0.5f;
 
 SunSkyStage::SunSkyStage() :
-    _sunLight(new Light()),
-    _skybox(new Skybox())
+    _sunLight(std::make_shared<Light>()),
+    _skybox(std::make_shared<Skybox>())
 {
     _sunLight->setType(Light::SUN);
  
@@ -204,9 +204,8 @@ SunSkyStage::SunSkyStage() :
     // Begining of march
     setYearTime(60.0f);
 
-    _skybox.reset(new Skybox());
+    _skybox = std::make_shared<Skybox>();
     _skybox->setColor(Color(1.0f, 0.0f, 0.0f));
-
 }
 
 SunSkyStage::~SunSkyStage() {

@@ -11,7 +11,6 @@
 
 #include "RenderableZoneEntityItem.h"
 
-#include <gpu/GPUConfig.h>
 #include <gpu/Batch.h>
 
 #include <AbstractViewStateInterface.h>
@@ -21,7 +20,7 @@
 #include <PerfStat.h>
 
 EntityItemPointer RenderableZoneEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new RenderableZoneEntityItem(entityID, properties));
+    return std::make_shared<RenderableZoneEntityItem>(entityID, properties);
 }
 
 template<typename Lambda>
@@ -196,8 +195,8 @@ bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, std::shared_pt
                                            render::PendingChanges& pendingChanges) {
     _myMetaItem = scene->allocateID();
     
-    auto renderData = RenderableZoneEntityItemMeta::Pointer(new RenderableZoneEntityItemMeta(self));
-    auto renderPayload = render::PayloadPointer(new RenderableZoneEntityItemMeta::Payload(renderData));
+    auto renderData = std::make_shared<RenderableZoneEntityItemMeta>(self);
+    auto renderPayload = std::make_shared<RenderableZoneEntityItemMeta::Payload>(renderData);
     
     pendingChanges.resetItem(_myMetaItem, renderPayload);
     return true;

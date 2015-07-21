@@ -131,7 +131,7 @@ void setMeshPartDefaults(FBXMeshPart& meshPart, QString materialID) {
  
     meshPart.materialID = materialID;
     meshPart.opacity = 1.0;
-    meshPart._material = model::MaterialPointer(new model::Material());
+    meshPart._material = std::make_shared<model::Material>();
     meshPart._material->setDiffuse(glm::vec3(1.0, 1.0, 1.0));
     meshPart._material->setOpacity(1.0);
     meshPart._material->setMetallic(0.0);

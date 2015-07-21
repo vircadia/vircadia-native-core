@@ -11,8 +11,6 @@
 
 #include <vector>
 
-#include <gpu/GPUConfig.h>
-
 #include <QDesktopWidget>
 #include <QWindow>
 
@@ -27,7 +25,7 @@
 #include <LODManager.h>
 #include <NodeList.h>
 #include <NumericalConstants.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
@@ -64,10 +62,10 @@ namespace render {
         return ItemKey::Builder::opaqueShape();
     }
     template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar) {
-        return static_cast<Avatar*>(avatar.get())->getBounds();
+        return static_pointer_cast<Avatar>(avatar)->getBounds();
     }
     template <> void payloadRender(const AvatarSharedPointer& avatar, RenderArgs* args) {
-        Avatar* avatarPtr = static_cast<Avatar*>(avatar.get());
+        auto avatarPtr = static_pointer_cast<Avatar>(avatar);
         bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::RenderLookAtVectors);
         avatarPtr->setDisplayingLookatVectors(renderLookAtVectors);
 
@@ -485,7 +483,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
         // quick check before falling into the code below:
         // (a 10 degree breadth of an almost 2 meter avatar kicks in at about 12m)
         const float MIN_VOICE_SPHERE_DISTANCE = 12.0f;
-        if (postLighting && Menu::getInstance()->isOptionChecked(MenuOption::BlueSpeechSphere)
+        if (Menu::getInstance()->isOptionChecked(MenuOption::BlueSpeechSphere)
             && distanceToTarget > MIN_VOICE_SPHERE_DISTANCE) {
 
             // render voice intensity sphere for avatars that are farther away
@@ -499,7 +497,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
             float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
             float sphereRadius = getHead()->getAverageLoudness() * SPHERE_LOUDNESS_SCALING;
 
-            if (renderArgs->_renderMode == RenderArgs::NORMAL_RENDER_MODE && (sphereRadius > MIN_SPHERE_SIZE) &&
+            if (renderArgs->_renderMode == RenderArgs::DEFAULT_RENDER_MODE && (sphereRadius > MIN_SPHERE_SIZE) &&
                     (angle < MAX_SPHERE_ANGLE) && (angle > MIN_SPHERE_ANGLE)) {
                 Transform transform;
                 transform.setTranslation(_position);
@@ -992,7 +990,7 @@ void Avatar::setBillboard(const QByteArray& billboard) {
     _billboardTexture.reset();
 }
 
-int Avatar::parseDataAtOffset(const QByteArray& packet, int offset) {
+int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
     if (!_initialized) {
         // now that we have data for this Avatar we are go for init
         init();
@@ -1001,7 +999,7 @@ int Avatar::parseDataAtOffset(const QByteArray& packet, int offset) {
     // change in position implies movement
     glm::vec3 oldPosition = _position;
 
-    int bytesRead = AvatarData::parseDataAtOffset(packet, offset);
+    int bytesRead = AvatarData::parseDataFromBuffer(buffer);
 
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, _position) > MOVE_DISTANCE_THRESHOLD;
@@ -1127,7 +1125,7 @@ void Avatar::setShowDisplayName(bool showDisplayName) {
     }
 }
 
-// virtual 
+// virtual
 void Avatar::computeShapeInfo(ShapeInfo& shapeInfo) {
     const CapsuleShape& capsule = _skeletonModel.getBoundingShape();
     shapeInfo.setCapsuleY(capsule.getRadius(), capsule.getHalfHeight());

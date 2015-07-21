@@ -17,8 +17,6 @@
 #include <DependencyManager.h>
 #include <NumericalConstants.h>
 
-#include "ProgramObject.h"
-
 #include "model/Light.h"
 #include "model/Stage.h"
 #include "model/Geometry.h"
