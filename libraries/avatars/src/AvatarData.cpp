@@ -632,7 +632,7 @@ void AvatarData::loadRecording(QString filename) {
         return;
     }
     if (!_player) {
-        _player = PlayerPointer(new Player(this));
+        _player = QSharedPointer<Player>::create(this);
     }
 
     _player->loadFromFile(filename);
@@ -644,7 +644,7 @@ void AvatarData::startPlaying() {
         return;
     }
     if (!_player) {
-        _player = PlayerPointer(new Player(this));
+        _player = QSharedPointer<Player>::create(this);
     }
     _player->startPlaying();
 }
@@ -746,7 +746,7 @@ void AvatarData::stopPlaying() {
     }
 }
 
-void AvatarData::changeReferential(Referential *ref) {
+void AvatarData::changeReferential(Referential* ref) {
     delete _referential;
     _referential = ref;
 }

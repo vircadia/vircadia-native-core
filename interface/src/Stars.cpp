@@ -31,14 +31,14 @@
 static const float TILT = 0.0f;
 static const unsigned int STARFIELD_NUM_STARS = 50000;
 static const unsigned int STARFIELD_SEED = 1;
-static const float STAR_COLORIZATION = 0.1f;
+//static const float STAR_COLORIZATION = 0.1f;
 
 static const float TAU = 6.28318530717958f;
-static const float HALF_TAU = TAU / 2.0f;
-static const float QUARTER_TAU = TAU / 4.0f;
-static const float MILKY_WAY_WIDTH = TAU / 30.0f; // width in radians of one half of the Milky Way
-static const float MILKY_WAY_INCLINATION = 0.0f; // angle of Milky Way from horizontal in degrees
-static const float MILKY_WAY_RATIO = 0.4f;
+//static const float HALF_TAU = TAU / 2.0f;
+//static const float QUARTER_TAU = TAU / 4.0f;
+//static const float MILKY_WAY_WIDTH = TAU / 30.0f; // width in radians of one half of the Milky Way
+//static const float MILKY_WAY_INCLINATION = 0.0f; // angle of Milky Way from horizontal in degrees
+//static const float MILKY_WAY_RATIO = 0.4f;
 static const char* UNIFORM_TIME_NAME = "iGlobalTime";
 
 
@@ -55,9 +55,11 @@ static float frand() {
 }
 
 // Produce a random radian value between 0 and 2 PI (TAU)
+/*
 static float rrand() {
     return frand() * TAU;
 }
+ */
 
 // http://mathworld.wolfram.com/SpherePointPicking.html
 static vec2 randPolar() {
@@ -117,7 +119,7 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
     static std::once_flag once;
 
     const int VERTICES_SLOT = 0;
-    const int COLOR_SLOT = 2;
+    //const int COLOR_SLOT = 2;
 
     std::call_once(once, [&] {
         QElapsedTimer startTime;

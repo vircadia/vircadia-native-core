@@ -419,7 +419,7 @@ bool EntityScriptingInterface::setVoxels(QUuid entityID,
         return false;
     }
 
-    EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
+    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
     if (!entity) {
         qCDebug(entities) << "EntityScriptingInterface::setVoxelSphere no entity with ID" << entityID;
         return false;
@@ -432,7 +432,7 @@ bool EntityScriptingInterface::setVoxels(QUuid entityID,
 
     auto now = usecTimestampNow();
 
-    PolyVoxEntityItem* polyVoxEntity = static_cast<PolyVoxEntityItem*>(entity.get());
+    auto polyVoxEntity = std::dynamic_pointer_cast<PolyVoxEntityItem>(entity);
     _entityTree->lockForWrite();
     actor(*polyVoxEntity);
     entity->setLastEdited(now);
@@ -467,8 +467,8 @@ bool EntityScriptingInterface::setPoints(QUuid entityID, std::function<bool(Line
     }
 
     auto now = usecTimestampNow();
-
-    LineEntityItem* lineEntity = static_cast<LineEntityItem*>(entity.get());
+    
+    auto lineEntity = std::static_pointer_cast<LineEntityItem>(entity);
     _entityTree->lockForWrite();
     bool success = actor(*lineEntity);
     entity->setLastEdited(now);
