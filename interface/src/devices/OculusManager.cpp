@@ -399,6 +399,8 @@ void OculusManager::connect(QOpenGLContext* shareContext) {
     int configResult = ovrHmd_ConfigureRendering(_ovrHmd, &cfg.Config,
         distortionCaps, _eyeFov, _eyeRenderDesc);
     assert(configResult);
+    Q_UNUSED(configResult);
+    
     _outputWindow->doneCurrent();
 
     for_each_eye([&](ovrEyeType eye) {

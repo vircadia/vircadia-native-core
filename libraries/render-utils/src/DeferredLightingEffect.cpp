@@ -57,7 +57,7 @@ gpu::PipelinePointer DeferredLightingEffect::getPipeline(SimpleProgramKey config
         return it.value();
     }
     
-    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    auto state = std::make_shared<gpu::State>();
     if (config.isCulled()) {
         state->setCullMode(gpu::State::CULL_BACK);
     } else {
@@ -118,7 +118,7 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
         //auto PSBlit = gpu::StandardShaderLib::getDrawTexturePS();
         auto blitProgram = gpu::StandardShaderLib::getProgram(gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS, gpu::StandardShaderLib::getDrawTexturePS);
         gpu::Shader::makeProgram(*blitProgram);
-        gpu::StatePointer blitState = gpu::StatePointer(new gpu::State());
+        auto blitState = std::make_shared<gpu::State>();
         blitState->setBlendFunction(true,
                                 gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
@@ -128,7 +128,7 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
 
     // Allocate a global light representing the Global Directional light casting shadow (the sun) and the ambient light
     _globalLights.push_back(0);
-    _allocatedLights.push_back(model::LightPointer(new model::Light()));
+    _allocatedLights.push_back(std::make_shared<model::Light>());
 
     model::LightPointer lp = _allocatedLights[0];
 
@@ -192,7 +192,7 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
     
     unsigned int lightID = _pointLights.size() + _spotLights.size() + _globalLights.size();
     if (lightID >= _allocatedLights.size()) {
-        _allocatedLights.push_back(model::LightPointer(new model::Light()));
+        _allocatedLights.push_back(std::make_shared<model::Light>());
     }
     model::LightPointer lp = _allocatedLights[lightID];
 
@@ -610,7 +610,7 @@ void DeferredLightingEffect::loadLightProgram(const char* vertSource, const char
     locations.atmosphereBufferUnit = program->getUniforms().findLocation("atmosphereBufferUnit");
 #endif
 
-    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    auto state = std::make_shared<gpu::State>();
     if (lightVolume) {
         state->setCullMode(gpu::State::CULL_BACK);
         
@@ -653,7 +653,7 @@ void DeferredLightingEffect::setGlobalSkybox(const model::SkyboxPointer& skybox)
 
 model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
     if (!_spotLightMesh) {
-        _spotLightMesh.reset(new model::Mesh());
+        _spotLightMesh = std::make_shared<model::Mesh>();
 
         int slices = 32;
         int rings = 3;

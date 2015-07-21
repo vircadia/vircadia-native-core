@@ -25,7 +25,7 @@ InfoView::InfoView(QQuickItem* parent) : QQuickItem(parent) {
 }
 
 void InfoView::registerType() { 
-    qmlRegisterType<InfoView>("Hifi", 1, 0, NAME.toLocal8Bit().constData()); 
+    qmlRegisterType<InfoView>("Hifi", 1, 0, NAME.toLocal8Bit().constData());
 } 
 
 QString fetchVersion(const QUrl& url) {

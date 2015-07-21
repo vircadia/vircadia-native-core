@@ -80,7 +80,7 @@ bool Texture::Storage::allocateMip(uint16 level) {
     auto& mip = _mips[level];
     for (auto& face : mip) {
         if (!face) {
-            face.reset(new Pixels());
+            face = std::make_shared<Pixels>();
             changed = true;
         }
     }
@@ -419,7 +419,7 @@ bool Texture::generateIrradiance() {
         return false;
     }
     if (!_irradiance) {
-        _irradiance.reset(new SphericalHarmonics());
+        _irradiance = std::make_shared<SphericalHarmonics>();
     }
 
     _irradiance->evalFromTexture(*this);
@@ -563,7 +563,7 @@ glm::vec3 linearTosRGB(glm::vec3& color) {
     return glm::pow(color, glm::vec3(GAMMA_CORRECTION_INV));
 }
 
-// Originial code for the Spherical Harmonics taken from "Sun and Black Cat- Igor Dykhta (igor dykhta email) © 2007-2014 "
+// Originial code for the Spherical Harmonics taken from "Sun and Black Cat- Igor Dykhta (igor dykhta email) ï¿½ 2007-2014 "
 void sphericalHarmonicsAdd(float * result, int order, const float * inputA, const float * inputB) {
    const int numCoeff = order * order;
    for(int i=0; i < numCoeff; i++) {
