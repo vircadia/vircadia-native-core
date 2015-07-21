@@ -32,8 +32,8 @@
 
 const vec4 CONNECTION_STATUS_BORDER_COLOR{ 1.0f, 0.0f, 0.0f, 0.8f };
 const float CONNECTION_STATUS_BORDER_LINE_WIDTH = 4.0f;
-static const float ORTHO_NEAR_CLIP = -10000;
-static const float ORTHO_FAR_CLIP = 10000;
+static const float ORTHO_NEAR_CLIP = -1000;
+static const float ORTHO_FAR_CLIP = 1000;
 
 ApplicationOverlay::ApplicationOverlay()
 {
@@ -131,7 +131,7 @@ void ApplicationOverlay::renderAudioScope(RenderArgs* renderArgs) {
     batch.setResourceTexture(0, textureCache->getWhiteTexture());
     int width = renderArgs->_viewport.z;
     int height = renderArgs->_viewport.w;
-    mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
+    mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, ORTHO_NEAR_CLIP, ORTHO_FAR_CLIP);
     batch.setProjectionTransform(legacyProjection);
     batch.setModelTransform(Transform());
     batch.setViewTransform(Transform());
@@ -151,7 +151,7 @@ void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     batch.setResourceTexture(0, textureCache->getWhiteTexture());
     int width = renderArgs->_viewport.z;
     int height = renderArgs->_viewport.w;
-    mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
+    mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, ORTHO_NEAR_CLIP, ORTHO_FAR_CLIP);
     batch.setProjectionTransform(legacyProjection);
     batch.setModelTransform(Transform());
     batch.setViewTransform(Transform());
