@@ -58,6 +58,7 @@ void Socket::setBufferSizes(int numBytes) {
 }
 
 qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& sockAddr) {
+    
     qint64 bytesWritten = _udpSocket.writeDatagram(datagram, sockAddr.getAddress(), sockAddr.getPort());
     
     if (bytesWritten < 0) {

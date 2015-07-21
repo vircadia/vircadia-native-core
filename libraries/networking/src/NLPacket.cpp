@@ -90,7 +90,7 @@ NLPacket::NLPacket(PacketType::Value type) :
 }
 
 NLPacket::NLPacket(std::unique_ptr<Packet> packet) :
-    Packet(*packet)
+    Packet(std::move(*packet.release()))
 {
     adjustPayloadStartAndCapacity(_payloadSize > 0);
     
@@ -122,7 +122,7 @@ NLPacket::NLPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& 
 }
 
 NLPacket::NLPacket(NLPacket&& other) :
-    Packet(other)
+	Packet(other)
 {
     _sourceID = std::move(other._sourceID);
     _verificationHash = std::move(other._verificationHash);
@@ -130,7 +130,7 @@ NLPacket::NLPacket(NLPacket&& other) :
 
 NLPacket& NLPacket::operator=(NLPacket&& other) {
     
-    Packet::operator=(other);
+    Packet::operator=(std::move(other));
     
     _sourceID = std::move(other._sourceID);
     _verificationHash = std::move(other._verificationHash);

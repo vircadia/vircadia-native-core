@@ -138,6 +138,8 @@ Packet& Packet::operator=(Packet&& other) {
 
     _payloadSize = other._payloadSize;
     
+    _senderSockAddr = std::move(other._senderSockAddr);
+    
     if (other.isOpen() && !isOpen()) {
         open(other.openMode());
     }

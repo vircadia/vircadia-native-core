@@ -566,7 +566,7 @@ void LimitedNodeList::sendSTUNRequest() {
 
     flagTimeForConnectionStep(ConnectionStep::SendSTUNRequest);
 
-    _nodeSocket.writeDatagram(stunRequestPacket, _stunSockAddr);
+    _nodeSocket.writeDatagram(QByteArray::fromRawData(stunRequestPacket, sizeof(stunRequestPacket)), _stunSockAddr);
 }
 
 bool LimitedNodeList::processSTUNResponse(QSharedPointer<NLPacket> packet) {

@@ -267,7 +267,7 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
     
     bool listenerIsDead = false;
     
-    auto it = _packetListenerMap.find(packet->getType());
+    auto it = _packetListenerMap.find(nlPacket->getType());
     
     if (it != _packetListenerMap.end()) {
         
@@ -285,16 +285,16 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
             
             _directConnectSetMutex.unlock();
             
-            PacketType::Value packetType = packet->getType();
+            PacketType::Value packetType = nlPacket->getType();
             
             if (matchingNode) {
                 // if this was a sequence numbered packet we should store the last seq number for
                 // a packet of this type for this node
-                if (SEQUENCE_NUMBERED_PACKETS.contains(packet->getType())) {
+                if (SEQUENCE_NUMBERED_PACKETS.contains(nlPacket->getType())) {
                     matchingNode->setLastSequenceNumberForPacketType(packet->readSequenceNumber(), packet->getType());
                 }
                 
-                emit dataReceived(matchingNode->getType(), packet->getDataSize());
+                emit dataReceived(matchingNode->getType(), nlPacket->getDataSize());
                 QMetaMethod metaMethod = listener.second;
                 
                 static const QByteArray QSHAREDPOINTER_NODE_NORMALIZED = QMetaObject::normalizedType("QSharedPointer<Node>");
@@ -327,7 +327,7 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
                 }
                 
             } else {
-                emit dataReceived(NodeType::Unassigned, packet->getDataSize());
+                emit dataReceived(NodeType::Unassigned, nlPacket->getDataSize());
                 
                 success = listener.second.invoke(listener.first,
                                                  Q_ARG(QSharedPointer<NLPacket>, QSharedPointer<NLPacket>(nlPacket.release())));
@@ -344,8 +344,8 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
         }
         
         if (listenerIsDead) {
-            qDebug().nospace() << "Listener for packet" << packet->getType()
-            << " (" << qPrintable(nameForPacketType(packet->getType())) << ")"
+            qDebug().nospace() << "Listener for packet" << nlPacket->getType()
+            << " (" << qPrintable(nameForPacketType(nlPacket->getType())) << ")"
             << " has been destroyed. Removing from listener map.";
             it = _packetListenerMap.erase(it);
             
@@ -356,7 +356,7 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
         }
         
     } else {
-        qWarning() << "No listener found for packet type " << nameForPacketType(packet->getType());
+        qWarning() << "No listener found for packet type " << nameForPacketType(nlPacket->getType());
         
         // insert a dummy listener so we don't print this again
         _packetListenerMap.insert(packet->getType(), { nullptr, QMetaMethod() });
