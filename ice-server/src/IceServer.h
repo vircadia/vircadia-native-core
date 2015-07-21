@@ -20,6 +20,7 @@
 #include <HTTPConnection.h>
 #include <HTTPManager.h>
 #include <udt/Packet.h>
+#include <udt/Socket.h>
 
 typedef QHash<QUuid, SharedNetworkPeer> NetworkPeerHash;
 
@@ -29,15 +30,15 @@ public:
     IceServer(int argc, char* argv[]);
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false);
 private slots:
-    void processDatagrams();
     void clearInactivePeers();
 private:
-
+    void processPacket(std::unique_ptr<udt::Packet> packet);
+    
     SharedNetworkPeer addOrUpdateHeartbeatingPeer(udt::Packet& incomingPacket);
     void sendPeerInformationPacket(const NetworkPeer& peer, const HifiSockAddr* destinationSockAddr);
 
     QUuid _id;
-    QUdpSocket _serverSocket;
+    udt::Socket _serverSocket;
     NetworkPeerHash _activePeers;
     HTTPManager _httpManager;
 };

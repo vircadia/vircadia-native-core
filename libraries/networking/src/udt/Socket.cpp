@@ -57,6 +57,10 @@ void Socket::setBufferSizes(int numBytes) {
     }
 }
 
+qint64 Socket::writeUnreliablePacket(const Packet& packet, const HifiSockAddr& sockAddr) {
+    return writeDatagram(packet.getData(), packet.getDataSize(), sockAddr);
+}
+
 qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& sockAddr) {
     
     qint64 bytesWritten = _udpSocket.writeDatagram(datagram, sockAddr.getAddress(), sockAddr.getPort());

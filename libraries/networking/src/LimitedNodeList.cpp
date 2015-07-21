@@ -97,7 +97,7 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     // check the local socket right now
     updateLocalSockAddr();
     
-    // set &PacketReceiver::handleVerifiedPacket as the verified packet function for the udt::Socket
+    // set &PacketReceiver::handleVerifiedPacket as the verified packet callback for the udt::Socket
     using std::placeholders::_1;
     _nodeSocket.setVerifiedPacketCallback(std::bind(&PacketReceiver::handleVerifiedPacket, _packetReceiver, _1));
 
@@ -273,16 +273,16 @@ qint64 LimitedNodeList::writePacket(const NLPacket& packet, const HifiSockAddr& 
 
     emit dataSent(NodeType::Unassigned, packet.getDataSize());
     
-    return writeDatagram(QByteArray::fromRawData(packet.getData(), packet.getDataSize()), destinationSockAddr);
+    return writePacketAndCollectStats(packet, destinationSockAddr);
 }
 
-qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr) {
+qint64 LimitedNodeList::writePacketAndCollectStats(const NLPacket& packet, const HifiSockAddr& destinationSockAddr) {
     // XXX can BandwidthRecorder be used for this?
     // stat collection for packets
     ++_numCollectedPackets;
-    _numCollectedBytes += datagram.size();
+    _numCollectedBytes += packet.getDataSize();
 
-    qint64 bytesWritten = _nodeSocket.writeDatagram(datagram, destinationSockAddr);
+    qint64 bytesWritten = _nodeSocket.writeUnreliablePacket(packet, destinationSockAddr);
 
     return bytesWritten;
 }

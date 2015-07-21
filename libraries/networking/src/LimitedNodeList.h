@@ -251,7 +251,7 @@ protected:
     qint64 writePacket(const NLPacket& packet, const Node& destinationNode);
     qint64 writePacket(const NLPacket& packet, const HifiSockAddr& destinationSockAddr,
                        const QUuid& connectionSecret = QUuid());
-    qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr);
+    qint64 writePacketAndCollectStats(const NLPacket& packet, const HifiSockAddr& destinationSockAddr);
 
     PacketSequenceNumber getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType::Value packetType);
     
