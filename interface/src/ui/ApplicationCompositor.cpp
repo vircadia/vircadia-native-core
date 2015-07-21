@@ -369,14 +369,14 @@ QPoint ApplicationCompositor::getPalmClickLocation(const PalmData *palm) const {
         rv.ry() = point.y;
     } else {
         MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-        glm::dmat4 projection;
-        qApp->getProjectionMatrix(&projection);
+        glm::mat4 projection;
+        qApp->getDisplayViewFrustum()->evalProjectionMatrix(projection);
         glm::quat invOrientation = glm::inverse(myAvatar->getOrientation());
         glm::vec3 eyePos = myAvatar->getDefaultEyePosition();
         glm::vec3 tip = myAvatar->getLaserPointerTipPosition(palm);
         glm::vec3 tipPos = invOrientation * (tip - eyePos);
 
-        glm::vec4 clipSpacePos = glm::vec4(projection * glm::dvec4(tipPos, 1.0));
+        glm::vec4 clipSpacePos = glm::vec4(projection * glm::vec4(tipPos, 1.0f));
         glm::vec3 ndcSpacePos;
         if (clipSpacePos.w != 0) {
             ndcSpacePos = glm::vec3(clipSpacePos) / clipSpacePos.w;

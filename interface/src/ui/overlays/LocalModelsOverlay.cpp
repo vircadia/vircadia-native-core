@@ -34,6 +34,7 @@ void LocalModelsOverlay::render(RenderArgs* args) {
         float glowLevel = getGlowLevel(); // FIXME, glowing removed for now
         
         auto batch = args ->_batch;
+
         Transform transform = Transform();
         transform.setTranslation(args->_viewFrustum->getPosition() + getPosition());
         batch->setViewTransform(transform);
