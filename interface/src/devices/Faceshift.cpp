@@ -208,7 +208,7 @@ void Faceshift::receive(const QByteArray& buffer) {
     for (fsMsgPtr msg; (msg = _stream.get_message()); ) {
         switch (msg->id()) {
             case fsMsg::MSG_OUT_TRACKING_STATE: {
-                const fsTrackingData& data = static_cast<fsMsgTrackingState*>(msg.get())->tracking_data();
+                const fsTrackingData& data = static_pointer_cast<fsMsgTrackingState>(msg)->tracking_data();
                 if ((_tracking = data.m_trackingSuccessful)) {
                     glm::quat newRotation = glm::quat(data.m_headRotation.w, -data.m_headRotation.x,
                                                       data.m_headRotation.y, -data.m_headRotation.z);
@@ -256,7 +256,7 @@ void Faceshift::receive(const QByteArray& buffer) {
                 break;
             }
             case fsMsg::MSG_OUT_BLENDSHAPE_NAMES: {
-                const vector<string>& names = static_cast<fsMsgBlendshapeNames*>(msg.get())->blendshape_names();
+                const vector<string>& names = static_pointer_cast<fsMsgBlendshapeNames>(msg)->blendshape_names();
                 for (size_t i = 0; i < names.size(); i++) {
                     if (names[i] == "EyeBlink_L") {
                         _leftBlinkIndex = i;
