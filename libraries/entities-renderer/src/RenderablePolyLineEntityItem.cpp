@@ -38,6 +38,7 @@ PolyLineEntityItem(entityItemID, properties) {
 gpu::PipelinePointer RenderablePolyLineEntityItem::_pipeline;
 gpu::Stream::FormatPointer RenderablePolyLineEntityItem::_format;
 gpu::TexturePointer RenderablePolyLineEntityItem::_texture;
+GLint RenderablePolyLineEntityItem::PAINTSTROKE_GPU_SLOT;
 
 void RenderablePolyLineEntityItem::createPipeline() {
     static const int NORMAL_OFFSET = 12;
@@ -45,9 +46,11 @@ void RenderablePolyLineEntityItem::createPipeline() {
     static const int TEXTURE_OFFSET = 24;
     
     auto textureCache = DependencyManager::get<TextureCache>();
-   _texture = textureCache->getImageTexture(PathUtils::resourcesPath() + "images/paintStrokeTexture.jpeg");
-    
-    
+    QString path = PathUtils::resourcesPath() + "images/paintStroke.png";
+//    QString path = PathUtils::resourcesPath() + "images/arrow.png";
+    qDebug() << "IMAGE PATHHHH ******: " << path;
+    _texture = textureCache->getImageTexture(path);
+//    _texture = textureCache->getBlueTexture();
     _format.reset(new gpu::Stream::Format());
     _format->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     _format->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), NORMAL_OFFSET);
@@ -59,8 +62,8 @@ void RenderablePolyLineEntityItem::createPipeline() {
     gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PS));
     
     gpu::Shader::BindingSet slotBindings;
-//    const GLint PAINTSTROKE_GPU_SLOT = 0;
-//    slotBindings.insert(gpu::Shader::Binding(std::string("paintStrokeTextureBinding"), PAINTSTROKE_GPU_SLOT));
+    PAINTSTROKE_GPU_SLOT = 0;
+    slotBindings.insert(gpu::Shader::Binding(std::string("paintStrokeTextureBinding"), PAINTSTROKE_GPU_SLOT));
     gpu::Shader::makeProgram(*program, slotBindings);
     
     gpu::StatePointer state = gpu::StatePointer(new gpu::State());
@@ -80,7 +83,7 @@ void RenderablePolyLineEntityItem::updateGeometry() {
         if(i % 2 == 0){
             uv = vec2(0.0, 1.0);
         } else {
-            uv = vec2(1.0, 1.0);
+            uv = vec2(0.0, 0.0);
         }
      
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
@@ -90,9 +93,9 @@ void RenderablePolyLineEntityItem::updateGeometry() {
         vertexIndex++;
         
         if(i % 2 == 0){
-            uv = vec2(0.0, 0.0);
+            uv = vec2(1.0, 1.0);
         } else {
-            uv = vec2(1, 1.0);
+            uv = vec2(1, 0);
         }
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
@@ -132,8 +135,9 @@ void RenderablePolyLineEntityItem::render(RenderArgs* args) {
     transform.setRotation(getRotation());
     batch.setModelTransform(transform);
 
-    batch.setResourceTexture(0, _texture);
     batch.setPipeline(_pipeline);
+    batch.setResourceTexture(0, _texture);
+
     
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);
