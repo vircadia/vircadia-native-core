@@ -114,8 +114,6 @@ public:
     quint16 getSocketLocalPort() const { return _nodeSocket.localPort(); }
     QUdpSocket& getDTLSSocket();
 
-    bool packetSourceAndHashMatch(const NLPacket& packet, SharedNodePointer& matchingNode);
-
     PacketReceiver& getPacketReceiver() { return *_packetReceiver; }
 
     qint64 sendUnreliablePacket(const NLPacket& packet, const Node& destinationNode);
@@ -233,6 +231,7 @@ public slots:
 
 signals:
     void dataSent(quint8 channelType, int bytes);
+    void packetVersionMismatch(PacketType::Value type);
 
     void uuidChanged(const QUuid& ownerUUID, const QUuid& oldUUID);
     void nodeAdded(SharedNodePointer);
@@ -255,6 +254,10 @@ protected:
     qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr);
 
     PacketSequenceNumber getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType::Value packetType);
+    
+    bool isPacketVerified(const udt::Packet& packet);
+    bool packetVersionMatch(const udt::Packet& packet);
+    bool packetSourceAndHashMatch(const udt::Packet& packet);
 
     void handleNodeKill(const SharedNodePointer& node);
 

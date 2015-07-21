@@ -49,15 +49,12 @@ public:
 
 signals:
     void dataReceived(quint8 channelType, int bytes);
-    void packetVersionMismatch(PacketType::Value type);
     
 private:
     // these are brutal hacks for now - ideally GenericThread / ReceivedPacketProcessor
     // should be changed to have a true event loop and be able to handle our QMetaMethod::invoke
     void registerDirectListenerForTypes(const QSet<PacketType::Value>& types, QObject* listener, const char* slot);
     void registerDirectListener(PacketType::Value type, QObject* listener, const char* slot);
-    
-    bool packetVersionMatch(const NLPacket& packet);
 
     QMetaMethod matchingMethodForListener(PacketType::Value type, QObject* object, const char* slot) const;
     void registerVerifiedListener(PacketType::Value type, QObject* listener, const QMetaMethod& slot);
