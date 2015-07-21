@@ -32,7 +32,7 @@ const DEFAULT_BLOCK_YAW_OFFSET = 45;
 
 var editMode = false;
 
-const BUTTON_DIMENSIONS = {width: 50, height: 50};
+const BUTTON_DIMENSIONS = {width: 49, height: 49};
 const MAXIMUM_PERCENTAGE = 100.0;
 const NO_ANGLE = 0;
 const RIGHT_ANGLE = 90;
@@ -326,10 +326,11 @@ button = toolBar.addTool({
 cogButton = toolBar.addTool({
     width: BUTTON_DIMENSIONS.width,
     height: BUTTON_DIMENSIONS.height,
-    imageURL: HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/cog.svg',
+    imageURL: "https://dl.dropboxusercontent.com/u/14997455/hifi/planky/cog.svg", //HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/cog.svg',
+    subImage: { x: 0, y: BUTTON_DIMENSIONS.height, width: BUTTON_DIMENSIONS.width, height: BUTTON_DIMENSIONS.height },
     alpha: 0.8,
     visible: true
-});
+}, true, false);
 
 Controller.mousePressEvent.connect(function(event) {
     var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
@@ -341,6 +342,7 @@ Controller.mousePressEvent.connect(function(event) {
         editMode = !editMode;
         plankyStack.refresh();
     } else if (toolBar.clicked(clickedOverlay) === cogButton) {
+        toolBar.selectTool(cogButton, true);
         settingsWindow.webWindow.setVisible(true);
     }
 });
