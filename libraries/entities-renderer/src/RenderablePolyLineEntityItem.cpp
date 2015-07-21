@@ -80,10 +80,15 @@ void RenderablePolyLineEntityItem::updateGeometry() {
     int vertexIndex = 0;
     vec2 uv;
     for (int i = 0; i < _normals.size(); i++) {
-        if(i % 2 == 0){
-            uv = vec2(0.0, 1.0);
-        } else {
-            uv = vec2(0.0, 0.0);
+//        if(i % 2 == 0){
+            uv = vec2(0.1, 0.9);
+//        } else {
+//            uv = vec2(1, 1);
+//        }
+        
+        
+        if(i > _normals.size() -3) {
+            uv = vec2(0.8, 0.01);
         }
      
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
@@ -92,10 +97,14 @@ void RenderablePolyLineEntityItem::updateGeometry() {
         _verticesBuffer->append(sizeof(glm::vec2), (gpu::Byte*)&uv);
         vertexIndex++;
         
-        if(i % 2 == 0){
-            uv = vec2(1.0, 1.0);
-        } else {
-            uv = vec2(1, 0);
+//        if(i % 2 == 0){
+            uv = vec2(0.1, 0.2);
+//        } else {
+//            uv = vec2(0, 1);
+//        }
+        
+        if(i > _normals.size() -3) {
+            uv = vec2(0.8, 0.1);
         }
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
@@ -136,7 +145,7 @@ void RenderablePolyLineEntityItem::render(RenderArgs* args) {
     batch.setModelTransform(transform);
 
     batch.setPipeline(_pipeline);
-    batch.setResourceTexture(0, _texture);
+    batch.setResourceTexture(PAINTSTROKE_GPU_SLOT, _texture);
 
     
     batch.setInputFormat(_format);
