@@ -23,6 +23,7 @@
 #include "GeometryCache.h"
 #include "RenderUtil.h"
 #include "TextureCache.h"
+#include "FramebufferCache.h"
 
 
 #include "simple_vert.h"
@@ -215,8 +216,6 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
 }
 
 void DeferredLightingEffect::prepare(RenderArgs* args) {
-
-    auto textureCache = DependencyManager::get<TextureCache>();
     gpu::Batch batch;
     
     // clear the normal and specular buffers
@@ -232,25 +231,23 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     gpu::Batch batch;
 
     // perform deferred lighting, rendering to free fbo
-    auto textureCache = DependencyManager::get<TextureCache>();
+    auto framebufferCache = DependencyManager::get<FramebufferCache>();
     
-    QSize framebufferSize = textureCache->getFrameBufferSize();
+    QSize framebufferSize = framebufferCache->getFrameBufferSize();
     
     // binding the first framebuffer
-    auto freeFBO = DependencyManager::get<TextureCache>()->getSecondaryFramebuffer();
+    auto freeFBO = framebufferCache->getSecondaryFramebuffer();
     batch.setFramebuffer(freeFBO);
 
     batch.setViewportTransform(args->_viewport);
  
     batch.clearColorFramebuffer(freeFBO->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
     
-    batch.setResourceTexture(0, textureCache->getPrimaryColorTexture());
-
-    batch.setResourceTexture(1, textureCache->getPrimaryNormalTexture());
-    
-    batch.setResourceTexture(2, textureCache->getPrimarySpecularTexture());
-    
-    batch.setResourceTexture(3, textureCache->getPrimaryDepthTexture());
+    auto primaryFramebuffer = framebufferCache->getPrimaryFramebuffer();
+    for (int i = 0; i < 3; ++i) {
+        batch.setResourceTexture(i, primaryFramebuffer->getRenderBuffer(i));
+    }
+    batch.setResourceTexture(3, primaryFramebuffer->getDepthStencilBuffer());
         
     float sMin = args->_viewport.x / (float)framebufferSize.width();
     float sWidth = args->_viewport.z / (float)framebufferSize.width();
@@ -267,7 +264,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     const LightLocations* locations = &_directionalLightLocations;
     bool shadowsEnabled = _viewState->getShadowsEnabled();
     if (shadowsEnabled) {
-        batch.setResourceTexture(4, textureCache->getShadowFramebuffer()->getDepthStencilBuffer());
+        batch.setResourceTexture(4, framebufferCache->getShadowFramebuffer()->getDepthStencilBuffer());
         
         program = _directionalLightShadowMap;
         locations = &_directionalLightShadowMapLocations;
@@ -294,7 +291,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
             }
             batch.setPipeline(program);
         }
-        batch._glUniform1f(locations->shadowScale, 1.0f / textureCache->getShadowFramebuffer()->getWidth());
+        batch._glUniform1f(locations->shadowScale, 1.0f / framebufferCache->getShadowFramebuffer()->getWidth());
         
     } else {
         if (useSkyboxCubemap) {
@@ -537,12 +534,12 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
 void DeferredLightingEffect::copyBack(RenderArgs* args) {
     gpu::Batch batch;
-    auto textureCache = DependencyManager::get<TextureCache>();
-    QSize framebufferSize = textureCache->getFrameBufferSize();
+    auto framebufferCache = DependencyManager::get<FramebufferCache>();
+    QSize framebufferSize = framebufferCache->getFrameBufferSize();
 
-    auto freeFBO = DependencyManager::get<TextureCache>()->getSecondaryFramebuffer();
+    auto freeFBO = framebufferCache->getSecondaryFramebuffer();
 
-    batch.setFramebuffer(textureCache->getPrimaryFramebuffer());
+    batch.setFramebuffer(framebufferCache->getPrimaryFramebuffer());
     batch.setPipeline(_blitLightBuffer);
     
     batch.setResourceTexture(0, freeFBO->getRenderBuffer(0));
@@ -563,7 +560,6 @@ void DeferredLightingEffect::copyBack(RenderArgs* args) {
     batch.setModelTransform(model);
 
     batch.draw(gpu::TRIANGLE_STRIP, 4);
-
 
     args->_context->syncCache();
     args->_context->render(batch);

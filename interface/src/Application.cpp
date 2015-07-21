@@ -59,6 +59,7 @@
 #include <DependencyManager.h>
 #include <EntityScriptingInterface.h>
 #include <ErrorDialog.h>
+#include <FramebufferCache.h>
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
 #include <gpu/GLBackend.h>
@@ -85,6 +86,7 @@
 #include <SettingHandle.h>
 #include <SimpleAverage.h>
 #include <SoundCache.h>
+#include <TextureCache.h>
 #include <Tooltip.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
@@ -263,6 +265,8 @@ bool setupEssentials(int& argc, char** argv) {
     auto audioScope = DependencyManager::set<AudioScope>();
     auto deferredLightingEffect = DependencyManager::set<DeferredLightingEffect>();
     auto textureCache = DependencyManager::set<TextureCache>();
+    auto framebufferCache = DependencyManager::set<FramebufferCache>();
+
     auto animationCache = DependencyManager::set<AnimationCache>();
     auto ddeFaceTracker = DependencyManager::set<DdeFaceTracker>();
     auto modelBlender = DependencyManager::set<ModelBlender>();
@@ -730,6 +734,7 @@ Application::~Application() {
     DependencyManager::destroy<OffscreenUi>();
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();
+    DependencyManager::destroy<FramebufferCache>();
     DependencyManager::destroy<TextureCache>();
     DependencyManager::destroy<GeometryCache>();
     DependencyManager::destroy<ScriptCache>();
@@ -889,6 +894,8 @@ void Application::paintGL() {
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
     resizeGL();
 
+    glEnable(GL_LINE_SMOOTH);
+
     {
         PerformanceTimer perfTimer("renderOverlay");
         
@@ -899,7 +906,6 @@ void Application::paintGL() {
         _applicationOverlay.renderOverlay(&renderArgs);
     }
 
-    glEnable(GL_LINE_SMOOTH);
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, _myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
@@ -976,7 +982,7 @@ void Application::paintGL() {
 
         {
             gpu::Batch batch;
-            auto primaryFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+            auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
             batch.setFramebuffer(primaryFbo);
             // clear the normal and specular buffers
             batch.clearFramebuffer(
@@ -987,7 +993,7 @@ void Application::paintGL() {
                 vec4(vec3(0), 1), 1.0, 0.0);
 
             // Viewport is assigned to the size of the framebuffer
-            QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
+            QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
             renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
             batch.setViewportTransform(renderArgs._viewport);
             renderArgs._context->render(batch);
@@ -1003,7 +1009,7 @@ void Application::paintGL() {
 
         {
             auto geometryCache = DependencyManager::get<GeometryCache>();
-            auto primaryFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+            auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
             gpu::Batch batch;
             batch.blit(primaryFbo, glm::ivec4(0, 0, _renderResolution.x, _renderResolution.y),
                 nullptr, glm::ivec4(0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height()));
@@ -1077,7 +1083,7 @@ void Application::resizeGL() {
 
     if (_renderResolution != toGlm(renderSize)) {
         _renderResolution = toGlm(renderSize);
-        DependencyManager::get<TextureCache>()->setFrameBufferSize(renderSize);
+        DependencyManager::get<FramebufferCache>()->setFrameBufferSize(renderSize);
         updateProjectionMatrix();
     }
 
@@ -2997,7 +3003,7 @@ PickRay Application::computePickRay(float x, float y) const {
 }
 
 QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
-    auto primaryFramebuffer = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+    auto primaryFramebuffer = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
     glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFramebuffer));
 
     // clear the alpha channel so the background is transparent
@@ -3475,11 +3481,11 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     // set the bounds of rear mirror view
     gpu::Vec4i viewport;
     if (billboard) {
-        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
+        QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
         viewport = gpu::Vec4i(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
     } else {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
-        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
+        QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
         float ratio = (float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale();
         int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
         viewport = gpu::Vec4i(x, size.height() - y - height, width, height);

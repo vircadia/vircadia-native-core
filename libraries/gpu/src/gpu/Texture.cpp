@@ -10,7 +10,7 @@
 //
 
 #include "Texture.h"
-#include <math.h>
+
 #include <glm/gtc/constants.hpp>
 
 #include <QDebug>
