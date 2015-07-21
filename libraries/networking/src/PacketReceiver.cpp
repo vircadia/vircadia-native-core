@@ -293,8 +293,8 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
             
             if (!success) {
                 qDebug().nospace() << "Error delivering packet " << packetType
-                << " (" << qPrintable(nameForPacketType(packetType)) << ") to listener "
-                << listener.first << "::" << qPrintable(listener.second.methodSignature());
+                    << " (" << qPrintable(nameForPacketType(packetType)) << ") to listener "
+                    << listener.first << "::" << qPrintable(listener.second.methodSignature());
             }
             
         } else {
@@ -303,8 +303,8 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
         
         if (listenerIsDead) {
             qDebug().nospace() << "Listener for packet" << nlPacket->getType()
-            << " (" << qPrintable(nameForPacketType(nlPacket->getType())) << ")"
-            << " has been destroyed. Removing from listener map.";
+                << " (" << qPrintable(nameForPacketType(nlPacket->getType())) << ")"
+                << " has been destroyed. Removing from listener map.";
             it = _packetListenerMap.erase(it);
             
             // if it exists, remove the listener from _directlyConnectedObjects
