@@ -15,6 +15,7 @@
 #include <NumericalConstants.h>
 
 #include "NumericalConstants.h"
+#include <plugins/PluginContainer.h>
 #include "SixenseManager.h"
 #include "UserActivityLogger.h"
 
@@ -52,6 +53,12 @@ typedef int (*SixenseTakeIntAndSixenseControllerData)(int, sixenseControllerData
 
 const QString SixenseManager::NAME = "Sixense";
 
+const QString MENU_PARENT = "Avatar";
+const QString MENU_NAME = "Sixense";
+const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
+const QString RENDER_CONTROLLERS = "Render Hand Controllers";
+const QString TOGGLE_SMOOTH = "Smooth Sixense Movement";
+
 SixenseManager& SixenseManager::getInstance() {
     static SixenseManager sharedInstance;
     return sharedInstance;
@@ -82,6 +89,14 @@ void SixenseManager::activate(PluginContainer* container) {
     // as the "torso" is below it.
     _neckBase = glm::vec3(NECK_X, -NECK_Y, NECK_Z);
 
+    container->addMenu(MENU_PATH);
+    container->addMenuItem(MENU_PATH, TOGGLE_SMOOTH,
+                           [this, &container] { this->setFilter(container->isOptionChecked(TOGGLE_SMOOTH)); },
+                           true, true);
+    container->addMenuItem(MENU_PATH, RENDER_CONTROLLERS,
+        [this, &container] { /*this->setShouldRenderController(container->isOptionChecked(RENDER_CONTROLLERS));*/ },
+        true, true);
+
 #ifdef __APPLE__
 
     if (!_sixenseLibrary) {
@@ -111,8 +126,13 @@ void SixenseManager::activate(PluginContainer* container) {
 #endif
 }
 
-void SixenseManager::deinit() {
-#ifdef HAVE_SIXENSE_
+void SixenseManager::deactivate(PluginContainer* container) {
+#ifdef HAVE_SIXENSE
+    container->removeMenuItem(MENU_NAME, RENDER_CONTROLLERS);
+    container->removeMenuItem(MENU_NAME, TOGGLE_SMOOTH);
+    container->removeMenu(MENU_PATH);
+
+    _poseStateMap.clear();
 
 #ifdef __APPLE__
     SixenseBaseFunction sixenseExit = (SixenseBaseFunction)_sixenseLibrary->resolve("sixenseExit");

@@ -33,4 +33,4 @@ void NullDisplayPlugin::display(GLuint sceneTexture, const glm::uvec2& sceneSize
 void NullDisplayPlugin::finishFrame() {}
 
 void NullDisplayPlugin::activate(PluginContainer * container) {}
-void NullDisplayPlugin::deactivate() {}
+void NullDisplayPlugin::deactivate(PluginContainer* container) {}

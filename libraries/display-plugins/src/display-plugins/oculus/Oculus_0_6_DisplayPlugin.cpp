@@ -220,14 +220,14 @@ void Oculus_0_6_DisplayPlugin::customizeContext(PluginContainer * container) {
     _sceneFbo->Init(getRecommendedRenderSize());
 }
 
-void Oculus_0_6_DisplayPlugin::deactivate() {
+void Oculus_0_6_DisplayPlugin::deactivate(PluginContainer* container) {
     makeCurrent();
     _sceneFbo.reset();
     _mirrorFbo.reset();
     doneCurrent();
     PerformanceTimer::setActive(false);
 
-    OculusBaseDisplayPlugin::deactivate();
+    OculusBaseDisplayPlugin::deactivate(container);
 
     ovrHmd_Destroy(_hmd);
     _hmd = nullptr;

@@ -72,7 +72,7 @@ void OpenGLDisplayPlugin::activate(PluginContainer * container) {
     _timer.start(1);
 }
 
-void OpenGLDisplayPlugin::deactivate() {
+void OpenGLDisplayPlugin::deactivate(PluginContainer* container) {
     _timer.stop();
 
     makeCurrent();

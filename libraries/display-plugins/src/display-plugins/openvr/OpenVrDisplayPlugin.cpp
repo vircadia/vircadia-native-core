@@ -120,7 +120,7 @@ void OpenVrDisplayPlugin::activate(PluginContainer * container) {
     MainWindowOpenGLDisplayPlugin::activate(container);
 }
 
-void OpenVrDisplayPlugin::deactivate() {
+void OpenVrDisplayPlugin::deactivate(PluginContainer* container) {
     hmdRefCount--;
 
     if (hmdRefCount == 0 && _hmd) {

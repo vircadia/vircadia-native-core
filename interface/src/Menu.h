@@ -190,7 +190,6 @@ namespace MenuOption {
     const QString ExpandPaintGLTiming = "Expand /paintGL";
     const QString ExpandUpdateTiming = "Expand /update";
     const QString Faceshift = "Faceshift";
-    const QString FilterSixense = "Smooth Sixense Movement";
     const QString FirstPerson = "First Person";
     const QString Forward = "Forward";
     const QString FrameTimer = "Show Timer";
@@ -271,7 +270,6 @@ namespace MenuOption {
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
     const QString ShowWhosLookingAtMe = "Show Who's Looking at Me";
     const QString SimpleShadows = "Simple";
-    const QString SixenseEnabled = "Enable Hydra Support";
     const QString ShiftHipsForIdleAnimations = "Shift hips for idle animations";
     const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";
     const QString Stars = "Stars";

@@ -16,9 +16,9 @@ public:
     virtual void deinit();
 
     /// Called when a plugin is being activated for use.  May be called multiple times.
-    virtual void activate(PluginContainer * container) = 0;
+    virtual void activate(PluginContainer* container) = 0;
     /// Called when a plugin is no longer being used.  May be called multiple times.
-    virtual void deactivate() = 0;
+    virtual void deactivate(PluginContainer* container) = 0;
 
     /**
      * Called by the application during it's idle phase.  If the plugin needs to do

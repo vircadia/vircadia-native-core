@@ -114,7 +114,7 @@ void ViveControllerManager::activate(PluginContainer* container) {
     }
 }
 
-void ViveControllerManager::deactivate() {
+void ViveControllerManager::deactivate(PluginContainer* container) {
     hmdRefCount--;
 
     if (hmdRefCount == 0 && _hmd) {

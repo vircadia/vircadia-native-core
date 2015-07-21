@@ -22,7 +22,7 @@ public:
     virtual bool hasFocus() const override;
     virtual QWindow* getWindow() const override;
     virtual void activate(PluginContainer * container) override;
-    virtual void deactivate() override;
+    virtual void deactivate(PluginContainer* container) override;
     virtual void installEventFilter(QObject* filter) override;
     virtual void removeEventFilter(QObject* filter) override;
 

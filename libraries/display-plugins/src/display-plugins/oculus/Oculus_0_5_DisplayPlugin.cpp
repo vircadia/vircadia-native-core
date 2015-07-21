@@ -248,11 +248,11 @@ void Oculus_0_5_DisplayPlugin::activate(PluginContainer * container) {
 
 }
 
-void Oculus_0_5_DisplayPlugin::deactivate() {
+void Oculus_0_5_DisplayPlugin::deactivate(PluginContainer* container) {
     _hmdWindow->deleteLater();
     _hmdWindow = nullptr;
 
-    OculusBaseDisplayPlugin::deactivate();
+    OculusBaseDisplayPlugin::deactivate(container);
 
     ovrHmd_Destroy(_hmd);
     _hmd = nullptr;

@@ -18,7 +18,7 @@ public:
     virtual bool isHmd() const override { return true; }
 
     virtual void activate(PluginContainer * container) override;
-    virtual void deactivate() override;
+    virtual void deactivate(PluginContainer* container) override;
 
     virtual glm::uvec2 getRecommendedRenderSize() const override;
     virtual glm::uvec2 getRecommendedUiSize() const override { return uvec2(1920, 1080); }

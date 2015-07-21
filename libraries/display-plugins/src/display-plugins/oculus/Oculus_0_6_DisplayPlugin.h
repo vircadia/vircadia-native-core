@@ -26,7 +26,7 @@ public:
     virtual const QString & getName() const override;
 
     virtual void activate(PluginContainer * container) override;
-    virtual void deactivate() override;
+    virtual void deactivate(PluginContainer* container) override;
 
 
     virtual bool eventFilter(QObject* receiver, QEvent* event) override;
