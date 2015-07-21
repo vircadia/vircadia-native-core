@@ -34,4 +34,4 @@ if (WIN32)
   endif()
 endif (WIN32)
 
-link_hifi_libraries(animation fbx shared gpu model render)
+link_hifi_libraries(animation fbx shared gpu model render environment)

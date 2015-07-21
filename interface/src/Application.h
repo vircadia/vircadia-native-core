@@ -26,28 +26,25 @@
 #include <EntityEditPacketSender.h>
 #include <EntityTreeRenderer.h>
 #include <GeometryCache.h>
-#include <NetworkPacket.h>
 #include <NodeList.h>
 #include <OctreeQuery.h>
 #include <OffscreenUi.h>
-#include <PacketHeaders.h>
 #include <PhysicalEntitySimulation.h>
 #include <PhysicsEngine.h>
 #include <ScriptEngine.h>
 #include <ShapeManager.h>
 #include <StDev.h>
 #include <TextureCache.h>
+#include <udt/PacketHeaders.h>
 #include <ViewFrustum.h>
 #include <plugins/PluginContainer.h>
 
 #include "AudioClient.h"
 #include "Bookmarks.h"
 #include "Camera.h"
-#include "DatagramProcessor.h"
 #include "Environment.h"
 #include "FileLogger.h"
 #include "Menu.h"
-#include "PacketHeaders.h"
 #include "Physics.h"
 #include "Stars.h"
 #include "avatar/Avatar.h"
@@ -112,7 +109,7 @@ static const QString INFO_HELP_PATH = "html/interface-welcome.html";
 static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-commands.html";
 
 #ifdef Q_OS_WIN
-static const UINT UWM_IDENTIFY_INSTANCES = 
+static const UINT UWM_IDENTIFY_INSTANCES =
     RegisterWindowMessage("UWM_IDENTIFY_INSTANCES_{8AB82783-B74A-4258-955B-8188C22AA0D6}_" + qgetenv("USERNAME"));
 static const UINT UWM_SHOW_APPLICATION =
     RegisterWindowMessage("UWM_SHOW_APPLICATION_{71123FD6-3DA8-4DC1-9C27-8A12A6250CBA}_" + qgetenv("USERNAME"));
@@ -126,7 +123,7 @@ class Application;
 
 typedef bool (Application::* AcceptURLMethod)(const QString &);
 
-class Application : public QApplication, public AbstractViewStateInterface, AbstractScriptingServicesInterface, PluginContainer {
+class Application : public QApplication, public AbstractViewStateInterface, public AbstractScriptingServicesInterface, PluginContainer {
     Q_OBJECT
 
     friend class OctreePacketProcessor;
@@ -188,11 +185,11 @@ public:
     bool isThrottleRendering() const;
 
     Camera* getCamera() { return &_myCamera; }
-    // Represents the current view frustum of the avatar.  
+    // Represents the current view frustum of the avatar.
     ViewFrustum* getViewFrustum();
     const ViewFrustum* getViewFrustum() const;
-    // Represents the view frustum of the current rendering pass, 
-    // which might be different from the viewFrustum, i.e. shadowmap 
+    // Represents the view frustum of the current rendering pass,
+    // which might be different from the viewFrustum, i.e. shadowmap
     // passes, mirror window passes, etc
     ViewFrustum* getDisplayViewFrustum();
     const ViewFrustum* getDisplayViewFrustum() const;
@@ -204,7 +201,8 @@ public:
     OctreeQuery& getOctreeQuery() { return _octreeQuery; }
     EntityTree* getEntityClipboard() { return &_entityClipboard; }
     EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
-    
+    EntityEditPacketSender* getEntityEditPacketSender() { return &_entityEditSender; }
+
     bool isMousePressed() const { return _mousePressed; }
     bool isMouseHidden() const { return !_cursorVisible; }
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
@@ -226,7 +224,7 @@ public:
     int getTrueMouseDragStartedX() const { return getTrueMouseDragStarted().x; }
     int getTrueMouseDragStartedY() const { return getTrueMouseDragStarted().y; }
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
-    
+
     FaceTracker* getActiveFaceTracker();
     FaceTracker* getSelectedFaceTracker();
 
@@ -242,7 +240,7 @@ public:
     virtual const Transform& getViewTransform() const { return _viewTransform; }
     virtual Transform& getViewTransform() { return _viewTransform; }
     void setViewTransform(const Transform& view);
-    
+
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov) { _fieldOfView.set(fov); }
 
@@ -258,8 +256,6 @@ public:
     virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
 
     void resetProfile(const QString& username);
-
-    void controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes);
 
     virtual void setupWorldLight(RenderArgs* renderArgs);
     virtual bool shouldRenderMesh(float largestDimension, float distanceToCamera);
@@ -300,7 +296,7 @@ public:
 
     QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
     ScriptEngine* getScriptEngine(QString scriptHash) { return _scriptEnginesHash.contains(scriptHash) ? _scriptEnginesHash[scriptHash] : NULL; }
-    
+
     bool isLookingAtMyAvatar(Avatar* avatar);
 
     float getRenderResolutionScale() const;
@@ -323,17 +319,17 @@ public:
     RunningScriptsWidget* getRunningScriptsWidget() { return _runningScriptsWidget; }
 
     Bookmarks* getBookmarks() const { return _bookmarks; }
-    
+
     QString getScriptsLocation();
     void setScriptsLocation(const QString& scriptsLocation);
-    
+
     void initializeAcceptedFiles();
     bool canAcceptURL(const QString& url);
     bool acceptURL(const QString& url);
 
     void setMaxOctreePacketsPerSecond(int maxOctreePPS);
     int getMaxOctreePacketsPerSecond();
-    
+
     render::ScenePointer getMain3DScene() { return _main3DScene; }
     render::EnginePointer getRenderEngine() { return _renderEngine; }
 
@@ -349,7 +345,7 @@ signals:
 
     /// Fired when the import window is closed
     void importDone();
-    
+
     void scriptLocationChanged(const QString& newPath);
 
     void svoImportRequested(const QString& url);
@@ -360,7 +356,7 @@ signals:
     void headURLChanged(const QString& newValue, const QString& modelName);
     void bodyURLChanged(const QString& newValue, const QString& modelName);
     void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
-    
+
     void beforeAboutToQuit();
 
 public slots:
@@ -386,7 +382,7 @@ public slots:
     bool askToSetAvatarUrl(const QString& url);
     bool askToLoadScript(const QString& scriptFilenameOrURL);
 
-    ScriptEngine* loadScript(const QString& scriptFilename = QString(), bool isUserLoaded = true, 
+    ScriptEngine* loadScript(const QString& scriptFilename = QString(), bool isUserLoaded = true,
         bool loadScriptFromEditor = false, bool activateMainWindow = false, bool reload = false);
     void reloadScript(const QString& scriptName, bool isUserLoaded = true);
     void scriptFinished(const QString& scriptName);
@@ -402,11 +398,11 @@ public slots:
     void friendsWindowClosed();
 
     void packageModel();
-    
+
     void openUrl(const QUrl& url);
 
     void updateMyAvatarTransform();
-    
+
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
     void setVSyncEnabled();
@@ -419,14 +415,14 @@ public slots:
 
     void aboutApp();
     void showEditEntitiesHelp();
-    
+
     void loadSettings();
     void saveSettings();
 
     void notifyPacketVersionMismatch();
 
-    void domainConnectionDenied(const QString& reason);
-    
+    void handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet);
+
     void cameraMenuChanged();
     
     void reloadResourceCaches();
@@ -436,7 +432,7 @@ private slots:
     void checkFPS();
     void idle();
     void aboutToQuit();
-    
+
     void handleScriptEngineLoaded(const QString& scriptFilename);
     void handleScriptLoadError(const QString& scriptFilename);
 
@@ -449,9 +445,9 @@ private slots:
     void shrinkMirrorView();
 
     void manageRunningScriptsWidgetVisibility(bool shown);
-    
+
     void runTests();
-    
+
     void audioMuteToggled();
     void faceTrackerMuteToggled();
 
@@ -466,7 +462,7 @@ private:
 
     void initDisplay();
     void init();
-    
+
     void cleanupBeforeQuit();
     
     void emptyLocalCache();
@@ -489,7 +485,7 @@ private:
 
     void renderLookatIndicator(glm::vec3 pointOfInterest);
 
-    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
+    void queryOctree(NodeType_t serverType, PacketType::Value packetType, NodeToJurisdictionMap& jurisdictions);
 
     glm::vec3 getSunDirection();
 
@@ -512,8 +508,6 @@ private:
 
     ToolWindow* _toolWindow;
     WebWindowClass* _friendsWindow;
-    
-    DatagramProcessor* _datagramProcessor;
 
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;
@@ -552,7 +546,7 @@ private:
     Camera _myCamera;                            // My view onto the world
     Camera _mirrorCamera;                        // Cammera for mirror view
     QRect _mirrorViewRect;
-    
+
     Setting::Handle<bool>       _firstRun;
     Setting::Handle<QString>    _previousScriptLocation;
     Setting::Handle<QString>    _scriptsLocationHandle;
@@ -597,8 +591,8 @@ private:
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
 
-    int parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sendingNode);
-    void trackIncomingOctreePacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket);
+    int processOctreeStats(NLPacket& packet, SharedNodePointer sendingNode);
+    void trackIncomingOctreePacket(NLPacket& packet, SharedNodePointer sendingNode, bool wasStatsPacket);
 
     NodeToJurisdictionMap _entityServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;
@@ -632,7 +626,7 @@ private:
     Bookmarks* _bookmarks;
 
     bool _notifiedPacketVersionMismatchThisDomain;
-    
+
     QThread _settingsThread;
     QTimer _settingsTimer;
     

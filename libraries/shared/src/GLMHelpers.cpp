@@ -327,7 +327,7 @@ glm::vec2 toGlm(const QPointF & pt) {
 
 glm::vec3 toGlm(const xColor & color) {
     static const float MAX_COLOR = 255.0f;
-    return std::move(glm::vec3(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR));
+    return glm::vec3(color.red, color.green, color.blue) / MAX_COLOR;
 }
 
 glm::vec4 toGlm(const QColor & color) {

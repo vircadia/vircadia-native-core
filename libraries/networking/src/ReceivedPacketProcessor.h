@@ -15,16 +15,15 @@
 #include <QWaitCondition>
 
 #include "GenericThread.h"
-#include "NetworkPacket.h"
 
-/// Generalized threaded processor for handling received inbound packets. 
+/// Generalized threaded processor for handling received inbound packets.
 class ReceivedPacketProcessor : public GenericThread {
     Q_OBJECT
 public:
     ReceivedPacketProcessor();
 
     /// Add packet from network receive thread to the processing queue.
-    void queueReceivedPacket(const SharedNodePointer& sendingNode, const QByteArray& packet);
+    void queueReceivedPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
 
     /// Are there received packets waiting to be processed
     bool hasPacketsToProcess() const { return _packets.size() > 0; }
@@ -59,7 +58,7 @@ protected:
     /// Callback for processing of recieved packets. Implement this to process the incoming packets.
     /// \param SharedNodePointer& sendingNode the node that sent this packet
     /// \param QByteArray& the packet to be processed
-    virtual void processPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) = 0;
+    virtual void processPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) = 0;
 
     /// Implements generic processing behavior for this thread.
     virtual bool process();
@@ -77,8 +76,7 @@ protected:
     virtual void postProcess() { }
 
 protected:
-
-    QVector<NetworkPacket> _packets;
+    std::list<NodeSharedPacketPair> _packets;
     QHash<QUuid, int> _nodePacketCounts;
 
     QWaitCondition _hasPackets;

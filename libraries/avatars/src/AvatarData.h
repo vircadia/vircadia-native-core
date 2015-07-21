@@ -47,6 +47,7 @@ typedef unsigned long long quint64;
 #include <QReadWriteLock>
 
 #include <CollisionInfo.h>
+#include <NLPacket.h>
 #include <Node.h>
 #include <RegisteredMetaTypes.h>
 #include <SimpleMovingAverage.h>
@@ -66,12 +67,12 @@ typedef QHash<QUuid, AvatarSharedPointer> AvatarHash;
 const quint32 AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED = 1U << 0;
 const quint32 AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED = 1U << 1;
 
-const quint32 AVATAR_MOTION_DEFAULTS = 
+const quint32 AVATAR_MOTION_DEFAULTS =
         AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED |
         AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
 
 // these bits will be expanded as features are exposed
-const quint32 AVATAR_MOTION_SCRIPTABLE_BITS = 
+const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
         AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
 
 const qint64 AVATAR_SILENCE_THRESHOLD_USECS = 5 * USECS_PER_SECOND;
@@ -181,7 +182,7 @@ public:
     /// \param packet byte array of data
     /// \param offset number of bytes into packet where data starts
     /// \return number of bytes parsed
-    virtual int parseDataAtOffset(const QByteArray& packet, int offset);
+    virtual int parseDataFromBuffer(const QByteArray& buffer);
 
     //  Body Rotation (degrees)
     float getBodyYaw() const { return _bodyYaw; }
@@ -241,7 +242,7 @@ public:
     Q_INVOKABLE virtual void clearJointsData();
     
     /// Returns the index of the joint with the specified name, or -1 if not found/unknown.
-    Q_INVOKABLE virtual int getJointIndex(const QString& name) const { return _jointIndices.value(name) - 1; } 
+    Q_INVOKABLE virtual int getJointIndex(const QString& name) const { return _jointIndices.value(name) - 1; }
 
     Q_INVOKABLE virtual QStringList getJointNames() const { return _jointNames; }
 
@@ -260,10 +261,10 @@ public:
         return false;
     }
 
-    bool hasIdentityChangedAfterParsing(const QByteArray& packet);
+    bool hasIdentityChangedAfterParsing(NLPacket& packet);
     QByteArray identityByteArray();
     
-    bool hasBillboardChangedAfterParsing(const QByteArray& packet);
+    bool hasBillboardChangedAfterParsing(NLPacket& packet);
     
     const QUrl& getFaceModelURL() const { return _faceModelURL; }
     QString getFaceModelURLString() const { return _faceModelURL.toString(); }

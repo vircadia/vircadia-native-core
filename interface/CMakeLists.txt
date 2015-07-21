@@ -83,10 +83,10 @@ if (APPLE)
   # set where in the bundle to put the resources file
   SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/icon/${ICON_FILENAME} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
   
-  set(DISCOVERED_RESOURCES "") 
+  set(DISCOVERED_RESOURCES "")
 
   # use the add_resources_to_os_x_bundle macro to recurse into resources
-  add_resources_to_os_x_bundle("${CMAKE_CURRENT_SOURCE_DIR}/resources") 
+  add_resources_to_os_x_bundle("${CMAKE_CURRENT_SOURCE_DIR}/resources")
 
   # append the discovered resources to our list of interface sources
   list(APPEND INTERFACE_SRCS ${DISCOVERED_RESOURCES})
@@ -110,7 +110,14 @@ find_package(GLM REQUIRED)
 target_include_directories(${TARGET_NAME} PRIVATE ${GLM_INCLUDE_DIRS})
 
 find_package(Bullet REQUIRED)
-target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BULLET_INCLUDE_DIRS})
+
+# perform the system include hack for OS X to ignore warnings
+if (APPLE)
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${BULLET_INCLUDE_DIRS}")
+else()
+  target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BULLET_INCLUDE_DIRS})
+endif()
+
 target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
 
 find_package(LibOVR REQUIRED)
@@ -120,8 +127,9 @@ target_include_directories(${TARGET_NAME} PRIVATE ${LIBOVR_INCLUDE_DIRS})
 
 # link required hifi libraries
 link_hifi_libraries(shared octree environment gpu model render fbx networking entities avatars 
-                    audio audio-client auto-updater animation script-engine physics 
-                    render-utils entities-renderer ui plugins display-plugins input-plugins)
+                    audio audio-client animation script-engine physics 
+                    render-utils entities-renderer ui auto-updater 
+                    plugins display-plugins input-plugins)
 
 add_dependency_external_projects(sdl2)
 
@@ -164,7 +172,7 @@ foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
 endforeach()
 
 # special OS X modifications for RtMidi library
-if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI AND APPLE)  
+if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI AND APPLE)
   find_library(CoreMIDI CoreMIDI)
   add_definitions(-D__MACOSX_CORE__)
   target_link_libraries(${TARGET_NAME} ${CoreMIDI})

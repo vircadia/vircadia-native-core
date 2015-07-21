@@ -8,21 +8,23 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <limits>
-#include "NetworkLogging.h"
 #include "SentPacketHistory.h"
-#include <qdebug.h>
 
+#include <limits>
 
+#include <QDebug>
 
+#include "NetworkLogging.h"
+#include "NLPacket.h"
 
 SentPacketHistory::SentPacketHistory(int size)
     : _sentPackets(size),
     _newestSequenceNumber(std::numeric_limits<uint16_t>::max())
 {
+
 }
 
-void SentPacketHistory::packetSent(uint16_t sequenceNumber, const QByteArray& packet) {
+void SentPacketHistory::packetSent(uint16_t sequenceNumber, const NLPacket& packet) {
 
     // check if given seq number has the expected value.  if not, something's wrong with
     // the code calling this function
@@ -32,10 +34,11 @@ void SentPacketHistory::packetSent(uint16_t sequenceNumber, const QByteArray& pa
             << "Expected:" << expectedSequenceNumber << "Actual:" << sequenceNumber;
     }
     _newestSequenceNumber = sequenceNumber;
-    _sentPackets.insert(packet);
+
+    _sentPackets.insert(NLPacket::createCopy(packet));
 }
 
-const QByteArray* SentPacketHistory::getPacket(uint16_t sequenceNumber) const {
+const NLPacket* SentPacketHistory::getPacket(uint16_t sequenceNumber) const {
 
     const int UINT16_RANGE = std::numeric_limits<uint16_t>::max() + 1;
 
@@ -46,5 +49,5 @@ const QByteArray* SentPacketHistory::getPacket(uint16_t sequenceNumber) const {
         seqDiff += UINT16_RANGE;
     }
 
-    return _sentPackets.get(seqDiff);
+    return _sentPackets.get(seqDiff)->get();
 }

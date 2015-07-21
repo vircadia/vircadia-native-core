@@ -40,6 +40,6 @@ void EntityTreeHeadlessViewer::update() {
     }
 }
 
-void EntityTreeHeadlessViewer::processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
-    static_cast<EntityTree*>(_tree)->processEraseMessage(dataByteArray, sourceNode);
+void EntityTreeHeadlessViewer::processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode) {
+    static_cast<EntityTree*>(_tree)->processEraseMessage(packet, sourceNode);
 }

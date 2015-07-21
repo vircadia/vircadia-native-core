@@ -168,7 +168,7 @@ namespace MenuOption {
     const QString DeleteBookmark = "Delete Bookmark...";
     const QString DisableActivityLogger = "Disable Activity Logger";
     const QString DisableLightEntities = "Disable Light Entities";
-    const QString DisableNackPackets = "Disable NACK Packets";
+    const QString DisableNackPackets = "Disable Entity NACK Packets";
     const QString DiskCacheEditor = "Disk Cache Editor";
     const QString DisplayHands = "Show Hand Info";
     const QString DisplayHandTargets = "Show Hand Targets";

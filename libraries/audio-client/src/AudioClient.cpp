@@ -33,7 +33,7 @@
 #include <QtMultimedia/QAudioInput>
 #include <QtMultimedia/QAudioOutput>
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
 #endif
@@ -43,14 +43,14 @@ extern "C" {
     #include <gverb/gverbdsp.h>
 }
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
 
 #include <soxr.h>
 
 #include <NodeList.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <PositionalAudioStream.h>
 #include <SettingHandle.h>
 #include <SharedUtil.h>
@@ -140,6 +140,14 @@ AudioClient::AudioClient() :
     // create GVerb filter
     _gverb = createGverbFilter();
     configureGverbFilter(_gverb);
+
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::AudioStreamStats, &_stats, "processStreamStatsPacket");
+    packetReceiver.registerListener(PacketType::AudioEnvironment, this, "handleAudioEnvironmentDataPacket");
+    packetReceiver.registerListener(PacketType::SilentAudioFrame, this, "handleAudioDataPacket");
+    packetReceiver.registerListener(PacketType::MixedAudio, this, "handleAudioDataPacket");
+    packetReceiver.registerListener(PacketType::NoisyMute, this, "handleNoisyMutePacket");
+    packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
 }
 
 AudioClient::~AudioClient() {
@@ -527,6 +535,60 @@ void AudioClient::stop() {
     }
 }
 
+void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<NLPacket> packet) {
+
+    char bitset;
+    packet->readPrimitive(&bitset);
+
+    bool hasReverb = oneAtBit(bitset, HAS_REVERB_BIT);
+    
+    if (hasReverb) {
+        float reverbTime, wetLevel;
+        packet->readPrimitive(&reverbTime);
+        packet->readPrimitive(&wetLevel);
+        _receivedAudioStream.setReverb(reverbTime, wetLevel);
+    } else {
+        _receivedAudioStream.clearReverb();
+   }
+}
+
+void AudioClient::handleAudioDataPacket(QSharedPointer<NLPacket> packet) {
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveFirstAudioPacket);
+
+    if (_audioOutput) {
+
+        if (!_hasReceivedFirstPacket) {
+            _hasReceivedFirstPacket = true;
+
+            // have the audio scripting interface emit a signal to say we just connected to mixer
+            emit receivedFirstPacket();
+        }
+
+        // Audio output must exist and be correctly set up if we're going to process received audio
+        _receivedAudioStream.parseData(*packet);
+    }
+}
+
+void AudioClient::handleNoisyMutePacket(QSharedPointer<NLPacket> packet) {
+    if (!_muted) {
+        toggleMute();
+        
+        // have the audio scripting interface emit a signal to say we were muted by the mixer
+        emit mutedByMixer();
+    }
+}
+
+void AudioClient::handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet) {
+    glm::vec3 position;
+    float radius;
+    
+    packet->readPrimitive(&position);
+    packet->readPrimitive(&radius);
+
+    emit muteEnvironmentRequested(position, radius);
+}
+
 QString AudioClient::getDefaultDeviceName(QAudio::Mode mode) {
     QAudioDeviceInfo deviceInfo = defaultAudioDeviceForMode(mode);
     return deviceInfo.deviceName();
@@ -724,19 +786,17 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
 }
 
 void AudioClient::handleAudioInput() {
-    static char audioDataPacket[MAX_PACKET_SIZE];
-
-    static int numBytesPacketHeader = numBytesForPacketHeaderGivenPacketType(PacketTypeMicrophoneAudioNoEcho);
-
-    // NOTE: we assume PacketTypeMicrophoneAudioWithEcho has same size headers as
-    // PacketTypeMicrophoneAudioNoEcho.  If not, then networkAudioSamples will be pointing to the wrong place for writing
-    // audio samples with echo.
-    static int leadingBytes = numBytesPacketHeader + sizeof(quint16) + sizeof(glm::vec3) + sizeof(glm::quat) + sizeof(quint8);
-    static int16_t* networkAudioSamples = (int16_t*)(audioDataPacket + leadingBytes);
+    if (!_audioPacket) {
+        // we don't have an audioPacket yet - set that up now
+        _audioPacket = NLPacket::create(PacketType::MicrophoneAudioNoEcho);
+    }
 
     float inputToNetworkInputRatio = calculateDeviceToNetworkInputRatio();
 
     int inputSamplesRequired = (int)((float)AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio);
+
+    static int leadingBytes = sizeof(quint16) + sizeof(glm::vec3) + sizeof(glm::quat) + sizeof(quint8);
+    int16_t* networkAudioSamples = (int16_t*)(_audioPacket->getPayload() + leadingBytes);
 
     QByteArray inputByteArray = _inputDevice->readAll();
 
@@ -795,11 +855,11 @@ void AudioClient::handleAudioInput() {
 
             delete[] inputAudioSamples;
 
-            //  Remove DC offset 
+            //  Remove DC offset
             if (!_isStereoInput && !_audioSourceInjectEnabled) {
                 _inputGate.removeDCOffset(networkAudioSamples, numNetworkSamples);
             }
-            
+
             // only impose the noise gate and perform tone injection if we are sending mono audio
             if (!_isStereoInput && !_audioSourceInjectEnabled && _isNoiseGateEnabled) {
                 _inputGate.gateSamples(networkAudioSamples, numNetworkSamples);
@@ -844,59 +904,48 @@ void AudioClient::handleAudioInput() {
             glm::quat headOrientation = _orientationGetter();
             quint8 isStereo = _isStereoInput ? 1 : 0;
 
-            PacketType packetType;
             if (_lastInputLoudness == 0) {
-                packetType = PacketTypeSilentAudioFrame;
+                _audioPacket->setType(PacketType::SilentAudioFrame);
             } else {
                 if (_shouldEchoToServer) {
-                    packetType = PacketTypeMicrophoneAudioWithEcho;
+                    _audioPacket->setType(PacketType::MicrophoneAudioWithEcho);
                 } else {
-                    packetType = PacketTypeMicrophoneAudioNoEcho;
+                    _audioPacket->setType(PacketType::MicrophoneAudioNoEcho);
                 }
             }
 
-            char* currentPacketPtr = audioDataPacket + nodeList->populatePacketHeader(audioDataPacket, packetType);
+            // reset the audio packet so we can start writing
+            _audioPacket->reset();
 
-            // pack sequence number
-            memcpy(currentPacketPtr, &_outgoingAvatarAudioSequenceNumber, sizeof(quint16));
-            currentPacketPtr += sizeof(quint16);
+            // write sequence number
+            _audioPacket->writePrimitive(_outgoingAvatarAudioSequenceNumber);
 
-            if (packetType == PacketTypeSilentAudioFrame) {
+            if (_audioPacket->getType() == PacketType::SilentAudioFrame) {
                 // pack num silent samples
                 quint16 numSilentSamples = numNetworkSamples;
-                memcpy(currentPacketPtr, &numSilentSamples, sizeof(quint16));
-                currentPacketPtr += sizeof(quint16);
-
-                // memcpy the three float positions
-                memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
-                currentPacketPtr += (sizeof(headPosition));
-
-                // memcpy our orientation
-                memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
-                currentPacketPtr += sizeof(headOrientation);
-
+                _audioPacket->writePrimitive(numSilentSamples);
             } else {
                 // set the mono/stereo byte
-                *currentPacketPtr++ = isStereo;
-
-                // memcpy the three float positions
-                memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
-                currentPacketPtr += (sizeof(headPosition));
-
-                // memcpy our orientation
-                memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
-                currentPacketPtr += sizeof(headOrientation);
-
-                // audio samples have already been packed (written to networkAudioSamples)
-                currentPacketPtr += numNetworkBytes;
+                _audioPacket->writePrimitive(isStereo);
             }
 
+            // pack the three float positions
+            _audioPacket->writePrimitive(headPosition);
+
+            // pack the orientation
+            _audioPacket->writePrimitive(headOrientation);
+            
+            if (_audioPacket->getType() != PacketType::SilentAudioFrame) {
+                // audio samples have already been packed (written to networkAudioSamples)
+                _audioPacket->setPayloadSize(_audioPacket->getPayloadSize() + numNetworkBytes);
+            }
+            
             _stats.sentPacket();
 
             nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendAudioPacket);
 
-            int packetBytes = currentPacketPtr - audioDataPacket;
-            nodeList->writeDatagram(audioDataPacket, packetBytes, audioMixer);
+            nodeList->sendUnreliablePacket(*_audioPacket, *audioMixer);
+
             _outgoingAvatarAudioSequenceNumber++;
         }
     }
@@ -921,60 +970,23 @@ void AudioClient::processReceivedSamples(const QByteArray& inputBuffer, QByteArr
 void AudioClient::sendMuteEnvironmentPacket() {
     auto nodeList = DependencyManager::get<NodeList>();
 
-    QByteArray mutePacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeMuteEnvironment);
-    int headerSize = mutePacket.size();
+    int dataSize = sizeof(glm::vec3) + sizeof(float);
+
+    auto mutePacket = NLPacket::create(PacketType::MuteEnvironment, dataSize);
 
     const float MUTE_RADIUS = 50;
 
     glm::vec3 currentSourcePosition = _positionGetter();
-    mutePacket.resize(mutePacket.size() + sizeof(glm::vec3) + sizeof(float));
-    memcpy(mutePacket.data() + headerSize, &currentSourcePosition, sizeof(glm::vec3));
-    memcpy(mutePacket.data() + headerSize + sizeof(glm::vec3), &MUTE_RADIUS, sizeof(float));
+
+    mutePacket->writePrimitive(currentSourcePosition);
+    mutePacket->writePrimitive(MUTE_RADIUS);
 
     // grab our audio mixer from the NodeList, if it exists
     SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
 
     if (audioMixer) {
         // send off this mute packet
-        nodeList->writeDatagram(mutePacket, audioMixer);
-    }
-}
-
-void AudioClient::addReceivedAudioToStream(const QByteArray& audioByteArray) {
-    DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveFirstAudioPacket);
-
-    if (_audioOutput) {
-
-        if (!_hasReceivedFirstPacket) {
-            _hasReceivedFirstPacket = true;
-
-            // have the audio scripting interface emit a signal to say we just connected to mixer
-            emit receivedFirstPacket();
-        }
-
-        // Audio output must exist and be correctly set up if we're going to process received audio
-        _receivedAudioStream.parseData(audioByteArray);
-    }
-}
-
-void AudioClient::parseAudioEnvironmentData(const QByteArray &packet) {
-    int numBytesPacketHeader = numBytesForPacketHeader(packet);
-    const char* dataAt = packet.constData() + numBytesPacketHeader;
-
-    char bitset;
-    memcpy(&bitset, dataAt, sizeof(char));
-    dataAt += sizeof(char);
-
-    bool hasReverb = oneAtBit(bitset, HAS_REVERB_BIT);;
-    if (hasReverb) {
-        float reverbTime, wetLevel;
-        memcpy(&reverbTime, dataAt, sizeof(float));
-        dataAt += sizeof(float);
-        memcpy(&wetLevel, dataAt, sizeof(float));
-        dataAt += sizeof(float);
-        _receivedAudioStream.setReverb(reverbTime, wetLevel);
-    } else {
-        _receivedAudioStream.clearReverb();
+        nodeList->sendPacket(std::move(mutePacket), *audioMixer);
     }
 }
 
