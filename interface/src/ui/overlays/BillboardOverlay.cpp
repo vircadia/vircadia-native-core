@@ -39,13 +39,21 @@ BillboardOverlay::BillboardOverlay(const BillboardOverlay* billboardOverlay) :
 {
 }
 
-void BillboardOverlay::update(float deltatime) {
-    if (getVisible()) {
-        glm::vec3 newPos = getTranslatedPosition(Application::getInstance()->getAvatarPosition());
-        if (newPos != glm::vec3()) {
-            setPosition(newPos);
+bool BillboardOverlay::setTransforms(Transform *transform) {
+    PanelAttachable::setTransforms(transform);
+        if (_isFacingAvatar) {
+            glm::quat rotation = Application::getInstance()->getCamera()->getOrientation();
+            rotation *= glm::angleAxis(glm::pi<float>(), IDENTITY_UP);
+            setRotation(rotation);
+            return true;
         }
-    }
+        return false;
+//    }
+//    return true;
+}
+
+void BillboardOverlay::update(float deltatime) {
+    setTransforms(&_transform);
 }
 
 void BillboardOverlay::render(RenderArgs* args) {
@@ -58,12 +66,8 @@ void BillboardOverlay::render(RenderArgs* args) {
         return;
     }
 
-    glm::vec3 newPos = getTranslatedPosition(Application::getInstance()->getAvatarPosition());
-    if (newPos != glm::vec3()) {
-        setPosition(newPos);
-    }
-
-    glm::quat rotation = calculateRotation(args->_viewFrustum->getOrientation());
+    Q_ASSERT(args->_batch);
+    auto batch = args->_batch;
 
     float imageWidth = _texture->getWidth();
     float imageHeight = _texture->getHeight();
@@ -98,24 +102,20 @@ void BillboardOverlay::render(RenderArgs* args) {
     xColor color = getColor();
     float alpha = getAlpha();
 
-    auto batch = args->_batch;
+    setTransforms(&_transform);
+    Transform transform = _transform;
+    transform.postScale(glm::vec3(getDimensions(), 1.0f));
 
-    if (batch) {
-        Transform transform = _transform;
-        transform.setRotation(rotation);
-        transform.postScale(glm::vec3(getDimensions(), 1.0f));
-
-        batch->setModelTransform(transform);
-        batch->setResourceTexture(0, _texture->getGPUTexture());
-        
-        DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(*batch, true, true, true);
-        DependencyManager::get<GeometryCache>()->renderQuad(
-            *batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
-            glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha)
-        );
+    batch->setModelTransform(transform);
+    batch->setResourceTexture(0, _texture->getGPUTexture());
     
-        batch->setResourceTexture(0, args->_whiteTexture); // restore default white color after me
-    }
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(*batch, true, true, false);
+    DependencyManager::get<GeometryCache>()->renderQuad(
+        *batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
+        glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha)
+    );
+
+    batch->setResourceTexture(0, args->_whiteTexture); // restore default white color after me
 }
 
 void BillboardOverlay::setProperties(const QScriptValue &properties) {
@@ -207,40 +207,12 @@ void BillboardOverlay::setBillboardURL(const QString& url) {
     _isLoaded = false;
 }
 
-glm::quat BillboardOverlay::calculateRotation(glm::quat cameraOrientation) const {
-    if (_isFacingAvatar) {
-        // LOL, quaternions are hard.
-        //        glm::vec3 dPos = getPosition() - args->_viewFrustum->getPosition();
-        //        dPos = glm::normalize(dPos);
-        //        rotation = glm::quat(0, dPos.x, dPos.y, dPos.z);
-        //        float horizontal = glm::sqrt(dPos.x * dPos.x + dPos.y + dPos.y);
-        //        glm::vec3 zAxis = glm::vec3(0, 0, 1);
-        //        rotation = rotationBetween(zAxis, dPos);
-        //        glm::vec3 euler = safeEulerAngles(rotationBetween(zAxis, dPos));
-        //        rotation = glm::quat(glm::vec3(euler.x, euler.y, 0));
-        //        float yaw = (dPos.x == 0.0f && dPos.z == 0.0f) ? 0.0f : glm::atan(dPos.x, dPos.z);
-        //        glm::quat yawQuat = glm::quat(glm::vec3(0, yaw, 0));
-        //        float pitch = (dPos.y == 0.0f && horizontal == 0.0f) ? 0.0f : glm::atan(dPos.y, horizontal);
-        //        glm::quat pitchQuat = glm::quat(glm::vec3(pitch, 0, 0));
-        //        glm::mat4x4 matrix = glm::lookAt(args->_viewFrustum->getPosition(), getPosition(),
-        //                                         glm::vec3(0, 1, 0));
-        //        rotation = glm::quat_cast(matrix);
-        //        rotation = yawQuat * pitchQuat;
-        //        glm::vec3 pitch = glm::vec3(dPos.x, dPos.y, 0);
-        //        rotation = glm::quat(glm::vec3(pitch, yaw, 0));
-        // rotate about vertical to be perpendicular to the camera
-        glm::quat rotation = cameraOrientation;
-        rotation *= glm::angleAxis(glm::pi<float>(), IDENTITY_UP);
-        return rotation * getRotation();
-    }
-    return getTranslatedRotation(getRotation());
-}
-
 bool BillboardOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                        float& distance, BoxFace& face) {
+                                           float& distance, BoxFace& face) {
     if (_texture && _texture->isLoaded()) {
-        glm::quat rotation =
-            calculateRotation(Application::getInstance()->getCamera()->getRotation());
+        // Make sure position and rotation is updated.
+        setTransforms(&_transform);
+
         // Produce the dimensions of the billboard based on the image's aspect ratio and the overlay's scale.
         bool isNull = _fromImage.isNull();
         float width = isNull ? _texture->getWidth() : _fromImage.width();
@@ -248,7 +220,7 @@ bool BillboardOverlay::findRayIntersection(const glm::vec3& origin, const glm::v
         float maxSize = glm::max(width, height);
         glm::vec2 dimensions = _dimensions * glm::vec2(width / maxSize, height / maxSize);
 
-        return findRayRectangleIntersection(origin, direction, rotation, getPosition(), dimensions, distance);
+        return findRayRectangleIntersection(origin, direction, getRotation(), getPosition(), dimensions, distance);
     }
 
     return false;

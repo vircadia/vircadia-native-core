@@ -15,24 +15,28 @@
 #include "FloatingUIPanel.h"
 
 #include <glm/glm.hpp>
+#include <Transform.h>
 
 class PanelAttachable {
 public:
     PanelAttachable();
     PanelAttachable(const PanelAttachable* panelAttachable);
 
-    glm::vec3 getOffsetPosition() const { return _offsetPosition; }
-    void setOffsetPosition(glm::vec3 position) { _offsetPosition = position; }
-
     FloatingUIPanel* getAttachedPanel() const { return _attachedPanel; }
-    void setAttachedPanel(FloatingUIPanel* panel) { _attachedPanel = panel; }
+    glm::vec3 getOffsetPosition() const { return _offsetPosition; }
+    glm::quat getFacingRotation() const { return _facingRotation; }
 
-    glm::vec3 getTranslatedPosition(glm::vec3 avatarPosition) const;
-    glm::quat getTranslatedRotation(glm::quat offsetRotation) const;
+    void setAttachedPanel(FloatingUIPanel* panel) { _attachedPanel = panel; }
+    void setOffsetPosition(glm::vec3 position) { _offsetPosition = position; }
+    void setFacingRotation(glm::quat rotation) { _facingRotation = rotation; }
+
+protected:
+    bool setTransforms(Transform* transform);
 
 private:
     FloatingUIPanel* _attachedPanel;
-    glm::vec3 _offsetPosition = glm::vec3(0, 0, 0);
+    glm::vec3 _offsetPosition;
+    glm::quat _facingRotation;
 };
 
 #endif // hifi_PanelAttachable_h

@@ -39,10 +39,13 @@ public:
     
     virtual BillboardOverlay* createClone() const;
 
+protected:
+    bool setTransforms(Transform* transform);
+
 private:
     void setBillboardURL(const QString& url);
-    glm::quat calculateRotation(glm::quat cameraOrientation) const;
-    
+//    glm::quat calculateRotation(glm::quat cameraOrientation) const;
+
     QString _url;
     NetworkTexturePointer _texture;
     
