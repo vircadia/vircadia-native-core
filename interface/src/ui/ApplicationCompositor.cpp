@@ -370,7 +370,6 @@ QPoint ApplicationCompositor::getPalmClickLocation(const PalmData *palm) const {
     } else {
         MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
         glm::mat4 projection;
-       // qApp->getProjectionMatrix(&projection);
         qApp->getDisplayViewFrustum()->evalProjectionMatrix(projection);
         glm::quat invOrientation = glm::inverse(myAvatar->getOrientation());
         glm::vec3 eyePos = myAvatar->getDefaultEyePosition();
