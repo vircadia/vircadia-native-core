@@ -39,8 +39,9 @@ void main(void) {
     float f = 30.0;                               // the far plane
     float c = (2.0 * n) / (f + n - z * (f - n));  // convert to linear values 
 
-    //gl_FragColor = vec4(c, c, c, 1.0); 
-    gl_FragColor = mix(depthColor, normalColor, normalColor.a);
+    vec4 linearizedDepthColor = vec4(c, c, c, 1.0); 
+    gl_FragColor = mix(linearizedDepthColor, normalColor, 0.5);
+    //gl_FragColor = linearizedDepthColor;
 
     //vec3 p = getPosition(i.uv);
     //vec3 n = getNormal(i.uv);

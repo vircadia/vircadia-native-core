@@ -134,7 +134,7 @@ namespace MenuOption {
     const QString AddressBar = "Show Address Bar";
     const QString AlignForearmsWithWrists = "Align Forearms with Wrists";
     const QString AlternateIK = "Alternate IK";
-    const QString AmbientOcclusion = "Ambient Occlusion";
+    const QString AmbientOcclusion = "Debug Ambient Occlusion";
     const QString Animations = "Animations...";
     const QString Atmosphere = "Atmosphere";
     const QString Attachments = "Attachments...";

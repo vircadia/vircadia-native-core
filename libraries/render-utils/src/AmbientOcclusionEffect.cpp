@@ -193,8 +193,10 @@ const gpu::PipelinePointer& AmbientOcclusion::getOcclusionPipeline() {
 
         gpu::Shader::makeProgram(*program, slotBindings);
 
-        //_drawItemBoundPosLoc = program->getUniforms().findLocation("inBoundPos");
-        //_drawItemBoundDimLoc = program->getUniforms().findLocation("inBoundDim");
+        _gScaleLoc = program->getUniforms().findLocation("g_scale");
+        _gBiasLoc = program->getUniforms().findLocation("g_bias");
+        _gSampleRadiusLoc = program->getUniforms().findLocation("g_sample_rad");
+        _gIntensityLoc = program->getUniforms().findLocation("g_intensity");
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
@@ -345,7 +347,7 @@ void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, cons
     // Occlusion step
     getOcclusionPipeline();
     batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getPrimaryDepthTexture());
-    batch.setResourceTexture(1, DependencyManager::get<TextureCache>()->getPrimaryFramebuffer()->getRenderBuffer(0));
+    batch.setResourceTexture(1, DependencyManager::get<TextureCache>()->getPrimaryNormalTexture());
     _occlusionBuffer->setRenderBuffer(0, _occlusionTexture);
     batch.setFramebuffer(_occlusionBuffer);
 
@@ -380,12 +382,12 @@ void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, cons
     batch.setPipeline(getHBlurPipeline());
 
     DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color);
-    
+
     // "Blend" step
-    batch.setResourceTexture(0, _hBlurTexture);
+    batch.setResourceTexture(0, _occlusionTexture);
     batch.setFramebuffer(DependencyManager::get<TextureCache>()->getPrimaryFramebuffer());
 
-    // bind the fourth gpu::Pipeline we need - for 
+    // bind the fourth gpu::Pipeline we need - for blending the primary framefuffer with blurred occlusion texture
     batch.setPipeline(getBlendPipeline());
 
     glm::vec2 bottomLeftSmall(0.5f, -1.0f);
