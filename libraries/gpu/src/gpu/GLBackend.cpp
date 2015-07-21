@@ -91,6 +91,11 @@ GLBackend::GLBackend() :
 {
     initInput();
     initTransform();
+
+    qCDebug(gpulogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
+    qCDebug(gpulogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
+    qCDebug(gpulogging) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
+    qCDebug(gpulogging) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
 }
 
 GLBackend::~GLBackend() {

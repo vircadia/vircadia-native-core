@@ -482,6 +482,7 @@ private:
     glm::vec3 getSunDirection();
 
     void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard = false);
+
     void setMenuShortcutsEnabled(bool enabled);
 
     static void attachNewHeadToNode(Node *newNode);
