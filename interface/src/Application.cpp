@@ -915,6 +915,13 @@ void Application::initializeUi() {
     });
 }
 
+template<typename F>
+void doInBatch(RenderArgs* args, F f) {
+    gpu::Batch batch;
+    f(batch);
+    args->_context->render(batch);
+}
+
 void Application::paintGL() {
     PROFILE_RANGE(__FUNCTION__);
     auto displayPlugin = getActiveDisplayPlugin();
@@ -1009,29 +1016,27 @@ void Application::paintGL() {
     QSize size = textureCache->getFrameBufferSize();
     {
         PROFILE_RANGE(__FUNCTION__ "/mainRender");
+        {
+            PROFILE_RANGE(__FUNCTION__ "/clear");
+            doInBatch(&renderArgs, [&](gpu::Batch& batch) {
+                batch.setFramebuffer(textureCache->getPrimaryFramebuffer());
+                // clear the normal and specular buffers
+                batch.clearFramebuffer(
+                    gpu::Framebuffer::BUFFER_COLOR0 |
+                    gpu::Framebuffer::BUFFER_COLOR1 |
+                    gpu::Framebuffer::BUFFER_COLOR2 |
+                    gpu::Framebuffer::BUFFER_DEPTH,
+                    vec4(vec3(0), 1), 1.0, 0.0, true);
+                batch.clearColorFramebuffer(
+                    gpu::Framebuffer::BUFFER_COLOR0 |
+                    gpu::Framebuffer::BUFFER_COLOR1 |
+                    gpu::Framebuffer::BUFFER_COLOR2,
+                    vec4(vec3(0), 1));
+            });
+        }
 
-        auto clearLambda = [&](const gpu::Vec4i& vp) {
-            gpu::Batch batch;
-            auto primaryFbo = textureCache->getPrimaryFramebuffer();
-            batch.setFramebuffer(primaryFbo);
-            // Viewport is assigned to the size of the framebuffer
-            renderArgs._viewport = vp;
-            batch.setViewportTransform(renderArgs._viewport);
-            batch.setStateScissorRect(renderArgs._viewport);
-
-            // clear the normal and specular buffers
-            batch.clearFramebuffer(
-                gpu::Framebuffer::BUFFER_COLOR0 |
-                gpu::Framebuffer::BUFFER_COLOR1 |
-                gpu::Framebuffer::BUFFER_COLOR2 |
-                gpu::Framebuffer::BUFFER_DEPTH,
-                vec4(vec3(0), 1), 1.0, 0.0, true);
-
-            renderArgs._context->render(batch);
-        };
-
-            
         if (displayPlugin->isStereo()) {
+            PROFILE_RANGE(__FUNCTION__ "/stereoRender");
             QRect r(QPoint(0, 0), QSize(size.width() / 2, size.height()));
             glEnable(GL_SCISSOR_TEST);
             for_each_eye([&](Eye eye){
@@ -1039,8 +1044,11 @@ void Application::paintGL() {
                 Camera eyeCamera;
                 eyeCamera.setTransform(displayPlugin->getModelview(eye, _myCamera.getTransform()));
                 eyeCamera.setProjection(displayPlugin->getProjection(eye, _myCamera.getProjection()));
-
-                clearLambda(glm::ivec4(r.x(), r.y(), r.width(), r.height()));
+                renderArgs._viewport = gpu::Vec4i(r.x(), r.y(), r.width(), r.height());
+                doInBatch(&renderArgs, [&](gpu::Batch& batch) {
+                    batch.setViewportTransform(renderArgs._viewport);
+                    batch.setStateScissorRect(renderArgs._viewport);
+                });
                 displaySide(&renderArgs, eyeCamera);
                 if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && 
                     !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
@@ -1051,7 +1059,13 @@ void Application::paintGL() {
             });
             glDisable(GL_SCISSOR_TEST);
         } else {
-            clearLambda(glm::ivec4(0, 0, size.width(), size.height()));
+            PROFILE_RANGE(__FUNCTION__ "/monoRender");
+            renderArgs._viewport = gpu::Vec4i(0, 0, size.width(), size.height());
+            // Viewport is assigned to the size of the framebuffer
+            doInBatch(&renderArgs, [&](gpu::Batch& batch) {
+                batch.setViewportTransform(renderArgs._viewport);
+                batch.setStateScissorRect(renderArgs._viewport);
+            });
             displaySide(&renderArgs, _myCamera);
             if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && 
                 !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
