@@ -10,8 +10,6 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <gpu/GPUConfig.h>
-
 #include <DependencyManager.h>
 #include <DeferredLightingEffect.h>
 #include <PerfStat.h>

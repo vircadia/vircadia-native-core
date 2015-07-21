@@ -11,9 +11,6 @@
 #ifndef hifi_TextOverlay_h
 #define hifi_TextOverlay_h
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include <QString>
 
 #include <SharedUtil.h>

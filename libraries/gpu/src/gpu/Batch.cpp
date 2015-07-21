@@ -9,8 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "Batch.h"
+#include "GPUConfig.h"
 
 #include <QDebug>
+
+#include <GLMHelpers.h>
+
 
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
@@ -254,6 +258,22 @@ void Batch::setFramebuffer(const FramebufferPointer& framebuffer) {
 
 }
 
+void Batch::blit(const FramebufferPointer& src, const Vec4i& srcViewport,
+    const FramebufferPointer& dst, const Vec4i& dstViewport) {
+    ADD_COMMAND(blit);
+
+    _params.push_back(_framebuffers.cache(src));
+    _params.push_back(srcViewport.x);
+    _params.push_back(srcViewport.y);
+    _params.push_back(srcViewport.z);
+    _params.push_back(srcViewport.w);
+    _params.push_back(_framebuffers.cache(dst));
+    _params.push_back(dstViewport.x);
+    _params.push_back(dstViewport.y);
+    _params.push_back(dstViewport.z);
+    _params.push_back(dstViewport.w);
+}
+
 void Batch::beginQuery(const QueryPointer& query) {
     ADD_COMMAND(beginQuery);
 
@@ -270,4 +290,17 @@ void Batch::getQuery(const QueryPointer& query) {
     ADD_COMMAND(getQuery);
 
     _params.push_back(_queries.cache(query));
+}
+
+void push_back(Batch::Params& params, const vec3& v) {
+    params.push_back(v.x);
+    params.push_back(v.y);
+    params.push_back(v.z);
+}
+
+void push_back(Batch::Params& params, const vec4& v) {
+    params.push_back(v.x);
+    params.push_back(v.y);
+    params.push_back(v.z);
+    params.push_back(v.a);
 }

@@ -9,11 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "InterfaceConfig.h"
-
-#include <QOpenGLFramebufferObject>
-#include <QOpenGLTexture>
-
 #include <glm/gtc/type_ptr.hpp>
 
 #include <avatar/AvatarManager.h>
@@ -54,7 +49,6 @@ ApplicationOverlay::ApplicationOverlay()
     connect(offscreenUi.data(), &OffscreenUi::textureUpdated, this, [&](GLuint textureId) {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         offscreenUi->lockTexture(textureId);
-        assert(!glGetError());
         std::swap(_uiTexture, textureId);
         if (textureId) {
             offscreenUi->releaseTexture(textureId);
