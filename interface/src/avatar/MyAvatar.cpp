@@ -429,7 +429,7 @@ void MyAvatar::startRecording() {
         return;
     }
     if (!_recorder) {
-        _recorder = RecorderPointer(new Recorder(this));
+        _recorder = QSharedPointer<Recorder>::create(this);
     }
     // connect to AudioClient's signal so we get input audio
     auto audioClient = DependencyManager::get<AudioClient>();
@@ -481,7 +481,7 @@ void MyAvatar::loadLastRecording() {
         return;
     }
     if (!_player) {
-        _player = PlayerPointer(new Player(this));
+        _player = QSharedPointer<Player>::create(this);
     }
 
     _player->loadRecording(_recorder->getRecording());
@@ -876,7 +876,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;
 
     foreach (const AvatarSharedPointer& avatarPointer, DependencyManager::get<AvatarManager>()->getAvatarHash()) {
-        Avatar* avatar = static_cast<Avatar*>(avatarPointer.get());
+        auto avatar = static_pointer_cast<Avatar>(avatarPointer);
         bool isCurrentTarget = avatar->getIsLookAtTarget();
         float distanceTo = glm::length(avatar->getHead()->getEyePosition() - cameraPosition);
         avatar->setIsLookAtTarget(false);
@@ -911,7 +911,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     }
     auto avatarPointer = _lookAtTargetAvatar.lock();
     if (avatarPointer) {
-        static_cast<Avatar*>(avatarPointer.get())->setIsLookAtTarget(true);
+        static_pointer_cast<Avatar>(avatarPointer)->setIsLookAtTarget(true);
     }
 }
 

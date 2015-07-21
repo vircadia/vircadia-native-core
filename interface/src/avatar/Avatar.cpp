@@ -62,10 +62,10 @@ namespace render {
         return ItemKey::Builder::opaqueShape();
     }
     template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar) {
-        return static_cast<Avatar*>(avatar.get())->getBounds();
+        return static_pointer_cast<Avatar>(avatar)->getBounds();
     }
     template <> void payloadRender(const AvatarSharedPointer& avatar, RenderArgs* args) {
-        Avatar* avatarPtr = static_cast<Avatar*>(avatar.get());
+        auto avatarPtr = static_pointer_cast<Avatar>(avatar);
         bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::RenderLookAtVectors);
         avatarPtr->setDisplayingLookatVectors(renderLookAtVectors);
 
