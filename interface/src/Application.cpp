@@ -2691,7 +2691,7 @@ int Application::sendNackPackets() {
             // if there are octree packets from this node that are waiting to be processed,
             // don't send a NACK since the missing packets may be among those waiting packets.
             if (_octreeProcessor.hasPacketsToProcessFrom(nodeUUID)) {
-                packetsSent = 0;
+                return;
             }
 
             _octreeSceneStatsLock.lockForRead();
@@ -2699,16 +2699,16 @@ int Application::sendNackPackets() {
             // retreive octree scene stats of this node
             if (_octreeServerSceneStats.find(nodeUUID) == _octreeServerSceneStats.end()) {
                 _octreeSceneStatsLock.unlock();
-                packetsSent = 0;
+                return;
             }
-
+            
             // get sequence number stats of node, prune its missing set, and make a copy of the missing set
             SequenceNumberStats& sequenceNumberStats = _octreeServerSceneStats[nodeUUID].getIncomingOctreeSequenceNumberStats();
             sequenceNumberStats.pruneMissingSet();
             const QSet<OCTREE_PACKET_SEQUENCE> missingSequenceNumbers = sequenceNumberStats.getMissingSet();
-
+            
             _octreeSceneStatsLock.unlock();
-
+            
             // construct nack packet(s) for this node
             auto it = missingSequenceNumbers.constBegin();
             while (it != missingSequenceNumbers.constEnd()) {
@@ -2716,10 +2716,10 @@ int Application::sendNackPackets() {
                 nackPacketList.writePrimitive(missingNumber);
                 ++it;
             }
-
+            
             if (nackPacketList.getNumPackets()) {
                 packetsSent += nackPacketList.getNumPackets();
-
+                
                 // send the packet list
                 nodeList->sendPacketList(nackPacketList, *node);
             }
