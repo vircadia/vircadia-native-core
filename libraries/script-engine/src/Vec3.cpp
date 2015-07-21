@@ -95,7 +95,7 @@ glm::vec3 Vec3::toPolar(const glm::vec3& v) {
         elevation = 0.0f;
     }
 
-    return glm::vec3(azimuth, elevation, length(v));
+    return glm::vec3(azimuth, elevation, radius);
 }
 
 glm::vec3 Vec3::fromPolar(const glm::vec3& polar) {
