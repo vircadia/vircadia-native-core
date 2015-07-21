@@ -269,21 +269,22 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
     }
 }
 
+
 void SkeletonModel::updateJointState(int index) {
-    if (index > _jointStates.size()) {
+    if (index < 0 && index >= _jointStates.size()) {
         return; // bail
     }
     JointState& state = _jointStates[index];
     const FBXJoint& joint = state.getFBXJoint();
-    if (joint.parentIndex != -1 && joint.parentIndex <= _jointStates.size()) {
+    if (joint.parentIndex >= 0 && joint.parentIndex < _jointStates.size()) {
         const JointState& parentState = _jointStates.at(joint.parentIndex);
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         if (index == geometry.leanJointIndex) {
             maybeUpdateLeanRotation(parentState, state);
-        
+
         } else if (index == geometry.neckJointIndex) {
-            maybeUpdateNeckRotation(parentState, joint, state);    
-                
+            maybeUpdateNeckRotation(parentState, joint, state);
+
         } else if (index == geometry.leftEyeJointIndex || index == geometry.rightEyeJointIndex) {
             maybeUpdateEyeRotation(parentState, joint, state);
         }
@@ -295,6 +296,7 @@ void SkeletonModel::updateJointState(int index) {
         state.clearTransformTranslation();
     }
 }
+
 
 void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, JointState& state) {
     if (!_owningAvatar->isMyAvatar()) {

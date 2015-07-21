@@ -161,7 +161,7 @@ private:
     void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation);
 
     bool getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
-    
+
     Avatar* _owningAvatar;
 
     CapsuleShape _boundingShape;

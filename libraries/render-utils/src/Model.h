@@ -262,6 +262,7 @@ protected:
     
     bool _showTrueJointTransforms;
     
+    bool getJointStateAtIndex(int jointIndex, JointState& jointState) const;
     QVector<JointState> _jointStates;
 
     class MeshState {
@@ -283,10 +284,13 @@ protected:
     void simulateInternal(float deltaTime);
 
     /// Updates the state of the joint at the specified index.
+    void updateJointStates();
     virtual void updateJointState(int index);
 
     virtual void updateVisibleJointStates();
-    
+
+    glm::quat setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority);
+
     /// \param jointIndex index of joint in model structure
     /// \param position position of joint in model-frame
     /// \param rotation rotation of joint in model-frame
@@ -525,6 +529,7 @@ private:
     bool _readyWhenAdded = false;
     bool _needsReload = true;
 
+protected:
     RigPointer _rig;
 };
 
