@@ -12,8 +12,6 @@
 #define hifi_Circle3DOverlay_h
 
 // include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include "Planar3DOverlay.h"
 
 class Circle3DOverlay : public Planar3DOverlay {

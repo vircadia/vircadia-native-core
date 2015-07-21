@@ -14,10 +14,11 @@
 
 #include <limits>
 
-#include <Application.h>
 #include <render/Scene.h>
 #include <gpu/GLBackend.h>
+#include <RegisteredMetaTypes.h>
 
+#include "Application.h"
 #include "BillboardOverlay.h"
 #include "Circle3DOverlay.h"
 #include "Cube3DOverlay.h"

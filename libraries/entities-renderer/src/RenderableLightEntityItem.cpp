@@ -11,7 +11,6 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <gpu/GPUConfig.h>
 #include <gpu/Batch.h>
 
 #include <DeferredLightingEffect.h>

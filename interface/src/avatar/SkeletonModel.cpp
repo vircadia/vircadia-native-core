@@ -270,12 +270,12 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
 }
 
 void SkeletonModel::updateJointState(int index) {
-    if (index > _jointStates.size()) {
+    if (index < 0 && index >= _jointStates.size()) {
         return; // bail
     }
     JointState& state = _jointStates[index];
     const FBXJoint& joint = state.getFBXJoint();
-    if (joint.parentIndex != -1 && joint.parentIndex <= _jointStates.size()) {
+    if (joint.parentIndex >= 0 && joint.parentIndex < _jointStates.size()) {
         const JointState& parentState = _jointStates.at(joint.parentIndex);
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         if (index == geometry.leanJointIndex) {
@@ -789,12 +789,11 @@ void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha
         // so no need to render it
         return;
     }
-    Application::getInstance()->loadTranslatedViewMatrix(_translation);
 
     // draw a blue sphere at the capsule endpoint
     glm::vec3 endPoint;
     _boundingShape.getEndPoint(endPoint);
-    endPoint = endPoint - _translation;
+    endPoint = endPoint + _translation;
     Transform transform = Transform();
     transform.setTranslation(endPoint);
     batch.setModelTransform(transform);
@@ -805,7 +804,7 @@ void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha
     // draw a yellow sphere at the capsule startpoint
     glm::vec3 startPoint;
     _boundingShape.getStartPoint(startPoint);
-    startPoint = startPoint - _translation;
+    startPoint = startPoint + _translation;
     glm::vec3 axis = endPoint - startPoint;
     Transform axisTransform = Transform();
     axisTransform.setTranslation(-axis);

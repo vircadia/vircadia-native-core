@@ -14,6 +14,7 @@
 
 #include <functional>
 #include <memory>
+#include "GLMHelpers.h"
 
 
 class AABox;

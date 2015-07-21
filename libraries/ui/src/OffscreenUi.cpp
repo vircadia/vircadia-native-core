@@ -11,11 +11,11 @@
 #include "OffscreenUi.h"
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLDebugLogger>
+#include <QQuickWindow>
 #include <QGLWidget>
 #include <QtQml>
 #include "ErrorDialog.h"
 #include "MessageDialog.h"
-
 
 class OffscreenUiRoot : public QQuickItem {
     Q_OBJECT
