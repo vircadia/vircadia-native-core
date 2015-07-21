@@ -14,6 +14,7 @@
  
  
 // Declare variables and set up new WebWindow.
+var zone = "Zone2";
 var stream = "http://listen.radionomy.com/80sMixTape";
 var volume;
 var streamWindow = new WebWindow('Stream', "https://dl.dropboxusercontent.com/u/17344741/jsstreamplayer/jsstreamplayerdomain-zone.html", 0, 0, false);
@@ -115,7 +116,7 @@ function mousePressEvent(event) {
 
 // Function checking bool if in proper zone.
 function isOurZone(properties) {
-    return properties.type == "Zone" && properties.name == "Zone2";
+    return properties.type == "Zone" && properties.name == zone;
 }
 
 // Function checking if avatar is in zone.
