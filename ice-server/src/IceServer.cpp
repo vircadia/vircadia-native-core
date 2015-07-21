@@ -37,12 +37,26 @@ IceServer::IceServer(int argc, char* argv[]) :
     // set processPacket as the verified packet callback for the udt::Socket
     using std::placeholders::_1;
     _serverSocket.setVerifiedPacketCallback(std::bind(&IceServer::processPacket, this, _1));
+    
+    // set packetVersionMatch as the verify packet operator for the udt::Socket
+    _serverSocket.setVerifyPacketOperator(std::bind(&IceServer::packetVersionMatch, this, _1));
 
     // setup our timer to clear inactive peers
     QTimer* inactivePeerTimer = new QTimer(this);
     connect(inactivePeerTimer, &QTimer::timeout, this, &IceServer::clearInactivePeers);
     inactivePeerTimer->start(CLEAR_INACTIVE_PEERS_INTERVAL_MSECS);
 
+}
+
+bool IceServer::packetVersionMatch(const udt::Packet& packet) {
+    if (packet.getVersion() == versionForPacketType(packet.getType())) {
+        return true;
+    } else {
+        qDebug() << "Packet version mismatch for packet" << packet.getType()
+            << "(" << nameForPacketType(packet.getType()) << ") from" << packet.getSenderSockAddr();
+        
+        return false;
+    }
 }
 
 void IceServer::processPacket(std::unique_ptr<udt::Packet> packet) {

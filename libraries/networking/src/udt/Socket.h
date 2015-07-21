@@ -24,7 +24,7 @@
 
 namespace udt {
 
-using VerifyPacketOperator = std::function<bool(Packet&)>;
+using VerifyPacketOperator = std::function<bool(const Packet&)>;
 using VerifiedPacketCallback = std::function<void(std::unique_ptr<Packet>)>;
 
 class Socket : public QObject {
