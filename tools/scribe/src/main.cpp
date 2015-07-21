@@ -31,7 +31,7 @@ int main (int argc, char** argv) {
     bool showParseTree = false;
     bool makeCPlusPlus = false;
 
-    TextTemplate::Config::Pointer config(new TextTemplate::Config());
+    auto config = std::make_shared<TextTemplate::Config>();
 
     enum Mode {
         READY = 0,
@@ -165,7 +165,7 @@ int main (int argc, char** argv) {
         return 0;
     }
 
-    TextTemplate::Pointer scribe(new TextTemplate(srcFilename, config));
+    auto scribe = std::make_shared<TextTemplate>(srcFilename, config);
 
     // ready to parse and generate
     std::ostringstream destStringStream;
@@ -192,17 +192,10 @@ int main (int argc, char** argv) {
         targetStringStream << "#ifndef scribe_" << targetName << "_h" << std::endl;
         targetStringStream << "#define scribe_" << targetName << "_h" << std::endl << std::endl;
 
-       // targetStringStream << "const char " << targetName << "[] = R\"XXXX(" << destStringStream.str() << ")XXXX\";";
-       std::istringstream destStringStreamAgain(destStringStream.str());
-        targetStringStream << "const char " << targetName << "[] = \n";
-        while (!destStringStreamAgain.eof()) {
-            std::string lineToken;
-            std::getline(destStringStreamAgain, lineToken);
-           // targetStringStream << "\"" << lineToken << "\"\n";
-            targetStringStream << "R\"X(" << lineToken << ")X\"\"\\n\"\n";
-        }
-
-        targetStringStream << ";\n" << std::endl << std::endl;
+        // targetStringStream << "const char " << targetName << "[] = R\"XXXX(" << destStringStream.str() << ")XXXX\";";
+        targetStringStream << "const char " << targetName << "[] = R\"SCRIBE(";
+        targetStringStream << destStringStream.str();
+        targetStringStream << "\n)SCRIBE\";\n\n";
         targetStringStream << "#endif" << std::endl;
     } else {
         targetStringStream << destStringStream.str();

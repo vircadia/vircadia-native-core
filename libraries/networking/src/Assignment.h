@@ -59,10 +59,9 @@ public:
 
     void swap(Assignment& otherAssignment);
 
-    /// Constructs an Assignment from the data in the buffer
-    /// \param dataBuffer the source buffer to un-pack the assignment from
-    /// \param numBytes the number of bytes left to read in the source buffer
-    Assignment(const QByteArray& packet);
+    /// Constructs an Assignment from a network packet
+    /// \param packet the packet to un-pack the assignment from
+    Assignment(NLPacket& packet);
 
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
     const QUuid& getUUID() const { return _uuid; }
@@ -85,9 +84,6 @@ public:
     const QUuid& getWalletUUID() const { return _walletUUID; }
     
     const char* getTypeName() const;
-
-    // implement parseData to return 0 so we can be a subclass of NodeData
-    int parseData(const QByteArray& packet) { return 0; }
 
     friend QDebug operator<<(QDebug debug, const Assignment& assignment);
     friend QDataStream& operator<<(QDataStream &out, const Assignment& assignment);

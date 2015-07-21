@@ -26,12 +26,12 @@
 #include <DependencyManager.h>
 #include <GeometryUtil.h>
 #include <NodeList.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <ShapeCollider.h>
 #include <SharedUtil.h>
-#include <TextRenderer.h>
+#include <TextRenderer3D.h>
 #include <UserActivityLogger.h>
 
 #include "devices/Faceshift.h"
@@ -79,7 +79,7 @@ const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 
 MyAvatar::MyAvatar() :
-	Avatar(),
+    Avatar(),
     _gravity(0.0f, 0.0f, 0.0f),
     _wasPushing(false),
     _isPushing(false),
@@ -253,6 +253,9 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         return;
     }
 
+    FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
+    bool inFacetracker = tracker && !tracker->isMuted();
+
     if (inHmd) {
         estimatedPosition = qApp->getHeadPosition();
         estimatedPosition.x *= -1.0f;
@@ -260,12 +263,17 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 
         const float OCULUS_LEAN_SCALE = 0.05f;
         estimatedPosition /= OCULUS_LEAN_SCALE;
-    } else {
-        FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
-        if (tracker && !tracker->isMuted()) {
-            estimatedPosition = tracker->getHeadTranslation();
-            _trackedHeadPosition = estimatedPosition;
-            estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
+    } else if (inFacetracker) {
+        estimatedPosition = tracker->getHeadTranslation();
+        _trackedHeadPosition = estimatedPosition;
+        estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
+        if (Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
+            // Invert yaw and roll when in mirror mode
+            // NOTE: this is kinda a hack, it's the same hack we use to make the head tilt. But it's not really a mirror
+            // it just makes you feel like you're looking in a mirror because the body movements of the avatar appear to
+            // match your body movements.
+            YAW(estimatedRotation) *= -1.0f;
+            ROLL(estimatedRotation) *= -1.0f;
         }
     }
 
@@ -312,7 +320,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     // NOTE: this is kinda a hack, it's the same hack we use to make the head tilt. But it's not really a mirror
     // it just makes you feel like you're looking in a mirror because the body movements of the avatar appear to
     // match your body movements.
-    if (inHmd && Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
+    if ((inHmd || inFacetracker) && Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
         relativePosition.x = -relativePosition.x;
     }
 
@@ -322,28 +330,6 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         -MAX_LEAN, MAX_LEAN));
 }
 
-
-void MyAvatar::renderDebugBodyPoints() {
-    glm::vec3 torsoPosition(getPosition());
-    glm::vec3 headPosition(getHead()->getEyePosition());
-    float torsoToHead = glm::length(headPosition - torsoPosition);
-    glm::vec3 position;
-    qCDebug(interfaceapp, "head-above-torso %.2f, scale = %0.2f", (double)torsoToHead, (double)getScale());
-
-    //  Torso Sphere
-    position = torsoPosition;
-    glPushMatrix();
-    glTranslatef(position.x, position.y, position.z);
-    DependencyManager::get<GeometryCache>()->renderSphere(0.2f, 10.0f, 10.0f, glm::vec4(0, 1, 0, .5f));
-    glPopMatrix();
-
-    //  Head Sphere
-    position = headPosition;
-    glPushMatrix();
-    glTranslatef(position.x, position.y, position.z);
-    DependencyManager::get<GeometryCache>()->renderSphere(0.15f, 10.0f, 10.0f, glm::vec4(0, 1, 0, .5f));
-    glPopMatrix();
-}
 
 // virtual
 void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting) {
@@ -355,8 +341,9 @@ void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, b
     Avatar::render(renderArgs, cameraPosition, postLighting);
 
     // don't display IK constraints in shadow mode
-    if (Menu::getInstance()->isOptionChecked(MenuOption::ShowIKConstraints) && postLighting) {
-        _skeletonModel.renderIKConstraints();
+    if (Menu::getInstance()->isOptionChecked(MenuOption::ShowIKConstraints) &&
+        renderArgs && renderArgs->_batch) {
+        _skeletonModel.renderIKConstraints(*renderArgs->_batch);
     }
 }
 
@@ -450,7 +437,7 @@ void MyAvatar::startRecording() {
         return;
     }
     if (!_recorder) {
-        _recorder = RecorderPointer(new Recorder(this));
+        _recorder = QSharedPointer<Recorder>::create(this);
     }
     // connect to AudioClient's signal so we get input audio
     auto audioClient = DependencyManager::get<AudioClient>();
@@ -502,7 +489,7 @@ void MyAvatar::loadLastRecording() {
         return;
     }
     if (!_player) {
-        _player = PlayerPointer(new Player(this));
+        _player = QSharedPointer<Player>::create(this);
     }
 
     _player->loadRecording(_recorder->getRecording());
@@ -870,18 +857,16 @@ AttachmentData MyAvatar::loadAttachmentData(const QUrl& modelURL, const QString&
     return attachment;
 }
 
-int MyAvatar::parseDataAtOffset(const QByteArray& packet, int offset) {
+int MyAvatar::parseDataFromBuffer(const QByteArray& buffer) {
     qCDebug(interfaceapp) << "Error: ignoring update packet for MyAvatar"
-        << " packetLength = " << packet.size()
-        << "  offset = " << offset;
+        << " packetLength = " << buffer.size();
     // this packet is just bad, so we pretend that we unpacked it ALL
-    return packet.size() - offset;
+    return buffer.size();
 }
 
 void MyAvatar::sendKillAvatar() {
-    auto nodeList = DependencyManager::get<NodeList>();
-    QByteArray killPacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeKillAvatar);
-    nodeList->broadcastToNodes(killPacket, NodeSet() << NodeType::AvatarMixer);
+    auto killPacket = NLPacket::create(PacketType::KillAvatar, 0);
+    DependencyManager::get<NodeList>()->broadcastToNodes(std::move(killPacket), NodeSet() << NodeType::AvatarMixer);
 }
 
 void MyAvatar::updateLookAtTargetAvatar() {
@@ -899,7 +884,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;
 
     foreach (const AvatarSharedPointer& avatarPointer, DependencyManager::get<AvatarManager>()->getAvatarHash()) {
-        Avatar* avatar = static_cast<Avatar*>(avatarPointer.get());
+        auto avatar = static_pointer_cast<Avatar>(avatarPointer);
         bool isCurrentTarget = avatar->getIsLookAtTarget();
         float distanceTo = glm::length(avatar->getHead()->getEyePosition() - cameraPosition);
         avatar->setIsLookAtTarget(false);
@@ -934,7 +919,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     }
     auto avatarPointer = _lookAtTargetAvatar.lock();
     if (avatarPointer) {
-        static_cast<Avatar*>(avatarPointer.get())->setIsLookAtTarget(true);
+        static_pointer_cast<Avatar>(avatarPointer)->setIsLookAtTarget(true);
     }
 }
 
@@ -1432,7 +1417,7 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
             }
         }
     }
-    
+
     float boomChange = _driveKeys[BOOM_OUT] - _driveKeys[BOOM_IN];
     _boomLength += 2.0f * _boomLength * boomChange + boomChange * boomChange;
     _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);

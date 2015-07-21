@@ -24,7 +24,6 @@
 
 #include "Hand.h"
 #include "Head.h"
-#include "InterfaceConfig.h"
 #include "SkeletonModel.h"
 #include "world.h"
 
@@ -85,10 +84,10 @@ public:
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition,
         bool postLighting = false);
 
-    bool addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, 
+    bool addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
                             render::PendingChanges& pendingChanges);
 
-    void removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, 
+    void removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
                                 render::PendingChanges& pendingChanges);
 
     //setters
@@ -146,7 +145,7 @@ public:
 
     void setShowDisplayName(bool showDisplayName);
     
-    virtual int parseDataAtOffset(const QByteArray& packet, int offset);
+    virtual int parseDataFromBuffer(const QByteArray& buffer);
 
     static void renderJointConnectingCone( gpu::Batch& batch, glm::vec3 position1, glm::vec3 position2,
                                                 float radius1, float radius2, const glm::vec4& color);
@@ -163,7 +162,7 @@ public:
     Q_INVOKABLE glm::quat getJointCombinedRotation(const QString& name) const;
     
     Q_INVOKABLE void setJointModelPositionAndOrientation(int index, const glm::vec3 position, const glm::quat& rotation);
-    Q_INVOKABLE void setJointModelPositionAndOrientation(const QString& name, const glm::vec3 position, 
+    Q_INVOKABLE void setJointModelPositionAndOrientation(const QString& name, const glm::vec3 position,
         const glm::quat& rotation);
     
     Q_INVOKABLE glm::vec3 getNeckPosition() const;
@@ -179,8 +178,8 @@ public:
 
     void slamPosition(const glm::vec3& position);
 
-    // Call this when updating Avatar position with a delta.  This will allow us to 
-    // _accurately_ measure position changes and compute the resulting velocity 
+    // Call this when updating Avatar position with a delta.  This will allow us to
+    // _accurately_ measure position changes and compute the resulting velocity
     // (otherwise floating point error will cause problems at large positions).
     void applyPositionDelta(const glm::vec3& delta);
 
@@ -203,9 +202,9 @@ protected:
 
     // These position histories and derivatives are in the world-frame.
     // The derivatives are the MEASURED results of all external and internal forces
-    // and are therefore READ-ONLY --> motion control of the Avatar is NOT obtained 
+    // and are therefore READ-ONLY --> motion control of the Avatar is NOT obtained
     // by setting these values.
-    // Floating point error prevents us from accurately measuring velocity using a naive approach 
+    // Floating point error prevents us from accurately measuring velocity using a naive approach
     // (e.g. vel = (pos - lastPos)/dt) so instead we use _positionDeltaAccumulator.
     glm::vec3 _positionDeltaAccumulator;
     glm::vec3 _lastVelocity;
@@ -234,8 +233,8 @@ protected:
     float getPelvisFloatingHeight() const;
     glm::vec3 getDisplayNamePosition() const;
 
-    Transform calculateDisplayNameTransform(const ViewFrustum& frustum, float fontSize) const;
-    void renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum) const;
+    Transform calculateDisplayNameTransform(const ViewFrustum& frustum, float fontSize, const glm::ivec4& viewport) const;
+    void renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, const glm::ivec4& viewport) const;
     virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel = 0.0f);
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const;
     virtual void fixupModelsInScene();

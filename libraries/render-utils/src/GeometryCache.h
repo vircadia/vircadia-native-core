@@ -12,11 +12,7 @@
 #ifndef hifi_GeometryCache_h
 #define hifi_GeometryCache_h
 
-// include this before QOpenGLBuffer, which includes an earlier version of OpenGL
-#include <gpu/GPUConfig.h>
-
 #include <QMap>
-#include <QOpenGLBuffer>
 
 #include <DependencyManager.h>
 #include <ResourceCache.h>
@@ -132,8 +128,6 @@ class GeometryCache : public ResourceCache, public Dependency {
 public:
     int allocateID() { return _nextID++; }
     static const int UNKNOWN_ID;
-
-    void renderCone(float base, float height, int slices, int stacks);
 
     void renderSphere(float radius, int slices, int stacks, const glm::vec3& color, bool solid = true, int id = UNKNOWN_ID)
                 { renderSphere(radius, slices, stacks, glm::vec4(color, 1.0f), solid, id); }
@@ -266,12 +260,7 @@ private:
     virtual ~GeometryCache();
     
     typedef QPair<int, int> IntPair;
-    typedef QPair<GLuint, GLuint> VerticesIndices;
-    struct BufferDetails {
-        QOpenGLBuffer buffer;
-        int vertices;
-        int vertexSize;
-    };
+    typedef QPair<unsigned int, unsigned int> VerticesIndices;
 
     gpu::PipelinePointer _standardDrawPipeline;
     QHash<float, gpu::BufferPointer> _cubeVerticies;
@@ -339,8 +328,9 @@ private:
     QHash<int, BatchItemDetails> _registeredDashedLines;
 
     QHash<IntPair, gpu::BufferPointer> _gridBuffers;
-    QHash<int, gpu::BufferPointer> _registeredAlternateGridBuffers;
     QHash<Vec3Pair, gpu::BufferPointer> _alternateGridBuffers;
+    QHash<int, gpu::BufferPointer> _registeredAlternateGridBuffers;
+    QHash<int, Vec3Pair> _lastRegisteredAlternateGridBuffers;
     QHash<Vec3Pair, gpu::BufferPointer> _gridColors;
 
     QHash<Vec2Pair, gpu::BufferPointer> _sphereVertices;

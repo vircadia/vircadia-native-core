@@ -29,11 +29,11 @@ const float ModelEntityItem::DEFAULT_ANIMATION_FPS = 30.0f;
 
 
 EntityItemPointer ModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new ModelEntityItem(entityID, properties));
+    return std::make_shared<ModelEntityItem>(entityID, properties);
 }
 
 ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties)
+        EntityItem(entityItemID)
 {
     _type = EntityTypes::Model;
     setProperties(properties);
@@ -184,7 +184,7 @@ void ModelEntityItem::cleanupLoadedAnimations() {
     _loadedAnimations.clear();
 }
 
-Animation* ModelEntityItem::getAnimation(const QString& url) {
+AnimationPointer ModelEntityItem::getAnimation(const QString& url) {
     AnimationPointer animation;
 
     // if we don't already have this model then create it and initialize it
@@ -194,7 +194,7 @@ Animation* ModelEntityItem::getAnimation(const QString& url) {
     } else {
         animation = _loadedAnimations[url];
     }
-    return animation.data();
+    return animation;
 }
 
 void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
@@ -203,9 +203,8 @@ void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
         return;
     }
 
-    Animation* myAnimation = getAnimation(_animationURL);
-
-    if (!_jointMappingCompleted) {
+    AnimationPointer myAnimation = getAnimation(_animationURL);
+    if (myAnimation && myAnimation->isLoaded()) {
         QStringList animationJointNames = myAnimation->getJointNames();
 
         if (modelJointNames.size() > 0 && animationJointNames.size() > 0) {
@@ -220,8 +219,12 @@ void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
 
 QVector<glm::quat> ModelEntityItem::getAnimationFrame() {
     QVector<glm::quat> frameData;
-    if (hasAnimation() && _jointMappingCompleted) {
-        Animation* myAnimation = getAnimation(_animationURL);
+    if (!hasAnimation() || !_jointMappingCompleted) {
+        return frameData;
+    }
+    
+    AnimationPointer myAnimation = getAnimation(_animationURL);
+    if (myAnimation && myAnimation->isLoaded()) {
         QVector<FBXAnimationFrame> frames = myAnimation->getFrames();
         int frameCount = frames.size();
         if (frameCount > 0) {

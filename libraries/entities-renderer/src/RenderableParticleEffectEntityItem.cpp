@@ -10,8 +10,6 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <gpu/GPUConfig.h>
-
 #include <DependencyManager.h>
 #include <DeferredLightingEffect.h>
 #include <PerfStat.h>
@@ -21,7 +19,7 @@
 #include "RenderableParticleEffectEntityItem.h"
 
 EntityItemPointer RenderableParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new RenderableParticleEffectEntityItem(entityID, properties));
+    return std::make_shared<RenderableParticleEffectEntityItem>(entityID, properties);
 }
 
 RenderableParticleEffectEntityItem::RenderableParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :

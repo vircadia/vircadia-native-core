@@ -211,7 +211,11 @@ void VrMenu::insertAction(QAction* before, QAction* action) {
         bool invokeResult =
             QMetaObject::invokeMethod(menu, "insertItem", Qt::DirectConnection, Q_RETURN_ARG(QQuickMenuItem*, returnedValue),
                                       Q_ARG(int, index), Q_ARG(QString, action->text()));
+#ifndef QT_NO_DEBUG
         Q_ASSERT(invokeResult);
+#else
+        Q_UNUSED(invokeResult);
+#endif
         result = reinterpret_cast<QObject*>(returnedValue);
     }
     Q_ASSERT(result);

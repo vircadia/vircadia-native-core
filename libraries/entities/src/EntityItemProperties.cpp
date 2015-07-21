@@ -128,15 +128,15 @@ void EntityItemProperties::setSittingPoints(const QVector<SittingPoint>& sitting
     }
 }
 
-bool EntityItemProperties::animationSettingsChanged() const { 
-    return _animationSettingsChanged; 
+bool EntityItemProperties::animationSettingsChanged() const {
+    return _animationSettingsChanged;
 }
 
 void EntityItemProperties::setAnimationSettings(const QString& value) {
     // the animations setting is a JSON string that may contain various animation settings.
     // if it includes fps, frameIndex, or running, those values will be parsed out and
     // will over ride the regular animation settings
-    
+
     QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
     QJsonObject settingsAsJsonObject = settingsAsJson.object();
     QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
@@ -144,17 +144,17 @@ void EntityItemProperties::setAnimationSettings(const QString& value) {
         float fps = settingsMap["fps"].toFloat();
         setAnimationFPS(fps);
     }
-    
+
     if (settingsMap.contains("frameIndex")) {
         float frameIndex = settingsMap["frameIndex"].toFloat();
         setAnimationFrameIndex(frameIndex);
     }
-    
+
     if (settingsMap.contains("running")) {
         bool running = settingsMap["running"].toBool();
         setAnimationIsPlaying(running);
     }
-    
+
     _animationSettings = value;
     _animationSettingsChanged = true;
 }
@@ -164,20 +164,20 @@ QString EntityItemProperties::getAnimationSettings() const {
     // if it includes fps, frameIndex, or running, those values will be parsed out and
     // will over ride the regular animation settings
     QString value = _animationSettings;
-    
+
     QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
     QJsonObject settingsAsJsonObject = settingsAsJson.object();
     QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
-    
+
     QVariant fpsValue(getAnimationFPS());
     settingsMap["fps"] = fpsValue;
-    
+
     QVariant frameIndexValue(getAnimationFrameIndex());
     settingsMap["frameIndex"] = frameIndexValue;
-    
+
     QVariant runningValue(getAnimationIsPlaying());
     settingsMap["running"] = runningValue;
-    
+
     settingsAsJsonObject = QJsonObject::fromVariantMap(settingsMap);
     QJsonDocument newDocument(settingsAsJsonObject);
     QByteArray jsonByteArray = newDocument.toJson(QJsonDocument::Compact);
@@ -198,10 +198,10 @@ void EntityItemProperties::debugDump() const {
     qCDebug(entities) << "   _dimensions=" << getDimensions();
     qCDebug(entities) << "   _modelURL=" << _modelURL;
     qCDebug(entities) << "   _compoundShapeURL=" << _compoundShapeURL;
-    
+
     getAtmosphere().debugDump();
     getSkybox().debugDump();
-    
+
     qCDebug(entities) << "   changed properties...";
     EntityPropertyFlags props = getChangedProperties();
     props.debugDumpBits();
@@ -291,7 +291,7 @@ void EntityItemProperties::setBackgroundModeFromString(const QString& background
 
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
-    
+
     CHECK_PROPERTY_CHANGE(PROP_POSITION, position);
     CHECK_PROPERTY_CHANGE(PROP_DIMENSIONS, dimensions);
     CHECK_PROPERTY_CHANGE(PROP_ROTATION, rotation);
@@ -361,18 +361,18 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     changedProperties += _stage.getChangedProperties();
     changedProperties += _atmosphere.getChangedProperties();
     changedProperties += _skybox.getChangedProperties();
-    
+
     return changedProperties;
 }
 
 QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool skipDefaults) const {
     QScriptValue properties = engine->newObject();
     EntityItemProperties defaultEntityProperties;
-    
+
     if (_idSet) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(id, _id.toString());
     }
-    
+
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(type, EntityTypes::getEntityTypeName(_type));
     COPY_PROPERTY_TO_QSCRIPTVALUE(position);
     COPY_PROPERTY_TO_QSCRIPTVALUE(dimensions);
@@ -439,7 +439,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(marketplaceID);
     COPY_PROPERTY_TO_QSCRIPTVALUE(name);
     COPY_PROPERTY_TO_QSCRIPTVALUE(collisionSoundURL);
-    
+
     COPY_PROPERTY_TO_QSCRIPTVALUE(keyLightColor);
     COPY_PROPERTY_TO_QSCRIPTVALUE(keyLightIntensity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(keyLightAmbientIntensity);
@@ -469,7 +469,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         sittingPoints.setProperty("length", _sittingPoints.size());
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(sittingPoints, sittingPoints); // gettable, but not settable
     }
-    
+
     if (!skipDefaults) {
         AABox aaBox = getAABox();
         QScriptValue boundingBox = engine->newObject();
@@ -483,16 +483,16 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         boundingBox.setProperty("dimensions", boundingBoxDimensions);
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(boundingBox, boundingBox); // gettable, but not settable
     }
-    
+
     QString textureNamesList = _textureNames.join(",\n");
     if (!skipDefaults) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(originalTextures, textureNamesList); // gettable, but not settable
     }
-    
+
     _stage.copyToScriptValue(properties, engine, skipDefaults, defaultEntityProperties);
     _atmosphere.copyToScriptValue(properties, engine, skipDefaults, defaultEntityProperties);
     _skybox.copyToScriptValue(properties, engine, skipDefaults, defaultEntityProperties);
-    
+
     return properties;
 }
 
@@ -501,7 +501,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     if (typeScriptValue.isValid()) {
         setType(typeScriptValue.toVariant().toString());
     }
-    
+
     COPY_PROPERTY_FROM_QSCRIPTVALUE(position, glmVec3, setPosition);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dimensions, glmVec3, setDimensions);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(rotation, glmQuat, setRotation);
@@ -553,7 +553,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(marketplaceID, QString, setMarketplaceID);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(name, QString, setName);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionSoundURL, QString, setCollisionSoundURL);
-    
+
     COPY_PROPERTY_FROM_QSCRIPTVALUE(keyLightColor, xColor, setKeyLightColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(keyLightIntensity, float, setKeyLightIntensity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(keyLightAmbientIntensity, float, setKeyLightAmbientIntensity);
@@ -618,15 +618,14 @@ void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object
 //
 // TODO: Implement support for script and visible properties.
 //
-bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
-                                                  unsigned char* bufferOut, int sizeIn, int& sizeOut) {
-    OctreePacketData ourDataPacket(false, sizeIn); // create a packetData object to add out packet details too.
+bool EntityItemProperties::encodeEntityEditPacket(PacketType::Value command, EntityItemID id, const EntityItemProperties& properties,
+                                                  QByteArray& buffer) {
+    OctreePacketData ourDataPacket(false, buffer.size()); // create a packetData object to add out packet details too.
     OctreePacketData* packetData = &ourDataPacket; // we want a pointer to this so we can use our APPEND_ENTITY_PROPERTY macro
-    
+
     bool success = true; // assume the best
     OctreeElement::AppendState appendState = OctreeElement::COMPLETED; // assume the best
-    sizeOut = 0;
-    
+
     // TODO: We need to review how jurisdictions should be handled for entities. (The old Models and Particles code
     // didn't do anything special for jurisdictions, so we're keeping that same behavior here.)
     //
@@ -636,35 +635,35 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
     glm::vec3 rootPosition(0);
     float rootScale = 0.5f;
     unsigned char* octcode = pointToOctalCode(rootPosition.x, rootPosition.y, rootPosition.z, rootScale);
-    
+
     success = packetData->startSubTree(octcode);
     delete[] octcode;
-    
+
     // assuming we have rome to fit our octalCode, proceed...
     if (success) {
-        
+
         // Now add our edit content details...
-        
+
         // id
         // encode our ID as a byte count coded byte stream
         QByteArray encodedID = id.toRfc4122(); // NUM_BYTES_RFC4122_UUID
-        
+
         // encode our ID as a byte count coded byte stream
         ByteCountCoded<quint32> tokenCoder;
         QByteArray encodedToken;
-        
+
         // encode our type as a byte count coded byte stream
         ByteCountCoded<quint32> typeCoder = (quint32)properties.getType();
         QByteArray encodedType = typeCoder;
-        
+
         quint64 updateDelta = 0; // this is an edit so by definition, it's update is in sync
         ByteCountCoded<quint64> updateDeltaCoder = updateDelta;
         QByteArray encodedUpdateDelta = updateDeltaCoder;
-        
+
         EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
         EntityPropertyFlags requestedProperties = properties.getChangedProperties();
         EntityPropertyFlags propertiesDidntFit = requestedProperties;
-        
+
         // TODO: we need to handle the multi-pass form of this, similar to how we handle entity data
         //
         // If we are being called for a subsequent pass at appendEntityData() that failed to completely encode this item,
@@ -672,46 +671,46 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         //if (modelTreeElementExtraEncodeData && modelTreeElementExtraEncodeData->includedItems.contains(getEntityItemID())) {
         //    requestedProperties = modelTreeElementExtraEncodeData->includedItems.value(getEntityItemID());
         //}
-        
+
         LevelDetails entityLevel = packetData->startLevel();
-        
+
         // Last Edited quint64 always first, before any other details, which allows us easy access to adjusting this
         // timestamp for clock skew
         quint64 lastEdited = properties.getLastEdited();
         bool successLastEditedFits = packetData->appendValue(lastEdited);
-        
+
         bool successIDFits = packetData->appendRawData(encodedID);
         if (successIDFits) {
             successIDFits = packetData->appendRawData(encodedToken);
         }
         bool successTypeFits = packetData->appendRawData(encodedType);
-        
+
         // NOTE: We intentionally do not send "created" times in edit messages. This is because:
         //   1) if the edit is to an existing entity, the created time can not be changed
         //   2) if the edit is to a new entity, the created time is the last edited time
-        
+
         // TODO: Should we get rid of this in this in edit packets, since this has to always be 0?
         bool successLastUpdatedFits = packetData->appendRawData(encodedUpdateDelta);
-        
+
         int propertyFlagsOffset = packetData->getUncompressedByteOffset();
         QByteArray encodedPropertyFlags = propertyFlags;
         int oldPropertyFlagsLength = encodedPropertyFlags.length();
         bool successPropertyFlagsFits = packetData->appendRawData(encodedPropertyFlags);
         int propertyCount = 0;
-        
+
         bool headerFits = successIDFits && successTypeFits && successLastEditedFits
         && successLastUpdatedFits && successPropertyFlagsFits;
-        
+
         int startOfEntityItemData = packetData->getUncompressedByteOffset();
-        
+
         if (headerFits) {
             bool successPropertyFits;
             propertyFlags -= PROP_LAST_ITEM; // clear the last item for now, we may or may not set it as the actual item
-            
+
             // These items would go here once supported....
             //      PROP_PAGED_PROPERTY,
             //      PROP_CUSTOM_PROPERTIES_INCLUDED,
-            
+
             APPEND_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, properties._simulationOwner.toByteArray());
             APPEND_ENTITY_PROPERTY(PROP_POSITION, properties.getPosition());
             APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, properties.getDimensions()); // NOTE: PROP_RADIUS obsolete
@@ -737,12 +736,12 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_USER_DATA, properties.getUserData());
             APPEND_ENTITY_PROPERTY(PROP_HREF, properties.getHref());
             APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, properties.getDescription());
-            
-            
+
+
             if (properties.getType() == EntityTypes::Web) {
                 APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, properties.getSourceUrl());
             }
-            
+
             if (properties.getType() == EntityTypes::Text) {
                 APPEND_ENTITY_PROPERTY(PROP_TEXT, properties.getText());
                 APPEND_ENTITY_PROPERTY(PROP_LINE_HEIGHT, properties.getLineHeight());
@@ -750,7 +749,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, properties.getBackgroundColor());
                 APPEND_ENTITY_PROPERTY(PROP_FACE_CAMERA, properties.getFaceCamera());
             }
-            
+
             if (properties.getType() == EntityTypes::Model) {
                 APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, properties.getModelURL());
                 APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, properties.getCompoundShapeURL());
@@ -762,7 +761,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, properties.getAnimationSettings());
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)(properties.getShapeType()));
             }
-            
+
             if (properties.getType() == EntityTypes::Light) {
                 APPEND_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, properties.getIsSpotlight());
                 APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
@@ -770,7 +769,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_EXPONENT, properties.getExponent());
                 APPEND_ENTITY_PROPERTY(PROP_CUTOFF, properties.getCutoff());
             }
-            
+
             if (properties.getType() == EntityTypes::ParticleEffect) {
                 APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, properties.getAnimationFPS());
                 APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, properties.getAnimationFrameIndex());
@@ -785,24 +784,24 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_LOCAL_GRAVITY, properties.getLocalGravity());
                 APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, properties.getParticleRadius());
             }
-            
+
             if (properties.getType() == EntityTypes::Zone) {
                 APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, properties.getKeyLightColor());
                 APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY,  properties.getKeyLightIntensity());
                 APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, properties.getKeyLightAmbientIntensity());
                 APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, properties.getKeyLightDirection());
-                
+
                 _staticStage.setProperties(properties);
                 _staticStage.appentToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit,  propertyCount, appendState );
-                
+
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)properties.getShapeType());
                 APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, properties.getCompoundShapeURL());
-                
+
                 APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, (uint32_t)properties.getBackgroundMode());
-                
+
                 _staticAtmosphere.setProperties(properties);
                 _staticAtmosphere.appentToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit,  propertyCount, appendState );
-                
+
                 _staticSkybox.setProperties(properties);
                 _staticSkybox.appentToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit,  propertyCount, appendState );
             }
@@ -812,12 +811,12 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_VOXEL_DATA, properties.getVoxelData());
                 APPEND_ENTITY_PROPERTY(PROP_VOXEL_SURFACE_STYLE, properties.getVoxelSurfaceStyle());
             }
-            
+
             if (properties.getType() == EntityTypes::Line) {
                 APPEND_ENTITY_PROPERTY(PROP_LINE_WIDTH, properties.getLineWidth());
                 APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, properties.getLinePoints());
             }
-            
+
             APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, properties.getMarketplaceID());
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
             APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, properties.getCollisionSoundURL());
@@ -825,62 +824,63 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         }
         if (propertyCount > 0) {
             int endOfEntityItemData = packetData->getUncompressedByteOffset();
-            
+
             encodedPropertyFlags = propertyFlags;
             int newPropertyFlagsLength = encodedPropertyFlags.length();
             packetData->updatePriorBytes(propertyFlagsOffset,
                                          (const unsigned char*)encodedPropertyFlags.constData(), encodedPropertyFlags.length());
-            
+
             // if the size of the PropertyFlags shrunk, we need to shift everything down to front of packet.
             if (newPropertyFlagsLength < oldPropertyFlagsLength) {
                 int oldSize = packetData->getUncompressedSize();
-                
+
                 const unsigned char* modelItemData = packetData->getUncompressedData(propertyFlagsOffset + oldPropertyFlagsLength);
                 int modelItemDataLength = endOfEntityItemData - startOfEntityItemData;
                 int newEntityItemDataStart = propertyFlagsOffset + newPropertyFlagsLength;
                 packetData->updatePriorBytes(newEntityItemDataStart, modelItemData, modelItemDataLength);
-                
+
                 int newSize = oldSize - (oldPropertyFlagsLength - newPropertyFlagsLength);
                 packetData->setUncompressedSize(newSize);
-                
+
             } else {
                 assert(newPropertyFlagsLength == oldPropertyFlagsLength); // should not have grown
             }
-            
+
             packetData->endLevel(entityLevel);
         } else {
             packetData->discardLevel(entityLevel);
             appendState = OctreeElement::NONE; // if we got here, then we didn't include the item
         }
-        
+
         // If any part of the model items didn't fit, then the element is considered partial
         if (appendState != OctreeElement::COMPLETED) {
-            
+
             // TODO: handle mechanism for handling partial fitting data!
             // add this item into our list for the next appendElementData() pass
             //modelTreeElementExtraEncodeData->includedItems.insert(getEntityItemID(), propertiesDidntFit);
-            
+
             // for now, if it's not complete, it's not successful
             success = false;
         }
     }
-    
+
     if (success) {
         packetData->endSubTree();
-        const unsigned char* finalizedData = packetData->getFinalizedData();
-        int  finalizedSize = packetData->getFinalizedSize();
-        if (finalizedSize <= sizeIn) {
-            memcpy(bufferOut, finalizedData, finalizedSize);
-            sizeOut = finalizedSize;
+
+        const char* finalizedData = reinterpret_cast<const char*>(packetData->getFinalizedData());
+        int finalizedSize = packetData->getFinalizedSize();
+
+        if (finalizedSize <= buffer.size()) {
+            buffer.replace(0, finalizedSize, finalizedData, finalizedSize);
+            buffer.resize(finalizedSize);
         } else {
             qCDebug(entities) << "ERROR - encoded edit message doesn't fit in output buffer.";
-            sizeOut = 0;
             success = false;
         }
     } else {
         packetData->discardSubTree();
-        sizeOut = 0;
     }
+
     return success;
 }
 
@@ -906,16 +906,16 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     
     const unsigned char* dataAt = data;
     processedBytes = 0;
-    
+
     // the first part of the data is an octcode, this is a required element of the edit packet format, but we don't
     // actually use it, we do need to skip it and read to the actual data we care about.
     int octets = numberOfThreeBitSectionsInCode(data);
     int bytesToReadOfOctcode = bytesRequiredForCodeLength(octets);
-    
+
     // we don't actually do anything with this octcode...
     dataAt += bytesToReadOfOctcode;
     processedBytes += bytesToReadOfOctcode;
-    
+
     // Edit packets have a last edited time stamp immediately following the octcode.
     // NOTE: the edit times have been set by the editor to match out clock, so we don't need to adjust
     // these times for clock skew at this point.
@@ -924,20 +924,19 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     dataAt += sizeof(lastEdited);
     processedBytes += sizeof(lastEdited);
     properties.setLastEdited(lastEdited);
-    
+
     // NOTE: We intentionally do not send "created" times in edit messages. This is because:
     //   1) if the edit is to an existing entity, the created time can not be changed
     //   2) if the edit is to a new entity, the created time is the last edited time
-    
+
     // encoded id
-    QByteArray encodedID((const char*)dataAt, NUM_BYTES_RFC4122_UUID); // maximum possible size
-    QUuid editID = QUuid::fromRfc4122(encodedID);
-    dataAt += encodedID.size();
-    processedBytes += encodedID.size();
-    
+    QUuid editID = QUuid::fromRfc4122(QByteArray::fromRawData(reinterpret_cast<const char*>(dataAt), NUM_BYTES_RFC4122_UUID));
+    dataAt += NUM_BYTES_RFC4122_UUID;
+    processedBytes += NUM_BYTES_RFC4122_UUID;
+
     entityID = editID;
     valid = true;
-    
+
     // Entity Type...
     QByteArray encodedType((const char*)dataAt, (bytesToRead - processedBytes));
     ByteCountCoded<quint32> typeCoder = encodedType;
@@ -946,22 +945,22 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     encodedType = typeCoder; // determine true bytesToRead
     dataAt += encodedType.size();
     processedBytes += encodedType.size();
-    
+
     // Update Delta - when was this item updated relative to last edit... this really should be 0
     // TODO: Should we get rid of this in this in edit packets, since this has to always be 0?
     // TODO: do properties need to handle lastupdated???
-    
+
     // last updated is stored as ByteCountCoded delta from lastEdited
     QByteArray encodedUpdateDelta((const char*)dataAt, (bytesToRead - processedBytes));
     ByteCountCoded<quint64> updateDeltaCoder = encodedUpdateDelta;
     encodedUpdateDelta = updateDeltaCoder; // determine true bytesToRead
     dataAt += encodedUpdateDelta.size();
     processedBytes += encodedUpdateDelta.size();
-    
+
     // TODO: Do we need this lastUpdated?? We don't seem to use it.
     //quint64 updateDelta = updateDeltaCoder;
     //quint64 lastUpdated = lastEdited + updateDelta; // don't adjust for clock skew since we already did that for lastEdited
-    
+
     // Property Flags...
     QByteArray encodedPropertyFlags((const char*)dataAt, (bytesToRead - processedBytes));
     EntityPropertyFlags propertyFlags = encodedPropertyFlags;
@@ -993,12 +992,12 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_USER_DATA, QString, setUserData);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HREF, QString, setHref);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DESCRIPTION, QString, setDescription);
-    
-    
+
+
     if (properties.getType() == EntityTypes::Web) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SOURCE_URL, QString, setSourceUrl);
     }
-    
+
     if (properties.getType() == EntityTypes::Text) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT, QString, setText);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_HEIGHT, float, setLineHeight);
@@ -1006,7 +1005,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BACKGROUND_COLOR, xColor, setBackgroundColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FACE_CAMERA, bool, setFaceCamera);
     }
-    
+
     if (properties.getType() == EntityTypes::Model) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MODEL_URL, QString, setModelURL);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
@@ -1018,7 +1017,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
     }
-    
+
     if (properties.getType() == EntityTypes::Light) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IS_SPOTLIGHT, bool, setIsSpotlight);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, xColor, setColor);
@@ -1026,14 +1025,14 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EXPONENT, float, setExponent);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CUTOFF, float, setCutoff);
     }
-    
+
     if (properties.getType() == EntityTypes::ParticleEffect) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FPS, float, setAnimationFPS);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
-        
+
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_PARTICLES, float, setMaxParticles);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFESPAN, float, setLifespan);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_RATE, float, setEmitRate);
@@ -1042,15 +1041,15 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCAL_GRAVITY, float, setLocalGravity);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARTICLE_RADIUS, float, setParticleRadius);
     }
-    
+
     if (properties.getType() == EntityTypes::Zone) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEYLIGHT_COLOR, xColor, setKeyLightColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEYLIGHT_INTENSITY,  float, setKeyLightIntensity);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEYLIGHT_AMBIENT_INTENSITY, float, setKeyLightAmbientIntensity);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEYLIGHT_DIRECTION, glm::vec3, setKeyLightDirection);
-        
+
         properties.getStage().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
-        
+
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
@@ -1063,12 +1062,12 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_DATA, QByteArray, setVoxelData);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_SURFACE_STYLE, uint16_t, setVoxelSurfaceStyle);
     }
-    
+
     if (properties.getType() == EntityTypes::Line) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_WIDTH, float, setLineWidth);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
     }
-    
+
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NAME, QString, setName);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
@@ -1081,28 +1080,28 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
 // NOTE: This version will only encode the portion of the edit message immediately following the
 // header it does not include the send times and sequence number because that is handled by the
 // edit packet sender...
-bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityItemID,
-                                                    unsigned char* outputBuffer, size_t maxLength, size_t& outputLength) {
-    
-    unsigned char* copyAt = outputBuffer;
+bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityItemID, QByteArray& buffer) {
+
+    char* copyAt = buffer.data();
     uint16_t numberOfIds = 1; // only one entity ID in this message
-    
-    if (maxLength < sizeof(numberOfIds) + NUM_BYTES_RFC4122_UUID) {
+
+    int outputLength = 0;
+
+    if (buffer.size() < (int) (sizeof(numberOfIds) + NUM_BYTES_RFC4122_UUID)) {
         qCDebug(entities) << "ERROR - encodeEraseEntityMessage() called with buffer that is too small!";
-        outputLength = 0;
         return false;
     }
+
     memcpy(copyAt, &numberOfIds, sizeof(numberOfIds));
     copyAt += sizeof(numberOfIds);
     outputLength = sizeof(numberOfIds);
-    
-    QUuid entityID = entityItemID;
-    QByteArray encodedEntityID = entityID.toRfc4122();
-    
-    memcpy(copyAt, encodedEntityID.constData(), NUM_BYTES_RFC4122_UUID);
+
+    memcpy(copyAt, entityItemID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
     copyAt += NUM_BYTES_RFC4122_UUID;
     outputLength += NUM_BYTES_RFC4122_UUID;
-    
+
+    buffer.resize(outputLength);
+
     return true;
 }
 
@@ -1141,19 +1140,19 @@ void EntityItemProperties::markAllChanged() {
     _isSpotlightChanged = true;
     _ignoreForCollisionsChanged = true;
     _collisionsWillMoveChanged = true;
-    
+
     _intensityChanged = true;
     _exponentChanged = true;
     _cutoffChanged = true;
     _lockedChanged = true;
     _texturesChanged = true;
-    
+
     _textChanged = true;
     _lineHeightChanged = true;
     _textColorChanged = true;
     _backgroundColorChanged = true;
     _shapeTypeChanged = true;
-    
+
     _maxParticlesChanged = true;
     _lifespanChanged = true;
     _emitRateChanged = true;
@@ -1161,24 +1160,24 @@ void EntityItemProperties::markAllChanged() {
     _emitStrengthChanged = true;
     _localGravityChanged = true;
     _particleRadiusChanged = true;
-    
+
     _marketplaceIDChanged = true;
-    
+
     _keyLightColorChanged = true;
     _keyLightIntensityChanged = true;
     _keyLightAmbientIntensityChanged = true;
     _keyLightDirectionChanged = true;
-    
+
     _backgroundModeChanged = true;
     _stage.markAllChanged();
     _atmosphere.markAllChanged();
     _skybox.markAllChanged();
-    
+
     _sourceUrlChanged = true;
     _voxelVolumeSizeChanged = true;
     _voxelDataChanged = true;
     _voxelSurfaceStyleChanged = true;
-    
+
     _lineWidthChanged = true;
     _linePointsChanged = true;
 
@@ -1194,40 +1193,40 @@ void EntityItemProperties::markAllChanged() {
 AACube EntityItemProperties::getMaximumAACube() const {
     // * we know that the position is the center of rotation
     glm::vec3 centerOfRotation = _position; // also where _registration point is
-    
+
     // * we know that the registration point is the center of rotation
     // * we can calculate the length of the furthest extent from the registration point
     //   as the dimensions * max (registrationPoint, (1.0,1.0,1.0) - registrationPoint)
     glm::vec3 registrationPoint = (_dimensions * _registrationPoint);
     glm::vec3 registrationRemainder = (_dimensions * (glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint));
     glm::vec3 furthestExtentFromRegistration = glm::max(registrationPoint, registrationRemainder);
-    
+
     // * we know that if you rotate in any direction you would create a sphere
     //   that has a radius of the length of furthest extent from registration point
     float radius = glm::length(furthestExtentFromRegistration);
-    
+
     // * we know that the minimum bounding cube of this maximum possible sphere is
     //   (center - radius) to (center + radius)
     glm::vec3 minimumCorner = centerOfRotation - glm::vec3(radius, radius, radius);
     float diameter = radius * 2.0f;
-    
+
     return AACube(minimumCorner, diameter);
 }
 
 // The minimum bounding box for the entity.
 AABox EntityItemProperties::getAABox() const {
-    
+
     // _position represents the position of the registration point.
     glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
-    
+
     glm::vec3 unrotatedMinRelativeToEntity = - (_dimensions * _registrationPoint);
     glm::vec3 unrotatedMaxRelativeToEntity = _dimensions * registrationRemainder;
     Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
     Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());
-    
+
     // shift the extents to be relative to the position/registration point
     rotatedExtentsRelativeToRegistrationPoint.shiftBy(_position);
-    
+
     return AABox(rotatedExtentsRelativeToRegistrationPoint);
 }
 
@@ -1237,7 +1236,7 @@ bool EntityItemProperties::hasTerseUpdateChanges() const {
 }
 
 bool EntityItemProperties::hasMiscPhysicsChanges() const {
-    return _gravityChanged || _dimensionsChanged || _densityChanged || _frictionChanged 
+    return _gravityChanged || _dimensionsChanged || _densityChanged || _frictionChanged
         || _restitutionChanged || _dampingChanged || _angularDampingChanged || _registrationPointChanged ||
         _compoundShapeURLChanged || _collisionsWillMoveChanged || _ignoreForCollisionsChanged;
 }

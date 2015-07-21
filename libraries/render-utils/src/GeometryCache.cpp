@@ -10,8 +10,6 @@
 //
 
 // include this before QOpenGLBuffer, which includes an earlier version of OpenGL
-#include <gpu/GPUConfig.h>
-
 #include <cmath>
 
 #include <QNetworkReply>
@@ -55,8 +53,6 @@ const int NUM_VERTICES_PER_TRIANGLE = 3;
 const int NUM_TRIANGLES_PER_QUAD = 2;
 const int NUM_VERTICES_PER_TRIANGULATED_QUAD = NUM_VERTICES_PER_TRIANGLE * NUM_TRIANGLES_PER_QUAD;
 const int NUM_COORDS_PER_VERTEX = 3;
-const int NUM_BYTES_PER_VERTEX = NUM_COORDS_PER_VERTEX * sizeof(GLfloat);
-const int NUM_BYTES_PER_INDEX = sizeof(GLushort);
 
 void GeometryCache::renderSphere(float radius, int slices, int stacks, const glm::vec4& color, bool solid, int id) {
     gpu::Batch batch;
@@ -83,8 +79,8 @@ void GeometryCache::renderSphere(gpu::Batch& batch, float radius, int slices, in
                 qCDebug(renderutils) << "renderSphere()... RELEASING REGISTERED VERTICES BUFFER";
             #endif
         }
-
-        gpu::BufferPointer verticesBuffer(new gpu::Buffer());
+        
+        auto verticesBuffer = std::make_shared<gpu::Buffer>();
         if (registered) {
             _registeredSphereVertices[id] = verticesBuffer;
             _lastRegisteredSphereVertices[id] = radiusKey;
@@ -148,7 +144,7 @@ void GeometryCache::renderSphere(gpu::Batch& batch, float radius, int slices, in
             #endif
         }
 
-        gpu::BufferPointer indicesBuffer(new gpu::Buffer());
+        auto indicesBuffer = std::make_shared<gpu::Buffer>();
         if (registered) {
             _registeredSphereIndices[id] = indicesBuffer;
             _lastRegisteredSphereIndices[id] = slicesStacksKey;
@@ -233,8 +229,8 @@ void GeometryCache::renderSphere(gpu::Batch& batch, float radius, int slices, in
                 qCDebug(renderutils) << "renderSphere()... RELEASING REGISTERED COLORS BUFFER";
             #endif
         }
-
-        gpu::BufferPointer colorBuffer(new gpu::Buffer());
+        
+        auto colorBuffer = std::make_shared<gpu::Buffer>();
         if (registered) {
             _registeredSphereColors[id] = colorBuffer;
             _lastRegisteredSphereColors[id] = colorKey;
@@ -282,7 +278,7 @@ void GeometryCache::renderSphere(gpu::Batch& batch, float radius, int slices, in
     static gpu::Stream::FormatPointer streamFormat;
     static gpu::Element positionElement, normalElement, colorElement;
     if (!streamFormat) {
-        streamFormat.reset(new gpu::Stream::Format()); // 1 for everyone
+        streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
         streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
         streamFormat->setAttribute(gpu::Stream::NORMAL, NORMALS_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
         streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
@@ -308,106 +304,6 @@ void GeometryCache::renderSphere(gpu::Batch& batch, float radius, int slices, in
     }
 }
 
-void GeometryCache::renderCone(float base, float height, int slices, int stacks) {
-    VerticesIndices& vbo = _coneVBOs[IntPair(slices, stacks)];
-    int vertices = (stacks + 2) * slices;
-    int baseTriangles = slices - 2;
-    int indices = NUM_VERTICES_PER_TRIANGULATED_QUAD * slices * stacks + NUM_VERTICES_PER_TRIANGLE * baseTriangles;
-    if (vbo.first == 0) {
-        GLfloat* vertexData = new GLfloat[vertices * NUM_COORDS_PER_VERTEX * 2];
-        GLfloat* vertex = vertexData;
-        // cap
-        for (int i = 0; i < slices; i++) {
-            float theta = TWO_PI * i / slices;
-            
-            //normals
-            *(vertex++) = 0.0f;
-            *(vertex++) = 0.0f;
-            *(vertex++) = -1.0f;
-
-            // vertices
-            *(vertex++) = cosf(theta);
-            *(vertex++) = sinf(theta);
-            *(vertex++) = 0.0f;
-        }
-        // body
-        for (int i = 0; i <= stacks; i++) {
-            float z = (float)i / stacks;
-            float radius = 1.0f - z;
-            
-            for (int j = 0; j < slices; j++) {
-                float theta = TWO_PI * j / slices;
-
-                //normals
-                *(vertex++) = cosf(theta) / SQUARE_ROOT_OF_2;
-                *(vertex++) = sinf(theta) / SQUARE_ROOT_OF_2;
-                *(vertex++) = 1.0f / SQUARE_ROOT_OF_2;
-
-                // vertices
-                *(vertex++) = radius * cosf(theta);
-                *(vertex++) = radius * sinf(theta);
-                *(vertex++) = z;
-            }
-        }
-        
-        glGenBuffers(1, &vbo.first);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        glBufferData(GL_ARRAY_BUFFER, 2 * vertices * NUM_BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
-        delete[] vertexData;
-        
-        GLushort* indexData = new GLushort[indices];
-        GLushort* index = indexData;
-        for (int i = 0; i < baseTriangles; i++) {
-            *(index++) = 0;
-            *(index++) = i + 2;
-            *(index++) = i + 1;
-        }
-        for (int i = 1; i <= stacks; i++) {
-            GLushort bottom = i * slices;
-            GLushort top = bottom + slices;
-            for (int j = 0; j < slices; j++) {
-                int next = (j + 1) % slices;
-                
-                *(index++) = bottom + j;
-                *(index++) = top + next;
-                *(index++) = top + j;
-                
-                *(index++) = bottom + j;
-                *(index++) = bottom + next;
-                *(index++) = top + next;
-            }
-        }
-        
-        glGenBuffers(1, &vbo.second);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
-        delete[] indexData;
-        
-    } else {
-        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
-    }
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_NORMAL_ARRAY);
-
-    int stride = NUM_VERTICES_PER_TRIANGULATED_QUAD * sizeof(float);
-    glNormalPointer(GL_FLOAT, stride, 0);
-    glVertexPointer(NUM_COORDS_PER_VERTEX, GL_FLOAT, stride, (const void *)(NUM_COORDS_PER_VERTEX * sizeof(float)));
-    
-    glPushMatrix();
-    glScalef(base, base, height);
-    
-    glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
-    
-    glPopMatrix();
-    
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_NORMAL_ARRAY);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-}
-
 void GeometryCache::renderGrid(int xDivisions, int yDivisions, const glm::vec4& color) {
     gpu::Batch batch;
     renderGrid(batch, xDivisions, yDivisions, color);
@@ -420,7 +316,7 @@ void GeometryCache::renderGrid(gpu::Batch& batch, int xDivisions, int yDivisions
 
     int vertices = (xDivisions + 1 + yDivisions + 1) * 2;
     if (!_gridBuffers.contains(key)) {
-        gpu::BufferPointer verticesBuffer(new gpu::Buffer());
+        auto verticesBuffer = std::make_shared<gpu::Buffer>();
 
         GLfloat* vertexData = new GLfloat[vertices * 2];
         GLfloat* vertex = vertexData;
@@ -451,7 +347,7 @@ void GeometryCache::renderGrid(gpu::Batch& batch, int xDivisions, int yDivisions
     }
 
     if (!_gridColors.contains(colorKey)) {
-        gpu::BufferPointer colorBuffer(new gpu::Buffer());
+        auto colorBuffer = std::make_shared<gpu::Buffer>();
         _gridColors[colorKey] = colorBuffer;
 
         int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
@@ -474,7 +370,7 @@ void GeometryCache::renderGrid(gpu::Batch& batch, int xDivisions, int yDivisions
 
     const int VERTICES_SLOT = 0;
     const int COLOR_SLOT = 1;
-    gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format()); // 1 for everyone
+    auto streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
     
     streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
     streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
@@ -494,7 +390,6 @@ void GeometryCache::renderGrid(int x, int y, int width, int height, int rows, in
     gpu::GLBackend::renderBatch(batch);
 }
 
-// TODO: properly handle the x,y,w,h changing for an ID
 // TODO: why do we seem to create extra BatchItemDetails when we resize the window?? what's that??
 void GeometryCache::renderGrid(gpu::Batch& batch, int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id) {
     #ifdef WANT_DEBUG
@@ -512,8 +407,23 @@ void GeometryCache::renderGrid(gpu::Batch& batch, int x, int y, int width, int h
     Vec3Pair colorKey(glm::vec3(color.x, color.y, rows), glm::vec3(color.z, color.y, cols));
 
     int vertices = (cols + 1 + rows + 1) * 2;
-    if ((registered && !_registeredAlternateGridBuffers.contains(id)) || (!registered && !_alternateGridBuffers.contains(key))) {
-        gpu::BufferPointer verticesBuffer(new gpu::Buffer());
+    if ((registered && (!_registeredAlternateGridBuffers.contains(id) || _lastRegisteredAlternateGridBuffers[id] != key))
+        || (!registered && !_alternateGridBuffers.contains(key))) {
+
+        if (registered && _registeredAlternateGridBuffers.contains(id)) {
+            _registeredAlternateGridBuffers[id].reset();
+            #ifdef WANT_DEBUG
+                qCDebug(renderutils) << "renderGrid()... RELEASING REGISTERED VERTICES BUFFER";
+            #endif
+        }
+
+        auto verticesBuffer = std::make_shared<gpu::Buffer>();
+        if (registered) {
+            _registeredAlternateGridBuffers[id] = verticesBuffer;
+            _lastRegisteredAlternateGridBuffers[id] = key;
+        } else {
+            _alternateGridBuffers[key] = verticesBuffer;
+        }
 
         GLfloat* vertexData = new GLfloat[vertices * 2];
         GLfloat* vertex = vertexData;
@@ -535,8 +445,6 @@ void GeometryCache::renderGrid(gpu::Batch& batch, int x, int y, int width, int h
         }
         // Draw vertical grid lines
         for (int i = cols + 1; --i >= 0; ) {
-            //glVertex2i(tx, y);
-            //glVertex2i(tx, y + height);
             *(vertex++) = tx;
             *(vertex++) = y;
 
@@ -547,16 +455,10 @@ void GeometryCache::renderGrid(gpu::Batch& batch, int x, int y, int width, int h
 
         verticesBuffer->append(sizeof(GLfloat) * vertices * 2, (gpu::Byte*) vertexData);
         delete[] vertexData;
-        
-        if (registered) {
-            _registeredAlternateGridBuffers[id] = verticesBuffer;
-        } else {
-            _alternateGridBuffers[key] = verticesBuffer;
-        }
     }
 
     if (!_gridColors.contains(colorKey)) {
-        gpu::BufferPointer colorBuffer(new gpu::Buffer());
+        auto colorBuffer = std::make_shared<gpu::Buffer>();
         _gridColors[colorKey] = colorBuffer;
 
         int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
@@ -581,7 +483,7 @@ void GeometryCache::renderGrid(gpu::Batch& batch, int x, int y, int width, int h
 
     const int VERTICES_SLOT = 0;
     const int COLOR_SLOT = 1;
-    gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format()); // 1 for everyone
+    auto streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
     
     streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
     streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
@@ -609,11 +511,11 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
     details.isCreated = true;
     details.vertices = points.size();
     details.vertexSize = FLOATS_PER_VERTEX;
-
-    gpu::BufferPointer verticesBuffer(new gpu::Buffer());
-    gpu::BufferPointer colorBuffer(new gpu::Buffer());
-    gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format());
-    gpu::BufferStreamPointer stream(new gpu::BufferStream());
+    
+    auto verticesBuffer = std::make_shared<gpu::Buffer>();
+    auto colorBuffer = std::make_shared<gpu::Buffer>();
+    auto streamFormat = std::make_shared<gpu::Stream::Format>();
+    auto stream = std::make_shared<gpu::BufferStream>();
 
     details.verticesBuffer = verticesBuffer;
     details.colorBuffer = colorBuffer;
@@ -670,11 +572,11 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
     details.isCreated = true;
     details.vertices = points.size();
     details.vertexSize = FLOATS_PER_VERTEX;
-
-    gpu::BufferPointer verticesBuffer(new gpu::Buffer());
-    gpu::BufferPointer colorBuffer(new gpu::Buffer());
-    gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format());
-    gpu::BufferStreamPointer stream(new gpu::BufferStream());
+    
+    auto verticesBuffer = std::make_shared<gpu::Buffer>();
+    auto colorBuffer = std::make_shared<gpu::Buffer>();
+    auto streamFormat = std::make_shared<gpu::Stream::Format>();
+    auto stream = std::make_shared<gpu::BufferStream>();
 
     details.verticesBuffer = verticesBuffer;
     details.colorBuffer = colorBuffer;
@@ -733,11 +635,11 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
     details.isCreated = true;
     details.vertices = points.size();
     details.vertexSize = FLOATS_PER_VERTEX;
-
-    gpu::BufferPointer verticesBuffer(new gpu::Buffer());
-    gpu::BufferPointer colorBuffer(new gpu::Buffer());
-    gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format());
-    gpu::BufferStreamPointer stream(new gpu::BufferStream());
+    
+    auto verticesBuffer = std::make_shared<gpu::Buffer>();
+    auto colorBuffer = std::make_shared<gpu::Buffer>();
+    auto streamFormat = std::make_shared<gpu::Stream::Format>();
+    auto stream = std::make_shared<gpu::BufferStream>();
 
     details.verticesBuffer = verticesBuffer;
     details.colorBuffer = colorBuffer;
@@ -824,7 +726,7 @@ void GeometryCache::renderSolidCube(gpu::Batch& batch, float size, const glm::ve
     const int NORMALS_OFFSET = sizeof(GLfloat) * FLOATS_PER_VERTEX;
 
     if (!_solidCubeVertices.contains(size)) {
-        gpu::BufferPointer verticesBuffer(new gpu::Buffer());
+        auto verticesBuffer = std::make_shared<gpu::Buffer>();
         _solidCubeVertices[size] = verticesBuffer;
 
         GLfloat* vertexData = new GLfloat[vertexPoints * 2]; // vertices and normals
@@ -875,15 +777,15 @@ void GeometryCache::renderSolidCube(gpu::Batch& batch, float size, const glm::ve
                                      12,13,14,  14,15,12,      // left
                                      16,17,18,  18,19,16,      // bottom
                                      20,21,22,  22,23,20 };    // back
-
-        gpu::BufferPointer indexBuffer(new gpu::Buffer());
+        
+        auto indexBuffer = std::make_shared<gpu::Buffer>();
         _solidCubeIndexBuffer = indexBuffer;
     
         _solidCubeIndexBuffer->append(sizeof(cannonicalIndices), (gpu::Byte*) cannonicalIndices);
     }
 
     if (!_solidCubeColors.contains(colorKey)) {
-        gpu::BufferPointer colorBuffer(new gpu::Buffer());
+        auto colorBuffer = std::make_shared<gpu::Buffer>();
         _solidCubeColors[colorKey] = colorBuffer;
 
         const int NUM_COLOR_SCALARS_PER_CUBE = 24;
@@ -909,7 +811,7 @@ void GeometryCache::renderSolidCube(gpu::Batch& batch, float size, const glm::ve
     static gpu::Stream::FormatPointer streamFormat;
     static gpu::Element positionElement, normalElement, colorElement;
     if (!streamFormat) {
-        streamFormat.reset(new gpu::Stream::Format()); // 1 for everyone
+        streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
         streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
         streamFormat->setAttribute(gpu::Stream::NORMAL, NORMALS_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
         streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
@@ -948,7 +850,7 @@ void GeometryCache::renderWireCube(gpu::Batch& batch, float size, const glm::vec
     const int indices = (TOP_EDGES + BOTTOM_EDGES + SIDE_EDGES) * VERTICES_PER_EDGE;
 
     if (!_cubeVerticies.contains(size)) {
-        gpu::BufferPointer verticesBuffer(new gpu::Buffer());
+        auto verticesBuffer = std::make_shared<gpu::Buffer>();
         _cubeVerticies[size] = verticesBuffer;
 
         int vertexPoints = vertices * FLOATS_PER_VERTEX;
@@ -974,15 +876,15 @@ void GeometryCache::renderWireCube(gpu::Batch& batch, float size, const glm::vec
                                       4, 5,  5, 6,  6, 7,  7, 4, // (bottom)
                                       0, 4,  1, 5,  2, 6,  3, 7, // (side edges)
                                     };
-
-        gpu::BufferPointer indexBuffer(new gpu::Buffer());
+        
+        auto indexBuffer = std::make_shared<gpu::Buffer>();
         _wireCubeIndexBuffer = indexBuffer;
     
         _wireCubeIndexBuffer->append(sizeof(cannonicalIndices), (gpu::Byte*) cannonicalIndices);
     }
 
     if (!_cubeColors.contains(colorKey)) {
-        gpu::BufferPointer colorBuffer(new gpu::Buffer());
+        auto colorBuffer = std::make_shared<gpu::Buffer>();
         _cubeColors[colorKey] = colorBuffer;
 
         const int NUM_COLOR_SCALARS_PER_CUBE = 8;
@@ -1003,7 +905,7 @@ void GeometryCache::renderWireCube(gpu::Batch& batch, float size, const glm::vec
     static gpu::Stream::FormatPointer streamFormat;
     static gpu::Element positionElement, colorElement;
     if (!streamFormat) {
-        streamFormat.reset(new gpu::Stream::Format()); // 1 for everyone
+        streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
         streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
         streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
         positionElement = streamFormat->getAttributes().at(gpu::Stream::POSITION)._element;
@@ -1055,11 +957,11 @@ void GeometryCache::renderBevelCornersRect(gpu::Batch& batch, int x, int y, int 
         details.isCreated = true;
         details.vertices = NUM_VERTICES;
         details.vertexSize = FLOATS_PER_VERTEX;
-
-        gpu::BufferPointer verticesBuffer(new gpu::Buffer());
-        gpu::BufferPointer colorBuffer(new gpu::Buffer());
-        gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format());
-        gpu::BufferStreamPointer stream(new gpu::BufferStream());
+        
+        auto verticesBuffer = std::make_shared<gpu::Buffer>();
+        auto colorBuffer = std::make_shared<gpu::Buffer>();
+        auto streamFormat = std::make_shared<gpu::Stream::Format>();
+        auto stream = std::make_shared<gpu::BufferStream>();
 
         details.verticesBuffer = verticesBuffer;
         details.colorBuffer = colorBuffer;
@@ -1163,11 +1065,11 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
         details.isCreated = true;
         details.vertices = vertices;
         details.vertexSize = FLOATS_PER_VERTEX;
-
-        gpu::BufferPointer verticesBuffer(new gpu::Buffer());
-        gpu::BufferPointer colorBuffer(new gpu::Buffer());
-        gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format());
-        gpu::BufferStreamPointer stream(new gpu::BufferStream());
+        
+        auto verticesBuffer = std::make_shared<gpu::Buffer>();
+        auto colorBuffer = std::make_shared<gpu::Buffer>();
+        auto streamFormat = std::make_shared<gpu::Stream::Format>();
+        auto stream = std::make_shared<gpu::BufferStream>();
 
         details.verticesBuffer = verticesBuffer;
         details.colorBuffer = colorBuffer;
@@ -1269,11 +1171,11 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
         details.isCreated = true;
         details.vertices = vertices;
         details.vertexSize = FLOATS_PER_VERTEX;
-
-        gpu::BufferPointer verticesBuffer(new gpu::Buffer());
-        gpu::BufferPointer colorBuffer(new gpu::Buffer());
-        gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format());
-        gpu::BufferStreamPointer stream(new gpu::BufferStream());
+        
+        auto verticesBuffer = std::make_shared<gpu::Buffer>();
+        auto colorBuffer = std::make_shared<gpu::Buffer>();
+        auto streamFormat = std::make_shared<gpu::Stream::Format>();
+        auto stream = std::make_shared<gpu::BufferStream>();
 
         details.verticesBuffer = verticesBuffer;
         details.colorBuffer = colorBuffer;
@@ -1348,11 +1250,11 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, co
         details.isCreated = true;
         details.vertices = vertices;
         details.vertexSize = FLOATS_PER_VERTEX;
-
-        gpu::BufferPointer verticesBuffer(new gpu::Buffer());
-        gpu::BufferPointer colorBuffer(new gpu::Buffer());
-        gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format());
-        gpu::BufferStreamPointer stream(new gpu::BufferStream());
+        
+        auto verticesBuffer = std::make_shared<gpu::Buffer>();
+        auto colorBuffer = std::make_shared<gpu::Buffer>();
+        auto streamFormat = std::make_shared<gpu::Stream::Format>();
+        auto stream = std::make_shared<gpu::BufferStream>();
 
         details.verticesBuffer = verticesBuffer;
         details.colorBuffer = colorBuffer;
@@ -1451,11 +1353,11 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, cons
         details.isCreated = true;
         details.vertices = vertices;
         details.vertexSize = FLOATS_PER_VERTEX; // NOTE: this isn't used for BatchItemDetails maybe we can get rid of it
-
-        gpu::BufferPointer verticesBuffer(new gpu::Buffer());
-        gpu::BufferPointer colorBuffer(new gpu::Buffer());
-        gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format());
-        gpu::BufferStreamPointer stream(new gpu::BufferStream());
+        
+        auto verticesBuffer = std::make_shared<gpu::Buffer>();
+        auto colorBuffer = std::make_shared<gpu::Buffer>();
+        auto streamFormat = std::make_shared<gpu::Stream::Format>();
+        auto stream = std::make_shared<gpu::BufferStream>();
 
         details.verticesBuffer = verticesBuffer;
         details.colorBuffer = colorBuffer;
@@ -1538,11 +1440,11 @@ void GeometryCache::renderDashedLine(gpu::Batch& batch, const glm::vec3& start, 
         details.vertices = (segmentCountFloor + 1) * 2;
         details.vertexSize = FLOATS_PER_VERTEX;
         details.isCreated = true;
-
-        gpu::BufferPointer verticesBuffer(new gpu::Buffer());
-        gpu::BufferPointer colorBuffer(new gpu::Buffer());
-        gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format());
-        gpu::BufferStreamPointer stream(new gpu::BufferStream());
+        
+        auto verticesBuffer = std::make_shared<gpu::Buffer>();
+        auto colorBuffer = std::make_shared<gpu::Buffer>();
+        auto streamFormat = std::make_shared<gpu::Stream::Format>();
+        auto stream = std::make_shared<gpu::BufferStream>();
 
         details.verticesBuffer = verticesBuffer;
         details.colorBuffer = colorBuffer;
@@ -1703,11 +1605,11 @@ void GeometryCache::renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm
         details.isCreated = true;
         details.vertices = vertices;
         details.vertexSize = FLOATS_PER_VERTEX;
-
-        gpu::BufferPointer verticesBuffer(new gpu::Buffer());
-        gpu::BufferPointer colorBuffer(new gpu::Buffer());
-        gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format());
-        gpu::BufferStreamPointer stream(new gpu::BufferStream());
+        
+        auto verticesBuffer = std::make_shared<gpu::Buffer>();
+        auto colorBuffer = std::make_shared<gpu::Buffer>();
+        auto streamFormat = std::make_shared<gpu::Stream::Format>();
+        auto stream = std::make_shared<gpu::BufferStream>();
 
         details.verticesBuffer = verticesBuffer;
         details.colorBuffer = colorBuffer;
@@ -1793,11 +1695,11 @@ void GeometryCache::renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm
         details.isCreated = true;
         details.vertices = vertices;
         details.vertexSize = FLOATS_PER_VERTEX;
-
-        gpu::BufferPointer verticesBuffer(new gpu::Buffer());
-        gpu::BufferPointer colorBuffer(new gpu::Buffer());
-        gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format());
-        gpu::BufferStreamPointer stream(new gpu::BufferStream());
+        
+        auto verticesBuffer = std::make_shared<gpu::Buffer>();
+        auto colorBuffer = std::make_shared<gpu::Buffer>();
+        auto streamFormat = std::make_shared<gpu::Stream::Format>();
+        auto stream = std::make_shared<gpu::BufferStream>();
 
         details.verticesBuffer = verticesBuffer;
         details.colorBuffer = colorBuffer;
@@ -1854,7 +1756,7 @@ void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch) {
         auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
         gpu::Shader::makeProgram((*program));
 
-        auto state = gpu::StatePointer(new gpu::State());
+        auto state = std::make_shared<gpu::State>();
 
         // enable decal blend
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
@@ -1942,7 +1844,7 @@ QSharedPointer<NetworkGeometry> NetworkGeometry::getLODOrFallback(float distance
             }
         }
     }
-    if (lod->isLoaded()) {
+    if (lod && lod->isLoaded()) {
         hysteresis = lodDistance;
         return lod;
     }
@@ -2061,21 +1963,16 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
                 
                 QSharedPointer<NetworkTexture> matchingTexture = QSharedPointer<NetworkTexture>();
                 if (part.diffuseTextureName == name) {
-                    part.diffuseTexture =
-                    textureCache->getTexture(url, DEFAULT_TEXTURE,
-                                                                              _geometry.meshes[i].isEye, QByteArray());
+                    part.diffuseTexture = textureCache->getTexture(url, DEFAULT_TEXTURE, _geometry.meshes[i].isEye);
                     part.diffuseTexture->setLoadPriorities(_loadPriorities);
                 } else if (part.normalTextureName == name) {
-                    part.normalTexture = textureCache->getTexture(url, DEFAULT_TEXTURE,
-                                                                                                   false, QByteArray());
+                    part.normalTexture = textureCache->getTexture(url);
                     part.normalTexture->setLoadPriorities(_loadPriorities);
                 } else if (part.specularTextureName == name) {
-                    part.specularTexture = textureCache->getTexture(url, DEFAULT_TEXTURE,
-                                                                                                     false, QByteArray());
+                    part.specularTexture = textureCache->getTexture(url);
                     part.specularTexture->setLoadPriorities(_loadPriorities);
                 } else if (part.emissiveTextureName == name) {
-                    part.emissiveTexture = textureCache->getTexture(url, DEFAULT_TEXTURE,
-                                                                                                     false, QByteArray());
+                    part.emissiveTexture = textureCache->getTexture(url);
                     part.emissiveTexture->setLoadPriorities(_loadPriorities);
                 }
             }
@@ -2095,22 +1992,22 @@ QStringList NetworkGeometry::getTextureNames() const {
         for (int j = 0; j < mesh.parts.size(); j++) {
             const NetworkMeshPart& part = mesh.parts[j];
             
-            if (!part.diffuseTextureName.isEmpty()) {
+            if (!part.diffuseTextureName.isEmpty() && part.diffuseTexture) {
                 QString textureURL = part.diffuseTexture->getURL().toString();
                 result << part.diffuseTextureName + ":" + textureURL;
             }
 
-            if (!part.normalTextureName.isEmpty()) {
+            if (!part.normalTextureName.isEmpty() && part.normalTexture) {
                 QString textureURL = part.normalTexture->getURL().toString();
                 result << part.normalTextureName + ":" + textureURL;
             }
 
-            if (!part.specularTextureName.isEmpty()) {
+            if (!part.specularTextureName.isEmpty() && part.specularTexture) {
                 QString textureURL = part.specularTexture->getURL().toString();
                 result << part.specularTextureName + ":" + textureURL;
             }
 
-            if (!part.emissiveTextureName.isEmpty()) {
+            if (!part.emissiveTextureName.isEmpty() && part.emissiveTexture) {
                 QString textureURL = part.emissiveTexture->getURL().toString();
                 result << part.emissiveTextureName + ":" + textureURL;
             }
@@ -2232,8 +2129,8 @@ void NetworkGeometry::downloadFinished(QNetworkReply* reply) {
             }
             QVariantHash lods = _mapping.value("lod").toHash();
             for (QVariantHash::const_iterator it = lods.begin(); it != lods.end(); it++) {
-                QSharedPointer<NetworkGeometry> geometry(new NetworkGeometry(url.resolved(it.key()),
-                    QSharedPointer<NetworkGeometry>(), true, _mapping, _textureBase));    
+                auto geometry = QSharedPointer<NetworkGeometry>::create(url.resolved(it.key()),
+                                        QSharedPointer<NetworkGeometry>(), true, _mapping, _textureBase);    
                 geometry->setSelf(geometry.staticCast<Resource>());
                 geometry->setLODParent(_lodParent);
                 _lods.insert(it.value().toFloat(), geometry);
@@ -2309,7 +2206,7 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
         }
 
         {
-            networkMesh._indexBuffer = gpu::BufferPointer(new gpu::Buffer());
+            networkMesh._indexBuffer = std::make_shared<gpu::Buffer>();
             networkMesh._indexBuffer->resize(totalIndices * sizeof(int));
             int offset = 0;
             foreach(const FBXMeshPart& part, mesh.parts) {
@@ -2323,7 +2220,7 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
         }
 
         {
-            networkMesh._vertexBuffer = gpu::BufferPointer(new gpu::Buffer());
+            networkMesh._vertexBuffer = std::make_shared<gpu::Buffer>();
             // if we don't need to do any blending, the positions/normals can be static
             if (mesh.blendshapes.isEmpty()) {
                 int normalsOffset = mesh.vertices.size() * sizeof(glm::vec3);
@@ -2351,7 +2248,7 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
                     mesh.clusterWeights.size() * sizeof(glm::vec4), (gpu::Byte*) mesh.clusterWeights.constData());
 
                 // otherwise, at least the cluster indices/weights can be static
-                networkMesh._vertexStream = gpu::BufferStreamPointer(new gpu::BufferStream());
+                networkMesh._vertexStream = std::make_shared<gpu::BufferStream>();
                 networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, 0, sizeof(glm::vec3));
                 if (mesh.normals.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, normalsOffset, sizeof(glm::vec3));
                 if (mesh.tangents.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, tangentsOffset, sizeof(glm::vec3));
@@ -2362,7 +2259,7 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
                 if (mesh.clusterWeights.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, clusterWeightsOffset, sizeof(glm::vec4));
 
                 int channelNum = 0;
-                networkMesh._vertexFormat = gpu::Stream::FormatPointer(new gpu::Stream::Format());
+                networkMesh._vertexFormat = std::make_shared<gpu::Stream::Format>();
                 networkMesh._vertexFormat->setAttribute(gpu::Stream::POSITION, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
                 if (mesh.normals.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::NORMAL, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
                 if (mesh.tangents.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::TANGENT, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
@@ -2393,7 +2290,7 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
                 networkMesh._vertexBuffer->setSubData(clusterWeightsOffset,
                     mesh.clusterWeights.size() * sizeof(glm::vec4), (gpu::Byte*) mesh.clusterWeights.constData());
 
-                networkMesh._vertexStream = gpu::BufferStreamPointer(new gpu::BufferStream());
+                networkMesh._vertexStream = std::make_shared<gpu::BufferStream>();
                 if (mesh.tangents.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, 0, sizeof(glm::vec3));
                 if (mesh.colors.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, colorsOffset, sizeof(glm::vec3));
                 if (mesh.texCoords.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, texCoordsOffset, sizeof(glm::vec2));
@@ -2401,7 +2298,7 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
                 if (mesh.clusterWeights.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, clusterWeightsOffset, sizeof(glm::vec4));
 
                 int channelNum = 0;
-                networkMesh._vertexFormat = gpu::Stream::FormatPointer(new gpu::Stream::Format());
+                networkMesh._vertexFormat = std::make_shared<gpu::Stream::Format>();
                 networkMesh._vertexFormat->setAttribute(gpu::Stream::POSITION, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
                 if (mesh.normals.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::NORMAL, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
                 if (mesh.tangents.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::TANGENT, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));

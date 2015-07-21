@@ -13,6 +13,7 @@
 
 #include <avatar/AvatarManager.h>
 #include <PerfStat.h>
+#include <NumericalConstants.h>
 
 #include "Application.h"
 #include "SixenseManager.h"
@@ -244,14 +245,6 @@ void SixenseManager::update(float deltaTime) {
             palm->setTrigger(data->trigger);
             palm->setJoystick(data->joystick_x, data->joystick_y);
 
-            handleButtonEvent(data->buttons, numActiveControllers - 1);
-            handleAxisEvent(data->joystick_x, data->joystick_y, data->trigger, numActiveControllers - 1);
-
-            // Emulate the mouse so we can use scripts
-            if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput) && !_controllersAtBase) {
-                emulateMouse(palm, numActiveControllers - 1);
-            }
-
             // NOTE: Sixense API returns pos data in millimeters but we IMMEDIATELY convert to meters.
             glm::vec3 position(data->pos[0], data->pos[1], data->pos[2]);
             position *= METERS_PER_MILLIMETER;
@@ -260,6 +253,15 @@ void SixenseManager::update(float deltaTime) {
             const float CONTROLLER_AT_BASE_DISTANCE = 0.075f;
             if (glm::length(position) < CONTROLLER_AT_BASE_DISTANCE) {
                 numControllersAtBase++;
+                palm->setActive(false);
+            } else {
+                handleButtonEvent(data->buttons, numActiveControllers - 1);
+                handleAxisEvent(data->joystick_x, data->joystick_y, data->trigger, numActiveControllers - 1);
+                
+                // Emulate the mouse so we can use scripts
+                if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput) && !_controllersAtBase) {
+                    emulateMouse(palm, numActiveControllers - 1);
+                }
             }
 
             // Transform the measured position into body frame.
@@ -526,8 +528,8 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         glm::vec3 direction = glm::inverse(avatar->getOrientation()) * palm->getFingerDirection();
 
         // Get the angles, scaled between (-0.5,0.5)
-        float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
-        float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)M_PI_2));
+        float xAngle = (atan2(direction.z, direction.x) + PI_OVER_TWO);
+        float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)PI_OVER_TWO));
         auto canvasSize = qApp->getCanvasSize();
         // Get the pixel range over which the xAngle and yAngle are scaled
         float cursorRange = canvasSize.x * getCursorPixelRangeMult();
@@ -662,7 +664,7 @@ void SixenseManager::registerToUserInputMapper(UserInputMapper& mapper) {
     // Grab the current free device ID
     _deviceID = mapper.getFreeDeviceID();
     
-    auto proxy = UserInputMapper::DeviceProxy::Pointer(new UserInputMapper::DeviceProxy("Hydra"));
+    auto proxy = std::make_shared<UserInputMapper::DeviceProxy>("Hydra");
     proxy->getButton = [this] (const UserInputMapper::Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
     proxy->getAxis = [this] (const UserInputMapper::Input& input, int timestamp) -> float { return this->getAxis(input.getChannel()); };
     proxy->getAvailabeInputs = [this] () -> QVector<UserInputMapper::InputPair> {

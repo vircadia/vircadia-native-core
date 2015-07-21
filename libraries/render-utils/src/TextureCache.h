@@ -12,7 +12,6 @@
 #ifndef hifi_TextureCache_h
 #define hifi_TextureCache_h
 
-#include <gpu/GPUConfig.h>
 #include <gpu/Texture.h>
 #include <gpu/Framebuffer.h>
 
@@ -52,8 +51,14 @@ public:
     /// Returns an opaque white texture (useful for a default).
     const gpu::TexturePointer& getWhiteTexture();
 
+    /// Returns an opaque gray texture (useful for a default).
+    const gpu::TexturePointer& getGrayTexture();
+
     /// Returns the a pale blue texture (useful for a normal map).
     const gpu::TexturePointer& getBlueTexture();
+
+    /// Returns the a black texture (useful for a default).
+    const gpu::TexturePointer& getBlackTexture();
 
     /// Returns a texture version of an image file
     static gpu::TexturePointer getImageTexture(const QString& path);
@@ -72,14 +77,7 @@ public:
     gpu::TexturePointer getPrimarySpecularTexture();
 
     /// Returns the ID of the primary framebuffer object's depth texture.  This contains the Z buffer used in rendering.
-    GLuint getPrimaryDepthTextureID();
-    GLuint getPrimaryColorTextureID();
-
-    /// Returns the ID of the primary framebuffer object's normal texture.
-    GLuint getPrimaryNormalTextureID();
-    
-    /// Returns the ID of the primary framebuffer object's specular texture.
-    GLuint getPrimarySpecularTextureID();
+    uint32_t getPrimaryDepthTextureID();
 
     /// Enables or disables draw buffers on the primary framebuffer.  Note: the primary framebuffer must be bound.
     void setPrimaryDrawBuffers(bool color, bool normal = false, bool specular = false);
@@ -96,10 +94,6 @@ public:
     /// Returns the framebuffer object used to render shadow maps;
     gpu::FramebufferPointer getShadowFramebuffer();
 
-
-    /// Returns the ID of the shadow framebuffer object's depth texture.
-    GLuint getShadowDepthTextureID();
-    
 protected:
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
@@ -112,7 +106,9 @@ private:
  
     gpu::TexturePointer _permutationNormalTexture;
     gpu::TexturePointer _whiteTexture;
+    gpu::TexturePointer _grayTexture;
     gpu::TexturePointer _blueTexture;
+    gpu::TexturePointer _blackTexture;
 
     
     QHash<QUrl, QWeakPointer<NetworkTexture> > _dilatableNetworkTextures;
@@ -140,8 +136,6 @@ public:
     friend class DilatableNetworkTexture;
     Texture();
     ~Texture();
-
-    GLuint getID() const;
 
     const gpu::TexturePointer& getGPUTexture() const { return _gpuTexture; }
 

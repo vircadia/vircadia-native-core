@@ -110,24 +110,14 @@ const gpu::TexturePointer& TextureCache::getPermutationNormalTexture() {
 
         _permutationNormalTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB), 256, 2));
         _permutationNormalTexture->assignStoredMip(0, _blueTexture->getTexelFormat(), sizeof(data), data);
-
-       // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-       // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     }
     return _permutationNormalTexture;
 }
 
 const unsigned char OPAQUE_WHITE[] = { 0xFF, 0xFF, 0xFF, 0xFF };
-//const unsigned char TRANSPARENT_WHITE[] = { 0xFF, 0xFF, 0xFF, 0x0 };
-//const unsigned char OPAQUE_BLACK[] = { 0x0, 0x0, 0x0, 0xFF };
+const unsigned char OPAQUE_GRAY[] = { 0x80, 0x80, 0x80, 0xFF };
 const unsigned char OPAQUE_BLUE[] = { 0x80, 0x80, 0xFF, 0xFF };
-
-/*
-static void loadSingleColorTexture(const unsigned char* color) {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, color);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-}
-*/
+const unsigned char OPAQUE_BLACK[] = { 0x00, 0x00, 0x00, 0xFF };
 
 const gpu::TexturePointer& TextureCache::getWhiteTexture() {
     if (!_whiteTexture) {
@@ -137,12 +127,28 @@ const gpu::TexturePointer& TextureCache::getWhiteTexture() {
     return _whiteTexture;
 }
 
+const gpu::TexturePointer& TextureCache::getGrayTexture() {
+    if (!_grayTexture) {
+        _grayTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), 1, 1));
+        _grayTexture->assignStoredMip(0, _whiteTexture->getTexelFormat(), sizeof(OPAQUE_WHITE), OPAQUE_GRAY);
+    }
+    return _grayTexture;
+}
+
 const gpu::TexturePointer& TextureCache::getBlueTexture() {
     if (!_blueTexture) {
         _blueTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), 1, 1));
         _blueTexture->assignStoredMip(0, _blueTexture->getTexelFormat(), sizeof(OPAQUE_BLUE), OPAQUE_BLUE);
     }
     return _blueTexture;
+}
+
+const gpu::TexturePointer& TextureCache::getBlackTexture() {
+    if (!_blackTexture) {
+        _blackTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), 1, 1));
+        _blackTexture->assignStoredMip(0, _whiteTexture->getTexelFormat(), sizeof(OPAQUE_BLACK), OPAQUE_BLACK);
+    }
+    return _blackTexture;
 }
 
 /// Extra data for creating textures.
@@ -231,18 +237,6 @@ GLuint TextureCache::getPrimaryDepthTextureID() {
     return gpu::GLBackend::getTextureID(getPrimaryDepthTexture());
 }
 
-GLuint TextureCache::getPrimaryColorTextureID() {
-    return gpu::GLBackend::getTextureID(getPrimaryColorTexture());
-}
-
-GLuint TextureCache::getPrimaryNormalTextureID() {
-    return gpu::GLBackend::getTextureID(getPrimaryNormalTexture());
-}
-
-GLuint TextureCache::getPrimarySpecularTextureID() {
-    return gpu::GLBackend::getTextureID(getPrimarySpecularTexture());
-}
-
 void TextureCache::setPrimaryDrawBuffers(bool color, bool normal, bool specular) {
     gpu::Batch batch;
     setPrimaryDrawBuffers(batch, color, normal, specular);
@@ -278,7 +272,6 @@ gpu::FramebufferPointer TextureCache::getTertiaryFramebuffer() {
     return _tertiaryFramebuffer;
 }
 
-
 gpu::FramebufferPointer TextureCache::getShadowFramebuffer() {
     if (!_shadowFramebuffer) {
         const int SHADOW_MAP_SIZE = 2048;
@@ -287,12 +280,6 @@ gpu::FramebufferPointer TextureCache::getShadowFramebuffer() {
         _shadowTexture = _shadowFramebuffer->getDepthStencilBuffer();
     }
     return _shadowFramebuffer;
-}
-
-GLuint TextureCache::getShadowDepthTextureID() {
-    // ensure that the shadow framebuffer object is initialized before returning the depth texture id
-    getShadowFramebuffer();
-    return gpu::GLBackend::getTextureID(_shadowTexture);
 }
 
 /// Returns a texture version of an image file
@@ -323,10 +310,6 @@ Texture::Texture() {
 }
 
 Texture::~Texture() {
-}
-
-GLuint Texture::getID() const {
-    return gpu::GLBackend::getTextureID(_gpuTexture);
 }
 
 NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArray& content) :
@@ -753,7 +736,7 @@ DilatableNetworkTexture::DilatableNetworkTexture(const QUrl& url, const QByteArr
 QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilation) {
     QSharedPointer<Texture> texture = _dilatedTextures.value(dilation);
     if (texture.isNull()) {
-        texture = QSharedPointer<Texture>(new Texture());
+        texture = QSharedPointer<Texture>::create();
         
         if (!_image.isNull()) {
             QImage dilatedImage = _image;

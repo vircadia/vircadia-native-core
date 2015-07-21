@@ -14,6 +14,7 @@
 
 #include <functional>
 #include <memory>
+#include "GLMHelpers.h"
 
 
 class AABox;
@@ -104,6 +105,7 @@ public:
     gpu::Context* _context = nullptr;
     OctreeRenderer* _renderer = nullptr;
     ViewFrustum* _viewFrustum = nullptr;
+    glm::ivec4 _viewport{ 0, 0, 1, 1 };
     float _sizeScale = 1.0f;
     int _boundaryLevelAdjust = 0;
     RenderMode _renderMode = DEFAULT_RENDER_MODE;

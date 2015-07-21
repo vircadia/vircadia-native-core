@@ -9,12 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "InterfaceConfig.h"
-
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <GlowEffect.h>
 #include "gpu/GLBackend.h"
 #include "Application.h"
 
@@ -75,13 +72,12 @@ void TV3DManager::configureCamera(Camera& whichCamera, int screenWidth, int scre
     setFrustum(whichCamera);
 
     glViewport (0, 0, _screenWidth, _screenHeight); // sets drawing viewport
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
 }
 
 void TV3DManager::display(RenderArgs* renderArgs, Camera& whichCamera) {
+
+#ifdef THIS_CURRENTLY_BROKEN_WAITING_FOR_DISPLAY_PLUGINS 
+
     double nearZ = DEFAULT_NEAR_CLIP; // near clipping plane
     double farZ = DEFAULT_FAR_CLIP; // far clipping plane
 
@@ -94,6 +90,7 @@ void TV3DManager::display(RenderArgs* renderArgs, Camera& whichCamera) {
     int portalH = deviceSize.height();
 
 
+    // FIXME - glow effect is removed, 3D TV mode broken until we get display plugins working
     DependencyManager::get<GlowEffect>()->prepare(renderArgs);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -102,21 +99,15 @@ void TV3DManager::display(RenderArgs* renderArgs, Camera& whichCamera) {
     eyeCamera.setPosition(whichCamera.getPosition());
 
     glEnable(GL_SCISSOR_TEST);
-    glPushMatrix();
     forEachEye([&](eyeFrustum& eye){
         _activeEye = &eye;
         glViewport(portalX, portalY, portalW, portalH);
         glScissor(portalX, portalY, portalW, portalH);
+        renderArgs->_viewport = glm::ivec4(portalX, portalY, portalW, portalH);
 
         glm::mat4 projection = glm::frustum<float>(eye.left, eye.right, eye.bottom, eye.top, nearZ, farZ);
         projection = glm::translate(projection, vec3(eye.modelTranslation, 0, 0));
         eyeCamera.setProjection(projection);
-
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity(); // reset projection matrix
-        glLoadMatrixf(glm::value_ptr(projection));
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
         renderArgs->_renderSide = RenderArgs::MONO;
         qApp->displaySide(renderArgs, eyeCamera, false);
         qApp->getApplicationCompositor().displayOverlayTexture(renderArgs);
@@ -125,9 +116,9 @@ void TV3DManager::display(RenderArgs* renderArgs, Camera& whichCamera) {
         // render right side view
         portalX = deviceSize.width() / 2;
     });
-    glPopMatrix();
     glDisable(GL_SCISSOR_TEST);
 
+    // FIXME - glow effect is removed, 3D TV mode broken until we get display plugins working
     auto finalFbo = DependencyManager::get<GlowEffect>()->render(renderArgs);
     auto fboSize = finalFbo->getSize();
     // Get the ACTUAL device size for the BLIT
@@ -142,6 +133,8 @@ void TV3DManager::display(RenderArgs* renderArgs, Camera& whichCamera) {
 
     // reset the viewport to how we started
     glViewport(0, 0, deviceSize.width(), deviceSize.height());
+
+#endif 
 }
 
 void TV3DManager::overrideOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,

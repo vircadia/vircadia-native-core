@@ -107,10 +107,6 @@ public:
     static GLShader* syncGPUObject(const Shader& shader);
     static GLuint getShaderID(const ShaderPointer& shader);
 
-    // FIXME: Please remove these 2 calls once the text renderer doesn't use naked gl calls anymore
-    static void loadMatrix(GLenum target, const glm::mat4 & m);
-    static void fetchMatrix(GLenum target, glm::mat4 & m);
-
     class GLState : public GPUObject {
     public:
         class Command {
@@ -228,7 +224,21 @@ public:
 
     void do_setStateColorWriteMask(uint32 mask);
 
+    // Repporting stats of the context
+    class Stats {
+    public:
+        int _ISNumFormatChanges = 0;
+        int _ISNumInputBufferChanges = 0;
+        int _ISNumIndexBufferChanges = 0;
+
+        Stats() {}
+        Stats(const Stats& stats) = default;
+    };
+
+    void getStats(Stats& stats) const { stats = _stats; }
+
 protected:
+    Stats _stats;
 
     // Draw Stage
     void do_draw(Batch& batch, uint32 paramOffset);
@@ -242,12 +252,13 @@ protected:
     void do_setInputFormat(Batch& batch, uint32 paramOffset);
     void do_setInputBuffer(Batch& batch, uint32 paramOffset);
     void do_setIndexBuffer(Batch& batch, uint32 paramOffset);
-    
-    // Synchronize the state cache of this Backend with the actual real state of the GL Context
+
+    void initInput();
+    void killInput();
     void syncInputStateCache();
     void updateInput();
     struct InputStageState {
-        bool _invalidFormat;
+        bool _invalidFormat = true;
         Stream::FormatPointer _format;
 
         typedef std::bitset<MAX_NUM_INPUT_BUFFERS> BuffersState;
@@ -256,6 +267,7 @@ protected:
         Buffers _buffers;
         Offsets _bufferOffsets;
         Offsets _bufferStrides;
+        std::vector<GLuint> _bufferVBOs;
 
         BufferPointer _indexBuffer;
         Offset _indexBufferOffset;
@@ -264,6 +276,8 @@ protected:
         typedef std::bitset<MAX_NUM_ATTRIBUTES> ActivationCache;
         ActivationCache _attributeActivation;
 
+        GLuint _defaultVAO;
+
         InputStageState() :
             _invalidFormat(true),
             _format(0),
@@ -271,10 +285,12 @@ protected:
             _buffers(_buffersState.size(), BufferPointer(0)),
             _bufferOffsets(_buffersState.size(), 0),
             _bufferStrides(_buffersState.size(), 0),
+            _bufferVBOs(_buffersState.size(), 0),
             _indexBuffer(0),
             _indexBufferOffset(0),
             _indexBufferType(UINT32),
-            _attributeActivation(0)
+            _attributeActivation(0),
+            _defaultVAO(0)
              {}
     } _input;
 
@@ -330,6 +346,7 @@ protected:
     // Pipeline Stage
     void do_setPipeline(Batch& batch, uint32 paramOffset);
     void do_setStateBlendFactor(Batch& batch, uint32 paramOffset);
+    void do_setStateScissorRect(Batch& batch, uint32 paramOffset);
     
     // Standard update pipeline check that the current Program and current State or good to go for a
     void updatePipeline();
@@ -373,6 +390,8 @@ protected:
 
     // Output stage
     void do_setFramebuffer(Batch& batch, uint32 paramOffset);
+    void do_blit(Batch& batch, uint32 paramOffset);
+
 
     struct OutputStageState {
 

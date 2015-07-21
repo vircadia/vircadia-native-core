@@ -28,12 +28,38 @@ void GLBackend::do_setInputBuffer(Batch& batch, uint32 paramOffset) {
     uint32 channel = batch._params[paramOffset + 3]._uint;
 
     if (channel < getNumInputBuffers()) {
-        _input._buffers[channel] = buffer;
-        _input._bufferOffsets[channel] = offset;
-        _input._bufferStrides[channel] = stride;
-        _input._buffersState.set(channel);
+        bool isModified = false;
+        if (_input._buffers[channel] != buffer) {
+            _input._buffers[channel] = buffer;
+         
+            GLuint vbo = 0;
+            if (buffer) {
+                vbo = getBufferID((*buffer));
+            }
+            _input._bufferVBOs[channel] = vbo;
+
+            isModified = true;
+        }
+
+        if (_input._bufferOffsets[channel] != offset) {
+            _input._bufferOffsets[channel] = offset;
+            isModified = true;
+        }
+
+        if (_input._bufferStrides[channel] != stride) {
+            _input._bufferStrides[channel] = stride;
+            isModified = true;
+        }
+
+        if (isModified) {
+            _input._buffersState.set(channel);
+        }
     }
 }
+
+#define NOT_SUPPORT_VAO
+#if defined(SUPPORT_VAO)
+#else
 
 #define SUPPORT_LEGACY_OPENGL
 #if defined(SUPPORT_LEGACY_OPENGL)
@@ -45,24 +71,120 @@ static const GLenum attributeSlotToClassicAttribName[NUM_CLASSIC_ATTRIBS] = {
     GL_TEXTURE_COORD_ARRAY
 };
 #endif
+#endif
+
+void GLBackend::initInput() {
+#if defined(SUPPORT_VAO)
+    if(!_input._defaultVAO) {
+        glGenVertexArrays(1, &_input._defaultVAO);
+    }
+    glBindVertexArray(_input._defaultVAO);
+    (void) CHECK_GL_ERROR();
+#endif
+}
+
+void GLBackend::killInput() {
+#if defined(SUPPORT_VAO)
+    glBindVertexArray(0);
+    if(_input._defaultVAO) {
+        glDeleteVertexArrays(1, &_input._defaultVAO);
+    }
+    (void) CHECK_GL_ERROR();
+#endif
+}
 
 void GLBackend::syncInputStateCache() {
+#if defined(SUPPORT_VAO)
     for (int i = 0; i < NUM_CLASSIC_ATTRIBS; i++) {
         _input._attributeActivation[i] = glIsEnabled(attributeSlotToClassicAttribName[i]);
     }
+    //_input._defaultVAO
+    glBindVertexArray(_input._defaultVAO);
+#else
+    size_t i = 0;
+#if defined(SUPPORT_LEGACY_OPENGL)
+    for (; i < NUM_CLASSIC_ATTRIBS; i++) {
+        _input._attributeActivation[i] = glIsEnabled(attributeSlotToClassicAttribName[i]);
+    }
+#endif
+    for (; i < _input._attributeActivation.size(); i++) {
+        GLint active = 0;
+        glGetVertexAttribiv(i, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &active);
+        _input._attributeActivation[i] = active;
+    }
+#endif
 }
 
 void GLBackend::updateInput() {
+#if defined(SUPPORT_VAO)
+    if (_input._invalidFormat) {
+
+        InputStageState::ActivationCache newActivation;
+
+        // Assign the vertex format required
+        if (_input._format) {
+            for (auto& it : _input._format->getAttributes()) {
+                const Stream::Attribute& attrib = (it).second;
+                newActivation.set(attrib._slot);
+                glVertexAttribFormat(
+                    attrib._slot,
+                    attrib._element.getDimensionCount(),
+                    _elementTypeToGLType[attrib._element.getType()],
+                    attrib._element.isNormalized(),
+                    attrib._offset);
+            }
+            (void) CHECK_GL_ERROR();
+        }
+
+        // Manage Activation what was and what is expected now
+        for (int i = 0; i < newActivation.size(); i++) {
+            bool newState = newActivation[i];
+            if (newState != _input._attributeActivation[i]) {
+                if (newState) {
+                    glEnableVertexAttribArray(i);
+                } else {
+                    glDisableVertexAttribArray(i);
+                }
+                _input._attributeActivation.flip(i);
+            }
+        }
+        (void) CHECK_GL_ERROR();
+
+        _input._invalidFormat = false;
+        _stats._ISNumFormatChanges++;
+    }
+
+    if (_input._buffersState.any()) {
+        int numBuffers = _input._buffers.size();
+        auto buffer = _input._buffers.data();
+        auto vbo = _input._bufferVBOs.data();
+        auto offset = _input._bufferOffsets.data();
+        auto stride = _input._bufferStrides.data();
+
+        for (int bufferNum = 0; bufferNum < numBuffers; bufferNum++) {
+            if (_input._buffersState.test(bufferNum)) {
+                glBindVertexBuffer(bufferNum, (*vbo), (*offset), (*stride));
+            }
+            buffer++;
+            vbo++;
+            offset++;
+            stride++;
+        }
+        _input._buffersState.reset();
+        (void) CHECK_GL_ERROR();
+    }
+#else
     if (_input._invalidFormat || _input._buffersState.any()) {
 
         if (_input._invalidFormat) {
             InputStageState::ActivationCache newActivation;
 
+            _stats._ISNumFormatChanges++;
+
             // Check expected activation
             if (_input._format) {
-                const Stream::Format::AttributeMap& attributes = _input._format->getAttributes();
-                for (Stream::Format::AttributeMap::const_iterator it = attributes.begin(); it != attributes.end(); it++) {
-                    const Stream::Attribute& attrib = (*it).second;
+                for (auto& it : _input._format->getAttributes()) {
+                    const Stream::Attribute& attrib = (it).second;
                     newActivation.set(attrib._slot);
                 }
             }
@@ -72,17 +194,15 @@ void GLBackend::updateInput() {
                 bool newState = newActivation[i];
                 if (newState != _input._attributeActivation[i]) {
 #if defined(SUPPORT_LEGACY_OPENGL)
-                    const bool useClientState = i < NUM_CLASSIC_ATTRIBS;
-#else
-                    const bool useClientState = false;
-#endif
-                    if (useClientState) {
+                    if (i < NUM_CLASSIC_ATTRIBS) {
                         if (newState) {
                             glEnableClientState(attributeSlotToClassicAttribName[i]);
                         } else {
                             glDisableClientState(attributeSlotToClassicAttribName[i]);
                         }
-                    } else {
+                    } else
+#endif
+                    {
                         if (newState) {
                             glEnableVertexAttribArray(i);
                         } else {
@@ -103,18 +223,23 @@ void GLBackend::updateInput() {
             const Offsets& strides = _input._bufferStrides;
 
             const Stream::Format::AttributeMap& attributes = _input._format->getAttributes();
+            auto& inputChannels = _input._format->getChannels();
+            _stats._ISNumInputBufferChanges++;
 
-            for (Stream::Format::ChannelMap::const_iterator channelIt = _input._format->getChannels().begin();
-                    channelIt != _input._format->getChannels().end();
-                    channelIt++) {
-                const Stream::Format::ChannelMap::value_type::second_type& channel = (*channelIt).second;
-                if ((*channelIt).first < buffers.size()) {
-                    int bufferNum = (*channelIt).first;
+            GLuint boundVBO = 0;
+            for (auto& channelIt : inputChannels) {
+                const Stream::Format::ChannelMap::value_type::second_type& channel = (channelIt).second;
+                if ((channelIt).first < buffers.size()) {
+                    int bufferNum = (channelIt).first;
 
                     if (_input._buffersState.test(bufferNum) || _input._invalidFormat) {
-                        GLuint vbo = gpu::GLBackend::getBufferID((*buffers[bufferNum]));
-                        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-                        (void) CHECK_GL_ERROR();
+                      //  GLuint vbo = gpu::GLBackend::getBufferID((*buffers[bufferNum]));
+                        GLuint vbo = _input._bufferVBOs[bufferNum];
+                        if (boundVBO != vbo) {
+                            glBindBuffer(GL_ARRAY_BUFFER, vbo);
+                            (void) CHECK_GL_ERROR();
+                            boundVBO = vbo;
+                        }
                         _input._buffersState[bufferNum] = false;
 
                         for (unsigned int i = 0; i < channel._slots.size(); i++) {
@@ -126,9 +251,6 @@ void GLBackend::updateInput() {
                             GLuint pointer = attrib._offset + offsets[bufferNum];
 #if defined(SUPPORT_LEGACY_OPENGL)
                             const bool useClientState = slot < NUM_CLASSIC_ATTRIBS;
-#else
-                            const bool useClientState = false;
-#endif
                             if (useClientState) {
                                 switch (slot) {
                                     case Stream::POSITION:
@@ -144,7 +266,9 @@ void GLBackend::updateInput() {
                                         glTexCoordPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer));
                                         break;
                                 };
-                            } else {
+                            } else 
+#endif                  
+                            {
                                 GLboolean isNormalized = attrib._element.isNormalized();
                                 glVertexAttribPointer(slot, count, type, isNormalized, stride,
                                                       reinterpret_cast<GLvoid*>(pointer));
@@ -158,61 +282,7 @@ void GLBackend::updateInput() {
         // everything format related should be in sync now
         _input._invalidFormat = false;
     }
-
-/* TODO: Fancy version GL4.4
-    if (_needInputFormatUpdate) {
-
-        InputActivationCache newActivation;
-
-        // Assign the vertex format required
-        if (_inputFormat) {
-            const StreamFormat::AttributeMap& attributes = _inputFormat->getAttributes();
-            for (StreamFormat::AttributeMap::const_iterator it = attributes.begin(); it != attributes.end(); it++) {
-                const StreamFormat::Attribute& attrib = (*it).second;
-                newActivation.set(attrib._slot);
-                glVertexAttribFormat(
-                    attrib._slot,
-                    attrib._element.getDimensionCount(),
-                    _elementTypeToGLType[attrib._element.getType()],
-                    attrib._element.isNormalized(),
-                    attrib._stride);
-            }
-            CHECK_GL_ERROR();
-        }
-
-        // Manage Activation what was and what is expected now
-        for (int i = 0; i < newActivation.size(); i++) {
-            bool newState = newActivation[i];
-            if (newState != _inputAttributeActivation[i]) {
-                if (newState) {
-                    glEnableVertexAttribArray(i);
-                } else {
-                    glDisableVertexAttribArray(i);
-                }
-                _inputAttributeActivation.flip(i);
-            }
-        }
-        CHECK_GL_ERROR();
-
-        _needInputFormatUpdate = false;
-    }
-
-    if (_needInputStreamUpdate) {
-        if (_inputStream) {
-            const Stream::Buffers& buffers = _inputStream->getBuffers();
-            const Stream::Offsets& offsets = _inputStream->getOffsets();
-            const Stream::Strides& strides = _inputStream->getStrides();
-
-            for (int i = 0; i < buffers.size(); i++) {
-                GLuint vbo = gpu::GLBackend::getBufferID((*buffers[i]));
-                glBindVertexBuffer(i, vbo, offsets[i], strides[i]);
-            }
-
-            CHECK_GL_ERROR();
-        }
-        _needInputStreamUpdate = false;
-    }
-*/
+#endif
 }
 
 
@@ -227,4 +297,11 @@ void GLBackend::do_setIndexBuffer(Batch& batch, uint32 paramOffset) {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
     (void) CHECK_GL_ERROR();
+}
+
+template <typename V>
+void popParam(Batch::Params& params, uint32& paramOffset, V& v) {
+    for (size_t i = 0; i < v.length(); ++i) {
+        v[i] = params[paramOffset++]._float;
+    }
 }

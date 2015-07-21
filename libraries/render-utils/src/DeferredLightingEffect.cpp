@@ -9,22 +9,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <gpu/GPUConfig.h>
+#include "DeferredLightingEffect.h"
 
 #include <GLMHelpers.h>
+#include <gpu/GPUConfig.h>
+#include <gpu/Batch.h>
+#include <gpu/Context.h>
+#include <gpu/StandardShaderLib.h>
 #include <PathUtils.h>
 #include <ViewFrustum.h>
 
 #include "AbstractViewStateInterface.h"
-#include "DeferredLightingEffect.h"
 #include "GeometryCache.h"
-#include "GlowEffect.h"
 #include "RenderUtil.h"
 #include "TextureCache.h"
 
-#include "gpu/Batch.h"
-#include "gpu/Context.h"
-#include "gpu/StandardShaderLib.h"
 
 #include "simple_vert.h"
 #include "simple_textured_frag.h"
@@ -57,7 +56,7 @@ gpu::PipelinePointer DeferredLightingEffect::getPipeline(SimpleProgramKey config
         return it.value();
     }
     
-    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    auto state = std::make_shared<gpu::State>();
     if (config.isCulled()) {
         state->setCullMode(gpu::State::CULL_BACK);
     } else {
@@ -114,11 +113,11 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     loadLightProgram(deferred_light_spot_vert, spot_light_frag, true, _spotLight, _spotLightLocations);
 
     {
-        auto VSFS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto PSBlit = gpu::StandardShaderLib::getDrawTexturePS();
-        auto blitProgram = gpu::ShaderPointer(gpu::Shader::createProgram(VSFS, PSBlit));
+        //auto VSFS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
+        //auto PSBlit = gpu::StandardShaderLib::getDrawTexturePS();
+        auto blitProgram = gpu::StandardShaderLib::getProgram(gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS, gpu::StandardShaderLib::getDrawTexturePS);
         gpu::Shader::makeProgram(*blitProgram);
-        gpu::StatePointer blitState = gpu::StatePointer(new gpu::State());
+        auto blitState = std::make_shared<gpu::State>();
         blitState->setBlendFunction(true,
                                 gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
@@ -128,7 +127,7 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
 
     // Allocate a global light representing the Global Directional light casting shadow (the sun) and the ambient light
     _globalLights.push_back(0);
-    _allocatedLights.push_back(model::LightPointer(new model::Light()));
+    _allocatedLights.push_back(std::make_shared<model::Light>());
 
     model::LightPointer lp = _allocatedLights[0];
 
@@ -192,7 +191,7 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
     
     unsigned int lightID = _pointLights.size() + _spotLights.size() + _globalLights.size();
     if (lightID >= _allocatedLights.size()) {
-        _allocatedLights.push_back(model::LightPointer(new model::Light()));
+        _allocatedLights.push_back(std::make_shared<model::Light>());
     }
     model::LightPointer lp = _allocatedLights[lightID];
 
@@ -238,8 +237,10 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     QSize framebufferSize = textureCache->getFrameBufferSize();
     
     // binding the first framebuffer
-    auto freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebuffer();
+    auto freeFBO = DependencyManager::get<TextureCache>()->getSecondaryFramebuffer();
     batch.setFramebuffer(freeFBO);
+
+    batch.setViewportTransform(args->_viewport);
  
     batch.clearColorFramebuffer(freeFBO->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
     
@@ -251,18 +252,10 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     
     batch.setResourceTexture(3, textureCache->getPrimaryDepthTexture());
         
-    // get the viewport side (left, right, both)
-    int viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-    const int VIEWPORT_X_INDEX = 0;
-    const int VIEWPORT_Y_INDEX = 1;
-    const int VIEWPORT_WIDTH_INDEX = 2;
-    const int VIEWPORT_HEIGHT_INDEX = 3;
-
-    float sMin = viewport[VIEWPORT_X_INDEX] / (float)framebufferSize.width();
-    float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)framebufferSize.width();
-    float tMin = viewport[VIEWPORT_Y_INDEX] / (float)framebufferSize.height();
-    float tHeight = viewport[VIEWPORT_HEIGHT_INDEX] / (float)framebufferSize.height();
+    float sMin = args->_viewport.x / (float)framebufferSize.width();
+    float sWidth = args->_viewport.z / (float)framebufferSize.width();
+    float tMin = args->_viewport.y / (float)framebufferSize.height();
+    float tHeight = args->_viewport.w / (float)framebufferSize.height();
 
     bool useSkyboxCubemap = (_skybox) && (_skybox->getCubemap());
 
@@ -474,17 +467,18 @@ void DeferredLightingEffect::render(RenderArgs* args) {
             // IN DEBUG: light->setShowContour(true);
 
             batch.setUniformBuffer(_spotLightLocations.lightBufferUnit, light->getSchemaBuffer());
-            
+
             auto eyeLightPos = eyePoint - light->getPosition();
             auto eyeHalfPlaneDistance = glm::dot(eyeLightPos, light->getDirection());
-            
+
             const float TANGENT_LENGTH_SCALE = 0.666f;
-            glm::vec4 coneParam(light->getSpotAngleCosSin(), TANGENT_LENGTH_SCALE * tan(0.5 * light->getSpotAngle()), 1.0f);
+            glm::vec4 coneParam(light->getSpotAngleCosSin(), TANGENT_LENGTH_SCALE * tanf(0.5f * light->getSpotAngle()), 1.0f);
 
             float expandedRadius = light->getMaximumRadius() * (1.0f + SCALE_EXPANSION);
             // TODO: We shouldn;t have to do that test and use a different volume geometry for when inside the vlight volume,
             // we should be able to draw thre same geometry use DepthClamp but for unknown reason it's s not working...
-            if ((eyeHalfPlaneDistance > -nearRadius) && (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius)) {
+            if ((eyeHalfPlaneDistance > -nearRadius) &&
+                (glm::distance(eyePoint, glm::vec3(light->getPosition())) < expandedRadius + nearRadius)) {
                 coneParam.w = 0.0f;
                 batch._glUniform4fv(_spotLightLocations.coneParam, 1, reinterpret_cast< const GLfloat* >(&coneParam));
 
@@ -546,7 +540,7 @@ void DeferredLightingEffect::copyBack(RenderArgs* args) {
     auto textureCache = DependencyManager::get<TextureCache>();
     QSize framebufferSize = textureCache->getFrameBufferSize();
 
-    auto freeFBO = DependencyManager::get<GlowEffect>()->getFreeFramebuffer();
+    auto freeFBO = DependencyManager::get<TextureCache>()->getSecondaryFramebuffer();
 
     batch.setFramebuffer(textureCache->getPrimaryFramebuffer());
     batch.setPipeline(_blitLightBuffer);
@@ -555,26 +549,18 @@ void DeferredLightingEffect::copyBack(RenderArgs* args) {
 
     batch.setProjectionTransform(glm::mat4());
     batch.setViewTransform(Transform());
+    
+    float sMin = args->_viewport.x / (float)framebufferSize.width();
+    float sWidth = args->_viewport.z / (float)framebufferSize.width();
+    float tMin = args->_viewport.y / (float)framebufferSize.height();
+    float tHeight = args->_viewport.w / (float)framebufferSize.height();
 
-    int viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-    const int VIEWPORT_X_INDEX = 0;
-    const int VIEWPORT_Y_INDEX = 1;
-    const int VIEWPORT_WIDTH_INDEX = 2;
-    const int VIEWPORT_HEIGHT_INDEX = 3;
-
-    float sMin = viewport[VIEWPORT_X_INDEX] / (float)framebufferSize.width();
-    float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)framebufferSize.width();
-    float tMin = viewport[VIEWPORT_Y_INDEX] / (float)framebufferSize.height();
-    float tHeight = viewport[VIEWPORT_HEIGHT_INDEX] / (float)framebufferSize.height();
+    batch.setViewportTransform(args->_viewport);
 
     Transform model;
     model.setTranslation(glm::vec3(sMin, tMin, 0.0));
     model.setScale(glm::vec3(sWidth, tHeight, 1.0));
     batch.setModelTransform(model);
-
-
-    batch.setViewportTransform(glm::ivec4(viewport[0], viewport[1], viewport[2], viewport[3]));
 
     batch.draw(gpu::TRIANGLE_STRIP, 4);
 
@@ -628,7 +614,7 @@ void DeferredLightingEffect::loadLightProgram(const char* vertSource, const char
     locations.atmosphereBufferUnit = program->getUniforms().findLocation("atmosphereBufferUnit");
 #endif
 
-    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    auto state = std::make_shared<gpu::State>();
     if (lightVolume) {
         state->setCullMode(gpu::State::CULL_BACK);
         
@@ -671,7 +657,7 @@ void DeferredLightingEffect::setGlobalSkybox(const model::SkyboxPointer& skybox)
 
 model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
     if (!_spotLightMesh) {
-        _spotLightMesh.reset(new model::Mesh());
+        _spotLightMesh = std::make_shared<model::Mesh>();
 
         int slices = 32;
         int rings = 3;

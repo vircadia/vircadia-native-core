@@ -13,6 +13,7 @@
 #define hifi_GLCanvas_h
 
 #include <QDebug>
+#include <gpu/GPUConfig.h>
 #include <QGLWidget>
 #include <QTimer>
 

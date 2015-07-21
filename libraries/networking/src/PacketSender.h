@@ -17,7 +17,6 @@
 #include <QWaitCondition>
 
 #include "GenericThread.h"
-#include "NetworkPacket.h"
 #include "NodeList.h"
 #include "SharedUtil.h"
 
@@ -39,7 +38,7 @@ public:
     ~PacketSender();
 
     /// Add packet to outbound queue.
-    void queuePacketForSending(const SharedNodePointer& destinationNode, const QByteArray& packet);
+    void queuePacketForSending(const SharedNodePointer& destinationNode, std::unique_ptr<NLPacket> packet);
 
     void setPacketsPerSecond(int packetsPerSecond);
     int getPacketsPerSecond() const { return _packetsPerSecond; }
@@ -100,7 +99,7 @@ protected:
     SimpleMovingAverage _averageProcessCallTime;
 
 private:
-    std::vector<NetworkPacket> _packets;
+    std::list<NodePacketPair> _packets;
     quint64 _lastSendTime;
 
     bool threadedProcess();

@@ -8,17 +8,75 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include "TextOverlay.h"
+
+#include <QQuickItem>
 
 #include <DependencyManager.h>
 #include <GeometryCache.h>
+#include <GLMHelpers.h>
+#include <gpu/GLBackend.h>
+#include <OffscreenUi.h>
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h>
-#include <TextRenderer.h>
+#include <TextureCache.h>
+#include <ViewFrustum.h>
 
+#include "Application.h"
+#include "text/FontFamilies.h"
+
+#define TEXT_OVERLAY_PROPERTY(type, name, initialValue) \
+    Q_PROPERTY(type name READ name WRITE set##name NOTIFY name##Changed) \
+public: \
+    type name() { return _##name; }; \
+    void set##name(const type& name) { \
+        if (name != _##name) { \
+            _##name = name; \
+            emit name##Changed(); \
+        } \
+    } \
+private: \
+    type _##name{ initialValue }; 
+
+
+class TextOverlayElement : public QQuickItem {
+    Q_OBJECT
+    HIFI_QML_DECL
+private:
+    TEXT_OVERLAY_PROPERTY(QString, text, "")
+    TEXT_OVERLAY_PROPERTY(QString, fontFamily, SANS_FONT_FAMILY)
+    TEXT_OVERLAY_PROPERTY(QString, textColor, "#ffffffff")
+    TEXT_OVERLAY_PROPERTY(QString, backgroundColor, "#B2000000")
+    TEXT_OVERLAY_PROPERTY(qreal, fontSize, 18)
+    TEXT_OVERLAY_PROPERTY(qreal, lineHeight, 18)
+    TEXT_OVERLAY_PROPERTY(qreal, leftMargin, 0)
+    TEXT_OVERLAY_PROPERTY(qreal, topMargin, 0)
+
+public:
+    TextOverlayElement(QQuickItem* parent = nullptr) : QQuickItem(parent) {
+    }
+
+signals:
+    void textChanged();
+    void fontFamilyChanged();
+    void fontSizeChanged();
+    void lineHeightChanged();
+    void leftMarginChanged();
+    void topMarginChanged();
+    void textColorChanged();
+    void backgroundColorChanged();
+};
+
+HIFI_QML_DEF(TextOverlayElement)
+
+QString toQmlColor(const glm::vec4& v) {
+    QString templat("#%1%2%3%4");
+    return templat.
+        arg((int)(v.a * 255), 2, 16, QChar('0')).
+        arg((int)(v.r * 255), 2, 16, QChar('0')).
+        arg((int)(v.g * 255), 2, 16, QChar('0')).
+        arg((int)(v.b * 255), 2, 16, QChar('0'));
+}
 
 TextOverlay::TextOverlay() :
     _backgroundColor(DEFAULT_BACKGROUND_COLOR),
@@ -27,7 +85,20 @@ TextOverlay::TextOverlay() :
     _topMargin(DEFAULT_MARGIN),
     _fontSize(DEFAULT_FONTSIZE)
 {
-    _textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);
+
+    qApp->postLambdaEvent([=] {
+        static std::once_flag once;
+        std::call_once(once, [] {
+            TextOverlayElement::registerType();
+        });
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        TextOverlayElement::show([=](QQmlContext* context, QObject* object) {
+            _qmlElement = static_cast<TextOverlayElement*>(object);
+        });
+    });
+    while (!_qmlElement) {
+        QThread::msleep(1);
+    }
 }
 
 TextOverlay::TextOverlay(const TextOverlay* textOverlay) :
@@ -39,11 +110,21 @@ TextOverlay::TextOverlay(const TextOverlay* textOverlay) :
     _topMargin(textOverlay->_topMargin),
     _fontSize(textOverlay->_fontSize)
 {
-    _textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);
+    qApp->postLambdaEvent([=] {
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        TextOverlayElement::show([this](QQmlContext* context, QObject* object) {
+            _qmlElement = static_cast<TextOverlayElement*>(object);
+        });
+    });
+    while (!_qmlElement) {
+        QThread::sleep(1);
+    }
 }
 
 TextOverlay::~TextOverlay() {
-    delete _textRenderer;
+    if (_qmlElement) {
+        _qmlElement->deleteLater();
+    }
 }
 
 xColor TextOverlay::getBackgroundColor() {
@@ -65,45 +146,34 @@ xColor TextOverlay::getBackgroundColor() {
     return result;
 }
 
-
 void TextOverlay::render(RenderArgs* args) {
-    if (!_visible) {
-        return; // do nothing if we're not visible
+    if (_visible != _qmlElement->isVisible()) {
+        _qmlElement->setVisible(_visible);
     }
+    float pulseLevel = updatePulse();
+    static float _oldPulseLevel = 0.0f;
+    if (pulseLevel != _oldPulseLevel) {
 
-    const float MAX_COLOR = 255.0f;
-    xColor backgroundColor = getBackgroundColor();
-    glm::vec4 quadColor(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR,
-        getBackgroundAlpha());
-
-    int left = _bounds.left();
-    int right = _bounds.right() + 1;
-    int top = _bounds.top();
-    int bottom = _bounds.bottom() + 1;
-
-    glm::vec2 topLeft(left, top);
-    glm::vec2 bottomRight(right, bottom);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, quadColor);
-    
-    const int leftAdjust = -1; // required to make text render relative to left edge of bounds
-    const int topAdjust = -2; // required to make text render relative to top edge of bounds
-    int x = _bounds.left() + _leftMargin + leftAdjust;
-    int y = _bounds.top() + _topMargin + topAdjust;
-    
-    float alpha = getAlpha();
-    glm::vec4 textColor = {_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, alpha };
-    _textRenderer->draw(x, y, _text, textColor);
+    }
 }
+
 
 void TextOverlay::setProperties(const QScriptValue& properties) {
     Overlay2D::setProperties(properties);
-    
+    _qmlElement->setX(_bounds.left());
+    _qmlElement->setY(_bounds.top());
+    _qmlElement->setWidth(_bounds.width());
+    _qmlElement->setHeight(_bounds.height());
+    _qmlElement->settextColor(toQmlColor(vec4(toGlm(_color), _alpha)));
     QScriptValue font = properties.property("font");
     if (font.isObject()) {
         if (font.property("size").isValid()) {
             setFontSize(font.property("size").toInt32());
         }
+        QFont font(_qmlElement->fontFamily());
+        font.setPixelSize(_qmlElement->fontSize());
+        QFontMetrics fm(font);
+        _qmlElement->setlineHeight(fm.lineSpacing() * 1.2);
     }
 
     QScriptValue text = properties.property("text");
@@ -126,6 +196,7 @@ void TextOverlay::setProperties(const QScriptValue& properties) {
     if (properties.property("backgroundAlpha").isValid()) {
         _backgroundAlpha = properties.property("backgroundAlpha").toVariant().toFloat();
     }
+    _qmlElement->setbackgroundColor(toQmlColor(vec4(toGlm(_backgroundColor), _backgroundAlpha)));
 
     if (properties.property("leftMargin").isValid()) {
         setLeftMargin(properties.property("leftMargin").toVariant().toInt());
@@ -166,15 +237,37 @@ QScriptValue TextOverlay::getProperty(const QString& property) {
 }
 
 QSizeF TextOverlay::textSize(const QString& text) const {
-    auto extents = _textRenderer->computeExtent(text);
-
-    return QSizeF(extents.x, extents.y);
+    int lines = 1;
+    foreach(QChar c, text) {
+        if (c == QChar('\n')) {
+            ++lines;
+        }
+    }
+    QFont font(_qmlElement->fontFamily());
+    font.setPixelSize(_qmlElement->fontSize());
+    QFontMetrics fm(font);
+    QSizeF result = QSizeF(fm.width(text), _qmlElement->lineHeight() * lines);
+    return result; 
 }
 
 void TextOverlay::setFontSize(int fontSize) {
     _fontSize = fontSize;
-
-    auto oldTextRenderer = _textRenderer;
-    _textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);
-    delete oldTextRenderer;
+    _qmlElement->setfontSize(fontSize);
 }
+
+void TextOverlay::setText(const QString& text) {
+    _text = text;
+    _qmlElement->settext(text);
+}
+
+void TextOverlay::setLeftMargin(int margin) {
+    _leftMargin = margin;
+    _qmlElement->setleftMargin(margin);
+}
+
+void TextOverlay::setTopMargin(int margin) {
+    _topMargin = margin;
+    _qmlElement->settopMargin(margin);
+}
+
+#include "TextOverlay.moc"

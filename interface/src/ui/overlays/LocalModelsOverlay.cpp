@@ -9,11 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <GlowEffect.h>
-
-#include "Application.h"
-
 #include "LocalModelsOverlay.h"
+
+#include <EntityTreeRenderer.h>
+#include <gpu/Batch.h>
 
 LocalModelsOverlay::LocalModelsOverlay(EntityTreeRenderer* entityTreeRenderer) :
     Volume3DOverlay(),
@@ -32,25 +31,14 @@ void LocalModelsOverlay::update(float deltatime) {
 
 void LocalModelsOverlay::render(RenderArgs* args) {
     if (_visible) {
-        float glowLevel = getGlowLevel();
-        Glower* glower = NULL;
-        if (glowLevel > 0.0f) {
-            glower = new Glower(glowLevel);
-        }
-        
         auto batch = args ->_batch;
-        Application* app = Application::getInstance();
-        glm::vec3 oldTranslation = app->getViewMatrixTranslation();
+
         Transform transform = Transform();
-        transform.setTranslation(oldTranslation + getPosition());
+        transform.setTranslation(args->_viewFrustum->getPosition() + getPosition());
         batch->setViewTransform(transform);
         _entityTreeRenderer->render(args);
-        transform.setTranslation(oldTranslation);
+        transform.setTranslation(args->_viewFrustum->getPosition());
         batch->setViewTransform(transform);
-    
-        if (glower) {
-            delete glower;
-        }
     }
 }
 

@@ -417,7 +417,7 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
     
     // Reset the recording passed in the arguments
     if (!recording) {
-        recording.reset(new Recording());
+        recording = QSharedPointer<Recording>::create();
     }
     
     QDataStream fileStream(byteArray);
@@ -652,7 +652,7 @@ RecordingPointer readRecordingFromRecFile(RecordingPointer recording, const QStr
     timer.start();
     
     if (!recording) {
-        recording.reset(new Recording());
+        recording = QSharedPointer<Recording>::create();
     }
     
     QDataStream fileStream(byteArray);

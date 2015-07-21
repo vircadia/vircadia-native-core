@@ -17,14 +17,14 @@
 
 #include <QtCore/QDebug>
 #include <QtCore/QMutex>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QUuid>
-#include <QMutex>
 
 #include "HifiSockAddr.h"
 #include "NetworkPeer.h"
 #include "NodeData.h"
 #include "NodeType.h"
-#include "PacketHeaders.h"
+#include "udt/PacketHeaders.h"
 #include "SimpleMovingAverage.h"
 #include "MovingPercentile.h"
 
@@ -65,9 +65,9 @@ public:
     void setCanRez(bool canRez) { _canRez = canRez; }
     bool getCanRez() { return _canRez; }
 
-    void setLastSequenceNumberForPacketType(PacketSequenceNumber sequenceNumber, PacketType packetType)
+    void setLastSequenceNumberForPacketType(PacketSequenceNumber sequenceNumber, PacketType::Value packetType)
         { _lastSequenceNumbers[packetType] = sequenceNumber; }
-    PacketSequenceNumber getLastSequenceNumberForPacketType(PacketType packetType) const;
+    PacketSequenceNumber getLastSequenceNumberForPacketType(PacketType::Value packetType) const;
 
     friend QDataStream& operator<<(QDataStream& out, const Node& node);
     friend QDataStream& operator>>(QDataStream& in, Node& node);
@@ -91,6 +91,9 @@ private:
 
     PacketTypeSequenceMap _lastSequenceNumbers;
 };
+
+typedef QSharedPointer<Node> SharedNodePointer;
+Q_DECLARE_METATYPE(SharedNodePointer)
 
 QDebug operator<<(QDebug debug, const Node &message);
 

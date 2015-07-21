@@ -19,13 +19,13 @@
 class AvatarAudioStream : public PositionalAudioStream {
 public:
     AvatarAudioStream(bool isStereo, const InboundAudioStream::Settings& settings);
-    
+
 private:
     // disallow copying of AvatarAudioStream objects
     AvatarAudioStream(const AvatarAudioStream&);
     AvatarAudioStream& operator= (const AvatarAudioStream&);
 
-    int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples);
+    int parseStreamProperties(PacketType::Value type, const QByteArray& packetAfterSeqNum, int& numAudioSamples);
 };
 
 #endif // hifi_AvatarAudioStream_h

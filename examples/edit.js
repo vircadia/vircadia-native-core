@@ -53,6 +53,10 @@ var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
 var toolHeight = 50;
 var toolWidth = 50;
 
+var DEGREES_TO_RADIANS = Math.PI / 180.0;
+var RADIANS_TO_DEGREES = 180.0 / Math.PI;
+var epsilon = 0.001;
+
 var MIN_ANGULAR_SIZE = 2;
 var MAX_ANGULAR_SIZE = 45;
 var allowLargeModels = true;
@@ -656,7 +660,9 @@ function mouseMove(event) {
 
 function handleIdleMouse() {
     idleMouseTimerId = null;
-    highlightEntityUnderCursor(lastMousePosition, true);
+    if (isActive) {
+        highlightEntityUnderCursor(lastMousePosition, true);
+    }   
 }
 
 function highlightEntityUnderCursor(position, accurateRay) {
@@ -1214,7 +1220,13 @@ PropertiesTool = function(opts) {
             var entity = {};
             entity.id = selectionManager.selections[i];
             entity.properties = Entities.getEntityProperties(selectionManager.selections[i]);
-            entity.properties.rotation = Quat.safeEulerAngles(entity.properties.rotation);
+            if (entity.properties.rotation !== undefined) {
+                entity.properties.rotation = Quat.safeEulerAngles(entity.properties.rotation);
+            }
+            if (entity.properties.keyLightDirection !== undefined) {
+                entity.properties.keyLightDirection = Vec3.multiply(RADIANS_TO_DEGREES, Vec3.toPolar(entity.properties.keyLightDirection));
+                entity.properties.keyLightDirection.z = 0.0;
+            }
             selections.push(entity);
         }
         data.selections = selections;
@@ -1242,6 +1254,10 @@ PropertiesTool = function(opts) {
                     var rotation = data.properties.rotation;
                     data.properties.rotation = Quat.fromPitchYawRollDegrees(rotation.x, rotation.y, rotation.z);
                 }
+                if (data.properties.keyLightDirection !== undefined) {
+                    data.properties.keyLightDirection = Vec3.fromPolar(
+                        data.properties.keyLightDirection.x * DEGREES_TO_RADIANS, data.properties.keyLightDirection.y * DEGREES_TO_RADIANS);
+                } 
                 Entities.editEntity(selectionManager.selections[0], data.properties);
                 if (data.properties.name != undefined) {
                     entityListTool.sendUpdate();

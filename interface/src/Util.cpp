@@ -23,9 +23,7 @@
 
 #include <ByteCountCoding.h>
 #include <SharedUtil.h>
-#include <TextRenderer.h>
 
-#include "InterfaceConfig.h"
 #include "world.h"
 #include "Application.h"
 #include "InterfaceLogging.h"
@@ -77,44 +75,6 @@ void renderWorldBox(gpu::Batch& batch) {
 //  Return a random vector of average length 1
 const glm::vec3 randVector() {
     return glm::vec3(randFloat() - 0.5f, randFloat() - 0.5f, randFloat() - 0.5f) * 2.0f;
-}
-
-static TextRenderer* textRenderer(int mono) {
-    static TextRenderer* monoRenderer = TextRenderer::getInstance(MONO_FONT_FAMILY);
-    static TextRenderer* proportionalRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY,
-        -1, -1, false, TextRenderer::SHADOW_EFFECT);
-    static TextRenderer* inconsolataRenderer = TextRenderer::getInstance(INCONSOLATA_FONT_FAMILY, -1, INCONSOLATA_FONT_WEIGHT,
-        false);
-    switch (mono) {
-        case 1:
-            return monoRenderer;
-        case 2:
-            return inconsolataRenderer;
-        case 0:
-        default:
-            return proportionalRenderer;
-    }
-}
-
-int widthText(float scale, int mono, char const* string) {
-    return textRenderer(mono)->computeExtent(string).x;  // computeWidth(string) * (scale / 0.10);
-}
-
-void drawText(int x, int y, float scale, float radians, int mono,
-              char const* string, const float* color) {
-    //
-    //  Draws text on screen as stroked so it can be resized
-    //
-    glPushMatrix();
-    glTranslatef(static_cast<float>(x), static_cast<float>(y), 0.0f);
-
-
-    glRotated(double(radians * DEGREES_PER_RADIAN), 0.0, 0.0, 1.0);
-    glScalef(scale / 0.1f, scale / 0.1f, 1.0f);
-
-    glm::vec4 colorV4 = {color[0], color[1], color[2], 1.0f };
-    textRenderer(mono)->draw(0, 0, string, colorV4);
-    glPopMatrix();
 }
 
 void renderCollisionOverlay(int width, int height, float magnitude, float red, float blue, float green) {
