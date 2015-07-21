@@ -69,7 +69,7 @@ PacketVersion versionForPacketType(PacketType::Value packetType) {
         case EntityData:
             return VERSION_ENTITIES_NEW_PROTOCOL_LAYER;
         default:
-            return 10;
+            return 11;
     }
 }
 
