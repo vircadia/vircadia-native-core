@@ -133,19 +133,19 @@ NLPacket& NLPacket::operator=(NLPacket&& other) {
 }
 
 QUuid NLPacket::sourceIDInHeader(const udt::Packet& packet) {
-    int offset = packet.localHeaderSize();
+    int offset = packet.Packet::localHeaderSize();
     return QUuid::fromRfc4122(QByteArray::fromRawData(packet.getData() + offset, NUM_BYTES_RFC4122_UUID));
 }
 
 QByteArray NLPacket::verificationHashInHeader(const udt::Packet& packet) {
-    int offset = packet.localHeaderSize() + NUM_BYTES_RFC4122_UUID;
+    int offset = packet.Packet::localHeaderSize() + NUM_BYTES_RFC4122_UUID;
     return QByteArray(packet.getData() + offset, NUM_BYTES_MD5_HASH);
 }
 
 QByteArray NLPacket::hashForPacketAndSecret(const udt::Packet& packet, const QUuid& connectionSecret) {
     QCryptographicHash hash(QCryptographicHash::Md5);
     
-    int offset = packet.localHeaderSize() + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
+    int offset = packet.Packet::localHeaderSize() + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
     
     // add the packet payload and the connection UUID
     hash.addData(packet.getData(), packet.getDataSize() - offset);
@@ -185,5 +185,6 @@ void NLPacket::writeVerificationHashGivenSecret(const QUuid& connectionSecret) {
     
     auto offset = Packet::localHeaderSize() + NUM_BYTES_RFC4122_UUID;
     QByteArray verificationHash = hashForPacketAndSecret(*this, connectionSecret);
+    
     memcpy(_packet.get() + offset, verificationHash.data(), verificationHash.size());
 }
