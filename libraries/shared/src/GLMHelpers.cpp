@@ -348,14 +348,14 @@ QRectF glmToRect(const glm::vec2 & pos, const glm::vec2 & size) {
 }
 
 // create matrix from orientation and position
-glm::mat4 createMatFromQuatAndPos(glm::quat q, glm::vec3 p) {
+glm::mat4 createMatFromQuatAndPos(const glm::quat& q, const glm::vec3& p) {
     glm::mat4 m = glm::mat4_cast(q);
     m[3] = glm::vec4(p, 1);
     return m;
 }
 
 // cancel out roll and pitch
-glm::quat cancelOutRollAndPitch(glm::quat q) {
+glm::quat cancelOutRollAndPitch(const glm::quat& q) {
     glm::vec3 xAxis = q * glm::vec3(1, 0, 0);
     glm::vec3 yAxis = q * glm::vec3(0, 1, 0);
     glm::vec3 zAxis = q * glm::vec3(0, 0, 1);
@@ -370,7 +370,7 @@ glm::quat cancelOutRollAndPitch(glm::quat q) {
 }
 
 // cancel out roll and pitch
-glm::mat4 cancelOutRollAndPitch(glm::mat4 m) {
+glm::mat4 cancelOutRollAndPitch(const glm::mat4& m) {
     glm::vec3 xAxis = glm::vec3(m[0]);
     glm::vec3 yAxis = glm::vec3(m[1]);
     glm::vec3 zAxis = glm::vec3(m[2]);
@@ -384,7 +384,7 @@ glm::mat4 cancelOutRollAndPitch(glm::mat4 m) {
     return temp;
 }
 
-glm::vec3 transformPoint(const glm::mat4& m, glm::vec3 p) {
+glm::vec3 transformPoint(const glm::mat4& m, const glm::vec3& p) {
     glm::vec4 temp = m * glm::vec4(p, 1);
     return glm::vec3(temp.x / temp.w, temp.y / temp.w, temp.z / temp.w);
 }
