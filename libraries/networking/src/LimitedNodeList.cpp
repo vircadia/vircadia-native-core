@@ -99,7 +99,7 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     
     // set &PacketReceiver::handleVerifiedPacket as the verified packet function for the udt::Socket
     using std::placeholders::_1;
-    _nodeSocket.setVerifiedPacketFunction(std::bind(&PacketReceiver::handleVerifiedPacket, _packetReceiver, _1));
+    _nodeSocket.setVerifiedPacketCallback(std::bind(&PacketReceiver::handleVerifiedPacket, _packetReceiver, _1));
 
     _packetStatTimer.start();
     

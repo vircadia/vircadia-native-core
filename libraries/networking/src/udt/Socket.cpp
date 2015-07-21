@@ -83,6 +83,11 @@ void Socket::readPendingDatagrams() {
         // setup a Packet from the data we just read
         auto packet = Packet::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
         
-        
+        // call our verification operator to see if this packet is verified
+        if (!_verifyPacketOperator || _verifyPacketOperator(*packet)) {
+            
+            // call the verified packet callback to let it handle this packet
+            return _verifiedPacketCallback(std::move(packet));
+        }
     }
 }

@@ -24,7 +24,8 @@
 
 namespace udt {
 
-using VerifiedPacketFunction = std::function<void(std::unique_ptr<Packet>)>;
+using VerifyPacketOperator = std::function<bool(Packet&)>;
+using VerifiedPacketCallback = std::function<void(std::unique_ptr<Packet>)>;
 
 class Socket : public QObject {
     Q_OBJECT
@@ -40,8 +41,9 @@ public:
     void bind(const QHostAddress& address, quint16 port = 0) { _udpSocket.bind(address, port); }
     void rebind();
     
-    void setVerifiedPacketFunction(VerifiedPacketFunction verifiedPacketFunction)
-        { _verifiedPacketFunction = verifiedPacketFunction; }
+    void setVerifyPacketOperator(VerifyPacketOperator verifyPacketOperator) { _verifyPacketOperator = verifyPacketOperator; }
+    void setVerifiedPacketCallback(VerifiedPacketCallback verifiedPacketCallback)
+        { _verifiedPacketCallback = verifiedPacketCallback; }
     
     void setBufferSizes(int numBytes);
 
@@ -50,7 +52,8 @@ private slots:
     
 private:
     QUdpSocket _udpSocket { this };
-    VerifiedPacketFunction _verifiedPacketFunction;
+    VerifyPacketOperator _verifyPacketOperator;
+    VerifiedPacketCallback _verifiedPacketCallback;
 };
     
 }
