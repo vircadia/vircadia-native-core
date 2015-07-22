@@ -65,7 +65,7 @@ AvatarManager::AvatarManager(QObject* parent) :
 {
     // register a meta type for the weak pointer we'll use for the owning avatar mixer for each avatar
     qRegisterMetaType<QWeakPointer<Node> >("NodeWeakPointer");
-    _myAvatar = std::make_shared<MyAvatar>();
+    _myAvatar = std::make_shared<MyAvatar>(std::make_shared<Rig>());
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
@@ -160,7 +160,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
-    return AvatarSharedPointer(std::make_shared<Avatar>());
+    return AvatarSharedPointer(std::make_shared<Avatar>(std::make_shared<Rig>()));
 }
 
 // virtual

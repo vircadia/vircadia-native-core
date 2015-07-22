@@ -78,8 +78,8 @@ const float MyAvatar::ZOOM_MIN = 0.5f;
 const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 
-MyAvatar::MyAvatar() :
-    Avatar(),
+MyAvatar::MyAvatar(RigPointer rig) :
+    Avatar(rig),
     _gravity(0.0f, 0.0f, 0.0f),
     _wasPushing(false),
     _isPushing(false),
@@ -102,8 +102,8 @@ MyAvatar::MyAvatar() :
     _eyeContactTarget(LEFT_EYE),
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
-    _rig(new Rig()),
-    _firstPersonSkeletonModel(this, nullptr, _rig),
+    _rig(rig),
+    _firstPersonSkeletonModel(this, nullptr, rig),
     _prevShouldDrawHead(true)
 {
     _firstPersonSkeletonModel.setIsFirstPerson(true);

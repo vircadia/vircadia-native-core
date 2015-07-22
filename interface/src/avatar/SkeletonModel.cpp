@@ -42,6 +42,7 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer r
     _headClipDistance(DEFAULT_NEAR_CLIP),
     _isFirstPerson(false)
 {
+    assert(_rig);
     assert(_owningAvatar);
     _enableShapes = true;
 }

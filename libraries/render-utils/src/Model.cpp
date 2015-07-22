@@ -83,7 +83,6 @@ Model::Model(QObject* parent, RigPointer rig) :
     _isWireframe(false),
     _renderCollisionHull(false),
     _rig(rig) {
-    
     // we may have been created in the network thread, but we live in the main thread
     if (_viewState) {
         moveToThread(_viewState->getMainThread());
@@ -1098,8 +1097,12 @@ void Model::clearJointState(int index) {
 }
 
 void Model::clearJointAnimationPriority(int index) {
-    if (index != -1 && index < _jointStates.size()) {
-        _jointStates[index]._animationPriority = 0.0f;
+    if (_rig) {
+        _rig->clearJointAnimationPriority(index);
+    } else {
+        if (index != -1 && index < _jointStates.size()) {
+            _jointStates[index]._animationPriority = 0.0f;
+        }
     }
 }
 
@@ -1517,9 +1520,8 @@ void Model::updateVisibleJointStates() {
     }
 }
 
-bool Model::setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation,
-                             bool useRotation, int lastFreeIndex, bool allIntermediatesFree, const glm::vec3& alignment,
-                             float priority) {
+bool Model::setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation, bool useRotation,
+       int lastFreeIndex, bool allIntermediatesFree, const glm::vec3& alignment, float priority) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
     }
@@ -1604,8 +1606,7 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position, const gl
     return true;
 }
 
-void Model::inverseKinematics(int endIndex, glm::vec3 targetPosition,
-                              const glm::quat& targetRotation, float priority) {
+void Model::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority) {
     // NOTE: targetRotation is from bind- to model-frame
 
     if (endIndex == -1 || _jointStates.isEmpty()) {

@@ -72,7 +72,7 @@ class Avatar : public AvatarData {
     Q_PROPERTY(glm::vec3 skeletonOffset READ getSkeletonOffset WRITE setSkeletonOffset)
 
 public:
-    Avatar();
+    Avatar(RigPointer rig = nullptr);
     ~Avatar();
 
     typedef render::Payload<AvatarData> Payload;

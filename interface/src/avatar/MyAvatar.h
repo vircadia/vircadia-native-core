@@ -36,7 +36,7 @@ class MyAvatar : public Avatar {
     //TODO: make gravity feature work Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setGravity)
 
 public:
-	MyAvatar();
+    MyAvatar(RigPointer rig);
     ~MyAvatar();
 
     QByteArray toByteArray();

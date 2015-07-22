@@ -64,7 +64,7 @@ public:
 
     static void setAbstractViewStateInterface(AbstractViewStateInterface* viewState) { _viewState = viewState; }
 
-    Model(QObject* parent = NULL, RigPointer rig = nullptr);
+    Model(QObject* parent = nullptr, RigPointer rig = nullptr);
     virtual ~Model();
     
     /// enables/disables scale to fit behavior, the model will be automatically scaled to the specified largest dimension
@@ -206,6 +206,7 @@ public:
 
     QStringList getJointNames() const;
     
+    AnimationHandlePointer createAnimationHandle();
 
     const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
    
@@ -293,8 +294,8 @@ protected:
     /// \param alignment
     /// \return true if joint exists
     bool setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation = glm::quat(),
-                          bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
-                          const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f), float priority = 1.0f);
+        bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
+        const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f), float priority = 1.0f);
 
     /// Restores the indexed joint to its default position.
     /// \param fraction the fraction of the default position to apply (i.e., 0.25f to slerp one fourth of the way to
@@ -522,6 +523,7 @@ private:
     bool _readyWhenAdded = false;
     bool _needsReload = true;
 
+protected:
     RigPointer _rig;
 };
 

@@ -44,13 +44,40 @@ public:
     bool isRunningAnimation(AnimationHandlePointer animationHandle);
     const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
 
-    void initJointStates(glm::vec3 scale, glm::vec3 offset, QVector<JointState> states);
+    float initJointStates(glm::vec3 scale, glm::vec3 offset, QVector<JointState> states);
     void initJointTransforms(glm::vec3 scale, glm::vec3 offset);
     void resetJoints();
+    bool jointStatesEmpty() { return _jointStates.isEmpty(); };
+    int jointStateCount() const { return _jointStates.size(); }
+    bool getJointStateAtIndex(int jointIndex, JointState& jointState) const;
+
+    void updateJointStates(glm::mat4 parentTransform);
+    void updateJointState(int index, glm::mat4 parentTransform);
+    void resetAllTransformsChanged();
+
+    bool getJointState(int index, glm::quat& rotation) const;
+    bool getVisibleJointState(int index, glm::quat& rotation) const;
+    void updateVisibleJointStates();
+    void clearJointState(int index);
+    void clearJointStates();
+    void setJointState(int index, bool valid, const glm::quat& rotation, float priority);
+    void clearJointAnimationPriority(int index);
+    glm::quat setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority, bool constrain = false);
+    glm::quat setJointRotationInConstrainedFrame(int jointIndex, glm::quat targetRotation,
+                                                 float priority, bool constrain = false);
+    void applyJointRotationDelta(int jointIndex, const glm::quat& delta, bool constrain, float priority);
 
     QVector<JointState> getJointStates() { return _jointStates; }
 
     AnimationHandlePointer createAnimationHandle();
+
+    bool setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation,
+                          bool useRotation, int lastFreeIndex, bool allIntermediatesFree, const glm::vec3& alignment,
+                          float priority, glm::mat4 parentTransform);
+    void inverseKinematics(int endIndex, glm::vec3 targetPosition,
+                           const glm::quat& targetRotation, float priority, glm::mat4 parentTransform);
+    bool restoreJointPosition(int jointIndex, float fraction, float priority);
+    float getLimbLength(int jointIndex, glm::vec3 scale) const;
 
 protected:
     QVector<JointState> _jointStates;
