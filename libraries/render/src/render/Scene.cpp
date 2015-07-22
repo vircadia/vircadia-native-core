@@ -87,14 +87,14 @@ void Item::Status::getPackedValues(glm::ivec4& values) const {
 
 void Item::PayloadInterface::addStatusGetter(const Status::Getter& getter) {
     if (!_status) {
-        _status.reset(new Status());
+        _status = std::make_shared<Status>();
     }
     _status->addGetter(getter);
 }
 
 void Item::PayloadInterface::addStatusGetters(const Status::Getters& getters) {
     if (!_status) {
-        _status.reset(new Status());
+        _status = std::make_shared<Status>();
     }
     for (auto& g : getters) {
         _status->addGetter(g);

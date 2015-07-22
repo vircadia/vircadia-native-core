@@ -237,10 +237,6 @@ public:
 
     float getFps() const { return _fps; }
 
-    virtual const Transform& getViewTransform() const { return _viewTransform; }
-    virtual Transform& getViewTransform() { return _viewTransform; }
-    void setViewTransform(const Transform& view);
-
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov) { _fieldOfView.set(fov); }
 
@@ -257,14 +253,11 @@ public:
 
     void resetProfile(const QString& username);
 
-    virtual void setupWorldLight(RenderArgs* renderArgs);
     virtual bool shouldRenderMesh(float largestDimension, float distanceToCamera);
 
     QImage renderAvatarBillboard(RenderArgs* renderArgs);
 
     void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false, bool billboard = false);
-    void getModelViewMatrix(glm::dmat4* modelViewMatrix);
-    void getProjectionMatrix(glm::dmat4* projectionMatrix);
 
     virtual const glm::vec3& getShadowDistances() const { return _shadowDistances; }
     virtual ViewFrustum* getCurrentViewFrustum() { return getDisplayViewFrustum(); }
@@ -296,8 +289,8 @@ public:
 
     QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
     ScriptEngine* getScriptEngine(QString scriptHash) { return _scriptEnginesHash.contains(scriptHash) ? _scriptEnginesHash[scriptHash] : NULL; }
-
-    bool isLookingAtMyAvatar(Avatar* avatar);
+    
+    bool isLookingAtMyAvatar(AvatarSharedPointer avatar);
 
     float getRenderResolutionScale() const;
     int getRenderAmbientLight() const;
@@ -455,8 +448,6 @@ private slots:
 
 private:
     void resetCameras(Camera& camera, const glm::uvec2& size);
-    void updateProjectionMatrix();
-    void updateProjectionMatrix(Camera& camera, bool updateViewFrustum = true);
 
     void sendPingPackets();
 
@@ -489,7 +480,6 @@ private:
 
     glm::vec3 getSunDirection();
 
-    void updateShadowMap(RenderArgs* renderArgs);
     void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard = false);
     void setMenuShortcutsEnabled(bool enabled);
 
@@ -551,9 +541,6 @@ private:
     Setting::Handle<QString>    _previousScriptLocation;
     Setting::Handle<QString>    _scriptsLocationHandle;
     Setting::Handle<float>      _fieldOfView;
-
-    Transform _viewTransform;
-    glm::mat4 _projectionMatrix;
 
     float _scaleMirror;
     float _rotateMirror;

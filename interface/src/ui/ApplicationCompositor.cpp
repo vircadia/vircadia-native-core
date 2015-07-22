@@ -371,14 +371,14 @@ QPoint ApplicationCompositor::getPalmClickLocation(const PalmData *palm) const {
         rv.ry() = point.y;
     } else {
         MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-        glm::dmat4 projection;
-        qApp->getProjectionMatrix(&projection);
+        glm::mat4 projection;
+        qApp->getDisplayViewFrustum()->evalProjectionMatrix(projection);
         glm::quat invOrientation = glm::inverse(myAvatar->getOrientation());
         glm::vec3 eyePos = myAvatar->getDefaultEyePosition();
         glm::vec3 tip = myAvatar->getLaserPointerTipPosition(palm);
         glm::vec3 tipPos = invOrientation * (tip - eyePos);
 
-        glm::vec4 clipSpacePos = glm::vec4(projection * glm::dvec4(tipPos, 1.0));
+        glm::vec4 clipSpacePos = glm::vec4(projection * glm::vec4(tipPos, 1.0f));
         glm::vec3 ndcSpacePos;
         if (clipSpacePos.w != 0) {
             ndcSpacePos = glm::vec3(clipSpacePos) / clipSpacePos.w;
@@ -549,8 +549,8 @@ void ApplicationCompositor::buildHemiVertices(
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
-    _hemiVertices = gpu::BufferPointer(new gpu::Buffer());
-    _hemiIndices = gpu::BufferPointer(new gpu::Buffer());
+    _hemiVertices = std::make_shared<gpu::Buffer>();
+    _hemiIndices = std::make_shared<gpu::Buffer>();
 
 
     if (fov >= PI) {
@@ -612,7 +612,7 @@ void ApplicationCompositor::drawSphereSection(gpu::Batch& batch) {
     static const int VERTEX_DATA_SLOT = 0;
     static const int TEXTURE_DATA_SLOT = 1;
     static const int COLOR_DATA_SLOT = 2;
-    gpu::Stream::FormatPointer streamFormat(new gpu::Stream::Format()); // 1 for everyone
+    auto streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
     streamFormat->setAttribute(gpu::Stream::POSITION, VERTEX_DATA_SLOT, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     streamFormat->setAttribute(gpu::Stream::TEXCOORD, TEXTURE_DATA_SLOT, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
     streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_DATA_SLOT, gpu::Element(gpu::VEC4, gpu::FLOAT, gpu::RGBA));

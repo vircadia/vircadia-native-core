@@ -20,7 +20,7 @@ Material::Material() :
        
         // only if created from nothing shall we create the Buffer to store the properties
         Schema schema;
-        _schemaBuffer = gpu::BufferView(new gpu::Buffer(sizeof(Schema), (const gpu::Byte*) &schema));
+        _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
         
 
 }

@@ -436,7 +436,7 @@ void SixenseManager::registerToUserInputMapper(UserInputMapper& mapper) {
     // Grab the current free device ID
     _deviceID = mapper.getFreeDeviceID();
     
-    auto proxy = UserInputMapper::DeviceProxy::Pointer(new UserInputMapper::DeviceProxy(_name));
+    auto proxy = std::make_shared<UserInputMapper::DeviceProxy>(_name);
     proxy->getButton = [this] (const UserInputMapper::Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
     proxy->getAxis = [this] (const UserInputMapper::Input& input, int timestamp) -> float { return this->getAxis(input.getChannel()); };
     proxy->getPose = [this](const UserInputMapper::Input& input, int timestamp) -> UserInputMapper::PoseValue { return this->getPose(input.getChannel()); };
