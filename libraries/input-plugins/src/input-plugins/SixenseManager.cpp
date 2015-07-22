@@ -69,7 +69,7 @@ SixenseManager::SixenseManager() :
 
 bool SixenseManager::isSupported() const {
 #ifdef HAVE_SIXENSE
-    return true;
+    return false;
 #else
     return false;
 #endif
@@ -98,9 +98,9 @@ void SixenseManager::activate(PluginContainer* container) {
     }
 
     if (_sixenseLibrary->load()){
-        qCDebug(interfaceapp) << "Loaded sixense library for hydra support -" << _sixenseLibrary->fileName();
+        qCDebug(inputplugins) << "Loaded sixense library for hydra support -" << _sixenseLibrary->fileName();
     } else {
-        qCDebug(interfaceapp) << "Sixense library at" << _sixenseLibrary->fileName() << "failed to load."
+        qCDebug(inputplugins) << "Sixense library at" << _sixenseLibrary->fileName() << "failed to load."
             << "Continuing without hydra support.";
         return;
     }

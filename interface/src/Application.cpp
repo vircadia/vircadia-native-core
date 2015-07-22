@@ -335,7 +335,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isThrottleFPSEnabled(false),
         _aboutToQuit(false),
         _notifiedPacketVersionMismatchThisDomain(false),
-        _glWidget(new GLCanvas()),
         _domainConnectionRefusals(QList<QString>()),
         _maxOctreePPS(maxOctreePacketsPerSecond.get()),
         _lastFaceTrackerUpdate(0),
@@ -805,11 +804,6 @@ void Application::initializeGL() {
     }
     #endif
 
-    qCDebug(interfaceapp) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
-    qCDebug(interfaceapp) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
-    qCDebug(interfaceapp) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
-    qCDebug(interfaceapp) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
-
     #ifdef WIN32
     GLenum err = glewInit();
     if (GLEW_OK != err) {
@@ -823,6 +817,12 @@ void Application::initializeGL() {
         qCDebug(interfaceapp, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
     }
     #endif
+
+    
+    qCDebug(interfaceapp) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
+    qCDebug(interfaceapp) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
+    qCDebug(interfaceapp) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
+    qCDebug(interfaceapp) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
 
 #if defined(Q_OS_LINUX)
     // TODO: Write the correct  code for Linux...
@@ -993,7 +993,6 @@ void Application::paintGL() {
                               (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
                                glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
     }
-    Q_ASSERT(_offscreenContext->getContext() == QOpenGLContext::currentContext());
 
     // Update camera position
     if (!isHMDMode()) {
@@ -1108,9 +1107,7 @@ void Application::paintGL() {
         GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 #endif
         _offscreenContext->doneCurrent();
-        Q_ASSERT(!QOpenGLContext::currentContext());
         displayPlugin->preDisplay();
-        Q_ASSERT(QOpenGLContext::currentContext());
 
 #ifdef Q_OS_MAC
 #else
@@ -1129,7 +1126,6 @@ void Application::paintGL() {
             displayPlugin->finishFrame();
         }
 
-        Q_ASSERT(!QOpenGLContext::currentContext());
         _offscreenContext->makeCurrent();
         _frameCount++;
         Stats::getInstance()->setRenderDetails(renderArgs._details);
@@ -3144,6 +3140,24 @@ void Application::queryOctree(NodeType_t serverType, PacketType::Value packetTyp
             nodeList->sendUnreliablePacket(*queryPacket, *node);
         }
     });
+}
+
+// loadViewFrustum()
+//
+// Description: this will load the view frustum bounds for EITHER the head
+//                 or the "myCamera".
+//
+void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
+    PROFILE_RANGE(__FUNCTION__);
+    // We will use these below, from either the camera or head vectors calculated above
+    viewFrustum.setProjection(camera.getProjection());
+
+    // Set the viewFrustum up with the correct position and orientation of the camera
+    viewFrustum.setPosition(camera.getPosition());
+    viewFrustum.setOrientation(camera.getRotation());
+
+    // Ask the ViewFrustum class to calculate our corners
+    viewFrustum.calculate();
 }
 
 bool Application::isHMDMode() const {

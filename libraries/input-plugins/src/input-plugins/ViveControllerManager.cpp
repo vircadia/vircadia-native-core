@@ -17,14 +17,16 @@
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
 #include <DeferredLightingEffect.h>
-#include <display-plugins\openvr\OpenVrHelpers.h>
+#include <display-plugins/openvr/OpenVrHelpers.h>
 #include "NumericalConstants.h"
 #include "UserActivityLogger.h"
 
+#ifndef Q_OS_MAC
 extern vr::IVRSystem* _hmd;
 extern int hmdRefCount;
 extern vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 extern mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
+#endif
 
 const unsigned int LEFT_MASK = 0U;
 const unsigned int RIGHT_MASK = 1U;
@@ -55,10 +57,15 @@ ViveControllerManager::ViveControllerManager() :
 }
 
 bool ViveControllerManager::isSupported() const {
+#ifndef Q_OS_MAC
     return vr::VR_IsHmdPresent();
+#else 
+    return false;
+#endif
 }
 
 void ViveControllerManager::activate(PluginContainer* container) {
+#ifndef Q_OS_MAC
     hmdRefCount++;
     if (!_hmd) {
         vr::HmdError eError = vr::HmdError_None;
@@ -112,9 +119,11 @@ void ViveControllerManager::activate(PluginContainer* container) {
 
         _modelLoaded = true;
     }
+#endif
 }
 
 void ViveControllerManager::deactivate() {
+#ifndef Q_OS_MAC
     hmdRefCount--;
 
     if (hmdRefCount == 0 && _hmd) {
@@ -122,6 +131,7 @@ void ViveControllerManager::deactivate() {
         _hmd = nullptr;
     }
     _poseStateMap.clear();
+#endif
 }
 
 void ViveControllerManager::updateRendering(RenderArgs* args, render::ScenePointer scene, render::PendingChanges pendingChanges) {
@@ -187,12 +197,14 @@ void ViveControllerManager::renderHand(UserInputMapper::PoseValue pose, gpu::Bat
 }
 
 void ViveControllerManager::update(float deltaTime, bool jointsCaptured) {
+#ifndef Q_OS_MAC
     _poseStateMap.clear();
     // TODO: This shouldn't be necessary
     if (!_hmd) {
         return;
     }
-
+    return;
+    
     _buttonPressedMap.clear();
         
     PerformanceTimer perfTimer("ViveControllerManager::update");
@@ -252,6 +264,7 @@ void ViveControllerManager::update(float deltaTime, bool jointsCaptured) {
     }
         
     _trackedControllers = numTrackedControllers;
+#endif
 }
 
 void ViveControllerManager::focusOutEvent() {

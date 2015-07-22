@@ -21,7 +21,7 @@ const unsigned int CONTROLLER_1_EVENT = 1501U;
 // instead of class Example : public InputDevice, public InputPlugin
 class InputDevice {
 public:
-    InputDevice::InputDevice(const QString& name) : _name(name) {}
+    InputDevice(const QString& name) : _name(name) {}
 
     typedef std::unordered_set<int> ButtonPressedMap;
     typedef std::map<int, float> AxisStateMap;

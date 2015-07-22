@@ -477,6 +477,7 @@ private:
     void renderLookatIndicator(glm::vec3 pointOfInterest);
 
     void queryOctree(NodeType_t serverType, PacketType::Value packetType, NodeToJurisdictionMap& jurisdictions);
+    void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
 
     glm::vec3 getSunDirection();
 
