@@ -3616,6 +3616,9 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     }
     renderArgs->_viewport = viewport;
 
+    auto origRenderMode = renderArgs->_renderMode;
+    renderArgs->_renderMode = RenderArgs::MIRROR_RENDER_MODE;
+
     {
         gpu::Batch batch;
         batch.setViewportTransform(viewport);
@@ -3636,6 +3639,9 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     displaySide(renderArgs, _mirrorCamera, true, billboard);
 
     renderArgs->_viewport =  originalViewport;
+
+    // restore renderMode
+    renderArgs->_renderMode = origRenderMode;
 }
 
 void Application::resetSensors() {
