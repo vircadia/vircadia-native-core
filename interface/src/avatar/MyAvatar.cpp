@@ -1236,7 +1236,7 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bo
 
     //  Render head so long as the camera isn't inside it
     if (shouldRenderHead(renderArgs)) {
-        getHead()->render(renderArgs, 1.0f, renderFrustum, postLighting);
+        getHead()->render(renderArgs, 1.0f, renderFrustum);
     }
     getHand()->render(renderArgs, true);
 }

@@ -586,7 +586,7 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool
             getHand()->render(renderArgs, false);
         }
     }
-    getHead()->render(renderArgs, 1.0f, renderFrustum, postLighting);
+    getHead()->render(renderArgs, 1.0f, renderFrustum);
 }
 
 bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {
