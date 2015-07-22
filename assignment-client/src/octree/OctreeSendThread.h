@@ -42,7 +42,7 @@ protected:
     virtual bool process();
 
 private:
-    QPointer<OctreeServer> _myServer;
+    OctreeServer* _myServer;
     SharedNodePointer _node;
     QUuid _nodeUUID;
 
