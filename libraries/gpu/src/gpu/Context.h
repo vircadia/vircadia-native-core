@@ -134,7 +134,7 @@ protected:
 
     friend class Shader;
 };
-
+typedef std::shared_ptr<Context> ContextPointer;
 
 };
 

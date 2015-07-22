@@ -10,6 +10,14 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+/* TBD:
+ - What is responsibilities of Animation/AnimationPointer/AnimationCache/AnimationDetails?  Is there common/copied code (e.g., ScriptableAvatar::update)?
+ - How do attachments interact with the physics of the attached entity? E.g., do hand joints need to reflect held object physics?
+ - Is there any current need (i.e., for initial campatability) to have multiple animations per role (e.g., idle) with the system choosing randomly?
+ 
+ - Distribute some doc from here to the right files if it turns out to be correct:
+    - AnimationDetails is a script-useable copy of animation state, analogous to EntityItemProperties, but without anything equivalent to editEntity.
+ */
 
 #ifndef __hifi__Rig__
 #define __hifi__Rig__
