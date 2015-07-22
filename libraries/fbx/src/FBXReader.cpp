@@ -17,6 +17,7 @@
 #include <QTextStream>
 #include <QtDebug>
 #include <QtEndian>
+#include <QFileInfo>
 
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -1454,9 +1455,23 @@ void buildModelMesh(ExtractedMesh& extracted) {
 }
 #endif // USE_MODEL_MESH
 
+QByteArray fileOnUrl(const QByteArray filenameString,const QString url) {
+    QString path = QFileInfo(url).path();
+    QByteArray filename = filenameString;
+    QFileInfo checkFile(path + "/" + filename.replace('\\', '/'));
+    //check if the file exists at the RelativeFileName
+    if (checkFile.exists() && checkFile.isFile()) {
+        filename = filename.replace('\\', '/');
+    } else {
+        // there is not texture at the filename. Assume it is in the root dir.
+        filename = filename.mid(qMax(filename.lastIndexOf('\\'), filename.lastIndexOf('/')) + 1);
+    }
+    filename = filename.mid(qMax(filename.lastIndexOf('\\'), filename.lastIndexOf('/')) + 1);
+    filename = filename.replace('\\', '/');
+    return filename;
+}
 
-
-FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping, bool loadLightmaps, float lightmapLevel) {
+FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping, QString url, bool loadLightmaps, float lightmapLevel) {
     QHash<QString, ExtractedMesh> meshes;
     QHash<QString, QString> modelIDsToNames;
     QHash<QString, int> meshIDsToMeshIndices;
@@ -1782,7 +1797,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "RelativeFilename") {
                             QByteArray filename = subobject.properties.at(0).toByteArray();
-                            filename = filename.replace('\\', '/');
+                            filename = fileOnUrl(filename, url);
                             textureFilenames.insert(getID(object.properties), filename);
                         } else if (subobject.name == "TextureName") {
                             // trim the name from the timestamp
@@ -1856,7 +1871,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "RelativeFilename") {
                             filename = subobject.properties.at(0).toByteArray();
-                            filename = filename.mid(qMax(filename.lastIndexOf('\\'), filename.lastIndexOf('/')) + 1);
+                            filename = fileOnUrl(filename, url);
                             
                         } else if (subobject.name == "Content" && !subobject.properties.isEmpty()) {
                             content = subobject.properties.at(0).toByteArray();
@@ -2709,12 +2724,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
     return geometry;
 }
 
-FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, bool loadLightmaps, float lightmapLevel) {
+FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, const QString url, bool loadLightmaps, float lightmapLevel) {
     QBuffer buffer(const_cast<QByteArray*>(&model));
     buffer.open(QIODevice::ReadOnly);
-    return readFBX(&buffer, mapping, loadLightmaps, lightmapLevel);
+    return readFBX(&buffer, mapping, url, loadLightmaps, lightmapLevel);
 }
 
-FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, bool loadLightmaps, float lightmapLevel) {
-    return extractFBXGeometry(parseFBX(device), mapping, loadLightmaps, lightmapLevel);
+FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, const QString url, bool loadLightmaps, float lightmapLevel) {
+    return extractFBXGeometry(parseFBX(device), mapping, url, loadLightmaps, lightmapLevel);
 }

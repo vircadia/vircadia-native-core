@@ -65,7 +65,7 @@ void AnimationReader::run() {
     QSharedPointer<Resource> animation = _animation.toStrongRef();
     if (!animation.isNull()) {
         QMetaObject::invokeMethod(animation.data(), "setGeometry",
-            Q_ARG(const FBXGeometry&, readFBX(_reply->readAll(), QVariantHash())));
+            Q_ARG(const FBXGeometry&, readFBX(_reply->readAll(), QVariantHash(), _reply->property("url").toString())));
     }
     _reply->deleteLater();
 }
