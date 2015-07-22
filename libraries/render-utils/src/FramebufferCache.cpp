@@ -39,6 +39,7 @@ void FramebufferCache::setFrameBufferSize(QSize frameBufferSize) {
         _primaryColorTexture.reset();
         _primaryNormalTexture.reset();
         _primarySpecularTexture.reset();
+        _cachedFramebuffers.clear();
     }
 }
 
@@ -129,7 +130,9 @@ gpu::FramebufferPointer FramebufferCache::getFramebuffer() {
 
 
 void FramebufferCache::releaseFramebuffer(const gpu::FramebufferPointer& framebuffer) {
-    _cachedFramebuffers.push_back(framebuffer);
+    if (QSize(framebuffer->getSize().x, framebuffer->getSize().y) == _frameBufferSize) {
+        _cachedFramebuffers.push_back(framebuffer);
+    }
 }
 
 gpu::FramebufferPointer FramebufferCache::getShadowFramebuffer() {
