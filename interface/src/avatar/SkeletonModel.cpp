@@ -42,6 +42,7 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer r
     _headClipDistance(DEFAULT_NEAR_CLIP),
     _isFirstPerson(false)
 {
+    assert(_rig);
     assert(_owningAvatar);
     _enableShapes = true;
 }
@@ -269,7 +270,6 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
     }
 }
 
-
 void SkeletonModel::updateJointState(int index) {
     if (index < 0 && index >= _jointStates.size()) {
         return; // bail
@@ -281,10 +281,10 @@ void SkeletonModel::updateJointState(int index) {
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         if (index == geometry.leanJointIndex) {
             maybeUpdateLeanRotation(parentState, state);
-
+        
         } else if (index == geometry.neckJointIndex) {
-            maybeUpdateNeckRotation(parentState, joint, state);
-
+            maybeUpdateNeckRotation(parentState, joint, state);    
+                
         } else if (index == geometry.leftEyeJointIndex || index == geometry.rightEyeJointIndex) {
             maybeUpdateEyeRotation(parentState, joint, state);
         }
@@ -296,7 +296,6 @@ void SkeletonModel::updateJointState(int index) {
         state.clearTransformTranslation();
     }
 }
-
 
 void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, JointState& state) {
     if (!_owningAvatar->isMyAvatar()) {

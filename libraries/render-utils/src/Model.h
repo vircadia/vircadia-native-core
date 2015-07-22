@@ -64,7 +64,7 @@ public:
 
     static void setAbstractViewStateInterface(AbstractViewStateInterface* viewState) { _viewState = viewState; }
 
-    Model(QObject* parent = NULL, RigPointer rig = nullptr);
+    Model(QObject* parent = nullptr, RigPointer rig = nullptr);
     virtual ~Model();
     
     /// enables/disables scale to fit behavior, the model will be automatically scaled to the specified largest dimension
@@ -206,6 +206,7 @@ public:
 
     QStringList getJointNames() const;
     
+    AnimationHandlePointer createAnimationHandle();
 
     const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
    
@@ -259,7 +260,6 @@ protected:
     
     bool _showTrueJointTransforms;
     
-    bool getJointStateAtIndex(int jointIndex, JointState& jointState) const;
     QVector<JointState> _jointStates;
 
     class MeshState {
@@ -281,13 +281,10 @@ protected:
     void simulateInternal(float deltaTime);
 
     /// Updates the state of the joint at the specified index.
-    void updateJointStates();
     virtual void updateJointState(int index);
 
     virtual void updateVisibleJointStates();
-
-    glm::quat setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority);
-
+    
     /// \param jointIndex index of joint in model structure
     /// \param position position of joint in model-frame
     /// \param rotation rotation of joint in model-frame
@@ -297,8 +294,8 @@ protected:
     /// \param alignment
     /// \return true if joint exists
     bool setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation = glm::quat(),
-                          bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
-                          const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f), float priority = 1.0f);
+        bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
+        const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f), float priority = 1.0f);
 
     /// Restores the indexed joint to its default position.
     /// \param fraction the fraction of the default position to apply (i.e., 0.25f to slerp one fourth of the way to

@@ -184,14 +184,25 @@ void Rig::resetAllTransformsChanged() {
     }
 }
 
-glm::quat Rig::setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority) {
+glm::quat Rig::setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority, bool constrain) {
     glm::quat endRotation;
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return endRotation;
     }
     JointState& state = _jointStates[jointIndex];
-    state.setRotationInBindFrame(rotation, priority);
+    state.setRotationInBindFrame(rotation, priority, constrain);
     endRotation = state.getRotationInBindFrame();
+    return endRotation;
+}
+
+glm::quat Rig::setJointRotationInConstrainedFrame(int jointIndex, glm::quat targetRotation, float priority, bool constrain) {
+    glm::quat endRotation;
+    if (jointIndex == -1 || _jointStates.isEmpty()) {
+        return endRotation;
+    }
+    JointState& state = _jointStates[jointIndex];
+    state.setRotationInConstrainedFrame(targetRotation, priority, constrain);
+    endRotation = state.getRotationInConstrainedFrame();
     return endRotation;
 }
 

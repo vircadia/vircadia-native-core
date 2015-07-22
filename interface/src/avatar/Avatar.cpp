@@ -75,9 +75,9 @@ namespace render {
     }
 }
 
-Avatar::Avatar() :
+Avatar::Avatar(RigPointer rig) :
     AvatarData(),
-    _skeletonModel(this),
+    _skeletonModel(this, nullptr, rig),
     _skeletonOffset(0.0f),
     _bodyYawDelta(0.0f),
     _positionDeltaAccumulator(0.0f),

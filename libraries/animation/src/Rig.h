@@ -54,7 +54,9 @@ public:
     void clearJointStates();
     void setJointState(int index, bool valid, const glm::quat& rotation, float priority);
     void clearJointAnimationPriority(int index);
-    glm::quat setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority);
+    glm::quat setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority, bool constrain = false);
+    glm::quat setJointRotationInConstrainedFrame(int jointIndex, glm::quat targetRotation,
+                                                 float priority, bool constrain = false);
     void applyJointRotationDelta(int jointIndex, const glm::quat& delta, bool constrain, float priority);
 
     QVector<JointState> getJointStates() { return _jointStates; }
