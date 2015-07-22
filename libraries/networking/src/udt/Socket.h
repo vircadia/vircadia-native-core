@@ -24,8 +24,8 @@
 
 namespace udt {
 
-using PacketVerificationHandler = std::function<bool(const Packet&)>;
-using VerifiedPacketHandler = std::function<void(std::unique_ptr<Packet>)>;
+using PacketFilterOperator = std::function<bool(const Packet&)>;
+using PacketHandler = std::function<void(std::unique_ptr<Packet>)>;
 
 class Socket : public QObject {
     Q_OBJECT
@@ -43,8 +43,8 @@ public:
     void bind(const QHostAddress& address, quint16 port = 0) { _udpSocket.bind(address, port); }
     void rebind();
     
-    void setPacketVerificationHandler(PacketVerificationHandler handler) { _packetVerificationHandler = handler; }
-    void setVerifiedPacketHandler(VerifiedPacketHandler handler) { _verifiedPacketHandler = handler; }
+    void setPacketFilterOperator(PacketFilterOperator filterOperator) { _packetFilterOperator = filterOperator; }
+    void setPacketHandler(PacketHandler handler) { _packetHandler = handler; }
     
     void setBufferSizes(int numBytes);
     
@@ -55,8 +55,8 @@ private slots:
     
 private:
     QUdpSocket _udpSocket { this };
-    PacketVerificationHandler _packetVerificationHandler;
-    VerifiedPacketHandler _verifiedPacketHandler;
+    PacketFilterOperator _packetFilterOperator;
+    PacketHandler _packetHandler;
     
     QSet<HifiSockAddr> _unfilteredSockAddrs;
 };

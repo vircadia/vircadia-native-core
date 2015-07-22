@@ -99,10 +99,10 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     
     // set &PacketReceiver::handleVerifiedPacket as the verified packet callback for the udt::Socket
     using std::placeholders::_1;
-    _nodeSocket.setVerifiedPacketHandler(std::bind(&PacketReceiver::handleVerifiedPacket, _packetReceiver, _1));
+    _nodeSocket.setPacketHandler(std::bind(&PacketReceiver::handleVerifiedPacket, _packetReceiver, _1));
 
     // set our isPacketVerified method as the verify operator for the udt::Socket
-    _nodeSocket.setPacketVerificationHandler(std::bind(&LimitedNodeList::isPacketVerified, this, _1));
+    _nodeSocket.setPacketFilterOperator(std::bind(&LimitedNodeList::isPacketVerified, this, _1));
     
     _packetStatTimer.start();
     
