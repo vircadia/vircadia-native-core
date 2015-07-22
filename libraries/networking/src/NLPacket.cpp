@@ -112,6 +112,9 @@ NLPacket& NLPacket::operator=(const NLPacket& other) {
 NLPacket::NLPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr) :
     Packet(std::move(data), size, senderSockAddr)
 {
+    // sanity check before we decrease the payloadSize with the payloadCapacity
+    Q_ASSERT(_payloadSize == _payloadCapacity);
+    
     adjustPayloadStartAndCapacity(_payloadSize > 0);
     
     readSourceID();
