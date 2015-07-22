@@ -13,6 +13,9 @@ class Basic2DWindowOpenGLDisplayPlugin : public MainWindowOpenGLDisplayPlugin {
     Q_OBJECT
 
 public:
+    virtual void activate(PluginContainer * container) override;
+    virtual void deactivate(PluginContainer* container) override;
+
     virtual const QString & getName() const override;
 
 private:

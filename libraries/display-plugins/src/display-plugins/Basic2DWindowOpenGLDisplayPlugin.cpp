@@ -7,8 +7,29 @@
 //
 #include "Basic2DWindowOpenGLDisplayPlugin.h"
 
+#include <plugins/PluginContainer.h>
+
 const QString Basic2DWindowOpenGLDisplayPlugin::NAME("2D Display");
 
-const QString & Basic2DWindowOpenGLDisplayPlugin::getName() const {
+const QString MENU_PARENT = "View";
+const QString MENU_NAME = "Display Options";
+const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
+const QString FULLSCREEN = "Fullscreen";
+
+const QString& Basic2DWindowOpenGLDisplayPlugin::getName() const {
     return NAME;
+}
+
+void Basic2DWindowOpenGLDisplayPlugin::activate(PluginContainer * container) {
+    container->addMenu(MENU_PATH);
+    container->addMenuItem(MENU_PATH, FULLSCREEN,
+        [this, container] (bool clicked) { },
+        true, false);
+    MainWindowOpenGLDisplayPlugin::activate(container);
+}
+
+void Basic2DWindowOpenGLDisplayPlugin::deactivate(PluginContainer* container) {
+    container->removeMenuItem(MENU_NAME, FULLSCREEN);
+    container->removeMenu(MENU_PATH);
+    MainWindowOpenGLDisplayPlugin::deactivate(container);
 }
