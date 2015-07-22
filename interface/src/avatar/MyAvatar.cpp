@@ -1533,8 +1533,8 @@ void MyAvatar::maybeUpdateBillboard() {
             return;
         }
     }
-    gpu::Context context(new gpu::GLBackend());
-    RenderArgs renderArgs(&context);
+
+    RenderArgs renderArgs(qApp->getGPUContext());
     QImage image = qApp->renderAvatarBillboard(&renderArgs);
     _billboard.clear();
     QBuffer buffer(&_billboard);

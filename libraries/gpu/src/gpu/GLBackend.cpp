@@ -8,6 +8,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+#include <mutex>
 #include "GPULogging.h"
 #include "GLBackendShared.h"
 #include <glm/gtc/type_ptr.hpp>
@@ -89,6 +90,36 @@ GLBackend::GLBackend() :
     _pipeline(),
     _output()
 {
+    static std::once_flag once;
+    std::call_once(once, [] {
+        qCDebug(gpulogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
+        qCDebug(gpulogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
+        qCDebug(gpulogging) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
+        qCDebug(gpulogging) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
+
+#ifdef WIN32
+        GLenum err = glewInit();
+        if (GLEW_OK != err) {
+            /* Problem: glewInit failed, something is seriously wrong. */
+            qCDebug(gpulogging, "Error: %s\n", glewGetErrorString(err));
+        }
+        qCDebug(gpulogging, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+
+        if (wglewGetExtension("WGL_EXT_swap_control")) {
+            int swapInterval = wglGetSwapIntervalEXT();
+            qCDebug(gpulogging, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+        }
+#endif
+
+#if defined(Q_OS_LINUX)
+        // TODO: Write the correct  code for Linux...
+        /* if (wglewGetExtension("WGL_EXT_swap_control")) {
+            int swapInterval = wglGetSwapIntervalEXT();
+            qCDebug(gpulogging, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+        }*/
+#endif
+    });
+
     initInput();
     initTransform();
 }
@@ -113,6 +144,7 @@ void GLBackend::render(Batch& batch) {
 }
 
 void GLBackend::renderBatch(Batch& batch, bool syncCache) {
+    qCDebug(gpulogging) << "GLBackend::renderBatch : Deprecated call, don;t do it!!!";
     GLBackend backend;
     if (syncCache) {
         backend.syncCache();
@@ -166,6 +198,8 @@ void GLBackend::syncCache() {
     syncTransformStateCache();
     syncPipelineStateCache();
     syncInputStateCache();
+
+    glEnable(GL_LINE_SMOOTH);
 }
 
 void GLBackend::do_draw(Batch& batch, uint32 paramOffset) {
