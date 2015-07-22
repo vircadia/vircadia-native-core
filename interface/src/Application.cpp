@@ -4870,13 +4870,15 @@ void Application::removeMenu(const QString& menuName) {
     Menu::getInstance()->removeMenu(menuName);
 }
 
-void Application::addMenuItem(const QString& path, const QString& name, std::function<void()> onClicked, bool checkable, bool checked, const QString& groupName) {
+void Application::addMenuItem(const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable, bool checked, const QString& groupName) {
     auto menu = Menu::getInstance();
     MenuWrapper* parentItem = menu->getMenu(path);
     QAction* action = parentItem->addAction(name);
     connect(action, &QAction::triggered, [=] {
-        onClicked();
+        onClicked(action->isChecked());
     });
+    action->setCheckable(checkable);
+    action->setChecked(checked);
     _currentDisplayPluginActions.push_back({ path, name });
     _currentInputPluginActions.push_back({ path, name });
 }

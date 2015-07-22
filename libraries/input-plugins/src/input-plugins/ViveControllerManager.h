@@ -42,7 +42,7 @@ public:
         AXIS_3,
         AXIS_4,
     };
-    
+
     enum JointChannel {
         LEFT_HAND = 0,
         RIGHT_HAND,
@@ -68,6 +68,8 @@ public:
     virtual void focusOutEvent() override;
 
     void updateRendering(RenderArgs* args, render::ScenePointer scene, render::PendingChanges pendingChanges);
+
+    void setRenderControllers(bool renderControllers) { _renderControllers = renderControllers; }
     
     UserInputMapper::Input makeInput(unsigned int button, int index);
     UserInputMapper::Input makeInput(JoystickAxisChannel axis, int index);
@@ -85,6 +87,8 @@ private:
     bool _modelLoaded;
     model::Geometry _modelGeometry;
     gpu::TexturePointer _texture;
+
+    bool _renderControllers;
 
     int _leftHandRenderID;
     int _rightHandRenderID;

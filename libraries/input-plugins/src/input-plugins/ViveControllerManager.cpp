@@ -17,8 +17,9 @@
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
 #include <DeferredLightingEffect.h>
-#include <display-plugins\openvr\OpenVrHelpers.h>
+#include <display-plugins/openvr/OpenVrHelpers.h>
 #include "NumericalConstants.h"
+#include <plugins/PluginContainer.h>
 #include "UserActivityLogger.h"
 
 extern vr::IVRSystem* _hmd;
@@ -44,12 +45,18 @@ const QString CONTROLLER_MODEL_STRING = "vr_controller_05_wireless_b";
 
 const QString ViveControllerManager::NAME = "OpenVR";
 
+const QString MENU_PARENT = "Avatar";
+const QString MENU_NAME = "Vive Controllers";
+const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
+const QString RENDER_CONTROLLERS = "Render Hand Controllers";
+
 ViveControllerManager::ViveControllerManager() :
         InputDevice("SteamVR Controller"),
     _trackedControllers(0),
     _modelLoaded(false),
     _leftHandRenderID(0),
-    _rightHandRenderID(0)
+    _rightHandRenderID(0),
+    _renderControllers(false)
 {
     
 }
@@ -59,6 +66,11 @@ bool ViveControllerManager::isSupported() const {
 }
 
 void ViveControllerManager::activate(PluginContainer* container) {
+    container->addMenu(MENU_PATH);
+    container->addMenuItem(MENU_PATH, RENDER_CONTROLLERS,
+        [this, &container] (bool clicked) { this->setRenderControllers(clicked); },
+        true, true);
+
     hmdRefCount++;
     if (!_hmd) {
         vr::HmdError eError = vr::HmdError_None;
@@ -111,10 +123,14 @@ void ViveControllerManager::activate(PluginContainer* container) {
         _texture->autoGenerateMips(-1);
 
         _modelLoaded = true;
+        _renderControllers = true;
     }
 }
 
 void ViveControllerManager::deactivate(PluginContainer* container) {
+    container->removeMenuItem(MENU_NAME, RENDER_CONTROLLERS);
+    container->removeMenu(MENU_PATH);
+
     hmdRefCount--;
 
     if (hmdRefCount == 0 && _hmd) {

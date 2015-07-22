@@ -56,7 +56,6 @@ const QString SixenseManager::NAME = "Sixense";
 const QString MENU_PARENT = "Avatar";
 const QString MENU_NAME = "Sixense";
 const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
-const QString RENDER_CONTROLLERS = "Render Hand Controllers";
 const QString TOGGLE_SMOOTH = "Smooth Sixense Movement";
 
 SixenseManager& SixenseManager::getInstance() {
@@ -91,11 +90,8 @@ void SixenseManager::activate(PluginContainer* container) {
 
     container->addMenu(MENU_PATH);
     container->addMenuItem(MENU_PATH, TOGGLE_SMOOTH,
-                           [this, &container] { this->setFilter(container->isOptionChecked(TOGGLE_SMOOTH)); },
+                           [this, container] (bool clicked) { this->setFilter(clicked); },
                            true, true);
-    container->addMenuItem(MENU_PATH, RENDER_CONTROLLERS,
-        [this, &container] { /*this->setShouldRenderController(container->isOptionChecked(RENDER_CONTROLLERS));*/ },
-        true, true);
 
 #ifdef __APPLE__
 
@@ -128,7 +124,6 @@ void SixenseManager::activate(PluginContainer* container) {
 
 void SixenseManager::deactivate(PluginContainer* container) {
 #ifdef HAVE_SIXENSE
-    container->removeMenuItem(MENU_NAME, RENDER_CONTROLLERS);
     container->removeMenuItem(MENU_NAME, TOGGLE_SMOOTH);
     container->removeMenu(MENU_PATH);
 
