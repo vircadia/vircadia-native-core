@@ -89,7 +89,7 @@ void IceServer::processPacket(std::unique_ptr<udt::Packet> packet) {
             qDebug() << "Sending information for peer" << connectRequestID << "to peer" << senderUUID;
             
             // we have the peer they want to connect to - send them pack the information for that peer
-            sendPeerInformationPacket(*(matchingPeer.data()), &packet->getSenderSockAddr());
+            sendPeerInformationPacket(*matchingPeer, &packet->getSenderSockAddr());
             
             // we also need to send them to the active peer they are hoping to connect to
             // create a dummy peer object we can pass to sendPeerInformationPacket
