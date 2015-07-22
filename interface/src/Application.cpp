@@ -317,7 +317,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _previousScriptLocation("LastScriptLocation"),
         _scriptsLocationHandle("scriptsLocation"),
         _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
-        _viewTransform(),
         _scaleMirror(1.0f),
         _rotateMirror(0.0f),
         _raiseMirror(0.0f),
@@ -367,7 +366,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _bookmarks = new Bookmarks();  // Before setting up the menu
 
     _runningScriptsWidget = new RunningScriptsWidget(_window);
-    _renderEngine->addTask(render::TaskPointer(new RenderDeferredTask()));
+    _renderEngine->addTask(make_shared<RenderDeferredTask>());
     _renderEngine->registerScene(_main3DScene);
 
     // start the nodeThread so its event loop is running
@@ -806,11 +805,6 @@ void Application::initializeGL() {
     }
     #endif
 
-    qCDebug(interfaceapp) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
-    qCDebug(interfaceapp) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
-    qCDebug(interfaceapp) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
-    qCDebug(interfaceapp) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
-
     #ifdef WIN32
     GLenum err = glewInit();
     if (GLEW_OK != err) {
@@ -824,6 +818,12 @@ void Application::initializeGL() {
         qCDebug(interfaceapp, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
     }
     #endif
+
+    
+    qCDebug(interfaceapp) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
+    qCDebug(interfaceapp) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
+    qCDebug(interfaceapp) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
+    qCDebug(interfaceapp) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
 
 #if defined(Q_OS_LINUX)
     // TODO: Write the correct  code for Linux...
@@ -994,7 +994,6 @@ void Application::paintGL() {
                               (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
                                glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
     }
-    Q_ASSERT(_offscreenContext->getContext() == QOpenGLContext::currentContext());
 
     // Update camera position
     if (!isHMDMode()) {
@@ -1005,10 +1004,6 @@ void Application::paintGL() {
     // FIXME: it's happening again in the updateSHadow and it shouldn't, this should be the place
     _myCamera.loadViewFrustum(_viewFrustum);
 
-    if (getShadowsEnabled()) {
-        renderArgs._renderMode = RenderArgs::SHADOW_RENDER_MODE;
-        updateShadowMap(&renderArgs);
-    }
 
     renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
 
@@ -1017,6 +1012,7 @@ void Application::paintGL() {
     QSize size = textureCache->getFrameBufferSize();
     {
         PROFILE_RANGE(__FUNCTION__ "/mainRender");
+
         {
             PROFILE_RANGE(__FUNCTION__ "/clear");
             doInBatch(&renderArgs, [&](gpu::Batch& batch) {
@@ -1112,9 +1108,7 @@ void Application::paintGL() {
         GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 #endif
         _offscreenContext->doneCurrent();
-        Q_ASSERT(!QOpenGLContext::currentContext());
         displayPlugin->preDisplay();
-        Q_ASSERT(QOpenGLContext::currentContext());
 
 #ifdef Q_OS_MAC
 #else
@@ -1133,7 +1127,6 @@ void Application::paintGL() {
             displayPlugin->finishFrame();
         }
 
-        Q_ASSERT(!QOpenGLContext::currentContext());
         _offscreenContext->makeCurrent();
         _frameCount++;
         Stats::getInstance()->setRenderDetails(renderArgs._details);
@@ -1184,9 +1177,7 @@ void Application::resizeGL() {
         DependencyManager::get<TextureCache>()->setFrameBufferSize(fromGlm(renderSize));
 
         // Possible change in aspect ratio
-        _myCamera.setProjection(glm::perspective(glm::radians(_fieldOfView.get()),
-            aspect(getCanvasSize()), DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
-        updateProjectionMatrix();
+        loadViewFrustum(_myCamera, _viewFrustum);
     }
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
@@ -1195,18 +1186,6 @@ void Application::resizeGL() {
     if (offscreenUi->size() != fromGlm(uiSize)) {
         offscreenUi->resize(fromGlm(uiSize));
         _offscreenContext->makeCurrent();
-    }
-}
-
-void Application::updateProjectionMatrix() {
-    updateProjectionMatrix(_myCamera);
-}
-
-void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum) {
-    _projectionMatrix = camera.getProjection();
-    // Tell our viewFrustum about this change, using the application camera
-    if (updateViewFrustum) {
-        camera.loadViewFrustum(_viewFrustum);
     }
 }
 
@@ -2287,8 +2266,8 @@ void Application::shrinkMirrorView() {
 
 const float HEAD_SPHERE_RADIUS = 0.1f;
 
-bool Application::isLookingAtMyAvatar(Avatar* avatar) {
-    glm::vec3 theirLookAt = avatar->getHead()->getLookAtPosition();
+bool Application::isLookingAtMyAvatar(AvatarSharedPointer avatar) {
+    glm::vec3 theirLookAt = dynamic_pointer_cast<Avatar>(avatar)->getHead()->getLookAtPosition();
     glm::vec3 myEyePosition = _myAvatar->getHead()->getEyePosition();
     if (pointInSphere(theirLookAt, myEyePosition, HEAD_SPHERE_RADIUS * _myAvatar->getScale())) {
         return true;
@@ -2352,7 +2331,7 @@ void Application::updateMyAvatarLookAtPosition() {
         if (lookingAt && _myAvatar != lookingAt.get()) {
             //  If I am looking at someone else, look directly at one of their eyes
             isLookingAtSomeone = true;
-            Head* lookingAtHead = static_cast<Avatar*>(lookingAt.get())->getHead();
+            auto lookingAtHead = static_pointer_cast<Avatar>(lookingAt)->getHead();
 
             const float MAXIMUM_FACE_ANGLE = 65.0f * RADIANS_PER_DEGREE;
             glm::vec3 lookingAtFaceOrientation = lookingAtHead->getFinalOrientationInWorldFrame() * IDENTITY_FRONT;
@@ -3164,6 +3143,24 @@ void Application::queryOctree(NodeType_t serverType, PacketType::Value packetTyp
     });
 }
 
+// loadViewFrustum()
+//
+// Description: this will load the view frustum bounds for EITHER the head
+//                 or the "myCamera".
+//
+void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
+    PROFILE_RANGE(__FUNCTION__);
+    // We will use these below, from either the camera or head vectors calculated above
+    viewFrustum.setProjection(camera.getProjection());
+
+    // Set the viewFrustum up with the correct position and orientation of the camera
+    viewFrustum.setPosition(camera.getPosition());
+    viewFrustum.setOrientation(camera.getRotation());
+
+    // Ask the ViewFrustum class to calculate our corners
+    viewFrustum.calculate();
+}
+
 bool Application::isHMDMode() const {
     return getActiveDisplayPlugin()->isHmd();
 }
@@ -3180,12 +3177,6 @@ glm::vec3 Application::getSunDirection() {
 
 // FIXME, preprocessor guard this check to occur only in DEBUG builds
 static QThread * activeRenderingThread = nullptr;
-
-void Application::updateShadowMap(RenderArgs* renderArgs) {
-}
-
-void Application::setupWorldLight(RenderArgs* renderArgs) {
-}
 
 bool Application::shouldRenderMesh(float largestDimension, float distanceToCamera) {
     return DependencyManager::get<LODManager>()->shouldRenderMesh(largestDimension, distanceToCamera);
@@ -3430,23 +3421,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
 
     // load the view frustum
-    theCamera.loadViewFrustum(_displayViewFrustum);
+    loadViewFrustum(theCamera, _displayViewFrustum);
 
-    glm::quat rotation = theCamera.getRotation();
-    // Equivalent to what is happening with _untranslatedViewMatrix and the _viewMatrixTranslation
-    // the viewTransofmr object is updatded with the correct values and saved,
-    // this is what is used for rendering the Entities and avatars
-    Transform viewTransform;
-    viewTransform.setTranslation(theCamera.getPosition());
-    viewTransform.setRotation(theCamera.getRotation());
-    setViewTransform(viewTransform);
-
-    //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
-    {
-        PerformanceTimer perfTimer("lights");
-        setupWorldLight(renderArgs);
-    }
-    
     // TODO fix shadows and make them use the GPU library
 
     // The pending changes collecting the changes here
@@ -3454,8 +3430,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
     // Background rendering decision
     if (BackgroundRenderData::_item == 0) {
-        auto backgroundRenderData = BackgroundRenderData::Pointer(new BackgroundRenderData(&_environment));
-        auto backgroundRenderPayload = render::PayloadPointer(new BackgroundRenderData::Payload(backgroundRenderData));
+        auto backgroundRenderData = make_shared<BackgroundRenderData>(&_environment);
+        auto backgroundRenderPayload = make_shared<BackgroundRenderData::Payload>(backgroundRenderData);
         BackgroundRenderData::_item = _main3DScene->allocateID();
         pendingChanges.resetItem(WorldBoxRenderData::_item, backgroundRenderPayload);
     } else {
@@ -3487,8 +3463,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
     // Make sure the WorldBox is in the scene
     if (WorldBoxRenderData::_item == 0) {
-        auto worldBoxRenderData = WorldBoxRenderData::Pointer(new WorldBoxRenderData());
-        auto worldBoxRenderPayload = render::PayloadPointer(new WorldBoxRenderData::Payload(worldBoxRenderData));
+        auto worldBoxRenderData = make_shared<WorldBoxRenderData>();
+        auto worldBoxRenderPayload = make_shared<WorldBoxRenderData::Payload>(worldBoxRenderData);
 
         WorldBoxRenderData::_item = _main3DScene->allocateID();
 
@@ -3576,18 +3552,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     activeRenderingThread = nullptr;
 }
 
-void Application::setViewTransform(const Transform& view) {
-    _viewTransform = view;
-}
-
-void Application::getModelViewMatrix(glm::dmat4* modelViewMatrix) {
-    (*modelViewMatrix) = glm::inverse(_displayViewFrustum.getView());
-}
-
-void Application::getProjectionMatrix(glm::dmat4* projectionMatrix) {
-    *projectionMatrix = _displayViewFrustum.getProjection();
-}
-
 bool Application::getShadowsEnabled() {
     Menu* menubar = Menu::getInstance();
     return menubar->isOptionChecked(MenuOption::SimpleShadows) ||
@@ -3601,6 +3565,7 @@ bool Application::getCascadeShadowsEnabled() {
 void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard) {
     auto originalViewport = renderArgs->_viewport;
     // Grab current viewport to reset it at the end
+
     float aspect = (float)region.width() / region.height();
     float fov = MIRROR_FIELD_OF_VIEW;
 
@@ -3666,8 +3631,12 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     }
 
     bool updateViewFrustum = false;
-    updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
+    loadViewFrustum(_mirrorCamera, _viewFrustum);
+
+    // render rear mirror view
     displaySide(renderArgs, _mirrorCamera, true, billboard);
+
+    renderArgs->_viewport =  originalViewport;
 }
 
 void Application::resetSensors() {
@@ -4689,7 +4658,11 @@ void Application::friendsWindowClosed() {
 }
 
 void Application::postLambdaEvent(std::function<void()> f) {
-    QCoreApplication::postEvent(this, new LambdaEvent(f));
+    if (this->thread() == QThread::currentThread()) {
+        f();
+    } else {
+        QCoreApplication::postEvent(this, new LambdaEvent(f));
+    }
 }
 
 void Application::initPlugins() {

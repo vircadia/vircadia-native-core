@@ -116,7 +116,7 @@ SharedNetworkPeer IceServer::addOrUpdateHeartbeatingPeer(Packet& packet) {
 
     if (!matchingPeer) {
         // if we don't have this sender we need to create them now
-        matchingPeer = SharedNetworkPeer(new NetworkPeer(senderUUID, publicSocket, localSocket));
+        matchingPeer = QSharedPointer<NetworkPeer>::create(senderUUID, publicSocket, localSocket);
         _activePeers.insert(senderUUID, matchingPeer);
 
         qDebug() << "Added a new network peer" << *matchingPeer;

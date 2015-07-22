@@ -79,9 +79,9 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _jobs.push_back(Job(new ResetGLState::JobModel()));
 
     // Give ourselves 3 frmaes of timer queries
-    _timerQueries.push_back(gpu::QueryPointer(new gpu::Query()));
-    _timerQueries.push_back(gpu::QueryPointer(new gpu::Query()));
-    _timerQueries.push_back(gpu::QueryPointer(new gpu::Query()));
+    _timerQueries.push_back(std::make_shared<gpu::Query>());
+    _timerQueries.push_back(std::make_shared<gpu::Query>());
+    _timerQueries.push_back(std::make_shared<gpu::Query>());
     _currentTimerQueryIndex = 0;
 }
 
@@ -196,8 +196,8 @@ const gpu::PipelinePointer& DrawOverlay3D::getOpaquePipeline() {
         auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(overlay3D_vert)));
         auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(overlay3D_frag)));
         auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
-
-        auto state = gpu::StatePointer(new gpu::State());
+        
+        auto state = std::make_shared<gpu::State>();
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
 
         _opaquePipeline.reset(gpu::Pipeline::create(program, state));

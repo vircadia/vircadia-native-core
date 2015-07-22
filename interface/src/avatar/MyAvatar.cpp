@@ -78,7 +78,7 @@ const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 
 MyAvatar::MyAvatar() :
-	Avatar(),
+    Avatar(),
     _gravity(0.0f, 0.0f, 0.0f),
     _wasPushing(false),
     _isPushing(false),
@@ -305,6 +305,9 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         return;
     }
 
+    FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
+    bool inFacetracker = tracker && !tracker->isMuted();
+
     if (inHmd) {
         estimatedPosition = extractTranslation(getHMDSensorMatrix());
         estimatedPosition.x *= -1.0f;
@@ -312,12 +315,17 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 
         const float OCULUS_LEAN_SCALE = 0.05f;
         estimatedPosition /= OCULUS_LEAN_SCALE;
-    } else {
-        FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
-        if (tracker && !tracker->isMuted()) {
-            estimatedPosition = tracker->getHeadTranslation();
-            _trackedHeadPosition = estimatedPosition;
-            estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
+    } else if (inFacetracker) {
+        estimatedPosition = tracker->getHeadTranslation();
+        _trackedHeadPosition = estimatedPosition;
+        estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
+        if (Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
+            // Invert yaw and roll when in mirror mode
+            // NOTE: this is kinda a hack, it's the same hack we use to make the head tilt. But it's not really a mirror
+            // it just makes you feel like you're looking in a mirror because the body movements of the avatar appear to
+            // match your body movements.
+            YAW(estimatedRotation) *= -1.0f;
+            ROLL(estimatedRotation) *= -1.0f;
         }
     }
 
@@ -367,7 +375,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     // NOTE: this is kinda a hack, it's the same hack we use to make the head tilt. But it's not really a mirror
     // it just makes you feel like you're looking in a mirror because the body movements of the avatar appear to
     // match your body movements.
-    if (inHmd && Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
+    if ((inHmd || inFacetracker) && Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
         relativePosition.x = -relativePosition.x;
     }
 
@@ -486,7 +494,7 @@ void MyAvatar::startRecording() {
         return;
     }
     if (!_recorder) {
-        _recorder = RecorderPointer(new Recorder(this));
+        _recorder = QSharedPointer<Recorder>::create(this);
     }
     // connect to AudioClient's signal so we get input audio
     auto audioClient = DependencyManager::get<AudioClient>();
@@ -538,7 +546,7 @@ void MyAvatar::loadLastRecording() {
         return;
     }
     if (!_player) {
-        _player = PlayerPointer(new Player(this));
+        _player = QSharedPointer<Player>::create(this);
     }
 
     _player->loadRecording(_recorder->getRecording());
@@ -933,7 +941,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;
 
     foreach (const AvatarSharedPointer& avatarPointer, DependencyManager::get<AvatarManager>()->getAvatarHash()) {
-        Avatar* avatar = static_cast<Avatar*>(avatarPointer.get());
+        auto avatar = static_pointer_cast<Avatar>(avatarPointer);
         bool isCurrentTarget = avatar->getIsLookAtTarget();
         float distanceTo = glm::length(avatar->getHead()->getEyePosition() - cameraPosition);
         avatar->setIsLookAtTarget(false);
@@ -966,7 +974,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     }
     auto avatarPointer = _lookAtTargetAvatar.lock();
     if (avatarPointer) {
-        static_cast<Avatar*>(avatarPointer.get())->setIsLookAtTarget(true);
+        static_pointer_cast<Avatar>(avatarPointer)->setIsLookAtTarget(true);
     }
 }
 

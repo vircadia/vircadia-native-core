@@ -109,9 +109,9 @@ void SixenseManager::activate(PluginContainer* container) {
     }
 
     if (_sixenseLibrary->load()){
-        qCDebug(interfaceapp) << "Loaded sixense library for hydra support -" << _sixenseLibrary->fileName();
+        qCDebug(inputplugins) << "Loaded sixense library for hydra support -" << _sixenseLibrary->fileName();
     } else {
-        qCDebug(interfaceapp) << "Sixense library at" << _sixenseLibrary->fileName() << "failed to load."
+        qCDebug(inputplugins) << "Sixense library at" << _sixenseLibrary->fileName() << "failed to load."
             << "Continuing without hydra support.";
         return;
     }
@@ -451,7 +451,7 @@ void SixenseManager::registerToUserInputMapper(UserInputMapper& mapper) {
     // Grab the current free device ID
     _deviceID = mapper.getFreeDeviceID();
     
-    auto proxy = UserInputMapper::DeviceProxy::Pointer(new UserInputMapper::DeviceProxy(_name));
+    auto proxy = std::make_shared<UserInputMapper::DeviceProxy>(_name);
     proxy->getButton = [this] (const UserInputMapper::Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
     proxy->getAxis = [this] (const UserInputMapper::Input& input, int timestamp) -> float { return this->getAxis(input.getChannel()); };
     proxy->getPose = [this](const UserInputMapper::Input& input, int timestamp) -> UserInputMapper::PoseValue { return this->getPose(input.getChannel()); };

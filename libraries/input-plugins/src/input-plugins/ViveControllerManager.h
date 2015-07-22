@@ -96,5 +96,4 @@ private:
     static const QString NAME;
 };
 
-
 #endif // hifi__ViveControllerManager

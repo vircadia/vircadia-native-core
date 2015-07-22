@@ -40,7 +40,6 @@ TextRenderer3D* TextRenderer3D::getInstance(const char* family, float pointSize,
 
 TextRenderer3D::TextRenderer3D(const char* family, float pointSize, int weight, bool italic,
         EffectType effect, int effectThickness) :
-    _pointSize(pointSize),
     _effectType(effect),
     _effectThickness(effectThickness),
     _font(Font::load(family)) {

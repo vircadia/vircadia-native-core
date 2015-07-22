@@ -6,6 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "OglplusHelpers.h"
+#include <QSharedPointer>
 
 using namespace oglplus;
 using namespace oglplus::shapes;
@@ -49,7 +50,7 @@ ProgramPtr loadDefaultShader() {
 void compileProgram(ProgramPtr & result, const std::string& vs, const std::string& fs) {
     using namespace oglplus;
     try {
-        result = ProgramPtr(new Program());
+        result = std::make_shared<Program>();
         // attach the shaders to the program
         result->AttachShader(
             VertexShader()
