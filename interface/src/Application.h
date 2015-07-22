@@ -34,7 +34,6 @@
 #include <ScriptEngine.h>
 #include <ShapeManager.h>
 #include <StDev.h>
-#include <TextureCache.h>
 #include <udt/PacketHeaders.h>
 #include <ViewFrustum.h>
 
