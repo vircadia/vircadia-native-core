@@ -8,13 +8,12 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+#include <mutex>
 #include "GPULogging.h"
 #include "GLBackendShared.h"
 #include <glm/gtc/type_ptr.hpp>
 
 using namespace gpu;
-
-bool GLBackend::_initialized = false;
 
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
 {
@@ -91,7 +90,8 @@ GLBackend::GLBackend() :
     _pipeline(),
     _output()
 {
-    if (!_initialized) {
+    static std::once_flag once;
+    std::call_once(once, [] {
         qCDebug(gpulogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
         qCDebug(gpulogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
         qCDebug(gpulogging) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
@@ -118,8 +118,7 @@ GLBackend::GLBackend() :
             qCDebug(gpulogging, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
         }*/
 #endif
-        _initialized = true;
-    }
+    });
 
     initInput();
     initTransform();
