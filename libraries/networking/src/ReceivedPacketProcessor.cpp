@@ -24,17 +24,13 @@ void ReceivedPacketProcessor::terminating() {
     _hasPackets.wakeAll();
 }
 
-void ReceivedPacketProcessor::queueReceivedPacket(const SharedNodePointer& sendingNode, const QByteArray& packet) {
-    // Make sure our Node and NodeList knows we've heard from this node.
-    sendingNode->setLastHeardMicrostamp(usecTimestampNow());
-
-    NetworkPacket networkPacket(sendingNode, packet);
+void ReceivedPacketProcessor::queueReceivedPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
     lock();
-    _packets.push_back(networkPacket);
+    _packets.push_back({ sendingNode, packet });
     _nodePacketCounts[sendingNode->getUUID()]++;
     _lastWindowIncomingPackets++;
     unlock();
-    
+
     // Make sure to wake our actual processing thread because we now have packets for it to process.
     _hasPackets.wakeAll();
 }
@@ -43,7 +39,6 @@ bool ReceivedPacketProcessor::process() {
     quint64 now = usecTimestampNow();
     quint64 sinceLastWindow = now - _lastWindowAt;
 
-    
     if (sinceLastWindow > USECS_PER_SECOND) {
         lock();
         float secondsSinceLastWindow = sinceLastWindow / USECS_PER_SECOND;
@@ -71,19 +66,19 @@ bool ReceivedPacketProcessor::process() {
     }
 
     lock();
-    QVector<NetworkPacket> currentPackets;
+    std::list<NodeSharedPacketPair> currentPackets;
     currentPackets.swap(_packets);
     unlock();
 
-    foreach(auto& packet, currentPackets) {
-        processPacket(packet.getNode(), packet.getByteArray()); 
+    for(auto& packetPair : currentPackets) {
+        processPacket(packetPair.second, packetPair.first);
         _lastWindowProcessedPackets++;
         midProcess();
     }
 
     lock();
-    foreach(auto& packet, currentPackets) {
-        _nodePacketCounts[packet.getNode()->getUUID()]--;
+    for(auto& packetPair : currentPackets) {
+        _nodePacketCounts[packetPair.first->getUUID()]--;
     }
     unlock();
 

@@ -251,6 +251,31 @@ do { \
 
 #endif
 
+#define QCOMPARE_WITH_EXPR(actual, expected, testExpr) \
+    do { \
+        if (!(testExpr)) { \
+            QTest_failWithMessage("Compared values are not the same", (actual), (expected), #actual, #expected, __LINE__, __FILE__); \
+        } \
+    } while(0)
 
 
+struct ByteData {
+    ByteData (const char* data, size_t length) 
+        : data(data), length(length) {}
+    const char* data;
+    size_t length;
+};
 
+QTextStream & operator << (QTextStream& stream, const ByteData & wrapper) {
+    // Print bytes as hex
+    stream << QByteArray::fromRawData(wrapper.data, wrapper.length).toHex();
+
+    return stream;
+}
+
+bool compareData (const char* data, const char* expectedData, size_t length) {
+    return memcmp(data, expectedData, length) == 0;
+}
+
+#define COMPARE_DATA(actual, expected, length) \
+    QCOMPARE_WITH_EXPR((ByteData ( actual, length )), (ByteData ( expected, length )), compareData(actual, expected, length))

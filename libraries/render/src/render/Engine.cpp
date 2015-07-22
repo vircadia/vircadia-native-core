@@ -15,8 +15,8 @@ using namespace render;
 
 
 Engine::Engine() :
-    _sceneContext(new SceneContext()),
-    _renderContext(new RenderContext())
+    _sceneContext(std::make_shared<SceneContext>()),
+    _renderContext(std::make_shared<RenderContext>())
 {
 }
 
@@ -45,6 +45,6 @@ void Engine::buildStandardTaskPipeline() {
         _tasks.clear();
     }
 
-    addTask(TaskPointer(new DrawSceneTask()));
+    addTask(std::make_shared<DrawSceneTask>());
 }
 

@@ -19,7 +19,7 @@
 #include <AvatarHashMap.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <ResourceCache.h>
 #include <SoundCache.h>
 #include <UUID.h>
@@ -32,7 +32,7 @@
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
 
-Agent::Agent(const QByteArray& packet) :
+Agent::Agent(NLPacket& packet) :
     ThreadedAssignment(packet),
     _entityEditSender(),
     _receivedAudioStream(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES,
@@ -42,111 +42,82 @@ Agent::Agent(const QByteArray& packet) :
 {
     // be the parent of the script engine so it gets moved when we do
     _scriptEngine.setParent(this);
+    _scriptEngine.setIsAgent(true);
     
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
+
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    
+    packetReceiver.registerListenerForTypes(
+        { PacketType::MixedAudio, PacketType::SilentAudioFrame },
+        this, "handleAudioPacket");
+    packetReceiver.registerListenerForTypes(
+        { PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
+        this, "handleOctreePacket");
+    packetReceiver.registerListener(PacketType::Jurisdiction, this, "handleJurisdictionPacket");
 }
 
-void Agent::readPendingDatagrams() {
-    QByteArray receivedPacket;
-    HifiSockAddr senderSockAddr;
-    auto nodeList = DependencyManager::get<NodeList>();
-    
-    while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
-        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
-            PacketType datagramPacketType = packetTypeForPacket(receivedPacket);
+void Agent::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+    auto packetType = packet->getType();
+
+    if (packetType == PacketType::OctreeStats) {
+
+        int statsMessageLength = OctreeHeadlessViewer::parseOctreeStats(packet, senderNode);
+        if (packet->getPayloadSize() > statsMessageLength) {
+            // pull out the piggybacked packet and create a new QSharedPointer<NLPacket> for it
+            int piggyBackedSizeWithHeader = packet->getPayloadSize() - statsMessageLength;
             
-            if (datagramPacketType == PacketTypeJurisdiction) {
-                int headerBytes = numBytesForPacketHeader(receivedPacket);
-                
-                SharedNodePointer matchedNode = nodeList->sendingNodeForPacket(receivedPacket);
-                
-                if (matchedNode) {
-                    // PacketType_JURISDICTION, first byte is the node type...
-                    switch (receivedPacket[headerBytes]) {
-                        case NodeType::EntityServer:
-                            DependencyManager::get<EntityScriptingInterface>()->getJurisdictionListener()->
-                                queueReceivedPacket(matchedNode, receivedPacket);
-                            break;
-                    }
-                }
-                
-            } else if (datagramPacketType == PacketTypeOctreeStats
-                        || datagramPacketType == PacketTypeEntityData
-                        || datagramPacketType == PacketTypeEntityErase
-            ) {
-                // Make sure our Node and NodeList knows we've heard from this node.
-                SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);
-                sourceNode->setLastHeardMicrostamp(usecTimestampNow());
+            std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[piggyBackedSizeWithHeader]);
+            memcpy(buffer.get(), packet->getPayload() + statsMessageLength, piggyBackedSizeWithHeader);
 
-                QByteArray mutablePacket = receivedPacket;
-                int messageLength = mutablePacket.size();
-
-                if (datagramPacketType == PacketTypeOctreeStats) {
-
-                    int statsMessageLength = OctreeHeadlessViewer::parseOctreeStats(mutablePacket, sourceNode);
-                    if (messageLength > statsMessageLength) {
-                        mutablePacket = mutablePacket.mid(statsMessageLength);
-                        
-                        // TODO: this needs to be fixed, the goal is to test the packet version for the piggyback, but
-                        //       this is testing the version and hash of the original packet
-                        //       need to use numBytesArithmeticCodingFromBuffer()...
-                        if (!DependencyManager::get<NodeList>()->packetVersionAndHashMatch(receivedPacket)) {
-                            return; // bail since piggyback data doesn't match our versioning
-                        }
-                    } else {
-                        return; // bail since no piggyback data
-                    }
-
-                    datagramPacketType = packetTypeForPacket(mutablePacket);
-                } // fall through to piggyback message
-
-                if (datagramPacketType == PacketTypeEntityData || datagramPacketType == PacketTypeEntityErase) {
-                    _entityViewer.processDatagram(mutablePacket, sourceNode);
-                }
-                
-            } else if (datagramPacketType == PacketTypeMixedAudio || datagramPacketType == PacketTypeSilentAudioFrame) {
-
-                _receivedAudioStream.parseData(receivedPacket);
-
-                _lastReceivedAudioLoudness = _receivedAudioStream.getNextOutputFrameLoudness();
-
-                _receivedAudioStream.clearBuffer();
-                
-                // let this continue through to the NodeList so it updates last heard timestamp
-                // for the sending audio mixer
-                DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, receivedPacket);
-            } else if (datagramPacketType == PacketTypeBulkAvatarData
-                       || datagramPacketType == PacketTypeAvatarIdentity
-                       || datagramPacketType == PacketTypeAvatarBillboard
-                       || datagramPacketType == PacketTypeKillAvatar) {
-                // let the avatar hash map process it
-                DependencyManager::get<AvatarHashMap>()->processAvatarMixerDatagram(receivedPacket, nodeList->sendingNodeForPacket(receivedPacket));
-                
-                // let this continue through to the NodeList so it updates last heard timestamp
-                // for the sending avatar-mixer
-                DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, receivedPacket);
-            } else {
-                DependencyManager::get<NodeList>()->processNodeData(senderSockAddr, receivedPacket);
-            }
+            auto newPacket = NLPacket::fromReceivedPacket(std::move(buffer), piggyBackedSizeWithHeader, packet->getSenderSockAddr());
+            packet = QSharedPointer<NLPacket>(newPacket.release());
+        } else {
+            return; // bail since no piggyback data
         }
+
+        packetType = packet->getType();
+    } // fall through to piggyback message
+
+    if (packetType == PacketType::EntityData || packetType == PacketType::EntityErase) {
+        _entityViewer.processDatagram(*packet, senderNode);
     }
+}
+
+void Agent::handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+    NodeType_t nodeType;
+    packet->peekPrimitive(&nodeType);
+
+    // PacketType_JURISDICTION, first byte is the node type...
+    if (nodeType == NodeType::EntityServer) {
+        DependencyManager::get<EntityScriptingInterface>()->getJurisdictionListener()->
+            queueReceivedPacket(packet, senderNode);
+    }
+} 
+
+void Agent::handleAudioPacket(QSharedPointer<NLPacket> packet) {
+    _receivedAudioStream.parseData(*packet);
+
+    _lastReceivedAudioLoudness = _receivedAudioStream.getNextOutputFrameLoudness();
+
+    _receivedAudioStream.clearBuffer();
 }
 
 const QString AGENT_LOGGING_NAME = "agent";
 
 void Agent::run() {
     ThreadedAssignment::commonInit(AGENT_LOGGING_NAME, NodeType::Agent);
-    
+
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet()
                                                  << NodeType::AudioMixer
                                                  << NodeType::AvatarMixer
                                                  << NodeType::EntityServer
                                                 );
-    
+
     // figure out the URL for the script for this agent assignment
     QUrl scriptURL;
     if (_payload.isEmpty())  {
@@ -157,29 +128,29 @@ void Agent::run() {
     } else {
         scriptURL = QUrl(_payload);
     }
-   
+
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest networkRequest = QNetworkRequest(scriptURL);
     networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     QNetworkReply* reply = networkAccessManager.get(networkRequest);
-    
+
     QNetworkDiskCache* cache = new QNetworkDiskCache();
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "agentCache");
     networkAccessManager.setCache(cache);
-    
+
     qDebug() << "Downloading script at" << scriptURL.toString();
-    
+
     QEventLoop loop;
     QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
-    
+
     loop.exec();
-    
+
     QString scriptContents(reply->readAll());
     delete reply;
-    
+
     qDebug() << "Downloaded script:" << scriptContents;
-    
+
     // setup an Avatar for the script to use
     ScriptableAvatar scriptedAvatar(&_scriptEngine);
     scriptedAvatar.setForceFaceTrackerConnected(true);
@@ -187,16 +158,25 @@ void Agent::run() {
     // call model URL setters with empty URLs so our avatar, if user, will have the default models
     scriptedAvatar.setFaceModelURL(QUrl());
     scriptedAvatar.setSkeletonModelURL(QUrl());
-    
+
     // give this AvatarData object to the script engine
     _scriptEngine.setAvatarData(&scriptedAvatar, "Avatar");
-    _scriptEngine.setAvatarHashMap(DependencyManager::get<AvatarHashMap>().data(), "AvatarList");
     
+    auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
+   
+    _scriptEngine.setAvatarHashMap(avatarHashMap.data(), "AvatarList");
+    
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::BulkAvatarData, avatarHashMap.data(), "processAvatarDataPacket");
+    packetReceiver.registerListener(PacketType::KillAvatar, avatarHashMap.data(), "processKillAvatar");
+    packetReceiver.registerListener(PacketType::AvatarIdentity, avatarHashMap.data(), "processAvatarIdentityPacket");
+    packetReceiver.registerListener(PacketType::AvatarBillboard, avatarHashMap.data(), "processAvatarBillboardPacket");
+
     // register ourselves to the script engine
     _scriptEngine.registerGlobalObject("Agent", this);
 
     _scriptEngine.init(); // must be done before we set up the viewers
-    
+
     _scriptEngine.registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();

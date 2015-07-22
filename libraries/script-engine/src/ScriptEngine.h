@@ -88,6 +88,8 @@ public:
 
     void setUserLoaded(bool isUserLoaded) { _isUserLoaded = isUserLoaded;  }
     bool isUserLoaded() const { return _isUserLoaded; }
+    
+    void setIsAgent(bool isAgent) { _isAgent = isAgent; }
 
     void setParentURL(const QString& parentURL) { _parentURL = parentURL;  }
     
@@ -149,7 +151,8 @@ protected:
     bool _isListeningToAudioStream;
     Sound* _avatarSound;
     int _numAvatarSoundSentBytes;
-
+    bool _isAgent = false;
+    
 private:
     void stopAllTimers();
     void sendAvatarIdentityPacket();
