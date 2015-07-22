@@ -31,7 +31,10 @@ public:
     /// used for scene rendering.
     gpu::FramebufferPointer getPrimaryFramebuffer();
 
-    gpu::FramebufferPointer getSecondaryFramebuffer();
+    gpu::TexturePointer getPrimaryDepthTexture();
+    gpu::TexturePointer getPrimaryColorTexture();
+    gpu::TexturePointer getPrimaryNormalTexture();
+    gpu::TexturePointer getPrimarySpecularTexture();
 
     /// Returns the framebuffer object used to render shadow maps;
     gpu::FramebufferPointer getShadowFramebuffer();
@@ -52,6 +55,11 @@ private:
     void createPrimaryFramebuffer();
 
     gpu::FramebufferPointer _primaryFramebuffer;
+    gpu::TexturePointer _primaryDepthTexture;
+    gpu::TexturePointer _primaryColorTexture;
+    gpu::TexturePointer _primaryNormalTexture;
+    gpu::TexturePointer _primarySpecularTexture;
+    
     gpu::FramebufferPointer _shadowFramebuffer;
     QSize _frameBufferSize{ 100, 100 };
 };

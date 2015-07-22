@@ -227,6 +227,8 @@ void DeferredLightingEffect::prepare(RenderArgs* args) {
     args->_context->render(batch);
 }
 
+gpu::FramebufferPointer _copyFBO;
+
 void DeferredLightingEffect::render(RenderArgs* args) {
     gpu::Batch batch;
 
@@ -236,18 +238,20 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     QSize framebufferSize = framebufferCache->getFrameBufferSize();
     
     // binding the first framebuffer
-    auto freeFBO = framebufferCache->getSecondaryFramebuffer();
-    batch.setFramebuffer(freeFBO);
+    _copyFBO = framebufferCache->getFramebuffer();
+    batch.setFramebuffer(_copyFBO);
 
     batch.setViewportTransform(args->_viewport);
  
-    batch.clearColorFramebuffer(freeFBO->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+    batch.clearColorFramebuffer(_copyFBO->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
     
-    auto primaryFramebuffer = framebufferCache->getPrimaryFramebuffer();
-    for (int i = 0; i < 3; ++i) {
-        batch.setResourceTexture(i, primaryFramebuffer->getRenderBuffer(i));
-    }
-    batch.setResourceTexture(3, primaryFramebuffer->getDepthStencilBuffer());
+    batch.setResourceTexture(0, framebufferCache->getPrimaryColorTexture());
+
+    batch.setResourceTexture(1, framebufferCache->getPrimaryNormalTexture());
+    
+    batch.setResourceTexture(2, framebufferCache->getPrimarySpecularTexture());
+    
+    batch.setResourceTexture(3, framebufferCache->getPrimaryDepthTexture());
         
     float sMin = args->_viewport.x / (float)framebufferSize.width();
     float sWidth = args->_viewport.z / (float)framebufferSize.width();
@@ -532,17 +536,16 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     // End of the Lighting pass
 }
 
+
 void DeferredLightingEffect::copyBack(RenderArgs* args) {
     gpu::Batch batch;
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     QSize framebufferSize = framebufferCache->getFrameBufferSize();
 
-    auto freeFBO = framebufferCache->getSecondaryFramebuffer();
-
     batch.setFramebuffer(framebufferCache->getPrimaryFramebuffer());
     batch.setPipeline(_blitLightBuffer);
     
-    batch.setResourceTexture(0, freeFBO->getRenderBuffer(0));
+    batch.setResourceTexture(0, _copyFBO->getRenderBuffer(0));
 
     batch.setProjectionTransform(glm::mat4());
     batch.setViewTransform(Transform());
@@ -561,8 +564,10 @@ void DeferredLightingEffect::copyBack(RenderArgs* args) {
 
     batch.draw(gpu::TRIANGLE_STRIP, 4);
 
+
     args->_context->syncCache();
     args->_context->render(batch);
+    framebufferCache->releaseFramebuffer(_copyFBO);
 }
 
 void DeferredLightingEffect::setupTransparent(RenderArgs* args, int lightBufferUnit) {

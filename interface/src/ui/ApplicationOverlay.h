@@ -49,6 +49,7 @@ private:
     gpu::TexturePointer _overlayDepthTexture;
     gpu::TexturePointer _overlayColorTexture;
     gpu::FramebufferPointer _overlayFramebuffer;
+
 };
 
 #endif // hifi_ApplicationOverlay_h
