@@ -12,6 +12,8 @@
 #ifndef hifi_NetworkPeer_h
 #define hifi_NetworkPeer_h
 
+#include <atomic>
+
 #include <QtCore/QObject>
 #include <QtCore/QTimer>
 #include <QtCore/QUuid>
@@ -59,8 +61,8 @@ public:
     quint64 getWakeTimestamp() const { return _wakeTimestamp; }
     void setWakeTimestamp(quint64 wakeTimestamp) { _wakeTimestamp = wakeTimestamp; }
 
-    quint64 getLastHeardMicrostamp() const { return _lastHeardMicrostamp; }
-    void setLastHeardMicrostamp(quint64 lastHeardMicrostamp) { _lastHeardMicrostamp = lastHeardMicrostamp; }
+    quint64 getLastHeardMicrostamp() const { return _lastHeardMicrostamp.load(); }
+    void setLastHeardMicrostamp(quint64 lastHeardMicrostamp) { _lastHeardMicrostamp.store(lastHeardMicrostamp); }
 
     QByteArray toByteArray() const;
 
@@ -92,7 +94,7 @@ protected:
     HifiSockAddr* _activeSocket;
 
     quint64 _wakeTimestamp;
-    quint64 _lastHeardMicrostamp;
+    std::atomic_ullong _lastHeardMicrostamp;
 
     QTimer* _pingTimer = NULL;
 

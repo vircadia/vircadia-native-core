@@ -13,20 +13,23 @@
 
 #include <stdint.h>
 #include <qbytearray.h>
-#include "RingBufferHistory.h"
 
+#include "NLPacket.h"
+#include "RingBufferHistory.h"
 #include "SequenceNumberStats.h"
+
+class NLPacket;
 
 class SentPacketHistory {
 
 public:
     SentPacketHistory(int size = MAX_REASONABLE_SEQUENCE_GAP);
 
-    void packetSent(uint16_t sequenceNumber, const QByteArray& packet);
-    const QByteArray* getPacket(uint16_t sequenceNumber) const;
+    void packetSent(uint16_t sequenceNumber, const NLPacket& packet);
+    const NLPacket* getPacket(uint16_t sequenceNumber) const;
 
 private:
-    RingBufferHistory<QByteArray> _sentPackets;    // circular buffer
+    RingBufferHistory<std::unique_ptr<NLPacket>> _sentPackets;    // circular buffer
 
     uint16_t _newestSequenceNumber;
 };

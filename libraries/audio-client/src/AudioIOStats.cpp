@@ -31,7 +31,7 @@ AudioIOStats::AudioIOStats(MixedProcessedAudioStream* receivedAudioStream) :
     _lastSentAudioPacket(0),
     _packetSentTimeGaps(1, APPROXIMATELY_30_SECONDS_OF_AUDIO_PACKETS)
 {
-    
+
 }
 
 AudioStreamStats AudioIOStats::getMixerDownstreamStats() const {
@@ -40,13 +40,13 @@ AudioStreamStats AudioIOStats::getMixerDownstreamStats() const {
 
 void AudioIOStats::reset() {
     _receivedAudioStream->resetStats();
-    
+
     _mixerAvatarStreamStats = AudioStreamStats();
     _mixerInjectedStreamStatsMap.clear();
-    
+
     _audioInputMsecsReadStats.reset();
     _inputRingBufferMsecsAvailableStats.reset();
-    
+
     _audioOutputMsecsUnplayedStats.reset();
     _packetSentTimeGaps.reset();
 }
@@ -59,32 +59,29 @@ void AudioIOStats::sentPacket() {
         quint64 now = usecTimestampNow();
         quint64 gap = now - _lastSentAudioPacket;
         _packetSentTimeGaps.update(gap);
-        
+
         _lastSentAudioPacket = now;
     }
 }
-void AudioIOStats::parseAudioStreamStatsPacket(const QByteArray& packet) {
-    
-    int numBytesPacketHeader = numBytesForPacketHeader(packet);
-    const char* dataAt = packet.constData() + numBytesPacketHeader;
-    
+void AudioIOStats::processStreamStatsPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+
     // parse the appendFlag, clear injected audio stream stats if 0
-    quint8 appendFlag = *(reinterpret_cast<const quint16*>(dataAt));
-    dataAt += sizeof(quint8);
+    quint8 appendFlag;
+    packet->readPrimitive(&appendFlag);
+
     if (!appendFlag) {
         _mixerInjectedStreamStatsMap.clear();
     }
-    
+
     // parse the number of stream stats structs to follow
-    quint16 numStreamStats = *(reinterpret_cast<const quint16*>(dataAt));
-    dataAt += sizeof(quint16);
-    
+    quint16 numStreamStats;
+    packet->readPrimitive(&numStreamStats);
+
     // parse the stream stats
     AudioStreamStats streamStats;
     for (quint16 i = 0; i < numStreamStats; i++) {
-        memcpy(&streamStats, dataAt, sizeof(AudioStreamStats));
-        dataAt += sizeof(AudioStreamStats);
-        
+        packet->readPrimitive(&streamStats);
+
         if (streamStats._streamType == PositionalAudioStream::Microphone) {
             _mixerAvatarStreamStats = streamStats;
         } else {
@@ -94,40 +91,38 @@ void AudioIOStats::parseAudioStreamStatsPacket(const QByteArray& packet) {
 }
 
 void AudioIOStats::sendDownstreamAudioStatsPacket() {
-    
+
     auto audioIO = DependencyManager::get<AudioClient>();
-    
+
     // since this function is called every second, we'll sample for some of our stats here
     _inputRingBufferMsecsAvailableStats.update(audioIO->getInputRingBufferMsecsAvailable());
     _audioOutputMsecsUnplayedStats.update(audioIO->getAudioOutputMsecsUnplayed());
-    
+
     // also, call _receivedAudioStream's per-second callback
     _receivedAudioStream->perSecondCallbackForUpdatingStats();
-    
+
     auto nodeList = DependencyManager::get<NodeList>();
-    
-    char packet[MAX_PACKET_SIZE];
-    
-    // pack header
-    int numBytesPacketHeader = nodeList->populatePacketHeader(packet, PacketTypeAudioStreamStats);
-    char* dataAt = packet + numBytesPacketHeader;
-    
-    // pack append flag
+    SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
+    if (!audioMixer) {
+        return;
+    }
+
     quint8 appendFlag = 0;
-    memcpy(dataAt, &appendFlag, sizeof(quint8));
-    dataAt += sizeof(quint8);
-    
-    // pack number of stats packed
     quint16 numStreamStatsToPack = 1;
-    memcpy(dataAt, &numStreamStatsToPack, sizeof(quint16));
-    dataAt += sizeof(quint16);
-    
-    // pack downstream audio stream stats
     AudioStreamStats stats = _receivedAudioStream->getAudioStreamStats();
-    memcpy(dataAt, &stats, sizeof(AudioStreamStats));
-    dataAt += sizeof(AudioStreamStats);
+
+    int statsPacketSize = sizeof(appendFlag) + sizeof(numStreamStatsToPack) + sizeof(stats);
+    auto statsPacket = NLPacket::create(PacketType::AudioStreamStats, statsPacketSize);
+
+    // pack append flag
+    statsPacket->writePrimitive(appendFlag);
+
+    // pack number of stats packed
+    statsPacket->writePrimitive(numStreamStatsToPack);
+
+    // pack downstream audio stream stats
+    statsPacket->writePrimitive(stats);
     
     // send packet
-    SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
-    nodeList->writeDatagram(packet, dataAt - packet, audioMixer);
+    nodeList->sendPacket(std::move(statsPacket), *audioMixer);
 }

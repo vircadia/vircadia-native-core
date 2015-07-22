@@ -13,7 +13,6 @@
 #define hifi_ApplicationOverlay_h
 
 #include <gpu/Texture.h>
-class QOpenGLFramebufferObject;
 
 // Handles the drawing of the overlays to the screen
 // TODO, move divide up the rendering, displaying and input handling
@@ -25,7 +24,8 @@ public:
     ~ApplicationOverlay();
 
     void renderOverlay(RenderArgs* renderArgs);
-    GLuint getOverlayTexture();
+
+    gpu::FramebufferPointer getOverlayFramebuffer() const { return _overlayFramebuffer; }
 
 private:
     void renderStatsAndLogs(RenderArgs* renderArgs);
@@ -33,18 +33,23 @@ private:
     void renderRearViewToFbo(RenderArgs* renderArgs);
     void renderRearView(RenderArgs* renderArgs);
     void renderQmlUi(RenderArgs* renderArgs);
+    void renderAudioScope(RenderArgs* renderArgs);
     void renderOverlays(RenderArgs* renderArgs);
     void buildFramebufferObject();
 
     float _alpha{ 1.0f };
     float _trailingAudioLoudness{ 0.0f };
-    GLuint _uiTexture{ 0 };
+    uint32_t _uiTexture{ 0 };
 
     int _domainStatusBorder;
     int _magnifierBorder;
 
     ivec2 _previousBorderSize{ -1 };
-    QOpenGLFramebufferObject* _overlayFramebuffer{ nullptr };
+
+    gpu::TexturePointer _overlayDepthTexture;
+    gpu::TexturePointer _overlayColorTexture;
+    gpu::FramebufferPointer _overlayFramebuffer;
+
 };
 
 #endif // hifi_ApplicationOverlay_h

@@ -9,6 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "TextureCache.h"
+
+#include <mutex>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/random.hpp>
+
 #include <gpu/Batch.h>
 #include <gpu/GLBackend.h>
 #include <gpu/GPUConfig.h>
@@ -19,43 +26,15 @@
 #include <QThreadPool>
 #include <qimagereader.h>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/random.hpp>
 
 #include "RenderUtilsLogging.h"
-#include "TextureCache.h"
 
-
-#include <mutex>
-
-TextureCache::TextureCache() :
-    _permutationNormalTexture(0),
-    _whiteTexture(0),
-    _blueTexture(0),
-    _frameBufferSize(100, 100)
-{
+TextureCache::TextureCache() {
     const qint64 TEXTURE_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
     setUnusedResourceCacheSize(TEXTURE_DEFAULT_UNUSED_MAX_SIZE);
 }
 
 TextureCache::~TextureCache() {
-}
-
-void TextureCache::setFrameBufferSize(QSize frameBufferSize) {
-    //If the size changed, we need to delete our FBOs
-    if (_frameBufferSize != frameBufferSize) {
-        _frameBufferSize = frameBufferSize;
-
-        _primaryFramebuffer.reset();
-        _primaryDepthTexture.reset();
-        _primaryColorTexture.reset();
-        _primaryNormalTexture.reset();
-        _primarySpecularTexture.reset();
-
-        _secondaryFramebuffer.reset();
-
-        _tertiaryFramebuffer.reset();
-    }
 }
 
 // use fixed table of permutations. Could also make ordered list programmatically
@@ -175,132 +154,6 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, TextureType type
     return texture;
 }
 
-void TextureCache::createPrimaryFramebuffer() {
-    _primaryFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
-
-    auto colorFormat = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
-    auto width = _frameBufferSize.width();
-    auto height = _frameBufferSize.height();
-
-    auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
-    _primaryColorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
-    _primaryNormalTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
-    _primarySpecularTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
-
-    _primaryFramebuffer->setRenderBuffer(0, _primaryColorTexture);
-    _primaryFramebuffer->setRenderBuffer(1, _primaryNormalTexture);
-    _primaryFramebuffer->setRenderBuffer(2, _primarySpecularTexture);
-
-
-    auto depthFormat = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH);
-    _primaryDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, width, height, defaultSampler));
-
-    _primaryFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
-}
-
-gpu::FramebufferPointer TextureCache::getPrimaryFramebuffer() {
-    if (!_primaryFramebuffer) {
-        createPrimaryFramebuffer();
-    }
-    return _primaryFramebuffer;
-}
-
-gpu::TexturePointer TextureCache::getPrimaryDepthTexture() {
-    if (!_primaryDepthTexture) {
-        createPrimaryFramebuffer();
-    }
-    return _primaryDepthTexture;
-}
-
-gpu::TexturePointer TextureCache::getPrimaryColorTexture() {
-    if (!_primaryColorTexture) {
-        createPrimaryFramebuffer();
-    }
-    return _primaryColorTexture;
-}
-
-gpu::TexturePointer TextureCache::getPrimaryNormalTexture() {
-    if (!_primaryNormalTexture) {
-        createPrimaryFramebuffer();
-    }
-    return _primaryNormalTexture;
-}
-
-gpu::TexturePointer TextureCache::getPrimarySpecularTexture() {
-    if (!_primarySpecularTexture) {
-        createPrimaryFramebuffer();
-    }
-    return _primarySpecularTexture;
-}
-
-GLuint TextureCache::getPrimaryDepthTextureID() {
-    return gpu::GLBackend::getTextureID(getPrimaryDepthTexture());
-}
-
-GLuint TextureCache::getPrimaryColorTextureID() {
-    return gpu::GLBackend::getTextureID(getPrimaryColorTexture());
-}
-
-GLuint TextureCache::getPrimaryNormalTextureID() {
-    return gpu::GLBackend::getTextureID(getPrimaryNormalTexture());
-}
-
-GLuint TextureCache::getPrimarySpecularTextureID() {
-    return gpu::GLBackend::getTextureID(getPrimarySpecularTexture());
-}
-
-void TextureCache::setPrimaryDrawBuffers(bool color, bool normal, bool specular) {
-    gpu::Batch batch;
-    setPrimaryDrawBuffers(batch, color, normal, specular);
-    gpu::GLBackend::renderBatch(batch);
-}
-    
-void TextureCache::setPrimaryDrawBuffers(gpu::Batch& batch, bool color, bool normal, bool specular) {
-    GLenum buffers[3];
-    int bufferCount = 0;
-    if (color) {
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
-    }
-    if (normal) {
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
-    }
-    if (specular) {
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
-    }
-    batch._glDrawBuffers(bufferCount, buffers);
-}
-
-gpu::FramebufferPointer TextureCache::getSecondaryFramebuffer() {
-    if (!_secondaryFramebuffer) {
-        _secondaryFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_RGBA_32, _frameBufferSize.width(), _frameBufferSize.height()));
-    }
-    return _secondaryFramebuffer;
-}
-
-gpu::FramebufferPointer TextureCache::getTertiaryFramebuffer() {
-    if (!_tertiaryFramebuffer) {
-        _tertiaryFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_RGBA_32, _frameBufferSize.width(), _frameBufferSize.height()));
-    }
-    return _tertiaryFramebuffer;
-}
-
-
-gpu::FramebufferPointer TextureCache::getShadowFramebuffer() {
-    if (!_shadowFramebuffer) {
-        const int SHADOW_MAP_SIZE = 2048;
-        _shadowFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::createShadowmap(SHADOW_MAP_SIZE));
-
-        _shadowTexture = _shadowFramebuffer->getDepthStencilBuffer();
-    }
-    return _shadowFramebuffer;
-}
-
-GLuint TextureCache::getShadowDepthTextureID() {
-    // ensure that the shadow framebuffer object is initialized before returning the depth texture id
-    getShadowFramebuffer();
-    return gpu::GLBackend::getTextureID(_shadowTexture);
-}
-
 /// Returns a texture version of an image file
 gpu::TexturePointer TextureCache::getImageTexture(const QString& path) {
     QImage image = QImage(path).mirrored(false, true);
@@ -329,10 +182,6 @@ Texture::Texture() {
 }
 
 Texture::~Texture() {
-}
-
-GLuint Texture::getID() const {
-    return gpu::GLBackend::getTextureID(_gpuTexture);
 }
 
 NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArray& content) :
@@ -759,7 +608,7 @@ DilatableNetworkTexture::DilatableNetworkTexture(const QUrl& url, const QByteArr
 QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilation) {
     QSharedPointer<Texture> texture = _dilatedTextures.value(dilation);
     if (texture.isNull()) {
-        texture = QSharedPointer<Texture>(new Texture());
+        texture = QSharedPointer<Texture>::create();
         
         if (!_image.isNull()) {
             QImage dilatedImage = _image;

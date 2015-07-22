@@ -9,20 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <sstream>
+#include "Application.h"
 
-#include <stdlib.h>
-#include <cmath>
-#include <math.h>
+#include <sstream>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/gtc/type_ptr.hpp>
-
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
 
 #include <QAbstractNativeEventFilter>
 #include <QActionGroup>
@@ -58,13 +53,13 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <CursorManager.h>
-#include <AmbientOcclusionEffect.h>
 #include <AudioInjector.h>
 #include <AutoUpdater.h>
 #include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <EntityScriptingInterface.h>
 #include <ErrorDialog.h>
+#include <FramebufferCache.h>
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
 #include <gpu/GLBackend.h>
@@ -80,11 +75,10 @@
 #include <ObjectMotionState.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <PhysicsEngine.h>
-#include <ProgramObject.h>
 #include <RenderDeferredTask.h>
 #include <ResourceCache.h>
 #include <SceneScriptingInterface.h>
@@ -92,15 +86,15 @@
 #include <SettingHandle.h>
 #include <SimpleAverage.h>
 #include <SoundCache.h>
-#include <TextRenderer.h>
+#include <TextureCache.h>
 #include <Tooltip.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
 #include <VrMenu.h>
 
-#include "Application.h"
 #include "AudioClient.h"
 #include "DiscoverabilityManager.h"
+#include "GLCanvas.h"
 #include "InterfaceVersion.h"
 #include "LODManager.h"
 #include "Menu.h"
@@ -175,8 +169,6 @@ public:
 using namespace std;
 
 //  Starfield information
-static unsigned STARFIELD_NUM_STARS = 50000;
-static unsigned STARFIELD_SEED = 1;
 static uint8_t THROTTLED_IDLE_TIMER_DELAY = 10;
 
 const qint64 MAXIMUM_CACHE_SIZE = 10 * BYTES_PER_GIGABYTES;  // 10GB
@@ -272,8 +264,9 @@ bool setupEssentials(int& argc, char** argv) {
     auto audio = DependencyManager::set<AudioClient>();
     auto audioScope = DependencyManager::set<AudioScope>();
     auto deferredLightingEffect = DependencyManager::set<DeferredLightingEffect>();
-    auto ambientOcclusionEffect = DependencyManager::set<AmbientOcclusionEffect>();
     auto textureCache = DependencyManager::set<TextureCache>();
+    auto framebufferCache = DependencyManager::set<FramebufferCache>();
+
     auto animationCache = DependencyManager::set<AnimationCache>();
     auto ddeFaceTracker = DependencyManager::set<DdeFaceTracker>();
     auto modelBlender = DependencyManager::set<ModelBlender>();
@@ -304,7 +297,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _window(new MainWindow(desktop())),
         _toolWindow(NULL),
         _friendsWindow(NULL),
-        _datagramProcessor(),
         _undoStack(),
         _undoStackScriptingInterface(&_undoStack),
         _frameCount(0),
@@ -322,7 +314,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _previousScriptLocation("LastScriptLocation"),
         _scriptsLocationHandle("scriptsLocation"),
         _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
-        _viewTransform(),
         _scaleMirror(1.0f),
         _rotateMirror(0.0f),
         _raiseMirror(0.0f),
@@ -339,8 +330,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
         _isVSyncOn(true),
+        _isThrottleFPSEnabled(false),
         _aboutToQuit(false),
         _notifiedPacketVersionMismatchThisDomain(false),
+        _glWidget(new GLCanvas()),
         _domainConnectionRefusals(QList<QString>()),
         _maxOctreePPS(maxOctreePacketsPerSecond.get()),
         _lastFaceTrackerUpdate(0),
@@ -371,23 +364,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _bookmarks = new Bookmarks();  // Before setting up the menu
 
     _runningScriptsWidget = new RunningScriptsWidget(_window);
-    _renderEngine->addTask(render::TaskPointer(new RenderDeferredTask()));
+    _renderEngine->addTask(make_shared<RenderDeferredTask>());
     _renderEngine->registerScene(_main3DScene);
-      
+
     // start the nodeThread so its event loop is running
     QThread* nodeThread = new QThread(this);
-    nodeThread->setObjectName("Datagram Processor Thread");
+    nodeThread->setObjectName("NodeList Thread");
     nodeThread->start();
 
     // make sure the node thread is given highest priority
     nodeThread->setPriority(QThread::TimeCriticalPriority);
-
-    _datagramProcessor = new DatagramProcessor(nodeList.data());
-
-    // have the NodeList use deleteLater from DM customDeleter
-    nodeList->setCustomDeleter([](Dependency* dependency) {
-        static_cast<NodeList*>(dependency)->deleteLater();
-    });
 
     // setup a timer for domain-server check ins
     QTimer* domainCheckInTimer = new QTimer(nodeList.data());
@@ -404,9 +390,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     ResourceCache* geometryCache = geometryCacheP.data();
     connect(this, &Application::checkBackgroundDownloads, geometryCache, &ResourceCache::checkAsynchronousGets);
 
-    // connect the DataProcessor processDatagrams slot to the QUDPSocket readyRead() signal
-    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, _datagramProcessor, &DatagramProcessor::processDatagrams);
-
     // put the audio processing on a separate thread
     QThread* audioThread = new QThread();
     audioThread->setObjectName("Audio Thread");
@@ -417,14 +400,27 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     audioIO->setOrientationGetter(getOrientationForAudio);
 
     audioIO->moveToThread(audioThread);
+
+    auto& audioScriptingInterface = AudioScriptingInterface::getInstance();
+    
     connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
     connect(audioIO.data(), &AudioClient::destroyed, audioThread, &QThread::quit);
     connect(audioThread, &QThread::finished, audioThread, &QThread::deleteLater);
     connect(audioIO.data(), &AudioClient::muteToggled, this, &Application::audioMuteToggled);
-    connect(audioIO.data(), &AudioClient::receivedFirstPacket,
-            &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::receivedFirstPacket);
-    connect(audioIO.data(), &AudioClient::disconnected,
-            &AudioScriptingInterface::getInstance(), &AudioScriptingInterface::disconnected);
+    connect(audioIO.data(), &AudioClient::mutedByMixer, &audioScriptingInterface, &AudioScriptingInterface::mutedByMixer);
+    connect(audioIO.data(), &AudioClient::receivedFirstPacket, &audioScriptingInterface, &AudioScriptingInterface::receivedFirstPacket);
+    connect(audioIO.data(), &AudioClient::disconnected, &audioScriptingInterface, &AudioScriptingInterface::disconnected);
+    connect(audioIO.data(), &AudioClient::muteEnvironmentRequested, [](glm::vec3 position, float radius) {
+        auto audioClient = DependencyManager::get<AudioClient>();
+        float distance = glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(),
+                                 position);
+        bool shouldMute = !audioClient->isMuted() && (distance < radius);
+
+        if (shouldMute) {
+            audioClient->toggleMute();
+            AudioScriptingInterface::getInstance().environmentMuted();
+        }
+    });
 
     audioThread->start();
 
@@ -457,7 +453,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(nodeList.data(), &NodeList::uuidChanged, _myAvatar, &MyAvatar::setSessionUUID);
     connect(nodeList.data(), &NodeList::uuidChanged, this, &Application::setSessionUUID);
     connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
-    connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
+    connect(&nodeList->getPacketReceiver(), &PacketReceiver::packetVersionMismatch,
+            this, &Application::notifyPacketVersionMismatch);
 
     // connect to appropriate slots on AccountManager
     AccountManager& accountManager = AccountManager::getInstance();
@@ -537,7 +534,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // the GL surface
     _glWidget->setCursor(Qt::BlankCursor);
 #endif
-    
+
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
 
@@ -571,10 +568,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // hook up bandwidth estimator
     QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
-    connect(nodeList.data(), SIGNAL(dataSent(const quint8, const int)),
-            bandwidthRecorder.data(), SLOT(updateOutboundData(const quint8, const int)));
-    connect(nodeList.data(), SIGNAL(dataReceived(const quint8, const int)),
-            bandwidthRecorder.data(), SLOT(updateInboundData(const quint8, const int)));
+    connect(nodeList.data(), &LimitedNodeList::dataSent,
+            bandwidthRecorder.data(), &BandwidthRecorder::updateOutboundData);
+    connect(&nodeList->getPacketReceiver(), &PacketReceiver::dataReceived,
+            bandwidthRecorder.data(), &BandwidthRecorder::updateInboundData);
 
     connect(&_myAvatar->getSkeletonModel(), &SkeletonModel::skeletonLoaded,
             this, &Application::checkSkeleton, Qt::QueuedConnection);
@@ -606,7 +603,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _settingsTimer.setSingleShot(false);
     _settingsTimer.setInterval(SAVE_SETTINGS_INTERVAL);
     _settingsThread.start();
-    
+
     if (Menu::getInstance()->isOptionChecked(MenuOption::IndependentMode)) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
         cameraMenuChanged();
@@ -637,10 +634,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     ddeTracker->init();
     connect(ddeTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
 #endif
-    
+
     auto applicationUpdater = DependencyManager::get<AutoUpdater>();
     connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
     applicationUpdater->checkForUpdate();
+
+    auto& packetReceiver = nodeList->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::DomainConnectionDenied, this, "handleDomainConnectionDeniedPacket");
 }
 
 void Application::aboutToQuit() {
@@ -653,8 +653,10 @@ void Application::aboutToQuit() {
 void Application::cleanupBeforeQuit() {
 
     _entities.clear(); // this will allow entity scripts to properly shutdown
-
-    _datagramProcessor->shutdown(); // tell the datagram processor we're shutting down, so it can short circuit
+    
+    // tell the packet receiver we're shutting down, so it can drop packets
+    DependencyManager::get<NodeList>()->getPacketReceiver().setShouldDropPackets(true);
+    
     _entities.shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
     ScriptEngine::stopAllScripts(this); // stop all currently running global scripts
 
@@ -731,12 +733,15 @@ Application::~Application() {
     DependencyManager::destroy<OffscreenUi>();
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();
+    DependencyManager::destroy<FramebufferCache>();
     DependencyManager::destroy<TextureCache>();
     DependencyManager::destroy<GeometryCache>();
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
 
     QThread* nodeThread = DependencyManager::get<NodeList>()->thread();
+    
+    // remove the NodeList from the DependencyManager
     DependencyManager::destroy<NodeList>();
 
     // ask the node thread to quit and wait until it is done
@@ -762,12 +767,7 @@ void Application::initializeGL() {
     }
     #endif
 
-    qCDebug(interfaceapp) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
-    qCDebug(interfaceapp) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
-    qCDebug(interfaceapp) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
-    qCDebug(interfaceapp) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
-
-    #ifdef WIN32
+#ifdef WIN32
     GLenum err = glewInit();
     if (GLEW_OK != err) {
         /* Problem: glewInit failed, something is seriously wrong. */
@@ -779,7 +779,7 @@ void Application::initializeGL() {
         int swapInterval = wglGetSwapIntervalEXT();
         qCDebug(interfaceapp, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
     }
-    #endif
+#endif
 
 #if defined(Q_OS_LINUX)
     // TODO: Write the correct  code for Linux...
@@ -887,7 +887,7 @@ void Application::paintGL() {
         OculusManager::beginFrameTiming();
     }
 
-  
+
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
@@ -895,11 +895,16 @@ void Application::paintGL() {
 
     {
         PerformanceTimer perfTimer("renderOverlay");
+        
+        // NOTE: There is no batch associated with this renderArgs
+        // the ApplicationOverlay class assumes it's viewport is setup to be the device size
+        QSize size = qApp->getDeviceSize();
+        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());    
         _applicationOverlay.renderOverlay(&renderArgs);
     }
 
     glEnable(GL_LINE_SMOOTH);
-    
+
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, _myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
         Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !(_myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN));
@@ -953,10 +958,6 @@ void Application::paintGL() {
     // FIXME: it's happening again in the updateSHadow and it shouldn't, this should be the place
     loadViewFrustum(_myCamera, _viewFrustum);
 
-    if (getShadowsEnabled()) {
-        renderArgs._renderMode = RenderArgs::SHADOW_RENDER_MODE;
-        updateShadowMap(&renderArgs);
-    }
 
     renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
 
@@ -972,39 +973,41 @@ void Application::paintGL() {
     } else {
         PROFILE_RANGE(__FUNCTION__ "/mainRender");
 
-        auto primaryFBO = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
-        GLuint fbo = gpu::GLBackend::getFramebufferID(primaryFBO);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        {
+            gpu::Batch batch;
+            auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
+            batch.setFramebuffer(primaryFbo);
+            // clear the normal and specular buffers
+            batch.clearFramebuffer(
+                gpu::Framebuffer::BUFFER_COLOR0 | 
+                gpu::Framebuffer::BUFFER_COLOR1 |
+                gpu::Framebuffer::BUFFER_COLOR2 |
+                gpu::Framebuffer::BUFFER_DEPTH,
+                vec4(vec3(0), 1), 1.0, 0.0);
 
-        // Viewport is assigned to the size of the framebuffer
-        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
-        glViewport(0, 0, size.width(), size.height());
-        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
-        
-        glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
-        glLoadIdentity();
-        displaySide(&renderArgs, _myCamera);
-        glPopMatrix();
-
-        renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            renderRearViewMirror(&renderArgs, _mirrorViewRect);
+            // Viewport is assigned to the size of the framebuffer
+            QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
+            renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
+            batch.setViewportTransform(renderArgs._viewport);
+            renderArgs._context->render(batch);
         }
 
-        renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
+        displaySide(&renderArgs, _myCamera);
 
-        auto finalFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+        if (_myCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+            renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
+            renderRearViewMirror(&renderArgs, _mirrorViewRect);
+            renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
+        }
 
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(finalFbo));
-        glBlitFramebuffer(0, 0, _renderResolution.x, _renderResolution.y,
-                          0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height(),
-                            GL_COLOR_BUFFER_BIT, GL_LINEAR);
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-    
-        glBindTexture(GL_TEXTURE_2D, 0); // ???
+        {
+            auto geometryCache = DependencyManager::get<GeometryCache>();
+            auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
+            gpu::Batch batch;
+            batch.blit(primaryFbo, glm::ivec4(0, 0, _renderResolution.x, _renderResolution.y),
+                nullptr, glm::ivec4(0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height()));
+            renderArgs._context->render(batch);
+        }
 
         _compositor.displayOverlayTexture(&renderArgs);
     }
@@ -1073,12 +1076,9 @@ void Application::resizeGL() {
 
     if (_renderResolution != toGlm(renderSize)) {
         _renderResolution = toGlm(renderSize);
-        DependencyManager::get<TextureCache>()->setFrameBufferSize(renderSize);
+        DependencyManager::get<FramebufferCache>()->setFrameBufferSize(renderSize);
 
-        glViewport(0, 0, _renderResolution.x, _renderResolution.y); // shouldn't this account for the menu???
-
-        updateProjectionMatrix();
-        glLoadIdentity();
+        loadViewFrustum(_myCamera, _viewFrustum);
     }
 
     resetCameras(_myCamera, _renderResolution);
@@ -1089,31 +1089,6 @@ void Application::resizeGL() {
     offscreenUi->resize(canvasSize);
     _glWidget->makeCurrent();
 
-}
-
-void Application::updateProjectionMatrix() {
-    updateProjectionMatrix(_myCamera);
-}
-
-void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum) {
-    _projectionMatrix = camera.getProjection();
-
-    glMatrixMode(GL_PROJECTION);
-    glLoadMatrixf(glm::value_ptr(_projectionMatrix));
-
-    // Tell our viewFrustum about this change, using the application camera
-    if (updateViewFrustum) {
-        loadViewFrustum(camera, _viewFrustum);
-    }
-
-    glMatrixMode(GL_MODELVIEW);
-}
-
-void Application::controlledBroadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {
-    foreach(NodeType_t type, destinationNodeTypes) {
-        // Perform the broadcast for one type
-        DependencyManager::get<NodeList>()->broadcastToNodes(packet, NodeSet() << type);
-    }
 }
 
 bool Application::importSVOFromURL(const QString& urlString) {
@@ -1260,12 +1235,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_Asterisk:
                 Menu::getInstance()->triggerOption(MenuOption::Stars);
-                break;
-
-            case Qt::Key_W:
-                if (isOption && !isShifted && !isMeta) {
-                    Menu::getInstance()->triggerOption(MenuOption::Wireframe);
-                }
                 break;
 
             case Qt::Key_S:
@@ -1781,10 +1750,21 @@ bool Application::acceptSnapshot(const QString& urlString) {
 }
 
 void Application::sendPingPackets() {
-    QByteArray pingPacket = DependencyManager::get<NodeList>()->constructPingPacket();
-    controlledBroadcastToNodes(pingPacket, NodeSet()
-                               << NodeType::EntityServer
-                               << NodeType::AudioMixer << NodeType::AvatarMixer);
+
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    nodeList->eachMatchingNode([](const SharedNodePointer& node)->bool {
+        switch (node->getType()) {
+            case NodeType::AvatarMixer:
+            case NodeType::AudioMixer:
+            case NodeType::EntityServer:
+                return true;
+            default:
+                return false;
+        }
+    }, [nodeList](const SharedNodePointer& node) {
+        nodeList->sendPacket(nodeList->constructPingPacket(), *node);
+    });
 }
 
 //  Every second, check the frame rates and other stuff
@@ -1797,7 +1777,6 @@ void Application::checkFPS() {
 
     _fps = (float)_frameCount / diffTime;
     _frameCount = 0;
-    _datagramProcessor->resetCounters();
     _timerStart.start();
 }
 
@@ -1950,7 +1929,6 @@ void Application::setEnableVRMode(bool enableVRMode) {
             OculusManager::connect(_glWidget->context()->contextHandle());
             _glWidget->setFocus();
             _glWidget->makeCurrent();
-            glClear(GL_COLOR_BUFFER_BIT);
         }
         OculusManager::recalibrate();
     } else {
@@ -2039,13 +2017,6 @@ void Application::setActiveFaceTracker() {
     ddeTracker->setIsMuted(isMuted);
     ddeTracker->setEnabled(isUsingDDE && !isMuted);
 #endif
-}
-
-void Application::toggleFaceTrackerMute() {
-    FaceTracker* faceTracker = getSelectedFaceTracker();
-    if (faceTracker) {
-        faceTracker->toggleMute();
-    }
 }
 
 bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
@@ -2153,12 +2124,6 @@ QVector<EntityItemID> Application::pasteEntities(float x, float y, float z) {
 }
 
 void Application::initDisplay() {
-    glEnable(GL_BLEND);
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
-    glShadeModel(GL_SMOOTH);
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-    glEnable(GL_DEPTH_TEST);
 }
 
 void Application::init() {
@@ -2168,7 +2133,6 @@ void Application::init() {
     _environment.init();
 
     DependencyManager::get<DeferredLightingEffect>()->init(this);
-    DependencyManager::get<AmbientOcclusionEffect>()->init(this);
 
     // TODO: move _myAvatar out of Application. Move relevant code to MyAvataar or AvatarManager
     DependencyManager::get<AvatarManager>()->init();
@@ -2264,8 +2228,8 @@ void Application::shrinkMirrorView() {
 
 const float HEAD_SPHERE_RADIUS = 0.1f;
 
-bool Application::isLookingAtMyAvatar(Avatar* avatar) {
-    glm::vec3 theirLookAt = avatar->getHead()->getLookAtPosition();
+bool Application::isLookingAtMyAvatar(AvatarSharedPointer avatar) {
+    glm::vec3 theirLookAt = dynamic_pointer_cast<Avatar>(avatar)->getHead()->getLookAtPosition();
     glm::vec3 myEyePosition = _myAvatar->getHead()->getEyePosition();
     if (pointInSphere(theirLookAt, myEyePosition, HEAD_SPHERE_RADIUS * _myAvatar->getScale())) {
         return true;
@@ -2329,7 +2293,7 @@ void Application::updateMyAvatarLookAtPosition() {
         if (lookingAt && _myAvatar != lookingAt.get()) {
             //  If I am looking at someone else, look directly at one of their eyes
             isLookingAtSomeone = true;
-            Head* lookingAtHead = static_cast<Avatar*>(lookingAt.get())->getHead();
+            auto lookingAtHead = static_pointer_cast<Avatar>(lookingAt)->getHead();
 
             const float MAXIMUM_FACE_ANGLE = 65.0f * RADIANS_PER_DEGREE;
             glm::vec3 lookingAtFaceOrientation = lookingAtHead->getFinalOrientationInWorldFrame() * IDENTITY_FRONT;
@@ -2486,7 +2450,13 @@ void Application::update(float deltaTime) {
     {
         PerformanceTimer perfTimer("devices");
         DeviceTracker::updateAll();
-        FaceTracker* tracker = getActiveFaceTracker();
+
+        FaceTracker* tracker = getSelectedFaceTracker();
+        if (tracker && Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking) != tracker->isMuted()) {
+            tracker->toggleMute();
+        }
+
+        tracker = getActiveFaceTracker();
         if (tracker && !tracker->isMuted()) {
             tracker->update(deltaTime);
 
@@ -2654,7 +2624,7 @@ void Application::update(float deltaTime) {
             _lastQueriedTime = now;
 
             if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
-                queryOctree(NodeType::EntityServer, PacketTypeEntityQuery, _entityServerJurisdictions);
+                queryOctree(NodeType::EntityServer, PacketType::EntityQuery, _entityServerJurisdictions);
             }
             _lastQueriedViewFrustum = _viewFrustum;
         }
@@ -2687,15 +2657,16 @@ int Application::sendNackPackets() {
         return 0;
     }
 
-    int packetsSent = 0;
-    char packet[MAX_PACKET_SIZE];
-
-    // iterates thru all nodes in NodeList
+    // iterates through all nodes in NodeList
     auto nodeList = DependencyManager::get<NodeList>();
+
+    int packetsSent = 0;
 
     nodeList->eachNode([&](const SharedNodePointer& node){
 
         if (node->getActiveSocket() && node->getType() == NodeType::EntityServer) {
+
+            NLPacketList nackPacketList(PacketType::OctreeDataNack);
 
             QUuid nodeUUID = node->getUUID();
 
@@ -2712,55 +2683,36 @@ int Application::sendNackPackets() {
                 _octreeSceneStatsLock.unlock();
                 return;
             }
-
+            
             // get sequence number stats of node, prune its missing set, and make a copy of the missing set
             SequenceNumberStats& sequenceNumberStats = _octreeServerSceneStats[nodeUUID].getIncomingOctreeSequenceNumberStats();
             sequenceNumberStats.pruneMissingSet();
             const QSet<OCTREE_PACKET_SEQUENCE> missingSequenceNumbers = sequenceNumberStats.getMissingSet();
-
+            
             _octreeSceneStatsLock.unlock();
-
+            
             // construct nack packet(s) for this node
-            int numSequenceNumbersAvailable = missingSequenceNumbers.size();
-            QSet<OCTREE_PACKET_SEQUENCE>::const_iterator missingSequenceNumbersIterator = missingSequenceNumbers.constBegin();
-            while (numSequenceNumbersAvailable > 0) {
-
-                char* dataAt = packet;
-                int bytesRemaining = MAX_PACKET_SIZE;
-
-                // pack header
-                int numBytesPacketHeader = nodeList->populatePacketHeader(packet, PacketTypeOctreeDataNack);
-                dataAt += numBytesPacketHeader;
-                bytesRemaining -= numBytesPacketHeader;
-
-                // calculate and pack the number of sequence numbers
-                int numSequenceNumbersRoomFor = (bytesRemaining - sizeof(uint16_t)) / sizeof(OCTREE_PACKET_SEQUENCE);
-                uint16_t numSequenceNumbers = min(numSequenceNumbersAvailable, numSequenceNumbersRoomFor);
-                uint16_t* numSequenceNumbersAt = (uint16_t*)dataAt;
-                *numSequenceNumbersAt = numSequenceNumbers;
-                dataAt += sizeof(uint16_t);
-
-                // pack sequence numbers
-                for (int i = 0; i < numSequenceNumbers; i++) {
-                    OCTREE_PACKET_SEQUENCE* sequenceNumberAt = (OCTREE_PACKET_SEQUENCE*)dataAt;
-                    *sequenceNumberAt = *missingSequenceNumbersIterator;
-                    dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
-
-                    missingSequenceNumbersIterator++;
-                }
-                numSequenceNumbersAvailable -= numSequenceNumbers;
-
-                // send it
-                nodeList->writeUnverifiedDatagram(packet, dataAt - packet, node);
-                packetsSent++;
+            auto it = missingSequenceNumbers.constBegin();
+            while (it != missingSequenceNumbers.constEnd()) {
+                OCTREE_PACKET_SEQUENCE missingNumber = *it;
+                nackPacketList.writePrimitive(missingNumber);
+                ++it;
+            }
+            
+            if (nackPacketList.getNumPackets()) {
+                packetsSent += nackPacketList.getNumPackets();
+                
+                // send the packet list
+                nodeList->sendPacketList(nackPacketList, *node);
             }
         }
     });
 
+
     return packetsSent;
 }
 
-void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
+void Application::queryOctree(NodeType_t serverType, PacketType::Value packetType, NodeToJurisdictionMap& jurisdictions) {
 
     //qCDebug(interfaceapp) << ">>> inside... queryOctree()... _viewFrustum.getFieldOfView()=" << _viewFrustum.getFieldOfView();
     bool wantExtraDebugging = getLogger()->extraDebugging();
@@ -2783,9 +2735,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     _octreeQuery.setOctreeSizeScale(lodManager->getOctreeSizeScale());
     _octreeQuery.setBoundaryLevelAdjust(lodManager->getBoundaryLevelAdjust());
 
-    unsigned char queryPacket[MAX_PACKET_SIZE];
-
-    // Iterate all of the nodes, and get a count of how many voxel servers we have...
+    // Iterate all of the nodes, and get a count of how many octree servers we have...
     int totalServers = 0;
     int inViewServers = 0;
     int unknownJurisdictionServers = 0;
@@ -2851,6 +2801,8 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     if (wantExtraDebugging) {
         qCDebug(interfaceapp, "perServerPPS: %d perUnknownServer: %d", perServerPPS, perUnknownServer);
     }
+
+    auto queryPacket = NLPacket::create(packetType);
 
     nodeList->eachNode([&](const SharedNodePointer& node){
         // only send to the NodeTypes that are serverType
@@ -2926,19 +2878,13 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
             } else {
                 _octreeQuery.setMaxQueryPacketsPerSecond(0);
             }
-            // set up the packet for sending...
-            unsigned char* endOfQueryPacket = queryPacket;
 
-            // insert packet type/version and node UUID
-            endOfQueryPacket += nodeList->populatePacketHeader(reinterpret_cast<char*>(endOfQueryPacket), packetType);
-
-            // encode the query data...
-            endOfQueryPacket += _octreeQuery.getBroadcastData(endOfQueryPacket);
-
-            int packetLength = endOfQueryPacket - queryPacket;
+            // encode the query data
+            int packetSize = _octreeQuery.getBroadcastData(reinterpret_cast<unsigned char*>(queryPacket->getPayload()));
+            queryPacket->setPayloadSize(packetSize);
 
             // make sure we still have an active socket
-            nodeList->writeUnverifiedDatagram(reinterpret_cast<const char*>(queryPacket), packetLength, node);
+            nodeList->sendUnreliablePacket(*queryPacket, *node);
         }
     });
 }
@@ -3002,169 +2948,6 @@ glm::vec3 Application::getSunDirection() {
 // FIXME, preprocessor guard this check to occur only in DEBUG builds
 static QThread * activeRenderingThread = nullptr;
 
-void Application::updateShadowMap(RenderArgs* renderArgs) {
-    activeRenderingThread = QThread::currentThread();
-
-    PerformanceTimer perfTimer("shadowMap");
-    auto shadowFramebuffer = DependencyManager::get<TextureCache>()->getShadowFramebuffer();
-    glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(shadowFramebuffer));
-
-    glEnable(GL_DEPTH_TEST);
-    glClear(GL_DEPTH_BUFFER_BIT);
-
-    glm::vec3 lightDirection = getSunDirection();
-    glm::quat rotation = rotationBetween(IDENTITY_FRONT, lightDirection);
-    glm::quat inverseRotation = glm::inverse(rotation);
-
-    const float SHADOW_MATRIX_DISTANCES[] = { 0.0f, 2.0f, 6.0f, 14.0f, 30.0f };
-    const glm::vec2 MAP_COORDS[] = { glm::vec2(0.0f, 0.0f), glm::vec2(0.5f, 0.0f),
-        glm::vec2(0.0f, 0.5f), glm::vec2(0.5f, 0.5f) };
-
-    float frustumScale = 1.0f / (_viewFrustum.getFarClip() - _viewFrustum.getNearClip());
-    loadViewFrustum(_myCamera, _viewFrustum);
-
-    int matrixCount = 1;
-    //int targetSize = fbo->width();
-    int sourceSize = shadowFramebuffer->getWidth();
-    int targetSize = shadowFramebuffer->getWidth();
-    float targetScale = 1.0f;
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
-        matrixCount = CASCADED_SHADOW_MATRIX_COUNT;
-        targetSize = sourceSize / 2;
-        targetScale = 0.5f;
-    }
-    for (int i = 0; i < matrixCount; i++) {
-        const glm::vec2& coord = MAP_COORDS[i];
-        glViewport(coord.s * sourceSize, coord.t * sourceSize, targetSize, targetSize);
-
-        // if simple shadow then since the resolution is twice as much as with cascaded, cover 2 regions with the map, not just one
-        int regionIncrement = (matrixCount == 1 ? 2 : 1);
-        float nearScale = SHADOW_MATRIX_DISTANCES[i] * frustumScale;
-        float farScale = SHADOW_MATRIX_DISTANCES[i + regionIncrement] * frustumScale;
-        glm::vec3 points[] = {
-            glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), nearScale),
-            glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), nearScale),
-            glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), nearScale),
-            glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), nearScale),
-            glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), farScale),
-            glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), farScale),
-            glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), farScale),
-            glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), farScale) };
-        glm::vec3 center;
-        for (size_t j = 0; j < sizeof(points) / sizeof(points[0]); j++) {
-            center += points[j];
-        }
-        center /= (float)(sizeof(points) / sizeof(points[0]));
-        float radius = 0.0f;
-        for (size_t j = 0; j < sizeof(points) / sizeof(points[0]); j++) {
-            radius = qMax(radius, glm::distance(points[j], center));
-        }
-        if (i < 3) {
-            const float RADIUS_SCALE = 0.5f;
-            _shadowDistances[i] = -glm::distance(_viewFrustum.getPosition(), center) - radius * RADIUS_SCALE;
-        }
-        center = inverseRotation * center;
-
-        // to reduce texture "shimmer," move in texel increments
-        float texelSize = (2.0f * radius) / targetSize;
-        center = glm::vec3(roundf(center.x / texelSize) * texelSize, roundf(center.y / texelSize) * texelSize,
-            roundf(center.z / texelSize) * texelSize);
-
-        glm::vec3 minima(center.x - radius, center.y - radius, center.z - radius);
-        glm::vec3 maxima(center.x + radius, center.y + radius, center.z + radius);
-
-        // stretch out our extents in z so that we get all of the avatars
-        minima.z -= _viewFrustum.getFarClip() * 0.5f;
-        maxima.z += _viewFrustum.getFarClip() * 0.5f;
-
-        // save the combined matrix for rendering
-        _shadowMatrices[i] = glm::transpose(glm::translate(glm::vec3(coord, 0.0f)) *
-            glm::scale(glm::vec3(targetScale, targetScale, 1.0f)) *
-            glm::translate(glm::vec3(0.5f, 0.5f, 0.5f)) * glm::scale(glm::vec3(0.5f, 0.5f, 0.5f)) *
-            glm::ortho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z) * glm::mat4_cast(inverseRotation));
-
-        // update the shadow view frustum
-      //  glm::vec3 shadowFrustumCenter = glm::vec3((minima.x + maxima.x) * 0.5f, (minima.y + maxima.y) * 0.5f, (minima.z + maxima.z) * 0.5f);
-        glm::vec3 shadowFrustumCenter = rotation * ((minima + maxima) * 0.5f);
-        _shadowViewFrustum.setPosition(shadowFrustumCenter);
-        _shadowViewFrustum.setOrientation(rotation);
-        _shadowViewFrustum.setProjection(glm::ortho(minima.x, maxima.x, minima.y, maxima.y, minima.z, maxima.z));
-        _shadowViewFrustum.calculate();
-
-        glMatrixMode(GL_PROJECTION);
-        glPushMatrix();
-        glLoadIdentity();
-        glOrtho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z);
-
-        glm::mat4 projAgain;
-        glGetFloatv(GL_PROJECTION_MATRIX, (GLfloat*)&projAgain);
-
-
-        glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
-        glLoadIdentity();
-        glm::vec3 axis = glm::axis(inverseRotation);
-        glRotatef(glm::degrees(glm::angle(inverseRotation)), axis.x, axis.y, axis.z);
-
-        // store view matrix without translation, which we'll use for precision-sensitive objects
-        updateUntranslatedViewMatrix();
-
-        // Equivalent to what is happening with _untranslatedViewMatrix and the _viewMatrixTranslation
-        // the viewTransofmr object is updatded with the correct values and saved,
-        // this is what is used for rendering the Entities and avatars
-        Transform viewTransform;
-        viewTransform.setRotation(rotation);
-    //    viewTransform.postTranslate(shadowFrustumCenter);
-        setViewTransform(viewTransform);
-
-
-        glEnable(GL_POLYGON_OFFSET_FILL);
-        glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
-
-        {
-            PerformanceTimer perfTimer("entities");
-            _entities.render(renderArgs);
-        }
-
-        glDisable(GL_POLYGON_OFFSET_FILL);
-
-        glPopMatrix();
-
-        glMatrixMode(GL_PROJECTION);
-        glPopMatrix();
-
-        glMatrixMode(GL_MODELVIEW);
-    }
-
-   // fbo->release();
-
-    glViewport(0, 0, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
-    activeRenderingThread = nullptr;
-}
-
-const GLfloat WORLD_AMBIENT_COLOR[] = { 0.525f, 0.525f, 0.6f };
-const GLfloat WORLD_DIFFUSE_COLOR[] = { 0.6f, 0.525f, 0.525f };
-const GLfloat WORLD_SPECULAR_COLOR[] = { 0.08f, 0.08f, 0.08f, 1.0f };
-
-const glm::vec3 GLOBAL_LIGHT_COLOR = {  0.6f, 0.525f, 0.525f };
-
-void Application::setupWorldLight() {
-
-    //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
-    glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-
-    glm::vec3 sunDirection = getSunDirection();
-    GLfloat light_position0[] = { sunDirection.x, sunDirection.y, sunDirection.z, 0.0 };
-    glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
-    glLightfv(GL_LIGHT0, GL_AMBIENT, WORLD_AMBIENT_COLOR);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, WORLD_DIFFUSE_COLOR);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, WORLD_SPECULAR_COLOR);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, WORLD_SPECULAR_COLOR);
-    glMateriali(GL_FRONT, GL_SHININESS, 96);
-
-}
-
 bool Application::shouldRenderMesh(float largestDimension, float distanceToCamera) {
     return DependencyManager::get<LODManager>()->shouldRenderMesh(largestDimension, distanceToCamera);
 }
@@ -3195,7 +2978,7 @@ PickRay Application::computePickRay(float x, float y) const {
 }
 
 QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
-    auto primaryFramebuffer = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+    auto primaryFramebuffer = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
     glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFramebuffer));
 
     // clear the alpha channel so the background is transparent
@@ -3318,9 +3101,6 @@ namespace render {
                 PerformanceTimer perfTimer("stars");
                 PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                     "Application::payloadRender<BackgroundRenderData>() ... stars...");
-                if (!background->_stars.isStarsLoaded()) {
-                    background->_stars.generate(STARFIELD_NUM_STARS, STARFIELD_SEED);
-                }
                 // should be the first rendering pass - w/o depth buffer / lighting
 
                 // compute starfield alpha based on distance from atmosphere
@@ -3348,7 +3128,7 @@ namespace render {
                                                     + APPROXIMATE_DISTANCE_FROM_HORIZON;
                                 alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
                             }
-                        
+
 
                         } else if (height < closestData.getAtmosphereOuterRadius()) {
                             alpha = (height - closestData.getAtmosphereInnerRadius()) /
@@ -3368,7 +3148,7 @@ namespace render {
 
                 // finally render the starfield
                 if (hasStars) {
-                    background->_stars.render(args->_viewFrustum->getFieldOfView(), args->_viewFrustum->getAspectRatio(), args->_viewFrustum->getNearClip(), alpha);
+                    background->_stars.render(args, alpha);
                 }
 
                 // draw the sky dome
@@ -3383,7 +3163,7 @@ namespace render {
             }
         } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
             PerformanceTimer perfTimer("skybox");
-            
+
             skybox = skyStage->getSkybox();
             if (skybox) {
                 model::Skybox::render(batch, *(Application::getInstance()->getDisplayViewFrustum()), *skybox);
@@ -3412,76 +3192,22 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     // load the view frustum
     loadViewFrustum(theCamera, _displayViewFrustum);
 
-    // transform view according to theCamera
-    // could be myCamera (if in normal mode)
-    // or could be viewFrustumOffsetCamera if in offset mode
-
-    glm::quat rotation = theCamera.getRotation();
-    glm::vec3 axis = glm::axis(rotation);
-    glRotatef(-glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-
-    // store view matrix without translation, which we'll use for precision-sensitive objects
-    updateUntranslatedViewMatrix(-theCamera.getPosition());
-
-    // Equivalent to what is happening with _untranslatedViewMatrix and the _viewMatrixTranslation
-    // the viewTransofmr object is updatded with the correct values and saved,
-    // this is what is used for rendering the Entities and avatars
-    Transform viewTransform;
-    viewTransform.setTranslation(theCamera.getPosition());
-    viewTransform.setRotation(rotation);
-    if (renderArgs->_renderSide != RenderArgs::MONO) {
-        glm::mat4 invView = glm::inverse(_untranslatedViewMatrix);
-
-        viewTransform.evalFromRawMatrix(invView);
-        viewTransform.preTranslate(_viewMatrixTranslation);
-    }
-
-    setViewTransform(viewTransform);
-
-    glTranslatef(_viewMatrixTranslation.x, _viewMatrixTranslation.y, _viewMatrixTranslation.z);
-
-    //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
-    {
-        PerformanceTimer perfTimer("lights");
-        setupWorldLight();
-    }
-
-    // setup shadow matrices (again, after the camera transform)
-    int shadowMatrixCount = 0;
-    if (Menu::getInstance()->isOptionChecked(MenuOption::SimpleShadows)) {
-        shadowMatrixCount = 1;
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
-        shadowMatrixCount = CASCADED_SHADOW_MATRIX_COUNT;
-    }
-    for (int i = shadowMatrixCount - 1; i >= 0; i--) {
-        glActiveTexture(GL_TEXTURE0 + i);
-        glTexGenfv(GL_S, GL_EYE_PLANE, (const GLfloat*)&_shadowMatrices[i][0]);
-        glTexGenfv(GL_T, GL_EYE_PLANE, (const GLfloat*)&_shadowMatrices[i][1]);
-        glTexGenfv(GL_R, GL_EYE_PLANE, (const GLfloat*)&_shadowMatrices[i][2]);
-    }
+    // TODO fix shadows and make them use the GPU library
 
     // The pending changes collecting the changes here
     render::PendingChanges pendingChanges;
 
     // Background rendering decision
     if (BackgroundRenderData::_item == 0) {
-        auto backgroundRenderData = BackgroundRenderData::Pointer(new BackgroundRenderData(&_environment));
-        auto backgroundRenderPayload = render::PayloadPointer(new BackgroundRenderData::Payload(backgroundRenderData));
+        auto backgroundRenderData = make_shared<BackgroundRenderData>(&_environment);
+        auto backgroundRenderPayload = make_shared<BackgroundRenderData::Payload>(backgroundRenderData);
         BackgroundRenderData::_item = _main3DScene->allocateID();
         pendingChanges.resetItem(WorldBoxRenderData::_item, backgroundRenderPayload);
     } else {
 
     }
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    }
-
-    glEnable(GL_LIGHTING);
-    glEnable(GL_DEPTH_TEST);
-    
    // Assuming nothing get's rendered through that
-
     if (!selfAvatarOnly) {
         if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
             // render models...
@@ -3501,20 +3227,12 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             renderArgs->_debugFlags = renderDebugFlags;
             _entities.render(renderArgs);
         }
-
-        // render the ambient occlusion effect if enabled
-        if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
-            PerformanceTimer perfTimer("ambientOcclusion");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... AmbientOcclusion...");
-            DependencyManager::get<AmbientOcclusionEffect>()->render();
-        }
     }
 
     // Make sure the WorldBox is in the scene
     if (WorldBoxRenderData::_item == 0) {
-        auto worldBoxRenderData = WorldBoxRenderData::Pointer(new WorldBoxRenderData());
-        auto worldBoxRenderPayload = render::PayloadPointer(new WorldBoxRenderData::Payload(worldBoxRenderData));
+        auto worldBoxRenderData = make_shared<WorldBoxRenderData>();
+        auto worldBoxRenderPayload = make_shared<WorldBoxRenderData::Payload>(worldBoxRenderData);
 
         WorldBoxRenderData::_item = _main3DScene->allocateID();
 
@@ -3575,7 +3293,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
         // Before the deferred pass, let's try to use the render engine
         _renderEngine->run();
-        
+
         auto engineRC = _renderEngine->getRenderContext();
         sceneInterface->setEngineFeedOpaqueItems(engineRC->_numFeedOpaqueItems);
         sceneInterface->setEngineDrawnOpaqueItems(engineRC->_numDrawnOpaqueItems);
@@ -3599,35 +3317,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         }
     }
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    }
-
     activeRenderingThread = nullptr;
-}
-
-void Application::updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation) {
-    glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
-    _viewMatrixTranslation = viewMatrixTranslation;
-}
-
-void Application::setViewTransform(const Transform& view) {
-    _viewTransform = view;
-}
-
-void Application::loadTranslatedViewMatrix(const glm::vec3& translation) {
-    glLoadMatrixf((const GLfloat*)&_untranslatedViewMatrix);
-    glTranslatef(translation.x + _viewMatrixTranslation.x, translation.y + _viewMatrixTranslation.y,
-        translation.z + _viewMatrixTranslation.z);
-}
-
-void Application::getModelViewMatrix(glm::dmat4* modelViewMatrix) {
-    (*modelViewMatrix) =_untranslatedViewMatrix;
-    (*modelViewMatrix)[3] = _untranslatedViewMatrix * glm::vec4(_viewMatrixTranslation, 1);
-}
-
-void Application::getProjectionMatrix(glm::dmat4* projectionMatrix) {
-    *projectionMatrix = _projectionMatrix;
 }
 
 void Application::computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
@@ -3680,9 +3370,9 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
 }
 
 void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard) {
+    auto originalViewport = renderArgs->_viewport;
     // Grab current viewport to reset it at the end
-    int viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
+
     float aspect = (float)region.width() / region.height();
     float fov = MIRROR_FIELD_OF_VIEW;
 
@@ -3719,37 +3409,44 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     _mirrorCamera.setProjection(glm::perspective(glm::radians(fov), aspect, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
     _mirrorCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
 
+
     // set the bounds of rear mirror view
+    gpu::Vec4i viewport;
     if (billboard) {
-        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
-        glViewport(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
-        glScissor(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
-        renderArgs->_viewport = glm::ivec4(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
+        QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
+        viewport = gpu::Vec4i(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
     } else {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
-        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
+        QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
         float ratio = (float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale();
         int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
-        glViewport(x, size.height() - y - height, width, height);
-        glScissor(x, size.height() - y - height, width, height);
-    
-        renderArgs->_viewport = glm::ivec4(x, size.height() - y - height, width, height);
+        viewport = gpu::Vec4i(x, size.height() - y - height, width, height);
     }
+    renderArgs->_viewport = viewport;
+
+    {
+        gpu::Batch batch;
+        batch.setViewportTransform(viewport);
+        batch.setStateScissorRect(viewport);
+        batch.clearFramebuffer(
+            gpu::Framebuffer::BUFFER_COLOR0 |
+            gpu::Framebuffer::BUFFER_COLOR1 |
+            gpu::Framebuffer::BUFFER_COLOR2 |
+            gpu::Framebuffer::BUFFER_DEPTH,
+            vec4(vec3(0), 1), 1.0, 0.0, true);
+        // Viewport is assigned to the size of the framebuffer
+        renderArgs->_context->render(batch);
+    }
+
     bool updateViewFrustum = false;
-    updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
-    glEnable(GL_SCISSOR_TEST);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    loadViewFrustum(_mirrorCamera, _viewFrustum);
+
 
     // render rear mirror view
-    glPushMatrix();
     displaySide(renderArgs, _mirrorCamera, true, billboard);
-    glPopMatrix();
 
-    // reset Viewport and projection matrix
-    renderArgs->_viewport = glm::ivec4(viewport[0], viewport[1], viewport[2], viewport[3]);
-    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
-    glDisable(GL_SCISSOR_TEST);
-    updateProjectionMatrix(_myCamera, updateViewFrustum);
+    renderArgs->_viewport =  originalViewport;
+
 }
 
 void Application::resetSensors() {
@@ -3836,11 +3533,24 @@ void Application::domainChanged(const QString& domainHostname) {
     _domainConnectionRefusals.clear();
 }
 
-void Application::domainConnectionDenied(const QString& reason) {
+void Application::handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet) {
+    // Read deny reason from packet
+    quint16 reasonSize;
+    packet->readPrimitive(&reasonSize);
+    QString reason = QString::fromUtf8(packet->getPayload() + packet->pos(), reasonSize);
+    packet->seek(packet->pos() + reasonSize);
+
+    // output to the log so the user knows they got a denied connection request
+    // and check and signal for an access token so that we can make sure they are logged in
+    qCDebug(interfaceapp) << "The domain-server denied a connection request: " << reason;
+    qCDebug(interfaceapp) << "You may need to re-log to generate a keypair so you can provide a username signature.";
+
     if (!_domainConnectionRefusals.contains(reason)) {
         _domainConnectionRefusals.append(reason);
         emit domainConnectionRefused(reason);
     }
+
+    AccountManager::getInstance().checkAndSignalForAccessToken();
 }
 
 void Application::connectedToDomain(const QString& hostname) {
@@ -3905,12 +3615,12 @@ void Application::nodeKilled(SharedNodePointer node) {
         DependencyManager::get<AvatarManager>()->clearOtherAvatars();
     }
 }
-
-void Application::trackIncomingOctreePacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket) {
+ 
+void Application::trackIncomingOctreePacket(NLPacket& packet, SharedNodePointer sendingNode, bool wasStatsPacket) {
 
     // Attempt to identify the sender from its address.
     if (sendingNode) {
-        QUuid nodeUUID = sendingNode->getUUID();
+        const QUuid& nodeUUID = sendingNode->getUUID();
 
         // now that we know the node ID, let's add these stats to the stats for that node...
         _octreeSceneStatsLock.lockForWrite();
@@ -3922,60 +3632,60 @@ void Application::trackIncomingOctreePacket(const QByteArray& packet, const Shar
     }
 }
 
-int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePointer& sendingNode) {
+int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingNode) {
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server
 
     // parse the incoming stats datas stick it in a temporary object for now, while we
     // determine which server it belongs to
-    OctreeSceneStats temp;
-    int statsMessageLength = temp.unpackFromMessage(reinterpret_cast<const unsigned char*>(packet.data()), packet.size());
+    int statsMessageLength = 0;
 
-    // quick fix for crash... why would voxelServer be NULL?
-    if (sendingNode) {
-        QUuid nodeUUID = sendingNode->getUUID();
+    const QUuid& nodeUUID = sendingNode->getUUID();
+    OctreeSceneStats* octreeStats;
 
-        // now that we know the node ID, let's add these stats to the stats for that node...
-        _octreeSceneStatsLock.lockForWrite();
-        if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
-            _octreeServerSceneStats[nodeUUID].unpackFromMessage(reinterpret_cast<const unsigned char*>(packet.data()),
-                                                                packet.size());
-        } else {
-            _octreeServerSceneStats[nodeUUID] = temp;
-        }
-        _octreeSceneStatsLock.unlock();
+    // now that we know the node ID, let's add these stats to the stats for that node...
+    _octreeSceneStatsLock.lockForWrite();
+    auto it = _octreeServerSceneStats.find(nodeUUID);
+    if (it != _octreeServerSceneStats.end()) {
+        octreeStats = &it->second;
+        statsMessageLength = octreeStats->unpackFromPacket(packet);
+    } else {
+        OctreeSceneStats temp;
+        statsMessageLength = temp.unpackFromPacket(packet);
+        octreeStats = &temp;
+    }
+    _octreeSceneStatsLock.unlock();
 
-        VoxelPositionSize rootDetails;
-        voxelDetailsForCode(temp.getJurisdictionRoot(), rootDetails);
+    VoxelPositionSize rootDetails;
+    voxelDetailsForCode(octreeStats->getJurisdictionRoot(), rootDetails);
 
-        // see if this is the first we've heard of this node...
-        NodeToJurisdictionMap* jurisdiction = NULL;
-        QString serverType;
-        if (sendingNode->getType() == NodeType::EntityServer) {
-            jurisdiction = &_entityServerJurisdictions;
-            serverType = "Entity";
-        }
+    // see if this is the first we've heard of this node...
+    NodeToJurisdictionMap* jurisdiction = NULL;
+    QString serverType;
+    if (sendingNode->getType() == NodeType::EntityServer) {
+        jurisdiction = &_entityServerJurisdictions;
+        serverType = "Entity";
+    }
 
-        jurisdiction->lockForRead();
-        if (jurisdiction->find(nodeUUID) == jurisdiction->end()) {
-            jurisdiction->unlock();
+    jurisdiction->lockForRead();
+    if (jurisdiction->find(nodeUUID) == jurisdiction->end()) {
+        jurisdiction->unlock();
 
-            qCDebug(interfaceapp, "stats from new %s server... [%f, %f, %f, %f]",
-                    qPrintable(serverType),
-                    (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
-
-        } else {
-            jurisdiction->unlock();
-        }
-        // store jurisdiction details for later use
-        // This is bit of fiddling is because JurisdictionMap assumes it is the owner of the values used to construct it
-        // but OctreeSceneStats thinks it's just returning a reference to its contents. So we need to make a copy of the
-        // details from the OctreeSceneStats to construct the JurisdictionMap
-        JurisdictionMap jurisdictionMap;
-        jurisdictionMap.copyContents(temp.getJurisdictionRoot(), temp.getJurisdictionEndNodes());
-        jurisdiction->lockForWrite();
-        (*jurisdiction)[nodeUUID] = jurisdictionMap;
+        qCDebug(interfaceapp, "stats from new %s server... [%f, %f, %f, %f]",
+                qPrintable(serverType),
+                (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
+    } else {
         jurisdiction->unlock();
     }
+    // store jurisdiction details for later use
+    // This is bit of fiddling is because JurisdictionMap assumes it is the owner of the values used to construct it
+    // but OctreeSceneStats thinks it's just returning a reference to its contents. So we need to make a copy of the
+    // details from the OctreeSceneStats to construct the JurisdictionMap
+    JurisdictionMap jurisdictionMap;
+    jurisdictionMap.copyContents(octreeStats->getJurisdictionRoot(), octreeStats->getJurisdictionEndNodes());
+    jurisdiction->lockForWrite();
+    (*jurisdiction)[nodeUUID] = jurisdictionMap;
+    jurisdiction->unlock();
+
     return statsMessageLength;
 }
 
@@ -4115,10 +3825,13 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     // when the worker thread is started, call our engine's run..
     connect(workerThread, &QThread::started, scriptEngine, &ScriptEngine::run);
-
+    
     // when the thread is terminated, add both scriptEngine and thread to the deleteLater queue
-    connect(scriptEngine, SIGNAL(doneRunning()), scriptEngine, SLOT(deleteLater()));
-    connect(workerThread, SIGNAL(finished()), workerThread, SLOT(deleteLater()));
+    connect(scriptEngine, &ScriptEngine::doneRunning, scriptEngine, &ScriptEngine::deleteLater);
+    connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
+    
+    // tell the thread to stop when the script engine is done
+    connect(scriptEngine, &ScriptEngine::destroyed, workerThread, &QThread::quit);
 
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::nodeKilled, scriptEngine, &ScriptEngine::nodeKilled);
@@ -4608,6 +4321,10 @@ void Application::setVSyncEnabled() {
 #endif
 }
 
+void Application::setThrottleFPSEnabled() {
+    _isThrottleFPSEnabled = Menu::getInstance()->isOptionChecked(MenuOption::ThrottleFPSIfNotFocus);
+}
+
 bool Application::isVSyncOn() const {
 #if defined(Q_OS_WIN)
     if (wglewGetExtension("WGL_EXT_swap_control")) {
@@ -4754,7 +4471,11 @@ void Application::friendsWindowClosed() {
 }
 
 void Application::postLambdaEvent(std::function<void()> f) {
-    QCoreApplication::postEvent(this, new LambdaEvent(f));
+    if (this->thread() == QThread::currentThread()) {
+        f();
+    } else {
+        QCoreApplication::postEvent(this, new LambdaEvent(f));
+    }
 }
 
 void Application::initPlugins() {
@@ -4815,7 +4536,7 @@ mat4 Application::getEyeProjection(int eye) const {
     if (isHMDMode()) {
         return OculusManager::getEyeProjection(eye);
     }
-      
+
     return _viewFrustum.getProjection();
 }
 

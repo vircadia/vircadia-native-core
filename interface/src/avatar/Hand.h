@@ -11,8 +11,6 @@
 #ifndef hifi_Hand_h
 #define hifi_Hand_h
 
-#include "InterfaceConfig.h"
-
 #include <vector>
 
 #include <QAction>

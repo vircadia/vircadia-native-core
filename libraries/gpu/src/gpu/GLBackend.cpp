@@ -33,11 +33,13 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
 
     (&::gpu::GLBackend::do_setPipeline),
     (&::gpu::GLBackend::do_setStateBlendFactor),
+    (&::gpu::GLBackend::do_setStateScissorRect),
 
     (&::gpu::GLBackend::do_setUniformBuffer),
     (&::gpu::GLBackend::do_setResourceTexture),
 
     (&::gpu::GLBackend::do_setFramebuffer),
+    (&::gpu::GLBackend::do_blit),
 
     (&::gpu::GLBackend::do_beginQuery),
     (&::gpu::GLBackend::do_endQuery),
@@ -217,17 +219,18 @@ void GLBackend::do_drawIndexedInstanced(Batch& batch, uint32 paramOffset) {
 
 void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
 
-    uint32 masks = batch._params[paramOffset + 6]._uint;
+    uint32 masks = batch._params[paramOffset + 7]._uint;
     Vec4 color;
-    color.x = batch._params[paramOffset + 5]._float;
-    color.y = batch._params[paramOffset + 4]._float;
-    color.z = batch._params[paramOffset + 3]._float;
-    color.w = batch._params[paramOffset + 2]._float;
-    float depth = batch._params[paramOffset + 1]._float;
-    int stencil = batch._params[paramOffset + 0]._float;
+    color.x = batch._params[paramOffset + 6]._float;
+    color.y = batch._params[paramOffset + 5]._float;
+    color.z = batch._params[paramOffset + 4]._float;
+    color.w = batch._params[paramOffset + 3]._float;
+    float depth = batch._params[paramOffset + 2]._float;
+    int stencil = batch._params[paramOffset + 1]._int;
+    int useScissor = batch._params[paramOffset + 0]._int;
 
     GLuint glmask = 0;
-    if (masks & Framebuffer::BUFFER_DEPTH) {
+    if (masks & Framebuffer::BUFFER_STENCIL) {
         glClearStencil(stencil);
         glmask |= GL_STENCIL_BUFFER_BIT;
     }
@@ -252,7 +255,18 @@ void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
         }
     }
 
+    // Apply scissor if needed and if not already on
+    bool doEnableScissor = (useScissor && (!_pipeline._stateCache.scissorEnable));
+    if (doEnableScissor) {
+        glEnable(GL_SCISSOR_TEST);
+    }
+
     glClear(glmask);
+
+    // Restore scissor if needed
+    if (doEnableScissor) {
+        glDisable(GL_SCISSOR_TEST);
+    }
 
     // Restore the color draw buffers only if a frmaebuffer is bound
     if (_output._framebuffer && !drawBuffers.empty()) {
@@ -732,46 +746,4 @@ void Batch::_glLineWidth(GLfloat width) {
 void GLBackend::do_glLineWidth(Batch& batch, uint32 paramOffset) {
     glLineWidth(batch._params[paramOffset]._float);
     (void) CHECK_GL_ERROR();
-}
-
-void GLBackend::loadMatrix(GLenum target, const glm::mat4 & m) {
-    glMatrixMode(target);
-    glLoadMatrixf(glm::value_ptr(m));
-}
-
-void GLBackend::fetchMatrix(GLenum target, glm::mat4 & m) {
-    switch (target) {
-    case GL_MODELVIEW_MATRIX:
-    case GL_PROJECTION_MATRIX:
-        break;
-
-    // Lazy cheating
-    case GL_MODELVIEW:
-        target = GL_MODELVIEW_MATRIX;
-        break;
-    case GL_PROJECTION:
-        target = GL_PROJECTION_MATRIX;
-        break;
-    default:
-        Q_ASSERT_X(false, "GLBackend::fetchMatrix", "Bad matrix target");
-    }
-    glGetFloatv(target, glm::value_ptr(m));
-}
-
-void GLBackend::checkGLStackStable(std::function<void()> f) {
-#ifdef DEBUG
-    GLint mvDepth, prDepth;
-    glGetIntegerv(GL_MODELVIEW_STACK_DEPTH, &mvDepth);
-    glGetIntegerv(GL_PROJECTION_STACK_DEPTH, &prDepth);
-#endif
-
-    f();
-
-#ifdef DEBUG
-    GLint mvDepthFinal, prDepthFinal;
-    glGetIntegerv(GL_MODELVIEW_STACK_DEPTH, &mvDepthFinal);
-    glGetIntegerv(GL_PROJECTION_STACK_DEPTH, &prDepthFinal);
-    Q_ASSERT(mvDepth == mvDepthFinal);
-    Q_ASSERT(prDepth == prDepthFinal);
-#endif
 }
