@@ -469,18 +469,22 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
             float alpha = 1.0f - ((float)(usecTimestampNow() - getHead()->getIsLookingAtMeStarted())) 
                 / (LOOKING_AT_ME_DURATION * (float)USECS_PER_SECOND);
             if (alpha > 0.0f) {
-                float radius = 0.035f;
+                const float RADIUS_INCREMENT = 0.005f;
                 Transform transform;
+
                 glm::vec3 position = getHead()->getLeftEyePosition();
                 transform.setTranslation(position);
                 batch.setModelTransform(transform);
-                DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, radius, 15, 15,
-                    glm::vec4(LOOKING_AT_ME_COLOR, alpha));
+                DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, 
+                    getHead()->getFaceModel().getGeometry()->getFBXGeometry().leftEyeSize * _scale / 2.0f + RADIUS_INCREMENT,
+                    15, 15, glm::vec4(LOOKING_AT_ME_COLOR, alpha));
+
                 position = getHead()->getRightEyePosition();
                 transform.setTranslation(position);
                 batch.setModelTransform(transform);
-                DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, radius, 15, 15,
-                    glm::vec4(LOOKING_AT_ME_COLOR, alpha));
+                DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, 
+                    getHead()->getFaceModel().getGeometry()->getFBXGeometry().rightEyeSize * _scale / 2.0f + RADIUS_INCREMENT,
+                    15, 15, glm::vec4(LOOKING_AT_ME_COLOR, alpha));
             }
         }
 
