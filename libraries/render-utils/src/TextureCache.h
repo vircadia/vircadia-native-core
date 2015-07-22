@@ -79,10 +79,6 @@ public:
     /// Returns the ID of the primary framebuffer object's depth texture.  This contains the Z buffer used in rendering.
     uint32_t getPrimaryDepthTextureID();
 
-    /// Enables or disables draw buffers on the primary framebuffer.  Note: the primary framebuffer must be bound.
-    void setPrimaryDrawBuffers(bool color, bool normal = false, bool specular = false);
-    void setPrimaryDrawBuffers(gpu::Batch& batch, bool color, bool normal = false, bool specular = false);
-    
     /// Returns a pointer to the secondary framebuffer object, used as an additional render target when performing full
     /// screen effects.
     gpu::FramebufferPointer getSecondaryFramebuffer();
@@ -93,6 +89,11 @@ public:
     
     /// Returns the framebuffer object used to render shadow maps;
     gpu::FramebufferPointer getShadowFramebuffer();
+
+
+    // The framebuffer used for the selfie view of the avatar. used for creating the billboard view and the rearViewMirror image
+    gpu::FramebufferPointer getSelfieFramebuffer();
+
 
 protected:
 

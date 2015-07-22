@@ -448,6 +448,7 @@ protected:
     typedef void (GLBackend::*CommandCall)(Batch&, uint32);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];
 
+    static bool _initialized;
 };
 
 

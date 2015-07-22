@@ -237,27 +237,6 @@ GLuint TextureCache::getPrimaryDepthTextureID() {
     return gpu::GLBackend::getTextureID(getPrimaryDepthTexture());
 }
 
-void TextureCache::setPrimaryDrawBuffers(bool color, bool normal, bool specular) {
-    gpu::Batch batch;
-    setPrimaryDrawBuffers(batch, color, normal, specular);
-    gpu::GLBackend::renderBatch(batch);
-}
-    
-void TextureCache::setPrimaryDrawBuffers(gpu::Batch& batch, bool color, bool normal, bool specular) {
-    GLenum buffers[3];
-    int bufferCount = 0;
-    if (color) {
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
-    }
-    if (normal) {
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
-    }
-    if (specular) {
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
-    }
-    batch._glDrawBuffers(bufferCount, buffers);
-}
-
 gpu::FramebufferPointer TextureCache::getSecondaryFramebuffer() {
     if (!_secondaryFramebuffer) {
         _secondaryFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_RGBA_32, _frameBufferSize.width(), _frameBufferSize.height()));

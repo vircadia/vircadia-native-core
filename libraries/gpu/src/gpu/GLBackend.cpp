@@ -14,6 +14,8 @@
 
 using namespace gpu;
 
+bool GLBackend::_initialized = false;
+
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
 {
     (&::gpu::GLBackend::do_draw),
@@ -89,13 +91,38 @@ GLBackend::GLBackend() :
     _pipeline(),
     _output()
 {
+    if (!_initialized) {
+        qCDebug(gpulogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
+        qCDebug(gpulogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
+        qCDebug(gpulogging) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
+        qCDebug(gpulogging) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
+
+#ifdef WIN32
+        GLenum err = glewInit();
+        if (GLEW_OK != err) {
+            /* Problem: glewInit failed, something is seriously wrong. */
+            qCDebug(gpulogging, "Error: %s\n", glewGetErrorString(err));
+        }
+        qCDebug(gpulogging, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+
+        if (wglewGetExtension("WGL_EXT_swap_control")) {
+            int swapInterval = wglGetSwapIntervalEXT();
+            qCDebug(gpulogging, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+        }
+#endif
+
+#if defined(Q_OS_LINUX)
+        // TODO: Write the correct  code for Linux...
+        /* if (wglewGetExtension("WGL_EXT_swap_control")) {
+            int swapInterval = wglGetSwapIntervalEXT();
+            qCDebug(gpulogging, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+        }*/
+#endif
+        _initialized = true;
+    }
+
     initInput();
     initTransform();
-
-    qCDebug(gpulogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
-    qCDebug(gpulogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
-    qCDebug(gpulogging) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
-    qCDebug(gpulogging) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
 }
 
 GLBackend::~GLBackend() {
@@ -118,6 +145,7 @@ void GLBackend::render(Batch& batch) {
 }
 
 void GLBackend::renderBatch(Batch& batch, bool syncCache) {
+    qCDebug(gpulogging) << "GLBackend::renderBatch : Deprecated call, don;t do it!!!";
     GLBackend backend;
     if (syncCache) {
         backend.syncCache();
@@ -171,6 +199,8 @@ void GLBackend::syncCache() {
     syncTransformStateCache();
     syncPipelineStateCache();
     syncInputStateCache();
+
+    glEnable(GL_LINE_SMOOTH);
 }
 
 void GLBackend::do_draw(Batch& batch, uint32 paramOffset) {

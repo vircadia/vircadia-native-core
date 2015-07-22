@@ -69,6 +69,7 @@
 #include "octree/OctreePacketProcessor.h"
 #include "UndoStackScriptingInterface.h"
 
+#include "gpu/Context.h"
 #include "render/Engine.h"
 
 class QGLWidget;
@@ -325,6 +326,8 @@ public:
     render::EnginePointer getRenderEngine() { return _renderEngine; }
 
     render::ScenePointer getMain3DScene() const { return _main3DScene; }
+
+    gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
 signals:
 
@@ -633,6 +636,7 @@ private:
 
     render::ScenePointer _main3DScene{ new render::Scene() };
     render::EnginePointer _renderEngine{ new render::Engine() };
+    gpu::ContextPointer _gpuContext; // initialized during window creation
 
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
