@@ -68,7 +68,7 @@ void RenderablePolyLineEntityItem::createPipeline() {
     
     gpu::StatePointer state = gpu::StatePointer(new gpu::State());
     state->setDepthTest(true, true, gpu::LESS_EQUAL);
-    state->setBlendFunction(false,
+    state->setBlendFunction(true,
                             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
    _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
@@ -79,14 +79,20 @@ void RenderablePolyLineEntityItem::updateGeometry() {
     _verticesBuffer.reset(new gpu::Buffer());
     int vertexIndex = 0;
     vec2 uv;
+    float zero = 0.01; //For some reason actual 0.0 gives color that's not part of texture...
+    //Actually it's specifying exact border between two colors in texture...
     int numTailStrips =  5;
     for (int i = 0; i < _normals.size(); i++) {
-        uv = vec2(0.1, 0.9);
+        uv = vec2(0.26, zero);
 
-        
-        
+        //tail
         if(i < numTailStrips) {
-            uv = vec2(0.9, 0.01);
+            uv = vec2(0.76, zero);
+        }
+        
+        //head
+        if( i > _normals.size() - numTailStrips ) {
+            uv = vec2(zero, zero);
         }
      
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
@@ -94,10 +100,13 @@ void RenderablePolyLineEntityItem::updateGeometry() {
 //        _verticesBuffer->append(sizeof(int), (gpu::Byte*)&_color);
         _verticesBuffer->append(sizeof(glm::vec2), (gpu::Byte*)&uv);
         vertexIndex++;
-        uv = vec2(0.1, 0.2);
+        uv = vec2(0.26, zero);
         
-        if(i < numTailStrips) {
-            uv = vec2(0.9, 0.9);
+        if (i < numTailStrips) {
+            uv = vec2(0.76, zero);
+        }
+        if (i > _normals.size() -numTailStrips) {
+            uv = vec2(zero, zero);
         }
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
@@ -112,6 +121,33 @@ void RenderablePolyLineEntityItem::updateGeometry() {
     _pointsChanged = false;
     
 }
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const RenderableEntityItemProxy::Pointer& payload) {
+        if (payload && payload->entity) {
+            if (payload->entity->getType() == EntityTypes::Light) {
+                return ItemKey::Builder::light();
+            }
+        }
+        return ItemKey::Builder::opaqueShape();
+    }
+    
+    template <> const Item::Bound payloadGetBound(const RenderableEntityItemProxy::Pointer& payload) {
+        if (payload && payload->entity) {
+            return payload->entity->getAABox();
+        }
+        return render::Item::Bound();
+    }
+    template <> void payloadRender(const RenderableEntityItemProxy::Pointer& payload, RenderArgs* args) {
+        if (args) {
+            if (payload && payload->entity && payload->entity->getVisible()) {
+                payload->entity->render(args);
+            }
+        }
+    }
+}
+
+
 
 void RenderablePolyLineEntityItem::render(RenderArgs* args) {
     QWriteLocker lock(&_quadReadWriteLock);
