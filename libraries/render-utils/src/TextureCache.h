@@ -90,11 +90,6 @@ public:
     /// Returns the framebuffer object used to render shadow maps;
     gpu::FramebufferPointer getShadowFramebuffer();
 
-
-    // The framebuffer used for the selfie view of the avatar. used for creating the billboard view and the rearViewMirror image
-    gpu::FramebufferPointer getSelfieFramebuffer();
-
-
 protected:
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
