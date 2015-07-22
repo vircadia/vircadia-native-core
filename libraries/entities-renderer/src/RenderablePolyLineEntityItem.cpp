@@ -79,46 +79,41 @@ void RenderablePolyLineEntityItem::updateGeometry() {
     _verticesBuffer.reset(new gpu::Buffer());
     int vertexIndex = 0;
     vec2 uv;
-    float zero = 0.01; //For some reason actual 0.0 gives color that's not part of texture...
     float tailStart = 0.0;
     float tailEnd = 0.25;
     float tailLength = tailEnd - tailStart;
-    float currentTail;
-    //Actually it's specifying exact border between two colors in texture...
-    int numTailStrips =  10;
+    
+    float headStart = 0.76;
+    float headEnd = 1.0;
+    float headLength = headEnd - headStart;
+    float uCoord, vCoord;
+    
+    int numTailStrips =  5;
+    int numHeadStrips = 10;
+    int startHeadIndex = _normals.size() - numHeadStrips;
     for (int i = 0; i < _normals.size(); i++) {
-        
-        uv = vec2(0.26, zero);
+        uCoord = 0.26;
+        vCoord = 0;
         //tail
         if(i < numTailStrips) {
-            currentTail = float(i)/numTailStrips * tailLength + tailStart;
-            qDebug() << "current Tail: " << currentTail;
-            uv = vec2(currentTail, zero);
+            uCoord = float(i)/numTailStrips * tailLength + tailStart;
         }
         
         //head
-        if( i > _normals.size() - numTailStrips ) {
-            uv = vec2(0.76, zero);
+        if( i > startHeadIndex) {
+            uCoord = float(i - startHeadIndex)/numHeadStrips * headLength + headStart;
+            qDebug()<< "ucoord:" << uCoord;
         }
+        uv = vec2(uCoord, vCoord);
      
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
 //        _verticesBuffer->append(sizeof(int), (gpu::Byte*)&_color);
         _verticesBuffer->append(sizeof(glm::vec2), (gpu::Byte*)&uv);
         vertexIndex++;
-        uv = vec2(0.26, 1.0);
+
         
-        //tail
-        if (i < numTailStrips) {
-             currentTail = float(i)/numTailStrips * tailLength + tailStart;
-            //Go through an distrubte uv's based on percent of way through
-            uv = vec2(currentTail, 1.0);
-        }
-        //head
-        if (i > _normals.size() -numTailStrips) {
-               uv = vec2(0.76, 1.0);
-        
-        }
+        uv.y = 1.0;
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
 //        _verticesBuffer->append(sizeof(int), (gpu::Byte*)_color);
