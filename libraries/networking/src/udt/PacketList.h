@@ -18,6 +18,10 @@
 
 #include "PacketHeaders.h"
 
+class LimitedNodeList;
+
+namespace udt {
+
 class Packet;
 
 class PacketList : public QIODevice {
@@ -42,7 +46,7 @@ protected:
     virtual qint64 readData(char* data, qint64 maxSize) { return 0; }
     
 private:
-    friend class LimitedNodeList;
+    friend class ::LimitedNodeList;
     
     PacketList(const PacketList& other) = delete;
     PacketList& operator=(const PacketList& other) = delete;
@@ -81,6 +85,8 @@ template<typename T> std::unique_ptr<T> PacketList::takeFront() {
     auto packet = std::move(_packets.front());
     _packets.pop_front();
     return std::unique_ptr<T>(dynamic_cast<T*>(packet.release()));
+}
+    
 }
 
 #endif // hifi_PacketList_h

@@ -37,9 +37,10 @@
 #include "DomainHandler.h"
 #include "Node.h"
 #include "NLPacket.h"
-#include "udt/PacketHeaders.h"
 #include "PacketReceiver.h"
 #include "NLPacketList.h"
+#include "udt/PacketHeaders.h"
+#include "udt/Socket.h"
 #include "UUIDHasher.h"
 
 const quint64 NODE_SILENCE_THRESHOLD_MSECS = 2 * 1000;
@@ -109,12 +110,9 @@ public:
 
     bool getThisNodeCanRez() const { return _thisNodeCanRez; }
     void setThisNodeCanRez(bool canRez);
-
-    void rebindNodeSocket();
-    QUdpSocket& getNodeSocket() { return _nodeSocket; }
+    
+    quint16 getSocketLocalPort() const { return _nodeSocket.localPort(); }
     QUdpSocket& getDTLSSocket();
-
-    bool packetSourceAndHashMatch(const NLPacket& packet, SharedNodePointer& matchingNode);
 
     PacketReceiver& getPacketReceiver() { return *_packetReceiver; }
 
@@ -233,6 +231,7 @@ public slots:
 
 signals:
     void dataSent(quint8 channelType, int bytes);
+    void packetVersionMismatch(PacketType::Value type);
 
     void uuidChanged(const QUuid& ownerUUID, const QUuid& oldUUID);
     void nodeAdded(SharedNodePointer);
@@ -252,11 +251,13 @@ protected:
     qint64 writePacket(const NLPacket& packet, const Node& destinationNode);
     qint64 writePacket(const NLPacket& packet, const HifiSockAddr& destinationSockAddr,
                        const QUuid& connectionSecret = QUuid());
-    qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr);
+    qint64 writePacketAndCollectStats(const NLPacket& packet, const HifiSockAddr& destinationSockAddr);
 
     PacketSequenceNumber getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType::Value packetType);
-
-    void changeSocketBufferSizes(int numBytes);
+    
+    bool isPacketVerified(const udt::Packet& packet);
+    bool packetVersionMatch(const udt::Packet& packet);
+    bool packetSourceAndHashMatch(const udt::Packet& packet);
 
     void handleNodeKill(const SharedNodePointer& node);
 
@@ -272,7 +273,7 @@ protected:
     QUuid _sessionUUID;
     NodeHash _nodeHash;
     QReadWriteLock _nodeMutex;
-    QUdpSocket _nodeSocket;
+    udt::Socket _nodeSocket;
     QUdpSocket* _dtlsSocket;
     HifiSockAddr _localSockAddr;
     HifiSockAddr _publicSockAddr;
@@ -309,9 +310,11 @@ protected:
             functor(it);
         }
     }
+    
 private slots:
     void flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp);
     void possiblyTimeoutSTUNAddressLookup();
+    void addSTUNSockAddrToUnfiltered() { _nodeSocket.addUnfilteredSockAddr(_stunSockAddr); } // called once STUN socket known
 };
 
 #endif // hifi_LimitedNodeList_h

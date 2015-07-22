@@ -1,6 +1,6 @@
 //
 //  Packet.h
-//  libraries/networking/src
+//  libraries/networking/src/udt
 //
 //  Created by Clement on 7/2/15.
 //  Copyright 2015 High Fidelity, Inc.
@@ -18,6 +18,8 @@
 
 #include "../HifiSockAddr.h"
 #include "PacketHeaders.h"
+
+namespace udt {
 
 class Packet : public QIODevice {
     Q_OBJECT
@@ -131,5 +133,7 @@ template<typename T> qint64 Packet::writePrimitive(const T& data) {
     static_assert(!std::is_pointer<T>::value, "T must not be a pointer");
     return QIODevice::write(reinterpret_cast<const char*>(&data), sizeof(T));
 }
+    
+} // namespace udt
 
 #endif // hifi_Packet_h
