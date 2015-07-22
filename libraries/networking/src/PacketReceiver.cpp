@@ -239,7 +239,7 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
             _directConnectSetMutex.lock();
             
             Qt::ConnectionType connectionType =
-            _directlyConnectedObjects.contains(listener.first) ? Qt::DirectConnection : Qt::AutoConnection;
+                _directlyConnectedObjects.contains(listener.first) ? Qt::DirectConnection : Qt::AutoConnection;
             
             _directConnectSetMutex.unlock();
             

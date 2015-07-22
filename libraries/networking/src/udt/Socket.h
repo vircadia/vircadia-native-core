@@ -61,7 +61,6 @@ private:
     QSet<HifiSockAddr> _unfilteredSockAddrs;
 };
     
-}
-
+} // namespace udt
 
 #endif // hifi_Socket_h
