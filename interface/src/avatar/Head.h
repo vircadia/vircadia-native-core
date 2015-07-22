@@ -53,6 +53,7 @@ public:
     glm::vec3 getCorrectedLookAtPosition();
     void clearCorrectedLookAtPosition() { _isLookingAtMe = false; }
     bool getIsLookingAtMe() { return _isLookingAtMe; }
+    quint64 getIsLookingAtMeStarted() { return _isLookingAtMeStarted; }
     
     float getScale() const { return _scale; }
     glm::vec3 getPosition() const { return _position; }
@@ -139,6 +140,7 @@ private:
 
     bool _isCameraMoving;
     bool _isLookingAtMe;
+    quint64 _isLookingAtMeStarted;
     FaceModel _faceModel;
     
     glm::vec3 _correctedLookAtPosition;

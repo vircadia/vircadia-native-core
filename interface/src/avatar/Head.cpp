@@ -55,6 +55,7 @@ Head::Head(Avatar* owningAvatar) :
     _deltaLeanForward(0.0f),
     _isCameraMoving(false),
     _isLookingAtMe(false),
+    _isLookingAtMeStarted(0),
     _faceModel(this),
     _leftEyeLookAtID(DependencyManager::get<GeometryCache>()->allocateID()),
     _rightEyeLookAtID(DependencyManager::get<GeometryCache>()->allocateID())
@@ -323,6 +324,9 @@ glm::vec3 Head::getCorrectedLookAtPosition() {
 }
 
 void Head::setCorrectedLookAtPosition(glm::vec3 correctedLookAtPosition) {
+    if (!_isLookingAtMe) {
+        _isLookingAtMeStarted = usecTimestampNow();
+    }
     _isLookingAtMe = true;
     _correctedLookAtPosition = correctedLookAtPosition;
 }
