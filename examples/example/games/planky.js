@@ -203,20 +203,29 @@ PlankyStack = function() {
                 dimensions: {x: 5, y: 21, z: 5},
                 position: Vec3.sum(_this.basePosition, {y: -(_this.options.baseDimension.y / 2)}),
                 lineWidth: 7,
-                color: {red: 214, green: 91, blue: 67},
-                linePoints: [{x: 0, y: 0, z: 0}, {x: 0, y: 10, z: 0}]
+                color: {red: 20, green: 20, blue: 20},
+                linePoints: [{x: 0, y: 0, z: 0}, {x: 0, y: 10, z: 0}],
+                visible: editMode
             }));
             return;
         }
+        _this.editLines.forEach(function(line) {
+            Entities.editEntity(line, {visible: editMode});
+        })        
     };
 
     var trimDimension = function(dimension, maxIndex) {
+        var removingPlanks = [];
         _this.planks.forEach(function(plank, index, object) {
             if (plank[dimension] > maxIndex) {
-                Entities.deleteEntity(plank.entity);
-                object.splice(index, 1);
+                removingPlanks.push(index);
             }
         });
+        removingPlanks.reverse();
+        for (var i = 0; i < removingPlanks.length; i++) {
+            Entities.deleteEntity(_this.planks[removingPlanks[i]].entity);
+            _this.planks.splice(removingPlanks[i], 1);
+        }
     };
 
     var createOrUpdate = function(layer, row) {
@@ -237,7 +246,6 @@ PlankyStack = function() {
             dimensions: Vec3.sum(_this.options.blockSize, {x: 0, y: -((_this.options.blockSize.y * (_this.options.blockHeightVariation / MAXIMUM_PERCENTAGE)) * Math.random()), z: 0}),
             position: Vec3.sum(_this.basePosition, localTransform),
             rotation: Quat.multiply(layerRotation, _this.offsetRot),
-            //collisionsWillMove: false,//!editMode,//false,//!editMode,
             damping: _this.options.dampingFactor,
             restitution: _this.options.restitution,
             friction: _this.options.friction,
@@ -282,7 +290,6 @@ PlankyStack = function() {
         if (!editMode) {
             _this.planks.forEach(function(plank, index, object) {
                 Entities.editEntity(plank.entity, {ignoreForCollisions: false, collisionsWillMove: true});
-           //     Entities.editEntity(plank.entity, {collisionsWillMove: true});
             });
         }
     };
@@ -326,7 +333,7 @@ button = toolBar.addTool({
 cogButton = toolBar.addTool({
     width: BUTTON_DIMENSIONS.width,
     height: BUTTON_DIMENSIONS.height,
-    imageURL: "https://dl.dropboxusercontent.com/u/14997455/hifi/planky/cog.svg", //HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/cog.svg',
+    imageURL: HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/cog.svg',
     subImage: { x: 0, y: BUTTON_DIMENSIONS.height, width: BUTTON_DIMENSIONS.width, height: BUTTON_DIMENSIONS.height },
     alpha: 0.8,
     visible: true
@@ -339,11 +346,14 @@ Controller.mousePressEvent.connect(function(event) {
             plankyStack.rez();
             return;
         }
-        editMode = !editMode;
         plankyStack.refresh();
     } else if (toolBar.clicked(clickedOverlay) === cogButton) {
-        toolBar.selectTool(cogButton, true);
-        settingsWindow.webWindow.setVisible(true);
+        editMode = !editMode;
+        toolBar.selectTool(cogButton, editMode);
+        settingsWindow.webWindow.setVisible(editMode);
+        if(plankyStack.planks.length) {
+            plankyStack.refresh();
+        }
     }
 });
 
