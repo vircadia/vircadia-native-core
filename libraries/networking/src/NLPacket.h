@@ -48,13 +48,10 @@ protected:
     
     NLPacket(PacketType::Value type);
     NLPacket(PacketType::Value type, qint64 size);
-    
     NLPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
     NLPacket(std::unique_ptr<Packet> packet);
-    
     NLPacket(const NLPacket& other);
     NLPacket& operator=(const NLPacket& other);
-    
     NLPacket(NLPacket&& other);
     NLPacket& operator=(NLPacket&& other);
 
