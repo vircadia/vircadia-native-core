@@ -101,14 +101,6 @@ NLPacket::NLPacket(const NLPacket& other) : Packet(other) {
     _sourceID = other._sourceID;
 }
 
-NLPacket& NLPacket::operator=(const NLPacket& other) {
-    Packet::operator=(other);
-   
-    _sourceID = other._sourceID;
-    
-    return *this;
-}
-
 NLPacket::NLPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr) :
     Packet(std::move(data), size, senderSockAddr)
 {
@@ -124,6 +116,14 @@ NLPacket::NLPacket(NLPacket&& other) :
     Packet(other)
 {
     _sourceID = std::move(other._sourceID);
+}
+
+NLPacket& NLPacket::operator=(const NLPacket& other) {
+    Packet::operator=(other);
+    
+    _sourceID = other._sourceID;
+    
+    return *this;
 }
 
 NLPacket& NLPacket::operator=(NLPacket&& other) {
