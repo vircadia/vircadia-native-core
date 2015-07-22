@@ -121,7 +121,7 @@ NLPacket::NLPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& 
 }
 
 NLPacket::NLPacket(NLPacket&& other) :
-	Packet(other)
+    Packet(other)
 {
     _sourceID = std::move(other._sourceID);
 }
