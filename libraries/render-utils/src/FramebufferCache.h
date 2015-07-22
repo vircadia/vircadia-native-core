@@ -39,9 +39,6 @@ public:
     /// Returns the framebuffer object used to render shadow maps;
     gpu::FramebufferPointer getShadowFramebuffer();
 
-    /// Enables or disables draw buffers on the primary framebuffer.  Note: the primary framebuffer must be bound.
-    void setPrimaryDrawBuffers(gpu::Batch& batch, bool color, bool normal = false, bool specular = false);
-    
     /// Returns a free framebuffer with a single color attachment for temp or intra-frame operations
     gpu::FramebufferPointer getFramebuffer();
     // TODO add sync functionality to the release, so we don't reuse a framebuffer being read from
