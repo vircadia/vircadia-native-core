@@ -80,6 +80,10 @@ void RenderablePolyLineEntityItem::updateGeometry() {
     int vertexIndex = 0;
     vec2 uv;
     float zero = 0.01; //For some reason actual 0.0 gives color that's not part of texture...
+    float tailStart = 0.76;
+    float tailEnd = 1.0;
+    float tailLength = tailEnd - tailStart;
+    float currentTail;
     //Actually it's specifying exact border between two colors in texture...
     int numTailStrips =  5;
     for (int i = 0; i < _normals.size(); i++) {
@@ -87,7 +91,9 @@ void RenderablePolyLineEntityItem::updateGeometry() {
 
         //tail
         if(i < numTailStrips) {
-            uv = vec2(0.76, zero);
+            currentTail = float(i)/numTailStrips * tailLength + tailStart;
+            qDebug() << "current Tail: " << currentTail;
+            uv = vec2(currentTail, zero);
         }
         
         //head
@@ -102,8 +108,11 @@ void RenderablePolyLineEntityItem::updateGeometry() {
         vertexIndex++;
         uv = vec2(0.26, zero);
         
+        //tail
         if (i < numTailStrips) {
-            uv = vec2(0.76, zero);
+             currentTail = float(i)/numTailStrips * tailLength + tailStart;
+            //Go through an distrubte uv's based on percent of way through
+            uv = vec2(currentTail, 1);
         }
         if (i > _normals.size() -numTailStrips) {
             uv = vec2(zero, zero);
@@ -129,7 +138,7 @@ namespace render {
                 return ItemKey::Builder::light();
             }
         }
-        return ItemKey::Builder::opaqueShape();
+        return ItemKey::Builder::transparentShape();
     }
     
     template <> const Item::Bound payloadGetBound(const RenderableEntityItemProxy::Pointer& payload) {
