@@ -175,7 +175,7 @@ var leafSquall = function (properties) {
     }
     Script.setInterval(function () {
         nearbyEntities = Entities.findEntities(squallOrigin, squallRadius);
-            newLeafMovement()
+        newLeafMovement()
     }, 100);
 
     function newLeafMovement() { //new additions to leaf code. Operates at 10 Hz or every 100 ms
@@ -193,20 +193,18 @@ var leafSquall = function (properties) {
                 currentLeaf = nearbyEntities[i];
                 var leafHeight = entityProperties.position.y;
                 if (complexMovement && leafHeight > floorHeight || complexMovement && floorHeight == null) { //actual new movement code;
-                    var currentLeafVelocity = entityProperties.velocity,
-                        currentLeafRot = entityProperties.rotation,
+                    var leafCurrentVel = entityProperties.velocity,
+                        leafCurrentRot = entityProperties.rotation,
                         yVec = { x: 0, y: 1, z: 0 },
-                        leafYinWFVec = Vec3.multiplyQbyV(currentLeafRot, yVec),
+                        leafYinWFVec = Vec3.multiplyQbyV(leafCurrentRot, yVec),
                         leafLocalHorVec = Vec3.cross(leafYinWFVec, yVec),
                         leafMostDownVec = Vec3.cross(leafYinWFVec, leafLocalHorVec),
-                        leafDesiredVel = Vec3.multiply(leafMostDownVec, windFactor);    
+                        leafDesiredVel = Vec3.multiply(leafMostDownVec, windFactor),
+                        leafVelDelt = Vec3.subtract(leafDesiredVel, leafCurrentVel),
+                        leafNewVel = Vec3.sum(leafCurrentVel, Vec3.multiply(leafVelDelt, windFactor));
                     Entities.editEntity(currentLeaf, {
                         angularVelocity: randomRotationSpeed,
-                        velocity: {
-                            x: (leafDesiredVel.x - currentLeafVelocity.x) * windFactor + currentLeafVelocity.x,
-                            y: (leafDesiredVel.y - currentLeafVelocity.y) * windFactor + currentLeafVelocity.y,
-                            z: (leafDesiredVel.z - currentLeafVelocity.z) * windFactor + currentLeafVelocity.z
-                        }
+                        velocity: leafNewVel
                     })
                 }
                 else if (leafHeight <= floorHeight) {
@@ -274,8 +272,8 @@ var leafSquall1 = new leafSquall({
     origin: { x: 3071.5, y: 2170, z: 6765.3 },
     radius: 100,
     leavesPerMinute: 30,
-    leafSize: { x: 0.3, y: 0.00, z: .3},
-    leafFallSpeed: .4,
+    leafSize: { x: 0.3, y: 0.00, z: 0.3},
+    leafFallSpeed: 0.4,
     leafLifetime: 100,
     leafSpinMax: 30,
     debug: false,
@@ -283,7 +281,7 @@ var leafSquall1 = new leafSquall({
     leafDeleteOnTearDown: true,
     complexMovement: true,
     floorHeight: 2143.5,
-    windFactor: .5,
+    windFactor: 0.5,
     leafDeleteOnGround: false
 });
 
