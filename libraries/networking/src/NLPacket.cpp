@@ -112,7 +112,7 @@ NLPacket& NLPacket::operator=(const NLPacket& other) {
 NLPacket::NLPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr) :
     Packet(std::move(data), size, senderSockAddr)
 {
-    adjustPayloadStartAndCapacity();
+    adjustPayloadStartAndCapacity(_payloadSize > 0);
     
     readSourceID();
 }
@@ -148,7 +148,7 @@ QByteArray NLPacket::hashForPacketAndSecret(const udt::Packet& packet, const QUu
     int offset = packet.Packet::localHeaderSize() + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
     
     // add the packet payload and the connection UUID
-    hash.addData(packet.getData(), packet.getDataSize() - offset);
+    hash.addData(packet.getData() + offset, packet.getDataSize() - offset);
     hash.addData(connectionSecret.toRfc4122());
     
     // return the hash
