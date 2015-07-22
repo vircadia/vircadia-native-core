@@ -462,13 +462,13 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
         }
 
         // If the avatar is looking at me, indicate that they are
-        if (getHead()->getIsLookingAtMe() && Menu::getInstance()->isOptionChecked(MenuOption::ShowWhosLookingAtMe)) {
+        if (getHead()->isLookingAtMe() && Menu::getInstance()->isOptionChecked(MenuOption::ShowWhosLookingAtMe)) {
             const glm::vec3 LOOKING_AT_ME_COLOR = { 1.0f, 1.0f, 1.0f };
             const float LOOKING_AT_ME_ALPHA_START = 0.8f;
             const float LOOKING_AT_ME_DURATION = 0.5f;  // seconds
             quint64 now = usecTimestampNow();
             float alpha = LOOKING_AT_ME_ALPHA_START 
-                * (1.0f - ((float)(usecTimestampNow() - getHead()->getIsLookingAtMeStarted()))
+                * (1.0f - ((float)(usecTimestampNow() - getHead()->getLookingAtMeStarted()))
                 / (LOOKING_AT_ME_DURATION * (float)USECS_PER_SECOND));
             if (alpha > 0.0f) {
                 QSharedPointer<NetworkGeometry> geometry = getHead()->getFaceModel().getGeometry();
