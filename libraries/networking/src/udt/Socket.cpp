@@ -89,10 +89,11 @@ void Socket::readPendingDatagrams() {
         auto packet = Packet::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
         
         // call our verification operator to see if this packet is verified
-        if (_unfilteredSockAddrs.contains(senderSockAddr) || !_verifyPacketOperator || _verifyPacketOperator(*packet)) {
-            
-            // call the verified packet callback to let it handle this packet
-            return _verifiedPacketCallback(std::move(packet));
+        if (_unfilteredSockAddrs.contains(senderSockAddr) || !_packetVerificationHandler || _packetVerificationHandler(*packet)) {
+            if (_verifiedPacketHandler) {
+                // call the verified packet callback to let it handle this packet
+                return _verifiedPacketHandler(std::move(packet));
+            }
         }
     }
 }
