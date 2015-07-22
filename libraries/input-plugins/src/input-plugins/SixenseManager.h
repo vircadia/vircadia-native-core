@@ -18,6 +18,7 @@
     #include "sixense.h"
 
 #ifdef __APPLE__
+    #include <QCoreApplication>
     #include <qlibrary.h>
 #endif
 
