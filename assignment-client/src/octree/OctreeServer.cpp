@@ -1176,18 +1176,18 @@ void OctreeServer::aboutToFinish() {
         _jurisdictionSender->terminating();
     }
     
-    QSet<SharedNodePointer> nodesToKill;
+    QSet<SharedNodePointer> nodesToShutdown;
 
     // Force a shutdown of all of our OctreeSendThreads.
     // At this point it has to be impossible for a linkedDataCreateCallback to be called for a new node
-    nodeList->eachNode([&nodesToKill](const SharedNodePointer& node) {
-        nodesToKill << node;
+    nodeList->eachNode([&nodesToShutdown](const SharedNodePointer& node) {
+        nodesToShutdown << node;
     });
     
     // What follows is a hack to force OctreeSendThreads to cleanup before the OctreeServer is gone.
     // I would prefer to allow the SharedNodePointer ref count drop to zero to do this automatically
     // but that isn't possible as long as the OctreeSendThread has an OctreeServer* that it uses.
-    for (auto& node : nodesToKill) {
+    for (auto& node : nodesToShutdown) {
         qDebug() << qPrintable(_safeServerName) << "server about to finish while node still connected node:" << *node;
         forceNodeShutdown(node);
     }
