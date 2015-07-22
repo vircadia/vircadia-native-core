@@ -58,42 +58,6 @@ function randomVector(scale) {
 	return { x: Math.random() * scale - scale / 2.0, y: Math.random() * scale - scale / 2.0, z: Math.random() * scale - scale / 2.0 };
 }
 
-vecToPolar = function(direction) {
-    var epsilon = 0.001;
-    var DEGREES_TO_RADIANS = Math.PI / 180.0;
-    var RADIANS_TO_DEGREES = 180.0 / Math.PI;
-    var x = direction.x;
-    var y = direction.y;
-    var z = direction.z;
-    var pitch, yaw;
-    pitch = -Math.asin(y);
-    var c = Math.cos(-pitch);
-    if (Math.abs(pitch) > (Math.PI / 2.0 - epsilon)) {
-        //handle gymbal lock
-        if (pitch > 0) {
-            pitch = Math.PI / 2.0;
-        } else {
-            pitch = -Math.PI / 2.0;
-        }
-        yaw = 0.0;
-        } else {
-            if (z < 0) {
-                if(x > 0 && x < 1) {
-                    yaw = Math.PI - Math.asin(x / c); 
-                } else {
-                    yaw = -Math.asin(x / c) - Math.PI;
-                }
-            } else {
-                yaw = Math.asin(x / c);
-            }  
-        }
-        return {
-            x: pitch * RADIANS_TO_DEGREES,
-            y: yaw * RADIANS_TO_DEGREES,
-            z: 0.0 //discard roll component
-        };
-};
-
 function updateBirds(deltaTime) {
     if (!Entities.serversExist() || !Entities.canRez()) {
         return;
@@ -214,9 +178,9 @@ function updateBirds(deltaTime) {
         if (followBirds) {
             MyAvatar.motorVelocity = averageVelocity;
             MyAvatar.motorTimescale = AVATAR_FOLLOW_VELOCITY_TIMESCALE;
-            var polarAngles = vecToPolar(Vec3.normalize(averageVelocity));
+            var polarAngles = Vec3.toPolar(Vec3.normalize(averageVelocity));
             if (!isNaN(polarAngles.x) && !isNaN(polarAngles.y)) {
-                var birdDirection = Quat.fromPitchYawRollDegrees(polarAngles.x, polarAngles.y + 180, polarAngles.z);
+                var birdDirection = Quat.fromPitchYawRollRadians(polarAngles.x, polarAngles.y + Math.PI, polarAngles.z);
                 MyAvatar.orientation = Quat.mix(MyAvatar.orientation, birdDirection, AVATAR_FOLLOW_ORIENTATION_RATE);
             }
         }
