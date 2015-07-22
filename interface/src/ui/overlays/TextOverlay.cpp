@@ -85,7 +85,6 @@ TextOverlay::TextOverlay() :
     _topMargin(DEFAULT_MARGIN),
     _fontSize(DEFAULT_FONTSIZE)
 {
-
     qApp->postLambdaEvent([=] {
         static std::once_flag once;
         std::call_once(once, [] {
@@ -117,7 +116,7 @@ TextOverlay::TextOverlay(const TextOverlay* textOverlay) :
         });
     });
     while (!_qmlElement) {
-        QThread::sleep(1);
+        QThread::msleep(1);
     }
 }
 
@@ -147,13 +146,11 @@ xColor TextOverlay::getBackgroundColor() {
 }
 
 void TextOverlay::render(RenderArgs* args) {
+    if (!_qmlElement) {
+        return;
+    }
     if (_visible != _qmlElement->isVisible()) {
         _qmlElement->setVisible(_visible);
-    }
-    float pulseLevel = updatePulse();
-    static float _oldPulseLevel = 0.0f;
-    if (pulseLevel != _oldPulseLevel) {
-
     }
 }
 

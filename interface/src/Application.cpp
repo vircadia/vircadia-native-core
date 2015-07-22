@@ -4472,7 +4472,11 @@ void Application::friendsWindowClosed() {
 }
 
 void Application::postLambdaEvent(std::function<void()> f) {
-    QCoreApplication::postEvent(this, new LambdaEvent(f));
+    if (this->thread() == QThread::currentThread()) {
+        f();
+    } else {
+        QCoreApplication::postEvent(this, new LambdaEvent(f));
+    }
 }
 
 void Application::initPlugins() {
