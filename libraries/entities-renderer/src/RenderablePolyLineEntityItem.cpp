@@ -80,15 +80,15 @@ void RenderablePolyLineEntityItem::updateGeometry() {
     int vertexIndex = 0;
     vec2 uv;
     float zero = 0.01; //For some reason actual 0.0 gives color that's not part of texture...
-    float tailStart = 0.76;
-    float tailEnd = 1.0;
+    float tailStart = 0.0;
+    float tailEnd = 0.25;
     float tailLength = tailEnd - tailStart;
     float currentTail;
     //Actually it's specifying exact border between two colors in texture...
-    int numTailStrips =  5;
+    int numTailStrips =  10;
     for (int i = 0; i < _normals.size(); i++) {
+        
         uv = vec2(0.26, zero);
-
         //tail
         if(i < numTailStrips) {
             currentTail = float(i)/numTailStrips * tailLength + tailStart;
@@ -98,7 +98,7 @@ void RenderablePolyLineEntityItem::updateGeometry() {
         
         //head
         if( i > _normals.size() - numTailStrips ) {
-            uv = vec2(zero, zero);
+            uv = vec2(0.76, zero);
         }
      
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
@@ -106,16 +106,18 @@ void RenderablePolyLineEntityItem::updateGeometry() {
 //        _verticesBuffer->append(sizeof(int), (gpu::Byte*)&_color);
         _verticesBuffer->append(sizeof(glm::vec2), (gpu::Byte*)&uv);
         vertexIndex++;
-        uv = vec2(0.26, zero);
+        uv = vec2(0.26, 1.0);
         
         //tail
         if (i < numTailStrips) {
              currentTail = float(i)/numTailStrips * tailLength + tailStart;
             //Go through an distrubte uv's based on percent of way through
-            uv = vec2(currentTail, 1);
+            uv = vec2(currentTail, 1.0);
         }
+        //head
         if (i > _normals.size() -numTailStrips) {
-            uv = vec2(zero, zero);
+               uv = vec2(0.76, 1.0);
+        
         }
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
