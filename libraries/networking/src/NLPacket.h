@@ -66,7 +66,7 @@ protected:
     NLPacket& operator=(NLPacket&& other);
     
     // Header writers
-    void writePacketTypeAndVersion();
+    void writeTypeAndVersion();
 
     // Header readers, used to set member variables after getting a packet from the network
     void readType();

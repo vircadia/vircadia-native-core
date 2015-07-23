@@ -134,5 +134,6 @@ uint qHash(const PacketType& key, uint seed) {
 }
 
 QDebug operator<<(QDebug debug, const PacketType& type) {
-    return debug.nospace() << (uint8_t) type << " (" << qPrintable(nameForPacketType(type)) << ")";
+    debug.nospace() << (uint8_t) type << " (" << qPrintable(nameForPacketType(type)) << ")";
+    return debug.space();
 }

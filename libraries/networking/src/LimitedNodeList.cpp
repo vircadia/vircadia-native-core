@@ -624,6 +624,7 @@ void LimitedNodeList::processSTUNResponse(std::unique_ptr<udt::BasePacket> packe
 
         // enumerate the attributes to find XOR_MAPPED_ADDRESS_TYPE
         while (attributeStartIndex < packet->getDataSize()) {
+            
             if (memcmp(packet->getData() + attributeStartIndex, &XOR_MAPPED_ADDRESS_TYPE, sizeof(XOR_MAPPED_ADDRESS_TYPE)) == 0) {
                 const int NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH = 4;
                 const int NUM_BYTES_FAMILY_ALIGN = 1;
@@ -651,8 +652,8 @@ void LimitedNodeList::processSTUNResponse(std::unique_ptr<udt::BasePacket> packe
 
                     uint32_t stunAddress = ntohl(xorMappedAddress) ^ ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
 
-                    QHostAddress newPublicAddress = QHostAddress(stunAddress);
-
+                    QHostAddress newPublicAddress(stunAddress);
+                    
                     if (newPublicAddress != _publicSockAddr.getAddress() || newPublicPort != _publicSockAddr.getPort()) {
                         _publicSockAddr = HifiSockAddr(newPublicAddress, newPublicPort);
 
@@ -669,6 +670,9 @@ void LimitedNodeList::processSTUNResponse(std::unique_ptr<udt::BasePacket> packe
 
                         flagTimeForConnectionStep(ConnectionStep::SetPublicSocketFromSTUN);
                     }
+                    
+                    // we're done reading the packet so we can return now
+                    return;
                 }
             } else {
                 // push forward attributeStartIndex by the length of this attribute

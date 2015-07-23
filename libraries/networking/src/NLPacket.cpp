@@ -95,6 +95,8 @@ NLPacket::NLPacket(PacketType type, qint64 size, bool isReliable, bool isPartOfM
     Q_ASSERT(size >= 0);
     
     adjustPayloadStartAndCapacity();
+    
+    writeTypeAndVersion();
 }
 
 NLPacket::NLPacket(std::unique_ptr<Packet> packet) :
@@ -146,11 +148,13 @@ NLPacket& NLPacket::operator=(NLPacket&& other) {
 }
 
 PacketType NLPacket::typeInHeader(const udt::Packet& packet) {
-    return *reinterpret_cast<const PacketType*>(packet.getData());
+    auto headerOffset = packet.Packet::localHeaderSize();
+    return *reinterpret_cast<const PacketType*>(packet.getData() + headerOffset);
 }
 
 PacketVersion NLPacket::versionInHeader(const udt::Packet& packet) {
-    return *reinterpret_cast<const PacketVersion*>(packet.getData() + sizeof(PacketType));
+    auto headerOffset = packet.Packet::localHeaderSize();
+    return *reinterpret_cast<const PacketVersion*>(packet.getData() + headerOffset + sizeof(PacketType));
 }
 
 QUuid NLPacket::sourceIDInHeader(const udt::Packet& packet) {
@@ -177,13 +181,15 @@ QByteArray NLPacket::hashForPacketAndSecret(const udt::Packet& packet, const QUu
     return hash.result();
 }
 
-void NLPacket::writePacketTypeAndVersion() {
+void NLPacket::writeTypeAndVersion() {
+    auto headerOffset = Packet::localHeaderSize();
+    
     // Pack the packet type
-    memcpy(_packet.get(), &_type, sizeof(PacketType));
+    memcpy(_packet.get() + headerOffset, &_type, sizeof(PacketType));
     
     // Pack the packet version
     auto version = versionForPacketType(_type);
-    memcpy(_packet.get() + sizeof(PacketType), &version, sizeof(version));
+    memcpy(_packet.get() + headerOffset + sizeof(PacketType), &version, sizeof(version));
 }
 
 void NLPacket::setType(PacketType type) {
@@ -192,7 +198,7 @@ void NLPacket::setType(PacketType type) {
     _type = type;
     _version = versionForPacketType(_type);
     
-    writePacketTypeAndVersion();
+    writeTypeAndVersion();
     
     // Setting new packet type with a different header size not currently supported
     Q_ASSERT(currentHeaderSize == totalHeadersSize());
