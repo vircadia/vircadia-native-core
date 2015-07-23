@@ -1,6 +1,6 @@
 //
 //  Rig.cpp
-//  libraries/script-engine/src/
+//  libraries/animation/src/
 //
 //  Created by Howard Stearns, Seth Alves, Anthony Thibault, Andrew Meadows on 7/15/15.
 //  Copyright (c) 2015 High Fidelity, Inc. All rights reserved.
