@@ -90,7 +90,7 @@ void SixenseManager::activate(PluginContainer* container) {
 
     container->addMenu(MENU_PATH);
     container->addMenuItem(MENU_PATH, TOGGLE_SMOOTH,
-                           [this, container] (bool clicked) { this->setFilter(clicked); },
+                           [this] (bool clicked) { this->setFilter(clicked); },
                            true, true);
 
 #ifdef __APPLE__

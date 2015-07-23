@@ -18,6 +18,9 @@ public:
 
     virtual const QString & getName() const override;
 
+public slots:
+    void setFullscreen(bool fullscreen);
+
 private:
     static const QString NAME;
 };

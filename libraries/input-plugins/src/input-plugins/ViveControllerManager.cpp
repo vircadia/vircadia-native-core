@@ -75,7 +75,7 @@ void ViveControllerManager::activate(PluginContainer* container) {
 #ifndef Q_OS_MAC
     container->addMenu(MENU_PATH);
     container->addMenuItem(MENU_PATH, RENDER_CONTROLLERS,
-        [this, &container] (bool clicked) { this->setRenderControllers(clicked); },
+        [this] (bool clicked) { this->setRenderControllers(clicked); },
         true, true);
 
     hmdRefCount++;
