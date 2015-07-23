@@ -104,11 +104,11 @@ NLPacket::NLPacket(PacketType type, qint64 size, bool isReliable, bool isPartOfM
 NLPacket::NLPacket(std::unique_ptr<Packet> packet) :
     Packet(std::move(*packet.release()))
 {
-    adjustPayloadStartAndCapacity(_payloadSize > 0);
-    
     readType();
     readVersion();
     readSourceID();
+    
+    adjustPayloadStartAndCapacity(_payloadSize > 0);
 }
 
 NLPacket::NLPacket(const NLPacket& other) : Packet(other) {

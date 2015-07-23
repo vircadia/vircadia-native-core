@@ -580,7 +580,6 @@ void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) 
     NodeType_t nodeType;
     HifiSockAddr publicSockAddr, localSockAddr;
     
-
     if (packet->getPayloadSize() == 0) {
         return;
     }
