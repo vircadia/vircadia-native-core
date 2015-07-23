@@ -16,6 +16,7 @@
 #include "audio/AudioMixer.h"
 #include "avatars/AvatarMixer.h"
 #include "entities/EntityServer.h"
+#include "assets/AssetServer.h"
 
 ThreadedAssignment* AssignmentFactory::unpackAssignment(NLPacket& packet) {
 
@@ -33,6 +34,8 @@ ThreadedAssignment* AssignmentFactory::unpackAssignment(NLPacket& packet) {
             return new Agent(packet);
         case Assignment::EntityServerType:
             return new EntityServer(packet);
+        case Assignment::AssetServerType:
+            return new AssetServer(packet);
         default:
             return NULL;
     }
