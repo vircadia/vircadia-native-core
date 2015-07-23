@@ -468,22 +468,29 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
             if (alpha > 0.0f) {
                 QSharedPointer<NetworkGeometry> geometry = getHead()->getFaceModel().getGeometry();
                 if (geometry) {
+                    const float DEFAULT_EYE_DIAMETER = 0.048f;  // Typical human eye
                     const float RADIUS_INCREMENT = 0.005f;
                     Transform transform;
 
                     glm::vec3 position = getHead()->getLeftEyePosition();
                     transform.setTranslation(position);
                     batch.setModelTransform(transform);
-                    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, 
-                        geometry->getFBXGeometry().leftEyeSize * _scale / 2.0f + RADIUS_INCREMENT, 15, 15, 
-                            glm::vec4(LOOKING_AT_ME_COLOR, alpha));
+                    float eyeDiameter = geometry->getFBXGeometry().leftEyeSize;
+                    if (eyeDiameter == 0.0f) {
+                        eyeDiameter = DEFAULT_EYE_DIAMETER;
+                    }
+                    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch,
+                        eyeDiameter * _scale / 2.0f + RADIUS_INCREMENT, 15, 15, glm::vec4(LOOKING_AT_ME_COLOR, alpha));
 
                     position = getHead()->getRightEyePosition();
                     transform.setTranslation(position);
                     batch.setModelTransform(transform);
-                    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, 
-                        geometry->getFBXGeometry().rightEyeSize * _scale / 2.0f + RADIUS_INCREMENT, 15, 15, 
-                            glm::vec4(LOOKING_AT_ME_COLOR, alpha));
+                    eyeDiameter = geometry->getFBXGeometry().rightEyeSize;
+                    if (eyeDiameter == 0.0f) {
+                        eyeDiameter = DEFAULT_EYE_DIAMETER;
+                    }
+                    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch,
+                        eyeDiameter * _scale / 2.0f + RADIUS_INCREMENT, 15, 15, glm::vec4(LOOKING_AT_ME_COLOR, alpha));
 
                 }
             }
