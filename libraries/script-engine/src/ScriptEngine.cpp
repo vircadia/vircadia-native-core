@@ -55,11 +55,11 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
     }
     qCDebug(scriptengine) << "script:print()<<" << message;
 
-    QString scriptMessage = message.replace("\\", "\\\\")
-                                   .replace("\n", "\\n")
-                                   .replace("\r", "\\r")
-                                   .replace("'", "\\'");
-    engine->evaluate("Script.print('" + scriptMessage + "')");
+    message = message.replace("\\", "\\\\")
+                     .replace("\n", "\\n")
+                     .replace("\r", "\\r")
+                     .replace("'", "\\'");
+    engine->evaluate("Script.print('" + message + "')");
 
     return QScriptValue();
 }
