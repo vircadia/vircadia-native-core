@@ -81,8 +81,7 @@ public:
     void init();
     void simulate(float deltaTime);
 
-    virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition,
-        bool postLighting = false);
+    virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition);
 
     bool addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
                             render::PendingChanges& pendingChanges);
@@ -235,7 +234,7 @@ protected:
 
     Transform calculateDisplayNameTransform(const ViewFrustum& frustum, float fontSize, const glm::ivec4& viewport) const;
     void renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, const glm::ivec4& viewport) const;
-    virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel = 0.0f);
+    virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel = 0.0f);
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const;
     virtual void fixupModelsInScene();
 

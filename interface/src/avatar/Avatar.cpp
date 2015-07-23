@@ -317,15 +317,14 @@ void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::S
     }
 }
 
-void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting) {
+void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     if (_referential) {
         _referential->update();
     }
 
     auto& batch = *renderArgs->_batch;
 
-    if (postLighting &&
-        glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(), _position) < 10.0f) {
+    if (glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(), _position) < 10.0f) {
         auto geometryCache = DependencyManager::get<GeometryCache>();
         auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
 
@@ -415,9 +414,9 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
                       : GLOW_FROM_AVERAGE_LOUDNESS;
 
         // render body
-        renderBody(renderArgs, frustum, postLighting, glowLevel);
+        renderBody(renderArgs, frustum, glowLevel);
 
-        if (!postLighting && renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE) {
+        if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE) {
             // add local lights
             const float BASE_LIGHT_DISTANCE = 2.0f;
             const float LIGHT_EXPONENT = 1.0f;
@@ -432,21 +431,17 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
             }
         }
 
-        if (postLighting) {
-            bool renderSkeleton = Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes);
-            bool renderHead = Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionShapes);
-            bool renderBounding = Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes);
-
-            if (renderSkeleton) {
-                _skeletonModel.renderJointCollisionShapes(0.7f);
-            }
-
-            if (renderHead && shouldRenderHead(renderArgs)) {
-                getHead()->getFaceModel().renderJointCollisionShapes(0.7f);
-            }
-            if (renderBounding && shouldRenderHead(renderArgs)) {
-                _skeletonModel.renderBoundingCollisionShapes(*renderArgs->_batch, 0.7f);
-            }
+        bool renderSkeleton = Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes);
+        bool renderHead = Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionShapes);
+        bool renderBounding = Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes);
+        if (renderSkeleton) {
+            _skeletonModel.renderJointCollisionShapes(0.7f);
+        }
+        if (renderHead && shouldRenderHead(renderArgs)) {
+            getHead()->getFaceModel().renderJointCollisionShapes(0.7f);
+        }
+        if (renderBounding && shouldRenderHead(renderArgs)) {
+            _skeletonModel.renderBoundingCollisionShapes(*renderArgs->_batch, 0.7f);
         }
 
         // Stack indicator spheres
@@ -570,24 +565,20 @@ void Avatar::fixupModelsInScene() {
     scene->enqueuePendingChanges(pendingChanges);
 }
 
-void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel) {
+void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel) {
 
     fixupModelsInScene();
     
     {
         if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
-            if (postLighting || renderArgs->_renderMode == RenderArgs::SHADOW_RENDER_MODE) {
-                // render the billboard until both models are loaded
-                renderBillboard(renderArgs);
-            }
+            // render the billboard until both models are loaded
+            renderBillboard(renderArgs);
             return;
         }
 
-        if (postLighting) {
-            getHand()->render(renderArgs, false);
-        }
+        getHand()->render(renderArgs, false);
     }
-    getHead()->render(renderArgs, 1.0f, renderFrustum, postLighting);
+    getHead()->render(renderArgs, 1.0f, renderFrustum);
 }
 
 bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {
