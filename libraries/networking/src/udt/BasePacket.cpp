@@ -80,6 +80,8 @@ BasePacket& BasePacket::operator=(const BasePacket& other) {
     
     _payloadSize = other._payloadSize;
     
+    _senderSockAddr = other._senderSockAddr;
+    
     if (other.isOpen() && !isOpen()) {
         open(other.openMode());
     }

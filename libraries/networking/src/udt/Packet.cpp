@@ -97,7 +97,7 @@ Packet& Packet::operator=(const Packet& other) {
 }
 
 Packet::Packet(Packet&& other) :
-    BasePacket(other)
+    BasePacket(std::move(other))
 {
     _isReliable = other._isReliable;
     _isPartOfMessage = other._isPartOfMessage;

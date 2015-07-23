@@ -533,8 +533,7 @@ void NodeList::sendAssignment(Assignment& assignment) {
 
     QDataStream packetStream(assignmentPacket.get());
     packetStream << assignment;
-
-    // TODO: should this be a non sourced packet?
+    
     sendPacket(std::move(assignmentPacket), _assignmentServerSocket);
 }
 

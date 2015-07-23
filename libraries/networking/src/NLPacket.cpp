@@ -16,9 +16,9 @@ qint64 NLPacket::maxPayloadSize(PacketType type) {
 }
 
 qint64 NLPacket::localHeaderSize(PacketType type) {
-    qint64 size = ((NON_SOURCED_PACKETS.contains(type)) ? 0 : NUM_BYTES_RFC4122_UUID) +
+    qint64 optionalSize = ((NON_SOURCED_PACKETS.contains(type)) ? 0 : NUM_BYTES_RFC4122_UUID) +
         ((NON_SOURCED_PACKETS.contains(type) || NON_VERIFIED_PACKETS.contains(type)) ? 0 : NUM_BYTES_MD5_HASH);
-    return size;
+    return sizeof(PacketType) + sizeof(PacketVersion) + optionalSize;
 }
 
 qint64 NLPacket::maxPayloadSize() const {
@@ -85,6 +85,8 @@ NLPacket::NLPacket(PacketType type, bool isReliable, bool isPartOfMessage) :
     _version(versionForPacketType(type))
 {
     adjustPayloadStartAndCapacity();
+    
+    writeTypeAndVersion();
 }
 
 NLPacket::NLPacket(PacketType type, qint64 size, bool isReliable, bool isPartOfMessage) :
@@ -104,10 +106,14 @@ NLPacket::NLPacket(std::unique_ptr<Packet> packet) :
 {
     adjustPayloadStartAndCapacity(_payloadSize > 0);
     
+    readType();
+    readVersion();
     readSourceID();
 }
 
 NLPacket::NLPacket(const NLPacket& other) : Packet(other) {
+    _type = other._type;
+    _version = other._version;
     _sourceID = other._sourceID;
 }
 
@@ -125,14 +131,18 @@ NLPacket::NLPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& 
 }
 
 NLPacket::NLPacket(NLPacket&& other) :
-    Packet(other)
+    Packet(std::move(other))
 {
+    _type = other._type;
+    _version = other._version;
     _sourceID = std::move(other._sourceID);
 }
 
 NLPacket& NLPacket::operator=(const NLPacket& other) {
     Packet::operator=(other);
     
+    _type = other._type;
+    _version = other._version;
     _sourceID = other._sourceID;
     
     return *this;
@@ -142,6 +152,8 @@ NLPacket& NLPacket::operator=(NLPacket&& other) {
     
     Packet::operator=(std::move(other));
     
+    _type = other._type;
+    _version = other._version;
     _sourceID = std::move(other._sourceID);
     
     return *this;
@@ -188,8 +200,7 @@ void NLPacket::writeTypeAndVersion() {
     memcpy(_packet.get() + headerOffset, &_type, sizeof(PacketType));
     
     // Pack the packet version
-    auto version = versionForPacketType(_type);
-    memcpy(_packet.get() + headerOffset + sizeof(PacketType), &version, sizeof(version));
+    memcpy(_packet.get() + headerOffset + sizeof(PacketType), &_version, sizeof(_version));
 }
 
 void NLPacket::setType(PacketType type) {
