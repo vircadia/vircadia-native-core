@@ -159,15 +159,15 @@ void AnimationHandle::applyFrame(float frameIndex) {
     const FBXAnimationFrame& floorFrame = animationGeometry.animationFrames.at((int)glm::floor(frameIndex) % frameCount);
     const FBXAnimationFrame& ceilFrame = animationGeometry.animationFrames.at((int)glm::ceil(frameIndex) % frameCount);
     float frameFraction = glm::fract(frameIndex);
-    QVector<JointState> jointStates = _rig->getJointStates();
+    assert(_rig->getJointStateCount() >= _jointMappings.size());
     for (int i = 0; i < _jointMappings.size(); i++) {
         int mapping = _jointMappings.at(i);
         if (mapping != -1) {
-            JointState& state = jointStates[mapping];
-            state.setRotationInConstrainedFrame(safeMix(floorFrame.rotations.at(i),
-                                                        ceilFrame.rotations.at(i),
-                                                        frameFraction),
-                                                _priority);
+            _rig->setJointRotationInConstrainedFrame(mapping,
+                                                     safeMix(floorFrame.rotations.at(i),
+                                                             ceilFrame.rotations.at(i),
+                                                             frameFraction),
+                                                     _priority);
         }
     }
 }
@@ -176,10 +176,9 @@ void AnimationHandle::replaceMatchingPriorities(float newPriority) {
     for (int i = 0; i < _jointMappings.size(); i++) {
         int mapping = _jointMappings.at(i);
         if (mapping != -1) {
-            QVector<JointState> jointStates = _rig->getJointStates();
-            JointState& state = jointStates[mapping];
+            JointState state = _rig->getJointState(mapping);
             if (_priority == state._animationPriority) {
-                state._animationPriority = newPriority;
+                _rig->setJointAnimatinoPriority(mapping, newPriority);
             }
         }
     }
@@ -189,9 +188,8 @@ void AnimationHandle::restoreJoints() {
     for (int i = 0; i < _jointMappings.size(); i++) {
         int mapping = _jointMappings.at(i);
         if (mapping != -1) {
-            QVector<JointState> jointStates = _rig->getJointStates();
-            JointState& state = jointStates[mapping];
-            state.restoreRotation(1.0f, state._animationPriority);
+            JointState state = _rig->getJointState(mapping);
+            _rig->restoreJointRotation(mapping, 1.0f, state._animationPriority);
         }
     }
 }

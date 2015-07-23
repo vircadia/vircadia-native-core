@@ -13,11 +13,7 @@
 
 #include "Rig.h"
 
-bool Rig::removeRunningAnimation(AnimationHandlePointer animationHandle) {
-    return _runningAnimations.removeOne(animationHandle);
-}
-
-static void insertSorted(QList<AnimationHandlePointer>& handles, const AnimationHandlePointer& handle) {
+void insertSorted(QList<AnimationHandlePointer>& handles, const AnimationHandlePointer& handle) {
     for (QList<AnimationHandlePointer>::iterator it = handles.begin(); it != handles.end(); it++) {
         if (handle->getPriority() > (*it)->getPriority()) {
             handles.insert(it, handle);
@@ -27,17 +23,27 @@ static void insertSorted(QList<AnimationHandlePointer>& handles, const Animation
     handles.append(handle);
 }
 
+AnimationHandlePointer Rig::createAnimationHandle() {
+    AnimationHandlePointer handle(new AnimationHandle(getRigPointer()));
+    _animationHandles.insert(handle);
+    return handle;
+}
+
+bool Rig::removeRunningAnimation(AnimationHandlePointer animationHandle) {
+    return _runningAnimations.removeOne(animationHandle);
+}
+
 void Rig::addRunningAnimation(AnimationHandlePointer animationHandle) {
-    insertSorted(_runningAnimations,  animationHandle);
+    insertSorted(_runningAnimations, animationHandle);
 }
 
 bool Rig::isRunningAnimation(AnimationHandlePointer animationHandle) {
     return _runningAnimations.contains(animationHandle);
 }
 
-float Rig::initJointStates(glm::vec3 scale, glm::vec3 offset, QVector<JointState> states) {
+float Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform) {
     _jointStates = states;
-    initJointTransforms(scale, offset);
+    initJointTransforms(parentTransform);
 
     int numStates = _jointStates.size();
     float radius = 0.0f;
@@ -52,11 +58,11 @@ float Rig::initJointStates(glm::vec3 scale, glm::vec3 offset, QVector<JointState
         _jointStates[i].slaveVisibleTransform();
     }
 
-    // XXX update AnimationHandles from here?
     return radius;
 }
 
-void Rig::initJointTransforms(glm::vec3 scale, glm::vec3 offset) {
+
+void Rig::initJointTransforms(glm::mat4 parentTransform) {
     // compute model transforms
     int numStates = _jointStates.size();
     for (int i = 0; i < numStates; ++i) {
@@ -64,9 +70,6 @@ void Rig::initJointTransforms(glm::vec3 scale, glm::vec3 offset) {
         const FBXJoint& joint = state.getFBXJoint();
         int parentIndex = joint.parentIndex;
         if (parentIndex == -1) {
-            // const FBXGeometry& geometry = _geometry->getFBXGeometry();
-            // NOTE: in practice geometry.offset has a non-unity scale (rather than a translation)
-            glm::mat4 parentTransform = glm::scale(scale) * glm::translate(offset); // * geometry.offset; XXX
             state.initTransform(parentTransform);
         } else {
             const JointState& parentState = _jointStates.at(parentIndex);
@@ -75,19 +78,30 @@ void Rig::initJointTransforms(glm::vec3 scale, glm::vec3 offset) {
     }
 }
 
-void Rig::resetJoints() {
+void Rig::clearJointTransformTranslation(int jointIndex) {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
+        return;
+    }
+    _jointStates[jointIndex].clearTransformTranslation();
+}
+
+void Rig::reset(const QVector<FBXJoint>& fbxJoints) {
     if (_jointStates.isEmpty()) {
         return;
     }
-
-    // const FBXGeometry& geometry = _geometry->getFBXGeometry();
     for (int i = 0; i < _jointStates.size(); i++) {
-        const FBXJoint& fbxJoint = _jointStates[i].getFBXJoint();
-        _jointStates[i].setRotationInConstrainedFrame(fbxJoint.rotation, 0.0f);
+        _jointStates[i].setRotationInConstrainedFrame(fbxJoints.at(i).rotation, 0.0f);
     }
 }
 
-bool Rig::getJointState(int index, glm::quat& rotation) const {
+JointState Rig::getJointState(int jointIndex) const {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
+        return JointState();
+    }
+    return _jointStates[jointIndex];
+}
+
+bool Rig::getJointStateRotation(int index, glm::quat& rotation) const {
     if (index == -1 || index >= _jointStates.size()) {
         return false;
     }
@@ -105,12 +119,6 @@ bool Rig::getVisibleJointState(int index, glm::quat& rotation) const {
     return !state.rotationIsDefault(rotation);
 }
 
-void Rig::updateVisibleJointStates() {
-    for (int i = 0; i < _jointStates.size(); i++) {
-        _jointStates[i].slaveVisibleTransform();
-    }
-}
-
 void Rig::clearJointState(int index) {
     if (index != -1 && index < _jointStates.size()) {
         JointState& state = _jointStates[index];
@@ -120,6 +128,18 @@ void Rig::clearJointState(int index) {
 
 void Rig::clearJointStates() {
     _jointStates.clear();
+}
+
+void Rig::clearJointAnimationPriority(int index) {
+    if (index != -1 && index < _jointStates.size()) {
+        _jointStates[index]._animationPriority = 0.0f;
+    }
+}
+
+void Rig::setJointAnimatinoPriority(int index, float newPriority) {
+    if (index != -1 && index < _jointStates.size()) {
+        _jointStates[index]._animationPriority = newPriority;
+    }
 }
 
 void Rig::setJointState(int index, bool valid, const glm::quat& rotation, float priority) {
@@ -133,99 +153,103 @@ void Rig::setJointState(int index, bool valid, const glm::quat& rotation, float 
     }
 }
 
-
-void Rig::clearJointAnimationPriority(int index) {
+void Rig::restoreJointRotation(int index, float fraction, float priority) {
     if (index != -1 && index < _jointStates.size()) {
-        _jointStates[index]._animationPriority = 0.0f;
+        _jointStates[index].restoreRotation(fraction, priority);
     }
 }
 
-AnimationHandlePointer Rig::createAnimationHandle() {
-    AnimationHandlePointer handle(new AnimationHandle(getRigPointer()));
-    _animationHandles.insert(handle);
-    return handle;
-}
-
-bool Rig::getJointStateAtIndex(int jointIndex, JointState& jointState) const {
+bool Rig::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position,
+                                       glm::vec3 translation, glm::quat rotation) const {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
     }
-    jointState = _jointStates[jointIndex];
+    // position is in world-frame
+    position = translation + rotation * _jointStates[jointIndex].getPosition();
     return true;
 }
 
-void Rig::updateJointStates(glm::mat4 parentTransform) {
+bool Rig::getJointPosition(int jointIndex, glm::vec3& position) const {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
+        return false;
+    }
+    // position is in model-frame
+    position = extractTranslation(_jointStates[jointIndex].getTransform());
+    return true;
+}
+
+bool Rig::getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const glm::quat& rotation) const {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
+        return false;
+    }
+    result = rotation * _jointStates[jointIndex].getRotation();
+    return true;
+}
+
+bool Rig::getJointRotation(int jointIndex, glm::quat& rotation) const {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
+        return false;
+    }
+    rotation = _jointStates[jointIndex].getRotation();
+    return true;
+}
+
+bool Rig::getJointCombinedRotation(int jointIndex, glm::quat& result, const glm::quat& rotation) const {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
+        return false;
+    }
+    result = rotation * _jointStates[jointIndex].getRotation();
+    return true;
+}
+
+
+bool Rig::getVisibleJointPositionInWorldFrame(int jointIndex, glm::vec3& position,
+                                              glm::vec3 translation, glm::quat rotation) const {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
+        return false;
+    }
+    // position is in world-frame
+    position = translation + rotation * _jointStates[jointIndex].getVisiblePosition();
+    return true;
+}
+
+bool Rig::getVisibleJointRotationInWorldFrame(int jointIndex, glm::quat& result, glm::quat rotation) const {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
+        return false;
+    }
+    result = rotation * _jointStates[jointIndex].getVisibleRotation();
+    return true;
+}
+
+glm::mat4 Rig::getJointTransform(int jointIndex) const {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
+        return glm::mat4();
+    }
+    return _jointStates[jointIndex].getTransform();
+}
+
+glm::mat4 Rig::getJointVisibleTransform(int jointIndex) const {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
+        return glm::mat4();
+    }
+    return _jointStates[jointIndex].getVisibleTransform();
+}
+
+void Rig::simulateInternal(glm::mat4 parentTransform) {
     for (int i = 0; i < _jointStates.size(); i++) {
         updateJointState(i, parentTransform);
     }
-}
-
-void Rig::updateJointState(int index, glm::mat4 parentTransform) {
-    JointState& state = _jointStates[index];
-    const FBXJoint& joint = state.getFBXJoint();
-
-    // compute model transforms
-    int parentIndex = joint.parentIndex;
-    if (parentIndex == -1) {
-        // glm::mat4 parentTransform = glm::scale(scale) * glm::translate(offset) * geometryOffset;
-        state.computeTransform(parentTransform);
-    } else {
-        // guard against out-of-bounds access to _jointStates
-        if (joint.parentIndex >= 0 && joint.parentIndex < _jointStates.size()) {
-            const JointState& parentState = _jointStates.at(parentIndex);
-            state.computeTransform(parentState.getTransform(), parentState.getTransformChanged());
-        }
-    }
-}
-
-void Rig::resetAllTransformsChanged() {
     for (int i = 0; i < _jointStates.size(); i++) {
         _jointStates[i].resetTransformChanged();
     }
 }
 
-glm::quat Rig::setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority, bool constrain) {
-    glm::quat endRotation;
-    if (jointIndex == -1 || _jointStates.isEmpty()) {
-        return endRotation;
-    }
-    JointState& state = _jointStates[jointIndex];
-    state.setRotationInBindFrame(rotation, priority, constrain);
-    endRotation = state.getRotationInBindFrame();
-    return endRotation;
-}
-
-glm::quat Rig::setJointRotationInConstrainedFrame(int jointIndex, glm::quat targetRotation, float priority, bool constrain) {
-    glm::quat endRotation;
-    if (jointIndex == -1 || _jointStates.isEmpty()) {
-        return endRotation;
-    }
-    JointState& state = _jointStates[jointIndex];
-    state.setRotationInConstrainedFrame(targetRotation, priority, constrain);
-    endRotation = state.getRotationInConstrainedFrame();
-    return endRotation;
-}
-
-void Rig::applyJointRotationDelta(int jointIndex, const glm::quat& delta, bool constrain, float priority) {
-    if (jointIndex == -1 || _jointStates.isEmpty()) {
-        return;
-    }
-    _jointStates[jointIndex].applyRotationDelta(delta, constrain, priority);
-}
-
-bool Rig::setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation,
-                           bool useRotation, int lastFreeIndex, bool allIntermediatesFree, const glm::vec3& alignment,
-                           float priority, glm::mat4 parentTransform) {
+bool Rig::setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation, bool useRotation,
+                           int lastFreeIndex, bool allIntermediatesFree, const glm::vec3& alignment, float priority,
+                           const QVector<int>& freeLineage, glm::mat4 parentTransform) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
     }
-
-    // const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    // const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
-    const FBXJoint& fbxJoint = _jointStates[jointIndex].getFBXJoint();
-    const QVector<int>& freeLineage = fbxJoint.freeLineage;
-
-
     if (freeLineage.isEmpty()) {
         return false;
     }
@@ -304,18 +328,13 @@ bool Rig::setJointPosition(int jointIndex, const glm::vec3& position, const glm:
     return true;
 }
 
-void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition,
-                            const glm::quat& targetRotation, float priority, glm::mat4 parentTransform) {
+void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority,
+                            const QVector<int>& freeLineage, glm::mat4 parentTransform) {
     // NOTE: targetRotation is from bind- to model-frame
 
     if (endIndex == -1 || _jointStates.isEmpty()) {
         return;
     }
-
-    // const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    // const QVector<int>& freeLineage = geometry.joints.at(endIndex).freeLineage;
-    const FBXJoint& fbxJoint = _jointStates[endIndex].getFBXJoint();
-    const QVector<int>& freeLineage = fbxJoint.freeLineage;
 
     if (freeLineage.isEmpty()) {
         return;
@@ -404,11 +423,11 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition,
         }
 
         // recompute transforms from the top down
-        glm::mat4 parentTransform = topParentTransform;
+        glm::mat4 currentParentTransform = topParentTransform;
         for (int j = numFree - 1; j >= 0; --j) {
             JointState& freeState = _jointStates[freeLineage.at(j)];
-            freeState.computeTransform(parentTransform);
-            parentTransform = freeState.getTransform();
+            freeState.computeTransform(currentParentTransform);
+            currentParentTransform = freeState.getTransform();
         }
 
         // measure our success
@@ -420,14 +439,10 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition,
     endState.setRotationInBindFrame(targetRotation, priority, true);
 }
 
-bool Rig::restoreJointPosition(int jointIndex, float fraction, float priority) {
+bool Rig::restoreJointPosition(int jointIndex, float fraction, float priority, const QVector<int>& freeLineage) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
     }
-    // const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    // const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
-    const FBXJoint& fbxJoint = _jointStates[jointIndex].getFBXJoint();
-    const QVector<int>& freeLineage = fbxJoint.freeLineage;
 
     foreach (int index, freeLineage) {
         JointState& state = _jointStates[index];
@@ -436,22 +451,78 @@ bool Rig::restoreJointPosition(int jointIndex, float fraction, float priority) {
     return true;
 }
 
-float Rig::getLimbLength(int jointIndex, glm::vec3 scale) const {
+float Rig::getLimbLength(int jointIndex, const QVector<int>& freeLineage,
+                         const glm::vec3 scale, const QVector<FBXJoint>& fbxJoints) const {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return 0.0f;
     }
-
-    // const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    // const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
-    const FBXJoint& fbxJoint = _jointStates[jointIndex].getFBXJoint();
-    const QVector<int>& freeLineage = fbxJoint.freeLineage;
-
     float length = 0.0f;
     float lengthScale = (scale.x + scale.y + scale.z) / 3.0f;
     for (int i = freeLineage.size() - 2; i >= 0; i--) {
-        int something = freeLineage.at(i);
-        const FBXJoint& fbxJointI = _jointStates[something].getFBXJoint();
-        length += fbxJointI.distanceToParent * lengthScale;
+        length += fbxJoints.at(freeLineage.at(i)).distanceToParent * lengthScale;
     }
     return length;
+}
+
+glm::quat Rig::setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority, bool constrain) {
+    glm::quat endRotation;
+    if (jointIndex == -1 || _jointStates.isEmpty()) {
+        return endRotation;
+    }
+    JointState& state = _jointStates[jointIndex];
+    state.setRotationInBindFrame(rotation, priority, constrain);
+    endRotation = state.getRotationInBindFrame();
+    return endRotation;
+}
+
+glm::vec3 Rig::getJointDefaultTranslationInConstrainedFrame(int jointIndex) {
+    if (jointIndex == -1 || _jointStates.isEmpty()) {
+        return glm::vec3();
+    }
+    return _jointStates[jointIndex].getDefaultTranslationInConstrainedFrame();
+}
+
+glm::quat Rig::setJointRotationInConstrainedFrame(int jointIndex, glm::quat targetRotation, float priority, bool constrain) {
+    glm::quat endRotation;
+    if (jointIndex == -1 || _jointStates.isEmpty()) {
+        return endRotation;
+    }
+    JointState& state = _jointStates[jointIndex];
+    state.setRotationInConstrainedFrame(targetRotation, priority, constrain);
+    endRotation = state.getRotationInConstrainedFrame();
+    return endRotation;
+}
+
+void Rig::updateVisibleJointStates() {
+    for (int i = 0; i < _jointStates.size(); i++) {
+        _jointStates[i].slaveVisibleTransform();
+    }
+}
+
+void Rig::setJointTransform(int jointIndex, glm::mat4 newTransform) {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
+        return;
+    }
+    _jointStates[jointIndex].setTransform(newTransform);
+}
+
+void Rig::setJointVisibleTransform(int jointIndex, glm::mat4 newTransform) {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
+        return;
+    }
+    _jointStates[jointIndex].setVisibleTransform(newTransform);
+}
+
+void Rig::applyJointRotationDelta(int jointIndex, const glm::quat& delta, bool constrain, float priority) {
+    if (jointIndex == -1 || _jointStates.isEmpty()) {
+        return;
+    }
+    _jointStates[jointIndex].applyRotationDelta(delta, constrain, priority);
+}
+
+glm::quat Rig::getJointDefaultRotationInParentFrame(int jointIndex) {
+    if (jointIndex == -1 || _jointStates.isEmpty()) {
+        return glm::quat();
+    }
+    return _jointStates[jointIndex].getDefaultRotationInParentFrame();
 }
