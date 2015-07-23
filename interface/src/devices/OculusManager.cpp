@@ -30,6 +30,7 @@
 #include <PathUtils.h>
 #include <SharedUtil.h>
 #include <UserActivityLogger.h>
+#include <FramebufferCache.h>
 
 #include <OVR_CAPI_GL.h>
 
@@ -398,6 +399,8 @@ void OculusManager::connect(QOpenGLContext* shareContext) {
     int configResult = ovrHmd_ConfigureRendering(_ovrHmd, &cfg.Config,
         distortionCaps, _eyeFov, _eyeRenderDesc);
     assert(configResult);
+    Q_UNUSED(configResult);
+    
     _outputWindow->doneCurrent();
 
     for_each_eye([&](ovrEyeType eye) {
@@ -644,7 +647,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
         return;
     }
 
-    auto primaryFBO = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+    auto primaryFBO = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
     glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFBO));
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -704,7 +707,7 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
     _activeEye = ovrEye_Count;
 
     gpu::FramebufferPointer finalFbo;
-    finalFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+    finalFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // restore our normal viewport

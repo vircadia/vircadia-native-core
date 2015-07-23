@@ -34,7 +34,6 @@
 #include <ScriptEngine.h>
 #include <ShapeManager.h>
 #include <StDev.h>
-#include <TextureCache.h>
 #include <udt/PacketHeaders.h>
 #include <ViewFrustum.h>
 
@@ -69,6 +68,7 @@
 #include "octree/OctreePacketProcessor.h"
 #include "UndoStackScriptingInterface.h"
 
+#include "gpu/Context.h"
 #include "render/Engine.h"
 
 class QGLWidget;
@@ -236,11 +236,6 @@ public:
     Overlays& getOverlays() { return _overlays; }
 
     float getFps() const { return _fps; }
-    const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
-    void setViewMatrixTranslation(const glm::vec3& translation) { _viewMatrixTranslation = translation; }
-
-    virtual const Transform& getViewTransform() const { return _viewTransform; }
-    void setViewTransform(const Transform& view);
 
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov) { _fieldOfView.set(fov); }
@@ -258,25 +253,11 @@ public:
 
     void resetProfile(const QString& username);
 
-    virtual void setupWorldLight(RenderArgs* renderArgs);
     virtual bool shouldRenderMesh(float largestDimension, float distanceToCamera);
 
     QImage renderAvatarBillboard(RenderArgs* renderArgs);
 
     void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false, bool billboard = false);
-
-    /// Stores the current modelview matrix as the untranslated view matrix to use for transforms and the supplied vector as
-    /// the view matrix translation.
-    void updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation = glm::vec3());
-
-    const glm::mat4& getUntranslatedViewMatrix() const { return _untranslatedViewMatrix; }
-
-    /// Loads a view matrix that incorporates the specified model translation without the precision issues that can
-    /// result from matrix multiplication at high translation magnitudes.
-    void loadTranslatedViewMatrix(const glm::vec3& translation);
-
-    void getModelViewMatrix(glm::dmat4* modelViewMatrix);
-    void getProjectionMatrix(glm::dmat4* projectionMatrix);
 
     virtual const glm::vec3& getShadowDistances() const { return _shadowDistances; }
 
@@ -304,8 +285,8 @@ public:
 
     QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
     ScriptEngine* getScriptEngine(QString scriptHash) { return _scriptEnginesHash.contains(scriptHash) ? _scriptEnginesHash[scriptHash] : NULL; }
-
-    bool isLookingAtMyAvatar(Avatar* avatar);
+    
+    bool isLookingAtMyAvatar(AvatarSharedPointer avatar);
 
     float getRenderResolutionScale() const;
     int getRenderAmbientLight() const;
@@ -344,6 +325,8 @@ public:
     render::EnginePointer getRenderEngine() { return _renderEngine; }
 
     render::ScenePointer getMain3DScene() const { return _main3DScene; }
+
+    gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
 signals:
 
@@ -470,8 +453,6 @@ private slots:
 
 private:
     void resetCameras(Camera& camera, const glm::uvec2& size);
-    void updateProjectionMatrix();
-    void updateProjectionMatrix(Camera& camera, bool updateViewFrustum = true);
 
     void sendPingPackets();
 
@@ -502,8 +483,8 @@ private:
 
     glm::vec3 getSunDirection();
 
-    void updateShadowMap(RenderArgs* renderArgs);
     void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard = false);
+
     void setMenuShortcutsEnabled(bool enabled);
 
     static void attachNewHeadToNode(Node *newNode);
@@ -560,11 +541,6 @@ private:
     Setting::Handle<QString>    _previousScriptLocation;
     Setting::Handle<QString>    _scriptsLocationHandle;
     Setting::Handle<float>      _fieldOfView;
-
-    Transform _viewTransform;
-    glm::mat4 _untranslatedViewMatrix;
-    glm::vec3 _viewMatrixTranslation;
-    glm::mat4 _projectionMatrix;
 
     float _scaleMirror;
     float _rotateMirror;
@@ -659,6 +635,7 @@ private:
 
     render::ScenePointer _main3DScene{ new render::Scene() };
     render::EnginePointer _renderEngine{ new render::Engine() };
+    gpu::ContextPointer _gpuContext; // initialized during window creation
 
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;

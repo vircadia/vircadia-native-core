@@ -34,7 +34,7 @@ bool AvatarHashMap::isAvatarInRange(const glm::vec3& position, const float range
 }
 
 AvatarSharedPointer AvatarHashMap::newSharedAvatar() {
-    return AvatarSharedPointer(new AvatarData());
+    return std::make_shared<AvatarData>();
 }
 
 AvatarSharedPointer AvatarHashMap::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {

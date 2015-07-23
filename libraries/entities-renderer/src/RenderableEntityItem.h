@@ -37,8 +37,8 @@ public:
     bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
         _myItem = scene->allocateID();
         
-        auto renderData = RenderableEntityItemProxy::Pointer(new RenderableEntityItemProxy(self));
-        auto renderPayload = render::PayloadPointer(new RenderableEntityItemProxy::Payload(renderData));
+        auto renderData = std::make_shared<RenderableEntityItemProxy>(self);
+        auto renderPayload = std::make_shared<RenderableEntityItemProxy::Payload>(renderData);
         
         pendingChanges.resetItem(_myItem, renderPayload);
         

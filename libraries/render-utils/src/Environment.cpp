@@ -59,7 +59,7 @@ void Environment::setupAtmosphereProgram(const char* vertSource, const char* fra
     gpu::Shader::BindingSet slotBindings;
     gpu::Shader::makeProgram(*program, slotBindings);
 
-    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    auto state = std::make_shared<gpu::State>();
     
     state->setCullMode(gpu::State::CULL_NONE);
     state->setDepthTest(false);

@@ -9,11 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <sstream>
+#include "Application.h"
 
-#include <stdlib.h>
-#include <cmath>
-#include <math.h>
+#include <sstream>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
@@ -61,6 +59,7 @@
 #include <DependencyManager.h>
 #include <EntityScriptingInterface.h>
 #include <ErrorDialog.h>
+#include <FramebufferCache.h>
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
 #include <gpu/GLBackend.h>
@@ -87,12 +86,12 @@
 #include <SettingHandle.h>
 #include <SimpleAverage.h>
 #include <SoundCache.h>
+#include <TextureCache.h>
 #include <Tooltip.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
 #include <VrMenu.h>
 
-#include "Application.h"
 #include "AudioClient.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
@@ -266,6 +265,8 @@ bool setupEssentials(int& argc, char** argv) {
     auto audioScope = DependencyManager::set<AudioScope>();
     auto deferredLightingEffect = DependencyManager::set<DeferredLightingEffect>();
     auto textureCache = DependencyManager::set<TextureCache>();
+    auto framebufferCache = DependencyManager::set<FramebufferCache>();
+
     auto animationCache = DependencyManager::set<AnimationCache>();
     auto ddeFaceTracker = DependencyManager::set<DdeFaceTracker>();
     auto modelBlender = DependencyManager::set<ModelBlender>();
@@ -313,7 +314,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _previousScriptLocation("LastScriptLocation"),
         _scriptsLocationHandle("scriptsLocation"),
         _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
-        _viewTransform(),
         _scaleMirror(1.0f),
         _rotateMirror(0.0f),
         _raiseMirror(0.0f),
@@ -333,11 +333,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _isThrottleFPSEnabled(false),
         _aboutToQuit(false),
         _notifiedPacketVersionMismatchThisDomain(false),
+        _glWidget(new GLCanvas()),
         _domainConnectionRefusals(QList<QString>()),
         _maxOctreePPS(maxOctreePacketsPerSecond.get()),
         _lastFaceTrackerUpdate(0),
-        _applicationOverlay(),
-        _glWidget(new GLCanvas())
+        _applicationOverlay()
 {
     setInstance(this);
 #ifdef Q_OS_WIN
@@ -364,7 +364,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _bookmarks = new Bookmarks();  // Before setting up the menu
 
     _runningScriptsWidget = new RunningScriptsWidget(_window);
-    _renderEngine->addTask(render::TaskPointer(new RenderDeferredTask()));
+    _renderEngine->addTask(make_shared<RenderDeferredTask>());
     _renderEngine->registerScene(_main3DScene);
 
     // start the nodeThread so its event loop is running
@@ -733,6 +733,7 @@ Application::~Application() {
     DependencyManager::destroy<OffscreenUi>();
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();
+    DependencyManager::destroy<FramebufferCache>();
     DependencyManager::destroy<TextureCache>();
     DependencyManager::destroy<GeometryCache>();
     DependencyManager::destroy<ScriptCache>();
@@ -766,32 +767,8 @@ void Application::initializeGL() {
     }
     #endif
 
-    qCDebug(interfaceapp) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
-    qCDebug(interfaceapp) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
-    qCDebug(interfaceapp) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
-    qCDebug(interfaceapp) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
-
-    #ifdef WIN32
-    GLenum err = glewInit();
-    if (GLEW_OK != err) {
-        /* Problem: glewInit failed, something is seriously wrong. */
-        qCDebug(interfaceapp, "Error: %s\n", glewGetErrorString(err));
-    }
-    qCDebug(interfaceapp, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
-
-    if (wglewGetExtension("WGL_EXT_swap_control")) {
-        int swapInterval = wglGetSwapIntervalEXT();
-        qCDebug(interfaceapp, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
-    }
-    #endif
-
-#if defined(Q_OS_LINUX)
-    // TODO: Write the correct  code for Linux...
-    /* if (wglewGetExtension("WGL_EXT_swap_control")) {
-        int swapInterval = wglGetSwapIntervalEXT();
-        qCDebug(interfaceapp, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
-    }*/
-#endif
+    // Where the gpuContext is created and where the TRUE Backend is created and assigned
+    _gpuContext = std::make_shared<gpu::Context>(new gpu::GLBackend());
 
     initDisplay();
     qCDebug(interfaceapp, "Initialized Display.");
@@ -880,8 +857,9 @@ void Application::paintGL() {
     _glWidget->makeCurrent();
 
     auto lodManager = DependencyManager::get<LODManager>();
-    gpu::Context context(new gpu::GLBackend());
-    RenderArgs renderArgs(&context, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
+
+
+    RenderArgs renderArgs(_gpuContext, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
                           lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
                           RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
 
@@ -897,17 +875,16 @@ void Application::paintGL() {
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
     resizeGL();
 
+
     {
         PerformanceTimer perfTimer("renderOverlay");
         
         // NOTE: There is no batch associated with this renderArgs
         // the ApplicationOverlay class assumes it's viewport is setup to be the device size
         QSize size = qApp->getDeviceSize();
-        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());    
+        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
         _applicationOverlay.renderOverlay(&renderArgs);
     }
-
-    glEnable(GL_LINE_SMOOTH);
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, _myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
@@ -959,13 +936,8 @@ void Application::paintGL() {
     }
 
     // Sync up the View Furstum with the camera
-    // FIXME: it's happening again in the updateSHadow and it shouldn't, this should be the place
     loadViewFrustum(_myCamera, _viewFrustum);
 
-    if (getShadowsEnabled()) {
-        renderArgs._renderMode = RenderArgs::SHADOW_RENDER_MODE;
-        updateShadowMap(&renderArgs);
-    }
 
     renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
 
@@ -981,21 +953,20 @@ void Application::paintGL() {
     } else {
         PROFILE_RANGE(__FUNCTION__ "/mainRender");
 
-
         {
             gpu::Batch batch;
-            auto primaryFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+            auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
             batch.setFramebuffer(primaryFbo);
             // clear the normal and specular buffers
             batch.clearFramebuffer(
-                gpu::Framebuffer::BUFFER_COLOR0 | 
+                gpu::Framebuffer::BUFFER_COLOR0 |
                 gpu::Framebuffer::BUFFER_COLOR1 |
                 gpu::Framebuffer::BUFFER_COLOR2 |
                 gpu::Framebuffer::BUFFER_DEPTH,
                 vec4(vec3(0), 1), 1.0, 0.0);
 
             // Viewport is assigned to the size of the framebuffer
-            QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
+            QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
             renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
             batch.setViewportTransform(renderArgs._viewport);
             renderArgs._context->render(batch);
@@ -1003,7 +974,7 @@ void Application::paintGL() {
 
         displaySide(&renderArgs, _myCamera);
 
-        if (_myCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
             renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
             renderRearViewMirror(&renderArgs, _mirrorViewRect);
             renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
@@ -1011,7 +982,7 @@ void Application::paintGL() {
 
         {
             auto geometryCache = DependencyManager::get<GeometryCache>();
-            auto primaryFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+            auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
             gpu::Batch batch;
             batch.blit(primaryFbo, glm::ivec4(0, 0, _renderResolution.x, _renderResolution.y),
                 nullptr, glm::ivec4(0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height()));
@@ -1085,8 +1056,9 @@ void Application::resizeGL() {
 
     if (_renderResolution != toGlm(renderSize)) {
         _renderResolution = toGlm(renderSize);
-        DependencyManager::get<TextureCache>()->setFrameBufferSize(renderSize);
-        updateProjectionMatrix();
+        DependencyManager::get<FramebufferCache>()->setFrameBufferSize(renderSize);
+
+        loadViewFrustum(_myCamera, _viewFrustum);
     }
 
     resetCameras(_myCamera, _renderResolution);
@@ -1097,18 +1069,6 @@ void Application::resizeGL() {
     offscreenUi->resize(canvasSize);
     _glWidget->makeCurrent();
 
-}
-
-void Application::updateProjectionMatrix() {
-    updateProjectionMatrix(_myCamera);
-}
-
-void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum) {
-    _projectionMatrix = camera.getProjection();
-    // Tell our viewFrustum about this change, using the application camera
-    if (updateViewFrustum) {
-        loadViewFrustum(camera, _viewFrustum);
-    }
 }
 
 bool Application::importSVOFromURL(const QString& urlString) {
@@ -1838,6 +1798,13 @@ void Application::idle() {
     }
     double timeSinceLastUpdate = (double)_lastTimeUpdated.nsecsElapsed() / 1000000.0;
     if (timeSinceLastUpdate > targetFramePeriod) {
+        
+        {
+            static const int IDLE_EVENT_PROCESS_MAX_TIME_MS = 2;
+            PerformanceTimer perfTimer("processEvents");
+            processEvents(QEventLoop::AllEvents, IDLE_EVENT_PROCESS_MAX_TIME_MS);
+        }
+        
         _lastTimeUpdated.start();
         {
             PerformanceTimer perfTimer("update");
@@ -1862,11 +1829,19 @@ void Application::idle() {
                 _idleLoopMeasuredJitter = _idleLoopStdev.getStDev();
                 _idleLoopStdev.reset();
             }
-
         }
+        
         // After finishing all of the above work, ensure the idle timer is set to the proper interval,
-        // depending on whether we're throttling or not
-        idleTimer->start(_glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : 1);
+        // depending on whether we're throttling or not.
+        // Once rendering is off on another thread we should be able to have Application::idle run at start(0) in
+        // perpetuity and not expect events to get backed up.
+        
+        static const int IDLE_TIMER_DELAY_MS = 0;
+        int desiredInterval = _glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : IDLE_TIMER_DELAY_MS;
+        
+        if (idleTimer->interval() != desiredInterval) {
+            idleTimer->start(desiredInterval);
+        }
     }
 
     // check for any requested background downloads.
@@ -2248,8 +2223,8 @@ void Application::shrinkMirrorView() {
 
 const float HEAD_SPHERE_RADIUS = 0.1f;
 
-bool Application::isLookingAtMyAvatar(Avatar* avatar) {
-    glm::vec3 theirLookAt = avatar->getHead()->getLookAtPosition();
+bool Application::isLookingAtMyAvatar(AvatarSharedPointer avatar) {
+    glm::vec3 theirLookAt = dynamic_pointer_cast<Avatar>(avatar)->getHead()->getLookAtPosition();
     glm::vec3 myEyePosition = _myAvatar->getHead()->getEyePosition();
     if (pointInSphere(theirLookAt, myEyePosition, HEAD_SPHERE_RADIUS * _myAvatar->getScale())) {
         return true;
@@ -2313,7 +2288,7 @@ void Application::updateMyAvatarLookAtPosition() {
         if (lookingAt && _myAvatar != lookingAt.get()) {
             //  If I am looking at someone else, look directly at one of their eyes
             isLookingAtSomeone = true;
-            Head* lookingAtHead = static_cast<Avatar*>(lookingAt.get())->getHead();
+            auto lookingAtHead = static_pointer_cast<Avatar>(lookingAt)->getHead();
 
             const float MAXIMUM_FACE_ANGLE = 65.0f * RADIANS_PER_DEGREE;
             glm::vec3 lookingAtFaceOrientation = lookingAtHead->getFinalOrientationInWorldFrame() * IDENTITY_FRONT;
@@ -2966,13 +2941,6 @@ glm::vec3 Application::getSunDirection() {
 // FIXME, preprocessor guard this check to occur only in DEBUG builds
 static QThread * activeRenderingThread = nullptr;
 
-void Application::updateShadowMap(RenderArgs* renderArgs) {
-    // TODO fix shadows and make them use the GPU library
-}
-
-void Application::setupWorldLight(RenderArgs* renderArgs) {
-}
-
 bool Application::shouldRenderMesh(float largestDimension, float distanceToCamera) {
     return DependencyManager::get<LODManager>()->shouldRenderMesh(largestDimension, distanceToCamera);
 }
@@ -3003,7 +2971,7 @@ PickRay Application::computePickRay(float x, float y) const {
 }
 
 QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
-    auto primaryFramebuffer = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+    auto primaryFramebuffer = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
     glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFramebuffer));
 
     // clear the alpha channel so the background is transparent
@@ -3194,10 +3162,6 @@ namespace render {
                 model::Skybox::render(batch, *(Application::getInstance()->getDisplayViewFrustum()), *skybox);
             }
         }
-        // FIX ME - If I don't call this renderBatch() here, then the atmosphere and skybox don't render, but it
-        // seems like these payloadRender() methods shouldn't be doing this. We need to investigate why the engine
-        // isn't rendering our batch
-        gpu::GLBackend::renderBatch(batch, true);
     }
 }
 
@@ -3217,30 +3181,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     // load the view frustum
     loadViewFrustum(theCamera, _displayViewFrustum);
 
-    // store view matrix without translation, which we'll use for precision-sensitive objects
-    updateUntranslatedViewMatrix(-theCamera.getPosition());
-
-    // Equivalent to what is happening with _untranslatedViewMatrix and the _viewMatrixTranslation
-    // the viewTransofmr object is updatded with the correct values and saved,
-    // this is what is used for rendering the Entities and avatars
-    Transform viewTransform;
-    viewTransform.setTranslation(theCamera.getPosition());
-    viewTransform.setRotation(theCamera.getRotation());
-    if (renderArgs->_renderSide != RenderArgs::MONO) {
-        glm::mat4 invView = glm::inverse(_untranslatedViewMatrix);
-
-        viewTransform.evalFromRawMatrix(invView);
-        viewTransform.preTranslate(_viewMatrixTranslation);
-    }
-
-    setViewTransform(viewTransform);
-
-    //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
-    {
-        PerformanceTimer perfTimer("lights");
-        setupWorldLight(renderArgs);
-    }
-    
     // TODO fix shadows and make them use the GPU library
 
     // The pending changes collecting the changes here
@@ -3248,8 +3188,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
     // Background rendering decision
     if (BackgroundRenderData::_item == 0) {
-        auto backgroundRenderData = BackgroundRenderData::Pointer(new BackgroundRenderData(&_environment));
-        auto backgroundRenderPayload = render::PayloadPointer(new BackgroundRenderData::Payload(backgroundRenderData));
+        auto backgroundRenderData = make_shared<BackgroundRenderData>(&_environment);
+        auto backgroundRenderPayload = make_shared<BackgroundRenderData::Payload>(backgroundRenderData);
         BackgroundRenderData::_item = _main3DScene->allocateID();
         pendingChanges.resetItem(WorldBoxRenderData::_item, backgroundRenderPayload);
     } else {
@@ -3280,8 +3220,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
     // Make sure the WorldBox is in the scene
     if (WorldBoxRenderData::_item == 0) {
-        auto worldBoxRenderData = WorldBoxRenderData::Pointer(new WorldBoxRenderData());
-        auto worldBoxRenderPayload = render::PayloadPointer(new WorldBoxRenderData::Payload(worldBoxRenderData));
+        auto worldBoxRenderData = make_shared<WorldBoxRenderData>();
+        auto worldBoxRenderPayload = make_shared<WorldBoxRenderData::Payload>(worldBoxRenderData);
 
         WorldBoxRenderData::_item = _main3DScene->allocateID();
 
@@ -3369,26 +3309,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     activeRenderingThread = nullptr;
 }
 
-void Application::updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation) {
-    _viewMatrixTranslation = viewMatrixTranslation;
-}
-
-void Application::setViewTransform(const Transform& view) {
-    _viewTransform = view;
-}
-
-void Application::loadTranslatedViewMatrix(const glm::vec3& translation) {
-}
-
-void Application::getModelViewMatrix(glm::dmat4* modelViewMatrix) {
-    (*modelViewMatrix) =_untranslatedViewMatrix;
-    (*modelViewMatrix)[3] = _untranslatedViewMatrix * glm::vec4(_viewMatrixTranslation, 1);
-}
-
-void Application::getProjectionMatrix(glm::dmat4* projectionMatrix) {
-    *projectionMatrix = _projectionMatrix;
-}
-
 void Application::computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
     float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
 
@@ -3441,6 +3361,7 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
 void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard) {
     auto originalViewport = renderArgs->_viewport;
     // Grab current viewport to reset it at the end
+
     float aspect = (float)region.width() / region.height();
     float fov = MIRROR_FIELD_OF_VIEW;
 
@@ -3481,11 +3402,11 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     // set the bounds of rear mirror view
     gpu::Vec4i viewport;
     if (billboard) {
-        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
+        QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
         viewport = gpu::Vec4i(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
     } else {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
-        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
+        QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
         float ratio = (float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale();
         int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
         viewport = gpu::Vec4i(x, size.height() - y - height, width, height);
@@ -3506,16 +3427,11 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
         renderArgs->_context->render(batch);
     }
 
-    bool updateViewFrustum = false;
-    updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
     // render rear mirror view
     displaySide(renderArgs, _mirrorCamera, true, billboard);
-    //{
-    //    gpu::Batch batch;
-    //    renderArgs->_viewport = originalViewport;
-    //    batch.setViewportTransform(originalViewport);
-    //    renderArgs->_context->render(batch);
-    //}
+
+    renderArgs->_viewport =  originalViewport;
+
 }
 
 void Application::resetSensors() {
@@ -4540,7 +4456,11 @@ void Application::friendsWindowClosed() {
 }
 
 void Application::postLambdaEvent(std::function<void()> f) {
-    QCoreApplication::postEvent(this, new LambdaEvent(f));
+    if (this->thread() == QThread::currentThread()) {
+        f();
+    } else {
+        QCoreApplication::postEvent(this, new LambdaEvent(f));
+    }
 }
 
 void Application::initPlugins() {

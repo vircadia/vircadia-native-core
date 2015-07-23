@@ -13,6 +13,7 @@
 #include <QMultiMap>
 
 #include <CapsuleShape.h>
+#include <DeferredLightingEffect.h>
 #include <SphereShape.h>
 
 #include "Application.h"
@@ -375,13 +376,15 @@ void SkeletonModel::renderJointConstraints(gpu::Batch& batch, int jointIndex) {
             
         }
         
-        renderOrientationDirections(jointIndex, position, _rotation * jointState.getRotation(), directionSize);
+        renderOrientationDirections(batch, jointIndex, position, _rotation * jointState.getRotation(), directionSize);
         jointIndex = joint.parentIndex;
         
     } while (jointIndex != -1 && geometry.joints.at(jointIndex).isFree);
 }
 
-void SkeletonModel::renderOrientationDirections(int jointIndex, glm::vec3 position, const glm::quat& orientation, float size) {
+void SkeletonModel::renderOrientationDirections(gpu::Batch& batch, int jointIndex, 
+                                                glm::vec3 position, const glm::quat& orientation, float size) {
+                                                
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
     if (!_jointOrientationLines.contains(jointIndex)) {
@@ -398,13 +401,13 @@ void SkeletonModel::renderOrientationDirections(int jointIndex, glm::vec3 positi
     glm::vec3 pFront	= position + orientation * IDENTITY_FRONT * size;
 
     glm::vec3 red(1.0f, 0.0f, 0.0f);
-    geometryCache->renderLine(position, pRight, red, jointLineIDs._right);
+    geometryCache->renderLine(batch, position, pRight, red, jointLineIDs._right);
 
     glm::vec3 green(0.0f, 1.0f, 0.0f);
-    geometryCache->renderLine(position, pUp, green, jointLineIDs._up);
+    geometryCache->renderLine(batch, position, pUp, green, jointLineIDs._up);
 
     glm::vec3 blue(0.0f, 0.0f, 1.0f);
-    geometryCache->renderLine(position, pFront, blue, jointLineIDs._front);
+    geometryCache->renderLine(batch, position, pFront, blue, jointLineIDs._front);
 }
 
 
@@ -785,32 +788,34 @@ void SkeletonModel::resetShapePositionsToDefaultPose() {
 void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha) {
     const int BALL_SUBDIVISIONS = 10;
     if (_shapes.isEmpty()) {
-        // the bounding shape has not been propery computed
+        // the bounding shape has not been properly computed
         // so no need to render it
         return;
     }
-    Application::getInstance()->loadTranslatedViewMatrix(_translation);
 
-    // draw a blue sphere at the capsule endpoint
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
+    Transform transform; // = Transform();
+
+    // draw a blue sphere at the capsule end point
     glm::vec3 endPoint;
     _boundingShape.getEndPoint(endPoint);
-    endPoint = endPoint - _translation;
-    Transform transform = Transform();
+    endPoint = endPoint + _translation;
     transform.setTranslation(endPoint);
     batch.setModelTransform(transform);
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    geometryCache->renderSphere(batch, _boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, 
+    deferredLighting->bindSimpleProgram(batch);
+    geometryCache->renderSphere(batch, _boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS,
                                 glm::vec4(0.6f, 0.6f, 0.8f, alpha));
 
-    // draw a yellow sphere at the capsule startpoint
+    // draw a yellow sphere at the capsule start point
     glm::vec3 startPoint;
     _boundingShape.getStartPoint(startPoint);
-    startPoint = startPoint - _translation;
+    startPoint = startPoint + _translation;
     glm::vec3 axis = endPoint - startPoint;
-    Transform axisTransform = Transform();
-    axisTransform.setTranslation(-axis);
-    batch.setModelTransform(axisTransform);
-    geometryCache->renderSphere(batch, _boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, 
+    transform.setTranslation(startPoint);
+    batch.setModelTransform(transform);
+    deferredLighting->bindSimpleProgram(batch);
+    geometryCache->renderSphere(batch, _boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS,
                                 glm::vec4(0.8f, 0.8f, 0.6f, alpha));
 
     // draw a green cylinder between the two points

@@ -43,11 +43,11 @@ public:
 
         Varying() {}
         template <class T> 
-        Varying(const T& data) : _concept(new Job::Varying::Model<T>(data)) {}
+        Varying(const T& data) : _concept(std::make_shared<Job::Varying::Model<T>>(data)) {}
 
         // Access the _data contained win the concept explicitely
-        template <class T> T& edit() { return (static_cast<Model<T>*> (_concept.get())->_data); }
-        template <class T> const T& get() const { return (static_cast<const Model<T>*> (_concept.get())->_data); }
+        template <class T> T& edit() { return std::static_pointer_cast<Model<T>>(_concept)->_data; }
+        template <class T> const T& get() const { return std::static_pointer_cast<const Model<T>>(_concept)->_data; }
 
     protected:
         friend class Job;
