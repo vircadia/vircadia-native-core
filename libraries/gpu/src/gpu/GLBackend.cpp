@@ -93,8 +93,11 @@ GLBackend::GLBackend() :
     static std::once_flag once;
     std::call_once(once, [] {
         qCDebug(gpulogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
+
         qCDebug(gpulogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
+
         qCDebug(gpulogging) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
+
         qCDebug(gpulogging) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
 
 #ifdef WIN32
@@ -141,15 +144,6 @@ void GLBackend::render(Batch& batch) {
         command++;
         offset++;
     }
-}
-
-void GLBackend::renderBatch(Batch& batch, bool syncCache) {
-    qCDebug(gpulogging) << "GLBackend::renderBatch : Deprecated call, don;t do it!!!";
-    GLBackend backend;
-    if (syncCache) {
-        backend.syncCache();
-    }
-    backend.render(batch);
 }
 
 bool GLBackend::checkGLError(const char* name) {
