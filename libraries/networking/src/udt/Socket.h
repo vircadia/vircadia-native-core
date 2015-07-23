@@ -15,6 +15,7 @@
 #define hifi_Socket_h
 
 #include <functional>
+#include <unordered_map>
 
 #include <QtCore/QObject>
 #include <QtNetwork/QUdpSocket>
@@ -59,6 +60,8 @@ private:
     PacketHandler _packetHandler;
     
     QSet<HifiSockAddr> _unfilteredSockAddrs;
+
+    std::unordered_map<HifiSockAddr, Packet::SequenceNumber> _packetSequenceNumbers;
 };
     
 } // namespace udt

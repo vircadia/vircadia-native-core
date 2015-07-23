@@ -16,8 +16,8 @@ using namespace udt;
 const qint64 Packet::PACKET_WRITE_ERROR = -1;
 
 qint64 Packet::localHeaderSize(PacketType::Value type) {
-    qint64 size = numBytesForArithmeticCodedPacketType(type) + sizeof(PacketVersion) +
-                        ((SEQUENCE_NUMBERED_PACKETS.contains(type)) ? sizeof(SequenceNumber) : 0);
+    // TODO: check the bitfield to see if the message is included
+    qint64 size = sizeof(SequenceNumberAndBitField);
     return size;
 }
 
@@ -75,13 +75,8 @@ Packet::Packet(PacketType::Value type, qint64 size) :
     // Sanity check
     Q_ASSERT(size >= 0 || size < maxPayload);
     
-    // copy packet type and version in header
-    writePacketTypeAndVersion(type);
-    
-    // Set control bit and sequence number to 0 if necessary
-    if (SEQUENCE_NUMBERED_PACKETS.contains(type)) {
-        writeSequenceNumber(0);
-    }
+    // set the UDT header to default values
+    writeSequenceNumber(0);
 }
 
 Packet::Packet(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr) :
@@ -187,24 +182,20 @@ PacketVersion Packet::readVersion() const {
     return *reinterpret_cast<PacketVersion*>(_packet.get() + numBytesForArithmeticCodedPacketType(_type));
 }
 
+static const uint32_t CONTROL_BIT_MASK = 1 << (sizeof(Packet::SequenceNumberAndBitField) - 1);
+static const uint32_t RELIABILITY_BIT_MASK = 1 << (sizeof(Packet::SequenceNumberAndBitField) - 2);
+static const uint32_t MESSAGE_BIT_MASK = 1 << (sizeof(Packet::SequenceNumberAndBitField) - 3);
+static const uint32_t BIT_FIELD_MASK = CONTROL_BIT_MASK | RELIABILITY_BIT_MASK | MESSAGE_BIT_MASK;
+
+
 Packet::SequenceNumber Packet::readSequenceNumber() const {
-    if (SEQUENCE_NUMBERED_PACKETS.contains(_type)) {
-        SequenceNumber seqNum = *reinterpret_cast<SequenceNumber*>(_packet.get() +
-                                                                   numBytesForArithmeticCodedPacketType(_type) +
-                                                                   sizeof(PacketVersion));
-        return seqNum & ~(1 << 15); // remove control bit
-    }
-    return -1;
+    SequenceNumberAndBitField seqNumBitField = *reinterpret_cast<SequenceNumberAndBitField*>(_packet.get());
+    return seqNumBitField & ~BIT_FIELD_MASK; // Remove the bit field
 }
 
 bool Packet::readIsControlPacket() const {
-    if (SEQUENCE_NUMBERED_PACKETS.contains(_type)) {
-        SequenceNumber seqNum = *reinterpret_cast<SequenceNumber*>(_packet.get() +
-                                                                   numBytesForArithmeticCodedPacketType(_type) +
-                                                                   sizeof(PacketVersion));
-        return seqNum & (1 << 15); // Only keep control bit
-    }
-    return false;
+    SequenceNumberAndBitField seqNumBitField = *reinterpret_cast<SequenceNumberAndBitField*>(_packet.get());
+    return seqNumBitField & CONTROL_BIT_MASK; // Only keep control bit
 }
 
 void Packet::writePacketTypeAndVersion(PacketType::Value type) {

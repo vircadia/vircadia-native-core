@@ -1093,8 +1093,11 @@ void AvatarData::sendAvatarDataPacket() {
     auto nodeList = DependencyManager::get<NodeList>();
 
     QByteArray avatarByteArray = toByteArray();
+    
+    static uint16_t sequenceNumber = 0;
 
-    auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size());
+    auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size() + sizeof(sequenceNumber));
+    avatarPacket->writePrimitive(sequenceNumber++);
     avatarPacket->write(avatarByteArray);
 
     nodeList->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);

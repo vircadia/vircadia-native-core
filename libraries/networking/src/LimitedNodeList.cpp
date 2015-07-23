@@ -248,12 +248,6 @@ qint64 LimitedNodeList::writePacket(const NLPacket& packet, const Node& destinat
         return 0;
     }
     
-    // TODO Move to transport layer when ready
-    if (SEQUENCE_NUMBERED_PACKETS.contains(packet.getType())) {
-        PacketSequenceNumber sequenceNumber = getNextSequenceNumberForPacket(destinationNode.getUUID(), packet.getType());
-        const_cast<NLPacket&>(packet).writeSequenceNumber(sequenceNumber);
-    }
-
     emit dataSent(destinationNode.getType(), packet.getDataSize());
     
     return writePacket(packet, *destinationNode.getActiveSocket(), destinationNode.getConnectionSecret());
@@ -342,15 +336,6 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
     auto& destinationSockAddr = (overridenSockAddr.isNull()) ? *destinationNode.getActiveSocket()
                                                              : overridenSockAddr;
     return sendPacket(std::move(packet), destinationSockAddr, destinationNode.getConnectionSecret());
-}
-
-PacketSequenceNumber LimitedNodeList::getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType::Value packetType) {
-    // Thanks to std::map and std::unordered_map this line either default constructs the
-    // PacketType::SequenceMap and the PacketSequenceNumber or returns the existing value.
-    // We use the postfix increment so that the stored value is incremented and the next
-    // return gives the correct value.
-
-    return _packetSequenceNumbers[nodeUUID][packetType]++;
 }
 
 int LimitedNodeList::updateNodeWithDataFromPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {

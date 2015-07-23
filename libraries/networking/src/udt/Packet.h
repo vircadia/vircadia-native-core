@@ -24,7 +24,11 @@ namespace udt {
 class Packet : public QIODevice {
     Q_OBJECT
 public:
-    using SequenceNumber = uint16_t;
+    // NOTE: The SequenceNumber must actually only be 29 bits MAX to leave room for a bit field
+    using SequenceNumber = uint32_t;
+    using SequenceNumberAndBitField = uint32_t;
+    
+    static const uint32_t DEFAULT_SEQUENCE_NUMBER = 0;
 
     static const qint64 PACKET_WRITE_ERROR;
 

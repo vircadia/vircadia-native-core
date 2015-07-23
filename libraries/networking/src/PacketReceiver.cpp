@@ -246,12 +246,6 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
             PacketType::Value packetType = nlPacket->getType();
             
             if (matchingNode) {
-                // if this was a sequence numbered packet we should store the last seq number for
-                // a packet of this type for this node
-                if (SEQUENCE_NUMBERED_PACKETS.contains(nlPacket->getType())) {
-                    matchingNode->setLastSequenceNumberForPacketType(nlPacket->readSequenceNumber(), nlPacket->getType());
-                }
-                
                 emit dataReceived(matchingNode->getType(), nlPacket->getDataSize());
                 QMetaMethod metaMethod = listener.second;
                 

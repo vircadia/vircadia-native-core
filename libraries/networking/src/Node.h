@@ -24,7 +24,7 @@
 #include "NetworkPeer.h"
 #include "NodeData.h"
 #include "NodeType.h"
-#include "udt/PacketHeaders.h"
+#include "udt/Packet.h"
 #include "SimpleMovingAverage.h"
 #include "MovingPercentile.h"
 
@@ -65,10 +65,6 @@ public:
     void setCanRez(bool canRez) { _canRez = canRez; }
     bool getCanRez() { return _canRez; }
 
-    void setLastSequenceNumberForPacketType(PacketSequenceNumber sequenceNumber, PacketType::Value packetType)
-        { _lastSequenceNumbers[packetType] = sequenceNumber; }
-    PacketSequenceNumber getLastSequenceNumberForPacketType(PacketType::Value packetType) const;
-
     friend QDataStream& operator<<(QDataStream& out, const Node& node);
     friend QDataStream& operator>>(QDataStream& in, Node& node);
 
@@ -89,7 +85,7 @@ private:
     bool _canAdjustLocks;
     bool _canRez;
 
-    PacketTypeSequenceMap _lastSequenceNumbers;
+    std::map<PacketType::Value, udt::Packet::SequenceNumber>  _lastSequenceNumbers;
 };
 
 typedef QSharedPointer<Node> SharedNodePointer;

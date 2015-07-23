@@ -84,13 +84,7 @@ const int MAX_PACKET_HEADER_BYTES = 4 + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_H
 
 typedef char PacketVersion;
 
-typedef uint16_t PacketSequenceNumber;
-const PacketSequenceNumber DEFAULT_SEQUENCE_NUMBER = 0;
-
-typedef std::map<PacketType::Value, PacketSequenceNumber> PacketTypeSequenceMap;
-
 extern const QSet<PacketType::Value> NON_VERIFIED_PACKETS;
-extern const QSet<PacketType::Value> SEQUENCE_NUMBERED_PACKETS;
 extern const QSet<PacketType::Value> NON_SOURCED_PACKETS;
 
 QString nameForPacketType(PacketType::Value packetType);

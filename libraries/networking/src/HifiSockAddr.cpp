@@ -150,5 +150,5 @@ QHostAddress getLocalAddress() {
 
 uint qHash(const HifiSockAddr& key, uint seed) {
     // use the existing QHostAddress and quint16 hash functions to get our hash
-    return qHash(key.getAddress(), seed) + qHash(key.getPort(), seed);
+    return qHash(key.getAddress(), seed) ^ qHash(key.getPort(), seed);
 }

@@ -253,8 +253,6 @@ protected:
                        const QUuid& connectionSecret = QUuid());
     qint64 writePacketAndCollectStats(const NLPacket& packet, const HifiSockAddr& destinationSockAddr);
 
-    PacketSequenceNumber getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType::Value packetType);
-    
     bool isPacketVerified(const udt::Packet& packet);
     bool packetVersionMatch(const udt::Packet& packet);
     bool packetSourceAndHashMatch(const udt::Packet& packet);
@@ -288,8 +286,6 @@ protected:
     QElapsedTimer _packetStatTimer;
     bool _thisNodeCanAdjustLocks;
     bool _thisNodeCanRez;
-
-    std::unordered_map<QUuid, PacketTypeSequenceMap, UUIDHasher> _packetSequenceNumbers;
 
     QPointer<QTimer> _initialSTUNTimer;
     int _numInitialSTUNRequests = 0;
