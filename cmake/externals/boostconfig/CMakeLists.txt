@@ -16,3 +16,4 @@ ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
 
 set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/include CACHE TYPE INTERNAL)
 
+set_target_properties(${EXTERNAL_NAME} PROPERTIES FOLDER "hidden/externals")

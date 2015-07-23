@@ -34,7 +34,6 @@
 #include <ScriptEngine.h>
 #include <ShapeManager.h>
 #include <StDev.h>
-#include <TextureCache.h>
 #include <udt/PacketHeaders.h>
 #include <ViewFrustum.h>
 
@@ -69,6 +68,7 @@
 #include "octree/OctreePacketProcessor.h"
 #include "UndoStackScriptingInterface.h"
 
+#include "gpu/Context.h"
 #include "render/Engine.h"
 
 class QGLWidget;
@@ -326,6 +326,8 @@ public:
 
     render::ScenePointer getMain3DScene() const { return _main3DScene; }
 
+    gpu::ContextPointer getGPUContext() const { return _gpuContext; }
+
 signals:
 
     /// Fired when we're simulating; allows external parties to hook in.
@@ -482,6 +484,7 @@ private:
     glm::vec3 getSunDirection();
 
     void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard = false);
+
     void setMenuShortcutsEnabled(bool enabled);
 
     static void attachNewHeadToNode(Node *newNode);
@@ -632,6 +635,7 @@ private:
 
     render::ScenePointer _main3DScene{ new render::Scene() };
     render::EnginePointer _renderEngine{ new render::Engine() };
+    gpu::ContextPointer _gpuContext; // initialized during window creation
 
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;

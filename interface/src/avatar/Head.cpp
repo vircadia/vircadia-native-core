@@ -295,7 +295,7 @@ void Head::relaxLean(float deltaTime) {
     _deltaLeanForward *= relaxationFactor;
 }
 
-void Head::render(RenderArgs* renderArgs, float alpha, ViewFrustum* renderFrustum, bool postLighting) {
+void Head::render(RenderArgs* renderArgs, float alpha, ViewFrustum* renderFrustum) {
     if (_renderLookatVectors) {
         renderLookatVectors(renderArgs, _leftEyePosition, _rightEyePosition, getCorrectedLookAtPosition());
     }

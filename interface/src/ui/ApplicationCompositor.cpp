@@ -270,8 +270,8 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
     gpu::Batch batch;
     geometryCache->useSimpleDrawPipeline(batch);
-    batch._glDisable(GL_DEPTH_TEST);
-    batch._glDisable(GL_CULL_FACE);
+    //batch._glDisable(GL_DEPTH_TEST);
+    //batch._glDisable(GL_CULL_FACE);
     //batch._glBindTexture(GL_TEXTURE_2D, texture);
     //batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     //batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
