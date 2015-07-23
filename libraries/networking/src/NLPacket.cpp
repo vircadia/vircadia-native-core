@@ -33,16 +33,16 @@ qint64 NLPacket::localHeaderSize() const {
     return localHeaderSize(_type);
 }
 
-std::unique_ptr<NLPacket> NLPacket::create(PacketType type, qint64 size) {
+std::unique_ptr<NLPacket> NLPacket::create(PacketType type, qint64 size, bool isReliable, bool isPartOfMessage) {
     std::unique_ptr<NLPacket> packet;
     
     if (size == -1) {
-        packet = std::unique_ptr<NLPacket>(new NLPacket(type));
+        packet = std::unique_ptr<NLPacket>(new NLPacket(type, isReliable, isPartOfMessage));
     } else {
         // Fail with invalid size
         Q_ASSERT(size >= 0);
 
-        packet = std::unique_ptr<NLPacket>(new NLPacket(type, size));
+        packet = std::unique_ptr<NLPacket>(new NLPacket(type, size, isReliable, isPartOfMessage));
     }
         
     packet->open(QIODevice::ReadWrite);

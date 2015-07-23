@@ -19,7 +19,9 @@
 class NLPacket : public udt::Packet {
     Q_OBJECT
 public:
-    static std::unique_ptr<NLPacket> create(PacketType type, qint64 size = -1);
+    static std::unique_ptr<NLPacket> create(PacketType type, qint64 size = -1,
+                                            bool isReliable = false, bool isPartOfMessage = false);
+    
     static std::unique_ptr<NLPacket> fromReceivedPacket(std::unique_ptr<char> data, qint64 size,
                                                         const HifiSockAddr& senderSockAddr);
     static std::unique_ptr<NLPacket> fromBase(std::unique_ptr<Packet> packet);
