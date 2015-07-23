@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <queue>
+
 #include "AnimationHandle.h"
 
 #include "Rig.h"
@@ -48,9 +50,9 @@ void Rig::deleteAnimations() {
     }
 }
 
-
-float Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform) {
+float Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform, int neckJointIndex) {
     _jointStates = states;
+    _neckJointIndex = neckJointIndex;
     initJointTransforms(parentTransform);
 
     int numStates = _jointStates.size();
@@ -65,6 +67,8 @@ float Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform
     for (int i = 0; i < _jointStates.size(); i++) {
         _jointStates[i].slaveVisibleTransform();
     }
+
+    initHeadBones();
 
     return radius;
 }
@@ -106,7 +110,8 @@ JointState Rig::getJointState(int jointIndex) const {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return JointState();
     }
-    return _jointStates[jointIndex];
+    // return _jointStates[jointIndex];
+    return maybeCauterizeHead(jointIndex);
 }
 
 bool Rig::getJointStateRotation(int index, glm::quat& rotation) const {
@@ -144,6 +149,13 @@ void Rig::clearJointAnimationPriority(int index) {
     }
 }
 
+float Rig::getJointAnimatinoPriority(int index) {
+    if (index != -1 && index < _jointStates.size()) {
+        return _jointStates[index]._animationPriority;
+    }
+    return 0.0f;
+}
+
 void Rig::setJointAnimatinoPriority(int index, float newPriority) {
     if (index != -1 && index < _jointStates.size()) {
         _jointStates[index]._animationPriority = newPriority;
@@ -173,7 +185,8 @@ bool Rig::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position,
         return false;
     }
     // position is in world-frame
-    position = translation + rotation * _jointStates[jointIndex].getPosition();
+    // position = translation + rotation * _jointStates[jointIndex].getPosition();
+    position = translation + rotation * maybeCauterizeHead(jointIndex).getPosition();
     return true;
 }
 
@@ -182,7 +195,7 @@ bool Rig::getJointPosition(int jointIndex, glm::vec3& position) const {
         return false;
     }
     // position is in model-frame
-    position = extractTranslation(_jointStates[jointIndex].getTransform());
+    position = extractTranslation(maybeCauterizeHead(jointIndex).getTransform());
     return true;
 }
 
@@ -190,7 +203,7 @@ bool Rig::getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const 
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
     }
-    result = rotation * _jointStates[jointIndex].getRotation();
+    result = rotation * maybeCauterizeHead(jointIndex).getRotation();
     return true;
 }
 
@@ -198,7 +211,7 @@ bool Rig::getJointRotation(int jointIndex, glm::quat& rotation) const {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
     }
-    rotation = _jointStates[jointIndex].getRotation();
+    rotation = maybeCauterizeHead(jointIndex).getRotation();
     return true;
 }
 
@@ -206,7 +219,7 @@ bool Rig::getJointCombinedRotation(int jointIndex, glm::quat& result, const glm:
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
     }
-    result = rotation * _jointStates[jointIndex].getRotation();
+    result = rotation * maybeCauterizeHead(jointIndex).getRotation();
     return true;
 }
 
@@ -217,7 +230,7 @@ bool Rig::getVisibleJointPositionInWorldFrame(int jointIndex, glm::vec3& positio
         return false;
     }
     // position is in world-frame
-    position = translation + rotation * _jointStates[jointIndex].getVisiblePosition();
+    position = translation + rotation * maybeCauterizeHead(jointIndex).getVisiblePosition();
     return true;
 }
 
@@ -225,7 +238,7 @@ bool Rig::getVisibleJointRotationInWorldFrame(int jointIndex, glm::quat& result,
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
     }
-    result = rotation * _jointStates[jointIndex].getVisibleRotation();
+    result = rotation * maybeCauterizeHead(jointIndex).getVisibleRotation();
     return true;
 }
 
@@ -233,14 +246,14 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return glm::mat4();
     }
-    return _jointStates[jointIndex].getTransform();
+    return maybeCauterizeHead(jointIndex).getTransform();
 }
 
 glm::mat4 Rig::getJointVisibleTransform(int jointIndex) const {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return glm::mat4();
     }
-    return _jointStates[jointIndex].getVisibleTransform();
+    return maybeCauterizeHead(jointIndex).getVisibleTransform();
 }
 
 void Rig::simulateInternal(float deltaTime, glm::mat4 parentTransform) {
@@ -492,7 +505,7 @@ glm::vec3 Rig::getJointDefaultTranslationInConstrainedFrame(int jointIndex) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return glm::vec3();
     }
-    return _jointStates[jointIndex].getDefaultTranslationInConstrainedFrame();
+    return maybeCauterizeHead(jointIndex).getDefaultTranslationInConstrainedFrame();
 }
 
 glm::quat Rig::setJointRotationInConstrainedFrame(int jointIndex, glm::quat targetRotation, float priority, bool constrain) {
@@ -537,5 +550,53 @@ glm::quat Rig::getJointDefaultRotationInParentFrame(int jointIndex) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return glm::quat();
     }
-    return _jointStates[jointIndex].getDefaultRotationInParentFrame();
+    return maybeCauterizeHead(jointIndex).getDefaultRotationInParentFrame();
+}
+
+void Rig::initHeadBones() {
+    if (_neckJointIndex == -1) {
+        return;
+    }
+    _headBones.clear();
+    std::queue<int> q;
+    q.push(_neckJointIndex);
+    _headBones.push_back(_neckJointIndex);
+
+    // fbxJoints only hold links to parents not children, so we have to do a bit of extra work here.
+    while (q.size() > 0) {
+        int jointIndex = q.front();
+        for (int i = 0; i < _jointStates.size(); i++) {
+            const FBXJoint& fbxJoint = _jointStates[i].getFBXJoint();
+            if (jointIndex == fbxJoint.parentIndex) {
+                _headBones.push_back(i);
+                q.push(i);
+            }
+        }
+        q.pop();
+    }
+}
+
+JointState Rig::maybeCauterizeHead(int jointIndex) const {
+    // if (_headBones.contains(jointIndex)) {
+    // XXX fix this... make _headBones a hash?  add a flag to JointState?
+    if (_neckJointIndex != -1 &&
+        _isFirstPerson &&
+        std::find(_headBones.begin(), _headBones.end(), jointIndex) != _headBones.end()) {
+        glm::vec4 trans = _jointStates[jointIndex].getTransform()[3];
+        glm::vec4 zero(0, 0, 0, 0);
+        glm::mat4 newXform(zero, zero, zero, trans);
+        JointState jointStateCopy = _jointStates[jointIndex];
+        jointStateCopy.setTransform(newXform);
+        jointStateCopy.setVisibleTransform(newXform);
+        return jointStateCopy;
+    } else {
+        return _jointStates[jointIndex];
+    }
+}
+
+void Rig::setFirstPerson(bool isFirstPerson) {
+    if (_isFirstPerson != isFirstPerson) {
+        _isFirstPerson = isFirstPerson;
+        _jointsAreDirty = true;
+    }
 }

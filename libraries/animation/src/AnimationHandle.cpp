@@ -176,8 +176,7 @@ void AnimationHandle::replaceMatchingPriorities(float newPriority) {
     for (int i = 0; i < _jointMappings.size(); i++) {
         int mapping = _jointMappings.at(i);
         if (mapping != -1) {
-            JointState state = _rig->getJointState(mapping);
-            if (_priority == state._animationPriority) {
+            if (_priority == _rig->getJointAnimatinoPriority(mapping)) {
                 _rig->setJointAnimatinoPriority(mapping, newPriority);
             }
         }
@@ -188,8 +187,7 @@ void AnimationHandle::restoreJoints() {
     for (int i = 0; i < _jointMappings.size(); i++) {
         int mapping = _jointMappings.at(i);
         if (mapping != -1) {
-            JointState state = _rig->getJointState(mapping);
-            _rig->restoreJointRotation(mapping, 1.0f, state._animationPriority);
+            _rig->restoreJointRotation(mapping, 1.0f, _rig->getJointAnimatinoPriority(mapping));
         }
     }
 }

@@ -103,11 +103,8 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
     _rig(rig),
-    _firstPersonSkeletonModel(this, nullptr, rig),
     _prevShouldDrawHead(true)
 {
-    _firstPersonSkeletonModel.setIsFirstPerson(true);
-
     ShapeCollider::initDispatchTable();
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
@@ -141,7 +138,6 @@ QByteArray MyAvatar::toByteArray() {
 
 void MyAvatar::reset() {
     _skeletonModel.reset();
-    _firstPersonSkeletonModel.reset();
     getHead()->reset();
 
     _targetVelocity = glm::vec3(0.0f);
@@ -200,7 +196,6 @@ void MyAvatar::simulate(float deltaTime) {
     {
         PerformanceTimer perfTimer("skeleton");
         _skeletonModel.simulate(deltaTime);
-        _firstPersonSkeletonModel.simulate(deltaTime);
     }
 
     if (!_skeletonModel.hasSkeleton()) {
@@ -1028,15 +1023,8 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
     if (_useFullAvatar) {
         _skeletonModel.setVisibleInScene(_prevShouldDrawHead, scene);
-
-        const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_body.fst");
-        _firstPersonSkeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
-        _firstPersonSkeletonModel.setVisibleInScene(!_prevShouldDrawHead, scene);
     } else {
         _skeletonModel.setVisibleInScene(true, scene);
-
-        _firstPersonSkeletonModel.setVisibleInScene(false, scene);
-        _firstPersonSkeletonModel.reset();
     }
 }
 
@@ -1254,23 +1242,14 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
     const bool shouldDrawHead = shouldRenderHead(renderArgs);
 
     _skeletonModel.initWhenReady(scene);
-    if (_useFullAvatar) {
-        _firstPersonSkeletonModel.initWhenReady(scene);
-    }
 
     if (shouldDrawHead != _prevShouldDrawHead) {
         if (_useFullAvatar) {
-            if (shouldDrawHead) {
-                _skeletonModel.setVisibleInScene(true, scene);
-                _firstPersonSkeletonModel.setVisibleInScene(false, scene);
-            } else {
-                _skeletonModel.setVisibleInScene(false, scene);
-                _firstPersonSkeletonModel.setVisibleInScene(true, scene);
-            }
+            _skeletonModel.setVisibleInScene(true, scene);
+            _rig->setFirstPerson(!shouldDrawHead);
         } else {
             getHead()->getFaceModel().setVisibleInScene(shouldDrawHead, scene);
         }
-
     }
     _prevShouldDrawHead = shouldDrawHead;
 }
