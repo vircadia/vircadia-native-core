@@ -91,6 +91,6 @@ private:
 typedef QSharedPointer<Node> SharedNodePointer;
 Q_DECLARE_METATYPE(SharedNodePointer)
 
-QDebug operator<<(QDebug debug, const Node &message);
+QDebug operator<<(QDebug debug, const Node& node);
 
 #endif // hifi_Node_h

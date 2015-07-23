@@ -90,7 +90,7 @@ QDataStream& operator>>(QDataStream& in, Node& node) {
     return in;
 }
 
-QDebug operator<<(QDebug debug, const Node &node) {
+QDebug operator<<(QDebug debug, const Node& node) {
     debug.nospace() << NodeType::getNodeTypeName(node.getType());
     if (node.getType() == NodeType::Unassigned) {
         debug.nospace() << " (1)";
