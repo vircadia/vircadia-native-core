@@ -478,7 +478,7 @@ bool Model::updateGeometry() {
 void Model::initJointStates(QVector<JointState> states) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-    _boundingRadius = _rig->initJointStates(states, parentTransform);
+    _boundingRadius = _rig->initJointStates(states, parentTransform, geometry.neckJointIndex);
 }
 
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
@@ -1338,28 +1338,6 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
             snapToRegistrationPoint();
         }
         simulateInternal(deltaTime);
-    }
-}
-
-void Model::updateClusterMatrices() {
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::mat4 modelToWorld = glm::mat4_cast(_rotation);
-    for (int i = 0; i < _meshStates.size(); i++) {
-        MeshState& state = _meshStates[i];
-        const FBXMesh& mesh = geometry.meshes.at(i);
-        if (_showTrueJointTransforms) {
-            for (int j = 0; j < mesh.clusters.size(); j++) {
-                const FBXCluster& cluster = mesh.clusters.at(j);
-                state.clusterMatrices[j] =
-                    modelToWorld * _rig->getJointTransform(cluster.jointIndex) * cluster.inverseBindMatrix;
-            }
-        } else {
-            for (int j = 0; j < mesh.clusters.size(); j++) {
-                const FBXCluster& cluster = mesh.clusters.at(j);
-                state.clusterMatrices[j] =
-                    modelToWorld * _rig->getJointVisibleTransform(cluster.jointIndex) * cluster.inverseBindMatrix;
-            }
-        }
     }
 }
 

@@ -112,9 +112,6 @@ public:
 
     float getHeadClipDistance() const { return _headClipDistance; }
 
-    void setIsFirstPerson(bool value) { _isFirstPerson = value; }
-    bool getIsFirstPerson() const { return _isFirstPerson; }
-
     virtual void onInvalidate() override;
 
 signals:
@@ -138,6 +135,7 @@ protected:
     void maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, int index);
     void maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, int index);
 
+    void updateClusterMatrices();
     void cauterizeHead();
     void initHeadBones();
     void invalidateHeadBones();
@@ -173,9 +171,6 @@ private:
     glm::vec3 _clampedFootPosition;
 
     float _headClipDistance;  // Near clip distance to use if no separate head model
-
-    bool _isFirstPerson;
-    std::vector<int> _headBones;
 };
 
 #endif // hifi_SkeletonModel_h

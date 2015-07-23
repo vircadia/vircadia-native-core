@@ -308,9 +308,6 @@ protected:
         _calculatedMeshTrianglesValid = false;
     }
 
-    // rebuild the clusterMatrices from the current jointStates
-    void updateClusterMatrices();
-
     // hook for derived classes to be notified when setUrl invalidates the current model.
     virtual void onInvalidate() {};
 
