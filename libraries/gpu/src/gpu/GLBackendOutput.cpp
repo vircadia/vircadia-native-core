@@ -11,6 +11,8 @@
 #include "GPULogging.h"
 #include "GLBackendShared.h"
 
+#include "qimage.h"
+
 using namespace gpu;
 
 GLBackend::GLFramebuffer::GLFramebuffer() {}
@@ -190,4 +192,14 @@ void GLBackend::do_blit(Batch& batch, uint32 paramOffset) {
     if (_output._framebuffer) {
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, getFramebufferID(_output._framebuffer));
     }
+}
+
+
+void GLBackend::downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) {
+   
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(srcFramebuffer));
+    glReadPixels(region.x, region.y, region.z, region.w, GL_BGRA, GL_UNSIGNED_BYTE, destImage.bits());
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+
+    (void) CHECK_GL_ERROR();
 }

@@ -38,6 +38,10 @@ public:
     // Let's try to avoid to do that as much as possible!
     virtual void syncCache();
 
+    // This is the ugly "download the pixels to sysmem for taking a snapshot"
+    // Just avoid using it, it's ugly and will break performances
+    virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage);
+
     static bool checkGLError(const char* name = nullptr);
 
     // Only checks in debug builds

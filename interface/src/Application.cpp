@@ -2998,18 +2998,8 @@ PickRay Application::computePickRay(float x, float y) const {
 }
 
 QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
-/*    auto primaryFramebuffer = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
-    glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFramebuffer));
 
-    // clear the alpha channel so the background is transparent
-    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
-    glClearColor(0.0, 0.0, 0.0, 0.0);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
-    */
-
- //   const int BILLBOARD_SIZE = 64;
-    const int BILLBOARD_SIZE = 256;
+    const int BILLBOARD_SIZE = 64;
     _glWidget->makeCurrent();
 
     auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
@@ -3020,26 +3010,18 @@ QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
         batch.setFramebuffer(primaryFbo);
         renderArgs->_context->render(batch);
     }
-            renderArgs->_renderMode = RenderArgs::MIRROR_RENDER_MODE;
-    renderRearViewMirror(renderArgs, QRect(0, /*_glWidget->getDeviceHeight() - BILLBOARD_SIZE*/ 0,
-                               BILLBOARD_SIZE, BILLBOARD_SIZE),
-                         false);
-        renderArgs->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
+    renderArgs->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
+    renderRearViewMirror(renderArgs, QRect(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
 
-    auto selfieFbo = DependencyManager::get<FramebufferCache>()->getSelfieFramebuffer();
     {
         auto mirrorViewport = glm::ivec4(0, 0,BILLBOARD_SIZE, BILLBOARD_SIZE);
         gpu::Batch batch;
-       // batch.blit(primaryFbo, mirrorViewport, selfieFbo, mirrorViewport);
         batch.setFramebuffer(nullptr);
         renderArgs->_context->render(batch);
     }
     
-
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
-    glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFbo));
-    glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    renderArgs->_context->downloadFramebuffer(primaryFbo, glm::ivec4(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE), image);
 
     return image;
 }

@@ -14,8 +14,6 @@
 #include "Texture.h"
 #include <memory>
 
-class QImage;
-
 namespace gpu {
 
 typedef Element Format;
