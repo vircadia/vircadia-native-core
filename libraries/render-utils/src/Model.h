@@ -64,7 +64,7 @@ public:
 
     static void setAbstractViewStateInterface(AbstractViewStateInterface* viewState) { _viewState = viewState; }
 
-    Model(QObject* parent = nullptr, RigPointer rig = nullptr);
+    Model(RigPointer rig, QObject* parent = nullptr);
     virtual ~Model();
     
     /// enables/disables scale to fit behavior, the model will be automatically scaled to the specified largest dimension
@@ -162,7 +162,7 @@ public:
     const QSharedPointer<NetworkGeometry> getCollisionGeometry(bool delayLoad = true);
     
     /// Returns the number of joint states in the model.
-    int getJointStateCount() const { return _jointStates.size(); }
+    int getJointStateCount() const { return _rig->getJointStateCount(); }
     
     /// Fetches the joint state at the specified index.
     /// \return whether or not the joint state is "valid" (that is, non-default)
@@ -224,9 +224,9 @@ public:
 
     void setShowTrueJointTransforms(bool show) { _showTrueJointTransforms = show; }
 
-    QVector<JointState>& getJointStates() { return _jointStates; }
-    const QVector<JointState>& getJointStates() const { return _jointStates; }
- 
+    // QVector<JointState>& getJointStates() { return _rig->getJointStates(); }
+    // const QVector<JointState>& getJointStates() const { return _jointStates; }
+
     void inverseKinematics(int jointIndex, glm::vec3 position, const glm::quat& rotation, float priority);
     
     Q_INVOKABLE void setTextureWithNameToURL(const QString& name, const QUrl& url)
@@ -259,8 +259,6 @@ protected:
     glm::vec3 _registrationPoint = glm::vec3(0.5f); /// the point in model space our center is snapped to
     
     bool _showTrueJointTransforms;
-    
-    QVector<JointState> _jointStates;
 
     class MeshState {
     public:
@@ -283,8 +281,6 @@ protected:
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);
 
-    virtual void updateVisibleJointStates();
-    
     /// \param jointIndex index of joint in model structure
     /// \param position position of joint in model-frame
     /// \param rotation rotation of joint in model-frame

@@ -35,6 +35,7 @@
 #include "Menu.h"
 #include "MyAvatar.h"
 #include "SceneScriptingInterface.h"
+#include "AvatarRig.h"
 
 // 70 times per second - target is 60hz, but this helps account for any small deviations
 // in the update loop
@@ -65,7 +66,7 @@ AvatarManager::AvatarManager(QObject* parent) :
 {
     // register a meta type for the weak pointer we'll use for the owning avatar mixer for each avatar
     qRegisterMetaType<QWeakPointer<Node> >("NodeWeakPointer");
-    _myAvatar = std::make_shared<MyAvatar>(std::make_shared<Rig>());
+    _myAvatar = std::make_shared<MyAvatar>(std::make_shared<AvatarRig>());
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
@@ -160,7 +161,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
-    return AvatarSharedPointer(std::make_shared<Avatar>(std::make_shared<Rig>()));
+    return AvatarSharedPointer(std::make_shared<Avatar>(std::make_shared<AvatarRig>()));
 }
 
 // virtual
