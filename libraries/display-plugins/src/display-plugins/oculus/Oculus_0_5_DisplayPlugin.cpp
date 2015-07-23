@@ -112,7 +112,7 @@ void Oculus_0_5_DisplayPlugin::deactivate(PluginContainer* container) {
 
 void Oculus_0_5_DisplayPlugin::preRender() {
     OculusBaseDisplayPlugin::preRender();
-//    ovrHmd_BeginFrame(_hmd, _frameIndex);
+    ovrHmd_BeginFrame(_hmd, _frameIndex);
 }
 
 void Oculus_0_5_DisplayPlugin::preDisplay() {
@@ -121,38 +121,36 @@ void Oculus_0_5_DisplayPlugin::preDisplay() {
 
 void Oculus_0_5_DisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {
     ++_frameIndex;
-    glUseProgram(0);
-    glColor3f(1, 1, 1);
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, finalTexture);
-    glBegin(GL_QUADS);
-    glTexCoord2f(0, 0);
-    glVertex2f(-1, -1);
-    glTexCoord2f(1, 0);
-    glVertex2f(1, -1);
-    glTexCoord2f(1, 1);
-    glVertex2f(1, 1);
-    glTexCoord2f(0, 1);
-    glVertex2f(-1, 1);
-    glEnd();
     ovr_for_each_eye([&](ovrEyeType eye) {
         reinterpret_cast<ovrGLTexture&>(_eyeTextures[eye]).OGL.TexId = finalTexture;
     });
-//    ovrHmd_EndFrame(_hmd, _eyePoses, _eyeTextures);
+    ovrHmd_EndFrame(_hmd, _eyePoses, _eyeTextures);
 }
 
+bool _hswDismissed{false};
 // Pass input events on to the application
 bool Oculus_0_5_DisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
+    
+    switch (event->type()) {
+        case QEvent::KeyPress:
+            if (!_hswDismissed) {
+                static ovrHSWDisplayState hswState;
+                ovrHmd_GetHSWDisplayState(_hmd, &hswState);
+                if (hswState.Displayed) {
+                    ovrHmd_DismissHSWDisplay(_hmd);
+                } else {
+                    _hswDismissed = true;
+                }
+            }
+    }
     return OculusBaseDisplayPlugin::eventFilter(receiver, event);
 }
 
-/*
-    The swapbuffer call here is only required if we want to mirror the content to the screen.
-    However, it should only be done if we can reliably disable v-sync on the mirror surface,
-    otherwise the swapbuffer delay will interefere with the framerate of the headset
-*/
+// FIXME mirroring tot he main window is diffucult on OSX because it requires that we
+// trigger a swap, which causes the client to wait for the v-sync of the main screen running
+// at 60 Hz.  This would introduce judder.  Perhaps we can push mirroring to a separate
+// thread
 void Oculus_0_5_DisplayPlugin::finishFrame() {
-    _hmdWindow->swapBuffers();
     _hmdWindow->doneCurrent();
 };
 
