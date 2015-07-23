@@ -101,9 +101,13 @@ void RenderablePolyLineEntityItem::updateGeometry() {
         
         //head
         if( i > startHeadIndex) {
-            uCoord = float(i - startHeadIndex)/numHeadStrips * headLength + headStart;
+            uCoord = float( (i+ 1) - startHeadIndex)/numHeadStrips * headLength + headStart;
             qDebug()<< "ucoord:" << uCoord;
         }
+        //make sure we map to the end of texture;
+//        if (i == _normals.size() -1) {
+//            uCoord = 1;
+//        }
         uv = vec2(uCoord, vCoord);
      
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
