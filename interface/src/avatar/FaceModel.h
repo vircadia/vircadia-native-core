@@ -22,12 +22,12 @@ class FaceModel : public Model {
     
 public:
 
-    FaceModel(Head* owningHead);
+    FaceModel(Head* owningHead, RigPointer rig);
 
     virtual void simulate(float deltaTime, bool fullUpdate = true);
     
-    virtual void maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
-    virtual void maybeUpdateEyeRotation(Model* model, const JointState& parentState, const FBXJoint& joint, JointState& state);
+    virtual void maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, int index);
+    virtual void maybeUpdateEyeRotation(Model* model, const JointState& parentState, const FBXJoint& joint, int index);
     virtual void updateJointState(int index);
 
     /// Retrieve the positions of up to two eye meshes.
