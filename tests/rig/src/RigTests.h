@@ -15,7 +15,7 @@
 #include <QtTest/QtTest>
 #include <Rig.h>
 
-#include "../QTestExtensions.h"
+//#include "../QTestExtensions.h"
 
 
 // The QTest terminology is not consistent with itself or with industry:
