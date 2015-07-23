@@ -25,6 +25,8 @@
 #include <GLMHelpers.h>
 
 
+QString const BillboardOverlay::TYPE = "billboard";
+
 BillboardOverlay::BillboardOverlay() {
       _isLoaded = false;
 }
@@ -39,17 +41,13 @@ BillboardOverlay::BillboardOverlay(const BillboardOverlay* billboardOverlay) :
 {
 }
 
-bool BillboardOverlay::setTransforms(Transform *transform) {
+void BillboardOverlay::setTransforms(Transform *transform) {
     PanelAttachable::setTransforms(transform);
-        if (_isFacingAvatar) {
-            glm::quat rotation = Application::getInstance()->getCamera()->getOrientation();
-            rotation *= glm::angleAxis(glm::pi<float>(), IDENTITY_UP);
-            setRotation(rotation);
-            return true;
-        }
-        return false;
-//    }
-//    return true;
+    if (_isFacingAvatar) {
+        glm::quat rotation = Application::getInstance()->getCamera()->getOrientation();
+        rotation *= glm::angleAxis(glm::pi<float>(), IDENTITY_UP);
+        setRotation(rotation);
+    }
 }
 
 void BillboardOverlay::update(float deltatime) {

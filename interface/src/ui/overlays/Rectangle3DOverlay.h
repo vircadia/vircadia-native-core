@@ -17,6 +17,9 @@ class Rectangle3DOverlay : public Planar3DOverlay {
     Q_OBJECT
     
 public:
+    static QString const TYPE;
+    virtual QString getType() const { return TYPE; }
+
     Rectangle3DOverlay();
     Rectangle3DOverlay(const Rectangle3DOverlay* rectangle3DOverlay);
     ~Rectangle3DOverlay();

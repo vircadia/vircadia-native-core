@@ -66,12 +66,16 @@ public:
     void update(float deltatime);
     void renderHUD(RenderArgs* renderArgs);
 
+    Overlay::Pointer getOverlay(unsigned int id) const;
+    FloatingUIPanel::Pointer getPanel(unsigned int id) const { return _panels[id]; }
+
 public slots:
     /// adds an overlay with the specific properties
     unsigned int addOverlay(const QString& type, const QScriptValue& properties);
 
     /// adds an overlay that's already been created
-    unsigned int addOverlay(Overlay* overlay);
+    unsigned int addOverlay(Overlay* overlay) { return addOverlay(Overlay::Pointer(overlay)); }
+    unsigned int addOverlay(Overlay::Pointer overlay);
 
     /// clones an existing overlay
     unsigned int cloneOverlay(unsigned int id);
@@ -82,6 +86,9 @@ public slots:
 
     /// deletes a particle
     void deleteOverlay(unsigned int id);
+
+    ///
+    QString getOverlayType(unsigned int overlayId) const;
 
     /// returns the top most 2D overlay at the screen point, or 0 if not overlay at that point
     unsigned int getOverlayAtPoint(const glm::vec2& point);
@@ -101,7 +108,7 @@ public slots:
 
 
     /// adds a panel that has already been created
-    unsigned int addPanel(FloatingUIPanel* panel);
+    unsigned int addPanel(FloatingUIPanel::Pointer panel);
 
     /// creates and adds a panel based on a set of properties
     unsigned int addPanel(const QScriptValue& properties);
@@ -117,8 +124,7 @@ public slots:
 
 private:
     void cleanupOverlaysToDelete();
-    Overlay::Pointer getOverlay(unsigned int id) const;
-    void setAttachedPanel(Overlay* overlay, unsigned int overlayId, const QScriptValue& property);
+    void setAttachedPanel(Overlay::Pointer overlay, unsigned int overlayId, const QScriptValue& property);
 
     QMap<unsigned int, Overlay::Pointer> _overlaysHUD;
     QMap<unsigned int, Overlay::Pointer> _overlaysWorld;

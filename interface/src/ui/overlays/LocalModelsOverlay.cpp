@@ -14,6 +14,9 @@
 #include <EntityTreeRenderer.h>
 #include <gpu/Batch.h>
 
+
+QString const LocalModelsOverlay::TYPE = "localmodels";
+
 LocalModelsOverlay::LocalModelsOverlay(EntityTreeRenderer* entityTreeRenderer) :
     Volume3DOverlay(),
     _entityTreeRenderer(entityTreeRenderer) {

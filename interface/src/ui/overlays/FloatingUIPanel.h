@@ -25,22 +25,31 @@ public:
 
     void init(QScriptEngine* scriptEngine) { _scriptEngine = scriptEngine; }
 
+    glm::vec3 getAnchorPosition() const { return _anchorPosition(); }
+    glm::quat getOffsetRotation() const { return _offsetRotation(); }
     glm::vec3 getOffsetPosition() const { return _offsetPosition; }
-    glm::quat getOffsetRotation() const;
-    glm::quat getActualOffsetRotation() const { return _offsetRotation; }
     glm::quat getFacingRotation() const { return _facingRotation; }
+    glm::vec3 getPosition() const;
+    glm::quat getRotation() const;
 
-    void setOffsetPosition(glm::vec3 position) { _offsetPosition = position; };
-    void setOffsetRotation(glm::quat rotation) { _offsetRotation = rotation; };
-    void setFacingRotation(glm::quat rotation) { _facingRotation = rotation; };
+    void setAnchorPosition(const std::function<glm::vec3()>& func) { _anchorPosition = func; }
+    void setAnchorPosition(glm::vec3 position);
+    void setOffsetRotation(const std::function<glm::quat()>& func) { _offsetRotation = func; }
+    void setOffsetRotation(glm::quat rotation);
+    void setOffsetPosition(glm::vec3 position) { _offsetPosition = position; }
+    void setFacingRotation(glm::quat rotation) { _facingRotation = rotation; }
 
     QScriptValue getProperty(const QString& property);
     void setProperties(const QScriptValue& properties);
 
 private:
-    glm::vec3 _offsetPosition = glm::vec3(0, 0, 0);
-    glm::quat _offsetRotation = glm::quat(0, 0, 0, 0);
-    glm::quat _facingRotation = glm::quat(1, 0, 0, 0);
+    static std::function<glm::vec3()> const AVATAR_POSITION;
+    static std::function<glm::quat()> const AVATAR_ORIENTATION;
+
+    std::function<glm::vec3()> _anchorPosition;
+    std::function<glm::quat()> _offsetRotation;
+    glm::vec3 _offsetPosition{0, 0, 0};
+    glm::quat _facingRotation{1, 0, 0, 0};
     QScriptEngine* _scriptEngine;
 };
 

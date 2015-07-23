@@ -15,6 +15,8 @@
 #include <RegisteredMetaTypes.h>
 
 
+QString const Circle3DOverlay::TYPE = "circle3d";
+
 Circle3DOverlay::Circle3DOverlay() :
     _startAt(0.0f),
     _endAt(360.0f),

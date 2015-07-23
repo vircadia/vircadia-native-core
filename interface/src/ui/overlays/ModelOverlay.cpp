@@ -13,6 +13,9 @@
 
 #include "Application.h"
 
+
+QString const ModelOverlay::TYPE = "model";
+
 ModelOverlay::ModelOverlay()
     : _model(),
       _modelTextures(QVariantMap()),

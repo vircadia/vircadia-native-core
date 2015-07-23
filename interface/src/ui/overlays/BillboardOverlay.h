@@ -20,6 +20,9 @@
 class BillboardOverlay : public Planar3DOverlay, public PanelAttachable {
     Q_OBJECT
 public:
+    static QString const TYPE;
+    virtual QString getType() const { return TYPE; }
+
     BillboardOverlay();
     BillboardOverlay(const BillboardOverlay* billboardOverlay);
 
@@ -40,11 +43,10 @@ public:
     virtual BillboardOverlay* createClone() const;
 
 protected:
-    bool setTransforms(Transform* transform);
+    void setTransforms(Transform* transform);
 
 private:
     void setBillboardURL(const QString& url);
-//    glm::quat calculateRotation(glm::quat cameraOrientation) const;
 
     QString _url;
     NetworkTexturePointer _texture;

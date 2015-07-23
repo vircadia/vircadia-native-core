@@ -135,13 +135,13 @@ Overlay::Pointer Overlays::getOverlay(unsigned int id) const {
     return nullptr;
 }
 
-void Overlays::setAttachedPanel(Overlay* overlay, unsigned int overlayId, const QScriptValue& property) {
-    if (PanelAttachable* attachable = dynamic_cast<PanelAttachable*>(overlay)) {
+void Overlays::setAttachedPanel(Overlay::Pointer overlay, unsigned int overlayId, const QScriptValue& property) {
+    auto attachable = std::dynamic_pointer_cast<PanelAttachable>(overlay);
+    if (attachable) {
         if (property.isValid()) {
             unsigned int attachedPanelId = property.toVariant().toUInt();
-            FloatingUIPanel* panel = nullptr;
             if (_panels.contains(attachedPanelId)) {
-                panel = _panels[attachedPanelId].get();
+                auto panel = _panels[attachedPanelId];
                 panel->children.append(overlayId);
                 attachable->setAttachedPanel(panel);
             } else {
@@ -153,32 +153,32 @@ void Overlays::setAttachedPanel(Overlay* overlay, unsigned int overlayId, const 
 }
 
 unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& properties) {
-    Overlay* thisOverlay = NULL;
+    Overlay::Pointer thisOverlay = nullptr;
 
-    if (type == "image") {
-        thisOverlay = new ImageOverlay();
-    } else if (type == "text") {
-        thisOverlay = new TextOverlay();
-    } else if (type == "text3d") {
-        thisOverlay = new Text3DOverlay();
-    } else if (type == "cube") {
-        thisOverlay = new Cube3DOverlay();
-    } else if (type == "sphere") {
-        thisOverlay = new Sphere3DOverlay();
-    } else if (type == "circle3d") {
-        thisOverlay = new Circle3DOverlay();
-    } else if (type == "rectangle3d") {
-        thisOverlay = new Rectangle3DOverlay();
-    } else if (type == "line3d") {
-        thisOverlay = new Line3DOverlay();
-    } else if (type == "grid") {
-        thisOverlay = new Grid3DOverlay();
-    } else if (type == "localmodels") {
-        thisOverlay = new LocalModelsOverlay(Application::getInstance()->getEntityClipboardRenderer());
-    } else if (type == "model") {
-        thisOverlay = new ModelOverlay();
-    } else if (type == "billboard") {
-        thisOverlay = new BillboardOverlay();
+    if (type == ImageOverlay::TYPE) {
+        thisOverlay = std::make_shared<ImageOverlay>();
+    } else if (type == TextOverlay::TYPE) {
+        thisOverlay = std::make_shared<TextOverlay>();
+    } else if (type == Text3DOverlay::TYPE) {
+        thisOverlay = std::make_shared<Text3DOverlay>();
+    } else if (type == Cube3DOverlay::TYPE) {
+        thisOverlay = std::make_shared<Cube3DOverlay>();
+    } else if (type == Sphere3DOverlay::TYPE) {
+        thisOverlay = std::make_shared<Sphere3DOverlay>();
+    } else if (type == Circle3DOverlay::TYPE) {
+        thisOverlay = std::make_shared<Circle3DOverlay>();
+    } else if (type == Rectangle3DOverlay::TYPE) {
+        thisOverlay = std::make_shared<Rectangle3DOverlay>();
+    } else if (type == Line3DOverlay::TYPE) {
+        thisOverlay = std::make_shared<Line3DOverlay>();
+    } else if (type == Grid3DOverlay::TYPE) {
+        thisOverlay = std::make_shared<Grid3DOverlay>();
+    } else if (type == LocalModelsOverlay::TYPE) {
+        thisOverlay = std::make_shared<LocalModelsOverlay>(Application::getInstance()->getEntityClipboardRenderer());
+    } else if (type == ModelOverlay::TYPE) {
+        thisOverlay = std::make_shared<ModelOverlay>();
+    } else if (type == BillboardOverlay::TYPE) {
+        thisOverlay = std::make_shared<BillboardOverlay>();
     }
 
     if (thisOverlay) {
@@ -190,29 +190,28 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
     return 0;
 }
 
-unsigned int Overlays::addOverlay(Overlay* overlay) {
-    Overlay::Pointer overlayPointer(overlay);
+unsigned int Overlays::addOverlay(Overlay::Pointer overlay) {
     overlay->init(_scriptEngine);
 
     QWriteLocker lock(&_lock);
     unsigned int thisID = _nextOverlayID;
     _nextOverlayID++;
     if (overlay->is3D()) {
-        Base3DOverlay* overlay3D = static_cast<Base3DOverlay*>(overlay);
+        auto overlay3D = std::static_pointer_cast<Base3DOverlay>(overlay);
         if (overlay3D->getDrawOnHUD()) {
-            _overlaysHUD[thisID] = overlayPointer;
+            _overlaysHUD[thisID] = overlay;
         } else {
-            _overlaysWorld[thisID] = overlayPointer;
+            _overlaysWorld[thisID] = overlay;
 
             render::ScenePointer scene = Application::getInstance()->getMain3DScene();
             render::PendingChanges pendingChanges;
 
-            overlayPointer->addToScene(overlayPointer, scene, pendingChanges);
+            overlay->addToScene(overlay, scene, pendingChanges);
 
             scene->enqueuePendingChanges(pendingChanges);
         }
     } else {
-        _overlaysHUD[thisID] = overlayPointer;
+        _overlaysHUD[thisID] = overlay;
     }
 
     return thisID;
@@ -222,7 +221,7 @@ unsigned int Overlays::cloneOverlay(unsigned int id) {
     Overlay::Pointer thisOverlay = getOverlay(id);
 
     if (thisOverlay) {
-        return addOverlay(thisOverlay->createClone());
+        return addOverlay(Overlay::Pointer(thisOverlay->createClone()));
     } 
     
     return 0;  // Not found
@@ -253,7 +252,7 @@ bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
             thisOverlay->setProperties(properties);
         }
 
-        setAttachedPanel(thisOverlay.get(), id, properties.property("attachedPanel"));
+        setAttachedPanel(thisOverlay, id, properties.property("attachedPanel"));
 
         return true;
     }
@@ -276,6 +275,14 @@ void Overlays::deleteOverlay(unsigned int id) {
 
     QWriteLocker lock(&_deleteLock);
     _overlaysToDelete.push_back(overlayToDelete);
+}
+
+QString Overlays::getOverlayType(unsigned int overlayId) const {
+    Overlay::Pointer overlay = getOverlay(overlayId);
+    if (overlay) {
+        return overlay->getType();
+    }
+    return "";
 }
 
 unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
@@ -322,8 +329,9 @@ OverlayPropertyResult Overlays::getProperty(unsigned int id, const QString& prop
     QReadLocker lock(&_lock);
     if (thisOverlay) {
         if (property == "attachedPanel") {
-            if (FloatingUIPanel* panel = dynamic_cast<FloatingUIPanel*>(thisOverlay.get())) {
-                result.value = _panels.key(FloatingUIPanel::Pointer(panel));
+            auto panelAttachable = std::dynamic_pointer_cast<PanelAttachable>(thisOverlay);
+            if (panelAttachable) {
+                result.value = _panels.key(panelAttachable->getAttachedPanel());
             } else {
                 result.value = 0;
             }
@@ -499,19 +507,18 @@ QSizeF Overlays::textSize(unsigned int id, const QString& text) const {
     return QSizeF(0.0f, 0.0f);
 }
 
-unsigned int Overlays::addPanel(FloatingUIPanel* panel) {
+unsigned int Overlays::addPanel(FloatingUIPanel::Pointer panel) {
     QWriteLocker lock(&_lock);
 
-    FloatingUIPanel::Pointer panelPointer(panel);
     unsigned int thisID = _nextOverlayID;
     _nextOverlayID++;
-    _panels[thisID] = panelPointer;
+    _panels[thisID] = panel;
 
     return thisID;
 }
 
 unsigned int Overlays::addPanel(const QScriptValue& properties) {
-    FloatingUIPanel* panel = new FloatingUIPanel();
+    FloatingUIPanel::Pointer panel = std::make_shared<FloatingUIPanel>();
     panel->init(_scriptEngine);
     panel->setProperties(properties);
     return addPanel(panel);
