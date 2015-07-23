@@ -882,7 +882,7 @@ void Application::paintGL() {
         // NOTE: There is no batch associated with this renderArgs
         // the ApplicationOverlay class assumes it's viewport is setup to be the device size
         QSize size = qApp->getDeviceSize();
-        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());    
+        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
         _applicationOverlay.renderOverlay(&renderArgs);
     }
 
@@ -959,7 +959,7 @@ void Application::paintGL() {
             batch.setFramebuffer(primaryFbo);
             // clear the normal and specular buffers
             batch.clearFramebuffer(
-                gpu::Framebuffer::BUFFER_COLOR0 | 
+                gpu::Framebuffer::BUFFER_COLOR0 |
                 gpu::Framebuffer::BUFFER_COLOR1 |
                 gpu::Framebuffer::BUFFER_COLOR2 |
                 gpu::Framebuffer::BUFFER_DEPTH,
@@ -1761,8 +1761,25 @@ void Application::checkFPS() {
 }
 
 void Application::idle() {
-    PerformanceTimer perfTimer("idle");
+    PROFILE_RANGE(__FUNCTION__);
+    static SimpleAverage<float> interIdleDurations;
+    static uint64_t lastIdleEnd{ 0 };
 
+    if (lastIdleEnd != 0) {
+        uint64_t now = usecTimestampNow();
+        interIdleDurations.update(now - lastIdleEnd);
+        static uint64_t lastReportTime = now;
+        if ((now - lastReportTime) >= (USECS_PER_SECOND)) {
+            static QString LOGLINE("Average inter-idle time: %1 us for %2 samples");
+            if (Menu::getInstance()->isOptionChecked(MenuOption::LogExtraTimings)) {
+                qCDebug(interfaceapp_timing) << LOGLINE.arg((int)interIdleDurations.getAverage()).arg(interIdleDurations.getCount());
+            }
+            interIdleDurations.reset();
+            lastReportTime = now;
+        }
+    }
+
+    PerformanceTimer perfTimer("idle");
     if (_aboutToQuit) {
         return; // bail early, nothing to do here.
     }
@@ -1781,6 +1798,13 @@ void Application::idle() {
     }
     double timeSinceLastUpdate = (double)_lastTimeUpdated.nsecsElapsed() / 1000000.0;
     if (timeSinceLastUpdate > targetFramePeriod) {
+        
+        {
+            static const int IDLE_EVENT_PROCESS_MAX_TIME_MS = 2;
+            PerformanceTimer perfTimer("processEvents");
+            processEvents(QEventLoop::AllEvents, IDLE_EVENT_PROCESS_MAX_TIME_MS);
+        }
+        
         _lastTimeUpdated.start();
         {
             PerformanceTimer perfTimer("update");
@@ -1805,14 +1829,24 @@ void Application::idle() {
                 _idleLoopMeasuredJitter = _idleLoopStdev.getStDev();
                 _idleLoopStdev.reset();
             }
-
-            // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
-            idleTimer->start(2);
+        }
+        
+        // After finishing all of the above work, ensure the idle timer is set to the proper interval,
+        // depending on whether we're throttling or not.
+        // Once rendering is off on another thread we should be able to have Application::idle run at start(0) in
+        // perpetuity and not expect events to get backed up.
+        
+        static const int IDLE_TIMER_DELAY_MS = 0;
+        int desiredInterval = _glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : IDLE_TIMER_DELAY_MS;
+        
+        if (idleTimer->interval() != desiredInterval) {
+            idleTimer->start(desiredInterval);
         }
     }
 
     // check for any requested background downloads.
     emit checkBackgroundDownloads();
+    lastIdleEnd = usecTimestampNow();
 }
 
 void Application::setFullscreen(bool fullscreen) {
