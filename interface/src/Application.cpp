@@ -1020,9 +1020,9 @@ void Application::paintGL() {
                 displaySide(&renderArgs, eyeCamera);
                 if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && 
                     !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
-                    renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
-                    renderRearViewMirror(&renderArgs, _mirrorViewRect);
-                    renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
+//                    renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
+//                    renderRearViewMirror(&renderArgs, _mirrorViewRect);
+//                    renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
                 }
             }, [&] {
                 r.moveLeft(r.width());
@@ -1610,7 +1610,7 @@ void Application::focusOutEvent(QFocusEvent* event) {
     foreach(auto inputPlugin, inputPlugins) {
         QString name = inputPlugin->getName();
         QAction* action = Menu::getInstance()->getActionForOption(name);
-        if (action->isChecked()) {
+        if (action && action->isChecked()) {
             inputPlugin->pluginFocusOutEvent();
         }
     }
@@ -1955,7 +1955,7 @@ void Application::idle() {
             foreach(auto inputPlugin, inputPlugins) {
                 QString name = inputPlugin->getName();
                 QAction* action = Menu::getInstance()->getActionForOption(name);
-                if (action->isChecked()) {
+                if (action && action->isChecked()) {
                     inputPlugin->idle();
                 }
             }
@@ -2524,7 +2524,7 @@ void Application::update(float deltaTime) {
     foreach(auto inputPlugin, inputPlugins) {
         QString name = inputPlugin->getName();
         QAction* action = Menu::getInstance()->getActionForOption(name);
-        if (action->isChecked()) {
+        if (action && action->isChecked()) {
             inputPlugin->pluginUpdate(deltaTime, jointsCaptured);
             if (inputPlugin->isJointController()) {
                 jointsCaptured = true;

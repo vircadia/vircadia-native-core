@@ -541,7 +541,7 @@ private:
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
 
-    KeyboardMouseDevice* _keyboardMouseDevice;   // Default input device, the good old keyboard mouse and maybe touchpad
+    KeyboardMouseDevice* _keyboardMouseDevice{ nullptr };   // Default input device, the good old keyboard mouse and maybe touchpad
     MyAvatar* _myAvatar;                         // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
     Camera _myCamera;                            // My view onto the world
     Camera _mirrorCamera;                        // Cammera for mirror view
