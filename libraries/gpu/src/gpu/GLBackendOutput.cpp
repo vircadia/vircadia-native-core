@@ -196,9 +196,27 @@ void GLBackend::do_blit(Batch& batch, uint32 paramOffset) {
 
 
 void GLBackend::downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) {
-   
+    auto readFBO = gpu::GLBackend::getFramebufferID(srcFramebuffer);
+    if (srcFramebuffer && readFBO) {
+        if ((srcFramebuffer->getWidth() < (region.x + region.z)) || (srcFramebuffer->getHeight() < (region.y + region.w))) {
+          qCDebug(gpulogging) << "GLBackend::downloadFramebuffer : srcFramebuffer is too small to provide the region queried";
+          return;
+        }
+    }
+
+    if ((destImage.width() < region.z) || (destImage.height() < region.w)) {
+          qCDebug(gpulogging) << "GLBackend::downloadFramebuffer : destImage is too small to receive the region of the framebuffer";
+          return;
+    }
+
+    GLenum format = GL_BGRA;
+    if (destImage.format() != QImage::Format_ARGB32) {
+          qCDebug(gpulogging) << "GLBackend::downloadFramebuffer : destImage format must be FORMAT_ARGB32 to receive the region of the framebuffer";
+          return;
+    }
+
     glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(srcFramebuffer));
-    glReadPixels(region.x, region.y, region.z, region.w, GL_BGRA, GL_UNSIGNED_BYTE, destImage.bits());
+    glReadPixels(region.x, region.y, region.z, region.w, format, GL_UNSIGNED_BYTE, destImage.bits());
     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
     (void) CHECK_GL_ERROR();

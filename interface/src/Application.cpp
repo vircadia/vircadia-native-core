@@ -3436,7 +3436,6 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     gpu::Vec4i viewport;
     if (billboard) {
         QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
-       // viewport = gpu::Vec4i(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
         viewport = gpu::Vec4i(0, 0, region.width(), region.height());
     } else {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
@@ -3446,7 +3445,6 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
         int y = region.y() * ratio;
         int width = region.width() * ratio;
         int height = region.height() * ratio;
-      //  viewport = gpu::Vec4i(x, size.height() - y - height, width, height);
         viewport = gpu::Vec4i(0, 0, width, height);
     }
     renderArgs->_viewport = viewport;
