@@ -73,7 +73,11 @@ namespace PacketType {
         EntityQuery,
         EntityAdd,
         EntityErase,
-        EntityEdit
+        EntityEdit,
+        AssetGet,
+        AssetGetReply,
+        AssetUpload,
+        AssetUploadReply,
    };
 };
 

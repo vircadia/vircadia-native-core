@@ -33,7 +33,8 @@ public:
         UNUSED_1 = 4,
         UNUSED_2 = 5,
         EntityServerType = 6,
-        AllTypes = 7
+        AssetServerType = 7,
+        AllTypes = 8
     };
 
     enum Command {
