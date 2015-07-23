@@ -16,7 +16,7 @@ public:
     virtual const QString & getName() const override;
 
     void activate(PluginContainer * container) override;
-    void deactivate() override;
+    void deactivate(PluginContainer* container) override;
 
     virtual glm::uvec2 getRecommendedRenderSize() const override;
     virtual bool hasFocus() const override;

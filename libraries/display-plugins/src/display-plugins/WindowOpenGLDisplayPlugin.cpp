@@ -45,8 +45,8 @@ void WindowOpenGLDisplayPlugin::activate(PluginContainer * container) {
     customizeContext(container);
 }
 
-void WindowOpenGLDisplayPlugin::deactivate() {
-    OpenGLDisplayPlugin::deactivate();
+void WindowOpenGLDisplayPlugin::deactivate(PluginContainer* container) {
+    OpenGLDisplayPlugin::deactivate(container);
     destroyWindow();
     _window = nullptr;
 }

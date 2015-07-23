@@ -18,6 +18,7 @@
     #include "sixense.h"
 
 #ifdef __APPLE__
+    #include <QCoreApplication>
     #include <qlibrary.h>
 #endif
 
@@ -62,9 +63,8 @@ public:
     virtual bool isJointController() const override { return true; }
     const QString& getName() const { return NAME; }
 
-    virtual void deinit() override;
     virtual void activate(PluginContainer * container) override;
-    virtual void deactivate() override { _poseStateMap.clear(); }
+    virtual void deactivate(PluginContainer* container) override;
 
     virtual void pluginFocusOutEvent() override { focusOutEvent(); }
     virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override { update(deltaTime, jointsCaptured); }

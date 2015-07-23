@@ -19,6 +19,7 @@
 #include <DeferredLightingEffect.h>
 #include <display-plugins/openvr/OpenVrHelpers.h>
 #include "NumericalConstants.h"
+#include <plugins/PluginContainer.h>
 #include "UserActivityLogger.h"
 
 #ifndef Q_OS_MAC
@@ -46,12 +47,18 @@ const QString CONTROLLER_MODEL_STRING = "vr_controller_05_wireless_b";
 
 const QString ViveControllerManager::NAME = "OpenVR";
 
+const QString MENU_PARENT = "Avatar";
+const QString MENU_NAME = "Vive Controllers";
+const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
+const QString RENDER_CONTROLLERS = "Render Hand Controllers";
+
 ViveControllerManager::ViveControllerManager() :
         InputDevice("SteamVR Controller"),
     _trackedControllers(0),
     _modelLoaded(false),
     _leftHandRenderID(0),
-    _rightHandRenderID(0)
+    _rightHandRenderID(0),
+    _renderControllers(false)
 {
     
 }
@@ -66,6 +73,11 @@ bool ViveControllerManager::isSupported() const {
 
 void ViveControllerManager::activate(PluginContainer* container) {
 #ifndef Q_OS_MAC
+    container->addMenu(MENU_PATH);
+    container->addMenuItem(MENU_PATH, RENDER_CONTROLLERS,
+        [this] (bool clicked) { this->setRenderControllers(clicked); },
+        true, true);
+
     hmdRefCount++;
     if (!_hmd) {
         vr::HmdError eError = vr::HmdError_None;
@@ -118,12 +130,16 @@ void ViveControllerManager::activate(PluginContainer* container) {
         _texture->autoGenerateMips(-1);
 
         _modelLoaded = true;
+        _renderControllers = true;
     }
 #endif
 }
 
-void ViveControllerManager::deactivate() {
+void ViveControllerManager::deactivate(PluginContainer* container) {
 #ifndef Q_OS_MAC
+    container->removeMenuItem(MENU_NAME, RENDER_CONTROLLERS);
+    container->removeMenu(MENU_PATH);
+
     hmdRefCount--;
 
     if (hmdRefCount == 0 && _hmd) {
@@ -199,18 +215,18 @@ void ViveControllerManager::renderHand(UserInputMapper::PoseValue pose, gpu::Bat
 void ViveControllerManager::update(float deltaTime, bool jointsCaptured) {
 #ifndef Q_OS_MAC
     _poseStateMap.clear();
+
     // TODO: This shouldn't be necessary
     if (!_hmd) {
         return;
     }
-    return;
-    
+
     _buttonPressedMap.clear();
-        
+
     PerformanceTimer perfTimer("ViveControllerManager::update");
 
     int numTrackedControllers = 0;
-        
+
     for (vr::TrackedDeviceIndex_t device = vr::k_unTrackedDeviceIndex_Hmd + 1;
             device < vr::k_unMaxTrackedDeviceCount && numTrackedControllers < 2; ++device) {
             
@@ -360,7 +376,6 @@ void ViveControllerManager::registerToUserInputMapper(UserInputMapper& mapper) {
 
 void ViveControllerManager::assignDefaultInputMapping(UserInputMapper& mapper) {
     const float JOYSTICK_MOVE_SPEED = 1.0f;
-    const float BOOM_SPEED = 0.1f;
     
     // Left Trackpad: Movement, strafing
     mapper.addInputChannel(UserInputMapper::LONGITUDINAL_FORWARD, makeInput(AXIS_Y_POS, 0), makeInput(TRACKPAD_BUTTON, 0), JOYSTICK_MOVE_SPEED);

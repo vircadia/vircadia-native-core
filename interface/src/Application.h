@@ -279,7 +279,12 @@ public:
     virtual qreal getDevicePixelRatio();
 
     // Plugin container support
-    virtual void addMenuItem(const QString& path, const QString& name, std::function<void()> onClicked, bool checkable, bool checked, const QString& groupName);
+    virtual void addMenu(const QString& menuName);
+    virtual void removeMenu(const QString& menuName);
+    virtual void addMenuItem(const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable, bool checked, const QString& groupName);
+    virtual void removeMenuItem(const QString& menuName, const QString& menuItem);
+    virtual bool isOptionChecked(const QString& name);
+    virtual void setIsOptionChecked(const QString& path, bool checked);
     virtual GlWindow* getVisibleWindow();
 
 private:

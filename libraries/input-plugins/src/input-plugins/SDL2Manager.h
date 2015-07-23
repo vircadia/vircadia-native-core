@@ -35,7 +35,7 @@ public:
     virtual void init() override;
     virtual void deinit() override;
     virtual void activate(PluginContainer * container) override {};
-    virtual void deactivate() override {};
+    virtual void deactivate(PluginContainer* container) override {};
     
     virtual void pluginFocusOutEvent() override;
     virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override;

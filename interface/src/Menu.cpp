@@ -28,7 +28,6 @@
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/RealSense.h"
-#include <input-plugins/SixenseManager.h> // TODO: should be able to remove this once input plugin architecture is finished
 #include "MainWindow.h"
 #include "scripting/MenuScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -442,14 +441,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::LowVelocityFilter, 0, true,
                                            qApp, SLOT(setLowVelocityFilter(bool)));
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::ShowIKConstraints, 0, false);
-
-    MenuWrapper* sixenseOptionsMenu = handOptionsMenu->addMenu("Sixense");
-    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
-                                           MenuOption::FilterSixense,
-                                           0,
-                                           true,
-                                           &SixenseManager::getInstance(),
-                                           SLOT(setFilter(bool)));
 
     MenuWrapper* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
     addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);

@@ -31,6 +31,8 @@ Q_LOGGING_CATEGORY(displayplugins, "hifi.displayplugins")
 
 const QString OpenVrDisplayPlugin::NAME("OpenVR (Vive)");
 
+const QString StandingHMDSensorMode = "Standing HMD Sensor Mode"; // this probably shouldn't be hardcoded here
+
 const QString & OpenVrDisplayPlugin::getName() const {
     return NAME;
 }
@@ -80,6 +82,8 @@ bool OpenVrDisplayPlugin::isSupported() const {
 }
 
 void OpenVrDisplayPlugin::activate(PluginContainer * container) {
+    container->setIsOptionChecked(StandingHMDSensorMode, true);
+
     hmdRefCount++;
 	vr::HmdError eError = vr::HmdError_None;
     if (!_hmd) {
@@ -120,7 +124,9 @@ void OpenVrDisplayPlugin::activate(PluginContainer * container) {
     MainWindowOpenGLDisplayPlugin::activate(container);
 }
 
-void OpenVrDisplayPlugin::deactivate() {
+void OpenVrDisplayPlugin::deactivate(PluginContainer* container) {
+    container->setIsOptionChecked(StandingHMDSensorMode, false);
+
     hmdRefCount--;
 
     if (hmdRefCount == 0 && _hmd) {

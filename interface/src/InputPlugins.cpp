@@ -45,7 +45,7 @@ const InputPluginList& getInputPlugins() {
         InputPlugin* PLUGIN_POOL[] = {
             new KeyboardMouseDevice(),
             new SDL2Manager(),
-// Sixense is causing some sort of memory corruption on OSX
+            // Sixense is causing some sort of memory corruption on OSX
 #ifndef Q_OS_MAC
             new SixenseManager(),
 #endif

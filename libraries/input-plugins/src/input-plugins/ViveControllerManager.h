@@ -42,7 +42,7 @@ public:
         AXIS_3,
         AXIS_4,
     };
-    
+
     enum JointChannel {
         LEFT_HAND = 0,
         RIGHT_HAND,
@@ -56,7 +56,7 @@ public:
     const QString& getName() const { return NAME; }
 
     virtual void activate(PluginContainer * container) override;
-    virtual void deactivate() override;
+    virtual void deactivate(PluginContainer* container) override;
 
     virtual void pluginFocusOutEvent() override { focusOutEvent(); }
     virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override { update(deltaTime, jointsCaptured); }
@@ -68,6 +68,8 @@ public:
     virtual void focusOutEvent() override;
 
     void updateRendering(RenderArgs* args, render::ScenePointer scene, render::PendingChanges pendingChanges);
+
+    void setRenderControllers(bool renderControllers) { _renderControllers = renderControllers; }
     
     UserInputMapper::Input makeInput(unsigned int button, int index);
     UserInputMapper::Input makeInput(JoystickAxisChannel axis, int index);
@@ -88,6 +90,8 @@ private:
 
     int _leftHandRenderID;
     int _rightHandRenderID;
+
+    bool _renderControllers;
 
     static const QString NAME;
 };

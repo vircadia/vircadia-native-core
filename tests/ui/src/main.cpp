@@ -213,7 +213,6 @@ public:
         ShowBordersEntityNodes,
         ShowIKConstraints,
         SimpleShadows,
-        SixenseEnabled,
         ShiftHipsForIdleAnimations,
         Stars,
         Stats,

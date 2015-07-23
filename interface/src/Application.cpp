@@ -143,6 +143,7 @@
 #include "ui/AddressBarDialog.h"
 #include "ui/UpdateDialog.h"
 
+#include <qopenglcontext.h>
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 #if defined(Q_OS_WIN)
@@ -754,14 +755,14 @@ Application::~Application() {
 
     ModelEntityItem::cleanupLoadedAnimations();
 
-    getActiveDisplayPlugin()->deactivate();
+    getActiveDisplayPlugin()->deactivate(this);
 
     auto inputPlugins = getInputPlugins();
     foreach(auto inputPlugin, inputPlugins) {
         QString name = inputPlugin->getName();
         QAction* action = Menu::getInstance()->getActionForOption(name);
         if (action->isChecked()) {
-            inputPlugin->deactivate();
+            inputPlugin->deactivate(this);
         }
     }
 
@@ -4773,7 +4774,7 @@ void Application::updateDisplayMode() {
         _displayPlugin = newDisplayPlugin;
 
         if (oldDisplayPlugin) {
-            oldDisplayPlugin->deactivate();
+            oldDisplayPlugin->deactivate(this);
             _offscreenContext->makeCurrent();
         }
     }
@@ -4811,7 +4812,7 @@ void Application::updateInputModes() {
     }
     if (removedInputPlugins.size() > 0) { // A plugin was unchecked
         foreach(auto removedInputPlugin, removedInputPlugins) {
-            removedInputPlugin->deactivate();
+            removedInputPlugin->deactivate(this);
             //removedInputPlugin->removeEventFilter(qApp);
             //removedInputPlugin->removeEventFilter(offscreenUi.data());
         }
@@ -4828,15 +4829,37 @@ void Application::updateInputModes() {
     //}
 }
 
-void Application::addMenuItem(const QString& path, const QString& name, std::function<void()> onClicked, bool checkable, bool checked, const QString& groupName) {
+void Application::addMenu(const QString& menuName) {
+    Menu::getInstance()->addMenu(menuName);
+}
+
+void Application::removeMenu(const QString& menuName) {
+    Menu::getInstance()->removeMenu(menuName);
+}
+
+void Application::addMenuItem(const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable, bool checked, const QString& groupName) {
     auto menu = Menu::getInstance();
     MenuWrapper* parentItem = menu->getMenu(path);
     QAction* action = parentItem->addAction(name);
     connect(action, &QAction::triggered, [=] {
-        onClicked();
+        onClicked(action->isChecked());
     });
+    action->setCheckable(checkable);
+    action->setChecked(checked);
     _currentDisplayPluginActions.push_back({ path, name });
     _currentInputPluginActions.push_back({ path, name });
+}
+
+void Application::removeMenuItem(const QString& menuName, const QString& menuItem) {
+    Menu::getInstance()->removeMenuItem(menuName, menuItem);
+}
+
+bool Application::isOptionChecked(const QString& name) {
+    return Menu::getInstance()->isOptionChecked(name);
+}
+
+void Application::setIsOptionChecked(const QString& path, bool checked) {
+    Menu::getInstance()->setIsOptionChecked(path, checked);
 }
 
 GlWindow* Application::getVisibleWindow() {

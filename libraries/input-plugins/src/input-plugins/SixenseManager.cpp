@@ -15,6 +15,7 @@
 #include <NumericalConstants.h>
 
 #include "NumericalConstants.h"
+#include <plugins/PluginContainer.h>
 #include "SixenseManager.h"
 #include "UserActivityLogger.h"
 
@@ -52,6 +53,11 @@ typedef int (*SixenseTakeIntAndSixenseControllerData)(int, sixenseControllerData
 
 const QString SixenseManager::NAME = "Sixense";
 
+const QString MENU_PARENT = "Avatar";
+const QString MENU_NAME = "Sixense";
+const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
+const QString TOGGLE_SMOOTH = "Smooth Sixense Movement";
+
 SixenseManager& SixenseManager::getInstance() {
     static SixenseManager sharedInstance;
     return sharedInstance;
@@ -69,7 +75,7 @@ SixenseManager::SixenseManager() :
 
 bool SixenseManager::isSupported() const {
 #ifdef HAVE_SIXENSE
-    return false;
+    return true;
 #else
     return false;
 #endif
@@ -81,6 +87,11 @@ void SixenseManager::activate(PluginContainer* container) {
     // By default we assume the _neckBase (in orb frame) is as high above the orb
     // as the "torso" is below it.
     _neckBase = glm::vec3(NECK_X, -NECK_Y, NECK_Z);
+
+    container->addMenu(MENU_PATH);
+    container->addMenuItem(MENU_PATH, TOGGLE_SMOOTH,
+                           [this] (bool clicked) { this->setFilter(clicked); },
+                           true, true);
 
 #ifdef __APPLE__
 
@@ -111,8 +122,12 @@ void SixenseManager::activate(PluginContainer* container) {
 #endif
 }
 
-void SixenseManager::deinit() {
-#ifdef HAVE_SIXENSE_
+void SixenseManager::deactivate(PluginContainer* container) {
+#ifdef HAVE_SIXENSE
+    container->removeMenuItem(MENU_NAME, TOGGLE_SMOOTH);
+    container->removeMenu(MENU_PATH);
+
+    _poseStateMap.clear();
 
 #ifdef __APPLE__
     SixenseBaseFunction sixenseExit = (SixenseBaseFunction)_sixenseLibrary->resolve("sixenseExit");
