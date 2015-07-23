@@ -946,7 +946,7 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
     _readyWhenAdded = false;
 }
 
-void Model::renderDebugMeshBoxes() {
+void Model::renderDebugMeshBoxes(gpu::Batch& batch) {
     int colorNdx = 0;
     _mutex.lock();
     foreach(AABox box, _calculatedMeshBoxes) {
@@ -995,7 +995,7 @@ void Model::renderDebugMeshBoxes() {
             { 0.0f, 0.5f, 0.5f, 1.0f } };
             
         DependencyManager::get<GeometryCache>()->updateVertices(_debugMeshBoxesID, points, color[colorNdx]);
-        DependencyManager::get<GeometryCache>()->renderVertices(gpu::LINES, _debugMeshBoxesID);
+        DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::LINES, _debugMeshBoxesID);
         colorNdx++;
     }
     _mutex.unlock();
