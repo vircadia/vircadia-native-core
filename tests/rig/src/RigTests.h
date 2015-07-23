@@ -46,11 +46,11 @@ class RigTests : public QObject {
     
  private slots:
     void initTestCase();
-    void dummyPassTest();
-    void dummyFailTest();
+    /*void dummyPassTest();
+    void dummyFailTest();*/
 
  private:
-    Rig* _rig;
+    RigPointer _rig;
 };
 
 #endif // hifi_RigTests_h
