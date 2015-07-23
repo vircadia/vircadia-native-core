@@ -40,65 +40,6 @@ void Hand::simulate(float deltaTime, bool isMine) {
     }
 }
 
-// We create a static CollisionList that is recycled for each collision test.
-const float MAX_COLLISIONS_PER_AVATAR = 32;
-static CollisionList handCollisions(MAX_COLLISIONS_PER_AVATAR);
-
-void Hand::collideAgainstAvatar(Avatar* avatar, bool isMyHand) {
-    if (!avatar || avatar == _owningAvatar) {
-        // don't collide hands against ourself (that is done elsewhere)
-        return;
-    }
-
-    const SkeletonModel& skeletonModel = _owningAvatar->getSkeletonModel();
-    int jointIndices[2];
-    jointIndices[0] = skeletonModel.getLeftHandJointIndex();
-    jointIndices[1] = skeletonModel.getRightHandJointIndex();
-
-    for (size_t i = 0; i < 2; i++) {
-        int jointIndex = jointIndices[i];
-        if (jointIndex < 0) {
-            continue;
-        }
-
-        handCollisions.clear();
-        QVector<const Shape*> shapes;
-        skeletonModel.getHandShapes(jointIndex, shapes);
-
-        if (avatar->findCollisions(shapes, handCollisions)) {
-            glm::vec3 totalPenetration(0.0f);
-            glm::vec3 averageContactPoint;
-            for (int j = 0; j < handCollisions.size(); ++j) {
-                CollisionInfo* collision = handCollisions.getCollision(j);
-                totalPenetration += collision->_penetration;
-                averageContactPoint += collision->_contactPoint;
-            }
-            if (isMyHand) {
-                // our hand against other avatar 
-                // TODO: resolve this penetration when we don't think the other avatar will yield
-                //palm.addToPenetration(averagePenetration);
-            } else {
-                // someone else's hand against MyAvatar
-                // TODO: submit collision info to MyAvatar which should lean accordingly
-                averageContactPoint /= (float)handCollisions.size();
-                avatar->applyCollision(averageContactPoint, totalPenetration);
-
-                CollisionInfo collision;
-                collision._penetration = totalPenetration;
-                collision._contactPoint = averageContactPoint;
-                emit avatar->collisionWithAvatar(avatar->getSessionUUID(), _owningAvatar->getSessionUUID(), collision);
-            }
-        }
-    }
-}
-
-void Hand::resolvePenetrations() {
-    for (size_t i = 0; i < getNumPalms(); ++i) {
-        PalmData& palm = getPalms()[i];
-        palm.resolvePenetrations();
-    }
-}
-
 void Hand::render(RenderArgs* renderArgs, bool isMine) {
     gpu::Batch& batch = *renderArgs->_batch;
     if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE &&

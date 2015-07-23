@@ -159,41 +159,6 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     _boundingShape.setRotation(_rotation);
 }
 
-void SkeletonModel::getHandShapes(int jointIndex, QVector<const Shape*>& shapes) const {
-    if (jointIndex < 0 || jointIndex >= int(_shapes.size())) {
-        return;
-    }
-    if (jointIndex == getLeftHandJointIndex()
-        || jointIndex == getRightHandJointIndex()) {
-        // get all shapes that have this hand as an ancestor in the skeleton heirarchy
-        const FBXGeometry& geometry = _geometry->getFBXGeometry();
-        for (int i = 0; i < _jointStates.size(); i++) {
-            const FBXJoint& joint = geometry.joints[i];
-            int parentIndex = joint.parentIndex;
-            Shape* shape = _shapes[i];
-            if (i == jointIndex) {
-                // this shape is the hand
-                if (shape) {
-                    shapes.push_back(shape);
-                }
-                if (parentIndex != -1 && _shapes[parentIndex]) {
-                    // also add the forearm
-                    shapes.push_back(_shapes[parentIndex]);
-                }
-            } else if (shape) {
-                while (parentIndex != -1) {
-                    if (parentIndex == jointIndex) {
-                        // this shape is a child of the hand
-                        shapes.push_back(shape);
-                        break;
-                    }
-                    parentIndex = geometry.joints[parentIndex].parentIndex;
-                }
-            }
-        }
-    }
-}
-
 void SkeletonModel::renderIKConstraints(gpu::Batch& batch) {
     renderJointConstraints(batch, getRightHandJointIndex());
     renderJointConstraints(batch, getLeftHandJointIndex());
@@ -644,46 +609,12 @@ void SkeletonModel::buildShapes() {
         // rootJointIndex == -1 if the avatar model has no skeleton
         return;
     }
-
-    float uniformScale = extractUniformScale(_scale);
-    const int numStates = _jointStates.size();
-    for (int i = 0; i < numStates; i++) {
-        JointState& state = _jointStates[i];
-        const FBXJoint& joint = state.getFBXJoint();
-        float radius = uniformScale * joint.boneRadius;
-        float halfHeight = 0.5f * uniformScale * joint.distanceToParent;
-        Shape::Type type = joint.shapeType;
-        int parentIndex = joint.parentIndex;
-        if (parentIndex == -1 || radius < EPSILON) {
-            type = INVALID_SHAPE;
-        } else if (type == CAPSULE_SHAPE && halfHeight < EPSILON) {
-            // this shape is forced to be a sphere
-            type = SPHERE_SHAPE;
-        }
-        Shape* shape = NULL;
-        if (type == SPHERE_SHAPE) {
-            shape = new SphereShape(radius);
-            shape->setEntity(this);
-        } else if (type == CAPSULE_SHAPE) {
-            assert(parentIndex != -1);
-            shape = new CapsuleShape(radius, halfHeight);
-            shape->setEntity(this);
-        } 
-        if (shape && parentIndex != -1) {
-            // always disable collisions between joint and its parent
-            disableCollisions(i, parentIndex);
-        } 
-        _shapes.push_back(shape);
-    }
-
-    // This method moves the shapes to their default positions in Model frame.
     computeBoundingShape(geometry);
 }
 
 void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
     // compute default joint transforms
     int numStates = _jointStates.size();
-    assert(numStates == _shapes.size());
     QVector<glm::mat4> transforms;
     transforms.fill(glm::mat4(), numStates);
 
@@ -704,39 +635,11 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
                 * joint.preTransform * glm::mat4_cast(modifiedRotation) * joint.postTransform;
         }
 
-        // Each joint contributes its point to the bounding box
+        // Each joint contributes a sphere at its position
+        glm::vec3 axis(joint.boneRadius);
         glm::vec3 jointPosition = extractTranslation(transforms[i]);
-        totalExtents.addPoint(jointPosition);
-
-        Shape* shape = _shapes[i];
-        if (!shape) {
-            continue;
-        }
-
-        // Each joint with a shape contributes to the totalExtents: a box 
-        // that contains the sphere centered at the end of the joint with radius of the bone.
-
-        // TODO: skip hand and arm shapes for bounding box calculation
-        int type = shape->getType();
-        if (type == CAPSULE_SHAPE) {
-            // add the two furthest surface points of the capsule
-            CapsuleShape* capsule = static_cast<CapsuleShape*>(shape);
-            float radius = capsule->getRadius();
-            glm::vec3 axis(radius);
-            Extents shapeExtents;
-            shapeExtents.reset();
-            shapeExtents.addPoint(jointPosition + axis);
-            shapeExtents.addPoint(jointPosition - axis);
-            totalExtents.addExtents(shapeExtents);
-        } else if (type == SPHERE_SHAPE) {
-            float radius = shape->getBoundingRadius();
-            glm::vec3 axis(radius);
-            Extents shapeExtents;
-            shapeExtents.reset();
-            shapeExtents.addPoint(jointPosition + axis);
-            shapeExtents.addPoint(jointPosition - axis);
-            totalExtents.addExtents(shapeExtents);
-        }
+        totalExtents.addPoint(jointPosition + axis);
+        totalExtents.addPoint(jointPosition - axis);
     }
 
     // compute bounding shape parameters
@@ -752,43 +655,8 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
     _boundingRadius = 0.5f * glm::length(diagonal);
 }
 
-void SkeletonModel::resetShapePositionsToDefaultPose() {
-    // DEBUG method.
-    // Moves shapes to the joint default locations for debug visibility into
-    // how the bounding shape is computed.
-
-    if (!_geometry || _shapes.isEmpty()) {
-        // geometry or joints have not yet been created
-        return;
-    }
-    
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    if (geometry.joints.isEmpty()) {
-        return;
-    }
-
-    // The shapes are moved to their default positions in computeBoundingShape().
-    computeBoundingShape(geometry);
-
-    // Then we move them into world frame for rendering at the Model's location.
-    for (int i = 0; i < _shapes.size(); i++) {
-        Shape* shape = _shapes[i];
-        if (shape) {
-            shape->setTranslation(_translation + _rotation * shape->getTranslation());
-            shape->setRotation(_rotation * shape->getRotation());
-        }
-    }
-    _boundingShape.setTranslation(_translation + _rotation * _boundingShapeLocalOffset);
-    _boundingShape.setRotation(_rotation);
-}
-
 void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha) {
     const int BALL_SUBDIVISIONS = 10;
-    if (_shapes.isEmpty()) {
-        // the bounding shape has not been propery computed
-        // so no need to render it
-        return;
-    }
 
     // draw a blue sphere at the capsule endpoint
     glm::vec3 endPoint;
