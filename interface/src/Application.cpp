@@ -3395,9 +3395,6 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
         renderArgs->_context->render(batch);
     }
 
-    bool updateViewFrustum = false;
-    loadViewFrustum(_mirrorCamera, _viewFrustum);
-
     // render rear mirror view
     displaySide(renderArgs, _mirrorCamera, true, billboard);
 
