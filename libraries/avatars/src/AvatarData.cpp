@@ -1087,6 +1087,7 @@ void AvatarData::setJointMappingsFromNetworkReply() {
     }
 
     networkReply->deleteLater();
+    emit jointsLoaded();
 }
 
 void AvatarData::sendAvatarDataPacket() {

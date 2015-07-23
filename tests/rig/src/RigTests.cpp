@@ -40,11 +40,26 @@
  */
 
 #include <iostream>
+//#include "FSTReader.h"
+// There are two good ways we could organize this:
+// 1. Create a MyAvatar the same way that Interface does, and poke at it.
+//    We can't do that because MyAvatar (and even Avatar) are in interface, not a library, and our build system won't allow that dependency.
+// 2. Create just the minimum skeleton in the most direct way possible, using only very basic library APIs (such as fbx).
+//    I don't think we can do that because not everything we need is exposed directly from, e.g., the fst and fbx readers.
+// So here we do neither. Using as much as we can from AvatarData (which is in the avatar and further requires network and audio), and
+// duplicating whatever other code we need from (My)Avatar. Ugh.  We may refactor that later, but right now, cleaning this up is not on our critical path.
+#include "AvatarData.h"
 #include "RigTests.h"
 
 QTEST_MAIN(RigTests)
 
 void RigTests::initTestCase() {
+    AvatarData avatar;
+    QEventLoop loop; // Create an event loop that will quit when we get the finished signal
+    QObject::connect(&avatar, &AvatarData::jointsLoaded, &loop, &QEventLoop::quit);
+    avatar.setSkeletonModelURL(QUrl("https://hifi-public.s3.amazonaws.com/marketplace/contents/4a690585-3fa3-499e-9f8b-fd1226e561b1/e47e6898027aa40f1beb6adecc6a7db5.fst")); // Zach
+    //std::cout << "sleep start" << std::endl;
+    loop.exec();                    // Nothing is going to happen on this whole run thread until we get this
     _rig = new Rig();
 }
 
