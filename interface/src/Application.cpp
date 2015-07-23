@@ -535,6 +535,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     container->setFocus();
     container->installEventFilter(DependencyManager::get<OffscreenUi>().data());
 
+    // Necessary to call this here so Oculus can get inited before Sixense
+    getDisplayPlugins();
+    
     // must be before initializeGL()
     _activeInputPlugins.clear();
     auto inputPlugins = getInputPlugins();

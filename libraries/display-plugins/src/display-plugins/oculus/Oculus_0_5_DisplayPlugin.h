@@ -25,6 +25,8 @@ public:
     virtual bool isSupported() const override;
     virtual const QString & getName() const override;
 
+    virtual void init() override;
+    virtual void deinit() override;
     virtual void activate(PluginContainer * container) override;
     virtual void deactivate(PluginContainer* container) override;
 

@@ -47,7 +47,7 @@ bool Oculus_0_5_DisplayPlugin::isSupported() const {
     return result;
 }
 
-void Oculus_0_5_DisplayPlugin::activate(PluginContainer * container) {
+void Oculus_0_5_DisplayPlugin::init() {
     if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
         Q_ASSERT(false);
         qFatal("Failed to Initialize SDK");
@@ -57,6 +57,16 @@ void Oculus_0_5_DisplayPlugin::activate(PluginContainer * container) {
         qFatal("Failed to acquire HMD");
     }
 
+}
+
+void Oculus_0_5_DisplayPlugin::deinit() {
+    ovr_Shutdown();
+    
+    ovrHmd_Destroy(_hmd);
+    _hmd = nullptr;
+}
+
+void Oculus_0_5_DisplayPlugin::activate(PluginContainer * container) {
     OculusBaseDisplayPlugin::activate(container);
 
     _window->makeCurrent();
@@ -104,10 +114,6 @@ void Oculus_0_5_DisplayPlugin::deactivate(PluginContainer* container) {
     _hmdWindow = nullptr;
 
     OculusBaseDisplayPlugin::deactivate(container);
-
-    ovrHmd_Destroy(_hmd);
-    _hmd = nullptr;
-    ovr_Shutdown();
 }
 
 void Oculus_0_5_DisplayPlugin::preRender() {
