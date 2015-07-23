@@ -1749,7 +1749,7 @@ QSharedPointer<Resource> GeometryCache::createResource(const QUrl& url, const QS
     return geometry.staticCast<Resource>();
 }
 
-void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch) {
+void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
     if (!_standardDrawPipeline) {
         auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(standardTransformPNTC_vert)));
         auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(standardDrawTexture_frag)));
@@ -1762,8 +1762,18 @@ void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch) {
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
 
         _standardDrawPipeline.reset(gpu::Pipeline::create(program, state));
+
+        auto stateNoBlend = std::make_shared<gpu::State>();
+        stateNoBlend->setColorWriteMask(true, true, true, false);
+        stateNoBlend->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
+
+        _standardDrawPipelineNoBlend.reset(gpu::Pipeline::create(program, stateNoBlend));
     }
-    batch.setPipeline(_standardDrawPipeline);
+    if (noBlend) {
+        batch.setPipeline(_standardDrawPipelineNoBlend);
+    } else {
+        batch.setPipeline(_standardDrawPipeline);
+    }
 }
 
 const float NetworkGeometry::NO_HYSTERESIS = -1.0f;

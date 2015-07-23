@@ -1539,6 +1539,7 @@ void MyAvatar::maybeUpdateBillboard() {
     QBuffer buffer(&_billboard);
     buffer.open(QIODevice::WriteOnly);
     image.save(&buffer, "PNG");
+    image.save("billboard.png", "PNG");
     _billboardValid = true;
 
     sendBillboardPacket();

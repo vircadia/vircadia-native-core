@@ -217,11 +217,12 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
 
 void DeferredLightingEffect::prepare(RenderArgs* args) {
     gpu::Batch batch;
-    
+
+    batch.setStateScissorRect(args->_viewport);
     // clear the normal and specular buffers
-    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR1, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR1, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f), true);
     const float MAX_SPECULAR_EXPONENT = 128.0f;
-    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR2, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f / MAX_SPECULAR_EXPONENT));
+    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR2, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f / MAX_SPECULAR_EXPONENT), true);
 
     args->_context->syncCache();
     args->_context->render(batch);
@@ -242,8 +243,9 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     batch.setFramebuffer(_copyFBO);
 
     batch.setViewportTransform(args->_viewport);
+    batch.setStateScissorRect(args->_viewport);
  
-    batch.clearColorFramebuffer(_copyFBO->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+    batch.clearColorFramebuffer(_copyFBO->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f), true);
     
     batch.setResourceTexture(0, framebufferCache->getPrimaryColorTexture());
 

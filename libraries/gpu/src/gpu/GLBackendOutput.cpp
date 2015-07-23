@@ -184,4 +184,10 @@ void GLBackend::do_blit(Batch& batch, uint32 paramOffset) {
     glBlitFramebuffer(srcvp.x, srcvp.y, srcvp.z, srcvp.w, 
         dstvp.x, dstvp.y, dstvp.z, dstvp.w,
         GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        
+    (void) CHECK_GL_ERROR();
+
+    if (_output._framebuffer) {
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, getFramebufferID(_output._framebuffer));
+    }
 }

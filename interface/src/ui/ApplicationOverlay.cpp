@@ -16,6 +16,7 @@
 #include <GLMHelpers.h>
 #include <gpu/GLBackend.h>
 #include <gpu/GLBackendShared.h>
+#include <FramebufferCache.h>
 #include <GLMHelpers.h>
 #include <OffscreenUi.h>
 #include <CursorManager.h>
@@ -96,6 +97,7 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture, and the text overlays from scripts
     renderOverlays(renderArgs); // renders Scripts Overlay and AudioScope
     renderStatsAndLogs(renderArgs);  // currently renders nothing
+    renderRearView(renderArgs); // renders the mirror view selfie
 
     renderArgs->_context->syncCache();
     renderArgs->_context->render(batch);
@@ -167,6 +169,34 @@ void ApplicationOverlay::renderRearViewToFbo(RenderArgs* renderArgs) {
 }
 
 void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+        gpu::Batch& batch = *renderArgs->_batch;
+
+        auto geometryCache = DependencyManager::get<GeometryCache>();
+
+        auto framebuffer = DependencyManager::get<FramebufferCache>();
+        auto selfieTexture = framebuffer->getSelfieFramebuffer()->getRenderBuffer(0);
+
+        int width = renderArgs->_viewport.z;
+        int height = renderArgs->_viewport.w;
+        mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, ORTHO_NEAR_CLIP, ORTHO_FAR_CLIP);
+        batch.setProjectionTransform(legacyProjection);
+        batch.setModelTransform(Transform());
+        batch.setViewTransform(Transform());
+
+        auto viewport = qApp->getMirrorViewRect();
+        glm::vec2 bottomLeft(viewport.left(), viewport.bottom());
+        glm::vec2 topRight(viewport.right(), viewport.top());
+        glm::vec2 texCoordMinCorner(0.0f, 0.0f);
+        glm::vec2 texCoordMaxCorner(viewport.width() / float(selfieTexture->getWidth()), viewport.height() / float(selfieTexture->getHeight()));
+
+        geometryCache->useSimpleDrawPipeline(batch, false);
+        batch.setResourceTexture(0, renderArgs->_whiteTexture);
+        geometryCache->renderQuad(batch, bottomLeft, topRight, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+        geometryCache->useSimpleDrawPipeline(batch, true);
+        batch.setResourceTexture(0, selfieTexture);
+        geometryCache->renderQuad(batch, bottomLeft, topRight, texCoordMinCorner, texCoordMaxCorner, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)); 
+    }
 }
 
 void ApplicationOverlay::renderStatsAndLogs(RenderArgs* renderArgs) {

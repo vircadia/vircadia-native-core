@@ -248,7 +248,7 @@ public:
     QSharedPointer<NetworkGeometry> getGeometry(const QUrl& url, const QUrl& fallback = QUrl(), bool delayLoad = false);
 
     /// Set a batch to the simple pipeline, returning the previous pipeline
-    void useSimpleDrawPipeline(gpu::Batch& batch);
+    void useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend = false);
 
 protected:
 
@@ -263,6 +263,7 @@ private:
     typedef QPair<unsigned int, unsigned int> VerticesIndices;
 
     gpu::PipelinePointer _standardDrawPipeline;
+    gpu::PipelinePointer _standardDrawPipelineNoBlend;
     QHash<float, gpu::BufferPointer> _cubeVerticies;
     QHash<Vec2Pair, gpu::BufferPointer> _cubeColors;
     gpu::BufferPointer _wireCubeIndexBuffer;

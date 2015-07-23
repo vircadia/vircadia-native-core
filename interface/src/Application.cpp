@@ -875,6 +875,33 @@ void Application::paintGL() {
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
     resizeGL();
 
+    // Before anything else, let's sync up the gpuContext with the true glcontext used in case anything happened
+    renderArgs._context->syncCache();
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+        auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
+        {
+            gpu::Batch batch;
+            batch.setFramebuffer(nullptr);
+            batch.setFramebuffer(primaryFbo);
+            renderArgs._context->render(batch);
+        }
+        renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
+        renderRearViewMirror(&renderArgs, _mirrorViewRect);
+        renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
+
+        {
+            auto mirrorViewport = glm::ivec4(0, 0, _mirrorViewRect.width(), _mirrorViewRect.height());
+            float ratio = 1.0f / ((float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale());
+         
+            auto mirrorViewportDest = glm::ivec4(0, 0, ratio * mirrorViewport.z, ratio * mirrorViewport.w);
+         
+            auto selfieFbo = DependencyManager::get<FramebufferCache>()->getSelfieFramebuffer();
+            gpu::Batch batch;
+            batch.blit(primaryFbo, mirrorViewport, selfieFbo, mirrorViewportDest);
+            renderArgs._context->render(batch);
+        }
+    }
 
     {
         PerformanceTimer perfTimer("renderOverlay");
@@ -936,7 +963,7 @@ void Application::paintGL() {
     }
 
     // Sync up the View Furstum with the camera
-    loadViewFrustum(_myCamera, _viewFrustum);
+ //   loadViewFrustum(_myCamera, _viewFrustum);
 
 
     renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
@@ -974,19 +1001,17 @@ void Application::paintGL() {
 
         displaySide(&renderArgs, _myCamera);
 
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
-            renderRearViewMirror(&renderArgs, _mirrorViewRect);
-            renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
-        }
-
         {
             auto geometryCache = DependencyManager::get<GeometryCache>();
             auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
             gpu::Batch batch;
             batch.blit(primaryFbo, glm::ivec4(0, 0, _renderResolution.x, _renderResolution.y),
                 nullptr, glm::ivec4(0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height()));
+
+            batch.setFramebuffer(nullptr);
+
             renderArgs._context->render(batch);
+
         }
 
         _compositor.displayOverlayTexture(&renderArgs);
@@ -2958,7 +2983,7 @@ PickRay Application::computePickRay(float x, float y) const {
 }
 
 QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
-    auto primaryFramebuffer = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
+/*    auto primaryFramebuffer = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
     glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFramebuffer));
 
     // clear the alpha channel so the background is transparent
@@ -2966,17 +2991,41 @@ QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glClear(GL_COLOR_BUFFER_BIT);
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+    */
 
-    const int BILLBOARD_SIZE = 64;
-    // TODO: Pass a RenderArgs to renderAvatarBillboard
-    renderRearViewMirror(renderArgs, QRect(0, _glWidget->getDeviceHeight() - BILLBOARD_SIZE,
+ //   const int BILLBOARD_SIZE = 64;
+    const int BILLBOARD_SIZE = 256;
+    _glWidget->makeCurrent();
+
+    auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
+
+    {
+        gpu::Batch batch;
+        batch.setFramebuffer(nullptr);
+        batch.setFramebuffer(primaryFbo);
+        renderArgs->_context->render(batch);
+    }
+            renderArgs->_renderMode = RenderArgs::MIRROR_RENDER_MODE;
+    renderRearViewMirror(renderArgs, QRect(0, /*_glWidget->getDeviceHeight() - BILLBOARD_SIZE*/ 0,
                                BILLBOARD_SIZE, BILLBOARD_SIZE),
-                         true);
-    QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
-    glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+                         false);
+        renderArgs->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
 
+    auto selfieFbo = DependencyManager::get<FramebufferCache>()->getSelfieFramebuffer();
+    {
+        auto mirrorViewport = glm::ivec4(0, 0,BILLBOARD_SIZE, BILLBOARD_SIZE);
+        gpu::Batch batch;
+       // batch.blit(primaryFbo, mirrorViewport, selfieFbo, mirrorViewport);
+        batch.setFramebuffer(nullptr);
+        renderArgs->_context->render(batch);
+    }
+    
+
+    QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
+    glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFbo));
+    glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     return image;
 }
 
@@ -3390,13 +3439,18 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     gpu::Vec4i viewport;
     if (billboard) {
         QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
-        viewport = gpu::Vec4i(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
+       // viewport = gpu::Vec4i(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
+        viewport = gpu::Vec4i(0, 0, region.width(), region.height());
     } else {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
         QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
         float ratio = (float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale();
-        int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
-        viewport = gpu::Vec4i(x, size.height() - y - height, width, height);
+        int x = region.x() * ratio;
+        int y = region.y() * ratio;
+        int width = region.width() * ratio;
+        int height = region.height() * ratio;
+      //  viewport = gpu::Vec4i(x, size.height() - y - height, width, height);
+        viewport = gpu::Vec4i(0, 0, width, height);
     }
     renderArgs->_viewport = viewport;
 
@@ -3414,8 +3468,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
         renderArgs->_context->render(batch);
     }
 
-    bool updateViewFrustum = false;
-    loadViewFrustum(_mirrorCamera, _viewFrustum);
+ //   loadViewFrustum(_mirrorCamera, _viewFrustum);
 
     // render rear mirror view
     displaySide(renderArgs, _mirrorCamera, true, billboard);

@@ -39,6 +39,7 @@ void FramebufferCache::setFrameBufferSize(QSize frameBufferSize) {
         _primaryColorTexture.reset();
         _primaryNormalTexture.reset();
         _primarySpecularTexture.reset();
+        _selfieFramebuffer.reset();
         _cachedFramebuffers.clear();
     }
 }
@@ -112,7 +113,6 @@ gpu::FramebufferPointer FramebufferCache::getFramebuffer() {
     return result;
 }
 
-
 void FramebufferCache::releaseFramebuffer(const gpu::FramebufferPointer& framebuffer) {
     if (QSize(framebuffer->getSize().x, framebuffer->getSize().y) == _frameBufferSize) {
         _cachedFramebuffers.push_back(framebuffer);
@@ -125,4 +125,11 @@ gpu::FramebufferPointer FramebufferCache::getShadowFramebuffer() {
         _shadowFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::createShadowmap(SHADOW_MAP_SIZE));
     }
     return _shadowFramebuffer;
+}
+
+gpu::FramebufferPointer FramebufferCache::getSelfieFramebuffer() {
+    if (!_selfieFramebuffer) {
+        _selfieFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_RGBA_32, _frameBufferSize.width(), _frameBufferSize.height()));
+    }
+    return _selfieFramebuffer;
 }
