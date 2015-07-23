@@ -36,8 +36,6 @@ public:
     void simulate(float deltaTime, bool isMine);
     void render(RenderArgs* renderArgs, bool isMine);
 
-    void resolvePenetrations();
-
 private:
     // disallow copies of the Hand, copy of owning Avatar is disallowed too
     Hand(const Hand&);

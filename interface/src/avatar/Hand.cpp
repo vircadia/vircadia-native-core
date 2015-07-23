@@ -40,13 +40,6 @@ void Hand::simulate(float deltaTime, bool isMine) {
     }
 }
 
-void Hand::resolvePenetrations() {
-    for (size_t i = 0; i < getNumPalms(); ++i) {
-        PalmData& palm = getPalms()[i];
-        palm.resolvePenetrations();
-    }
-}
-
 void Hand::render(RenderArgs* renderArgs, bool isMine) {
     gpu::Batch& batch = *renderArgs->_batch;
     if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE &&
