@@ -143,7 +143,8 @@ protected:
 private:
 
     void renderJointConstraints(gpu::Batch& batch, int jointIndex);
-    void renderOrientationDirections(int jointIndex, glm::vec3 position, const glm::quat& orientation, float size);
+    void renderOrientationDirections(gpu::Batch& batch, int jointIndex, 
+                                     glm::vec3 position, const glm::quat& orientation, float size);
     
     struct OrientationLineIDs {
         int _up;

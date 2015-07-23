@@ -38,15 +38,6 @@ public:
     // Let's try to avoid to do that as much as possible!
     virtual void syncCache();
 
-    // Render Batch create a local Context and execute the batch with it
-    // WARNING:
-    // if syncCache is true, then the gpu::GLBackend will synchornize
-    // its cache with the current gl state and it's BAD
-    // If you know you don't rely on any state changed by naked gl calls then
-    // leave to false where it belongs
-    // if true, the needed resync IS EXPENSIVE
-    static void renderBatch(Batch& batch, bool syncCache = false);
-
     static bool checkGLError(const char* name = nullptr);
 
     // Only checks in debug builds

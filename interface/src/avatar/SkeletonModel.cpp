@@ -407,13 +407,15 @@ void SkeletonModel::renderJointConstraints(gpu::Batch& batch, int jointIndex) {
             
         }
         
-        renderOrientationDirections(jointIndex, position, _rotation * jointState.getRotation(), directionSize);
+        renderOrientationDirections(batch, jointIndex, position, _rotation * jointState.getRotation(), directionSize);
         jointIndex = joint.parentIndex;
         
     } while (jointIndex != -1 && geometry.joints.at(jointIndex).isFree);
 }
 
-void SkeletonModel::renderOrientationDirections(int jointIndex, glm::vec3 position, const glm::quat& orientation, float size) {
+void SkeletonModel::renderOrientationDirections(gpu::Batch& batch, int jointIndex, 
+                                                glm::vec3 position, const glm::quat& orientation, float size) {
+                                                
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
     if (!_jointOrientationLines.contains(jointIndex)) {
@@ -430,13 +432,13 @@ void SkeletonModel::renderOrientationDirections(int jointIndex, glm::vec3 positi
     glm::vec3 pFront	= position + orientation * IDENTITY_FRONT * size;
 
     glm::vec3 red(1.0f, 0.0f, 0.0f);
-    geometryCache->renderLine(position, pRight, red, jointLineIDs._right);
+    geometryCache->renderLine(batch, position, pRight, red, jointLineIDs._right);
 
     glm::vec3 green(0.0f, 1.0f, 0.0f);
-    geometryCache->renderLine(position, pUp, green, jointLineIDs._up);
+    geometryCache->renderLine(batch, position, pUp, green, jointLineIDs._up);
 
     glm::vec3 blue(0.0f, 0.0f, 1.0f);
-    geometryCache->renderLine(position, pFront, blue, jointLineIDs._front);
+    geometryCache->renderLine(batch, position, pFront, blue, jointLineIDs._front);
 }
 
 
