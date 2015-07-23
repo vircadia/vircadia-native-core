@@ -26,55 +26,53 @@
 // NOTE: if adding a new packet packetType, you can replace one marked usable or add at the end
 // NOTE: if you want the name of the packet packetType to be available for debugging or logging, update nameForPacketType() as well
 
-namespace PacketType {
-    enum Value {
-        Unknown,
-        StunResponse,
-        DomainList,
-        Ping,
-        PingReply,
-        KillAvatar,
-        AvatarData,
-        InjectAudio,
-        MixedAudio,
-        MicrophoneAudioNoEcho,
-        MicrophoneAudioWithEcho,
-        BulkAvatarData,
-        SilentAudioFrame,
-        DomainListRequest,
-        RequestAssignment,
-        CreateAssignment,
-        DomainConnectionDenied,
-        MuteEnvironment,
-        AudioStreamStats,
-        DomainServerPathQuery,
-        DomainServerPathResponse,
-        DomainServerAddedNode,
-        ICEServerPeerInformation,
-        ICEServerQuery,
-        OctreeStats,
-        Jurisdiction,
-        JurisdictionRequest,
-        AssignmentClientStatus,
-        NoisyMute,
-        AvatarIdentity,
-        AvatarBillboard,
-        DomainConnectRequest,
-        DomainServerRequireDTLS,
-        NodeJsonStats,
-        OctreeDataNack,
-        StopNode,
-        AudioEnvironment,
-        EntityEditNack,
-        ICEServerHeartbeat,
-        ICEPing,
-        ICEPingReply,
-        EntityData,
-        EntityQuery,
-        EntityAdd,
-        EntityErase,
-        EntityEdit
-   };
+enum class PacketType : uint8_t {
+    Unknown,
+    StunResponse,
+    DomainList,
+    Ping,
+    PingReply,
+    KillAvatar,
+    AvatarData,
+    InjectAudio,
+    MixedAudio,
+    MicrophoneAudioNoEcho,
+    MicrophoneAudioWithEcho,
+    BulkAvatarData,
+    SilentAudioFrame,
+    DomainListRequest,
+    RequestAssignment,
+    CreateAssignment,
+    DomainConnectionDenied,
+    MuteEnvironment,
+    AudioStreamStats,
+    DomainServerPathQuery,
+    DomainServerPathResponse,
+    DomainServerAddedNode,
+    ICEServerPeerInformation,
+    ICEServerQuery,
+    OctreeStats,
+    Jurisdiction,
+    JurisdictionRequest,
+    AssignmentClientStatus,
+    NoisyMute,
+    AvatarIdentity,
+    AvatarBillboard,
+    DomainConnectRequest,
+    DomainServerRequireDTLS,
+    NodeJsonStats,
+    OctreeDataNack,
+    StopNode,
+    AudioEnvironment,
+    EntityEditNack,
+    ICEServerHeartbeat,
+    ICEPing,
+    ICEPingReply,
+    EntityData,
+    EntityQuery,
+    EntityAdd,
+    EntityErase,
+    EntityEdit
 };
 
 const int NUM_BYTES_MD5_HASH = 16;
@@ -84,18 +82,22 @@ const int MAX_PACKET_HEADER_BYTES = 4 + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_H
 
 typedef char PacketVersion;
 
-extern const QSet<PacketType::Value> NON_VERIFIED_PACKETS;
-extern const QSet<PacketType::Value> NON_SOURCED_PACKETS;
+extern const QSet<PacketType> NON_VERIFIED_PACKETS;
+extern const QSet<PacketType> NON_SOURCED_PACKETS;
+extern const QSet<PacketType> RELIABLE_PACKETS;
 
-QString nameForPacketType(PacketType::Value packetType);
-PacketVersion versionForPacketType(PacketType::Value packetType);
+QString nameForPacketType(PacketType packetType);
+PacketVersion versionForPacketType(PacketType packetType);
 
-int numBytesForArithmeticCodedPacketType(PacketType::Value packetType);
-int numBytesForPacketHeaderGivenPacketType(PacketType::Value packetType);
+int numBytesForArithmeticCodedPacketType(PacketType packetType);
+int numBytesForPacketHeaderGivenPacketType(PacketType packetType);
 int packArithmeticallyCodedValue(int value, char* destination);
 
 int arithmeticCodingValueFromBuffer(const char* checkValue);
 int numBytesArithmeticCodingFromBuffer(const char* checkValue);
+
+uint qHash(const PacketType& key, uint seed);
+QDebug operator<<(QDebug debug, const PacketType& type);
 
 const PacketVersion VERSION_OCTREE_HAS_FILE_BREAKS = 1;
 const PacketVersion VERSION_ENTITIES_HAVE_ANIMATION = 1;

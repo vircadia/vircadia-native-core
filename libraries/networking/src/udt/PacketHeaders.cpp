@@ -15,22 +15,22 @@
 
 #include <QtCore/QDebug>
 
-using namespace PacketType;
+const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
+    << PacketType::NodeJsonStats << PacketType::EntityQuery
+    << PacketType::OctreeDataNack << PacketType::EntityEditNack
+    << PacketType::DomainListRequest << PacketType::StopNode;
 
-const QSet<PacketType::Value> NON_VERIFIED_PACKETS = QSet<PacketType::Value>()
-    << NodeJsonStats << EntityQuery
-    << OctreeDataNack << EntityEditNack
-    << DomainListRequest << StopNode;
+const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
+    << PacketType::StunResponse << PacketType::CreateAssignment << PacketType::RequestAssignment
+    << PacketType::DomainServerRequireDTLS << PacketType::DomainConnectRequest
+    << PacketType::DomainList << PacketType::DomainConnectionDenied
+    << PacketType::DomainServerPathQuery << PacketType::DomainServerPathResponse
+    << PacketType::DomainServerAddedNode
+    << PacketType::ICEServerPeerInformation << PacketType::ICEServerQuery << PacketType::ICEServerHeartbeat
+    << PacketType::ICEPing << PacketType::ICEPingReply
+    << PacketType::AssignmentClientStatus << PacketType::StopNode;
 
-const QSet<PacketType::Value> NON_SOURCED_PACKETS = QSet<PacketType::Value>()
-    << StunResponse << CreateAssignment << RequestAssignment
-    << DomainServerRequireDTLS << DomainConnectRequest
-    << DomainList << DomainConnectionDenied
-    << DomainServerPathQuery << DomainServerPathResponse
-    << DomainServerAddedNode
-    << ICEServerPeerInformation << ICEServerQuery << ICEServerHeartbeat
-    << ICEPing << ICEPingReply
-    << AssignmentClientStatus << StopNode;
+const QSet<PacketType> RELIABLE_PACKETS = QSet<PacketType>();
 
 int arithmeticCodingValueFromBuffer(const char* checkValue) {
     if (((uchar) *checkValue) < 255) {
@@ -60,11 +60,11 @@ int packArithmeticallyCodedValue(int value, char* destination) {
     }
 }
 
-PacketVersion versionForPacketType(PacketType::Value packetType) {
+PacketVersion versionForPacketType(PacketType packetType) {
     switch (packetType) {
-        case EntityAdd:
-        case EntityEdit:
-        case EntityData:
+        case PacketType::EntityAdd:
+        case PacketType::EntityEdit:
+        case PacketType::EntityData:
             return VERSION_ENTITIES_NEW_PROTOCOL_LAYER;
         default:
             return 11;
@@ -73,56 +73,66 @@ PacketVersion versionForPacketType(PacketType::Value packetType) {
 
 #define PACKET_TYPE_NAME_LOOKUP(x) case x:  return QString(#x);
 
-QString nameForPacketType(PacketType::Value packetType) {
+QString nameForPacketType(PacketType packetType) {
     switch (packetType) {
-            PACKET_TYPE_NAME_LOOKUP(Unknown);
-            PACKET_TYPE_NAME_LOOKUP(StunResponse);
-            PACKET_TYPE_NAME_LOOKUP(DomainList);
-            PACKET_TYPE_NAME_LOOKUP(Ping);
-            PACKET_TYPE_NAME_LOOKUP(PingReply);
-            PACKET_TYPE_NAME_LOOKUP(KillAvatar);
-            PACKET_TYPE_NAME_LOOKUP(AvatarData);
-            PACKET_TYPE_NAME_LOOKUP(InjectAudio);
-            PACKET_TYPE_NAME_LOOKUP(MixedAudio);
-            PACKET_TYPE_NAME_LOOKUP(MicrophoneAudioNoEcho);
-            PACKET_TYPE_NAME_LOOKUP(MicrophoneAudioWithEcho);
-            PACKET_TYPE_NAME_LOOKUP(BulkAvatarData);
-            PACKET_TYPE_NAME_LOOKUP(SilentAudioFrame);
-            PACKET_TYPE_NAME_LOOKUP(DomainListRequest);
-            PACKET_TYPE_NAME_LOOKUP(RequestAssignment);
-            PACKET_TYPE_NAME_LOOKUP(CreateAssignment);
-            PACKET_TYPE_NAME_LOOKUP(DomainConnectionDenied);
-            PACKET_TYPE_NAME_LOOKUP(MuteEnvironment);
-            PACKET_TYPE_NAME_LOOKUP(AudioStreamStats);
-            PACKET_TYPE_NAME_LOOKUP(OctreeStats);
-            PACKET_TYPE_NAME_LOOKUP(Jurisdiction);
-            PACKET_TYPE_NAME_LOOKUP(JurisdictionRequest);
-            PACKET_TYPE_NAME_LOOKUP(AvatarIdentity);
-            PACKET_TYPE_NAME_LOOKUP(AvatarBillboard);
-            PACKET_TYPE_NAME_LOOKUP(DomainConnectRequest);
-            PACKET_TYPE_NAME_LOOKUP(DomainServerRequireDTLS);
-            PACKET_TYPE_NAME_LOOKUP(NodeJsonStats);
-            PACKET_TYPE_NAME_LOOKUP(EntityQuery);
-            PACKET_TYPE_NAME_LOOKUP(EntityData);
-            PACKET_TYPE_NAME_LOOKUP(EntityErase);
-            PACKET_TYPE_NAME_LOOKUP(OctreeDataNack);
-            PACKET_TYPE_NAME_LOOKUP(StopNode);
-            PACKET_TYPE_NAME_LOOKUP(AudioEnvironment);
-            PACKET_TYPE_NAME_LOOKUP(EntityEditNack);
-            PACKET_TYPE_NAME_LOOKUP(ICEServerHeartbeat);
-            PACKET_TYPE_NAME_LOOKUP(DomainServerAddedNode);
-            PACKET_TYPE_NAME_LOOKUP(ICEServerQuery);
-            PACKET_TYPE_NAME_LOOKUP(ICEServerPeerInformation);
-            PACKET_TYPE_NAME_LOOKUP(ICEPing);
-            PACKET_TYPE_NAME_LOOKUP(ICEPingReply);
-            PACKET_TYPE_NAME_LOOKUP(EntityAdd);
-            PACKET_TYPE_NAME_LOOKUP(EntityEdit);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::Unknown);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::StunResponse);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::DomainList);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::Ping);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::PingReply);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::KillAvatar);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::AvatarData);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::InjectAudio);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::MixedAudio);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::MicrophoneAudioNoEcho);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::MicrophoneAudioWithEcho);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::BulkAvatarData);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::SilentAudioFrame);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::DomainListRequest);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::RequestAssignment);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::CreateAssignment);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::DomainConnectionDenied);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::MuteEnvironment);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::AudioStreamStats);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::OctreeStats);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::Jurisdiction);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::JurisdictionRequest);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::AvatarIdentity);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::AvatarBillboard);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::DomainConnectRequest);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::DomainServerRequireDTLS);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::NodeJsonStats);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::EntityQuery);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::EntityData);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::EntityErase);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::OctreeDataNack);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::StopNode);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::AudioEnvironment);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::EntityEditNack);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::ICEServerHeartbeat);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::DomainServerAddedNode);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::ICEServerQuery);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::ICEServerPeerInformation);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::ICEPing);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::ICEPingReply);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::EntityAdd);
+            PACKET_TYPE_NAME_LOOKUP(PacketType::EntityEdit);
         default:
             return QString("Type: ") + QString::number((int)packetType);
     }
     return QString("unexpected");
 }
 
-int numBytesForArithmeticCodedPacketType(PacketType::Value packetType) {
+int numBytesForArithmeticCodedPacketType(PacketType packetType) {
     return (int) ceilf((float) packetType / 255);
+}
+
+uint qHash(const PacketType& key, uint seed) {
+    // seems odd that Qt couldn't figure out this cast itself, but this fixes a compile error after switch to
+    // strongly typed enum for PacketType
+    return qHash((quint8) key, seed);
+}
+
+QDebug operator<<(QDebug debug, const PacketType& type) {
+    return debug.nospace() << (uint8_t) type << " (" << qPrintable(nameForPacketType(type)) << ")";
 }

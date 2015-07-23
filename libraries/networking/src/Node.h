@@ -85,7 +85,7 @@ private:
     bool _canAdjustLocks;
     bool _canRez;
 
-    std::map<PacketType::Value, udt::Packet::SequenceNumber>  _lastSequenceNumbers;
+    std::map<PacketType, udt::Packet::SequenceNumber>  _lastSequenceNumbers;
 };
 
 typedef QSharedPointer<Node> SharedNodePointer;

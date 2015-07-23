@@ -11,14 +11,18 @@
 
 #include "NLPacket.h"
 
-qint64 NLPacket::localHeaderSize(PacketType::Value type) {
+qint64 NLPacket::maxPayloadSize(PacketType type) {
+    return Packet::maxPayloadSize(false) - localHeaderSize(type);
+}
+
+qint64 NLPacket::localHeaderSize(PacketType type) {
     qint64 size = ((NON_SOURCED_PACKETS.contains(type)) ? 0 : NUM_BYTES_RFC4122_UUID) +
-                    ((NON_SOURCED_PACKETS.contains(type) || NON_VERIFIED_PACKETS.contains(type)) ? 0 : NUM_BYTES_MD5_HASH);
+        ((NON_SOURCED_PACKETS.contains(type) || NON_VERIFIED_PACKETS.contains(type)) ? 0 : NUM_BYTES_MD5_HASH);
     return size;
 }
 
-qint64 NLPacket::maxPayloadSize(PacketType::Value type) {
-    return Packet::maxPayloadSize(type) - localHeaderSize(type);
+qint64 NLPacket::maxPayloadSize() const {
+    return Packet::maxPayloadSize() - localHeaderSize();
 }
 
 qint64 NLPacket::totalHeadersSize() const {
@@ -29,7 +33,7 @@ qint64 NLPacket::localHeaderSize() const {
     return localHeaderSize(_type);
 }
 
-std::unique_ptr<NLPacket> NLPacket::create(PacketType::Value type, qint64 size) {
+std::unique_ptr<NLPacket> NLPacket::create(PacketType type, qint64 size) {
     std::unique_ptr<NLPacket> packet;
     
     if (size == -1) {
@@ -75,17 +79,21 @@ std::unique_ptr<NLPacket> NLPacket::createCopy(const NLPacket& other) {
     return std::unique_ptr<NLPacket>(new NLPacket(other));
 }
 
-NLPacket::NLPacket(PacketType::Value type, qint64 size) :
-    Packet(type, localHeaderSize(type) + size)
+NLPacket::NLPacket(PacketType type, bool isReliable, bool isPartOfMessage) :
+    Packet(-1, isReliable, isPartOfMessage),
+    _type(type),
+    _version(versionForPacketType(type))
 {
-    Q_ASSERT(size >= 0);
-    
     adjustPayloadStartAndCapacity();
 }
 
-NLPacket::NLPacket(PacketType::Value type) :
-    Packet(type, -1)
+NLPacket::NLPacket(PacketType type, qint64 size, bool isReliable, bool isPartOfMessage) :
+    Packet(localHeaderSize(type) + size, isReliable, isPartOfMessage),
+    _type(type),
+    _version(versionForPacketType(type))
 {
+    Q_ASSERT(size >= 0);
+    
     adjustPayloadStartAndCapacity();
 }
 
@@ -103,12 +111,14 @@ NLPacket::NLPacket(const NLPacket& other) : Packet(other) {
 
 NLPacket::NLPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr) :
     Packet(std::move(data), size, senderSockAddr)
-{
+{    
     // sanity check before we decrease the payloadSize with the payloadCapacity
     Q_ASSERT(_payloadSize == _payloadCapacity);
     
     adjustPayloadStartAndCapacity(_payloadSize > 0);
-    
+   
+    readType();
+    readVersion();
     readSourceID();
 }
 
@@ -135,20 +145,29 @@ NLPacket& NLPacket::operator=(NLPacket&& other) {
     return *this;
 }
 
+PacketType NLPacket::typeInHeader(const udt::Packet& packet) {
+    return *reinterpret_cast<const PacketType*>(packet.getData());
+}
+
+PacketVersion NLPacket::versionInHeader(const udt::Packet& packet) {
+    return *reinterpret_cast<const PacketVersion*>(packet.getData() + sizeof(PacketType));
+}
+
 QUuid NLPacket::sourceIDInHeader(const udt::Packet& packet) {
-    int offset = packet.Packet::localHeaderSize();
+    int offset = packet.Packet::localHeaderSize() + sizeof(PacketType) + sizeof(PacketVersion);
     return QUuid::fromRfc4122(QByteArray::fromRawData(packet.getData() + offset, NUM_BYTES_RFC4122_UUID));
 }
 
 QByteArray NLPacket::verificationHashInHeader(const udt::Packet& packet) {
-    int offset = packet.Packet::localHeaderSize() + NUM_BYTES_RFC4122_UUID;
+    int offset = packet.Packet::localHeaderSize() + sizeof(PacketType) + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
     return QByteArray(packet.getData() + offset, NUM_BYTES_MD5_HASH);
 }
 
 QByteArray NLPacket::hashForPacketAndSecret(const udt::Packet& packet, const QUuid& connectionSecret) {
     QCryptographicHash hash(QCryptographicHash::Md5);
     
-    int offset = packet.Packet::localHeaderSize() + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
+    int offset = packet.Packet::localHeaderSize() + sizeof(PacketType) + sizeof(PacketVersion)
+        + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
     
     // add the packet payload and the connection UUID
     hash.addData(packet.getData() + offset, packet.getDataSize() - offset);
@@ -156,6 +175,36 @@ QByteArray NLPacket::hashForPacketAndSecret(const udt::Packet& packet, const QUu
     
     // return the hash
     return hash.result();
+}
+
+void NLPacket::writePacketTypeAndVersion() {
+    // Pack the packet type
+    memcpy(_packet.get(), &_type, sizeof(PacketType));
+    
+    // Pack the packet version
+    auto version = versionForPacketType(_type);
+    memcpy(_packet.get() + sizeof(PacketType), &version, sizeof(version));
+}
+
+void NLPacket::setType(PacketType type) {
+    auto currentHeaderSize = totalHeadersSize();
+    
+    _type = type;
+    _version = versionForPacketType(_type);
+    
+    writePacketTypeAndVersion();
+    
+    // Setting new packet type with a different header size not currently supported
+    Q_ASSERT(currentHeaderSize == totalHeadersSize());
+    Q_UNUSED(currentHeaderSize);
+}
+
+void NLPacket::readType() {
+    _type = NLPacket::typeInHeader(*this);
+}
+
+void NLPacket::readVersion() {
+    _version = NLPacket::versionInHeader(*this);
 }
 
 void NLPacket::adjustPayloadStartAndCapacity(bool shouldDecreasePayloadSize) {

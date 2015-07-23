@@ -157,40 +157,42 @@ bool LimitedNodeList::isPacketVerified(const udt::Packet& packet) {
 }
 
 bool LimitedNodeList::packetVersionMatch(const udt::Packet& packet) {
+    PacketType headerType = NLPacket::typeInHeader(packet);
+    PacketVersion headerVersion = NLPacket::versionInHeader(packet);
     
-    if (packet.getVersion() != versionForPacketType(packet.getType())) {
+    if (headerVersion != versionForPacketType(headerType)) {
         
-        static QMultiHash<QUuid, PacketType::Value> sourcedVersionDebugSuppressMap;
-        static QMultiHash<HifiSockAddr, PacketType::Value> versionDebugSuppressMap;
+        static QMultiHash<QUuid, PacketType> sourcedVersionDebugSuppressMap;
+        static QMultiHash<HifiSockAddr, PacketType> versionDebugSuppressMap;
         
         bool hasBeenOutput = false;
         QString senderString;
         
-        if (NON_SOURCED_PACKETS.contains(packet.getType())) {
+        if (NON_SOURCED_PACKETS.contains(headerType)) {
             const HifiSockAddr& senderSockAddr = packet.getSenderSockAddr();
-            hasBeenOutput = versionDebugSuppressMap.contains(senderSockAddr, packet.getType());
+            hasBeenOutput = versionDebugSuppressMap.contains(senderSockAddr, headerType);
             
             if (!hasBeenOutput) {
-                versionDebugSuppressMap.insert(senderSockAddr, packet.getType());
+                versionDebugSuppressMap.insert(senderSockAddr, headerType);
                 senderString = QString("%1:%2").arg(senderSockAddr.getAddress().toString()).arg(senderSockAddr.getPort());
             }
         } else {
-            QUuid sourceID = QUuid::fromRfc4122(QByteArray::fromRawData(packet.getPayload(), NUM_BYTES_RFC4122_UUID));
+            QUuid sourceID = NLPacket::sourceIDInHeader(packet);
             
-            hasBeenOutput = sourcedVersionDebugSuppressMap.contains(sourceID, packet.getType());
+            hasBeenOutput = sourcedVersionDebugSuppressMap.contains(sourceID, headerType);
             
             if (!hasBeenOutput) {
-                sourcedVersionDebugSuppressMap.insert(sourceID, packet.getType());
+                sourcedVersionDebugSuppressMap.insert(sourceID, headerType);
                 senderString = uuidStringWithoutCurlyBraces(sourceID.toString());
             }
         }
         
         if (!hasBeenOutput) {
-            qCDebug(networking) << "Packet version mismatch on" << packet.getType() << "- Sender"
-                << senderString << "sent" << qPrintable(QString::number(packet.getVersion())) << "but"
-                << qPrintable(QString::number(versionForPacketType(packet.getType()))) << "expected.";
+            qCDebug(networking) << "Packet version mismatch on" << headerType << "- Sender"
+                << senderString << "sent" << qPrintable(QString::number(headerVersion)) << "but"
+                << qPrintable(QString::number(versionForPacketType(headerType))) << "expected.";
             
-            emit packetVersionMismatch(packet.getType());
+            emit packetVersionMismatch(headerType);
         }
         
         return false;
@@ -201,7 +203,9 @@ bool LimitedNodeList::packetVersionMatch(const udt::Packet& packet) {
 
 bool LimitedNodeList::packetSourceAndHashMatch(const udt::Packet& packet) {
     
-    if (NON_SOURCED_PACKETS.contains(packet.getType())) {
+    PacketType headerType = NLPacket::typeInHeader(packet);
+    
+    if (NON_SOURCED_PACKETS.contains(headerType)) {
         return true;
     } else {
         QUuid sourceID = NLPacket::sourceIDInHeader(packet);
@@ -210,19 +214,19 @@ bool LimitedNodeList::packetSourceAndHashMatch(const udt::Packet& packet) {
         SharedNodePointer matchingNode = nodeWithUUID(sourceID);
         
         if (matchingNode) {
-            if (!NON_VERIFIED_PACKETS.contains(packet.getType())) {
+            if (!NON_VERIFIED_PACKETS.contains(headerType)) {
                 
                 QByteArray packetHeaderHash = NLPacket::verificationHashInHeader(packet);
                 QByteArray expectedHash = NLPacket::hashForPacketAndSecret(packet, matchingNode->getConnectionSecret());
             
                 // check if the md5 hash in the header matches the hash we would expect
                 if (packetHeaderHash != expectedHash) {
-                    static QMultiMap<QUuid, PacketType::Value> hashDebugSuppressMap;
+                    static QMultiMap<QUuid, PacketType> hashDebugSuppressMap;
                     
-                    if (!hashDebugSuppressMap.contains(sourceID, packet.getType())) {
-                        qCDebug(networking) << "Packet hash mismatch on" << packet.getType() << "- Sender" << sourceID;
+                    if (!hashDebugSuppressMap.contains(sourceID, headerType)) {
+                        qCDebug(networking) << "Packet hash mismatch on" << headerType << "- Sender" << sourceID;
 
-                        hashDebugSuppressMap.insert(sourceID, packet.getType());
+                        hashDebugSuppressMap.insert(sourceID, headerType);
                     }
 
                     return false;
@@ -235,7 +239,7 @@ bool LimitedNodeList::packetSourceAndHashMatch(const udt::Packet& packet) {
             static QString repeatedMessage
                 = LogHandler::getInstance().addRepeatedMessageRegex("Packet of type \\d+ \\([\\sa-zA-Z]+\\) received from unknown node with UUID");
 
-            qCDebug(networking) << "Packet of type" << packet.getType() << "(" << qPrintable(nameForPacketType(packet.getType())) << ")"
+            qCDebug(networking) << "Packet of type" << headerType << "(" << qPrintable(nameForPacketType(headerType)) << ")"
                 << "received from unknown node with UUID" << qPrintable(uuidStringWithoutCurlyBraces(sourceID));
         }
     }
@@ -786,7 +790,7 @@ void LimitedNodeList::sendPeerQueryToIceServer(const HifiSockAddr& iceServerSock
     sendPacketToIceServer(PacketType::ICEServerQuery, iceServerSockAddr, clientID, peerID);
 }
 
-void LimitedNodeList::sendPacketToIceServer(PacketType::Value packetType, const HifiSockAddr& iceServerSockAddr,
+void LimitedNodeList::sendPacketToIceServer(PacketType packetType, const HifiSockAddr& iceServerSockAddr,
                                             const QUuid& clientID, const QUuid& peerID) {
     auto icePacket = NLPacket::create(packetType);
 

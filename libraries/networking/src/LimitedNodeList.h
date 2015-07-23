@@ -231,7 +231,7 @@ public slots:
 
 signals:
     void dataSent(quint8 channelType, int bytes);
-    void packetVersionMismatch(PacketType::Value type);
+    void packetVersionMismatch(PacketType type);
 
     void uuidChanged(const QUuid& ownerUUID, const QUuid& oldUUID);
     void nodeAdded(SharedNodePointer);
@@ -261,7 +261,7 @@ protected:
 
     void stopInitialSTUNUpdate(bool success);
 
-    void sendPacketToIceServer(PacketType::Value packetType, const HifiSockAddr& iceServerSockAddr, const QUuid& clientID,
+    void sendPacketToIceServer(PacketType packetType, const HifiSockAddr& iceServerSockAddr, const QUuid& clientID,
                                const QUuid& peerRequestID = QUuid());
 
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode,

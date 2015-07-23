@@ -15,18 +15,8 @@ using namespace udt;
 
 const qint64 Packet::PACKET_WRITE_ERROR = -1;
 
-qint64 Packet::localHeaderSize(PacketType::Value type) {
-    // TODO: check the bitfield to see if the message is included
-    qint64 size = sizeof(SequenceNumberAndBitField);
-    return size;
-}
-
-qint64 Packet::maxPayloadSize(PacketType::Value type) {
-    return MAX_PACKET_SIZE - localHeaderSize(type);
-}
-
-std::unique_ptr<Packet> Packet::create(PacketType::Value type, qint64 size) {
-    auto packet = std::unique_ptr<Packet>(new Packet(type, size));
+std::unique_ptr<Packet> Packet::create(qint64 size, bool isReliable, bool isPartOfMessage) {
+    auto packet = std::unique_ptr<Packet>(new Packet(size, isReliable, isPartOfMessage));
     
     packet->open(QIODevice::ReadWrite);
    
@@ -49,25 +39,38 @@ std::unique_ptr<Packet> Packet::createCopy(const Packet& other) {
     return std::unique_ptr<Packet>(new Packet(other));
 }
 
+qint64 Packet::maxPayloadSize(bool isPartOfMessage) {
+    return MAX_PACKET_SIZE - localHeaderSize(isPartOfMessage);
+}
+
+qint64 Packet::localHeaderSize(bool isPartOfMessage) {
+    return sizeof(SequenceNumberAndBitField) + (isPartOfMessage ? sizeof(MessageNumberAndBitField) : 0);
+}
+
+qint64 Packet::maxPayloadSize() const {
+    return MAX_PACKET_SIZE - localHeaderSize();
+}
+
 qint64 Packet::totalHeadersSize() const {
     return localHeaderSize();
 }
 
 qint64 Packet::localHeaderSize() const {
-    return localHeaderSize(_type);
+    return localHeaderSize(_isPartOfMessage);
 }
 
-Packet::Packet(PacketType::Value type, qint64 size) :
-    _type(type),
-    _version(0)
+Packet::Packet(qint64 size, bool isReliable, bool isPartOfMessage) :
+    _isReliable(isReliable),
+    _isPartOfMessage(isPartOfMessage)
 {
-    auto maxPayload = maxPayloadSize(type);
+    auto maxPayload = maxPayloadSize();
+    
     if (size == -1) {
         // default size of -1, means biggest packet possible
         size = maxPayload;
     }
 
-    _packetSize = localHeaderSize(type) + size;
+    _packetSize = localHeaderSize() + size;
     _packet.reset(new char[_packetSize]);
     _payloadCapacity = size;
     _payloadStart = _packet.get() + (_packetSize - _payloadCapacity);
@@ -84,9 +87,11 @@ Packet::Packet(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& send
     _packet(std::move(data)),
     _senderSockAddr(senderSockAddr)
 {
-    _type = readType();
-    _version = readVersion();
-    _payloadCapacity = _packetSize - localHeaderSize(_type);
+    readIsReliable();
+    readIsPartOfMessage();
+    readSequenceNumber();
+    
+    _payloadCapacity = _packetSize - localHeaderSize();
     _payloadSize = _payloadCapacity;
     _payloadStart = _packet.get() + (_packetSize - _payloadCapacity);
 }
@@ -98,9 +103,6 @@ Packet::Packet(const Packet& other) :
 }
 
 Packet& Packet::operator=(const Packet& other) {
-    _type = other._type;
-    _version = other._version;
-    
     _packetSize = other._packetSize;
     _packet = std::unique_ptr<char>(new char[_packetSize]);
     memcpy(_packet.get(), other._packet.get(), _packetSize);
@@ -124,9 +126,6 @@ Packet::Packet(Packet&& other) {
 }
 
 Packet& Packet::operator=(Packet&& other) {
-    _type = other._type;
-    _version = other._version;
-    
     _packetSize = other._packetSize;
     _packet = std::move(other._packet);
 
@@ -164,55 +163,38 @@ bool Packet::reset() {
     return QIODevice::reset();
 }
 
-void Packet::setType(PacketType::Value type) {
-    auto currentHeaderSize = totalHeadersSize();
-    _type = type;
-    writePacketTypeAndVersion(_type);
-
-    // Setting new packet type with a different header size not currently supported
-    Q_ASSERT(currentHeaderSize == totalHeadersSize());
-    Q_UNUSED(currentHeaderSize);
-}
-
-PacketType::Value Packet::readType() const {
-    return (PacketType::Value)arithmeticCodingValueFromBuffer(_packet.get());
-}
-
-PacketVersion Packet::readVersion() const {
-    return *reinterpret_cast<PacketVersion*>(_packet.get() + numBytesForArithmeticCodedPacketType(_type));
-}
-
 static const uint32_t CONTROL_BIT_MASK = 1 << (sizeof(Packet::SequenceNumberAndBitField) - 1);
 static const uint32_t RELIABILITY_BIT_MASK = 1 << (sizeof(Packet::SequenceNumberAndBitField) - 2);
 static const uint32_t MESSAGE_BIT_MASK = 1 << (sizeof(Packet::SequenceNumberAndBitField) - 3);
+static const int BIT_FIELD_LENGTH = 3;
 static const uint32_t BIT_FIELD_MASK = CONTROL_BIT_MASK | RELIABILITY_BIT_MASK | MESSAGE_BIT_MASK;
 
-
-Packet::SequenceNumber Packet::readSequenceNumber() const {
+void Packet::readIsReliable() {
     SequenceNumberAndBitField seqNumBitField = *reinterpret_cast<SequenceNumberAndBitField*>(_packet.get());
-    return seqNumBitField & ~BIT_FIELD_MASK; // Remove the bit field
+    _isReliable = (bool) (seqNumBitField & RELIABILITY_BIT_MASK); // Only keep reliability bit
 }
 
-bool Packet::readIsControlPacket() const {
+void Packet::readIsPartOfMessage() {
     SequenceNumberAndBitField seqNumBitField = *reinterpret_cast<SequenceNumberAndBitField*>(_packet.get());
-    return seqNumBitField & CONTROL_BIT_MASK; // Only keep control bit
+    _isReliable = (bool) (seqNumBitField & MESSAGE_BIT_MASK); // Only keep message bit
 }
 
-void Packet::writePacketTypeAndVersion(PacketType::Value type) {
-    // Pack the packet type
-    auto offset = packArithmeticallyCodedValue(type, _packet.get());
-
-    // Pack the packet version
-    auto version = versionForPacketType(type);
-    memcpy(_packet.get() + offset, &version, sizeof(version));
+void Packet::readSequenceNumber() {
+    SequenceNumberAndBitField seqNumBitField = *reinterpret_cast<SequenceNumberAndBitField*>(_packet.get());
+    _sequenceNumber = (seqNumBitField & ~BIT_FIELD_MASK); // Remove the bit field
 }
 
-void Packet::writeSequenceNumber(SequenceNumber seqNum) {
-    // Here we are overriding the control bit to 0.
-    // But that is not an issue since we should only ever set the seqNum
-    // for data packets going out
-    memcpy(_packet.get() + numBytesForArithmeticCodedPacketType(_type) + sizeof(PacketVersion),
-           &seqNum, sizeof(seqNum));
+static const uint32_t MAX_SEQUENCE_NUMBER = UINT32_MAX >> BIT_FIELD_LENGTH;
+
+void Packet::writeSequenceNumber(SequenceNumber sequenceNumber) {
+    // make sure this is a sequence number <= 29 bit unsigned max (536,870,911)
+    Q_ASSERT(sequenceNumber <= MAX_SEQUENCE_NUMBER);
+    
+    // grab pointer to current SequenceNumberAndBitField
+    SequenceNumberAndBitField* seqNumBitField = reinterpret_cast<SequenceNumberAndBitField*>(_packet.get());
+    
+    // write new value by ORing (old value & BIT_FIELD_MASK) with new seqNum
+    *seqNumBitField = (*seqNumBitField & BIT_FIELD_MASK) | sequenceNumber;
 }
 
 QByteArray Packet::read(qint64 maxSize) {

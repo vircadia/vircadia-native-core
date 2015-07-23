@@ -28,11 +28,11 @@ public:
     // Subclasses must implement these methods
     virtual OctreeQueryNode* createOctreeQueryNode();
     virtual char getMyNodeType() const { return NodeType::EntityServer; }
-    virtual PacketType::Value getMyQueryMessageType() const { return PacketType::EntityQuery; }
+    virtual PacketType getMyQueryMessageType() const { return PacketType::EntityQuery; }
     virtual const char* getMyServerName() const { return MODEL_SERVER_NAME; }
     virtual const char* getMyLoggingServerTargetName() const { return MODEL_SERVER_LOGGING_TARGET_NAME; }
     virtual const char* getMyDefaultPersistFilename() const { return LOCAL_MODELS_PERSIST_FILE; }
-    virtual PacketType::Value getMyEditNackType() const { return PacketType::EntityEditNack; }
+    virtual PacketType getMyEditNackType() const { return PacketType::EntityEditNack; }
     virtual QString getMyDomainSettingsKey() const { return QString("entity_server_settings"); }
 
     // subclass may implement these method

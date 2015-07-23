@@ -16,7 +16,7 @@
 
 class NLPacketList : public udt::PacketList {
 public:
-    NLPacketList(PacketType::Value packetType, QByteArray extendedHeader = QByteArray());
+    NLPacketList(PacketType packetType, QByteArray extendedHeader = QByteArray());
     
 private:
     NLPacketList(const NLPacketList& other) = delete;

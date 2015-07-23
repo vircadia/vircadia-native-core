@@ -89,7 +89,7 @@ void OctreeInboundPacketProcessor::processPacket(QSharedPointer<NLPacket> packet
     }
 
     // Ask our tree subclass if it can handle the incoming packet...
-    PacketType::Value packetType = packet->getType();
+    PacketType packetType = packet->getType();
     
     if (_myServer->getOctree()->handlesEditPacketType(packetType)) {
         PerformanceWarning warn(debugProcessPacket, "processPacket KNOWN TYPE", debugProcessPacket);

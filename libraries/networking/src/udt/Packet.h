@@ -24,25 +24,33 @@ namespace udt {
 class Packet : public QIODevice {
     Q_OBJECT
 public:
-    // NOTE: The SequenceNumber must actually only be 29 bits MAX to leave room for a bit field
+    // NOTE: The SequenceNumber is only actually 29 bits to leave room for a bit field
     using SequenceNumber = uint32_t;
     using SequenceNumberAndBitField = uint32_t;
+    
+    // NOTE: The MessageNumber is only actually 29 bits to leave room for a bit field
+    using MessageNumber = uint32_t;
+    using MessageNumberAndBitField = uint32_t;
     
     static const uint32_t DEFAULT_SEQUENCE_NUMBER = 0;
 
     static const qint64 PACKET_WRITE_ERROR;
 
-    static std::unique_ptr<Packet> create(PacketType::Value type, qint64 size = -1);
+    static std::unique_ptr<Packet> create(qint64 size = -1, bool isReliable = false, bool isPartOfMessage = false);
     static std::unique_ptr<Packet> fromReceivedPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
     
     // Provided for convenience, try to limit use
     static std::unique_ptr<Packet> createCopy(const Packet& other);
-
-    static qint64 localHeaderSize(PacketType::Value type);
-    static qint64 maxPayloadSize(PacketType::Value type);
-
+    
+    // The maximum payload size this packet can use to fit in MTU
+    static qint64 maxPayloadSize(bool isPartOfMessage);
+    virtual qint64 maxPayloadSize() const;
+    
+    // Current level's header size
+    static qint64 localHeaderSize(bool isPartOfMessage);
+    virtual qint64 localHeaderSize() const;
+    
     virtual qint64 totalHeadersSize() const; // Cumulated size of all the headers
-    virtual qint64 localHeaderSize() const;  // Current level's header size
 
     // Payload direct access to the payload, use responsibly!
     char* getPayload() { return _payloadStart; }
@@ -51,11 +59,6 @@ public:
     // Return direct access to the entire packet, use responsibly!
     char* getData() { return _packet.get(); }
     const char* getData() const { return _packet.get(); }
-
-    PacketType::Value getType() const { return _type; }
-    void setType(PacketType::Value type);
-    
-    PacketVersion getVersion() const { return _version; }
     
     // Returns the size of the packet, including the header
     qint64 getDataSize() const { return totalHeadersSize() + _payloadSize; }
@@ -75,9 +78,7 @@ public:
     HifiSockAddr& getSenderSockAddr() { return _senderSockAddr; }
     const HifiSockAddr& getSenderSockAddr() const { return _senderSockAddr; }
     
-    void writeSequenceNumber(SequenceNumber seqNum);
-    SequenceNumber readSequenceNumber() const;
-    bool readIsControlPacket() const;
+    void writeSequenceNumber(SequenceNumber sequenceNumber);
 
     // QIODevice virtual functions
     // WARNING: Those methods all refer to the payload ONLY and NOT the entire packet
@@ -93,26 +94,21 @@ public:
     template<typename T> qint64 writePrimitive(const T& data);
 
 protected:
-    Packet(PacketType::Value type, qint64 size);
+    Packet(qint64 size, bool isReliable = false, bool isPartOfMessage = false);
     Packet(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
     Packet(const Packet& other);
     Packet& operator=(const Packet& other);
     Packet(Packet&& other);
     Packet& operator=(Packet&& other);
 
-    // Header readers
-    PacketType::Value readType() const;
-    PacketVersion readVersion() const;
-
     // QIODevice virtual functions
     virtual qint64 writeData(const char* data, qint64 maxSize);
     virtual qint64 readData(char* data, qint64 maxSize);
-
-    // Header writers
-    void writePacketTypeAndVersion(PacketType::Value type);
-
-    PacketType::Value _type;       // Packet type
-    PacketVersion _version;        // Packet version
+    
+    // Header readers - these read data to member variables after pulling packet off wire
+    void readIsPartOfMessage();
+    void readIsReliable();
+    void readSequenceNumber();
 
     qint64 _packetSize = 0;        // Total size of the allocated memory
     std::unique_ptr<char> _packet; // Allocated memory
@@ -121,6 +117,10 @@ protected:
     qint64 _payloadCapacity = 0;          // Total capacity of the payload
 
     qint64 _payloadSize = 0;          // How much of the payload is actually used
+    
+    bool _isReliable { false };
+    bool _isPartOfMessage { false };
+    SequenceNumber _sequenceNumber { 0 };
 
     HifiSockAddr _senderSockAddr;  // sender address for packet (only used on receiving end)
 };

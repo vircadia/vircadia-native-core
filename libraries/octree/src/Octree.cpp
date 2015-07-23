@@ -1894,7 +1894,7 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
 
     bool wantImportProgress = true;
 
-    PacketType::Value expectedType = expectedDataPacketType();
+    PacketType expectedType = expectedDataPacketType();
     PacketVersion expectedVersion = versionForPacketType(expectedType);
     bool hasBufferBreaks = versionHasSVOfileBreaks(expectedVersion);
 
@@ -1902,7 +1902,7 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
     if (getWantSVOfileVersions()) {
 
         // read just enough of the file to parse the header...
-        const unsigned long HEADER_LENGTH = sizeof(PacketType::Value) + sizeof(PacketVersion);
+        const unsigned long HEADER_LENGTH = sizeof(PacketType) + sizeof(PacketVersion);
         unsigned char fileHeader[HEADER_LENGTH];
         inputStream.readRawData((char*)&fileHeader, HEADER_LENGTH);
 
@@ -1912,7 +1912,7 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
         unsigned long  dataLength = HEADER_LENGTH;
 
         // if so, read the first byte of the file and see if it matches the expected version code
-        PacketType::Value gotType;
+        PacketType gotType;
         memcpy(&gotType, dataAt, sizeof(gotType));
 
         dataAt += sizeof(expectedType);
@@ -2055,7 +2055,7 @@ void Octree::writeToJSONFile(const char* fileName, OctreeElement* element) {
     }
 
     // include the "bitstream" version
-    PacketType::Value expectedType = expectedDataPacketType();
+    PacketType expectedType = expectedDataPacketType();
     PacketVersion expectedVersion = versionForPacketType(expectedType);
     entityDescription["Version"] = (int) expectedVersion;
 
@@ -2076,7 +2076,7 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
     if(file.is_open()) {
         qCDebug(octree, "Saving binary SVO to file %s...", fileName);
 
-        PacketType::Value expectedType = expectedDataPacketType();
+        PacketType expectedType = expectedDataPacketType();
         PacketVersion expectedVersion = versionForPacketType(expectedType);
         bool hasBufferBreaks = versionHasSVOfileBreaks(expectedVersion);
 

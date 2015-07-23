@@ -50,7 +50,7 @@ AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() const {
 }
 
 int AudioMixerClientData::parseData(NLPacket& packet) {
-    PacketType::Value packetType = packet.getType();
+    PacketType packetType = packet.getType();
     
     if (packetType == PacketType::AudioStreamStats) {
 
