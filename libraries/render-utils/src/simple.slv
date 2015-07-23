@@ -23,7 +23,7 @@ void main(void) {
     gl_TexCoord[0] = gl_MultiTexCoord0;
     
     // pass along the diffuse color
-    gl_FrontColor = vec4(0,1,0,1); //gl_Color;
+    gl_FrontColor = gl_Color;
     
     // standard transform
     TransformCamera cam = getTransformCamera();
