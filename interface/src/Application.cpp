@@ -942,13 +942,13 @@ void Application::paintGL() {
         // Using the latter will cause the camera to wobble with idle animations,
         // or with changes from the face tracker
 
+        _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
         if (!getActiveDisplayPlugin()->isHmd()) {
-            _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
             _myCamera.setRotation(_myAvatar->getHead()->getCameraOrientation());
         } else {
-            auto camMat = _myAvatar->getSensorToWorldMatrix() * getHMDSensorPose();
-            _myCamera.setPosition(extractTranslation(camMat));
-            _myCamera.setRotation(glm::quat_cast(camMat));
+            // The plugin getModelview() call below will compose the base
+            // avatar transform with the HMD pose.
+            _myCamera.setRotation(_myAvatar->getOrientation());
         }
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         if (isHMDMode()) {

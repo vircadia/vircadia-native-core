@@ -65,6 +65,8 @@ glm::mat4 OculusBaseDisplayPlugin::getEyePose(Eye eye) const {
     return toGlm(_eyePoses[eye]);
 }
 
+// Should NOT be used for rendering as this will mess up timewarp.  Use the getModelview() method above for
+// any use of head poses for rendering, ensuring you use the correct eye
 glm::mat4 OculusBaseDisplayPlugin::getHeadPose() const {
     ovrTrackingState state = ovrHmd_GetTrackingState(_hmd, 0.0f);
     return toGlm(state.HeadPose.ThePose);
