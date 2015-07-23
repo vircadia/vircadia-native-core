@@ -22,16 +22,16 @@ const QString& Basic2DWindowOpenGLDisplayPlugin::getName() const {
 }
 
 void Basic2DWindowOpenGLDisplayPlugin::activate(PluginContainer* container) {
-    container->addMenu(MENU_PATH);
-    container->addMenuItem(MENU_PATH, FULLSCREEN,
-        [this] (bool clicked) { this->setFullscreen(clicked); },
-        true, false);
+//    container->addMenu(MENU_PATH);
+//    container->addMenuItem(MENU_PATH, FULLSCREEN,
+//        [this] (bool clicked) { this->setFullscreen(clicked); },
+//        true, false);
     MainWindowOpenGLDisplayPlugin::activate(container);
 }
 
 void Basic2DWindowOpenGLDisplayPlugin::deactivate(PluginContainer* container) {
-    container->removeMenuItem(MENU_NAME, FULLSCREEN);
-    container->removeMenu(MENU_PATH);
+//    container->removeMenuItem(MENU_NAME, FULLSCREEN);
+//    container->removeMenu(MENU_PATH);
     MainWindowOpenGLDisplayPlugin::deactivate(container);
 }
 
@@ -66,7 +66,6 @@ void Basic2DWindowOpenGLDisplayPlugin::setFullscreen(bool fullscreen) {
     if (fullscreen) {
         auto state = window->windowState() | Qt::WindowFullScreen;
         window->setWindowState(Qt::WindowState((int)state));
-        window->setPosition(0, 0);
         // The next line produces the following warning in the log:
         // [WARNING][03 / 06 12:17 : 58] QWidget::setMinimumSize: (/ MainWindow) Negative sizes
         //   (0, -1) are not possible
