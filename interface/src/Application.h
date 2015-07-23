@@ -84,9 +84,13 @@ class MainWindow;
 class Node;
 class ScriptEngine;
 class GlWindow;
+
 namespace gpu {
     class Context;
+    typedef std::shared_ptr<Context> ContextPointer;
 }
+
+
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 static const QString SVO_EXTENSION  = ".svo";
 static const QString SVO_JSON_EXTENSION  = ".svo.json";

@@ -983,8 +983,8 @@ void Application::paintGL() {
     renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
 
     // Primary rendering pass
-    auto textureCache = DependencyManager::get<TextureCache>();
-    QSize size = textureCache->getFrameBufferSize();
+    auto framebufferCache = DependencyManager::get<FramebufferCache>();
+    QSize size = framebufferCache->getFrameBufferSize();
     {
         PROFILE_RANGE(__FUNCTION__ "/mainRender");
 
@@ -1049,7 +1049,7 @@ void Application::paintGL() {
     // Overlay Composition, needs to occur after screen space effects have completed
     {
         PROFILE_RANGE(__FUNCTION__ "/compositor");
-        auto primaryFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+        auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFbo));
         if (displayPlugin->isStereo()) {
             QRect r(QPoint(0, 0), QSize(size.width() / 2, size.height()));
@@ -1073,7 +1073,7 @@ void Application::paintGL() {
     // deliver final composited scene to the display plugin
     {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
-        auto primaryFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+        auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
         GLuint finalTexture = gpu::GLBackend::getTextureID(primaryFbo->getRenderBuffer(0));
         uvec2 finalSize = toGlm(size);
 #ifdef Q_OS_MAC
@@ -1151,7 +1151,7 @@ void Application::resizeGL() {
     uvec2 renderSize = uvec2(vec2(framebufferSize) * getRenderResolutionScale());
     if (_renderResolution != renderSize) {
         _renderResolution = renderSize;
-        DependencyManager::get<TextureCache>()->setFrameBufferSize(fromGlm(renderSize));
+        DependencyManager::get<FramebufferCache>()->setFrameBufferSize(fromGlm(renderSize));
 
         // Possible change in aspect ratio
         loadViewFrustum(_myCamera, _viewFrustum);
@@ -1978,7 +1978,7 @@ void Application::idle() {
         // perpetuity and not expect events to get backed up.
         
         static const int IDLE_TIMER_DELAY_MS = 0;
-        int desiredInterval = _glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : IDLE_TIMER_DELAY_MS;
+        int desiredInterval = getActiveDisplayPlugin()->isThrottled() ? THROTTLED_IDLE_TIMER_DELAY : IDLE_TIMER_DELAY_MS;
         
         if (idleTimer->interval() != desiredInterval) {
             idleTimer->start(desiredInterval);
