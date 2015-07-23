@@ -767,27 +767,8 @@ void Application::initializeGL() {
     }
     #endif
 
-#ifdef WIN32
-    GLenum err = glewInit();
-    if (GLEW_OK != err) {
-        /* Problem: glewInit failed, something is seriously wrong. */
-        qCDebug(interfaceapp, "Error: %s\n", glewGetErrorString(err));
-    }
-    qCDebug(interfaceapp, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
-
-    if (wglewGetExtension("WGL_EXT_swap_control")) {
-        int swapInterval = wglGetSwapIntervalEXT();
-        qCDebug(interfaceapp, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
-    }
-#endif
-
-#if defined(Q_OS_LINUX)
-    // TODO: Write the correct  code for Linux...
-    /* if (wglewGetExtension("WGL_EXT_swap_control")) {
-        int swapInterval = wglGetSwapIntervalEXT();
-        qCDebug(interfaceapp, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
-    }*/
-#endif
+    // Where the gpuContext is created and where the TRUE Backend is created and assigned
+    _gpuContext = std::make_shared<gpu::Context>(new gpu::GLBackend());
 
     initDisplay();
     qCDebug(interfaceapp, "Initialized Display.");
@@ -876,8 +857,9 @@ void Application::paintGL() {
     _glWidget->makeCurrent();
 
     auto lodManager = DependencyManager::get<LODManager>();
-    gpu::Context context(new gpu::GLBackend());
-    RenderArgs renderArgs(&context, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
+
+
+    RenderArgs renderArgs(_gpuContext, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
                           lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
                           RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
 
@@ -893,17 +875,16 @@ void Application::paintGL() {
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
     resizeGL();
 
+
     {
         PerformanceTimer perfTimer("renderOverlay");
         
         // NOTE: There is no batch associated with this renderArgs
         // the ApplicationOverlay class assumes it's viewport is setup to be the device size
         QSize size = qApp->getDeviceSize();
-        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());    
+        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
         _applicationOverlay.renderOverlay(&renderArgs);
     }
-
-    glEnable(GL_LINE_SMOOTH);
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, _myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
@@ -955,7 +936,6 @@ void Application::paintGL() {
     }
 
     // Sync up the View Furstum with the camera
-    // FIXME: it's happening again in the updateSHadow and it shouldn't, this should be the place
     loadViewFrustum(_myCamera, _viewFrustum);
 
 
@@ -979,7 +959,7 @@ void Application::paintGL() {
             batch.setFramebuffer(primaryFbo);
             // clear the normal and specular buffers
             batch.clearFramebuffer(
-                gpu::Framebuffer::BUFFER_COLOR0 | 
+                gpu::Framebuffer::BUFFER_COLOR0 |
                 gpu::Framebuffer::BUFFER_COLOR1 |
                 gpu::Framebuffer::BUFFER_COLOR2 |
                 gpu::Framebuffer::BUFFER_DEPTH,
@@ -994,7 +974,7 @@ void Application::paintGL() {
 
         displaySide(&renderArgs, _myCamera);
 
-        if (_myCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
             renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
             renderRearViewMirror(&renderArgs, _mirrorViewRect);
             renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
@@ -1818,6 +1798,13 @@ void Application::idle() {
     }
     double timeSinceLastUpdate = (double)_lastTimeUpdated.nsecsElapsed() / 1000000.0;
     if (timeSinceLastUpdate > targetFramePeriod) {
+        
+        {
+            static const int IDLE_EVENT_PROCESS_MAX_TIME_MS = 2;
+            PerformanceTimer perfTimer("processEvents");
+            processEvents(QEventLoop::AllEvents, IDLE_EVENT_PROCESS_MAX_TIME_MS);
+        }
+        
         _lastTimeUpdated.start();
         {
             PerformanceTimer perfTimer("update");
@@ -1842,11 +1829,19 @@ void Application::idle() {
                 _idleLoopMeasuredJitter = _idleLoopStdev.getStDev();
                 _idleLoopStdev.reset();
             }
-
         }
+        
         // After finishing all of the above work, ensure the idle timer is set to the proper interval,
-        // depending on whether we're throttling or not
-        idleTimer->start(_glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : 1);
+        // depending on whether we're throttling or not.
+        // Once rendering is off on another thread we should be able to have Application::idle run at start(0) in
+        // perpetuity and not expect events to get backed up.
+        
+        static const int IDLE_TIMER_DELAY_MS = 0;
+        int desiredInterval = _glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : IDLE_TIMER_DELAY_MS;
+        
+        if (idleTimer->interval() != desiredInterval) {
+            idleTimer->start(desiredInterval);
+        }
     }
 
     // check for any requested background downloads.
@@ -3169,10 +3164,6 @@ namespace render {
                 model::Skybox::render(batch, *(Application::getInstance()->getDisplayViewFrustum()), *skybox);
             }
         }
-        // FIX ME - If I don't call this renderBatch() here, then the atmosphere and skybox don't render, but it
-        // seems like these payloadRender() methods shouldn't be doing this. We need to investigate why the engine
-        // isn't rendering our batch
-        gpu::GLBackend::renderBatch(batch, true);
     }
 }
 
@@ -3440,10 +3431,6 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
         // Viewport is assigned to the size of the framebuffer
         renderArgs->_context->render(batch);
     }
-
-    bool updateViewFrustum = false;
-    loadViewFrustum(_mirrorCamera, _viewFrustum);
-
 
     // render rear mirror view
     displaySide(renderArgs, _mirrorCamera, true, billboard);
