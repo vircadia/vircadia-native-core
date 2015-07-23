@@ -59,8 +59,8 @@ public:
     // This is so the correct camera can be used for rendering.
     void updateSensorToWorldMatrix();
 
-    virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting = false) override;
-    virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel = 0.0f) override;
+    virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPositio) override;
+    virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel = 0.0f) override;
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const override;
 
     // setters

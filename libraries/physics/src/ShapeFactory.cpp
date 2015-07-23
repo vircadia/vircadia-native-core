@@ -43,9 +43,18 @@ btConvexHullShape* ShapeFactory::createConvexHull(const QVector<glm::vec3>& poin
 
     const float MIN_MARGIN = 0.01f;
     glm::vec3 diagonal = maxCorner - minCorner;
-    float minDimension = glm::min(diagonal[0], diagonal[1]);
-    minDimension = glm::min(minDimension, diagonal[2]);
-    margin = glm::min(glm::max(0.5f * minDimension, MIN_MARGIN), margin);
+    float smallestDimension = glm::min(diagonal[0], diagonal[1]);
+    smallestDimension = glm::min(smallestDimension, diagonal[2]);
+    const float MIN_DIMENSION = 2.0f * MIN_MARGIN + 0.001f;
+    if (smallestDimension < MIN_DIMENSION) {
+        for (int i = 0; i < 3; ++i) {
+            if (diagonal[i] < MIN_DIMENSION) {
+                diagonal[i] = MIN_DIMENSION;
+            }
+        }
+        smallestDimension = MIN_DIMENSION;
+    }
+    margin = glm::min(glm::max(0.5f * smallestDimension, MIN_MARGIN), margin);
     hull->setMargin(margin);
 
     // add the points, correcting for margin

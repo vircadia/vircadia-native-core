@@ -9,11 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <sstream>
+#include "Application.h"
 
-#include <stdlib.h>
-#include <cmath>
-#include <math.h>
+#include <sstream>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
@@ -63,6 +61,7 @@
 
 #include <EntityScriptingInterface.h>
 #include <ErrorDialog.h>
+#include <FramebufferCache.h>
 #include <GlWindow.h>
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
@@ -92,13 +91,13 @@
 #include <SettingHandle.h>
 #include <SimpleAverage.h>
 #include <SoundCache.h>
+#include <TextureCache.h>
 #include <Tooltip.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
 #include <input-plugins/UserInputMapper.h>
 #include <VrMenu.h>
 
-#include "Application.h"
 #include "AudioClient.h"
 #include "DiscoverabilityManager.h"
 #include "InterfaceVersion.h"
@@ -268,6 +267,8 @@ bool setupEssentials(int& argc, char** argv) {
     auto audioScope = DependencyManager::set<AudioScope>();
     auto deferredLightingEffect = DependencyManager::set<DeferredLightingEffect>();
     auto textureCache = DependencyManager::set<TextureCache>();
+    auto framebufferCache = DependencyManager::set<FramebufferCache>();
+
     auto animationCache = DependencyManager::set<AnimationCache>();
     auto ddeFaceTracker = DependencyManager::set<DdeFaceTracker>();
     auto modelBlender = DependencyManager::set<ModelBlender>();
@@ -771,6 +772,7 @@ Application::~Application() {
     DependencyManager::destroy<OffscreenUi>();
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();
+    DependencyManager::destroy<FramebufferCache>();
     DependencyManager::destroy<TextureCache>();
     DependencyManager::destroy<GeometryCache>();
     DependencyManager::destroy<ScriptCache>();
@@ -804,33 +806,8 @@ void Application::initializeGL() {
     }
     #endif
 
-    #ifdef WIN32
-    GLenum err = glewInit();
-    if (GLEW_OK != err) {
-        /* Problem: glewInit failed, something is seriously wrong. */
-        qCDebug(interfaceapp, "Error: %s\n", glewGetErrorString(err));
-    }
-    qCDebug(interfaceapp, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
-
-    if (wglewGetExtension("WGL_EXT_swap_control")) {
-        int swapInterval = wglGetSwapIntervalEXT();
-        qCDebug(interfaceapp, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
-    }
-    #endif
-
-    
-    qCDebug(interfaceapp) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
-    qCDebug(interfaceapp) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
-    qCDebug(interfaceapp) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
-    qCDebug(interfaceapp) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
-
-#if defined(Q_OS_LINUX)
-    // TODO: Write the correct  code for Linux...
-    /* if (wglewGetExtension("WGL_EXT_swap_control")) {
-        int swapInterval = wglGetSwapIntervalEXT();
-        qCDebug(interfaceapp, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
-    }*/
-#endif
+    // Where the gpuContext is created and where the TRUE Backend is created and assigned
+    _gpuContext = std::make_shared<gpu::Context>(new gpu::GLBackend());
 
     initDisplay();
     qCDebug(interfaceapp, "Initialized Display.");
@@ -929,8 +906,9 @@ void Application::paintGL() {
     _offscreenContext->makeCurrent();
 
     auto lodManager = DependencyManager::get<LODManager>();
-    gpu::Context context(new gpu::GLBackend());
-    RenderArgs renderArgs(&context, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
+
+
+    RenderArgs renderArgs(_gpuContext, nullptr, getViewFrustum(), lodManager->getOctreeSizeScale(),
                           lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
                           RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
 
@@ -942,16 +920,15 @@ void Application::paintGL() {
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
     resizeGL();
 
+
     {
         PerformanceTimer perfTimer("renderOverlay");
         // NOTE: There is no batch associated with this renderArgs
         // the ApplicationOverlay class assumes it's viewport is setup to be the device size
         QSize size = qApp->getDeviceSize();
-        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());    
+        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
         _applicationOverlay.renderOverlay(&renderArgs);
     }
-
-    glEnable(GL_LINE_SMOOTH);
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, _myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
@@ -1000,8 +977,7 @@ void Application::paintGL() {
     }
 
     // Sync up the View Furstum with the camera
-    // FIXME: it's happening again in the updateSHadow and it shouldn't, this should be the place
-    _myCamera.loadViewFrustum(_viewFrustum);
+    loadViewFrustum(_myCamera, _viewFrustum);
 
 
     renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
@@ -1015,19 +991,15 @@ void Application::paintGL() {
         {
             PROFILE_RANGE(__FUNCTION__ "/clear");
             doInBatch(&renderArgs, [&](gpu::Batch& batch) {
-                batch.setFramebuffer(textureCache->getPrimaryFramebuffer());
+                auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
+                batch.setFramebuffer(primaryFbo);
                 // clear the normal and specular buffers
                 batch.clearFramebuffer(
                     gpu::Framebuffer::BUFFER_COLOR0 |
                     gpu::Framebuffer::BUFFER_COLOR1 |
                     gpu::Framebuffer::BUFFER_COLOR2 |
                     gpu::Framebuffer::BUFFER_DEPTH,
-                    vec4(vec3(0), 1), 1.0, 0.0, true);
-                batch.clearColorFramebuffer(
-                    gpu::Framebuffer::BUFFER_COLOR0 |
-                    gpu::Framebuffer::BUFFER_COLOR1 |
-                    gpu::Framebuffer::BUFFER_COLOR2,
-                    vec4(vec3(0), 1));
+                    vec4(vec3(0), 1), 1.0, 0.0);
             });
         }
 
@@ -1048,7 +1020,9 @@ void Application::paintGL() {
                 displaySide(&renderArgs, eyeCamera);
                 if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && 
                     !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
+                    renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
                     renderRearViewMirror(&renderArgs, _mirrorViewRect);
+                    renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
                 }
             }, [&] {
                 r.moveLeft(r.width());
@@ -1065,7 +1039,9 @@ void Application::paintGL() {
             displaySide(&renderArgs, _myCamera);
             if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && 
                 !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
+                renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
                 renderRearViewMirror(&renderArgs, _mirrorViewRect);
+                renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
             }
         }
     }
@@ -1107,8 +1083,10 @@ void Application::paintGL() {
         GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 #endif
         _offscreenContext->doneCurrent();
+        // Switches to the display plugin context
         displayPlugin->preDisplay();
 
+        // Ensure all operations from the previous context are complete before we try to read the fbo
 #ifdef Q_OS_MAC
 #else
         // FIXME? make the sync a parameter to preDisplay and let the plugin manage this
@@ -1954,6 +1932,13 @@ void Application::idle() {
     }
     double timeSinceLastUpdate = (double)_lastTimeUpdated.nsecsElapsed() / 1000000.0;
     if (timeSinceLastUpdate > targetFramePeriod) {
+        
+        {
+            static const int IDLE_EVENT_PROCESS_MAX_TIME_MS = 2;
+            PerformanceTimer perfTimer("processEvents");
+            processEvents(QEventLoop::AllEvents, IDLE_EVENT_PROCESS_MAX_TIME_MS);
+        }
+        
         _lastTimeUpdated.start();
         {
             PerformanceTimer perfTimer("update");
@@ -1986,12 +1971,19 @@ void Application::idle() {
                 _idleLoopMeasuredJitter = _idleLoopStdev.getStDev();
                 _idleLoopStdev.reset();
             }
-
         }
-        // After finishing all of the above work, ensure the idle timer is set to the proper interval,
-        // depending on whether we're throttling or not
-        idleTimer->start(getActiveDisplayPlugin()->isThrottled() ? THROTTLED_IDLE_TIMER_DELAY : 0);
-    } 
+        
+        // depending on whether we're throttling or not.
+        // Once rendering is off on another thread we should be able to have Application::idle run at start(0) in
+        // perpetuity and not expect events to get backed up.
+        
+        static const int IDLE_TIMER_DELAY_MS = 0;
+        int desiredInterval = _glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : IDLE_TIMER_DELAY_MS;
+        
+        if (idleTimer->interval() != desiredInterval) {
+            idleTimer->start(desiredInterval);
+        }
+    }
 
     // check for any requested background downloads.
     emit checkBackgroundDownloads();
@@ -3207,7 +3199,7 @@ PickRay Application::computePickRay(float x, float y) const {
 }
 
 QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
-    auto primaryFramebuffer = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+    auto primaryFramebuffer = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
     glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFramebuffer));
 
     // clear the alpha channel so the background is transparent
@@ -3400,10 +3392,6 @@ namespace render {
                 model::Skybox::render(batch, *(Application::getInstance()->getDisplayViewFrustum()), *skybox);
             }
         }
-        // FIX ME - If I don't call this renderBatch() here, then the atmosphere and skybox don't render, but it
-        // seems like these payloadRender() methods shouldn't be doing this. We need to investigate why the engine
-        // isn't rendering our batch
-        gpu::GLBackend::renderBatch(batch, true);
     }
 }
 
@@ -3605,11 +3593,11 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     // set the bounds of rear mirror view
     gpu::Vec4i viewport;
     if (billboard) {
-        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
+        QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
         viewport = gpu::Vec4i(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
     } else {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
-        QSize size = DependencyManager::get<TextureCache>()->getFrameBufferSize();
+        QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
         float ratio = (float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale();
         int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
         viewport = gpu::Vec4i(x, size.height() - y - height, width, height);

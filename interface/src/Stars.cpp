@@ -169,7 +169,7 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
         points.resize(limit);
         for (size_t star = 0; star < limit; ++star) {
             points[star].position = vec4(fromPolar(randPolar()), 1);
-            float size = frand() * 5.0f + 0.5f;
+            float size = frand() * 2.5f + 0.5f;
             if (frand() < STAR_COLORIZATION) {
                 vec3 color(frand() / 2.0f + 0.5f, frand() / 2.0f + 0.5f, frand() / 2.0f + 0.5f);
                 points[star].colorAndSize = vec4(color, size);
