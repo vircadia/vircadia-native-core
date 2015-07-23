@@ -542,30 +542,34 @@ void DeferredLightingEffect::copyBack(RenderArgs* args) {
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     QSize framebufferSize = framebufferCache->getFrameBufferSize();
 
-    batch.setFramebuffer(framebufferCache->getPrimaryFramebuffer());
-    batch.setPipeline(_blitLightBuffer);
-    
-    batch.setResourceTexture(0, _copyFBO->getRenderBuffer(0));
-
+    // TODO why doesn't this blit work?  It only seems to affect a small area below the rear view mirror.
+    auto destFbo = framebufferCache->getPrimaryFramebuffer();
+//    gpu::Vec4i vp = args->_viewport;
+//    batch.blit(_copyFBO, vp, framebufferCache->getPrimaryFramebuffer(), vp);
+    batch.setFramebuffer(destFbo);
+    batch.setViewportTransform(args->_viewport);
     batch.setProjectionTransform(glm::mat4());
     batch.setViewTransform(Transform());
-    
-    float sMin = args->_viewport.x / (float)framebufferSize.width();
-    float sWidth = args->_viewport.z / (float)framebufferSize.width();
-    float tMin = args->_viewport.y / (float)framebufferSize.height();
-    float tHeight = args->_viewport.w / (float)framebufferSize.height();
+    {
+        float sMin = args->_viewport.x / (float)framebufferSize.width();
+        float sWidth = args->_viewport.z / (float)framebufferSize.width();
+        float tMin = args->_viewport.y / (float)framebufferSize.height();
+        float tHeight = args->_viewport.w / (float)framebufferSize.height();
+        Transform model;
+        batch.setPipeline(_blitLightBuffer);
+        model.setTranslation(glm::vec3(sMin, tMin, 0.0));
+        model.setScale(glm::vec3(sWidth, tHeight, 1.0));
+        batch.setModelTransform(model);
+    }
 
-    batch.setViewportTransform(args->_viewport);
+    GLenum buffers[3];
+    int bufferCount = 0;
+    buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
+    batch._glDrawBuffers(bufferCount, buffers);
 
-    Transform model;
-    model.setTranslation(glm::vec3(sMin, tMin, 0.0));
-    model.setScale(glm::vec3(sWidth, tHeight, 1.0));
-    batch.setModelTransform(model);
-
+    batch.setResourceTexture(0, _copyFBO->getRenderBuffer(0));
     batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-
-    args->_context->syncCache();
     args->_context->render(batch);
     framebufferCache->releaseFramebuffer(_copyFBO);
 }
