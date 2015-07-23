@@ -56,9 +56,12 @@ protected:
     Packet(qint64 size, bool isReliable = false, bool isPartOfMessage = false);
     Packet(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
     Packet(const Packet& other);
-    Packet& operator=(const Packet& other);
     Packet(Packet&& other);
+    
+    Packet& operator=(const Packet& other);
     Packet& operator=(Packet&& other);
+    
+    virtual void adjustPayloadStartAndCapacity(bool shouldDecreasePayloadSize = false);
 
     // Header readers - these read data to member variables after pulling packet off wire
     void readIsPartOfMessage();

@@ -65,8 +65,6 @@ protected:
     NLPacket& operator=(const NLPacket& other);
     NLPacket& operator=(NLPacket&& other);
     
-    void adjustPayloadStartAndCapacity(bool shouldDecreasePayloadSize = false);
-    
     // Header writers
     void writePacketTypeAndVersion();
 

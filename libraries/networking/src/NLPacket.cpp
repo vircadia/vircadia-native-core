@@ -207,16 +207,6 @@ void NLPacket::readVersion() {
     _version = NLPacket::versionInHeader(*this);
 }
 
-void NLPacket::adjustPayloadStartAndCapacity(bool shouldDecreasePayloadSize) {
-    qint64 headerSize = localHeaderSize(_type);
-    _payloadStart += headerSize;
-    _payloadCapacity -= headerSize;
-    
-    if (shouldDecreasePayloadSize) {
-        _payloadSize -= headerSize;
-    }
-}
-
 void NLPacket::readSourceID() {
     if (!NON_SOURCED_PACKETS.contains(_type)) {
         _sourceID = sourceIDInHeader(*this);

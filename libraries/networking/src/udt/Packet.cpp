@@ -62,8 +62,7 @@ Packet::Packet(qint64 size, bool isReliable, bool isPartOfMessage) :
     _isReliable(isReliable),
     _isPartOfMessage(isPartOfMessage)
 {
-    _payloadCapacity = size;
-    _payloadStart = _packet.get() + (_packetSize - _payloadCapacity);
+    adjustPayloadStartAndCapacity();
     
     // set the UDT header to default values
     writeSequenceNumber(0);
@@ -75,10 +74,8 @@ Packet::Packet(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& send
     readIsReliable();
     readIsPartOfMessage();
     readSequenceNumber();
-    
-    _payloadCapacity = _packetSize - localHeaderSize();
-    _payloadSize = _payloadCapacity;
-    _payloadStart = _packet.get() + (_packetSize - _payloadCapacity);
+
+    adjustPayloadStartAndCapacity(_payloadSize > 0);
 }
 
 Packet::Packet(const Packet& other) :
@@ -115,6 +112,16 @@ Packet& Packet::operator=(Packet&& other) {
     _sequenceNumber = other._sequenceNumber;
 
     return *this;
+}
+
+void Packet::adjustPayloadStartAndCapacity(bool shouldDecreasePayloadSize) {
+    qint64 headerSize = localHeaderSize();
+    _payloadStart += headerSize;
+    _payloadCapacity -= headerSize;
+    
+    if (shouldDecreasePayloadSize) {
+        _payloadSize -= headerSize;
+    }
 }
 
 static const uint32_t CONTROL_BIT_MASK = 1 << (sizeof(Packet::SequenceNumberAndBitField) - 1);

@@ -24,7 +24,7 @@ OctreeQueryNode::OctreeQueryNode() :
     _viewSent(false),
     _octreePacket(),
     _octreePacketWaiting(false),
-    _lastOctreePayload(new char[MAX_PACKET_SIZE]),
+    _lastOctreePayload(new char[udt::MAX_PACKET_SIZE]),
     _lastOctreePacketLength(0),
     _duplicatePacketCount(0),
     _firstSuppressedPacket(usecTimestampNow()),
