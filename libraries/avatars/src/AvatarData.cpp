@@ -144,8 +144,7 @@ QByteArray AvatarData::toByteArray() {
         _headData->_isFaceTrackerConnected = true;
     }
 
-    QByteArray avatarDataByteArray;
-    avatarDataByteArray.resize(MAX_PACKET_SIZE);
+    QByteArray avatarDataByteArray(udt::MAX_PACKET_SIZE, 0);
 
     unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
     unsigned char* startPosition = destinationBuffer;

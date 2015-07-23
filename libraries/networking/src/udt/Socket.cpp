@@ -88,11 +88,23 @@ void Socket::readPendingDatagrams() {
         _udpSocket.readDatagram(buffer.get(), packetSizeWithHeader,
                                 senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
         
+        auto it = _unfilteredHandlers.find(senderSockAddr);
+        
+        if (it != _unfilteredHandlers.end()) {
+            // we have a registered unfiltered handler for this HifiSockAddr - call that and return
+            if (it->second) {
+                auto basePacket = BasePacket::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
+                it->second(std::move(basePacket));
+            }
+            
+            return;
+        }
+        
         // setup a Packet from the data we just read
         auto packet = Packet::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
         
         // call our verification operator to see if this packet is verified
-        if (_unfilteredSockAddrs.contains(senderSockAddr) || !_packetFilterOperator || _packetFilterOperator(*packet)) {
+        if (!_packetFilterOperator || _packetFilterOperator(*packet)) {
             if (_packetHandler) {
                 // call the verified packet callback to let it handle this packet
                 return _packetHandler(std::move(packet));

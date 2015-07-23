@@ -76,8 +76,6 @@ enum class PacketType : uint8_t {
 };
 
 const int NUM_BYTES_MD5_HASH = 16;
-
-const int MAX_PACKET_SIZE = 1450;
 const int MAX_PACKET_HEADER_BYTES = 4 + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
 
 typedef char PacketVersion;
@@ -135,5 +133,6 @@ const PacketVersion VERSION_ENTITIES_SCRIPT_TIMESTAMP = 31;
 const PacketVersion VERSION_ENTITIES_SCRIPT_TIMESTAMP_FIX = 32;
 const PacketVersion VERSION_ENTITIES_HAVE_SIMULATION_OWNER_AND_ACTIONS_OVER_WIRE = 33;
 const PacketVersion VERSION_ENTITIES_NEW_PROTOCOL_LAYER = 35;
+const PacketVersion VERSION_ENTITIES_PROTOCOL_HEADER_SWAP = 36;
 
 #endif // hifi_PacketHeaders_h

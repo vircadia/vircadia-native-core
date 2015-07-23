@@ -139,8 +139,7 @@ QMetaMethod PacketReceiver::matchingMethodForListener(PacketType type, QObject* 
     if (methodIndex < 0) {
         qDebug() << "PacketReceiver::registerListener expected a slot with one of the following signatures:"
                  << possibleSignatures.toList() << "- but such a slot was not found."
-                 << "Could not complete listener registration for type"
-                 << type << "-" << nameForPacketType(type);
+                 << "Could not complete listener registration for type" << type;
     }
 
     Q_ASSERT(methodIndex >= 0);
@@ -160,7 +159,6 @@ void PacketReceiver::registerVerifiedListener(PacketType type, QObject* object, 
 
     if (_packetListenerMap.contains(type)) {
         qDebug() << "Warning: Registering a packet listener for packet type" << type
-            << "(" << qPrintable(nameForPacketType(type)) << ")"
             << "that will remove a previously registered listener";
     }
 
@@ -204,7 +202,7 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
     // setup a HifiSockAddr to read into
     HifiSockAddr senderSockAddr;
     
-    // setup an NLPacket from the data we just read
+    // setup an NLPacket from the packet we were passed
     auto nlPacket = NLPacket::fromBase(std::move(packet));
     
     _inPacketCount++;
@@ -286,8 +284,7 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
             }
             
             if (!success) {
-                qDebug().nospace() << "Error delivering packet " << packetType
-                    << " (" << qPrintable(nameForPacketType(packetType)) << ") to listener "
+                qDebug().nospace() << "Error delivering packet " << packetType << " to listener "
                     << listener.first << "::" << qPrintable(listener.second.methodSignature());
             }
             
@@ -296,8 +293,7 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
         }
         
         if (listenerIsDead) {
-            qDebug().nospace() << "Listener for packet" << nlPacket->getType()
-                << " (" << qPrintable(nameForPacketType(nlPacket->getType())) << ")"
+            qDebug().nospace() << "Listener for packet " << nlPacket->getType()
                 << " has been destroyed. Removing from listener map.";
             it = _packetListenerMap.erase(it);
             
@@ -308,7 +304,7 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
         }
         
     } else {
-        qWarning() << "No listener found for packet type " << nameForPacketType(nlPacket->getType());
+        qWarning() << "No listener found for packet type" << nlPacket->getType();
         
         // insert a dummy listener so we don't print this again
         _packetListenerMap.insert(nlPacket->getType(), { nullptr, QMetaMethod() });

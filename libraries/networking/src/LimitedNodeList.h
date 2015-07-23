@@ -225,7 +225,6 @@ public slots:
 
     void startSTUNPublicSocketUpdate();
     virtual void sendSTUNRequest();
-    bool processSTUNResponse(QSharedPointer<NLPacket> packet);
 
     void killNodeWithUUID(const QUuid& nodeUUID);
 
@@ -256,6 +255,7 @@ protected:
     bool isPacketVerified(const udt::Packet& packet);
     bool packetVersionMatch(const udt::Packet& packet);
     bool packetSourceAndHashMatch(const udt::Packet& packet);
+    void processSTUNResponse(std::unique_ptr<udt::BasePacket> packet);
 
     void handleNodeKill(const SharedNodePointer& node);
 
@@ -310,7 +310,7 @@ protected:
 private slots:
     void flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp);
     void possiblyTimeoutSTUNAddressLookup();
-    void addSTUNSockAddrToUnfiltered() { _nodeSocket.addUnfilteredSockAddr(_stunSockAddr); } // called once STUN socket known
+    void addSTUNHandlerToUnfiltered(); // called once STUN socket known
 };
 
 #endif // hifi_LimitedNodeList_h

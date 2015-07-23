@@ -65,9 +65,9 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_ENTITIES_NEW_PROTOCOL_LAYER;
+            return VERSION_ENTITIES_PROTOCOL_HEADER_SWAP;
         default:
-            return 11;
+            return 12;
     }
 }
 

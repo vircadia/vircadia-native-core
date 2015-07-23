@@ -105,9 +105,6 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     _nodeSocket.setPacketFilterOperator(std::bind(&LimitedNodeList::isPacketVerified, this, _1));
     
     _packetStatTimer.start();
-    
-    // make sure we handle STUN response packets
-    _packetReceiver->registerListener(PacketType::StunResponse, this, "processSTUNResponse");
 }
 
 void LimitedNodeList::setSessionUUID(const QUuid& sessionUUID) {
@@ -239,7 +236,7 @@ bool LimitedNodeList::packetSourceAndHashMatch(const udt::Packet& packet) {
             static QString repeatedMessage
                 = LogHandler::getInstance().addRepeatedMessageRegex("Packet of type \\d+ \\([\\sa-zA-Z]+\\) received from unknown node with UUID");
 
-            qCDebug(networking) << "Packet of type" << headerType << "(" << qPrintable(nameForPacketType(headerType)) << ")"
+            qCDebug(networking) << "Packet of type" << headerType 
                 << "received from unknown node with UUID" << qPrintable(uuidStringWithoutCurlyBraces(sourceID));
         }
     }
@@ -611,7 +608,7 @@ void LimitedNodeList::sendSTUNRequest() {
     _nodeSocket.writeDatagram(stunRequestPacket, sizeof(stunRequestPacket), _stunSockAddr);
 }
 
-bool LimitedNodeList::processSTUNResponse(QSharedPointer<NLPacket> packet) {
+void LimitedNodeList::processSTUNResponse(std::unique_ptr<udt::BasePacket> packet) {
     // check the cookie to make sure this is actually a STUN response
     // and read the first attribute and make sure it is a XOR_MAPPED_ADDRESS
     const int NUM_BYTES_MESSAGE_TYPE_AND_LENGTH = 4;
@@ -672,8 +669,6 @@ bool LimitedNodeList::processSTUNResponse(QSharedPointer<NLPacket> packet) {
 
                         flagTimeForConnectionStep(ConnectionStep::SetPublicSocketFromSTUN);
                     }
-
-                    return true;
                 }
             } else {
                 // push forward attributeStartIndex by the length of this attribute
@@ -688,8 +683,6 @@ bool LimitedNodeList::processSTUNResponse(QSharedPointer<NLPacket> packet) {
             }
         }
     }
-
-    return false;
 }
 
 void LimitedNodeList::startSTUNPublicSocketUpdate() {
@@ -699,7 +692,7 @@ void LimitedNodeList::startSTUNPublicSocketUpdate() {
         // if we don't know the STUN IP yet we need to have ourselves be called once it is known
         if (_stunSockAddr.getAddress().isNull()) {
             connect(&_stunSockAddr, &HifiSockAddr::lookupCompleted, this, &LimitedNodeList::startSTUNPublicSocketUpdate);
-            connect(&_stunSockAddr, &HifiSockAddr::lookupCompleted, this, &LimitedNodeList::addSTUNSockAddrToUnfiltered);
+            connect(&_stunSockAddr, &HifiSockAddr::lookupCompleted, this, &LimitedNodeList::addSTUNHandlerToUnfiltered);
 
             // in case we just completely fail to lookup the stun socket - add a 10s timeout that will trigger the fail case
             const quint64 STUN_DNS_LOOKUP_TIMEOUT_MSECS = 10 * 1000;
@@ -728,6 +721,12 @@ void LimitedNodeList::possiblyTimeoutSTUNAddressLookup() {
         // our stun address is still NULL, but we've been waiting for long enough - time to force a fail
         stopInitialSTUNUpdate(false);
     }
+}
+
+void LimitedNodeList::addSTUNHandlerToUnfiltered() {
+    // make ourselves the handler of STUN packets when they come in
+    using std::placeholders::_1;
+    _nodeSocket.addUnfilteredHandler(_stunSockAddr, std::bind(&LimitedNodeList::processSTUNResponse, this, _1));
 }
 
 void LimitedNodeList::stopInitialSTUNUpdate(bool success) {
