@@ -91,6 +91,7 @@ void BillboardOverlay::render(RenderArgs* args) {
     if (batch) {
         Transform transform = _transform;
         transform.postScale(glm::vec3(getDimensions(), 1.0f));
+        transform.setRotation(rotation);
         
         batch->setModelTransform(transform);
         batch->setResourceTexture(0, _texture->getGPUTexture());
