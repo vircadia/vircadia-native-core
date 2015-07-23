@@ -882,7 +882,7 @@ void Application::paintGL() {
         // NOTE: There is no batch associated with this renderArgs
         // the ApplicationOverlay class assumes it's viewport is setup to be the device size
         QSize size = qApp->getDeviceSize();
-        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());    
+        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
         _applicationOverlay.renderOverlay(&renderArgs);
     }
 
@@ -959,7 +959,7 @@ void Application::paintGL() {
             batch.setFramebuffer(primaryFbo);
             // clear the normal and specular buffers
             batch.clearFramebuffer(
-                gpu::Framebuffer::BUFFER_COLOR0 | 
+                gpu::Framebuffer::BUFFER_COLOR0 |
                 gpu::Framebuffer::BUFFER_COLOR1 |
                 gpu::Framebuffer::BUFFER_COLOR2 |
                 gpu::Framebuffer::BUFFER_DEPTH,
@@ -1781,6 +1781,14 @@ void Application::idle() {
     }
     double timeSinceLastUpdate = (double)_lastTimeUpdated.nsecsElapsed() / 1000000.0;
     if (timeSinceLastUpdate > targetFramePeriod) {
+        
+        {
+            PerformanceTimer perfTimer("sendPostedEvents(touch)");
+            sendPostedEvents(NULL, QEvent::TouchBegin);
+            sendPostedEvents(NULL, QEvent::TouchUpdate);
+            sendPostedEvents(NULL, QEvent::TouchEnd);
+        }
+        
         _lastTimeUpdated.start();
         {
             PerformanceTimer perfTimer("update");
@@ -1805,9 +1813,6 @@ void Application::idle() {
                 _idleLoopMeasuredJitter = _idleLoopStdev.getStDev();
                 _idleLoopStdev.reset();
             }
-
-            // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
-            idleTimer->start(2);
         }
     }
 
