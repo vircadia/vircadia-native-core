@@ -345,11 +345,6 @@ void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
         renderArgs && renderArgs->_batch) {
         _skeletonModel.renderIKConstraints(*renderArgs->_batch);
     }
-
-    //Render the sixense lasers
-    if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
-        renderLaserPointers(*renderArgs->_batch);
-    }
 }
 
 const glm::vec3 HAND_TO_PALM_OFFSET(0.0f, 0.12f, 0.08f);
