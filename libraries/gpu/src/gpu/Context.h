@@ -20,6 +20,8 @@
 #include "Pipeline.h"
 #include "Framebuffer.h"
 
+class QImage;
+
 namespace gpu {
 
 class Backend {

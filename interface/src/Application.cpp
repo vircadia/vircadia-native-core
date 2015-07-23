@@ -962,10 +962,6 @@ void Application::paintGL() {
         _myCamera.update(1.0f / _fps);
     }
 
-    // Sync up the View Furstum with the camera
- //   loadViewFrustum(_myCamera, _viewFrustum);
-
-
     renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
 
     if (OculusManager::isConnected()) {
@@ -3010,7 +3006,8 @@ QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
         batch.setFramebuffer(primaryFbo);
         renderArgs->_context->render(batch);
     }
-    renderArgs->_renderMode = RenderArgs::NORMAL_RENDER_MODE;
+    renderArgs->_renderMode = RenderArgs::DEFAULT_RENDER_MODE;
+
     renderRearViewMirror(renderArgs, QRect(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
 
     {
