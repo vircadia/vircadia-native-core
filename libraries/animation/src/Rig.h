@@ -1,6 +1,6 @@
 //
 //  Rig.h
-//  libraries/script-engine/src/
+//  libraries/animation/src/
 //
 //  Produces animation data and hip placement for the current timestamp.
 //

@@ -40,30 +40,55 @@
  */
 
 #include <iostream>
-//#include "FSTReader.h"
-// There are two good ways we could organize this:
-// 1. Create a MyAvatar the same way that Interface does, and poke at it.
-//    We can't do that because MyAvatar (and even Avatar) are in interface, not a library, and our build system won't allow that dependency.
-// 2. Create just the minimum skeleton in the most direct way possible, using only very basic library APIs (such as fbx).
-//    I don't think we can do that because not everything we need is exposed directly from, e.g., the fst and fbx readers.
-// So here we do neither. Using as much as we can from AvatarData (which is in the avatar and further requires network and audio), and
-// duplicating whatever other code we need from (My)Avatar. Ugh.  We may refactor that later, but right now, cleaning this up is not on our critical path.
+#include <PathUtils.h>
+
 #include "AvatarData.h"
+#include "OBJReader.h" 
+#include "FBXReader.h"
+
+#include "AvatarRig.h" // We might later test Rig vs AvatarRig separately, but for now, we're concentrating on the main use case.
 #include "RigTests.h"
 
 QTEST_MAIN(RigTests)
 
 void RigTests::initTestCase() {
-    AvatarData avatar;
-    QEventLoop loop; // Create an event loop that will quit when we get the finished signal
-    QObject::connect(&avatar, &AvatarData::jointsLoaded, &loop, &QEventLoop::quit);
-    avatar.setSkeletonModelURL(QUrl("https://hifi-public.s3.amazonaws.com/marketplace/contents/4a690585-3fa3-499e-9f8b-fd1226e561b1/e47e6898027aa40f1beb6adecc6a7db5.fst")); // Zach
-    //std::cout << "sleep start" << std::endl;
-    loop.exec();                    // Nothing is going to happen on this whole run thread until we get this
-    _rig = new Rig();
-}
 
-void RigTests::dummyPassTest() {
+    // There are two good ways we could organize this:
+    // 1. Create a MyAvatar the same way that Interface does, and poke at it.
+    //    We can't do that because MyAvatar (and even Avatar) are in interface, not a library, and our build system won't allow that dependency.
+    // 2. Create just the minimum skeleton in the most direct way possible, using only very basic library APIs (such as fbx).
+    //    I don't think we can do that because not everything we need is exposed directly from, e.g., the fst and fbx readers.
+    // So here we do neither. Using as much as we can from AvatarData (which is in the avatar and further requires network and audio), and
+    // duplicating whatever other code we need from (My)Avatar. Ugh.  We may refactor that later, but right now, cleaning this up is not on our critical path.
+
+    // Joint mapping from fst
+    auto avatar = std::make_shared<AvatarData>();
+    QEventLoop loop; // Create an event loop that will quit when we get the finished signal
+    QObject::connect(avatar.get(), &AvatarData::jointMappingLoaded, &loop, &QEventLoop::quit);
+    avatar->setSkeletonModelURL(QUrl("https://hifi-public.s3.amazonaws.com/marketplace/contents/4a690585-3fa3-499e-9f8b-fd1226e561b1/e47e6898027aa40f1beb6adecc6a7db5.fst")); // Zach fst
+    loop.exec();                    // Blocking all further tests until signalled.
+
+    // Joint geometry from fbx.
+    QUrl fbxUrl("https://s3.amazonaws.com/hifi-public/models/skeletons/Zack/Zack.fbx");
+    QNetworkReply* netReply = OBJReader().request(fbxUrl, false);  // Just a convenience hack for synchronoud http request
+    QCOMPARE(netReply->isFinished() && (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200), true);
+    FBXGeometry geometry = readFBX(netReply->readAll(), QVariantHash());
+    QCOMPARE(geometry.joints.count(), avatar->getJointNames().count());
+
+    QVector<JointState> jointStates;
+    for (int i = 0; i < geometry.joints.size(); ++i) {
+        const FBXJoint& joint = geometry.joints[i];
+        JointState state;
+        state.setFBXJoint(&joint);
+        jointStates.append(state);
+    }
+
+    _rig = std::make_shared<AvatarRig>();
+    _rig->initJointStates(jointStates, glm::mat4());
+    std::cout << "Rig is ready " << geometry.joints.count() << " joints " << std::endl;
+   }
+
+/*void RigTests::dummyPassTest() {
     bool x = true;
     std::cout << "dummyPassTest x=" << x << std::endl;
     QCOMPARE(x, true);
@@ -73,4 +98,4 @@ void RigTests::dummyFailTest() {
     bool x = false;
     std::cout << "dummyFailTest x=" << x << std::endl;
     QCOMPARE(x, true);
-}
+}*/
