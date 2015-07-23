@@ -882,7 +882,7 @@ void Application::paintGL() {
         // NOTE: There is no batch associated with this renderArgs
         // the ApplicationOverlay class assumes it's viewport is setup to be the device size
         QSize size = qApp->getDeviceSize();
-        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());    
+        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
         _applicationOverlay.renderOverlay(&renderArgs);
     }
 
@@ -959,7 +959,7 @@ void Application::paintGL() {
             batch.setFramebuffer(primaryFbo);
             // clear the normal and specular buffers
             batch.clearFramebuffer(
-                gpu::Framebuffer::BUFFER_COLOR0 | 
+                gpu::Framebuffer::BUFFER_COLOR0 |
                 gpu::Framebuffer::BUFFER_COLOR1 |
                 gpu::Framebuffer::BUFFER_COLOR2 |
                 gpu::Framebuffer::BUFFER_DEPTH,
@@ -1798,6 +1798,13 @@ void Application::idle() {
     }
     double timeSinceLastUpdate = (double)_lastTimeUpdated.nsecsElapsed() / 1000000.0;
     if (timeSinceLastUpdate > targetFramePeriod) {
+        
+        {
+            static const int IDLE_EVENT_PROCESS_MAX_TIME_MS = 2;
+            PerformanceTimer perfTimer("processEvents");
+            processEvents(QEventLoop::AllEvents, IDLE_EVENT_PROCESS_MAX_TIME_MS);
+        }
+        
         _lastTimeUpdated.start();
         {
             PerformanceTimer perfTimer("update");
@@ -1822,11 +1829,19 @@ void Application::idle() {
                 _idleLoopMeasuredJitter = _idleLoopStdev.getStDev();
                 _idleLoopStdev.reset();
             }
-
         }
+        
         // After finishing all of the above work, ensure the idle timer is set to the proper interval,
-        // depending on whether we're throttling or not
-        idleTimer->start(_glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : 1);
+        // depending on whether we're throttling or not.
+        // Once rendering is off on another thread we should be able to have Application::idle run at start(0) in
+        // perpetuity and not expect events to get backed up.
+        
+        static const int IDLE_TIMER_DELAY_MS = 0;
+        int desiredInterval = _glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : IDLE_TIMER_DELAY_MS;
+        
+        if (idleTimer->interval() != desiredInterval) {
+            idleTimer->start(desiredInterval);
+        }
     }
 
     // check for any requested background downloads.
@@ -3413,9 +3428,6 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
         // Viewport is assigned to the size of the framebuffer
         renderArgs->_context->render(batch);
     }
-
-    bool updateViewFrustum = false;
-    loadViewFrustum(_mirrorCamera, _viewFrustum);
 
     // render rear mirror view
     displaySide(renderArgs, _mirrorCamera, true, billboard);

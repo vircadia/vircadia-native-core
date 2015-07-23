@@ -41,6 +41,14 @@ bool Rig::isRunningAnimation(AnimationHandlePointer animationHandle) {
     return _runningAnimations.contains(animationHandle);
 }
 
+void Rig::deleteAnimations() {
+    for (QSet<AnimationHandlePointer>::iterator it = _animationHandles.begin(); it != _animationHandles.end(); ) {
+        (*it)->clearJoints();
+        it = _animationHandles.erase(it);
+    }
+}
+
+
 float Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform) {
     _jointStates = states;
     initJointTransforms(parentTransform);
@@ -235,7 +243,12 @@ glm::mat4 Rig::getJointVisibleTransform(int jointIndex) const {
     return _jointStates[jointIndex].getVisibleTransform();
 }
 
-void Rig::simulateInternal(glm::mat4 parentTransform) {
+void Rig::simulateInternal(float deltaTime, glm::mat4 parentTransform) {
+    // update animations
+    foreach (const AnimationHandlePointer& handle, _runningAnimations) {
+        handle->simulate(deltaTime);
+    }
+
     for (int i = 0; i < _jointStates.size(); i++) {
         updateJointState(i, parentTransform);
     }

@@ -216,10 +216,10 @@ void MyAvatar::simulate(float deltaTime) {
     {
         PerformanceTimer perfTimer("joints");
         // copy out the skeleton joints from the model
-        _jointData.resize(_skeletonModel.getJointStateCount());
+        _jointData.resize(_rig->getJointStateCount());
         for (int i = 0; i < _jointData.size(); i++) {
             JointData& data = _jointData[i];
-            data.valid = _skeletonModel.getJointState(i, data.rotation);
+            data.valid = _rig->getJointStateRotation(i, data.rotation);
         }
     }
 
@@ -333,13 +333,13 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 
 
 // virtual
-void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting) {
+void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     // don't render if we've been asked to disable local rendering
     if (!_shouldRender) {
         return; // exit early
     }
 
-    Avatar::render(renderArgs, cameraPosition, postLighting);
+    Avatar::render(renderArgs, cameraPosition);
 
     // don't display IK constraints in shadow mode
     if (Menu::getInstance()->isOptionChecked(MenuOption::ShowIKConstraints) &&
@@ -1227,7 +1227,7 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName, const g
     Avatar::attach(modelURL, jointName, translation, rotation, scale, allowDuplicates, useSaved);
 }
 
-void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel) {
+void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel) {
 
     if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         return; // wait until all models are loaded
@@ -1237,7 +1237,7 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bo
 
     //  Render head so long as the camera isn't inside it
     if (shouldRenderHead(renderArgs)) {
-        getHead()->render(renderArgs, 1.0f, renderFrustum, postLighting);
+        getHead()->render(renderArgs, 1.0f, renderFrustum);
     }
     getHand()->render(renderArgs, true);
 }

@@ -13,6 +13,7 @@
 #include <QMultiMap>
 
 #include <CapsuleShape.h>
+#include <DeferredLightingEffect.h>
 #include <SphereShape.h>
 
 #include "Application.h"
@@ -787,31 +788,34 @@ void SkeletonModel::resetShapePositionsToDefaultPose() {
 void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha) {
     const int BALL_SUBDIVISIONS = 10;
     if (_shapes.isEmpty()) {
-        // the bounding shape has not been propery computed
+        // the bounding shape has not been properly computed
         // so no need to render it
         return;
     }
 
-    // draw a blue sphere at the capsule endpoint
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
+    Transform transform; // = Transform();
+
+    // draw a blue sphere at the capsule end point
     glm::vec3 endPoint;
     _boundingShape.getEndPoint(endPoint);
     endPoint = endPoint + _translation;
-    Transform transform = Transform();
     transform.setTranslation(endPoint);
     batch.setModelTransform(transform);
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    geometryCache->renderSphere(batch, _boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, 
+    deferredLighting->bindSimpleProgram(batch);
+    geometryCache->renderSphere(batch, _boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS,
                                 glm::vec4(0.6f, 0.6f, 0.8f, alpha));
 
-    // draw a yellow sphere at the capsule startpoint
+    // draw a yellow sphere at the capsule start point
     glm::vec3 startPoint;
     _boundingShape.getStartPoint(startPoint);
     startPoint = startPoint + _translation;
     glm::vec3 axis = endPoint - startPoint;
-    Transform axisTransform = Transform();
-    axisTransform.setTranslation(-axis);
-    batch.setModelTransform(axisTransform);
-    geometryCache->renderSphere(batch, _boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS, 
+    transform.setTranslation(startPoint);
+    batch.setModelTransform(transform);
+    deferredLighting->bindSimpleProgram(batch);
+    geometryCache->renderSphere(batch, _boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS,
                                 glm::vec4(0.8f, 0.8f, 0.6f, alpha));
 
     // draw a green cylinder between the two points

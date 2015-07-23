@@ -1365,18 +1365,13 @@ void Model::updateClusterMatrices() {
 
 void Model::simulateInternal(float deltaTime) {
     // update the world space transforms for all joints
-    
-    // update animations
-    foreach (const AnimationHandlePointer& handle, _runningAnimations) {
-        handle->simulate(deltaTime);
-    }
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-    _rig->simulateInternal(parentTransform);
+    _rig->simulateInternal(deltaTime, parentTransform);
 
     _shapesAreDirty = !_shapes.isEmpty();
-    
+
     glm::mat4 modelToWorld = glm::mat4_cast(_rotation);
     for (int i = 0; i < _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
@@ -1512,21 +1507,13 @@ void Model::deleteGeometry() {
     _rig->clearJointStates();
     _meshStates.clear();
     clearShapes();
-    
-    for (QSet<WeakAnimationHandlePointer>::iterator it = _animationHandles.begin(); it != _animationHandles.end(); ) {
-        AnimationHandlePointer handle = it->lock();
-        if (handle) {
-            handle->clearJoints();
-            it++;
-        } else {
-            it = _animationHandles.erase(it);
-        }
-    }
-    
+
+    _rig->deleteAnimations();
+
     if (_geometry) {
         _geometry->clearLoadPriority(this);
     }
-    
+
     _blendedBlendshapeCoefficients.clear();
 }
 
