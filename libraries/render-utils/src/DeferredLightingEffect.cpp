@@ -21,7 +21,6 @@
 
 #include "AbstractViewStateInterface.h"
 #include "GeometryCache.h"
-#include "RenderUtil.h"
 #include "TextureCache.h"
 #include "FramebufferCache.h"
 
