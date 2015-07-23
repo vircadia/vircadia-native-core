@@ -1837,8 +1837,11 @@ void Application::idle() {
         // perpetuity and not expect events to get backed up.
         
         static const int IDLE_TIMER_DELAY_MS = 0;
+        int desiredInterval = _glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : IDLE_TIMER_DELAY_MS;
         
-        idleTimer->start(_glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : IDLE_TIMER_DELAY_MS);
+        if (idleTimer->interval() != desiredInterval) {
+            idleTimer->start(desiredInterval);
+        }
     }
 
     // check for any requested background downloads.
