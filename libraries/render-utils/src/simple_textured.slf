@@ -25,8 +25,8 @@ void main(void) {
     
     packDeferredFragment(
          normalize(interpolatedNormal.xyz),
-         glowIntensity * texel.a,
-         gl_Color.rgb * texel.rgb,
-         gl_FrontMaterial.specular.rgb,
-         gl_FrontMaterial.shininess);
+         glowIntensity, // glowIntensity * texel.a,
+         vec3(0,0,1), // gl_Color.rgb * texel.rgb,
+         vec3(0,0,1), // gl_FrontMaterial.specular.rgb,
+         1); // gl_FrontMaterial.shininess);
 }
