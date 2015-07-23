@@ -132,8 +132,6 @@ public:
     static const uint32 MAX_NUM_RENDER_BUFFERS = 8; 
     static uint32 getMaxNumRenderBuffers() { return MAX_NUM_RENDER_BUFFERS; }
 
-    void getImage(QImage* result) const;
-
 protected:
     SwapchainPointer _swapchain;
 
