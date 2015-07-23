@@ -88,10 +88,10 @@ private:
     model::Geometry _modelGeometry;
     gpu::TexturePointer _texture;
 
-    bool _renderControllers;
-
     int _leftHandRenderID;
     int _rightHandRenderID;
+
+    bool _renderControllers;
 
     static const QString NAME;
 };

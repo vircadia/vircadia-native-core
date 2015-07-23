@@ -376,7 +376,6 @@ void ViveControllerManager::registerToUserInputMapper(UserInputMapper& mapper) {
 
 void ViveControllerManager::assignDefaultInputMapping(UserInputMapper& mapper) {
     const float JOYSTICK_MOVE_SPEED = 1.0f;
-    const float BOOM_SPEED = 0.1f;
     
     // Left Trackpad: Movement, strafing
     mapper.addInputChannel(UserInputMapper::LONGITUDINAL_FORWARD, makeInput(AXIS_Y_POS, 0), makeInput(TRACKPAD_BUTTON, 0), JOYSTICK_MOVE_SPEED);
