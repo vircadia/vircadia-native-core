@@ -11,6 +11,8 @@
 
 #include <vector>
 
+#include <QCoreApplication>
+
 #include <PerfStat.h>
 #include <NumericalConstants.h>
 
