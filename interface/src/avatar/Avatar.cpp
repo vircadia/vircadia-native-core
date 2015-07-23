@@ -823,7 +823,7 @@ QVector<glm::quat> Avatar::getJointRotations() const {
     }
     QVector<glm::quat> jointRotations(_skeletonModel.getJointStateCount());
     for (int i = 0; i < _skeletonModel.getJointStateCount(); ++i) {
-        _skeletonModel.getJointState(i, jointRotations[i]);
+        _skeletonModel.getJointRotation(i, jointRotations[i]);
     }
     return jointRotations;
 }
@@ -833,7 +833,7 @@ glm::quat Avatar::getJointRotation(int index) const {
         return AvatarData::getJointRotation(index);
     }
     glm::quat rotation;
-    _skeletonModel.getJointState(index, rotation);
+    _skeletonModel.getJointRotation(index, rotation);
     return rotation;
 }
 

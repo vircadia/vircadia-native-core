@@ -49,6 +49,7 @@ public:
     void addRunningAnimation(AnimationHandlePointer animationHandle);
     bool isRunningAnimation(AnimationHandlePointer animationHandle);
     const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
+    void deleteAnimations();
 
     float initJointStates(QVector<JointState> states, glm::mat4 parentTransform);
     bool jointStatesEmpty() { return _jointStates.isEmpty(); };
@@ -81,7 +82,7 @@ public:
     void setJointTransform(int jointIndex, glm::mat4 newTransform);
     glm::mat4 getJointVisibleTransform(int jointIndex) const;
     void setJointVisibleTransform(int jointIndex, glm::mat4 newTransform);
-    void simulateInternal(glm::mat4 parentTransform);
+    void simulateInternal(float deltaTime, glm::mat4 parentTransform);
     bool setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation, bool useRotation,
                           int lastFreeIndex, bool allIntermediatesFree, const glm::vec3& alignment, float priority,
                           const QVector<int>& freeLineage, glm::mat4 parentTransform);
