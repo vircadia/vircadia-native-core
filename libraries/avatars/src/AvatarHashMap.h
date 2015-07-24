@@ -2,7 +2,7 @@
 //  AvatarHashMap.h
 //  libraries/avatars/src
 //
-//  Created by Stephen AndrewMeadows on 1/28/2014.
+//  Created by Andrew Meadows on 1/28/2014.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -19,6 +19,7 @@
 #include <memory>
 
 #include <DependencyManager.h>
+#include <NLPacket.h>
 #include <Node.h>
 
 #include "AvatarData.h"
@@ -27,33 +28,32 @@
 class AvatarHashMap : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
-    
+
 public:
     const AvatarHash& getAvatarHash() { return _avatarHash; }
     int size() { return _avatarHash.size(); }
-    
+
 public slots:
-    void processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer);
     bool isAvatarInRange(const glm::vec3 & position, const float range);
     
 private slots:
     void sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID);
     
+    void processAvatarDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void processAvatarIdentityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void processAvatarBillboardPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void processKillAvatar(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+
 protected:
     AvatarHashMap();
-    
+
     virtual AvatarSharedPointer newSharedAvatar();
     virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
     virtual void removeAvatar(const QUuid& sessionUUID);
-    
+
     AvatarHash _avatarHash;
 
 private:
-    void processAvatarDataPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
-    void processAvatarIdentityPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
-    void processAvatarBillboardPacket(const QByteArray& packet, const QWeakPointer<Node>& mixerWeakPointer);
-    void processKillAvatar(const QByteArray& datagram);
-
     QUuid _lastOwnerSessionUUID;
 };
 

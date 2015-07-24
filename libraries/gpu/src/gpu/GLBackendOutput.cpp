@@ -8,8 +8,11 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+#include <qimage.h>
+
 #include "GPULogging.h"
 #include "GLBackendShared.h"
+
 
 using namespace gpu;
 
@@ -34,6 +37,9 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
 
     // need to have a gpu object?
     if (!object) {
+        GLint currentFBO;
+        glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &currentFBO);
+        
         GLuint fbo;
         glGenFramebuffers(1, &fbo);
         (void) CHECK_GL_ERROR();
@@ -84,6 +90,8 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
             glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, renderBuffer);
             (void) CHECK_GL_ERROR();
         }
+        
+   //     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 #endif
         
 
@@ -139,6 +147,9 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
         object->_fbo = fbo;
         object->_colorBuffers = colorBuffers;
         Backend::setGPUObject(framebuffer, object);
+        
+        // restore the current framebuffer
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, currentFBO);
     }
 
     return object;
@@ -158,11 +169,77 @@ GLuint GLBackend::getFramebufferID(const FramebufferPointer& framebuffer) {
     }
 }
 
+void GLBackend::syncOutputStateCache() {
+    GLint currentFBO;
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &currentFBO);
+
+    _output._drawFBO = currentFBO;
+    _output._framebuffer.reset();
+}
+
+
 void GLBackend::do_setFramebuffer(Batch& batch, uint32 paramOffset) {
     auto framebuffer = batch._framebuffers.get(batch._params[paramOffset]._uint);
 
     if (_output._framebuffer != framebuffer) {
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, getFramebufferID(framebuffer));
+        auto newFBO = getFramebufferID(framebuffer);
+        if (_output._drawFBO != newFBO) {
+            _output._drawFBO = newFBO;
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, newFBO);
+        }
         _output._framebuffer = framebuffer;
     }
+}
+
+void GLBackend::do_blit(Batch& batch, uint32 paramOffset) {
+    auto srcframebuffer = batch._framebuffers.get(batch._params[paramOffset]._uint);
+    Vec4i srcvp;
+    for (size_t i = 0; i < 4; ++i) {
+        srcvp[i] = batch._params[paramOffset + 1 + i]._int;
+    }
+
+    auto dstframebuffer = batch._framebuffers.get(batch._params[paramOffset + 5]._uint);
+    Vec4i dstvp;
+    for (size_t i = 0; i < 4; ++i) {
+        dstvp[i] = batch._params[paramOffset + 6 + i]._int;
+    }
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, getFramebufferID(dstframebuffer));
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, getFramebufferID(srcframebuffer));
+    glBlitFramebuffer(srcvp.x, srcvp.y, srcvp.z, srcvp.w, 
+        dstvp.x, dstvp.y, dstvp.z, dstvp.w,
+        GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        
+    (void) CHECK_GL_ERROR();
+
+    if (_output._framebuffer) {
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, getFramebufferID(_output._framebuffer));
+    }
+}
+
+
+void GLBackend::downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) {
+    auto readFBO = gpu::GLBackend::getFramebufferID(srcFramebuffer);
+    if (srcFramebuffer && readFBO) {
+        if ((srcFramebuffer->getWidth() < (region.x + region.z)) || (srcFramebuffer->getHeight() < (region.y + region.w))) {
+          qCDebug(gpulogging) << "GLBackend::downloadFramebuffer : srcFramebuffer is too small to provide the region queried";
+          return;
+        }
+    }
+
+    if ((destImage.width() < region.z) || (destImage.height() < region.w)) {
+          qCDebug(gpulogging) << "GLBackend::downloadFramebuffer : destImage is too small to receive the region of the framebuffer";
+          return;
+    }
+
+    GLenum format = GL_BGRA;
+    if (destImage.format() != QImage::Format_ARGB32) {
+          qCDebug(gpulogging) << "GLBackend::downloadFramebuffer : destImage format must be FORMAT_ARGB32 to receive the region of the framebuffer";
+          return;
+    }
+
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(srcFramebuffer));
+    glReadPixels(region.x, region.y, region.z, region.w, format, GL_UNSIGNED_BYTE, destImage.bits());
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+
+    (void) CHECK_GL_ERROR();
 }

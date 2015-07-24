@@ -12,8 +12,6 @@
 #ifndef hifi_Model_h
 #define hifi_Model_h
 
-#include <gpu/GPUConfig.h>
-
 #include <QBitArray>
 #include <QObject>
 #include <QUrl>
@@ -36,7 +34,6 @@
 #include "AnimationHandle.h"
 #include "GeometryCache.h"
 #include "JointState.h"
-#include "ProgramObject.h"
 #include "TextureCache.h"
 
 class AbstractViewStateInterface;
@@ -402,12 +399,11 @@ private:
 
 
     // debug rendering support
-    void renderDebugMeshBoxes();
+    void renderDebugMeshBoxes(gpu::Batch& batch);
     int _debugMeshBoxesID = GeometryCache::UNKNOWN_ID;
 
     // helper functions used by render() or renderInScene()
 
-    void setupBatchTransform(gpu::Batch& batch, RenderArgs* args);
     static void pickPrograms(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args,
                             Locations*& locations);

@@ -29,11 +29,11 @@ const float ModelEntityItem::DEFAULT_ANIMATION_FPS = 30.0f;
 
 
 EntityItemPointer ModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new ModelEntityItem(entityID, properties));
+    return std::make_shared<ModelEntityItem>(entityID, properties);
 }
 
 ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties)
+        EntityItem(entityItemID)
 {
     _type = EntityTypes::Model;
     setProperties(properties);

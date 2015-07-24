@@ -14,13 +14,12 @@
 #include <AddressManager.h>
 #include <JSONBreakableMarshal.h>
 #include <LogHandler.h>
+#include <udt/PacketHeaders.h>
 
 #include "AssignmentClientMonitor.h"
 #include "AssignmentClientApp.h"
 #include "AssignmentClientChildData.h"
-#include "PacketHeaders.h"
 #include "SharedUtil.h"
-
 
 const QString ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME = "assignment-client-monitor";
 const int WAIT_FOR_CHILD_MSECS = 1000;
@@ -53,7 +52,8 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
     auto addressManager = DependencyManager::set<AddressManager>();
     auto nodeList = DependencyManager::set<LimitedNodeList>();
 
-    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &AssignmentClientMonitor::readPendingDatagrams);
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::AssignmentClientStatus, this, "handleChildStatusPacket");
 
     // use QProcess to fork off a process for each of the child assignment clients
     for (unsigned int i = 0; i < _numAssignmentClientForks; i++) {
@@ -172,10 +172,10 @@ void AssignmentClientMonitor::checkSpares() {
     nodeList->removeSilentNodes();
 
     nodeList->eachNode([&](const SharedNodePointer& node) {
-        AssignmentClientChildData *childData = static_cast<AssignmentClientChildData*>(node->getLinkedData());
+        AssignmentClientChildData* childData = static_cast<AssignmentClientChildData*>(node->getLinkedData());
         totalCount ++;
-        if (childData->getChildType() == "none") {
-            spareCount ++;
+        if (childData->getChildType() == Assignment::Type::AllTypes) {
+            ++spareCount;
             aSpareId = node->getUUID();
         }
     });
@@ -195,68 +195,60 @@ void AssignmentClientMonitor::checkSpares() {
             SharedNodePointer childNode = nodeList->nodeWithUUID(aSpareId);
             childNode->activateLocalSocket();
 
-            QByteArray diePacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeStopNode);
-            nodeList->writeUnverifiedDatagram(diePacket, childNode);
+            auto diePacket = NLPacket::create(PacketType::StopNode, 0);
+            nodeList->sendPacket(std::move(diePacket), *childNode);
         }
     }
 }
 
+void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<NLPacket> packet) {
+    // read out the sender ID
+    QUuid senderID = QUuid::fromRfc4122(packet->read(NUM_BYTES_RFC4122_UUID));
 
-void AssignmentClientMonitor::readPendingDatagrams() {
     auto nodeList = DependencyManager::get<NodeList>();
 
-    QByteArray receivedPacket;
-    HifiSockAddr senderSockAddr;
+    SharedNodePointer matchingNode = nodeList->nodeWithUUID(senderID);
+    const HifiSockAddr& senderSockAddr = packet->getSenderSockAddr();
 
-    while (nodeList->getNodeSocket().hasPendingDatagrams()) {
-        receivedPacket.resize(nodeList->getNodeSocket().pendingDatagramSize());
-        nodeList->getNodeSocket().readDatagram(receivedPacket.data(), receivedPacket.size(),
-                                               senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
+    AssignmentClientChildData* childData = nullptr;
 
-        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
-            if (packetTypeForPacket(receivedPacket) == PacketTypeNodeJsonStats) {
-                QUuid packetUUID = uuidFromPacketHeader(receivedPacket);
-                SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
-                if (!matchingNode) {
-                    // The parent only expects to be talking with prorams running on this same machine.
-                    if (senderSockAddr.getAddress() == QHostAddress::LocalHost ||
-                        senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
-                        if (!packetUUID.isNull()) {
-                            matchingNode = DependencyManager::get<LimitedNodeList>()->addOrUpdateNode
-                                (packetUUID, NodeType::Unassigned, senderSockAddr, senderSockAddr, false, false);
-                            AssignmentClientChildData *childData = new AssignmentClientChildData("unknown");
-                            matchingNode->setLinkedData(childData);
-                        } else {
-                            // tell unknown assignment-client child to exit.
-                            qDebug() << "asking unknown child to exit.";
-                            QByteArray diePacket = nodeList->byteArrayWithPopulatedHeader(PacketTypeStopNode);
-                            nodeList->writeUnverifiedDatagram(diePacket, senderSockAddr);
-                        }
-                    }
-                }
-
-                if (matchingNode) {
-                    // update our records about how to reach this child
-                    matchingNode->setLocalSocket(senderSockAddr);
-
-                    QVariantMap packetVariantMap =
-                        JSONBreakableMarshal::fromStringBuffer(receivedPacket.mid(numBytesForPacketHeader(receivedPacket)));
-                    QJsonObject unpackedStatsJSON = QJsonObject::fromVariantMap(packetVariantMap);
-
-                    // get child's assignment type out of the decoded json
-                    QString childType = unpackedStatsJSON["assignment_type"].toString();
-                    AssignmentClientChildData *childData =
-                        static_cast<AssignmentClientChildData*>(matchingNode->getLinkedData());
-                    childData->setChildType(childType);
-                    // note when this child talked
-                    matchingNode->setLastHeardMicrostamp(usecTimestampNow());
-                }
+    if (!matchingNode) {
+        // The parent only expects to be talking with prorams running on this same machine.
+        if (senderSockAddr.getAddress() == QHostAddress::LocalHost ||
+                senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
+             
+            if (!senderID.isNull()) {
+                // We don't have this node yet - we should add it
+                matchingNode = DependencyManager::get<LimitedNodeList>()->addOrUpdateNode
+                    (senderID, NodeType::Unassigned, senderSockAddr, senderSockAddr, false, false);
+                
+                childData = new AssignmentClientChildData(Assignment::Type::AllTypes);
+                matchingNode->setLinkedData(childData);
             } else {
-                // have the NodeList attempt to handle it
-                nodeList->processNodeData(senderSockAddr, receivedPacket);
+                // tell unknown assignment-client child to exit.
+                qDebug() << "Asking unknown child at" << senderSockAddr << "to exit.";
+
+                auto diePacket = NLPacket::create(PacketType::StopNode, 0);
+                nodeList->sendPacket(std::move(diePacket), senderSockAddr);
+
+                return;
             }
         }
+    } else {
+        childData = dynamic_cast<AssignmentClientChildData*>(matchingNode->getLinkedData());
+    }
+
+    if (childData) {
+        // update our records about how to reach this child
+        matchingNode->setLocalSocket(senderSockAddr);
+
+        // get child's assignment type out of the packet
+        quint8 assignmentType;
+        packet->readPrimitive(&assignmentType);
+        
+        childData->setChildType((Assignment::Type) assignmentType);
+        
+        // note when this child talked
+        matchingNode->setLastHeardMicrostamp(usecTimestampNow());
     }
 }
-
-

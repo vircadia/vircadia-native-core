@@ -19,14 +19,12 @@
 #include <HeadData.h>
 
 #include "FaceModel.h"
-#include "InterfaceConfig.h"
 #include "world.h"
 
 
 const float EYE_EAR_GAP = 0.08f;
 
 class Avatar;
-class ProgramObject;
 
 class Head : public HeadData {
 public:
@@ -35,7 +33,7 @@ public:
     void init();
     void reset();
     void simulate(float deltaTime, bool isMine, bool billboard = false);
-    void render(RenderArgs* renderArgs, float alpha, ViewFrustum* renderFrustum, bool postLighting);
+    void render(RenderArgs* renderArgs, float alpha, ViewFrustum* renderFrustum);
     void setScale(float scale);
     void setPosition(glm::vec3 position) { _position = position; }
     void setAverageLoudness(float averageLoudness) { _averageLoudness = averageLoudness; }

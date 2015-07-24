@@ -9,8 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "Batch.h"
+#include "GPUConfig.h"
 
 #include <QDebug>
+
+#include <GLMHelpers.h>
+
 
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
@@ -102,9 +106,10 @@ void Batch::drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, ui
     _params.push_back(nbInstances);
 }
 
-void Batch::clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil) {
+void Batch::clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil, bool enableScissor) {
     ADD_COMMAND(clearFramebuffer);
 
+    _params.push_back(enableScissor);
     _params.push_back(stencil);
     _params.push_back(depth);
     _params.push_back(color.w);
@@ -114,20 +119,20 @@ void Batch::clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, floa
     _params.push_back(targets);
 }
 
-void Batch::clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color) {
-    clearFramebuffer(targets & Framebuffer::BUFFER_COLORS, color, 1.0f, 0);
+void Batch::clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color, bool enableScissor) {
+    clearFramebuffer(targets & Framebuffer::BUFFER_COLORS, color, 1.0f, 0, enableScissor);
 }
 
-void Batch::clearDepthFramebuffer(float depth) {
-    clearFramebuffer(Framebuffer::BUFFER_DEPTH, Vec4(0.0f), depth, 0);
+void Batch::clearDepthFramebuffer(float depth, bool enableScissor) {
+    clearFramebuffer(Framebuffer::BUFFER_DEPTH, Vec4(0.0f), depth, 0, enableScissor);
 }
 
-void Batch::clearStencilFramebuffer(int stencil) {
-    clearFramebuffer(Framebuffer::BUFFER_STENCIL, Vec4(0.0f), 1.0f, stencil);
+void Batch::clearStencilFramebuffer(int stencil, bool enableScissor) {
+    clearFramebuffer(Framebuffer::BUFFER_STENCIL, Vec4(0.0f), 1.0f, stencil, enableScissor);
 }
 
-void Batch::clearDepthStencilFramebuffer(float depth, int stencil) {
-    clearFramebuffer(Framebuffer::BUFFER_DEPTHSTENCIL, Vec4(0.0f), depth, stencil);
+void Batch::clearDepthStencilFramebuffer(float depth, int stencil, bool enableScissor) {
+    clearFramebuffer(Framebuffer::BUFFER_DEPTHSTENCIL, Vec4(0.0f), depth, stencil, enableScissor);
 }
 
 
@@ -212,6 +217,11 @@ void Batch::setStateBlendFactor(const Vec4& factor) {
     _params.push_back(factor.w);
 }
 
+void Batch::setStateScissorRect(const Vec4i& rect) {
+    ADD_COMMAND(setStateScissorRect);
+
+    _params.push_back(cacheData(sizeof(Vec4i), &rect));
+}
 
 void Batch::setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size) {
     ADD_COMMAND(setUniformBuffer);
@@ -245,6 +255,22 @@ void Batch::setFramebuffer(const FramebufferPointer& framebuffer) {
 
 }
 
+void Batch::blit(const FramebufferPointer& src, const Vec4i& srcViewport,
+    const FramebufferPointer& dst, const Vec4i& dstViewport) {
+    ADD_COMMAND(blit);
+
+    _params.push_back(_framebuffers.cache(src));
+    _params.push_back(srcViewport.x);
+    _params.push_back(srcViewport.y);
+    _params.push_back(srcViewport.z);
+    _params.push_back(srcViewport.w);
+    _params.push_back(_framebuffers.cache(dst));
+    _params.push_back(dstViewport.x);
+    _params.push_back(dstViewport.y);
+    _params.push_back(dstViewport.z);
+    _params.push_back(dstViewport.w);
+}
+
 void Batch::beginQuery(const QueryPointer& query) {
     ADD_COMMAND(beginQuery);
 
@@ -261,4 +287,17 @@ void Batch::getQuery(const QueryPointer& query) {
     ADD_COMMAND(getQuery);
 
     _params.push_back(_queries.cache(query));
+}
+
+void push_back(Batch::Params& params, const vec3& v) {
+    params.push_back(v.x);
+    params.push_back(v.y);
+    params.push_back(v.z);
+}
+
+void push_back(Batch::Params& params, const vec4& v) {
+    params.push_back(v.x);
+    params.push_back(v.y);
+    params.push_back(v.z);
+    params.push_back(v.a);
 }

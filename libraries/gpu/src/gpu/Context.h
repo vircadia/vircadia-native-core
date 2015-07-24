@@ -20,6 +20,8 @@
 #include "Pipeline.h"
 #include "Framebuffer.h"
 
+class QImage;
+
 namespace gpu {
 
 class Backend {
@@ -28,6 +30,8 @@ public:
     virtual~ Backend() {};
     virtual void render(Batch& batch) = 0;
     virtual void syncCache() = 0;
+    virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) = 0;
+
 
     class TransformObject {
     public:
@@ -121,6 +125,10 @@ public:
 
     void syncCache();
 
+    // Downloading the Framebuffer is a synchronous action that is not efficient.
+    // It s here for convenience to easily capture a snapshot
+    void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage);
+
 protected:
     Context(const Context& context);
 
@@ -134,7 +142,7 @@ protected:
 
     friend class Shader;
 };
-
+typedef std::shared_ptr<Context> ContextPointer;
 
 };
 

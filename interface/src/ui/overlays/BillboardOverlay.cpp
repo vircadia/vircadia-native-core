@@ -11,6 +11,12 @@
 
 #include "BillboardOverlay.h"
 
+#include <QScriptValue>
+
+#include <DependencyManager.h>
+#include <GeometryCache.h>
+#include <gpu/Batch.h>
+
 #include "Application.h"
 #include "GeometryUtil.h"
 
@@ -85,6 +91,7 @@ void BillboardOverlay::render(RenderArgs* args) {
     if (batch) {
         Transform transform = _transform;
         transform.postScale(glm::vec3(getDimensions(), 1.0f));
+        transform.setRotation(rotation);
         
         batch->setModelTransform(transform);
         batch->setResourceTexture(0, _texture->getGPUTexture());

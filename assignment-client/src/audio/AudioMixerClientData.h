@@ -25,7 +25,7 @@
 
 class PerListenerSourcePairData {
 public:
-    PerListenerSourcePairData() { 
+    PerListenerSourcePairData() {
         _penumbraFilter.initialize(AudioConstants::SAMPLE_RATE, AudioConstants::NETWORK_FRAME_SAMPLES_STEREO / 2);
     };
     AudioFilterHSF1s& getPenumbraFilter() { return _penumbraFilter; }
@@ -42,7 +42,7 @@ public:
     const QHash<QUuid, PositionalAudioStream*>& getAudioStreams() const { return _audioStreams; }
     AvatarAudioStream* getAvatarAudioStream() const;
     
-    int parseData(const QByteArray& packet);
+    int parseData(NLPacket& packet);
 
     void checkBuffersBeforeFrameSend();
 

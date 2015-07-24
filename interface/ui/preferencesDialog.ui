@@ -1468,13 +1468,13 @@
             </font>
            </property>
            <property name="text">
-            <string>Faceshift eye deflection</string>
+            <string>Face tracker eye deflection</string>
            </property>
            <property name="indent">
             <number>0</number>
            </property>
            <property name="buddy">
-            <cstring>faceshiftEyeDeflectionSider</cstring>
+            <cstring>faceTrackerEyeDeflectionSider</cstring>
            </property>
           </widget>
          </item>
@@ -1497,7 +1497,7 @@
           </spacer>
          </item>
          <item>
-          <widget class="QSlider" name="faceshiftEyeDeflectionSider">
+          <widget class="QSlider" name="faceTrackerEyeDeflectionSider">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
              <horstretch>0</horstretch>

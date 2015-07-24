@@ -11,20 +11,14 @@
 #ifndef hifi_gpu_Batch_h
 #define hifi_gpu_Batch_h
 
-#include <assert.h>
-#include "GPUConfig.h"
-
-#include "Transform.h"
-
 #include <vector>
 
+#include "Framebuffer.h"
+#include "Pipeline.h"
 #include "Query.h"
 #include "Stream.h"
 #include "Texture.h"
-
-#include "Pipeline.h"
-
-#include "Framebuffer.h"
+#include "Transform.h"
 
 #if defined(NSIGHT_FOUND)
     class ProfileRange {
@@ -62,11 +56,12 @@ public:
 
     // Clear framebuffer layers
     // Targets can be any of the render buffers contained in the Framebuffer
-    void clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil);
-    void clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color); // not a command, just a shortcut for clearFramebuffer, mask out targets to make sure it touches only color targets
-    void clearDepthFramebuffer(float depth); // not a command, just a shortcut for clearFramebuffer, it touches only depth target
-    void clearStencilFramebuffer(int stencil); // not a command, just a shortcut for clearFramebuffer, it touches only stencil target
-    void clearDepthStencilFramebuffer(float depth, int stencil); // not a command, just a shortcut for clearFramebuffer, it touches depth and stencil target
+    // Optionally the scissor test can be enabled locally for this command and to restrict the clearing command to the pixels contained in the scissor rectangle
+    void clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil, bool enableScissor = false);
+    void clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, mask out targets to make sure it touches only color targets
+    void clearDepthFramebuffer(float depth, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches only depth target
+    void clearStencilFramebuffer(int stencil, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches only stencil target
+    void clearDepthStencilFramebuffer(float depth, int stencil, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches depth and stencil target
     
     // Input Stage
     // InputFormat
@@ -86,16 +81,21 @@ public:
     // Then by the inverse of the ViewTransform from world space to eye space
     // finaly projected into the clip space by the projection transform
     // WARNING: ViewTransform transform from eye space to world space, its inverse is composed
-    // with the ModelTransformu to create the equivalent of the glModelViewMatrix
+    // with the ModelTransform to create the equivalent of the gl ModelViewMatrix
     void setModelTransform(const Transform& model);
     void setViewTransform(const Transform& view);
     void setProjectionTransform(const Mat4& proj);
-    void setViewportTransform(const Vec4i& viewport); // Viewport is xy = low left corner in the framebuffer, zw = width height of the viewport
+    // Viewport is xy = low left corner in framebuffer, zw = width height of the viewport, expressed in pixels
+    void setViewportTransform(const Vec4i& viewport);
 
     // Pipeline Stage
     void setPipeline(const PipelinePointer& pipeline);
 
     void setStateBlendFactor(const Vec4& factor);
+
+    // Set the Scissor rect
+    // the rect coordinates are xy for the low left corner of the rect and zw for the width and height of the rect, expressed in pixels
+    void setStateScissorRect(const Vec4i& rect);
 
     void setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size);
     void setUniformBuffer(uint32 slot, const BufferView& view); // not a command, just a shortcut from a BufferView
@@ -105,6 +105,8 @@ public:
 
     // Framebuffer Stage
     void setFramebuffer(const FramebufferPointer& framebuffer);
+    void blit(const FramebufferPointer& src, const Vec4i& srcViewport,
+        const FramebufferPointer& dst, const Vec4i& dstViewport);
 
     // Query Section
     void beginQuery(const QueryPointer& query);
@@ -114,45 +116,45 @@ public:
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
     // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
-    // For now, instead of calling the raw glCall, use the equivalent call on the batch so the call is beeing recorded
+    // For now, instead of calling the raw gl Call, use the equivalent call on the batch so the call is beeing recorded
     // THe implementation of these functions is in GLBackend.cpp
 
-    void _glEnable(GLenum cap);
-    void _glDisable(GLenum cap);
+    void _glEnable(unsigned int cap);
+    void _glDisable(unsigned int cap);
 
-    void _glEnableClientState(GLenum array);
-    void _glDisableClientState(GLenum array);
+    void _glEnableClientState(unsigned int array);
+    void _glDisableClientState(unsigned int array);
 
-    void _glCullFace(GLenum mode);
-    void _glAlphaFunc(GLenum func, GLclampf ref);
+    void _glCullFace(unsigned int mode);
+    void _glAlphaFunc(unsigned int func, float ref);
 
-    void _glDepthFunc(GLenum func);
-    void _glDepthMask(GLboolean flag);
-    void _glDepthRange(GLfloat  zNear, GLfloat  zFar);
+    void _glDepthFunc(unsigned int func);
+    void _glDepthMask(unsigned char flag);
+    void _glDepthRange(float  zNear, float  zFar);
 
-    void _glBindBuffer(GLenum target, GLuint buffer);
+    void _glBindBuffer(unsigned int target, unsigned int buffer);
 
-    void _glBindTexture(GLenum target, GLuint texture);
-    void _glActiveTexture(GLenum texture);
-    void _glTexParameteri(GLenum target, GLenum pname, GLint param);
+    void _glBindTexture(unsigned int target, unsigned int texture);
+    void _glActiveTexture(unsigned int texture);
+    void _glTexParameteri(unsigned int target, unsigned int pname, int param);
     
-    void _glDrawBuffers(GLsizei n, const GLenum* bufs);
+    void _glDrawBuffers(int n, const unsigned int* bufs);
 
-    void _glUseProgram(GLuint program);
-    void _glUniform1i(GLint location, GLint v0);
-    void _glUniform1f(GLint location, GLfloat v0);
-    void _glUniform2f(GLint location, GLfloat v0, GLfloat v1);
-    void _glUniform3f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2);
-    void _glUniform3fv(GLint location, GLsizei count, const GLfloat* value);
-    void _glUniform4fv(GLint location, GLsizei count, const GLfloat* value);
-    void _glUniform4iv(GLint location, GLsizei count, const GLint* value);
-    void _glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
+    void _glUseProgram(unsigned int program);
+    void _glUniform1i(int location, int v0);
+    void _glUniform1f(int location, float v0);
+    void _glUniform2f(int location, float v0, float v1);
+    void _glUniform3f(int location, float v0, float v1, float v2);
+    void _glUniform3fv(int location, int count, const float* value);
+    void _glUniform4fv(int location, int count, const float* value);
+    void _glUniform4iv(int location, int count, const int* value);
+    void _glUniformMatrix4fv(int location, int count, unsigned char transpose, const float* value);
 
-    void _glEnableVertexAttribArray(GLint location);
-    void _glDisableVertexAttribArray(GLint location);
+    void _glEnableVertexAttribArray(int location);
+    void _glDisableVertexAttribArray(int location);
 
-    void _glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
-    void _glLineWidth(GLfloat width);
+    void _glColor4f(float red, float green, float blue, float alpha);
+    void _glLineWidth(float width);
 
     enum Command {
         COMMAND_draw = 0,
@@ -173,11 +175,13 @@ public:
 
         COMMAND_setPipeline,
         COMMAND_setStateBlendFactor,
+        COMMAND_setStateScissorRect,
 
         COMMAND_setUniformBuffer,
         COMMAND_setResourceTexture,
 
         COMMAND_setFramebuffer,
+        COMMAND_blit,
 
         COMMAND_beginQuery,
         COMMAND_endQuery,
