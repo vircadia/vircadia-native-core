@@ -76,7 +76,6 @@ enum class PacketType : uint8_t {
 };
 
 const int NUM_BYTES_MD5_HASH = 16;
-const int MAX_PACKET_HEADER_BYTES = 4 + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
 
 typedef char PacketVersion;
 
