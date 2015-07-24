@@ -77,13 +77,6 @@ const glm::vec3 randVector() {
     return glm::vec3(randFloat() - 0.5f, randFloat() - 0.5f, randFloat() - 0.5f) * 2.0f;
 }
 
-void renderCollisionOverlay(int width, int height, float magnitude, float red, float blue, float green) {
-    const float MIN_VISIBLE_COLLISION = 0.01f;
-    if (magnitude > MIN_VISIBLE_COLLISION) {
-        DependencyManager::get<GeometryCache>()->renderQuad(0, 0, width, height, glm::vec4(red, blue, green, magnitude));
-    }
-}
-
 //  Do some basic timing tests and report the results
 void runTimingTests() {
     //  How long does it take to make a call to get the time?
