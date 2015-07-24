@@ -68,9 +68,6 @@ public:
     float getMouthSmileLeft() const { return getBlendshapeCoefficient(_mouthSmileLeftIndex); }
     float getMouthSmileRight() const { return getBlendshapeCoefficient(_mouthSmileRightIndex); }
     
-    float getEyeDeflection() { return _eyeDeflection.get(); }
-    void setEyeDeflection(float faceshiftEyeDeflection);
-    
     QString getHostname() { return _hostname.get(); }
     void setHostname(const QString& hostname);
     
@@ -134,7 +131,6 @@ private:
     float _longTermAverageEyeYaw = 0.0f;
     bool _longTermAverageInitialized = false;
     
-    Setting::Handle<float> _eyeDeflection;
     Setting::Handle<QString> _hostname;
     
     // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes

@@ -28,10 +28,8 @@ using namespace std;
 
 const QString DEFAULT_FACESHIFT_HOSTNAME = "localhost";
 const quint16 FACESHIFT_PORT = 33433;
-const float DEFAULT_FACESHIFT_EYE_DEFLECTION = 0.25f;
 
 Faceshift::Faceshift() :
-    _eyeDeflection("faceshiftEyeDeflection", DEFAULT_FACESHIFT_EYE_DEFLECTION),
     _hostname("faceshiftHostname", DEFAULT_FACESHIFT_HOSTNAME)
 {
 #ifdef HAVE_FACESHIFT
@@ -304,10 +302,6 @@ void Faceshift::receive(const QByteArray& buffer) {
 #endif
 
     FaceTracker::countFrame();
-}
-
-void Faceshift::setEyeDeflection(float faceshiftEyeDeflection) {
-    _eyeDeflection.set(faceshiftEyeDeflection);
 }
 
 void Faceshift::setHostname(const QString& hostname) {
