@@ -32,34 +32,6 @@ const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
 
 const QSet<PacketType> RELIABLE_PACKETS = QSet<PacketType>();
 
-int arithmeticCodingValueFromBuffer(const char* checkValue) {
-    if (((uchar) *checkValue) < 255) {
-        return *checkValue;
-    } else {
-        return 255 + arithmeticCodingValueFromBuffer(checkValue + 1);
-    }
-}
-
-int numBytesArithmeticCodingFromBuffer(const char* checkValue) {
-    if (((uchar) *checkValue) < 255) {
-        return 1;
-    } else {
-        return 1 + numBytesArithmeticCodingFromBuffer(checkValue + 1);
-    }
-}
-
-int packArithmeticallyCodedValue(int value, char* destination) {
-    if (value < 255) {
-        // less than 255, just pack our value
-        destination[0] = (uchar) value;
-        return 1;
-    } else {
-        // pack 255 and then recursively pack on
-        ((unsigned char*)destination)[0] = 255;
-        return 1 + packArithmeticallyCodedValue(value - 255, destination + 1);
-    }
-}
-
 PacketVersion versionForPacketType(PacketType packetType) {
     switch (packetType) {
         case PacketType::EntityAdd:
@@ -121,10 +93,6 @@ QString nameForPacketType(PacketType packetType) {
             return QString("Type: ") + QString::number((int)packetType);
     }
     return QString("unexpected");
-}
-
-int numBytesForArithmeticCodedPacketType(PacketType packetType) {
-    return (int) ceilf((float) packetType / 255);
 }
 
 uint qHash(const PacketType& key, uint seed) {

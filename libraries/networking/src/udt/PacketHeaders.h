@@ -87,13 +87,6 @@ extern const QSet<PacketType> RELIABLE_PACKETS;
 QString nameForPacketType(PacketType packetType);
 PacketVersion versionForPacketType(PacketType packetType);
 
-int numBytesForArithmeticCodedPacketType(PacketType packetType);
-int numBytesForPacketHeaderGivenPacketType(PacketType packetType);
-int packArithmeticallyCodedValue(int value, char* destination);
-
-int arithmeticCodingValueFromBuffer(const char* checkValue);
-int numBytesArithmeticCodingFromBuffer(const char* checkValue);
-
 uint qHash(const PacketType& key, uint seed);
 QDebug operator<<(QDebug debug, const PacketType& type);
 
