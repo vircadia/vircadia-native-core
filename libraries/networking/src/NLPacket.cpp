@@ -233,7 +233,7 @@ void NLPacket::readSourceID() {
 void NLPacket::writeSourceID(const QUuid& sourceID) {
     Q_ASSERT(!NON_SOURCED_PACKETS.contains(_type));
     
-    auto offset = Packet::localHeaderSize();
+    auto offset = Packet::localHeaderSize() + sizeof(PacketType) + sizeof(PacketVersion);
     memcpy(_packet.get() + offset, sourceID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
     
     _sourceID = sourceID;
@@ -242,7 +242,7 @@ void NLPacket::writeSourceID(const QUuid& sourceID) {
 void NLPacket::writeVerificationHashGivenSecret(const QUuid& connectionSecret) {
     Q_ASSERT(!NON_SOURCED_PACKETS.contains(_type) && !NON_VERIFIED_PACKETS.contains(_type));
     
-    auto offset = Packet::localHeaderSize() + NUM_BYTES_RFC4122_UUID;
+    auto offset = Packet::localHeaderSize() + sizeof(PacketType) + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
     QByteArray verificationHash = hashForPacketAndSecret(*this, connectionSecret);
     
     memcpy(_packet.get() + offset, verificationHash.data(), verificationHash.size());
