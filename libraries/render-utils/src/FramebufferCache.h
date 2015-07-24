@@ -30,6 +30,7 @@ public:
     /// Returns a pointer to the primary framebuffer object.  This render target includes a depth component, and is
     /// used for scene rendering.
     gpu::FramebufferPointer getPrimaryFramebuffer();
+    gpu::FramebufferPointer getPrimaryFramebufferDepthColor();
 
     gpu::TexturePointer getPrimaryDepthTexture();
     gpu::TexturePointer getPrimaryColorTexture();
@@ -39,8 +40,12 @@ public:
     /// Returns the framebuffer object used to render shadow maps;
     gpu::FramebufferPointer getShadowFramebuffer();
 
+    /// Returns the framebuffer object used to render selfie maps;
+    gpu::FramebufferPointer getSelfieFramebuffer();
+
     /// Returns a free framebuffer with a single color attachment for temp or intra-frame operations
     gpu::FramebufferPointer getFramebuffer();
+
     // TODO add sync functionality to the release, so we don't reuse a framebuffer being read from
     /// Releases a free framebuffer back for reuse
     void releaseFramebuffer(const gpu::FramebufferPointer& framebuffer);
@@ -51,13 +56,17 @@ private:
 
     void createPrimaryFramebuffer();
 
-    gpu::FramebufferPointer _primaryFramebuffer;
+    gpu::FramebufferPointer _primaryFramebufferFull;
+    gpu::FramebufferPointer _primaryFramebufferDepthColor;
     gpu::TexturePointer _primaryDepthTexture;
     gpu::TexturePointer _primaryColorTexture;
     gpu::TexturePointer _primaryNormalTexture;
     gpu::TexturePointer _primarySpecularTexture;
     
     gpu::FramebufferPointer _shadowFramebuffer;
+
+    gpu::FramebufferPointer _selfieFramebuffer;
+
     QSize _frameBufferSize{ 100, 100 };
 };
 

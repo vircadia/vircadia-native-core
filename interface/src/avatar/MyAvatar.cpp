@@ -53,7 +53,7 @@
 using namespace std;
 
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
-const float YAW_SPEED = 500.0f;   // degrees/sec
+const float YAW_SPEED = 150.0f;   // degrees/sec
 const float PITCH_SPEED = 100.0f; // degrees/sec
 const float DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES = 30.0f;
 
@@ -1345,21 +1345,33 @@ bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
 
 void MyAvatar::updateOrientation(float deltaTime) {
     //  Smoothly rotate body with arrow keys
-    _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_SPEED * deltaTime;
-    _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_SPEED * deltaTime;
+    float targetSpeed = (_driveKeys[ROT_LEFT] - _driveKeys[ROT_RIGHT]) * YAW_SPEED;
+    if (targetSpeed != 0.0f) {
+        const float ROTATION_RAMP_TIMESCALE = 0.1f;
+        float blend = deltaTime / ROTATION_RAMP_TIMESCALE;
+        if (blend > 1.0f) {
+            blend = 1.0f;
+        }
+        _bodyYawDelta = (1.0f - blend) * _bodyYawDelta + blend * targetSpeed;
+    } else if (_bodyYawDelta != 0.0f) {
+        // attenuate body rotation speed
+        const float ROTATION_DECAY_TIMESCALE = 0.05f;
+        float attenuation = 1.0f - deltaTime / ROTATION_DECAY_TIMESCALE;
+        if (attenuation < 0.0f) {
+            attenuation = 0.0f;
+        }
+        _bodyYawDelta *= attenuation;
+
+        float MINIMUM_ROTATION_RATE = 2.0f;
+        if (fabsf(_bodyYawDelta) < MINIMUM_ROTATION_RATE) {
+            _bodyYawDelta = 0.0f;
+        }
+    }
+
     getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
-
-    glm::quat twist = glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta, 0.0f) * deltaTime));
-    setOrientation(twist * getOrientation());
-
-    // decay body rotation momentum
-    const float BODY_SPIN_FRICTION = 7.5f;
-    float bodySpinMomentum = 1.0f - BODY_SPIN_FRICTION * deltaTime;
-    if (bodySpinMomentum < 0.0f) { bodySpinMomentum = 0.0f; }
-    _bodyYawDelta *= bodySpinMomentum;
-
-    float MINIMUM_ROTATION_RATE = 2.0f;
-    if (fabs(_bodyYawDelta) < MINIMUM_ROTATION_RATE) { _bodyYawDelta = 0.0f; }
+    // update body orientation by movement inputs
+    setOrientation(getOrientation() *
+                   glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta * deltaTime, 0.0f))));
 
     if (qApp->isHMDMode()) {
         glm::quat orientation = glm::quat_cast(getSensorToWorldMatrix()) * getHMDSensorOrientation();
@@ -1597,6 +1609,9 @@ void MyAvatar::maybeUpdateBillboard() {
     QBuffer buffer(&_billboard);
     buffer.open(QIODevice::WriteOnly);
     image.save(&buffer, "PNG");
+#ifdef DEBUG
+    image.save("billboard.png", "PNG");
+#endif
     _billboardValid = true;
 
     sendBillboardPacket();

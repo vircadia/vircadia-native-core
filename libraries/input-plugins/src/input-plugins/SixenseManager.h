@@ -27,6 +27,8 @@
 #include "InputPlugin.h"
 #include "InputDevice.h"
 
+class QLibrary;
+
 const unsigned int BUTTON_0 = 1U << 0; // the skinny button between 1 and 2
 const unsigned int BUTTON_1 = 1U << 5;
 const unsigned int BUTTON_2 = 1U << 6;
@@ -92,8 +94,7 @@ private:
     void handleAxisEvent(float x, float y, float trigger, int index);
     void handlePoseEvent(glm::vec3 position, glm::quat rotation, int index);
 
-#ifdef HAVE_SIXENSE
-    void updateCalibration(const sixenseControllerData* controllers);
+    void updateCalibration(void* controllers);
     
     int _calibrationState;
 
@@ -116,7 +117,6 @@ private:
     QLibrary* _sixenseLibrary;
 #endif
     
-#endif
     bool _hydrasConnected;
 
     bool _invertButtons = DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS;

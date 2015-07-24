@@ -10,6 +10,7 @@
 #define hifi_ApplicationCompositor_h
 
 #include <QObject>
+#include <QPropertyAnimation>
 #include <cstdint>
 
 #include <EntityItemID.h>
@@ -33,6 +34,8 @@ const float DEFAULT_HMD_UI_ANGULAR_SIZE = 72.0f;
 // facilities of this class
 class ApplicationCompositor : public QObject {
     Q_OBJECT
+
+    Q_PROPERTY(float alpha READ getAlpha WRITE setAlpha)
 public:
     ApplicationCompositor();
     ~ApplicationCompositor();
@@ -63,6 +66,19 @@ public:
     glm::vec2 overlayToScreen(const glm::vec2 & overlayPos) const;
     void computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const;
     uint32_t getOverlayTexture() const;
+
+    void setCameraBaseTransform(const Transform& transform) { _cameraBaseTransform = transform; }
+    const Transform& getCameraBaseTransform() const { return _cameraBaseTransform; }
+
+    void setModelTransform(const Transform& transform) { _modelTransform = transform; }
+    const Transform& getModelTransform() const { return _modelTransform; }
+
+    void fadeIn();
+    void fadeOut();
+    void toggle();
+
+    float getAlpha() const { return _alpha; }
+    void setAlpha(float alpha) { _alpha = alpha; }
 
     static glm::vec2 directionToSpherical(const glm::vec3 & direction);
     static glm::vec3 sphericalToDirection(const glm::vec2 & sphericalPos);
@@ -100,6 +116,8 @@ private:
     bool _magnifier{ true };
 
     float _alpha{ 1.0f };
+    float _prevAlpha{ 1.0f };
+    float _fadeInAlpha{ true };
     float _oculusUIRadius{ 1.0f };
 
     QMap<uint16_t, gpu::TexturePointer> _cursors;
@@ -115,6 +133,11 @@ private:
     glm::vec3 _previousMagnifierBottomRight;
     glm::vec3 _previousMagnifierTopLeft;
     glm::vec3 _previousMagnifierTopRight;
+
+    Transform _modelTransform;
+    Transform _cameraBaseTransform;
+
+    std::unique_ptr<QPropertyAnimation> _alphaPropertyAnimation;
 };
 
 #endif // hifi_ApplicationCompositor_h

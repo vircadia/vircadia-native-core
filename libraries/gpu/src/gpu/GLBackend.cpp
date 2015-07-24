@@ -192,6 +192,7 @@ void GLBackend::syncCache() {
     syncTransformStateCache();
     syncPipelineStateCache();
     syncInputStateCache();
+    syncOutputStateCache();
 
     glEnable(GL_LINE_SMOOTH);
 }
@@ -281,6 +282,9 @@ void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
             glClearColor(color.x, color.y, color.z, color.w);
             glmask |= GL_COLOR_BUFFER_BIT;
         }
+        
+        // Force the color mask cache to WRITE_ALL if not the case
+        do_setStateColorWriteMask(State::ColorMask::WRITE_ALL);
     }
 
     // Apply scissor if needed and if not already on
