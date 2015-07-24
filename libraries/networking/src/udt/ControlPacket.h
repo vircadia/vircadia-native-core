@@ -46,10 +46,10 @@ private:
     ControlPacket(Type type, const SequenceNumberList& sequenceNumbers);
     ControlPacket(quint64 timestamp);
     ControlPacket(ControlPacket&& other);
-    ControlPacket(const Packet& other) = delete;
+    ControlPacket(const ControlPacket& other) = delete;
     
-    ControlPacket& operator=(Packet&& other);
-    ControlPacket& operator=(const Packet& other) = delete;
+    ControlPacket& operator=(ControlPacket&& other);
+    ControlPacket& operator=(const ControlPacket& other) = delete;
     
     Type _type;
 };

@@ -61,11 +61,13 @@ ControlPacket::ControlPacket(quint64 timestamp) :
 ControlPacket::ControlPacket(ControlPacket&& other) :
 	BasePacket(std::move(other))
 {
-    
+    _type = other._type;
 }
 
-ControlPacket& ControlPacket::operator=(Packet&& other) {
+ControlPacket& ControlPacket::operator=(ControlPacket&& other) {
     BasePacket::operator=(std::move(other));
+    
+    _type = other._type;
     
     return *this;
 }
