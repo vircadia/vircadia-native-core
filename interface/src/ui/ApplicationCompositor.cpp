@@ -165,6 +165,8 @@ ApplicationCompositor::ApplicationCompositor() {
             }
         }
     });
+
+    _alphaPropertyAnimation = std::make_unique<QPropertyAnimation>(this, "alpha");
 }
 
 ApplicationCompositor::~ApplicationCompositor() {
@@ -730,12 +732,28 @@ void ApplicationCompositor::updateTooltips() {
     }
 }
 
-void ApplicationCompositor::update(float dt) {
-    const int ALPHA_FADE_RATE = 2.0f;
-    _prevAlpha = _alpha;
-    if (_fadeInAlpha && _alpha < 1.0f) {
-        _alpha = std::min(_alpha + ALPHA_FADE_RATE * dt, 1.0f);
-    } else if (!_fadeInAlpha && _alpha > 0.0f) {
-        _alpha = std::max(_alpha - ALPHA_FADE_RATE * dt, 0.0f);
+static const float FADE_DURATION = 500.0f;
+void ApplicationCompositor::fadeIn() {
+    _fadeInAlpha = true;
+
+    _alphaPropertyAnimation->setDuration(FADE_DURATION);
+    _alphaPropertyAnimation->setStartValue(_alpha);
+    _alphaPropertyAnimation->setEndValue(1.0f);
+    _alphaPropertyAnimation->start();
+}
+void ApplicationCompositor::fadeOut() {
+    _fadeInAlpha = false;
+
+    _alphaPropertyAnimation->setDuration(FADE_DURATION);
+    _alphaPropertyAnimation->setStartValue(_alpha);
+    _alphaPropertyAnimation->setEndValue(0.0f);
+    _alphaPropertyAnimation->start();
+}
+
+void ApplicationCompositor::toggle() {
+    if (_fadeInAlpha) {
+        fadeOut();
+    } else {
+        fadeIn();
     }
 }

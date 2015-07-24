@@ -62,10 +62,6 @@ void OverlayConductor::update(float dt) {
         // do nothing
         break;
     }
-
-
-    // process alpha fade animations
-    qApp->getApplicationCompositor().update(dt);
 }
 
 void OverlayConductor::updateMode() {

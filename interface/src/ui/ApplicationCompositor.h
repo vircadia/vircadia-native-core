@@ -10,6 +10,7 @@
 #define hifi_ApplicationCompositor_h
 
 #include <QObject>
+#include <QPropertyAnimation>
 #include <cstdint>
 
 #include <EntityItemID.h>
@@ -33,6 +34,8 @@ const float DEFAULT_HMD_UI_ANGULAR_SIZE = 72.0f;
 // facilities of this class
 class ApplicationCompositor : public QObject {
     Q_OBJECT
+
+    Q_PROPERTY(float alpha READ getAlpha WRITE setAlpha)
 public:
     ApplicationCompositor();
     ~ApplicationCompositor();
@@ -70,10 +73,12 @@ public:
     void setModelTransform(const Transform& transform) { _modelTransform = transform; }
     const Transform& getModelTransform() const { return _modelTransform; }
 
-    void fadeIn() { _fadeInAlpha = true; }
-    void fadeOut() { _fadeInAlpha = false; }
-    void toggle() { _fadeInAlpha = !_fadeInAlpha; }
-    void update(float dt);
+    void fadeIn();
+    void fadeOut();
+    void toggle();
+
+    float getAlpha() const { return _alpha; }
+    void setAlpha(float alpha) { _alpha = alpha; }
 
     static glm::vec2 directionToSpherical(const glm::vec3 & direction);
     static glm::vec3 sphericalToDirection(const glm::vec2 & sphericalPos);
@@ -131,6 +136,8 @@ private:
 
     Transform _modelTransform;
     Transform _cameraBaseTransform;
+
+    std::unique_ptr<QPropertyAnimation> _alphaPropertyAnimation;
 };
 
 #endif // hifi_ApplicationCompositor_h
