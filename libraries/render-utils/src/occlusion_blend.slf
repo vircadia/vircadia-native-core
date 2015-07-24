@@ -17,17 +17,14 @@
 varying vec2 varTexcoord;
 
 uniform sampler2D blurredOcclusionTexture;
-uniform sampler2D colorTexture;
 
 void main(void) {
     vec4 occlusionColor = texture2D(blurredOcclusionTexture, varTexcoord);
-    vec4 currentColor = texture2D(colorTexture, varTexcoord);
-    /*
-    if(occlusionColor.r == 1.0) {
-        gl_FragColor = currentColor;
+    
+    if(occlusionColor.r > 0.8 && occlusionColor.r <= 1.0) {
+        gl_FragColor = vec4(vec3(0.0), 1.0);
     }
     else {
-        gl_FragColor = mix(occlusionColor, currentColor, 0.5);
-    }*/
-    gl_FragColor = currentColor;
+        gl_FragColor = vec4(vec3(0.2), 1.0);
+    }
 }
