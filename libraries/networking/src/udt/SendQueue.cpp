@@ -21,7 +21,7 @@
 #include "Packet.h"
 #include "Socket.h"
 
-namespace udt {
+using namespace udt;
 
 std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr dest) {
     auto queue = std::unique_ptr<SendQueue>(new SendQueue(socket, dest));
@@ -79,6 +79,15 @@ void SendQueue::stop() {
 void SendQueue::sendPacket(const Packet& packet) {
     _socket->writeDatagram(packet.getData(), packet.getDataSize(), _destination);
 }
+    
+void SendQueue::ack(SeqNum ack) {
+    // TODO Remove acked packet from sent list
+}
+
+void SendQueue::nak(std::list<SeqNum> naks) {
+    QWriteLocker locker(&_naksLock);
+    _naks.splice(_naks.end(), naks); // Add naks at the end
+}
 
 void SendQueue::sendNextPacket() {
     if (!_running) {
@@ -95,10 +104,36 @@ void SendQueue::sendNextPacket() {
         
         // Insert the packet we have just sent in the sent list
         _sentPackets[_nextPacket->getSequenceNumber()].swap(_nextPacket);
-        Q_ASSERT(!_nextPacket); // There should be no packet where we inserted
+        Q_ASSERT_X(!_nextPacket,
+                   "SendQueue::sendNextPacket()", "Overriden packet in sent list");
     }
     
-    {   // Grab next packet to be sent
+    bool hasResend = false;
+    SeqNum seqNum;
+    {
+        // Check nak list for packet to resend
+        QWriteLocker locker(&_naksLock);
+        if (!_naks.empty()) {
+            hasResend = true;
+            seqNum = _naks.front();
+            _naks.pop_front();
+        }
+    }
+    
+    // Find packet in sent list using SeqNum
+    if (hasResend) {
+        auto it = _sentPackets.find(seqNum);
+        Q_ASSERT_X(it != _sentPackets.end(),
+                   "SendQueue::sendNextPacket()", "Couldn't find NAKed packet to resend");
+        
+        if (it != _sentPackets.end()) {
+            it->second.swap(_nextPacket);
+            _sentPackets.erase(it);
+        }
+    }
+    
+    // If there is no packet to resend, grab the next one in the list
+    if (!_nextPacket) {
         QWriteLocker locker(&_packetsLock);
         _nextPacket.swap(_packets.front());
         _packets.pop_front();
@@ -107,6 +142,4 @@ void SendQueue::sendNextPacket() {
     // How long before next packet send
     auto timeToSleep = (sendTime + _packetSendPeriod) - msecTimestampNow(); // msec
     _sendTimer->start(std::max((quint64)0, timeToSleep));
-}
-
 }

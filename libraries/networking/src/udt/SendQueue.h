@@ -50,6 +50,9 @@ public slots:
     void stop();
     void sendPacket(const Packet& packet);
     
+    void ack(SeqNum ack);
+    void nak(std::list<SeqNum> naks);
+    
 private slots:
     void sendNextPacket();
     
@@ -71,6 +74,8 @@ private:
     std::atomic<quint64> _lastSendTimestamp { 0 }; // Record last time of packet departure
     std::atomic<bool> _running { false };
     
+    QReadWriteLock _naksLock; // Protects the naks list.
+    std::list<SeqNum> _naks; // Sequence numbers of packets to resend
     std::unordered_map<SeqNum, std::unique_ptr<Packet>> _sentPackets; // Packets waiting for ACK.
 };
     
