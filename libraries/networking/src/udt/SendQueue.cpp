@@ -81,7 +81,16 @@ void SendQueue::sendPacket(const Packet& packet) {
 }
     
 void SendQueue::ack(SeqNum ack) {
-    // TODO Remove acked packet from sent list
+    if (_lastAck == ack) {
+        return;
+    }
+    
+    QWriteLocker locker(&_sentLock);
+    for (auto seq = _lastAck; seq != ack; ++seq) {
+        _sentPackets.erase(seq);
+    }
+    
+    _lastAck = ack;
 }
 
 void SendQueue::nak(std::list<SeqNum> naks) {
@@ -103,6 +112,7 @@ void SendQueue::sendNextPacket() {
         sendPacket(*_nextPacket);
         
         // Insert the packet we have just sent in the sent list
+        QWriteLocker locker(&_sentLock);
         _sentPackets[_nextPacket->getSequenceNumber()].swap(_nextPacket);
         Q_ASSERT_X(!_nextPacket,
                    "SendQueue::sendNextPacket()", "Overriden packet in sent list");
@@ -122,6 +132,7 @@ void SendQueue::sendNextPacket() {
     
     // Find packet in sent list using SeqNum
     if (hasResend) {
+        QWriteLocker locker(&_sentLock);
         auto it = _sentPackets.find(seqNum);
         Q_ASSERT_X(it != _sentPackets.end(),
                    "SendQueue::sendNextPacket()", "Couldn't find NAKed packet to resend");

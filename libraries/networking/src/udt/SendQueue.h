@@ -68,6 +68,7 @@ private:
     Socket* _socket { nullptr }; // Socket to send packet on
     HifiSockAddr _destination; // Destination addr
     SeqNum _currentSeqNum; // Last sequence number sent out
+    SeqNum _lastAck; // ACKed sequence number
     
     std::unique_ptr<QTimer> _sendTimer; // Send timer
     std::atomic<int> _packetSendPeriod { 0 }; // Interval between two packet send envent in msec
@@ -76,6 +77,8 @@ private:
     
     QReadWriteLock _naksLock; // Protects the naks list.
     std::list<SeqNum> _naks; // Sequence numbers of packets to resend
+    
+    QReadWriteLock _sentLock; // Protects the sent packet list
     std::unordered_map<SeqNum, std::unique_ptr<Packet>> _sentPackets; // Packets waiting for ACK.
 };
     
