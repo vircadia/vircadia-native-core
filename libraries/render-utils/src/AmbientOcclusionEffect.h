@@ -28,7 +28,6 @@ public:
     const gpu::PipelinePointer& getHBlurPipeline();
     const gpu::PipelinePointer& getVBlurPipeline();
     const gpu::PipelinePointer& getBlendPipeline();
-    const gpu::PipelinePointer& getAOResultPipeline();
 
 private:
 
@@ -48,17 +47,14 @@ private:
     gpu::PipelinePointer _hBlurPipeline;
     gpu::PipelinePointer _vBlurPipeline;
     gpu::PipelinePointer _blendPipeline;
-    gpu::PipelinePointer _AOResultPipeline;
 
     gpu::FramebufferPointer _occlusionBuffer;
     gpu::FramebufferPointer _hBlurBuffer;
     gpu::FramebufferPointer _vBlurBuffer;
-    gpu::FramebufferPointer _blendBuffer;
 
     gpu::TexturePointer _occlusionTexture;
     gpu::TexturePointer _hBlurTexture;
     gpu::TexturePointer _vBlurTexture;
-    gpu::TexturePointer _blendTexture;
 
 };
 

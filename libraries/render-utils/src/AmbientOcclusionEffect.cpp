@@ -149,7 +149,7 @@ const gpu::PipelinePointer& AmbientOcclusion::getHBlurPipeline() {
 
 const gpu::PipelinePointer& AmbientOcclusion::getBlendPipeline() {
     if (!_blendPipeline) {
-        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(occlusion_blend_vert)));
+        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(ambient_occlusion_vert)));
         auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(occlusion_blend_frag)));
         gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
 
@@ -165,15 +165,6 @@ const gpu::PipelinePointer& AmbientOcclusion::getBlendPipeline() {
         // Blend on transparent
         state->setBlendFunction(true,
             gpu::State::SRC_COLOR, gpu::State::BLEND_OP_ADD, gpu::State::DEST_COLOR);
-
-        // Link the blend FBO to texture
-        _blendBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_RGBA_32,
-            DependencyManager::get<FramebufferCache>()->getFrameBufferSize().width(), DependencyManager::get<FramebufferCache>()->getFrameBufferSize().height()));
-        auto format = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
-        auto width = _blendBuffer->getWidth();
-        auto height = _blendBuffer->getHeight();
-        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
-        _blendTexture = gpu::TexturePointer(gpu::Texture::create2D(format, width, height, defaultSampler));
 
         // Good to go add the brand new pipeline
         _blendPipeline.reset(gpu::Pipeline::create(program, state));
