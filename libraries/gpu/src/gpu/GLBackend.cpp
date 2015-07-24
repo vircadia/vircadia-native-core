@@ -192,6 +192,7 @@ void GLBackend::syncCache() {
     syncTransformStateCache();
     syncPipelineStateCache();
     syncInputStateCache();
+    syncOutputStateCache();
 
     glEnable(GL_LINE_SMOOTH);
 }

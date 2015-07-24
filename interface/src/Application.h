@@ -642,6 +642,7 @@ private:
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
     ApplicationCompositor _compositor;
+    int _numFramesSinceLastResize = 0;
 };
 
 #endif // hifi_Application_h

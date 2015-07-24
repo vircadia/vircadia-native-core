@@ -877,22 +877,25 @@ void Application::paintGL() {
 
     // Before anything else, let's sync up the gpuContext with the true glcontext used in case anything happened
     renderArgs._context->syncCache();
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+ 
+    if ((_numFramesSinceLastResize > 1) && Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
         auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
-
+        
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
         renderRearViewMirror(&renderArgs, _mirrorViewRect);
         renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
-
+        
         {
             float ratio = ((float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale());
             auto mirrorViewport = glm::ivec4(0, 0, _mirrorViewRect.width() * ratio, _mirrorViewRect.height() * ratio);
             auto mirrorViewportDest = mirrorViewport;
-         
+            
             auto selfieFbo = DependencyManager::get<FramebufferCache>()->getSelfieFramebuffer();
             gpu::Batch batch;
+            batch.setFramebuffer(selfieFbo);
+            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
             batch.blit(primaryFbo, mirrorViewport, selfieFbo, mirrorViewportDest);
+            batch.setFramebuffer(nullptr);
             renderArgs._context->render(batch);
         }
     }
@@ -992,8 +995,7 @@ void Application::paintGL() {
 
         _compositor.displayOverlayTexture(&renderArgs);
     }
-
-
+    
     if (!OculusManager::isConnected() || OculusManager::allowSwap()) {
         PROFILE_RANGE(__FUNCTION__ "/bufferSwap");
         _glWidget->swapBuffers();
@@ -1003,6 +1005,7 @@ void Application::paintGL() {
         OculusManager::endFrameTiming();
     }
     _frameCount++;
+    _numFramesSinceLastResize++;    
     Stats::getInstance()->setRenderDetails(renderArgs._details);
 }
 
@@ -1056,6 +1059,7 @@ void Application::resizeGL() {
     }
 
     if (_renderResolution != toGlm(renderSize)) {
+        _numFramesSinceLastResize = 0;
         _renderResolution = toGlm(renderSize);
         DependencyManager::get<FramebufferCache>()->setFrameBufferSize(renderSize);
 
@@ -1069,7 +1073,6 @@ void Application::resizeGL() {
     auto canvasSize = _glWidget->size();
     offscreenUi->resize(canvasSize);
     _glWidget->makeCurrent();
-
 }
 
 bool Application::importSVOFromURL(const QString& urlString) {

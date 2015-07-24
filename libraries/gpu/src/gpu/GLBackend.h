@@ -387,11 +387,14 @@ protected:
     void do_setFramebuffer(Batch& batch, uint32 paramOffset);
     void do_blit(Batch& batch, uint32 paramOffset);
 
-
+    // Synchronize the state cache of this Backend with the actual real state of the GL Context
+    void syncOutputStateCache();
+    
     struct OutputStageState {
 
         FramebufferPointer _framebuffer = nullptr;
-
+        GLuint _drawFBO = 0;
+        
         OutputStageState() {}
     } _output;
 

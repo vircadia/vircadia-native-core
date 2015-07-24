@@ -1670,10 +1670,8 @@ void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
 
 
         auto stateNoBlend = std::make_shared<gpu::State>();
-     //   stateNoBlend->setColorWriteMask(true, true, true, false);
-     //   stateNoBlend->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
-
-        auto programNoBlend = gpu::ShaderPointer(gpu::Shader::createProgram(vs, gpu::StandardShaderLib::getDrawTextureOpaquePS()));
+        auto noBlendPS = gpu::StandardShaderLib::getDrawTextureOpaquePS();
+        auto programNoBlend = gpu::ShaderPointer(gpu::Shader::createProgram(vs, noBlendPS));
         gpu::Shader::makeProgram((*programNoBlend));
         _standardDrawPipelineNoBlend.reset(gpu::Pipeline::create(programNoBlend, stateNoBlend));
     }

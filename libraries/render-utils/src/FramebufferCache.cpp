@@ -70,6 +70,10 @@ void FramebufferCache::createPrimaryFramebuffer() {
     _primaryFramebufferFull->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
 
     _primaryFramebufferDepthColor->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
+    
+    _selfieFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    auto tex = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width * 0.5, height * 0.5, defaultSampler));
+    _selfieFramebuffer->setRenderBuffer(0, tex);
 }
 
 gpu::FramebufferPointer FramebufferCache::getPrimaryFramebuffer() {
@@ -140,7 +144,7 @@ gpu::FramebufferPointer FramebufferCache::getShadowFramebuffer() {
 
 gpu::FramebufferPointer FramebufferCache::getSelfieFramebuffer() {
     if (!_selfieFramebuffer) {
-        _selfieFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_RGBA_32, _frameBufferSize.width(), _frameBufferSize.height()));
+        createPrimaryFramebuffer();
     }
     return _selfieFramebuffer;
 }

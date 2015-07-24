@@ -37,6 +37,9 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
 
     // need to have a gpu object?
     if (!object) {
+        GLint currentFBO;
+        glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &currentFBO);
+        
         GLuint fbo;
         glGenFramebuffers(1, &fbo);
         (void) CHECK_GL_ERROR();
@@ -87,6 +90,8 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
             glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, renderBuffer);
             (void) CHECK_GL_ERROR();
         }
+        
+   //     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 #endif
         
 
@@ -142,6 +147,9 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
         object->_fbo = fbo;
         object->_colorBuffers = colorBuffers;
         Backend::setGPUObject(framebuffer, object);
+        
+        // restore the current framebuffer
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, currentFBO);
     }
 
     return object;
@@ -161,11 +169,24 @@ GLuint GLBackend::getFramebufferID(const FramebufferPointer& framebuffer) {
     }
 }
 
+void GLBackend::syncOutputStateCache() {
+    GLint currentFBO;
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &currentFBO);
+
+    _output._drawFBO = currentFBO;
+    _output._framebuffer.reset();
+}
+
+
 void GLBackend::do_setFramebuffer(Batch& batch, uint32 paramOffset) {
     auto framebuffer = batch._framebuffers.get(batch._params[paramOffset]._uint);
 
     if (_output._framebuffer != framebuffer) {
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, getFramebufferID(framebuffer));
+        auto newFBO = getFramebufferID(framebuffer);
+        if (_output._drawFBO != newFBO) {
+            _output._drawFBO = newFBO;
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, newFBO);
+        }
         _output._framebuffer = framebuffer;
     }
 }
