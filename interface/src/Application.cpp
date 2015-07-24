@@ -974,11 +974,9 @@ void Application::paintGL() {
             _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
             _myCamera.setRotation(_myAvatar->getHead()->getCameraOrientation());
         } else {
-            // The plugin getModelview() call below will compose the base
-            // sensor to world transform with the HMD pose.
-            mat4 sensorToWorldMat = _myAvatar->getSensorToWorldMatrix();
-            _myCamera.setPosition(extractTranslation(sensorToWorldMat));
-            _myCamera.setRotation(glm::quat_cast(sensorToWorldMat));
+            mat4 camMat = _myAvatar->getSensorToWorldMatrix() * _myAvatar->getHMDSensorMatrix();
+            _myCamera.setPosition(extractTranslation(camMat));
+            _myCamera.setRotation(glm::quat_cast(camMat));
         }
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         if (isHMDMode()) {
@@ -1040,7 +1038,12 @@ void Application::paintGL() {
             for_each_eye([&](Eye eye){
                 // Load the view frustum, used by meshes
                 Camera eyeCamera;
-                eyeCamera.setTransform(displayPlugin->getModelview(eye, _myCamera.getTransform()));
+                if (qApp->isHMDMode()) {
+                    // Allow the displayPlugin to compose the final eye transform, based on the most up-to-date head motion.
+                    eyeCamera.setTransform(displayPlugin->getModelview(eye, _myAvatar->getSensorToWorldMatrix()));
+                } else {
+                    eyeCamera.setTransform(displayPlugin->getModelview(eye, _myCamera.getTransform()));
+                }
                 eyeCamera.setProjection(displayPlugin->getProjection(eye, _myCamera.getProjection()));
                 renderArgs._viewport = gpu::Vec4i(r.x(), r.y(), r.width(), r.height());
                 doInBatch(&renderArgs, [&](gpu::Batch& batch) {
