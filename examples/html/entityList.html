@@ -35,8 +35,32 @@
             function onRowClicked(e) {
                 var id = this.dataset.entityId;
                 var selection = [this.dataset.entityId];
-                if (e.shiftKey) {
+                if (e.ctrlKey) {
                     selection = selection.concat(selectedEntities);
+                } else if (e.shiftKey && selectedEntities.length > 0) {
+                    var previousItemFound = -1;
+                    var clickedItemFound = -1; 
+                    for (var i in entityList.visibleItems) {
+                        if (clickedItemFound === -1 && this.dataset.entityId == entityList.visibleItems[i].values().id) {
+                            clickedItemFound = i;
+                        } else if(previousItemFound === -1 && selectedEntities[0] == entityList.visibleItems[i].values().id) {
+                            previousItemFound = i;
+                        }
+                    }
+                    if (previousItemFound !== -1 && clickedItemFound !== -1) {
+                        var betweenItems = [];
+                        var toItem = Math.max(previousItemFound, clickedItemFound);
+                        // skip first and last item in this loop, we add them to selection after the loop
+                        for (var i = (Math.min(previousItemFound, clickedItemFound) + 1); i < toItem; i++) {
+                            entityList.visibleItems[i].elm.className = 'selected';
+                            betweenItems.push(entityList.visibleItems[i].values().id);
+                        }
+                        if (previousItemFound > clickedItemFound) {
+                            // always make sure that we add the items in the right order
+                            betweenItems.reverse();
+                        }
+                        selection = selection.concat(betweenItems, selectedEntities);
+                    }
                 }
 
                 selectedEntities = selection;
@@ -150,6 +174,17 @@
                 EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
                 refreshEntities();
             }
+
+            document.addEventListener("keydown", function (e) {
+                if (e.target.nodeName === "INPUT") {
+                    return;
+                }
+                var keyCode = e.keyCode;
+                if (keyCode === 46) {
+                    EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
+                    refreshEntities();
+                }
+            }, false);
 
             if (window.EventBridge !== undefined) {
                 EventBridge.scriptEventReceived.connect(function(data) {

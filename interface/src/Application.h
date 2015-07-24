@@ -328,6 +328,8 @@ public:
 
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
+    const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
+
 signals:
 
     /// Fired when we're simulating; allows external parties to hook in.
@@ -640,6 +642,7 @@ private:
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
     ApplicationCompositor _compositor;
+    int _numFramesSinceLastResize = 0;
 };
 
 #endif // hifi_Application_h

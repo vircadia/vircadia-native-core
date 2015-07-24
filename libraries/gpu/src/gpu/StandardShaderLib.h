@@ -35,6 +35,7 @@ public:
     static ShaderPointer getDrawViewportQuadTransformTexcoordVS();
 
     static ShaderPointer getDrawTexturePS();
+    static ShaderPointer getDrawTextureOpaquePS();
     static ShaderPointer getDrawColoredTexturePS();
 
     // The shader program combining the shaders available above, so they are unique
@@ -47,6 +48,7 @@ protected:
     static ShaderPointer _drawTexcoordRectTransformUnitQuadVS;
     static ShaderPointer _drawViewportQuadTransformTexcoordVS;
     static ShaderPointer _drawTexturePS;
+    static ShaderPointer _drawTextureOpaquePS;
     static ShaderPointer _drawColoredTexturePS;
 
     typedef std::map<std::pair<GetShader, GetShader>, ShaderPointer> ProgramMap;

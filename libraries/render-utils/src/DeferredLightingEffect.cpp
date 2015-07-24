@@ -21,7 +21,6 @@
 
 #include "AbstractViewStateInterface.h"
 #include "GeometryCache.h"
-#include "RenderUtil.h"
 #include "TextureCache.h"
 #include "FramebufferCache.h"
 
@@ -143,6 +142,10 @@ void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured,
                                                bool emmisive, bool depthBias) {
     SimpleProgramKey config{textured, culled, emmisive, depthBias};
     batch.setPipeline(getPipeline(config));
+
+    gpu::ShaderPointer program = (config.isEmissive()) ? _emissiveShader : _simpleShader;
+    int glowIntensity = program->getUniforms().findLocation("glowIntensity");
+    batch._glUniform1f(glowIntensity, 1.0f);
     
     if (!config.isTextured()) {
         // If it is not textured, bind white texture and keep using textured pipeline
@@ -217,13 +220,17 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
 
 void DeferredLightingEffect::prepare(RenderArgs* args) {
     gpu::Batch batch;
-    
-    // clear the normal and specular buffers
-    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR1, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
-    const float MAX_SPECULAR_EXPONENT = 128.0f;
-    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR2, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f / MAX_SPECULAR_EXPONENT));
 
-    args->_context->syncCache();
+    batch.setStateScissorRect(args->_viewport);
+
+    auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
+
+    batch.setFramebuffer(primaryFbo);
+    // clear the normal and specular buffers
+    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR1, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f), true);
+    const float MAX_SPECULAR_EXPONENT = 128.0f;
+    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR2, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f / MAX_SPECULAR_EXPONENT), true);
+
     args->_context->render(batch);
 }
 
@@ -242,8 +249,9 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     batch.setFramebuffer(_copyFBO);
 
     batch.setViewportTransform(args->_viewport);
+    batch.setStateScissorRect(args->_viewport);
  
-    batch.clearColorFramebuffer(_copyFBO->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+    batch.clearColorFramebuffer(_copyFBO->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f), true);
     
     batch.setResourceTexture(0, framebufferCache->getPrimaryColorTexture());
 
@@ -530,7 +538,6 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     batch.setResourceTexture(2, nullptr);
     batch.setResourceTexture(3, nullptr);
 
-    args->_context->syncCache();
     args->_context->render(batch);
 
     // End of the Lighting pass
@@ -542,30 +549,30 @@ void DeferredLightingEffect::copyBack(RenderArgs* args) {
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     QSize framebufferSize = framebufferCache->getFrameBufferSize();
 
-    batch.setFramebuffer(framebufferCache->getPrimaryFramebuffer());
-    batch.setPipeline(_blitLightBuffer);
-    
-    batch.setResourceTexture(0, _copyFBO->getRenderBuffer(0));
-
+    // TODO why doesn't this blit work?  It only seems to affect a small area below the rear view mirror.
+  //  auto destFbo = framebufferCache->getPrimaryFramebuffer();
+    auto destFbo = framebufferCache->getPrimaryFramebufferDepthColor();
+//    gpu::Vec4i vp = args->_viewport;
+//    batch.blit(_copyFBO, vp, framebufferCache->getPrimaryFramebuffer(), vp);
+    batch.setFramebuffer(destFbo);
+    batch.setViewportTransform(args->_viewport);
     batch.setProjectionTransform(glm::mat4());
     batch.setViewTransform(Transform());
-    
-    float sMin = args->_viewport.x / (float)framebufferSize.width();
-    float sWidth = args->_viewport.z / (float)framebufferSize.width();
-    float tMin = args->_viewport.y / (float)framebufferSize.height();
-    float tHeight = args->_viewport.w / (float)framebufferSize.height();
+    {
+        float sMin = args->_viewport.x / (float)framebufferSize.width();
+        float sWidth = args->_viewport.z / (float)framebufferSize.width();
+        float tMin = args->_viewport.y / (float)framebufferSize.height();
+        float tHeight = args->_viewport.w / (float)framebufferSize.height();
+        Transform model;
+        batch.setPipeline(_blitLightBuffer);
+        model.setTranslation(glm::vec3(sMin, tMin, 0.0));
+        model.setScale(glm::vec3(sWidth, tHeight, 1.0));
+        batch.setModelTransform(model);
+    }
 
-    batch.setViewportTransform(args->_viewport);
-
-    Transform model;
-    model.setTranslation(glm::vec3(sMin, tMin, 0.0));
-    model.setScale(glm::vec3(sWidth, tHeight, 1.0));
-    batch.setModelTransform(model);
-
+    batch.setResourceTexture(0, _copyFBO->getRenderBuffer(0));
     batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-
-    args->_context->syncCache();
     args->_context->render(batch);
     framebufferCache->releaseFramebuffer(_copyFBO);
 }
