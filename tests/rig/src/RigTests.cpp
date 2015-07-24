@@ -104,10 +104,24 @@ void reportJoint(int index, JointState joint) { // Handy for debugging
     std::cout << " rot:" << safeEulerAngles(joint.getRotation()) << "/" << safeEulerAngles(joint.getRotationInParentFrame()) << "/" << safeEulerAngles(joint.getRotationInBindFrame()) << "\n";
     std::cout << "\n";
 }
-
-void RigTests::initialPoseArmsDown() {
-    for (int i = 0; i < _rig->getJointStateCount(); i++) {
-        JointState joint = _rig->getJointState(i);
+void reportByName(RigPointer rig, const QString& name) {
+    int jointIndex = rig->indexOfJoint(name);
+    reportJoint(jointIndex, rig->getJointState(jointIndex));
+}
+void reportAll(RigPointer rig) {
+    for (int i = 0; i < rig->getJointStateCount(); i++) {
+        JointState joint = rig->getJointState(i);
         reportJoint(i, joint);
     }
+}
+void reportSome(RigPointer rig) {
+    QString names[] = {"Head", "Neck", "RightShoulder", "RightArm", "RightForeArm", "RightHand", "Spine2", "Spine1", "Spine", "Hips", "RightUpLeg", "RightLeg", "RightFoot", "RightToeBase", "RightToe_End"};
+    for (auto name : names) {
+        reportByName(rig, name);
+    }
+}
+
+void RigTests::initialPoseArmsDown() {
+    //reportAll(_rig);
+    reportSome(_rig);
 }
