@@ -878,7 +878,7 @@ void Application::paintGL() {
     // Before anything else, let's sync up the gpuContext with the true glcontext used in case anything happened
     renderArgs._context->syncCache();
  
-    if ((_numFramesSinceLastResize > 1) && Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
         auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
         
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
