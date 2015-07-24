@@ -11,6 +11,10 @@
 
 #include "ApplicationCompositor.h"
 
+#include <memory>
+
+#include <QPropertyAnimation>
+
 #include <glm/gtc/type_ptr.hpp>
 
 #include <avatar/AvatarManager.h>
@@ -166,7 +170,7 @@ ApplicationCompositor::ApplicationCompositor() {
         }
     });
 
-    _alphaPropertyAnimation = std::make_unique<QPropertyAnimation>(this, "alpha");
+    _alphaPropertyAnimation.reset(new QPropertyAnimation(this, "alpha"));
 }
 
 ApplicationCompositor::~ApplicationCompositor() {
