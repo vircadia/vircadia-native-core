@@ -73,6 +73,17 @@ float Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform
     return radius;
 }
 
+// We could build and cache a dictionary, too....
+// Should we be using .fst mapping instead/also?
+int Rig::indexOfJoint(const QString& jointName) {
+    for (int i = 0; i < _jointStates.count(); i++) {
+        if (_jointStates[i].getFBXJoint().name == jointName) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 
 void Rig::initJointTransforms(glm::mat4 parentTransform) {
     // compute model transforms

@@ -103,6 +103,15 @@ void AnimationHandle::setJointMappings(QVector<int> jointMappings) {
     _jointMappings = jointMappings;
 }
 
+QVector<int> AnimationHandle::getJointMappings() {
+    if (_jointMappings.isEmpty()) {
+        QVector<FBXJoint> animationJoints = _animation->getGeometry().joints;
+        for (int i = 0; i < animationJoints.count(); i++) {
+            _jointMappings.append(_rig->indexOfJoint(animationJoints.at(i).name));
+        }
+    }
+    return _jointMappings;
+}
 
 void AnimationHandle::simulate(float deltaTime) {
     if (!_animation || !_animation->isLoaded()) {
@@ -111,7 +120,7 @@ void AnimationHandle::simulate(float deltaTime) {
 
     _animationLoop.simulate(deltaTime);
 
-    if (_jointMappings.isEmpty()) {
+    if (getJointMappings().isEmpty()) {
         qDebug() << "AnimationHandle::simulate -- _jointMappings.isEmpty()";
         return;
     }
