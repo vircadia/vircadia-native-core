@@ -61,6 +61,7 @@
 #include "ui/overlays/Overlays.h"
 #include "ui/ApplicationOverlay.h"
 #include "ui/ApplicationCompositor.h"
+#include "ui/OverlayConductor.h"
 #include "ui/RunningScriptsWidget.h"
 #include "ui/ToolWindow.h"
 #include "octree/OctreePacketProcessor.h"
@@ -317,6 +318,7 @@ public:
     bool isHMDMode() const;
     glm::mat4 getHMDSensorPose() const;
     glm::mat4 getEyePose(int eye) const;
+    glm::mat4 getEyeOffset(int eye) const;
     glm::mat4 getEyeProjection(int eye) const;
 
     QRect getDesirableApplicationGeometry();
@@ -654,12 +656,15 @@ private:
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
     ApplicationCompositor _compositor;
+    OverlayConductor _overlayConductor;
 
     int _oldHandMouseX[2];
     int _oldHandMouseY[2];
     bool _oldHandLeftClick[2];
     bool _oldHandRightClick[2];
     int _numFramesSinceLastResize = 0;
+
+    bool _overlayEnabled = true;
 };
 
 #endif // hifi_Application_h

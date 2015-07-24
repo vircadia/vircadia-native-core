@@ -970,13 +970,15 @@ void Application::paintGL() {
         // or with changes from the face tracker
         renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
 
-        _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
         if (!getActiveDisplayPlugin()->isHmd()) {
+            _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
             _myCamera.setRotation(_myAvatar->getHead()->getCameraOrientation());
         } else {
             // The plugin getModelview() call below will compose the base
-            // avatar transform with the HMD pose.
-            _myCamera.setRotation(_myAvatar->getOrientation());
+            // sensor to world transform with the HMD pose.
+            mat4 sensorToWorldMat = _myAvatar->getSensorToWorldMatrix();
+            _myCamera.setPosition(extractTranslation(sensorToWorldMat));
+            _myCamera.setRotation(glm::quat_cast(sensorToWorldMat));
         }
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         if (isHMDMode()) {
@@ -1143,6 +1145,7 @@ void Application::audioMuteToggled() {
 }
 
 void Application::faceTrackerMuteToggled() {
+    
     QAction* muteAction = Menu::getInstance()->getActionForOption(MenuOption::MuteFaceTracking);
     Q_CHECK_PTR(muteAction);
     bool isMuted = getSelectedFaceTracker()->isMuted();
@@ -1703,6 +1706,9 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
         } else if (event->button() == Qt::RightButton) {
             // right click items here
+        } else if (event->button() == Qt::MiddleButton) {
+            // toggle the overlay
+            _overlayConductor.setEnabled(!_overlayConductor.getEnabled());
         }
     }
 }
@@ -1988,6 +1994,9 @@ void Application::idle() {
             }
         }
         
+        float secondsSinceLastUpdate = (float)timeSinceLastUpdate / 1000.0f;
+        _overlayConductor.update(secondsSinceLastUpdate);
+
         // depending on whether we're throttling or not.
         // Once rendering is off on another thread we should be able to have Application::idle run at start(0) in
         // perpetuity and not expect events to get backed up.
@@ -4887,6 +4896,15 @@ mat4 Application::getEyeProjection(int eye) const {
 mat4 Application::getEyePose(int eye) const {
     if (isHMDMode()) {
         return getActiveDisplayPlugin()->getEyePose((Eye)eye);
+    }
+
+    return mat4();
+}
+
+mat4 Application::getEyeOffset(int eye) const {
+    if (isHMDMode()) {
+        mat4 identity;
+        return getActiveDisplayPlugin()->getModelview((Eye)eye, identity);
     }
 
     return mat4();

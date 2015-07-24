@@ -145,7 +145,7 @@ mat4 OpenVrDisplayPlugin::getProjection(Eye eye, const mat4& baseProjection) con
 }
 
 glm::mat4 OpenVrDisplayPlugin::getModelview(Eye eye, const mat4& baseModelview) const {
-    return baseModelview * _eyesData[eye]._eyeOffset;
+    return baseModelview * getEyePose(eye);
 }
 
 void OpenVrDisplayPlugin::resetSensors() {

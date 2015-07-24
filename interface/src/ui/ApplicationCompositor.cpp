@@ -186,7 +186,8 @@ void ApplicationCompositor::bindCursorTexture(gpu::Batch& batch, uint8_t cursorI
 // Draws the FBO texture for the screen
 void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     PROFILE_RANGE(__FUNCTION__);
-    if (_alpha == 0.0f) {
+
+    if (_alpha <= 0.0f) {
         return;
     }
 
@@ -253,7 +254,8 @@ vec2 getPolarCoordinates(const PalmData& palm) {
 // Draws the FBO texture for Oculus rift.
 void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int eye) {
     PROFILE_RANGE(__FUNCTION__);
-    if (_alpha == 0.0f) {
+
+    if (_alpha <= 0.0f) {
         return;
     }
 
@@ -280,11 +282,12 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
     batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));
 
-    batch.setViewTransform(Transform());
-    batch.setProjectionTransform(qApp->getEyeProjection(eye));
+    mat4 camMat;
+    _cameraBaseTransform.getMatrix(camMat);
+    camMat = camMat * qApp->getEyePose(eye);
+    batch.setViewTransform(camMat);
 
-    mat4 eyePose = qApp->getEyePose(eye);
-    glm::mat4 overlayXfm = glm::inverse(eyePose);
+    batch.setProjectionTransform(qApp->getEyeProjection(eye));
 
 #ifdef DEBUG_OVERLAY
     {
@@ -293,7 +296,9 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
     }
 #else
     {
-        batch.setModelTransform(overlayXfm);
+        //batch.setModelTransform(overlayXfm);
+
+        batch.setModelTransform(_modelTransform);
         drawSphereSection(batch);
     }
 #endif
@@ -304,8 +309,11 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
     bindCursorTexture(batch);
 
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     //Controller Pointers
+    glm::mat4 overlayXfm;
+    _modelTransform.getMatrix(overlayXfm);
+
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     for (int i = 0; i < (int)myAvatar->getHand()->getNumPalms(); i++) {
         PalmData& palm = myAvatar->getHand()->getPalms()[i];
         if (palm.isActive()) {
@@ -619,6 +627,19 @@ void ApplicationCompositor::drawSphereSection(gpu::Batch& batch) {
     batch.setInputFormat(streamFormat);
 
     static const int VERTEX_STRIDE = sizeof(vec3) + sizeof(vec2) + sizeof(vec4);
+
+    if (_prevAlpha != _alpha) {
+        // adjust alpha by munging vertex color alpha.
+        // FIXME we should probably just use a uniform for this.
+        float* floatPtr = reinterpret_cast<float*>(_hemiVertices->editData());
+        const auto ALPHA_FLOAT_OFFSET = (sizeof(vec3) + sizeof(vec2) + sizeof(vec3)) / sizeof(float);
+        const auto VERTEX_FLOAT_STRIDE = (sizeof(vec3) + sizeof(vec2) + sizeof(vec4)) / sizeof(float);
+        const auto NUM_VERTS = _hemiVertices->getSize() / VERTEX_STRIDE;
+        for (size_t i = 0; i < NUM_VERTS; i++) {
+            floatPtr[i * VERTEX_FLOAT_STRIDE + ALPHA_FLOAT_OFFSET] = _alpha;
+        }
+    }
+
     gpu::BufferView posView(_hemiVertices, 0, _hemiVertices->getSize(), VERTEX_STRIDE, streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
     gpu::BufferView uvView(_hemiVertices, sizeof(vec3), _hemiVertices->getSize(), VERTEX_STRIDE, streamFormat->getAttributes().at(gpu::Stream::TEXCOORD)._element);
     gpu::BufferView colView(_hemiVertices, sizeof(vec3) + sizeof(vec2), _hemiVertices->getSize(), VERTEX_STRIDE, streamFormat->getAttributes().at(gpu::Stream::COLOR)._element);
@@ -706,5 +727,15 @@ void ApplicationCompositor::updateTooltips() {
             _hoverItemEnterUsecs = UINT64_MAX;
             _tooltipId = Tooltip::showTip(_hoverItemTitle, _hoverItemDescription);
         }
+    }
+}
+
+void ApplicationCompositor::update(float dt) {
+    const int ALPHA_FADE_RATE = 2.0f;
+    _prevAlpha = _alpha;
+    if (_fadeInAlpha && _alpha < 1.0f) {
+        _alpha = std::min(_alpha + ALPHA_FADE_RATE * dt, 1.0f);
+    } else if (!_fadeInAlpha && _alpha > 0.0f) {
+        _alpha = std::max(_alpha - ALPHA_FADE_RATE * dt, 0.0f);
     }
 }
