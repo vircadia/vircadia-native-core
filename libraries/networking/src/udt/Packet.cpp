@@ -50,7 +50,7 @@ qint64 Packet::maxPayloadSize() const {
 }
 
 qint64 Packet::totalHeadersSize() const {
-    return localHeaderSize();
+    return BasePacket::localHeaderSize() + localHeaderSize();
 }
 
 qint64 Packet::localHeaderSize() const {
@@ -112,16 +112,6 @@ Packet& Packet::operator=(Packet&& other) {
     _sequenceNumber = other._sequenceNumber;
 
     return *this;
-}
-
-void Packet::adjustPayloadStartAndCapacity(bool shouldDecreasePayloadSize) {
-    qint64 headerSize = localHeaderSize();
-    _payloadStart += headerSize;
-    _payloadCapacity -= headerSize;
-    
-    if (shouldDecreasePayloadSize) {
-        _payloadSize -= headerSize;
-    }
 }
 
 static const uint32_t CONTROL_BIT_MASK = 1 << (sizeof(Packet::SequenceNumberAndBitField) - 1);

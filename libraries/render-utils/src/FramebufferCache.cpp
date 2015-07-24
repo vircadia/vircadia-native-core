@@ -34,17 +34,20 @@ void FramebufferCache::setFrameBufferSize(QSize frameBufferSize) {
     //If the size changed, we need to delete our FBOs
     if (_frameBufferSize != frameBufferSize) {
         _frameBufferSize = frameBufferSize;
-        _primaryFramebuffer.reset();
+        _primaryFramebufferFull.reset();
+        _primaryFramebufferDepthColor.reset();
         _primaryDepthTexture.reset();
         _primaryColorTexture.reset();
         _primaryNormalTexture.reset();
         _primarySpecularTexture.reset();
+        _selfieFramebuffer.reset();
         _cachedFramebuffers.clear();
     }
 }
 
 void FramebufferCache::createPrimaryFramebuffer() {
-    _primaryFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    _primaryFramebufferFull = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    _primaryFramebufferDepthColor = gpu::FramebufferPointer(gpu::Framebuffer::create());
 
     auto colorFormat = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
     auto width = _frameBufferSize.width();
@@ -55,24 +58,37 @@ void FramebufferCache::createPrimaryFramebuffer() {
     _primaryNormalTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
     _primarySpecularTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
 
-    _primaryFramebuffer->setRenderBuffer(0, _primaryColorTexture);
-    _primaryFramebuffer->setRenderBuffer(1, _primaryNormalTexture);
-    _primaryFramebuffer->setRenderBuffer(2, _primarySpecularTexture);
+    _primaryFramebufferFull->setRenderBuffer(0, _primaryColorTexture);
+    _primaryFramebufferFull->setRenderBuffer(1, _primaryNormalTexture);
+    _primaryFramebufferFull->setRenderBuffer(2, _primarySpecularTexture);
 
+    _primaryFramebufferDepthColor->setRenderBuffer(0, _primaryColorTexture);
 
     auto depthFormat = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH);
     _primaryDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, width, height, defaultSampler));
 
-    _primaryFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
+    _primaryFramebufferFull->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
+
+    _primaryFramebufferDepthColor->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
+    
+    _selfieFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    auto tex = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width * 0.5, height * 0.5, defaultSampler));
+    _selfieFramebuffer->setRenderBuffer(0, tex);
 }
 
 gpu::FramebufferPointer FramebufferCache::getPrimaryFramebuffer() {
-    if (!_primaryFramebuffer) {
+    if (!_primaryFramebufferFull) {
         createPrimaryFramebuffer();
     }
-    return _primaryFramebuffer;
+    return _primaryFramebufferFull;
 }
 
+gpu::FramebufferPointer FramebufferCache::getPrimaryFramebufferDepthColor() {
+    if (!_primaryFramebufferDepthColor) {
+        createPrimaryFramebuffer();
+    }
+    return _primaryFramebufferDepthColor;
+}
 
 
 gpu::TexturePointer FramebufferCache::getPrimaryDepthTexture() {
@@ -112,7 +128,6 @@ gpu::FramebufferPointer FramebufferCache::getFramebuffer() {
     return result;
 }
 
-
 void FramebufferCache::releaseFramebuffer(const gpu::FramebufferPointer& framebuffer) {
     if (QSize(framebuffer->getSize().x, framebuffer->getSize().y) == _frameBufferSize) {
         _cachedFramebuffers.push_back(framebuffer);
@@ -125,4 +140,11 @@ gpu::FramebufferPointer FramebufferCache::getShadowFramebuffer() {
         _shadowFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::createShadowmap(SHADOW_MAP_SIZE));
     }
     return _shadowFramebuffer;
+}
+
+gpu::FramebufferPointer FramebufferCache::getSelfieFramebuffer() {
+    if (!_selfieFramebuffer) {
+        createPrimaryFramebuffer();
+    }
+    return _selfieFramebuffer;
 }

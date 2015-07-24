@@ -142,10 +142,10 @@ void PreferencesDialog::loadPreferences() {
     ui.ddeEyeClosingThresholdSlider->setValue(dde->getEyeClosingThreshold() * 
                                               ui.ddeEyeClosingThresholdSlider->maximum());
 
-    auto faceshift = DependencyManager::get<Faceshift>();
-    ui.faceshiftEyeDeflectionSider->setValue(faceshift->getEyeDeflection() *
-                                             ui.faceshiftEyeDeflectionSider->maximum());
+    ui.faceTrackerEyeDeflectionSider->setValue(FaceTracker::getEyeDeflection() *
+                                               ui.faceTrackerEyeDeflectionSider->maximum());
     
+    auto faceshift = DependencyManager::get<Faceshift>();
     ui.faceshiftHostnameEdit->setText(faceshift->getHostname());
 
     auto audio = DependencyManager::get<AudioClient>();
@@ -233,10 +233,10 @@ void PreferencesDialog::savePreferences() {
     dde->setEyeClosingThreshold(ui.ddeEyeClosingThresholdSlider->value() / 
                                 (float)ui.ddeEyeClosingThresholdSlider->maximum());
 
-    auto faceshift = DependencyManager::get<Faceshift>();
-    faceshift->setEyeDeflection(ui.faceshiftEyeDeflectionSider->value() /
-                                (float)ui.faceshiftEyeDeflectionSider->maximum());
+    FaceTracker::setEyeDeflection(ui.faceTrackerEyeDeflectionSider->value() /
+                                (float)ui.faceTrackerEyeDeflectionSider->maximum());
     
+    auto faceshift = DependencyManager::get<Faceshift>();
     faceshift->setHostname(ui.faceshiftHostnameEdit->text());
     
     qApp->setMaxOctreePacketsPerSecond(ui.maxOctreePPSSpin->value());

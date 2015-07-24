@@ -17,6 +17,7 @@
 #include <RenderArgs.h>
 #include <ViewFrustum.h>
 
+#include "FramebufferCache.h"
 #include "DeferredLightingEffect.h"
 #include "TextureCache.h"
 
@@ -26,6 +27,26 @@
 #include "overlay3D_frag.h"
 
 using namespace render;
+
+void SetupDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    RenderArgs* args = renderContext->args;
+
+    auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
+
+    gpu::Batch batch;
+    batch.setFramebuffer(nullptr);
+    batch.setFramebuffer(primaryFbo);
+ 
+    batch.setViewportTransform(args->_viewport);
+    batch.setStateScissorRect(args->_viewport);
+
+    batch.clearFramebuffer(
+        gpu::Framebuffer::BUFFER_COLOR0 |
+        gpu::Framebuffer::BUFFER_DEPTH,
+        vec4(vec3(0), 1), 1.0, 0.0, true);
+
+    args->_context->render(batch);
+}
 
 void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     DependencyManager::get<DeferredLightingEffect>()->prepare(renderContext->args);
@@ -41,6 +62,7 @@ void ResolveDeferred::run(const SceneContextPointer& sceneContext, const RenderC
 }
 
 RenderDeferredTask::RenderDeferredTask() : Task() {
+    _jobs.push_back(Job(new SetupDeferred::JobModel("SetupFramebuffer")));
     _jobs.push_back(Job(new DrawBackground::JobModel("DrawBackground")));
 
     _jobs.push_back(Job(new PrepareDeferred::JobModel("PrepareDeferred")));
@@ -56,7 +78,6 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     auto& renderedOpaques = _jobs.back().getOutput();
     _jobs.push_back(Job(new DrawOpaqueDeferred::JobModel("DrawOpaqueDeferred", _jobs.back().getOutput())));
     _jobs.push_back(Job(new DrawLight::JobModel("DrawLight")));
-    _jobs.push_back(Job(new ResetGLState::JobModel()));
     _jobs.push_back(Job(new RenderDeferred::JobModel("RenderDeferred")));
     _jobs.push_back(Job(new ResolveDeferred::JobModel("ResolveDeferred")));
     _jobs.push_back(Job(new FetchItems::JobModel("FetchTransparent",
@@ -133,21 +154,12 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
     batch.setViewTransform(viewMat);
 
     {
-        GLenum buffers[3];
-        int bufferCount = 0;
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
-        batch._glDrawBuffers(bufferCount, buffers);
         const float OPAQUE_ALPHA_THRESHOLD = 0.5f;
         args->_alphaThreshold = OPAQUE_ALPHA_THRESHOLD;
     }
 
     renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnOpaqueItems);
 
-    // Before rendering the batch make sure we re in sync with gl state
-    args->_context->syncCache();
-    renderContext->args->_context->syncCache();
     args->_context->render((*args->_batch));
     args->_batch = nullptr;
 }
@@ -171,21 +183,15 @@ void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const
     }
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewMat);
-    const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
     
     {
-        GLenum buffers[3];
-        int bufferCount = 0;
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
-        batch._glDrawBuffers(bufferCount, buffers);
+        const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
         args->_alphaThreshold = TRANSPARENT_ALPHA_THRESHOLD;
     }
     
     
     renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnTransparentItems);
-    
-    // Before rendering the batch make sure we re in sync with gl state
-    args->_context->syncCache();
+
     args->_context->render((*args->_batch));
     args->_batch = nullptr;
 }
@@ -239,17 +245,17 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
     }
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewMat);
+    batch.setViewportTransform(args->_viewport);
+    batch.setStateScissorRect(args->_viewport);
 
     batch.setPipeline(getOpaquePipeline());
     batch.setResourceTexture(0, args->_whiteTexture);
 
     if (!inItems.empty()) {
-        batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0);
+        batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0, true);
         renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnOverlay3DItems);
     }
 
-    // Before rendering the batch make sure we re in sync with gl state
-    args->_context->syncCache();
     args->_context->render((*args->_batch));
     args->_batch = nullptr;
     args->_whiteTexture.reset();
