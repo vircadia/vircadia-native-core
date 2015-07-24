@@ -60,8 +60,6 @@ protected:
     
     Packet& operator=(const Packet& other);
     Packet& operator=(Packet&& other);
-    
-    virtual void adjustPayloadStartAndCapacity(bool shouldDecreasePayloadSize = false);
 
     // Header readers - these read data to member variables after pulling packet off wire
     void readIsPartOfMessage();

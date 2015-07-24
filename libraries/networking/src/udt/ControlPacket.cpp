@@ -17,6 +17,13 @@ std::unique_ptr<ControlPacket> ControlPacket::create(Type type, const SequenceNu
     return ControlPacket::create(type, sequenceNumbers);
 }
 
+ControlPacket::ControlPacketPair ControlPacket::createPacketPair(quint64 timestamp) {
+    // create each of the two packets in the packet pair
+    ControlPacketPair packetPair { std::unique_ptr<ControlPacket>(new ControlPacket(timestamp)),
+                                   std::unique_ptr<ControlPacket>(new ControlPacket(timestamp)) };
+    return packetPair;
+}
+
 qint64 ControlPacket::localHeaderSize() {
     return sizeof(TypeAndSubSequenceNumber);
 }
@@ -26,19 +33,29 @@ qint64 ControlPacket::totalHeadersSize() const {
 }
 
 ControlPacket::ControlPacket(Type type, const SequenceNumberList& sequenceNumbers) :
-    BasePacket(localHeaderSize() + (sizeof(Packet::SequenceNumber) * sequenceNumbers.size()))
+    BasePacket(localHeaderSize() + (sizeof(Packet::SequenceNumber) * sequenceNumbers.size())),
+    _type(type)
 {
-    qint64 headerSize = localHeaderSize();
-    
-    _payloadCapacity -= headerSize;
-    _payloadStart += headerSize;
+    adjustPayloadStartAndCapacity();
     
     open(QIODevice::ReadWrite);
     
     // pack in the sequence numbers
-    for(auto& sequenceNumber : sequenceNumbers) {
+    for (auto& sequenceNumber : sequenceNumbers) {
         writePrimitive(sequenceNumber);
     }
+}
+
+ControlPacket::ControlPacket(quint64 timestamp) :
+    BasePacket(localHeaderSize() + sizeof(timestamp)),
+    _type(Type::PacketPair)
+{
+    adjustPayloadStartAndCapacity();
+    
+    open(QIODevice::ReadWrite);
+    
+    // pack in the timestamp
+    writePrimitive(timestamp);
 }
 
 ControlPacket::ControlPacket(ControlPacket&& other) :

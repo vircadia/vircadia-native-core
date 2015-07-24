@@ -114,16 +114,6 @@ Packet& Packet::operator=(Packet&& other) {
     return *this;
 }
 
-void Packet::adjustPayloadStartAndCapacity(bool shouldDecreasePayloadSize) {
-    qint64 headerSize = localHeaderSize();
-    _payloadStart += headerSize;
-    _payloadCapacity -= headerSize;
-    
-    if (shouldDecreasePayloadSize) {
-        _payloadSize -= headerSize;
-    }
-}
-
 static const uint32_t CONTROL_BIT_MASK = 1 << (sizeof(Packet::SequenceNumberAndBitField) - 1);
 static const uint32_t RELIABILITY_BIT_MASK = 1 << (sizeof(Packet::SequenceNumberAndBitField) - 2);
 static const uint32_t MESSAGE_BIT_MASK = 1 << (sizeof(Packet::SequenceNumberAndBitField) - 3);
