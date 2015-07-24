@@ -62,12 +62,12 @@ public:
     // These methods will allow the OctreeServer to send your tree inbound edit packets of your
     // own definition. Implement these to allow your octree based server to support editing
     virtual bool getWantSVOfileVersions() const { return true; }
-    virtual PacketType expectedDataPacketType() const { return PacketTypeEntityData; }
+    virtual PacketType::Value expectedDataPacketType() const { return PacketType::EntityData; }
     virtual bool canProcessVersion(PacketVersion thisVersion) const
                     { return thisVersion >= VERSION_ENTITIES_USE_METERS_AND_RADIANS; }
-    virtual bool handlesEditPacketType(PacketType packetType) const;
-    virtual int processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
-                    const unsigned char* editData, int maxLength, const SharedNodePointer& senderNode);
+    virtual bool handlesEditPacketType(PacketType::Value packetType) const;
+    virtual int processEditPacketData(NLPacket& packet, const unsigned char* editData, int maxLength,
+                                      const SharedNodePointer& senderNode);
 
     virtual bool rootElementHasData() const { return true; }
 
@@ -129,12 +129,12 @@ public:
 
     bool hasAnyDeletedEntities() const { return _recentlyDeletedEntityItemIDs.size() > 0; }
     bool hasEntitiesDeletedSince(quint64 sinceTime);
-    bool encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime,
-                                    unsigned char* packetData, size_t maxLength, size_t& outputLength);
+    std::unique_ptr<NLPacket> encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime,
+                                                         bool& hasMore);
     void forgetEntitiesDeletedBefore(quint64 sinceTime);
 
-    int processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
-    int processEraseMessageDetails(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
+    int processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode);
+    int processEraseMessageDetails(const QByteArray& buffer, const SharedNodePointer& sourceNode);
 
     EntityItemFBXService* getFBXService() const { return _fbxService; }
     void setFBXService(EntityItemFBXService* service) { _fbxService = service; }
@@ -168,7 +168,7 @@ public:
 
     float getContentsLargestDimension();
 
-    virtual void resetEditStats() {    
+    virtual void resetEditStats() {
         _totalEditMessages = 0;
         _totalUpdates = 0;
         _totalCreates = 0;
@@ -186,9 +186,9 @@ public:
     virtual quint64 getAverageLoggingTime() const { return _totalEditMessages == 0 ? 0 : _totalLoggingTime / _totalEditMessages; }
 
     void trackIncomingEntityLastEdited(quint64 lastEditedTime, int bytesRead);
-    quint64 getAverageEditDeltas() const 
+    quint64 getAverageEditDeltas() const
         { return _totalTrackedEdits == 0 ? 0 : _totalEditDeltas / _totalTrackedEdits; }
-    quint64 getAverageEditBytes() const 
+    quint64 getAverageEditBytes() const
         { return _totalTrackedEdits == 0 ? 0 : _totalEditBytes / _totalTrackedEdits; }
     quint64 getMaxEditDelta() const { return _maxEditDelta; }
     quint64 getTotalTrackedEdits() const { return _totalTrackedEdits; }
@@ -227,8 +227,8 @@ private:
 
     bool _wantEditLogging = false;
     void maybeNotifyNewCollisionSoundURL(const QString& oldCollisionSoundURL, const QString& newCollisionSoundURL);
-    
-    
+
+
     // some performance tracking properties - only used in server trees
     int _totalEditMessages = 0;
     int _totalUpdates = 0;

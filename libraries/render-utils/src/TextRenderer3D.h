@@ -54,7 +54,6 @@ private:
 
     // text color
     glm::vec4 _color;
-    float _pointSize{ DEFAULT_POINT_SIZE };
 
     Font* _font;
 };

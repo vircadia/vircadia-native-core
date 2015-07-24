@@ -202,7 +202,7 @@ void Player::loadFromFile(const QString& file) {
     if (_recording) {
         _recording->clear();
     } else {
-        _recording = RecordingPointer(new Recording());
+        _recording = QSharedPointer<Recording>();
     }
     readRecordingFromFile(_recording, file);
     

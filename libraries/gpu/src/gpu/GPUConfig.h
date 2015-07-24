@@ -25,7 +25,6 @@
 #define GPU_TRANSFORM_PROFILE GPU_LEGACY
 
 #elif defined(WIN32)
-#include <windowshacks.h>
 #include <GL/glew.h>
 #include <GL/wglew.h>
 

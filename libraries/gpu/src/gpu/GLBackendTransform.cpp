@@ -32,6 +32,11 @@ void GLBackend::do_setProjectionTransform(Batch& batch, uint32 paramOffset) {
 
 void GLBackend::do_setViewportTransform(Batch& batch, uint32 paramOffset) {
     memcpy(&_transform._viewport, batch.editData(batch._params[paramOffset]._uint), sizeof(Vec4i));
+
+    // Where we assign the GL viewport
+    glViewport(_transform._viewport.x, _transform._viewport.y, _transform._viewport.z, _transform._viewport.w);
+
+    // The Viewport is tagged invalid because the CameraTransformUBO is not up to date and willl need update on next drawcall
     _transform._invalidViewport = true;
 }
 
@@ -85,9 +90,6 @@ void GLBackend::updateTransform() {
     // Check all the dirty flags and update the state accordingly
     if (_transform._invalidViewport) {
         _transform._transformCamera._viewport = glm::vec4(_transform._viewport);
-
-        // Where we assign the GL viewport
-        glViewport(_transform._viewport.x, _transform._viewport.y, _transform._viewport.z, _transform._viewport.w);
     }
 
     if (_transform._invalidProj) {

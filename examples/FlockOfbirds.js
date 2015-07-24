@@ -10,15 +10,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-
-//  The area over which the birds will fly 
-var lowerCorner = { x: 1, y: 1, z: 1 };
-var upperCorner = { x: 10, y: 10, z: 10 };
+//  The rectangular area in the domain where the flock will fly
+var lowerCorner = { x: 0, y: 0, z: 0 };
+var upperCorner = { x: 10, y: 10, z: 10  };
 var STARTING_FRACTION = 0.25;   
 
 var NUM_BIRDS = 50;
+var UPDATE_INTERVAL = 0.016;
 var playSounds = true; 
 var SOUND_PROBABILITY = 0.001;  
+var STARTING_LIFETIME = (1.0 / SOUND_PROBABILITY) * UPDATE_INTERVAL * 10;
 var numPlaying = 0;
 var BIRD_SIZE = 0.08;
 var BIRD_MASTER_VOLUME = 0.1;
@@ -35,6 +36,10 @@ var ALIGNMENT_FORCE = 1.5;
 var COHESION_FORCE = 1.0;
 var MAX_COHESION_VELOCITY = 0.5;
 
+var followBirds = true; 
+var AVATAR_FOLLOW_RATE = 0.001;
+var AVATAR_FOLLOW_VELOCITY_TIMESCALE = 2.0;
+var AVATAR_FOLLOW_ORIENTATION_RATE = 0.005;
 var floor = false; 
 var MAKE_FLOOR = false;
 
@@ -42,6 +47,9 @@ var averageVelocity = { x: 0, y: 0, z: 0 };
 var averagePosition = { x: 0, y: 0, z: 0 };
 
 var birdsLoaded = false; 
+
+var oldAvatarOrientation;
+var oldAvatarPosition;
 
 var birds = [];
 var playing = [];
@@ -115,8 +123,9 @@ function updateBirds(deltaTime) {
                     birds[i].audioId = Audio.playSound(birds[i].sound, options);
                 }
                 numPlaying++;
-                // Change size 
-                Entities.editEntity(birds[i].entityId, { dimensions: Vec3.multiply(1.5, properties.dimensions)});
+                // Change size, and update lifetime to keep bird alive
+                Entities.editEntity(birds[i].entityId, { dimensions: Vec3.multiply(1.5, properties.dimensions),
+                                                         lifetime: properties.ageInSeconds + STARTING_LIFETIME});
                 
             } else if (birds[i].audioId) {
                 // If bird is playing a chirp 
@@ -166,10 +175,24 @@ function updateBirds(deltaTime) {
     if (birdVelocitiesCounted > 0) {
         averageVelocity = Vec3.multiply(1.0 / birdVelocitiesCounted, sumVelocity);
         //print(Vec3.length(averageVelocity));
+        if (followBirds) {
+            MyAvatar.motorVelocity = averageVelocity;
+            MyAvatar.motorTimescale = AVATAR_FOLLOW_VELOCITY_TIMESCALE;
+            var polarAngles = Vec3.toPolar(Vec3.normalize(averageVelocity));
+            if (!isNaN(polarAngles.x) && !isNaN(polarAngles.y)) {
+                var birdDirection = Quat.fromPitchYawRollRadians(polarAngles.x, polarAngles.y + Math.PI, polarAngles.z);
+                MyAvatar.orientation = Quat.mix(MyAvatar.orientation, birdDirection, AVATAR_FOLLOW_ORIENTATION_RATE);
+            }
+        }
     } 
     if (birdPositionsCounted > 0) {
         averagePosition = Vec3.multiply(1.0 / birdPositionsCounted, sumPosition);
+            //  If Following birds, update position 
+        if (followBirds) {
+            MyAvatar.position = Vec3.sum(Vec3.multiply(AVATAR_FOLLOW_RATE, MyAvatar.position), Vec3.multiply(1.0 - AVATAR_FOLLOW_RATE, averagePosition));
+        }
     }
+
 }
 
 // Connect a call back that happens every frame
@@ -183,11 +206,14 @@ Script.scriptEnding.connect(function() {
     if (floor) {
         Entities.deleteEntity(floor);
     }
+    MyAvatar.orientation = oldAvatarOrientation;
+    MyAvatar.position = oldAvatarPosition;
 });
 
 function loadBirds(howMany) {
-  while (!Entities.serversExist() || !Entities.canRez()) {
-  }
+    oldAvatarOrientation = MyAvatar.orientation; 
+    oldAvatarPosition = MyAvatar.position;
+
   var sound_filenames = ["bushtit_1.raw", "bushtit_2.raw", "bushtit_3.raw"];
   /* Here are more sounds/species you can use
                         , "mexicanWhipoorwill.raw", 
@@ -247,6 +273,7 @@ function loadBirds(howMany) {
                     velocity: { x: 0, y: -0.1, z: 0 },
                     linearDamping: LINEAR_DAMPING,
                     collisionsWillMove: true,
+                    lifetime: STARTING_LIFETIME,
                     color: colors[whichBird]
         }),
         audioId: false,

@@ -34,4 +34,4 @@ if (WIN32)
   target_include_directories(${TARGET_NAME} PUBLIC ${OGLPLUS_INCLUDE_DIRS})
 endif (WIN32)
 
-link_hifi_libraries(animation fbx shared gpu model render)
+link_hifi_libraries(animation fbx shared gpu model render environment)

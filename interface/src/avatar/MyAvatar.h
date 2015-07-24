@@ -45,8 +45,8 @@ public:
     void preRender(RenderArgs* renderArgs);
     void updateFromTrackers(float deltaTime);
 
-    virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting = false) override;
-    virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel = 0.0f) override;
+    virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPositio) override;
+    virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel = 0.0f) override;
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const override;
 
     // setters
@@ -101,7 +101,7 @@ public:
     
     eyeContactTarget getEyeContactTarget();
 
-    virtual int parseDataAtOffset(const QByteArray& packet, int offset);
+    virtual int parseDataFromBuffer(const QByteArray& buffer);
     
     static void sendKillAvatar();
     
