@@ -1798,13 +1798,6 @@ void Application::idle() {
     }
     double timeSinceLastUpdate = (double)_lastTimeUpdated.nsecsElapsed() / 1000000.0;
     if (timeSinceLastUpdate > targetFramePeriod) {
-        
-        {
-            static const int IDLE_EVENT_PROCESS_MAX_TIME_MS = 2;
-            PerformanceTimer perfTimer("processEvents");
-            processEvents(QEventLoop::AllEvents, IDLE_EVENT_PROCESS_MAX_TIME_MS);
-        }
-        
         _lastTimeUpdated.start();
         {
             PerformanceTimer perfTimer("update");
@@ -1836,12 +1829,8 @@ void Application::idle() {
         // Once rendering is off on another thread we should be able to have Application::idle run at start(0) in
         // perpetuity and not expect events to get backed up.
         
-        static const int IDLE_TIMER_DELAY_MS = 0;
-        int desiredInterval = _glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : IDLE_TIMER_DELAY_MS;
-        
-        if (idleTimer->interval() != desiredInterval) {
-            idleTimer->start(desiredInterval);
-        }
+        static const int IDLE_TIMER_DELAY_MS = 2;
+        idleTimer->start(_glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : IDLE_TIMER_DELAY_MS);
     }
 
     // check for any requested background downloads.
