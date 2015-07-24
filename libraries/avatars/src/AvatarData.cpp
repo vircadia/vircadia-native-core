@@ -144,8 +144,7 @@ QByteArray AvatarData::toByteArray() {
         _headData->_isFaceTrackerConnected = true;
     }
 
-    QByteArray avatarDataByteArray;
-    avatarDataByteArray.resize(MAX_PACKET_SIZE);
+    QByteArray avatarDataByteArray(udt::MAX_PACKET_SIZE, 0);
 
     unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
     unsigned char* startPosition = destinationBuffer;
@@ -1093,8 +1092,11 @@ void AvatarData::sendAvatarDataPacket() {
     auto nodeList = DependencyManager::get<NodeList>();
 
     QByteArray avatarByteArray = toByteArray();
+    
+    static uint16_t sequenceNumber = 0;
 
-    auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size());
+    auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size() + sizeof(sequenceNumber));
+    avatarPacket->writePrimitive(sequenceNumber++);
     avatarPacket->write(avatarByteArray);
 
     nodeList->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);

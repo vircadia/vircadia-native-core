@@ -34,7 +34,7 @@ public:
     virtual ~OctreeQueryNode();
 
     void init(); // called after creation to set up some virtual items
-    virtual PacketType::Value getMyPacketType() const = 0;
+    virtual PacketType getMyPacketType() const = 0;
 
     void resetOctreePacket();  // resets octree packet to after "V" header
 
@@ -150,7 +150,7 @@ private:
 
     quint64 _lastRootTimestamp;
 
-    PacketType::Value _myPacketType;
+    PacketType _myPacketType;
     bool _isShuttingDown;
 
     SentPacketHistory _sentPacketHistory;

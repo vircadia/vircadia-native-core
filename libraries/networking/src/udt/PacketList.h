@@ -27,14 +27,14 @@ class Packet;
 class PacketList : public QIODevice {
     Q_OBJECT
 public:
-    PacketList(PacketType::Value packetType, QByteArray extendedHeader = QByteArray());
+    PacketList(PacketType packetType, QByteArray extendedHeader = QByteArray());
     
     virtual bool isSequential() const { return true; }
     
     void startSegment();
     void endSegment();
     
-    PacketType::Value getType() const { return _packetType; }
+    PacketType getType() const { return _packetType; }
     int getNumPackets() const { return _packets.size() + (_currentPacket ? 1 : 0); }
     
     void closeCurrentPacket(bool shouldSendEmpty = false);
@@ -58,7 +58,7 @@ private:
     virtual std::unique_ptr<Packet> createPacket();
     std::unique_ptr<Packet> createPacketWithExtendedHeader();
     
-    PacketType::Value _packetType;
+    PacketType _packetType;
     bool _isOrdered = false;
     
     std::unique_ptr<Packet> _currentPacket;

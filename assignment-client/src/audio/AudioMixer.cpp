@@ -97,7 +97,7 @@ AudioMixer::AudioMixer(NLPacket& packet) :
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     
-    QSet<PacketType::Value> nodeAudioPackets {
+    QSet<PacketType> nodeAudioPackets {
         PacketType::MicrophoneAudioNoEcho, PacketType::MicrophoneAudioWithEcho,
         PacketType::InjectAudio, PacketType::SilentAudioFrame,
         PacketType::AudioStreamStats

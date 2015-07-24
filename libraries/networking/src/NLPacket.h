@@ -19,7 +19,9 @@
 class NLPacket : public udt::Packet {
     Q_OBJECT
 public:
-    static std::unique_ptr<NLPacket> create(PacketType::Value type, qint64 size = -1);
+    static std::unique_ptr<NLPacket> create(PacketType type, qint64 size = -1,
+                                            bool isReliable = false, bool isPartOfMessage = false);
+    
     static std::unique_ptr<NLPacket> fromReceivedPacket(std::unique_ptr<char> data, qint64 size,
                                                         const HifiSockAddr& senderSockAddr);
     static std::unique_ptr<NLPacket> fromBase(std::unique_ptr<Packet> packet);
@@ -27,15 +29,24 @@ public:
     // Provided for convenience, try to limit use
     static std::unique_ptr<NLPacket> createCopy(const NLPacket& other);
     
+    static PacketType typeInHeader(const udt::Packet& packet);
+    static PacketVersion versionInHeader(const udt::Packet& packet);
+    
     static QUuid sourceIDInHeader(const udt::Packet& packet);
     static QByteArray verificationHashInHeader(const udt::Packet& packet);
     static QByteArray hashForPacketAndSecret(const udt::Packet& packet, const QUuid& connectionSecret);
-
-    static qint64 localHeaderSize(PacketType::Value type);
-    static qint64 maxPayloadSize(PacketType::Value type);
-
+    
+    static qint64 maxPayloadSize(PacketType type);
+    static qint64 localHeaderSize(PacketType type);
+    
+    virtual qint64 maxPayloadSize() const; // The maximum payload size this packet can use to fit in MTU
     virtual qint64 totalHeadersSize() const; // Cumulated size of all the headers
     virtual qint64 localHeaderSize() const;  // Current level's header size
+    
+    PacketType getType() const { return _type; }
+    void setType(PacketType type);
+    
+    PacketVersion getVersion() const { return _version; }
 
     const QUuid& getSourceID() const { return _sourceID; }
     
@@ -44,10 +55,8 @@ public:
 
 protected:
     
-    void adjustPayloadStartAndCapacity(bool shouldDecreasePayloadSize = false);
-    
-    NLPacket(PacketType::Value type);
-    NLPacket(PacketType::Value type, qint64 size);
+    NLPacket(PacketType type, bool forceReliable = false, bool isPartOfMessage = false);
+    NLPacket(PacketType type, qint64 size, bool forceReliable = false, bool isPartOfMessage = false);
     NLPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
     NLPacket(std::unique_ptr<Packet> packet);
     NLPacket(const NLPacket& other);
@@ -55,9 +64,17 @@ protected:
     
     NLPacket& operator=(const NLPacket& other);
     NLPacket& operator=(NLPacket&& other);
+    
+    // Header writers
+    void writeTypeAndVersion();
 
+    // Header readers, used to set member variables after getting a packet from the network
+    void readType();
+    void readVersion();
     void readSourceID();
-
+    
+    PacketType _type;
+    PacketVersion _version;
     QUuid _sourceID;
 };
 

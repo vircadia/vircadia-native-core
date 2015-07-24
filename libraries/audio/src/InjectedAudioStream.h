@@ -31,7 +31,7 @@ private:
     InjectedAudioStream& operator= (const InjectedAudioStream&);
 
     AudioStreamStats getAudioStreamStats() const;
-    int parseStreamProperties(PacketType::Value type, const QByteArray& packetAfterSeqNum, int& numAudioSamples);
+    int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples);
 
     const QUuid _streamIdentifier;
     float _radius;

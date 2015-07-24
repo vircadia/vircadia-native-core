@@ -18,7 +18,7 @@ AvatarAudioStream::AvatarAudioStream(bool isStereo, const InboundAudioStream::Se
 {
 }
 
-int AvatarAudioStream::parseStreamProperties(PacketType::Value type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
+int AvatarAudioStream::parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
     int readBytes = 0;
 
     if (type == PacketType::SilentAudioFrame) {

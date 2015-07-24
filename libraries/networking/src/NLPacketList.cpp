@@ -13,7 +13,7 @@
 
 #include "NLPacket.h"
 
-NLPacketList::NLPacketList(PacketType::Value packetType, QByteArray extendedHeader) :
+NLPacketList::NLPacketList(PacketType packetType, QByteArray extendedHeader) :
     PacketList(packetType, extendedHeader)
 {
 

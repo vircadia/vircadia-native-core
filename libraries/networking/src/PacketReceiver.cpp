@@ -24,11 +24,11 @@ PacketReceiver::PacketReceiver(QObject* parent) :
     qRegisterMetaType<QSharedPointer<NLPacket>>();
 }
 
-bool PacketReceiver::registerListenerForTypes(const QSet<PacketType::Value>& types, QObject* listener, const char* slot) {
-    QSet<PacketType::Value> nonSourcedTypes;
-    QSet<PacketType::Value> sourcedTypes;
+bool PacketReceiver::registerListenerForTypes(const QSet<PacketType>& types, QObject* listener, const char* slot) {
+    QSet<PacketType> nonSourcedTypes;
+    QSet<PacketType> sourcedTypes;
 
-    foreach(PacketType::Value type, types) {
+    foreach(PacketType type, types) {
         if (NON_SOURCED_PACKETS.contains(type)) {
             nonSourcedTypes << type;
         } else {
@@ -41,7 +41,7 @@ bool PacketReceiver::registerListenerForTypes(const QSet<PacketType::Value>& typ
     if (nonSourcedTypes.size() > 0) {
         QMetaMethod nonSourcedMethod = matchingMethodForListener(*nonSourcedTypes.begin(), listener, slot);
         if (nonSourcedMethod.isValid()) {
-            foreach(PacketType::Value type, nonSourcedTypes) {
+            foreach(PacketType type, nonSourcedTypes) {
                 registerVerifiedListener(type, listener, nonSourcedMethod);
             }
         } else {
@@ -52,7 +52,7 @@ bool PacketReceiver::registerListenerForTypes(const QSet<PacketType::Value>& typ
     if (sourcedTypes.size() > 0) {
         QMetaMethod sourcedMethod = matchingMethodForListener(*sourcedTypes.begin(), listener, slot);
         if (sourcedMethod.isValid()) {
-            foreach(PacketType::Value type, sourcedTypes) {
+            foreach(PacketType type, sourcedTypes) {
                 registerVerifiedListener(type, listener, sourcedMethod);
             }
         } else {
@@ -63,7 +63,7 @@ bool PacketReceiver::registerListenerForTypes(const QSet<PacketType::Value>& typ
     return true;
 }
 
-void PacketReceiver::registerDirectListener(PacketType::Value type, QObject* listener, const char* slot) {
+void PacketReceiver::registerDirectListener(PacketType type, QObject* listener, const char* slot) {
     bool success = registerListener(type, listener, slot);
     if (success) {
         _directConnectSetMutex.lock();
@@ -75,7 +75,7 @@ void PacketReceiver::registerDirectListener(PacketType::Value type, QObject* lis
     }
 }
 
-void PacketReceiver::registerDirectListenerForTypes(const QSet<PacketType::Value>& types,
+void PacketReceiver::registerDirectListenerForTypes(const QSet<PacketType>& types,
                                                     QObject* listener, const char* slot) {
     // just call register listener for types to start
     bool success = registerListenerForTypes(types, listener, slot);
@@ -89,7 +89,7 @@ void PacketReceiver::registerDirectListenerForTypes(const QSet<PacketType::Value
     }
 }
 
-bool PacketReceiver::registerListener(PacketType::Value type, QObject* listener, const char* slot) {
+bool PacketReceiver::registerListener(PacketType type, QObject* listener, const char* slot) {
     Q_ASSERT(listener);
 
     QMetaMethod matchingMethod = matchingMethodForListener(type, listener, slot);
@@ -102,7 +102,7 @@ bool PacketReceiver::registerListener(PacketType::Value type, QObject* listener,
     }
 }
 
-QMetaMethod PacketReceiver::matchingMethodForListener(PacketType::Value type, QObject* object, const char* slot) const {
+QMetaMethod PacketReceiver::matchingMethodForListener(PacketType type, QObject* object, const char* slot) const {
     Q_ASSERT(object);
 
     // normalize the slot with the expected parameters
@@ -139,8 +139,7 @@ QMetaMethod PacketReceiver::matchingMethodForListener(PacketType::Value type, QO
     if (methodIndex < 0) {
         qDebug() << "PacketReceiver::registerListener expected a slot with one of the following signatures:"
                  << possibleSignatures.toList() << "- but such a slot was not found."
-                 << "Could not complete listener registration for type"
-                 << type << "-" << nameForPacketType(type);
+                 << "Could not complete listener registration for type" << type;
     }
 
     Q_ASSERT(methodIndex >= 0);
@@ -155,12 +154,11 @@ QMetaMethod PacketReceiver::matchingMethodForListener(PacketType::Value type, QO
     }
 }
 
-void PacketReceiver::registerVerifiedListener(PacketType::Value type, QObject* object, const QMetaMethod& slot) {
+void PacketReceiver::registerVerifiedListener(PacketType type, QObject* object, const QMetaMethod& slot) {
     _packetListenerLock.lock();
 
     if (_packetListenerMap.contains(type)) {
         qDebug() << "Warning: Registering a packet listener for packet type" << type
-            << "(" << qPrintable(nameForPacketType(type)) << ")"
             << "that will remove a previously registered listener";
     }
 
@@ -204,7 +202,7 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
     // setup a HifiSockAddr to read into
     HifiSockAddr senderSockAddr;
     
-    // setup an NLPacket from the data we just read
+    // setup an NLPacket from the packet we were passed
     auto nlPacket = NLPacket::fromBase(std::move(packet));
     
     _inPacketCount++;
@@ -243,15 +241,9 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
             
             _directConnectSetMutex.unlock();
             
-            PacketType::Value packetType = nlPacket->getType();
+            PacketType packetType = nlPacket->getType();
             
             if (matchingNode) {
-                // if this was a sequence numbered packet we should store the last seq number for
-                // a packet of this type for this node
-                if (SEQUENCE_NUMBERED_PACKETS.contains(nlPacket->getType())) {
-                    matchingNode->setLastSequenceNumberForPacketType(nlPacket->readSequenceNumber(), nlPacket->getType());
-                }
-                
                 emit dataReceived(matchingNode->getType(), nlPacket->getDataSize());
                 QMetaMethod metaMethod = listener.second;
                 
@@ -292,8 +284,7 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
             }
             
             if (!success) {
-                qDebug().nospace() << "Error delivering packet " << packetType
-                    << " (" << qPrintable(nameForPacketType(packetType)) << ") to listener "
+                qDebug().nospace() << "Error delivering packet " << packetType << " to listener "
                     << listener.first << "::" << qPrintable(listener.second.methodSignature());
             }
             
@@ -302,8 +293,7 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
         }
         
         if (listenerIsDead) {
-            qDebug().nospace() << "Listener for packet" << nlPacket->getType()
-                << " (" << qPrintable(nameForPacketType(nlPacket->getType())) << ")"
+            qDebug().nospace() << "Listener for packet " << nlPacket->getType()
                 << " has been destroyed. Removing from listener map.";
             it = _packetListenerMap.erase(it);
             
@@ -314,10 +304,10 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
         }
         
     } else {
-        qWarning() << "No listener found for packet type " << nameForPacketType(nlPacket->getType());
+        qWarning() << "No listener found for packet type" << nlPacket->getType();
         
         // insert a dummy listener so we don't print this again
-        _packetListenerMap.insert(packet->getType(), { nullptr, QMetaMethod() });
+        _packetListenerMap.insert(nlPacket->getType(), { nullptr, QMetaMethod() });
     }
     
     _packetListenerLock.unlock();

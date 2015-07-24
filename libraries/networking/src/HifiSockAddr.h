@@ -12,6 +12,8 @@
 #ifndef hifi_HifiSockAddr_h
 #define hifi_HifiSockAddr_h
 
+#include <string>
+
 #ifdef WIN32
 #include <winsock2.h>
 #include <WS2tcpip.h>
@@ -53,6 +55,7 @@ public:
     friend QDebug operator<<(QDebug debug, const HifiSockAddr& sockAddr);
     friend QDataStream& operator<<(QDataStream& dataStream, const HifiSockAddr& sockAddr);
     friend QDataStream& operator>>(QDataStream& dataStream, HifiSockAddr& sockAddr);
+    
 private slots:
     void handleLookupResult(const QHostInfo& hostInfo);
 signals:
@@ -64,6 +67,15 @@ private:
 };
 
 uint qHash(const HifiSockAddr& key, uint seed);
+
+template <>
+struct std::hash<HifiSockAddr> {
+    std::size_t operator()(const HifiSockAddr& sockAddr) const {
+        // use XOR of implemented std::hash templates for new hash
+        return std::hash<std::string>()(sockAddr.getAddress().toString().toStdString())
+            ^ std::hash<uint16_t>()((uint16_t) sockAddr.getPort());
+    }
+};
 
 QHostAddress getLocalAddress();
 

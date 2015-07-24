@@ -225,13 +225,12 @@ public slots:
 
     void startSTUNPublicSocketUpdate();
     virtual void sendSTUNRequest();
-    bool processSTUNResponse(QSharedPointer<NLPacket> packet);
 
     void killNodeWithUUID(const QUuid& nodeUUID);
 
 signals:
     void dataSent(quint8 channelType, int bytes);
-    void packetVersionMismatch(PacketType::Value type);
+    void packetVersionMismatch(PacketType type);
 
     void uuidChanged(const QUuid& ownerUUID, const QUuid& oldUUID);
     void nodeAdded(SharedNodePointer);
@@ -253,17 +252,16 @@ protected:
                        const QUuid& connectionSecret = QUuid());
     qint64 writePacketAndCollectStats(const NLPacket& packet, const HifiSockAddr& destinationSockAddr);
 
-    PacketSequenceNumber getNextSequenceNumberForPacket(const QUuid& nodeUUID, PacketType::Value packetType);
-    
     bool isPacketVerified(const udt::Packet& packet);
     bool packetVersionMatch(const udt::Packet& packet);
     bool packetSourceAndHashMatch(const udt::Packet& packet);
+    void processSTUNResponse(std::unique_ptr<udt::BasePacket> packet);
 
     void handleNodeKill(const SharedNodePointer& node);
 
     void stopInitialSTUNUpdate(bool success);
 
-    void sendPacketToIceServer(PacketType::Value packetType, const HifiSockAddr& iceServerSockAddr, const QUuid& clientID,
+    void sendPacketToIceServer(PacketType packetType, const HifiSockAddr& iceServerSockAddr, const QUuid& clientID,
                                const QUuid& peerRequestID = QUuid());
 
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode,
@@ -289,8 +287,6 @@ protected:
     bool _thisNodeCanAdjustLocks;
     bool _thisNodeCanRez;
 
-    std::unordered_map<QUuid, PacketTypeSequenceMap, UUIDHasher> _packetSequenceNumbers;
-
     QPointer<QTimer> _initialSTUNTimer;
     int _numInitialSTUNRequests = 0;
     bool _hasCompletedInitialSTUN = false;
@@ -314,7 +310,7 @@ protected:
 private slots:
     void flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp);
     void possiblyTimeoutSTUNAddressLookup();
-    void addSTUNSockAddrToUnfiltered() { _nodeSocket.addUnfilteredSockAddr(_stunSockAddr); } // called once STUN socket known
+    void addSTUNHandlerToUnfiltered(); // called once STUN socket known
 };
 
 #endif // hifi_LimitedNodeList_h
