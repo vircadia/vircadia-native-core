@@ -226,7 +226,7 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
     
     auto it = _packetListenerMap.find(nlPacket->getType());
     
-    if (it != _packetListenerMap.end()) {
+    if (it != _packetListenerMap.end() && it->second.isValid()) {
         
         auto listener = it.value();
         
