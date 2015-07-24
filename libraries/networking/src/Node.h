@@ -24,7 +24,6 @@
 #include "NetworkPeer.h"
 #include "NodeData.h"
 #include "NodeType.h"
-#include "udt/Packet.h"
 #include "SimpleMovingAverage.h"
 #include "MovingPercentile.h"
 
@@ -84,8 +83,6 @@ private:
     MovingPercentile _clockSkewMovingPercentile;
     bool _canAdjustLocks;
     bool _canRez;
-
-    std::map<PacketType, udt::Packet::SequenceNumber>  _lastSequenceNumbers;
 };
 
 typedef QSharedPointer<Node> SharedNodePointer;
