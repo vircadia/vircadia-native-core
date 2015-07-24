@@ -40,8 +40,7 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer r
     _standingFoot(NO_FOOT),
     _standingOffset(0.0f),
     _clampedFootPosition(0.0f),
-    _headClipDistance(DEFAULT_NEAR_CLIP),
-    _isFirstPerson(false)
+    _headClipDistance(DEFAULT_NEAR_CLIP)
 {
     assert(_rig);
     assert(_owningAvatar);
@@ -54,7 +53,7 @@ SkeletonModel::~SkeletonModel() {
 void SkeletonModel::initJointStates(QVector<JointState> states) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-    _boundingRadius = _rig->initJointStates(states, parentTransform);
+    _boundingRadius = _rig->initJointStates(states, parentTransform, geometry.neckJointIndex);
 
     // Determine the default eye position for avatar scale = 1.0
     int headJointIndex = _geometry->getFBXGeometry().headJointIndex;
@@ -97,6 +96,29 @@ void SkeletonModel::initJointStates(QVector<JointState> states) {
 
 const float PALM_PRIORITY = DEFAULT_PRIORITY;
 const float LEAN_PRIORITY = DEFAULT_PRIORITY;
+
+
+void SkeletonModel::updateClusterMatrices() {
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    glm::mat4 modelToWorld = glm::mat4_cast(_rotation);
+    for (int i = 0; i < _meshStates.size(); i++) {
+        MeshState& state = _meshStates[i];
+        const FBXMesh& mesh = geometry.meshes.at(i);
+        if (_showTrueJointTransforms) {
+            for (int j = 0; j < mesh.clusters.size(); j++) {
+                const FBXCluster& cluster = mesh.clusters.at(j);
+                state.clusterMatrices[j] =
+                    modelToWorld * _rig->getJointTransform(cluster.jointIndex) * cluster.inverseBindMatrix;
+            }
+        } else {
+            for (int j = 0; j < mesh.clusters.size(); j++) {
+                const FBXCluster& cluster = mesh.clusters.at(j);
+                state.clusterMatrices[j] =
+                    modelToWorld * _rig->getJointVisibleTransform(cluster.jointIndex) * cluster.inverseBindMatrix;
+            }
+        }
+    }
+}
 
 void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     setTranslation(_owningAvatar->getSkeletonPosition());
@@ -154,8 +176,11 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         }
     }
 
-    if (_isFirstPerson) {
-        cauterizeHead();
+    // if (_isFirstPerson) {
+    //     cauterizeHead();
+    //     updateClusterMatrices();
+    // }
+    if (_rig->getJointsAreDirty()) {
         updateClusterMatrices();
     }
 
@@ -347,13 +372,15 @@ void SkeletonModel::renderJointConstraints(gpu::Batch& batch, int jointIndex) {
             
         }
         
-        renderOrientationDirections(jointIndex, position, _rotation * jointState.getRotation(), directionSize);
+        renderOrientationDirections(batch, jointIndex, position, _rotation * jointState.getRotation(), directionSize);
         jointIndex = joint.parentIndex;
         
     } while (jointIndex != -1 && geometry.joints.at(jointIndex).isFree);
 }
 
-void SkeletonModel::renderOrientationDirections(int jointIndex, glm::vec3 position, const glm::quat& orientation, float size) {
+void SkeletonModel::renderOrientationDirections(gpu::Batch& batch, int jointIndex, 
+                                                glm::vec3 position, const glm::quat& orientation, float size) {
+                                                
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
     if (!_jointOrientationLines.contains(jointIndex)) {
@@ -370,13 +397,13 @@ void SkeletonModel::renderOrientationDirections(int jointIndex, glm::vec3 positi
     glm::vec3 pFront	= position + orientation * IDENTITY_FRONT * size;
 
     glm::vec3 red(1.0f, 0.0f, 0.0f);
-    geometryCache->renderLine(position, pRight, red, jointLineIDs._right);
+    geometryCache->renderLine(batch, position, pRight, red, jointLineIDs._right);
 
     glm::vec3 green(0.0f, 1.0f, 0.0f);
-    geometryCache->renderLine(position, pUp, green, jointLineIDs._up);
+    geometryCache->renderLine(batch, position, pUp, green, jointLineIDs._up);
 
     glm::vec3 blue(0.0f, 0.0f, 1.0f);
-    geometryCache->renderLine(position, pFront, blue, jointLineIDs._front);
+    geometryCache->renderLine(batch, position, pFront, blue, jointLineIDs._front);
 }
 
 
@@ -689,7 +716,7 @@ void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha
 
     // draw a green cylinder between the two points
     glm::vec3 origin(0.0f);
-    Avatar::renderJointConnectingCone(batch, origin, axis, _boundingShape.getRadius(), _boundingShape.getRadius(), 
+    Avatar::renderJointConnectingCone(batch, origin, axis, _boundingShape.getRadius(), _boundingShape.getRadius(),
                                       glm::vec4(0.6f, 0.8f, 0.6f, alpha));
 }
 
@@ -697,56 +724,5 @@ bool SkeletonModel::hasSkeleton() {
     return isActive() ? _geometry->getFBXGeometry().rootJointIndex != -1 : false;
 }
 
-void SkeletonModel::initHeadBones() {
-    _headBones.clear();
-    const FBXGeometry& fbxGeometry = _geometry->getFBXGeometry();
-    const int neckJointIndex = fbxGeometry.neckJointIndex;
-    std::queue<int> q;
-    q.push(neckJointIndex);
-    _headBones.push_back(neckJointIndex);
-
-    // fbxJoints only hold links to parents not children, so we have to do a bit of extra work here.
-    while (q.size() > 0) {
-        int jointIndex = q.front();
-        for (int i = 0; i < fbxGeometry.joints.size(); i++) {
-            const FBXJoint& fbxJoint = fbxGeometry.joints[i];
-            if (jointIndex == fbxJoint.parentIndex) {
-                _headBones.push_back(i);
-                q.push(i);
-            }
-        }
-        q.pop();
-    }
-}
-
-void SkeletonModel::invalidateHeadBones() {
-    _headBones.clear();
-}
-
-void SkeletonModel::cauterizeHead() {
-    if (isActive()) {
-        const FBXGeometry& geometry = _geometry->getFBXGeometry();
-        const int neckJointIndex = geometry.neckJointIndex;
-        if (neckJointIndex > 0 && neckJointIndex < _rig->getJointStateCount()) {
-
-            // lazy init of headBones
-            if (_headBones.size() == 0) {
-                initHeadBones();
-            }
-
-            // preserve the translation for the neck
-            // glm::vec4 trans = _jointStates[neckJointIndex].getTransform()[3];
-            glm::vec4 trans = _rig->getJointTransform(neckJointIndex)[3];
-            glm::vec4 zero(0, 0, 0, 0);
-            for (const int &i : _headBones) {
-                glm::mat4 newXform(zero, zero, zero, trans);
-                _rig->setJointTransform(i, newXform);
-                _rig->setJointVisibleTransform(i, newXform);
-            }
-        }
-    }
-}
-
 void SkeletonModel::onInvalidate() {
-    invalidateHeadBones();
 }

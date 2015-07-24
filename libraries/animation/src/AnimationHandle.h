@@ -1,6 +1,6 @@
 //
 //  AnimationHandle.h
-//  interface/src/renderer
+//  libraries/animation/src/
 //
 //  Created by Andrzej Kapolka on 10/18/13.
 //  Copyright 2013 High Fidelity, Inc.

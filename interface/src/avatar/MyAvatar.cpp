@@ -54,7 +54,7 @@
 using namespace std;
 
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
-const float YAW_SPEED = 500.0f;   // degrees/sec
+const float YAW_SPEED = 150.0f;   // degrees/sec
 const float PITCH_SPEED = 100.0f; // degrees/sec
 const float DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES = 30.0f;
 
@@ -103,11 +103,8 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
     _rig(rig),
-    _firstPersonSkeletonModel(this, nullptr, rig),
     _prevShouldDrawHead(true)
 {
-    _firstPersonSkeletonModel.setIsFirstPerson(true);
-
     ShapeCollider::initDispatchTable();
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
@@ -141,7 +138,6 @@ QByteArray MyAvatar::toByteArray() {
 
 void MyAvatar::reset() {
     _skeletonModel.reset();
-    _firstPersonSkeletonModel.reset();
     getHead()->reset();
 
     _targetVelocity = glm::vec3(0.0f);
@@ -200,7 +196,6 @@ void MyAvatar::simulate(float deltaTime) {
     {
         PerformanceTimer perfTimer("skeleton");
         _skeletonModel.simulate(deltaTime);
-        _firstPersonSkeletonModel.simulate(deltaTime);
     }
 
     if (!_skeletonModel.hasSkeleton()) {
@@ -1028,15 +1023,8 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
     if (_useFullAvatar) {
         _skeletonModel.setVisibleInScene(_prevShouldDrawHead, scene);
-
-        const QUrl DEFAULT_SKELETON_MODEL_URL = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_body.fst");
-        _firstPersonSkeletonModel.setURL(_skeletonModelURL, DEFAULT_SKELETON_MODEL_URL, true, !isMyAvatar());
-        _firstPersonSkeletonModel.setVisibleInScene(!_prevShouldDrawHead, scene);
     } else {
         _skeletonModel.setVisibleInScene(true, scene);
-
-        _firstPersonSkeletonModel.setVisibleInScene(false, scene);
-        _firstPersonSkeletonModel.reset();
     }
 }
 
@@ -1254,23 +1242,14 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
     const bool shouldDrawHead = shouldRenderHead(renderArgs);
 
     _skeletonModel.initWhenReady(scene);
-    if (_useFullAvatar) {
-        _firstPersonSkeletonModel.initWhenReady(scene);
-    }
 
     if (shouldDrawHead != _prevShouldDrawHead) {
         if (_useFullAvatar) {
-            if (shouldDrawHead) {
-                _skeletonModel.setVisibleInScene(true, scene);
-                _firstPersonSkeletonModel.setVisibleInScene(false, scene);
-            } else {
-                _skeletonModel.setVisibleInScene(false, scene);
-                _firstPersonSkeletonModel.setVisibleInScene(true, scene);
-            }
+            _skeletonModel.setVisibleInScene(true, scene);
+            _rig->setFirstPerson(!shouldDrawHead);
         } else {
             getHead()->getFaceModel().setVisibleInScene(shouldDrawHead, scene);
         }
-
     }
     _prevShouldDrawHead = shouldDrawHead;
 }
@@ -1291,22 +1270,34 @@ bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
 
 void MyAvatar::updateOrientation(float deltaTime) {
     //  Smoothly rotate body with arrow keys
-    _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_SPEED * deltaTime;
-    _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_SPEED * deltaTime;
-    getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
+    float driveLeft = _driveKeys[ROT_LEFT] - _driveKeys[ROT_RIGHT];
+    float targetSpeed = (_driveKeys[ROT_LEFT] - _driveKeys[ROT_RIGHT]) * YAW_SPEED;
+    if (targetSpeed != 0.0f) {
+        const float ROTATION_RAMP_TIMESCALE = 0.1f;
+        float blend = deltaTime / ROTATION_RAMP_TIMESCALE;
+        if (blend > 1.0f) {
+            blend = 1.0f;
+        }
+        _bodyYawDelta = (1.0f - blend) * _bodyYawDelta + blend * targetSpeed;
+    } else if (_bodyYawDelta != 0.0f) {
+        // attenuate body rotation speed
+        const float ROTATION_DECAY_TIMESCALE = 0.05f;
+        float attenuation = 1.0f - deltaTime / ROTATION_DECAY_TIMESCALE;
+        if (attenuation < 0.0f) {
+            attenuation = 0.0f;
+        }
+        _bodyYawDelta *= attenuation;
 
+        float MINIMUM_ROTATION_RATE = 2.0f;
+        if (fabsf(_bodyYawDelta) < MINIMUM_ROTATION_RATE) {
+            _bodyYawDelta = 0.0f;
+        }
+    }
+
+    getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
     // update body orientation by movement inputs
     setOrientation(getOrientation() *
-                   glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta, 0.0f) * deltaTime)));
-
-    // decay body rotation momentum
-    const float BODY_SPIN_FRICTION = 7.5f;
-    float bodySpinMomentum = 1.0f - BODY_SPIN_FRICTION * deltaTime;
-    if (bodySpinMomentum < 0.0f) { bodySpinMomentum = 0.0f; }
-    _bodyYawDelta *= bodySpinMomentum;
-
-    float MINIMUM_ROTATION_RATE = 2.0f;
-    if (fabs(_bodyYawDelta) < MINIMUM_ROTATION_RATE) { _bodyYawDelta = 0.0f; }
+                   glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta * deltaTime, 0.0f))));
 
     if (qApp->isHMDMode()) {
         // these angles will be in radians

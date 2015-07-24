@@ -308,9 +308,6 @@ protected:
         _calculatedMeshTrianglesValid = false;
     }
 
-    // rebuild the clusterMatrices from the current jointStates
-    void updateClusterMatrices();
-
     // hook for derived classes to be notified when setUrl invalidates the current model.
     virtual void onInvalidate() {};
 
@@ -386,7 +383,7 @@ private:
 
 
     // debug rendering support
-    void renderDebugMeshBoxes();
+    void renderDebugMeshBoxes(gpu::Batch& batch);
     int _debugMeshBoxesID = GeometryCache::UNKNOWN_ID;
 
     // helper functions used by render() or renderInScene()

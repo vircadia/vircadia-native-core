@@ -1,6 +1,6 @@
 //
 //  Rig.h
-//  libraries/script-engine/src/
+//  libraries/animation/src/
 //
 //  Produces animation data and hip placement for the current timestamp.
 //
@@ -11,14 +11,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 /* TBD:
- - What iare responsibilities of Animation/AnimationPointer/AnimationCache/AnimationDetails/AnimationObject/AnimationLoop?
+ - What are responsibilities of Animation/AnimationPointer/AnimationCache/AnimationDetails/AnimationObject/AnimationLoop?
     Is there common/copied code (e.g., ScriptableAvatar::update)?
- - How do attachments interact with the physics of the attached entity? E.g., do hand joints need to reflect held object physics?
- - Is there any current need (i.e., for initial campatability) to have multiple animations per role (e.g., idle) with the system choosing randomly?
+ - How do attachments interact with the physics of the attached entity? E.g., do hand joints need to reflect held object
+    physics?
+ - Is there any current need (i.e., for initial campatability) to have multiple animations per role (e.g., idle) with the
+    system choosing randomly?
 
  - Distribute some doc from here to the right files if it turns out to be correct:
-    - AnimationDetails is a script-useable copy of animation state, analogous to EntityItemProperties, but without anything equivalent to editEntity.
-      But what's the intended difference vs AnimationObjection? Maybe AnimationDetails is to Animation as AnimationObject is to AnimationPointer?
+    - AnimationDetails is a script-useable copy of animation state, analogous to EntityItemProperties, but without anything
+       equivalent to editEntity.
+      But what's the intended difference vs AnimationObjection? Maybe AnimationDetails is to Animation as AnimationObject
+       is to AnimationPointer?
  */
 
 #ifndef __hifi__Rig__
@@ -51,7 +55,7 @@ public:
     const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
     void deleteAnimations();
 
-    float initJointStates(QVector<JointState> states, glm::mat4 parentTransform);
+    float initJointStates(QVector<JointState> states, glm::mat4 parentTransform, int neckJointIndex);
     bool jointStatesEmpty() { return _jointStates.isEmpty(); };
     int getJointStateCount() const { return _jointStates.size(); }
 
@@ -60,11 +64,12 @@ public:
     void reset(const QVector<FBXJoint>& fbxJoints);
     bool getJointStateRotation(int index, glm::quat& rotation) const;
     void applyJointRotationDelta(int jointIndex, const glm::quat& delta, bool constrain, float priority);
-    JointState getJointState(int jointIndex) const;
+    JointState getJointState(int jointIndex) const; // XXX
     bool getVisibleJointState(int index, glm::quat& rotation) const;
     void clearJointState(int index);
     void clearJointStates();
     void clearJointAnimationPriority(int index);
+    float getJointAnimatinoPriority(int index);
     void setJointAnimatinoPriority(int index, float newPriority);
     void setJointState(int index, bool valid, const glm::quat& rotation, float priority);
     void restoreJointRotation(int index, float fraction, float priority);
@@ -102,11 +107,23 @@ public:
     virtual void updateJointState(int index, glm::mat4 parentTransform) = 0;
     virtual void updateFaceJointState(int index, glm::mat4 parentTransform) = 0;
 
+    virtual void setFirstPerson(bool isFirstPerson);
+    virtual bool getIsFirstPerson() const { return _isFirstPerson; }
+
+    bool getJointsAreDirty() { return _jointsAreDirty; }
+
  protected:
     QVector<JointState> _jointStates;
 
     QSet<AnimationHandlePointer> _animationHandles;
     QList<AnimationHandlePointer> _runningAnimations;
+
+    JointState maybeCauterizeHead(int jointIndex) const;
+    void initHeadBones();
+    bool _isFirstPerson = false;
+    std::vector<int> _headBones;
+    bool _jointsAreDirty = false;
+    int _neckJointIndex = -1;
 };
 
 #endif /* defined(__hifi__Rig__) */
