@@ -15,7 +15,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include('../../utilities/tools/vector.js');
+Script.include('../utilities/tools/vector.js');
 
 var URL = "https://s3.amazonaws.com/hifi-public/marketplace/hificontent/Scripts/planets/";
 
@@ -38,8 +38,8 @@ SatelliteGame = function() {
 	var EARTH_SIZE = 20.0;
 	var CLOUDS_OFFSET = 0.5;
 	var SPIN = 0.1;
-	var ZONE_DIM = 10.0;
-	var LIGHT_INTENSITY = 1.2;
+	var ZONE_DIM = 100.0;
+	var LIGHT_INTENSITY = 1.5;
 
 	Earth = function(position, size) {
 		this.earth = Entities.addEntity({
@@ -65,7 +65,7 @@ SatelliteGame = function() {
 		this.clouds = Entities.addEntity({
 		    type: "Model",
 	        shapeType: 'sphere',
-		    modelURL: URL + "clouds.fbx?",
+		    modelURL: URL + "clouds.fbx?i=2",
 		    position: position,
 		    dimensions: {
 		        x: size + CLOUDS_OFFSET,
@@ -190,7 +190,7 @@ SatelliteGame = function() {
 		if (activeSatellite.arrow) {
 	    	activeSatellite.arrow.deleteLabel();
 	    }
-		var statsPosition = Vec3.sum(Camera.getPosition(), Vec3.multiply(MAX_RANGE * 0.5, Quat.getFront(Camera.getOrientation())));
+		var statsPosition = Vec3.sum(Camera.getPosition(), Vec3.multiply(MAX_RANGE * 0.4, Quat.getFront(Camera.getOrientation())));
 		var pickRay = Camera.computePickRay(event.x, event.y)
 	    var rayPickResult = Entities.findRayIntersection(pickRay, true);
 		if (rayPickResult.entityID === activeSatellite.satellite) {
@@ -245,9 +245,8 @@ SatelliteGame = function() {
 	}
 
 	this.endGame = function() {
-		print("ending game");
 		for(var i = 0; i < satellites.length; i++) {
-			Entities.deleteEntitiy(satellites[i].satellite);
+			Entities.deleteEntity(satellites[i].satellite);
 			satellites[i].arrow.cleanup();
 		}
 		earth.cleanup();
