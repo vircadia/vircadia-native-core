@@ -222,12 +222,15 @@ void DeferredLightingEffect::prepare(RenderArgs* args) {
     gpu::Batch batch;
 
     batch.setStateScissorRect(args->_viewport);
+
+    auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
+
+    batch.setFramebuffer(primaryFbo);
     // clear the normal and specular buffers
     batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR1, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f), true);
     const float MAX_SPECULAR_EXPONENT = 128.0f;
     batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR2, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f / MAX_SPECULAR_EXPONENT), true);
 
-    args->_context->syncCache();
     args->_context->render(batch);
 }
 
@@ -535,7 +538,6 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     batch.setResourceTexture(2, nullptr);
     batch.setResourceTexture(3, nullptr);
 
-    args->_context->syncCache();
     args->_context->render(batch);
 
     // End of the Lighting pass
@@ -548,7 +550,8 @@ void DeferredLightingEffect::copyBack(RenderArgs* args) {
     QSize framebufferSize = framebufferCache->getFrameBufferSize();
 
     // TODO why doesn't this blit work?  It only seems to affect a small area below the rear view mirror.
-    auto destFbo = framebufferCache->getPrimaryFramebuffer();
+  //  auto destFbo = framebufferCache->getPrimaryFramebuffer();
+    auto destFbo = framebufferCache->getPrimaryFramebufferDepthColor();
 //    gpu::Vec4i vp = args->_viewport;
 //    batch.blit(_copyFBO, vp, framebufferCache->getPrimaryFramebuffer(), vp);
     batch.setFramebuffer(destFbo);
@@ -566,11 +569,6 @@ void DeferredLightingEffect::copyBack(RenderArgs* args) {
         model.setScale(glm::vec3(sWidth, tHeight, 1.0));
         batch.setModelTransform(model);
     }
-
-    GLenum buffers[3];
-    int bufferCount = 0;
-    buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
-    batch._glDrawBuffers(bufferCount, buffers);
 
     batch.setResourceTexture(0, _copyFBO->getRenderBuffer(0));
     batch.draw(gpu::TRIANGLE_STRIP, 4);

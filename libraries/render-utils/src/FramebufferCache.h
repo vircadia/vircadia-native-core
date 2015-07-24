@@ -30,6 +30,7 @@ public:
     /// Returns a pointer to the primary framebuffer object.  This render target includes a depth component, and is
     /// used for scene rendering.
     gpu::FramebufferPointer getPrimaryFramebuffer();
+    gpu::FramebufferPointer getPrimaryFramebufferDepthColor();
 
     gpu::TexturePointer getPrimaryDepthTexture();
     gpu::TexturePointer getPrimaryColorTexture();
@@ -55,7 +56,8 @@ private:
 
     void createPrimaryFramebuffer();
 
-    gpu::FramebufferPointer _primaryFramebuffer;
+    gpu::FramebufferPointer _primaryFramebufferFull;
+    gpu::FramebufferPointer _primaryFramebufferDepthColor;
     gpu::TexturePointer _primaryDepthTexture;
     gpu::TexturePointer _primaryColorTexture;
     gpu::TexturePointer _primaryNormalTexture;

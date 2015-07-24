@@ -879,16 +879,11 @@ void Application::paintGL() {
     renderArgs._context->syncCache();
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
-        {
-            gpu::Batch batch;
-            batch.setFramebuffer(nullptr);
-            batch.setFramebuffer(primaryFbo);
-            renderArgs._context->render(batch);
-        }
+        auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
+
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
         renderRearViewMirror(&renderArgs, _mirrorViewRect);
-        renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
+        renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
 
         {
             float ratio = ((float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale());
@@ -917,6 +912,9 @@ void Application::paintGL() {
         Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !(_myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN));
         Application::getInstance()->cameraMenuChanged();
     }
+
+    // The render mode is default or mirror if the camera is in mirror mode, assigned further below
+    renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         // Always use the default eye position, not the actual head eye position.
@@ -954,14 +952,13 @@ void Application::paintGL() {
                               glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) +
                               (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
                                glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
+        renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
     }
 
     // Update camera position
     if (!OculusManager::isConnected()) {
         _myCamera.update(1.0f / _fps);
     }
-
-    renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
 
     if (OculusManager::isConnected()) {
         //When in mirror mode, use camera rotation. Otherwise, use body rotation
@@ -974,31 +971,16 @@ void Application::paintGL() {
         TV3DManager::display(&renderArgs, _myCamera);
     } else {
         PROFILE_RANGE(__FUNCTION__ "/mainRender");
+        // Viewport is assigned to the size of the framebuffer
+        QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
+        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
 
-        {
-            gpu::Batch batch;
-            auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
-            batch.setFramebuffer(primaryFbo);
-            // clear the normal and specular buffers
-            batch.clearFramebuffer(
-                gpu::Framebuffer::BUFFER_COLOR0 |
-                gpu::Framebuffer::BUFFER_COLOR1 |
-                gpu::Framebuffer::BUFFER_COLOR2 |
-                gpu::Framebuffer::BUFFER_DEPTH,
-                vec4(vec3(0), 1), 1.0, 0.0);
-
-            // Viewport is assigned to the size of the framebuffer
-            QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
-            renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
-            batch.setViewportTransform(renderArgs._viewport);
-            renderArgs._context->render(batch);
-        }
 
         displaySide(&renderArgs, _myCamera);
 
         {
             auto geometryCache = DependencyManager::get<GeometryCache>();
-            auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
+            auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
             gpu::Batch batch;
             batch.blit(primaryFbo, glm::ivec4(0, 0, _renderResolution.x, _renderResolution.y),
                 nullptr, glm::ivec4(0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height()));
@@ -1006,7 +988,6 @@ void Application::paintGL() {
             batch.setFramebuffer(nullptr);
 
             renderArgs._context->render(batch);
-
         }
 
         _compositor.displayOverlayTexture(&renderArgs);
@@ -2995,27 +2976,14 @@ PickRay Application::computePickRay(float x, float y) const {
 QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
 
     const int BILLBOARD_SIZE = 64;
+
+    // Need to make sure the gl context is current here
     _glWidget->makeCurrent();
 
-    auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
-
-    {
-        gpu::Batch batch;
-        batch.setFramebuffer(nullptr);
-        batch.setFramebuffer(primaryFbo);
-        renderArgs->_context->render(batch);
-    }
     renderArgs->_renderMode = RenderArgs::DEFAULT_RENDER_MODE;
-
     renderRearViewMirror(renderArgs, QRect(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
 
-    {
-        auto mirrorViewport = glm::ivec4(0, 0,BILLBOARD_SIZE, BILLBOARD_SIZE);
-        gpu::Batch batch;
-        batch.setFramebuffer(nullptr);
-        renderArgs->_context->render(batch);
-    }
-    
+    auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     renderArgs->_context->downloadFramebuffer(primaryFbo, glm::ivec4(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE), image);
 
@@ -3445,25 +3413,10 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     }
     renderArgs->_viewport = viewport;
 
-    {
-        gpu::Batch batch;
-        batch.setViewportTransform(viewport);
-        batch.setStateScissorRect(viewport);
-        batch.clearFramebuffer(
-            gpu::Framebuffer::BUFFER_COLOR0 |
-            gpu::Framebuffer::BUFFER_COLOR1 |
-            gpu::Framebuffer::BUFFER_COLOR2 |
-            gpu::Framebuffer::BUFFER_DEPTH,
-            vec4(vec3(0), 1), 1.0, 0.0, true);
-        // Viewport is assigned to the size of the framebuffer
-        renderArgs->_context->render(batch);
-    }
-
     // render rear mirror view
     displaySide(renderArgs, _mirrorCamera, true, billboard);
 
     renderArgs->_viewport =  originalViewport;
-
 }
 
 void Application::resetSensors() {
