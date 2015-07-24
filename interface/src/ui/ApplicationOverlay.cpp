@@ -183,12 +183,17 @@ void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
         batch.setProjectionTransform(legacyProjection);
         batch.setModelTransform(Transform());
         batch.setViewTransform(Transform());
-
+        
+        float screenRatio = ((float)qApp->getDevicePixelRatio());
+        float renderRatio = ((float)screenRatio * qApp->getRenderResolutionScale());
+        
         auto viewport = qApp->getMirrorViewRect();
-        glm::vec2 bottomLeft(viewport.left(), viewport.bottom());
-        glm::vec2 topRight(viewport.right(), viewport.top());
+        glm::vec2 bottomLeft(viewport.left(), viewport.top() + viewport.height());
+        glm::vec2 topRight(viewport.left() + viewport.width(), viewport.top());
+        bottomLeft *= screenRatio;
+        topRight *= screenRatio;
         glm::vec2 texCoordMinCorner(0.0f, 0.0f);
-        glm::vec2 texCoordMaxCorner(viewport.width() / float(selfieTexture->getWidth()), viewport.height() / float(selfieTexture->getHeight()));
+        glm::vec2 texCoordMaxCorner(viewport.width() * renderRatio / float(selfieTexture->getWidth()), viewport.height() * renderRatio / float(selfieTexture->getHeight()));
 
         geometryCache->useSimpleDrawPipeline(batch, false);
         batch.setResourceTexture(0, renderArgs->_whiteTexture);

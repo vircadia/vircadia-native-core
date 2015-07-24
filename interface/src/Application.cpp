@@ -891,10 +891,9 @@ void Application::paintGL() {
         renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
 
         {
-            auto mirrorViewport = glm::ivec4(0, 0, _mirrorViewRect.width(), _mirrorViewRect.height());
-            float ratio = 1.0f / ((float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale());
-         
-            auto mirrorViewportDest = glm::ivec4(0, 0, ratio * mirrorViewport.z, ratio * mirrorViewport.w);
+            float ratio = ((float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale());
+            auto mirrorViewport = glm::ivec4(0, 0, _mirrorViewRect.width() * ratio, _mirrorViewRect.height() * ratio);
+            auto mirrorViewportDest = mirrorViewport;
          
             auto selfieFbo = DependencyManager::get<FramebufferCache>()->getSelfieFramebuffer();
             gpu::Batch batch;
