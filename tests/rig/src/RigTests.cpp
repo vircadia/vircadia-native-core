@@ -84,7 +84,7 @@ void RigTests::initTestCase() {
     }
 
     _rig = std::make_shared<AvatarRig>();
-    _rig->initJointStates(jointStates, glm::mat4());
+    _rig->initJointStates(jointStates, glm::mat4(), geometry.neckJointIndex);
     std::cout << "Rig is ready " << geometry.joints.count() << " joints " << std::endl;
    }
 
