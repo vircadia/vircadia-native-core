@@ -27,7 +27,7 @@ public:
     static const Type THRESHOLD = 0x0FFFFFFF; // threshold for comparing sequence numbers
     static const Type MAX = 0x1FFFFFFF; // maximum sequence number used in UDT
     
-    SeqNum() : _value(0) {}
+    SeqNum() = default;
     SeqNum(const SeqNum& other) : _value(other._value) {}
     
     // Only explicit conversions
@@ -79,7 +79,7 @@ public:
     friend int seqoff(const SeqNum& seq1, const SeqNum& seq2);
     
 private:
-    Type _value;
+    Type _value { 0 };
     
     friend struct std::hash<SeqNum>;
 };

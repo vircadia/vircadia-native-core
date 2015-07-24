@@ -21,7 +21,7 @@ void UdtCC::init() {
     setAckTimer(_rcInterval);
     
     _lastAck = _sendCurrSeqNum;
-    _lastDecSeq = SeqNum::MAX;
+    _lastDecSeq = SeqNum{ SeqNum::MAX };
     
     _congestionWindowSize = 16.0;
     _packetSendPeriod = 1.0;

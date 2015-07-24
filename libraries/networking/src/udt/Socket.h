@@ -64,7 +64,7 @@ private:
     
     std::unordered_map<HifiSockAddr, BasePacketHandler> _unfilteredHandlers;
 
-    std::unordered_map<HifiSockAddr, Packet::SequenceNumber> _packetSequenceNumbers;
+    std::unordered_map<HifiSockAddr, SeqNum> _packetSequenceNumbers;
 };
     
 } // namespace udt

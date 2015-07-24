@@ -18,6 +18,7 @@
 
 #include "BasePacket.h"
 #include "PacketHeaders.h"
+#include "SeqNum.h"
 
 namespace udt {
 
@@ -50,7 +51,8 @@ public:
     
     virtual qint64 totalHeadersSize() const; // Cumulated size of all the headers
 
-    void writeSequenceNumber(SequenceNumber sequenceNumber);
+    void writeSequenceNumber(SeqNum seqNum);
+    SeqNum getSequenceNumber() const { return _sequenceNumber; }
 
 protected:
     Packet(qint64 size, bool isReliable = false, bool isPartOfMessage = false);
@@ -70,7 +72,7 @@ protected:
 
     bool _isReliable { false };
     bool _isPartOfMessage { false };
-    SequenceNumber _sequenceNumber { 0 };
+    SeqNum _sequenceNumber;
 };
     
 } // namespace udt
