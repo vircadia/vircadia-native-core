@@ -24,8 +24,7 @@ std::unique_ptr<BasePacket> BasePacket::create(qint64 size) {
 }
 
 std::unique_ptr<BasePacket> BasePacket::fromReceivedPacket(std::unique_ptr<char> data,
-                                                                   qint64 size,
-                                                                   const HifiSockAddr& senderSockAddr) {
+                                                           qint64 size, const HifiSockAddr& senderSockAddr) {
     // Fail with invalid size
     Q_ASSERT(size >= 0);
     
