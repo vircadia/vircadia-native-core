@@ -50,7 +50,7 @@ qint64 Packet::maxPayloadSize() const {
 }
 
 qint64 Packet::totalHeadersSize() const {
-    return localHeaderSize();
+    return BasePacket::localHeaderSize() + localHeaderSize();
 }
 
 qint64 Packet::localHeaderSize() const {
