@@ -264,7 +264,8 @@ const float MINIMUM_ARM_REACH = 0.3f; // meters
 const float MAXIMUM_NOISE_LEVEL = 0.05f; // meters
 const quint64 LOCK_DURATION = USECS_PER_SECOND / 4;     // time for lock to be acquired
 
-void SixenseManager::updateCalibration(const sixenseControllerData* controllers) {
+void SixenseManager::updateCalibration(void* controllersX) {
+    auto controllers = reinterpret_cast<sixenseControllerData*>(controllersX);
     const sixenseControllerData* dataLeft = controllers;
     const sixenseControllerData* dataRight = controllers + 1;
 
