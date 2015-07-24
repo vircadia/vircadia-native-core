@@ -34,8 +34,12 @@ IceServer::IceServer(int argc, char* argv[]) :
     qDebug() << "monitoring http endpoint is listening on " << ICE_SERVER_MONITORING_PORT;
     _serverSocket.bind(QHostAddress::AnyIPv4, ICE_SERVER_DEFAULT_PORT);
 
-    // call our process datagrams slot when the UDP socket has packets ready
-    connect(&_serverSocket, &QUdpSocket::readyRead, this, &IceServer::processDatagrams);
+    // set processPacket as the verified packet callback for the udt::Socket
+    using std::placeholders::_1;
+    _serverSocket.setPacketHandler(std::bind(&IceServer::processPacket, this, _1));
+    
+    // set packetVersionMatch as the verify packet operator for the udt::Socket
+    _serverSocket.setPacketFilterOperator(std::bind(&IceServer::packetVersionMatch, this, _1));
 
     // setup our timer to clear inactive peers
     QTimer* inactivePeerTimer = new QTimer(this);
@@ -44,63 +48,61 @@ IceServer::IceServer(int argc, char* argv[]) :
 
 }
 
-void IceServer::processDatagrams() {
-    HifiSockAddr sendingSockAddr;
-
-    while (_serverSocket.hasPendingDatagrams()) {
-        // setup a buffer to read the packet into
-        int packetSizeWithHeader = _serverSocket.pendingDatagramSize();
-        std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[packetSizeWithHeader]);
-
-        _serverSocket.readDatagram(buffer.get(), packetSizeWithHeader,
-                                   sendingSockAddr.getAddressPointer(), sendingSockAddr.getPortPointer());
+bool IceServer::packetVersionMatch(const udt::Packet& packet) {
+    if (packet.getVersion() == versionForPacketType(packet.getType())) {
+        return true;
+    } else {
+        qDebug() << "Packet version mismatch for packet" << packet.getType()
+            << "(" << nameForPacketType(packet.getType()) << ") from" << packet.getSenderSockAddr();
         
-        auto packet = Packet::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, sendingSockAddr);
+        return false;
+    }
+}
 
-        PacketType::Value packetType = packet->getType();
-
-        if (packetType == PacketType::ICEServerHeartbeat) {
-            SharedNetworkPeer peer = addOrUpdateHeartbeatingPeer(*packet);
-
-            // so that we can send packets to the heartbeating peer when we need, we need to activate a socket now
-            peer->activateMatchingOrNewSymmetricSocket(sendingSockAddr);
-        } else if (packetType == PacketType::ICEServerQuery) {
-            QDataStream heartbeatStream(packet.get());
-
-            // this is a node hoping to connect to a heartbeating peer - do we have the heartbeating peer?
-            QUuid senderUUID;
-            heartbeatStream >> senderUUID;
-
-            // pull the public and private sock addrs for this peer
-            HifiSockAddr publicSocket, localSocket;
-            heartbeatStream >> publicSocket >> localSocket;
-
-            // check if this node also included a UUID that they would like to connect to
-            QUuid connectRequestID;
-            heartbeatStream >> connectRequestID;
+void IceServer::processPacket(std::unique_ptr<udt::Packet> packet) {
+    PacketType::Value packetType = packet->getType();
+    
+    if (packetType == PacketType::ICEServerHeartbeat) {
+        SharedNetworkPeer peer = addOrUpdateHeartbeatingPeer(*packet);
+        
+        // so that we can send packets to the heartbeating peer when we need, we need to activate a socket now
+        peer->activateMatchingOrNewSymmetricSocket(packet->getSenderSockAddr());
+    } else if (packetType == PacketType::ICEServerQuery) {
+        QDataStream heartbeatStream(packet.get());
+        
+        // this is a node hoping to connect to a heartbeating peer - do we have the heartbeating peer?
+        QUuid senderUUID;
+        heartbeatStream >> senderUUID;
+        
+        // pull the public and private sock addrs for this peer
+        HifiSockAddr publicSocket, localSocket;
+        heartbeatStream >> publicSocket >> localSocket;
+        
+        // check if this node also included a UUID that they would like to connect to
+        QUuid connectRequestID;
+        heartbeatStream >> connectRequestID;
+        
+        SharedNetworkPeer matchingPeer = _activePeers.value(connectRequestID);
+        
+        if (matchingPeer) {
             
-            SharedNetworkPeer matchingPeer = _activePeers.value(connectRequestID);
-
-            if (matchingPeer) {
-                
-                qDebug() << "Sending information for peer" << connectRequestID << "to peer" << senderUUID;
-                
-                // we have the peer they want to connect to - send them pack the information for that peer
-                sendPeerInformationPacket(*(matchingPeer.data()), &sendingSockAddr);
-
-                // we also need to send them to the active peer they are hoping to connect to
-                // create a dummy peer object we can pass to sendPeerInformationPacket
-
-                NetworkPeer dummyPeer(senderUUID, publicSocket, localSocket);
-                sendPeerInformationPacket(dummyPeer, matchingPeer->getActiveSocket());
-            } else {
-                qDebug() << "Peer" << senderUUID << "asked for" << connectRequestID << "but no matching peer found";
-            }
+            qDebug() << "Sending information for peer" << connectRequestID << "to peer" << senderUUID;
+            
+            // we have the peer they want to connect to - send them pack the information for that peer
+            sendPeerInformationPacket(*matchingPeer, &packet->getSenderSockAddr());
+            
+            // we also need to send them to the active peer they are hoping to connect to
+            // create a dummy peer object we can pass to sendPeerInformationPacket
+            
+            NetworkPeer dummyPeer(senderUUID, publicSocket, localSocket);
+            sendPeerInformationPacket(dummyPeer, matchingPeer->getActiveSocket());
+        } else {
+            qDebug() << "Peer" << senderUUID << "asked for" << connectRequestID << "but no matching peer found";
         }
     }
 }
 
-SharedNetworkPeer IceServer::addOrUpdateHeartbeatingPeer(Packet& packet) {
+SharedNetworkPeer IceServer::addOrUpdateHeartbeatingPeer(udt::Packet& packet) {
 
     // pull the UUID, public and private sock addrs for this peer
     QUuid senderUUID;
@@ -133,14 +135,13 @@ SharedNetworkPeer IceServer::addOrUpdateHeartbeatingPeer(Packet& packet) {
 }
 
 void IceServer::sendPeerInformationPacket(const NetworkPeer& peer, const HifiSockAddr* destinationSockAddr) {
-    auto peerPacket = Packet::create(PacketType::ICEServerPeerInformation);
+    auto peerPacket = udt::Packet::create(PacketType::ICEServerPeerInformation);
 
     // get the byte array for this peer
     peerPacket->write(peer.toByteArray());
     
     // write the current packet
-    _serverSocket.writeDatagram(peerPacket->getData(), peerPacket->getDataSize(),
-                                destinationSockAddr->getAddress(), destinationSockAddr->getPort());
+    _serverSocket.writeUnreliablePacket(*peerPacket, *destinationSockAddr);
 }
 
 void IceServer::clearInactivePeers() {

@@ -54,12 +54,14 @@ void NetworkPeer::setPublicSocket(const HifiSockAddr& publicSocket) {
             // if the active socket was the public socket then reset it to NULL
             _activeSocket = NULL;
         }
-
-        if (!_publicSocket.isNull()) {
-            qCDebug(networking) << "Public socket change for node" << *this;
-        }
+        
+        bool wasOldSocketNull = _publicSocket.isNull();
 
         _publicSocket = publicSocket;
+        
+        if (!wasOldSocketNull) {
+            qCDebug(networking) << "Public socket change for node" << *this;
+        }
     }
 }
 
@@ -69,12 +71,14 @@ void NetworkPeer::setLocalSocket(const HifiSockAddr& localSocket) {
             // if the active socket was the local socket then reset it to NULL
             _activeSocket = NULL;
         }
+        
+        bool wasOldSocketNull = _localSocket.isNull();
+        
+        _localSocket = localSocket;
 
-        if (!_localSocket.isNull()) {
+        if (!wasOldSocketNull) {
             qCDebug(networking) << "Local socket change for node" << *this;
         }
-
-        _localSocket = localSocket;
     }
 }
 
@@ -84,12 +88,14 @@ void NetworkPeer::setSymmetricSocket(const HifiSockAddr& symmetricSocket) {
             // if the active socket was the symmetric socket then reset it to NULL
             _activeSocket = NULL;
         }
-
-        if (!_symmetricSocket.isNull()) {
+        
+        bool wasOldSocketNull = _symmetricSocket.isNull();
+        
+        _symmetricSocket = symmetricSocket;
+        
+        if (!wasOldSocketNull) {
             qCDebug(networking) << "Symmetric socket change for node" << *this;
         }
-
-        _symmetricSocket = symmetricSocket;
     }
 }
 

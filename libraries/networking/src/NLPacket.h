@@ -16,14 +16,20 @@
 
 #include "udt/Packet.h"
 
-class NLPacket : public Packet {
+class NLPacket : public udt::Packet {
     Q_OBJECT
 public:
     static std::unique_ptr<NLPacket> create(PacketType::Value type, qint64 size = -1);
     static std::unique_ptr<NLPacket> fromReceivedPacket(std::unique_ptr<char> data, qint64 size,
                                                         const HifiSockAddr& senderSockAddr);
+    static std::unique_ptr<NLPacket> fromBase(std::unique_ptr<Packet> packet);
+    
     // Provided for convenience, try to limit use
     static std::unique_ptr<NLPacket> createCopy(const NLPacket& other);
+    
+    static QUuid sourceIDInHeader(const udt::Packet& packet);
+    static QByteArray verificationHashInHeader(const udt::Packet& packet);
+    static QByteArray hashForPacketAndSecret(const udt::Packet& packet, const QUuid& connectionSecret);
 
     static qint64 localHeaderSize(PacketType::Value type);
     static qint64 maxPayloadSize(PacketType::Value type);
@@ -32,27 +38,27 @@ public:
     virtual qint64 localHeaderSize() const;  // Current level's header size
 
     const QUuid& getSourceID() const { return _sourceID; }
-    const QByteArray& getVerificationHash() const { return _verificationHash; }
     
     void writeSourceID(const QUuid& sourceID);
-    void writeVerificationHash(const QByteArray& verificationHash);
-
-    QByteArray payloadHashWithConnectionUUID(const QUuid& connectionUUID) const;
+    void writeVerificationHashGivenSecret(const QUuid& connectionSecret);
 
 protected:
     
-    void adjustPayloadStartAndCapacity();
+    void adjustPayloadStartAndCapacity(bool shouldDecreasePayloadSize = false);
     
     NLPacket(PacketType::Value type);
     NLPacket(PacketType::Value type, qint64 size);
     NLPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
+    NLPacket(std::unique_ptr<Packet> packet);
     NLPacket(const NLPacket& other);
+    NLPacket(NLPacket&& other);
+    
+    NLPacket& operator=(const NLPacket& other);
+    NLPacket& operator=(NLPacket&& other);
 
     void readSourceID();
-    void readVerificationHash();
 
     QUuid _sourceID;
-    QByteArray _verificationHash;
 };
 
 #endif // hifi_NLPacket_h

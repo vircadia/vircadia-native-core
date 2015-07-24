@@ -82,7 +82,7 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     }
 
     const int LARGER_BUFFER_SIZE = 1048576;
-    changeSocketBufferSizes(LARGER_BUFFER_SIZE);
+    _nodeSocket.setBufferSizes(LARGER_BUFFER_SIZE);
 
     // check for local socket updates every so often
     const int LOCAL_SOCKET_UPDATE_INTERVAL_MSECS = 5 * 1000;
@@ -96,11 +96,14 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
 
     // check the local socket right now
     updateLocalSockAddr();
+    
+    // set &PacketReceiver::handleVerifiedPacket as the verified packet callback for the udt::Socket
+    using std::placeholders::_1;
+    _nodeSocket.setPacketHandler(std::bind(&PacketReceiver::handleVerifiedPacket, _packetReceiver, _1));
 
-    // TODO: Create a new thread, and move PacketReceiver to it
-
-    connect(&_nodeSocket, &QUdpSocket::readyRead, _packetReceiver, &PacketReceiver::processDatagrams);
-
+    // set our isPacketVerified method as the verify operator for the udt::Socket
+    _nodeSocket.setPacketFilterOperator(std::bind(&LimitedNodeList::isPacketVerified, this, _1));
+    
     _packetStatTimer.start();
     
     // make sure we handle STUN response packets
@@ -149,53 +152,77 @@ QUdpSocket& LimitedNodeList::getDTLSSocket() {
     return *_dtlsSocket;
 }
 
-void LimitedNodeList::changeSocketBufferSizes(int numBytes) {
-    for (int i = 0; i < 2; i++) {
-        QAbstractSocket::SocketOption bufferOpt;
-        QString bufferTypeString;
-        if (i == 0) {
-            bufferOpt = QAbstractSocket::SendBufferSizeSocketOption;
-            bufferTypeString = "send";
+bool LimitedNodeList::isPacketVerified(const udt::Packet& packet) {
+    return packetVersionMatch(packet) && packetSourceAndHashMatch(packet);
+}
 
+bool LimitedNodeList::packetVersionMatch(const udt::Packet& packet) {
+    
+    if (packet.getVersion() != versionForPacketType(packet.getType())) {
+        
+        static QMultiHash<QUuid, PacketType::Value> sourcedVersionDebugSuppressMap;
+        static QMultiHash<HifiSockAddr, PacketType::Value> versionDebugSuppressMap;
+        
+        bool hasBeenOutput = false;
+        QString senderString;
+        
+        if (NON_SOURCED_PACKETS.contains(packet.getType())) {
+            const HifiSockAddr& senderSockAddr = packet.getSenderSockAddr();
+            hasBeenOutput = versionDebugSuppressMap.contains(senderSockAddr, packet.getType());
+            
+            if (!hasBeenOutput) {
+                versionDebugSuppressMap.insert(senderSockAddr, packet.getType());
+                senderString = QString("%1:%2").arg(senderSockAddr.getAddress().toString()).arg(senderSockAddr.getPort());
+            }
         } else {
-            bufferOpt = QAbstractSocket::ReceiveBufferSizeSocketOption;
-            bufferTypeString = "receive";
+            QUuid sourceID = QUuid::fromRfc4122(QByteArray::fromRawData(packet.getPayload(), NUM_BYTES_RFC4122_UUID));
+            
+            hasBeenOutput = sourcedVersionDebugSuppressMap.contains(sourceID, packet.getType());
+            
+            if (!hasBeenOutput) {
+                sourcedVersionDebugSuppressMap.insert(sourceID, packet.getType());
+                senderString = uuidStringWithoutCurlyBraces(sourceID.toString());
+            }
         }
-        int oldBufferSize = _nodeSocket.socketOption(bufferOpt).toInt();
-        if (oldBufferSize < numBytes) {
-            int newBufferSize = _nodeSocket.socketOption(bufferOpt).toInt();
-
-            qCDebug(networking) << "Changed socket" << bufferTypeString << "buffer size from" << oldBufferSize << "to"
-                << newBufferSize << "bytes";
-        } else {
-            // don't make the buffer smaller
-            qCDebug(networking) << "Did not change socket" << bufferTypeString << "buffer size from" << oldBufferSize
-                << "since it is larger than desired size of" << numBytes;
+        
+        if (!hasBeenOutput) {
+            qCDebug(networking) << "Packet version mismatch on" << packet.getType() << "- Sender"
+                << senderString << "sent" << qPrintable(QString::number(packet.getVersion())) << "but"
+                << qPrintable(QString::number(versionForPacketType(packet.getType()))) << "expected.";
+            
+            emit packetVersionMismatch(packet.getType());
         }
+        
+        return false;
+    } else {
+        return true;
     }
 }
 
-bool LimitedNodeList::packetSourceAndHashMatch(const NLPacket& packet, SharedNodePointer& matchingNode) {
+bool LimitedNodeList::packetSourceAndHashMatch(const udt::Packet& packet) {
     
     if (NON_SOURCED_PACKETS.contains(packet.getType())) {
         return true;
     } else {
+        QUuid sourceID = NLPacket::sourceIDInHeader(packet);
         
         // figure out which node this is from
-        matchingNode = nodeWithUUID(packet.getSourceID());
+        SharedNodePointer matchingNode = nodeWithUUID(sourceID);
         
         if (matchingNode) {
             if (!NON_VERIFIED_PACKETS.contains(packet.getType())) {
+                
+                QByteArray packetHeaderHash = NLPacket::verificationHashInHeader(packet);
+                QByteArray expectedHash = NLPacket::hashForPacketAndSecret(packet, matchingNode->getConnectionSecret());
+            
                 // check if the md5 hash in the header matches the hash we would expect
-                if (packet.getVerificationHash() != packet.payloadHashWithConnectionUUID(matchingNode->getConnectionSecret())) {
+                if (packetHeaderHash != expectedHash) {
                     static QMultiMap<QUuid, PacketType::Value> hashDebugSuppressMap;
                     
-                    const QUuid& senderID = packet.getSourceID();
+                    if (!hashDebugSuppressMap.contains(sourceID, packet.getType())) {
+                        qCDebug(networking) << "Packet hash mismatch on" << packet.getType() << "- Sender" << sourceID;
 
-                    if (!hashDebugSuppressMap.contains(senderID, packet.getType())) {
-                        qCDebug(networking) << "Packet hash mismatch on" << packet.getType() << "- Sender" << senderID;
-
-                        hashDebugSuppressMap.insert(senderID, packet.getType());
+                        hashDebugSuppressMap.insert(sourceID, packet.getType());
                     }
 
                     return false;
@@ -209,7 +236,7 @@ bool LimitedNodeList::packetSourceAndHashMatch(const NLPacket& packet, SharedNod
                 = LogHandler::getInstance().addRepeatedMessageRegex("Packet of type \\d+ \\([\\sa-zA-Z]+\\) received from unknown node with UUID");
 
             qCDebug(networking) << "Packet of type" << packet.getType() << "(" << qPrintable(nameForPacketType(packet.getType())) << ")"
-                << "received from unknown node with UUID" << qPrintable(uuidStringWithoutCurlyBraces(packet.getSourceID()));
+                << "received from unknown node with UUID" << qPrintable(uuidStringWithoutCurlyBraces(sourceID));
         }
     }
 
@@ -241,26 +268,21 @@ qint64 LimitedNodeList::writePacket(const NLPacket& packet, const HifiSockAddr& 
     if (!connectionSecret.isNull()
         && !NON_SOURCED_PACKETS.contains(packet.getType())
         && !NON_VERIFIED_PACKETS.contains(packet.getType())) {
-        const_cast<NLPacket&>(packet).writeVerificationHash(packet.payloadHashWithConnectionUUID(connectionSecret));
+        const_cast<NLPacket&>(packet).writeVerificationHashGivenSecret(connectionSecret);
     }
 
     emit dataSent(NodeType::Unassigned, packet.getDataSize());
     
-    return writeDatagram(QByteArray::fromRawData(packet.getData(), packet.getDataSize()), destinationSockAddr);
+    return writePacketAndCollectStats(packet, destinationSockAddr);
 }
 
-qint64 LimitedNodeList::writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr) {
+qint64 LimitedNodeList::writePacketAndCollectStats(const NLPacket& packet, const HifiSockAddr& destinationSockAddr) {
     // XXX can BandwidthRecorder be used for this?
     // stat collection for packets
     ++_numCollectedPackets;
-    _numCollectedBytes += datagram.size();
+    _numCollectedBytes += packet.getDataSize();
 
-    qint64 bytesWritten = _nodeSocket.writeDatagram(datagram,
-                                                    destinationSockAddr.getAddress(), destinationSockAddr.getPort());
-
-    if (bytesWritten < 0) {
-        qCDebug(networking) << "ERROR in writeDatagram:" << _nodeSocket.error() << "-" << _nodeSocket.errorString();
-    }
+    qint64 bytesWritten = _nodeSocket.writeUnreliablePacket(packet, destinationSockAddr);
 
     return bytesWritten;
 }
@@ -571,7 +593,7 @@ void LimitedNodeList::sendSTUNRequest() {
         ++_numInitialSTUNRequests;
     }
 
-    unsigned char stunRequestPacket[NUM_BYTES_STUN_HEADER];
+    char stunRequestPacket[NUM_BYTES_STUN_HEADER];
 
     int packetIndex = 0;
 
@@ -597,15 +619,7 @@ void LimitedNodeList::sendSTUNRequest() {
 
     flagTimeForConnectionStep(ConnectionStep::SendSTUNRequest);
 
-    _nodeSocket.writeDatagram((char*) stunRequestPacket, sizeof(stunRequestPacket),
-                              _stunSockAddr.getAddress(), _stunSockAddr.getPort());
-}
-
-void LimitedNodeList::rebindNodeSocket() {
-    quint16 oldPort = _nodeSocket.localPort();
-
-    _nodeSocket.close();
-    _nodeSocket.bind(QHostAddress::AnyIPv4, oldPort);
+    _nodeSocket.writeDatagram(stunRequestPacket, sizeof(stunRequestPacket), _stunSockAddr);
 }
 
 bool LimitedNodeList::processSTUNResponse(QSharedPointer<NLPacket> packet) {
@@ -696,6 +710,7 @@ void LimitedNodeList::startSTUNPublicSocketUpdate() {
         // if we don't know the STUN IP yet we need to have ourselves be called once it is known
         if (_stunSockAddr.getAddress().isNull()) {
             connect(&_stunSockAddr, &HifiSockAddr::lookupCompleted, this, &LimitedNodeList::startSTUNPublicSocketUpdate);
+            connect(&_stunSockAddr, &HifiSockAddr::lookupCompleted, this, &LimitedNodeList::addSTUNSockAddrToUnfiltered);
 
             // in case we just completely fail to lookup the stun socket - add a 10s timeout that will trigger the fail case
             const quint64 STUN_DNS_LOOKUP_TIMEOUT_MSECS = 10 * 1000;

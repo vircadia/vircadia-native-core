@@ -11,6 +11,8 @@
 
 #include "Packet.h"
 
+using namespace udt;
+
 const qint64 Packet::PACKET_WRITE_ERROR = -1;
 
 qint64 Packet::localHeaderSize(PacketType::Value type) {
@@ -98,16 +100,11 @@ Packet::Packet(const Packet& other) :
     QIODevice()
 {
     *this = other;
-    
-    if (other.isOpen()) {
-        this->open(other.openMode());
-    }
-    
-    this->seek(other.pos());
 }
 
 Packet& Packet::operator=(const Packet& other) {
     _type = other._type;
+    _version = other._version;
     
     _packetSize = other._packetSize;
     _packet = std::unique_ptr<char>(new char[_packetSize]);
@@ -117,6 +114,12 @@ Packet& Packet::operator=(const Packet& other) {
     _payloadCapacity = other._payloadCapacity;
 
     _payloadSize = other._payloadSize;
+    
+    if (other.isOpen() && !isOpen()) {
+        open(other.openMode());
+    }
+    
+    seek(other.pos());
 
     return *this;
 }
@@ -127,6 +130,7 @@ Packet::Packet(Packet&& other) {
 
 Packet& Packet::operator=(Packet&& other) {
     _type = other._type;
+    _version = other._version;
     
     _packetSize = other._packetSize;
     _packet = std::move(other._packet);
@@ -135,6 +139,14 @@ Packet& Packet::operator=(Packet&& other) {
     _payloadCapacity = other._payloadCapacity;
 
     _payloadSize = other._payloadSize;
+    
+    _senderSockAddr = std::move(other._senderSockAddr);
+    
+    if (other.isOpen() && !isOpen()) {
+        open(other.openMode());
+    }
+    
+    seek(other.pos());
 
     return *this;
 }
