@@ -160,29 +160,29 @@ NLPacket& NLPacket::operator=(NLPacket&& other) {
 }
 
 PacketType NLPacket::typeInHeader(const udt::Packet& packet) {
-    auto headerOffset = packet.Packet::localHeaderSize();
+    auto headerOffset = packet.Packet::totalHeadersSize();
     return *reinterpret_cast<const PacketType*>(packet.getData() + headerOffset);
 }
 
 PacketVersion NLPacket::versionInHeader(const udt::Packet& packet) {
-    auto headerOffset = packet.Packet::localHeaderSize();
+    auto headerOffset = packet.Packet::totalHeadersSize();
     return *reinterpret_cast<const PacketVersion*>(packet.getData() + headerOffset + sizeof(PacketType));
 }
 
 QUuid NLPacket::sourceIDInHeader(const udt::Packet& packet) {
-    int offset = packet.Packet::localHeaderSize() + sizeof(PacketType) + sizeof(PacketVersion);
+    int offset = packet.Packet::totalHeadersSize() + sizeof(PacketType) + sizeof(PacketVersion);
     return QUuid::fromRfc4122(QByteArray::fromRawData(packet.getData() + offset, NUM_BYTES_RFC4122_UUID));
 }
 
 QByteArray NLPacket::verificationHashInHeader(const udt::Packet& packet) {
-    int offset = packet.Packet::localHeaderSize() + sizeof(PacketType) + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
+    int offset = packet.Packet::totalHeadersSize() + sizeof(PacketType) + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
     return QByteArray(packet.getData() + offset, NUM_BYTES_MD5_HASH);
 }
 
 QByteArray NLPacket::hashForPacketAndSecret(const udt::Packet& packet, const QUuid& connectionSecret) {
     QCryptographicHash hash(QCryptographicHash::Md5);
     
-    int offset = packet.Packet::localHeaderSize() + sizeof(PacketType) + sizeof(PacketVersion)
+    int offset = packet.Packet::totalHeadersSize() + sizeof(PacketType) + sizeof(PacketVersion)
         + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
     
     // add the packet payload and the connection UUID
@@ -194,7 +194,7 @@ QByteArray NLPacket::hashForPacketAndSecret(const udt::Packet& packet, const QUu
 }
 
 void NLPacket::writeTypeAndVersion() {
-    auto headerOffset = Packet::localHeaderSize();
+    auto headerOffset = Packet::totalHeadersSize();
     
     // Pack the packet type
     memcpy(_packet.get() + headerOffset, &_type, sizeof(PacketType));
@@ -233,7 +233,7 @@ void NLPacket::readSourceID() {
 void NLPacket::writeSourceID(const QUuid& sourceID) {
     Q_ASSERT(!NON_SOURCED_PACKETS.contains(_type));
     
-    auto offset = Packet::localHeaderSize() + sizeof(PacketType) + sizeof(PacketVersion);
+    auto offset = Packet::totalHeadersSize() + sizeof(PacketType) + sizeof(PacketVersion);
     memcpy(_packet.get() + offset, sourceID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
     
     _sourceID = sourceID;
@@ -242,7 +242,7 @@ void NLPacket::writeSourceID(const QUuid& sourceID) {
 void NLPacket::writeVerificationHashGivenSecret(const QUuid& connectionSecret) {
     Q_ASSERT(!NON_SOURCED_PACKETS.contains(_type) && !NON_VERIFIED_PACKETS.contains(_type));
     
-    auto offset = Packet::localHeaderSize() + sizeof(PacketType) + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
+    auto offset = Packet::totalHeadersSize() + sizeof(PacketType) + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
     QByteArray verificationHash = hashForPacketAndSecret(*this, connectionSecret);
     
     memcpy(_packet.get() + offset, verificationHash.data(), verificationHash.size());
