@@ -1114,11 +1114,15 @@ void AvatarData::sendIdentityPacket() {
 void AvatarData::sendBillboardPacket() {
     if (!_billboard.isEmpty()) {
         auto nodeList = DependencyManager::get<NodeList>();
-
-        auto billboardPacket = NLPacket::create(PacketType::AvatarBillboard, _billboard.size());
-        billboardPacket->write(_billboard);
-
-        nodeList->broadcastToNodes(std::move(billboardPacket), NodeSet() << NodeType::AvatarMixer);
+        
+        // This makes sure the billboard won't be too large to send.
+        // Once more protocol changes are done and we can send blocks of data we can support sending > MTU sized billboards.
+        if (_billboard.size() <= NLPacket::maxPayloadSize(PacketType::AvatarBillboard)) {
+            auto billboardPacket = NLPacket::create(PacketType::AvatarBillboard, _billboard.size());
+            billboardPacket->write(_billboard);
+            
+            nodeList->broadcastToNodes(std::move(billboardPacket), NodeSet() << NodeType::AvatarMixer);
+        }
     }
 }
 

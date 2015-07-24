@@ -227,7 +227,7 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
     
     auto it = _packetListenerMap.find(nlPacket->getType());
     
-    if (it != _packetListenerMap.end()) {
+    if (it != _packetListenerMap.end() && it->second.isValid()) {
         
         auto listener = it.value();
         
@@ -282,6 +282,12 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
                     }
                 } else {
                     listenerIsDead = true;
+                    if (it == _packetListenerMap.end()) {
+                        qWarning() << "No listener found for packet type " << nameForPacketType(packet->getType());
+                        
+                        // insert a dummy listener so we don't print this again
+                        _packetListenerMap.insert(packet->getType(), { nullptr, QMetaMethod() });
+                    }
                 }
                 
             } else {

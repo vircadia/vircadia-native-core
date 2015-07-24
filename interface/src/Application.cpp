@@ -874,6 +874,30 @@ void Application::paintGL() {
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
     resizeGL();
 
+    // Before anything else, let's sync up the gpuContext with the true glcontext used in case anything happened
+    renderArgs._context->syncCache();
+ 
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+        auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
+        
+        renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
+        renderRearViewMirror(&renderArgs, _mirrorViewRect);
+        renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
+        
+        {
+            float ratio = ((float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale());
+            auto mirrorViewport = glm::ivec4(0, 0, _mirrorViewRect.width() * ratio, _mirrorViewRect.height() * ratio);
+            auto mirrorViewportDest = mirrorViewport;
+            
+            auto selfieFbo = DependencyManager::get<FramebufferCache>()->getSelfieFramebuffer();
+            gpu::Batch batch;
+            batch.setFramebuffer(selfieFbo);
+            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+            batch.blit(primaryFbo, mirrorViewport, selfieFbo, mirrorViewportDest);
+            batch.setFramebuffer(nullptr);
+            renderArgs._context->render(batch);
+        }
+    }
 
     {
         PerformanceTimer perfTimer("renderOverlay");
@@ -890,6 +914,9 @@ void Application::paintGL() {
         Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !(_myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN));
         Application::getInstance()->cameraMenuChanged();
     }
+
+    // The render mode is default or mirror if the camera is in mirror mode, assigned further below
+    renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         // Always use the default eye position, not the actual head eye position.
@@ -927,18 +954,13 @@ void Application::paintGL() {
                               glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) +
                               (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
                                glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
+        renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
     }
 
     // Update camera position
     if (!OculusManager::isConnected()) {
         _myCamera.update(1.0f / _fps);
     }
-
-    // Sync up the View Furstum with the camera
-    loadViewFrustum(_myCamera, _viewFrustum);
-
-
-    renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
 
     if (OculusManager::isConnected()) {
         //When in mirror mode, use camera rotation. Otherwise, use body rotation
@@ -951,47 +973,28 @@ void Application::paintGL() {
         TV3DManager::display(&renderArgs, _myCamera);
     } else {
         PROFILE_RANGE(__FUNCTION__ "/mainRender");
+        // Viewport is assigned to the size of the framebuffer
+        QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
+        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
 
-        {
-            gpu::Batch batch;
-            auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
-            batch.setFramebuffer(primaryFbo);
-            // clear the normal and specular buffers
-            batch.clearFramebuffer(
-                gpu::Framebuffer::BUFFER_COLOR0 |
-                gpu::Framebuffer::BUFFER_COLOR1 |
-                gpu::Framebuffer::BUFFER_COLOR2 |
-                gpu::Framebuffer::BUFFER_DEPTH,
-                vec4(vec3(0), 1), 1.0, 0.0);
-
-            // Viewport is assigned to the size of the framebuffer
-            QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
-            renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
-            batch.setViewportTransform(renderArgs._viewport);
-            renderArgs._context->render(batch);
-        }
 
         displaySide(&renderArgs, _myCamera);
 
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
-            renderRearViewMirror(&renderArgs, _mirrorViewRect);
-            renderArgs._renderMode = RenderArgs::NORMAL_RENDER_MODE;
-        }
-
         {
             auto geometryCache = DependencyManager::get<GeometryCache>();
-            auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
+            auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
             gpu::Batch batch;
             batch.blit(primaryFbo, glm::ivec4(0, 0, _renderResolution.x, _renderResolution.y),
                 nullptr, glm::ivec4(0, 0, _glWidget->getDeviceSize().width(), _glWidget->getDeviceSize().height()));
+
+            batch.setFramebuffer(nullptr);
+
             renderArgs._context->render(batch);
         }
 
         _compositor.displayOverlayTexture(&renderArgs);
     }
-
-
+    
     if (!OculusManager::isConnected() || OculusManager::allowSwap()) {
         PROFILE_RANGE(__FUNCTION__ "/bufferSwap");
         _glWidget->swapBuffers();
@@ -1001,6 +1004,7 @@ void Application::paintGL() {
         OculusManager::endFrameTiming();
     }
     _frameCount++;
+    _numFramesSinceLastResize++;    
     Stats::getInstance()->setRenderDetails(renderArgs._details);
 }
 
@@ -1054,6 +1058,7 @@ void Application::resizeGL() {
     }
 
     if (_renderResolution != toGlm(renderSize)) {
+        _numFramesSinceLastResize = 0;
         _renderResolution = toGlm(renderSize);
         DependencyManager::get<FramebufferCache>()->setFrameBufferSize(renderSize);
 
@@ -1067,7 +1072,6 @@ void Application::resizeGL() {
     auto canvasSize = _glWidget->size();
     offscreenUi->resize(canvasSize);
     _glWidget->makeCurrent();
-
 }
 
 bool Application::importSVOFromURL(const QString& urlString) {
@@ -1797,13 +1801,6 @@ void Application::idle() {
     }
     double timeSinceLastUpdate = (double)_lastTimeUpdated.nsecsElapsed() / 1000000.0;
     if (timeSinceLastUpdate > targetFramePeriod) {
-        
-        {
-            static const int IDLE_EVENT_PROCESS_MAX_TIME_MS = 2;
-            PerformanceTimer perfTimer("processEvents");
-            processEvents(QEventLoop::AllEvents, IDLE_EVENT_PROCESS_MAX_TIME_MS);
-        }
-        
         _lastTimeUpdated.start();
         {
             PerformanceTimer perfTimer("update");
@@ -1835,12 +1832,8 @@ void Application::idle() {
         // Once rendering is off on another thread we should be able to have Application::idle run at start(0) in
         // perpetuity and not expect events to get backed up.
         
-        static const int IDLE_TIMER_DELAY_MS = 0;
-        int desiredInterval = _glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : IDLE_TIMER_DELAY_MS;
-        
-        if (idleTimer->interval() != desiredInterval) {
-            idleTimer->start(desiredInterval);
-        }
+        static const int IDLE_TIMER_DELAY_MS = 2;
+        idleTimer->start(_glWidget->isThrottleRendering() ? THROTTLED_IDLE_TIMER_DELAY : IDLE_TIMER_DELAY_MS);
     }
 
     // check for any requested background downloads.
@@ -2317,23 +2310,21 @@ void Application::updateMyAvatarLookAtPosition() {
             lookAtSpot = _myAvatar->getHead()->getEyePosition() +
                 (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
         }
-    }
 
-    // Deflect the eyes a bit to match the detected gaze from Faceshift if active.
-    // DDE doesn't track eyes.
-    if (tracker && typeid(*tracker) == typeid(Faceshift) && !tracker->isMuted()) {
-        float eyePitch = tracker->getEstimatedEyePitch();
-        float eyeYaw = tracker->getEstimatedEyeYaw();
-        const float GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT = 0.1f;
-        glm::vec3 origin = _myAvatar->getHead()->getEyePosition();
-        float pitchSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? -1.0f : 1.0f;
-        float deflection = DependencyManager::get<Faceshift>()->getEyeDeflection();
-        if (isLookingAtSomeone) {
-            deflection *= GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT;
-        }
-        lookAtSpot = origin + _myCamera.getRotation() * glm::quat(glm::radians(glm::vec3(
-            eyePitch * pitchSign * deflection, eyeYaw * deflection, 0.0f))) *
+        // Deflect the eyes a bit to match the detected gaze from the face tracker if active.
+        if (tracker && !tracker->isMuted()) {
+            float eyePitch = tracker->getEstimatedEyePitch();
+            float eyeYaw = tracker->getEstimatedEyeYaw();
+            const float GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT = 0.1f;
+            glm::vec3 origin = _myAvatar->getHead()->getEyePosition();
+            float deflection = tracker->getEyeDeflection();
+            if (isLookingAtSomeone) {
+                deflection *= GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT;
+            }
+            lookAtSpot = origin + _myCamera.getRotation() * glm::quat(glm::radians(glm::vec3(
+                eyePitch * deflection, eyeYaw * deflection, 0.0f))) *
                 glm::inverse(_myCamera.getRotation()) * (lookAtSpot - origin);
+        }
     }
 
     _myAvatar->getHead()->setLookAtPosition(lookAtSpot);
@@ -2494,10 +2485,18 @@ void Application::update(float deltaTime) {
             _myAvatar->setDriveKeys(DOWN, _userInputMapper.getActionState(UserInputMapper::VERTICAL_DOWN));
             _myAvatar->setDriveKeys(LEFT, _userInputMapper.getActionState(UserInputMapper::LATERAL_LEFT));
             _myAvatar->setDriveKeys(RIGHT, _userInputMapper.getActionState(UserInputMapper::LATERAL_RIGHT));
-            _myAvatar->setDriveKeys(ROT_UP, _userInputMapper.getActionState(UserInputMapper::PITCH_UP));
-            _myAvatar->setDriveKeys(ROT_DOWN, _userInputMapper.getActionState(UserInputMapper::PITCH_DOWN));
-            _myAvatar->setDriveKeys(ROT_LEFT, _userInputMapper.getActionState(UserInputMapper::YAW_LEFT));
-            _myAvatar->setDriveKeys(ROT_RIGHT, _userInputMapper.getActionState(UserInputMapper::YAW_RIGHT));
+            if (deltaTime > FLT_EPSILON) {
+                // For rotations what we really want are meausures of "angles per second" (in order to prevent 
+                // fps-dependent spin rates) so we need to scale the units of the controller contribution.
+                // (TODO?: maybe we should similarly scale ALL action state info, or change the expected behavior 
+                // controllers to provide a delta_per_second value rather than a raw delta.)
+                const float EXPECTED_FRAME_RATE = 60.0f;
+                float timeFactor = EXPECTED_FRAME_RATE * deltaTime;
+                _myAvatar->setDriveKeys(ROT_UP, _userInputMapper.getActionState(UserInputMapper::PITCH_UP) / timeFactor);
+                _myAvatar->setDriveKeys(ROT_DOWN, _userInputMapper.getActionState(UserInputMapper::PITCH_DOWN) / timeFactor);
+                _myAvatar->setDriveKeys(ROT_LEFT, _userInputMapper.getActionState(UserInputMapper::YAW_LEFT) / timeFactor);
+                _myAvatar->setDriveKeys(ROT_RIGHT, _userInputMapper.getActionState(UserInputMapper::YAW_RIGHT) / timeFactor);
+            }
         }
         _myAvatar->setDriveKeys(BOOM_IN, _userInputMapper.getActionState(UserInputMapper::BOOM_IN));
         _myAvatar->setDriveKeys(BOOM_OUT, _userInputMapper.getActionState(UserInputMapper::BOOM_OUT));
@@ -2962,35 +2961,25 @@ PickRay Application::computePickRay(float x, float y) const {
     if (isHMDMode()) {
         getApplicationCompositor().computeHmdPickRay(glm::vec2(x, y), result.origin, result.direction);
     } else {
-        if (QThread::currentThread() == activeRenderingThread) {
-            getDisplayViewFrustum()->computePickRay(x, y, result.origin, result.direction);
-        } else {
-            getViewFrustum()->computePickRay(x, y, result.origin, result.direction);
-        }
+        getViewFrustum()->computePickRay(x, y, result.origin, result.direction);
     }
     return result;
 }
 
 QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
-    auto primaryFramebuffer = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
-    glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFramebuffer));
-
-    // clear the alpha channel so the background is transparent
-    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
-    glClearColor(0.0, 0.0, 0.0, 0.0);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
 
     const int BILLBOARD_SIZE = 64;
-    // TODO: Pass a RenderArgs to renderAvatarBillboard
-    renderRearViewMirror(renderArgs, QRect(0, _glWidget->getDeviceHeight() - BILLBOARD_SIZE,
-                               BILLBOARD_SIZE, BILLBOARD_SIZE),
-                         true);
-    QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
-    glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // Need to make sure the gl context is current here
+    _glWidget->makeCurrent();
+
+    renderArgs->_renderMode = RenderArgs::DEFAULT_RENDER_MODE;
+    renderRearViewMirror(renderArgs, QRect(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
+
+    auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
+    QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
+    renderArgs->_context->downloadFramebuffer(primaryFbo, glm::ivec4(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE), image);
+
     return image;
 }
 
@@ -3294,10 +3283,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         sceneInterface->setEngineFeedOverlay3DItems(engineRC->_numFeedOverlay3DItems);
         sceneInterface->setEngineDrawnOverlay3DItems(engineRC->_numDrawnOverlay3DItems);
     }
-    //Render the sixense lasers
-    if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
-        _myAvatar->renderLaserPointers(*renderArgs->_batch);
-    }
 
     if (!selfAvatarOnly) {
         // give external parties a change to hook in
@@ -3404,35 +3389,23 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     gpu::Vec4i viewport;
     if (billboard) {
         QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
-        viewport = gpu::Vec4i(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
+        viewport = gpu::Vec4i(0, 0, region.width(), region.height());
     } else {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
         QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
         float ratio = (float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale();
-        int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
-        viewport = gpu::Vec4i(x, size.height() - y - height, width, height);
+        int x = region.x() * ratio;
+        int y = region.y() * ratio;
+        int width = region.width() * ratio;
+        int height = region.height() * ratio;
+        viewport = gpu::Vec4i(0, 0, width, height);
     }
     renderArgs->_viewport = viewport;
-
-    {
-        gpu::Batch batch;
-        batch.setViewportTransform(viewport);
-        batch.setStateScissorRect(viewport);
-        batch.clearFramebuffer(
-            gpu::Framebuffer::BUFFER_COLOR0 |
-            gpu::Framebuffer::BUFFER_COLOR1 |
-            gpu::Framebuffer::BUFFER_COLOR2 |
-            gpu::Framebuffer::BUFFER_DEPTH,
-            vec4(vec3(0), 1), 1.0, 0.0, true);
-        // Viewport is assigned to the size of the framebuffer
-        renderArgs->_context->render(batch);
-    }
 
     // render rear mirror view
     displaySide(renderArgs, _mirrorCamera, true, billboard);
 
     renderArgs->_viewport =  originalViewport;
-
 }
 
 void Application::resetSensors() {

@@ -108,7 +108,6 @@ public:
     void blit(const FramebufferPointer& src, const Vec4i& srcViewport,
         const FramebufferPointer& dst, const Vec4i& dstViewport);
 
-
     // Query Section
     void beginQuery(const QueryPointer& query);
     void endQuery(const QueryPointer& query);
