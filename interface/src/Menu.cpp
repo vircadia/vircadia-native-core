@@ -487,14 +487,10 @@ Menu::Menu() {
 #endif
 
     MenuWrapper* networkMenu = developerMenu->addMenu("Network");
-<<<<<<< HEAD
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
-    addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::DisableNackPackets, 0, false);
-=======
     addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::DisableNackPackets, 0, false,
                                            qApp->getEntityEditPacketSender(),
                                            SLOT(toggleNackPackets()));
->>>>>>> f3dc159e336b7b580bbd39b367802b0099e66ccb
     addCheckableActionToQMenuAndActionHash(networkMenu,
                                            MenuOption::DisableActivityLogger,
                                            0,
