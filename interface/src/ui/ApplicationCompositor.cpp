@@ -283,14 +283,11 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
     batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));
 
     mat4 camMat;
-    _cameraTransform.getMatrix(camMat);
-    camMat = camMat * qApp->getEyeOffset(eye);
+    _cameraBaseTransform.getMatrix(camMat);
+    camMat = camMat * qApp->getEyePose(eye);
     batch.setViewTransform(camMat);
 
     batch.setProjectionTransform(qApp->getEyeProjection(eye));
-
-    mat4 eyePose = qApp->getEyePose(eye);
-    glm::mat4 overlayXfm = glm::inverse(eyePose);
 
 #ifdef DEBUG_OVERLAY
     {
@@ -313,6 +310,9 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
     bindCursorTexture(batch);
 
     //Controller Pointers
+    glm::mat4 overlayXfm;
+    _modelTransform.getMatrix(overlayXfm);
+
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     for (int i = 0; i < (int)myAvatar->getHand()->getNumPalms(); i++) {
         PalmData& palm = myAvatar->getHand()->getPalms()[i];
@@ -731,7 +731,7 @@ void ApplicationCompositor::updateTooltips() {
 }
 
 void ApplicationCompositor::update(float dt) {
-    const int ALPHA_FADE_RATE = 1.0f;
+    const int ALPHA_FADE_RATE = 2.0f;
     _prevAlpha = _alpha;
     if (_fadeInAlpha && _alpha < 1.0f) {
         _alpha = std::min(_alpha + ALPHA_FADE_RATE * dt, 1.0f);

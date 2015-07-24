@@ -942,13 +942,15 @@ void Application::paintGL() {
         // Using the latter will cause the camera to wobble with idle animations,
         // or with changes from the face tracker
 
-        _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
         if (!getActiveDisplayPlugin()->isHmd()) {
+            _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
             _myCamera.setRotation(_myAvatar->getHead()->getCameraOrientation());
         } else {
             // The plugin getModelview() call below will compose the base
-            // avatar transform with the HMD pose.
-            _myCamera.setRotation(_myAvatar->getOrientation());
+            // sensor to world transform with the HMD pose.
+            mat4 sensorToWorldMat = _myAvatar->getSensorToWorldMatrix();
+            _myCamera.setPosition(extractTranslation(sensorToWorldMat));
+            _myCamera.setRotation(glm::quat_cast(sensorToWorldMat));
         }
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         if (isHMDMode()) {
@@ -1683,7 +1685,7 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
         } else if (event->button() == Qt::RightButton) {
             // right click items here
-
+        } else if (event->button() == Qt::MiddleButton) {
             // toggle the overlay
             _overlayConductor.setEnabled(!_overlayConductor.getEnabled());
         }

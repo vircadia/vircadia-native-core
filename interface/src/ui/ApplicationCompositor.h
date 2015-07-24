@@ -64,8 +64,11 @@ public:
     void computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const;
     uint32_t getOverlayTexture() const;
 
-    void setCameraTransform(const Transform& transform) { _cameraTransform = transform; }
+    void setCameraBaseTransform(const Transform& transform) { _cameraBaseTransform = transform; }
+    const Transform& getCameraBaseTransform() const { return _cameraBaseTransform; }
+
     void setModelTransform(const Transform& transform) { _modelTransform = transform; }
+    const Transform& getModelTransform() const { return _modelTransform; }
 
     void fadeIn() { _fadeInAlpha = true; }
     void fadeOut() { _fadeInAlpha = false; }
@@ -127,7 +130,7 @@ private:
     glm::vec3 _previousMagnifierTopRight;
 
     Transform _modelTransform;
-    Transform _cameraTransform;
+    Transform _cameraBaseTransform;
 };
 
 #endif // hifi_ApplicationCompositor_h

@@ -9,6 +9,7 @@
 //
 
 #include "Application.h"
+#include "InterfaceLogging.h"
 #include "avatar/AvatarManager.h"
 
 #include "OverlayConductor.h"
@@ -29,18 +30,32 @@ void OverlayConductor::update(float dt) {
         // the camera is taken directly from the HMD.
         Transform identity;
         qApp->getApplicationCompositor().setModelTransform(identity);
-        Transform t;
-        t.evalFromRawMatrix(qApp->getHMDSensorPose());
-        qApp->getApplicationCompositor().setCameraTransform(t);
+        qApp->getApplicationCompositor().setCameraBaseTransform(identity);
         break;
     }
     case STANDING: {
         // when standing, the overlay is at a reference position, which is set when the overlay is
-        // enabled.  The camera is taken directly from the HMD in world space.
+        // enabled.  The camera is taken directly from the HMD, but in world space.
+        // So the sensorToWorldMatrix must be applied.
         MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
         Transform t;
-        t.evalFromRawMatrix(myAvatar->getSensorToWorldMatrix() * qApp->getHMDSensorPose());
-        qApp->getApplicationCompositor().setCameraTransform(t);
+        t.evalFromRawMatrix(myAvatar->getSensorToWorldMatrix());
+        qApp->getApplicationCompositor().setCameraBaseTransform(t);
+
+        // detect when head moves out side of sweet spot, or looks away.
+        mat4 headMat = myAvatar->getSensorToWorldMatrix() * qApp->getHMDSensorPose();
+        vec3 headWorldPos = extractTranslation(headMat);
+        vec3 headForward = glm::quat_cast(headMat) * glm::vec3(0.0f, 0.0f, -1.0f);
+        Transform modelXform = qApp->getApplicationCompositor().getModelTransform();
+        vec3 compositorWorldPos = modelXform.getTranslation();
+        vec3 compositorForward = modelXform.getRotation() * glm::vec3(0.0f, 0.0f, -1.0f);
+        const float MAX_COMPOSITOR_DISTANCE = 0.6f;
+        const float MAX_COMPOSITOR_ANGLE = 110.0f;
+        if (_enabled && (glm::distance(headWorldPos, compositorWorldPos) > MAX_COMPOSITOR_DISTANCE ||
+                         glm::dot(headForward, compositorForward) < cosf(glm::radians(MAX_COMPOSITOR_ANGLE)))) {
+            // fade out the overlay
+            setEnabled(false);
+        }
         break;
     }
     case FLAT:
@@ -48,8 +63,6 @@ void OverlayConductor::update(float dt) {
         break;
     }
 
-    // TODO: detect when head moves out side of sweet spot.
-    // TODO: set reference position when HMD is on, etc are changed.
 
     // process alpha fade animations
     qApp->getApplicationCompositor().update(dt);
