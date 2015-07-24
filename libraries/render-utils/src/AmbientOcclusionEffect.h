@@ -28,21 +28,38 @@ public:
     const gpu::PipelinePointer& getHBlurPipeline();
     const gpu::PipelinePointer& getVBlurPipeline();
     const gpu::PipelinePointer& getBlendPipeline();
+    const gpu::PipelinePointer& getAOResultPipeline();
 
 private:
+
+    // Uniforms for AO
+    gpu::int32 _gScaleLoc;
+    gpu::int32 _gBiasLoc;
+    gpu::int32 _gSampleRadiusLoc;
+    gpu::int32 _gIntensityLoc;
+    gpu::int32 _bufferWidthLoc;
+    gpu::int32 _bufferHeightLoc;
+    float g_scale;
+    float g_bias;
+    float g_sample_rad;
+    float g_intensity;
 
     gpu::PipelinePointer _occlusionPipeline;
     gpu::PipelinePointer _hBlurPipeline;
     gpu::PipelinePointer _vBlurPipeline;
     gpu::PipelinePointer _blendPipeline;
+    gpu::PipelinePointer _AOResultPipeline;
 
     gpu::FramebufferPointer _occlusionBuffer;
     gpu::FramebufferPointer _hBlurBuffer;
     gpu::FramebufferPointer _vBlurBuffer;
+    gpu::FramebufferPointer _blendBuffer;
 
     gpu::TexturePointer _occlusionTexture;
     gpu::TexturePointer _hBlurTexture;
     gpu::TexturePointer _vBlurTexture;
+    gpu::TexturePointer _blendTexture;
+
 };
 
 #endif // hifi_AmbientOcclusionEffect_h

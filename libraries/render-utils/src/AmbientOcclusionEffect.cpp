@@ -2,7 +2,7 @@
 //  AmbientOcclusionEffect.cpp
 //  interface/src/renderer
 //
-//  Created by Andrzej Kapolka on 7/14/13.
+//  Created by Niraj Venkat on 7/14/13.
 //  Copyright 2013 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -19,10 +19,11 @@
 #include <PathUtils.h>
 #include <SharedUtil.h>
 
-#include "AbstractViewStateInterface.h"
+#include "gpu/StandardShaderLib.h"
 #include "AmbientOcclusionEffect.h"
 #include "RenderUtil.h"
 #include "TextureCache.h"
+#include "FramebufferCache.h"
 #include "DependencyManager.h"
 #include "ViewFrustum.h"
 #include "GeometryCache.h"
@@ -34,9 +35,8 @@
 #include "gaussian_blur_frag.h"
 #include "occlusion_blend_vert.h"
 #include "occlusion_blend_frag.h"
-
-const int ROTATION_WIDTH = 4;
-const int ROTATION_HEIGHT = 4;
+//#include "occlusion_result_vert.h"
+#include "occlusion_result_frag.h"
 
 /*
 void AmbientOcclusionEffect::init(AbstractViewStateInterface* viewState) {
@@ -197,6 +197,8 @@ const gpu::PipelinePointer& AmbientOcclusion::getOcclusionPipeline() {
         _gBiasLoc = program->getUniforms().findLocation("g_bias");
         _gSampleRadiusLoc = program->getUniforms().findLocation("g_sample_rad");
         _gIntensityLoc = program->getUniforms().findLocation("g_intensity");
+        _bufferWidthLoc = program->getUniforms().findLocation("bufferWidth");
+        _bufferHeightLoc = program->getUniforms().findLocation("bufferHeight");
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
@@ -209,7 +211,7 @@ const gpu::PipelinePointer& AmbientOcclusion::getOcclusionPipeline() {
 
         // Link the occlusion FBO to texture
         _occlusionBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_RGBA_32,
-            DependencyManager::get<TextureCache>()->getFrameBufferSize().width(), DependencyManager::get<TextureCache>()->getFrameBufferSize().height()));
+            DependencyManager::get<FramebufferCache>()->getFrameBufferSize().width(), DependencyManager::get<FramebufferCache>()->getFrameBufferSize().height()));
         auto format = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
         auto width = _occlusionBuffer->getWidth();
         auto height = _occlusionBuffer->getHeight();
@@ -242,7 +244,7 @@ const gpu::PipelinePointer& AmbientOcclusion::getVBlurPipeline() {
 
         // Link the horizontal blur FBO to texture
         _vBlurBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_RGBA_32,
-            DependencyManager::get<TextureCache>()->getFrameBufferSize().width(), DependencyManager::get<TextureCache>()->getFrameBufferSize().height()));
+            DependencyManager::get<FramebufferCache>()->getFrameBufferSize().width(), DependencyManager::get<FramebufferCache>()->getFrameBufferSize().height()));
         auto format = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
         auto width = _vBlurBuffer->getWidth();
         auto height = _vBlurBuffer->getHeight();
@@ -275,7 +277,7 @@ const gpu::PipelinePointer& AmbientOcclusion::getHBlurPipeline() {
 
         // Link the horizontal blur FBO to texture
         _hBlurBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_RGBA_32,
-            DependencyManager::get<TextureCache>()->getFrameBufferSize().width(), DependencyManager::get<TextureCache>()->getFrameBufferSize().height()));
+            DependencyManager::get<FramebufferCache>()->getFrameBufferSize().width(), DependencyManager::get<FramebufferCache>()->getFrameBufferSize().height()));
         auto format = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
         auto width = _hBlurBuffer->getWidth();
         auto height = _hBlurBuffer->getHeight();
@@ -295,6 +297,9 @@ const gpu::PipelinePointer& AmbientOcclusion::getBlendPipeline() {
         gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
 
         gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("blurredOcclusionTexture"), 0));
+        slotBindings.insert(gpu::Shader::Binding(std::string("colorTexture"), 1));     
+
         gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
@@ -303,17 +308,16 @@ const gpu::PipelinePointer& AmbientOcclusion::getBlendPipeline() {
 
         // Blend on transparent
         state->setBlendFunction(true,
-            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-            gpu::State::DEST_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ZERO);
+            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
 
-        // Link the horizontal blur FBO to texture
-        _hBlurBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_RGBA_32,
-            DependencyManager::get<TextureCache>()->getFrameBufferSize().width(), DependencyManager::get<TextureCache>()->getFrameBufferSize().height()));
+        // Link the blend FBO to texture
+        _blendBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(gpu::Element::COLOR_RGBA_32,
+            DependencyManager::get<FramebufferCache>()->getFrameBufferSize().width(), DependencyManager::get<FramebufferCache>()->getFrameBufferSize().height()));
         auto format = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
-        auto width = _hBlurBuffer->getWidth();
-        auto height = _hBlurBuffer->getHeight();
+        auto width = _blendBuffer->getWidth();
+        auto height = _blendBuffer->getHeight();
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
-        _hBlurTexture = gpu::TexturePointer(gpu::Texture::create2D(format, width, height, defaultSampler));
+        _blendTexture = gpu::TexturePointer(gpu::Texture::create2D(format, width, height, defaultSampler));
 
         // Good to go add the brand new pipeline
         _blendPipeline.reset(gpu::Pipeline::create(program, state));
@@ -321,38 +325,67 @@ const gpu::PipelinePointer& AmbientOcclusion::getBlendPipeline() {
     return _blendPipeline;
 }
 
+const gpu::PipelinePointer& AmbientOcclusion::getAOResultPipeline() {
+    if (!_AOResultPipeline) {
+        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(ambient_occlusion_vert)));
+        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(occlusion_result_frag)));
+        gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        //gpu::ShaderPointer program = gpu::StandardShaderLib::getProgram(gpu::StandardShaderLib::getDrawTransformUnitQuadVS(), gpu::StandardShaderLib::getDrawTexturePS());
+
+        gpu::Shader::BindingSet slotBindings;
+        gpu::Shader::makeProgram(*program, slotBindings);
+
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+
+        state->setDepthTest(false, false, gpu::LESS_EQUAL);
+
+        // Blend on transparent
+        state->setBlendFunction(false,
+            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
+
+        // Good to go add the brand new pipeline
+        _AOResultPipeline.reset(gpu::Pipeline::create(program, state));
+    }
+    return _AOResultPipeline;
+}
+
 void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
-
-    // create a simple pipeline that does:
-
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
     RenderArgs* args = renderContext->args;
     auto& scene = sceneContext->_scene;
 
-    // Allright, something to render let's do it
     gpu::Batch batch;
 
     glm::mat4 projMat;
     Transform viewMat;
     args->_viewFrustum->evalProjectionMatrix(projMat);
     args->_viewFrustum->evalViewTransform(viewMat);
-    if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-        viewMat.postScale(glm::vec3(-1.0f, 1.0f, 1.0f));
-    }
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewMat);
     batch.setModelTransform(Transform());
 
     // Occlusion step
     getOcclusionPipeline();
-    batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getPrimaryDepthTexture());
-    batch.setResourceTexture(1, DependencyManager::get<TextureCache>()->getPrimaryNormalTexture());
+    batch.setResourceTexture(0, DependencyManager::get<FramebufferCache>()->getPrimaryDepthTexture());
+    batch.setResourceTexture(1, DependencyManager::get<FramebufferCache>()->getPrimaryNormalTexture());
     _occlusionBuffer->setRenderBuffer(0, _occlusionTexture);
     batch.setFramebuffer(_occlusionBuffer);
 
-    // bind the first gpu::Pipeline we need - for calculating occlusion buffer
+    // Occlusion uniforms
+    g_scale = 1.0f;
+    g_bias = 1.0f;
+    g_sample_rad = 1.0f;
+    g_intensity = 1.0f;
+
+    // Bind the first gpu::Pipeline we need - for calculating occlusion buffer
     batch.setPipeline(getOcclusionPipeline());
+    batch._glUniform1f(_gScaleLoc, g_scale);
+    batch._glUniform1f(_gBiasLoc, g_bias);
+    batch._glUniform1f(_gSampleRadiusLoc, g_sample_rad);
+    batch._glUniform1f(_gIntensityLoc, g_intensity);
+    batch._glUniform1f(_bufferWidthLoc, DependencyManager::get<FramebufferCache>()->getFrameBufferSize().width());
+    batch._glUniform1f(_bufferHeightLoc, DependencyManager::get<FramebufferCache>()->getFrameBufferSize().height());
 
     glm::vec4 color(0.0f, 0.0f, 0.0f, 1.0f);
     glm::vec2 bottomLeft(-1.0f, -1.0f);
@@ -367,7 +400,7 @@ void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, cons
     _vBlurBuffer->setRenderBuffer(0, _vBlurTexture);
     batch.setFramebuffer(_vBlurBuffer);
 
-    // bind the second gpu::Pipeline we need - for calculating blur buffer
+    // Bind the second gpu::Pipeline we need - for calculating blur buffer
     batch.setPipeline(getVBlurPipeline());
 
     DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color);
@@ -378,29 +411,38 @@ void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, cons
     _hBlurBuffer->setRenderBuffer(0, _hBlurTexture);
     batch.setFramebuffer(_hBlurBuffer);
 
-    // bind the third gpu::Pipeline we need - for calculating blur buffer
+    // Bind the third gpu::Pipeline we need - for calculating blur buffer
     batch.setPipeline(getHBlurPipeline());
 
     DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color);
 
-    // "Blend" step
-    batch.setResourceTexture(0, _occlusionTexture);
-    batch.setFramebuffer(DependencyManager::get<TextureCache>()->getPrimaryFramebuffer());
+    // Blend step
+    getBlendPipeline();
+    batch.setResourceTexture(0, _hBlurTexture);
+    batch.setResourceTexture(1, DependencyManager::get<FramebufferCache>()->getPrimaryColorTexture());
+    batch.setFramebuffer(_blendBuffer);
 
-    // bind the fourth gpu::Pipeline we need - for blending the primary framefuffer with blurred occlusion texture
+    // Bind the fourth gpu::Pipeline we need - for blending the primary color buffer with blurred occlusion texture
     batch.setPipeline(getBlendPipeline());
+
+    DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color);
+
+    // Final AO result step
+    getAOResultPipeline();
+    batch.setResourceTexture(0, _hBlurTexture);
+    batch.setFramebuffer(DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer());
+
+    // Bind the fifth gpu::Pipeline we need - for displaying the blended texture
+    batch.setPipeline(getAOResultPipeline());
 
     glm::vec2 bottomLeftSmall(0.5f, -1.0f);
     glm::vec2 topRightSmall(1.0f, -0.5f);
-    DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeftSmall, topRightSmall, texCoordTopLeft, texCoordBottomRight, color);
+    DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color);
     
     // Ready to render
     args->_context->syncCache();
-    renderContext->args->_context->syncCache();
     args->_context->render((batch));
 
     // need to fetch forom the z buffer and render something in a new render target a result that combine the z and produce a fake AO result
-
-
 
 }
