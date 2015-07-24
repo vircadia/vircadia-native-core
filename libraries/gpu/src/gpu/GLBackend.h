@@ -38,6 +38,10 @@ public:
     // Let's try to avoid to do that as much as possible!
     virtual void syncCache();
 
+    // This is the ugly "download the pixels to sysmem for taking a snapshot"
+    // Just avoid using it, it's ugly and will break performances
+    virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage);
+
     static bool checkGLError(const char* name = nullptr);
 
     // Only checks in debug builds
@@ -383,11 +387,14 @@ protected:
     void do_setFramebuffer(Batch& batch, uint32 paramOffset);
     void do_blit(Batch& batch, uint32 paramOffset);
 
-
+    // Synchronize the state cache of this Backend with the actual real state of the GL Context
+    void syncOutputStateCache();
+    
     struct OutputStageState {
 
         FramebufferPointer _framebuffer = nullptr;
-
+        GLuint _drawFBO = 0;
+        
         OutputStageState() {}
     } _output;
 

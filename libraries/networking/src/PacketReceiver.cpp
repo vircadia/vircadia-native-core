@@ -209,6 +209,7 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
     _inByteCount += nlPacket->getDataSize();
     
     SharedNodePointer matchingNode;
+    
     if (!nlPacket->getSourceID().isNull()) {
         matchingNode = nodeList->nodeWithUUID(nlPacket->getSourceID());
         
@@ -229,7 +230,7 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
         
         auto listener = it.value();
         
-        if (listener.first) {
+        if (listener.first && it->second.isValid()) {
             
             bool success = false;
             
@@ -272,10 +273,7 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
                                                     Q_ARG(QSharedPointer<NLPacket>,
                                                           QSharedPointer<NLPacket>(nlPacket.release())));
                     }
-                } else {
-                    listenerIsDead = true;
                 }
-                
             } else {
                 emit dataReceived(NodeType::Unassigned, nlPacket->getDataSize());
                 
@@ -303,7 +301,7 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
             _directConnectSetMutex.unlock();
         }
         
-    } else {
+    } else if (it == _packetListenerMap.end()) {
         qWarning() << "No listener found for packet type" << nlPacket->getType();
         
         // insert a dummy listener so we don't print this again
