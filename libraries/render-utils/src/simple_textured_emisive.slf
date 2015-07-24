@@ -27,7 +27,6 @@ void main(void) {
          normalize(interpolatedNormal.xyz),
          glowIntensity * texel.a,
          gl_Color.rgb,
-         gl_FrontMaterial.specular.rgb,
-         gl_FrontMaterial.shininess,
+         DEFAULT_SPECULAR, DEFAULT_SHININESS,
          texel.rgb);
 }

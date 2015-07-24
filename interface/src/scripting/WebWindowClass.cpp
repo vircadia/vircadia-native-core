@@ -142,3 +142,7 @@ QScriptValue WebWindowClass::constructor(QScriptContext* context, QScriptEngine*
 
     return engine->newQObject(retVal);
 }
+
+void WebWindowClass::setTitle(const QString& title) {
+    _windowWidget->setWindowTitle(title);
+}
