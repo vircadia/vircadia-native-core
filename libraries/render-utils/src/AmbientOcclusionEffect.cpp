@@ -21,7 +21,6 @@
 
 #include "gpu/StandardShaderLib.h"
 #include "AmbientOcclusionEffect.h"
-#include "RenderUtil.h"
 #include "TextureCache.h"
 #include "FramebufferCache.h"
 #include "DependencyManager.h"
