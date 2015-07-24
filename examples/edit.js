@@ -318,10 +318,14 @@ var toolBar = (function () {
                         print("Resize failed: timed out waiting for model (" + url + ") to load");
                     }
                 } else {
-                    entityProperties.dimensions = naturalDimensions;
-                    Entities.editEntity(entityId, entityProperties);
+                    Entities.editEntity(entityId, { dimensions: naturalDimensions });
+
+                    // Reset selection so that the selection overlays will be updated
+                    selectionManager.setSelections([entityId]);
                 }
             }
+
+            selectionManager.setSelections([entityId]);
 
             Script.setTimeout(resize, RESIZE_INTERVAL);
         } else {
