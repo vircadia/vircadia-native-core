@@ -20,6 +20,9 @@
 const int FPS_TIMER_DELAY = 2000;  // ms
 const int FPS_TIMER_DURATION = 2000;  // ms
 
+const float DEFAULT_EYE_DEFLECTION = 0.25f;
+Setting::Handle<float> FaceTracker::_eyeDeflection("faceshiftEyeDeflection", DEFAULT_EYE_DEFLECTION);
+
 void FaceTracker::init() {
     _isMuted = Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking);
     _isInitialized = true;  // FaceTracker can be used now
@@ -105,4 +108,8 @@ void FaceTracker::finishFPSTimer() {
 void FaceTracker::toggleMute() {
     _isMuted = !_isMuted;
     emit muteToggled();
+}
+
+void FaceTracker::setEyeDeflection(float eyeDeflection) {
+    _eyeDeflection.set(eyeDeflection);
 }
