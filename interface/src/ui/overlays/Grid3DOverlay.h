@@ -12,11 +12,6 @@
 #ifndef hifi_Grid3DOverlay_h
 #define hifi_Grid3DOverlay_h
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
-#include <ProgramObject.h>
-
 #include "Planar3DOverlay.h"
 
 class Grid3DOverlay : public Planar3DOverlay {
@@ -35,8 +30,6 @@ public:
 private:
     float _minorGridWidth;
     int _majorGridEvery;
-
-    static ProgramObject _gridProgram;
 };
 
 #endif // hifi_Grid3DOverlay_h

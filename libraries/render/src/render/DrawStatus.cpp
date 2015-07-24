@@ -9,20 +9,20 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "DrawStatus.h"
+
 #include <algorithm>
 #include <assert.h>
 
-#include "DrawStatus.h"
-
 #include <PerfStat.h>
-#include "gpu/GPULogging.h"
 
+#include <gpu/Batch.h>
+#include <gpu/Context.h>
+#include <gpu/GPUConfig.h>
+#include <gpu/GPULogging.h>
 
-#include "gpu/Batch.h"
-#include "gpu/Context.h"
-
-#include "ViewFrustum.h"
-#include "RenderArgs.h"
+#include <ViewFrustum.h>
+#include <RenderArgs.h>
 
 #include "drawItemBounds_vert.h"
 #include "drawItemBounds_frag.h"
@@ -45,7 +45,7 @@ const gpu::PipelinePointer& DrawStatus::getDrawItemBoundsPipeline() {
         _drawItemBoundPosLoc = program->getUniforms().findLocation("inBoundPos");
         _drawItemBoundDimLoc = program->getUniforms().findLocation("inBoundDim");
 
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        auto state = std::make_shared<gpu::State>();
 
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
 
@@ -73,7 +73,7 @@ const gpu::PipelinePointer& DrawStatus::getDrawItemStatusPipeline() {
         _drawItemStatusDimLoc = program->getUniforms().findLocation("inBoundDim");
         _drawItemStatusValueLoc = program->getUniforms().findLocation("inStatus");
 
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        auto state = std::make_shared<gpu::State>();
 
         state->setDepthTest(false, false, gpu::LESS_EQUAL);
 
@@ -98,10 +98,10 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
     int nbItems = 0;
     {
         if (!_itemBounds) {
-            _itemBounds.reset(new gpu::Buffer());
+            _itemBounds = std::make_shared<gpu::Buffer>();
         }
         if (!_itemStatus) {
-            _itemStatus.reset(new gpu::Buffer());
+            _itemStatus = std::make_shared<gpu::Buffer>();;
         }
 
         _itemBounds->resize((inItems.size() * sizeof(AABox)));

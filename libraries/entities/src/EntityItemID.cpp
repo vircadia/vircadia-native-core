@@ -12,7 +12,7 @@
 #include <QtCore/QObject>
 #include <QDebug>
 #include <BufferParser.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 
 #include "RegisteredMetaTypes.h"
 #include "EntityItemID.h"

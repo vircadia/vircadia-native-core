@@ -11,7 +11,7 @@
 
 #include "ModelOverlay.h"
 
-#include <Application.h>
+#include "Application.h"
 
 ModelOverlay::ModelOverlay()
     : _model(),

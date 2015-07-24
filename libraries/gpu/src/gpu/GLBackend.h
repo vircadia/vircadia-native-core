@@ -38,15 +38,6 @@ public:
     // Let's try to avoid to do that as much as possible!
     virtual void syncCache();
 
-    // Render Batch create a local Context and execute the batch with it
-    // WARNING:
-    // if syncCache is true, then the gpu::GLBackend will synchornize
-    // its cache with the current gl state and it's BAD
-    // If you know you don't rely on any state changed by naked gl calls then
-    // leave to false where it belongs
-    // if true, the needed resync IS EXPENSIVE
-    static void renderBatch(Batch& batch, bool syncCache = false);
-
     static bool checkGLError(const char* name = nullptr);
 
     // Only checks in debug builds
@@ -106,10 +97,6 @@ public:
     };
     static GLShader* syncGPUObject(const Shader& shader);
     static GLuint getShaderID(const ShaderPointer& shader);
-
-    // FIXME: Please remove these 2 calls once the text renderer doesn't use naked gl calls anymore
-    static void loadMatrix(GLenum target, const glm::mat4 & m);
-    static void fetchMatrix(GLenum target, glm::mat4 & m);
 
     class GLState : public GPUObject {
     public:
@@ -350,6 +337,7 @@ protected:
     // Pipeline Stage
     void do_setPipeline(Batch& batch, uint32 paramOffset);
     void do_setStateBlendFactor(Batch& batch, uint32 paramOffset);
+    void do_setStateScissorRect(Batch& batch, uint32 paramOffset);
     
     // Standard update pipeline check that the current Program and current State or good to go for a
     void updatePipeline();
@@ -393,6 +381,8 @@ protected:
 
     // Output stage
     void do_setFramebuffer(Batch& batch, uint32 paramOffset);
+    void do_blit(Batch& batch, uint32 paramOffset);
+
 
     struct OutputStageState {
 
@@ -448,7 +438,6 @@ protected:
 
     typedef void (GLBackend::*CommandCall)(Batch&, uint32);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];
-
 };
 
 

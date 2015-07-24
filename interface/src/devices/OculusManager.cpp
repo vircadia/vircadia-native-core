@@ -10,16 +10,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "InterfaceConfig.h"
 #include "OculusManager.h"
-#include "ui/overlays/Text3DOverlay.h"
+#include <gpu/GPUConfig.h>
 
-#include <CursorManager.h>
 #include <QDesktopWidget>
 #include <QGuiApplication>
 #include <QScreen>
 #include <QOpenGLTimerQuery>
+#include <QGLWidget>
 
+#include <CursorManager.h>
 #include <glm/glm.hpp>
 
 #include <avatar/AvatarManager.h>
@@ -30,11 +30,13 @@
 #include <PathUtils.h>
 #include <SharedUtil.h>
 #include <UserActivityLogger.h>
+#include <FramebufferCache.h>
 
 #include <OVR_CAPI_GL.h>
 
 #include "InterfaceLogging.h"
 #include "Application.h"
+#include "ui/overlays/Text3DOverlay.h"
 
 template <typename Function>
 void for_each_eye(Function function) {
@@ -397,6 +399,8 @@ void OculusManager::connect(QOpenGLContext* shareContext) {
     int configResult = ovrHmd_ConfigureRendering(_ovrHmd, &cfg.Config,
         distortionCaps, _eyeFov, _eyeRenderDesc);
     assert(configResult);
+    Q_UNUSED(configResult);
+    
     _outputWindow->doneCurrent();
 
     for_each_eye([&](ovrEyeType eye) {
@@ -643,15 +647,9 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
         return;
     }
 
-    auto primaryFBO = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+    auto primaryFBO = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
     glBindFramebuffer(GL_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFBO));
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
 
     glm::quat orientation;
     glm::vec3 trackerPosition;
@@ -696,12 +694,6 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
         configureCamera(*_camera);
         _camera->update(1.0f / Application::getInstance()->getFps());
 
-        glMatrixMode(GL_PROJECTION);
-        glLoadMatrixf(glm::value_ptr(_camera->getProjection()));
-
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
-
         ovrRecti & vp = _eyeViewports[eye];
         vp.Size.h = _recommendedTexSize.h * _offscreenRenderScale;
         vp.Size.w = _recommendedTexSize.w * _offscreenRenderScale;
@@ -714,14 +706,9 @@ void OculusManager::display(QGLWidget * glCanvas, RenderArgs* renderArgs, const 
     });
     _activeEye = ovrEye_Count;
 
-    glPopMatrix();
-
     gpu::FramebufferPointer finalFbo;
-    finalFbo = DependencyManager::get<TextureCache>()->getPrimaryFramebuffer();
+    finalFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
 
     // restore our normal viewport
     glViewport(0, 0, deviceSize.width(), deviceSize.height());

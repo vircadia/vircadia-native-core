@@ -11,8 +11,6 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <gpu/GPUConfig.h>
-
 #include <QJsonDocument>
 
 #include <AbstractViewStateInterface.h>
@@ -26,7 +24,7 @@
 #include "RenderableModelEntityItem.h"
 
 EntityItemPointer RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new RenderableModelEntityItem(entityID, properties));
+    return std::make_shared<RenderableModelEntityItem>(entityID, properties);
 }
 
 RenderableModelEntityItem::~RenderableModelEntityItem() {
@@ -192,8 +190,8 @@ bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_p
 
     _myMetaItem = scene->allocateID();
     
-    auto renderData = RenderableModelEntityItemMeta::Pointer(new RenderableModelEntityItemMeta(self));
-    auto renderPayload = render::PayloadPointer(new RenderableModelEntityItemMeta::Payload(renderData));
+    auto renderData = std::make_shared<RenderableModelEntityItemMeta>(self);
+    auto renderPayload = std::make_shared<RenderableModelEntityItemMeta::Payload>(renderData);
     
     pendingChanges.resetItem(_myMetaItem, renderPayload);
     

@@ -19,6 +19,7 @@
 #include <NetworkPeer.h>
 #include <HTTPConnection.h>
 #include <HTTPManager.h>
+#include <udt/Packet.h>
 
 typedef QHash<QUuid, SharedNetworkPeer> NetworkPeerHash;
 
@@ -32,7 +33,7 @@ private slots:
     void clearInactivePeers();
 private:
 
-    SharedNetworkPeer addOrUpdateHeartbeatingPeer(const QByteArray& incomingPacket);
+    SharedNetworkPeer addOrUpdateHeartbeatingPeer(Packet& incomingPacket);
     void sendPeerInformationPacket(const NetworkPeer& peer, const HifiSockAddr* destinationSockAddr);
 
     QUuid _id;

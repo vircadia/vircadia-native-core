@@ -29,7 +29,7 @@ EntityItemPointer LightEntityItem::factory(const EntityItemID& entityID, const E
 
 // our non-pure virtual subclass for now...
 LightEntityItem::LightEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties) 
+        EntityItem(entityItemID) 
 {
     _type = EntityTypes::Light;
     
