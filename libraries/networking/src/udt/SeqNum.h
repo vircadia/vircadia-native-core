@@ -12,6 +12,8 @@
 #ifndef hifi_SeqNum_h
 #define hifi_SeqNum_h
 
+#include <functional>
+
 #include <glm/detail/func_common.hpp>
 
 namespace udt {
@@ -26,9 +28,11 @@ public:
     static const Type MAX = 0x1FFFFFFF; // maximum sequence number used in UDT
     
     SeqNum() : _value(0) {}
+    SeqNum(const SeqNum& other) : _value(other._value) {}
     
     // Only explicit conversions
-    explicit SeqNum(Type value) { *this = value; }
+    explicit SeqNum(char* value) { _value = (*reinterpret_cast<int32_t*>(value)) & MAX; }
+    explicit SeqNum(Type value) { _value = (value <= MAX) ? value : MAX; }
     explicit operator Type() { return _value; }
     
     inline SeqNum& operator++() {
@@ -50,11 +54,7 @@ public:
         return before;
     }
     
-    inline SeqNum& operator=(Type value) {
-        _value = (value <= MAX) ? value : MAX;
-        return *this;
-    }
-    inline SeqNum& operator=(SeqNum& other) {
+    inline SeqNum& operator=(const SeqNum& other) {
         _value = other._value;
         return *this;
     }
@@ -67,18 +67,37 @@ public:
         return *this;
     }
     
+    inline bool operator==(const SeqNum& other) const {
+        return _value == other._value;
+    }
+    inline bool operator!=(const SeqNum& other) const {
+         return _value != other._value;
+    }
+    
     friend int seqcmp(const SeqNum& seq1, const SeqNum& seq2);
     friend int seqlen(const SeqNum& seq1, const SeqNum& seq2);
     friend int seqoff(const SeqNum& seq1, const SeqNum& seq2);
     
 private:
     Type _value;
+    
+    friend struct std::hash<SeqNum>;
 };
     
 int seqcmp(const SeqNum& seq1, const SeqNum& seq2);
 int seqlen(const SeqNum& seq1, const SeqNum& seq2);
 int seqoff(const SeqNum& seq1, const SeqNum& seq2);
+    
+}
 
+namespace std {
+    
+template<> struct hash<udt::SeqNum> {
+    size_t operator()(const udt::SeqNum& seqNum) const {
+        return std::hash<unsigned long>()(seqNum._value);
+    }
+};
+    
 }
 
 #endif // hifi_SeqNum_h
