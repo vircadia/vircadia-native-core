@@ -16,6 +16,13 @@
 
 #include "gpu/Pipeline.h"
 
+class SetupDeferred {
+public:
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+
+    typedef render::Job::Model<SetupDeferred> JobModel;
+};
+
 class PrepareDeferred {
 public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);

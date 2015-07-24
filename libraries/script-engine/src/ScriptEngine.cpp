@@ -46,13 +46,21 @@
 
 
 static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
-    qCDebug(scriptengine) << "script:print()<<" << context->argument(0).toString();
-    QString message = context->argument(0).toString()
-        .replace("\\", "\\\\")
-        .replace("\n", "\\n")
-        .replace("\r", "\\r")
-        .replace("'", "\\'");
+    QString message = "";
+    for (int i = 0; i < context->argumentCount(); i++) {
+        if (i > 0) {
+            message += " ";
+        }
+        message += context->argument(i).toString();
+    }
+    qCDebug(scriptengine) << "script:print()<<" << message;
+
+    message = message.replace("\\", "\\\\")
+                     .replace("\n", "\\n")
+                     .replace("\r", "\\r")
+                     .replace("'", "\\'");
     engine->evaluate("Script.print('" + message + "')");
+
     return QScriptValue();
 }
 

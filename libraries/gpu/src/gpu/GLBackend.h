@@ -38,14 +38,9 @@ public:
     // Let's try to avoid to do that as much as possible!
     virtual void syncCache();
 
-    // Render Batch create a local Context and execute the batch with it
-    // WARNING:
-    // if syncCache is true, then the gpu::GLBackend will synchornize
-    // its cache with the current gl state and it's BAD
-    // If you know you don't rely on any state changed by naked gl calls then
-    // leave to false where it belongs
-    // if true, the needed resync IS EXPENSIVE
-    static void renderBatch(Batch& batch, bool syncCache = false);
+    // This is the ugly "download the pixels to sysmem for taking a snapshot"
+    // Just avoid using it, it's ugly and will break performances
+    virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage);
 
     static bool checkGLError(const char* name = nullptr);
 
@@ -392,11 +387,14 @@ protected:
     void do_setFramebuffer(Batch& batch, uint32 paramOffset);
     void do_blit(Batch& batch, uint32 paramOffset);
 
-
+    // Synchronize the state cache of this Backend with the actual real state of the GL Context
+    void syncOutputStateCache();
+    
     struct OutputStageState {
 
         FramebufferPointer _framebuffer = nullptr;
-
+        GLuint _drawFBO = 0;
+        
         OutputStageState() {}
     } _output;
 

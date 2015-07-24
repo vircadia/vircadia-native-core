@@ -307,7 +307,7 @@ const gpu::PipelinePointer& AmbientOcclusion::getBlendPipeline() {
         state->setDepthTest(false, false, gpu::LESS_EQUAL);
 
         // Blend on transparent
-        state->setBlendFunction(true,
+        state->setBlendFunction(false,
             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
 
         // Link the blend FBO to texture
@@ -429,7 +429,7 @@ void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, cons
 
     // Final AO result step
     getAOResultPipeline();
-    batch.setResourceTexture(0, _hBlurTexture);
+    batch.setResourceTexture(0, _blendTexture);
     batch.setFramebuffer(DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer());
 
     // Bind the fifth gpu::Pipeline we need - for displaying the blended texture

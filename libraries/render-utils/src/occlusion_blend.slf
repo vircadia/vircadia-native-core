@@ -22,12 +22,12 @@ uniform sampler2D colorTexture;
 void main(void) {
     vec4 occlusionColor = texture2D(blurredOcclusionTexture, varTexcoord);
     vec4 currentColor = texture2D(colorTexture, varTexcoord);
-    
+    /*
     if(occlusionColor.r == 1.0) {
         gl_FragColor = currentColor;
     }
     else {
         gl_FragColor = mix(occlusionColor, currentColor, 0.5);
-    }
-    gl_FragColor = occlusionColor;
+    }*/
+    gl_FragColor = currentColor;
 }
