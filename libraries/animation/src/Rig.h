@@ -57,11 +57,22 @@ public:
     RigPointer getRigPointer() { return shared_from_this(); }
 
     AnimationHandlePointer createAnimationHandle();
+    void removeAnimationHandle(const AnimationHandlePointer& handle);
     bool removeRunningAnimation(AnimationHandlePointer animationHandle);
     void addRunningAnimation(AnimationHandlePointer animationHandle);
     bool isRunningAnimation(AnimationHandlePointer animationHandle);
     const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
     void deleteAnimations();
+    const QList<AnimationHandlePointer>& getAnimationHandles() const { return _animationHandles; }
+    void startAnimation(const QString& url, float fps = 30.0f, float priority = 1.0f, bool loop = false,
+                        bool hold = false, float firstFrame = 0.0f, float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList());
+    void stopAnimation(const QString& url);
+    void startAnimationByRole(const QString& role, const QString& url = QString(), float fps = 30.0f,
+                              float priority = 1.0f, bool loop = false, bool hold = false, float firstFrame = 0.0f,
+                              float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList());
+    void stopAnimationByRole(const QString& role);
+    void addAnimationByRole(const QString& role, const QString& url, float fps, float priority,
+                            bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints, bool startAutomatically);
 
     float initJointStates(QVector<JointState> states, glm::mat4 parentTransform, int neckJointIndex);
     bool jointStatesEmpty() { return _jointStates.isEmpty(); };
@@ -124,7 +135,7 @@ public:
  protected:
     QVector<JointState> _jointStates;
 
-    QSet<AnimationHandlePointer> _animationHandles;
+    QList<AnimationHandlePointer> _animationHandles;
     QList<AnimationHandlePointer> _runningAnimations;
 
     JointState maybeCauterizeHead(int jointIndex) const;
