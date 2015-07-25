@@ -880,9 +880,6 @@ void Application::initializeUi() {
         }
     });
     
-    // This will prevent the hid_init sixense crash
-    getActiveDisplayPlugin();
-    
     // This will set up the input plugins UI
     _activeInputPlugins.clear();
     auto inputPlugins = getInputPlugins();
