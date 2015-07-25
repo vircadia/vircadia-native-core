@@ -1463,11 +1463,9 @@ QByteArray fileOnUrl(const QByteArray filenameString,const QString url) {
     if (checkFile.exists() && checkFile.isFile()) {
         filename = filename.replace('\\', '/');
     } else {
-        // there is not texture at the filename. Assume it is in the root dir.
+        // there is no texture at the fbx dir with the filename added. Assume it is in the fbx dir.
         filename = filename.mid(qMax(filename.lastIndexOf('\\'), filename.lastIndexOf('/')) + 1);
     }
-    filename = filename.mid(qMax(filename.lastIndexOf('\\'), filename.lastIndexOf('/')) + 1);
-    filename = filename.replace('\\', '/');
     return filename;
 }
 
