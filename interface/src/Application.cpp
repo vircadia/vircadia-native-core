@@ -535,21 +535,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     container->setFocus();
     container->installEventFilter(DependencyManager::get<OffscreenUi>().data());
 
-    // Necessary to call this here so Oculus can get inited before Sixense
-    getDisplayPlugins();
-    
-    // must be before initializeGL()
-    _activeInputPlugins.clear();
-    auto inputPlugins = getInputPlugins();
-    foreach(auto inputPlugin, inputPlugins) {
-        QString name = inputPlugin->getName();
-        if (name == KeyboardMouseDevice::NAME) {
-            _keyboardMouseDevice = static_cast<KeyboardMouseDevice*>(inputPlugin.data()); // TODO: this seems super hacky
-            break;
-        }
-    }
-    updateInputModes();
-
     _offscreenContext->makeCurrent();
     initializeGL();
     // initialization continues in initializeGL when OpenGL context is ready
@@ -894,6 +879,20 @@ void Application::initializeUi() {
             resizeGL();
         }
     });
+    
+    // This will prevent the hid_init sixense crash
+    getActiveDisplayPlugin();
+    
+    // This will set up the input plugins UI
+    _activeInputPlugins.clear();
+    auto inputPlugins = getInputPlugins();
+    foreach(auto inputPlugin, inputPlugins) {
+        QString name = inputPlugin->getName();
+        if (name == KeyboardMouseDevice::NAME) {
+            _keyboardMouseDevice = static_cast<KeyboardMouseDevice*>(inputPlugin.data()); // TODO: this seems super hacky
+        }
+    }
+    updateInputModes();
 }
 
 template<typename F>

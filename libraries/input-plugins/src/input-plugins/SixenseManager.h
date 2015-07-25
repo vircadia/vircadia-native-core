@@ -84,8 +84,6 @@ public:
     UserInputMapper::Input makeInput(JoystickAxisChannel axis, int index);
     UserInputMapper::Input makeInput(JointChannel joint);
 
-    static const QString NAME;
-
 public slots:
     void setFilter(bool filter);
 
@@ -120,6 +118,8 @@ private:
     bool _hydrasConnected;
 
     bool _invertButtons = DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS;
+
+    static const QString NAME;
 };
 
 #endif // hifi_SixenseManager_h
