@@ -17,10 +17,10 @@ Script.include([
 ]);
 
 var BG_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/card-bg.svg";
-var CLOSE_IMAGE_URL = "file:///Users/zander/Desktop/assets/close.svg";
-var MIC_IMAGE_URL = "file:///Users/zander/Desktop/assets/mic-composite.svg";
-var FACE_IMAGE_URL = "file:///Users/zander/Desktop/assets/face-composite.svg";
-var ADDRESS_BAR_IMAGE_URL = "file:///Users/zander/Desktop/assets/address-bar-composite.svg";
+var CLOSE_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/close.svg";
+var MIC_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/mic-toggle.svg";
+var FACE_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/face-toggle.svg";
+var ADDRESS_BAR_IMAGE_URL = HIFI_PUBLIC_BUCKET + "images/address-bar-toggle.svg";
 
 var panel = new FloatingUIPanel({
     anchorPosition: {
@@ -36,7 +36,6 @@ var background = new BillboardOverlay({
         y: 0.5,
     },
     isFacingAvatar: false,
-    visible: true,
     alpha: 1.0,
     ignoreRayIntersection: false
 });
@@ -49,7 +48,6 @@ var closeButton = new BillboardOverlay({
         y: 0.15,
     },
     isFacingAvatar: false,
-    visible: true,
     alpha: 1.0,
     ignoreRayIntersection: false,
     offsetPosition: {
@@ -76,7 +74,6 @@ var micMuteButton = new BillboardOverlay({
         y: 0.15,
     },
     isFacingAvatar: false,
-    visible: true,
     alpha: 1.0,
     ignoreRayIntersection: false,
     offsetPosition: {
@@ -103,7 +100,6 @@ var faceMuteButton = new BillboardOverlay({
         y: 0.15,
     },
     isFacingAvatar: false,
-    visible: true,
     alpha: 1.0,
     ignoreRayIntersection: false,
     offsetPosition: {
@@ -130,7 +126,6 @@ var addressBarButton = new BillboardOverlay({
         y: 0.15,
     },
     isFacingAvatar: false,
-    visible: true,
     alpha: 1.0,
     ignoreRayIntersection: false,
     offsetPosition: {
@@ -198,7 +193,7 @@ function onMouseUp(event) {
     }
     if (isRightClick && event.isRightButton) {
         panel.setProperties({
-            visible: true,
+            visible: !panel.visible,
             offsetRotation: {
                 bind: "quat",
                 value: Quat.multiply(MyAvatar.orientation, { x: 0, y: 1, z: 0, w: 0 })
@@ -210,7 +205,6 @@ function onMouseUp(event) {
 
 function onScriptEnd(event) {
     panel.destroy();
-    panel2.destroy();
 }
 
 Controller.mousePressEvent.connect(onMouseDown);
