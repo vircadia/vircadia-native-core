@@ -267,9 +267,8 @@ glm::mat4 MyAvatar::getSensorToWorldMatrix() const {
     }
 }
 
-// best called at end of main loop, just before rendering.
-// update sensor to world matrix from current body position and hmd sensor.
-// This is so the correct camera can be used for rendering.
+// best called at start of main loop just after we have a fresh hmd pose.
+// update internal body position from new hmd pose.
 void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     // update the sensorMatrices based on the new hmd pose
     _hmdSensorMatrix = hmdSensorMatrix;
