@@ -112,7 +112,9 @@ bool raySphereIntersect(const glm::vec3 &dir, const glm::vec3 &origin, float r, 
     }
 }
 
-ApplicationCompositor::ApplicationCompositor() {
+ApplicationCompositor::ApplicationCompositor() :
+    _alphaPropertyAnimation(new QPropertyAnimation(this, "alpha"))
+{
     memset(_reticleActive, 0, sizeof(_reticleActive));
     memset(_magActive, 0, sizeof(_reticleActive));
     memset(_magSizeMult, 0, sizeof(_magSizeMult));

@@ -83,7 +83,7 @@ public:
     UserInputMapper::Input makeInput(unsigned int button, int index);
     UserInputMapper::Input makeInput(JoystickAxisChannel axis, int index);
     UserInputMapper::Input makeInput(JointChannel joint);
-    
+
 public slots:
     void setFilter(bool filter);
 

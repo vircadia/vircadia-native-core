@@ -56,7 +56,7 @@ void Oculus_0_5_DisplayPlugin::activate(PluginContainer * container) {
     if (!_hmd) {
         qFatal("Failed to acquire HMD");
     }
-
+    
     OculusBaseDisplayPlugin::activate(container);
 
     _window->makeCurrent();
@@ -104,7 +104,7 @@ void Oculus_0_5_DisplayPlugin::deactivate(PluginContainer* container) {
     _hmdWindow = nullptr;
 
     OculusBaseDisplayPlugin::deactivate(container);
-
+    
     ovrHmd_Destroy(_hmd);
     _hmd = nullptr;
     ovr_Shutdown();

@@ -28,7 +28,7 @@ static void addInputPluginToMenu(InputPluginPointer inputPlugin, bool active = f
     }
     auto parent = menu->getMenu(MenuOption::InputMenu);
     auto action = menu->addCheckableActionToQMenuAndActionHash(parent,
-        name, 0, true, qApp,
+        name, 0, active, qApp,
         SLOT(updateInputModes()));
     inputPluginGroup->addAction(action);
     inputPluginGroup->setExclusive(false);
@@ -45,10 +45,7 @@ const InputPluginList& getInputPlugins() {
         InputPlugin* PLUGIN_POOL[] = {
             new KeyboardMouseDevice(),
             new SDL2Manager(),
-            // Sixense is causing some sort of memory corruption on OSX
-#ifndef Q_OS_MAC
             new SixenseManager(),
-#endif
             new ViveControllerManager(),
             nullptr
         };
