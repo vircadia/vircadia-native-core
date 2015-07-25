@@ -443,36 +443,57 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
             _skeletonModel.renderBoundingCollisionShapes(*renderArgs->_batch, 0.7f);
         }
 
-        // Stack indicator spheres
-        float indicatorOffset = 0.0f;
-        if (!_displayName.isEmpty() && _displayNameAlpha != 0.0f) {
-            const float DISPLAY_NAME_INDICATOR_OFFSET = 0.22f;
-            indicatorOffset = DISPLAY_NAME_INDICATOR_OFFSET;
-        }
-        const float INDICATOR_RADIUS = 0.03f;
-        const float INDICATOR_INDICATOR_OFFSET = 3.0f * INDICATOR_RADIUS;
-
         // If this is the avatar being looked at, render a little ball above their head
         if (_isLookAtTarget && Menu::getInstance()->isOptionChecked(MenuOption::RenderFocusIndicator)) {
+            const float INDICATOR_OFFSET = 0.22f;
+            const float INDICATOR_RADIUS = 0.03f;
             const glm::vec4 LOOK_AT_INDICATOR_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
-            glm::vec3 position = glm::vec3(_position.x, getDisplayNamePosition().y + indicatorOffset, _position.z);
+            glm::vec3 position = glm::vec3(_position.x, getDisplayNamePosition().y + INDICATOR_OFFSET, _position.z);
             Transform transform;
             transform.setTranslation(position);
             batch.setModelTransform(transform);
             DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, INDICATOR_RADIUS,
                 15, 15, LOOK_AT_INDICATOR_COLOR);
-            indicatorOffset += INDICATOR_INDICATOR_OFFSET;
         }
 
-        // If the avatar is looking at me, render an indication that they area
-        if (getHead()->getIsLookingAtMe() && Menu::getInstance()->isOptionChecked(MenuOption::ShowWhosLookingAtMe)) {
-            const glm::vec4 LOOKING_AT_ME_COLOR = { 0.8f, 0.65f, 0.0f, 0.1f };
-            glm::vec3 position = glm::vec3(_position.x, getDisplayNamePosition().y + indicatorOffset, _position.z);
-            Transform transform;
-            transform.setTranslation(position);
-            batch.setModelTransform(transform);
-            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, INDICATOR_RADIUS,
-                15, 15, LOOKING_AT_ME_COLOR);
+        // If the avatar is looking at me, indicate that they are
+        if (getHead()->isLookingAtMe() && Menu::getInstance()->isOptionChecked(MenuOption::ShowWhosLookingAtMe)) {
+            const glm::vec3 LOOKING_AT_ME_COLOR = { 1.0f, 1.0f, 1.0f };
+            const float LOOKING_AT_ME_ALPHA_START = 0.8f;
+            const float LOOKING_AT_ME_DURATION = 0.5f;  // seconds
+            quint64 now = usecTimestampNow();
+            float alpha = LOOKING_AT_ME_ALPHA_START 
+                * (1.0f - ((float)(usecTimestampNow() - getHead()->getLookingAtMeStarted()))
+                / (LOOKING_AT_ME_DURATION * (float)USECS_PER_SECOND));
+            if (alpha > 0.0f) {
+                QSharedPointer<NetworkGeometry> geometry = getHead()->getFaceModel().getGeometry();
+                if (geometry) {
+                    const float DEFAULT_EYE_DIAMETER = 0.048f;  // Typical human eye
+                    const float RADIUS_INCREMENT = 0.005f;
+                    Transform transform;
+
+                    glm::vec3 position = getHead()->getLeftEyePosition();
+                    transform.setTranslation(position);
+                    batch.setModelTransform(transform);
+                    float eyeDiameter = geometry->getFBXGeometry().leftEyeSize;
+                    if (eyeDiameter == 0.0f) {
+                        eyeDiameter = DEFAULT_EYE_DIAMETER;
+                    }
+                    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch,
+                        eyeDiameter * _scale / 2.0f + RADIUS_INCREMENT, 15, 15, glm::vec4(LOOKING_AT_ME_COLOR, alpha));
+
+                    position = getHead()->getRightEyePosition();
+                    transform.setTranslation(position);
+                    batch.setModelTransform(transform);
+                    eyeDiameter = geometry->getFBXGeometry().rightEyeSize;
+                    if (eyeDiameter == 0.0f) {
+                        eyeDiameter = DEFAULT_EYE_DIAMETER;
+                    }
+                    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch,
+                        eyeDiameter * _scale / 2.0f + RADIUS_INCREMENT, 15, 15, glm::vec4(LOOKING_AT_ME_COLOR, alpha));
+
+                }
+            }
         }
 
         // quick check before falling into the code below:
