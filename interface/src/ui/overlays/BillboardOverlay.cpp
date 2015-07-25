@@ -39,7 +39,7 @@ BillboardOverlay::BillboardOverlay(const BillboardOverlay* billboardOverlay) :
 {
 }
 
-void BillboardOverlay::setTransforms(Transform *transform) {
+void BillboardOverlay::setTransforms(Transform& transform) {
     PanelAttachable::setTransforms(transform);
     if (_isFacingAvatar) {
         glm::quat rotation = Application::getInstance()->getCamera()->getOrientation();
@@ -49,7 +49,7 @@ void BillboardOverlay::setTransforms(Transform *transform) {
 }
 
 void BillboardOverlay::update(float deltatime) {
-    setTransforms(&_transform);
+    setTransforms(_transform);
 }
 
 void BillboardOverlay::render(RenderArgs* args) {
@@ -98,7 +98,7 @@ void BillboardOverlay::render(RenderArgs* args) {
     xColor color = getColor();
     float alpha = getAlpha();
 
-    setTransforms(&_transform);
+    setTransforms(_transform);
     Transform transform = _transform;
     transform.postScale(glm::vec3(getDimensions(), 1.0f));
 
@@ -197,7 +197,7 @@ bool BillboardOverlay::findRayIntersection(const glm::vec3& origin, const glm::v
                                            float& distance, BoxFace& face) {
     if (_texture && _texture->isLoaded()) {
         // Make sure position and rotation is updated.
-        setTransforms(&_transform);
+        setTransforms(_transform);
 
         // Produce the dimensions of the billboard based on the image's aspect ratio and the overlay's scale.
         bool isNull = _fromImage.isNull();

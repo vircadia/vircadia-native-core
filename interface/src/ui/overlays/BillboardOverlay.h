@@ -43,7 +43,7 @@ public:
     virtual BillboardOverlay* createClone() const;
 
 protected:
-    void setTransforms(Transform* transform);
+    virtual void setTransforms(Transform& transform);
 
 private:
     void setBillboardURL(const QString& url);

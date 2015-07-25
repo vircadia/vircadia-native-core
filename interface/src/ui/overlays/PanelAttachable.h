@@ -34,7 +34,7 @@ public:
     void setProperties(const QScriptValue& properties);
 
 protected:
-    void setTransforms(Transform* transform);
+    virtual void setTransforms(Transform& transform);
 
 private:
     FloatingUIPanel::Pointer _attachedPanel;
