@@ -9,8 +9,6 @@
 
 #include "WindowOpenGLDisplayPlugin.h"
 
-class QGLWidget;
-
 class MainWindowOpenGLDisplayPlugin : public WindowOpenGLDisplayPlugin {
     Q_OBJECT
 public:

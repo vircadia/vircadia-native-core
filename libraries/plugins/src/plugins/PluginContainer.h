@@ -4,6 +4,7 @@
 #include <functional>
 
 class GlWindow;
+class QScreen;
 
 class PluginContainer {
 public:
@@ -14,4 +15,6 @@ public:
     virtual bool isOptionChecked(const QString& name) = 0;
     virtual void setIsOptionChecked(const QString& path, bool checked) = 0;
     virtual GlWindow* getVisibleWindow() = 0;
+    virtual void setFullscreen(const QScreen* targetScreen) = 0;
+    virtual void unsetFullscreen() = 0;
 };

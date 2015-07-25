@@ -18,6 +18,9 @@
 #include <QEvent>
 #include <QResizeEvent>
 #include <QOpenGLContext>
+#include <QGuiApplication>
+#include <QScreen>
+
 
 #include <OVR_CAPI_GL.h>
 
@@ -58,21 +61,24 @@ void Oculus_0_5_DisplayPlugin::activate(PluginContainer * container) {
     }
     
     OculusBaseDisplayPlugin::activate(container);
+    QScreen* target{nullptr};
+    QPoint targetPosition{ _hmd->WindowsPos.x, _hmd->WindowsPos.y };
+    foreach(auto screen, qApp->screens()) {
+        QRect screenPosition = screen->geometry();
+        QPoint position = screenPosition.topLeft();
+        if (position == targetPosition) {
+            target = screen;
+            break;
+        }
+    }
+    
+    
+    if (target) {
+        container->setFullscreen(target);
+    }
 
+    _window->installEventFilter(this);
     _window->makeCurrent();
-    _hmdWindow = new GlWindow(QOpenGLContext::currentContext());
-
-    QSurfaceFormat format;
-    initSurfaceFormat(format);
-    _hmdWindow->setFlags(Qt::FramelessWindowHint);
-    _hmdWindow->setFormat(format);
-    _hmdWindow->create();
-    _hmdWindow->setGeometry(_hmd->WindowsPos.x, _hmd->WindowsPos.y, _hmd->Resolution.w, _hmd->Resolution.h);
-    //_hmdWindow->setGeometry(0, -1080, _hmd->Resolution.w, _hmd->Resolution.h);
-    _hmdWindow->show();
-    _hmdWindow->installEventFilter(this);
-    bool makeCurrentResult = _hmdWindow->makeCurrent();
-    qDebug() << makeCurrentResult;
     ovrGLConfig config; memset(&config, 0, sizeof(ovrRenderAPIConfig));
     auto& header = config.Config.Header;
     header.API = ovrRenderAPI_OpenGL;
@@ -100,10 +106,11 @@ void Oculus_0_5_DisplayPlugin::activate(PluginContainer * container) {
 }
 
 void Oculus_0_5_DisplayPlugin::deactivate(PluginContainer* container) {
-    _hmdWindow->deleteLater();
-    _hmdWindow = nullptr;
+    _window->removeEventFilter(this);
 
     OculusBaseDisplayPlugin::deactivate(container);
+    
+    container->unsetFullscreen();
     
     ovrHmd_Destroy(_hmd);
     _hmd = nullptr;
@@ -116,7 +123,7 @@ void Oculus_0_5_DisplayPlugin::preRender() {
 }
 
 void Oculus_0_5_DisplayPlugin::preDisplay() {
-    _hmdWindow->makeCurrent();
+    _window->makeCurrent();
 }
 
 void Oculus_0_5_DisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {
@@ -151,7 +158,8 @@ bool Oculus_0_5_DisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
 // at 60 Hz.  This would introduce judder.  Perhaps we can push mirroring to a separate
 // thread
 void Oculus_0_5_DisplayPlugin::finishFrame() {
-    _hmdWindow->doneCurrent();
+    _window->doneCurrent();
+//    _hmdWindow->doneCurrent();
 };
 
 #endif

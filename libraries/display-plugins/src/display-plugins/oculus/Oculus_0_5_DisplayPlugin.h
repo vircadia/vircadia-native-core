@@ -41,7 +41,6 @@ protected:
 private:
     ovrTexture _eyeTextures[2];
     static const QString NAME;
-    GlWindow* _hmdWindow;
 };
 
 

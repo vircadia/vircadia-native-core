@@ -1,3 +1,4 @@
+
 //
 //  Created by Bradley Austin Davis on 2015/05/29
 //  Copyright 2015 High Fidelity, Inc.
@@ -8,7 +9,6 @@
 #include "MainWindowOpenGLDisplayPlugin.h"
 
 #include <QOpenGLContext>
-#include <QWidget>
 #include <QMainWindow>
 
 #include <GlWindow.h>

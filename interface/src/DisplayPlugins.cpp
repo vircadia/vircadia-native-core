@@ -53,8 +53,11 @@ const DisplayPluginList& getDisplayPlugins() {
 
         DisplayPlugin* PLUGIN_POOL[] = {
             new Basic2DWindowOpenGLDisplayPlugin(),
+#ifdef DEBUG
             new NullDisplayPlugin(),
-            new SideBySideStereoDisplayPlugin(),
+#endif
+            // FIXME fix stereo display plugins
+//            new SideBySideStereoDisplayPlugin(),
 //            new InterleavedStereoDisplayPlugin(),
 #if (OVR_MAJOR_VERSION == 5)
             new Oculus_0_5_DisplayPlugin(),

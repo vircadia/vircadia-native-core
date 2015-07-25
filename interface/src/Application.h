@@ -287,6 +287,8 @@ public:
     virtual bool isOptionChecked(const QString& name);
     virtual void setIsOptionChecked(const QString& path, bool checked);
     virtual GlWindow* getVisibleWindow();
+    virtual void setFullscreen(const QScreen* target) override;
+    virtual void unsetFullscreen() override;
 
 private:
     DisplayPlugin * getActiveDisplayPlugin();
