@@ -87,8 +87,11 @@ public slots:
     /// deletes a particle
     void deleteOverlay(unsigned int id);
 
-    ///
+    /// get the string type of the overlay used in addOverlay
     QString getOverlayType(unsigned int overlayId) const;
+
+    unsigned int getAttachedPanel(unsigned int childId) const;
+    void setAttachedPanel(unsigned int childId, unsigned int panelId);
 
     /// returns the top most 2D overlay at the screen point, or 0 if not overlay at that point
     unsigned int getOverlayAtPoint(const glm::vec2& point);
@@ -122,9 +125,12 @@ public slots:
     /// deletes a panel and all child overlays
     void deletePanel(unsigned int panelId);
 
+signals:
+    void overlayDeleted(unsigned int id);
+    void panelDeleted(unsigned int id);
+
 private:
     void cleanupOverlaysToDelete();
-    void setAttachedPanel(Overlay::Pointer overlay, unsigned int overlayId, const QScriptValue& property);
 
     QMap<unsigned int, Overlay::Pointer> _overlaysHUD;
     QMap<unsigned int, Overlay::Pointer> _overlaysWorld;

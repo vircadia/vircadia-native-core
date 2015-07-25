@@ -27,8 +27,11 @@ public:
     glm::quat getFacingRotation() const { return _facingRotation; }
 
     void setAttachedPanel(FloatingUIPanel::Pointer panel) { _attachedPanel = panel; }
-    void setOffsetPosition(glm::vec3 position) { _offsetPosition = position; }
-    void setFacingRotation(glm::quat rotation) { _facingRotation = rotation; }
+    void setOffsetPosition(const glm::vec3& position) { _offsetPosition = position; }
+    void setFacingRotation(const glm::quat& rotation) { _facingRotation = rotation; }
+
+    QScriptValue getProperty(QScriptEngine* scriptEngine, const QString& property);
+    void setProperties(const QScriptValue& properties);
 
 protected:
     void setTransforms(Transform* transform);

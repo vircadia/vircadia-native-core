@@ -20,7 +20,6 @@
 #include "Application.h"
 #include "Base3DOverlay.h"
 
-
 std::function<glm::vec3()> const FloatingUIPanel::AVATAR_POSITION = []() -> glm::vec3 {
     return DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition();
 };
@@ -30,12 +29,6 @@ std::function<glm::quat()> const FloatingUIPanel::AVATAR_ORIENTATION = []() -> g
     glm::angleAxis(glm::pi<float>(), IDENTITY_UP);
 };
 
-FloatingUIPanel::FloatingUIPanel() :
-    _anchorPosition(AVATAR_POSITION),
-    _offsetRotation(AVATAR_ORIENTATION)
-{
-}
-
 glm::vec3 FloatingUIPanel::getPosition() const {
     return getOffsetRotation() * getOffsetPosition() + getAnchorPosition();
 }
@@ -44,16 +37,28 @@ glm::quat FloatingUIPanel::getRotation() const {
     return getOffsetRotation() * getFacingRotation();
 }
 
-void FloatingUIPanel::setAnchorPosition(glm::vec3 position) {
+void FloatingUIPanel::setAnchorPosition(const glm::vec3& position) {
     setAnchorPosition([position]() -> glm::vec3 {
         return position;
     });
 }
 
-void FloatingUIPanel::setOffsetRotation(glm::quat rotation) {
+void FloatingUIPanel::setOffsetRotation(const glm::quat& rotation) {
     setOffsetRotation([rotation]() -> glm::quat {
         return rotation;
     });
+}
+
+void FloatingUIPanel::addChild(unsigned int childId) {
+    if (!_children.contains(childId)) {
+        _children.append(childId);
+    }
+}
+
+void FloatingUIPanel::removeChild(unsigned int childId) {
+    if (_children.contains(childId)) {
+        _children.removeOne(childId);
+    }
 }
 
 QScriptValue FloatingUIPanel::getProperty(const QString &property) {
@@ -76,15 +81,15 @@ QScriptValue FloatingUIPanel::getProperty(const QString &property) {
 void FloatingUIPanel::setProperties(const QScriptValue &properties) {
     QScriptValue anchor = properties.property("anchorPosition");
     if (anchor.isValid()) {
-        QScriptValue type = anchor.property("type");
+        QScriptValue bindType = anchor.property("bind");
         QScriptValue value = anchor.property("value");
 
-        if (type.isValid()) {
-            QString typeString = type.toVariant().toString();
-            if (typeString == "myAvatar") {
+        if (bindType.isValid()) {
+            QString bindTypeString = bindType.toVariant().toString();
+            if (bindTypeString == "myAvatar") {
                 setAnchorPosition(AVATAR_POSITION);
             } else if (value.isValid()) {
-                if (typeString == "overlay") {
+                if (bindTypeString == "overlay") {
                     Overlay::Pointer overlay = Application::getInstance()->getOverlays()
                         .getOverlay(value.toVariant().toUInt());
                     if (overlay->is3D()) {
@@ -93,13 +98,13 @@ void FloatingUIPanel::setProperties(const QScriptValue &properties) {
                             return overlay3D->getPosition();
                         });
                     }
-                } else if (typeString == "panel") {
+                } else if (bindTypeString == "panel") {
                     FloatingUIPanel::Pointer panel = Application::getInstance()->getOverlays()
                         .getPanel(value.toVariant().toUInt());
                     setAnchorPosition([panel]() -> glm::vec3 {
                         return panel->getPosition();
                     });
-                } else if (typeString == "vec3") {
+                } else if (bindTypeString == "vec3") {
                     QScriptValue x = value.property("x");
                     QScriptValue y = value.property("y");
                     QScriptValue z = value.property("z");
@@ -117,15 +122,15 @@ void FloatingUIPanel::setProperties(const QScriptValue &properties) {
 
     QScriptValue offsetRotation = properties.property("offsetRotation");
     if (offsetRotation.isValid()) {
-        QScriptValue type = offsetRotation.property("type");
+        QScriptValue bindType = offsetRotation.property("bind");
         QScriptValue value = offsetRotation.property("value");
 
-        if (type.isValid()) {
-            QString typeString = type.toVariant().toString();
-            if (typeString == "myAvatar") {
+        if (bindType.isValid()) {
+            QString bindTypeString = bindType.toVariant().toString();
+            if (bindTypeString == "myAvatar") {
                 setOffsetRotation(AVATAR_ORIENTATION);
             } else if (value.isValid()) {
-                if (typeString == "overlay") {
+                if (bindTypeString == "overlay") {
                     Overlay::Pointer overlay = Application::getInstance()->getOverlays()
                         .getOverlay(value.toVariant().toUInt());
                     if (overlay->is3D()) {
@@ -134,13 +139,13 @@ void FloatingUIPanel::setProperties(const QScriptValue &properties) {
                             return overlay3D->getRotation();
                         });
                     }
-                } else if (typeString == "panel") {
+                } else if (bindTypeString == "panel") {
                     FloatingUIPanel::Pointer panel = Application::getInstance()->getOverlays()
                         .getPanel(value.toVariant().toUInt());
                     setOffsetRotation([panel]() -> glm::quat {
                         return panel->getRotation();
                     });
-                } else if (typeString == "quat") {
+                } else if (bindTypeString == "quat") {
                     QScriptValue x = value.property("x");
                     QScriptValue y = value.property("y");
                     QScriptValue z = value.property("z");
@@ -174,7 +179,7 @@ void FloatingUIPanel::setProperties(const QScriptValue &properties) {
     }
 
     QScriptValue facingRotation = properties.property("facingRotation");
-    if (offsetRotation.isValid()) {
+    if (facingRotation.isValid()) {
         QScriptValue x = facingRotation.property("x");
         QScriptValue y = facingRotation.property("y");
         QScriptValue z = facingRotation.property("z");

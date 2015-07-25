@@ -13,16 +13,14 @@
 
 #include <QScriptValue>
 
+#include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <gpu/Batch.h>
+#include <GLMHelpers.h>
 
 #include "Application.h"
 #include "GeometryUtil.h"
-
-#include "DeferredLightingEffect.h"
-
-#include <GLMHelpers.h>
 
 
 QString const BillboardOverlay::TYPE = "billboard";
@@ -107,7 +105,7 @@ void BillboardOverlay::render(RenderArgs* args) {
     batch->setModelTransform(transform);
     batch->setResourceTexture(0, _texture->getGPUTexture());
     
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(*batch, true, true, false);
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(*batch, true, true, false, true);
     DependencyManager::get<GeometryCache>()->renderQuad(
         *batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
         glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha)
@@ -118,6 +116,7 @@ void BillboardOverlay::render(RenderArgs* args) {
 
 void BillboardOverlay::setProperties(const QScriptValue &properties) {
     Planar3DOverlay::setProperties(properties);
+    PanelAttachable::setProperties(properties);
 
     QScriptValue urlValue = properties.property("url");
     if (urlValue.isValid()) {
@@ -162,21 +161,6 @@ void BillboardOverlay::setProperties(const QScriptValue &properties) {
     if (isFacingAvatarValue.isValid()) {
         _isFacingAvatar = isFacingAvatarValue.toVariant().toBool();
     }
-
-    QScriptValue offsetPosition = properties.property("offsetPosition");
-    if (offsetPosition.isValid()) {
-        QScriptValue x = offsetPosition.property("x");
-        QScriptValue y = offsetPosition.property("y");
-        QScriptValue z = offsetPosition.property("z");
-
-        if (x.isValid() && y.isValid() && z.isValid()) {
-            glm::vec3 newPosition;
-            newPosition.x = x.toVariant().toFloat();
-            newPosition.y = y.toVariant().toFloat();
-            newPosition.z = z.toVariant().toFloat();
-            setOffsetPosition(newPosition);
-        }
-    }
 }
 
 QScriptValue BillboardOverlay::getProperty(const QString& property) {
@@ -193,6 +177,10 @@ QScriptValue BillboardOverlay::getProperty(const QString& property) {
         return vec3toScriptValue(_scriptEngine, getOffsetPosition());
     }
 
+    QScriptValue value = PanelAttachable::getProperty(_scriptEngine, property);
+    if (value.isValid()) {
+        return value;
+    }
     return Planar3DOverlay::getProperty(property);
 }
 

@@ -12,6 +12,8 @@
 #ifndef hifi_FloatingUIPanel_h
 #define hifi_FloatingUIPanel_h
 
+#include <functional>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <QScriptValue>
@@ -20,8 +22,6 @@ class FloatingUIPanel : public QObject {
     Q_OBJECT
 public:
     typedef std::shared_ptr<FloatingUIPanel> Pointer;
-
-    QList<unsigned int> children;
 
     void init(QScriptEngine* scriptEngine) { _scriptEngine = scriptEngine; }
 
@@ -33,11 +33,16 @@ public:
     glm::quat getRotation() const;
 
     void setAnchorPosition(const std::function<glm::vec3()>& func) { _anchorPosition = func; }
-    void setAnchorPosition(glm::vec3 position);
+    void setAnchorPosition(const glm::vec3& position);
     void setOffsetRotation(const std::function<glm::quat()>& func) { _offsetRotation = func; }
-    void setOffsetRotation(glm::quat rotation);
-    void setOffsetPosition(glm::vec3 position) { _offsetPosition = position; }
-    void setFacingRotation(glm::quat rotation) { _facingRotation = rotation; }
+    void setOffsetRotation(const glm::quat& rotation);
+    void setOffsetPosition(const glm::vec3& position) { _offsetPosition = position; }
+    void setFacingRotation(const glm::quat& rotation) { _facingRotation = rotation; }
+
+    const QList<unsigned int>& getChildren() { return _children; }
+    void addChild(unsigned int childId);
+    void removeChild(unsigned int childId);
+    unsigned int popLastChild() { return _children.takeLast(); }
 
     QScriptValue getProperty(const QString& property);
     void setProperties(const QScriptValue& properties);
@@ -46,11 +51,12 @@ private:
     static std::function<glm::vec3()> const AVATAR_POSITION;
     static std::function<glm::quat()> const AVATAR_ORIENTATION;
 
-    std::function<glm::vec3()> _anchorPosition;
-    std::function<glm::quat()> _offsetRotation;
+    std::function<glm::vec3()> _anchorPosition{AVATAR_POSITION};
+    std::function<glm::quat()> _offsetRotation{AVATAR_ORIENTATION};
     glm::vec3 _offsetPosition{0, 0, 0};
     glm::quat _facingRotation{1, 0, 0, 0};
     QScriptEngine* _scriptEngine;
+    QList<unsigned int> _children;
 };
 
 #endif // hifi_FloatingUIPanel_h
