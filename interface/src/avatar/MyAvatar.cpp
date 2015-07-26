@@ -54,7 +54,7 @@
 using namespace std;
 
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
-const float YAW_SPEED = 500.0f;   // degrees/sec
+const float YAW_SPEED = 150.0f;   // degrees/sec
 const float PITCH_SPEED = 100.0f; // degrees/sec
 const float DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES = 30.0f;
 
@@ -79,7 +79,7 @@ const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 
 MyAvatar::MyAvatar() :
-	Avatar(),
+    Avatar(),
     _gravity(0.0f, 0.0f, 0.0f),
     _wasPushing(false),
     _isPushing(false),
@@ -253,6 +253,9 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         return;
     }
 
+    FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
+    bool inFacetracker = tracker && !tracker->isMuted();
+
     if (inHmd) {
         estimatedPosition = qApp->getHeadPosition();
         estimatedPosition.x *= -1.0f;
@@ -260,12 +263,17 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 
         const float OCULUS_LEAN_SCALE = 0.05f;
         estimatedPosition /= OCULUS_LEAN_SCALE;
-    } else {
-        FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
-        if (tracker && !tracker->isMuted()) {
-            estimatedPosition = tracker->getHeadTranslation();
-            _trackedHeadPosition = estimatedPosition;
-            estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
+    } else if (inFacetracker) {
+        estimatedPosition = tracker->getHeadTranslation();
+        _trackedHeadPosition = estimatedPosition;
+        estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
+        if (Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
+            // Invert yaw and roll when in mirror mode
+            // NOTE: this is kinda a hack, it's the same hack we use to make the head tilt. But it's not really a mirror
+            // it just makes you feel like you're looking in a mirror because the body movements of the avatar appear to
+            // match your body movements.
+            YAW(estimatedRotation) *= -1.0f;
+            ROLL(estimatedRotation) *= -1.0f;
         }
     }
 
@@ -312,7 +320,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     // NOTE: this is kinda a hack, it's the same hack we use to make the head tilt. But it's not really a mirror
     // it just makes you feel like you're looking in a mirror because the body movements of the avatar appear to
     // match your body movements.
-    if (inHmd && Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
+    if ((inHmd || inFacetracker) && Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
         relativePosition.x = -relativePosition.x;
     }
 
@@ -324,13 +332,13 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 
 
 // virtual
-void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting) {
+void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     // don't render if we've been asked to disable local rendering
     if (!_shouldRender) {
         return; // exit early
     }
 
-    Avatar::render(renderArgs, cameraPosition, postLighting);
+    Avatar::render(renderArgs, cameraPosition);
 
     // don't display IK constraints in shadow mode
     if (Menu::getInstance()->isOptionChecked(MenuOption::ShowIKConstraints) &&
@@ -1218,7 +1226,7 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName, const g
     Avatar::attach(modelURL, jointName, translation, rotation, scale, allowDuplicates, useSaved);
 }
 
-void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel) {
+void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel) {
 
     if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         return; // wait until all models are loaded
@@ -1228,7 +1236,7 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bo
 
     //  Render head so long as the camera isn't inside it
     if (shouldRenderHead(renderArgs)) {
-        getHead()->render(renderArgs, 1.0f, renderFrustum, postLighting);
+        getHead()->render(renderArgs, 1.0f, renderFrustum);
     }
     getHand()->render(renderArgs, true);
 }
@@ -1282,22 +1290,34 @@ bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
 
 void MyAvatar::updateOrientation(float deltaTime) {
     //  Smoothly rotate body with arrow keys
-    _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_SPEED * deltaTime;
-    _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_SPEED * deltaTime;
-    getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
+    float driveLeft = _driveKeys[ROT_LEFT] - _driveKeys[ROT_RIGHT];
+    float targetSpeed = (_driveKeys[ROT_LEFT] - _driveKeys[ROT_RIGHT]) * YAW_SPEED;
+    if (targetSpeed != 0.0f) {
+        const float ROTATION_RAMP_TIMESCALE = 0.1f;
+        float blend = deltaTime / ROTATION_RAMP_TIMESCALE;
+        if (blend > 1.0f) {
+            blend = 1.0f;
+        }
+        _bodyYawDelta = (1.0f - blend) * _bodyYawDelta + blend * targetSpeed;
+    } else if (_bodyYawDelta != 0.0f) {
+        // attenuate body rotation speed
+        const float ROTATION_DECAY_TIMESCALE = 0.05f;
+        float attenuation = 1.0f - deltaTime / ROTATION_DECAY_TIMESCALE;
+        if (attenuation < 0.0f) {
+            attenuation = 0.0f;
+        }
+        _bodyYawDelta *= attenuation;
 
+        float MINIMUM_ROTATION_RATE = 2.0f;
+        if (fabsf(_bodyYawDelta) < MINIMUM_ROTATION_RATE) {
+            _bodyYawDelta = 0.0f;
+        }
+    }
+
+    getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
     // update body orientation by movement inputs
     setOrientation(getOrientation() *
-                   glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta, 0.0f) * deltaTime)));
-
-    // decay body rotation momentum
-    const float BODY_SPIN_FRICTION = 7.5f;
-    float bodySpinMomentum = 1.0f - BODY_SPIN_FRICTION * deltaTime;
-    if (bodySpinMomentum < 0.0f) { bodySpinMomentum = 0.0f; }
-    _bodyYawDelta *= bodySpinMomentum;
-
-    float MINIMUM_ROTATION_RATE = 2.0f;
-    if (fabs(_bodyYawDelta) < MINIMUM_ROTATION_RATE) { _bodyYawDelta = 0.0f; }
+                   glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta * deltaTime, 0.0f))));
 
     if (qApp->isHMDMode()) {
         // these angles will be in radians
@@ -1531,6 +1551,9 @@ void MyAvatar::maybeUpdateBillboard() {
     QBuffer buffer(&_billboard);
     buffer.open(QIODevice::WriteOnly);
     image.save(&buffer, "PNG");
+#ifdef DEBUG
+    image.save("billboard.png", "PNG");
+#endif
     _billboardValid = true;
 
     sendBillboardPacket();

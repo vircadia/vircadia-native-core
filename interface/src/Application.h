@@ -34,7 +34,6 @@
 #include <ScriptEngine.h>
 #include <ShapeManager.h>
 #include <StDev.h>
-#include <TextureCache.h>
 #include <udt/PacketHeaders.h>
 #include <ViewFrustum.h>
 
@@ -328,6 +327,8 @@ public:
     render::ScenePointer getMain3DScene() const { return _main3DScene; }
 
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
+
+    const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
 
 signals:
 
@@ -641,6 +642,7 @@ private:
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
     ApplicationCompositor _compositor;
+    int _numFramesSinceLastResize = 0;
 };
 
 #endif // hifi_Application_h

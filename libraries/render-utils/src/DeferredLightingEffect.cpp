@@ -21,8 +21,8 @@
 
 #include "AbstractViewStateInterface.h"
 #include "GeometryCache.h"
-#include "RenderUtil.h"
 #include "TextureCache.h"
+#include "FramebufferCache.h"
 
 
 #include "simple_vert.h"
@@ -142,6 +142,10 @@ void DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured,
                                                bool emmisive, bool depthBias) {
     SimpleProgramKey config{textured, culled, emmisive, depthBias};
     batch.setPipeline(getPipeline(config));
+
+    gpu::ShaderPointer program = (config.isEmissive()) ? _emissiveShader : _simpleShader;
+    int glowIntensity = program->getUniforms().findLocation("glowIntensity");
+    batch._glUniform1f(glowIntensity, 1.0f);
     
     if (!config.isTextured()) {
         // If it is not textured, bind white texture and keep using textured pipeline
@@ -215,42 +219,47 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
 }
 
 void DeferredLightingEffect::prepare(RenderArgs* args) {
-
-    auto textureCache = DependencyManager::get<TextureCache>();
     gpu::Batch batch;
-    
-    // clear the normal and specular buffers
-    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR1, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
-    const float MAX_SPECULAR_EXPONENT = 128.0f;
-    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR2, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f / MAX_SPECULAR_EXPONENT));
 
-    args->_context->syncCache();
+    batch.setStateScissorRect(args->_viewport);
+
+    auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
+
+    batch.setFramebuffer(primaryFbo);
+    // clear the normal and specular buffers
+    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR1, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f), true);
+    const float MAX_SPECULAR_EXPONENT = 128.0f;
+    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR2, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f / MAX_SPECULAR_EXPONENT), true);
+
     args->_context->render(batch);
 }
+
+gpu::FramebufferPointer _copyFBO;
 
 void DeferredLightingEffect::render(RenderArgs* args) {
     gpu::Batch batch;
 
     // perform deferred lighting, rendering to free fbo
-    auto textureCache = DependencyManager::get<TextureCache>();
+    auto framebufferCache = DependencyManager::get<FramebufferCache>();
     
-    QSize framebufferSize = textureCache->getFrameBufferSize();
+    QSize framebufferSize = framebufferCache->getFrameBufferSize();
     
     // binding the first framebuffer
-    auto freeFBO = DependencyManager::get<TextureCache>()->getSecondaryFramebuffer();
-    batch.setFramebuffer(freeFBO);
+    _copyFBO = framebufferCache->getFramebuffer();
+    batch.setFramebuffer(_copyFBO);
 
     batch.setViewportTransform(args->_viewport);
+    batch.setStateScissorRect(args->_viewport);
  
-    batch.clearColorFramebuffer(freeFBO->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+    batch.clearColorFramebuffer(_copyFBO->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f), true);
     
-    batch.setResourceTexture(0, textureCache->getPrimaryColorTexture());
+    batch.setResourceTexture(0, framebufferCache->getPrimaryColorTexture());
 
-    batch.setResourceTexture(1, textureCache->getPrimaryNormalTexture());
+    batch.setResourceTexture(1, framebufferCache->getPrimaryNormalTexture());
     
-    batch.setResourceTexture(2, textureCache->getPrimarySpecularTexture());
+    batch.setResourceTexture(2, framebufferCache->getPrimarySpecularTexture());
     
-    batch.setResourceTexture(3, textureCache->getPrimaryDepthTexture());
+    batch.setResourceTexture(3, framebufferCache->getPrimaryDepthTexture());
         
     float sMin = args->_viewport.x / (float)framebufferSize.width();
     float sWidth = args->_viewport.z / (float)framebufferSize.width();
@@ -267,7 +276,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     const LightLocations* locations = &_directionalLightLocations;
     bool shadowsEnabled = _viewState->getShadowsEnabled();
     if (shadowsEnabled) {
-        batch.setResourceTexture(4, textureCache->getShadowFramebuffer()->getDepthStencilBuffer());
+        batch.setResourceTexture(4, framebufferCache->getShadowFramebuffer()->getDepthStencilBuffer());
         
         program = _directionalLightShadowMap;
         locations = &_directionalLightShadowMapLocations;
@@ -294,7 +303,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
             }
             batch.setPipeline(program);
         }
-        batch._glUniform1f(locations->shadowScale, 1.0f / textureCache->getShadowFramebuffer()->getWidth());
+        batch._glUniform1f(locations->shadowScale, 1.0f / framebufferCache->getShadowFramebuffer()->getWidth());
         
     } else {
         if (useSkyboxCubemap) {
@@ -529,44 +538,43 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     batch.setResourceTexture(2, nullptr);
     batch.setResourceTexture(3, nullptr);
 
-    args->_context->syncCache();
     args->_context->render(batch);
 
     // End of the Lighting pass
 }
 
+
 void DeferredLightingEffect::copyBack(RenderArgs* args) {
     gpu::Batch batch;
-    auto textureCache = DependencyManager::get<TextureCache>();
-    QSize framebufferSize = textureCache->getFrameBufferSize();
+    auto framebufferCache = DependencyManager::get<FramebufferCache>();
+    QSize framebufferSize = framebufferCache->getFrameBufferSize();
 
-    auto freeFBO = DependencyManager::get<TextureCache>()->getSecondaryFramebuffer();
-
-    batch.setFramebuffer(textureCache->getPrimaryFramebuffer());
-    batch.setPipeline(_blitLightBuffer);
-    
-    batch.setResourceTexture(0, freeFBO->getRenderBuffer(0));
-
+    // TODO why doesn't this blit work?  It only seems to affect a small area below the rear view mirror.
+  //  auto destFbo = framebufferCache->getPrimaryFramebuffer();
+    auto destFbo = framebufferCache->getPrimaryFramebufferDepthColor();
+//    gpu::Vec4i vp = args->_viewport;
+//    batch.blit(_copyFBO, vp, framebufferCache->getPrimaryFramebuffer(), vp);
+    batch.setFramebuffer(destFbo);
+    batch.setViewportTransform(args->_viewport);
     batch.setProjectionTransform(glm::mat4());
     batch.setViewTransform(Transform());
-    
-    float sMin = args->_viewport.x / (float)framebufferSize.width();
-    float sWidth = args->_viewport.z / (float)framebufferSize.width();
-    float tMin = args->_viewport.y / (float)framebufferSize.height();
-    float tHeight = args->_viewport.w / (float)framebufferSize.height();
+    {
+        float sMin = args->_viewport.x / (float)framebufferSize.width();
+        float sWidth = args->_viewport.z / (float)framebufferSize.width();
+        float tMin = args->_viewport.y / (float)framebufferSize.height();
+        float tHeight = args->_viewport.w / (float)framebufferSize.height();
+        Transform model;
+        batch.setPipeline(_blitLightBuffer);
+        model.setTranslation(glm::vec3(sMin, tMin, 0.0));
+        model.setScale(glm::vec3(sWidth, tHeight, 1.0));
+        batch.setModelTransform(model);
+    }
 
-    batch.setViewportTransform(args->_viewport);
-
-    Transform model;
-    model.setTranslation(glm::vec3(sMin, tMin, 0.0));
-    model.setScale(glm::vec3(sWidth, tHeight, 1.0));
-    batch.setModelTransform(model);
-
+    batch.setResourceTexture(0, _copyFBO->getRenderBuffer(0));
     batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-
-    args->_context->syncCache();
     args->_context->render(batch);
+    framebufferCache->releaseFramebuffer(_copyFBO);
 }
 
 void DeferredLightingEffect::setupTransparent(RenderArgs* args, int lightBufferUnit) {

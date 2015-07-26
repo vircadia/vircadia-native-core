@@ -270,8 +270,8 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
     gpu::Batch batch;
     geometryCache->useSimpleDrawPipeline(batch);
-    batch._glDisable(GL_DEPTH_TEST);
-    batch._glDisable(GL_CULL_FACE);
+    //batch._glDisable(GL_DEPTH_TEST);
+    //batch._glDisable(GL_CULL_FACE);
     //batch._glBindTexture(GL_TEXTURE_2D, texture);
     //batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     //batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -491,24 +491,18 @@ void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
 
         auto canvasSize = qApp->getCanvasSize();
         int mouseX, mouseY;
-        if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
-            QPoint res = getPalmClickLocation(palmData);
-            mouseX = res.x();
-            mouseY = res.y();
-        } else {
-            // Get directon relative to avatar orientation
-            glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * palmData->getFingerDirection();
+        // Get directon relative to avatar orientation
+        glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * palmData->getFingerDirection();
 
-            // Get the angles, scaled between (-0.5,0.5)
-            float xAngle = (atan2(direction.z, direction.x) + PI_OVER_TWO);
-            float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)PI_OVER_TWO));
+        // Get the angles, scaled between (-0.5,0.5)
+        float xAngle = (atan2(direction.z, direction.x) + PI_OVER_TWO);
+        float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)PI_OVER_TWO));
 
-            // Get the pixel range over which the xAngle and yAngle are scaled
-            float cursorRange = canvasSize.x * SixenseManager::getInstance().getCursorPixelRangeMult();
+        // Get the pixel range over which the xAngle and yAngle are scaled
+        float cursorRange = canvasSize.x * SixenseManager::getInstance().getCursorPixelRangeMult();
 
-            mouseX = (canvasSize.x / 2.0f + cursorRange * xAngle);
-            mouseY = (canvasSize.y / 2.0f + cursorRange * yAngle);
-        }
+        mouseX = (canvasSize.x / 2.0f + cursorRange * xAngle);
+        mouseY = (canvasSize.y / 2.0f + cursorRange * yAngle);
 
         //If the cursor is out of the screen then don't render it
         if (mouseX < 0 || mouseX >= (int)canvasSize.x || mouseY < 0 || mouseY >= (int)canvasSize.y) {
@@ -529,7 +523,7 @@ void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
         glm::vec2 texCoordTopLeft(0.0f, 0.0f);
         glm::vec2 texCoordBottomRight(1.0f, 1.0f);
 
-        DependencyManager::get<GeometryCache>()->renderQuad(topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
+        DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
                                                             glm::vec4(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], 1.0f));
 
     }

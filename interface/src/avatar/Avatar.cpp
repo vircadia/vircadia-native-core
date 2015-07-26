@@ -316,15 +316,14 @@ void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::S
     }
 }
 
-void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, bool postLighting) {
+void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     if (_referential) {
         _referential->update();
     }
 
     auto& batch = *renderArgs->_batch;
 
-    if (postLighting &&
-        glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(), _position) < 10.0f) {
+    if (glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(), _position) < 10.0f) {
         auto geometryCache = DependencyManager::get<GeometryCache>();
         auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
 
@@ -414,9 +413,9 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
                       : GLOW_FROM_AVERAGE_LOUDNESS;
 
         // render body
-        renderBody(renderArgs, frustum, postLighting, glowLevel);
+        renderBody(renderArgs, frustum, glowLevel);
 
-        if (!postLighting && renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE) {
+        if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE) {
             // add local lights
             const float BASE_LIGHT_DISTANCE = 2.0f;
             const float LIGHT_EXPONENT = 1.0f;
@@ -431,53 +430,70 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition, boo
             }
         }
 
-        if (postLighting) {
-            bool renderSkeleton = Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes);
-            bool renderHead = Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionShapes);
-            bool renderBounding = Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes);
-
-            if (renderSkeleton) {
-                _skeletonModel.renderJointCollisionShapes(0.7f);
-            }
-
-            if (renderHead && shouldRenderHead(renderArgs)) {
-                getHead()->getFaceModel().renderJointCollisionShapes(0.7f);
-            }
-            if (renderBounding && shouldRenderHead(renderArgs)) {
-                _skeletonModel.renderBoundingCollisionShapes(*renderArgs->_batch, 0.7f);
-            }
+        bool renderSkeleton = Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes);
+        bool renderHead = Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionShapes);
+        bool renderBounding = Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes);
+        if (renderSkeleton) {
+            _skeletonModel.renderJointCollisionShapes(0.7f);
         }
-
-        // Stack indicator spheres
-        float indicatorOffset = 0.0f;
-        if (!_displayName.isEmpty() && _displayNameAlpha != 0.0f) {
-            const float DISPLAY_NAME_INDICATOR_OFFSET = 0.22f;
-            indicatorOffset = DISPLAY_NAME_INDICATOR_OFFSET;
+        if (renderHead && shouldRenderHead(renderArgs)) {
+            getHead()->getFaceModel().renderJointCollisionShapes(0.7f);
         }
-        const float INDICATOR_RADIUS = 0.03f;
-        const float INDICATOR_INDICATOR_OFFSET = 3.0f * INDICATOR_RADIUS;
+        if (renderBounding && shouldRenderHead(renderArgs)) {
+            _skeletonModel.renderBoundingCollisionShapes(*renderArgs->_batch, 0.7f);
+        }
 
         // If this is the avatar being looked at, render a little ball above their head
         if (_isLookAtTarget && Menu::getInstance()->isOptionChecked(MenuOption::RenderFocusIndicator)) {
+            const float INDICATOR_OFFSET = 0.22f;
+            const float INDICATOR_RADIUS = 0.03f;
             const glm::vec4 LOOK_AT_INDICATOR_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
-            glm::vec3 position = glm::vec3(_position.x, getDisplayNamePosition().y + indicatorOffset, _position.z);
+            glm::vec3 position = glm::vec3(_position.x, getDisplayNamePosition().y + INDICATOR_OFFSET, _position.z);
             Transform transform;
             transform.setTranslation(position);
             batch.setModelTransform(transform);
             DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, INDICATOR_RADIUS,
                 15, 15, LOOK_AT_INDICATOR_COLOR);
-            indicatorOffset += INDICATOR_INDICATOR_OFFSET;
         }
 
-        // If the avatar is looking at me, render an indication that they area
-        if (getHead()->getIsLookingAtMe() && Menu::getInstance()->isOptionChecked(MenuOption::ShowWhosLookingAtMe)) {
-            const glm::vec4 LOOKING_AT_ME_COLOR = { 0.8f, 0.65f, 0.0f, 0.1f };
-            glm::vec3 position = glm::vec3(_position.x, getDisplayNamePosition().y + indicatorOffset, _position.z);
-            Transform transform;
-            transform.setTranslation(position);
-            batch.setModelTransform(transform);
-            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch, INDICATOR_RADIUS,
-                15, 15, LOOKING_AT_ME_COLOR);
+        // If the avatar is looking at me, indicate that they are
+        if (getHead()->isLookingAtMe() && Menu::getInstance()->isOptionChecked(MenuOption::ShowWhosLookingAtMe)) {
+            const glm::vec3 LOOKING_AT_ME_COLOR = { 1.0f, 1.0f, 1.0f };
+            const float LOOKING_AT_ME_ALPHA_START = 0.8f;
+            const float LOOKING_AT_ME_DURATION = 0.5f;  // seconds
+            quint64 now = usecTimestampNow();
+            float alpha = LOOKING_AT_ME_ALPHA_START 
+                * (1.0f - ((float)(usecTimestampNow() - getHead()->getLookingAtMeStarted()))
+                / (LOOKING_AT_ME_DURATION * (float)USECS_PER_SECOND));
+            if (alpha > 0.0f) {
+                QSharedPointer<NetworkGeometry> geometry = getHead()->getFaceModel().getGeometry();
+                if (geometry) {
+                    const float DEFAULT_EYE_DIAMETER = 0.048f;  // Typical human eye
+                    const float RADIUS_INCREMENT = 0.005f;
+                    Transform transform;
+
+                    glm::vec3 position = getHead()->getLeftEyePosition();
+                    transform.setTranslation(position);
+                    batch.setModelTransform(transform);
+                    float eyeDiameter = geometry->getFBXGeometry().leftEyeSize;
+                    if (eyeDiameter == 0.0f) {
+                        eyeDiameter = DEFAULT_EYE_DIAMETER;
+                    }
+                    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch,
+                        eyeDiameter * _scale / 2.0f + RADIUS_INCREMENT, 15, 15, glm::vec4(LOOKING_AT_ME_COLOR, alpha));
+
+                    position = getHead()->getRightEyePosition();
+                    transform.setTranslation(position);
+                    batch.setModelTransform(transform);
+                    eyeDiameter = geometry->getFBXGeometry().rightEyeSize;
+                    if (eyeDiameter == 0.0f) {
+                        eyeDiameter = DEFAULT_EYE_DIAMETER;
+                    }
+                    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphere(batch,
+                        eyeDiameter * _scale / 2.0f + RADIUS_INCREMENT, 15, 15, glm::vec4(LOOKING_AT_ME_COLOR, alpha));
+
+                }
+            }
         }
 
         // quick check before falling into the code below:
@@ -569,24 +585,20 @@ void Avatar::fixupModelsInScene() {
     scene->enqueuePendingChanges(pendingChanges);
 }
 
-void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, bool postLighting, float glowLevel) {
+void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel) {
 
     fixupModelsInScene();
     
     {
         if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
-            if (postLighting || renderArgs->_renderMode == RenderArgs::SHADOW_RENDER_MODE) {
-                // render the billboard until both models are loaded
-                renderBillboard(renderArgs);
-            }
+            // render the billboard until both models are loaded
+            renderBillboard(renderArgs);
             return;
         }
 
-        if (postLighting) {
-            getHand()->render(renderArgs, false);
-        }
+        getHand()->render(renderArgs, false);
     }
-    getHead()->render(renderArgs, 1.0f, renderFrustum, postLighting);
+    getHead()->render(renderArgs, 1.0f, renderFrustum);
 }
 
 bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {

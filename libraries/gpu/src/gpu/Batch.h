@@ -54,15 +54,6 @@ public:
     void drawInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbVertices, uint32 startVertex = 0, uint32 startInstance = 0);
     void drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0, uint32 startInstance = 0);
 
-    // Clear framebuffer layers
-    // Targets can be any of the render buffers contained in the Framebuffer
-    // Optionally the scissor test can be enabled locally for this command and to restrict the clearing command to the pixels contained in the scissor rectangle
-    void clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil, bool enableScissor = false);
-    void clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, mask out targets to make sure it touches only color targets
-    void clearDepthFramebuffer(float depth, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches only depth target
-    void clearStencilFramebuffer(int stencil, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches only stencil target
-    void clearDepthStencilFramebuffer(float depth, int stencil, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches depth and stencil target
-    
     // Input Stage
     // InputFormat
     // InputBuffers
@@ -105,9 +96,17 @@ public:
 
     // Framebuffer Stage
     void setFramebuffer(const FramebufferPointer& framebuffer);
-    void blit(const FramebufferPointer& src, const Vec4i& srcViewport,
-        const FramebufferPointer& dst, const Vec4i& dstViewport);
+ 
+    // Clear framebuffer layers
+    // Targets can be any of the render buffers contained in the currnetly bound Framebuffer
+    // Optionally the scissor test can be enabled locally for this command and to restrict the clearing command to the pixels contained in the scissor rectangle
+    void clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil, bool enableScissor = false);
+    void clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, mask out targets to make sure it touches only color targets
+    void clearDepthFramebuffer(float depth, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches only depth target
+    void clearStencilFramebuffer(int stencil, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches only stencil target
+    void clearDepthStencilFramebuffer(float depth, int stencil, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches depth and stencil target
 
+    void blit(const FramebufferPointer& src, const Vec4i& srcViewport, const FramebufferPointer& dst, const Vec4i& dstViewport);
 
     // Query Section
     void beginQuery(const QueryPointer& query);
@@ -163,8 +162,6 @@ public:
         COMMAND_drawInstanced,
         COMMAND_drawIndexedInstanced,
 
-        COMMAND_clearFramebuffer,
-
         COMMAND_setInputFormat,
         COMMAND_setInputBuffer,
         COMMAND_setIndexBuffer,
@@ -182,6 +179,7 @@ public:
         COMMAND_setResourceTexture,
 
         COMMAND_setFramebuffer,
+        COMMAND_clearFramebuffer,
         COMMAND_blit,
 
         COMMAND_beginQuery,

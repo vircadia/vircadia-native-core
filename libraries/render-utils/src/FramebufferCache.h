@@ -30,6 +30,10 @@ public:
     /// Returns a pointer to the primary framebuffer object.  This render target includes a depth component, and is
     /// used for scene rendering.
     gpu::FramebufferPointer getPrimaryFramebuffer();
+<<<<<<< HEAD
+=======
+    gpu::FramebufferPointer getPrimaryFramebufferDepthColor();
+>>>>>>> f66492b4448218a241b19f0803ab5d6dde499113
 
     gpu::TexturePointer getPrimaryDepthTexture();
     gpu::TexturePointer getPrimaryColorTexture();
@@ -39,11 +43,20 @@ public:
     /// Returns the framebuffer object used to render shadow maps;
     gpu::FramebufferPointer getShadowFramebuffer();
 
+<<<<<<< HEAD
     /// Enables or disables draw buffers on the primary framebuffer.  Note: the primary framebuffer must be bound.
     void setPrimaryDrawBuffers(gpu::Batch& batch, bool color, bool normal = false, bool specular = false);
     
     /// Returns a free framebuffer with a single color attachment for temp or intra-frame operations
     gpu::FramebufferPointer getFramebuffer();
+=======
+    /// Returns the framebuffer object used to render selfie maps;
+    gpu::FramebufferPointer getSelfieFramebuffer();
+
+    /// Returns a free framebuffer with a single color attachment for temp or intra-frame operations
+    gpu::FramebufferPointer getFramebuffer();
+
+>>>>>>> f66492b4448218a241b19f0803ab5d6dde499113
     // TODO add sync functionality to the release, so we don't reuse a framebuffer being read from
     /// Releases a free framebuffer back for reuse
     void releaseFramebuffer(const gpu::FramebufferPointer& framebuffer);
@@ -54,13 +67,24 @@ private:
 
     void createPrimaryFramebuffer();
 
+<<<<<<< HEAD
     gpu::FramebufferPointer _primaryFramebuffer;
+=======
+    gpu::FramebufferPointer _primaryFramebufferFull;
+    gpu::FramebufferPointer _primaryFramebufferDepthColor;
+>>>>>>> f66492b4448218a241b19f0803ab5d6dde499113
     gpu::TexturePointer _primaryDepthTexture;
     gpu::TexturePointer _primaryColorTexture;
     gpu::TexturePointer _primaryNormalTexture;
     gpu::TexturePointer _primarySpecularTexture;
     
     gpu::FramebufferPointer _shadowFramebuffer;
+<<<<<<< HEAD
+=======
+
+    gpu::FramebufferPointer _selfieFramebuffer;
+
+>>>>>>> f66492b4448218a241b19f0803ab5d6dde499113
     QSize _frameBufferSize{ 100, 100 };
 };
 
