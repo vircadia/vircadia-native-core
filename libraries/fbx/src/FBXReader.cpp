@@ -2606,10 +2606,17 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
         buildModelMesh(extracted);
 #       endif
         
+        if (extracted.mesh.isEye) {
+            if (maxJointIndex == geometry.leftEyeJointIndex) {
+                geometry.leftEyeSize = extracted.mesh.meshExtents.largestDimension() * offsetScale;
+            } else {
+                geometry.rightEyeSize = extracted.mesh.meshExtents.largestDimension() * offsetScale;
+            }
+        }
+
         geometry.meshes.append(extracted.mesh);
         int meshIndex = geometry.meshes.size() - 1;
         meshIDsToMeshIndices.insert(it.key(), meshIndex);
-
     }
 
     // now that all joints have been scanned, compute a radius for each bone
