@@ -61,25 +61,34 @@ void RigTests::initTestCase() {
     // So here we do neither. Using as much as we can from AvatarData (which is in the avatar and further requires network and audio), and
     // duplicating whatever other code we need from (My)Avatar. Ugh.  We may refactor that later, but right now, cleaning this up is not on our critical path.
 
-    // Joint mapping from fst
-    auto avatar = std::make_shared<AvatarData>();
+    // Joint mapping from fst. FIXME: Do we need this???
+    /*auto avatar = std::make_shared<AvatarData>();
     QEventLoop loop; // Create an event loop that will quit when we get the finished signal
     QObject::connect(avatar.get(), &AvatarData::jointMappingLoaded, &loop, &QEventLoop::quit);
     avatar->setSkeletonModelURL(QUrl("https://hifi-public.s3.amazonaws.com/marketplace/contents/4a690585-3fa3-499e-9f8b-fd1226e561b1/e47e6898027aa40f1beb6adecc6a7db5.fst")); // Zach fst
-    loop.exec();                    // Blocking all further tests until signalled.
+    loop.exec();*/                    // Blocking all further tests until signalled.
 
     // Joint geometry from fbx.
+#define FROM_FILE "/Users/howardstearns/howardHiFi/Zack.fbx"
+#ifdef FROM_FILE
+    QFile file(FROM_FILE);
+    QCOMPARE(file.open(QIODevice::ReadOnly), true);
+    FBXGeometry geometry = readFBX(file.readAll(), QVariantHash());
+#else
     QUrl fbxUrl("https://s3.amazonaws.com/hifi-public/models/skeletons/Zack/Zack.fbx");
-    QNetworkReply* netReply = OBJReader().request(fbxUrl, false);  // Just a convenience hack for synchronoud http request
-    QCOMPARE(netReply->isFinished() && (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200), true);
-    FBXGeometry geometry = readFBX(netReply->readAll(), QVariantHash());
-    QCOMPARE(geometry.joints.count(), avatar->getJointNames().count());
+    QNetworkReply* reply = OBJReader().request(fbxUrl, false);  // Just a convenience hack for synchronoud http request
+    auto fbxHttpCode = !reply->isFinished() ? -1 : reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    QCOMPARE(fbxHttpCode, 200);
+    FBXGeometry geometry = readFBX(reply->readAll(), QVariantHash());
+#endif
+    //QCOMPARE(geometry.joints.count(), avatar->getJointNames().count());
 
     QVector<JointState> jointStates;
     for (int i = 0; i < geometry.joints.size(); ++i) {
-        const FBXJoint& joint = geometry.joints[i];
+        // Note that if the geometry is stack allocated and goes away, so will the joints. Hence the heap copy here.
+        FBXJoint* joint = new FBXJoint(geometry.joints[i]);
         JointState state;
-        state.setFBXJoint(&joint);
+        state.setFBXJoint(joint);
         jointStates.append(state);
     }
 
@@ -88,14 +97,31 @@ void RigTests::initTestCase() {
     std::cout << "Rig is ready " << geometry.joints.count() << " joints " << std::endl;
    }
 
-/*void RigTests::dummyPassTest() {
-    bool x = true;
-    std::cout << "dummyPassTest x=" << x << std::endl;
-    QCOMPARE(x, true);
+void reportJoint(int index, JointState joint) { // Handy for debugging
+    std::cout << "\n";
+    std::cout << index << " " << joint.getFBXJoint().name.toUtf8().data() << "\n";
+    std::cout << " pos:" << joint.getPosition() << "/" << joint.getPositionInParentFrame() << " from " << joint.getParentIndex() << "\n";
+    std::cout << " rot:" << safeEulerAngles(joint.getRotation()) << "/" << safeEulerAngles(joint.getRotationInParentFrame()) << "/" << safeEulerAngles(joint.getRotationInBindFrame()) << "\n";
+    std::cout << "\n";
+}
+void reportByName(RigPointer rig, const QString& name) {
+    int jointIndex = rig->indexOfJoint(name);
+    reportJoint(jointIndex, rig->getJointState(jointIndex));
+}
+void reportAll(RigPointer rig) {
+    for (int i = 0; i < rig->getJointStateCount(); i++) {
+        JointState joint = rig->getJointState(i);
+        reportJoint(i, joint);
+    }
+}
+void reportSome(RigPointer rig) {
+    QString names[] = {"Head", "Neck", "RightShoulder", "RightArm", "RightForeArm", "RightHand", "Spine2", "Spine1", "Spine", "Hips", "RightUpLeg", "RightLeg", "RightFoot", "RightToeBase", "RightToe_End"};
+    for (auto name : names) {
+        reportByName(rig, name);
+    }
 }
 
-void RigTests::dummyFailTest() {
-    bool x = false;
-    std::cout << "dummyFailTest x=" << x << std::endl;
-    QCOMPARE(x, true);
-}*/
+void RigTests::initialPoseArmsDown() {
+    //reportAll(_rig);
+    reportSome(_rig);
+}

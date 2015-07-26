@@ -12,7 +12,7 @@
 #include <queue>
 
 #include "AnimationHandle.h"
-
+#include "AnimationLogging.h"
 #include "Rig.h"
 
 void insertSorted(QList<AnimationHandlePointer>& handles, const AnimationHandlePointer& handle) {
@@ -27,8 +27,85 @@ void insertSorted(QList<AnimationHandlePointer>& handles, const AnimationHandleP
 
 AnimationHandlePointer Rig::createAnimationHandle() {
     AnimationHandlePointer handle(new AnimationHandle(getRigPointer()));
-    _animationHandles.insert(handle);
+    _animationHandles.append(handle);
     return handle;
+}
+void Rig::removeAnimationHandle(const AnimationHandlePointer& handle) {
+    handle->stop();
+    // FIXME? Do we need to also animationHandle->clearJoints()? deleteAnimations(), below, was first written to do so, but did not first stop it.
+    _animationHandles.removeOne(handle);
+}
+
+void Rig::startAnimation(const QString& url, float fps, float priority,
+                              bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints) {
+    qCDebug(animation) << "startAnimation" << url << fps << priority << loop << hold << firstFrame << lastFrame << maskedJoints;
+    AnimationHandlePointer handle = nullptr;
+    foreach (const AnimationHandlePointer& candidate, _animationHandles) {
+        if (candidate->getURL() == url) {
+            handle = candidate;
+            break;
+        }
+    }
+    if (!handle) {
+        handle = createAnimationHandle();
+        handle->setURL(url);
+    }
+    handle->setFPS(fps);
+    handle->setPriority(priority);
+    handle->setLoop(loop);
+    handle->setHold(hold);
+    handle->setFirstFrame(firstFrame);
+    handle->setLastFrame(lastFrame);
+    handle->setMaskedJoints(maskedJoints);
+    handle->start();
+}
+
+void Rig::addAnimationByRole(const QString& role, const QString& url, float fps, float priority,
+                               bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints, bool startAutomatically) {
+    // check for a configured animation for the role
+    qCDebug(animation) << "addAnimationByRole" << role << url << fps << priority << loop << hold << firstFrame << lastFrame << maskedJoints << startAutomatically;
+    AnimationHandlePointer handle = nullptr;
+    foreach (const AnimationHandlePointer& candidate, _animationHandles) {
+        if (candidate->getRole() == role) {
+            handle = candidate;
+            break;
+        }
+    }
+    if (!handle) {
+       handle = createAnimationHandle();
+        handle->setRole(role);
+    }
+    handle->setURL(url);
+    handle->setFPS(fps);
+    handle->setPriority(priority);
+    handle->setLoop(loop);
+    handle->setHold(hold);
+    handle->setFirstFrame(firstFrame);
+    handle->setLastFrame(lastFrame);
+    handle->setMaskedJoints(maskedJoints);
+    if (startAutomatically) {
+        handle->start();
+    }
+}
+void Rig::startAnimationByRole(const QString& role, const QString& url, float fps, float priority,
+                               bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints) {
+    addAnimationByRole(role, url, fps, priority, loop, hold, firstFrame, lastFrame, maskedJoints, true);
+}
+
+void Rig::stopAnimationByRole(const QString& role) {
+    foreach (const AnimationHandlePointer& handle, getRunningAnimations()) {
+        if (handle->getRole() == role) {
+            handle->stop();
+        }
+    }
+}
+
+void Rig::stopAnimation(const QString& url) {
+     foreach (const AnimationHandlePointer& handle, getRunningAnimations()) {
+        if (handle->getURL() == url) {
+            handle->stop();
+        }
+    }
 }
 
 bool Rig::removeRunningAnimation(AnimationHandlePointer animationHandle) {
@@ -44,10 +121,10 @@ bool Rig::isRunningAnimation(AnimationHandlePointer animationHandle) {
 }
 
 void Rig::deleteAnimations() {
-    for (QSet<AnimationHandlePointer>::iterator it = _animationHandles.begin(); it != _animationHandles.end(); ) {
-        (*it)->clearJoints();
-        it = _animationHandles.erase(it);
+    for (auto animation : _animationHandles) {
+        removeAnimationHandle(animation);
     }
+    _animationHandles.clear();
 }
 
 float Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform, int neckJointIndex) {
@@ -71,6 +148,17 @@ float Rig::initJointStates(QVector<JointState> states, glm::mat4 parentTransform
     initHeadBones();
 
     return radius;
+}
+
+// We could build and cache a dictionary, too....
+// Should we be using .fst mapping instead/also?
+int Rig::indexOfJoint(const QString& jointName) {
+    for (int i = 0; i < _jointStates.count(); i++) {
+        if (_jointStates[i].getFBXJoint().name == jointName) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 

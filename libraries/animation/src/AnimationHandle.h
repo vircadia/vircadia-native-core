@@ -45,7 +45,7 @@ inline uint qHash(const std::weak_ptr<AnimationHandle>& a, uint seed) {
 
 
 
-/// Represents a handle to a model animation.
+/// Represents a handle to a model animation. I.e., an Animation in use by a given Rig.
 class AnimationHandle : public QObject, public std::enable_shared_from_this<AnimationHandle> {
     Q_OBJECT
 
@@ -96,6 +96,7 @@ public:
     void setAnimationDetails(const AnimationDetails& details);
 
     void setJointMappings(QVector<int> jointMappings);
+    QVector<int> getJointMappings(); // computing if necessary
     void simulate(float deltaTime);
     void applyFrame(float frameIndex);
     void replaceMatchingPriorities(float newPriority);
@@ -125,7 +126,6 @@ private:
     AnimationLoop _animationLoop;
 
     static QHash<QWeakPointer<Animation>, QVector<int>> _jointMappingsCache;
-    static QVector<int> getJointMappings(const AnimationPointer& animation);
 };
 
 

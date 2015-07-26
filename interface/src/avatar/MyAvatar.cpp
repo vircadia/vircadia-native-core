@@ -491,17 +491,6 @@ void MyAvatar::loadLastRecording() {
     _player->loadRecording(_recorder->getRecording());
 }
 
-AnimationHandlePointer MyAvatar::addAnimationHandle() {
-    AnimationHandlePointer handle = _rig->createAnimationHandle();
-    _animationHandles.append(handle);
-    return handle;
-}
-
-void MyAvatar::removeAnimationHandle(const AnimationHandlePointer& handle) {
-    handle->stop();
-    _animationHandles.removeOne(handle);
-}
-
 void MyAvatar::startAnimation(const QString& url, float fps, float priority,
         bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints) {
     if (QThread::currentThread() != thread()) {
@@ -510,16 +499,7 @@ void MyAvatar::startAnimation(const QString& url, float fps, float priority,
             Q_ARG(float, lastFrame), Q_ARG(const QStringList&, maskedJoints));
         return;
     }
-    AnimationHandlePointer handle = _rig->createAnimationHandle();
-    handle->setURL(url);
-    handle->setFPS(fps);
-    handle->setPriority(priority);
-    handle->setLoop(loop);
-    handle->setHold(hold);
-    handle->setFirstFrame(firstFrame);
-    handle->setLastFrame(lastFrame);
-    handle->setMaskedJoints(maskedJoints);
-    handle->start();
+    _rig->startAnimation(url, fps, priority, loop, hold, firstFrame, lastFrame, maskedJoints);
 }
 
 void MyAvatar::startAnimationByRole(const QString& role, const QString& url, float fps, float priority,
@@ -530,25 +510,7 @@ void MyAvatar::startAnimationByRole(const QString& role, const QString& url, flo
             Q_ARG(float, lastFrame), Q_ARG(const QStringList&, maskedJoints));
         return;
     }
-    // check for a configured animation for the role
-    foreach (const AnimationHandlePointer& handle, _animationHandles) {
-        if (handle->getRole() == role) {
-            handle->start();
-            return;
-        }
-    }
-    // no joy; use the parameters provided
-    AnimationHandlePointer handle = _rig->createAnimationHandle();
-    handle->setRole(role);
-    handle->setURL(url);
-    handle->setFPS(fps);
-    handle->setPriority(priority);
-    handle->setLoop(loop);
-    handle->setHold(hold);
-    handle->setFirstFrame(firstFrame);
-    handle->setLastFrame(lastFrame);
-    handle->setMaskedJoints(maskedJoints);
-    handle->start();
+    _rig->startAnimationByRole(role, url, fps, priority, loop, hold, firstFrame, lastFrame, maskedJoints);
 }
 
 void MyAvatar::stopAnimationByRole(const QString& role) {
@@ -556,11 +518,7 @@ void MyAvatar::stopAnimationByRole(const QString& role) {
         QMetaObject::invokeMethod(this, "stopAnimationByRole", Q_ARG(const QString&, role));
         return;
     }
-    foreach (const AnimationHandlePointer& handle, _skeletonModel.getRunningAnimations()) {
-        if (handle->getRole() == role) {
-            handle->stop();
-        }
-    }
+    _rig->stopAnimationByRole(role);
 }
 
 void MyAvatar::stopAnimation(const QString& url) {
@@ -568,11 +526,7 @@ void MyAvatar::stopAnimation(const QString& url) {
         QMetaObject::invokeMethod(this, "stopAnimation", Q_ARG(const QString&, url));
         return;
     }
-    foreach (const AnimationHandlePointer& handle, _skeletonModel.getRunningAnimations()) {
-        if (handle->getURL() == url) {
-            handle->stop();
-        }
-    }
+    _rig->stopAnimation(url);
 }
 
 AnimationDetails MyAvatar::getAnimationDetailsByRole(const QString& role) {
@@ -583,7 +537,7 @@ AnimationDetails MyAvatar::getAnimationDetailsByRole(const QString& role) {
             Q_ARG(const QString&, role));
         return result;
     }
-    foreach (const AnimationHandlePointer& handle, _skeletonModel.getRunningAnimations()) {
+    foreach (const AnimationHandlePointer& handle, _rig->getRunningAnimations()) {
         if (handle->getRole() == role) {
             result = handle->getAnimationDetails();
             break;
@@ -600,7 +554,7 @@ AnimationDetails MyAvatar::getAnimationDetails(const QString& url) {
             Q_ARG(const QString&, url));
         return result;
     }
-    foreach (const AnimationHandlePointer& handle, _skeletonModel.getRunningAnimations()) {
+    foreach (const AnimationHandlePointer& handle, _rig->getRunningAnimations()) {
         if (handle->getURL() == url) {
             result = handle->getAnimationDetails();
             break;
@@ -646,9 +600,11 @@ void MyAvatar::saveData() {
     settings.endArray();
 
     settings.beginWriteArray("animationHandles");
-    for (int i = 0; i < _animationHandles.size(); i++) {
+    auto animationHandles = _rig->getAnimationHandles();
+    for (int i = 0; i < animationHandles.size(); i++) {
         settings.setArrayIndex(i);
-        const AnimationHandlePointer& pointer = _animationHandles.at(i);
+        const AnimationHandlePointer& pointer = animationHandles.at(i);
+        qCDebug(interfaceapp) << "Save animation" << pointer->getURL().toString();
         settings.setValue("role", pointer->getRole());
         settings.setValue("url", pointer->getURL());
         settings.setValue("fps", pointer->getFPS());
@@ -766,25 +722,19 @@ void MyAvatar::loadData() {
     setAttachmentData(attachmentData);
 
     int animationCount = settings.beginReadArray("animationHandles");
-    while (_animationHandles.size() > animationCount) {
-        _animationHandles.takeLast()->stop();
-    }
-    while (_animationHandles.size() < animationCount) {
-        addAnimationHandle();
-    }
+    _rig->deleteAnimations();
     for (int i = 0; i < animationCount; i++) {
         settings.setArrayIndex(i);
-        const AnimationHandlePointer& handle = _animationHandles.at(i);
-        handle->setRole(settings.value("role", "idle").toString());
-        handle->setURL(settings.value("url").toUrl());
-        handle->setFPS(loadSetting(settings, "fps", 30.0f));
-        handle->setPriority(loadSetting(settings, "priority", 1.0f));
-        handle->setLoop(settings.value("loop", true).toBool());
-        handle->setHold(settings.value("hold", false).toBool());
-        handle->setFirstFrame(settings.value("firstFrame", 0.0f).toFloat());
-        handle->setLastFrame(settings.value("lastFrame", INT_MAX).toFloat());
-        handle->setMaskedJoints(settings.value("maskedJoints").toStringList());
-        handle->setStartAutomatically(settings.value("startAutomatically", true).toBool());
+        _rig->addAnimationByRole(settings.value("role", "idle").toString(),
+                                 settings.value("url").toString(),
+                                 loadSetting(settings, "fps", 30.0f),
+                                 loadSetting(settings, "priority", 1.0f),
+                                 settings.value("loop", true).toBool(),
+                                 settings.value("hold", false).toBool(),
+                                 settings.value("firstFrame", 0.0f).toFloat(),
+                                 settings.value("lastFrame", INT_MAX).toFloat(),
+                                 settings.value("maskedJoints").toStringList(),
+                                 settings.value("startAutomatically", true).toBool());
     }
     settings.endArray();
 
@@ -1531,6 +1481,9 @@ void MyAvatar::maybeUpdateBillboard() {
     QBuffer buffer(&_billboard);
     buffer.open(QIODevice::WriteOnly);
     image.save(&buffer, "PNG");
+#ifdef DEBUG
+    image.save("billboard.png", "PNG");
+#endif
     _billboardValid = true;
 
     sendBillboardPacket();

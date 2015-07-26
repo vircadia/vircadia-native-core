@@ -220,10 +220,7 @@ void Batch::setStateBlendFactor(const Vec4& factor) {
 void Batch::setStateScissorRect(const Vec4i& rect) {
     ADD_COMMAND(setStateScissorRect);
 
-    _params.push_back(rect.x);
-    _params.push_back(rect.y);
-    _params.push_back(rect.z);
-    _params.push_back(rect.w);
+    _params.push_back(cacheData(sizeof(Vec4i), &rect));
 }
 
 void Batch::setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size) {

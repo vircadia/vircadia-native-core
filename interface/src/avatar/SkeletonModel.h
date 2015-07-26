@@ -32,10 +32,6 @@ public:
 
     void simulate(float deltaTime, bool fullUpdate = true);
 
-    /// \param jointIndex index of hand joint
-    /// \param shapes[out] list in which is stored pointers to hand shapes
-    void getHandShapes(int jointIndex, QVector<const Shape*>& shapes) const;
-
     void renderIKConstraints(gpu::Batch& batch);
     
     /// Returns the index of the left hand joint, or -1 if not found.
@@ -105,8 +101,6 @@ public:
     float getBoundingShapeRadius() const { return _boundingShape.getRadius(); }
     const CapsuleShape& getBoundingShape() const { return _boundingShape; }
     const glm::vec3 getBoundingShapeOffset() const { return _boundingShapeLocalOffset; }
-
-    void resetShapePositionsToDefaultPose(); // DEBUG method
 
     bool hasSkeleton();
 

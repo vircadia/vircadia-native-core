@@ -10,7 +10,15 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/* TBD:
+/*
+ Things we want to be able to do, that I think we cannot do now:
+ * Stop an animation at a given time so that it can be examined visually or in a test harness. (I think we can already stop animation and set frame to a computed float? But does that move the bones?)
+ * Play two animations, blending between them. (Current structure just has one, under script control.)
+ * Fade in an animation over another.
+ * Apply IK, lean, head pointing or other overrides relative to previous position.
+ All of this depends on coordinated state.
+
+ TBD:
  - What are responsibilities of Animation/AnimationPointer/AnimationCache/AnimationDetails/AnimationObject/AnimationLoop?
     Is there common/copied code (e.g., ScriptableAvatar::update)?
  - How do attachments interact with the physics of the attached entity? E.g., do hand joints need to reflect held object
@@ -49,15 +57,27 @@ public:
     RigPointer getRigPointer() { return shared_from_this(); }
 
     AnimationHandlePointer createAnimationHandle();
+    void removeAnimationHandle(const AnimationHandlePointer& handle);
     bool removeRunningAnimation(AnimationHandlePointer animationHandle);
     void addRunningAnimation(AnimationHandlePointer animationHandle);
     bool isRunningAnimation(AnimationHandlePointer animationHandle);
     const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
     void deleteAnimations();
+    const QList<AnimationHandlePointer>& getAnimationHandles() const { return _animationHandles; }
+    void startAnimation(const QString& url, float fps = 30.0f, float priority = 1.0f, bool loop = false,
+                        bool hold = false, float firstFrame = 0.0f, float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList());
+    void stopAnimation(const QString& url);
+    void startAnimationByRole(const QString& role, const QString& url = QString(), float fps = 30.0f,
+                              float priority = 1.0f, bool loop = false, bool hold = false, float firstFrame = 0.0f,
+                              float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList());
+    void stopAnimationByRole(const QString& role);
+    void addAnimationByRole(const QString& role, const QString& url, float fps, float priority,
+                            bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints, bool startAutomatically);
 
     float initJointStates(QVector<JointState> states, glm::mat4 parentTransform, int neckJointIndex);
     bool jointStatesEmpty() { return _jointStates.isEmpty(); };
     int getJointStateCount() const { return _jointStates.size(); }
+    int indexOfJoint(const QString& jointName) ;
 
     void initJointTransforms(glm::mat4 parentTransform);
     void clearJointTransformTranslation(int jointIndex);
@@ -115,7 +135,7 @@ public:
  protected:
     QVector<JointState> _jointStates;
 
-    QSet<AnimationHandlePointer> _animationHandles;
+    QList<AnimationHandlePointer> _animationHandles;
     QList<AnimationHandlePointer> _runningAnimations;
 
     JointState maybeCauterizeHead(int jointIndex) const;

@@ -61,9 +61,9 @@ public:
     bool getShouldRenderLocally() const { return _shouldRender; }
     float getRealWorldFieldOfView() { return _realWorldFieldOfView.get(); }
     
-    const QList<AnimationHandlePointer>& getAnimationHandles() const { return _animationHandles; }
-    AnimationHandlePointer addAnimationHandle();
-    void removeAnimationHandle(const AnimationHandlePointer& handle);
+    const QList<AnimationHandlePointer>& getAnimationHandles() const { return _rig->getAnimationHandles(); }
+    AnimationHandlePointer addAnimationHandle() { return _rig->createAnimationHandle(); }
+    void removeAnimationHandle(const AnimationHandlePointer& handle) { _rig->removeAnimationHandle(handle); }
     
     /// Allows scripts to run animations.
     Q_INVOKABLE void startAnimation(const QString& url, float fps = 30.0f, float priority = 1.0f, bool loop = false,
@@ -256,8 +256,6 @@ private:
     bool _shouldRender;
     bool _billboardValid;
     float _oculusYawOffset;
-
-    QList<AnimationHandlePointer> _animationHandles;
     
     bool _feetTouchFloor;
     eyeContactTarget _eyeContactTarget;
