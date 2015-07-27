@@ -125,7 +125,7 @@ void ParticleEffectEntityItem::setParticleRadius(float particleRadius) {
 void ParticleEffectEntityItem::computeAndUpdateDimensions() {
 
     const float t = _lifespan * 1.1f;  // add 10% extra time, to account for incremental timer accumulation error.
-    const float MAX_RANDOM_FACTOR = (0.5f * 0.25);
+    const float MAX_RANDOM_FACTOR = (0.5f * 0.25f);
     const float maxOffset = (MAX_RANDOM_FACTOR * _emitStrength) + _particleRadius;
 
     // bounds for x and z is easy to compute because there is no at^2 term.
