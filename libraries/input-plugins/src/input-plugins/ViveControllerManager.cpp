@@ -22,7 +22,7 @@
 #include <plugins/PluginContainer.h>
 #include "UserActivityLogger.h"
 
-#ifndef Q_OS_MAC
+#ifdef Q_OS_WIN
 extern vr::IVRSystem* _hmd;
 extern int hmdRefCount;
 extern vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
@@ -64,7 +64,7 @@ ViveControllerManager::ViveControllerManager() :
 }
 
 bool ViveControllerManager::isSupported() const {
-#ifndef Q_OS_MAC
+#ifdef Q_OS_WIN
     return vr::VR_IsHmdPresent();
 #else 
     return false;
@@ -72,7 +72,7 @@ bool ViveControllerManager::isSupported() const {
 }
 
 void ViveControllerManager::activate(PluginContainer* container) {
-#ifndef Q_OS_MAC
+#ifdef Q_OS_WIN
     container->addMenu(MENU_PATH);
     container->addMenuItem(MENU_PATH, RENDER_CONTROLLERS,
         [this] (bool clicked) { this->setRenderControllers(clicked); },
@@ -136,7 +136,7 @@ void ViveControllerManager::activate(PluginContainer* container) {
 }
 
 void ViveControllerManager::deactivate(PluginContainer* container) {
-#ifndef Q_OS_MAC
+#ifdef Q_OS_WIN
     container->removeMenuItem(MENU_NAME, RENDER_CONTROLLERS);
     container->removeMenu(MENU_PATH);
 
@@ -213,7 +213,7 @@ void ViveControllerManager::renderHand(UserInputMapper::PoseValue pose, gpu::Bat
 }
 
 void ViveControllerManager::update(float deltaTime, bool jointsCaptured) {
-#ifndef Q_OS_MAC
+#ifdef Q_OS_WIN
     _poseStateMap.clear();
 
     // TODO: This shouldn't be necessary
