@@ -194,11 +194,11 @@ protected:
     /// parses the info between the seq num and the audio data in the network packet and calculates
     /// how many audio samples this packet contains (used when filling in samples for dropped packets).
     /// default implementation assumes no stream properties and raw audio samples after stream propertiess
-    virtual int parseStreamProperties(PacketType::Value type, const QByteArray& packetAfterSeqNum, int& networkSamples);
+    virtual int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& networkSamples);
 
     /// parses the audio data in the network packet.
     /// default implementation assumes packet contains raw audio samples after stream properties
-    virtual int parseAudioData(PacketType::Value type, const QByteArray& packetAfterStreamProperties, int networkSamples);
+    virtual int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int networkSamples);
 
     /// writes silent samples to the buffer that may be dropped to reduce latency caused by the buffer
     virtual int writeDroppableSilentSamples(int silentSamples);

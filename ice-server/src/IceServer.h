@@ -19,7 +19,7 @@
 #include <NetworkPeer.h>
 #include <HTTPConnection.h>
 #include <HTTPManager.h>
-#include <udt/Packet.h>
+#include <NLPacket.h>
 #include <udt/Socket.h>
 
 typedef QHash<QUuid, SharedNetworkPeer> NetworkPeerHash;
@@ -35,7 +35,7 @@ private:
     bool packetVersionMatch(const udt::Packet& packet);
     void processPacket(std::unique_ptr<udt::Packet> packet);
     
-    SharedNetworkPeer addOrUpdateHeartbeatingPeer(udt::Packet& incomingPacket);
+    SharedNetworkPeer addOrUpdateHeartbeatingPeer(NLPacket& incomingPacket);
     void sendPeerInformationPacket(const NetworkPeer& peer, const HifiSockAddr* destinationSockAddr);
 
     QUuid _id;

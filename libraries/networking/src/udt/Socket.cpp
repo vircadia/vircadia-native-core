@@ -65,6 +65,9 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
     
     qint64 bytesWritten = _udpSocket.writeDatagram(datagram, sockAddr.getAddress(), sockAddr.getPort());
     
+    // TODO: write the correct sequence number to the Packet here
+    // const_cast<NLPacket&>(packet).writeSequenceNumber(sequenceNumber);
+    
     if (bytesWritten < 0) {
         qCDebug(networking) << "ERROR in writeDatagram:" << _udpSocket.error() << "-" << _udpSocket.errorString();
     }
@@ -80,16 +83,28 @@ void Socket::readPendingDatagrams() {
         // setup a buffer to read the packet into
         int packetSizeWithHeader = _udpSocket.pendingDatagramSize();
         std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[packetSizeWithHeader]);
-        
+       
         // pull the datagram
         _udpSocket.readDatagram(buffer.get(), packetSizeWithHeader,
                                 senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
+        
+        auto it = _unfilteredHandlers.find(senderSockAddr);
+        
+        if (it != _unfilteredHandlers.end()) {
+            // we have a registered unfiltered handler for this HifiSockAddr - call that and return
+            if (it->second) {
+                auto basePacket = BasePacket::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
+                it->second(std::move(basePacket));
+            }
+            
+            return;
+        }
         
         // setup a Packet from the data we just read
         auto packet = Packet::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
         
         // call our verification operator to see if this packet is verified
-        if (_unfilteredSockAddrs.contains(senderSockAddr) || !_packetFilterOperator || _packetFilterOperator(*packet)) {
+        if (!_packetFilterOperator || _packetFilterOperator(*packet)) {
             if (_packetHandler) {
                 // call the verified packet callback to let it handle this packet
                 return _packetHandler(std::move(packet));

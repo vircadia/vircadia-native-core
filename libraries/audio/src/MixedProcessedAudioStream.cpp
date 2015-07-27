@@ -42,7 +42,7 @@ int MixedProcessedAudioStream::writeLastFrameRepeatedWithFade(int samples) {
     return deviceSamplesWritten;
 }
 
-int MixedProcessedAudioStream::parseAudioData(PacketType::Value type, const QByteArray& packetAfterStreamProperties, int networkSamples) {
+int MixedProcessedAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int networkSamples) {
 
     emit addedStereoSamples(packetAfterStreamProperties);
 

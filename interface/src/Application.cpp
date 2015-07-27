@@ -2705,7 +2705,7 @@ int Application::sendNackPackets() {
     return packetsSent;
 }
 
-void Application::queryOctree(NodeType_t serverType, PacketType::Value packetType, NodeToJurisdictionMap& jurisdictions) {
+void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
 
     //qCDebug(interfaceapp) << ">>> inside... queryOctree()... _viewFrustum.getFieldOfView()=" << _viewFrustum.getFieldOfView();
     bool wantExtraDebugging = getLogger()->extraDebugging();

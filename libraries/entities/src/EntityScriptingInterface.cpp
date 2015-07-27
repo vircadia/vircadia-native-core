@@ -32,7 +32,7 @@ EntityScriptingInterface::EntityScriptingInterface() :
     connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptingInterface::canRezChanged);
 }
 
-void EntityScriptingInterface::queueEntityMessage(PacketType::Value packetType,
+void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
                                                   EntityItemID entityID, const EntityItemProperties& properties) {
     getEntityPacketSender()->queueEditEntityMessage(packetType, entityID, properties);
 }

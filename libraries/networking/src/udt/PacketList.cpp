@@ -17,7 +17,7 @@
 
 using namespace udt;
 
-PacketList::PacketList(PacketType::Value packetType, QByteArray extendedHeader) :
+PacketList::PacketList(PacketType packetType, QByteArray extendedHeader) :
     _packetType(packetType),
     _extendedHeader(extendedHeader)
 {
@@ -34,7 +34,8 @@ void PacketList::endSegment() {
 
 std::unique_ptr<Packet> PacketList::createPacket() {
     // use the static create method to create a new packet
-    return Packet::create(getType());
+    // TODO: create a packet with correct reliability and messaging
+    return Packet::create();
 }
 
 std::unique_ptr<Packet> PacketList::createPacketWithExtendedHeader() {

@@ -15,6 +15,7 @@
 #define hifi_Socket_h
 
 #include <functional>
+#include <unordered_map>
 
 #include <QtCore/QObject>
 #include <QtNetwork/QUdpSocket>
@@ -25,6 +26,8 @@
 namespace udt {
 
 using PacketFilterOperator = std::function<bool(const Packet&)>;
+
+using BasePacketHandler = std::function<void(std::unique_ptr<BasePacket>)>;
 using PacketHandler = std::function<void(std::unique_ptr<Packet>)>;
 
 class Socket : public QObject {
@@ -48,7 +51,8 @@ public:
     
     void setBufferSizes(int numBytes);
     
-    void addUnfilteredSockAddr(const HifiSockAddr& senderSockAddr) { _unfilteredSockAddrs.insert(senderSockAddr); }
+    void addUnfilteredHandler(const HifiSockAddr& senderSockAddr, BasePacketHandler handler)
+        { _unfilteredHandlers[senderSockAddr] = handler; }
 
 private slots:
     void readPendingDatagrams();
@@ -58,7 +62,9 @@ private:
     PacketFilterOperator _packetFilterOperator;
     PacketHandler _packetHandler;
     
-    QSet<HifiSockAddr> _unfilteredSockAddrs;
+    std::unordered_map<HifiSockAddr, BasePacketHandler> _unfilteredHandlers;
+
+    std::unordered_map<HifiSockAddr, Packet::SequenceNumber> _packetSequenceNumbers;
 };
     
 } // namespace udt

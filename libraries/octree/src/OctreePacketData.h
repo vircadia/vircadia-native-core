@@ -26,11 +26,11 @@
 #include <QString>
 #include <QUuid>
 
-#include <LimitedNodeList.h> // for MAX_PACKET_SIZE
-#include <udt/PacketHeaders.h> // for MAX_PACKET_HEADER_BYTES
+#include <BackgroundMode.h>
 #include <SharedUtil.h>
 #include <ShapeInfo.h>
-#include <BackgroundMode.h>
+#include <NLPacket.h>
+#include <udt/PacketHeaders.h>
 
 #include "OctreeConstants.h"
 #include "OctreeElement.h"
@@ -40,14 +40,13 @@ typedef uint16_t OCTREE_PACKET_SEQUENCE;
 const uint16_t MAX_OCTREE_PACKET_SEQUENCE = 65535;
 typedef quint64 OCTREE_PACKET_SENT_TIME;
 typedef uint16_t OCTREE_PACKET_INTERNAL_SECTION_SIZE;
-const int MAX_OCTREE_PACKET_SIZE = MAX_PACKET_SIZE;
+const int MAX_OCTREE_PACKET_SIZE = udt::MAX_PACKET_SIZE;
 
-// this is overly conservative - sizeof(PacketType) is 8 bytes but a packed PacketType::Value could be as small as one byte
 const unsigned int OCTREE_PACKET_EXTRA_HEADERS_SIZE = sizeof(OCTREE_PACKET_FLAGS)
                 + sizeof(OCTREE_PACKET_SEQUENCE) + sizeof(OCTREE_PACKET_SENT_TIME);
 
-const unsigned int MAX_OCTREE_PACKET_DATA_SIZE = MAX_PACKET_SIZE - (MAX_PACKET_HEADER_BYTES + OCTREE_PACKET_EXTRA_HEADERS_SIZE);
-            
+const unsigned int MAX_OCTREE_PACKET_DATA_SIZE =
+    udt::MAX_PACKET_SIZE - (NLPacket::MAX_PACKET_HEADER_SIZE + OCTREE_PACKET_EXTRA_HEADERS_SIZE);
 const unsigned int MAX_OCTREE_UNCOMRESSED_PACKET_SIZE = MAX_OCTREE_PACKET_DATA_SIZE;
 
 const unsigned int MINIMUM_ATTEMPT_MORE_PACKING = sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE) + 40;

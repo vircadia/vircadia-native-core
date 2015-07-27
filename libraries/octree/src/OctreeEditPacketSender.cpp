@@ -194,7 +194,7 @@ void OctreeEditPacketSender::queuePacketToNodes(std::unique_ptr<NLPacket> packet
 
 
 // NOTE: editMessage - is JUST the octcode/color and does not contain the packet header
-void OctreeEditPacketSender::queueOctreeEditMessage(PacketType::Value type, QByteArray& editMessage) {
+void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, QByteArray& editMessage) {
 
     if (!_shouldSend) {
         return; // bail early
@@ -315,7 +315,7 @@ void OctreeEditPacketSender::releaseQueuedPacket(const QUuid& nodeID, std::uniqu
     _releaseQueuedPacketMutex.unlock();
 }
 
-std::unique_ptr<NLPacket> OctreeEditPacketSender::initializePacket(PacketType::Value type, int nodeClockSkew) {
+std::unique_ptr<NLPacket> OctreeEditPacketSender::initializePacket(PacketType type, int nodeClockSkew) {
     auto newPacket = NLPacket::create(type);
 
     // skip over sequence number for now; will be packed when packet is ready to be sent out

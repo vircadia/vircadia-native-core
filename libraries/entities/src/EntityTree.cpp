@@ -63,7 +63,7 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     resetClientEditStats();
 }
 
-bool EntityTree::handlesEditPacketType(PacketType::Value packetType) const {
+bool EntityTree::handlesEditPacketType(PacketType packetType) const {
     // we handle these types of "edit" packets
     switch (packetType) {
         case PacketType::EntityAdd:
