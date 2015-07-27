@@ -232,7 +232,10 @@ public:
     int rightHandJointIndex = -1;
     int leftToeJointIndex = -1;
     int rightToeJointIndex = -1;
-    
+
+    float leftEyeSize = 0.0f;  // Maximum mesh extents dimension
+    float rightEyeSize = 0.0f;
+
     QVector<int> humanIKJointIndices;
     
     glm::vec3 palmDirection;
