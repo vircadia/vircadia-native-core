@@ -27,11 +27,6 @@ SatelliteGame = function() {
 		z: 0
 	}
 	var LIFETIME = 6000;
-
-	var v0;
-	var T = 4.0;
-	var M = 16000.0;
-	var m = M * 0.000000333;
 	var ERROR_THRESH = 20.0;
 
 	// Create the spinning earth model
@@ -43,42 +38,54 @@ SatelliteGame = function() {
 
 	Earth = function(position, size) {
 		this.earth = Entities.addEntity({
-		    type: "Model",
-		    shapeType: 'sphere',
-		    modelURL: URL + "earth.fbx",
-		    position: position,
-		    dimensions: {
-		        x: size,
-		        y: size,
-		        z: size
-		    },
-		    rotation: Quat.angleAxis(180, {x: 1, y: 0, z: 0}),
-		    angularVelocity: { x: 0.00, y: 0.5 * SPIN, z: 0.00 },
-		    angularDamping: 0.0,
-		    damping: 0.0,
-		    ignoreCollisions: false,
-		    lifetime: 6000,
-		    collisionsWillMove: false,
-		    visible: true
+			type: "Model",
+			shapeType: 'sphere',
+			modelURL: URL + "earth.fbx",
+			position: position,
+			dimensions: {
+				x: size,
+				y: size,
+				z: size
+			},
+			rotation: Quat.angleAxis(180, {
+				x: 1,
+				y: 0,
+				z: 0
+			}),
+			angularVelocity: {
+				x: 0.00,
+				y: 0.5 * SPIN,
+				z: 0.00
+			},
+			angularDamping: 0.0,
+			damping: 0.0,
+			ignoreCollisions: false,
+			lifetime: 6000,
+			collisionsWillMove: false,
+			visible: true
 		});
 
 		this.clouds = Entities.addEntity({
-		    type: "Model",
-	        shapeType: 'sphere',
-		    modelURL: URL + "clouds.fbx?i=2",
-		    position: position,
-		    dimensions: {
-		        x: size + CLOUDS_OFFSET,
-		        y: size + CLOUDS_OFFSET,
-		        z: size + CLOUDS_OFFSET
-		    },
-		    angularVelocity: { x: 0.00, y: SPIN, z: 0.00 },
-		    angularDamping: 0.0,
-		    damping: 0.0,
-		    ignoreCollisions: false,
-		    lifetime: LIFETIME,
-		    collisionsWillMove: false,
-		    visible: true
+			type: "Model",
+			shapeType: 'sphere',
+			modelURL: URL + "clouds.fbx?i=2",
+			position: position,
+			dimensions: {
+				x: size + CLOUDS_OFFSET,
+				y: size + CLOUDS_OFFSET,
+				z: size + CLOUDS_OFFSET
+			},
+			angularVelocity: {
+				x: 0.00,
+				y: SPIN,
+				z: 0.00
+			},
+			angularDamping: 0.0,
+			damping: 0.0,
+			ignoreCollisions: false,
+			lifetime: LIFETIME,
+			collisionsWillMove: false,
+			visible: true
 		});
 
 		this.zone = Entities.addEntity({
@@ -93,11 +100,11 @@ SatelliteGame = function() {
 			keyLightIntensity: LIGHT_INTENSITY
 		});
 
-	    this.cleanup = function() {
-	    	Entities.deleteEntity(this.clouds);
+		this.cleanup = function() {
+			Entities.deleteEntity(this.clouds);
 			Entities.deleteEntity(this.earth);
 			Entities.deleteEntity(this.zone);
-	    }
+		}
 	}
 
 	// Create earth model
@@ -110,6 +117,10 @@ SatelliteGame = function() {
 	var launched = false;
 	var activeSatellite;
 
+    var PERIOD = 4.0;
+    var LARGE_BODY_MASS = 16000.0;
+    var SMALL_BODY_MASS = LARGE_BODY_MASS * 0.000000333;
+
 	Satellite = function(position, planetCenter) {
 		// The Satellite class
 
@@ -118,20 +129,20 @@ SatelliteGame = function() {
 		this.readyToLaunch = false;
 		this.radius = Vec3.length(Vec3.subtract(position, planetCenter));
 
-		this.satellite = Entities.addEntity({ 
+		this.satellite = Entities.addEntity({
 			type: "Model",
-		      modelURL: "https://s3.amazonaws.com/hifi-public/marketplace/hificontent/Scripts/planets/satellite/satellite.fbx",
-		      position: this.startPosition,  
-		      dimensions: { 
-		      	x: SATELLITE_SIZE, 
-		      	y: SATELLITE_SIZE, 
-		      	z: SATELLITE_SIZE 
-		      }, 
-		      angularDamping: 0.0,
-		      damping: 0.0,
-		      ignoreCollisions: false,
-		      lifetime: LIFETIME,
-		      collisionsWillMove: false,
+			modelURL: "https://s3.amazonaws.com/hifi-public/marketplace/hificontent/Scripts/planets/satellite/satellite.fbx",
+			position: this.startPosition,
+			dimensions: {
+				x: SATELLITE_SIZE,
+				y: SATELLITE_SIZE,
+				z: SATELLITE_SIZE
+			},
+			angularDamping: 0.0,
+			damping: 0.0,
+			ignoreCollisions: false,
+			lifetime: LIFETIME,
+			collisionsWillMove: false,
 		});
 
 		this.getProperties = function() {
@@ -142,14 +153,16 @@ SatelliteGame = function() {
 			var prop = Entities.getEntityProperties(this.satellite);
 			var between = Vec3.subtract(planetCenter, prop.position);
 			var radius = Vec3.length(between);
-			this.G = (4.0 * Math.PI * Math.PI * Math.pow(radius, 3.0)) / (M * T * T);
+			this.gravity = (4.0 * Math.PI * Math.PI * Math.pow(radius, 3.0)) / (LARGE_BODY_MASS * PERIOD * PERIOD);
 
-			var v0 = Vec3.normalize(Vec3.cross(between, Y_AXIS));
-			v0 = Vec3.multiply(Math.sqrt((this.G * M) / radius), v0);
-			v0 = Vec3.multiply(this.arrow.magnitude, v0);
-			v0 = Vec3.multiply(Vec3.length(v0), this.arrow.direction);
+			var initialVelocity = Vec3.normalize(Vec3.cross(between, Y_AXIS));
+			initialVelocity = Vec3.multiply(Math.sqrt((this.gravity * LARGE_BODY_MASS) / radius), initialVelocity);
+			initialVelocity = Vec3.multiply(this.arrow.magnitude, initialVelocity);
+			initialVelocity = Vec3.multiply(Vec3.length(initialVelocity), this.arrow.direction);
 
-		    Entities.editEntity(this.satellite, { velocity: v0 });
+			Entities.editEntity(this.satellite, {
+				velocity: initialVelocity
+			});
 			this.launched = true;
 		};
 
@@ -158,12 +171,12 @@ SatelliteGame = function() {
 			var prop = Entities.getEntityProperties(this.satellite);
 			var between = Vec3.subtract(prop.position, planetCenter);
 			var radius = Vec3.length(between);
-			var a = -(this.G * M) * Math.pow(radius, (-2.0));
-			var speed = a * deltaTime;
-		    var vel = Vec3.multiply(speed, Vec3.normalize(between));
+			var acceleration = -(this.gravity * LARGE_BODY_MASS) * Math.pow(radius, (-2.0));
+			var speed = acceleration * deltaTime;
+			var vel = Vec3.multiply(speed, Vec3.normalize(between));
 
-		    var newVelocity = Vec3.sum(prop.velocity, vel);
-		    var newPos = Vec3.sum(prop.position, Vec3.multiply(newVelocity, deltaTime));
+			var newVelocity = Vec3.sum(prop.velocity, vel);
+			var newPos = Vec3.sum(prop.position, Vec3.multiply(newVelocity, deltaTime));
 
 			Entities.editEntity(this.satellite, {
 				velocity: newVelocity,
@@ -173,11 +186,11 @@ SatelliteGame = function() {
 	}
 
 	function mouseDoublePressEvent(event) {
-	    var pickRay = Camera.computePickRay(event.x, event.y);
-	    var addVector = Vec3.multiply(pickRay.direction, distance);
-	    var point = Vec3.sum(Camera.getPosition(), addVector);
+		var pickRay = Camera.computePickRay(event.x, event.y);
+		var addVector = Vec3.multiply(pickRay.direction, distance);
+		var point = Vec3.sum(Camera.getPosition(), addVector);
 
-	    // Create a new satellite 
+		// Create a new satellite 
 		activeSatellite = new Satellite(point, center);
 		satellites.push(activeSatellite);
 	}
@@ -188,11 +201,11 @@ SatelliteGame = function() {
 		}
 		// Reset label
 		if (activeSatellite.arrow) {
-	    	activeSatellite.arrow.deleteLabel();
-	    }
+			activeSatellite.arrow.deleteLabel();
+		}
 		var statsPosition = Vec3.sum(Camera.getPosition(), Vec3.multiply(MAX_RANGE * 0.4, Quat.getFront(Camera.getOrientation())));
 		var pickRay = Camera.computePickRay(event.x, event.y)
-	    var rayPickResult = Entities.findRayIntersection(pickRay, true);
+		var rayPickResult = Entities.findRayIntersection(pickRay, true);
 		if (rayPickResult.entityID === activeSatellite.satellite) {
 			// Create a draggable vector arrow at satellite position
 			activeSatellite.arrow = new VectorArrow(distance, true, "INITIAL VELOCITY", statsPosition);
@@ -202,50 +215,50 @@ SatelliteGame = function() {
 	}
 
 	function mouseMoveEvent(event) {
-		if(!activeSatellite || !activeSatellite.arrow || !activeSatellite.arrow.isDragging) {
+		if (!activeSatellite || !activeSatellite.arrow || !activeSatellite.arrow.isDragging) {
 			return;
 		}
 		activeSatellite.arrow.onMouseMoveEvent(event);
 	}
 
 	function mouseReleaseEvent(event) {
-		if(!activeSatellite || !activeSatellite.arrow || !activeSatellite.arrow.isDragging) {
+		if (!activeSatellite || !activeSatellite.arrow || !activeSatellite.arrow.isDragging) {
 			return;
 		}
 		activeSatellite.arrow.onMouseReleaseEvent(event);
-	  	activeSatellite.launch();
-	  	activeSatellite.arrow.cleanup();
+		activeSatellite.launch();
+		activeSatellite.arrow.cleanup();
 	}
 
 	var counter = 0.0;
-	var TIME = 500; 
+	var CHECK_ENERGY_PERIOD = 500;
 
 	function update(deltaTime) {
-		if(!activeSatellite) {
+		if (!activeSatellite) {
 			return;
 		}
 		// Update all satellites
 		for (var i = 0; i < satellites.length; i++) {
 			if (!satellites[i].launched) {
-				return;
+				continue;
 			}
-			satellites[i].update(deltaTime);	
+			satellites[i].update(deltaTime);
 		}
-		
+
 		counter++;
-		if (counter % TIME == 0) {
+		if (counter % CHECK_ENERGY_PERIOD == 0) {
 			var prop = activeSatellite.getProperties();
-	        var error = calcEnergyError(prop.position, Vec3.length(prop.velocity));
-	        if (Math.abs(error) <= ERROR_THRESH) {
-	            activeSatellite.arrow.editLabel("Nice job! The satellite has reached a stable orbit.");
-	        } else {
-	        	activeSatellite.arrow.editLabel("Try again! The satellite is in an unstable orbit.");
-	        }
-	    }
+			var error = calcEnergyError(prop.position, Vec3.length(prop.velocity));
+			if (Math.abs(error) <= ERROR_THRESH) {
+				activeSatellite.arrow.editLabel("Nice job! The satellite has reached a stable orbit.");
+			} else {
+				activeSatellite.arrow.editLabel("Try again! The satellite is in an unstable orbit.");
+			}
+		}
 	}
 
 	this.endGame = function() {
-		for(var i = 0; i < satellites.length; i++) {
+		for (var i = 0; i < satellites.length; i++) {
 			Entities.deleteEntity(satellites[i].satellite);
 			satellites[i].arrow.cleanup();
 		}
@@ -256,13 +269,13 @@ SatelliteGame = function() {
 	function calcEnergyError(pos, vel) {
 		//Calculate total energy error for active satellite's orbital motion
 		var radius = activeSatellite.radius;
-		var G = (4.0 * Math.PI * Math.PI * Math.pow(radius, 3.0)) / (M * T * T);
-		var v0 = Math.sqrt((G * M) / radius);
-		
-	    var totalEnergy = 0.5 * M * Math.pow(v0, 2.0) - ((G * M * m) / radius);
-	    var measuredEnergy = 0.5 * M * Math.pow(vel, 2.0) - ((G * M * m) / Vec3.length(Vec3.subtract(pos, center)));
-	    var error = ((measuredEnergy - totalEnergy) / totalEnergy) * 100;
-	    return error;
+		var gravity = (4.0 * Math.PI * Math.PI * Math.pow(radius, 3.0)) / (LARGE_BODY_MASS * PERIOD * PERIOD);
+		var initialVelocityCalculated = Math.sqrt((gravity * LARGE_BODY_MASS) / radius);
+
+		var totalEnergy = 0.5 * LARGE_BODY_MASS * Math.pow(initialVelocityCalculated, 2.0) - ((gravity * LARGE_BODY_MASS * SMALL_BODY_MASS) / radius);
+		var measuredEnergy = 0.5 * LARGE_BODY_MASS * Math.pow(vel, 2.0) - ((gravity * LARGE_BODY_MASS * SMALL_BODY_MASS) / Vec3.length(Vec3.subtract(pos, center)));
+		var error = ((measuredEnergy - totalEnergy) / totalEnergy) * 100;
+		return error;
 	}
 
 	Controller.mousePressEvent.connect(mousePressEvent);
@@ -273,6 +286,3 @@ SatelliteGame = function() {
 	Script.scriptEnding.connect(this.endGame);
 
 }
-	
-
-

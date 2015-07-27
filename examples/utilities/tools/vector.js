@@ -82,6 +82,13 @@ VectorArrow = function(distance, showStats, statsTitle, statsPosition) {
   }
 
 
+  var STATS_DIMENSIONS = {
+    x: 4.0,
+    y: 1.5,
+    z: 0.1
+  };
+  var TEXT_HEIGHT = 0.3;
+
   this.onMousePressEvent = function(event) {
     
     this.newLine(computeWorldPoint(event));
@@ -90,12 +97,8 @@ VectorArrow = function(distance, showStats, statsTitle, statsPosition) {
       this.label = Entities.addEntity({
         type: "Text",
         position: statsPosition,
-        dimensions: {
-          x: 4.0,
-          y: 1.5, 
-          z: 0.1
-        },
-        lineHeight: 0.3,
+        dimensions: STATS_DIMENSIONS,
+        lineHeight: TEXT_HEIGHT,
         faceCamera: true
       });
     }
@@ -137,7 +140,7 @@ VectorArrow = function(distance, showStats, statsTitle, statsPosition) {
       rotation: rotate2
     });
 
-    this.magnitude = Vec3.length(localPoint) / 10.0;
+    this.magnitude = Vec3.length(localPoint) * 0.1;
     this.direction = Vec3.normalize(Vec3.subtract(worldPoint, linePosition)); 
 
     if (this.showStats) {
@@ -180,18 +183,4 @@ VectorArrow = function(distance, showStats, statsTitle, statsPosition) {
       return localPoint;
   }
 
-
-
 }
-
-
-
-
-
-
-
-
-
-
-  
-

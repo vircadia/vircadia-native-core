@@ -52,9 +52,7 @@ var BOUNDS = 200;
 
 
 // Alert user to move if they are too close to domain bounds
-if (MyAvatar.position.x < BOUNDS || MyAvatar.position.x > TREE_SCALE - BOUNDS 
-    || MyAvatar.position.y < BOUNDS || MyAvatar.position.y > TREE_SCALE - BOUNDS 
-    || MyAvatar.position.z < BOUNDS || MyAvatar.position.z > TREE_SCALE - BOUNDS) {
+if (MyAvatar.position.x < BOUNDS || MyAvatar.position.x > TREE_SCALE - BOUNDS || MyAvatar.position.y < BOUNDS || MyAvatar.position.y > TREE_SCALE - BOUNDS || MyAvatar.position.z < BOUNDS || MyAvatar.position.z > TREE_SCALE - BOUNDS) {
     Window.alert("Please move at least 200m away from domain bounds.");
     return;
 }
@@ -106,30 +104,70 @@ function initPlanets() {
         var T = (2.0 * Math.PI) * Math.sqrt(Math.pow(radius, 3.0) / (G * M));
 
         if (i == 0) {
-            var color = {red: 255, green: 255, blue: 255};
+            var color = {
+                red: 255,
+                green: 255,
+                blue: 255
+            };
         } else if (i == 1) {
-            var color = {red: 255, green: 160, blue: 110};
+            var color = {
+                red: 255,
+                green: 160,
+                blue: 110
+            };
         } else if (i == 2) {
-            var color = {red: 10, green: 150, blue: 160};
+            var color = {
+                red: 10,
+                green: 150,
+                blue: 160
+            };
         } else if (i == 3) {
-            var color = {red: 180, green: 70, blue: 10};
+            var color = {
+                red: 180,
+                green: 70,
+                blue: 10
+            };
         } else if (i == 4) {
-            var color = {red: 250, green: 140, blue: 0};
+            var color = {
+                red: 250,
+                green: 140,
+                blue: 0
+            };
         } else if (i == 5) {
-            var color = {red: 235, green: 215, blue: 0};
+            var color = {
+                red: 235,
+                green: 215,
+                blue: 0
+            };
         } else if (i == 6) {
-            var color = {red:135, green: 205, blue: 240};
+            var color = {
+                red: 135,
+                green: 205,
+                blue: 240
+            };
         } else if (i == 7) {
-            var color = {red:30, green: 140, blue: 255};
+            var color = {
+                red: 30,
+                green: 140,
+                blue: 255
+            };
         }
 
         var prop = {
             radius: radius,
-            position: Vec3.sum(center, {x: radius, y: 0.0, z: 0.0}),
+            position: Vec3.sum(center, {
+                x: radius,
+                y: 0.0,
+                z: 0.0
+            }),
             lineColor: color,
             period: T,
             dimensions: size,
-            velocity: Vec3.multiply(v0, Vec3.normalize({x: 0, y: -0.2, z: 0.9}))
+            velocity: Vec3.multiply(v0, Vec3.normalize({
+                x: 0,
+                y: -0.2,
+                z: 0.9
+            }))
         };
         planet_properties.push(prop);
 
@@ -194,27 +232,55 @@ function showLabels() {
 
         text = text + "                    Speed: " + Vec3.length(properties.velocity).toFixed(2);
 
-        var labelPos = Vec3.sum(planet_properties[i].position, {x: 0.0, y: LABEL_DIST, z: LABEL_DIST});
+        var labelPos = Vec3.sum(planet_properties[i].position, {
+            x: 0.0,
+            y: LABEL_DIST,
+            z: LABEL_DIST
+        });
         var linePos = planet_properties[i].position;
-        labelLines.push(Entities.addEntity( {
+        labelLines.push(Entities.addEntity({
             type: "Line",
             position: linePos,
-            dimensions: {x: 20, y: 20, z: 20},
+            dimensions: {
+                x: 20,
+                y: 20,
+                z: 20
+            },
             lineWidth: 3.0,
-            color: {red: 255, green: 255, blue: 255},
-            linePoints: [{x: 0, y: 0, z: 0}, computeLocalPoint(linePos, labelPos)]
+            color: {
+                red: 255,
+                green: 255,
+                blue: 255
+            },
+            linePoints: [{
+                x: 0,
+                y: 0,
+                z: 0
+            }, computeLocalPoint(linePos, labelPos)]
         }));
 
-        labels.push(Entities.addEntity( {
+        labels.push(Entities.addEntity({
             type: "Text",
             text: text,
             lineHeight: TEXT_HEIGHT,
-            dimensions: {x: LABEL_X, y: LABEL_Y, z: LABEL_Z},
+            dimensions: {
+                x: LABEL_X,
+                y: LABEL_Y,
+                z: LABEL_Z
+            },
             position: labelPos,
-            backgroundColor: {red: 10, green: 10, blue: 10},
-            textColor: {red: 255, green: 255, blue: 255},
+            backgroundColor: {
+                red: 10,
+                green: 10,
+                blue: 10
+            },
+            textColor: {
+                red: 255,
+                green: 255,
+                blue: 255
+            },
             faceCamera: true
-        }));  
+        }));
     }
 }
 
@@ -255,7 +321,7 @@ function update(deltaTime) {
             velocity: properties.velocity,
             position: properties.position
         });
-       
+
 
         // Create new or update current trail
         if (trailsEnabled) {
@@ -285,11 +351,11 @@ function update(deltaTime) {
             }
         }
     }
-    
+
     counter++;
     if (time % TIME_STEP == 0) {
         elapsed++;
-    }  
+    }
 }
 
 function computeLocalPoint(linePos, worldPoint) {
@@ -306,7 +372,7 @@ function getAcceleration(radius) {
 function resetTrails(planetIndex) {
     elapsed = 0.0;
     var properties = planet_properties[planetIndex];
- 
+
     var trail = [];
     var lineStack = [];
 
@@ -333,10 +399,14 @@ function newLine(lineStack, point, period, color) {
         lineStack.push(line);
     } else {
         // Begin overwriting first lines after one full revolution (one period)
-        var firstLine = lineStack.shift(); 
+        var firstLine = lineStack.shift();
         Entities.editEntity(firstLine, {
             position: point,
-            linePoints: [{x: 0.0, y: 0.0, z: 0.0}]
+            linePoints: [{
+                x: 0.0,
+                y: 0.0,
+                z: 0.0
+            }]
         });
         lineStack.push(firstLine);
 
@@ -357,6 +427,7 @@ function calcEnergyError(planet, radius, v0, v, pos) {
     var error = ((measuredEnergy - totalEnergy) / totalEnergy) * 100;
     return error;
 }
+
 function adjustVelocity(planet, pos) {
     var measuredPE = -(G * M * m) / Vec3.length(Vec3.subtract(center, pos));
     return Math.sqrt(2 * (totalEnergy - measuredPE) / M);
@@ -365,7 +436,11 @@ function adjustVelocity(planet, pos) {
 
 // Allow user to toggle pausing the model, switch to planet view
 var pauseButton = Overlays.addOverlay("text", {
-    backgroundColor: { red: 200, green: 200, blue: 255 },
+    backgroundColor: {
+        red: 200,
+        green: 200,
+        blue: 255
+    },
     text: "Pause",
     x: PANEL_X,
     y: PANEL_Y - 30,
@@ -379,22 +454,45 @@ var pauseButton = Overlays.addOverlay("text", {
 var paused = false;
 
 function mousePressEvent(event) {
-    var clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
-    if(clickedOverlay == pauseButton) {
+    var clickedOverlay = Overlays.getOverlayAtPoint({
+        x: event.x,
+        y: event.y
+    });
+    if (clickedOverlay == pauseButton) {
         paused = !paused;
         for (var i = 0; i < NUM_PLANETS; ++i) {
-            Entities.editEntity(planets[i], { velocity: {x: 0.0, y: 0.0, z: 0.0} });
+            Entities.editEntity(planets[i], {
+                velocity: {
+                    x: 0.0,
+                    y: 0.0,
+                    z: 0.0
+                }
+            });
         }
         if (paused && !labelsShowing) {
-            Overlays.editOverlay(pauseButton, { text: "Paused", backgroundColor: {red: 255, green: 50, blue: 50} } );
+            Overlays.editOverlay(pauseButton, {
+                text: "Paused",
+                backgroundColor: {
+                    red: 255,
+                    green: 50,
+                    blue: 50
+                }
+            });
             showLabels();
         }
         if (paused == false && labelsShowing) {
-            Overlays.editOverlay(pauseButton, { text: "Pause", backgroundColor: {red: 200, green: 200, blue: 255}});
+            Overlays.editOverlay(pauseButton, {
+                text: "Pause",
+                backgroundColor: {
+                    red: 200,
+                    green: 200,
+                    blue: 255
+                }
+            });
             hideLabels();
         }
         planetView = false;
-    } 
+    }
 }
 
 function keyPressEvent(event) {
@@ -409,7 +507,7 @@ function keyPressEvent(event) {
 }
 
 function mouseDoublePressEvent(event) {
-    if(earthView) {
+    if (earthView) {
         return;
     }
     var pickRay = Camera.computePickRay(event.x, event.y)
@@ -419,20 +517,31 @@ function mouseDoublePressEvent(event) {
         if (rayPickResult.entityID === labels[i]) {
             planetView = true;
             if (i == 2) {
-                MyAvatar.position = Vec3.sum(center, {x: 200, y: 200, z: 200});
-                Camera.setPosition(Vec3.sum(center, {x: 200, y: 200, z: 200}));
+                MyAvatar.position = Vec3.sum(center, {
+                    x: 200,
+                    y: 200,
+                    z: 200
+                });
+                Camera.setPosition(Vec3.sum(center, {
+                    x: 200,
+                    y: 200,
+                    z: 200
+                }));
                 earthView = true;
                 satelliteGame = new SatelliteGame();
-                
+
             } else {
-                MyAvatar.position = Vec3.sum({x: 0.0, y: 0.0, z: 3.0}, planet_properties[i].position);
+                MyAvatar.position = Vec3.sum({
+                    x: 0.0,
+                    y: 0.0,
+                    z: 3.0
+                }, planet_properties[i].position);
                 Camera.lookAt(planet_properties[i].position);
             }
-            break;   
-        }         
-    }     
+            break;
+        }
+    }
 }
-
 
 
 
@@ -442,34 +551,34 @@ var panelItems = [];
 
 var g_multiplier = 1.0;
 panelItems.push(panel.newSlider("Adjust Gravitational Force: ", 0.1, 5.0,
-    function (value) {
+    function(value) {
         g_multiplier = value;
         G = G_ref * g_multiplier;
     },
 
-    function () {
+    function() {
         return g_multiplier;
     },
-    function (value) {
+    function(value) {
         return value.toFixed(1) + "x";
     }));
 
 var period_multiplier = 1.0;
 var last_alpha = period_multiplier;
 panelItems.push(panel.newSlider("Adjust Orbital Period: ", 0.1, 3.0,
-    function (value) {
+    function(value) {
         period_multiplier = value;
         changePeriod(period_multiplier);
     },
-    function () {
+    function() {
         return period_multiplier;
     },
-    function (value) {
+    function(value) {
         return (value).toFixed(2) + "x";
     }));
 
 panelItems.push(panel.newCheckbox("Leave Trails: ",
-    function (value) {
+    function(value) {
         trailsEnabled = value;
         if (trailsEnabled) {
             for (var i = 0; i < NUM_PLANETS; ++i) {
@@ -485,21 +594,21 @@ panelItems.push(panel.newCheckbox("Leave Trails: ",
             }
         }
     },
-    function () {
+    function() {
         return trailsEnabled;
     },
-    function (value) {
+    function(value) {
         return value;
     }));
 
 panelItems.push(panel.newCheckbox("Energy Error Calculations: ",
-    function (value) {
+    function(value) {
         energyConserved = value;
     },
-    function () {
+    function() {
         return energyConserved;
     },
-    function (value) {
+    function(value) {
         return value;
     }));
 
@@ -519,7 +628,7 @@ function changePeriod(alpha) {
 
 // Clean up models, UI panels, lines, and button overlays
 function scriptEnding() {
-    
+
     satelliteGame.endGame();
 
     Entities.deleteEntity(theSun);
@@ -536,7 +645,7 @@ function scriptEnding() {
         if (props.type === "Line" || props.type === "Text") {
             Entities.deleteEntity(e[i]);
         }
-    }   
+    }
 };
 
 
@@ -549,7 +658,7 @@ Controller.mousePressEvent.connect(function panelMousePressEvent(event) {
 Controller.mouseDoublePressEvent.connect(function panelMouseDoublePressEvent(event) {
     return panel.mouseDoublePressEvent(event);
 });
-Controller.mouseReleaseEvent.connect(function (event) {
+Controller.mouseReleaseEvent.connect(function(event) {
     return panel.mouseReleaseEvent(event);
 });
 Controller.mousePressEvent.connect(mousePressEvent);
