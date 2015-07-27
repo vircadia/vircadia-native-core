@@ -1088,11 +1088,10 @@ glm::vec3 MyAvatar::getSkeletonPosition() const {
 
 void MyAvatar::rebuildSkeletonBody() {
     // compute localAABox
-    const CapsuleShape& capsule = _skeletonModel.getBoundingShape();
-    float radius = capsule.getRadius();
-    float height = 2.0f * (capsule.getHalfHeight() + radius);
+    float radius = _skeletonModel.getBoundingCapsuleRadius();
+    float height = _skeletonModel.getBoundingCapsuleHeight() + 2.0f * radius;
     glm::vec3 corner(-radius, -0.5f * height, -radius);
-    corner += _skeletonModel.getBoundingShapeOffset();
+    corner += _skeletonModel.getBoundingCapsuleOffset();
     glm::vec3 scale(2.0f * radius, height, 2.0f * radius);
     _characterController.setLocalBoundingBox(corner, scale);
 }

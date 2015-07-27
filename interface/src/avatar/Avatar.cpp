@@ -1115,9 +1115,8 @@ void Avatar::setShowDisplayName(bool showDisplayName) {
 
 // virtual
 void Avatar::computeShapeInfo(ShapeInfo& shapeInfo) {
-    const CapsuleShape& capsule = _skeletonModel.getBoundingShape();
-    shapeInfo.setCapsuleY(capsule.getRadius(), capsule.getHalfHeight());
-    shapeInfo.setOffset(_skeletonModel.getBoundingShapeOffset());
+    shapeInfo.setCapsuleY(_skeletonModel.getBoundingCapsuleRadius(), 0.5f * _skeletonModel.getBoundingCapsuleHeight());
+    shapeInfo.setOffset(_skeletonModel.getBoundingCapsuleOffset());
 }
 
 // virtual

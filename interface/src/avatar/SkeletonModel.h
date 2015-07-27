@@ -13,7 +13,6 @@
 #define hifi_SkeletonModel_h
 
 
-#include <CapsuleShape.h>
 #include <Model.h>
 
 class Avatar;
@@ -98,9 +97,9 @@ public:
 
     void computeBoundingShape(const FBXGeometry& geometry);
     void renderBoundingCollisionShapes(gpu::Batch& batch, float alpha);
-    float getBoundingShapeRadius() const { return _boundingShape.getRadius(); }
-    const CapsuleShape& getBoundingShape() const { return _boundingShape; }
-    const glm::vec3 getBoundingShapeOffset() const { return _boundingShapeLocalOffset; }
+    float getBoundingCapsuleRadius() const { return _boundingCapsuleRadius; }
+    float getBoundingCapsuleHeight() const { return _boundingCapsuleHeight; }
+    const glm::vec3 getBoundingCapsuleOffset() const { return _boundingCapsuleLocalOffset; }
 
     bool hasSkeleton();
 
@@ -157,8 +156,9 @@ private:
     
     Avatar* _owningAvatar;
 
-    CapsuleShape _boundingShape;
-    glm::vec3 _boundingShapeLocalOffset;
+    glm::vec3 _boundingCapsuleLocalOffset;
+    float _boundingCapsuleRadius;
+    float _boundingCapsuleHeight;
 
     glm::vec3 _defaultEyeModelPosition;
     int _standingFoot;
