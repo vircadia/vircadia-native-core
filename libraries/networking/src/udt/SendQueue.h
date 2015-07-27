@@ -26,6 +26,7 @@
 namespace udt {
     
 class Socket;
+class BasePacket;
 class Packet;
     
 class SendQueue : public QObject {
@@ -47,7 +48,7 @@ public:
 public slots:
     void start();
     void stop();
-    void sendPacket(const Packet& packet);
+    void sendPacket(const BasePacket& packet);
     
     void ack(SeqNum ack);
     void nak(std::list<SeqNum> naks);

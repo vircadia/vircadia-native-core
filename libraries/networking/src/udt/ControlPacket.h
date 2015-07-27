@@ -21,23 +21,21 @@
 
 namespace udt {
     
-using SequenceNumberList = std::vector<Packet::SequenceNumber>;
-    
 class ControlPacket : public BasePacket {
     Q_OBJECT
 public:
     using TypeAndSubSequenceNumber = uint32_t;
     using ControlPacketPair = std::pair<std::unique_ptr<ControlPacket>, std::unique_ptr<ControlPacket>>;
     
-    enum class Type : uint16_t {
+    enum Type : uint16_t {
         ACK,
         ACK2,
         NAK,
         PacketPair
     };
     
-    std::unique_ptr<ControlPacket> create(Type type, const SequenceNumberList& sequenceNumbers);
-    ControlPacketPair createPacketPair(quint64 timestamp);
+    static std::unique_ptr<ControlPacket> create(Type type, qint64 size = -1);
+    static ControlPacketPair createPacketPair(quint64 timestamp);
     
     static qint64 localHeaderSize(); // Current level's header size
     virtual qint64 totalHeadersSize() const; // Cumulated size of all the headers
@@ -45,7 +43,8 @@ public:
     Type getType() const { return _type; }
     
 private:
-    ControlPacket(Type type, const SequenceNumberList& sequenceNumbers);
+    ControlPacket(Type type);
+    ControlPacket(Type type, qint64 size);
     ControlPacket(quint64 timestamp);
     ControlPacket(ControlPacket&& other);
     ControlPacket(const ControlPacket& other) = delete;

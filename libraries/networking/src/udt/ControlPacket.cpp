@@ -13,8 +13,22 @@
 
 using namespace udt;
 
-std::unique_ptr<ControlPacket> ControlPacket::create(Type type, const SequenceNumberList& sequenceNumbers) {
-    return ControlPacket::create(type, sequenceNumbers);
+std::unique_ptr<ControlPacket> ControlPacket::create(Type type, qint64 size) {
+    
+    std::unique_ptr<ControlPacket> controlPacket;
+    
+    if (size == -1) {
+        controlPacket = ControlPacket::create(type);
+    } else {
+        // Fail with invalid size
+        Q_ASSERT(size >= 0);
+        
+        controlPacket = ControlPacket::create(type, size);
+    }
+    
+    controlPacket->open(QIODevice::ReadWrite);
+    
+    return controlPacket;
 }
 
 ControlPacket::ControlPacketPair ControlPacket::createPacketPair(quint64 timestamp) {
@@ -32,18 +46,18 @@ qint64 ControlPacket::totalHeadersSize() const {
     return BasePacket::totalHeadersSize() + localHeaderSize();
 }
 
-ControlPacket::ControlPacket(Type type, const SequenceNumberList& sequenceNumbers) :
-    BasePacket(localHeaderSize() + (sizeof(Packet::SequenceNumber) * sequenceNumbers.size())),
+ControlPacket::ControlPacket(Type type) :
+    BasePacket(-1),
     _type(type)
 {
     adjustPayloadStartAndCapacity();
-    
-    open(QIODevice::ReadWrite);
-    
-    // pack in the sequence numbers
-    for (auto& sequenceNumber : sequenceNumbers) {
-        writePrimitive(sequenceNumber);
-    }
+}
+
+ControlPacket::ControlPacket(Type type, qint64 size) :
+    BasePacket(localHeaderSize() + size),
+    _type(type)
+{
+    adjustPayloadStartAndCapacity();
 }
 
 ControlPacket::ControlPacket(quint64 timestamp) :

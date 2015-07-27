@@ -42,7 +42,7 @@ public:
     
     quint16 localPort() const { return _udpSocket.localPort(); }
     
-    qint64 writeUnreliablePacket(const Packet& packet, const HifiSockAddr& sockAddr);
+    qint64 writeUnreliablePacket(const BasePacket& packet, const HifiSockAddr& sockAddr);
     
     qint64 writeDatagram(const char* data, qint64 size, const HifiSockAddr& sockAddr)
         { return writeDatagram(QByteArray::fromRawData(data, size), sockAddr); }

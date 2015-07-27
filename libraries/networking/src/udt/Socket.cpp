@@ -66,7 +66,7 @@ void Socket::setBufferSizes(int numBytes) {
     }
 }
 
-qint64 Socket::writeUnreliablePacket(const Packet& packet, const HifiSockAddr& sockAddr) {
+qint64 Socket::writeUnreliablePacket(const BasePacket& packet, const HifiSockAddr& sockAddr) {
     return writeDatagram(packet.getData(), packet.getDataSize(), sockAddr);
 }
 

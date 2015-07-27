@@ -28,15 +28,47 @@ void Connection::send(std::unique_ptr<Packet> packet) {
     }
 }
 
+void Connection::sendACK() {
+    static const int ACK_PACKET_PAYLOAD_BYTES = 8;
+    
+    // setup the ACK packet, make it static so we can re-use it
+    static auto ackPacket = ControlPacket::create(ControlPacket::ACK, ACK_PACKET_PAYLOAD_BYTES);
+
+    // have the send queue send off our packet
+    _sendQueue->sendPacket(*ackPacket);
+}
+
+void Connection::sendLightACK() const {
+    static const int LIGHT_ACK_PACKET_PAYLOAD_BYTES = 4;
+    
+    // create the light ACK packet, make it static so we can re-use it
+    static auto lightACKPacket = ControlPacket::create(ControlPacket::ACK, LIGHT_ACK_PACKET_PAYLOAD_BYTES);
+    
+    SeqNum nextACKNumber = nextACK();
+    
+    if (nextACKNumber != _lastReceivedAcknowledgedACK) {
+        // pack in the ACK
+        memcpy(lightACKPacket->getPayload(), &nextACKNumber, sizeof(nextACKNumber));
+        
+        // have the send queue send off our packet
+        _sendQueue->sendPacket(*lightACKPacket);
+    }
+}
+
+SeqNum Connection::nextACK() const {
+    // TODO: check if we have a loss list
+    return _largestReceivedSeqNum + 1;
+}
+
 void Connection::processReceivedSeqNum(SeqNum seq) {
-    if (udt::seqcmp(seq, _largestRecievedSeqNum + 1) > 0) {
+    if (udt::seqcmp(seq, _largestReceivedSeqNum + 1) > 0) {
         // TODO: Add range to loss list
         
         // TODO: Send loss report
     }
     
-    if (seq > _largestRecievedSeqNum) {
-        _largestRecievedSeqNum = seq;
+    if (seq > _largestReceivedSeqNum) {
+        _largestReceivedSeqNum = seq;
     } else {
         // TODO: Remove seq from loss list
     }
@@ -44,13 +76,13 @@ void Connection::processReceivedSeqNum(SeqNum seq) {
 
 void Connection::processControl(std::unique_ptr<ControlPacket> controlPacket) {
     switch (controlPacket->getType()) {
-        case ControlPacket::Type::ACK:
+        case ControlPacket::ACK:
             break;
-        case ControlPacket::Type::ACK2:
+        case ControlPacket::ACK2:
             break;
-        case ControlPacket::Type::NAK:
+        case ControlPacket::NAK:
             break;
-        case ControlPacket::Type::PacketPair:
+        case ControlPacket::PacketPair:
             break;
     }
 }

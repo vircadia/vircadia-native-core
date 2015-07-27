@@ -31,12 +31,17 @@ public:
     
     void send(std::unique_ptr<Packet> packet);
     
+    void sendACK();
+    void sendLightACK() const;
+    
+    SeqNum nextACK() const;
+    
     void processReceivedSeqNum(SeqNum seq);
     void processControl(std::unique_ptr<ControlPacket> controlPacket);
     
 private:
-    
-    SeqNum _largestRecievedSeqNum;
+    SeqNum _largestReceivedSeqNum;
+    SeqNum _lastReceivedAcknowledgedACK; // The last sent ACK that has been acknowledged via an ACK2 from the peer
     std::unique_ptr<SendQueue> _sendQueue;
 };
     
