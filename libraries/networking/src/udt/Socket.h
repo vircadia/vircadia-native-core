@@ -22,6 +22,7 @@
 
 namespace udt {
     
+class BasePacket;
 class Packet;
 class HifiSockAddr;
 
