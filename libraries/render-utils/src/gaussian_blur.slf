@@ -23,7 +23,7 @@ varying vec2 varBlurTexcoords[14];
 uniform sampler2D occlusionTexture;
 
 void main(void) {
-	gl_FragColor = vec4(0.0);
+    gl_FragColor = vec4(0.0);
     gl_FragColor += texture2D(occlusionTexture, varBlurTexcoords[ 0])*0.0044299121055113265;
     gl_FragColor += texture2D(occlusionTexture, varBlurTexcoords[ 1])*0.00895781211794;
     gl_FragColor += texture2D(occlusionTexture, varBlurTexcoords[ 2])*0.0215963866053;
