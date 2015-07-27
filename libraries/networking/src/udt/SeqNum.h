@@ -96,19 +96,19 @@ private:
     
     
 inline bool operator<(const SeqNum&  a, const SeqNum& b) {
-    
+    return (glm::abs(a._value - b._value) < SeqNum::THRESHOLD) ? a._value < b._value : b._value < a._value;
 }
 
 inline bool operator>(const SeqNum&  a, const SeqNum& b) {
-    
+    return (glm::abs(a._value - b._value) < SeqNum::THRESHOLD) ? a._value > b._value : b._value > a._value;
 }
 
 inline bool operator<=(const SeqNum&  a, const SeqNum& b) {
-    
+    return (glm::abs(a._value - b._value) < SeqNum::THRESHOLD) ? a._value <= b._value : b._value <= a._value;
 }
 
 inline bool operator>=(const SeqNum&  a, const SeqNum& b) {
-    
+    return (glm::abs(a._value - b._value) < SeqNum::THRESHOLD) ? a._value >= b._value : b._value >= a._value;
 }
     
     
