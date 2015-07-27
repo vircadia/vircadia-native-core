@@ -7,7 +7,7 @@
 //
 #pragma once
 
-#if !defined(Q_OS_MAC)
+#if defined(Q_OS_WIN)
 #include <openvr.h>
 #include <GLMHelpers.h>
 #include <glm/gtc/type_ptr.hpp>

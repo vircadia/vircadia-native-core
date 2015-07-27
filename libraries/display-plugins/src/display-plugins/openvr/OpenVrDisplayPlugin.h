@@ -7,7 +7,7 @@
 //
 #pragma once
 
-#if !defined(Q_OS_MAC)
+#if defined(Q_OS_WIN)
 
 #include "../MainWindowOpenGLDisplayPlugin.h"
 
