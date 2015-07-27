@@ -14,7 +14,6 @@
 #include <algorithm>
 
 #include <QtCore/QThread>
-#include <QtCore/QTimer>
 
 #include <SharedUtil.h>
 
@@ -29,8 +28,8 @@ std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr dest) 
     // Setup queue private thread
     QThread* thread = new QThread(queue.get());
     thread->setObjectName("Networking: SendQueue"); // Name thread for easier debug
-    thread->connect(queue.get(), &QObject::destroyed, thread, &QThread::quit); // Thread auto cleanup
-    thread->connect(thread, &QThread::finished, thread, &QThread::deleteLater); // Thread auto cleanup
+    connect(queue.get(), &QObject::destroyed, thread, &QThread::quit); // Thread auto cleanup
+    connect(thread, &QThread::finished, thread, &QThread::deleteLater); // Thread auto cleanup
     
     // Move queue to private thread and start it
     queue->moveToThread(thread);
@@ -49,6 +48,11 @@ SendQueue::SendQueue(Socket* socket, HifiSockAddr dest) :
     
     _packetSendPeriod = DEFAULT_SEND_PERIOD;
     _lastSendTimestamp = 0;
+}
+
+SendQueue::~SendQueue() {
+    assert(thread() == QThread::currentThread());
+    _sendTimer->stop();
 }
 
 void SendQueue::queuePacket(std::unique_ptr<Packet> packet) {

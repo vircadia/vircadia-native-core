@@ -74,6 +74,16 @@ public:
          return _value != other._value;
     }
     
+    friend bool operator<(const SeqNum&  a, const SeqNum& b);
+    friend bool operator>(const SeqNum&  a, const SeqNum& b);
+    friend bool operator<=(const SeqNum&  a, const SeqNum& b);
+    friend bool operator>=(const SeqNum&  a, const SeqNum& b);
+    
+    friend SeqNum operator+(const SeqNum a, const Type& b);
+    friend SeqNum operator+(const Type& a, const SeqNum b);
+    friend SeqNum operator-(const SeqNum a, const Type& b);
+    friend SeqNum operator-(const Type& a, const SeqNum b);
+    
     friend int seqcmp(const SeqNum& seq1, const SeqNum& seq2);
     friend int seqlen(const SeqNum& seq1, const SeqNum& seq2);
     friend int seqoff(const SeqNum& seq1, const SeqNum& seq2);
@@ -84,20 +94,54 @@ private:
     friend struct std::hash<SeqNum>;
 };
     
+    
+inline bool operator<(const SeqNum&  a, const SeqNum& b) {
+    
+}
+
+inline bool operator>(const SeqNum&  a, const SeqNum& b) {
+    
+}
+
+inline bool operator<=(const SeqNum&  a, const SeqNum& b) {
+    
+}
+
+inline bool operator>=(const SeqNum&  a, const SeqNum& b) {
+    
+}
+    
+    
+inline SeqNum operator+(SeqNum a, const SeqNum::Type& b) {
+    a += b;
+    return a;
+}
+
+inline SeqNum operator+(const SeqNum::Type& a, SeqNum b) {
+    b += a;
+    return b;
+}
+
+inline SeqNum operator-(SeqNum a, const SeqNum::Type& b) {
+    a -= b;
+    return a;
+}
+
+inline SeqNum operator-(const SeqNum::Type& a, SeqNum b) {
+    b -= a;
+    return b;
+}
+    
 int seqcmp(const SeqNum& seq1, const SeqNum& seq2);
 int seqlen(const SeqNum& seq1, const SeqNum& seq2);
 int seqoff(const SeqNum& seq1, const SeqNum& seq2);
     
 }
 
-namespace std {
-    
-template<> struct hash<udt::SeqNum> {
+template<> struct std::hash<udt::SeqNum> {
     size_t operator()(const udt::SeqNum& seqNum) const {
         return std::hash<unsigned long>()(seqNum._value);
     }
 };
-    
-}
 
 #endif // hifi_SeqNum_h

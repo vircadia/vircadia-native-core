@@ -15,14 +15,13 @@
 #include <list>
 #include <unordered_map>
 
-#include <QObject>
-#include <QReadWriteLock>
+#include <QtCore/QObject>
+#include <QtCore/QReadWriteLock>
+#include <QtCore/QTimer>
 
 #include "../HifiSockAddr.h"
 
 #include "SeqNum.h"
-
-class QTimer;
 
 namespace udt {
     
@@ -38,7 +37,7 @@ public:
     static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr dest);
     
     void queuePacket(std::unique_ptr<Packet> packet);
-    int getQueueSize() const { return _packets.size(); }
+    int getQueueSize() const { QReadLocker locker(&_packetsLock); return _packets.size(); }
 
     quint64 getLastSendTimestamp() const { return _lastSendTimestamp; }
     
@@ -57,11 +56,14 @@ private slots:
     void sendNextPacket();
     
 private:
+    friend struct std::default_delete<SendQueue>;
+    
     SendQueue(Socket* socket, HifiSockAddr dest);
     SendQueue(SendQueue& other) = delete;
     SendQueue(SendQueue&& other) = delete;
+    ~SendQueue();
     
-    QReadWriteLock _packetsLock; // Protects the packets to be sent list.
+    mutable QReadWriteLock _packetsLock; // Protects the packets to be sent list.
     std::list<std::unique_ptr<Packet>> _packets; // List of packets to be sent
     std::unique_ptr<Packet> _nextPacket;  // Next packet to be sent
     
@@ -75,10 +77,10 @@ private:
     std::atomic<quint64> _lastSendTimestamp { 0 }; // Record last time of packet departure
     std::atomic<bool> _running { false };
     
-    QReadWriteLock _naksLock; // Protects the naks list.
+    mutable QReadWriteLock _naksLock; // Protects the naks list.
     std::list<SeqNum> _naks; // Sequence numbers of packets to resend
     
-    QReadWriteLock _sentLock; // Protects the sent packet list
+    mutable QReadWriteLock _sentLock; // Protects the sent packet list
     std::unordered_map<SeqNum, std::unique_ptr<Packet>> _sentPackets; // Packets waiting for ACK.
 };
     

@@ -42,6 +42,8 @@ public:
     static qint64 localHeaderSize(); // Current level's header size
     virtual qint64 totalHeadersSize() const; // Cumulated size of all the headers
     
+    Type getType() const { return _type; }
+    
 private:
     ControlPacket(Type type, const SequenceNumberList& sequenceNumbers);
     ControlPacket(quint64 timestamp);
