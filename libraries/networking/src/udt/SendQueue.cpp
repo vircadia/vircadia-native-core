@@ -14,7 +14,6 @@
 #include <algorithm>
 
 #include <QtCore/QThread>
-#include <QtCore/QTimer>
 
 #include <SharedUtil.h>
 

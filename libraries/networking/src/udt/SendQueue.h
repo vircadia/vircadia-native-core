@@ -15,14 +15,13 @@
 #include <list>
 #include <unordered_map>
 
-#include <QObject>
-#include <QReadWriteLock>
+#include <QtCore/QObject>
+#include <QtCore/QReadWriteLock>
+#include <QtCore/QTimer>
 
 #include "../HifiSockAddr.h"
 
 #include "SeqNum.h"
-
-class QTimer;
 
 namespace udt {
     
