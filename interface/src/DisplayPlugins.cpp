@@ -65,7 +65,7 @@ const DisplayPluginList& getDisplayPlugins() {
             new Oculus_0_6_DisplayPlugin(),
 #endif
 
-#ifndef Q_OS_MAC
+#ifdef Q_OS_WIN
             new OpenVrDisplayPlugin(),
 #endif
             nullptr
