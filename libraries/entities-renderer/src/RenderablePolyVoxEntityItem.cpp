@@ -275,7 +275,6 @@ void RenderablePolyVoxEntityItem::setAll(uint8_t toValue) {
     for (int z = 0; z < _voxelVolumeSize.z; z++) {
         for (int y = 0; y < _voxelVolumeSize.y; y++) {
             for (int x = 0; x < _voxelVolumeSize.x; x++) {
-                updateOnCount(x, y, z, toValue);
                 setVoxelInternal(x, y, z, toValue);
             }
         }
