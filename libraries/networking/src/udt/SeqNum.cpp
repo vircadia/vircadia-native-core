@@ -11,19 +11,17 @@
 
 #include "SeqNum.h"
 
-namespace udt {
-
-int seqcmp(const SeqNum& seq1, const SeqNum& seq2) {
+int udt::seqcmp(const SeqNum& seq1, const SeqNum& seq2) {
     return (glm::abs(seq1._value - seq2._value) < SeqNum::THRESHOLD) ? (seq1._value - seq2._value)
     : (seq2._value - seq1._value);
 }
 
-int seqlen(const SeqNum& seq1, const SeqNum& seq2) {
+int udt::seqlen(const SeqNum& seq1, const SeqNum& seq2) {
     return (seq1._value <= seq2._value) ? (seq2._value - seq1._value + 1)
     : (seq2._value - seq1._value + SeqNum::MAX + 2);
 }
 
-int seqoff(const SeqNum& seq1, const SeqNum& seq2) {
+int udt::seqoff(const SeqNum& seq1, const SeqNum& seq2) {
     if (glm::abs(seq1._value - seq2._value) < SeqNum::THRESHOLD) {
         return seq2._value - seq1._value;
     }
@@ -33,6 +31,4 @@ int seqoff(const SeqNum& seq1, const SeqNum& seq2) {
     }
     
     return seq2._value - seq1._value + SeqNum::MAX + 1;
-}
-
 }

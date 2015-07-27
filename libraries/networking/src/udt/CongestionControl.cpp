@@ -13,7 +13,7 @@
 
 #include <SharedUtil.h>
 
-namespace udt {
+using namespace udt;
 
 void UdtCC::init() {
     _rcInterval = _synInterval;
@@ -143,6 +143,4 @@ void UdtCC::onTimeout() {
          _lastDecSeq = _lastAck;
          */
     }
-}
-
 }
