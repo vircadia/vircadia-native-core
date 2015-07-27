@@ -34,7 +34,6 @@ void FramebufferCache::setFrameBufferSize(QSize frameBufferSize) {
     //If the size changed, we need to delete our FBOs
     if (_frameBufferSize != frameBufferSize) {
         _frameBufferSize = frameBufferSize;
-
         _primaryFramebufferFull.reset();
         _primaryFramebufferDepthColor.reset();
         _primaryDepthTexture.reset();
@@ -47,7 +46,6 @@ void FramebufferCache::setFrameBufferSize(QSize frameBufferSize) {
 }
 
 void FramebufferCache::createPrimaryFramebuffer() {
-
     _primaryFramebufferFull = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _primaryFramebufferDepthColor = gpu::FramebufferPointer(gpu::Framebuffer::create());
 
@@ -68,7 +66,6 @@ void FramebufferCache::createPrimaryFramebuffer() {
 
     auto depthFormat = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH);
     _primaryDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, width, height, defaultSampler));
-
 
     _primaryFramebufferFull->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
 
@@ -92,6 +89,7 @@ gpu::FramebufferPointer FramebufferCache::getPrimaryFramebufferDepthColor() {
     }
     return _primaryFramebufferDepthColor;
 }
+
 
 gpu::TexturePointer FramebufferCache::getPrimaryDepthTexture() {
     if (!_primaryDepthTexture) {
