@@ -406,6 +406,8 @@ public slots:
     void resetSensors();
     void setActiveFaceTracker();
 
+    void setActiveEyeTracker();
+
     void aboutApp();
     void showEditEntitiesHelp();
 

@@ -108,12 +108,13 @@
 #include "audio/AudioScope.h"
 
 #include "devices/DdeFaceTracker.h"
+#include "devices/EyeTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/Leapmotion.h"
-#include "devices/RealSense.h"
-#include "devices/SDL2Manager.h"
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
+#include "devices/RealSense.h"
+#include "devices/SDL2Manager.h"
 #include "devices/TV3DManager.h"
 
 #include "scripting/AccountScriptingInterface.h"
@@ -261,14 +262,14 @@ bool setupEssentials(int& argc, char** argv) {
     auto scriptCache = DependencyManager::set<ScriptCache>();
     auto soundCache = DependencyManager::set<SoundCache>();
     auto faceshift = DependencyManager::set<Faceshift>();
+    auto ddeFaceTracker = DependencyManager::set<DdeFaceTracker>();
+    auto eyeTracker = DependencyManager::set<EyeTracker>();
     auto audio = DependencyManager::set<AudioClient>();
     auto audioScope = DependencyManager::set<AudioScope>();
     auto deferredLightingEffect = DependencyManager::set<DeferredLightingEffect>();
     auto textureCache = DependencyManager::set<TextureCache>();
     auto framebufferCache = DependencyManager::set<FramebufferCache>();
-
     auto animationCache = DependencyManager::set<AnimationCache>();
-    auto ddeFaceTracker = DependencyManager::set<DdeFaceTracker>();
     auto modelBlender = DependencyManager::set<ModelBlender>();
     auto avatarManager = DependencyManager::set<AvatarManager>();
     auto lodManager = DependencyManager::set<LODManager>();
@@ -633,6 +634,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     auto ddeTracker = DependencyManager::get<DdeFaceTracker>();
     ddeTracker->init();
     connect(ddeTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
+#endif
+
+#ifdef HAVE_IVIEWHMD
+    auto eyeTracker = DependencyManager::get<EyeTracker>();
+    eyeTracker->init();
 #endif
 
     auto applicationUpdater = DependencyManager::get<AutoUpdater>();
@@ -2004,6 +2010,13 @@ void Application::setActiveFaceTracker() {
     auto ddeTracker = DependencyManager::get<DdeFaceTracker>();
     ddeTracker->setIsMuted(isMuted);
     ddeTracker->setEnabled(isUsingDDE && !isMuted);
+#endif
+}
+
+void Application::setActiveEyeTracker() {
+#ifdef HAVE_IVIEWHMD
+    auto eyeTracker = DependencyManager::get<EyeTracker>();
+    eyeTracker->setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::SMIEyeTracking));
 #endif
 }
 
@@ -3408,6 +3421,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
 void Application::resetSensors() {
     DependencyManager::get<Faceshift>()->reset();
     DependencyManager::get<DdeFaceTracker>()->reset();
+    DependencyManager::get<EyeTracker>()->reset();
 
     OculusManager::reset();
 
