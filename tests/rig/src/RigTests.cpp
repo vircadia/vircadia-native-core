@@ -69,7 +69,7 @@ void RigTests::initTestCase() {
     loop.exec();*/                    // Blocking all further tests until signalled.
 
     // Joint geometry from fbx.
-#define FROM_FILE "/Users/howardstearns/howardHiFi/Zack.fbx"
+//#define FROM_FILE "/Users/howardstearns/howardHiFi/Zack.fbx"
 #ifdef FROM_FILE
     QFile file(FROM_FILE);
     QCOMPARE(file.open(QIODevice::ReadOnly), true);
@@ -124,4 +124,5 @@ void reportSome(RigPointer rig) {
 void RigTests::initialPoseArmsDown() {
     //reportAll(_rig);
     reportSome(_rig);
+    QCOMPARE(false, true);
 }

@@ -127,7 +127,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getScale());
     setBlendshapeCoefficients(_owningAvatar->getHead()->getBlendshapeCoefficients());
 
-    Model::simulate(deltaTime, fullUpdate);
+    Model::simulate(deltaTime, fullUpdate, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation());
     
     if (!isActive() || !_owningAvatar->isMyAvatar()) {
         return; // only simulate for own avatar
