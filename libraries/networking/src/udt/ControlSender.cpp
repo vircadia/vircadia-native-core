@@ -25,7 +25,7 @@ void ControlSender::loop() {
         auto start = std::chrono::high_resolution_clock::now();
         
         // for each of the connections managed by the udt::Socket, we need to ask for the ACK value to send
-       
+        
         // since we're infinitely looping, give the thread a chance to process events
         QCoreApplication::processEvents();
         
