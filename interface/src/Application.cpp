@@ -1707,10 +1707,15 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
             sendEvent(this, &actionEvent);
 
         } else if (event->button() == Qt::RightButton) {
-            // right click items here
+            // "right click" on controllers to toggle the overlay
+            if (deviceID > 0) {
+                _overlayConductor.setEnabled(!_overlayConductor.getEnabled());
+            }
         } else if (event->button() == Qt::MiddleButton) {
-            // toggle the overlay
-            _overlayConductor.setEnabled(!_overlayConductor.getEnabled());
+            // mouse middle click to toggle the overlay
+            if (deviceID == 0) {
+                _overlayConductor.setEnabled(!_overlayConductor.getEnabled());
+            }
         }
     }
 }
