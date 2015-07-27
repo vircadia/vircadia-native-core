@@ -29,7 +29,7 @@
 #include <BackgroundMode.h>
 #include <SharedUtil.h>
 #include <ShapeInfo.h>
-#include <udt/BasePacket.h>
+#include <NLPacket.h>
 #include <udt/PacketHeaders.h>
 
 #include "OctreeConstants.h"
@@ -46,7 +46,7 @@ const unsigned int OCTREE_PACKET_EXTRA_HEADERS_SIZE = sizeof(OCTREE_PACKET_FLAGS
                 + sizeof(OCTREE_PACKET_SEQUENCE) + sizeof(OCTREE_PACKET_SENT_TIME);
 
 const unsigned int MAX_OCTREE_PACKET_DATA_SIZE =
-    udt::MAX_PACKET_SIZE - (MAX_PACKET_HEADER_BYTES + OCTREE_PACKET_EXTRA_HEADERS_SIZE);
+    udt::MAX_PACKET_SIZE - (NLPacket::MAX_PACKET_HEADER_SIZE + OCTREE_PACKET_EXTRA_HEADERS_SIZE);
 const unsigned int MAX_OCTREE_UNCOMRESSED_PACKET_SIZE = MAX_OCTREE_PACKET_DATA_SIZE;
 
 const unsigned int MINIMUM_ATTEMPT_MORE_PACKING = sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE) + 40;

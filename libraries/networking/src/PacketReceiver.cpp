@@ -226,11 +226,11 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
     
     auto it = _packetListenerMap.find(nlPacket->getType());
     
-    if (it != _packetListenerMap.end()) {
+    if (it != _packetListenerMap.end() && it->second.isValid()) {
         
         auto listener = it.value();
         
-        if (listener.first && it->second.isValid()) {
+        if (listener.first) {
             
             bool success = false;
             
@@ -273,12 +273,21 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
                                                     Q_ARG(QSharedPointer<NLPacket>,
                                                           QSharedPointer<NLPacket>(nlPacket.release())));
                     }
+                } else {
+                    listenerIsDead = true;
                 }
             } else {
                 emit dataReceived(NodeType::Unassigned, nlPacket->getDataSize());
                 
-                success = listener.second.invoke(listener.first,
-                                                 Q_ARG(QSharedPointer<NLPacket>, QSharedPointer<NLPacket>(nlPacket.release())));
+                // one final check on the QPointer before we invoke
+                if (listener.first) {
+                    success = listener.second.invoke(listener.first,
+                                                     Q_ARG(QSharedPointer<NLPacket>,
+                                                           QSharedPointer<NLPacket>(nlPacket.release())));
+                } else {
+                    listenerIsDead = true;
+                }
+                
             }
             
             if (!success) {

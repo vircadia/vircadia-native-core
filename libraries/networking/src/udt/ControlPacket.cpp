@@ -29,7 +29,7 @@ qint64 ControlPacket::localHeaderSize() {
 }
 
 qint64 ControlPacket::totalHeadersSize() const {
-    return BasePacket::localHeaderSize() + localHeaderSize();
+    return BasePacket::totalHeadersSize() + localHeaderSize();
 }
 
 ControlPacket::ControlPacket(Type type, const SequenceNumberList& sequenceNumbers) :
@@ -61,11 +61,13 @@ ControlPacket::ControlPacket(quint64 timestamp) :
 ControlPacket::ControlPacket(ControlPacket&& other) :
 	BasePacket(std::move(other))
 {
-    
+    _type = other._type;
 }
 
-ControlPacket& ControlPacket::operator=(Packet&& other) {
+ControlPacket& ControlPacket::operator=(ControlPacket&& other) {
     BasePacket::operator=(std::move(other));
+    
+    _type = other._type;
     
     return *this;
 }

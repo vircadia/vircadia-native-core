@@ -65,7 +65,7 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
     
     qint64 bytesWritten = _udpSocket.writeDatagram(datagram, sockAddr.getAddress(), sockAddr.getPort());
     
-    // TODO::
+    // TODO: write the correct sequence number to the Packet here
     // const_cast<NLPacket&>(packet).writeSequenceNumber(sequenceNumber);
     
     if (bytesWritten < 0) {

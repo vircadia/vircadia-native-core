@@ -19,6 +19,12 @@
 class NLPacket : public udt::Packet {
     Q_OBJECT
 public:
+    
+    // this is used by the Octree classes - must be known at compile time
+    static const int MAX_PACKET_HEADER_SIZE =
+        sizeof(udt::Packet::SequenceNumberAndBitField) + sizeof(udt::Packet::MessageNumberAndBitField) +
+        sizeof(PacketType) + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
+    
     static std::unique_ptr<NLPacket> create(PacketType type, qint64 size = -1,
                                             bool isReliable = false, bool isPartOfMessage = false);
     

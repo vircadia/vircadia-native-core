@@ -1902,7 +1902,7 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
     if (getWantSVOfileVersions()) {
 
         // read just enough of the file to parse the header...
-        const unsigned long HEADER_LENGTH = sizeof(PacketType) + sizeof(PacketVersion);
+        const unsigned long HEADER_LENGTH = sizeof(int) + sizeof(PacketVersion);
         unsigned char fileHeader[HEADER_LENGTH];
         inputStream.readRawData((char*)&fileHeader, HEADER_LENGTH);
 
@@ -1912,8 +1912,9 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
         unsigned long  dataLength = HEADER_LENGTH;
 
         // if so, read the first byte of the file and see if it matches the expected version code
-        PacketType gotType;
-        memcpy(&gotType, dataAt, sizeof(gotType));
+        int intPacketType;
+        memcpy(&intPacketType, dataAt, sizeof(intPacketType));
+        PacketType gotType = (PacketType) intPacketType;
 
         dataAt += sizeof(expectedType);
         dataLength -= sizeof(expectedType);
@@ -2076,16 +2077,17 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
     if(file.is_open()) {
         qCDebug(octree, "Saving binary SVO to file %s...", fileName);
 
-        PacketType expectedType = expectedDataPacketType();
-        PacketVersion expectedVersion = versionForPacketType(expectedType);
+        PacketType expectedPacketType = expectedDataPacketType();
+        int expectedIntType = (int) expectedPacketType;
+        PacketVersion expectedVersion = versionForPacketType(expectedPacketType);
         bool hasBufferBreaks = versionHasSVOfileBreaks(expectedVersion);
 
         // before reading the file, check to see if this version of the Octree supports file versions
         if (getWantSVOfileVersions()) {
             // if so, read the first byte of the file and see if it matches the expected version code
-            file.write(reinterpret_cast<char*>(&expectedType), sizeof(expectedType));
+            file.write(reinterpret_cast<char*>(&expectedIntType), sizeof(expectedIntType));
             file.write(&expectedVersion, sizeof(expectedVersion));
-            qCDebug(octree) << "SVO file type: " << nameForPacketType(expectedType) << " version: " << (int)expectedVersion;
+            qCDebug(octree) << "SVO file type: " << expectedPacketType << " version: " << (int)expectedVersion;
 
             hasBufferBreaks = versionHasSVOfileBreaks(expectedVersion);
         }

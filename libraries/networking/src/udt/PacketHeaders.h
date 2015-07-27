@@ -23,9 +23,9 @@
 
 #include "UUID.h"
 
-// NOTE: if adding a new packet packetType, you can replace one marked usable or add at the end
-// NOTE: if you want the name of the packet packetType to be available for debugging or logging, update nameForPacketType() as well
-
+// If adding a new packet packetType, you can replace one marked usable or add at the end.
+// If you want the name of the packet packetType to be available for debugging or logging, update nameForPacketType() as well
+// This enum must hold 256 or fewer packet types (so the value is <= 255) since it is statically typed as a uint8_t
 enum class PacketType : uint8_t {
     Unknown,
     StunResponse,
@@ -76,7 +76,6 @@ enum class PacketType : uint8_t {
 };
 
 const int NUM_BYTES_MD5_HASH = 16;
-const int MAX_PACKET_HEADER_BYTES = 4 + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
 
 typedef char PacketVersion;
 
@@ -86,13 +85,6 @@ extern const QSet<PacketType> RELIABLE_PACKETS;
 
 QString nameForPacketType(PacketType packetType);
 PacketVersion versionForPacketType(PacketType packetType);
-
-int numBytesForArithmeticCodedPacketType(PacketType packetType);
-int numBytesForPacketHeaderGivenPacketType(PacketType packetType);
-int packArithmeticallyCodedValue(int value, char* destination);
-
-int arithmeticCodingValueFromBuffer(const char* checkValue);
-int numBytesArithmeticCodingFromBuffer(const char* checkValue);
 
 uint qHash(const PacketType& key, uint seed);
 QDebug operator<<(QDebug debug, const PacketType& type);
