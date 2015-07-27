@@ -100,7 +100,7 @@ var leafSquall = function (properties) {
         }
         if (properties.hasOwnProperty("windFactor")) {
             windFactor = properties.windFactor;
-        } else {
+        } else if (complexMovement == true){
             print("ERROR: Wind Factor must be defined for complex movement")
         }
 
