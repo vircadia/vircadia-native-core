@@ -144,38 +144,6 @@ public:
                 case gpu::RGB:
                 case gpu::RGBA:
                     texel.internalFormat = GL_RED;
-                   /* switch (dstFormat.getType()) {
-                    case gpu::UINT32:
-                    case gpu::INT32:
-                    case gpu::NUINT32:
-                    case gpu::NINT32: {
-                        texel.internalFormat = GL_DEPTH_COMPONENT32;
-                        break;
-                    }
-                    case gpu::NFLOAT:
-                    case gpu::FLOAT: {
-                        texel.internalFormat = GL_DEPTH_COMPONENT32F;
-                        break;
-                    }
-                    case gpu::UINT16:
-                    case gpu::INT16:
-                    case gpu::NUINT16:
-                    case gpu::NINT16:
-                    case gpu::HALF:
-                    case gpu::NHALF: {
-                        texel.internalFormat = GL_DEPTH_COMPONENT16;
-                        break;
-                    }
-                    case gpu::UINT8:
-                    case gpu::INT8:
-                    case gpu::NUINT8:
-                    case gpu::NINT8: {
-                        texel.internalFormat = GL_DEPTH_COMPONENT24;
-                        break;
-                    }
-                    case gpu::NUM_TYPES: { // quiet compiler
-                        Q_UNREACHABLE();
-                    }*/
                     break;
                 case gpu::DEPTH:
                     texel.format = GL_DEPTH_COMPONENT; // It's depth component to load it

@@ -22,9 +22,8 @@ void main(void) {
     vec4 occlusionColor = texture2D(blurredOcclusionTexture, varTexcoord);
     
     if(occlusionColor.r > 0.8 && occlusionColor.r <= 1.0) {
-        gl_FragColor = vec4(vec3(0.0), 1.0);
-    }
-    else {
-        gl_FragColor = vec4(vec3(0.2), 1.0);
+        gl_FragColor = vec4(vec3(0.0), 0.0);
+    } else {
+        gl_FragColor = vec4(vec3(occlusionColor.r), 1.0);
     }
 }

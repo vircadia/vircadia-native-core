@@ -45,7 +45,7 @@ void main(void) {
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
 
-    vec3 eyeDir = vec3(0.0);
+    vec3 eyeDir = vec3(0.0, 0.0, -3.0);
     vec3 cameraPositionWorldSpace;
     <$transformEyeToWorldDir(cam, eyeDir, cameraPositionWorldSpace)$>
 
@@ -104,6 +104,6 @@ void main(void) {
   
     occlusion = 1.0 - occlusion / float(SAMPLE_COUNT);
     occlusion = clamp(pow(occlusion, g_intensity), 0.0, 1.0);
-    gl_FragColor = vec4(occlusion, occlusion, occlusion, 1.0);
+    gl_FragColor = vec4(vec3(occlusion), 1.0);
 }
 
