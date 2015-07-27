@@ -24,37 +24,11 @@ Socket::Socket(QObject* parent) :
 {
     connect(&_udpSocket, &QUdpSocket::readyRead, this, &Socket::readPendingDatagrams);
     
-    // make a QThread for the ControlSender to live on
-    QThread* controlThread = new QThread(this);
+    // make sure our synchronization method is called every SYN interval
+    connect(&_synTimer, &QTimer::timeout, this, &Socket::rateControlSync);
     
-    // setup the ControlSender and parent it
-    _controlSender = new ControlSender;
-    
-    // move the ControlSender to its thread
-    _controlSender->moveToThread(controlThread);
-    
-    // start the ControlSender once the thread is started
-    connect(controlThread, &QThread::started, _controlSender, &ControlSender::loop);
-    
-    // make sure the control thread is named so we can identify it
-    controlThread->setObjectName("UDT Control Thread");
-    
-    // start the control thread
-    controlThread->start();
-}
-
-Socket::~Socket() {
-    if (_controlSender) {
-        QThread* controlThread = _controlSender->thread();
-        
-        // tell the control sender to stop and be deleted so we can wait on its thread
-        _controlSender->stop();
-        _controlSender->deleteLater();
-        
-        // make sure the control thread goes down
-        controlThread->quit();
-        controlThread->wait();
-    }
+    // start our timer for the synchronization time interval
+    _synTimer->start(_synInterval);
 }
 
 void Socket::rebind() {
@@ -146,5 +120,16 @@ void Socket::readPendingDatagrams() {
                 return _packetHandler(std::move(packet));
             }
         }
+    }
+}
+
+void Socket::rateControlSync() {
+
+    
+    
+    if (_synTimer.interval() != _synInterval) {
+        // if the _synTimer interval doesn't match the current _synInterval (changes when the CC factory is changed)
+        // then restart it now with the right interval
+        _synTimer.start(_synInterval);
     }
 }

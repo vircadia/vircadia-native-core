@@ -18,6 +18,7 @@
 #include <unordered_map>
 
 #include <QtCore/QObject>
+#include <QtCore/QTimer>
 #include <QtNetwork/QUdpSocket>
 
 #include "../HifiSockAddr.h"
@@ -61,6 +62,7 @@ public:
 
 private slots:
     void readPendingDatagrams();
+    void rateControlSync();
     
 private:
     QUdpSocket _udpSocket { this };
@@ -71,7 +73,8 @@ private:
 
     std::unordered_map<HifiSockAddr, SeqNum> _packetSequenceNumbers;
     
-    ControlSender* _controlSender { nullptr };
+    int32_t _synInterval;
+    QTimer _synTimer;
 };
     
 } // namespace udt
