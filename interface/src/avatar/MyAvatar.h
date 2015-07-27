@@ -194,10 +194,6 @@ private:
     bool getDriveKeys(int key) { return _driveKeys[key] != 0.0f; };
     bool isMyAvatar() const { return true; }
     virtual int parseDataFromBuffer(const QByteArray& buffer);
-    virtual void setJointRotations(QVector<glm::quat> jointRotations);
-    virtual void setJointData(int index, const glm::quat& rotation);
-    virtual void clearJointData(int index);
-    virtual void clearJointsData();
     virtual glm::vec3 getSkeletonPosition() const;
     void updateLocalAABox();
     glm::vec3 getScriptedMotorVelocity() const { return _scriptedMotorVelocity; }

@@ -900,33 +900,6 @@ glm::vec3 MyAvatar::getDefaultEyePosition() const {
 const float SCRIPT_PRIORITY = DEFAULT_PRIORITY + 1.0f;
 const float RECORDER_PRIORITY = SCRIPT_PRIORITY + 1.0f;
 
-void MyAvatar::setJointRotations(QVector<glm::quat> jointRotations) {
-    int numStates = glm::min(_skeletonModel.getJointStateCount(), jointRotations.size());
-    for (int i = 0; i < numStates; ++i) {
-        // HACK: ATM only Recorder calls setJointRotations() so we hardcode its priority here
-        _skeletonModel.setJointState(i, true, jointRotations[i], RECORDER_PRIORITY);
-    }
-}
-
-void MyAvatar::setJointData(int index, const glm::quat& rotation) {
-    if (QThread::currentThread() == thread()) {
-        // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
-        _skeletonModel.setJointState(index, true, rotation, SCRIPT_PRIORITY);
-    }
-}
-
-void MyAvatar::clearJointData(int index) {
-    if (QThread::currentThread() == thread()) {
-        // HACK: ATM only JS scripts call clearJointData() on MyAvatar so we hardcode the priority
-        _skeletonModel.setJointState(index, false, glm::quat(), 0.0f);
-        _skeletonModel.clearJointAnimationPriority(index);
-    }
-}
-
-void MyAvatar::clearJointsData() {
-    clearJointAnimationPriorities();
-}
-
 void MyAvatar::clearJointAnimationPriorities() {
     int numStates = _skeletonModel.getJointStateCount();
     for (int i = 0; i < numStates; ++i) {
