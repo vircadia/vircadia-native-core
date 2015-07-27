@@ -87,6 +87,7 @@ private:
     QQuickItem* _rootItem{ nullptr };
     QTimer _updateTimer;
     FboCache* _fboCache;
+    quint64 _lastRenderTime{ 0 };
     bool _polish{ true };
     bool _paused{ true };
     MouseTranslator _mouseTranslator{ [](const QPointF& p) { return p;  } };
