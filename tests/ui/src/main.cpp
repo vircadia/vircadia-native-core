@@ -107,6 +107,7 @@ public:
         CachesSize,
         Chat,
         Collisions,
+        Connexion,
         Console,
         ControlWithSpeech,
         CopyAddress,
