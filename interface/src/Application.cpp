@@ -3600,13 +3600,13 @@ int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingN
     // now that we know the node ID, let's add these stats to the stats for that node...
     _octreeSceneStatsLock.lockForWrite();
     
-    OctreeSceneStats* octreeStats = &_octreeServerSceneStats[nodeUUID];
-    statsMessageLength = octreeStats->unpackFromPacket(packet);
+    OctreeSceneStats& octreeStats = _octreeServerSceneStats[nodeUUID];
+    statsMessageLength = octreeStats.unpackFromPacket(packet);
     
     _octreeSceneStatsLock.unlock();
 
     VoxelPositionSize rootDetails;
-    voxelDetailsForCode(octreeStats->getJurisdictionRoot(), rootDetails);
+    voxelDetailsForCode(octreeStats.getJurisdictionRoot(), rootDetails);
 
     // see if this is the first we've heard of this node...
     NodeToJurisdictionMap* jurisdiction = NULL;
@@ -3631,7 +3631,7 @@ int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingN
     // but OctreeSceneStats thinks it's just returning a reference to its contents. So we need to make a copy of the
     // details from the OctreeSceneStats to construct the JurisdictionMap
     JurisdictionMap jurisdictionMap;
-    jurisdictionMap.copyContents(octreeStats->getJurisdictionRoot(), octreeStats->getJurisdictionEndNodes());
+    jurisdictionMap.copyContents(octreeStats.getJurisdictionRoot(), octreeStats.getJurisdictionEndNodes());
     jurisdiction->lockForWrite();
     (*jurisdiction)[nodeUUID] = jurisdictionMap;
     jurisdiction->unlock();
