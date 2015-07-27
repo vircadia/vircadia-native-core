@@ -388,11 +388,11 @@ void ViveControllerManager::assignDefaultInputMapping(UserInputMapper& mapper) {
     mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(AXIS_Y_NEG, 1), makeInput(TRACKPAD_BUTTON, 1), JOYSTICK_MOVE_SPEED);
     
     // Buttons
-    mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(GRIP_BUTTON, 0));
-    mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(GRIP_BUTTON, 1));
+    mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(BUTTON_A, 0));
+    mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(BUTTON_A, 1));
     
-    mapper.addInputChannel(UserInputMapper::ACTION1, makeInput(BUTTON_A, 0));
-    mapper.addInputChannel(UserInputMapper::ACTION2, makeInput(BUTTON_A, 1));
+    mapper.addInputChannel(UserInputMapper::ACTION1, makeInput(GRIP_BUTTON, 0));
+    mapper.addInputChannel(UserInputMapper::ACTION2, makeInput(GRIP_BUTTON, 1));
 
     mapper.addInputChannel(UserInputMapper::LEFT_HAND_CLICK, makeInput(TRIGGER_BUTTON, 0));
     mapper.addInputChannel(UserInputMapper::RIGHT_HAND_CLICK, makeInput(TRIGGER_BUTTON, 1));
