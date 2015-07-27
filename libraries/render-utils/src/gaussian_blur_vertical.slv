@@ -23,19 +23,19 @@ void main(void) {
     varTexcoord = gl_MultiTexCoord0.xy;
     gl_Position = gl_Vertex;
 
-    varBlurTexcoords[ 0] = varTexcoord + vec2(0.0, -0.028);
-    varBlurTexcoords[ 1] = varTexcoord + vec2(0.0, -0.024);
-    varBlurTexcoords[ 2] = varTexcoord + vec2(0.0, -0.020);
-    varBlurTexcoords[ 3] = varTexcoord + vec2(0.0, -0.016);
-    varBlurTexcoords[ 4] = varTexcoord + vec2(0.0, -0.012);
-    varBlurTexcoords[ 5] = varTexcoord + vec2(0.0, -0.008);
-    varBlurTexcoords[ 6] = varTexcoord + vec2(0.0, -0.004);
-    varBlurTexcoords[ 7] = varTexcoord + vec2(0.0,  0.004);
-    varBlurTexcoords[ 8] = varTexcoord + vec2(0.0,  0.008);
-    varBlurTexcoords[ 9] = varTexcoord + vec2(0.0,  0.012);
-    varBlurTexcoords[10] = varTexcoord + vec2(0.0,  0.016);
-    varBlurTexcoords[11] = varTexcoord + vec2(0.0,  0.020);
-    varBlurTexcoords[12] = varTexcoord + vec2(0.0,  0.024);
-    varBlurTexcoords[13] = varTexcoord + vec2(0.0,  0.028);
+    varBlurTexcoords[0] = varTexcoord + vec2(0.0, -0.028);
+    varBlurTexcoords[1] = varTexcoord + vec2(0.0, -0.024);
+    varBlurTexcoords[2] = varTexcoord + vec2(0.0, -0.020);
+    varBlurTexcoords[3] = varTexcoord + vec2(0.0, -0.016);
+    varBlurTexcoords[4] = varTexcoord + vec2(0.0, -0.012);
+    varBlurTexcoords[5] = varTexcoord + vec2(0.0, -0.008);
+    varBlurTexcoords[6] = varTexcoord + vec2(0.0, -0.004);
+    varBlurTexcoords[7] = varTexcoord + vec2(0.0, 0.004);
+    varBlurTexcoords[8] = varTexcoord + vec2(0.0, 0.008);
+    varBlurTexcoords[9] = varTexcoord + vec2(0.0, 0.012);
+    varBlurTexcoords[10] = varTexcoord + vec2(0.0, 0.016);
+    varBlurTexcoords[11] = varTexcoord + vec2(0.0, 0.020);
+    varBlurTexcoords[12] = varTexcoord + vec2(0.0, 0.024);
+    varBlurTexcoords[13] = varTexcoord + vec2(0.0, 0.028);
 }
  
