@@ -104,6 +104,11 @@ public:
     void updateLookAtTargetAvatar();
     void clearLookAtTargetAvatar();
 
+    virtual void setJointRotations(QVector<glm::quat> jointRotations);
+    virtual void setJointData(int index, const glm::quat& rotation);
+    virtual void clearJointData(int index);
+    virtual void clearJointsData();
+
     Q_INVOKABLE void useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName = QString());
     Q_INVOKABLE void useHeadURL(const QUrl& headURL, const QString& modelName = QString());
     Q_INVOKABLE void useBodyURL(const QUrl& bodyURL, const QString& modelName = QString());

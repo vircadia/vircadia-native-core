@@ -21,7 +21,6 @@
 #include <functional>
 
 #include <AABox.h>
-#include <AnimationCache.h>
 #include <DependencyManager.h>
 #include <GeometryUtil.h>
 #include <gpu/Stream.h>
@@ -149,10 +148,6 @@ public:
 
     /// Sets the distance parameter used for LOD computations.
     void setLODDistance(float distance) { _lodDistance = distance; }
-
-    const QList<AnimationHandlePointer>& getRunningAnimations() const { return _rig->getRunningAnimations(); }
-    /// Clear the joint animation priority
-    void clearJointAnimationPriority(int index);
 
     void setScaleToFit(bool scaleToFit, float largestDimension = 0.0f, bool forceRescale = false);
     bool getScaleToFit() const { return _scaleToFit; } /// is scale to fit enabled

@@ -1052,10 +1052,6 @@ void Model::clearJointState(int index) {
     _rig->clearJointState(index);
 }
 
-void Model::clearJointAnimationPriority(int index) {
-    _rig->clearJointAnimationPriority(index);
-}
-
 void Model::setJointState(int index, bool valid, const glm::quat& rotation, float priority) {
     _rig->setJointState(index, valid, rotation, priority);
 }
