@@ -3605,9 +3605,6 @@ int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingN
     
     _octreeSceneStatsLock.unlock();
 
-    VoxelPositionSize rootDetails;
-    voxelDetailsForCode(octreeStats.getJurisdictionRoot(), rootDetails);
-
     // see if this is the first we've heard of this node...
     NodeToJurisdictionMap* jurisdiction = NULL;
     QString serverType;
@@ -3619,6 +3616,9 @@ int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingN
     jurisdiction->lockForRead();
     if (jurisdiction->find(nodeUUID) == jurisdiction->end()) {
         jurisdiction->unlock();
+        
+        VoxelPositionSize rootDetails;
+        voxelDetailsForCode(octreeStats.getJurisdictionRoot(), rootDetails);
 
         qCDebug(interfaceapp, "stats from new %s server... [%f, %f, %f, %f]",
                 qPrintable(serverType),
