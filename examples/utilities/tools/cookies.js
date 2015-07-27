@@ -888,10 +888,10 @@
             }
 
         }
+
         
         // Now recalculate new heights of subsequent widgets
         for(var j = i + 1; j < keys.length; ++j) {
-
             this.items[keys[j]].moveUp(this.getCurrentY(keys[j]));
 
         }
