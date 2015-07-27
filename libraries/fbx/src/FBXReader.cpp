@@ -27,7 +27,6 @@
 #include <GLMHelpers.h>
 #include <NumericalConstants.h>
 #include <OctalCode.h>
-#include <Shape.h>
 #include <gpu/Format.h>
 #include <LogHandler.h>
 
