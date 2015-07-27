@@ -40,11 +40,9 @@
  */
 
 #include <iostream>
-#include <PathUtils.h>
 
-#include "AvatarData.h"
-#include "OBJReader.h" 
 #include "FBXReader.h"
+#include "OBJReader.h" 
 
 #include "AvatarRig.h" // We might later test Rig vs AvatarRig separately, but for now, we're concentrating on the main use case.
 #include "RigTests.h"
