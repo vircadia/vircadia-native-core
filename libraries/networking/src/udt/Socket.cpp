@@ -125,7 +125,7 @@ void Socket::readPendingDatagrams() {
 
 void Socket::rateControlSync() {
 
-    
+    // TODO: enumerate our list of connections and ask each of them to send off periodic ACK packet for rate control 
     
     if (_synTimer.interval() != _synInterval) {
         // if the _synTimer interval doesn't match the current _synInterval (changes when the CC factory is changed)
