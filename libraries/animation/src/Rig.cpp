@@ -369,7 +369,6 @@ void Rig::simulateInternal(float deltaTime, glm::mat4 parentTransform, const glm
         }
     
         _lastPosition = worldPosition;
-        _positions[(++_positionIndex) % _positions.count()] = worldPosition; // exp. alt. to above line
         _lastFront = front;
         _isWalking = isWalking;
         _isTurning = isTurning;

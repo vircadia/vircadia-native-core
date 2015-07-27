@@ -52,23 +52,6 @@
 QTEST_MAIN(RigTests)
 
 void RigTests::initTestCase() {
-
-    // There are two good ways we could organize this:
-    // 1. Create a MyAvatar the same way that Interface does, and poke at it.
-    //    We can't do that because MyAvatar (and even Avatar) are in interface, not a library, and our build system won't allow that dependency.
-    // 2. Create just the minimum skeleton in the most direct way possible, using only very basic library APIs (such as fbx).
-    //    I don't think we can do that because not everything we need is exposed directly from, e.g., the fst and fbx readers.
-    // So here we do neither. Using as much as we can from AvatarData (which is in the avatar and further requires network and audio), and
-    // duplicating whatever other code we need from (My)Avatar. Ugh.  We may refactor that later, but right now, cleaning this up is not on our critical path.
-
-    // Joint mapping from fst. FIXME: Do we need this???
-    /*auto avatar = std::make_shared<AvatarData>();
-    QEventLoop loop; // Create an event loop that will quit when we get the finished signal
-    QObject::connect(avatar.get(), &AvatarData::jointMappingLoaded, &loop, &QEventLoop::quit);
-    avatar->setSkeletonModelURL(QUrl("https://hifi-public.s3.amazonaws.com/marketplace/contents/4a690585-3fa3-499e-9f8b-fd1226e561b1/e47e6898027aa40f1beb6adecc6a7db5.fst")); // Zach fst
-    loop.exec();*/                    // Blocking all further tests until signalled.
-
-    // Joint geometry from fbx.
 //#define FROM_FILE "/Users/howardstearns/howardHiFi/Zack.fbx"
 #ifdef FROM_FILE
     QFile file(FROM_FILE);
@@ -81,8 +64,7 @@ void RigTests::initTestCase() {
     QCOMPARE(fbxHttpCode, 200);
     FBXGeometry geometry = readFBX(reply->readAll(), QVariantHash());
 #endif
-    //QCOMPARE(geometry.joints.count(), avatar->getJointNames().count());
-
+ 
     QVector<JointState> jointStates;
     for (int i = 0; i < geometry.joints.size(); ++i) {
         // Note that if the geometry is stack allocated and goes away, so will the joints. Hence the heap copy here.
@@ -97,24 +79,24 @@ void RigTests::initTestCase() {
     std::cout << "Rig is ready " << geometry.joints.count() << " joints " << std::endl;
    }
 
-void reportJoint(int index, JointState joint) { // Handy for debugging
+static void reportJoint(int index, JointState joint) { // Handy for debugging
     std::cout << "\n";
     std::cout << index << " " << joint.getFBXJoint().name.toUtf8().data() << "\n";
     std::cout << " pos:" << joint.getPosition() << "/" << joint.getPositionInParentFrame() << " from " << joint.getParentIndex() << "\n";
     std::cout << " rot:" << safeEulerAngles(joint.getRotation()) << "/" << safeEulerAngles(joint.getRotationInParentFrame()) << "/" << safeEulerAngles(joint.getRotationInBindFrame()) << "\n";
     std::cout << "\n";
 }
-void reportByName(RigPointer rig, const QString& name) {
+static void reportByName(RigPointer rig, const QString& name) {
     int jointIndex = rig->indexOfJoint(name);
     reportJoint(jointIndex, rig->getJointState(jointIndex));
 }
-void reportAll(RigPointer rig) {
+static void reportAll(RigPointer rig) {
     for (int i = 0; i < rig->getJointStateCount(); i++) {
         JointState joint = rig->getJointState(i);
         reportJoint(i, joint);
     }
 }
-void reportSome(RigPointer rig) {
+static void reportSome(RigPointer rig) {
     QString names[] = {"Head", "Neck", "RightShoulder", "RightArm", "RightForeArm", "RightHand", "Spine2", "Spine1", "Spine", "Hips", "RightUpLeg", "RightLeg", "RightFoot", "RightToeBase", "RightToe_End"};
     for (auto name : names) {
         reportByName(rig, name);
@@ -124,5 +106,4 @@ void reportSome(RigPointer rig) {
 void RigTests::initialPoseArmsDown() {
     //reportAll(_rig);
     reportSome(_rig);
-    QCOMPARE(false, true);
 }

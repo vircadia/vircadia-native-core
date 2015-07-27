@@ -153,10 +153,6 @@ public:
     bool _isIdle;
     glm::vec3 _lastFront;
     glm::vec3 _lastPosition;
-    // or, experimentally...
-    QVector<glm::vec3> _positions = QVector<glm::vec3>(4);
-    QVector<float> _timeIntervals = QVector<float>(4);
-    int _positionIndex;
  };
 
 #endif /* defined(__hifi__Rig__) */
