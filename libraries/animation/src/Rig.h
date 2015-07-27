@@ -71,8 +71,9 @@ public:
                               float priority = 1.0f, bool loop = false, bool hold = false, float firstFrame = 0.0f,
                               float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList());
     void stopAnimationByRole(const QString& role);
-    void addAnimationByRole(const QString& role, const QString& url, float fps, float priority,
-                            bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints, bool startAutomatically);
+    void addAnimationByRole(const QString& role, const QString& url = QString(), float fps = 30.0f,
+                            float priority = 1.0f, bool loop = false, bool hold = false, float firstFrame = 0.0f,
+                            float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList(), bool startAutomatically = false);
 
     float initJointStates(QVector<JointState> states, glm::mat4 parentTransform, int neckJointIndex);
     bool jointStatesEmpty() { return _jointStates.isEmpty(); };
@@ -107,7 +108,7 @@ public:
     void setJointTransform(int jointIndex, glm::mat4 newTransform);
     glm::mat4 getJointVisibleTransform(int jointIndex) const;
     void setJointVisibleTransform(int jointIndex, glm::mat4 newTransform);
-    void simulateInternal(float deltaTime, glm::mat4 parentTransform);
+    void simulateInternal(float deltaTime, glm::mat4 parentTransform, const glm::vec3& worldPosition, const glm::quat& worldRotation);
     bool setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation, bool useRotation,
                           int lastFreeIndex, bool allIntermediatesFree, const glm::vec3& alignment, float priority,
                           const QVector<int>& freeLineage, glm::mat4 parentTransform);
@@ -144,6 +145,16 @@ public:
     std::vector<int> _headBones;
     bool _jointsAreDirty = false;
     int _neckJointIndex = -1;
-};
+    
+    bool _isWalking;
+    bool _isTurning;
+    bool _isIdle;
+    glm::vec3 _lastFront;
+    glm::vec3 _lastPosition;
+    // or, experimentally...
+    QVector<glm::vec3> _positions = QVector<glm::vec3>(4);
+    QVector<float> _timeIntervals = QVector<float>(4);
+    int _positionIndex;
+ };
 
 #endif /* defined(__hifi__Rig__) */

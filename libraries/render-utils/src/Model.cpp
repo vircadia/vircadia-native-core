@@ -1346,7 +1346,7 @@ void Model::simulateInternal(float deltaTime) {
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-    _rig->simulateInternal(deltaTime, parentTransform);
+    _rig->simulateInternal(deltaTime, parentTransform, getTranslation(), getRotation());
 
     _shapesAreDirty = !_shapes.isEmpty();
 

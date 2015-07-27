@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <glm/gtx/vector_angle.hpp>
 #include <queue>
 
 #include "AnimationHandle.h"
@@ -38,18 +39,15 @@ void Rig::removeAnimationHandle(const AnimationHandlePointer& handle) {
 
 void Rig::startAnimation(const QString& url, float fps, float priority,
                               bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints) {
-    qCDebug(animation) << "startAnimation" << url << fps << priority << loop << hold << firstFrame << lastFrame << maskedJoints;
-    AnimationHandlePointer handle = nullptr;
+    //qCDebug(animation) << "startAnimation" << url << fps << priority << loop << hold << firstFrame << lastFrame << maskedJoints;
     foreach (const AnimationHandlePointer& candidate, _animationHandles) {
         if (candidate->getURL() == url) {
-            handle = candidate;
-            break;
+            candidate->start();
+            return;
         }
     }
-    if (!handle) {
-        handle = createAnimationHandle();
-        handle->setURL(url);
-    }
+    AnimationHandlePointer handle = createAnimationHandle();
+    handle->setURL(url);
     handle->setFPS(fps);
     handle->setPriority(priority);
     handle->setLoop(loop);
@@ -63,18 +61,17 @@ void Rig::startAnimation(const QString& url, float fps, float priority,
 void Rig::addAnimationByRole(const QString& role, const QString& url, float fps, float priority,
                                bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints, bool startAutomatically) {
     // check for a configured animation for the role
-    qCDebug(animation) << "addAnimationByRole" << role << url << fps << priority << loop << hold << firstFrame << lastFrame << maskedJoints << startAutomatically;
-    AnimationHandlePointer handle = nullptr;
+    //qCDebug(animation) << "addAnimationByRole" << role << url << fps << priority << loop << hold << firstFrame << lastFrame << maskedJoints << startAutomatically;
     foreach (const AnimationHandlePointer& candidate, _animationHandles) {
         if (candidate->getRole() == role) {
-            handle = candidate;
-            break;
+            if (startAutomatically) {
+                candidate->start();
+            }
+            return;
         }
     }
-    if (!handle) {
-       handle = createAnimationHandle();
-        handle->setRole(role);
-    }
+    AnimationHandlePointer handle = createAnimationHandle();
+    handle->setRole(role);
     handle->setURL(url);
     handle->setFPS(fps);
     handle->setPriority(priority);
@@ -344,7 +341,45 @@ glm::mat4 Rig::getJointVisibleTransform(int jointIndex) const {
     return maybeCauterizeHead(jointIndex).getVisibleTransform();
 }
 
-void Rig::simulateInternal(float deltaTime, glm::mat4 parentTransform) {
+void Rig::simulateInternal(float deltaTime, glm::mat4 parentTransform, const glm::vec3& worldPosition, const glm::quat& worldRotation) {
+    glm::vec3 front = worldRotation * IDENTITY_FRONT;
+    glm::vec3 delta = worldPosition - _lastPosition ;
+    float forwardSpeed = glm::dot(delta, front) / deltaTime;
+    float rotationalSpeed = glm::angle(front, _lastFront) / deltaTime;
+    bool isWalking = std::abs(forwardSpeed) > 0.01;
+    bool isTurning = std::abs(rotationalSpeed) > 0.5;
+    
+    // Crude, until we have blending:
+    const float EXPECTED_INTERVAL = 1.0f / 60.0f;
+    if (deltaTime >= EXPECTED_INTERVAL) {
+        isTurning = isTurning && !isWalking; // Only one of walk/turn, walk wins.
+        isTurning = false; // FIXME
+        bool isIdle = !isWalking && !isTurning;
+        auto singleRole = [](bool walking, bool turning, bool idling) {
+            return walking ? "walk" : (turning ? "turn" : (idling ? "idle" : ""));
+        };
+        QString toStop = singleRole(_isWalking && !isWalking, _isTurning && !isTurning, _isIdle && !isIdle);
+        if (!toStop.isEmpty()) {
+            //qCDebug(animation) << "isTurning" << isTurning << "fronts" << front << _lastFront << glm::angle(front, _lastFront) << rotationalSpeed;
+            //stopAnimationByRole(toStop);
+        }
+        QString newRole = singleRole(isWalking && !_isWalking, isTurning && !_isTurning, isIdle && !_isIdle);
+        if (!newRole.isEmpty()) {
+            //startAnimationByRole(newRole);
+            qCDebug(animation) << deltaTime << ":" /*<< _lastPosition << worldPosition << "=>" */<< delta << "." << front << "=> " << forwardSpeed << newRole;
+            /*if (newRole == "idle") {
+                qCDebug(animation) << deltaTime << ":" << _lastPosition << worldPosition << "=>" << delta;
+            }*/
+        }
+    
+        _lastPosition = worldPosition;
+        _positions[(++_positionIndex) % _positions.count()] = worldPosition; // exp. alt. to above line
+        _lastFront = front;
+        _isWalking = isWalking;
+        _isTurning = isTurning;
+        _isIdle = isIdle;
+    }
+
     // update animations
     foreach (const AnimationHandlePointer& handle, _runningAnimations) {
         handle->simulate(deltaTime);
