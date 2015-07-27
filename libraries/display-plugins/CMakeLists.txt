@@ -26,7 +26,7 @@ find_package(LibOVR REQUIRED)
 target_include_directories(${TARGET_NAME} PRIVATE ${LIBOVR_INCLUDE_DIRS})
 target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
 
-if (NOT(APPLE))
+if (WIN32)
   add_dependency_external_projects(OpenVR)
   find_package(OpenVR REQUIRED)
   target_include_directories(${TARGET_NAME} PRIVATE ${OPENVR_INCLUDE_DIRS})

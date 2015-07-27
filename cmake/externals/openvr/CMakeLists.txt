@@ -38,7 +38,7 @@ elseif(NOT ANDROID)
 
   # FIXME need to account for different architectures 
   set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/linux64/libopenvr_api.so CACHE TYPE INTERNAL)
-  add_paths_to_fixup_libs(${SOURCE_DIR}/bin/linux32)
+  add_paths_to_fixup_libs(${SOURCE_DIR}/bin/linux64)
   
 endif()
 

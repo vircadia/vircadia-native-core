@@ -7,7 +7,7 @@
 //
 #include "OpenVrDisplayPlugin.h"
 
-#if !defined(Q_OS_MAC)
+#if defined(Q_OS_WIN)
 
 #include <memory>
 
