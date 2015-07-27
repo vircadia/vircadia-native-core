@@ -1301,7 +1301,7 @@ void Model::snapToRegistrationPoint() {
     _snappedToRegistrationPoint = true;
 }
 
-void Model::simulate(float deltaTime, bool fullUpdate, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation) {
+void Model::simulate(float deltaTime, bool fullUpdate) {
     PROFILE_RANGE(__FUNCTION__);
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
@@ -1322,16 +1322,16 @@ void Model::simulate(float deltaTime, bool fullUpdate, const glm::vec3& worldPos
         if (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint) {
             snapToRegistrationPoint();
         }
-        simulateInternal(deltaTime, worldPosition, worldVelocity, worldRotation);
+        simulateInternal(deltaTime);
     }
 }
 
-void Model::simulateInternal(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation) {
+void Model::simulateInternal(float deltaTime) {
     // update the world space transforms for all joints
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-    _rig->simulateInternal(deltaTime, parentTransform, worldPosition, worldVelocity, worldRotation);
+    updateRig(deltaTime, parentTransform);
 
     glm::mat4 modelToWorld = glm::mat4_cast(_rotation);
     for (int i = 0; i < _meshStates.size(); i++) {

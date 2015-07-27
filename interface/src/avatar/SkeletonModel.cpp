@@ -115,6 +115,10 @@ void SkeletonModel::updateClusterMatrices() {
     }
 }
 
+void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
+    _rig->simulateInternal(deltaTime, parentTransform, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation());
+}
+
 void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     setTranslation(_owningAvatar->getSkeletonPosition());
     static const glm::quat refOrientation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -122,7 +126,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getScale());
     setBlendshapeCoefficients(_owningAvatar->getHead()->getBlendshapeCoefficients());
 
-    Model::simulate(deltaTime, fullUpdate, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation());
+    Model::simulate(deltaTime, fullUpdate);
     
     if (!isActive() || !_owningAvatar->isMyAvatar()) {
         return; // only simulate for own avatar

@@ -29,7 +29,8 @@ public:
    
     virtual void initJointStates(QVector<JointState> states);
 
-    void simulate(float deltaTime, bool fullUpdate = true);
+    virtual void simulate(float deltaTime, bool fullUpdate = true);
+    virtual void updateRig(float deltaTime, glm::mat4 parentTransform);
 
     void renderIKConstraints(gpu::Batch& batch);
     

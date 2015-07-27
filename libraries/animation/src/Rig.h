@@ -132,7 +132,7 @@ public:
     virtual bool getIsFirstPerson() const { return _isFirstPerson; }
 
     bool getJointsAreDirty() { return _jointsAreDirty; }
-    bool setEnableRig(bool isEnabled) { _enableRig = isEnabled; }
+    void setEnableRig(bool isEnabled) { _enableRig = isEnabled; }
 
  protected:
     QVector<JointState> _jointStates;
