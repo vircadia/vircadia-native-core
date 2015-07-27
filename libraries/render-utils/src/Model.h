@@ -117,7 +117,7 @@ public:
     void setSnapModelToRegistrationPoint(bool snapModelToRegistrationPoint, const glm::vec3& registrationPoint);
     bool getSnapModelToRegistrationPoint() { return _snapModelToRegistrationPoint; }
 
-    virtual void simulate(float deltaTime, bool fullUpdate = true);
+    virtual void simulate(float deltaTime, bool fullUpdate = true, const glm::vec3& worldPosition = glm::vec3(), const glm::vec3& worldVelocity = glm::vec3(), const glm::quat& worldRotation = glm::quat());
 
     /// Returns a reference to the shared geometry.
     const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }
@@ -274,7 +274,7 @@ protected:
     void scaleToFit();
     void snapToRegistrationPoint();
 
-    void simulateInternal(float deltaTime);
+    void simulateInternal(float deltaTime, const glm::vec3& worldPosition = glm::vec3(), const glm::vec3& worldVelocity = glm::vec3(), const glm::quat& worldRotation = glm::quat());
 
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);

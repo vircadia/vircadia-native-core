@@ -341,17 +341,16 @@ glm::mat4 Rig::getJointVisibleTransform(int jointIndex) const {
     return maybeCauterizeHead(jointIndex).getVisibleTransform();
 }
 
-void Rig::simulateInternal(float deltaTime, glm::mat4 parentTransform, const glm::vec3& worldPosition, const glm::quat& worldRotation) {
-    glm::vec3 front = worldRotation * IDENTITY_FRONT;
-    glm::vec3 delta = worldPosition - _lastPosition ;
-    float forwardSpeed = glm::dot(delta, front) / deltaTime;
-    float rotationalSpeed = glm::angle(front, _lastFront) / deltaTime;
-    bool isWalking = std::abs(forwardSpeed) > 0.01;
-    bool isTurning = std::abs(rotationalSpeed) > 0.5;
+void Rig::simulateInternal(float deltaTime, glm::mat4 parentTransform, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation) {
     
-    // Crude, until we have blending:
-    const float EXPECTED_INTERVAL = 1.0f / 60.0f;
-    if (deltaTime >= EXPECTED_INTERVAL) {
+    if (_enableRig) {
+        glm::vec3 front = worldRotation * IDENTITY_FRONT;
+        float forwardSpeed = glm::dot(worldVelocity, front);
+        float rotationalSpeed = glm::angle(front, _lastFront) / deltaTime;
+        bool isWalking = std::abs(forwardSpeed) > 0.01;
+        bool isTurning = std::abs(rotationalSpeed) > 0.5;
+
+        // Crude, until we have blending:
         isTurning = isTurning && !isWalking; // Only one of walk/turn, walk wins.
         isTurning = false; // FIXME
         bool isIdle = !isWalking && !isTurning;
@@ -361,15 +360,12 @@ void Rig::simulateInternal(float deltaTime, glm::mat4 parentTransform, const glm
         QString toStop = singleRole(_isWalking && !isWalking, _isTurning && !isTurning, _isIdle && !isIdle);
         if (!toStop.isEmpty()) {
             //qCDebug(animation) << "isTurning" << isTurning << "fronts" << front << _lastFront << glm::angle(front, _lastFront) << rotationalSpeed;
-            //stopAnimationByRole(toStop);
+            stopAnimationByRole(toStop);
         }
         QString newRole = singleRole(isWalking && !_isWalking, isTurning && !_isTurning, isIdle && !_isIdle);
         if (!newRole.isEmpty()) {
-            //startAnimationByRole(newRole);
-            qCDebug(animation) << deltaTime << ":" /*<< _lastPosition << worldPosition << "=>" */<< delta << "." << front << "=> " << forwardSpeed << newRole;
-            /*if (newRole == "idle") {
-                qCDebug(animation) << deltaTime << ":" << _lastPosition << worldPosition << "=>" << delta;
-            }*/
+            startAnimationByRole(newRole);
+            qCDebug(animation) << deltaTime << ":" << worldVelocity << "." << front << "=> " << forwardSpeed << newRole;
         }
     
         _lastPosition = worldPosition;

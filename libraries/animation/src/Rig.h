@@ -108,7 +108,7 @@ public:
     void setJointTransform(int jointIndex, glm::mat4 newTransform);
     glm::mat4 getJointVisibleTransform(int jointIndex) const;
     void setJointVisibleTransform(int jointIndex, glm::mat4 newTransform);
-    void simulateInternal(float deltaTime, glm::mat4 parentTransform, const glm::vec3& worldPosition, const glm::quat& worldRotation);
+    void simulateInternal(float deltaTime, glm::mat4 parentTransform, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation);
     bool setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation, bool useRotation,
                           int lastFreeIndex, bool allIntermediatesFree, const glm::vec3& alignment, float priority,
                           const QVector<int>& freeLineage, glm::mat4 parentTransform);
@@ -132,6 +132,7 @@ public:
     virtual bool getIsFirstPerson() const { return _isFirstPerson; }
 
     bool getJointsAreDirty() { return _jointsAreDirty; }
+    bool setEnableRig(bool isEnabled) { _enableRig = isEnabled; }
 
  protected:
     QVector<JointState> _jointStates;
@@ -146,6 +147,7 @@ public:
     bool _jointsAreDirty = false;
     int _neckJointIndex = -1;
     
+    bool _enableRig;
     bool _isWalking;
     bool _isTurning;
     bool _isIdle;

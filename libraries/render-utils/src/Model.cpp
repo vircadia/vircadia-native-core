@@ -1316,7 +1316,7 @@ void Model::snapToRegistrationPoint() {
     _snappedToRegistrationPoint = true;
 }
 
-void Model::simulate(float deltaTime, bool fullUpdate) {
+void Model::simulate(float deltaTime, bool fullUpdate, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation) {
     PROFILE_RANGE(__FUNCTION__);
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
@@ -1337,16 +1337,16 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
         if (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint) {
             snapToRegistrationPoint();
         }
-        simulateInternal(deltaTime);
+        simulateInternal(deltaTime, worldPosition, worldVelocity, worldRotation);
     }
 }
 
-void Model::simulateInternal(float deltaTime) {
+void Model::simulateInternal(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation) {
     // update the world space transforms for all joints
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-    _rig->simulateInternal(deltaTime, parentTransform, getTranslation(), getRotation());
+    _rig->simulateInternal(deltaTime, parentTransform, worldPosition, worldVelocity, worldRotation);
 
     _shapesAreDirty = !_shapes.isEmpty();
 
