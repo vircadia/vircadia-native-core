@@ -57,7 +57,7 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
     } else {
         auto dialogWidget = new QDialog(Application::getInstance()->getWindow(), Qt::Window);
         dialogWidget->setWindowTitle(title);
-        dialogWidget->setMinimumSize(width, height);
+        dialogWidget->resize(width, height);
         connect(dialogWidget, &QDialog::finished, this, &WebWindowClass::hasClosed);
 
         auto layout = new QVBoxLayout(dialogWidget);
@@ -141,4 +141,8 @@ QScriptValue WebWindowClass::constructor(QScriptContext* context, QScriptEngine*
     connect(engine, &QScriptEngine::destroyed, retVal, &WebWindowClass::deleteLater);
 
     return engine->newQObject(retVal);
+}
+
+void WebWindowClass::setTitle(const QString& title) {
+    _windowWidget->setWindowTitle(title);
 }

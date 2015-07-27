@@ -21,7 +21,6 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_drawIndexed),
     (&::gpu::GLBackend::do_drawInstanced),
     (&::gpu::GLBackend::do_drawIndexedInstanced),
-    (&::gpu::GLBackend::do_clearFramebuffer),
     
     (&::gpu::GLBackend::do_setInputFormat),
     (&::gpu::GLBackend::do_setInputBuffer),
@@ -40,6 +39,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_setResourceTexture),
 
     (&::gpu::GLBackend::do_setFramebuffer),
+    (&::gpu::GLBackend::do_clearFramebuffer),
     (&::gpu::GLBackend::do_blit),
 
     (&::gpu::GLBackend::do_beginQuery),
@@ -192,6 +192,7 @@ void GLBackend::syncCache() {
     syncTransformStateCache();
     syncPipelineStateCache();
     syncInputStateCache();
+    syncOutputStateCache();
 
     glEnable(GL_LINE_SMOOTH);
 }
@@ -242,68 +243,6 @@ void GLBackend::do_drawInstanced(Batch& batch, uint32 paramOffset) {
 }
 
 void GLBackend::do_drawIndexedInstanced(Batch& batch, uint32 paramOffset) {
-    (void) CHECK_GL_ERROR();
-}
-
-void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
-
-    uint32 masks = batch._params[paramOffset + 7]._uint;
-    Vec4 color;
-    color.x = batch._params[paramOffset + 6]._float;
-    color.y = batch._params[paramOffset + 5]._float;
-    color.z = batch._params[paramOffset + 4]._float;
-    color.w = batch._params[paramOffset + 3]._float;
-    float depth = batch._params[paramOffset + 2]._float;
-    int stencil = batch._params[paramOffset + 1]._int;
-    int useScissor = batch._params[paramOffset + 0]._int;
-
-    GLuint glmask = 0;
-    if (masks & Framebuffer::BUFFER_STENCIL) {
-        glClearStencil(stencil);
-        glmask |= GL_STENCIL_BUFFER_BIT;
-    }
-
-    if (masks & Framebuffer::BUFFER_DEPTH) {
-        glClearDepth(depth);
-        glmask |= GL_DEPTH_BUFFER_BIT;
-    } 
-
-    std::vector<GLenum> drawBuffers;
-    if (masks & Framebuffer::BUFFER_COLORS) {
-        for (unsigned int i = 0; i < Framebuffer::MAX_NUM_RENDER_BUFFERS; i++) {
-            if (masks & (1 << i)) {
-                drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
-            }
-        }
-
-        if (!drawBuffers.empty()) {
-            glDrawBuffers(drawBuffers.size(), drawBuffers.data());
-            glClearColor(color.x, color.y, color.z, color.w);
-            glmask |= GL_COLOR_BUFFER_BIT;
-        }
-    }
-
-    // Apply scissor if needed and if not already on
-    bool doEnableScissor = (useScissor && (!_pipeline._stateCache.scissorEnable));
-    if (doEnableScissor) {
-        glEnable(GL_SCISSOR_TEST);
-    }
-
-    glClear(glmask);
-
-    // Restore scissor if needed
-    if (doEnableScissor) {
-        glDisable(GL_SCISSOR_TEST);
-    }
-
-    // Restore the color draw buffers only if a frmaebuffer is bound
-    if (_output._framebuffer && !drawBuffers.empty()) {
-        auto glFramebuffer = syncGPUObject(*_output._framebuffer);
-        if (glFramebuffer) {
-            glDrawBuffers(glFramebuffer->_colorBuffers.size(), glFramebuffer->_colorBuffers.data());
-        }
-    }
-
     (void) CHECK_GL_ERROR();
 }
 
