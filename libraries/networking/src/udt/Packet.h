@@ -33,8 +33,6 @@ public:
     using MessageNumber = uint32_t;
     using MessageNumberAndBitField = uint32_t;
     
-    static const uint32_t DEFAULT_SEQUENCE_NUMBER = 0;
-
     static std::unique_ptr<Packet> create(qint64 size = -1, bool isReliable = false, bool isPartOfMessage = false);
     static std::unique_ptr<Packet> fromReceivedPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
     
