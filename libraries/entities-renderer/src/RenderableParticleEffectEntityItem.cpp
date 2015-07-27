@@ -175,8 +175,9 @@ uint32_t toRGBA(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
 
 void RenderableParticleEffectEntityItem::updateRenderItem() {
 
-    if (!_scene)
+    if (!_scene) {
         return;
+    }
 
     float particleRadius = getParticleRadius();
     auto xcolor = getXColor();
@@ -223,18 +224,20 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
         // FIXME, don't update index buffer if num particles has not changed.
         // update index buffer
         auto indexBuffer = payload.getIndexBuffer();
-        auto numQuads = (_vertices.size() / 4);
-        numBytes = sizeof(uint16_t) * numQuads * 6;
+        const size_t NUM_VERTS_PER_PARTICLE = 4;
+        const size_t NUM_INDICES_PER_PARTICLE = 6;
+        auto numQuads = (_vertices.size() / NUM_VERTS_PER_PARTICLE);
+        numBytes = sizeof(uint16_t) * numQuads * NUM_INDICES_PER_PARTICLE;
         indexBuffer->resize(numBytes);
         data = indexBuffer->editData();
         auto indexPtr = reinterpret_cast<uint16_t*>(data);
         for (size_t i = 0; i < numQuads; ++i) {
-            indexPtr[i * 6 + 0] = i * 4 + 0;
-            indexPtr[i * 6 + 1] = i * 4 + 1;
-            indexPtr[i * 6 + 2] = i * 4 + 3;
-            indexPtr[i * 6 + 3] = i * 4 + 1;
-            indexPtr[i * 6 + 4] = i * 4 + 2;
-            indexPtr[i * 6 + 5] = i * 4 + 3;
+            indexPtr[i * NUM_INDICES_PER_PARTICLE + 0] = i * NUM_VERTS_PER_PARTICLE + 0;
+            indexPtr[i * NUM_INDICES_PER_PARTICLE + 1] = i * NUM_VERTS_PER_PARTICLE + 1;
+            indexPtr[i * NUM_INDICES_PER_PARTICLE + 2] = i * NUM_VERTS_PER_PARTICLE + 3;
+            indexPtr[i * NUM_INDICES_PER_PARTICLE + 3] = i * NUM_VERTS_PER_PARTICLE + 1;
+            indexPtr[i * NUM_INDICES_PER_PARTICLE + 4] = i * NUM_VERTS_PER_PARTICLE + 2;
+            indexPtr[i * NUM_INDICES_PER_PARTICLE + 5] = i * NUM_VERTS_PER_PARTICLE + 3;
         }
 
         // update transform
@@ -247,7 +250,8 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
 
         // transform _particleMinBound and _particleMaxBound corners into world coords
         glm::vec3 d = _particleMaxBound - _particleMinBound;
-        glm::vec3 corners[8] = {
+        const size_t NUM_BOX_CORNERS = 8;
+        glm::vec3 corners[NUM_BOX_CORNERS] = {
             pos + rot * (_particleMinBound + glm::vec3(0.0f, 0.0f, 0.0f)),
             pos + rot * (_particleMinBound + glm::vec3(d.x, 0.0f, 0.0f)),
             pos + rot * (_particleMinBound + glm::vec3(0.0f, d.y, 0.0f)),
@@ -259,7 +263,7 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
         };
         glm::vec3 min(FLT_MAX, FLT_MAX, FLT_MAX);
         glm::vec3 max = -min;
-        for (int i = 0; i < 8; i++) {
+        for (size_t i = 0; i < NUM_BOX_CORNERS; i++) {
             min.x = std::min(min.x, corners[i].x);
             min.y = std::min(min.y, corners[i].y);
             min.z = std::min(min.z, corners[i].z);
