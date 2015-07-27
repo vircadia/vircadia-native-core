@@ -7,6 +7,8 @@
 //
 #pragma once
 
+#include <QtGlobal>
+
 #if defined(Q_OS_WIN)
 
 #include "../MainWindowOpenGLDisplayPlugin.h"
