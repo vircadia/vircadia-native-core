@@ -12,9 +12,7 @@
 #include <glm/gtx/transform.hpp>
 #include <QMultiMap>
 
-#include <CapsuleShape.h>
 #include <DeferredLightingEffect.h>
-#include <SphereShape.h>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -44,7 +42,6 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer r
 {
     assert(_rig);
     assert(_owningAvatar);
-    _enableShapes = true;
 }
 
 SkeletonModel::~SkeletonModel() {
@@ -81,10 +78,7 @@ void SkeletonModel::initJointStates(QVector<JointState> states) {
         _rig->updateJointState(i, parentTransform);
     }
 
-    clearShapes();
-    if (_enableShapes) {
-        buildShapes();
-    }
+    buildShapes();
 
     Extents meshExtents = getMeshExtents();
     _headClipDistance = -(meshExtents.minimum.z / _scale.z - _defaultEyeModelPosition.z);

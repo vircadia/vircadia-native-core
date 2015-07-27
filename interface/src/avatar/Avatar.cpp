@@ -431,15 +431,17 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
             }
         }
 
+        /*
+        // TODO: re-implement these when we have more detailed avatar collision shapes
         bool renderSkeleton = Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes);
-        bool renderHead = Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionShapes);
-        bool renderBounding = Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes);
         if (renderSkeleton) {
-            _skeletonModel.renderJointCollisionShapes(0.7f);
         }
+        bool renderHead = Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionShapes);
         if (renderHead && shouldRenderHead(renderArgs)) {
-            getHead()->getFaceModel().renderJointCollisionShapes(0.7f);
         }
+        */
+
+        bool renderBounding = Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes);
         if (renderBounding && shouldRenderHead(renderArgs)) {
             _skeletonModel.renderBoundingCollisionShapes(*renderArgs->_batch, 0.7f);
         }
@@ -792,33 +794,6 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, co
     textTransform.postTranslate(glm::vec3(0.0f, 0.0f, SLIGHTLY_IN_FRONT * renderer->getFontSize()));
     batch.setModelTransform(textTransform);
     renderer->draw(batch, text_x, -text_y, nameUTF8.data(), textColor);
-}
-
-bool Avatar::findRayIntersection(RayIntersectionInfo& intersection) const {
-    bool hit = _skeletonModel.findRayIntersection(intersection);
-    hit = getHead()->getFaceModel().findRayIntersection(intersection) || hit;
-    return hit;
-}
-
-bool Avatar::findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius, CollisionList& collisions) {
-    return _skeletonModel.findSphereCollisions(penetratorCenter, penetratorRadius, collisions);
-    // TODO: Andrew to fix: Temporarily disabling collisions against the head
-    //return getHead()->getFaceModel().findSphereCollisions(penetratorCenter, penetratorRadius, collisions);
-}
-
-bool Avatar::findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions) {
-    return _skeletonModel.findPlaneCollisions(plane, collisions) ||
-        getHead()->getFaceModel().findPlaneCollisions(plane, collisions);
-}
-
-bool Avatar::findCollisions(const QVector<const Shape*>& shapes, CollisionList& collisions) {
-    // TODO: Andrew to fix: also collide against _skeleton
-    //bool collided = _skeletonModel.findCollisions(shapes, collisions);
-
-    Model& headModel = getHead()->getFaceModel();
-    //collided = headModel.findCollisions(shapes, collisions) || collided;
-    bool collided = headModel.findCollisions(shapes, collisions);
-    return collided;
 }
 
 void Avatar::setSkeletonOffset(const glm::vec3& offset) {

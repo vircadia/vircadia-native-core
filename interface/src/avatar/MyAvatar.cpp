@@ -110,8 +110,6 @@ MyAvatar::MyAvatar(RigPointer rig) :
         _driveKeys[i] = 0.0f;
     }
 
-    _skeletonModel.setEnableShapes(true);
-
     // connect to AddressManager signal for location jumps
     connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired,
             this, &MyAvatar::goToLocation);

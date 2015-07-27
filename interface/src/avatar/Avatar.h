@@ -110,26 +110,6 @@ public:
     /// Returns the distance to use as a LOD parameter.
     float getLODDistance() const;
 
-    bool findRayIntersection(RayIntersectionInfo& intersection) const;
-
-    /// \param shapes list of shapes to collide against avatar
-    /// \param collisions list to store collision results
-    /// \return true if at least one shape collided with avatar
-    bool findCollisions(const QVector<const Shape*>& shapes, CollisionList& collisions);
-
-    /// Checks for penetration between the a sphere and the avatar's models.
-    /// \param penetratorCenter the center of the penetration test sphere
-    /// \param penetratorRadius the radius of the penetration test sphere
-    /// \param collisions[out] a list to which collisions get appended
-    /// \return whether or not the sphere penetrated
-    bool findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius, CollisionList& collisions);
-
-    /// Checks for penetration between the described plane and the avatar.
-    /// \param plane the penetration plane
-    /// \param collisions[out] a list to which collisions get appended
-    /// \return whether or not the plane penetrated
-    bool findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions);
-
     virtual bool isMyAvatar() const { return false; }
     
     virtual QVector<glm::quat> getJointRotations() const;
