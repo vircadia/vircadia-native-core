@@ -12,6 +12,7 @@
 #include "Socket.h"
 
 #include "../NetworkLogging.h"
+#include "Packet.h"
 
 using namespace udt;
 

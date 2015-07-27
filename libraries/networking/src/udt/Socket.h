@@ -20,11 +20,13 @@
 #include <QtCore/QObject>
 #include <QtNetwork/QUdpSocket>
 
+#include "../HifiSockAddr.h"
+#include "SeqNum.h"
+
 namespace udt {
     
 class BasePacket;
 class Packet;
-class HifiSockAddr;
 
 using PacketFilterOperator = std::function<bool(const Packet&)>;
 
