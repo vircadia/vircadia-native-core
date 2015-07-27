@@ -14,7 +14,6 @@
 #include <QtCore/QThread>
 
 #include "../NetworkLogging.h"
-#include "ControlSender.h"
 #include "Packet.h"
 
 using namespace udt;
@@ -28,7 +27,7 @@ Socket::Socket(QObject* parent) :
     connect(&_synTimer, &QTimer::timeout, this, &Socket::rateControlSync);
     
     // start our timer for the synchronization time interval
-    _synTimer->start(_synInterval);
+    _synTimer.start(_synInterval);
 }
 
 void Socket::rebind() {
@@ -124,8 +123,8 @@ void Socket::readPendingDatagrams() {
 }
 
 void Socket::rateControlSync() {
-
-    // TODO: enumerate our list of connections and ask each of them to send off periodic ACK packet for rate control 
+    
+    // TODO: enumerate our list of connections and ask each of them to send off periodic ACK packet for rate control
     
     if (_synTimer.interval() != _synInterval) {
         // if the _synTimer interval doesn't match the current _synInterval (changes when the CC factory is changed)

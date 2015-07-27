@@ -39,7 +39,6 @@ class Socket : public QObject {
     Q_OBJECT
 public:
     Socket(QObject* object = 0);
-    ~Socket();
     
     quint16 localPort() const { return _udpSocket.localPort(); }
     
@@ -73,7 +72,7 @@ private:
 
     std::unordered_map<HifiSockAddr, SeqNum> _packetSequenceNumbers;
     
-    int32_t _synInterval;
+    int32_t _synInterval = 10; // 10ms
     QTimer _synTimer;
 };
     
