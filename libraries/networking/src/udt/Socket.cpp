@@ -48,7 +48,7 @@ Socket::~Socket() {
         QThread* controlThread = _controlSender->thread();
         
         // tell the control sender to stop and be deleted so we can wait on its thread
-        QMetaObject::invokeMethod(_controlSender, "stop");
+        _controlSender->stop();
         _controlSender->deleteLater();
         
         // make sure the control thread goes down
