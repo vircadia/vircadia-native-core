@@ -312,9 +312,6 @@ public:
 
     bool shouldDie() const { return _owningAvatarMixer.isNull() || getUsecsSinceLastUpdate() > AVATAR_SILENCE_THRESHOLD_USECS; }
 
-signals:
-    void jointMappingLoaded(); // So that test cases or anyone waiting on asynchronous loading can be informed.
-
 public slots:
     void sendAvatarDataPacket();
     void sendIdentityPacket();

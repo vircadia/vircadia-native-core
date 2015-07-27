@@ -38,7 +38,6 @@
 class AbstractViewStateInterface;
 class QScriptEngine;
 
-class Shape;
 #include "RenderArgs.h"
 class ViewFrustum;
 
@@ -89,7 +88,6 @@ public:
     void removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
     void renderSetup(RenderArgs* args);
     bool isRenderable() const { return !_meshStates.isEmpty() || (isActive() && _geometry->getMeshes().isEmpty()); }
-    virtual void renderJointCollisionShapes(float alpha);
 
     bool isVisible() const { return _isVisible; }
 
@@ -229,10 +227,6 @@ protected:
     /// \return true if joint exists
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
 
-    // virtual overrides from PhysicsEntity
-    virtual void buildShapes();
-    virtual void updateShapePositions();
-
     void setShowTrueJointTransforms(bool show) { _showTrueJointTransforms = show; }
 
     QSharedPointer<NetworkGeometry> _geometry;
@@ -270,6 +264,7 @@ protected:
     void snapToRegistrationPoint();
 
     void simulateInternal(float deltaTime);
+    virtual void updateRig(float deltaTime, glm::mat4 parentTransform) {}; // Subclasses may be more interesting
 
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);

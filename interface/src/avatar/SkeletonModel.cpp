@@ -12,9 +12,7 @@
 #include <glm/gtx/transform.hpp>
 #include <QMultiMap>
 
-#include <CapsuleShape.h>
 #include <DeferredLightingEffect.h>
-#include <SphereShape.h>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -34,8 +32,9 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer r
     Model(rig, parent),
     _triangleFanID(DependencyManager::get<GeometryCache>()->allocateID()),
     _owningAvatar(owningAvatar),
-    _boundingShape(),
-    _boundingShapeLocalOffset(0.0f),
+    _boundingCapsuleLocalOffset(0.0f),
+    _boundingCapsuleRadius(0.0f),
+    _boundingCapsuleHeight(0.0f),
     _defaultEyeModelPosition(glm::vec3(0.0f, 0.0f, 0.0f)),
     _standingFoot(NO_FOOT),
     _standingOffset(0.0f),
@@ -44,7 +43,6 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer r
 {
     assert(_rig);
     assert(_owningAvatar);
-    _enableShapes = true;
 }
 
 SkeletonModel::~SkeletonModel() {
@@ -81,10 +79,7 @@ void SkeletonModel::initJointStates(QVector<JointState> states) {
         _rig->updateJointState(i, parentTransform);
     }
 
-    clearShapes();
-    if (_enableShapes) {
-        buildShapes();
-    }
+    buildShapes();
 
     Extents meshExtents = getMeshExtents();
     _headClipDistance = -(meshExtents.minimum.z / _scale.z - _defaultEyeModelPosition.z);
@@ -118,6 +113,10 @@ void SkeletonModel::updateClusterMatrices() {
             }
         }
     }
+}
+
+void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
+    _rig->simulateInternal(deltaTime, parentTransform, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation());
 }
 
 void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
@@ -183,9 +182,6 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     if (_rig->getJointsAreDirty()) {
         updateClusterMatrices();
     }
-
-    _boundingShape.setTranslation(_translation + _rotation * _boundingShapeLocalOffset);
-    _boundingShape.setRotation(_rotation);
 }
 
 void SkeletonModel::renderIKConstraints(gpu::Batch& batch) {
@@ -677,12 +673,11 @@ void SkeletonModel::computeBoundingShape(const FBXGeometry& geometry) {
     // NOTE: we assume that the longest side of totalExtents is the yAxis...
     glm::vec3 diagonal = totalExtents.maximum - totalExtents.minimum;
     // ... and assume the radius is half the RMS of the X and Z sides:
-    float capsuleRadius = 0.5f * sqrtf(0.5f * (diagonal.x * diagonal.x + diagonal.z * diagonal.z));
-    _boundingShape.setRadius(capsuleRadius);
-    _boundingShape.setHalfHeight(0.5f * diagonal.y - capsuleRadius);
+    _boundingCapsuleRadius = 0.5f * sqrtf(0.5f * (diagonal.x * diagonal.x + diagonal.z * diagonal.z));
+    _boundingCapsuleHeight = diagonal.y - 2.0f * _boundingCapsuleRadius;
 
     glm::vec3 rootPosition = _rig->getJointState(geometry.rootJointIndex).getPosition();
-    _boundingShapeLocalOffset = 0.5f * (totalExtents.maximum + totalExtents.minimum) - rootPosition;
+    _boundingCapsuleLocalOffset = 0.5f * (totalExtents.maximum + totalExtents.minimum) - rootPosition;
     _boundingRadius = 0.5f * glm::length(diagonal);
 }
 
@@ -693,30 +688,26 @@ void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha
     auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
     Transform transform; // = Transform();
 
-    // draw a blue sphere at the capsule end point
-    glm::vec3 endPoint;
-    _boundingShape.getEndPoint(endPoint);
-    endPoint = endPoint + _translation;
-    transform.setTranslation(endPoint);
+    // draw a blue sphere at the capsule top point
+    glm::vec3 topPoint = _translation + _boundingCapsuleLocalOffset + (0.5f * _boundingCapsuleHeight) * glm::vec3(0.0f, 1.0f, 0.0f);
+    transform.setTranslation(topPoint);
     batch.setModelTransform(transform);
     deferredLighting->bindSimpleProgram(batch);
-    geometryCache->renderSphere(batch, _boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS,
+    geometryCache->renderSphere(batch, _boundingCapsuleRadius, BALL_SUBDIVISIONS, BALL_SUBDIVISIONS,
                                 glm::vec4(0.6f, 0.6f, 0.8f, alpha));
 
-    // draw a yellow sphere at the capsule start point
-    glm::vec3 startPoint;
-    _boundingShape.getStartPoint(startPoint);
-    startPoint = startPoint + _translation;
-    glm::vec3 axis = endPoint - startPoint;
-    transform.setTranslation(startPoint);
+    // draw a yellow sphere at the capsule bottom point 
+    glm::vec3 bottomPoint = topPoint - glm::vec3(0.0f, -_boundingCapsuleHeight, 0.0f);
+    glm::vec3 axis = topPoint - bottomPoint;
+    transform.setTranslation(bottomPoint);
     batch.setModelTransform(transform);
     deferredLighting->bindSimpleProgram(batch);
-    geometryCache->renderSphere(batch, _boundingShape.getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS,
+    geometryCache->renderSphere(batch, _boundingCapsuleRadius, BALL_SUBDIVISIONS, BALL_SUBDIVISIONS,
                                 glm::vec4(0.8f, 0.8f, 0.6f, alpha));
 
     // draw a green cylinder between the two points
     glm::vec3 origin(0.0f);
-    Avatar::renderJointConnectingCone(batch, origin, axis, _boundingShape.getRadius(), _boundingShape.getRadius(),
+    Avatar::renderJointConnectingCone(batch, origin, axis, _boundingCapsuleRadius, _boundingCapsuleRadius,
                                       glm::vec4(0.6f, 0.8f, 0.6f, alpha));
 }
 

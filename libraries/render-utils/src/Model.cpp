@@ -23,8 +23,6 @@
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include "PhysicsEntity.h"
-#include <ShapeCollider.h>
-#include <SphereShape.h>
 #include <ViewFrustum.h>
 
 #include "AbstractViewStateInterface.h"
@@ -223,10 +221,6 @@ void Model::setScaleInternal(const glm::vec3& scale) {
     if (relativeDeltaScale > ONE_PERCENT || scaleLength < EPSILON) {
         _scale = scale;
         initJointTransforms();
-        if (_shapes.size() > 0) {
-            clearShapes();
-            buildShapes();
-        }
     }
 }
 
@@ -1165,15 +1159,6 @@ QStringList Model::getJointNames() const {
     return isActive() ? _geometry->getFBXGeometry().getJointNames() : QStringList();
 }
 
-// virtual override from PhysicsEntity
-void Model::buildShapes() {
-    // TODO: figure out how to load/build collision shapes for general models
-}
-
-void Model::updateShapePositions() {
-    // TODO: implement this when we know how to build shapes for regular Models
-}
-
 class Blender : public QRunnable {
 public:
 
@@ -1342,9 +1327,7 @@ void Model::simulateInternal(float deltaTime) {
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-    _rig->simulateInternal(deltaTime, parentTransform, getTranslation(), getRotation());
-
-    _shapesAreDirty = !_shapes.isEmpty();
+    updateRig(deltaTime, parentTransform);
 
     glm::mat4 modelToWorld = glm::mat4_cast(_rotation);
     for (int i = 0; i < _meshStates.size(); i++) {
@@ -1385,7 +1368,6 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position, const gl
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
     if (_rig->setJointPosition(jointIndex, position, rotation, useRotation,
                                lastFreeIndex, allIntermediatesFree, alignment, priority, freeLineage, parentTransform)) {
-        _shapesAreDirty = !_shapes.isEmpty();
         return true;
     }
     return false;
@@ -1396,7 +1378,6 @@ void Model::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm:
     const QVector<int>& freeLineage = geometry.joints.at(endIndex).freeLineage;
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
     _rig->inverseKinematics(endIndex, targetPosition, targetRotation, priority, freeLineage, parentTransform);
-    _shapesAreDirty = !_shapes.isEmpty();
 }
 
 bool Model::restoreJointPosition(int jointIndex, float fraction, float priority) {
@@ -1409,10 +1390,6 @@ float Model::getLimbLength(int jointIndex) const {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
     return _rig->getLimbLength(jointIndex, freeLineage, _scale, geometry.joints);
-}
-
-void Model::renderJointCollisionShapes(float alpha) {
-    // implement this when we have shapes for regular models
 }
 
 bool Model::maybeStartBlender() {
@@ -1480,7 +1457,6 @@ void Model::deleteGeometry() {
     _blendedVertexBuffers.clear();
     _rig->clearJointStates();
     _meshStates.clear();
-    clearShapes();
 
     _rig->deleteAnimations();
 

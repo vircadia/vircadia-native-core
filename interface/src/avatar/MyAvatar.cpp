@@ -110,8 +110,6 @@ MyAvatar::MyAvatar(RigPointer rig) :
         _driveKeys[i] = 0.0f;
     }
 
-    _skeletonModel.setEnableShapes(true);
-
     // connect to AddressManager signal for location jumps
     connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired,
             this, &MyAvatar::goToLocation);
@@ -742,6 +740,7 @@ void MyAvatar::loadData() {
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
 
     settings.endGroup();
+    _rig->setEnableRig(settings.value("enableRig").toBool());
 }
 
 void MyAvatar::saveAttachmentData(const AttachmentData& attachment) const {
@@ -1090,11 +1089,10 @@ glm::vec3 MyAvatar::getSkeletonPosition() const {
 
 void MyAvatar::rebuildSkeletonBody() {
     // compute localAABox
-    const CapsuleShape& capsule = _skeletonModel.getBoundingShape();
-    float radius = capsule.getRadius();
-    float height = 2.0f * (capsule.getHalfHeight() + radius);
+    float radius = _skeletonModel.getBoundingCapsuleRadius();
+    float height = _skeletonModel.getBoundingCapsuleHeight() + 2.0f * radius;
     glm::vec3 corner(-radius, -0.5f * height, -radius);
-    corner += _skeletonModel.getBoundingShapeOffset();
+    corner += _skeletonModel.getBoundingCapsuleOffset();
     glm::vec3 scale(2.0f * radius, height, 2.0f * radius);
     _characterController.setLocalBoundingBox(corner, scale);
 }
