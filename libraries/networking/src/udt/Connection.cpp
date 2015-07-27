@@ -23,9 +23,34 @@ Connection::Connection(Socket* parentSocket, HifiSockAddr destination) {
 }
 
 void Connection::send(std::unique_ptr<Packet> packet) {
+    if (_sendQueue) {
+        _sendQueue->queuePacket(std::move(packet));
+    }
+}
 
+void Connection::processReceivedSeqNum(SeqNum seq) {
+    if (udt::seqcmp(seq, _largestRecievedSeqNum + 1) > 0) {
+        // TODO: Add range to loss list
+        
+        // TODO: Send loss report
+    }
+    
+    if (seq > _largestRecievedSeqNum) {
+        _largestRecievedSeqNum = seq;
+    } else {
+        // TODO: Remove seq from loss list
+    }
 }
 
 void Connection::processControl(std::unique_ptr<ControlPacket> controlPacket) {
-    
+    switch (controlPacket->getType()) {
+        case ControlPacket::Type::ACK:
+            break;
+        case ControlPacket::Type::ACK2:
+            break;
+        case ControlPacket::Type::NAK:
+            break;
+        case ControlPacket::Type::PacketPair:
+            break;
+    }
 }

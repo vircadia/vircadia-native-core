@@ -74,6 +74,11 @@ public:
          return _value != other._value;
     }
     
+    friend bool operator<(const SeqNum&  a, const SeqNum& b);
+    friend bool operator>(const SeqNum&  a, const SeqNum& b);
+    friend bool operator<=(const SeqNum&  a, const SeqNum& b);
+    friend bool operator>=(const SeqNum&  a, const SeqNum& b);
+    
     friend SeqNum operator+(const SeqNum a, const Type& b);
     friend SeqNum operator+(const Type& a, const SeqNum b);
     friend SeqNum operator-(const SeqNum a, const Type& b);
@@ -89,22 +94,40 @@ private:
     friend struct std::hash<SeqNum>;
 };
     
-SeqNum operator+(SeqNum a, const SeqNum::Type& b) {
+    
+inline bool operator<(const SeqNum&  a, const SeqNum& b) {
+    
+}
+
+inline bool operator>(const SeqNum&  a, const SeqNum& b) {
+    
+}
+
+inline bool operator<=(const SeqNum&  a, const SeqNum& b) {
+    
+}
+
+inline bool operator>=(const SeqNum&  a, const SeqNum& b) {
+    
+}
+    
+    
+inline SeqNum operator+(SeqNum a, const SeqNum::Type& b) {
     a += b;
     return a;
 }
 
-SeqNum operator+(const SeqNum::Type& a, SeqNum b) {
+inline SeqNum operator+(const SeqNum::Type& a, SeqNum b) {
     b += a;
     return b;
 }
 
-SeqNum operator-(SeqNum a, const SeqNum::Type& b) {
+inline SeqNum operator-(SeqNum a, const SeqNum::Type& b) {
     a -= b;
     return a;
 }
 
-SeqNum operator-(const SeqNum::Type& a, SeqNum b) {
+inline SeqNum operator-(const SeqNum::Type& a, SeqNum b) {
     b -= a;
     return b;
 }

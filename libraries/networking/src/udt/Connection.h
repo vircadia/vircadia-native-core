@@ -30,9 +30,13 @@ public:
     Connection(Socket* parentSocket, HifiSockAddr destination);
     
     void send(std::unique_ptr<Packet> packet);
+    
+    void processReceivedSeqNum(SeqNum seq);
     void processControl(std::unique_ptr<ControlPacket> controlPacket);
     
 private:
+    
+    SeqNum _largestRecievedSeqNum;
     std::unique_ptr<SendQueue> _sendQueue;
 };
     
