@@ -11,7 +11,10 @@
 
 #include "Socket.h"
 
+#include <QtCore/QThread>
+
 #include "../NetworkLogging.h"
+#include "ControlSender.h"
 #include "Packet.h"
 
 using namespace udt;
@@ -20,6 +23,38 @@ Socket::Socket(QObject* parent) :
     QObject(parent)
 {
     connect(&_udpSocket, &QUdpSocket::readyRead, this, &Socket::readPendingDatagrams);
+    
+    // make a QThread for the ControlSender to live on
+    QThread* controlThread = new QThread(this);
+    
+    // setup the ControlSender and parent it
+    _controlSender = new ControlSender;
+    
+    // move the ControlSender to its thread
+    _controlSender->moveToThread(controlThread);
+    
+    // start the ControlSender once the thread is started
+    connect(controlThread, &QThread::started, _controlSender, &ControlSender::loop);
+    
+    // make sure the control thread is named so we can identify it
+    controlThread->setObjectName("UDT Control Thread");
+    
+    // start the control thread
+    controlThread->start();
+}
+
+Socket::~Socket() {
+    if (_controlSender) {
+        QThread* controlThread = _controlSender->thread();
+        
+        // tell the control sender to stop and be deleted so we can wait on its thread
+        QMetaObject::invokeMethod(_controlSender, "stop");
+        _controlSender->deleteLater();
+        
+        // make sure the control thread goes down
+        controlThread->quit();
+        controlThread->wait();
+    }
 }
 
 void Socket::rebind() {

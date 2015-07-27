@@ -24,8 +24,9 @@
 #include "SeqNum.h"
 
 namespace udt {
-    
+
 class BasePacket;
+class ControlSender;
 class Packet;
 
 using PacketFilterOperator = std::function<bool(const Packet&)>;
@@ -37,6 +38,7 @@ class Socket : public QObject {
     Q_OBJECT
 public:
     Socket(QObject* object = 0);
+    ~Socket();
     
     quint16 localPort() const { return _udpSocket.localPort(); }
     
@@ -68,6 +70,8 @@ private:
     std::unordered_map<HifiSockAddr, BasePacketHandler> _unfilteredHandlers;
 
     std::unordered_map<HifiSockAddr, SeqNum> _packetSequenceNumbers;
+    
+    ControlSender* _controlSender { nullptr };
 };
     
 } // namespace udt
