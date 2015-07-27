@@ -3596,19 +3596,13 @@ int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingN
     int statsMessageLength = 0;
 
     const QUuid& nodeUUID = sendingNode->getUUID();
-    OctreeSceneStats* octreeStats;
-
+    
     // now that we know the node ID, let's add these stats to the stats for that node...
     _octreeSceneStatsLock.lockForWrite();
-    auto it = _octreeServerSceneStats.find(nodeUUID);
-    if (it != _octreeServerSceneStats.end()) {
-        octreeStats = &it->second;
-        statsMessageLength = octreeStats->unpackFromPacket(packet);
-    } else {
-        OctreeSceneStats temp;
-        statsMessageLength = temp.unpackFromPacket(packet);
-        octreeStats = &temp;
-    }
+    
+    OctreeSceneStats* octreeStats = &_octreeServerSceneStats[nodeUUID];
+    statsMessageLength = octreeStats->unpackFromPacket(packet);
+    
     _octreeSceneStatsLock.unlock();
 
     VoxelPositionSize rootDetails;
