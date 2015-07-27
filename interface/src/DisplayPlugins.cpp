@@ -19,8 +19,6 @@
 #include <display-plugins/oculus/Oculus_0_6_DisplayPlugin.h>
 #include <display-plugins/oculus/Oculus_0_5_DisplayPlugin.h>
 
-
-
 #include <display-plugins/openvr/OpenVrDisplayPlugin.h>
 
 
