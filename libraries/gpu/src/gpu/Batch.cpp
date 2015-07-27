@@ -288,6 +288,10 @@ void Batch::getQuery(const QueryPointer& query) {
     _params.push_back(_queries.cache(query));
 }
 
+void Batch::resetStages() {
+    ADD_COMMAND(resetStages);
+}
+
 void push_back(Batch::Params& params, const vec3& v) {
     params.push_back(v.x);
     params.push_back(v.y);

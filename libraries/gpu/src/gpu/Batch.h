@@ -113,6 +113,9 @@ public:
     void endQuery(const QueryPointer& query);
     void getQuery(const QueryPointer& query);
 
+    // Reset the stage caches and states
+    void resetStages();
+
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
     // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
@@ -185,6 +188,8 @@ public:
         COMMAND_beginQuery,
         COMMAND_endQuery,
         COMMAND_getQuery,
+
+        COMMAND_resetStages,
 
         // TODO: As long as we have gl calls explicitely issued from interface
         // code, we need to be able to record and batch these calls. THe long 

@@ -97,7 +97,6 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _drawStatusJobIndex = _jobs.size() - 1;
 
     _jobs.push_back(Job(new DrawOverlay3D::JobModel("DrawOverlay3D")));
-    _jobs.push_back(Job(new ResetGLState::JobModel()));
 
     // Give ourselves 3 frmaes of timer queries
     _timerQueries.push_back(std::make_shared<gpu::Query>());

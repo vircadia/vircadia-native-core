@@ -46,6 +46,8 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_endQuery),
     (&::gpu::GLBackend::do_getQuery),
 
+    (&::gpu::GLBackend::do_resetStages),
+
     (&::gpu::GLBackend::do_glEnable),
     (&::gpu::GLBackend::do_glDisable),
 
@@ -128,6 +130,8 @@ GLBackend::GLBackend() :
 }
 
 GLBackend::~GLBackend() {
+    resetStages();
+
     killInput();
     killTransform();
 }
@@ -243,6 +247,22 @@ void GLBackend::do_drawInstanced(Batch& batch, uint32 paramOffset) {
 }
 
 void GLBackend::do_drawIndexedInstanced(Batch& batch, uint32 paramOffset) {
+    (void) CHECK_GL_ERROR();
+}
+
+void GLBackend::do_resetStages(Batch& batch, uint32 paramOffset) {
+    resetStages();
+}
+
+void GLBackend::resetStages() {
+    resetInputStage();
+    resetPipelineStage();
+    resetTransformStage();
+    resetUniformStage();
+    resetResourceStage();
+    resetOutputStage();
+    resetQueryStage();
+
     (void) CHECK_GL_ERROR();
 }
 

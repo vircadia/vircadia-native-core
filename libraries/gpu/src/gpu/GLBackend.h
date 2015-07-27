@@ -195,7 +195,7 @@ public:
     static const int MAX_NUM_ATTRIBUTES = Stream::NUM_INPUT_SLOTS;
     static const int MAX_NUM_INPUT_BUFFERS = 16;
 
-    uint32 getNumInputBuffers() const { return _input._buffersState.size(); }
+    uint32 getNumInputBuffers() const { return _input._invalidBuffers.size(); }
 
 
     // The State setters called by the GLState::Commands when a new state is assigned
@@ -250,12 +250,16 @@ protected:
     void killInput();
     void syncInputStateCache();
     void updateInput();
+    void resetInputStage();
     struct InputStageState {
         bool _invalidFormat = true;
         Stream::FormatPointer _format;
 
+        typedef std::bitset<MAX_NUM_ATTRIBUTES> ActivationCache;
+        ActivationCache _attributeActivation;
+
         typedef std::bitset<MAX_NUM_INPUT_BUFFERS> BuffersState;
-        BuffersState _buffersState;
+        BuffersState _invalidBuffers;
 
         Buffers _buffers;
         Offsets _bufferOffsets;
@@ -266,23 +270,20 @@ protected:
         Offset _indexBufferOffset;
         Type _indexBufferType;
 
-        typedef std::bitset<MAX_NUM_ATTRIBUTES> ActivationCache;
-        ActivationCache _attributeActivation;
-
         GLuint _defaultVAO;
 
         InputStageState() :
             _invalidFormat(true),
             _format(0),
-            _buffersState(0),
-            _buffers(_buffersState.size(), BufferPointer(0)),
-            _bufferOffsets(_buffersState.size(), 0),
-            _bufferStrides(_buffersState.size(), 0),
-            _bufferVBOs(_buffersState.size(), 0),
+            _attributeActivation(0),
+            _invalidBuffers(0),
+            _buffers(_invalidBuffers.size(), BufferPointer(0)),
+            _bufferOffsets(_invalidBuffers.size(), 0),
+            _bufferStrides(_invalidBuffers.size(), 0),
+            _bufferVBOs(_invalidBuffers.size(), 0),
             _indexBuffer(0),
             _indexBufferOffset(0),
             _indexBufferType(UINT32),
-            _attributeActivation(0),
             _defaultVAO(0)
              {}
     } _input;
@@ -298,6 +299,7 @@ protected:
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void syncTransformStateCache();
     void updateTransform();
+    void resetTransformStage();
     struct TransformStageState {
         TransformObject _transformObject;
         TransformCamera _transformCamera;
@@ -330,12 +332,20 @@ protected:
 
     // Uniform Stage
     void do_setUniformBuffer(Batch& batch, uint32 paramOffset);
-    void do_setResourceTexture(Batch& batch, uint32 paramOffset);
     
+    void resetUniformStage();
     struct UniformStageState {
         
     };
     
+    // Resource Stage
+    void do_setResourceTexture(Batch& batch, uint32 paramOffset);
+    
+    void resetResourceStage();
+    struct ResourceStageState {
+        
+    };
+
     // Pipeline Stage
     void do_setPipeline(Batch& batch, uint32 paramOffset);
     void do_setStateBlendFactor(Batch& batch, uint32 paramOffset);
@@ -349,6 +359,7 @@ protected:
     void syncPipelineStateCache();
     // Grab the actual gl state into it's gpu::State equivalent. THis is used by the above call syncPipleineStateCache() 
     void getCurrentGLState(State::Data& state);
+    void resetPipelineStage();
 
     struct PipelineStageState {
 
@@ -388,6 +399,7 @@ protected:
 
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void syncOutputStateCache();
+    void resetOutputStage();
     
     struct OutputStageState {
 
@@ -401,6 +413,15 @@ protected:
     void do_beginQuery(Batch& batch, uint32 paramOffset);
     void do_endQuery(Batch& batch, uint32 paramOffset);
     void do_getQuery(Batch& batch, uint32 paramOffset);
+
+    void resetQueryStage();
+    struct QueryStageState {
+        
+    };
+
+    // Reset stages
+    void do_resetStages(Batch& batch, uint32 paramOffset);
+    void resetStages();
 
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 

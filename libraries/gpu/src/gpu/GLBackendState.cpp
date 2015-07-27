@@ -484,7 +484,7 @@ void GLBackend::syncPipelineStateCache() {
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     getCurrentGLState(state);
     State::Signature signature = State::evalSignature(state);
-    
+
     _pipeline._stateCache = state;
     _pipeline._stateSignatureCache = signature;
 }

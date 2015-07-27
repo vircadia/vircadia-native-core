@@ -164,6 +164,24 @@ void GLBackend::updatePipeline() {
 #endif
 }
 
+void GLBackend::resetPipelineStage() {
+    // First reset State to default
+    State::Signature resetSignature(0);
+    resetPipelineState(resetSignature);
+    _pipeline._state = nullptr;
+    _pipeline._invalidState = false;
+
+    // Second the shader side
+    _pipeline._invalidProgram = false;
+    _pipeline._program = 0;
+    _pipeline._pipeline.reset();
+    glUseProgram(0);
+}
+
+void GLBackend::resetUniformStage() {
+    
+}
+
 void GLBackend::do_setUniformBuffer(Batch& batch, uint32 paramOffset) {
     GLuint slot = batch._params[paramOffset + 3]._uint;
     BufferPointer uniformBuffer = batch._buffers.get(batch._params[paramOffset + 2]._uint);
@@ -186,6 +204,10 @@ void GLBackend::do_setUniformBuffer(Batch& batch, uint32 paramOffset) {
     //glUniformBufferEXT(_shader._program, slot, bo);
 #endif
     (void) CHECK_GL_ERROR();
+}
+
+void GLBackend::resetResourceStage() {
+    
 }
 
 void GLBackend::do_setResourceTexture(Batch& batch, uint32 paramOffset) {
