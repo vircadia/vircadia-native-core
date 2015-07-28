@@ -313,7 +313,16 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
 }
 
 void Connection::updateRTT(int rtt) {
-    // this updates the RTT using exponential weighted moving average
+    // This updates the RTT using exponential weighted moving average
+    // This is the Jacobson's forumla for RTT estimation
+    // http://www.mathcs.emory.edu/~cheung/Courses/455/Syllabus/7-transport/Jacobson-88.pdf
+    
+    // Estimated RTT = (1 - x)(estimatedRTT) + (x)(sampleRTT)
+    // (where x = 0.125 via Jacobson)
+    
+    // Deviation  = (1 - x)(deviation) + x |sampleRTT - estimatedRTT|
+    // (where x = 0.25 via Jacobson)
+    
     _rttVariance = (_rttVariance * 3 + abs(rtt - _rtt)) >> 2;
     _rtt = (_rtt * 7 + rtt) >> 3;
 }
