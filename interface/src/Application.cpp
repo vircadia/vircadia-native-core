@@ -4933,7 +4933,7 @@ void Application::unsetFullscreen() {
 #ifdef Q_OS_MAC
     QTimer* timer = new QTimer();
     timer->singleShot(1000, [=] {
-        _window->setGeometry(savedGeometry);
+        _window->setGeometry(_savedGeometry);
         timer->deleteLater();
     });
 #else
