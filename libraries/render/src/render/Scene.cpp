@@ -184,8 +184,8 @@ void Scene::processPendingChangesQueue() {
         // Now we know for sure that we have enough items in the array to
         // capture anything coming from the pendingChanges
         resetItems(consolidatedPendingChanges._resetItems, consolidatedPendingChanges._resetPayloads);
-        removeItems(consolidatedPendingChanges._removedItems);
         updateItems(consolidatedPendingChanges._updatedItems, consolidatedPendingChanges._updateFunctors);
+        removeItems(consolidatedPendingChanges._removedItems);
 
      // ready to go back to rendering activities
     _itemsMutex.unlock();
