@@ -153,7 +153,11 @@ void Connection::processReceivedSeqNum(SeqNum seq) {
 void Connection::processControl(unique_ptr<ControlPacket> controlPacket) {
     switch (controlPacket->getType()) {
         case ControlPacket::ACK:
-            processACK(move(controlPacket));
+            if (controlPacket->getPayloadSize() == sizeof(SeqNum)) {
+                processLightACK(move(controlPacket));
+            } else {
+                processACK(move(controlPacket));
+            }
             break;
         case ControlPacket::ACK2:
             processACK2(move(controlPacket));
@@ -181,6 +185,21 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     int32_t rtt, rttVariance;
     controlPacket->readPrimitive(&rtt);
     controlPacket->readPrimitive(&rttVariance);
+}
+
+void Connection::processLightACK(std::unique_ptr<ControlPacket> controlPacket) {
+    // read the ACKed sequence number
+    SeqNum ack;
+    controlPacket->readPrimitive(&ack);
+    
+    // must be larger than the last received ACK to be processed
+    if (ack > _lastReceivedACK) {
+        // decrease the flow window size by the offset between the last received ACK and this ACK
+        _flowWindowSize -= seqoff(_lastReceivedACK, ack);
+    
+        // update the last received ACK to the this one
+        _lastReceivedACK = ack;
+    }
 }
 
 void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
