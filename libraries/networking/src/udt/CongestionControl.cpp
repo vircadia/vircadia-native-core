@@ -21,13 +21,13 @@ void UdtCC::init() {
     setAckTimer(_rcInterval);
     
     _lastAck = _sendCurrSeqNum;
-    _lastDecSeq = SeqNum{ SeqNum::MAX };
+    _lastDecSeq = SequenceNumber{ SequenceNumber::MAX };
     
     _congestionWindowSize = 16.0;
     _packetSendPeriod = 1.0;
 }
 
-void UdtCC::onACK(SeqNum ackNum) {
+void UdtCC::onACK(SequenceNumber ackNum) {
     int64_t B = 0;
     double inc = 0;
     // Note: 1/24/2012
@@ -89,7 +89,7 @@ void UdtCC::onACK(SeqNum ackNum) {
     _packetSendPeriod = (_packetSendPeriod * _rcInterval) / (_packetSendPeriod * inc + _rcInterval);
 }
 
-void UdtCC::onLoss(const std::vector<SeqNum>& losslist) {
+void UdtCC::onLoss(const std::vector<SequenceNumber>& losslist) {
     //Slow Start stopped, if it hasn't yet
     if (_slowStart) {
         _slowStart = false;

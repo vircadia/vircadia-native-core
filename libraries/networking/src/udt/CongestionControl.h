@@ -14,7 +14,7 @@
 
 #include <vector>
 
-#include "SeqNum.h"
+#include "SequenceNumber.h"
 
 namespace udt {
 
@@ -29,8 +29,8 @@ public:
 
     virtual void init() {}
     virtual void close() {}
-    virtual void onAck(SeqNum ackNum) {}
-    virtual void onLoss(const std::vector<SeqNum>& lossList) {}
+    virtual void onAck(SequenceNumber ackNum) {}
+    virtual void onLoss(const std::vector<SequenceNumber>& lossList) {}
     virtual void onPacketSent(const Packet& packet) {}
     virtual void onPacketReceived(const Packet& packet) {}
     
@@ -48,7 +48,7 @@ protected:
     double _maxCongestionWindowSize = 0.0; // maximum cwnd size, in packets
     
     int _mss = 0; // Maximum Packet Size, including all packet headers
-    SeqNum _sendCurrSeqNum; // current maximum seq num sent out
+    SequenceNumber _sendCurrSeqNum; // current maximum seq num sent out
     int _recvieveRate = 0; // packet arrive rate at receiver side, packets per second
     int _rtt = 0; // current estimated RTT, microsecond
     
@@ -59,7 +59,7 @@ private:
     void setMss(int mss) { _mss = mss; }
     void setMaxCongestionWindowSize(int window) { _maxCongestionWindowSize = window; }
     void setBandwidth(int bandwidth) { _bandwidth = bandwidth; }
-    void setSndCurrSeqNum(SeqNum seqNum) { _sendCurrSeqNum = seqNum; }
+    void setSndCurrSeqNum(SequenceNumber seqNum) { _sendCurrSeqNum = seqNum; }
     void setRcvRate(int rate) { _recvieveRate = rate; }
     void setRtt(int rtt) { _rtt = rtt; }
     
@@ -92,17 +92,17 @@ public:
     
 public:
     virtual void init();
-    virtual void onACK(SeqNum ackNum);
-    virtual void onLoss(const std::vector<SeqNum>& lossList);
+    virtual void onACK(SequenceNumber ackNum);
+    virtual void onLoss(const std::vector<SequenceNumber>& lossList);
     virtual void onTimeout();
     
 private:
     int _rcInterval = 0;	// UDT Rate control interval
     uint64_t _lastRCTime = 0; // last rate increase time
     bool _slowStart = true;	// if in slow start phase
-    SeqNum _lastAck; // last ACKed seq num
+    SequenceNumber _lastAck; // last ACKed seq num
     bool _loss = false;	// if loss happened since last rate increase
-    SeqNum _lastDecSeq; // max pkt seq num sent out when last decrease happened
+    SequenceNumber _lastDecSeq; // max pkt seq num sent out when last decrease happened
     double _lastDecPeriod = 1; // value of pktsndperiod when last decrease happened
     int _nakCount = 0; // NAK counter
     int _decRandom = 1; // random threshold on decrease by number of loss events

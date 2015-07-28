@@ -65,7 +65,7 @@ Packet::Packet(qint64 size, bool isReliable, bool isPartOfMessage) :
     adjustPayloadStartAndCapacity();
     
     // set the UDT header to default values
-    writeSequenceNumber(SeqNum());
+    writeSequenceNumber(SequenceNumber());
 }
 
 Packet::Packet(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr) :
@@ -131,13 +131,13 @@ void Packet::readIsPartOfMessage() {
 
 void Packet::readSequenceNumber() {
     SequenceNumberAndBitField seqNumBitField = *reinterpret_cast<SequenceNumberAndBitField*>(_packet.get());
-    _sequenceNumber = SeqNum{ seqNumBitField & ~BIT_FIELD_MASK }; // Remove the bit field
+    _sequenceNumber = SequenceNumber{ seqNumBitField & ~BIT_FIELD_MASK }; // Remove the bit field
 }
 
-void Packet::writeSequenceNumber(SeqNum seqNum) {
+void Packet::writeSequenceNumber(SequenceNumber seqNum) {
     // grab pointer to current SequenceNumberAndBitField
     SequenceNumberAndBitField* seqNumBitField = reinterpret_cast<SequenceNumberAndBitField*>(_packet.get());
     
     // write new value by ORing (old value & BIT_FIELD_MASK) with new seqNum
-    *seqNumBitField = (*seqNumBitField & BIT_FIELD_MASK) | (SeqNum::Type)seqNum;
+    *seqNumBitField = (*seqNumBitField & BIT_FIELD_MASK) | (SequenceNumber::Type) seqNum;
 }

@@ -84,7 +84,7 @@ void SendQueue::sendPacket(const BasePacket& packet) {
     _socket->writeUnreliablePacket(packet, _destination);
 }
     
-void SendQueue::ack(SeqNum ack) {
+void SendQueue::ack(SequenceNumber ack) {
     if (_lastAck == ack) {
         return;
     }
@@ -98,7 +98,7 @@ void SendQueue::ack(SeqNum ack) {
     _lastAck = ack;
 }
 
-void SendQueue::nak(std::list<SeqNum> naks) {
+void SendQueue::nak(std::list<SequenceNumber> naks) {
     QWriteLocker locker(&_naksLock);
     _naks.splice(_naks.end(), naks); // Add naks at the end
 }
@@ -113,9 +113,9 @@ void SendQueue::sendNextPacket() {
     _lastSendTimestamp = sendTime;
     
     if (_nextPacket) {
-        _nextPacket->writeSequenceNumber(++_currentSeqNum);
+        _nextPacket->writeSequenceNumber(++_currentSequenceNumber);
         sendPacket(*_nextPacket);
-        _atomicCurrentSeqNum.store((uint32_t) _currentSeqNum);
+        _atomicCurrentSequenceNumber.store((uint32_t) _currentSequenceNumber);
         
         // Insert the packet we have just sent in the sent list
         QWriteLocker locker(&_sentLock);
@@ -125,7 +125,7 @@ void SendQueue::sendNextPacket() {
     }
     
     bool hasResend = false;
-    SeqNum seqNum;
+    SequenceNumber seqNum;
     {
         // Check nak list for packet to resend
         QWriteLocker locker(&_naksLock);

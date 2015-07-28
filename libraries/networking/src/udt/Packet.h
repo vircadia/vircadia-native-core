@@ -18,7 +18,7 @@
 
 #include "BasePacket.h"
 #include "PacketHeaders.h"
-#include "SeqNum.h"
+#include "SequenceNumber.h"
 
 namespace udt {
 
@@ -26,7 +26,6 @@ class Packet : public BasePacket {
     Q_OBJECT
 public:
     // NOTE: The SequenceNumber is only actually 29 bits to leave room for a bit field
-    using SequenceNumber = uint32_t;
     using SequenceNumberAndBitField = uint32_t;
     
     // NOTE: The MessageNumber is only actually 29 bits to leave room for a bit field
@@ -49,8 +48,8 @@ public:
     
     virtual qint64 totalHeadersSize() const; // Cumulated size of all the headers
 
-    void writeSequenceNumber(SeqNum seqNum);
-    SeqNum getSequenceNumber() const { return _sequenceNumber; }
+    void writeSequenceNumber(SequenceNumber seqNum);
+    SequenceNumber getSequenceNumber() const { return _sequenceNumber; }
 
 protected:
     Packet(qint64 size, bool isReliable = false, bool isPartOfMessage = false);
@@ -68,7 +67,7 @@ protected:
 
     bool _isReliable { false };
     bool _isPartOfMessage { false };
-    SeqNum _sequenceNumber;
+    SequenceNumber _sequenceNumber;
 };
     
 } // namespace udt

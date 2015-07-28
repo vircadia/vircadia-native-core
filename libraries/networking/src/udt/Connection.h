@@ -29,8 +29,8 @@ class Socket;
 class Connection {
 
 public:
-    using SequenceNumberTimePair = std::pair<SeqNum, std::chrono::high_resolution_clock::time_point>;
-    using SentACKMap = std::unordered_map<SeqNum, SequenceNumberTimePair>;
+    using SequenceNumberTimePair = std::pair<SequenceNumber, std::chrono::high_resolution_clock::time_point>;
+    using SentACKMap = std::unordered_map<SequenceNumber, SequenceNumberTimePair>;
     
     Connection(Socket* parentSocket, HifiSockAddr destination);
     
@@ -39,11 +39,11 @@ public:
     void sendACK(bool wasCausedBySyncTimeout = true);
     void sendLightACK() const;
     
-    SeqNum nextACK() const;
+    SequenceNumber nextACK() const;
     
-    SeqNum getLastReceivedACK() const { return SeqNum(_atomicLastReceivedACK); }
+    SequenceNumber getLastReceivedACK() const { return SequenceNumber(_atomicLastReceivedACK); }
     
-    void processReceivedSeqNum(SeqNum seq);
+    void processReceivedSequenceNumber(SequenceNumber seq);
     void processControl(std::unique_ptr<ControlPacket> controlPacket);
     
 private:
@@ -57,14 +57,14 @@ private:
     int _synInterval; // Periodical Rate Control Interval, defaults to 10ms
     
     LossList _lossList; // List of all missing packets
-    SeqNum _largestReceivedSeqNum { SeqNum::MAX }; // The largest sequence number received from the peer
-    SeqNum _lastReceivedACK { SeqNum::MAX }; // The last ACK received
-    std::atomic<uint32_t> _atomicLastReceivedACK { (uint32_t) SeqNum::MAX }; // Atomic for thread-safe get of last ACK received
-    SeqNum _lastReceivedAcknowledgedACK { SeqNum::MAX }; // The last sent ACK that has been acknowledged via an ACK2 from the peer
-    SeqNum _currentACKSubSequenceNumber; // The current ACK sub-sequence number (used for Acknowledgment of ACKs)
+    SequenceNumber _lastReceivedSequenceNumber { SequenceNumber::MAX }; // The largest sequence number received from the peer
+    SequenceNumber _lastReceivedACK { SequenceNumber::MAX }; // The last ACK received
+    std::atomic<uint32_t> _atomicLastReceivedACK { (uint32_t) SequenceNumber::MAX }; // Atomic for thread-safe get of last ACK received
+    SequenceNumber _lastReceivedAcknowledgedACK { SequenceNumber::MAX }; // The last sent ACK that has been acknowledged via an ACK2 from the peer
+    SequenceNumber _currentACKSubSequenceNumber; // The current ACK sub-sequence number (used for Acknowledgment of ACKs)
     
-    SeqNum _lastSentACK { SeqNum::MAX }; // The last sent ACK
-    SeqNum _lastSentACK2; // The last sent ACK sub-sequence number in an ACK2
+    SequenceNumber _lastSentACK { SequenceNumber::MAX }; // The last sent ACK
+    SequenceNumber _lastSentACK2; // The last sent ACK sub-sequence number in an ACK2
     
     int _totalReceivedACKs { 0 };
     

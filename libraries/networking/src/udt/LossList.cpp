@@ -14,7 +14,7 @@
 using namespace udt;
 using namespace std;
 
-void LossList::append(SeqNum seq) {
+void LossList::append(SequenceNumber seq) {
     assert(_lossList.back().second < seq);
     
     if (getLength() > 0 && _lossList.back().second + 1 == seq) {
@@ -25,7 +25,7 @@ void LossList::append(SeqNum seq) {
     _length += 1;
 }
 
-void LossList::append(SeqNum start, SeqNum end) {
+void LossList::append(SequenceNumber start, SequenceNumber end) {
     if (getLength() > 0 && _lossList.back().second + 1 == start) {
         _lossList.back().second = end;
     } else {
@@ -34,8 +34,8 @@ void LossList::append(SeqNum start, SeqNum end) {
     _length += seqlen(start, end);
 }
 
-void LossList::remove(SeqNum seq) {
-    auto it = find_if(_lossList.begin(), _lossList.end(), [&seq](pair<SeqNum, SeqNum> pair) {
+void LossList::remove(SequenceNumber seq) {
+    auto it = find_if(_lossList.begin(), _lossList.end(), [&seq](pair<SequenceNumber, SequenceNumber> pair) {
         return pair.first <= seq && seq <= pair.second;
     });
     
@@ -54,9 +54,9 @@ void LossList::remove(SeqNum seq) {
     }
 }
 
-void LossList::remove(SeqNum start, SeqNum end) {
+void LossList::remove(SequenceNumber start, SequenceNumber end) {
     // Find the first segment sharing sequence numbers
-    auto it = find_if(_lossList.begin(), _lossList.end(), [&start, &end](pair<SeqNum, SeqNum> pair) {
+    auto it = find_if(_lossList.begin(), _lossList.end(), [&start, &end](pair<SequenceNumber, SequenceNumber> pair) {
         return (pair.first <= start && start <= pair.second) ||
         (start <= pair.first && pair.first <= end);
     });
@@ -93,7 +93,7 @@ void LossList::remove(SeqNum start, SeqNum end) {
     }
 }
 
-SeqNum LossList::getFirstSeqNum() const {
+SequenceNumber LossList::getFirstSequenceNumber() const {
     assert(getLength() > 0);
     return _lossList.front().first;
 }

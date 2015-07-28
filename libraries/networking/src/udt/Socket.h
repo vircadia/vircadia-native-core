@@ -28,7 +28,7 @@ namespace udt {
 class BasePacket;
 class ControlSender;
 class Packet;
-class SeqNum;
+class SequenceNumber;
 
 using PacketFilterOperator = std::function<bool(const Packet&)>;
 
@@ -70,7 +70,7 @@ private:
     
     std::unordered_map<HifiSockAddr, BasePacketHandler> _unfilteredHandlers;
 
-    std::unordered_map<HifiSockAddr, SeqNum> _packetSequenceNumbers;
+    std::unordered_map<HifiSockAddr, SequenceNumber> _packetSequenceNumbers;
     
     int32_t _synInterval = 10; // 10ms
     QTimer _synTimer;

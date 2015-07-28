@@ -21,7 +21,7 @@
 
 #include "../HifiSockAddr.h"
 
-#include "SeqNum.h"
+#include "SequenceNumber.h"
 
 namespace udt {
     
@@ -42,7 +42,7 @@ public:
 
     quint64 getLastSendTimestamp() const { return _lastSendTimestamp; }
     
-    SeqNum getCurrentSeqNum() const { return SeqNum(_atomicCurrentSeqNum); }
+    SequenceNumber getCurrentSequenceNumber() const { return SequenceNumber(_atomicCurrentSequenceNumber); }
     
     int getPacketSendPeriod() const { return _packetSendPeriod; }
     void setPacketSendPeriod(int newPeriod) { _packetSendPeriod = newPeriod; }
@@ -52,8 +52,8 @@ public slots:
     void stop();
     void sendPacket(const BasePacket& packet);
     
-    void ack(SeqNum ack);
-    void nak(std::list<SeqNum> naks);
+    void ack(SequenceNumber ack);
+    void nak(std::list<SequenceNumber> naks);
     
 private slots:
     void sendNextPacket();
@@ -72,10 +72,10 @@ private:
     
     Socket* _socket { nullptr }; // Socket to send packet on
     HifiSockAddr _destination; // Destination addr
-    SeqNum _currentSeqNum; // Last sequence number sent out
-    SeqNum _lastAck; // Last ACKed sequence number
+    SequenceNumber _currentSequenceNumber; // Last sequence number sent out
+    SequenceNumber _lastAck; // Last ACKed sequence number
     
-    std::atomic<uint32_t> _atomicCurrentSeqNum; // Atomic for last sequence number sent out
+    std::atomic<uint32_t> _atomicCurrentSequenceNumber; // Atomic for last sequence number sent out
     
     std::unique_ptr<QTimer> _sendTimer; // Send timer
     std::atomic<int> _packetSendPeriod { 0 }; // Interval between two packet send envent in msec
@@ -83,10 +83,10 @@ private:
     std::atomic<bool> _running { false };
     
     mutable QReadWriteLock _naksLock; // Protects the naks list.
-    std::list<SeqNum> _naks; // Sequence numbers of packets to resend
+    std::list<SequenceNumber> _naks; // Sequence numbers of packets to resend
     
     mutable QReadWriteLock _sentLock; // Protects the sent packet list
-    std::unordered_map<SeqNum, std::unique_ptr<Packet>> _sentPackets; // Packets waiting for ACK.
+    std::unordered_map<SequenceNumber, std::unique_ptr<Packet>> _sentPackets; // Packets waiting for ACK.
 };
     
 }

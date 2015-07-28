@@ -14,7 +14,7 @@
 
 #include <list>
 
-#include "SeqNum.h"
+#include "SequenceNumber.h"
 
 namespace udt {
 
@@ -23,17 +23,17 @@ public:
     LossList() {}
     
     // Should always add at the end
-    void append(SeqNum seq);
-    void append(SeqNum start, SeqNum end);
+    void append(SequenceNumber seq);
+    void append(SequenceNumber start, SequenceNumber end);
     
-    void remove(SeqNum seq);
-    void remove(SeqNum start, SeqNum end);
+    void remove(SequenceNumber seq);
+    void remove(SequenceNumber start, SequenceNumber end);
     
     int getLength() const { return _length; }
-    SeqNum getFirstSeqNum() const;
+    SequenceNumber getFirstSequenceNumber() const;
     
 private:
-    std::list<std::pair<SeqNum, SeqNum>> _lossList;
+    std::list<std::pair<SequenceNumber, SequenceNumber>> _lossList;
     int _length { 0 };
 };
     

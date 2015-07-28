@@ -41,7 +41,7 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     auto currentTime = high_resolution_clock::now();
     static high_resolution_clock::time_point lastACKSendTime;
     
-    SeqNum nextACKNumber = nextACK();
+    SequenceNumber nextACKNumber = nextACK();
     
     if (nextACKNumber <= _lastReceivedAcknowledgedACK) {
         // we already got an ACK2 for this ACK we would be sending, don't bother
@@ -93,10 +93,10 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
 
 void Connection::sendLightACK() const {
     // create the light ACK packet, make it static so we can re-use it
-    static const int LIGHT_ACK_PACKET_PAYLOAD_BYTES = sizeof(SeqNum);
+    static const int LIGHT_ACK_PACKET_PAYLOAD_BYTES = sizeof(SequenceNumber);
     static auto lightACKPacket = ControlPacket::create(ControlPacket::ACK, LIGHT_ACK_PACKET_PAYLOAD_BYTES);
     
-    SeqNum nextACKNumber = nextACK();
+    SequenceNumber nextACKNumber = nextACK();
     
     if (nextACKNumber == _lastReceivedAcknowledgedACK) {
         // we already got an ACK2 for this ACK we would be sending, don't bother
@@ -113,31 +113,31 @@ void Connection::sendLightACK() const {
     _sendQueue->sendPacket(*lightACKPacket);
 }
 
-SeqNum Connection::nextACK() const {
+SequenceNumber Connection::nextACK() const {
     if (_lossList.getLength() > 0) {
-        return _lossList.getFirstSeqNum();
+        return _lossList.getFirstSequenceNumber();
     } else {
-        return _largestReceivedSeqNum;
+        return _lastReceivedSequenceNumber;
     }
 }
 
-void Connection::processReceivedSeqNum(SeqNum seq) {
+void Connection::processReceivedSequenceNumber(SequenceNumber seq) {
     // If this is not the next sequence number, report loss
-    if (seq > _largestReceivedSeqNum + 1) {
-        if (_largestReceivedSeqNum + 1 == seq - 1) {
-            _lossList.append(_largestReceivedSeqNum + 1);
+    if (seq > _lastReceivedSequenceNumber + 1) {
+        if (_lastReceivedSequenceNumber + 1 == seq - 1) {
+            _lossList.append(_lastReceivedSequenceNumber + 1);
         } else {
-            _lossList.append(_largestReceivedSeqNum + 1, seq - 1);
+            _lossList.append(_lastReceivedSequenceNumber + 1, seq - 1);
         }
         
         // create the loss report packet, make it static so we can re-use it
-        static const int NAK_PACKET_PAYLOAD_BYTES = 2 * sizeof(SeqNum);
+        static const int NAK_PACKET_PAYLOAD_BYTES = 2 * sizeof(SequenceNumber);
         static auto lossReport = ControlPacket::create(ControlPacket::NAK, NAK_PACKET_PAYLOAD_BYTES);
         lossReport->reset(); // We need to reset it every time.
         
         // pack in the loss report
-        lossReport->writePrimitive(_largestReceivedSeqNum + 1);
-        if (_largestReceivedSeqNum + 1 != seq - 1) {
+        lossReport->writePrimitive(_lastReceivedSequenceNumber + 1);
+        if (_lastReceivedSequenceNumber + 1 != seq - 1) {
             lossReport->writePrimitive(seq - 1);
         }
         
@@ -145,9 +145,9 @@ void Connection::processReceivedSeqNum(SeqNum seq) {
         _sendQueue->sendPacket(*lossReport);
     }
     
-    if (seq > _largestReceivedSeqNum) {
+    if (seq > _lastReceivedSequenceNumber) {
         // Update largest recieved sequence number
-        _largestReceivedSeqNum = seq;
+        _lastReceivedSequenceNumber = seq;
     } else {
         // Otherwise, it's a resend, remove it from the loss list
         _lossList.remove(seq);
@@ -157,7 +157,7 @@ void Connection::processReceivedSeqNum(SeqNum seq) {
 void Connection::processControl(unique_ptr<ControlPacket> controlPacket) {
     switch (controlPacket->getType()) {
         case ControlPacket::ACK: {
-            if (controlPacket->getPayloadSize() == sizeof(SeqNum)) {
+            if (controlPacket->getPayloadSize() == sizeof(SequenceNumber)) {
                 processLightACK(move(controlPacket));
             } else {
                 processACK(move(controlPacket));
@@ -182,7 +182,7 @@ void Connection::processControl(unique_ptr<ControlPacket> controlPacket) {
 
 void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     // read the ACK sub-sequence number
-    SeqNum currentACKSubSequenceNumber;
+    SequenceNumber currentACKSubSequenceNumber;
     controlPacket->readPrimitive(&currentACKSubSequenceNumber);
     
     // check if we need send an ACK2 for this ACK
@@ -193,7 +193,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     
     if (sinceLastACK2.count() > _synInterval || currentACKSubSequenceNumber == _lastSentACK2) {
         // setup a static ACK2 packet we will re-use
-        static const int ACK2_PAYLOAD_BYTES = sizeof(SeqNum);
+        static const int ACK2_PAYLOAD_BYTES = sizeof(SequenceNumber);
         static auto ack2Packet = ControlPacket::create(ControlPacket::ACK2, ACK2_PAYLOAD_BYTES);
         
         // reset the ACK2 Packet before writing the sub-sequence number to it
@@ -208,11 +208,11 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     }
     
     // read the ACKed sequence number
-    SeqNum ack;
+    SequenceNumber ack;
     controlPacket->readPrimitive(&ack);
     
     // validate that this isn't a BS ACK
-    if (ack > _sendQueue->getCurrentSeqNum()) {
+    if (ack > _sendQueue->getCurrentSequenceNumber()) {
         // in UDT they specifically break the connection here - do we want to do anything?
         return;
     }
@@ -232,7 +232,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     }
     
     // make sure this isn't a repeated ACK
-    if (ack <= SeqNum(_atomicLastReceivedACK)) {
+    if (ack <= SequenceNumber(_atomicLastReceivedACK)) {
         return;
     }
     
@@ -249,7 +249,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     
     // set the RTT for congestion control
     
-    if (controlPacket->getPayloadSize() > (qint64) (sizeof(SeqNum) + sizeof(SeqNum) + sizeof(rtt))) {
+    if (controlPacket->getPayloadSize() > (qint64) (sizeof(SequenceNumber) + sizeof(SequenceNumber) + sizeof(rtt))) {
         int32_t deliveryRate, bandwidth;
         controlPacket->readPrimitive(&deliveryRate);
         controlPacket->readPrimitive(&bandwidth);
@@ -265,7 +265,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
 
 void Connection::processLightACK(std::unique_ptr<ControlPacket> controlPacket) {
     // read the ACKed sequence number
-    SeqNum ack;
+    SequenceNumber ack;
     controlPacket->readPrimitive(&ack);
     
     // must be larger than the last received ACK to be processed
@@ -280,7 +280,7 @@ void Connection::processLightACK(std::unique_ptr<ControlPacket> controlPacket) {
 
 void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
     // pull the sub sequence number from the packet
-    SeqNum subSequenceNumber;
+    SequenceNumber subSequenceNumber;
     controlPacket->readPrimitive(&subSequenceNumber);
 
     // check if we had that subsequence number in our map
@@ -306,9 +306,9 @@ void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
 
 void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
     // read the loss report
-    SeqNum start, end;
+    SequenceNumber start, end;
     controlPacket->readPrimitive(&start);
-    if (controlPacket->bytesLeftToRead() >= (qint64)sizeof(SeqNum)) {
+    if (controlPacket->bytesLeftToRead() >= (qint64)sizeof(SequenceNumber)) {
         controlPacket->readPrimitive(&end);
     }
 }
