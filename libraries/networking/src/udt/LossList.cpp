@@ -93,7 +93,7 @@ void LossList::remove(SeqNum start, SeqNum end) {
     }
 }
 
-SeqNum LossList::getFirstSeqNum() {
+SeqNum LossList::getFirstSeqNum() const {
     assert(getLength() > 0);
     return _lossList.front().first;
 }
