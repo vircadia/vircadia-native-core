@@ -426,28 +426,8 @@ protected:
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
     // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
-    void do_glEnable(Batch& batch, uint32 paramOffset);
-    void do_glDisable(Batch& batch, uint32 paramOffset);
+    void do_glActiveBindTexture(Batch& batch, uint32 paramOffset);
 
-    void do_glEnableClientState(Batch& batch, uint32 paramOffset);
-    void do_glDisableClientState(Batch& batch, uint32 paramOffset);
-
-    void do_glCullFace(Batch& batch, uint32 paramOffset);
-    void do_glAlphaFunc(Batch& batch, uint32 paramOffset);
-
-    void do_glDepthFunc(Batch& batch, uint32 paramOffset);
-    void do_glDepthMask(Batch& batch, uint32 paramOffset);
-    void do_glDepthRange(Batch& batch, uint32 paramOffset);
-
-    void do_glBindBuffer(Batch& batch, uint32 paramOffset);
-
-    void do_glBindTexture(Batch& batch, uint32 paramOffset);
-    void do_glActiveTexture(Batch& batch, uint32 paramOffset);
-    void do_glTexParameteri(Batch& batch, uint32 paramOffset);
-
-    void do_glDrawBuffers(Batch& batch, uint32 paramOffset);
-
-    void do_glUseProgram(Batch& batch, uint32 paramOffset);
     void do_glUniform1i(Batch& batch, uint32 paramOffset);
     void do_glUniform1f(Batch& batch, uint32 paramOffset);
     void do_glUniform2f(Batch& batch, uint32 paramOffset);
@@ -457,9 +437,6 @@ protected:
     void do_glUniform4iv(Batch& batch, uint32 paramOffset);
     void do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset);
 
-    void do_glEnableVertexAttribArray(Batch& batch, uint32 paramOffset);
-    void do_glDisableVertexAttribArray(Batch& batch, uint32 paramOffset);
-    
     void do_glColor4f(Batch& batch, uint32 paramOffset);
     void do_glLineWidth(Batch& batch, uint32 paramOffset);
 

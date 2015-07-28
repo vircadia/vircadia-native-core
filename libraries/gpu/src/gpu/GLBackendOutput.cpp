@@ -178,9 +178,11 @@ void GLBackend::syncOutputStateCache() {
 }
 
 void GLBackend::resetOutputStage() {
-    _output._framebuffer.reset();
-    _output._drawFBO = 0;
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    if (_output._framebuffer) {
+        _output._framebuffer.reset();
+        _output._drawFBO = 0;
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    }
 }
 
 void GLBackend::do_setFramebuffer(Batch& batch, uint32 paramOffset) {

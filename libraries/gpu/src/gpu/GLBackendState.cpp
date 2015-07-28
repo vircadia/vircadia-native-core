@@ -482,6 +482,11 @@ void GLBackend::syncPipelineStateCache() {
     State::Data state;
 
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
+    // Point size is always on
+    glEnable(GL_PROGRAM_POINT_SIZE_EXT);
+    glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+
     getCurrentGLState(state);
     State::Signature signature = State::evalSignature(state);
 
