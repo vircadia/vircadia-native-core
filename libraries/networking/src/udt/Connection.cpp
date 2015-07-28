@@ -156,7 +156,7 @@ void Connection::processReceivedSequenceNumber(SequenceNumber seq) {
 
 void Connection::processControl(unique_ptr<ControlPacket> controlPacket) {
     switch (controlPacket->getType()) {
-        case ControlPacket::ACK: {
+        case ControlPacket::ACK:
             if (controlPacket->getPayloadSize() == sizeof(SequenceNumber)) {
                 processLightACK(move(controlPacket));
             } else {
@@ -169,10 +169,8 @@ void Connection::processControl(unique_ptr<ControlPacket> controlPacket) {
         case ControlPacket::NAK:
             processNAK(move(controlPacket));
             break;
-        case ControlPacket::PacketPair: {
-            
+        case ControlPacket::PacketPair:
             break;
-        }
     }
 }
 

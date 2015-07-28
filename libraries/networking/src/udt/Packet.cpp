@@ -65,15 +65,13 @@ Packet::Packet(qint64 size, bool isReliable, bool isPartOfMessage) :
     adjustPayloadStartAndCapacity();
     
     // set the UDT header to default values
-    writeSequenceNumber(SequenceNumber());
+    writeHeader();
 }
 
 Packet::Packet(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr) :
     BasePacket(std::move(data), size, senderSockAddr)
 {
-    readIsReliable();
-    readIsPartOfMessage();
-    readSequenceNumber();
+    readHeader();
 
     adjustPayloadStartAndCapacity(_payloadSize > 0);
 }
@@ -119,25 +117,33 @@ static const uint32_t RELIABILITY_BIT_MASK = 1 << (sizeof(Packet::SequenceNumber
 static const uint32_t MESSAGE_BIT_MASK = 1 << (sizeof(Packet::SequenceNumberAndBitField) - 3);
 static const uint32_t BIT_FIELD_MASK = CONTROL_BIT_MASK | RELIABILITY_BIT_MASK | MESSAGE_BIT_MASK;
 
-void Packet::readIsReliable() {
+void Packet::readHeader() {
     SequenceNumberAndBitField seqNumBitField = *reinterpret_cast<SequenceNumberAndBitField*>(_packet.get());
+    Q_ASSERT_X((bool) (seqNumBitField & CONTROL_BIT_MASK),
+               "Packet::readHeader()", "This should be a data packet");
     _isReliable = (bool) (seqNumBitField & RELIABILITY_BIT_MASK); // Only keep reliability bit
-}
-
-void Packet::readIsPartOfMessage() {
-    SequenceNumberAndBitField seqNumBitField = *reinterpret_cast<SequenceNumberAndBitField*>(_packet.get());
-    _isReliable = (bool) (seqNumBitField & MESSAGE_BIT_MASK); // Only keep message bit
-}
-
-void Packet::readSequenceNumber() {
-    SequenceNumberAndBitField seqNumBitField = *reinterpret_cast<SequenceNumberAndBitField*>(_packet.get());
+    _isPartOfMessage = (bool) (seqNumBitField & MESSAGE_BIT_MASK); // Only keep message bit
     _sequenceNumber = SequenceNumber{ seqNumBitField & ~BIT_FIELD_MASK }; // Remove the bit field
 }
 
-void Packet::writeSequenceNumber(SequenceNumber seqNum) {
+void Packet::writeHeader() {
     // grab pointer to current SequenceNumberAndBitField
     SequenceNumberAndBitField* seqNumBitField = reinterpret_cast<SequenceNumberAndBitField*>(_packet.get());
     
+    *seqNumBitField &= ~CONTROL_BIT_MASK;
+    
+    if (_isPartOfMessage) {
+        *seqNumBitField |= MESSAGE_BIT_MASK;
+    } else {
+        *seqNumBitField &= ~MESSAGE_BIT_MASK;
+    }
+    
+    if (_isReliable) {
+        *seqNumBitField |= RELIABILITY_BIT_MASK;
+    } else {
+        *seqNumBitField &= ~RELIABILITY_BIT_MASK;
+    }
+    
     // write new value by ORing (old value & BIT_FIELD_MASK) with new seqNum
-    *seqNumBitField = (*seqNumBitField & BIT_FIELD_MASK) | (SequenceNumber::Type) seqNum;
+    *seqNumBitField = (*seqNumBitField & BIT_FIELD_MASK) | (SequenceNumber::Type)_sequenceNumber;
 }

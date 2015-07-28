@@ -47,9 +47,12 @@ public:
     virtual qint64 localHeaderSize() const;
     
     virtual qint64 totalHeadersSize() const; // Cumulated size of all the headers
-
-    void writeSequenceNumber(SequenceNumber seqNum);
+    
+    bool isPartOfMessage() const { return _isPartOfMessage; }
+    bool isReliable() const { return _isReliable; }
     SequenceNumber getSequenceNumber() const { return _sequenceNumber; }
+    
+    void setSequenceNumber();
 
 protected:
     Packet(qint64 size, bool isReliable = false, bool isPartOfMessage = false);
@@ -61,9 +64,8 @@ protected:
     Packet& operator=(Packet&& other);
 
     // Header readers - these read data to member variables after pulling packet off wire
-    void readIsPartOfMessage();
-    void readIsReliable();
-    void readSequenceNumber();
+    void readHeader();
+    void writeHeader();
 
     bool _isReliable { false };
     bool _isPartOfMessage { false };
