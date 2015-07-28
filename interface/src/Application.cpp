@@ -3482,7 +3482,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
         pendingChanges.resetItem(WorldBoxRenderData::_item, worldBoxRenderPayload);
     } else {
-
         pendingChanges.updateItem<WorldBoxRenderData>(WorldBoxRenderData::_item,
                 [](WorldBoxRenderData& payload) {
                     payload._val++;
