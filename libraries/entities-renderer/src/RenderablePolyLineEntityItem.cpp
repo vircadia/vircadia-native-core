@@ -42,8 +42,8 @@ GLint RenderablePolyLineEntityItem::PAINTSTROKE_GPU_SLOT;
 
 void RenderablePolyLineEntityItem::createPipeline() {
     static const int NORMAL_OFFSET = 12;
-//    static const int COLOR_OFFSET = 24;
-    static const int TEXTURE_OFFSET = 24;
+    static const int COLOR_OFFSET = 24;
+    static const int TEXTURE_OFFSET = 28;
     
     auto textureCache = DependencyManager::get<TextureCache>();
     QString path = PathUtils::resourcesPath() + "images/paintStroke.png";
@@ -54,7 +54,7 @@ void RenderablePolyLineEntityItem::createPipeline() {
     _format.reset(new gpu::Stream::Format());
     _format->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     _format->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), NORMAL_OFFSET);
-//    _format->setAttribute(gpu::Stream::COLOR, 0, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), COLOR_OFFSET);
+    _format->setAttribute(gpu::Stream::COLOR, 0, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), COLOR_OFFSET);
     _format->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), TEXTURE_OFFSET);
     
     auto VS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(paintStroke_vert)));
@@ -112,7 +112,7 @@ void RenderablePolyLineEntityItem::updateGeometry() {
      
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
-//        _verticesBuffer->append(sizeof(int), (gpu::Byte*)&_color);
+        _verticesBuffer->append(sizeof(int), (gpu::Byte*)&_color);
         _verticesBuffer->append(sizeof(glm::vec2), (gpu::Byte*)&uv);
         vertexIndex++;
 
@@ -120,7 +120,7 @@ void RenderablePolyLineEntityItem::updateGeometry() {
         uv.y = 1.0;
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
-//        _verticesBuffer->append(sizeof(int), (gpu::Byte*)_color);
+        _verticesBuffer->append(sizeof(int), (gpu::Byte*)_color);
         _verticesBuffer->append(sizeof(glm::vec2), (const gpu::Byte*)&uv);
         vertexIndex++;
         
