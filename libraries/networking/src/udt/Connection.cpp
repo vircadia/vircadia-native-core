@@ -30,7 +30,8 @@ void Connection::send(std::unique_ptr<Packet> packet) {
 }
 
 void Connection::sendACK(bool wasCausedBySyncTimeout) {
-    static const int ACK_PACKET_PAYLOAD_BYTES = sizeof(SeqNum);
+    static const int ACK_PACKET_PAYLOAD_BYTES = sizeof(_lastSentACK) + sizeof(_currentACKSubSequenceNumber)
+        + sizeof(_rtt) + sizeof(_rttVariance) + sizeof(int32_t) + sizeof(int32_t);
     
     // setup the ACK packet, make it static so we can re-use it
     static auto ackPacket = ControlPacket::create(ControlPacket::ACK, ACK_PACKET_PAYLOAD_BYTES);
