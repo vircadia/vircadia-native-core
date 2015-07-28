@@ -163,6 +163,7 @@ void Connection::processControl(unique_ptr<ControlPacket> controlPacket) {
                 processACK(move(controlPacket));
             }
             break;
+        }
         case ControlPacket::ACK2:
             processACK2(move(controlPacket));
             break;
@@ -179,7 +180,9 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     SequenceNumber currentACKSubSequenceNumber;
     controlPacket->readPrimitive(&currentACKSubSequenceNumber);
     
-    // check if we need send an ACK2 for this ACK
+    // Check if we need send an ACK2 for this ACK
+    // This will be the case if it has been longer than the sync interval OR
+    // it looks like they haven't received our ACK2 for this ACK
     auto currentTime = high_resolution_clock::now();
     static high_resolution_clock::time_point lastACK2SendTime;
     
