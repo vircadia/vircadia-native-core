@@ -28,7 +28,6 @@
 #include <QQmlContext>
 #include <QtQml/QQmlApplicationEngine>
 #include <PathUtils.h>
-#include <unordered_map>
 #include <memory>
 #include <glm/glm.hpp>
 #include <PathUtils.h>

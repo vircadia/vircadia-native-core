@@ -26,7 +26,6 @@
 #include <QApplication>
 #include <QOpenGLDebugLogger>
 
-#include <unordered_map>
 #include <memory>
 #include <glm/glm.hpp>
 

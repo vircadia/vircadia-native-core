@@ -152,18 +152,15 @@ void Connection::processReceivedSeqNum(SeqNum seq) {
 
 void Connection::processControl(unique_ptr<ControlPacket> controlPacket) {
     switch (controlPacket->getType()) {
-        case ControlPacket::ACK: {
+        case ControlPacket::ACK:
             processACK(move(controlPacket));
             break;
-        }
-        case ControlPacket::ACK2: {
+        case ControlPacket::ACK2:
             processACK2(move(controlPacket));
             break;
-        }
-        case ControlPacket::NAK: {
+        case ControlPacket::NAK:
             processNAK(move(controlPacket));
             break;
-        }
         case ControlPacket::PacketPair: {
             
             break;
