@@ -197,6 +197,15 @@ public:
 
     uint32 getNumInputBuffers() const { return _input._invalidBuffers.size(); }
 
+    // this is the maximum per shader stage on the low end apple
+    // TODO make it platform dependant at init time
+    static const int MAX_NUM_UNIFORM_BUFFERS = 12;
+    uint32 getMaxNumUniformBuffers() const { return MAX_NUM_UNIFORM_BUFFERS; }
+
+    // this is the maximum per shader stage on the low end apple
+    // TODO make it platform dependant at init time
+    static const int MAX_NUM_RESOURCE_TEXTURES = 16;
+    uint32 getMaxNumResourceTextures() const { return MAX_NUM_RESOURCE_TEXTURES; }
 
     // The State setters called by the GLState::Commands when a new state is assigned
     void do_setStateFillMode(int32 mode);
@@ -332,19 +341,30 @@ protected:
 
     // Uniform Stage
     void do_setUniformBuffer(Batch& batch, uint32 paramOffset);
-    
+
+    void releaseUniformBuffer(int slot);
     void resetUniformStage();
     struct UniformStageState {
-        
-    };
+        Buffers _buffers;
+
+        UniformStageState():
+            _buffers(MAX_NUM_UNIFORM_BUFFERS, nullptr)
+        {}
+    } _uniform;
     
     // Resource Stage
     void do_setResourceTexture(Batch& batch, uint32 paramOffset);
     
+    void releaseResourceTexture(int slot);
     void resetResourceStage();
     struct ResourceStageState {
-        
-    };
+        Textures _textures;
+
+        ResourceStageState():
+            _textures(MAX_NUM_RESOURCE_TEXTURES, nullptr)
+        {}
+
+    } _resource;
 
     // Pipeline Stage
     void do_setPipeline(Batch& batch, uint32 paramOffset);
