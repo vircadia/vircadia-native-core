@@ -15,15 +15,27 @@
 #include <QObject>
 
 #include <DependencyManager.h>
+#include <iViewHMDAPI.h>
+
 
 class EyeTracker : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
+public:
+    ~EyeTracker();
+    
+    void processData(smi_CallbackDataStruct* data);
+
 public slots:
     void init();
     void setEnabled(bool enabled);
     void reset();
+
+private:
+    bool _isInitialized = false;
+    bool _isStreaming = false;
+    bool _isEnabled = false;
 };
 
 #endif // hifi_EyeTracker_h
