@@ -33,6 +33,8 @@ public slots:
     void reset();
 
 private:
+    QString smiReturnValueToString(int value);
+    
     bool _isInitialized = false;
     bool _isStreaming = false;
     bool _isEnabled = false;

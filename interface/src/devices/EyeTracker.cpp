@@ -11,6 +11,8 @@
 
 #include "EyeTracker.h"
 
+#include <QMessageBox>
+
 #include "InterfaceLogging.h"
 
 #ifdef HAVE_IVIEWHMD
@@ -26,7 +28,7 @@ EyeTracker::~EyeTracker() {
 #ifdef HAVE_IVIEWHMD
     int result = smi_quit();
     if (result != SMI_RET_SUCCESS) {
-        qCWarning(interfaceapp) << "Eye Tracker: Error terminating tracking:" << result;
+        qCWarning(interfaceapp) << "Eye Tracker: Error terminating tracking:" << smiReturnValueToString(result);
     }
 #endif
 }
@@ -52,7 +54,8 @@ void EyeTracker::init() {
 #ifdef HAVE_IVIEWHMD
     int result = smi_setCallback(eyeTrackerCallback);
     if (result != SMI_RET_SUCCESS) {
-        qCWarning(interfaceapp) << "Eye Tracker: Error setting callback:" << result;
+        qCWarning(interfaceapp) << "Eye Tracker: Error setting callback:" << smiReturnValueToString(result);
+        QMessageBox::warning(nullptr, "Eye Tracker Error", smiReturnValueToString(result));
     } else {
         _isInitialized = true;
     }
@@ -78,8 +81,39 @@ void EyeTracker::setEnabled(bool enabled, bool simulate) {
     }
 
     _isEnabled = enabled && success;
+
+    if (!success) {
+        // Display error dialog after updating _isEnabled.
+        QMessageBox::warning(nullptr, "Eye Tracker Error", smiReturnValueToString(result));
+    }
 #endif
 }
 
 void EyeTracker::reset() {
+}
+
+QString EyeTracker::smiReturnValueToString(int value) {
+    switch (value)
+    {
+        case smi_ErrorReturnValue::SMI_ERROR_NO_CALLBACK_SET:
+            return "No callback set";
+        case smi_ErrorReturnValue::SMI_ERROR_CONNECTING_TO_HMD:
+            return "Error connecting to HMD";
+        case smi_ErrorReturnValue::SMI_ERROR_HMD_NOT_SUPPORTED:
+            return "HMD not supported";
+        case smi_ErrorReturnValue::SMI_ERROR_NOT_IMPLEMENTED:
+            return "Not implmented";
+        case smi_ErrorReturnValue::SMI_ERROR_INVALID_PARAMETER:
+            return "Invalid parameter";
+        case smi_ErrorReturnValue::SMI_ERROR_EYECAMERAS_NOT_AVAILABLE:
+            return "Eye cameras not available";
+        case smi_ErrorReturnValue::SMI_ERROR_OCULUS_RUNTIME_NOT_SUPPORTED:
+            return "Oculus runtime not supported";
+        case smi_ErrorReturnValue::SMI_ERROR_UNKNOWN:
+            return "Unknown error";
+        default:
+            QString number;
+            number.setNum(value);
+            return number;
+    }
 }
