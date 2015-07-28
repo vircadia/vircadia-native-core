@@ -24,7 +24,7 @@ namespace udt {
 class ControlPacket : public BasePacket {
     Q_OBJECT
 public:
-    using BitFieldAndControlType = uint32_t;
+    using ControlBitAndType = uint32_t;
     using ControlPacketPair = std::pair<std::unique_ptr<ControlPacket>, std::unique_ptr<ControlPacket>>;
     
     enum Type : uint16_t {
@@ -51,6 +51,9 @@ private:
     
     ControlPacket& operator=(ControlPacket&& other);
     ControlPacket& operator=(const ControlPacket& other) = delete;
+    
+    // Header writers
+    void writeControlBitAndType();
     
     Type _type;
 };

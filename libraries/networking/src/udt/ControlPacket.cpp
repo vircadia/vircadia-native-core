@@ -18,17 +18,13 @@ std::unique_ptr<ControlPacket> ControlPacket::create(Type type, qint64 size) {
     std::unique_ptr<ControlPacket> controlPacket;
     
     if (size == -1) {
-        controlPacket = ControlPacket::create(type);
+        return ControlPacket::create(type);
     } else {
         // Fail with invalid size
         Q_ASSERT(size >= 0);
         
-        controlPacket = ControlPacket::create(type, size);
+        return ControlPacket::create(type, size);
     }
-    
-    controlPacket->open(QIODevice::ReadWrite);
-    
-    return controlPacket;
 }
 
 ControlPacket::ControlPacketPair ControlPacket::createPacketPair(quint64 timestamp) {
@@ -39,7 +35,7 @@ ControlPacket::ControlPacketPair ControlPacket::createPacketPair(quint64 timesta
 }
 
 qint64 ControlPacket::localHeaderSize() {
-    return sizeof(BitFieldAndControlType);
+    return sizeof(ControlBitAndType);
 }
 
 qint64 ControlPacket::totalHeadersSize() const {
@@ -51,6 +47,10 @@ ControlPacket::ControlPacket(Type type) :
     _type(type)
 {
     adjustPayloadStartAndCapacity();
+    
+    open(QIODevice::ReadWrite);
+    
+    writeControlBitAndType();
 }
 
 ControlPacket::ControlPacket(Type type, qint64 size) :
@@ -58,6 +58,10 @@ ControlPacket::ControlPacket(Type type, qint64 size) :
     _type(type)
 {
     adjustPayloadStartAndCapacity();
+    
+    open(QIODevice::ReadWrite);
+    
+    writeControlBitAndType();
 }
 
 ControlPacket::ControlPacket(quint64 timestamp) :
@@ -67,6 +71,8 @@ ControlPacket::ControlPacket(quint64 timestamp) :
     adjustPayloadStartAndCapacity();
     
     open(QIODevice::ReadWrite);
+    
+    writeControlBitAndType();
     
     // pack in the timestamp
     writePrimitive(timestamp);
@@ -84,4 +90,16 @@ ControlPacket& ControlPacket::operator=(ControlPacket&& other) {
     _type = other._type;
     
     return *this;
+}
+
+static const uint32_t CONTROL_BIT_MASK = 1 << (sizeof(ControlPacket::ControlBitAndType) - 1);
+
+void ControlPacket::writeControlBitAndType() {
+    ControlBitAndType* bitAndType = reinterpret_cast<ControlBitAndType*>(_packet.get());
+
+    // write the control bit by OR'ing the current value with the CONTROL_BIT_MASK
+    *bitAndType = (*bitAndType | CONTROL_BIT_MASK);
+    
+    // write the type by OR'ing the type with the current value & CONTROL_BIT_MASK
+    *bitAndType = (*bitAndType & CONTROL_BIT_MASK) | (_type << sizeof((ControlPacket::Type) - 1));
 }
