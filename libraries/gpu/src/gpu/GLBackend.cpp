@@ -115,6 +115,13 @@ GLBackend::GLBackend() :
 #endif
 
 #if defined(Q_OS_LINUX)
+        GLenum err = glewInit();
+        if (GLEW_OK != err) {
+            /* Problem: glewInit failed, something is seriously wrong. */
+            qCDebug(gpulogging, "Error: %s\n", glewGetErrorString(err));
+        }
+        qCDebug(gpulogging, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+
         // TODO: Write the correct  code for Linux...
         /* if (wglewGetExtension("WGL_EXT_swap_control")) {
             int swapInterval = wglGetSwapIntervalEXT();
