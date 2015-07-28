@@ -329,7 +329,7 @@ var toolBar = (function () {
 
             Script.setTimeout(resize, RESIZE_INTERVAL);
         } else {
-            print("Can't add model: Model would be out of bounds.");
+            Window.alert("Can't add model: Model would be out of bounds.");
         }
     }
 
@@ -374,7 +374,7 @@ var toolBar = (function () {
 
                                 });
             } else {
-                print("Can't create box: Box would be out of bounds.");
+                Window.alert("Can't create box: Box would be out of bounds.");
             }
             return true;
         }
@@ -390,7 +390,7 @@ var toolBar = (function () {
                                 color: { red: 255, green: 0, blue: 0 }
                                 });
             } else {
-                print("Can't create sphere: Sphere would be out of bounds.");
+                Window.alert("Can't create sphere: Sphere would be out of bounds.");
             }
             return true;
         }
@@ -413,7 +413,7 @@ var toolBar = (function () {
                                 cutoff: 180, // in degrees
                                 });
             } else {
-                print("Can't create Light: Light would be out of bounds.");
+                Window.alert("Can't create Light: Light would be out of bounds.");
             }
             return true;
         }
@@ -433,7 +433,7 @@ var toolBar = (function () {
                                 lineHeight: 0.06
                                 });
             } else {
-                print("Can't create box: Text would be out of bounds.");
+                Window.alert("Can't create box: Text would be out of bounds.");
             }
             return true;
         }
@@ -449,7 +449,7 @@ var toolBar = (function () {
                                 sourceUrl: "https://highfidelity.com/",
                                 });
             } else {
-                print("Can't create Web Entity: would be out of bounds.");
+                Window.alert("Can't create Web Entity: would be out of bounds.");
             }
             return true;
         }
@@ -464,7 +464,7 @@ var toolBar = (function () {
                                 dimensions: { x: 10, y: 10, z: 10 },
                                 });
             } else {
-                print("Can't create box: Text would be out of bounds.");
+                Window.alert("Can't create box: Text would be out of bounds.");
             }
             return true;
         }
@@ -482,7 +482,7 @@ var toolBar = (function () {
                     voxelSurfaceStyle: 1
                 });
             } else {
-                print("Can't create PolyVox: would be out of bounds.");
+                Window.alert("Can't create PolyVox: would be out of bounds.");
             }
             return true;
         }
@@ -1068,13 +1068,16 @@ function importSVO(importURL) {
         if (Clipboard.getClipboardContentsLargestDimension() < VERY_LARGE) {
             position = getPositionToCreateEntity();
         }
-        var pastedEntityIDs = Clipboard.pasteEntities(position);
+        if (position.x > 0 && position.y > 0 && position.z > 0) {
+            var pastedEntityIDs = Clipboard.pasteEntities(position);
 
-        if (isActive) {
-            selectionManager.setSelections(pastedEntityIDs);
-        }
-
+            if (isActive) {
+                selectionManager.setSelections(pastedEntityIDs);
+            }
         Window.raiseMainWindow();
+        } else {
+            Window.alert("Can't import objects: objects would be out of bounds.");
+        }
     } else {
         Window.alert("There was an error importing the entity file.");
     }

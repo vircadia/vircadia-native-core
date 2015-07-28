@@ -1,0 +1,42 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  gaussian_blur.frag
+//  fragment shader
+//
+//  Created by Niraj Venkat on 7/17/15.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include DeferredBufferWrite.slh@>
+
+// the interpolated normal
+//varying vec4 interpolatedNormal;
+
+varying vec2 varTexcoord;
+varying vec2 varBlurTexcoords[14];
+
+uniform sampler2D occlusionTexture;
+
+void main(void) {
+    gl_FragColor = vec4(0.0);
+    gl_FragColor += texture2D(occlusionTexture, varBlurTexcoords[0])*0.0044299121055113265;
+    gl_FragColor += texture2D(occlusionTexture, varBlurTexcoords[1])*0.00895781211794;
+    gl_FragColor += texture2D(occlusionTexture, varBlurTexcoords[2])*0.0215963866053;
+    gl_FragColor += texture2D(occlusionTexture, varBlurTexcoords[3])*0.0443683338718;
+    gl_FragColor += texture2D(occlusionTexture, varBlurTexcoords[4])*0.0776744219933;
+    gl_FragColor += texture2D(occlusionTexture, varBlurTexcoords[5])*0.115876621105;
+    gl_FragColor += texture2D(occlusionTexture, varBlurTexcoords[6])*0.147308056121;
+    gl_FragColor += texture2D(occlusionTexture, varTexcoord)*0.159576912161;
+    gl_FragColor += texture2D(occlusionTexture, varBlurTexcoords[7])*0.147308056121;
+    gl_FragColor += texture2D(occlusionTexture, varBlurTexcoords[8])*0.115876621105;
+    gl_FragColor += texture2D(occlusionTexture, varBlurTexcoords[9])*0.0776744219933;
+    gl_FragColor += texture2D(occlusionTexture, varBlurTexcoords[10])*0.0443683338718;
+    gl_FragColor += texture2D(occlusionTexture, varBlurTexcoords[11])*0.0215963866053;
+    gl_FragColor += texture2D(occlusionTexture, varBlurTexcoords[12])*0.00895781211794;
+    gl_FragColor += texture2D(occlusionTexture, varBlurTexcoords[13])*0.0044299121055113265;
+}
