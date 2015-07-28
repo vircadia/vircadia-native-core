@@ -437,7 +437,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHands, 0, true);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::HandMouseInput, 0, true);
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::HandLasers, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::LowVelocityFilter, 0, true,
                                            qApp, SLOT(setLowVelocityFilter(bool)));
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::ShowIKConstraints, 0, false);

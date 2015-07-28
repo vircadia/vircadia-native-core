@@ -2838,7 +2838,7 @@ void Application::emulateMouse(Hand* hand, float click, float shift, int index) 
 
     unsigned int deviceID = index == 0 ? CONTROLLER_0_EVENT : CONTROLLER_1_EVENT;
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::HandLasers) || qApp->isHMDMode()) {
+    if (qApp->isHMDMode()) {
         pos = qApp->getApplicationCompositor().getPalmClickLocation(palm);
     }
     else {
@@ -3549,11 +3549,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
         sceneInterface->setEngineFeedOverlay3DItems(engineRC->_numFeedOverlay3DItems);
         sceneInterface->setEngineDrawnOverlay3DItems(engineRC->_numDrawnOverlay3DItems);
-    }
-
-    //Render the sixense lasers
-    if (Menu::getInstance()->isOptionChecked(MenuOption::HandLasers)) {
-        _myAvatar->renderLaserPointers(*renderArgs->_batch);
     }
 
     if (!selfAvatarOnly) {
