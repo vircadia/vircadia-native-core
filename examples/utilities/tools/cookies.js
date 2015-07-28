@@ -1288,6 +1288,15 @@ var CHECK_MARK_COLOR = {
             this.items[i].destroy();
         } 
     };
-
     this.Panel = Panel;
 })();
+
+
+Script.scriptEnding.connect(function scriptEnding() {
+    Controller.releaseKeyEvents({text: "left"});
+    Controller.releaseKeyEvents({key: "right"});
+});
+
+
+Controller.captureKeyEvents({text: "left"});
+Controller.captureKeyEvents({text: "right"});
