@@ -73,7 +73,7 @@ private:
     
     std::unordered_map<HifiSockAddr, BasePacketHandler> _unfilteredHandlers;
 
-    std::unordered_map<HifiSockAddr, SequenceNumber> _packetSequenceNumbers;
+    std::unordered_map<HifiSockAddr, SequenceNumber> _unreliableSequenceNumbers;
     std::unordered_map<HifiSockAddr, Connection*> _connectionsHash;
     
     int32_t _synInterval = 10; // 10ms
