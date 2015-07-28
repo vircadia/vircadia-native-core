@@ -18,11 +18,14 @@
 using namespace udt;
 using namespace std::chrono;
 
+static const int DEFAULT_PACKET_INTERVAL_MICROSECONDS = 1000000;
+static const int DEFAULT_PROBE_INTERVAL_MICROSECONDS = 1000;
+
 PacketTimeWindow::PacketTimeWindow(int numPacketIntervals, int numProbeIntervals) :
     _numPacketIntervals(numPacketIntervals),
     _numProbeIntervals(numProbeIntervals),
-    _packetIntervals({ _numPacketIntervals }),
-    _probeIntervals({ _numProbeIntervals })
+    _packetIntervals({ _numPacketIntervals, DEFAULT_PACKET_INTERVAL_MICROSECONDS }),
+    _probeIntervals({ _numProbeIntervals, DEFAULT_PROBE_INTERVAL_MICROSECONDS })
 {
     
 }
