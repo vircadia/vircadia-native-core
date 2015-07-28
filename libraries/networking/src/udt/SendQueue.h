@@ -42,6 +42,8 @@ public:
 
     quint64 getLastSendTimestamp() const { return _lastSendTimestamp; }
     
+    SeqNum getCurrentSeqNum() const { return SeqNum(_atomicCurrentSeqNum); }
+    
     int getPacketSendPeriod() const { return _packetSendPeriod; }
     void setPacketSendPeriod(int newPeriod) { _packetSendPeriod = newPeriod; }
     
@@ -72,6 +74,8 @@ private:
     HifiSockAddr _destination; // Destination addr
     SeqNum _currentSeqNum; // Last sequence number sent out
     SeqNum _lastAck; // ACKed sequence number
+    
+    std::atomic<uint32_t> _atomicCurrentSeqNum; // Atomic for last sequence number sent out
     
     std::unique_ptr<QTimer> _sendTimer; // Send timer
     std::atomic<int> _packetSendPeriod { 0 }; // Interval between two packet send envent in msec

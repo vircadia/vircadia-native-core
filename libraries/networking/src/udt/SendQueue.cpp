@@ -114,6 +114,7 @@ void SendQueue::sendNextPacket() {
     if (_nextPacket) {
         _nextPacket->writeSequenceNumber(++_currentSeqNum);
         sendPacket(*_nextPacket);
+        _atomicCurrentSeqNum.store((uint32_t) _currentSeqNum);
         
         // Insert the packet we have just sent in the sent list
         QWriteLocker locker(&_sentLock);
