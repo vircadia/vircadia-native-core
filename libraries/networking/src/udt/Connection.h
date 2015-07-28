@@ -43,17 +43,20 @@ public:
     
 private:
     void processACK(std::unique_ptr<ControlPacket> controlPacket);
+    void processLightACK(std::unique_ptr<ControlPacket> controlPacket);
     void processACK2(std::unique_ptr<ControlPacket> controlPacket);
     void processNAK(std::unique_ptr<ControlPacket> controlPacket);
     
     LossList _lossList; // List of all missing packets
     SeqNum _largestReceivedSeqNum; // The largest sequence number received from the peer
     SeqNum _lastSentACK; // The last sent ACK
+    SeqNum _lastReceivedACK; // The last ACK received
     SeqNum _lastReceivedAcknowledgedACK; // The last sent ACK that has been acknowledged via an ACK2 from the peer
     SeqNum _currentACKSubSequenceNumber; // The current ACK sub-sequence number (used for Acknowledgment of ACKs)
     
     int32_t _rtt; // RTT, in milliseconds
     int32_t _rttVariance; // RTT variance
+    int _flowWindowSize; // Flow control window size
     
     std::chrono::high_resolution_clock::time_point _lastACKTime;
     
