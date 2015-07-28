@@ -218,10 +218,6 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
     
     // Render the stars
     batch.setPipeline(_starsPipeline);
-  /*  batch._glEnable(GL_PROGRAM_POINT_SIZE_EXT);
-    batch._glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
-    batch._glEnable(GL_POINT_SMOOTH);
-    */
     batch.setInputFormat(streamFormat);
     batch.setInputBuffer(VERTICES_SLOT, posView);
     batch.setInputBuffer(COLOR_SLOT, colView);
