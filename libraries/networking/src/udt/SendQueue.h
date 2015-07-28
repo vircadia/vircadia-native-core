@@ -50,7 +50,6 @@ public:
 public slots:
     void start();
     void stop();
-    void sendPacket(const BasePacket& packet);
     
     void ack(SequenceNumber ack);
     void nak(std::list<SequenceNumber> naks);
@@ -66,15 +65,21 @@ private:
     SendQueue(SendQueue&& other) = delete;
     ~SendQueue();
     
+    // Increments current sequence number and return it
+    SequenceNumber getNextSequenceNumber();
+
+    // Send a packet through the socket
+    void sendPacket(const Packet& packet);
+    
     mutable QReadWriteLock _packetsLock; // Protects the packets to be sent list.
     std::list<std::unique_ptr<Packet>> _packets; // List of packets to be sent
     std::unique_ptr<Packet> _nextPacket;  // Next packet to be sent
     
     Socket* _socket { nullptr }; // Socket to send packet on
     HifiSockAddr _destination; // Destination addr
-    SequenceNumber _currentSequenceNumber; // Last sequence number sent out
     SequenceNumber _lastAck; // Last ACKed sequence number
     
+    SequenceNumber _currentSequenceNumber; // Last sequence number sent out
     std::atomic<uint32_t> _atomicCurrentSequenceNumber; // Atomic for last sequence number sent out
     
     std::unique_ptr<QTimer> _sendTimer; // Send timer

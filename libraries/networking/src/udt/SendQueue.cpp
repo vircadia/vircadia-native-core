@@ -80,8 +80,10 @@ void SendQueue::stop() {
     _running = false;
 }
     
-void SendQueue::sendPacket(const BasePacket& packet) {
-    _socket->writeUnreliablePacket(packet, _destination);
+void SendQueue::sendPacket(const Packet& packet) {
+    if (_socket) {
+        _socket->writePacket(packet, _destination);
+    }
 }
     
 void SendQueue::ack(SequenceNumber ack) {
@@ -121,6 +123,11 @@ void SendQueue::nak(std::list<SequenceNumber> naks) {
     _naks.splice(_naks.end(), naks); // Add naks at the end
 }
 
+SequenceNumber SendQueue::getNextSequenceNumber() {
+    _atomicCurrentSequenceNumber = (SequenceNumber::Type)++_currentSequenceNumber;
+    return _currentSequenceNumber;
+}
+
 void SendQueue::sendNextPacket() {
     if (!_running) {
         return;
@@ -131,9 +138,9 @@ void SendQueue::sendNextPacket() {
     _lastSendTimestamp = sendTime;
     
     if (_nextPacket) {
-        _nextPacket->setSequenceNumber(++_currentSequenceNumber);
+        // Write packet's sequence number and send it off
+        _nextPacket->setSequenceNumber(getNextSequenceNumber());
         sendPacket(*_nextPacket);
-        _atomicCurrentSequenceNumber.store((uint32_t) _currentSequenceNumber);
         
         // Insert the packet we have just sent in the sent list
         QWriteLocker locker(&_sentLock);
