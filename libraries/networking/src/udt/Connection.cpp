@@ -17,6 +17,7 @@
 #include "Socket.h"
 
 using namespace udt;
+using namespace std::chrono;
 
 Connection::Connection(Socket* parentSocket, HifiSockAddr destination) {
     
@@ -28,12 +29,57 @@ void Connection::send(std::unique_ptr<Packet> packet) {
     }
 }
 
-void Connection::sendACK() {
-    static const int ACK_PACKET_PAYLOAD_BYTES = 8;
+void Connection::sendACK(bool wasCausedBySyncTimeout) {
+    static const int ACK_PACKET_PAYLOAD_BYTES = sizeof(SeqNum);
     
     // setup the ACK packet, make it static so we can re-use it
     static auto ackPacket = ControlPacket::create(ControlPacket::ACK, ACK_PACKET_PAYLOAD_BYTES);
-
+    
+    auto currentTime = high_resolution_clock::now();
+    
+    SeqNum nextACKNumber = nextACK();
+    
+    if (nextACKNumber <= _lastReceivedAcknowledgedACK) {
+        // we already got an ACK2 for this ACK we would be sending, don't bother
+        return;
+    }
+    
+    if (nextACKNumber >= _lastSentACK) {
+        // we have received new packets since the last sent ACK
+        
+        // update the last sent ACK
+        _lastSentACK = nextACKNumber;
+        
+        // remove the ACKed packets from the receive queue
+        
+    } else if (nextACKNumber == _lastSentACK) {
+        // We already sent this ACK, but check if we should re-send it.
+        // We will re-send if it has been more than RTT + (4 * RTT variance) since the last ACK
+        milliseconds sinceLastACK = duration_cast<milliseconds>(currentTime - _lastACKTime);
+        if (sinceLastACK.count() < (_rtt + (4 * _rttVariance))) {
+            return;
+        }
+    }
+    
+    // reset the ACK packet so we can fill it up and have it figure out what size it is
+    ackPacket->reset();
+    
+    // pack in the ACK
+    ackPacket->writePrimitive(nextACKNumber);
+    
+    // pack in the RTT and variance
+    ackPacket->writePrimitive(_rtt);
+    ackPacket->writePrimitive(_rttVariance);
+    
+    // pack the available buffer size - must be a minimum of 2
+    
+    if (wasCausedBySyncTimeout) {
+        // pack in the receive speed and bandwidth
+        
+        // record this as the last ACK send time
+        _lastACKTime = high_resolution_clock::now();
+    }
+    
     // have the send queue send off our packet
     _sendQueue->sendPacket(*ackPacket);
 }
@@ -46,13 +92,16 @@ void Connection::sendLightACK() const {
     
     SeqNum nextACKNumber = nextACK();
     
-    if (nextACKNumber != _lastReceivedAcknowledgedACK) {
-        // pack in the ACK
-        memcpy(lightACKPacket->getPayload(), &nextACKNumber, sizeof(nextACKNumber));
-        
-        // have the send queue send off our packet
-        _sendQueue->sendPacket(*lightACKPacket);
+    if (nextACKNumber == _lastReceivedAcknowledgedACK) {
+        // we already got an ACK2 for this ACK we would be sending, don't bother
+        return;
     }
+    
+    // pack in the ACK
+    memcpy(lightACKPacket->getPayload(), &nextACKNumber, sizeof(nextACKNumber));
+    
+    // have the send queue send off our packet
+    _sendQueue->sendPacket(*lightACKPacket);
 }
 
 SeqNum Connection::nextACK() const {
