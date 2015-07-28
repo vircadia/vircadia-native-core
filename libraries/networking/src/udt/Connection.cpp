@@ -167,6 +167,9 @@ void Connection::processControl(unique_ptr<ControlPacket> controlPacket) {
             break;
         }
         case ControlPacket::ACK2: {
+            // change the type of the packet to an ACK2 and send it back
+            controlPacket->setType(ControlPacket::ACK2);
+            _sendQueue->sendPacket(*controlPacket);
             
             break;
         }
