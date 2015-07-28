@@ -90,10 +90,10 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
 }
 
 void Connection::sendLightACK() const {
-    static const int LIGHT_ACK_PACKET_PAYLOAD_BYTES = 4;
-    
     // create the light ACK packet, make it static so we can re-use it
+    static const int LIGHT_ACK_PACKET_PAYLOAD_BYTES = sizeof(SeqNum);
     static auto lightACKPacket = ControlPacket::create(ControlPacket::ACK, LIGHT_ACK_PACKET_PAYLOAD_BYTES);
+    lightACKPacket->reset(); // We need to reset it every time.
     
     SeqNum nextACKNumber = nextACK();
     
@@ -103,15 +103,18 @@ void Connection::sendLightACK() const {
     }
     
     // pack in the ACK
-    memcpy(lightACKPacket->getPayload(), &nextACKNumber, sizeof(nextACKNumber));
+    lightACKPacket->writePrimitive(nextACKNumber);
     
-    // have the send queue send off our packet
+    // have the send queue send off our packet immediately
     _sendQueue->sendPacket(*lightACKPacket);
 }
 
 SeqNum Connection::nextACK() const {
-    // TODO: check if we have a loss list
-    return _largestReceivedSeqNum + 1;
+    if (_lossList.getLength() > 0) {
+        return _lossList.getFirstSeqNum();
+    } else {
+        return _largestReceivedSeqNum + 1;
+    }
 }
 
 void Connection::processReceivedSeqNum(SeqNum seq) {
@@ -123,7 +126,19 @@ void Connection::processReceivedSeqNum(SeqNum seq) {
             _lossList.append(_largestReceivedSeqNum + 1, seq - 1);
         }
         
-        // TODO: Send loss report
+        // create the loss report packet, make it static so we can re-use it
+        static const int NAK_PACKET_PAYLOAD_BYTES = 2 * sizeof(SeqNum);
+        static auto lossReport = ControlPacket::create(ControlPacket::NAK, NAK_PACKET_PAYLOAD_BYTES);
+        lossReport->reset(); // We need to reset it every time.
+        
+        // pack in the loss report
+        lossReport->writePrimitive(_largestReceivedSeqNum + 1);
+        if (_largestReceivedSeqNum + 1 != seq - 1) {
+            lossReport->writePrimitive(seq - 1);
+        }
+        
+        // have the send queue send off our packet immediately
+        _sendQueue->sendPacket(*lossReport);
     }
     
     if (seq > _largestReceivedSeqNum) {

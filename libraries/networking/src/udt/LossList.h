@@ -30,7 +30,7 @@ public:
     void remove(SeqNum start, SeqNum end);
     
     int getLength() const { return _length; }
-    SeqNum getFirstSeqNum();
+    SeqNum getFirstSeqNum() const;
     
 private:
     std::list<std::pair<SeqNum, SeqNum>> _lossList;

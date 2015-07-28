@@ -42,7 +42,7 @@ public:
     void processControl(std::unique_ptr<ControlPacket> controlPacket);
     
 private:
-    LossList _lossList;
+    LossList _lossList; // List of all missing packets
     SeqNum _largestReceivedSeqNum; // The largest sequence number received from the peer
     SeqNum _lastSentACK; // The last sent ACK
     SeqNum _lastReceivedAcknowledgedACK; // The last sent ACK that has been acknowledged via an ACK2 from the peer
