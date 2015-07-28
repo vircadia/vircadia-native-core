@@ -667,6 +667,7 @@ private:
     int _numFramesSinceLastResize = 0;
 
     bool _overlayEnabled = true;
+    QRect _savedGeometry;
 };
 
 #endif // hifi_Application_h
