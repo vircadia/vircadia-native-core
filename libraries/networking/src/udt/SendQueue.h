@@ -73,7 +73,7 @@ private:
     Socket* _socket { nullptr }; // Socket to send packet on
     HifiSockAddr _destination; // Destination addr
     SeqNum _currentSeqNum; // Last sequence number sent out
-    SeqNum _lastAck; // ACKed sequence number
+    SeqNum _lastAck; // Last ACKed sequence number
     
     std::atomic<uint32_t> _atomicCurrentSeqNum; // Atomic for last sequence number sent out
     

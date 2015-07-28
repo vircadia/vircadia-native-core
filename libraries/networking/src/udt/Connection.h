@@ -29,6 +29,9 @@ class Socket;
 class Connection {
 
 public:
+    using SequenceNumberTimePair = std::pair<SeqNum, std::chrono::high_resolution_clock::time_point>>;
+    using SentACKMap = std::unordered_map<SeqNum, SequenceNumberTimePair>;
+    
     Connection(Socket* parentSocket, HifiSockAddr destination);
     
     void send(std::unique_ptr<Packet> packet);
@@ -68,6 +71,8 @@ private:
     int32_t _rtt; // RTT, in milliseconds
     int32_t _rttVariance; // RTT variance
     int _flowWindowSize; // Flow control window size
+    
+    SentACKMap _sentACKs; // Map of ACK sub-sequence numbers to ACKed sequence number and sent time
     
     std::unique_ptr<SendQueue> _sendQueue;
 };

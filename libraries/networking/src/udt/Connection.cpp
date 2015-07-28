@@ -86,6 +86,9 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     
     // have the send queue send off our packet
     _sendQueue->sendPacket(*ackPacket);
+    
+    // write this ACK to the map of sent ACKs
+    _sentACKs[_currentACKSubSequenceNumber] = { nextACKNumber, high_resolution_clock::now() };
 }
 
 void Connection::sendLightACK() const {
@@ -276,7 +279,29 @@ void Connection::processLightACK(std::unique_ptr<ControlPacket> controlPacket) {
 }
 
 void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
-    
+    // pull the sub sequence number from the packet
+    SeqNum subSequenceNumber;
+    controlPacket->readPrimitive(&subSequenceNumber);
+
+    // check if we had that subsequence number in our map
+    auto it = _sentACKs.find(subSequenceNumber);
+    if (it != _sentACKs.end()) {
+        // update the RTT using the ACK window
+        SequenceNumberTimePair& pair = it->second;
+        
+        // calculate the RTT (time now - time ACK sent)
+        auto now = high_resolution_clock::now();
+        int rtt = duration_cast<milliseconds>(now - pair.second).count();
+        
+        updateRTT(rtt);
+        
+        // set the RTT for congestion control
+        
+        // update the last ACKed ACK
+        if (pair.first > _lastReceivedAcknowledgedACK) {
+            _lastReceivedAcknowledgedACK = pair.first;
+        }
+    }
 }
 
 void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
