@@ -9,6 +9,26 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+
+var SCALE = 1000;
+var THUMB_COLOR = {
+    red: 150,
+    green: 150,
+    blue: 150
+};
+var THUMB_HIGHLIGHT = {
+    red: 255,
+    green: 255,
+    blue: 255
+};
+var CHECK_MARK_COLOR = {
+    red: 70,
+    green: 70,
+    blue: 90
+};
+
 // The Slider class
 (function () {
     var Slider = function(x,y,width,thumbSize) {
@@ -24,7 +44,7 @@
                         visible: true
                     });
         this.thumb = Overlays.addOverlay("text", {
-                        backgroundColor: { red: 255, green: 255, blue: 255 },
+                        backgroundColor: THUMB_COLOR,
                         x: x,
                         y: y,
                         width: thumbSize,
@@ -61,6 +81,25 @@
             return (item == this.thumb) || (item == this.background);
         };
     
+    
+    Slider.prototype.onMousePressEvent = function(event, clickedOverlay) {
+            if (!this.isClickableOverlayItem(clickedOverlay)) {
+                this.isMoving = false;
+                return;
+            }
+            this.highlight();
+            this.isMoving = true;
+            var clickOffset = event.x - this.thumbX;
+            if ((clickOffset > -this.thumbHalfSize) && (clickOffset < this.thumbHalfSize)) {
+                this.clickOffsetX = clickOffset;
+            } else {
+                this.clickOffsetX = 0;
+                this.thumbX = event.x;
+                this.updateThumb();
+                this.onValueChanged(this.getValue());
+            }
+        };
+
     Slider.prototype.onMouseMoveEvent = function(event) { 
             if (this.isMoving) {
                 var newThumbX = event.x - this.clickOffsetX;
@@ -76,34 +115,43 @@
             }
         };
     
-    Slider.prototype.onMousePressEvent = function(event, clickedOverlay) {
-            if (!this.isClickableOverlayItem(clickedOverlay)) {
-                this.isMoving = false;
-                return;
-            }
-            this.isMoving = true;
-            var clickOffset = event.x - this.thumbX;
-            if ((clickOffset > -this.thumbHalfSize) && (clickOffset < this.thumbHalfSize)) {
-                this.clickOffsetX = clickOffset;
-            } else {
-                this.clickOffsetX = 0;
-                this.thumbX = event.x;
-                this.updateThumb();
-                this.onValueChanged(this.getValue());
-            }
-    
-        };
-    
     Slider.prototype.onMouseReleaseEvent = function(event) {
             this.isMoving = false;
+            this.unhighlight();
         };
-    
-        // Public members:
+
+    Slider.prototype.updateWithKeys = function(direction) {
+        this.range = this.maxThumbX - this.minThumbX;
+        this.thumbX += direction * (this.range / SCALE);
+        this.updateThumb();
+        this.onValueChanged(this.getValue());
+        };
+
+    Slider.prototype.highlight = function() {
+        if(this.highlighted) {
+            return;
+        }
+        Overlays.editOverlay(this.thumb, {
+            backgroundColor: {red: 255, green: 255, blue: 255}
+        });
+        this.highlighted = true;  
+    };
+
+    Slider.prototype.unhighlight = function() {
+        if(!this.highlighted) {
+            return;
+        }
+        Overlays.editOverlay(this.thumb, {
+            backgroundColor: THUMB_COLOR
+        }); 
+        this.highlighted = false;
+    };
+
     Slider.prototype.setNormalizedValue = function(value) {
             if (value < 0.0) {
                 this.thumbX = this.minThumbX;
             } else if (value > 1.0) {
-                this.thumbX = this.maxThumbX;
+                this.thumbX = this.maxThsumbX;
             } else {
                 this.thumbX = value * (this.maxThumbX - this.minThumbX) + this.minThumbX;
             }
@@ -117,16 +165,17 @@
             var normValue = (value - this.minValue) / (this.maxValue - this.minValue);
             this.setNormalizedValue(normValue);
         };
+    Slider.prototype.getValue = function() {
+            return this.getNormalizedValue() * (this.maxValue - this.minValue) + this.minValue;
+        };
     
     Slider.prototype.reset = function(resetValue) {
             this.setValue(resetValue);
             this.onValueChanged(resetValue);
         };
 
-    Slider.prototype.getValue = function() {
-            return this.getNormalizedValue() * (this.maxValue - this.minValue) + this.minValue;
-        };
-    
+    Slider.prototype.onValueChanged = function(value) {};
+
     Slider.prototype.getHeight = function() {
             if(!this.visible) {
                 return 0;
@@ -143,8 +192,6 @@
         Overlays.editOverlay(this.background, {y: this.y});
         Overlays.editOverlay(this.thumb, {y: this.y});
     };
-    
-    Slider.prototype.onValueChanged = function(value) {};
 
     Slider.prototype.hide = function() {
             Overlays.editOverlay(this.background, {visible: false});
@@ -157,36 +204,19 @@
             Overlays.editOverlay(this.thumb, {visible: true});
             this.visible = true;
         };
-    
+
     Slider.prototype.destroy = function() {
             Overlays.deleteOverlay(this.background);
             Overlays.deleteOverlay(this.thumb);
         };
-    
-    Slider.prototype.setThumbColor = function(color) {
-            Overlays.editOverlay(this.thumb, {backgroundColor: { red: color.x*255, green: color.y*255, blue: color.z*255 }});
-        };
-    Slider.prototype.setBackgroundColor = function(color) {
-            Overlays.editOverlay(this.background, {backgroundColor: { red: color.x*255, green: color.y*255, blue: color.z*255 }});
-        };
+
     this.Slider = Slider;
     
     // The Checkbox class
     var Checkbox = function(x,y,width,thumbSize) {
     
-        this.background = Overlays.addOverlay("text", {
-                        backgroundColor: { red: 125, green: 125, blue: 255 },
-                        x: x,
-                        y: y,
-                        width: width,
-                        height: thumbSize,
-                        alpha: 1.0,
-                        backgroundAlpha: 0.5,
-                        visible: true
-                    });
-    
         this.thumb = Overlays.addOverlay("text", {
-                        backgroundColor: { red: 255, green: 255, blue: 255 },
+                        backgroundColor: THUMB_COLOR,
                         textFontSize: 10,
                         x: x,
                         y: y,
@@ -208,64 +238,72 @@
     
         
         this.checkMark = Overlays.addOverlay("text", {
-                        backgroundColor: { red: 0, green: 255, blue: 0 },
+                        backgroundColor: CHECK_MARK_COLOR,
                         x: checkX,
                         y: checkY,
                         width: thumbSize / 2.0,
                         height: thumbSize / 2.0,
                         alpha: 1.0,
                         visible: true
-                    });
-    
-        this.unCheckMark = Overlays.addOverlay("image", {
-                        backgroundColor: { red: 255, green: 255, blue: 255 },
-                        x: checkX + 1.0,
-                        y: checkY + 1.0,
-                        width: thumbSize / 2.5,
-                        height: thumbSize / 2.5,
-                        alpha: 1.0,
-                        visible: false
-                    });
+                    });     
     };
     
     Checkbox.prototype.updateThumb = function() { 
-            
-            Overlays.editOverlay(this.unCheckMark, { visible: !this.boxCheckStatus });
-            
+            Overlays.editOverlay(this.checkMark, { visible: this.boxCheckStatus });       
         };
     
     Checkbox.prototype.isClickableOverlayItem = function(item) {
-            return (item == this.thumb) || (item == this.checkMark) || (item == this.unCheckMark);
+            return (item == this.thumb) || (item == this.checkMark);
         };
         
     Checkbox.prototype.onMousePressEvent = function(event, clickedOverlay) {
-
             if (!this.isClickableOverlayItem(clickedOverlay)) {
                 return;
-            }
-            
+            }  
             this.boxCheckStatus = !this.boxCheckStatus;
             this.onValueChanged(this.getValue());
             this.updateThumb();
         };
     
-    
-    Checkbox.prototype.onMouseReleaseEvent = function(event) { };
-    
-    
-        // Public members:
+    Checkbox.prototype.onMouseReleaseEvent = function(event) {};
+
+    Checkbox.prototype.updateWithKeys = function() {
+        this.boxCheckStatus = !this.boxCheckStatus;
+        this.onValueChanged(this.getValue());
+        this.updateThumb();
+        };
+
+    Checkbox.prototype.highlight = function() {
+        Overlays.editOverlay(this.thumb, {
+            backgroundColor: THUMB_HIGHLIGHT
+        });
+        this.highlighted = true;   
+        };
+
+    Checkbox.prototype.unhighlight = function() {
+        Overlays.editOverlay(this.thumb, {
+            backgroundColor: THUMB_COLOR
+        }); 
+        this.highlighted = false;
+        };
     
     Checkbox.prototype.setValue = function(value) {
             this.boxCheckStatus = value;
+        };
+
+    Checkbox.prototype.setterFromWidget = function(value) {
+            this.updateThumb();
+        };
+
+    Checkbox.prototype.getValue = function() {
+            return this.boxCheckStatus;
         };
     
     Checkbox.prototype.reset = function(resetValue) {
             this.setValue(resetValue);
         };
-    
-    Checkbox.prototype.getValue = function() {
-            return this.boxCheckStatus;
-        };
+
+    Checkbox.prototype.onValueChanged = function(value) { };
     
     Checkbox.prototype.getHeight = function() {
         if(!this.visible) {
@@ -287,12 +325,6 @@
         Overlays.editOverlay(this.checkMark, {y: this.y});
         Overlays.editOverlay(this.unCheckMark, {y: this.y});
     };
-    
-    Checkbox.prototype.setterFromWidget = function(value) {
-            this.updateThumb();
-        };
-    
-    Checkbox.prototype.onValueChanged = function(value) { };
 
     Checkbox.prototype.hide = function() {
         Overlays.editOverlay(this.background, {visible: false});
@@ -316,13 +348,7 @@
             Overlays.deleteOverlay(this.checkMark);
             Overlays.deleteOverlay(this.unCheckMark);
         };
-    
-    Checkbox.prototype.setThumbColor = function(color) {
-            Overlays.editOverlay(this.thumb, { red: 255, green: 255, blue: 255 } );
-        };
-    Checkbox.prototype.setBackgroundColor = function(color) {
-            Overlays.editOverlay(this.background, { red: 125, green: 125, blue: 255  });
-        };
+
     this.Checkbox = Checkbox;
     
     // The ColorBox class
@@ -351,12 +377,6 @@
                 || this.blue.isClickableOverlayItem(item);
         };
     
-    ColorBox.prototype.onMouseMoveEvent = function(event) { 
-            this.red.onMouseMoveEvent(event);
-            this.green.onMouseMoveEvent(event);
-            this.blue.onMouseMoveEvent(event);
-        };
-    
     ColorBox.prototype.onMousePressEvent = function(event, clickedOverlay) {
             this.red.onMousePressEvent(event, clickedOverlay);
             if (this.red.isMoving) {
@@ -370,19 +390,48 @@
             
             this.blue.onMousePressEvent(event, clickedOverlay);
         };
-    
+
+    ColorBox.prototype.onMouseMoveEvent = function(event) { 
+            this.red.onMouseMoveEvent(event);
+            this.green.onMouseMoveEvent(event);
+            this.blue.onMouseMoveEvent(event);
+        };
     
     ColorBox.prototype.onMouseReleaseEvent = function(event) {
             this.red.onMouseReleaseEvent(event);
             this.green.onMouseReleaseEvent(event);
             this.blue.onMouseReleaseEvent(event);
         };
-    
+
+    ColorBox.prototype.updateWithKeys = function(direction) {
+        this.red.updateWithKeys(direction);
+        this.green.updateWithKeys(direction);
+        this.blue.updateWithKeys(direction);
+    }
+
+    ColorBox.prototype.highlight = function() {
+        this.red.highlight();
+        this.green.highlight();
+        this.blue.highlight(); 
+
+        this.highlighted = true;
+    };
+
+    ColorBox.prototype.unhighlight = function() {
+        this.red.unhighlight();
+        this.green.unhighlight();
+        this.blue.unhighlight();
+
+        this.highlighted = false;
+    };
+
     ColorBox.prototype.setterFromWidget = function(value) {
             var color = this.getValue();
             this.onValueChanged(color);
             this.updateRGBSliders(color);
         };
+
+    ColorBox.prototype.onValueChanged = function(value) {};
     
     ColorBox.prototype.updateRGBSliders = function(color) {
             this.red.setThumbColor({x: color.x, y: 0, z: 0});
@@ -397,17 +446,18 @@
             this.blue.setValue(value.z);
             this.updateRGBSliders(value);  
         };
-    
-    ColorBox.prototype.reset = function(resetValue) {
-            this.setValue(resetValue);
-            this.onValueChanged(resetValue);
-        };
-    
+
     ColorBox.prototype.getValue = function() {
             var value = {x:this.red.getValue(), y:this.green.getValue(),z:this.blue.getValue()};
             return value;
         };
-    
+
+    ColorBox.prototype.reset = function(resetValue) {
+            this.setValue(resetValue);
+            this.onValueChanged(resetValue);
+        };
+
+ 
     ColorBox.prototype.getHeight = function() {
         if(!this.visible) {
             return 0;
@@ -446,8 +496,7 @@
             this.green.destroy();
             this.blue.destroy();
         };
-    
-    ColorBox.prototype.onValueChanged = function(value) {};
+
     this.ColorBox = ColorBox;
     
     // The DirectionBox class
@@ -479,11 +528,6 @@
                 || this.pitch.isClickableOverlayItem(item);
         };
     
-    DirectionBox.prototype.onMouseMoveEvent = function(event) { 
-            this.yaw.onMouseMoveEvent(event);
-            this.pitch.onMouseMoveEvent(event);
-        };
-    
     DirectionBox.prototype.onMousePressEvent = function(event, clickedOverlay) {
             this.yaw.onMousePressEvent(event, clickedOverlay);
             if (this.yaw.isMoving) {
@@ -491,18 +535,43 @@
             }
             this.pitch.onMousePressEvent(event, clickedOverlay);
         };
+
+    DirectionBox.prototype.onMouseMoveEvent = function(event) { 
+            this.yaw.onMouseMoveEvent(event);
+            this.pitch.onMouseMoveEvent(event);
+        };
     
     DirectionBox.prototype.onMouseReleaseEvent = function(event) {
             this.yaw.onMouseReleaseEvent(event);
             this.pitch.onMouseReleaseEvent(event);
+        };
+
+    DirectionBox.prototype.updateWithKeys = function(direction) {
+        this.yaw.updateWithKeys(direction);
+        this.pitch.updateWithKeys(direction);
+        };
+
+    DirectionBox.prototype.highlight = function() {
+        this.pitch.highlight();
+        this.yaw.highlight();
+ 
+        this.highlighted = true;
+        };
+
+    DirectionBox.prototype.unhighlight = function() {
+        this.pitch.unhighlight();
+        this.yaw.unhighlight();
+      
+        this.highlighted = false;
         };
     
     DirectionBox.prototype.setterFromWidget = function(value) {
             var yawPitch = this.getValue();
             this.onValueChanged(yawPitch);
         };
-    
-        // Public members:
+
+    DirectionBox.prototype.onValueChanged = function(value) {};
+
     DirectionBox.prototype.setValue = function(direction) {
             var flatXZ = Math.sqrt(direction.x * direction.x + direction.z * direction.z);
             if (flatXZ > 0.0) {
@@ -516,18 +585,18 @@
             }
             this.pitch.setValue(direction.y);
         };
-    
-    DirectionBox.prototype.reset = function(resetValue) {
-            this.setValue(resetValue);
-            this.onValueChanged(resetValue);
-        };
-    
-    DirectionBox.prototype.getValue = function() {
+
+     DirectionBox.prototype.getValue = function() {
             var dirZ = this.pitch.getValue();
             var yaw = this.yaw.getValue() * Math.PI / 180;
             var cosY = Math.sqrt(1 - dirZ*dirZ);
             var value = {x:cosY * Math.cos(yaw), y:dirZ, z: cosY * Math.sin(yaw)};
             return value;
+        };
+    
+    DirectionBox.prototype.reset = function(resetValue) {
+            this.setValue(resetValue);
+            this.onValueChanged(resetValue);
         };
     
     DirectionBox.prototype.getHeight = function() {
@@ -564,7 +633,6 @@
             this.pitch.destroy();
         };
     
-    DirectionBox.prototype.onValueChanged = function(value) {};
     this.DirectionBox = DirectionBox;
     
     var textFontSize = 12;
@@ -577,15 +645,14 @@
     
         var topMargin = (height - 1.5 * textFontSize);
     
-        this.thumb = Overlays.addOverlay("text", {
-                        backgroundColor: { red: 220, green: 220, blue: 220 },
-                        textFontSize: 10,
+        this.thumb = Overlays.addOverlay("image", {
+                        color: {red: 255, green: 255, blue: 255},
+                        imageURL: HIFI_PUBLIC_BUCKET + 'images/tools/min-max-toggle.svg',
                         x: x,
                         y: y,
                         width: rawHeight,
                         height: rawHeight,
                         alpha: 1.0,
-                        backgroundAlpha: 1.0,
                         visible: true
                     });
         
@@ -644,13 +711,12 @@
         if (this.widget != null) {
             this.widget.moveDown();
         }
-
     }
-
     this.CollapsablePanelItem = CollapsablePanelItem;
     
     var PanelItem = function (name, setter, getter, displayer, x, y, textWidth, valueWidth, height) {
         //print("creating panel item: " + name);
+
         this.isCollapsable = false;
         this.name = name;
         this.y = y;
@@ -780,14 +846,23 @@
     var widgetWidth = 300;
     var rawHeight = 20;
     var rawYDelta = rawHeight * 1.5;
+    var outerPanel = true;
+    var widgets;
     
+
     var Panel = function(x, y) {
-        
+
+        if (outerPanel) {
+            widgets = [];
+        }
+        outerPanel = false;
+    
         this.x = x;
         this.y = y;
+        this.nextY = y;        
 
-        this.nextY = y;        print("creating panel at x: " + this.x + " y: " + this.y);
-    
+        print("creating panel at x: " + this.x + " y: " + this.y);
+        
         this.widgetX = x + textWidth + valueWidth; 
     
         this.items = new Array();
@@ -826,12 +901,20 @@
             } 
         }  
     };
+
+    Panel.prototype.mouseReleaseEvent = function(event) {
+        if (this.activeWidget) {
+            this.activeWidget.onMouseReleaseEvent(event);
+        }
+        this.activeWidget = null;
+        };
     
         // Reset panel item upon double-clicking
     Panel.prototype.mouseDoublePressEvent = function(event) {
         var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
         this.handleReset(clickedOverlay);
-    }
+    };
+
     
     Panel.prototype.handleReset = function (clickedOverlay) {
         for (var i in this.items) {
@@ -845,16 +928,13 @@
             
             if (clickedOverlay == item.title) {
                 item.activeWidget = widget;
-    
                 item.activeWidget.reset(item.resetValue);
-            
                 break;
             }    
         }
     };
 
     Panel.prototype.handleCollapse = function (clickedOverlay) {
-
         for (var i in this.items) {
     
             var item = this.items[i]; 
@@ -886,18 +966,13 @@
                 panel.hide();
                 break;
             }
-
         }
 
-        
         // Now recalculate new heights of subsequent widgets
         for(var j = i + 1; j < keys.length; ++j) {
             this.items[keys[j]].moveUp(this.getCurrentY(keys[j]));
-
         }
-
     };
-
 
     Panel.prototype.expand = function (clickedOverlay) {
         var keys = Object.keys(this.items);
@@ -910,23 +985,13 @@
                 panel.show();
                 break;
             }
-
-        }
-        
-        // Now recalculate new heights of subsequent widgets
+        } 
+         // Now recalculate new heights of subsequent widgets
         for(var j = i + 1; j < keys.length; ++j) {
             this.items[keys[j]].moveDown();
         }
+    };
 
-    };
-    
-    
-    Panel.prototype.mouseReleaseEvent = function(event) {
-        if (this.activeWidget) {
-            this.activeWidget.onMouseReleaseEvent(event);
-        }
-        this.activeWidget = null;
-    };
     
     Panel.prototype.onMousePressEvent = function(event, clickedOverlay) {
         for (var i in this.items) {
@@ -937,7 +1002,6 @@
             }
         }
     };
-    
     
     Panel.prototype.onMouseMoveEvent = function(event) {
         for (var i in this.items) {
@@ -966,7 +1030,63 @@
             }
         }
     };
-    
+
+    var tabView = false;
+    var tabIndex = 0;
+
+    Panel.prototype.keyPressEvent = function(event) {
+        if(event.text == "TAB" && !event.isShifted) {
+            tabView = true;
+            if(tabIndex < widgets.length) {
+                if(tabIndex > 0 && widgets[tabIndex - 1].highlighted) {
+                    // Unhighlight previous widget
+                    widgets[tabIndex - 1].unhighlight();
+                } 
+                widgets[tabIndex].highlight();
+                tabIndex++;
+            } else {
+                widgets[tabIndex - 1].unhighlight();
+                //Wrap around to front
+                tabIndex = 0;
+                widgets[tabIndex].highlight();
+                tabIndex++;
+            }
+        } else if (tabView && event.isShifted) {
+            if(tabIndex > 0) {
+                tabIndex--;
+                if(tabIndex < widgets.length && widgets[tabIndex + 1].highlighted) {
+                    // Unhighlight previous widget
+                    widgets[tabIndex + 1].unhighlight();
+                } 
+                widgets[tabIndex].highlight();
+            } else {
+                widgets[tabIndex].unhighlight();
+                //Wrap around to end
+                tabIndex = widgets.length - 1;
+                widgets[tabIndex].highlight();  
+            }
+        } else if (event.text == "LEFT") {
+            for(var i = 0; i < widgets.length; i++) {
+                // Find the highlighted widget, allow control with arrow keys
+                if(widgets[i].highlighted) {
+                    var k = -1;
+                    widgets[i].updateWithKeys(k);
+                    break;
+                }
+            }
+        } else if (event.text == "RIGHT") {
+            for(var i = 0; i < widgets.length; i++) {
+                // Find the highlighted widget, allow control with arrow keys
+                if(widgets[i].highlighted) {
+                    var k = 1;
+                    widgets[i].updateWithKeys(k);
+                    break;
+                }
+            }
+        }
+    };
+
+    // Widget constructors
     Panel.prototype.newSlider = function(name, minValue, maxValue, setValue, getValue, displayValue) {
         this.nextY = this.y + this.getHeight();
 
@@ -974,6 +1094,7 @@
         var slider = new Slider(this.widgetX, this.nextY, widgetWidth, rawHeight);
         slider.minValue = minValue;
         slider.maxValue = maxValue;
+        widgets.push(slider);
     
         item.widget = slider;
         item.widget.onValueChanged = function(value) { item.setterFromWidget(value); };
@@ -995,6 +1116,7 @@
         var item = new PanelItem(name, setValue, getValue, display, this.x, this.nextY, textWidth, valueWidth, rawHeight);
     
         var checkbox = new Checkbox(this.widgetX, this.nextY, widgetWidth, rawHeight);
+        widgets.push(checkbox);
     
         item.widget = checkbox;
         item.widget.onValueChanged = function(value) { item.setterFromWidget(value); };
@@ -1010,6 +1132,7 @@
         var item = new PanelItem(name, setValue, getValue, displayValue, this.x, this.nextY, textWidth, valueWidth, rawHeight);
         
         var colorBox = new ColorBox(this.widgetX, this.nextY, widgetWidth, rawHeight);
+        widgets.push(colorBox);
     
         item.widget = colorBox;
         item.widget.onValueChanged = function(value) { item.setterFromWidget(value); };
@@ -1025,6 +1148,7 @@
         var item = new PanelItem(name, setValue, getValue, displayValue, this.x, this.nextY, textWidth, valueWidth, rawHeight);
 
         var directionBox = new DirectionBox(this.widgetX, this.nextY, widgetWidth, rawHeight);
+        widgets.push(directionBox);
     
         item.widget = directionBox;
         item.widget.onValueChanged = function(value) { item.setterFromWidget(value); };
@@ -1034,10 +1158,8 @@
       //  print("created Item... directionBox=" + name);     
     };
     
-        
-    
     Panel.prototype.newSubPanel = function(name) {
-        //TODO: make collapsable, fix double-press event
+ 
         this.nextY = this.y + this.getHeight();
     
         var item = new CollapsablePanelItem(name, this.x, this.nextY, textWidth, rawHeight, panel);
@@ -1093,22 +1215,14 @@
         return false;
     };
   
-    Panel.prototype.getHeight = function(show) {
+    Panel.prototype.getHeight = function() {
         var height = 0;
         
         for (var i in this.items) {
-
             height += this.items[i].widget.getHeight(); 
-            // if(show) {
-            //     print("widget: " + i + " height: " + this.items[i].widget.getHeight());
-                        
-            // }
             if(this.items[i].isSubPanel && this.items[i].widget.visible) {
-                    
-                height += 1.5 * rawHeight;
-                
-            }  
-             
+                height += 1.5 * rawHeight;      
+            }       
         }
 
         return height;
@@ -1118,7 +1232,6 @@
         for (var i in this.items) {   
             this.items[i].widget.moveUp();
         } 
-       
     };
 
     Panel.prototype.moveDown = function() {
@@ -1141,7 +1254,6 @@
                 
             }   
         }
-
         return this.y + height;
     };
    
@@ -1176,7 +1288,6 @@
             this.items[i].destroy();
         } 
     };
-
 
     this.Panel = Panel;
 })();
