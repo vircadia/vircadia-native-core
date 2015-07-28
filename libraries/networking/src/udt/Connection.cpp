@@ -337,6 +337,11 @@ void Connection::updateRTT(int rtt) {
     // Deviation  = (1 - x)(deviation) + x |sampleRTT - estimatedRTT|
     // (where x = 0.25 via Jacobson)
     
-    _rttVariance = (_rttVariance * 3 + abs(rtt - _rtt)) >> 2;
-    _rtt = (_rtt * 7 + rtt) >> 3;
+    static const int RTT_ESTIMATION_ALPHA_NUMERATOR = 8;
+    static const int RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR = 4;
+   
+    _rtt = (_rtt * (1 - RTT_ESTIMATION_ALPHA_NUMERATOR) + rtt) / RTT_ESTIMATION_ALPHA_NUMERATOR;
+    
+    _rttVariance = (_rttVariance * (1 - RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR)
+                    + abs(rtt - _rtt)) / RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR;
 }
