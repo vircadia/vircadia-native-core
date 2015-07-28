@@ -89,6 +89,7 @@ void SendQueue::ack(SeqNum ack) {
         return;
     }
     
+    // remove any ACKed packets from the map of sent packets
     QWriteLocker locker(&_sentLock);
     for (auto seq = _lastAck; seq <= ack; ++seq) {
         _sentPackets.erase(seq);
