@@ -11,20 +11,14 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-<@include gpu/Transform.slh@>
-<$declareStandardTransform()$>
+
 <@include DeferredBufferWrite.slh@>
 
-void main(void) {
+varying vec2 varQuadPosition;
 
-  TransformCamera cam = getTransformCamera();
-  vec4 myViewport;
-  <$transformCameraViewport(cam, myViewport)$>
-  vec2 center = vec2(myViewport.z/2.0, myViewport.w/2.0);
-  float distFromCenter = distance(center, gl_FragCoord.xy);
-  //normalize distance from center based on average of screen width and height
-  float normalizationFactor = (myViewport.z + myViewport.w)/2.0;
-  distFromCenter = distFromCenter/normalizationFactor;
-  float alpha = mix(0.0, 1.0, pow(distFromCenter, 1.5));
+void main(void) {
+  vec2 center = vec2(0.0, 0.0);
+  float distFromCenter = distance( vec2(0.0, 0.0), varQuadPosition);
+  float alpha = mix(0.0, 0.5, pow(distFromCenter,5.));
   gl_FragColor = vec4(1.0, 0.0, 0.0, alpha);
 }

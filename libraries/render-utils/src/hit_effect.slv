@@ -16,6 +16,9 @@
 
 <$declareStandardTransform()$>
 
+varying vec2 varQuadPosition;
+
 void main(void) {
-  gl_Position = gl_Vertex;
+    varQuadPosition = gl_Vertex.xy;
+    gl_Position = gl_Vertex;
 }
