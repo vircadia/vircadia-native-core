@@ -112,6 +112,11 @@ Packet& Packet::operator=(Packet&& other) {
     return *this;
 }
 
+void Packet::setSequenceNumber(SequenceNumber sequenceNumber) {
+    _sequenceNumber = sequenceNumber;
+    writeHeader();
+}
+
 static const uint32_t CONTROL_BIT_MASK = 1 << (sizeof(Packet::SequenceNumberAndBitField) - 1);
 static const uint32_t RELIABILITY_BIT_MASK = 1 << (sizeof(Packet::SequenceNumberAndBitField) - 2);
 static const uint32_t MESSAGE_BIT_MASK = 1 << (sizeof(Packet::SequenceNumberAndBitField) - 3);
@@ -130,6 +135,7 @@ void Packet::writeHeader() {
     // grab pointer to current SequenceNumberAndBitField
     SequenceNumberAndBitField* seqNumBitField = reinterpret_cast<SequenceNumberAndBitField*>(_packet.get());
     
+    // 0 for data packets
     *seqNumBitField &= ~CONTROL_BIT_MASK;
     
     if (_isPartOfMessage) {

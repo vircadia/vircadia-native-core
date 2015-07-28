@@ -131,7 +131,7 @@ void SendQueue::sendNextPacket() {
     _lastSendTimestamp = sendTime;
     
     if (_nextPacket) {
-        _nextPacket->writeSequenceNumber(++_currentSequenceNumber);
+        _nextPacket->setSequenceNumber(++_currentSequenceNumber);
         sendPacket(*_nextPacket);
         _atomicCurrentSequenceNumber.store((uint32_t) _currentSequenceNumber);
         

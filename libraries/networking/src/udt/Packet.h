@@ -52,7 +52,7 @@ public:
     bool isReliable() const { return _isReliable; }
     SequenceNumber getSequenceNumber() const { return _sequenceNumber; }
     
-    void setSequenceNumber();
+    void setSequenceNumber(SequenceNumber sequenceNumber);
 
 protected:
     Packet(qint64 size, bool isReliable = false, bool isPartOfMessage = false);
