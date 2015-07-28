@@ -32,7 +32,7 @@ void Connection::send(unique_ptr<Packet> packet) {
 
 void Connection::sendACK(bool wasCausedBySyncTimeout) {
     static const int ACK_PACKET_PAYLOAD_BYTES = sizeof(_lastSentACK) + sizeof(_currentACKSubSequenceNumber)
-        + sizeof(_rtt) + sizeof(_rttVariance) + sizeof(int32_t) + sizeof(int32_t);
+        + sizeof(_rtt) + sizeof(int32_t) + sizeof(int32_t);
     
     // setup the ACK packet, make it static so we can re-use it
     static auto ackPacket = ControlPacket::create(ControlPacket::ACK, ACK_PACKET_PAYLOAD_BYTES);
@@ -74,7 +74,6 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     
     // pack in the RTT and variance
     ackPacket->writePrimitive(_rtt);
-    ackPacket->writePrimitive(_rttVariance);
     
     // pack the available buffer size - must be a minimum of 2
     
@@ -215,10 +214,9 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
         return;
     }
     
-    // read the RTT and variance
-    int32_t rtt, rttVariance;
+    // read the RTT
+    int32_t rtt;
     controlPacket->readPrimitive(&rtt);
-    controlPacket->readPrimitive(&rttVariance);
     
     // read the desired flow window size
     int flowWindowSize;
@@ -244,12 +242,11 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     // remove everything up to this ACK from the sender loss list
     
     // update the RTT
-    _rttVariance = (_rttVariance * 3 + abs(rtt - _rtt)) >> 2;
-    _rtt = (_rtt * 7 + rtt) >> 3;
+    updateRTT(rtt);
     
     // set the RTT for congestion control
     
-    if (controlPacket->getPayloadSize() > (qint64) (sizeof(SeqNum) + sizeof(SeqNum) + sizeof(rtt) + sizeof(rttVariance))) {
+    if (controlPacket->getPayloadSize() > (qint64) (sizeof(SeqNum) + sizeof(SeqNum) + sizeof(rtt))) {
         int32_t deliveryRate, bandwidth;
         controlPacket->readPrimitive(&deliveryRate);
         controlPacket->readPrimitive(&bandwidth);
@@ -260,7 +257,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     // fire the onACK callback for congestion control
     
     // update the total count of received ACKs
-    ++_totalReceivedACKs;    
+    ++_totalReceivedACKs;
 }
 
 void Connection::processLightACK(std::unique_ptr<ControlPacket> controlPacket) {
@@ -289,4 +286,10 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
     if (controlPacket->bytesLeftToRead() >= (qint64)sizeof(SeqNum)) {
         controlPacket->readPrimitive(&end);
     }
+}
+
+void Connection::updateRTT(int32_t rtt) {
+    // this updates the RTT using exponential weighted moving average
+    _rttVariance = (_rttVariance * 3 + abs(rtt - _rtt)) >> 2;
+    _rtt = (_rtt * 7 + rtt) >> 3;
 }
