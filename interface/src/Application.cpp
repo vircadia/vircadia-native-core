@@ -3397,14 +3397,10 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     // set the bounds of rear mirror view
     gpu::Vec4i viewport;
     if (billboard) {
-        QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
         viewport = gpu::Vec4i(0, 0, region.width(), region.height());
     } else {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
-        QSize size = DependencyManager::get<FramebufferCache>()->getFrameBufferSize();
         float ratio = (float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale();
-        int x = region.x() * ratio;
-        int y = region.y() * ratio;
         int width = region.width() * ratio;
         int height = region.height() * ratio;
         viewport = gpu::Vec4i(0, 0, width, height);
@@ -3608,23 +3604,14 @@ int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingN
     int statsMessageLength = 0;
 
     const QUuid& nodeUUID = sendingNode->getUUID();
-    OctreeSceneStats* octreeStats;
-
+    
     // now that we know the node ID, let's add these stats to the stats for that node...
     _octreeSceneStatsLock.lockForWrite();
-    auto it = _octreeServerSceneStats.find(nodeUUID);
-    if (it != _octreeServerSceneStats.end()) {
-        octreeStats = &it->second;
-        statsMessageLength = octreeStats->unpackFromPacket(packet);
-    } else {
-        OctreeSceneStats temp;
-        statsMessageLength = temp.unpackFromPacket(packet);
-        octreeStats = &temp;
-    }
+    
+    OctreeSceneStats& octreeStats = _octreeServerSceneStats[nodeUUID];
+    statsMessageLength = octreeStats.unpackFromPacket(packet);
+    
     _octreeSceneStatsLock.unlock();
-
-    VoxelPositionSize rootDetails;
-    voxelDetailsForCode(octreeStats->getJurisdictionRoot(), rootDetails);
 
     // see if this is the first we've heard of this node...
     NodeToJurisdictionMap* jurisdiction = NULL;
@@ -3637,6 +3624,9 @@ int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingN
     jurisdiction->lockForRead();
     if (jurisdiction->find(nodeUUID) == jurisdiction->end()) {
         jurisdiction->unlock();
+        
+        VoxelPositionSize rootDetails;
+        voxelDetailsForCode(octreeStats.getJurisdictionRoot(), rootDetails);
 
         qCDebug(interfaceapp, "stats from new %s server... [%f, %f, %f, %f]",
                 qPrintable(serverType),
@@ -3649,7 +3639,7 @@ int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingN
     // but OctreeSceneStats thinks it's just returning a reference to its contents. So we need to make a copy of the
     // details from the OctreeSceneStats to construct the JurisdictionMap
     JurisdictionMap jurisdictionMap;
-    jurisdictionMap.copyContents(octreeStats->getJurisdictionRoot(), octreeStats->getJurisdictionEndNodes());
+    jurisdictionMap.copyContents(octreeStats.getJurisdictionRoot(), octreeStats.getJurisdictionEndNodes());
     jurisdiction->lockForWrite();
     (*jurisdiction)[nodeUUID] = jurisdictionMap;
     jurisdiction->unlock();

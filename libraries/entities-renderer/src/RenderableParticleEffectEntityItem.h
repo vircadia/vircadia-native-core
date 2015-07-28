@@ -16,20 +16,35 @@
 #include "RenderableEntityItem.h"
 
 class RenderableParticleEffectEntityItem : public ParticleEffectEntityItem  {
+friend class ParticlePayload;
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     RenderableParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
-    virtual void render(RenderArgs* args);
 
-    void updateQuads(RenderArgs* args, bool textured);
+    virtual void update(const quint64& now) override;
 
-    SIMPLE_RENDERABLE();
+    void updateRenderItem();
+
+    virtual bool addToScene(EntityItemPointer self, render::ScenePointer scene, render::PendingChanges& pendingChanges);
+    virtual void removeFromScene(EntityItemPointer self, render::ScenePointer scene, render::PendingChanges& pendingChanges);
 
 protected:
+    render::ItemID _renderItemId;
 
-    int _cacheID;
-    const int VERTS_PER_PARTICLE = 4;
+    struct Vertex {
+        Vertex(glm::vec3 xyzIn, glm::vec2 uvIn, uint32_t rgbaIn) : xyz(xyzIn), uv(uvIn), rgba(rgbaIn) {}
+        glm::vec3 xyz;
+        glm::vec2 uv;
+        uint32_t rgba;
+    };
 
+    static void createPipelines();
+
+    std::vector<Vertex> _vertices;
+    static gpu::PipelinePointer _untexturedPipeline;
+    static gpu::PipelinePointer _texturedPipeline;
+
+    render::ScenePointer _scene;
     NetworkTexturePointer _texture;
 };
 
