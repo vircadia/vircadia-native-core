@@ -96,6 +96,8 @@ private:
     void renderControllerPointers(gpu::Batch& batch);
     void renderPointersOculus(gpu::Batch& batch);
 
+    vec2 getPolarCoordinates(const PalmData& palm) const;
+
     // Support for hovering and tooltips
     static EntityItemID _noItemId;
     EntityItemID _hoverItemId { _noItemId };
