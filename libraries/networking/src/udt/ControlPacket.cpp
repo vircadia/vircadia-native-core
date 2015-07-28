@@ -39,7 +39,7 @@ ControlPacket::ControlPacketPair ControlPacket::createPacketPair(quint64 timesta
 }
 
 qint64 ControlPacket::localHeaderSize() {
-    return sizeof(TypeAndSubSequenceNumber);
+    return sizeof(BitFieldAndControlType);
 }
 
 qint64 ControlPacket::totalHeadersSize() const {

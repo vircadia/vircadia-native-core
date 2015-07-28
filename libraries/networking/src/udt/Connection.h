@@ -44,6 +44,7 @@ private:
     SeqNum _largestReceivedSeqNum; // The largest sequence number received from the peer
     SeqNum _lastSentACK; // The last sent ACK
     SeqNum _lastReceivedAcknowledgedACK; // The last sent ACK that has been acknowledged via an ACK2 from the peer
+    SeqNum _currentACKSubSequenceNumber; // The current ACK sub-sequence number (used for Acknowledgment of ACKs)
     
     int32_t _rtt; // RTT, in milliseconds
     int32_t _rttVariance; // RTT variance

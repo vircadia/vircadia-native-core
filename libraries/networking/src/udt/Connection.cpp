@@ -64,7 +64,10 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     // reset the ACK packet so we can fill it up and have it figure out what size it is
     ackPacket->reset();
     
-    // pack in the ACK
+    // pack in the ACK sub-sequence number
+    ackPacket->writePrimitive(_currentACKSubSequenceNumber++);
+    
+    // pack in the ACK number
     ackPacket->writePrimitive(nextACKNumber);
     
     // pack in the RTT and variance

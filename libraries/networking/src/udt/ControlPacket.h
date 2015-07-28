@@ -24,7 +24,7 @@ namespace udt {
 class ControlPacket : public BasePacket {
     Q_OBJECT
 public:
-    using TypeAndSubSequenceNumber = uint32_t;
+    using BitFieldAndControlType = uint32_t;
     using ControlPacketPair = std::pair<std::unique_ptr<ControlPacket>, std::unique_ptr<ControlPacket>>;
     
     enum Type : uint16_t {
