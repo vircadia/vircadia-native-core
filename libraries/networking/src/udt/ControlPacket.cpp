@@ -27,13 +27,6 @@ std::unique_ptr<ControlPacket> ControlPacket::create(Type type, qint64 size) {
     }
 }
 
-ControlPacket::ControlPacketPair ControlPacket::createPacketPair(quint64 timestamp) {
-    // create each of the two packets in the packet pair
-    ControlPacketPair packetPair { std::unique_ptr<ControlPacket>(new ControlPacket(timestamp)),
-                                   std::unique_ptr<ControlPacket>(new ControlPacket(timestamp)) };
-    return packetPair;
-}
-
 qint64 ControlPacket::localHeaderSize() {
     return sizeof(ControlBitAndType);
 }
@@ -62,20 +55,6 @@ ControlPacket::ControlPacket(Type type, qint64 size) :
     open(QIODevice::ReadWrite);
     
     writeControlBitAndType();
-}
-
-ControlPacket::ControlPacket(quint64 timestamp) :
-    BasePacket(localHeaderSize() + sizeof(timestamp)),
-    _type(Type::PacketPair)
-{
-    adjustPayloadStartAndCapacity();
-    
-    open(QIODevice::ReadWrite);
-    
-    writeControlBitAndType();
-    
-    // pack in the timestamp
-    writePrimitive(timestamp);
 }
 
 ControlPacket::ControlPacket(ControlPacket&& other) :

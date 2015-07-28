@@ -85,7 +85,9 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     // pack the available buffer size - must be a minimum of 2
     
     if (wasCausedBySyncTimeout) {
-        // pack in the receive speed and bandwidth
+        // pack in the receive speed and estimatedBandwidth
+        ackPacket->writePrimitive(_receiveWindow.getPacketReceiveSpeed());
+        ackPacket->writePrimitive(_receiveWindow.getEstimatedBandwidth());
         
         // record this as the last ACK send time
         lastACKSendTime = high_resolution_clock::now();
@@ -129,6 +131,16 @@ SequenceNumber Connection::nextACK() const {
 }
 
 void Connection::processReceivedSequenceNumber(SequenceNumber seq) {
+    
+    // check if this is a packet pair we should estimate bandwidth from, or just a regular packet
+    if (((uint32_t) seq & 0xF) == 0) {
+        _receiveWindow.onProbePair1Arrival();
+    } else if (((uint32_t) seq & 0xF) == 1) {
+        _receiveWindow.onProbePair2Arrival();
+    } else {
+        _receiveWindow.onPacketArrival();
+    }
+    
     // If this is not the next sequence number, report loss
     if (seq > _lastReceivedSequenceNumber + 1) {
         if (_lastReceivedSequenceNumber + 1 == seq - 1) {
@@ -175,8 +187,6 @@ void Connection::processControl(unique_ptr<ControlPacket> controlPacket) {
             break;
         case ControlPacket::NAK:
             processNAK(move(controlPacket));
-            break;
-        case ControlPacket::PacketPair:
             break;
     }
 }
@@ -316,8 +326,17 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
     }
 }
 
-void Connection::updateRTT(int32_t rtt) {
-    // this updates the RTT using exponential weighted moving average
+void Connection::updateRTT(int rtt) {
+    // This updates the RTT using exponential weighted moving average
+    // This is the Jacobson's forumla for RTT estimation
+    // http://www.mathcs.emory.edu/~cheung/Courses/455/Syllabus/7-transport/Jacobson-88.pdf
+    
+    // Estimated RTT = (1 - x)(estimatedRTT) + (x)(sampleRTT)
+    // (where x = 0.125 via Jacobson)
+    
+    // Deviation  = (1 - x)(deviation) + x |sampleRTT - estimatedRTT|
+    // (where x = 0.25 via Jacobson)
+    
     _rttVariance = (_rttVariance * 3 + abs(rtt - _rtt)) >> 2;
     _rtt = (_rtt * 7 + rtt) >> 3;
 }

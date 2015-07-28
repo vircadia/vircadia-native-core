@@ -16,6 +16,7 @@
 #include <memory>
 
 #include "LossList.h"
+#include "PacketTimeWindow.h"
 #include "SendQueue.h"
 #include "../HifiSockAddr.h"
 
@@ -51,7 +52,7 @@ private:
     void processACK2(std::unique_ptr<ControlPacket> controlPacket);
     void processNAK(std::unique_ptr<ControlPacket> controlPacket);
     
-    void updateRTT(int32_t rtt);
+    void updateRTT(int rtt);
     
     int _synInterval; // Periodical Rate Control Interval, defaults to 10ms
     
@@ -75,6 +76,9 @@ private:
     
     Socket* _parentSocket { nullptr };
     HifiSockAddr _destination;
+    
+    PacketTimeWindow _receiveWindow { 16, 64 }; // Window of interval between packets (16) and probes (64) for bandwidth and receive speed
+    
     std::unique_ptr<SendQueue> _sendQueue;
 };
     
