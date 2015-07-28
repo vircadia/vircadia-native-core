@@ -75,7 +75,7 @@ private:
     
     SentACKMap _sentACKs; // Map of ACK sub-sequence numbers to ACKed sequence number and sent time
     
-    PacketTimeWindow _receiveWindow; // Window of received packets for bandwidth estimation and receive speed
+    PacketTimeWindow _receiveWindow { 16, 64 }; // Window of interval between packets (16) and probes (64) for bandwidth and receive speed
     
     std::unique_ptr<SendQueue> _sendQueue;
 };

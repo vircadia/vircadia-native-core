@@ -80,7 +80,7 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     if (wasCausedBySyncTimeout) {
         // pack in the receive speed and estimatedBandwidth
         ackPacket->writePrimitive(_receiveWindow.getPacketReceiveSpeed());
-        ackPacket->writePrimitive(_receiveWindow.getEstimatedBandwidth());        
+        ackPacket->writePrimitive(_receiveWindow.getEstimatedBandwidth());
         
         // record this as the last ACK send time
         lastACKSendTime = high_resolution_clock::now();
