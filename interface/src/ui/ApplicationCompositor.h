@@ -94,7 +94,6 @@ private:
 
     void renderPointers(gpu::Batch& batch);
     void renderControllerPointers(gpu::Batch& batch);
-    void renderPointersOculus(gpu::Batch& batch);
 
     vec2 getPolarCoordinates(const PalmData& palm) const;
 
