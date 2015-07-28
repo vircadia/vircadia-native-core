@@ -4917,42 +4917,26 @@ mat4 Application::getHMDSensorPose() const {
     return mat4();
 }
 
-static QRect savedGeometry;
-static QScreen* originalScreen = nullptr;
-
 void Application::setFullscreen(const QScreen* target) {
-    // Work around Qt bug that prevents floating menus being shown when in fullscreen mode.
-    // https://bugreports.qt.io/browse/QTBUG-41883
-    // Known issue: Top-level menu items don't highlight when cursor hovers. This is probably a side-effect of the work-around.
-    // TODO: Remove this work-around once the bug has been fixed and restore the following lines.
-    //_window->setWindowState(fullscreen ? (_window->windowState() | Qt::WindowFullScreen) :
-    //    (_window->windowState() & ~Qt::WindowFullScreen));
     if (!_window->isFullScreen()) {
-        savedGeometry = _window->geometry();
-        originalScreen = _window->windowHandle()->screen();
-        qDebug() << savedGeometry;
+        _savedGeometry = _window->geometry();
     }
-    _window->hide();
+#ifdef Q_OS_MAC
     _window->setGeometry(target->availableGeometry());
-//    _window->windowHandle()->setScreen((QScreen*)target);
+#endif
+    _window->windowHandle()->setScreen((QScreen*)target);
     _window->showFullScreen();
-    if (!_aboutToQuit) {
-        _window->show();
-    }
 }
 
 void Application::unsetFullscreen() {
-    _window->hide();
-//    _window->windowHandle()->setScreen(originalScreen);
-//    _window->setGeometry(savedGeometry);
-    _window->setWindowState(_window->windowState() & ~Qt::WindowFullScreen);
-    _window->show();
-
-    QTimer* geometryTimer = new QTimer();
-    // FIXME do better and moving from screen to screen on unset of fullscreen
-    geometryTimer->singleShot(2000, [=]{
-        qDebug() << savedGeometry;
+    _window->showNormal();
+#ifdef Q_OS_MAC
+    QTimer* timer = new QTimer();
+    timer->singleShot(1000, [=] {
         _window->setGeometry(savedGeometry);
-        geometryTimer->deleteLater();
+        timer->deleteLater();
     });
+#else
+    _window->setGeometry(_savedGeometry);
+#endif
 }
