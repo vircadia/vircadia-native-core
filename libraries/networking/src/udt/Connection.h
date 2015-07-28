@@ -14,6 +14,7 @@
 
 #include <memory>
 
+#include "LossList.h"
 #include "SendQueue.h"
 
 class HifiSockAddr;
@@ -36,6 +37,7 @@ public:
     
 private:
     
+    LossList _lossList;
     SeqNum _largestRecievedSeqNum;
     std::unique_ptr<SendQueue> _sendQueue;
 };
