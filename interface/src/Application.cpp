@@ -330,7 +330,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
         _isVSyncOn(true),
-        _isThrottleFPSEnabled(false),
+        _isThrottleFPSEnabled(true),
         _aboutToQuit(false),
         _notifiedPacketVersionMismatchThisDomain(false),
         _glWidget(new GLCanvas()),
@@ -3272,6 +3272,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         renderContext._maxDrawnOverlay3DItems = sceneInterface->getEngineMaxDrawnOverlay3DItems();
 
         renderContext._drawItemStatus = sceneInterface->doEngineDisplayItemStatus();
+
+        renderContext._occlusionStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugAmbientOcclusion);
 
         renderArgs->_shouldRender = LODManager::shouldRender;
 

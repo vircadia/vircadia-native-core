@@ -1,0 +1,109 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  ambient_occlusion.frag
+//  fragment shader
+//
+//  Created by Niraj Venkat on 7/15/15.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include DeferredBufferWrite.slh@>
+
+<@include gpu/Transform.slh@>
+
+<$declareStandardTransform()$>
+
+varying vec2 varTexcoord;
+
+uniform sampler2D depthTexture;
+uniform sampler2D normalTexture;
+
+uniform float g_scale;
+uniform float g_bias;
+uniform float g_sample_rad;
+uniform float g_intensity;
+uniform float bufferWidth;
+uniform float bufferHeight;
+
+#define SAMPLE_COUNT 4
+
+float getRandom(vec2 uv) {
+    return fract(sin(dot(uv.xy ,vec2(12.9898,78.233))) * 43758.5453);
+}
+
+void main(void) {
+    vec3 sampleKernel[4] = {    vec3(0.2, 0.0, 0.0),
+                                vec3(0.0, 0.2, 0.0),
+                                vec3(0.0, 0.0, 0.2),
+                                vec3(0.2, 0.2, 0.2)     };
+
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+
+    vec3 eyeDir = vec3(0.0, 0.0, -3.0);
+    vec3 cameraPositionWorldSpace;
+    <$transformEyeToWorldDir(cam, eyeDir, cameraPositionWorldSpace)$>
+
+    vec4 depthColor = texture2D(depthTexture, varTexcoord);
+
+    // z in non linear range [0,1]
+    float depthVal = depthColor.r;
+    // conversion into NDC [-1,1]
+    float zNDC = depthVal * 2.0 - 1.0;
+    float n = 1.0;  // the near plane                
+    float f = 30.0; // the far plane
+    float l = -1.0; // left
+    float r = 1.0;  // right
+    float b = -1.0; // bottom
+    float t = 1.0;  // top
+                                  
+    // conversion into eye space
+    float zEye = 2*f*n / (zNDC*(f-n)-(f+n));
+    // Converting from pixel coordinates to NDC
+    float xNDC = gl_FragCoord.x/bufferWidth * 2.0 - 1.0;
+    float yNDC = gl_FragCoord.y/bufferHeight * 2.0 - 1.0;
+    // Unprojecting X and Y from NDC to eye space
+    float xEye = -zEye*(xNDC*(r-l)+(r+l))/(2.0*n);
+    float yEye = -zEye*(yNDC*(t-b)+(t+b))/(2.0*n);
+    vec3 currentFragEyeSpace = vec3(xEye, yEye, zEye);
+    vec3 currentFragWorldSpace;
+    <$transformEyeToWorldDir(cam, currentFragEyeSpace, currentFragWorldSpace)$>
+    
+    vec3 cameraToPositionRay = normalize(currentFragWorldSpace - cameraPositionWorldSpace);
+    vec3 origin = cameraToPositionRay * depthVal + cameraPositionWorldSpace;
+  
+    vec3 normal = normalize(texture2D(normalTexture, varTexcoord).xyz);
+    //normal = normalize(normal * normalMatrix);
+  
+    vec3 rvec = vec3(getRandom(varTexcoord.xy), getRandom(varTexcoord.yx), getRandom(varTexcoord.xx)) * 2.0 - 1.0;
+    vec3 tangent = normalize(rvec - normal * dot(rvec, normal));
+    vec3 bitangent = cross(normal, tangent);
+    mat3 tbn = mat3(tangent, bitangent, normal);
+  
+    float occlusion = 0.0;
+  
+    for (int i = 0; i < SAMPLE_COUNT; ++i) {
+        vec3 samplePos = origin + (tbn * sampleKernel[i]) * g_sample_rad;
+        vec4 offset = cam._projectionViewUntranslated * vec4(samplePos, 1.0);
+    
+        offset.xy = (offset.xy / offset.w) * 0.5 + 0.5;
+        float depth = length(samplePos - cameraPositionWorldSpace);
+    
+        float sampleDepthVal = texture2D(depthTexture, offset.xy).r;
+    
+        float rangeDelta = abs(depthVal - sampleDepthVal);
+        float rangeCheck = smoothstep(0.0, 1.0, g_sample_rad / rangeDelta);
+    
+        occlusion += rangeCheck * step(sampleDepthVal, depth);
+    }
+  
+    occlusion = 1.0 - occlusion / float(SAMPLE_COUNT);
+    occlusion = clamp(pow(occlusion, g_intensity), 0.0, 1.0);
+    gl_FragColor = vec4(vec3(occlusion), 1.0);
+}
+
