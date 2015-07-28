@@ -160,7 +160,7 @@ void Connection::processControl(unique_ptr<ControlPacket> controlPacket) {
             controlPacket->readPrimitive(&nextACKNumber);
             
             // read the RTT and variance
-            int32_t rtt{ 0 }, rttVariance{ 0 };
+            int32_t rtt, rttVariance;
             controlPacket->readPrimitive(&rtt);
             controlPacket->readPrimitive(&rttVariance);
             
