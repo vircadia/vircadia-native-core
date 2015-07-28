@@ -131,7 +131,6 @@ inline SequenceNumber operator-(const SequenceNumber::Type& a, SequenceNumber b)
     return b;
 }
     
-int seqcmp(const SequenceNumber& seq1, const SequenceNumber& seq2);
 int seqlen(const SequenceNumber& seq1, const SequenceNumber& seq2);
 int seqoff(const SequenceNumber& seq1, const SequenceNumber& seq2);
     
