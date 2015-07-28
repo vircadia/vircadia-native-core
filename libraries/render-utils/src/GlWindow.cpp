@@ -32,10 +32,6 @@ GlWindow::~GlWindow() {
     _context = nullptr;
 }
 
-bool GlWindow::event(QEvent * ev) {
-    return QWindow::event(ev);
-}
-
 bool GlWindow::makeCurrent() {
     bool makeCurrentResult = _context->makeCurrent(this);
     Q_ASSERT(makeCurrentResult);
