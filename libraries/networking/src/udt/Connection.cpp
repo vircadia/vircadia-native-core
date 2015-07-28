@@ -36,6 +36,7 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     
     // setup the ACK packet, make it static so we can re-use it
     static auto ackPacket = ControlPacket::create(ControlPacket::ACK, ACK_PACKET_PAYLOAD_BYTES);
+    ackPacket->reset(); // We need to reset it every time.
     
     auto currentTime = high_resolution_clock::now();
     
@@ -62,9 +63,6 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
             return;
         }
     }
-    
-    // reset the ACK packet so we can fill it up and have it figure out what size it is
-    ackPacket->reset();
     
     // pack in the ACK sub-sequence number
     ackPacket->writePrimitive(_currentACKSubSequenceNumber++);
@@ -152,13 +150,38 @@ void Connection::processReceivedSeqNum(SeqNum seq) {
 
 void Connection::processControl(unique_ptr<ControlPacket> controlPacket) {
     switch (controlPacket->getType()) {
-        case ControlPacket::ACK:
+        case ControlPacket::ACK: {
+            // read the ACK sub-sequence number
+            SeqNum currentACKSubSequenceNumber;
+            controlPacket->readPrimitive(&currentACKSubSequenceNumber);
+            
+            // read the ACK number
+            SeqNum nextACKNumber;
+            controlPacket->readPrimitive(&nextACKNumber);
+            
+            // read the RTT and variance
+            int32_t rtt{ 0 }, rttVariance{ 0 };
+            controlPacket->readPrimitive(&rtt);
+            controlPacket->readPrimitive(&rttVariance);
+            
             break;
-        case ControlPacket::ACK2:
+        }
+        case ControlPacket::ACK2: {
+            
             break;
-        case ControlPacket::NAK:
+        }
+        case ControlPacket::NAK: {
+            // read the loss report
+            SeqNum start, end;
+            controlPacket->readPrimitive(&start);
+            if (controlPacket->bytesLeftToRead() >= (qint64)sizeof(SeqNum)) {
+                controlPacket->readPrimitive(&end);
+            }
             break;
-        case ControlPacket::PacketPair:
+        }
+        case ControlPacket::PacketPair: {
+            
             break;
+        }
     }
 }
