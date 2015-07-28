@@ -17,15 +17,16 @@
 #include "Socket.h"
 
 using namespace udt;
+using namespace std;
 using namespace std::chrono;
 
 Connection::Connection(Socket* parentSocket, HifiSockAddr destination) {
     
 }
 
-void Connection::send(std::unique_ptr<Packet> packet) {
+void Connection::send(unique_ptr<Packet> packet) {
     if (_sendQueue) {
-        _sendQueue->queuePacket(std::move(packet));
+        _sendQueue->queuePacket(move(packet));
     }
 }
 
@@ -114,20 +115,27 @@ SeqNum Connection::nextACK() const {
 }
 
 void Connection::processReceivedSeqNum(SeqNum seq) {
-    if (udt::seqcmp(seq, _largestReceivedSeqNum + 1) > 0) {
-        // TODO: Add range to loss list
+    // If this is not the next sequence number, report loss
+    if (seq > _largestReceivedSeqNum + 1) {
+        if (_largestReceivedSeqNum + 1 == seq - 1) {
+            _lossList.append(_largestReceivedSeqNum + 1);
+        } else {
+            _lossList.append(_largestReceivedSeqNum + 1, seq - 1);
+        }
         
         // TODO: Send loss report
     }
     
     if (seq > _largestReceivedSeqNum) {
+        // Update largest recieved sequence number
         _largestReceivedSeqNum = seq;
     } else {
-        // TODO: Remove seq from loss list
+        // Otherwise, it's a resend, remove it from the loss list
+        _lossList.remove(seq);
     }
 }
 
-void Connection::processControl(std::unique_ptr<ControlPacket> controlPacket) {
+void Connection::processControl(unique_ptr<ControlPacket> controlPacket) {
     switch (controlPacket->getType()) {
         case ControlPacket::ACK:
             break;

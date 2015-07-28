@@ -15,6 +15,7 @@
 #include <chrono>
 #include <memory>
 
+#include "LossList.h"
 #include "SendQueue.h"
 
 class HifiSockAddr;
@@ -41,6 +42,7 @@ public:
     void processControl(std::unique_ptr<ControlPacket> controlPacket);
     
 private:
+    LossList _lossList;
     SeqNum _largestReceivedSeqNum; // The largest sequence number received from the peer
     SeqNum _lastSentACK; // The last sent ACK
     SeqNum _lastReceivedAcknowledgedACK; // The last sent ACK that has been acknowledged via an ACK2 from the peer
