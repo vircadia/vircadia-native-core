@@ -89,10 +89,28 @@ void SendQueue::ack(SequenceNumber ack) {
         return;
     }
     
-    // remove any ACKed packets from the map of sent packets
-    QWriteLocker locker(&_sentLock);
-    for (auto seq = _lastAck; seq <= ack; ++seq) {
-        _sentPackets.erase(seq);
+    {
+        // remove any ACKed packets from the map of sent packets
+        QWriteLocker locker(&_sentLock);
+        for (auto seq = _lastAck; seq <= ack; ++seq) {
+            _sentPackets.erase(seq);
+        }
+    }
+    
+    {
+        // remove any sequence numbers equal to or lower than this ACK in the loss list
+        QWriteLocker nakLocker(&_naksLock);
+        
+        auto it = _naks.begin();
+        
+        while (it != _naks.end()) {
+            if (*it <= ack) {
+                it = _naks.erase(it);
+            } else {
+                // the NAKs in the NAK list must be in order, so we can break if we hit one > ack
+                break;
+            }
+        }
     }
     
     _lastAck = ack;
