@@ -94,12 +94,24 @@ ControlPacket& ControlPacket::operator=(ControlPacket&& other) {
 
 static const uint32_t CONTROL_BIT_MASK = 1 << (sizeof(ControlPacket::ControlBitAndType) - 1);
 
+void ControlPacket::setType(udt::ControlPacket::Type type) {
+    _type = type;
+    
+    writeType();
+}
+
 void ControlPacket::writeControlBitAndType() {
     ControlBitAndType* bitAndType = reinterpret_cast<ControlBitAndType*>(_packet.get());
 
     // write the control bit by OR'ing the current value with the CONTROL_BIT_MASK
     *bitAndType = (*bitAndType | CONTROL_BIT_MASK);
     
-    // write the type by OR'ing the type with the current value & CONTROL_BIT_MASK
+    writeType();
+}
+
+void ControlPacket::writeType() {
+    ControlBitAndType* bitAndType = reinterpret_cast<ControlBitAndType*>(_packet.get());
+    
+    // write the type by OR'ing the new type with the current value & CONTROL_BIT_MASK
     *bitAndType = (*bitAndType & CONTROL_BIT_MASK) | (_type << sizeof((ControlPacket::Type) - 1));
 }

@@ -41,6 +41,7 @@ public:
     virtual qint64 totalHeadersSize() const; // Cumulated size of all the headers
     
     Type getType() const { return _type; }
+    void setType(Type type);
     
 private:
     ControlPacket(Type type);
@@ -54,6 +55,7 @@ private:
     
     // Header writers
     void writeControlBitAndType();
+    void writeType();
     
     Type _type;
 };
