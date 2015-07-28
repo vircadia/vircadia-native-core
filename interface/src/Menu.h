@@ -196,7 +196,6 @@ namespace MenuOption {
     const QString FullscreenMirror = "Fullscreen Mirror";
     const QString GlowWhenSpeaking = "Glow When Speaking";
     const QString HandMouseInput = "Enable Hand Mouse Input";
-    const QString HandLasers = "Enable Hand UI Lasers";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IndependentMode = "Independent Mode";
     const QString InputMenu = "Avatar>Input Devices";

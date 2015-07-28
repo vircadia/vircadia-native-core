@@ -147,7 +147,6 @@ public:
         NamesAboveHeads,
         GoToUser,
         HandMouseInput,
-        HandLasers,
         HMDTools,
         IncreaseAvatarSize,
         KeyboardMotorControl,
