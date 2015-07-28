@@ -44,7 +44,7 @@ public:
     quint16 localPort() const { return _udpSocket.localPort(); }
     
     // Simple functions writing to the socket with no processing
-    qint64 writePacket(const Packet& packet, const HifiSockAddr& sockAddr);
+    qint64 writePacket(Packet& packet, const HifiSockAddr& sockAddr);
     qint64 writePacket(std::unique_ptr<Packet> packet, const HifiSockAddr& sockAddr);
     qint64 writeDatagram(const char* data, qint64 size, const HifiSockAddr& sockAddr);
     qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& sockAddr);
@@ -68,6 +68,8 @@ private:
     QUdpSocket _udpSocket { this };
     PacketFilterOperator _packetFilterOperator;
     PacketHandler _packetHandler;
+    
+    SequenceNumber _currentUnreliableSequenceNumber;
     
     std::unordered_map<HifiSockAddr, BasePacketHandler> _unfilteredHandlers;
 

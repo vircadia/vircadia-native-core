@@ -262,7 +262,7 @@ void LimitedNodeList::fillPacketHeader(const NLPacket& packet, const QUuid& conn
     }
 }
 
-qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const Node& destinationNode) {
+qint64 LimitedNodeList::sendUnreliablePacket(NLPacket& packet, const Node& destinationNode) {
     if (!destinationNode.getActiveSocket()) {
         return 0;
     }
@@ -270,7 +270,7 @@ qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const Node&
     return sendUnreliablePacket(packet, *destinationNode.getActiveSocket(), destinationNode.getConnectionSecret());
 }
 
-qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr,
+qint64 LimitedNodeList::sendUnreliablePacket(NLPacket& packet, const HifiSockAddr& sockAddr,
                                              const QUuid& connectionSecret) {
     Q_ASSERT_X(!packet.isReliable(), "LimitedNodeList::sendUnreliablePacket",
                "Trying to send a reliable packet unreliably.");
@@ -516,7 +516,7 @@ unsigned int LimitedNodeList::broadcastToNodes(std::unique_ptr<NLPacket> packet,
     
     eachNode([&](const SharedNodePointer& node){
         if (node && destinationNodeTypes.contains(node->getType())) {
-            writePacket(*packet, *node);
+            sendUnreliablePacket(*packet, *node);
             ++n;
         }
     });
