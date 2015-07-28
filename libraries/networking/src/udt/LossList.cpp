@@ -51,6 +51,7 @@ void LossList::remove(SequenceNumber seq) {
             it->second = seq - 1;
             _lossList.insert(it, make_pair(seq + 1, temp));
         }
+        _length -= 1;
     }
 }
 
@@ -68,11 +69,13 @@ void LossList::remove(SequenceNumber start, SequenceNumber end) {
         // or remove it altogether since it is fully contained it the range
         while (it != _lossList.end() && end >= it->second) {
             if (start <= it->first) {
-                // Segment is contained, erase it.
+                // Segment is contained, update new length and erase it.
+                _length -= seqlen(it->first, it->second);
                 it = _lossList.erase(it);
             } else {
                 // Beginning of segment not contained, modify end of segment.
                 // Will only occur sometimes one the first loop
+                _length -= seqlen(start, it->second);
                 it->second = start - 1;
                 ++it;
             }
@@ -82,9 +85,11 @@ void LossList::remove(SequenceNumber start, SequenceNumber end) {
         if (it != _lossList.end() && it->first <= end) {
             if (start <= it->first) {
                 // Truncate beginning of segment
+                _length -= seqlen(it->first, end);
                 it->first = end + 1;
             } else {
                 // Cut it in half if the range we are removing is contained within one segment
+                _length -= seqlen(start, end);
                 auto temp = it->second;
                 it->second = start - 1;
                 _lossList.insert(it, make_pair(end + 1, temp));

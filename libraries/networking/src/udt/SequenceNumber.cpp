@@ -11,11 +11,6 @@
 
 #include "SequenceNumber.h"
 
-int udt::seqcmp(const SequenceNumber& seq1, const SequenceNumber& seq2) {
-    return (glm::abs(seq1._value - seq2._value) < SequenceNumber::THRESHOLD) ? (seq1._value - seq2._value)
-                                                                     : (seq2._value - seq1._value);
-}
-
 int udt::seqlen(const SequenceNumber& seq1, const SequenceNumber& seq2) {
     return (seq1._value <= seq2._value) ? (seq2._value - seq1._value + 1)
                                         : (seq2._value - seq1._value + SequenceNumber::MAX + 2);

@@ -15,7 +15,6 @@
 
 #include <memory>
 #include <vector>
-#include <unordered_map>
 #include <bitset>
 
 // Why a macro and not a fancy template you will ask me ? 

@@ -84,7 +84,6 @@ public:
     friend SequenceNumber operator-(const SequenceNumber a, const Type& b);
     friend SequenceNumber operator-(const Type& a, const SequenceNumber b);
     
-    friend int seqcmp(const SequenceNumber& seq1, const SequenceNumber& seq2);
     friend int seqlen(const SequenceNumber& seq1, const SequenceNumber& seq2);
     friend int seqoff(const SequenceNumber& seq1, const SequenceNumber& seq2);
     
