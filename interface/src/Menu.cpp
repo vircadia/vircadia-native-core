@@ -313,7 +313,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Atmosphere,
         0, // QML Qt::SHIFT | Qt::Key_A,
         true);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::AmbientOcclusion);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DebugAmbientOcclusion);
 
     MenuWrapper* ambientLightMenu = renderOptionsMenu->addMenu(MenuOption::RenderAmbientLight);
     QActionGroup* ambientLightGroup = new QActionGroup(ambientLightMenu);
@@ -351,7 +351,7 @@ Menu::Menu() {
         addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::RenderTargetFramerateVSyncOn, 0, true,
                                                qApp, SLOT(setVSyncEnabled()));
 #endif
-        addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ThrottleFPSIfNotFocus, 0, false,
+        addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ThrottleFPSIfNotFocus, 0, true,
             qApp, SLOT(setThrottleFPSEnabled()));
     }
 

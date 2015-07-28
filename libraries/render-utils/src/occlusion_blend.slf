@@ -1,0 +1,29 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  occlusion_blend.frag
+//  fragment shader
+//
+//  Created by Niraj Venkat on 7/20/15.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include DeferredBufferWrite.slh@>
+
+varying vec2 varTexcoord;
+
+uniform sampler2D blurredOcclusionTexture;
+
+void main(void) {
+    vec4 occlusionColor = texture2D(blurredOcclusionTexture, varTexcoord);
+    
+    if(occlusionColor.r > 0.8 && occlusionColor.r <= 1.0) {
+        gl_FragColor = vec4(vec3(0.0), 0.0);
+    } else {
+        gl_FragColor = vec4(vec3(occlusionColor.r), 1.0);
+    }
+}
