@@ -1014,7 +1014,7 @@ void Application::paintGL() {
     // Back to the default framebuffer;
     gpu::Batch batch;
     batch.resetStages();
-    renderArgs._context->render(batch);
+  //  renderArgs._context->render(batch);
 }
 
 void Application::runTests() {
