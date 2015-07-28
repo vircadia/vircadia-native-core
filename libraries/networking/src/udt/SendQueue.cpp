@@ -136,7 +136,7 @@ void SendQueue::sendNextPacket() {
         }
     }
     
-    // Find packet in sent list using SeqNum
+    // Find packet in sent list using SequenceNumber
     if (hasResend) {
         QWriteLocker locker(&_sentLock);
         auto it = _sentPackets.find(seqNum);
