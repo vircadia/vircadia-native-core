@@ -22,7 +22,6 @@
 #include <avatar/AvatarManager.h>
 #include <avatar/MyAvatar.h>
 #include <FileUtils.h>
-#include <GLCanvas.h>
 #include <NodeList.h>
 
 #include "Application.h"
@@ -127,6 +126,7 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
 
         return imageTempFile;
     }
+    return nullptr; 
 }
 
 

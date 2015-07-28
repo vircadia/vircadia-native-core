@@ -36,6 +36,7 @@
 #include <StDev.h>
 #include <udt/PacketHeaders.h>
 #include <ViewFrustum.h>
+#include <plugins/PluginContainer.h>
 
 #include "AudioClient.h"
 #include "Bookmarks.h"
@@ -47,12 +48,11 @@
 #include "Stars.h"
 #include "avatar/Avatar.h"
 #include "avatar/MyAvatar.h"
-#include "devices/SixenseManager.h"
+#include <input-plugins/KeyboardMouseDevice.h>
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/WebWindowClass.h"
 #include "ui/AudioStatsDialog.h"
 #include "ui/BandwidthDialog.h"
-#include "ui/HMDToolsDialog.h"
 #include "ui/ModelsBrowser.h"
 #include "ui/OctreeStatsDialog.h"
 #include "ui/SnapshotShareDialog.h"
@@ -61,14 +61,14 @@
 #include "ui/overlays/Overlays.h"
 #include "ui/ApplicationOverlay.h"
 #include "ui/ApplicationCompositor.h"
+#include "ui/OverlayConductor.h"
 #include "ui/RunningScriptsWidget.h"
 #include "ui/ToolWindow.h"
-#include "ui/UserInputMapper.h"
-#include "devices/KeyboardMouseDevice.h"
 #include "octree/OctreePacketProcessor.h"
 #include "UndoStackScriptingInterface.h"
+#include "DisplayPlugins.h"
+#include "InputPlugins.h"
 
-#include "gpu/Context.h"
 #include "render/Engine.h"
 
 class QGLWidget;
@@ -77,12 +77,20 @@ class QMouseEvent;
 class QSystemTrayIcon;
 class QTouchEvent;
 class QWheelEvent;
+class OffscreenGlCanvas;
 
 class GLCanvas;
 class FaceTracker;
 class MainWindow;
 class Node;
 class ScriptEngine;
+class GlWindow;
+
+namespace gpu {
+    class Context;
+    typedef std::shared_ptr<Context> ContextPointer;
+}
+
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 static const QString SVO_EXTENSION  = ".svo";
@@ -122,7 +130,7 @@ class Application;
 
 typedef bool (Application::* AcceptURLMethod)(const QString &);
 
-class Application : public QApplication, public AbstractViewStateInterface, public AbstractScriptingServicesInterface {
+class Application : public QApplication, public AbstractViewStateInterface, public AbstractScriptingServicesInterface, PluginContainer {
     Q_OBJECT
 
     friend class OctreePacketProcessor;
@@ -134,7 +142,6 @@ public:
     static glm::quat getOrientationForPath() { return getInstance()->_myAvatar->getOrientation(); }
     static glm::vec3 getPositionForAudio() { return getInstance()->_myAvatar->getHead()->getPosition(); }
     static glm::quat getOrientationForAudio() { return getInstance()->_myAvatar->getHead()->getFinalOrientationInWorldFrame(); }
-    static UserInputMapper* getUserInputMapper() { return &getInstance()->_userInputMapper; }
     static void initPlugins();
     static void shutdownPlugins();
 
@@ -260,11 +267,6 @@ public:
     void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false, bool billboard = false);
 
     virtual const glm::vec3& getShadowDistances() const { return _shadowDistances; }
-
-    /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
-    virtual void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
-        float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
-
     virtual ViewFrustum* getCurrentViewFrustum() { return getDisplayViewFrustum(); }
     virtual bool getShadowsEnabled();
     virtual bool getCascadeShadowsEnabled();
@@ -276,6 +278,22 @@ public:
     virtual void overrideEnvironmentData(const EnvironmentData& newData) { _environment.override(newData); }
     virtual void endOverrideEnvironmentData() { _environment.endOverride(); }
     virtual qreal getDevicePixelRatio();
+
+    // Plugin container support
+    virtual void addMenu(const QString& menuName);
+    virtual void removeMenu(const QString& menuName);
+    virtual void addMenuItem(const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable, bool checked, const QString& groupName);
+    virtual void removeMenuItem(const QString& menuName, const QString& menuItem);
+    virtual bool isOptionChecked(const QString& name);
+    virtual void setIsOptionChecked(const QString& path, bool checked);
+    virtual GlWindow* getVisibleWindow();
+    virtual void setFullscreen(const QScreen* target) override;
+    virtual void unsetFullscreen() override;
+
+private:
+    DisplayPlugin * getActiveDisplayPlugin();
+    const DisplayPlugin * getActiveDisplayPlugin() const;
+public:
 
     FileLogger* getLogger() { return _logger; }
 
@@ -300,10 +318,9 @@ public:
     // rendering of several elements depend on that
     // TODO: carry that information on the Camera as a setting
     bool isHMDMode() const;
-    glm::quat getHeadOrientation() const;
-    glm::vec3 getHeadPosition() const;
-    glm::mat4 getHeadPose() const;
+    glm::mat4 getHMDSensorPose() const;
     glm::mat4 getEyePose(int eye) const;
+    glm::mat4 getEyeOffset(int eye) const;
     glm::mat4 getEyeProjection(int eye) const;
 
     QRect getDesirableApplicationGeometry();
@@ -361,6 +378,8 @@ public slots:
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void packetSent(quint64 length);
+    void updateDisplayMode();
+    void updateInputModes();
 
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
@@ -431,14 +450,7 @@ private slots:
 
     void connectedToDomain(const QString& hostname);
 
-    friend class HMDToolsDialog;
-    void setFullscreen(bool fullscreen);
-    void setEnable3DTVMode(bool enable3DTVMode);
-    void setEnableVRMode(bool enableVRMode);
-
     void rotationModeChanged();
-
-    glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
 
     void closeMirrorView();
     void restoreMirrorView();
@@ -466,6 +478,9 @@ private:
     void emptyLocalCache();
 
     void update(float deltaTime);
+
+    void setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float deltaTime, int index);
+    void emulateMouse(Hand* hand, float click, float shift, int index);
 
     // Various helper functions called during update()
     void updateLOD();
@@ -495,6 +510,11 @@ private:
     int sendNackPackets();
 
     bool _dependencyManagerIsSetup;
+
+    OffscreenGlCanvas* _offscreenContext;
+    DisplayPluginPointer _displayPlugin;
+    InputPluginList _activeInputPlugins;
+
     MainWindow* _window;
 
     ToolWindow* _toolWindow;
@@ -532,11 +552,10 @@ private:
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
 
-    KeyboardMouseDevice _keyboardMouseDevice;   // Default input device, the good old keyboard mouse and maybe touchpad
-    UserInputMapper _userInputMapper;           // User input mapper allowing to mapp different real devices to the action channels that the application has to offer
-    MyAvatar* _myAvatar;                        // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
-    Camera _myCamera;                           // My view onto the world
-    Camera _mirrorCamera;              // Cammera for mirror view
+    KeyboardMouseDevice* _keyboardMouseDevice{ nullptr };   // Default input device, the good old keyboard mouse and maybe touchpad
+    MyAvatar* _myAvatar;                         // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
+    Camera _myCamera;                            // My view onto the world
+    Camera _mirrorCamera;                        // Cammera for mirror view
     QRect _mirrorViewRect;
 
     Setting::Handle<bool>       _firstRun;
@@ -619,12 +638,9 @@ private:
     QThread _settingsThread;
     QTimer _settingsTimer;
     
-    GLCanvas* _glWidget{ nullptr };
+    GlWindow* _glWindow{ nullptr };
 
     void checkSkeleton();
-
-    QWidget* _fullscreenMenuWidget = new QWidget();
-    int _menuBarHeight;
 
     QHash<QString, AcceptURLMethod> _acceptedExtensions;
 
@@ -642,7 +658,15 @@ private:
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
     ApplicationCompositor _compositor;
+    OverlayConductor _overlayConductor;
+
+    int _oldHandMouseX[2];
+    int _oldHandMouseY[2];
+    bool _oldHandLeftClick[2];
+    bool _oldHandRightClick[2];
     int _numFramesSinceLastResize = 0;
+
+    bool _overlayEnabled = true;
 };
 
 #endif // hifi_Application_h

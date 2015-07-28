@@ -46,11 +46,7 @@ QString modeToString(CameraMode mode) {
 }
 
 Camera::Camera() : 
-    _mode(CAMERA_MODE_THIRD_PERSON),
-    _position(0.0f, 0.0f, 0.0f),
-    _projection(glm::perspective(glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES), 16.0f/9.0f, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP)),
-    _isKeepLookingAt(false),
-    _lookingAt(0.0f, 0.0f, 0.0f)
+    _projection(glm::perspective(glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES), 16.0f/9.0f, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP))
 {
 }
 
@@ -61,12 +57,33 @@ void Camera::update(float deltaTime) {
     return;
 }
 
+void Camera::recompose() {
+    mat4 orientation = glm::mat4_cast(_rotation);
+    mat4 translation = glm::translate(mat4(), _position);
+    _transform = translation * orientation;
+}
+
+void Camera::decompose() {
+    _position = vec3(_transform[3]);
+    _rotation = glm::quat_cast(_transform);
+}
+
+void Camera::setTransform(const glm::mat4& transform) {
+    _transform = transform;
+    decompose();
+}
+
 void Camera::setPosition(const glm::vec3& position) {
-    _position = position; 
+    _position = position;
+    recompose();
+    if (_isKeepLookingAt) {
+        lookAt(_lookingAt);
+    }
 }
 
 void Camera::setRotation(const glm::quat& rotation) {
     _rotation = rotation; 
+    recompose();
     if (_isKeepLookingAt) {
         lookAt(_lookingAt);
     }
@@ -128,4 +145,22 @@ void Camera::keepLookingAt(const glm::vec3& point) {
     lookAt(point);
     _isKeepLookingAt = true;
     _lookingAt = point;
+}
+
+void Camera::loadViewFrustum(ViewFrustum& frustum) const {
+    // We will use these below, from either the camera or head vectors calculated above
+    frustum.setProjection(getProjection());
+
+    // Set the viewFrustum up with the correct position and orientation of the camera
+    frustum.setPosition(getPosition());
+    frustum.setOrientation(getRotation());
+
+    // Ask the ViewFrustum class to calculate our corners
+    frustum.calculate();
+}
+
+ViewFrustum Camera::toViewFrustum() const {
+    ViewFrustum result;
+    loadViewFrustum(result);
+    return result;
 }

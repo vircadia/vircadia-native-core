@@ -516,6 +516,10 @@ bool SkeletonModel::getNeckPosition(glm::vec3& neckPosition) const {
     return isActive() && getJointPositionInWorldFrame(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
 }
 
+bool SkeletonModel::getLocalNeckPosition(glm::vec3& neckPosition) const {
+    return isActive() && getJointPosition(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
+}
+
 bool SkeletonModel::getNeckParentRotationFromDefaultOrientation(glm::quat& neckParentRotation) const {
     if (!isActive()) {
         return false;
@@ -787,6 +791,7 @@ void SkeletonModel::resetShapePositionsToDefaultPose() {
 
 void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha) {
     const int BALL_SUBDIVISIONS = 10;
+#if 0
     if (_shapes.isEmpty()) {
         // the bounding shape has not been properly computed
         // so no need to render it
@@ -822,6 +827,7 @@ void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha
     glm::vec3 origin(0.0f);
     Avatar::renderJointConnectingCone(batch, origin, axis, _boundingShape.getRadius(), _boundingShape.getRadius(), 
                                       glm::vec4(0.6f, 0.8f, 0.6f, alpha));
+#endif
 }
 
 bool SkeletonModel::hasSkeleton() {

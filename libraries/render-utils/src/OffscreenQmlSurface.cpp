@@ -309,6 +309,9 @@ QPointF OffscreenQmlSurface::mapWindowToUi(const QPointF& sourcePosition, QObjec
 //
 
 bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* event) {
+    if (_quickWindow == originalDestination) {
+        return false;
+    }
     // Only intercept events while we're in an active state
     if (_paused) {
         return false;
@@ -413,4 +416,8 @@ void OffscreenQmlSurface::setProxyWindow(QWindow* window) {
 
 QQuickWindow* OffscreenQmlSurface::getWindow() {
     return _quickWindow;
+}
+
+QSize OffscreenQmlSurface::size() const {
+    return _quickWindow->geometry().size();
 }

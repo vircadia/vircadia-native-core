@@ -12,6 +12,7 @@
 
 #include "OffscreenGlCanvas.h"
 
+#include <GLHelpers.h>
 #include <QOpenGLDebugLogger>
 #include <QOpenGLContext>
 #include <QOffscreenSurface>
@@ -36,16 +37,7 @@ void OffscreenGlCanvas::create(QOpenGLContext* sharedContext) {
         _context->setFormat(sharedContext->format());
         _context->setShareContext(sharedContext);
     } else {
-        QSurfaceFormat format;
-        format.setDepthBufferSize(16);
-        format.setStencilBufferSize(8);
-        format.setMajorVersion(4);
-        format.setMinorVersion(1);
-        format.setProfile(QSurfaceFormat::OpenGLContextProfile::CompatibilityProfile);
-#ifdef DEBUG
-        format.setOption(QSurfaceFormat::DebugContext);
-#endif
-        _context->setFormat(format);
+        _context->setFormat(getDefaultOpenGlSurfaceFormat());
     }
     _context->create();
 
@@ -56,6 +48,14 @@ void OffscreenGlCanvas::create(QOpenGLContext* sharedContext) {
 
 bool OffscreenGlCanvas::makeCurrent() {
     bool result = _context->makeCurrent(_offscreenSurface);
+    Q_ASSERT(result);
+    
+    std::call_once(_reportOnce, []{
+        qDebug() << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
+        qDebug() << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
+        qDebug() << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
+        qDebug() << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
+    });
 
 #ifdef DEBUG
     if (result && !_logger) {

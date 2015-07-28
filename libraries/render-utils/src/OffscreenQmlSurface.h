@@ -39,6 +39,7 @@ public:
 
     void create(QOpenGLContext* context);
     void resize(const QSize& size);
+    QSize size() const;
     QObject* load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     QObject* load(const QString& qmlSourceFile, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}) {
         return load(QUrl(qmlSourceFile), f);

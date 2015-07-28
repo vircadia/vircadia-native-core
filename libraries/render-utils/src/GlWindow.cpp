@@ -40,20 +40,32 @@ GlWindow::~GlWindow() {
 }
 
 
-void GlWindow::makeCurrent() {
-	_context->makeCurrent(this);
+bool GlWindow::makeCurrent() {
+    bool makeCurrentResult = _context->makeCurrent(this);
+    Q_ASSERT(makeCurrentResult);
+    
+    std::call_once(_reportOnce, []{
+        qDebug() << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
+        qDebug() << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
+        qDebug() << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
+        qDebug() << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
+    });
+    
+    QOpenGLContext * currentContext = QOpenGLContext::currentContext();
+    Q_ASSERT(_context == currentContext);
 #ifdef DEBUG
-  if (!_logger) {
-      _logger = new QOpenGLDebugLogger(this);
-      if (_logger->initialize()) {
-          connect(_logger, &QOpenGLDebugLogger::messageLogged, [](const QOpenGLDebugMessage& message) {
-              qDebug() << message;
-          });
-          _logger->disableMessages(QOpenGLDebugMessage::AnySource, QOpenGLDebugMessage::AnyType, QOpenGLDebugMessage::NotificationSeverity);
-          _logger->startLogging(QOpenGLDebugLogger::LoggingMode::SynchronousLogging);
-      }
-  }
+    if (!_logger) {
+        _logger = new QOpenGLDebugLogger(this);
+        if (_logger->initialize()) {
+            connect(_logger, &QOpenGLDebugLogger::messageLogged, [](const QOpenGLDebugMessage& message) {
+                qDebug() << message;
+            });
+            _logger->disableMessages(QOpenGLDebugMessage::AnySource, QOpenGLDebugMessage::AnyType, QOpenGLDebugMessage::NotificationSeverity);
+            _logger->startLogging(QOpenGLDebugLogger::LoggingMode::SynchronousLogging);
+        }
+    }
 #endif
+    return makeCurrentResult;
 }
 
 void GlWindow::doneCurrent() {
