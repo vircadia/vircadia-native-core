@@ -273,6 +273,7 @@ namespace MenuOption {
     const QString SixenseEnabled = "Enable Hydra Support";
     const QString SixenseMouseInput = "Enable Sixense Mouse Input";
     const QString ShiftHipsForIdleAnimations = "Shift hips for idle animations";
+    const QString SimulateEyeTracking = "Simulate";
     const QString SMIEyeTracking = "SMI Eye Tracking";
     const QString Stars = "Stars";
     const QString Stats = "Stats";

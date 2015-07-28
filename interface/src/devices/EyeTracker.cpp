@@ -59,26 +59,25 @@ void EyeTracker::init() {
 #endif
 }
 
-void EyeTracker::setEnabled(bool enabled) {
+void EyeTracker::setEnabled(bool enabled, bool simulate) {
     if (!_isInitialized) {
-        qCWarning(interfaceapp) << "Eye Tracker: Not initialized before setting enabled";
         return;
     }
 
 #ifdef HAVE_IVIEWHMD
-    qCDebug(interfaceapp) << "Eye Tracker: Set enabled =" << enabled;
-
-    if (enabled && !_isStreaming) {
-        // There is no smi_stopStreaming() method so start streaming a maximum of once per program run.
-        int result = smi_startStreaming(true);
+    qCDebug(interfaceapp) << "Eye Tracker: Set enabled =" << enabled << ", simulate =" << simulate;
+    bool success = true;
+    int result = 0;
+    if (enabled) {
+        // There is no smi_stopStreaming() method so keep streaming once started in case tracking is re-enabled after stopping.
+        result = smi_startStreaming(simulate);
         if (result != SMI_RET_SUCCESS) {
-            qCWarning(interfaceapp) << "Eye Tracker: Error starting streaming:" << result;
-        } else {
-            _isStreaming = true;
+            qCWarning(interfaceapp) << "Eye Tracker: Error starting streaming:" << smiReturnValueToString(result);
+            success = false;
         }
     }
 
-    _isEnabled = enabled && _isStreaming;
+    _isEnabled = enabled && success;
 #endif
 }
 

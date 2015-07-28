@@ -439,9 +439,10 @@ Menu::Menu() {
 
 #ifdef HAVE_IVIEWHMD
     MenuWrapper* eyeTrackingMenu = avatarDebugMenu->addMenu("Eye Tracking");
-    QAction* smiEyeTracking = addCheckableActionToQMenuAndActionHash(eyeTrackingMenu, MenuOption::SMIEyeTracking, 0, false,
+    addCheckableActionToQMenuAndActionHash(eyeTrackingMenu, MenuOption::SMIEyeTracking, 0, false,
         qApp, SLOT(setActiveEyeTracker()));
-    smiEyeTracking->setVisible(true);
+    addCheckableActionToQMenuAndActionHash(eyeTrackingMenu, MenuOption::SimulateEyeTracking, 0, false,
+        qApp, SLOT(setActiveEyeTracker()));
 #endif
 
     auto avatarManager = DependencyManager::get<AvatarManager>();

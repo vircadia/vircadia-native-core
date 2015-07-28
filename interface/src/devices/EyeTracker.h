@@ -29,7 +29,7 @@ public:
 
 public slots:
     void init();
-    void setEnabled(bool enabled);
+    void setEnabled(bool enabled, bool simulate);
     void reset();
 
 private:

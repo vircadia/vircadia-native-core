@@ -595,12 +595,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         loadScripts();
     }
 
-#ifdef HAVE_IVIEWHMD
-    // Do this before loading settings
-    auto eyeTracker = DependencyManager::get<EyeTracker>();
-    eyeTracker->init();
-#endif
-
     loadSettings();
     int SAVE_SETTINGS_INTERVAL = 10 * MSECS_PER_SECOND; // Let's save every seconds for now
     connect(&_settingsTimer, &QTimer::timeout, this, &Application::saveSettings);
@@ -640,6 +634,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     auto ddeTracker = DependencyManager::get<DdeFaceTracker>();
     ddeTracker->init();
     connect(ddeTracker.data(), &FaceTracker::muteToggled, this, &Application::faceTrackerMuteToggled);
+#endif
+
+#ifdef HAVE_IVIEWHMD
+    auto eyeTracker = DependencyManager::get<EyeTracker>();
+    eyeTracker->init();
+    setActiveEyeTracker();
 #endif
 
     auto applicationUpdater = DependencyManager::get<AutoUpdater>();
@@ -2020,7 +2020,8 @@ void Application::setActiveFaceTracker() {
 void Application::setActiveEyeTracker() {
 #ifdef HAVE_IVIEWHMD
     auto eyeTracker = DependencyManager::get<EyeTracker>();
-    eyeTracker->setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::SMIEyeTracking));
+    eyeTracker->setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::SMIEyeTracking),
+        Menu::getInstance()->isOptionChecked(MenuOption::SimulateEyeTracking));
 #endif
 }
 
