@@ -1064,7 +1064,7 @@ function importSVO(importURL) {
 
     if (success) {
         var VERY_LARGE = 10000;
-        var position = { x: 0, y: 0, z: 0};
+        var position = { x: 0.01, y: 0.01, z: 0.01};
         if (Clipboard.getClipboardContentsLargestDimension() < VERY_LARGE) {
             position = getPositionToCreateEntity();
         }
@@ -1074,7 +1074,7 @@ function importSVO(importURL) {
             if (isActive) {
                 selectionManager.setSelections(pastedEntityIDs);
             }
-        Window.raiseMainWindow();
+            Window.raiseMainWindow();
         } else {
             Window.alert("Can't import objects: objects would be out of bounds.");
         }
