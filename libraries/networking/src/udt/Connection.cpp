@@ -1,6 +1,6 @@
 //
 //  Connection.cpp
-//
+//  libraries/networking/src/udt
 //
 //  Created by Clement on 7/27/15.
 //  Copyright 2015 High Fidelity, Inc.
@@ -117,7 +117,7 @@ SeqNum Connection::nextACK() const {
     if (_lossList.getLength() > 0) {
         return _lossList.getFirstSeqNum();
     } else {
-        return _largestReceivedSeqNum + 1;
+        return _largestReceivedSeqNum;
     }
 }
 
@@ -212,7 +212,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     controlPacket->readPrimitive(&ack);
     
     // validate that this isn't a BS ACK
-    if (ack > (_sendQueue->getCurrentSeqNum() + 1)) {
+    if (ack > _sendQueue->getCurrentSeqNum()) {
         // in UDT they specifically break the connection here - do we want to do anything?
         return;
     }

@@ -1,6 +1,6 @@
 //
 //  Connection.h
-//
+//  libraries/networking/src/udt
 //
 //  Created by Clement on 7/27/15.
 //  Copyright 2015 High Fidelity, Inc.
@@ -29,7 +29,7 @@ class Socket;
 class Connection {
 
 public:
-    using SequenceNumberTimePair = std::pair<SeqNum, std::chrono::high_resolution_clock::time_point>>;
+    using SequenceNumberTimePair = std::pair<SeqNum, std::chrono::high_resolution_clock::time_point>;
     using SentACKMap = std::unordered_map<SeqNum, SequenceNumberTimePair>;
     
     Connection(Socket* parentSocket, HifiSockAddr destination);
@@ -57,13 +57,13 @@ private:
     int _synInterval; // Periodical Rate Control Interval, defaults to 10ms
     
     LossList _lossList; // List of all missing packets
-    SeqNum _largestReceivedSeqNum; // The largest sequence number received from the peer
-    SeqNum _lastReceivedACK; // The last ACK received
-    std::atomic<uint32_t> _atomicLastReceivedACK; // Atomic for thread-safe get of last ACK received
-    SeqNum _lastReceivedAcknowledgedACK; // The last sent ACK that has been acknowledged via an ACK2 from the peer
+    SeqNum _largestReceivedSeqNum { SeqNum::MAX }; // The largest sequence number received from the peer
+    SeqNum _lastReceivedACK { SeqNum::MAX }; // The last ACK received
+    std::atomic<uint32_t> _atomicLastReceivedACK { (uint32_t) SeqNum::MAX }; // Atomic for thread-safe get of last ACK received
+    SeqNum _lastReceivedAcknowledgedACK { SeqNum::MAX }; // The last sent ACK that has been acknowledged via an ACK2 from the peer
     SeqNum _currentACKSubSequenceNumber; // The current ACK sub-sequence number (used for Acknowledgment of ACKs)
     
-    SeqNum _lastSentACK; // The last sent ACK
+    SeqNum _lastSentACK { SeqNum::MAX }; // The last sent ACK
     SeqNum _lastSentACK2; // The last sent ACK sub-sequence number in an ACK2
     
     int _totalReceivedACKs { 0 };

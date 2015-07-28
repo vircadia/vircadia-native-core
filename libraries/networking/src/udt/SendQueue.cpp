@@ -90,7 +90,7 @@ void SendQueue::ack(SeqNum ack) {
     }
     
     QWriteLocker locker(&_sentLock);
-    for (auto seq = _lastAck; seq != ack; ++seq) {
+    for (auto seq = _lastAck; seq <= ack; ++seq) {
         _sentPackets.erase(seq);
     }
     
