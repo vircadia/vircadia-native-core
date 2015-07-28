@@ -108,7 +108,10 @@ public:
     void setJointTransform(int jointIndex, glm::mat4 newTransform);
     glm::mat4 getJointVisibleTransform(int jointIndex) const;
     void setJointVisibleTransform(int jointIndex, glm::mat4 newTransform);
-    void simulateInternal(float deltaTime, glm::mat4 parentTransform, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation);
+    // Start or stop animations as needed.
+    void computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation);
+    // Regardless of who started the animations or how many, update the joints.
+    void updateAnimations(float deltaTime, glm::mat4 parentTransform);
     bool setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation, bool useRotation,
                           int lastFreeIndex, bool allIntermediatesFree, const glm::vec3& alignment, float priority,
                           const QVector<int>& freeLineage, glm::mat4 parentTransform);

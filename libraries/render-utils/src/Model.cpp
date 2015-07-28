@@ -1326,6 +1326,10 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
     }
 }
 
+//virtual
+void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
+     _rig->updateAnimations(deltaTime, parentTransform);
+}
 void Model::simulateInternal(float deltaTime) {
     // update the world space transforms for all joints
 

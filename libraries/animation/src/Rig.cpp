@@ -341,7 +341,7 @@ glm::mat4 Rig::getJointVisibleTransform(int jointIndex) const {
     return maybeCauterizeHead(jointIndex).getVisibleTransform();
 }
 
-void Rig::simulateInternal(float deltaTime, glm::mat4 parentTransform, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation) {
+void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation) {
     
     if (_enableRig) {
         glm::vec3 front = worldRotation * IDENTITY_FRONT;
@@ -374,8 +374,9 @@ void Rig::simulateInternal(float deltaTime, glm::mat4 parentTransform, const glm
         _isTurning = isTurning;
         _isIdle = isIdle;
     }
+}
 
-    // update animations
+void Rig::updateAnimations(float deltaTime, glm::mat4 parentTransform) {
     foreach (const AnimationHandlePointer& handle, _runningAnimations) {
         handle->simulate(deltaTime);
     }
