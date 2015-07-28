@@ -20,14 +20,21 @@ using namespace udt;
 using namespace std;
 using namespace std::chrono;
 
-Connection::Connection(Socket* parentSocket, HifiSockAddr destination) {
-    
+Connection::Connection(Socket* parentSocket, HifiSockAddr destination) :
+    _parentSocket(parentSocket),
+    _destination(destination)
+{
 }
 
-void Connection::send(unique_ptr<Packet> packet) {
-    if (_sendQueue) {
-        _sendQueue->queuePacket(move(packet));
+void Connection::sendReliablePacket(unique_ptr<Packet> packet) {
+    Q_ASSERT_X(packet->isReliable(), "Connection::send", "Trying to send an unreliable packet reliably.");
+    
+    if (!_sendQueue) {
+        // Lasily create send queue
+        _sendQueue = SendQueue::create(_parentSocket, _destination);
     }
+    
+    _sendQueue->queuePacket(move(packet));
 }
 
 void Connection::sendACK(bool wasCausedBySyncTimeout) {
@@ -163,7 +170,6 @@ void Connection::processControl(unique_ptr<ControlPacket> controlPacket) {
                 processACK(move(controlPacket));
             }
             break;
-        }
         case ControlPacket::ACK2:
             processACK2(move(controlPacket));
             break;

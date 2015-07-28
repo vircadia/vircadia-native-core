@@ -17,8 +17,7 @@
 
 #include "LossList.h"
 #include "SendQueue.h"
-
-class HifiSockAddr;
+#include "../HifiSockAddr.h"
 
 namespace udt {
     
@@ -34,7 +33,7 @@ public:
     
     Connection(Socket* parentSocket, HifiSockAddr destination);
     
-    void send(std::unique_ptr<Packet> packet);
+    void sendReliablePacket(std::unique_ptr<Packet> packet);
     
     void sendACK(bool wasCausedBySyncTimeout = true);
     void sendLightACK() const;
@@ -74,6 +73,8 @@ private:
     
     SentACKMap _sentACKs; // Map of ACK sub-sequence numbers to ACKed sequence number and sent time
     
+    Socket* _parentSocket { nullptr };
+    HifiSockAddr _destination;
     std::unique_ptr<SendQueue> _sendQueue;
 };
     

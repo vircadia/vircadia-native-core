@@ -14,6 +14,7 @@
 #include <QtCore/QThread>
 
 #include "../NetworkLogging.h"
+#include "ControlPacket.h"
 #include "Packet.h"
 
 using namespace udt;
@@ -66,16 +67,35 @@ void Socket::setBufferSizes(int numBytes) {
     }
 }
 
-qint64 Socket::writeUnreliablePacket(const BasePacket& packet, const HifiSockAddr& sockAddr) {
+qint64 Socket::writePacket(const Packet& packet, const HifiSockAddr& sockAddr) {
+    Q_ASSERT_X(!packet.isReliable(), "Socket::writePacket", "Cannot send a reliable packet unreliably");
+    
+    // TODO: write the correct sequence number to the Packet here
+    // const_cast<NLPacket&>(packet).writeSequenceNumber(sequenceNumber);
+    
     return writeDatagram(packet.getData(), packet.getDataSize(), sockAddr);
+}
+
+qint64 Socket::writePacket(std::unique_ptr<Packet> packet, const HifiSockAddr& sockAddr) {
+    if (packet->isReliable()) {
+        auto it = _connectionsHash.find(sockAddr);
+        if (it == _connectionsHash.end()) {
+            it = _connectionsHash.insert(it, std::make_pair(sockAddr, new Connection(this, sockAddr)));
+        }
+        it->second->sendReliablePacket(std::move(packet));
+        return 0;
+    }
+    
+    return writePacket(*packet, sockAddr);
+}
+
+qint64 Socket::writeDatagram(const char* data, qint64 size, const HifiSockAddr& sockAddr) {
+    return writeDatagram(QByteArray::fromRawData(data, size), sockAddr);
 }
 
 qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& sockAddr) {
     
     qint64 bytesWritten = _udpSocket.writeDatagram(datagram, sockAddr.getAddress(), sockAddr.getPort());
-    
-    // TODO: write the correct sequence number to the Packet here
-    // const_cast<NLPacket&>(packet).writeSequenceNumber(sequenceNumber);
     
     if (bytesWritten < 0) {
         qCDebug(networking) << "ERROR in writeDatagram:" << _udpSocket.error() << "-" << _udpSocket.errorString();

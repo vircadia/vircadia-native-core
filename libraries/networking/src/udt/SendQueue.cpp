@@ -80,9 +80,9 @@ void SendQueue::stop() {
     _running = false;
 }
     
-void SendQueue::sendPacket(const Packet& packet) {
+void SendQueue::sendPacket(const BasePacket& packet) {
     if (_socket) {
-        _socket->writePacket(packet, _destination);
+        _socket->writeDatagram(packet.getData(), packet.getDataSize(), _destination);
     }
 }
     

@@ -47,6 +47,9 @@ public:
     int getPacketSendPeriod() const { return _packetSendPeriod; }
     void setPacketSendPeriod(int newPeriod) { _packetSendPeriod = newPeriod; }
     
+    // Send a packet through the socket
+    void sendPacket(const BasePacket& packet);
+    
 public slots:
     void start();
     void stop();
@@ -67,9 +70,6 @@ private:
     
     // Increments current sequence number and return it
     SequenceNumber getNextSequenceNumber();
-
-    // Send a packet through the socket
-    void sendPacket(const Packet& packet);
     
     mutable QReadWriteLock _packetsLock; // Protects the packets to be sent list.
     std::list<std::unique_ptr<Packet>> _packets; // List of packets to be sent

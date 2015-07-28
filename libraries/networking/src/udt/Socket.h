@@ -22,6 +22,7 @@
 #include <QtNetwork/QUdpSocket>
 
 #include "../HifiSockAddr.h"
+#include "Connection.h"
 
 namespace udt {
 
@@ -42,10 +43,10 @@ public:
     
     quint16 localPort() const { return _udpSocket.localPort(); }
     
-    qint64 writeUnreliablePacket(const BasePacket& packet, const HifiSockAddr& sockAddr);
-    
-    qint64 writeDatagram(const char* data, qint64 size, const HifiSockAddr& sockAddr)
-        { return writeDatagram(QByteArray::fromRawData(data, size), sockAddr); }
+    // Simple functions writing to the socket with no processing
+    qint64 writePacket(const Packet& packet, const HifiSockAddr& sockAddr);
+    qint64 writePacket(std::unique_ptr<Packet> packet, const HifiSockAddr& sockAddr);
+    qint64 writeDatagram(const char* data, qint64 size, const HifiSockAddr& sockAddr);
     qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& sockAddr);
     
     void bind(const QHostAddress& address, quint16 port = 0) { _udpSocket.bind(address, port); }
@@ -71,6 +72,7 @@ private:
     std::unordered_map<HifiSockAddr, BasePacketHandler> _unfilteredHandlers;
 
     std::unordered_map<HifiSockAddr, SequenceNumber> _packetSequenceNumbers;
+    std::unordered_map<HifiSockAddr, Connection*> _connectionsHash;
     
     int32_t _synInterval = 10; // 10ms
     QTimer _synTimer;

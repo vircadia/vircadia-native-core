@@ -145,7 +145,7 @@ void IceServer::sendPeerInformationPacket(const NetworkPeer& peer, const HifiSoc
     peerPacket->write(peer.toByteArray());
     
     // write the current packet
-    _serverSocket.writeUnreliablePacket(*peerPacket, *destinationSockAddr);
+    _serverSocket.writePacket(*peerPacket, *destinationSockAddr);
 }
 
 void IceServer::clearInactivePeers() {
