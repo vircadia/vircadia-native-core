@@ -18,13 +18,15 @@
 #include <unordered_map>
 
 #include <QtCore/QObject>
+#include <QtCore/QTimer>
 #include <QtNetwork/QUdpSocket>
 
 #include "../HifiSockAddr.h"
 
 namespace udt {
-    
+
 class BasePacket;
+class ControlSender;
 class Packet;
 class SeqNum;
 
@@ -40,7 +42,7 @@ public:
     
     quint16 localPort() const { return _udpSocket.localPort(); }
     
-    qint64 writeUnreliablePacket(const Packet& packet, const HifiSockAddr& sockAddr);
+    qint64 writeUnreliablePacket(const BasePacket& packet, const HifiSockAddr& sockAddr);
     
     qint64 writeDatagram(const char* data, qint64 size, const HifiSockAddr& sockAddr)
         { return writeDatagram(QByteArray::fromRawData(data, size), sockAddr); }
@@ -59,6 +61,7 @@ public:
 
 private slots:
     void readPendingDatagrams();
+    void rateControlSync();
     
 private:
     QUdpSocket _udpSocket { this };
@@ -68,6 +71,9 @@ private:
     std::unordered_map<HifiSockAddr, BasePacketHandler> _unfilteredHandlers;
 
     std::unordered_map<HifiSockAddr, SeqNum> _packetSequenceNumbers;
+    
+    int32_t _synInterval = 10; // 10ms
+    QTimer _synTimer;
 };
     
 } // namespace udt

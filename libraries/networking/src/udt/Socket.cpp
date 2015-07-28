@@ -11,6 +11,8 @@
 
 #include "Socket.h"
 
+#include <QtCore/QThread>
+
 #include "../NetworkLogging.h"
 #include "Packet.h"
 
@@ -20,6 +22,12 @@ Socket::Socket(QObject* parent) :
     QObject(parent)
 {
     connect(&_udpSocket, &QUdpSocket::readyRead, this, &Socket::readPendingDatagrams);
+    
+    // make sure our synchronization method is called every SYN interval
+    connect(&_synTimer, &QTimer::timeout, this, &Socket::rateControlSync);
+    
+    // start our timer for the synchronization time interval
+    _synTimer.start(_synInterval);
 }
 
 void Socket::rebind() {
@@ -58,7 +66,7 @@ void Socket::setBufferSizes(int numBytes) {
     }
 }
 
-qint64 Socket::writeUnreliablePacket(const Packet& packet, const HifiSockAddr& sockAddr) {
+qint64 Socket::writeUnreliablePacket(const BasePacket& packet, const HifiSockAddr& sockAddr) {
     return writeDatagram(packet.getData(), packet.getDataSize(), sockAddr);
 }
 
@@ -111,5 +119,16 @@ void Socket::readPendingDatagrams() {
                 return _packetHandler(std::move(packet));
             }
         }
+    }
+}
+
+void Socket::rateControlSync() {
+    
+    // TODO: enumerate our list of connections and ask each of them to send off periodic ACK packet for rate control
+    
+    if (_synTimer.interval() != _synInterval) {
+        // if the _synTimer interval doesn't match the current _synInterval (changes when the CC factory is changed)
+        // then restart it now with the right interval
+        _synTimer.start(_synInterval);
     }
 }

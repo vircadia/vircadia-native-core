@@ -13,8 +13,18 @@
 
 using namespace udt;
 
-std::unique_ptr<ControlPacket> ControlPacket::create(Type type, const SequenceNumberList& sequenceNumbers) {
-    return ControlPacket::create(type, sequenceNumbers);
+std::unique_ptr<ControlPacket> ControlPacket::create(Type type, qint64 size) {
+    
+    std::unique_ptr<ControlPacket> controlPacket;
+    
+    if (size == -1) {
+        return ControlPacket::create(type);
+    } else {
+        // Fail with invalid size
+        Q_ASSERT(size >= 0);
+        
+        return ControlPacket::create(type, size);
+    }
 }
 
 ControlPacket::ControlPacketPair ControlPacket::createPacketPair(quint64 timestamp) {
@@ -25,25 +35,33 @@ ControlPacket::ControlPacketPair ControlPacket::createPacketPair(quint64 timesta
 }
 
 qint64 ControlPacket::localHeaderSize() {
-    return sizeof(TypeAndSubSequenceNumber);
+    return sizeof(ControlBitAndType);
 }
 
 qint64 ControlPacket::totalHeadersSize() const {
     return BasePacket::totalHeadersSize() + localHeaderSize();
 }
 
-ControlPacket::ControlPacket(Type type, const SequenceNumberList& sequenceNumbers) :
-    BasePacket(localHeaderSize() + (sizeof(Packet::SequenceNumber) * sequenceNumbers.size())),
+ControlPacket::ControlPacket(Type type) :
+    BasePacket(-1),
     _type(type)
 {
     adjustPayloadStartAndCapacity();
     
     open(QIODevice::ReadWrite);
     
-    // pack in the sequence numbers
-    for (auto& sequenceNumber : sequenceNumbers) {
-        writePrimitive(sequenceNumber);
-    }
+    writeControlBitAndType();
+}
+
+ControlPacket::ControlPacket(Type type, qint64 size) :
+    BasePacket(localHeaderSize() + size),
+    _type(type)
+{
+    adjustPayloadStartAndCapacity();
+    
+    open(QIODevice::ReadWrite);
+    
+    writeControlBitAndType();
 }
 
 ControlPacket::ControlPacket(quint64 timestamp) :
@@ -53,6 +71,8 @@ ControlPacket::ControlPacket(quint64 timestamp) :
     adjustPayloadStartAndCapacity();
     
     open(QIODevice::ReadWrite);
+    
+    writeControlBitAndType();
     
     // pack in the timestamp
     writePrimitive(timestamp);
@@ -70,4 +90,16 @@ ControlPacket& ControlPacket::operator=(ControlPacket&& other) {
     _type = other._type;
     
     return *this;
+}
+
+static const uint32_t CONTROL_BIT_MASK = 1 << (sizeof(ControlPacket::ControlBitAndType) - 1);
+
+void ControlPacket::writeControlBitAndType() {
+    ControlBitAndType* bitAndType = reinterpret_cast<ControlBitAndType*>(_packet.get());
+
+    // write the control bit by OR'ing the current value with the CONTROL_BIT_MASK
+    *bitAndType = (*bitAndType | CONTROL_BIT_MASK);
+    
+    // write the type by OR'ing the type with the current value & CONTROL_BIT_MASK
+    *bitAndType = (*bitAndType & CONTROL_BIT_MASK) | (_type << sizeof((ControlPacket::Type) - 1));
 }

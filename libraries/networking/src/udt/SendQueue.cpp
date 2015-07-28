@@ -80,8 +80,8 @@ void SendQueue::stop() {
     _running = false;
 }
     
-void SendQueue::sendPacket(const Packet& packet) {
-    _socket->writeDatagram(packet.getData(), packet.getDataSize(), _destination);
+void SendQueue::sendPacket(const BasePacket& packet) {
+    _socket->writeUnreliablePacket(packet, _destination);
 }
     
 void SendQueue::ack(SeqNum ack) {
