@@ -42,6 +42,10 @@ public:
     void processControl(std::unique_ptr<ControlPacket> controlPacket);
     
 private:
+    void processACK(std::unique_ptr<ControlPacket> controlPacket);
+    void processACK2(std::unique_ptr<ControlPacket> controlPacket);
+    void processNAK(std::unique_ptr<ControlPacket> controlPacket);
+    
     LossList _lossList; // List of all missing packets
     SeqNum _largestReceivedSeqNum; // The largest sequence number received from the peer
     SeqNum _lastSentACK; // The last sent ACK

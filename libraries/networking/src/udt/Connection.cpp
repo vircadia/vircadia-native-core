@@ -91,7 +91,6 @@ void Connection::sendLightACK() const {
     // create the light ACK packet, make it static so we can re-use it
     static const int LIGHT_ACK_PACKET_PAYLOAD_BYTES = sizeof(SeqNum);
     static auto lightACKPacket = ControlPacket::create(ControlPacket::ACK, LIGHT_ACK_PACKET_PAYLOAD_BYTES);
-    lightACKPacket->reset(); // We need to reset it every time.
     
     SeqNum nextACKNumber = nextACK();
     
@@ -99,6 +98,9 @@ void Connection::sendLightACK() const {
         // we already got an ACK2 for this ACK we would be sending, don't bother
         return;
     }
+    
+    // reset the lightACKPacket before we go to write the ACK to it
+    lightACKPacket->reset();
     
     // pack in the ACK
     lightACKPacket->writePrimitive(nextACKNumber);
@@ -151,36 +153,48 @@ void Connection::processReceivedSeqNum(SeqNum seq) {
 void Connection::processControl(unique_ptr<ControlPacket> controlPacket) {
     switch (controlPacket->getType()) {
         case ControlPacket::ACK: {
-            // read the ACK sub-sequence number
-            SeqNum currentACKSubSequenceNumber;
-            controlPacket->readPrimitive(&currentACKSubSequenceNumber);
-            
-            // read the ACK number
-            SeqNum nextACKNumber;
-            controlPacket->readPrimitive(&nextACKNumber);
-            
-            // read the RTT and variance
-            int32_t rtt, rttVariance;
-            controlPacket->readPrimitive(&rtt);
-            controlPacket->readPrimitive(&rttVariance);
-            
+            processACK(move(controlPacket));
             break;
         }
         case ControlPacket::ACK2: {
+            processACK2(move(controlPacket));
             break;
         }
         case ControlPacket::NAK: {
-            // read the loss report
-            SeqNum start, end;
-            controlPacket->readPrimitive(&start);
-            if (controlPacket->bytesLeftToRead() >= (qint64)sizeof(SeqNum)) {
-                controlPacket->readPrimitive(&end);
-            }
+            processNAK(move(controlPacket));
             break;
         }
         case ControlPacket::PacketPair: {
             
             break;
         }
+    }
+}
+
+void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
+    // read the ACK sub-sequence number
+    SeqNum currentACKSubSequenceNumber;
+    controlPacket->readPrimitive(&currentACKSubSequenceNumber);
+    
+    // read the ACK number
+    SeqNum nextACKNumber;
+    controlPacket->readPrimitive(&nextACKNumber);
+    
+    // read the RTT and variance
+    int32_t rtt, rttVariance;
+    controlPacket->readPrimitive(&rtt);
+    controlPacket->readPrimitive(&rttVariance);
+}
+
+void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
+    
+}
+
+void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
+    // read the loss report
+    SeqNum start, end;
+    controlPacket->readPrimitive(&start);
+    if (controlPacket->bytesLeftToRead() >= (qint64)sizeof(SeqNum)) {
+        controlPacket->readPrimitive(&end);
     }
 }
