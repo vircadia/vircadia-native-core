@@ -243,15 +243,17 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
 }
 
 
-vec2 getPolarCoordinates(const PalmData& palm) {
+vec2 ApplicationCompositor::getPolarCoordinates(const PalmData& palm) const {
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    auto avatarOrientation = myAvatar->getOrientation();
-    auto eyePos = myAvatar->getDefaultEyePosition();
     glm::vec3 tip = myAvatar->getLaserPointerTipPosition(&palm);
-    // Direction of the tip relative to the eye
-    glm::vec3 tipDirection = tip - eyePos;
-    // orient into avatar space
-    tipDirection = glm::inverse(avatarOrientation) * tipDirection;
+    glm::vec3 relativePos = myAvatar->getDefaultEyePosition();
+    glm::quat rotation = myAvatar->getOrientation();
+    if (Menu::getInstance()->isOptionChecked(MenuOption::StandingHMDSensorMode)) {
+        relativePos = _modelTransform.getTranslation();
+        rotation = _modelTransform.getRotation();
+    }
+    glm::vec3 tipDirection = tip - relativePos;
+    tipDirection = glm::inverse(rotation) * tipDirection;
     // Normalize for trig functions
     tipDirection = glm::normalize(tipDirection);
     // Convert to polar coordinates
