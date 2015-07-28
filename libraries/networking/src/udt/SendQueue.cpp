@@ -139,7 +139,7 @@ void SendQueue::sendNextPacket() {
     
     if (_nextPacket) {
         // Write packet's sequence number and send it off
-        _nextPacket->setSequenceNumber(getNextSequenceNumber());
+        _nextPacket->writeSequenceNumber(getNextSequenceNumber());
         sendPacket(*_nextPacket);
         
         // Insert the packet we have just sent in the sent list

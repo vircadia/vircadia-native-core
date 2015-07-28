@@ -67,11 +67,11 @@ void Socket::setBufferSizes(int numBytes) {
     }
 }
 
-qint64 Socket::writePacket(Packet& packet, const HifiSockAddr& sockAddr) {
+qint64 Socket::writePacket(const Packet& packet, const HifiSockAddr& sockAddr) {
     Q_ASSERT_X(!packet.isReliable(), "Socket::writePacket", "Cannot send a reliable packet unreliably");
     
     // write the correct sequence number to the Packet here
-    packet.setSequenceNumber(_currentUnreliableSequenceNumber);
+    packet.writeSequenceNumber(_currentUnreliableSequenceNumber);
     
     return writeDatagram(packet.getData(), packet.getDataSize(), sockAddr);
 }

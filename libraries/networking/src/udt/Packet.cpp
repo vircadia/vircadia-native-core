@@ -112,7 +112,7 @@ Packet& Packet::operator=(Packet&& other) {
     return *this;
 }
 
-void Packet::setSequenceNumber(SequenceNumber sequenceNumber) {
+void Packet::writeSequenceNumber(SequenceNumber sequenceNumber) const {
     _sequenceNumber = sequenceNumber;
     writeHeader();
 }
@@ -122,7 +122,7 @@ static const uint32_t RELIABILITY_BIT_MASK = 1 << (sizeof(Packet::SequenceNumber
 static const uint32_t MESSAGE_BIT_MASK = 1 << (sizeof(Packet::SequenceNumberAndBitField) - 3);
 static const uint32_t BIT_FIELD_MASK = CONTROL_BIT_MASK | RELIABILITY_BIT_MASK | MESSAGE_BIT_MASK;
 
-void Packet::readHeader() {
+void Packet::readHeader() const {
     SequenceNumberAndBitField seqNumBitField = *reinterpret_cast<SequenceNumberAndBitField*>(_packet.get());
     Q_ASSERT_X((bool) (seqNumBitField & CONTROL_BIT_MASK),
                "Packet::readHeader()", "This should be a data packet");
@@ -131,7 +131,7 @@ void Packet::readHeader() {
     _sequenceNumber = SequenceNumber{ seqNumBitField & ~BIT_FIELD_MASK }; // Remove the bit field
 }
 
-void Packet::writeHeader() {
+void Packet::writeHeader() const {
     // grab pointer to current SequenceNumberAndBitField
     SequenceNumberAndBitField* seqNumBitField = reinterpret_cast<SequenceNumberAndBitField*>(_packet.get());
     

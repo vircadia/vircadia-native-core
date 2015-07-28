@@ -52,7 +52,7 @@ public:
     bool isReliable() const { return _isReliable; }
     SequenceNumber getSequenceNumber() const { return _sequenceNumber; }
     
-    void setSequenceNumber(SequenceNumber sequenceNumber);
+    void writeSequenceNumber(SequenceNumber sequenceNumber) const;
 
 protected:
     Packet(qint64 size, bool isReliable = false, bool isPartOfMessage = false);
@@ -63,13 +63,15 @@ protected:
     Packet& operator=(const Packet& other);
     Packet& operator=(Packet&& other);
 
+private:
     // Header readers - these read data to member variables after pulling packet off wire
-    void readHeader();
-    void writeHeader();
+    void readHeader() const;
+    void writeHeader() const;
 
-    bool _isReliable { false };
-    bool _isPartOfMessage { false };
-    SequenceNumber _sequenceNumber;
+    // Simple holders to prevent multiple reading and bitwise ops
+    mutable bool _isReliable { false };
+    mutable bool _isPartOfMessage { false };
+    mutable SequenceNumber _sequenceNumber;
 };
     
 } // namespace udt
