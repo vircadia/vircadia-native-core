@@ -13,7 +13,6 @@ class MainWindowOpenGLDisplayPlugin : public WindowOpenGLDisplayPlugin {
     Q_OBJECT
 public:
     MainWindowOpenGLDisplayPlugin();
-    virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize) override;
 
 protected:
     virtual GlWindow* createWindow(PluginContainer * container) override final;

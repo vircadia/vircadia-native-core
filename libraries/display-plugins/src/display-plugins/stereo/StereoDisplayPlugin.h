@@ -7,9 +7,9 @@
 //
 #pragma once
 
-#include "../WindowOpenGLDisplayPlugin.h"
+#include "../MainWindowOpenGLDisplayPlugin.h"
 
-class StereoDisplayPlugin : public WindowOpenGLDisplayPlugin {
+class StereoDisplayPlugin : public MainWindowOpenGLDisplayPlugin {
     Q_OBJECT
 public:
     StereoDisplayPlugin();
@@ -21,6 +21,4 @@ public:
     virtual glm::mat4 getProjection(Eye eye, const glm::mat4& baseProjection) const override;
     virtual glm::mat4 getModelview(Eye eye, const glm::mat4& baseModelview) const override;
 
-protected:
-    virtual void customizeWindow(PluginContainer * container) override;
 };

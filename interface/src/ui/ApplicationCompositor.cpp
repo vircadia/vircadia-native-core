@@ -430,6 +430,8 @@ bool ApplicationCompositor::calculateRayUICollisionPoint(const glm::vec3& positi
 void ApplicationCompositor::renderPointers(gpu::Batch& batch) {
     if (qApp->isHMDMode() && !qApp->getLastMouseMoveWasSimulated() && !qApp->isMouseHidden()) {
         //If we are in oculus, render reticle later
+        auto trueMouse = qApp->getTrueMouse();
+        trueMouse /= qApp->getCanvasSize();
         QPoint position = QPoint(qApp->getTrueMouseX(), qApp->getTrueMouseY());
         _reticlePosition[MOUSE] = position;
         _reticleActive[MOUSE] = true;

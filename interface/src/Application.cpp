@@ -665,7 +665,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
 void Application::aboutToQuit() {
     emit beforeAboutToQuit();
-
+    getActiveDisplayPlugin()->deactivate(this);
     _aboutToQuit = true;
     cleanupBeforeQuit();
 }
@@ -742,8 +742,6 @@ Application::~Application() {
     _myAvatar = NULL;
 
     ModelEntityItem::cleanupLoadedAnimations();
-
-    getActiveDisplayPlugin()->deactivate(this);
 
     auto inputPlugins = getInputPlugins();
     foreach(auto inputPlugin, inputPlugins) {
@@ -4685,6 +4683,10 @@ void Application::shutdownPlugins() {
 }
 
 glm::uvec2 Application::getCanvasSize() const {
+    return toGlm(_glWindow->size());
+}
+
+glm::uvec2 Application::getUiSize() const {
     return getActiveDisplayPlugin()->getRecommendedUiSize();
 }
 

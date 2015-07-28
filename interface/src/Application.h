@@ -184,6 +184,7 @@ public:
     bool eventFilter(QObject* object, QEvent* event);
 
     glm::uvec2 getCanvasSize() const;
+    glm::uvec2 getUiSize() const;
     QSize getDeviceSize() const;
     bool hasFocus() const;
     PickRay computePickRay() const;

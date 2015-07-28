@@ -11,11 +11,10 @@
 #include <QApplication>
 #include <QDesktopWidget>
 
-#include <GlWindow.h>
+#include <gpu/GLBackend.h>
 #include <ViewFrustum.h>
 #include <MatrixStack.h>
-
-#include <gpu/GLBackend.h>
+#include <plugins/PluginContainer.h>
 
 StereoDisplayPlugin::StereoDisplayPlugin() {
 }
@@ -23,26 +22,6 @@ StereoDisplayPlugin::StereoDisplayPlugin() {
 bool StereoDisplayPlugin::isSupported() const {
     // FIXME this should attempt to do a scan for supported 3D output
     return true;
-}
-
-void StereoDisplayPlugin::customizeWindow(PluginContainer * container) {
-    _window->setFlags(Qt::FramelessWindowHint);
-    auto desktop = QApplication::desktop();
-    QRect primaryGeometry = desktop->screenGeometry();
-    for (int i = 0; i < desktop->screenCount(); ++i) {
-        QRect geometry = desktop->screen(i)->geometry();
-        if (geometry.topLeft() == primaryGeometry.topLeft()) {
-            continue;
-        }
-        float aspect = (float)geometry.width() / (float)geometry.height();
-        if (aspect < 1.0f) {
-            continue;
-        }
-        _window->setGeometry(geometry);
-        break;
-    }
-    _window->setCursor(Qt::BlankCursor);
-    _window->show();
 }
 
 // FIXME make this into a setting that can be adjusted
@@ -73,5 +52,6 @@ glm::mat4 StereoDisplayPlugin::getModelview(Eye eye, const glm::mat4& baseModelv
 
 void StereoDisplayPlugin::activate(PluginContainer * container) {
     WindowOpenGLDisplayPlugin::activate(container);
+    container->setFullscreen(qApp->primaryScreen());
     // FIXME Add menu items
 }

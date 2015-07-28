@@ -272,7 +272,6 @@ void Oculus_0_6_DisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sc
         PerformanceTimer("OculusSubmit");
         ovrLayerHeader* layers = &sceneLayer.Header;
         ovrResult result = ovrHmd_SubmitFrame(_hmd, _frameIndex, nullptr, &layers, 1);
-        qDebug() << result;
     }
     _sceneFbo->Increment();
 

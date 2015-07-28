@@ -78,8 +78,7 @@ void OpenGLDisplayPlugin::deactivate(PluginContainer* container) {
     makeCurrent();
     Q_ASSERT(0 == glGetError());
     _vertexBuffer.reset();
- //   glDeleteBuffers(1, &_vertexBuffer);
-//    _vertexBuffer = 0;
+    _program.reset();
     doneCurrent();
 }
 
