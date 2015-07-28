@@ -52,7 +52,7 @@ private:
     void processACK2(std::unique_ptr<ControlPacket> controlPacket);
     void processNAK(std::unique_ptr<ControlPacket> controlPacket);
     
-    void updateRTT(int32_t rtt);
+    void updateRTT(int rtt);
     
     int _synInterval; // Periodical Rate Control Interval, defaults to 10ms
     

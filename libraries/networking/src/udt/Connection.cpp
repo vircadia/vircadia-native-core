@@ -312,7 +312,7 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
     }
 }
 
-void Connection::updateRTT(int32_t rtt) {
+void Connection::updateRTT(int rtt) {
     // this updates the RTT using exponential weighted moving average
     _rttVariance = (_rttVariance * 3 + abs(rtt - _rtt)) >> 2;
     _rtt = (_rtt * 7 + rtt) >> 3;
