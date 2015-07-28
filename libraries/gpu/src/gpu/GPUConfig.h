@@ -36,7 +36,7 @@
 #else
 
 #include <GL/glew.h>
-#include <GL/wglew.h>
+#include <GL/xglew.h>
 //#include <GL/gl.h>
 //#include <GL/glext.h>
 
