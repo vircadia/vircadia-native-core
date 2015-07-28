@@ -218,7 +218,7 @@ namespace MenuOption {
     const QString NoFaceTracking = "None";
     const QString OctreeStats = "Entity Statistics";
     const QString OnlyDisplayTopTen = "Only Display Top Ten";
-    const QString OutputMenu = "View>Display Mode";
+    const QString OutputMenu = "Display>Display Mode";
     const QString PackageModel = "Package Model...";
     const QString Pair = "Pair";
     const QString PhysicsShowOwned = "Highlight Simulation Ownership";

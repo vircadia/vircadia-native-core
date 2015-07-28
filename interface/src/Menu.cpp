@@ -219,6 +219,13 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::PackageModel, 0,
                                   qApp, SLOT(packageModel()));
 
+    MenuWrapper* displayMenu = addMenu("Display");
+    {
+        MenuWrapper* displayModeMenu = addMenu(MenuOption::OutputMenu);
+        QActionGroup* displayModeGroup = new QActionGroup(displayModeMenu);
+        displayModeGroup->setExclusive(true);
+    }
+
     MenuWrapper* avatarMenu = addMenu("Avatar");
     QObject* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
@@ -255,12 +262,6 @@ Menu::Menu() {
             avatar, SLOT(updateMotionBehaviorFromMenu()));
 
     MenuWrapper* viewMenu = addMenu("View");
-    {
-        MenuWrapper* displayModeMenu = addMenu(MenuOption::OutputMenu);
-        QActionGroup* displayModeGroup = new QActionGroup(displayModeMenu);
-        displayModeGroup->setExclusive(true);
-    }
-
     addActionToQMenuAndActionHash(viewMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
 
     MenuWrapper* cameraModeMenu = viewMenu->addMenu("Camera Mode");
