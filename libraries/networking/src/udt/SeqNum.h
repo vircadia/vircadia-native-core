@@ -84,7 +84,6 @@ public:
     friend SeqNum operator-(const SeqNum a, const Type& b);
     friend SeqNum operator-(const Type& a, const SeqNum b);
     
-    friend int seqcmp(const SeqNum& seq1, const SeqNum& seq2);
     friend int seqlen(const SeqNum& seq1, const SeqNum& seq2);
     friend int seqoff(const SeqNum& seq1, const SeqNum& seq2);
     
@@ -132,7 +131,6 @@ inline SeqNum operator-(const SeqNum::Type& a, SeqNum b) {
     return b;
 }
     
-int seqcmp(const SeqNum& seq1, const SeqNum& seq2);
 int seqlen(const SeqNum& seq1, const SeqNum& seq2);
 int seqoff(const SeqNum& seq1, const SeqNum& seq2);
     

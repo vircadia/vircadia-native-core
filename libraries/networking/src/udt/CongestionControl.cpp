@@ -106,7 +106,7 @@ void UdtCC::onLoss(const std::vector<SeqNum>& losslist) {
     
     _loss = true;
     
-    if (seqcmp(losslist[0], _lastDecSeq) > 0) {
+    if (losslist[0] > _lastDecSeq) {
         _lastDecPeriod = _packetSendPeriod;
         _packetSendPeriod = ceil(_packetSendPeriod * 1.125);
         
