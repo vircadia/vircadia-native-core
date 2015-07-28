@@ -40,8 +40,9 @@ int32_t meanOfMedianFilteredValues(std::vector<int> intervals, int numValues, in
     
     int count = 0;
     int sum = 0;
-    int upperBound = median * 8;
-    int lowerBound = median / 8;
+    static const int MEDIAN_FILTERING_BOUND_MULTIPLIER = 8;
+    int upperBound = median * MEDIAN_FILTERING_BOUND_MULTIPLIER;
+    int lowerBound = median / MEDIAN_FILTERING_BOUND_MULTIPLIER;
     
     for (auto& interval : intervals) {
         if ((interval < upperBound) && interval > lowerBound) {
