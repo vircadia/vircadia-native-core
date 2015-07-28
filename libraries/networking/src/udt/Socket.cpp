@@ -145,7 +145,7 @@ void Socket::rateControlSync() {
     
     // enumerate our list of connections and ask each of them to send off periodic ACK packet for rate control
     for (auto& connection : _connectionsHash) {
-        connection.second->sendACK();
+        connection.second->sync();
     }
     
     if (_synTimer.interval() != _synInterval) {

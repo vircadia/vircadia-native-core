@@ -11,6 +11,8 @@
 
 #include "Connection.h"
 
+#include <NumericalConstants.h>
+
 #include "../HifiSockAddr.h"
 #include "ControlPacket.h"
 #include "Packet.h"
@@ -35,6 +37,28 @@ void Connection::sendReliablePacket(unique_ptr<Packet> packet) {
     }
     
     _sendQueue->queuePacket(move(packet));
+}
+
+void Connection::sync() {
+    // we send out a periodic ACK every rate control interval
+    sendACK();
+    
+    // check if we need to re-transmit a loss list
+    // we do this if it has been longer than the current nakInterval since we last sent
+    auto now = high_resolution_clock::now();
+    
+    if (duration_cast<milliseconds>(now - _lastNAKTime).count() >= _nakInterval) {
+        // construct a NAK packet that will hold all of the lost sequence numbers
+        auto lossListPacket = ControlPacket::create(ControlPacket::NAK, _lossList.getLength() * sizeof(SequenceNumber));
+        
+        
+        
+        // have our SendQueue send off this control packet
+        _sendQueue->sendPacket(*lossListPacket);
+        
+        _lastNAKTime = high_resolution_clock::now();
+    }
+    
 }
 
 void Connection::sendACK(bool wasCausedBySyncTimeout) {
@@ -65,10 +89,10 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
         
     } else if (nextACKNumber == _lastSentACK) {
         // We already sent this ACK, but check if we should re-send it.
-        // We will re-send if it has been more than RTT + (4 * RTT variance) since the last ACK
-        milliseconds sinceLastACK = duration_cast<milliseconds>(currentTime - lastACKSendTime);
+        // We will re-send if it has been more than the estimated timeout since the last ACK
+        microseconds sinceLastACK = duration_cast<microseconds>(currentTime - lastACKSendTime);
         
-        if (sinceLastACK.count() < (_rtt + (4 * _rttVariance))) {
+        if (sinceLastACK.count() < estimatedTimeout()) {
             return;
         }
     }
@@ -162,6 +186,23 @@ void Connection::processReceivedSequenceNumber(SequenceNumber seq) {
         
         // have the send queue send off our packet immediately
         _sendQueue->sendPacket(*lossReport);
+        
+        // record our last NAK time
+        _lastNAKTime = high_resolution_clock::now();
+        
+        // figure out when we should send the next loss report, if we haven't heard anything back
+        _nakInterval = (_rtt + 4 * _rttVariance);
+        
+        int receivedPacketsPerSecond = _receiveWindow.getPacketReceiveSpeed();
+        if (receivedPacketsPerSecond > 0) {
+            // the NAK interval is at least the _minNAKInterval
+            // but might be the time required for all lost packets to be retransmitted
+            _nakInterval = std::max((int) (_lossList.getLength() * (USECS_PER_SECOND / receivedPacketsPerSecond)),
+                                    _minNAKInterval);
+        } else {
+            // the NAK interval is at least the _minNAKInterval but might be the estimated timeout
+            _nakInterval = std::max(estimatedTimeout(), _minNAKInterval);
+        }
     }
     
     if (seq > _lastReceivedSequenceNumber) {
@@ -202,7 +243,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     auto currentTime = high_resolution_clock::now();
     static high_resolution_clock::time_point lastACK2SendTime;
     
-    milliseconds sinceLastACK2 = duration_cast<milliseconds>(currentTime - lastACK2SendTime);
+    microseconds sinceLastACK2 = duration_cast<microseconds>(currentTime - lastACK2SendTime);
     
     if (sinceLastACK2.count() > _synInterval || currentACKSubSequenceNumber == _lastSentACK2) {
         // setup a static ACK2 packet we will re-use
@@ -304,7 +345,7 @@ void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
         
         // calculate the RTT (time now - time ACK sent)
         auto now = high_resolution_clock::now();
-        int rtt = duration_cast<milliseconds>(now - pair.second).count();
+        int rtt = duration_cast<microseconds>(now - pair.second).count();
         
         updateRTT(rtt);
         

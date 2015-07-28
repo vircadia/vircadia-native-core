@@ -35,9 +35,8 @@ public:
     Connection(Socket* parentSocket, HifiSockAddr destination);
     
     void sendReliablePacket(std::unique_ptr<Packet> packet);
-    
-    void sendACK(bool wasCausedBySyncTimeout = true);
-    void sendLightACK() const;
+
+    void sync(); // rate control method, fired by Socket for all connections on SYN interval
     
     SequenceNumber nextACK() const;
     
@@ -47,6 +46,9 @@ public:
     void processControl(std::unique_ptr<ControlPacket> controlPacket);
     
 private:
+    void sendACK(bool wasCausedBySyncTimeout = true);
+    void sendLightACK() const;
+    
     void processACK(std::unique_ptr<ControlPacket> controlPacket);
     void processLightACK(std::unique_ptr<ControlPacket> controlPacket);
     void processACK2(std::unique_ptr<ControlPacket> controlPacket);
@@ -54,7 +56,13 @@ private:
     
     void updateRTT(int rtt);
     
-    int _synInterval; // Periodical Rate Control Interval, defaults to 10ms
+    int estimatedTimeout() const { return _rtt + _rttVariance * 4; }
+    
+    int _synInterval; // Periodical Rate Control Interval, in microseconds, defaults to 10ms
+    
+    int _nakInterval; // NAK timeout interval, in microseconds
+    int _minNAKInterval { 100000 }; // NAK timeout interval lower bound, default of 100ms
+    std::chrono::high_resolution_clock::time_point _lastNAKTime;
     
     LossList _lossList; // List of all missing packets
     SequenceNumber _lastReceivedSequenceNumber { SequenceNumber::MAX }; // The largest sequence number received from the peer
@@ -68,7 +76,7 @@ private:
     
     int _totalReceivedACKs { 0 };
     
-    int32_t _rtt; // RTT, in milliseconds
+    int32_t _rtt; // RTT, in microseconds
     int32_t _rttVariance; // RTT variance
     int _flowWindowSize; // Flow control window size
     
