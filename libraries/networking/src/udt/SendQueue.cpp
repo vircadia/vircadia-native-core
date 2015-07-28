@@ -174,6 +174,8 @@ void SendQueue::sendNextPacket() {
         _packets.pop_front();
     }
     
+    // check if we need to fire off a packet pair - we do this
+    
     // How long before next packet send
     auto timeToSleep = (sendTime + _packetSendPeriod) - msecTimestampNow(); // msec
     _sendTimer->start(std::max((quint64)0, timeToSleep));

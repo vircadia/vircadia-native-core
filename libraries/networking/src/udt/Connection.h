@@ -16,6 +16,7 @@
 #include <memory>
 
 #include "LossList.h"
+#include "PacketTimeWindow.h"
 #include "SendQueue.h"
 
 class HifiSockAddr;
@@ -73,6 +74,8 @@ private:
     int _flowWindowSize; // Flow control window size
     
     SentACKMap _sentACKs; // Map of ACK sub-sequence numbers to ACKed sequence number and sent time
+    
+    PacketTimeWindow _receiveWindow; // Window of received packets for bandwidth estimation and receive speed
     
     std::unique_ptr<SendQueue> _sendQueue;
 };
