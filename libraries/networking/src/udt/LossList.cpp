@@ -52,9 +52,10 @@ void LossList::insert(SequenceNumber start, SequenceNumber end) {
         
         if (end > it->second) {
             // If it goes further, find the actual end
-            auto it2 = find_if(it, _lossList.end(), [&end](pair<SequenceNumber, SequenceNumber> pair){
+            auto it2 = find_if_not(it, _lossList.end(), [&end](pair<SequenceNumber, SequenceNumber> pair){
                 return end <= pair.second;
             });
+            --it2;
             
             // If it ends inside a segment, change end (segment will be deleted)
             // Or backup iterator so segment doesn't get deleted
