@@ -16,8 +16,6 @@
 #include "GPULogging.h"
 #include "GLBackend.h"
 
-#include "Batch.h"
-
 static const GLenum _primitiveToGLmode[gpu::NUM_PRIMITIVES] = {
     GL_POINTS,
     GL_LINES,

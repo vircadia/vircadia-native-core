@@ -10,12 +10,6 @@
 //
 #include "Batch.h"
 
-#include <GLMHelpers.h>
-#include <QDebug>
-
-#include "GPUConfig.h"
-
-
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
 
@@ -288,15 +282,3 @@ void Batch::getQuery(const QueryPointer& query) {
     _params.push_back(_queries.cache(query));
 }
 
-void push_back(Batch::Params& params, const vec3& v) {
-    params.push_back(v.x);
-    params.push_back(v.y);
-    params.push_back(v.z);
-}
-
-void push_back(Batch::Params& params, const vec4& v) {
-    params.push_back(v.x);
-    params.push_back(v.y);
-    params.push_back(v.z);
-    params.push_back(v.a);
-}

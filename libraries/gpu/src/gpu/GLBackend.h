@@ -18,8 +18,6 @@
 #include "GPUConfig.h"
 
 #include "Context.h"
-#include "Batch.h"
-
 
 namespace gpu {
 

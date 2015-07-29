@@ -11,7 +11,6 @@
 #include "GLBackendShared.h"
 
 #include <mutex>
-#include "GPULogging.h"
 #include <glm/gtc/type_ptr.hpp>
 
 using namespace gpu;
