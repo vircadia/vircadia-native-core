@@ -45,7 +45,7 @@ protected:
     void setAckInterval(int ackInterval) { _ackInterval = ackInterval; }
     void setRto(int rto) { _userDefinedRto = true; _rto = rto; }
     
-    void setMss(int mss) { _mss = mss; }
+    void setMSS(int mss) { _mss = mss; }
     void setMaxCongestionWindowSize(int window) { _maxCongestionWindowSize = window; }
     void setBandwidth(int bandwidth) { _bandwidth = bandwidth; }
     void setSendCurrentSequenceNumber(SequenceNumber seqNum) { _sendCurrSeqNum = seqNum; }

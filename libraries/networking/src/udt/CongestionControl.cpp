@@ -28,13 +28,13 @@ void DefaultCC::init() {
 }
 
 void DefaultCC::onACK(SequenceNumber ackNum) {
-    int64_t B = 0;
-    double inc = 0;
+    double increase = 0;
+    
     // Note: 1/24/2012
     // The minimum increase parameter is increased from "1.0 / _mss" to 0.01
     // because the original was too small and caused sending rate to stay at low level
     // for long time.
-    const double min_inc = 0.01;
+    const double minimumIncrease = 0.01;
     
     auto now = high_resolution_clock::now();
     if (duration_cast<microseconds>(now - _lastRCTime).count() < synInterval()) {
@@ -69,24 +69,30 @@ void DefaultCC::onACK(SequenceNumber ackNum) {
         return;
     }
     
-    B = (int64_t)(_bandwidth - USECS_PER_SECOND/ _packetSendPeriod);
-    if ((_packetSendPeriod > _lastDecreasePeriod) && ((_bandwidth / 9) < B)) {
-        B = _bandwidth / 9;
+    int capacitySpeedDelta = (int) (_bandwidth - USECS_PER_SECOND / _packetSendPeriod);
+    
+    if ((_packetSendPeriod > _lastDecreasePeriod) && ((_bandwidth / 9) < capacitySpeedDelta)) {
+        capacitySpeedDelta = _bandwidth / 9;
     }
-    if (B <= 0) {
-        inc = min_inc;
+    
+    if (capacitySpeedDelta <= 0) {
+        increase = minimumIncrease;
     } else {
-        // inc = max(10 ^ ceil(log10( B * MSS * 8 ) * Beta / MSS, 1/MSS)
+        // inc = max(10 ^ ceil(log10(B * MSS * 8 ) * Beta / MSS, minimumIncrease)
+        // B = estimated link capacity
         // Beta = 1.5 * 10^(-6)
         
-        inc = pow(10.0, ceil(log10(B * _mss * 8.0))) * 0.0000015 / _mss;
+        static const double BETA = 0.0000015;
+        static const double BITS_PER_BYTE = 8.0;
         
-        if (inc < min_inc) {
-            inc = min_inc;
+        increase = pow(10.0, ceil(log10(capacitySpeedDelta * _mss * BITS_PER_BYTE))) * BETA / _mss;
+        
+        if (increase < minimumIncrease) {
+            increase = minimumIncrease;
         }
     }
     
-    _packetSendPeriod = (_packetSendPeriod * synInterval()) / (_packetSendPeriod * inc + synInterval());
+    _packetSendPeriod = (_packetSendPeriod * synInterval()) / (_packetSendPeriod * increase + synInterval());
 }
 
 void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
@@ -119,8 +125,11 @@ void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
         // remove global synchronization using randomization
         srand((uint32_t)_lastDecreaseMaxSeq);
         _decRandom = (int)ceil(_avgNAKNum * (double(rand()) / RAND_MAX));
-        if (_decRandom < 1)
+        
+        if (_decRandom < 1) {
             _decRandom = 1;
+        }
+        
     } else if ((_decCount ++ < 5) && (0 == (++ _nakCount % _decRandom))) {
         // 0.875^5 = 0.51, rate should not be decreased by more than half within a congestion period
         _packetSendPeriod = ceil(_packetSendPeriod * 1.125);
