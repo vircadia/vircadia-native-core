@@ -532,6 +532,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _window->restoreGeometry();
     _window->setVisible(true);
     container->setFocusPolicy(Qt::StrongFocus);
+    container->setAttribute(Qt::WA_AcceptTouchEvents);
     container->setFocus();
     container->installEventFilter(DependencyManager::get<OffscreenUi>().data());
 
