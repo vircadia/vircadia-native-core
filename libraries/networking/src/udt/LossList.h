@@ -24,6 +24,8 @@ class LossList {
 public:
     LossList() {}
     
+    void clear() { _length = 0; _lossList.clear(); }
+    
     // Should always add at the end
     void append(SequenceNumber seq);
     void append(SequenceNumber start, SequenceNumber end);
@@ -39,7 +41,6 @@ public:
     SequenceNumber popFirstSequenceNumber();
     
     void write(ControlPacket& packet);
-    void read(ControlPacket& packet);
     
 private:
     std::list<std::pair<SequenceNumber, SequenceNumber>> _lossList;

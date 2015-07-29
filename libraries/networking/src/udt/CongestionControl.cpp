@@ -18,7 +18,6 @@ static const double USECS_PER_SECOND = 1000000.0;
 
 void DefaultCC::init() {
     _lastRCTime = high_resolution_clock::now();
-    setAckTimer(synInterval());
     
     _slowStartLastAck = _sendCurrSeqNum;
     _lastDecreaseMaxSeq = SequenceNumber { SequenceNumber::MAX };
