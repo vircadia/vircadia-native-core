@@ -362,7 +362,9 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     }
     
     // fire the onACK callback for congestion control
+    _congestionControl->setSendCurrentSequenceNumber(_sendQueue->getCurrentSequenceNumber());
     _congestionControl->onAck(ack);
+    _sendQueue->setPacketSendPeriod(_congestionControl->_packetSendPeriod);
     
     // update the total count of received ACKs
     ++_totalReceivedACKs;
@@ -425,11 +427,13 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
         controlPacket->readPrimitive(&end);
     }
     
-    // TODO: tell the congestion control object that there was loss
-    // _congestionControl->onLoss();
-    
     // send that off to the send queue so it knows there was loss
     _sendQueue->nak(start, end);
+    
+    // Tell the congestion control object that there was loss
+    _congestionControl->setSendCurrentSequenceNumber(_sendQueue->getCurrentSequenceNumber());
+    _congestionControl->onLoss(start, end);
+    _sendQueue->setPacketSendPeriod(_congestionControl->_packetSendPeriod);
     
     ++_totalReceivedNAKs;
 }
