@@ -64,7 +64,7 @@ private:
     
     int estimatedTimeout() const;
     
-    void updateCongestionControlAndSentQueue(std::function<void()> congestionCallback);
+    void updateCongestionControlAndSendQueue(std::function<void()> congestionCallback);
     
     int _synInterval; // Periodical Rate Control Interval, in microseconds
     

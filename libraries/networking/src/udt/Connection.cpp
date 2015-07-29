@@ -384,7 +384,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     }
     
     // give this ACK to the congestion control and update the send queue parameters
-    updateCongestionControlAndSentQueue([this, ack](){
+    updateCongestionControlAndSendQueue([this, ack](){
         _congestionControl->onAck(ack);
     });
     
@@ -453,7 +453,7 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
     _sendQueue->nak(start, end);
     
     // give the loss to the congestion control object and update the send queue parameters
-    updateCongestionControlAndSentQueue([this, start, end](){
+    updateCongestionControlAndSendQueue([this, start, end](){
         _congestionControl->onLoss(start, end);
     });
     
@@ -494,7 +494,7 @@ int Connection::estimatedTimeout() const {
     return _congestionControl->_userDefinedRto ? _rtt + _rttVariance * 4 : _congestionControl->_rto;
 }
 
-void Connection::updateCongestionControlAndSentQueue(std::function<void ()> congestionCallback) {
+void Connection::updateCongestionControlAndSendQueue(std::function<void ()> congestionCallback) {
     // update the last sent sequence number in congestion control
     _congestionControl->setSendCurrentSequenceNumber(_sendQueue->getCurrentSequenceNumber());
     
