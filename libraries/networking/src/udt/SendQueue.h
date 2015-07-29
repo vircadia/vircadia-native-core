@@ -22,6 +22,7 @@
 #include "../HifiSockAddr.h"
 
 #include "SequenceNumber.h"
+#include "LossList.h"
 
 namespace udt {
     
@@ -55,7 +56,7 @@ public slots:
     void stop();
     
     void ack(SequenceNumber ack);
-    void nak(std::list<SequenceNumber> naks);
+    void nak(SequenceNumber start, SequenceNumber end);
     
 private slots:
     void sendNextPacket();
@@ -88,7 +89,7 @@ private:
     std::atomic<bool> _running { false };
     
     mutable QReadWriteLock _naksLock; // Protects the naks list.
-    std::list<SequenceNumber> _naks; // Sequence numbers of packets to resend
+    LossList _naks; // Sequence numbers of packets to resend
     
     mutable QReadWriteLock _sentLock; // Protects the sent packet list
     std::unordered_map<SequenceNumber, std::unique_ptr<Packet>> _sentPackets; // Packets waiting for ACK.

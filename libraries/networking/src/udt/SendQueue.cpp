@@ -91,36 +91,24 @@ void SendQueue::ack(SequenceNumber ack) {
         return;
     }
     
-    {
-        // remove any ACKed packets from the map of sent packets
+    {   // remove any ACKed packets from the map of sent packets
         QWriteLocker locker(&_sentLock);
         for (auto seq = _lastAck; seq <= ack; ++seq) {
             _sentPackets.erase(seq);
         }
     }
     
-    {
-        // remove any sequence numbers equal to or lower than this ACK in the loss list
+    {   // remove any sequence numbers equal to or lower than this ACK in the loss list
         QWriteLocker nakLocker(&_naksLock);
-        
-        auto it = _naks.begin();
-        
-        while (it != _naks.end()) {
-            if (*it <= ack) {
-                it = _naks.erase(it);
-            } else {
-                // the NAKs in the NAK list must be in order, so we can break if we hit one > ack
-                break;
-            }
-        }
+        _naks.remove(_naks.getFirstSequenceNumber(), ack);
     }
     
     _lastAck = ack;
 }
 
-void SendQueue::nak(std::list<SequenceNumber> naks) {
+void SendQueue::nak(SequenceNumber start, SequenceNumber end) {
     QWriteLocker locker(&_naksLock);
-    _naks.splice(_naks.end(), naks); // Add naks at the end
+    _naks.insert(start, end);
 }
 
 SequenceNumber SendQueue::getNextSequenceNumber() {
@@ -154,10 +142,9 @@ void SendQueue::sendNextPacket() {
     {
         // Check nak list for packet to resend
         QWriteLocker locker(&_naksLock);
-        if (!_naks.empty()) {
+        if (_naks.getLength() > 0) {
             hasResend = true;
-            seqNum = _naks.front();
-            _naks.pop_front();
+            seqNum = _naks.popFirstSequenceNumber();
         }
     }
     
