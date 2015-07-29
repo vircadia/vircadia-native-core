@@ -15,14 +15,13 @@
 #include <assert.h>
 
 #include <PerfStat.h>
+#include <ViewFrustum.h>
+#include <RenderArgs.h>
 
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
 #include <gpu/GPUConfig.h>
 #include <gpu/GPULogging.h>
-
-#include <ViewFrustum.h>
-#include <RenderArgs.h>
 
 #include "drawItemBounds_vert.h"
 #include "drawItemBounds_frag.h"

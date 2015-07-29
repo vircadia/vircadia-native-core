@@ -16,15 +16,14 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/random.hpp>
 
-#include <gpu/Batch.h>
-#include <gpu/GLBackend.h>
-#include <gpu/GPUConfig.h>
-
 #include <QNetworkReply>
 #include <QPainter>
 #include <QRunnable>
 #include <QThreadPool>
 #include <qimagereader.h>
+
+#include <gpu/Batch.h>
+
 
 
 #include "RenderUtilsLogging.h"
