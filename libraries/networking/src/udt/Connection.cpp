@@ -30,6 +30,10 @@ Connection::Connection(Socket* parentSocket, HifiSockAddr destination, unique_pt
     _destination(destination),
     _congestionControl(move(congestionControl))
 {
+    // setup default SYN, RTT and RTT Variance based on the SYN interval in CongestionControl object
+    _synInterval = _congestionControl->synInterval();
+    _rtt = _synInterval * 10;
+    _rttVariance = _rtt / 2;
 }
 
 Connection::~Connection() {
@@ -126,7 +130,9 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     // pack in the RTT and variance
     ackPacket->writePrimitive(_rtt);
     
-    // pack the available buffer size - must be a minimum of 2
+    // pack the available buffer size, in packets
+    // in our implementation we have no hard limit on receive buffer size, send the default value
+    ackPacket->writePrimitive((int32_t) udt::CONNECTION_RECEIVE_BUFFER_SIZE_PACKETS);
     
     if (wasCausedBySyncTimeout) {
         // pack in the receive speed and estimatedBandwidth

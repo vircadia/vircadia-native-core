@@ -20,7 +20,7 @@ static const double USECS_PER_SECOND = 1000000.0;
 void DefaultCC::init() {
     _lastRCTime = high_resolution_clock::now();
     
-    _mss = udt::MAX_PACKET_SIZE;
+    _mss = udt::MAX_PACKET_SIZE_WITH_UDP_HEADER;
     
     _slowStartLastAck = _sendCurrSeqNum;
     _lastDecreaseMaxSeq = SequenceNumber { SequenceNumber::MAX };
