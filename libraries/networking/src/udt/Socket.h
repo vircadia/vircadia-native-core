@@ -22,6 +22,7 @@
 #include <QtNetwork/QUdpSocket>
 
 #include "../HifiSockAddr.h"
+#include "CongestionControl.h"
 #include "Connection.h"
 
 namespace udt {
@@ -59,6 +60,8 @@ public:
     
     void addUnfilteredHandler(const HifiSockAddr& senderSockAddr, BasePacketHandler handler)
         { _unfilteredHandlers[senderSockAddr] = handler; }
+    
+    void setCongestionControlFactory(std::unique_ptr<CongestionControlVirtualFactory> ccFactory);
 
 private slots:
     void readPendingDatagrams();
@@ -78,6 +81,8 @@ private:
     
     int32_t _synInterval = 10; // 10ms
     QTimer _synTimer;
+    
+    std::unique_ptr<CongestionControlVirtualFactory> _ccFactory { new CongestionControlFactory<DefaultCC>() };
 };
     
 } // namespace udt

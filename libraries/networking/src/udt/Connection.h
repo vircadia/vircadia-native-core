@@ -22,6 +22,7 @@
 
 namespace udt {
     
+class CongestionControl;
 class ControlPacket;
 class Packet;
 class Socket;
@@ -32,7 +33,7 @@ public:
     using SequenceNumberTimePair = std::pair<SequenceNumber, std::chrono::high_resolution_clock::time_point>;
     using SentACKMap = std::unordered_map<SequenceNumber, SequenceNumberTimePair>;
     
-    Connection(Socket* parentSocket, HifiSockAddr destination);
+    Connection(Socket* parentSocket, HifiSockAddr destination, std::unique_ptr<CongestionControl> congestionControl);
     ~Connection();
     
     void sendReliablePacket(std::unique_ptr<Packet> packet);
@@ -88,6 +89,8 @@ private:
     PacketTimeWindow _receiveWindow { 16, 64 }; // Window of interval between packets (16) and probes (64) for bandwidth and receive speed
     
     std::unique_ptr<SendQueue> _sendQueue;
+    
+    std::unique_ptr<CongestionControl> _congestionControl;
     
     // Control Packet stat collection
     int _totalReceivedACKs { 0 };

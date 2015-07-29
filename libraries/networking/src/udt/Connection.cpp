@@ -16,6 +16,7 @@
 #include <NumericalConstants.h>
 
 #include "../HifiSockAddr.h"
+#include "CongestionControl.h"
 #include "ControlPacket.h"
 #include "Packet.h"
 #include "Socket.h"
@@ -24,10 +25,12 @@ using namespace udt;
 using namespace std;
 using namespace std::chrono;
 
-Connection::Connection(Socket* parentSocket, HifiSockAddr destination) :
+Connection::Connection(Socket* parentSocket, HifiSockAddr destination, unique_ptr<CongestionControl> congestionControl) :
     _parentSocket(parentSocket),
-    _destination(destination)
+    _destination(destination),
+    _congestionControl(move(congestionControl))
 {
+    
 }
 
 Connection::~Connection() {
@@ -343,6 +346,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     }
     
     // fire the onACK callback for congestion control
+    _congestionControl->onAck(ack);
     
     // update the total count of received ACKs
     ++_totalReceivedACKs;

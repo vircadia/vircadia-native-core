@@ -79,7 +79,7 @@ qint64 Socket::writePacket(std::unique_ptr<Packet> packet, const HifiSockAddr& s
     if (packet->isReliable()) {
         auto it = _connectionsHash.find(sockAddr);
         if (it == _connectionsHash.end()) {
-            it = _connectionsHash.insert(it, std::make_pair(sockAddr, new Connection(this, sockAddr)));
+            it = _connectionsHash.insert(it, std::make_pair(sockAddr, new Connection(this, sockAddr, _ccFactory->create())));
         }
         it->second->sendReliablePacket(std::move(packet));
         return 0;
@@ -153,4 +153,12 @@ void Socket::rateControlSync() {
         // then restart it now with the right interval
         _synTimer.start(_synInterval);
     }
+}
+
+void Socket::setCongestionControlFactory(std::unique_ptr<CongestionControlVirtualFactory> ccFactory) {
+    // swap the current unique_ptr for the new factory
+    _ccFactory.swap(ccFactory);
+    
+    // update the _synInterval to the value from the factory
+    _synInterval = _ccFactory->synInterval();
 }
