@@ -12,6 +12,7 @@
 #ifndef hifi_SendQueue_h
 #define hifi_SendQueue_h
 
+#include <chrono>
 #include <list>
 #include <unordered_map>
 
@@ -34,15 +35,13 @@ class SendQueue : public QObject {
     Q_OBJECT
     
 public:
-    static const int DEFAULT_SEND_PERIOD = 16; // msec
+    static const int DEFAULT_SEND_PERIOD = 16 * 1000; // 16ms, in microseconds
     
     static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr dest);
     
     void queuePacket(std::unique_ptr<Packet> packet);
     int getQueueSize() const { QReadLocker locker(&_packetsLock); return _packets.size(); }
 
-    quint64 getLastSendTimestamp() const { return _lastSendTimestamp; }
-    
     SequenceNumber getCurrentSequenceNumber() const { return SequenceNumber(_atomicCurrentSequenceNumber); }
     
     int getPacketSendPeriod() const { return _packetSendPeriod; }
@@ -52,14 +51,14 @@ public:
     void sendPacket(const BasePacket& packet);
     
 public slots:
-    void start();
+    void run();
     void stop();
     
     void ack(SequenceNumber ack);
     void nak(SequenceNumber start, SequenceNumber end);
     
 private slots:
-    void sendNextPacket();
+    void loop();
     
 private:
     friend struct std::default_delete<SendQueue>;
@@ -67,7 +66,6 @@ private:
     SendQueue(Socket* socket, HifiSockAddr dest);
     SendQueue(SendQueue& other) = delete;
     SendQueue(SendQueue&& other) = delete;
-    ~SendQueue();
     
     // Increments current sequence number and return it
     SequenceNumber getNextSequenceNumber();
@@ -83,10 +81,9 @@ private:
     SequenceNumber _currentSequenceNumber; // Last sequence number sent out
     std::atomic<uint32_t> _atomicCurrentSequenceNumber; // Atomic for last sequence number sent out
     
-    std::unique_ptr<QTimer> _sendTimer; // Send timer
-    std::atomic<int> _packetSendPeriod { 0 }; // Interval between two packet send envent in msec
-    std::atomic<quint64> _lastSendTimestamp { 0 }; // Record last time of packet departure
-    std::atomic<bool> _running { false };
+    std::atomic<int> _packetSendPeriod { 0 }; // Interval between two packet send event in microseconds
+    std::chrono::high_resolution_clock::time_point _lastSendTimestamp; // Record last time of packet departure
+    std::atomic<bool> _isRunning { false };
     
     mutable QReadWriteLock _naksLock; // Protects the naks list.
     LossList _naks; // Sequence numbers of packets to resend

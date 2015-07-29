@@ -22,6 +22,7 @@
 
 namespace udt {
     
+class CongestionControl;
 class ControlPacket;
 class Packet;
 class Socket;
@@ -32,12 +33,12 @@ public:
     using SequenceNumberTimePair = std::pair<SequenceNumber, std::chrono::high_resolution_clock::time_point>;
     using SentACKMap = std::unordered_map<SequenceNumber, SequenceNumberTimePair>;
     
-    Connection(Socket* parentSocket, HifiSockAddr destination);
+    Connection(Socket* parentSocket, HifiSockAddr destination, std::unique_ptr<CongestionControl> congestionControl);
+    ~Connection();
     
     void sendReliablePacket(std::unique_ptr<Packet> packet);
-    
-    void sendACK(bool wasCausedBySyncTimeout = true);
-    void sendLightACK() const;
+
+    void sync(); // rate control method, fired by Socket for all connections on SYN interval
     
     SequenceNumber nextACK() const;
     
@@ -47,14 +48,24 @@ public:
     void processControl(std::unique_ptr<ControlPacket> controlPacket);
     
 private:
+    void sendACK(bool wasCausedBySyncTimeout = true);
+    void sendLightACK();
+    
     void processACK(std::unique_ptr<ControlPacket> controlPacket);
     void processLightACK(std::unique_ptr<ControlPacket> controlPacket);
     void processACK2(std::unique_ptr<ControlPacket> controlPacket);
     void processNAK(std::unique_ptr<ControlPacket> controlPacket);
+    void processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket);
     
     void updateRTT(int rtt);
     
-    int _synInterval; // Periodical Rate Control Interval, defaults to 10ms
+    int estimatedTimeout() const { return _rtt + _rttVariance * 4; }
+    
+    int _synInterval; // Periodical Rate Control Interval, in microseconds, defaults to 10ms
+    
+    int _nakInterval; // NAK timeout interval, in microseconds
+    int _minNAKInterval { 100000 }; // NAK timeout interval lower bound, default of 100ms
+    std::chrono::high_resolution_clock::time_point _lastNAKTime;
     
     LossList _lossList; // List of all missing packets
     SequenceNumber _lastReceivedSequenceNumber { SequenceNumber::MAX }; // The largest sequence number received from the peer
@@ -66,9 +77,7 @@ private:
     SequenceNumber _lastSentACK { SequenceNumber::MAX }; // The last sent ACK
     SequenceNumber _lastSentACK2; // The last sent ACK sub-sequence number in an ACK2
     
-    int _totalReceivedACKs { 0 };
-    
-    int32_t _rtt; // RTT, in milliseconds
+    int32_t _rtt; // RTT, in microseconds
     int32_t _rttVariance; // RTT variance
     int _flowWindowSize; // Flow control window size
     
@@ -80,6 +89,25 @@ private:
     PacketTimeWindow _receiveWindow { 16, 64 }; // Window of interval between packets (16) and probes (64) for bandwidth and receive speed
     
     std::unique_ptr<SendQueue> _sendQueue;
+    
+    std::unique_ptr<CongestionControl> _congestionControl;
+    
+    // Control Packet stat collection
+    int _totalReceivedACKs { 0 };
+    int _totalSentACKs { 0 };
+    int _totalSentLightACKs { 0 };
+    int _totalReceivedLightACKs { 0 };
+    int _totalReceivedACK2s { 0 };
+    int _totalSentACK2s { 0 };
+    int _totalReceivedNAKs { 0 };
+    int _totalSentNAKs { 0 };
+    int _totalReceivedTimeoutNAKs { 0 };
+    int _totalSentTimeoutNAKs { 0 };
+    
+    // Data packet stat collection
+    int _totalReceivedDataPackets { 0 };
+    
+    
 };
     
 }

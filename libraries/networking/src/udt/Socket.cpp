@@ -71,7 +71,7 @@ qint64 Socket::writePacket(const Packet& packet, const HifiSockAddr& sockAddr) {
     Q_ASSERT_X(!packet.isReliable(), "Socket::writePacket", "Cannot send a reliable packet unreliably");
     
     // write the correct sequence number to the Packet here
-    packet.writeSequenceNumber(_currentUnreliableSequenceNumber);
+    packet.writeSequenceNumber(++_unreliableSequenceNumbers[sockAddr]);
     
     return writeDatagram(packet.getData(), packet.getDataSize(), sockAddr);
 }
@@ -80,7 +80,7 @@ qint64 Socket::writePacket(std::unique_ptr<Packet> packet, const HifiSockAddr& s
     if (packet->isReliable()) {
         auto it = _connectionsHash.find(sockAddr);
         if (it == _connectionsHash.end()) {
-            it = _connectionsHash.insert(it, std::make_pair(sockAddr, new Connection(this, sockAddr)));
+            it = _connectionsHash.insert(it, std::make_pair(sockAddr, new Connection(this, sockAddr, _ccFactory->create())));
         }
         it->second->sendReliablePacket(std::move(packet));
         return 0;
@@ -146,7 +146,7 @@ void Socket::rateControlSync() {
     
     // enumerate our list of connections and ask each of them to send off periodic ACK packet for rate control
     for (auto& connection : _connectionsHash) {
-        connection.second->sendACK();
+        connection.second->sync();
     }
     
     if (_synTimer.interval() != _synInterval) {
@@ -154,4 +154,12 @@ void Socket::rateControlSync() {
         // then restart it now with the right interval
         _synTimer.start(_synInterval);
     }
+}
+
+void Socket::setCongestionControlFactory(std::unique_ptr<CongestionControlVirtualFactory> ccFactory) {
+    // swap the current unique_ptr for the new factory
+    _ccFactory.swap(ccFactory);
+    
+    // update the _synInterval to the value from the factory
+    _synInterval = _ccFactory->synInterval();
 }

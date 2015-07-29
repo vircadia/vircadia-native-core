@@ -13,6 +13,7 @@
 
 #include <algorithm>
 
+#include <QtCore/QCoreApplication>
 #include <QtCore/QThread>
 
 #include <SharedUtil.h>
@@ -21,6 +22,7 @@
 #include "Socket.h"
 
 using namespace udt;
+using namespace std::chrono;
 
 std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr dest) {
     auto queue = std::unique_ptr<SendQueue>(new SendQueue(socket, dest));
@@ -42,17 +44,7 @@ SendQueue::SendQueue(Socket* socket, HifiSockAddr dest) :
     _socket(socket),
     _destination(dest)
 {
-    _sendTimer.reset(new QTimer(this));
-    _sendTimer->setSingleShot(true);
-    QObject::connect(_sendTimer.get(), &QTimer::timeout, this, &SendQueue::sendNextPacket);
-    
     _packetSendPeriod = DEFAULT_SEND_PERIOD;
-    _lastSendTimestamp = 0;
-}
-
-SendQueue::~SendQueue() {
-    assert(thread() == QThread::currentThread());
-    _sendTimer->stop();
 }
 
 void SendQueue::queuePacket(std::unique_ptr<Packet> packet) {
@@ -60,24 +52,24 @@ void SendQueue::queuePacket(std::unique_ptr<Packet> packet) {
         QWriteLocker locker(&_packetsLock);
         _packets.push_back(std::move(packet));
     }
-    if (!_running) {
-        start();
+    if (!_isRunning) {
+        run();
     }
 }
 
-void SendQueue::start() {
+void SendQueue::run() {
     // We need to make sure this is called on the right thread
     if (thread() != QThread::currentThread()) {
-        QMetaObject::invokeMethod(this, "start", Qt::QueuedConnection);
+        QMetaObject::invokeMethod(this, "run", Qt::QueuedConnection);
     }
-    _running = true;
+    _isRunning = true;
     
-    // This will send a packet and fire the send timer
-    sendNextPacket();
+    // This will loop and sleep to send packets
+    loop();
 }
 
 void SendQueue::stop() {
-    _running = false;
+    _isRunning = false;
 }
     
 void SendQueue::sendPacket(const BasePacket& packet) {
@@ -116,61 +108,68 @@ SequenceNumber SendQueue::getNextSequenceNumber() {
     return _currentSequenceNumber;
 }
 
-void SendQueue::sendNextPacket() {
-    if (!_running) {
-        return;
-    }
-    
-    // Record timing
-    auto sendTime = msecTimestampNow(); // msec
-    _lastSendTimestamp = sendTime;
-    
-    if (_nextPacket) {
-        // Write packet's sequence number and send it off
-        _nextPacket->writeSequenceNumber(getNextSequenceNumber());
-        sendPacket(*_nextPacket);
+void SendQueue::loop() {
+    while (_isRunning) {
+        // Record timing
+        _lastSendTimestamp = high_resolution_clock::now();
         
-        // Insert the packet we have just sent in the sent list
-        QWriteLocker locker(&_sentLock);
-        _sentPackets[_nextPacket->getSequenceNumber()].swap(_nextPacket);
-        Q_ASSERT_X(!_nextPacket,
-                   "SendQueue::sendNextPacket()", "Overriden packet in sent list");
-    }
-    
-    bool hasResend = false;
-    SequenceNumber seqNum;
-    {
-        // Check nak list for packet to resend
-        QWriteLocker locker(&_naksLock);
-        if (_naks.getLength() > 0) {
-            hasResend = true;
-            seqNum = _naks.popFirstSequenceNumber();
+        if (_nextPacket) {
+            // Write packet's sequence number and send it off
+            _nextPacket->writeSequenceNumber(getNextSequenceNumber());
+            sendPacket(*_nextPacket);
+            
+            // Insert the packet we have just sent in the sent list
+            QWriteLocker locker(&_sentLock);
+            _sentPackets[_nextPacket->getSequenceNumber()].swap(_nextPacket);
+            Q_ASSERT_X(!_nextPacket,
+                       "SendQueue::sendNextPacket()", "Overriden packet in sent list");
+        }
+        
+        bool hasResend = false;
+        SequenceNumber seqNum;
+        {
+            // Check nak list for packet to resend
+            QWriteLocker locker(&_naksLock);
+            if (_naks.getLength() > 0) {
+                hasResend = true;
+                seqNum = _naks.popFirstSequenceNumber();
+            }
+        }
+        
+        // Find packet in sent list using SequenceNumber
+        if (hasResend) {
+            QWriteLocker locker(&_sentLock);
+            auto it = _sentPackets.find(seqNum);
+            Q_ASSERT_X(it != _sentPackets.end(),
+                       "SendQueue::sendNextPacket()", "Couldn't find NAKed packet to resend");
+            
+            if (it != _sentPackets.end()) {
+                it->second.swap(_nextPacket);
+                _sentPackets.erase(it);
+            }
+        }
+        
+        // If there is no packet to resend, grab the next one in the list
+        if (!_nextPacket) {
+            QWriteLocker locker(&_packetsLock);
+            _nextPacket.swap(_packets.front());
+            _packets.pop_front();
+        }
+        
+        // since we're a while loop, give the thread a chance to process events
+        QCoreApplication::processEvents();
+        
+        // we just processed events so check now if we were just told to stop
+        if (!_isRunning) {
+            break;
+        }
+        
+        // sleep as long as we need until next packet send, if we can
+        auto now = high_resolution_clock::now();
+        auto microsecondDuration = (_lastSendTimestamp + microseconds(_packetSendPeriod)) - now;
+        
+        if (microsecondDuration.count() > 0) {
+            usleep(microsecondDuration.count());
         }
     }
-    
-    // Find packet in sent list using SequenceNumber
-    if (hasResend) {
-        QWriteLocker locker(&_sentLock);
-        auto it = _sentPackets.find(seqNum);
-        Q_ASSERT_X(it != _sentPackets.end(),
-                   "SendQueue::sendNextPacket()", "Couldn't find NAKed packet to resend");
-        
-        if (it != _sentPackets.end()) {
-            it->second.swap(_nextPacket);
-            _sentPackets.erase(it);
-        }
-    }
-    
-    // If there is no packet to resend, grab the next one in the list
-    if (!_nextPacket) {
-        QWriteLocker locker(&_packetsLock);
-        _nextPacket.swap(_packets.front());
-        _packets.pop_front();
-    }
-    
-    // check if we need to fire off a packet pair - we do this
-    
-    // How long before next packet send
-    auto timeToSleep = (sendTime + _packetSendPeriod) - msecTimestampNow(); // msec
-    _sendTimer->start(std::max((quint64)0, timeToSleep));
 }

@@ -17,29 +17,31 @@
 #include "SequenceNumber.h"
 
 namespace udt {
+    
+static const int32_t DEFAULT_SYN_INTERVAL = 10000; // 10 ms
 
+class Connection;
 class Packet;
 
 class CongestionControl {
+    friend class Connection;
 public:
-    static const int32_t DEFAULT_SYN_INTERVAL = 10000; // 10 ms
 
-    CongestionControl() {}
+    CongestionControl() {};
+    CongestionControl(int synInterval) : _synInterval(synInterval) {}
     virtual ~CongestionControl() {}
+    
+    int synInterval() const { return _synInterval; }
 
     virtual void init() {}
     virtual void close() {}
     virtual void onAck(SequenceNumber ackNum) {}
     virtual void onLoss(const std::vector<SequenceNumber>& lossList) {}
-    virtual void onPacketSent(const Packet& packet) {}
-    virtual void onPacketReceived(const Packet& packet) {}
     
 protected:
-    void setAckTimer(int syn) { _ackPeriod = (syn > _synInterval) ? _synInterval : syn; }
-    void setAckInterval(int interval) { _ackInterval = interval; }
+    void setAckTimer(int period) { _ackPeriod = (period > _synInterval) ? _synInterval : period; }
+    void setAckInterval(int ackInterval) { _ackInterval = ackInterval; }
     void setRto(int rto) { _userDefinedRto = true; _rto = rto; }
-    
-    int32_t _synInterval = DEFAULT_SYN_INTERVAL; // UDT constant parameter, SYN
     
     double _packetSendPeriod = 1.0; // Packet sending period, in microseconds
     double _congestionWindowSize = 16.0; // Congestion window size, in packets
@@ -66,6 +68,8 @@ private:
     int _ackPeriod = 0; // Periodical timer to send an ACK, in milliseconds
     int _ackInterval = 0; // How many packets to send one ACK, in packets
     
+    int _synInterval { DEFAULT_SYN_INTERVAL };
+    
     bool _userDefinedRto = false; // if the RTO value is defined by users
     int _rto = -1; // RTO value, microseconds
 };
@@ -75,6 +79,8 @@ class CongestionControlVirtualFactory {
 public:
     virtual ~CongestionControlVirtualFactory() {}
     
+    static int synInterval() { return DEFAULT_SYN_INTERVAL; }
+    
     virtual std::unique_ptr<CongestionControl> create() = 0;
 };
 
@@ -82,13 +88,12 @@ template <class T> class CongestionControlFactory: public CongestionControlVirtu
 {
 public:
     virtual ~CongestionControlFactory() {}
-    
     virtual std::unique_ptr<CongestionControl> create() { return std::unique_ptr<T>(new T()); }
 };
 
-class UdtCC: public CongestionControl {
+class DefaultCC: public CongestionControl {
 public:
-    UdtCC() {}
+    DefaultCC() {}
     
 public:
     virtual void init();
@@ -97,7 +102,6 @@ public:
     virtual void onTimeout();
     
 private:
-    int _rcInterval = 0;	// UDT Rate control interval
     uint64_t _lastRCTime = 0; // last rate increase time
     bool _slowStart = true;	// if in slow start phase
     SequenceNumber _lastAck; // last ACKed seq num

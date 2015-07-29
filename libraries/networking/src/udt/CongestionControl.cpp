@@ -15,10 +15,9 @@
 
 using namespace udt;
 
-void UdtCC::init() {
-    _rcInterval = _synInterval;
+void DefaultCC::init() {
     _lastRCTime = usecTimestampNow();
-    setAckTimer(_rcInterval);
+    setAckTimer(synInterval());
     
     _lastAck = _sendCurrSeqNum;
     _lastDecSeq = SequenceNumber{ SequenceNumber::MAX };
@@ -27,7 +26,7 @@ void UdtCC::init() {
     _packetSendPeriod = 1.0;
 }
 
-void UdtCC::onACK(SequenceNumber ackNum) {
+void DefaultCC::onACK(SequenceNumber ackNum) {
     int64_t B = 0;
     double inc = 0;
     // Note: 1/24/2012
@@ -37,7 +36,7 @@ void UdtCC::onACK(SequenceNumber ackNum) {
     const double min_inc = 0.01;
     
     uint64_t currtime = usecTimestampNow();
-    if (currtime - _lastRCTime < (uint64_t)_rcInterval) {
+    if (currtime - _lastRCTime < (uint64_t)synInterval()) {
         return;
     }
     
@@ -52,11 +51,11 @@ void UdtCC::onACK(SequenceNumber ackNum) {
             if (_recvieveRate > 0) {
                 _packetSendPeriod = 1000000.0 / _recvieveRate;
             } else {
-                _packetSendPeriod = (_rtt + _rcInterval) / _congestionWindowSize;
+                _packetSendPeriod = (_rtt + synInterval()) / _congestionWindowSize;
             }
         }
     } else {
-        _congestionWindowSize = _recvieveRate / 1000000.0 * (_rtt + _rcInterval) + 16;
+        _congestionWindowSize = _recvieveRate / 1000000.0 * (_rtt + synInterval()) + 16;
     }
     
     // During Slow Start, no rate increase
@@ -86,10 +85,10 @@ void UdtCC::onACK(SequenceNumber ackNum) {
         }
     }
     
-    _packetSendPeriod = (_packetSendPeriod * _rcInterval) / (_packetSendPeriod * inc + _rcInterval);
+    _packetSendPeriod = (_packetSendPeriod * synInterval()) / (_packetSendPeriod * inc + synInterval());
 }
 
-void UdtCC::onLoss(const std::vector<SequenceNumber>& losslist) {
+void DefaultCC::onLoss(const std::vector<SequenceNumber>& losslist) {
     //Slow Start stopped, if it hasn't yet
     if (_slowStart) {
         _slowStart = false;
@@ -101,7 +100,7 @@ void UdtCC::onLoss(const std::vector<SequenceNumber>& losslist) {
         // If no receiving rate is observed, we have to compute the sending
         // rate according to the current window size, and decrease it
         // using the method below.
-        _packetSendPeriod = _congestionWindowSize / (_rtt + _rcInterval);
+        _packetSendPeriod = _congestionWindowSize / (_rtt + synInterval());
     }
     
     _loss = true;
@@ -128,13 +127,13 @@ void UdtCC::onLoss(const std::vector<SequenceNumber>& losslist) {
     }
 }
 
-void UdtCC::onTimeout() {
+void DefaultCC::onTimeout() {
     if (_slowStart) {
         _slowStart = false;
         if (_recvieveRate > 0) {
             _packetSendPeriod = 1000000.0 / _recvieveRate;
         } else {
-            _packetSendPeriod = _congestionWindowSize / (_rtt + _rcInterval);
+            _packetSendPeriod = _congestionWindowSize / (_rtt + synInterval());
         }
     } else {
         /*

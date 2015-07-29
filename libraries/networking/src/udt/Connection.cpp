@@ -11,7 +11,12 @@
 
 #include "Connection.h"
 
+#include <QtCore/QThread>
+
+#include <NumericalConstants.h>
+
 #include "../HifiSockAddr.h"
+#include "CongestionControl.h"
 #include "ControlPacket.h"
 #include "Packet.h"
 #include "Socket.h"
@@ -20,10 +25,25 @@ using namespace udt;
 using namespace std;
 using namespace std::chrono;
 
-Connection::Connection(Socket* parentSocket, HifiSockAddr destination) :
+Connection::Connection(Socket* parentSocket, HifiSockAddr destination, unique_ptr<CongestionControl> congestionControl) :
     _parentSocket(parentSocket),
-    _destination(destination)
+    _destination(destination),
+    _congestionControl(move(congestionControl))
 {
+    
+}
+
+Connection::~Connection() {
+    if (_sendQueue) {
+        // tell our send queue to stop and wait until its send thread is done
+        QThread* sendQueueThread = _sendQueue->thread();
+        
+        _sendQueue->stop();
+        _sendQueue->deleteLater();
+        
+        sendQueueThread->quit();
+        sendQueueThread->wait();
+    }
 }
 
 void Connection::sendReliablePacket(unique_ptr<Packet> packet) {
@@ -35,6 +55,31 @@ void Connection::sendReliablePacket(unique_ptr<Packet> packet) {
     }
     
     _sendQueue->queuePacket(move(packet));
+}
+
+void Connection::sync() {
+    // we send out a periodic ACK every rate control interval
+    sendACK();
+    
+    // check if we need to re-transmit a loss list
+    // we do this if it has been longer than the current nakInterval since we last sent
+    auto now = high_resolution_clock::now();
+    
+    if (duration_cast<microseconds>(now - _lastNAKTime).count() >= _nakInterval) {
+        // construct a NAK packet that will hold all of the lost sequence numbers
+        auto lossListPacket = ControlPacket::create(ControlPacket::TimeoutNAK, _lossList.getLength() * sizeof(SequenceNumber));
+        
+        // TODO: pack in the lost sequence numbers
+        
+        // have our SendQueue send off this control packet
+        _sendQueue->sendPacket(*lossListPacket);
+        
+        // record this as the last NAK time
+        _lastNAKTime = high_resolution_clock::now();
+        
+        ++_totalSentTimeoutNAKs;
+    }
+    
 }
 
 void Connection::sendACK(bool wasCausedBySyncTimeout) {
@@ -65,10 +110,10 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
         
     } else if (nextACKNumber == _lastSentACK) {
         // We already sent this ACK, but check if we should re-send it.
-        // We will re-send if it has been more than RTT + (4 * RTT variance) since the last ACK
-        milliseconds sinceLastACK = duration_cast<milliseconds>(currentTime - lastACKSendTime);
+        // We will re-send if it has been more than the estimated timeout since the last ACK
+        microseconds sinceLastACK = duration_cast<microseconds>(currentTime - lastACKSendTime);
         
-        if (sinceLastACK.count() < (_rtt + (4 * _rttVariance))) {
+        if (sinceLastACK.count() < estimatedTimeout()) {
             return;
         }
     }
@@ -98,9 +143,11 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     
     // write this ACK to the map of sent ACKs
     _sentACKs[_currentACKSubSequenceNumber] = { nextACKNumber, high_resolution_clock::now() };
+    
+    ++_totalSentACKs;
 }
 
-void Connection::sendLightACK() const {
+void Connection::sendLightACK() {
     // create the light ACK packet, make it static so we can re-use it
     static const int LIGHT_ACK_PACKET_PAYLOAD_BYTES = sizeof(SequenceNumber);
     static auto lightACKPacket = ControlPacket::create(ControlPacket::ACK, LIGHT_ACK_PACKET_PAYLOAD_BYTES);
@@ -120,6 +167,8 @@ void Connection::sendLightACK() const {
     
     // have the send queue send off our packet immediately
     _sendQueue->sendPacket(*lightACKPacket);
+    
+    ++_totalSentLightACKs;
 }
 
 SequenceNumber Connection::nextACK() const {
@@ -162,6 +211,25 @@ void Connection::processReceivedSequenceNumber(SequenceNumber seq) {
         
         // have the send queue send off our packet immediately
         _sendQueue->sendPacket(*lossReport);
+        
+        // record our last NAK time
+        _lastNAKTime = high_resolution_clock::now();
+        
+        ++_totalSentNAKs;
+        
+        // figure out when we should send the next loss report, if we haven't heard anything back
+        _nakInterval = (_rtt + 4 * _rttVariance);
+        
+        int receivedPacketsPerSecond = _receiveWindow.getPacketReceiveSpeed();
+        if (receivedPacketsPerSecond > 0) {
+            // the NAK interval is at least the _minNAKInterval
+            // but might be the time required for all lost packets to be retransmitted
+            _nakInterval = std::max((int) (_lossList.getLength() * (USECS_PER_SECOND / receivedPacketsPerSecond)),
+                                    _minNAKInterval);
+        } else {
+            // the NAK interval is at least the _minNAKInterval but might be the estimated timeout
+            _nakInterval = std::max(estimatedTimeout(), _minNAKInterval);
+        }
     }
     
     if (seq > _lastReceivedSequenceNumber) {
@@ -171,6 +239,8 @@ void Connection::processReceivedSequenceNumber(SequenceNumber seq) {
         // Otherwise, it's a resend, remove it from the loss list
         _lossList.remove(seq);
     }
+    
+    ++_totalReceivedDataPackets;
 }
 
 void Connection::processControl(unique_ptr<ControlPacket> controlPacket) {
@@ -188,6 +258,9 @@ void Connection::processControl(unique_ptr<ControlPacket> controlPacket) {
         case ControlPacket::NAK:
             processNAK(move(controlPacket));
             break;
+        case ControlPacket::TimeoutNAK:
+            processTimeoutNAK(move(controlPacket));
+            break;
     }
 }
 
@@ -202,7 +275,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     auto currentTime = high_resolution_clock::now();
     static high_resolution_clock::time_point lastACK2SendTime;
     
-    milliseconds sinceLastACK2 = duration_cast<milliseconds>(currentTime - lastACK2SendTime);
+    microseconds sinceLastACK2 = duration_cast<microseconds>(currentTime - lastACK2SendTime);
     
     if (sinceLastACK2.count() > _synInterval || currentACKSubSequenceNumber == _lastSentACK2) {
         // setup a static ACK2 packet we will re-use
@@ -218,6 +291,8 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
         // update the last sent ACK2 and the last ACK2 send time
         _lastSentACK2 = currentACKSubSequenceNumber;
         lastACK2SendTime = high_resolution_clock::now();
+        
+        ++_totalSentACK2s;
     }
     
     // read the ACKed sequence number
@@ -261,6 +336,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     updateRTT(rtt);
     
     // set the RTT for congestion control
+    _congestionControl->setRtt(_rtt);
     
     if (controlPacket->getPayloadSize() > (qint64) (sizeof(SequenceNumber) + sizeof(SequenceNumber) + sizeof(rtt))) {
         int32_t deliveryRate, bandwidth;
@@ -268,9 +344,12 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
         controlPacket->readPrimitive(&bandwidth);
         
         // set the delivery rate and bandwidth for congestion control
+        _congestionControl->setRcvRate(deliveryRate);
+        _congestionControl->setBandwidth(bandwidth);
     }
     
     // fire the onACK callback for congestion control
+    _congestionControl->onAck(ack);
     
     // update the total count of received ACKs
     ++_totalReceivedACKs;
@@ -289,6 +368,8 @@ void Connection::processLightACK(std::unique_ptr<ControlPacket> controlPacket) {
         // update the last received ACK to the this one
         _lastReceivedACK = ack;
     }
+    
+    ++_totalReceivedLightACKs;
 }
 
 void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
@@ -304,26 +385,40 @@ void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
         
         // calculate the RTT (time now - time ACK sent)
         auto now = high_resolution_clock::now();
-        int rtt = duration_cast<milliseconds>(now - pair.second).count();
+        int rtt = duration_cast<microseconds>(now - pair.second).count();
         
         updateRTT(rtt);
         
         // set the RTT for congestion control
+        _congestionControl->setRtt(_rtt);
         
         // update the last ACKed ACK
         if (pair.first > _lastReceivedAcknowledgedACK) {
             _lastReceivedAcknowledgedACK = pair.first;
         }
     }
+    
+    ++_totalReceivedACK2s;
 }
 
 void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
     // read the loss report
     SequenceNumber start, end;
     controlPacket->readPrimitive(&start);
+    
     if (controlPacket->bytesLeftToRead() >= (qint64)sizeof(SequenceNumber)) {
         controlPacket->readPrimitive(&end);
     }
+    
+    
+    
+    ++_totalReceivedNAKs;
+}
+
+void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket) {
+    // read the NAKed sequence numbers from the packet
+    
+    ++_totalReceivedTimeoutNAKs;
 }
 
 void Connection::updateRTT(int rtt) {
@@ -337,6 +432,11 @@ void Connection::updateRTT(int rtt) {
     // Deviation  = (1 - x)(deviation) + x |sampleRTT - estimatedRTT|
     // (where x = 0.25 via Jacobson)
     
-    _rttVariance = (_rttVariance * 3 + abs(rtt - _rtt)) >> 2;
-    _rtt = (_rtt * 7 + rtt) >> 3;
+    static const int RTT_ESTIMATION_ALPHA_NUMERATOR = 8;
+    static const int RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR = 4;
+   
+    _rtt = (_rtt * (1 - RTT_ESTIMATION_ALPHA_NUMERATOR) + rtt) / RTT_ESTIMATION_ALPHA_NUMERATOR;
+    
+    _rttVariance = (_rttVariance * (1 - RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR)
+                    + abs(rtt - _rtt)) / RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR;
 }
