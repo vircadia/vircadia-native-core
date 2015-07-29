@@ -51,7 +51,7 @@ SkeletonModel::~SkeletonModel() {
 void SkeletonModel::initJointStates(QVector<JointState> states) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-    _boundingRadius = _rig->initJointStates(states, parentTransform, geometry.neckJointIndex);
+    _boundingRadius = _rig->initJointStates(states, parentTransform);
 
     // Determine the default eye position for avatar scale = 1.0
     int headJointIndex = _geometry->getFBXGeometry().headJointIndex;
@@ -174,14 +174,6 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         } else {
             restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
         }
-    }
-
-    // if (_isFirstPerson) {
-    //     cauterizeHead();
-    //     updateClusterMatrices();
-    // }
-    if (_rig->getJointsAreDirty()) {
-        updateClusterMatrices();
     }
 }
 

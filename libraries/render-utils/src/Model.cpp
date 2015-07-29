@@ -67,6 +67,7 @@ Model::Model(RigPointer rig, QObject* parent) :
     _snapModelToRegistrationPoint(false),
     _snappedToRegistrationPoint(false),
     _showTrueJointTransforms(true),
+    _cauterizeBones(false),
     _lodDistance(0.0f),
     _pupilDilation(0.0f),
     _url("http://invalid.com"),
@@ -452,6 +453,7 @@ bool Model::updateGeometry() {
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
             MeshState state;
             state.clusterMatrices.resize(mesh.clusters.size());
+            state.cauterizedClusterMatrices.resize(mesh.clusters.size());
             _meshStates.append(state);    
             
             auto buffer = std::make_shared<gpu::Buffer>();
@@ -472,7 +474,7 @@ bool Model::updateGeometry() {
 void Model::initJointStates(QVector<JointState> states) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-    _boundingRadius = _rig->initJointStates(states, parentTransform, geometry.neckJointIndex);
+    _boundingRadius = _rig->initJointStates(states, parentTransform);
 }
 
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
@@ -1337,6 +1339,12 @@ void Model::simulateInternal(float deltaTime) {
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
     updateRig(deltaTime, parentTransform);
 
+    glm::mat4 zeroScale(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
+                        glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
+                        glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
+                        glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+    auto cauterizeMatrix = _rig->getJointTransform(geometry.neckJointIndex) * zeroScale;
+
     glm::mat4 modelToWorld = glm::mat4_cast(_rotation);
     for (int i = 0; i < _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
@@ -1344,14 +1352,30 @@ void Model::simulateInternal(float deltaTime) {
         if (_showTrueJointTransforms) {
             for (int j = 0; j < mesh.clusters.size(); j++) {
                 const FBXCluster& cluster = mesh.clusters.at(j);
-                state.clusterMatrices[j] =
-                    modelToWorld * _rig->getJointTransform(cluster.jointIndex) * cluster.inverseBindMatrix;
+                auto jointMatrix =_rig->getJointTransform(cluster.jointIndex);
+                state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
+
+                // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
+                if (!_cauterizeBoneSet.empty()) {
+                    if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
+                        jointMatrix = cauterizeMatrix;
+                    }
+                    state.cauterizedClusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
+                }
             }
         } else {
             for (int j = 0; j < mesh.clusters.size(); j++) {
                 const FBXCluster& cluster = mesh.clusters.at(j);
-                state.clusterMatrices[j] =
-                    modelToWorld * _rig->getJointVisibleTransform(cluster.jointIndex) * cluster.inverseBindMatrix;
+                auto jointMatrix = _rig->getJointVisibleTransform(cluster.jointIndex);
+                state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
+
+                // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
+                if (!_cauterizeBoneSet.empty()) {
+                    if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
+                        jointMatrix = cauterizeMatrix;
+                    }
+                    state.cauterizedClusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
+                }
             }
         }
     }
@@ -1611,8 +1635,11 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
     
     if (isSkinned) {
-        batch._glUniformMatrix4fv(locations->clusterMatrices, state.clusterMatrices.size(), false,
-            (const float*)state.clusterMatrices.constData());
+        const float* bones = (const float*)state.clusterMatrices.constData();
+        if (_cauterizeBones) {
+            bones = (const float*)state.cauterizedClusterMatrices.constData();
+        }
+        batch._glUniformMatrix4fv(locations->clusterMatrices, state.clusterMatrices.size(), false, bones);
        _transforms[0] = Transform();
        _transforms[0].preTranslate(_translation);
     } else {
