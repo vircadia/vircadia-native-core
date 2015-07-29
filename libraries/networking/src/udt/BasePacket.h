@@ -17,10 +17,9 @@
 #include <QtCore/QIODevice>
 
 #include "../HifiSockAddr.h"
+#include "Constants.h"
 
 namespace udt {
-    
-static const int MAX_PACKET_SIZE = 1450;
     
 class BasePacket : public QIODevice {
     Q_OBJECT

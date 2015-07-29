@@ -56,8 +56,6 @@ public:
     void setPacketFilterOperator(PacketFilterOperator filterOperator) { _packetFilterOperator = filterOperator; }
     void setPacketHandler(PacketHandler handler) { _packetHandler = handler; }
     
-    void setBufferSizes(int numBytes);
-    
     void addUnfilteredHandler(const HifiSockAddr& senderSockAddr, BasePacketHandler handler)
         { _unfilteredHandlers[senderSockAddr] = handler; }
     
@@ -68,6 +66,8 @@ private slots:
     void rateControlSync();
     
 private:
+    void setSystemBufferSizes();
+    
     QUdpSocket _udpSocket { this };
     PacketFilterOperator _packetFilterOperator;
     PacketHandler _packetHandler;

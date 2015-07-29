@@ -33,8 +33,6 @@
 #include "UUID.h"
 #include "NetworkLogging.h"
 
-#include "udt/udt.h"
-
 const char SOLO_NODE_TYPES[2] = {
     NodeType::AvatarMixer,
     NodeType::AudioMixer
@@ -80,9 +78,6 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
         _dtlsSocket->bind(QHostAddress::AnyIPv4, dtlsListenPort);
         qCDebug(networking) << "NodeList DTLS socket is listening on" << _dtlsSocket->localPort();
     }
-
-    const int LARGER_BUFFER_SIZE = 1048576;
-    _nodeSocket.setBufferSizes(LARGER_BUFFER_SIZE);
 
     // check for local socket updates every so often
     const int LOCAL_SOCKET_UPDATE_INTERVAL_MSECS = 5 * 1000;
