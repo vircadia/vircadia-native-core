@@ -134,7 +134,6 @@ namespace MenuOption {
     const QString AddressBar = "Show Address Bar";
     const QString AlignForearmsWithWrists = "Align Forearms with Wrists";
     const QString AlternateIK = "Alternate IK";
-    const QString AmbientOcclusion = "Ambient Occlusion";
     const QString Animations = "Animations...";
     const QString Atmosphere = "Atmosphere";
     const QString Attachments = "Attachments...";
@@ -165,6 +164,7 @@ namespace MenuOption {
     const QString ControlWithSpeech = "Control With Speech";
     const QString CopyAddress = "Copy Address to Clipboard";
     const QString CopyPath = "Copy Path to Clipboard";
+    const QString DebugAmbientOcclusion = "Debug Ambient Occlusion";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DeleteBookmark = "Delete Bookmark...";
     const QString DisableActivityLogger = "Disable Activity Logger";

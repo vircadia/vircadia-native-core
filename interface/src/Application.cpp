@@ -331,7 +331,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
         _isVSyncOn(true),
-        _isThrottleFPSEnabled(false),
+        _isThrottleFPSEnabled(true),
         _aboutToQuit(false),
         _notifiedPacketVersionMismatchThisDomain(false),
         _glWidget(new GLCanvas()),
@@ -3291,6 +3291,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
         renderContext._drawItemStatus = sceneInterface->doEngineDisplayItemStatus();
 
+        renderContext._occlusionStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugAmbientOcclusion);
+
         renderArgs->_shouldRender = LODManager::shouldRender;
 
         renderContext.args = renderArgs;
@@ -3405,7 +3407,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
         // This was removed in commit 71e59cfa88c6563749594e25494102fe01db38e9 but could be further
         // investigated in order to adapt the technique while fixing the head rendering issue,
         // but the complexity of the hack suggests that a better approach
-        _mirrorCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
+        _mirrorCamera.setPosition(_myAvatar->getDefaultEyePosition() +
                                     _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
     }
     _mirrorCamera.setProjection(glm::perspective(glm::radians(fov), aspect, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
