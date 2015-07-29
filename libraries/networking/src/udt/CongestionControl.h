@@ -37,7 +37,7 @@ public:
     virtual void init() {}
     virtual void close() {}
     virtual void onAck(SequenceNumber ackNum) {}
-    virtual void onLoss(const LossList& lossList) {}
+    virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {}
     
 protected:
     void setAckTimer(int period) { _ackPeriod = (period > _synInterval) ? _synInterval : period; }
@@ -99,7 +99,7 @@ public:
 public:
     virtual void init();
     virtual void onACK(SequenceNumber ackNum);
-    virtual void onLoss(const LossList& lossList);
+    virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd);
     virtual void onTimeout();
     
 private:
