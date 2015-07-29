@@ -166,9 +166,10 @@ public:
 
     virtual void computeShapeInfo(ShapeInfo& shapeInfo);
 
-    friend class AvatarManager;
+    void setMotionState(AvatarMotionState* motionState) { _motionState = motionState; }
+    AvatarMotionState* getMotionState() { return _motionState; }
 
-signals:
+ signals:
     void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);
 
 protected:
@@ -198,7 +199,7 @@ protected:
     glm::vec3 _worldUpDirection;
     float _stringLength;
     bool _moving; ///< set when position is changing
-    
+
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
@@ -223,7 +224,7 @@ protected:
     virtual void updateJointMappings();
 
     render::ItemID _renderItemID;
-    
+
 private:
     bool _initialized;
     NetworkTexturePointer _billboardTexture;
@@ -231,9 +232,9 @@ private:
     bool _isLookAtTarget;
 
     void renderBillboard(RenderArgs* renderArgs);
-    
+
     float getBillboardSize() const;
-    
+
     static int _jointConesID;
 
     int _voiceSphereID;

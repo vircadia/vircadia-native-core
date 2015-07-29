@@ -909,15 +909,15 @@ void MyAvatar::setJointRotations(QVector<glm::quat> jointRotations) {
 void MyAvatar::setJointData(int index, const glm::quat& rotation) {
     if (QThread::currentThread() == thread()) {
         // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
-        _skeletonModel.setJointState(index, true, rotation, SCRIPT_PRIORITY);
+        _rig->setJointState(index, true, rotation, SCRIPT_PRIORITY);
     }
 }
 
 void MyAvatar::clearJointData(int index) {
     if (QThread::currentThread() == thread()) {
         // HACK: ATM only JS scripts call clearJointData() on MyAvatar so we hardcode the priority
-        _skeletonModel.setJointState(index, false, glm::quat(), 0.0f);
-        _skeletonModel.clearJointAnimationPriority(index);
+        _rig->setJointState(index, false, glm::quat(), 0.0f);
+        _rig->clearJointAnimationPriority(index);
     }
 }
 
@@ -928,7 +928,7 @@ void MyAvatar::clearJointsData() {
 void MyAvatar::clearJointAnimationPriorities() {
     int numStates = _skeletonModel.getJointStateCount();
     for (int i = 0; i < numStates; ++i) {
-        _skeletonModel.clearJointAnimationPriority(i);
+        _rig->clearJointAnimationPriority(i);
     }
 }
 
