@@ -141,7 +141,6 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
             auto state = gpu::StatePointer(new gpu::State());
             // enable decal blend
             state->setDepthTest(gpu::State::DepthTest(false));
-            state->setAntialiasedLineEnable(true); // line smoothing also smooth points
             state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
             _gridPipeline.reset(gpu::Pipeline::create(program, state));
         }
@@ -153,6 +152,7 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
             auto state = gpu::StatePointer(new gpu::State());
             // enable decal blend
             state->setDepthTest(gpu::State::DepthTest(false));
+            state->setAntialiasedLineEnable(true); // line smoothing also smooth points
             state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
             _starsPipeline.reset(gpu::Pipeline::create(program, state));
             
@@ -219,6 +219,6 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
     batch.setInputBuffer(VERTICES_SLOT, posView);
     batch.setInputBuffer(COLOR_SLOT, colView);
     batch.draw(gpu::Primitive::POINTS, STARFIELD_NUM_STARS);
-    
+
     renderArgs->_context->render(batch);
 }
