@@ -145,3 +145,9 @@ SequenceNumber LossList::getFirstSequenceNumber() const {
     assert(getLength() > 0);
     return _lossList.front().first;
 }
+
+SequenceNumber LossList::popFirstSequenceNumber() {
+    auto front = getFirstSequenceNumber();
+    remove(front);
+    return front;
+}

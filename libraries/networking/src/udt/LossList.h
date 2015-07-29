@@ -34,6 +34,7 @@ public:
     
     int getLength() const { return _length; }
     SequenceNumber getFirstSequenceNumber() const;
+    SequenceNumber popFirstSequenceNumber();
     
 private:
     std::list<std::pair<SequenceNumber, SequenceNumber>> _lossList;
