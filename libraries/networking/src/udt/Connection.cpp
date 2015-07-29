@@ -79,7 +79,6 @@ void Connection::sync() {
         
         ++_totalSentTimeoutNAKs;
     }
-    
 }
 
 void Connection::sendACK(bool wasCausedBySyncTimeout) {
@@ -143,6 +142,9 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     
     // write this ACK to the map of sent ACKs
     _sentACKs[_currentACKSubSequenceNumber] = { nextACKNumber, high_resolution_clock::now() };
+    
+    // reset the number of data packets received since last ACK
+    _packetsSinceACK = 0;
     
     ++_totalSentACKs;
 }
@@ -217,9 +219,6 @@ void Connection::processReceivedSequenceNumber(SequenceNumber seq) {
         
         ++_totalSentNAKs;
         
-        // tell the CC that there was loss
-        _congestionControl->onLoss(_lossList);
-        
         // figure out when we should send the next loss report, if we haven't heard anything back
         _nakInterval = (_rtt + 4 * _rttVariance);
         
@@ -243,7 +242,14 @@ void Connection::processReceivedSequenceNumber(SequenceNumber seq) {
         _lossList.remove(seq);
     }
     
+    // increment the counters for data packets received
+    ++_packetsSinceACK;
     ++_totalReceivedDataPackets;
+    
+    // check if we need to send an ACK, according to CC params
+    if (_congestionControl->_ackInterval > 0 && _packetsSinceACK >= _congestionControl->_ackInterval) {
+        sendACK(false);
+    }
 }
 
 void Connection::processControl(unique_ptr<ControlPacket> controlPacket) {
@@ -413,9 +419,12 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
         controlPacket->readPrimitive(&end);
     }
     
+    // TODO: tell the congestion control object that there was loss
+    // _congestionControl->onLoss();
+    
     // send that off to the send queue so it knows there was loss
     _sendQueue->nak(start, end);
-
+    
     ++_totalReceivedNAKs;
 }
 
@@ -423,6 +432,9 @@ void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket)
     // read the NAKed sequence numbers from the packet
     
     // TODO: enumerate the received NAKs and create ranges if possible, then call _sendQueue->nak
+    
+    // TODO: tell the congestion control object that there was loss
+    // _congestionControl->onLoss();
     
     ++_totalReceivedTimeoutNAKs;
 }
