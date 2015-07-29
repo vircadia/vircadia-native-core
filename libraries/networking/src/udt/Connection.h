@@ -16,6 +16,7 @@
 #include <memory>
 
 #include "ConnectionStats.h"
+#include "Constants.h"
 #include "LossList.h"
 #include "PacketTimeWindow.h"
 #include "SendQueue.h"
@@ -65,7 +66,7 @@ private:
     
     int estimatedTimeout() const;
     
-    int _synInterval; // Periodical Rate Control Interval, in microseconds, defaults to 10ms
+    int _synInterval; // Periodical Rate Control Interval, in microseconds
     
     int _nakInterval; // NAK timeout interval, in microseconds
     int _minNAKInterval { 100000 }; // NAK timeout interval lower bound, default of 100ms
@@ -83,7 +84,7 @@ private:
     
     int32_t _rtt; // RTT, in microseconds
     int32_t _rttVariance; // RTT variance
-    int _flowWindowSize; // Flow control window size
+    int _flowWindowSize { udt::MAX_PACKETS_IN_FLIGHT }; // Flow control window size
     
     int _bandwidth { 1 }; // Exponential moving average for estimated bandwidth, in packets per second
     int _deliveryRate { 16 }; // Exponential moving average for receiver's receive rate, in packets per second

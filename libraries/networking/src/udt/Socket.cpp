@@ -22,6 +22,8 @@ using namespace udt;
 Socket::Socket(QObject* parent) :
     QObject(parent)
 {
+    setSystemBufferSizes();
+    
     connect(&_udpSocket, &QUdpSocket::readyRead, this, &Socket::readPendingDatagrams);
     
     // make sure our synchronization method is called every SYN interval
@@ -38,17 +40,21 @@ void Socket::rebind() {
     _udpSocket.bind(QHostAddress::AnyIPv4, oldPort);
 }
 
-void Socket::setBufferSizes(int numBytes) {
+void Socket::setSystemBufferSizes() {
     for (int i = 0; i < 2; i++) {
         QAbstractSocket::SocketOption bufferOpt;
         QString bufferTypeString;
         
+        int numBytes = 0;
+        
         if (i == 0) {
             bufferOpt = QAbstractSocket::SendBufferSizeSocketOption;
+            numBytes = udt::UDP_SEND_BUFFER_SIZE_BYTES;
             bufferTypeString = "send";
             
         } else {
             bufferOpt = QAbstractSocket::ReceiveBufferSizeSocketOption;
+            numBytes = udt::UDP_RECEIVE_BUFFER_SIZE_BYTES;
             bufferTypeString = "receive";
         }
         
