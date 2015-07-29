@@ -18,9 +18,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include <CollisionInfo.h>
-#include <RayIntersectionInfo.h>
-
 class PhysicsEntity {
 
 public:

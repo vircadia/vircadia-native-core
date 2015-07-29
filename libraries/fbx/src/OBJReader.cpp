@@ -23,7 +23,6 @@
 #include <NetworkAccessManager.h>
 #include "FBXReader.h"
 #include "OBJReader.h"
-#include "Shape.h"
 #include "ModelFormatLogging.h"
 
 

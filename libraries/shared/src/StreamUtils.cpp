@@ -65,38 +65,6 @@ QDataStream& operator>>(QDataStream& in, glm::quat& quaternion) {
     return in >> quaternion.x >> quaternion.y >> quaternion.z >> quaternion.w;
 }
 
-// less common utils can be enabled with DEBUG
-// FIXME, remove the second defined clause once these compile, or remove the
-// functions.
-#if defined(DEBUG) && defined(FIXED_STREAMS)
-
-std::ostream& operator<<(std::ostream& s, const CollisionInfo& c) {
-    s << "{penetration=" << c._penetration 
-        << ", contactPoint=" << c._contactPoint
-        << ", addedVelocity=" << c._addedVelocity
-        << "}";
-    return s;
-}
-
-std::ostream& operator<<(std::ostream& s, const SphereShape& sphere) {
-    s << "{type='sphere', center=" << sphere.getPosition()
-        << ", radius=" << sphere.getRadius()
-        << "}";
-    return s;
-}
-
-std::ostream& operator<<(std::ostream& s, const CapsuleShape& capsule) {
-    s << "{type='capsule', center=" << capsule.getPosition()
-        << ", radius=" << capsule.getRadius()
-        << ", length=" << (2.0f * capsule.getHalfHeight())
-        << ", begin=" << capsule.getStartPoint()
-        << ", end=" << capsule.getEndPoint()
-        << "}";
-    return s;
-}
-
-#endif // DEBUG
-
 #ifndef QT_NO_DEBUG_STREAM
 #include <QDebug>
 

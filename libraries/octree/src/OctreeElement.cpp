@@ -19,7 +19,6 @@
 #include <LogHandler.h>
 #include <NodeList.h>
 #include <PerfStat.h>
-#include <AACubeShape.h>
 
 #include "AACube.h"
 #include "OctalCode.h"

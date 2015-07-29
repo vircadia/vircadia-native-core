@@ -46,7 +46,6 @@ typedef unsigned long long quint64;
 #include <QtScript/QScriptable>
 #include <QReadWriteLock>
 
-#include <CollisionInfo.h>
 #include <NLPacket.h>
 #include <Node.h>
 #include <RegisteredMetaTypes.h>
@@ -256,10 +255,6 @@ public:
 
     const HeadData* getHeadData() const { return _headData; }
     const HandData* getHandData() const { return _handData; }
-
-    virtual bool findSphereCollisions(const glm::vec3& particleCenter, float particleRadius, CollisionList& collisions) {
-        return false;
-    }
 
     bool hasIdentityChangedAfterParsing(NLPacket& packet);
     QByteArray identityByteArray();

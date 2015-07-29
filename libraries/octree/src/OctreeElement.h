@@ -24,7 +24,6 @@
 #include "ViewFrustum.h"
 #include "OctreeConstants.h"
 
-class CollisionList;
 class EncodeBitstreamParams;
 class Octree;
 class OctreeElement;

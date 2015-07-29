@@ -168,9 +168,6 @@ public:
 
     friend class AvatarManager;
 
-signals:
-    void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);
-
 protected:
     SkeletonModel _skeletonModel;
     glm::vec3 _skeletonOffset;
