@@ -12,7 +12,7 @@
 
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
-var SCALE = 1000;
+var SLIDER_RANGE_INCREMENT_SCALE = 1 / 1000;
 var THUMB_COLOR = {
     red: 150,
     green: 150,
@@ -59,7 +59,6 @@ var CHECK_MARK_COLOR = {
         });
 
         this.thumbSize = thumbSize;
-
         this.thumbHalfSize = 0.5 * thumbSize;
 
         this.minThumbX = x + this.thumbHalfSize;
@@ -128,7 +127,7 @@ var CHECK_MARK_COLOR = {
 
     Slider.prototype.updateWithKeys = function(direction) {
         this.range = this.maxThumbX - this.minThumbX;
-        this.thumbX += direction * (this.range / SCALE);
+        this.thumbX += direction * (this.range * SCALE);
         this.updateThumb();
         this.onValueChanged(this.getValue());
     };
@@ -208,6 +207,25 @@ var CHECK_MARK_COLOR = {
         });
         Overlays.editOverlay(this.thumb, {
             y: this.y
+        });
+    };
+
+    this.setThumbColor = function(color) {
+        Overlays.editOverlay(this.thumb, {
+            backgroundColor: {
+                red: color.x * 255,
+                green: color.y * 255,
+                blue: color.z * 255
+            }
+        });
+    };
+    this.setBackgroundColor = function(color) {
+        Overlays.editOverlay(this.background, {
+            backgroundColor: {
+                red: color.x * 255,
+                green: color.y * 255,
+                blue: color.z * 255
+            }
         });
     };
 
@@ -748,7 +766,7 @@ var CHECK_MARK_COLOR = {
                 green: 255,
                 blue: 255
             },
-            imageURL: HIFI_PUBLIC_BUCKET + 'images/tools/min-max-toggle.svg',
+            imageURL: HIFI_PUBLIC_BUCKET + 'images/tools/expand-ui.svg',
             x: x,
             y: y,
             width: rawHeight,
@@ -777,6 +795,7 @@ var CHECK_MARK_COLOR = {
             topMargin: topMargin
         });
     };
+
 
     CollapsablePanelItem.prototype.destroy = function() {
         Overlays.deleteOverlay(this.title);
@@ -1044,6 +1063,7 @@ var CHECK_MARK_COLOR = {
             x: event.x,
             y: event.y
         });
+
         this.handleCollapse(clickedOverlay);
 
         // If the user clicked any of the slider background then...
@@ -1106,10 +1126,15 @@ var CHECK_MARK_COLOR = {
             }
 
             if (!item.isCollapsed && item.isCollapsable && clickedOverlay == item.thumb) {
+                Overlays.editOverlay(item.thumb, {
+                    imageURL: HIFI_PUBLIC_BUCKET + 'images/tools/expand-right.svg'
+                });
                 this.collapse(clickedOverlay);
                 item.isCollapsed = true;
-                break;
             } else if (item.isCollapsed && item.isCollapsable && clickedOverlay == item.thumb) {
+                Overlays.editOverlay(item.thumb, {
+                    imageURL: HIFI_PUBLIC_BUCKET + 'images/tools/expand-ui.svg'
+                });
                 this.expand(clickedOverlay);
                 item.isCollapsed = false;
             }
