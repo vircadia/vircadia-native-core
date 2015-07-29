@@ -11,6 +11,8 @@
 
 #include "Connection.h"
 
+#include <QtCore/QThread>
+
 #include <NumericalConstants.h>
 
 #include "../HifiSockAddr.h"
@@ -26,6 +28,19 @@ Connection::Connection(Socket* parentSocket, HifiSockAddr destination) :
     _parentSocket(parentSocket),
     _destination(destination)
 {
+}
+
+Connection::~Connection() {
+    if (_sendQueue) {
+        // tell our send queue to stop and wait until its send thread is done
+        QThread* sendQueueThread = _sendQueue->thread();
+        
+        _sendQueue->stop();
+        _sendQueue->deleteLater();
+        
+        sendQueueThread->quit();
+        sendQueueThread->wait();
+    }
 }
 
 void Connection::sendReliablePacket(unique_ptr<Packet> packet) {

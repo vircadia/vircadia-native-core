@@ -33,6 +33,7 @@ public:
     using SentACKMap = std::unordered_map<SequenceNumber, SequenceNumberTimePair>;
     
     Connection(Socket* parentSocket, HifiSockAddr destination);
+    ~Connection();
     
     void sendReliablePacket(std::unique_ptr<Packet> packet);
 
