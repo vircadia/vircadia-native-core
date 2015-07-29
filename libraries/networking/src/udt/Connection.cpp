@@ -30,7 +30,6 @@ Connection::Connection(Socket* parentSocket, HifiSockAddr destination, unique_pt
     _destination(destination),
     _congestionControl(move(congestionControl))
 {
-    
 }
 
 Connection::~Connection() {
@@ -69,7 +68,8 @@ void Connection::sync() {
         // construct a NAK packet that will hold all of the lost sequence numbers
         auto lossListPacket = ControlPacket::create(ControlPacket::TimeoutNAK, _lossList.getLength() * sizeof(SequenceNumber));
         
-        // TODO: pack in the lost sequence numbers
+        // Pack in the lost sequence numbers
+        _lossList.write(*lossListPacket);
         
         // have our SendQueue send off this control packet
         _sendQueue->sendPacket(*lossListPacket);
@@ -79,7 +79,6 @@ void Connection::sync() {
         
         ++_totalSentTimeoutNAKs;
     }
-    
 }
 
 void Connection::sendACK(bool wasCausedBySyncTimeout) {
@@ -331,7 +330,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     _sendQueue->ack(ack);
     
     // update the atomic for last received ACK, the send queue uses this to re-transmit
-    _atomicLastReceivedACK.store((uint32_t) _lastReceivedACK);
+    _atomicLastReceivedACK = (SequenceNumber::Type)_lastReceivedACK;
     
     // update the RTT
     updateRTT(rtt);
@@ -420,9 +419,8 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
 }
 
 void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket) {
-    // read the NAKed sequence numbers from the packet
-    
-    // TODO: enumerate the received NAKs and create ranges if possible, then call _sendQueue->nak
+    // Override SendQueue's LossList with the timeout NAK list
+    _sendQueue->overrideNAKListFromPacket(*controlPacket);
     
     ++_totalReceivedTimeoutNAKs;
 }

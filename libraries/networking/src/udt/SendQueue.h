@@ -56,6 +56,7 @@ public slots:
     
     void ack(SequenceNumber ack);
     void nak(SequenceNumber start, SequenceNumber end);
+    void overrideNAKListFromPacket(ControlPacket& packet);
     
 private slots:
     void loop();

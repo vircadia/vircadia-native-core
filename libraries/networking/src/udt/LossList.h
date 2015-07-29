@@ -18,6 +18,8 @@
 
 namespace udt {
 
+class ControlPacket;
+    
 class LossList {
 public:
     LossList() {}
@@ -35,6 +37,9 @@ public:
     int getLength() const { return _length; }
     SequenceNumber getFirstSequenceNumber() const;
     SequenceNumber popFirstSequenceNumber();
+    
+    void write(ControlPacket& packet);
+    void read(ControlPacket& packet);
     
 private:
     std::list<std::pair<SequenceNumber, SequenceNumber>> _lossList;

@@ -11,6 +11,8 @@
 
 #include "LossList.h"
 
+#include "ControlPacket.h"
+
 using namespace udt;
 using namespace std;
 
@@ -151,4 +153,28 @@ SequenceNumber LossList::popFirstSequenceNumber() {
     auto front = getFirstSequenceNumber();
     remove(front);
     return front;
+}
+
+void LossList::write(ControlPacket& packet) {
+    for(const auto& pair : _lossList) {
+        packet.writePrimitive(pair.first);
+        packet.writePrimitive(pair.second);
+    }
+}
+
+void LossList::read(ControlPacket& packet) {
+    _lossList.clear();
+    
+    SequenceNumber first, second;
+    while (packet.bytesLeftToRead() > (qint64)(2 * sizeof(SequenceNumber))) {
+        packet.readPrimitive(&first);
+        packet.readPrimitive(&second);
+        
+        if (first == second) {
+            append(first);
+        } else {
+            append(first, second);
+        }
+        
+    }
 }

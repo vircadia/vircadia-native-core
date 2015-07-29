@@ -103,6 +103,11 @@ void SendQueue::nak(SequenceNumber start, SequenceNumber end) {
     _naks.insert(start, end);
 }
 
+void SendQueue::overrideNAKListFromPacket(ControlPacket& packet) {
+    QWriteLocker locker(&_naksLock);
+    _naks.read(packet);
+}
+
 SequenceNumber SendQueue::getNextSequenceNumber() {
     _atomicCurrentSequenceNumber = (SequenceNumber::Type)++_currentSequenceNumber;
     return _currentSequenceNumber;
