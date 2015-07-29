@@ -14,6 +14,7 @@
 #include <QMessageBox>
 
 #include "InterfaceLogging.h"
+#include "OctreeConstants.h"
 
 #ifdef HAVE_IVIEWHMD
 static void CALLBACK eyeTrackerCallback(smi_CallbackDataStruct* data) {
@@ -40,7 +41,55 @@ void EyeTracker::processData(smi_CallbackDataStruct* data) {
 
 #ifdef HAVE_IVIEWHMD
     if (data->type == SMI_SIMPLE_GAZE_SAMPLE) {
+        // Calculate the intersections of the left and right eye look-at vectors with a vertical plane along the monocular
+        // gaze direction. Average these positions to give the look-at point.
+        // If the eyes are parallel or diverged, gaze at a distant look-at point calculated the same as for non eye tracking.
+        // Line-plane intersection: https://en.wikipedia.org/wiki/Line%E2%80%93plane_intersection
+
         smi_SampleHMDStruct* sample = (smi_SampleHMDStruct*)data->result;
+        // The iViewHMD coordinate system has x and z axes reversed compared to Interface, i.e., wearing the HMD:
+        // - x is left
+        // - y is up
+        // - z is forwards
+
+        // Plane
+        smi_Vec3d point = sample->gazeBasePoint;  // mm
+        smi_Vec3d direction = sample->gazeDirection;
+        glm::vec3 planePoint = glm::vec3(-point.x, point.y, -point.z) / 1000.0f;
+        glm::vec3 planeNormal = glm::vec3(-direction.z, 0.0f, direction.x);
+        glm::vec3 monocularDirection = glm::vec3(-direction.x, direction.y, -direction.z);
+
+        // Left eye
+        point = sample->left.gazeBasePoint;  // mm
+        direction = sample->left.gazeDirection;
+        glm::vec3 leftLinePoint = glm::vec3(-point.x, point.y, -point.z) / 1000.0f;
+        glm::vec3 leftLineDirection = glm::vec3(-direction.x, direction.y, -direction.z);
+
+        // Right eye
+        point = sample->right.gazeBasePoint;  // mm
+        direction = sample->right.gazeDirection;
+        glm::vec3 rightLinePoint = glm::vec3(-point.x, point.y, -point.z) / 1000.0f;
+        glm::vec3 rightLineDirection = glm::vec3(-direction.x, direction.y, -direction.z);
+
+        // Plane - line dot products
+        float leftLinePlaneDotProduct = glm::dot(leftLineDirection, planeNormal);
+        float rightLinePlaneDotProduct = glm::dot(rightLineDirection, planeNormal);
+
+        // Gaze into distance if eyes are parallel or diverged; otherwise the look-at is the average of look-at points
+        if (abs(leftLinePlaneDotProduct) <= FLT_EPSILON || abs(rightLinePlaneDotProduct) <= FLT_EPSILON) {
+            _lookAtPosition = monocularDirection * (float)TREE_SCALE;
+        } else {
+            float leftDistance = glm::dot(planePoint - leftLinePoint, planeNormal) / leftLinePlaneDotProduct;
+            float rightDistance = glm::dot(planePoint - rightLinePoint, planeNormal) / rightLinePlaneDotProduct;
+            if (leftDistance <= 0.0f || rightDistance <= 0.0f 
+                || leftDistance > (float)TREE_SCALE || rightDistance > (float)TREE_SCALE) {
+                _lookAtPosition = monocularDirection * (float)TREE_SCALE;
+            } else {
+                glm::vec3 leftIntersectionPoint = leftLinePoint + leftDistance * leftLineDirection;
+                glm::vec3 rightIntersectionPoint = rightLinePoint + rightDistance * rightLineDirection;
+                _lookAtPosition = (leftIntersectionPoint + rightIntersectionPoint) / 2.0f;
+            }
+        }
     }
 #endif
 }

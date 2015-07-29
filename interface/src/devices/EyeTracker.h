@@ -14,6 +14,8 @@
 
 #include <QObject>
 
+#include <glm/glm.hpp>
+
 #include <DependencyManager.h>
 #include <iViewHMDAPI.h>
 
@@ -24,6 +26,10 @@ class EyeTracker : public QObject, public Dependency {
 
 public:
     ~EyeTracker();
+
+    bool isTracking() { return _isEnabled; }
+
+    glm::vec3 getLookAtPosition() { return _lookAtPosition; }  // From mid eye point in head frame.
     
     void processData(smi_CallbackDataStruct* data);
 
@@ -36,8 +42,9 @@ private:
     QString smiReturnValueToString(int value);
     
     bool _isInitialized = false;
-    bool _isStreaming = false;
     bool _isEnabled = false;
+
+    glm::vec3 _lookAtPosition;
 };
 
 #endif // hifi_EyeTracker_h

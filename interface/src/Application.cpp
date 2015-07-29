@@ -2282,7 +2282,8 @@ void Application::updateMyAvatarLookAtPosition() {
     PerformanceWarning warn(showWarnings, "Application::updateMyAvatarLookAtPosition()");
 
     _myAvatar->updateLookAtTargetAvatar();
-    FaceTracker* tracker = getActiveFaceTracker();
+    FaceTracker* faceTracker = getActiveFaceTracker();
+    auto eyeTracker = DependencyManager::get<EyeTracker>();
 
     bool isLookingAtSomeone = false;
     glm::vec3 lookAtSpot;
@@ -2294,6 +2295,10 @@ void Application::updateMyAvatarLookAtPosition() {
         } else {
             lookAtSpot = _myCamera.getPosition() + OculusManager::getMidEyePosition();
         }
+    } else if (eyeTracker->isTracking()) {
+        //  Look at the point that the user is looking at.
+        lookAtSpot = _myAvatar->getHead()->getEyePosition() +
+            (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * eyeTracker->getLookAtPosition());
     } else {
         AvatarSharedPointer lookingAt = _myAvatar->getLookAtTargetAvatar().lock();
         if (lookingAt && _myAvatar != lookingAt.get()) {
@@ -2331,12 +2336,12 @@ void Application::updateMyAvatarLookAtPosition() {
         }
 
         // Deflect the eyes a bit to match the detected gaze from the face tracker if active.
-        if (tracker && !tracker->isMuted()) {
-            float eyePitch = tracker->getEstimatedEyePitch();
-            float eyeYaw = tracker->getEstimatedEyeYaw();
+        if (faceTracker && !faceTracker->isMuted()) {
+            float eyePitch = faceTracker->getEstimatedEyePitch();
+            float eyeYaw = faceTracker->getEstimatedEyeYaw();
             const float GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT = 0.1f;
             glm::vec3 origin = _myAvatar->getHead()->getEyePosition();
-            float deflection = tracker->getEyeDeflection();
+            float deflection = faceTracker->getEyeDeflection();
             if (isLookingAtSomeone) {
                 deflection *= GAZE_DEFLECTION_REDUCTION_DURING_EYE_CONTACT;
             }
