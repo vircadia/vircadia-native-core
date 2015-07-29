@@ -165,11 +165,11 @@ static ConnexionClient* gMouseInput = 0;
 
 void ConnexionClient::toggleConnexion(bool shouldEnable)
 {
-	ConnexionData& connexiondata = ConnexionData::getInstance();
-	if (shouldEnable && connexiondata.getDeviceID() == 0) {
+    ConnexionData& connexiondata = ConnexionData::getInstance();
+    if (shouldEnable && connexiondata.getDeviceID() == 0) {
         ConnexionClient::init();
     }
-	if (!shouldEnable && connexiondata.getDeviceID() != 0) {
+    if (!shouldEnable && connexiondata.getDeviceID() != 0) {
         ConnexionClient::destroy();
     }
 
@@ -177,24 +177,24 @@ void ConnexionClient::toggleConnexion(bool shouldEnable)
 
 void ConnexionClient::init() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Connexion)) {
-		ConnexionClient& cclient = ConnexionClient::getInstance();
-		cclient.fLast3dmouseInputTime = 0;
+        ConnexionClient& cclient = ConnexionClient::getInstance();
+        cclient.fLast3dmouseInputTime = 0;
 
-		cclient.InitializeRawInput(GetActiveWindow());
+        cclient.InitializeRawInput(GetActiveWindow());
 
-		gMouseInput = &cclient;
+        gMouseInput = &cclient;
 
-		QAbstractEventDispatcher::instance()->installNativeEventFilter(&cclient);
+        QAbstractEventDispatcher::instance()->installNativeEventFilter(&cclient);
     }
 }
 
 void ConnexionClient::destroy() {
-	ConnexionClient& cclient = ConnexionClient::getInstance();
-	QAbstractEventDispatcher::instance()->removeNativeEventFilter(&cclient);
-	ConnexionData& connexiondata = ConnexionData::getInstance();
-	int deviceid = connexiondata.getDeviceID();
-	connexiondata.setDeviceID(0);
-	Application::getUserInputMapper()->removeDevice(deviceid);
+    ConnexionClient& cclient = ConnexionClient::getInstance();
+    QAbstractEventDispatcher::instance()->removeNativeEventFilter(&cclient);
+    ConnexionData& connexiondata = ConnexionData::getInstance();
+    int deviceid = connexiondata.getDeviceID();
+    connexiondata.setDeviceID(0);
+    Application::getUserInputMapper()->removeDevice(deviceid);
 }
 
 #define LOGITECH_VENDOR_ID 0x46d
@@ -305,9 +305,9 @@ bool ConnexionClient::RawInputEventFilter(void* msg, long* result) {
         connexiondata.assignDefaultInputMapping(*Application::getUserInputMapper());
         UserActivityLogger::getInstance().connectedDevice("controller", "3Dconnexion");
     } else if (!ConnexionClient::Is3dmouseAttached() && connexiondata.getDeviceID() != 0) {
-		int deviceid = connexiondata.getDeviceID();
-		connexiondata.setDeviceID(0);
-		Application::getUserInputMapper()->removeDevice(deviceid);
+        int deviceid = connexiondata.getDeviceID();
+        connexiondata.setDeviceID(0);
+        Application::getUserInputMapper()->removeDevice(deviceid);
     }
 
     if (!ConnexionClient::Is3dmouseAttached()) {
@@ -332,8 +332,8 @@ ConnexionClient::ConnexionClient() {
 }
 
 ConnexionClient::~ConnexionClient() {
-	ConnexionClient& cclient = ConnexionClient::getInstance();
-	QAbstractEventDispatcher::instance()->removeNativeEventFilter(&cclient);
+    ConnexionClient& cclient = ConnexionClient::getInstance();
+    QAbstractEventDispatcher::instance()->removeNativeEventFilter(&cclient);
 }
 
 // Access the mouse parameters structure
