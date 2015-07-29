@@ -59,7 +59,7 @@ private:
     
     void updateRTT(int rtt);
     
-    int estimatedTimeout() const { return _rtt + _rttVariance * 4; }
+    int estimatedTimeout() const;
     
     int _synInterval; // Periodical Rate Control Interval, in microseconds, defaults to 10ms
     
