@@ -53,13 +53,13 @@ public slots:
     QString getModeString() const;
     void setModeString(const QString& mode);
 
-    const glm::quat& getRotation() const { return _rotation; }
+    glm::quat getRotation() const { return _rotation; }
     void setRotation(const glm::quat& rotation);
 
-    const glm::vec3& getPosition() const { return _position; }
+    glm::vec3 getPosition() const { return _position; }
     void setPosition(const glm::vec3& position);
 
-    const glm::quat& getOrientation() const { return getRotation(); }
+    glm::quat getOrientation() const { return getRotation(); }
     void setOrientation(const glm::quat& orientation) { setRotation(orientation); }
 
     const glm::mat4& getTransform() const { return _transform; }
