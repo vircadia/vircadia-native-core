@@ -2019,9 +2019,12 @@ void Application::setActiveFaceTracker() {
 
 void Application::setActiveEyeTracker() {
 #ifdef HAVE_IVIEWHMD
+    bool isEyeTrackingOptionChecked = Menu::getInstance()->isOptionChecked(MenuOption::SMIEyeTracking);
     auto eyeTracker = DependencyManager::get<EyeTracker>();
-    eyeTracker->setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::SMIEyeTracking),
-        Menu::getInstance()->isOptionChecked(MenuOption::SimulateEyeTracking));
+    eyeTracker->setEnabled(isEyeTrackingOptionChecked, Menu::getInstance()->isOptionChecked(MenuOption::SimulateEyeTracking));
+    if (isEyeTrackingOptionChecked && !eyeTracker->isTracking()) {
+        Menu::getInstance()->setIsOptionChecked(MenuOption::SMIEyeTracking, false);
+    }
 #endif
 }
 
