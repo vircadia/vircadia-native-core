@@ -440,3 +440,7 @@ void Connection::updateRTT(int rtt) {
     _rttVariance = (_rttVariance * (1 - RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR)
                     + abs(rtt - _rtt)) / RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR;
 }
+
+int Connection::estimatedTimeout() const {
+    return _congestionControl->_userDefinedRto ? _rtt + _rttVariance * 4 : _congestionControl->_rto;
+}
