@@ -22,6 +22,7 @@
 
 #include "../HifiSockAddr.h"
 
+#include "Constants.h"
 #include "SequenceNumber.h"
 #include "LossList.h"
 
@@ -44,6 +45,8 @@ public:
     int getQueueSize() const { QReadLocker locker(&_packetsLock); return _packets.size(); }
 
     SequenceNumber getCurrentSequenceNumber() const { return SequenceNumber(_atomicCurrentSequenceNumber); }
+    
+    void setFlowWindowSize(int flowWindowSize) { _flowWindowSize = flowWindowSize; }
     
     int getPacketSendPeriod() const { return _packetSendPeriod; }
     void setPacketSendPeriod(int newPeriod) { _packetSendPeriod = newPeriod; }
@@ -72,11 +75,11 @@ private:
     
     mutable QReadWriteLock _packetsLock; // Protects the packets to be sent list.
     std::list<std::unique_ptr<Packet>> _packets; // List of packets to be sent
-    std::unique_ptr<Packet> _nextPacket;  // Next packet to be sent
     
     Socket* _socket { nullptr }; // Socket to send packet on
     HifiSockAddr _destination; // Destination addr
-    SequenceNumber _lastAck; // Last ACKed sequence number
+    
+    std::atomic<uint32_t> _lastACKSequenceNumber; // Last ACKed sequence number
     
     SequenceNumber _currentSequenceNumber; // Last sequence number sent out
     std::atomic<uint32_t> _atomicCurrentSequenceNumber; // Atomic for last sequence number sent out
@@ -84,6 +87,8 @@ private:
     std::atomic<int> _packetSendPeriod { 0 }; // Interval between two packet send event in microseconds
     std::chrono::high_resolution_clock::time_point _lastSendTimestamp; // Record last time of packet departure
     std::atomic<bool> _isRunning { false };
+    
+    std::atomic<int> _flowWindowSize { udt::MAX_PACKETS_IN_FLIGHT }; // Flow control window size (number of packets that can be on wire)
     
     mutable QReadWriteLock _naksLock; // Protects the naks list.
     LossList _naks; // Sequence numbers of packets to resend

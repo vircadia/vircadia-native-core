@@ -80,13 +80,13 @@ void SendQueue::sendPacket(const BasePacket& packet) {
 }
     
 void SendQueue::ack(SequenceNumber ack) {
-    if (_lastAck == ack) {
+    if (_lastACKSequenceNumber == (uint32_t) ack) {
         return;
     }
     
     {   // remove any ACKed packets from the map of sent packets
         QWriteLocker locker(&_sentLock);
-        for (auto seq = _lastAck; seq <= ack; ++seq) {
+        for (auto seq = SequenceNumber { (uint32_t) _lastACKSequenceNumber }; seq <= ack; ++seq) {
             _sentPackets.erase(seq);
         }
     }
@@ -96,7 +96,7 @@ void SendQueue::ack(SequenceNumber ack) {
         _naks.remove(_naks.getFirstSequenceNumber(), ack);
     }
     
-    _lastAck = ack;
+    _lastACKSequenceNumber = (uint32_t) ack;
 }
 
 void SendQueue::nak(SequenceNumber start, SequenceNumber end) {
@@ -131,48 +131,52 @@ void SendQueue::loop() {
         // Record timing
         _lastSendTimestamp = high_resolution_clock::now();
         
-        if (_nextPacket) {
+        // we're only allowed to send if the flow window size
+        // is greater than or equal to the gap between the last ACKed sent and the one we are about to send
+        if (seqlen(SequenceNumber { (uint32_t) _lastACKSequenceNumber }, _currentSequenceNumber + 1) <= _flowWindowSize) {
+            bool hasResend = false;
+            SequenceNumber seqNum;
+            {
+                // Check nak list for packet to resend
+                QWriteLocker locker(&_naksLock);
+                if (_naks.getLength() > 0) {
+                    hasResend = true;
+                    seqNum = _naks.popFirstSequenceNumber();
+                }
+            }
+            
+            std::unique_ptr<Packet> nextPacket;
+            
+            // Find packet in sent list using SequenceNumber
+            if (hasResend) {
+                QWriteLocker locker(&_sentLock);
+                auto it = _sentPackets.find(seqNum);
+                Q_ASSERT_X(it != _sentPackets.end(),
+                           "SendQueue::sendNextPacket()", "Couldn't find NAKed packet to resend");
+                
+                if (it != _sentPackets.end()) {
+                    it->second.swap(nextPacket);
+                    _sentPackets.erase(it);
+                }
+            }
+            
+            // If there is no packet to resend, grab the next one in the list
+            if (!nextPacket) {
+                QWriteLocker locker(&_packetsLock);
+                nextPacket.swap(_packets.front());
+                _packets.pop_front();
+            }
+            
             // Write packet's sequence number and send it off
-            _nextPacket->writeSequenceNumber(getNextSequenceNumber());
-            sendPacket(*_nextPacket);
+            nextPacket->writeSequenceNumber(getNextSequenceNumber());
+            sendPacket(*nextPacket);
             
             // Insert the packet we have just sent in the sent list
             QWriteLocker locker(&_sentLock);
-            _sentPackets[_nextPacket->getSequenceNumber()].swap(_nextPacket);
-            Q_ASSERT_X(!_nextPacket,
+            _sentPackets[nextPacket->getSequenceNumber()].swap(nextPacket);
+            Q_ASSERT_X(!nextPacket,
                        "SendQueue::sendNextPacket()", "Overriden packet in sent list");
-        }
-        
-        bool hasResend = false;
-        SequenceNumber seqNum;
-        {
-            // Check nak list for packet to resend
-            QWriteLocker locker(&_naksLock);
-            if (_naks.getLength() > 0) {
-                hasResend = true;
-                seqNum = _naks.popFirstSequenceNumber();
-            }
-        }
-        
-        // Find packet in sent list using SequenceNumber
-        if (hasResend) {
-            QWriteLocker locker(&_sentLock);
-            auto it = _sentPackets.find(seqNum);
-            Q_ASSERT_X(it != _sentPackets.end(),
-                       "SendQueue::sendNextPacket()", "Couldn't find NAKed packet to resend");
-            
-            if (it != _sentPackets.end()) {
-                it->second.swap(_nextPacket);
-                _sentPackets.erase(it);
-            }
-        }
-        
-        // If there is no packet to resend, grab the next one in the list
-        if (!_nextPacket) {
-            QWriteLocker locker(&_packetsLock);
-            _nextPacket.swap(_packets.front());
-            _packets.pop_front();
-        }
+        }        
         
         // since we're a while loop, give the thread a chance to process events
         QCoreApplication::processEvents();
