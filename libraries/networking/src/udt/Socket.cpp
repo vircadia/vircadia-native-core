@@ -136,7 +136,7 @@ void Socket::readPendingDatagrams() {
         if (!_packetFilterOperator || _packetFilterOperator(*packet)) {
             if (_packetHandler) {
                 // call the verified packet callback to let it handle this packet
-                return _packetHandler(std::move(packet));
+                _packetHandler(std::move(packet));
             }
         }
     }

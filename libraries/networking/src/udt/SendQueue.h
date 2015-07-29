@@ -63,8 +63,6 @@ private slots:
     void loop();
     
 private:
-    friend struct std::default_delete<SendQueue>;
-    
     SendQueue(Socket* socket, HifiSockAddr dest);
     SendQueue(SendQueue& other) = delete;
     SendQueue(SendQueue&& other) = delete;
