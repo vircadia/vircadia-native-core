@@ -34,12 +34,12 @@ EyeTracker::~EyeTracker() {
 #endif
 }
 
+#ifdef HAVE_IVIEWHMD
 void EyeTracker::processData(smi_CallbackDataStruct* data) {
     if (!_isEnabled) {
         return;
     }
 
-#ifdef HAVE_IVIEWHMD
     if (data->type == SMI_SIMPLE_GAZE_SAMPLE) {
         // Calculate the intersections of the left and right eye look-at vectors with a vertical plane along the monocular
         // gaze direction. Average these positions to give the look-at point.
@@ -91,8 +91,8 @@ void EyeTracker::processData(smi_CallbackDataStruct* data) {
             }
         }
     }
-#endif
 }
+#endif
 
 void EyeTracker::init() {
     if (_isInitialized) {
@@ -143,6 +143,7 @@ void EyeTracker::reset() {
     // Nothing to do.
 }
 
+#ifdef HAVE_IVIEWHMD
 QString EyeTracker::smiReturnValueToString(int value) {
     switch (value)
     {
@@ -168,3 +169,4 @@ QString EyeTracker::smiReturnValueToString(int value) {
             return number;
     }
 }
+#endif

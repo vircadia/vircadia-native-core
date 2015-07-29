@@ -17,7 +17,9 @@
 #include <glm/glm.hpp>
 
 #include <DependencyManager.h>
+#ifdef HAVE_IVIEWHMD
 #include <iViewHMDAPI.h>
+#endif
 
 
 class EyeTracker : public QObject, public Dependency {
@@ -32,7 +34,9 @@ public:
 
     glm::vec3 getLookAtPosition() { return _lookAtPosition; }  // From mid eye point in head frame.
     
+#ifdef HAVE_IVIEWHMD
     void processData(smi_CallbackDataStruct* data);
+#endif
 
 public slots:
     void init();
