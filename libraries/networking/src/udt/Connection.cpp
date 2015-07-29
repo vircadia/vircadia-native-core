@@ -49,14 +49,17 @@ void Connection::sync() {
     
     if (duration_cast<milliseconds>(now - _lastNAKTime).count() >= _nakInterval) {
         // construct a NAK packet that will hold all of the lost sequence numbers
-        auto lossListPacket = ControlPacket::create(ControlPacket::NAK, _lossList.getLength() * sizeof(SequenceNumber));
+        auto lossListPacket = ControlPacket::create(ControlPacket::TimeoutNAK, _lossList.getLength() * sizeof(SequenceNumber));
         
-        
+        // TODO: pack in the lost sequence numbers
         
         // have our SendQueue send off this control packet
         _sendQueue->sendPacket(*lossListPacket);
         
+        // record this as the last NAK time
         _lastNAKTime = high_resolution_clock::now();
+        
+        ++_totalSentTimeoutNAKs;
     }
     
 }
@@ -122,9 +125,11 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     
     // write this ACK to the map of sent ACKs
     _sentACKs[_currentACKSubSequenceNumber] = { nextACKNumber, high_resolution_clock::now() };
+    
+    ++_totalSentACKs;
 }
 
-void Connection::sendLightACK() const {
+void Connection::sendLightACK() {
     // create the light ACK packet, make it static so we can re-use it
     static const int LIGHT_ACK_PACKET_PAYLOAD_BYTES = sizeof(SequenceNumber);
     static auto lightACKPacket = ControlPacket::create(ControlPacket::ACK, LIGHT_ACK_PACKET_PAYLOAD_BYTES);
@@ -144,6 +149,8 @@ void Connection::sendLightACK() const {
     
     // have the send queue send off our packet immediately
     _sendQueue->sendPacket(*lightACKPacket);
+    
+    ++_totalSentLightACKs;
 }
 
 SequenceNumber Connection::nextACK() const {
@@ -190,6 +197,8 @@ void Connection::processReceivedSequenceNumber(SequenceNumber seq) {
         // record our last NAK time
         _lastNAKTime = high_resolution_clock::now();
         
+        ++_totalSentNAKs;
+        
         // figure out when we should send the next loss report, if we haven't heard anything back
         _nakInterval = (_rtt + 4 * _rttVariance);
         
@@ -212,6 +221,8 @@ void Connection::processReceivedSequenceNumber(SequenceNumber seq) {
         // Otherwise, it's a resend, remove it from the loss list
         _lossList.remove(seq);
     }
+    
+    ++_totalReceivedDataPackets;
 }
 
 void Connection::processControl(unique_ptr<ControlPacket> controlPacket) {
@@ -228,6 +239,9 @@ void Connection::processControl(unique_ptr<ControlPacket> controlPacket) {
             break;
         case ControlPacket::NAK:
             processNAK(move(controlPacket));
+            break;
+        case ControlPacket::TimeoutNAK:
+            processTimeoutNAK(move(controlPacket));
             break;
     }
 }
@@ -259,6 +273,8 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
         // update the last sent ACK2 and the last ACK2 send time
         _lastSentACK2 = currentACKSubSequenceNumber;
         lastACK2SendTime = high_resolution_clock::now();
+        
+        ++_totalSentACK2s;
     }
     
     // read the ACKed sequence number
@@ -330,6 +346,8 @@ void Connection::processLightACK(std::unique_ptr<ControlPacket> controlPacket) {
         // update the last received ACK to the this one
         _lastReceivedACK = ack;
     }
+    
+    ++_totalReceivedLightACKs;
 }
 
 void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
@@ -356,6 +374,8 @@ void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
             _lastReceivedAcknowledgedACK = pair.first;
         }
     }
+    
+    ++_totalReceivedACK2s;
 }
 
 void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
@@ -365,6 +385,14 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
     if (controlPacket->bytesLeftToRead() >= (qint64)sizeof(SequenceNumber)) {
         controlPacket->readPrimitive(&end);
     }
+    
+    ++_totalReceivedNAKs;
+}
+
+void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket) {
+    // read the NAKed sequence numbers from the packet
+    
+    ++_totalReceivedTimeoutNAKs;
 }
 
 void Connection::updateRTT(int rtt) {

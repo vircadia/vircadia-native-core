@@ -47,12 +47,13 @@ public:
     
 private:
     void sendACK(bool wasCausedBySyncTimeout = true);
-    void sendLightACK() const;
+    void sendLightACK();
     
     void processACK(std::unique_ptr<ControlPacket> controlPacket);
     void processLightACK(std::unique_ptr<ControlPacket> controlPacket);
     void processACK2(std::unique_ptr<ControlPacket> controlPacket);
     void processNAK(std::unique_ptr<ControlPacket> controlPacket);
+    void processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket);
     
     void updateRTT(int rtt);
     
@@ -74,8 +75,6 @@ private:
     SequenceNumber _lastSentACK { SequenceNumber::MAX }; // The last sent ACK
     SequenceNumber _lastSentACK2; // The last sent ACK sub-sequence number in an ACK2
     
-    int _totalReceivedACKs { 0 };
-    
     int32_t _rtt; // RTT, in microseconds
     int32_t _rttVariance; // RTT variance
     int _flowWindowSize; // Flow control window size
@@ -88,6 +87,23 @@ private:
     PacketTimeWindow _receiveWindow { 16, 64 }; // Window of interval between packets (16) and probes (64) for bandwidth and receive speed
     
     std::unique_ptr<SendQueue> _sendQueue;
+    
+    // Control Packet stat collection
+    int _totalReceivedACKs { 0 };
+    int _totalSentACKs { 0 };
+    int _totalSentLightACKs { 0 };
+    int _totalReceivedLightACKs { 0 };
+    int _totalReceivedACK2s { 0 };
+    int _totalSentACK2s { 0 };
+    int _totalReceivedNAKs { 0 };
+    int _totalSentNAKs { 0 };
+    int _totalReceivedTimeoutNAKs { 0 };
+    int _totalSentTimeoutNAKs { 0 };
+    
+    // Data packet stat collection
+    int _totalReceivedDataPackets { 0 };
+    
+    
 };
     
 }

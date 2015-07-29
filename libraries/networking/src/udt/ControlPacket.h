@@ -29,7 +29,8 @@ public:
     enum Type : uint16_t {
         ACK,
         ACK2,
-        NAK
+        NAK,
+        TimeoutNAK
     };
     
     static std::unique_ptr<ControlPacket> create(Type type, qint64 size = -1);
