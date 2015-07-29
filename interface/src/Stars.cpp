@@ -141,6 +141,7 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
             auto state = gpu::StatePointer(new gpu::State());
             // enable decal blend
             state->setDepthTest(gpu::State::DepthTest(false));
+            state->setAntialiasedLineEnable(true); // line smoothing also smooth points
             state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
             _gridPipeline.reset(gpu::Pipeline::create(program, state));
         }
@@ -205,8 +206,6 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
     batch._glUniform1f(_timeSlot, secs);
     geometryCache->renderUnitCube(batch);
 
-    //glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
-    
     static const size_t VERTEX_STRIDE = sizeof(StarVertex);
     size_t offset = offsetof(StarVertex, position);
     gpu::BufferView posView(vertexBuffer, offset, vertexBuffer->getSize(), VERTEX_STRIDE, positionElement);
@@ -215,9 +214,6 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
     
     // Render the stars
     batch.setPipeline(_starsPipeline);
-    //batch._glEnable(GL_PROGRAM_POINT_SIZE_EXT);
-    //batch._glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
-    //batch._glEnable(GL_POINT_SMOOTH);
 
     batch.setInputFormat(streamFormat);
     batch.setInputBuffer(VERTICES_SLOT, posView);
