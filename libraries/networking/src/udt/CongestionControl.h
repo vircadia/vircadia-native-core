@@ -60,7 +60,7 @@ private:
     CongestionControl(const CongestionControl& other) = delete;
     CongestionControl& operator=(const CongestionControl& other) = delete;
     
-    void setMss(int mss) { _mss = mss; }
+    void setMSS(int mss) { _mss = mss; }
     void setMaxCongestionWindowSize(int window) { _maxCongestionWindowSize = window; }
     void setBandwidth(int bandwidth) { _bandwidth = bandwidth; }
     void setSendCurrentSequenceNumber(SequenceNumber seqNum) { _sendCurrSeqNum = seqNum; }
