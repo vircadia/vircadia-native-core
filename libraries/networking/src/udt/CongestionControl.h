@@ -14,6 +14,7 @@
 
 #include <vector>
 
+#include "LossList.h"
 #include "SequenceNumber.h"
 
 namespace udt {
@@ -36,7 +37,7 @@ public:
     virtual void init() {}
     virtual void close() {}
     virtual void onAck(SequenceNumber ackNum) {}
-    virtual void onLoss(const std::vector<SequenceNumber>& lossList) {}
+    virtual void onLoss(const LossList& lossList) {}
     
 protected:
     void setAckTimer(int period) { _ackPeriod = (period > _synInterval) ? _synInterval : period; }
@@ -98,7 +99,7 @@ public:
 public:
     virtual void init();
     virtual void onACK(SequenceNumber ackNum);
-    virtual void onLoss(const std::vector<SequenceNumber>& lossList);
+    virtual void onLoss(const LossList& lossList);
     virtual void onTimeout();
     
 private:

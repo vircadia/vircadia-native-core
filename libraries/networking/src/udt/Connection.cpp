@@ -217,6 +217,9 @@ void Connection::processReceivedSequenceNumber(SequenceNumber seq) {
         
         ++_totalSentNAKs;
         
+        // tell the CC that there was loss
+        _congestionControl->onLoss(_lossList);
+        
         // figure out when we should send the next loss report, if we haven't heard anything back
         _nakInterval = (_rtt + 4 * _rttVariance);
         
@@ -406,12 +409,15 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
     SequenceNumber start, end;
     controlPacket->readPrimitive(&start);
     
+    end = start;
+    
     if (controlPacket->bytesLeftToRead() >= (qint64)sizeof(SequenceNumber)) {
         controlPacket->readPrimitive(&end);
     }
     
-    
-    
+    // send that off to the send queue so it knows there was loss
+    _sendQueue->nak(start, end);
+
     ++_totalReceivedNAKs;
 }
 

@@ -88,7 +88,7 @@ void DefaultCC::onACK(SequenceNumber ackNum) {
     _packetSendPeriod = (_packetSendPeriod * synInterval()) / (_packetSendPeriod * inc + synInterval());
 }
 
-void DefaultCC::onLoss(const std::vector<SequenceNumber>& losslist) {
+void DefaultCC::onLoss(const LossList& losslist) {
     //Slow Start stopped, if it hasn't yet
     if (_slowStart) {
         _slowStart = false;
@@ -105,7 +105,7 @@ void DefaultCC::onLoss(const std::vector<SequenceNumber>& losslist) {
     
     _loss = true;
     
-    if (losslist[0] > _lastDecSeq) {
+    if (losslist.getFirstSequenceNumber() > _lastDecSeq) {
         _lastDecPeriod = _packetSendPeriod;
         _packetSendPeriod = ceil(_packetSendPeriod * 1.125);
         
