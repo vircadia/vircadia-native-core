@@ -64,6 +64,8 @@ private:
     
     int estimatedTimeout() const;
     
+    void updateCongestionControlAndSendQueue(std::function<void()> congestionCallback);
+    
     int _synInterval; // Periodical Rate Control Interval, in microseconds
     
     int _nakInterval; // NAK timeout interval, in microseconds
