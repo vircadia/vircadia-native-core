@@ -273,7 +273,8 @@ private:
     void updatePosition(float deltaTime);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void maybeUpdateBillboard();
-    
+    void initHeadBones();
+
     // Avatar Preferences
     bool _useFullAvatar = false;
     QUrl _fullAvatarURLFromPreferences;
@@ -286,6 +287,7 @@ private:
 
     RigPointer _rig;
     bool _prevShouldDrawHead;
+    std::unordered_set<int> _headBoneSet;
 };
 
 #endif // hifi_MyAvatar_h
