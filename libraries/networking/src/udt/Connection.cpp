@@ -230,27 +230,27 @@ SequenceNumber Connection::nextACK() const {
     }
 }
 
-void Connection::processReceivedSequenceNumber(SequenceNumber seq) {
+bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber) {
     
     // check if this is a packet pair we should estimate bandwidth from, or just a regular packet
-    if (((uint32_t) seq & 0xF) == 0) {
+    if (((uint32_t) sequenceNumber & 0xF) == 0) {
         _receiveWindow.onProbePair1Arrival();
-    } else if (((uint32_t) seq & 0xF) == 1) {
+    } else if (((uint32_t) sequenceNumber & 0xF) == 1) {
         _receiveWindow.onProbePair2Arrival();
     } else {
         _receiveWindow.onPacketArrival();
     }
     
     // If this is not the next sequence number, report loss
-    if (seq > _lastReceivedSequenceNumber + 1) {
-        if (_lastReceivedSequenceNumber + 1 == seq - 1) {
+    if (sequenceNumber > _lastReceivedSequenceNumber + 1) {
+        if (_lastReceivedSequenceNumber + 1 == sequenceNumber - 1) {
             _lossList.append(_lastReceivedSequenceNumber + 1);
         } else {
-            _lossList.append(_lastReceivedSequenceNumber + 1, seq - 1);
+            _lossList.append(_lastReceivedSequenceNumber + 1, sequenceNumber - 1);
         }
         
         // Send a NAK packet
-        sendNAK(seq);
+        sendNAK(sequenceNumber);
         
         // figure out when we should send the next loss report, if we haven't heard anything back
         _nakInterval = (_rtt + 4 * _rttVariance);
@@ -267,12 +267,14 @@ void Connection::processReceivedSequenceNumber(SequenceNumber seq) {
         }
     }
     
-    if (seq > _lastReceivedSequenceNumber) {
+    bool wasDuplicate = false;
+    
+    if (sequenceNumber > _lastReceivedSequenceNumber) {
         // Update largest recieved sequence number
-        _lastReceivedSequenceNumber = seq;
+        _lastReceivedSequenceNumber = sequenceNumber;
     } else {
-        // Otherwise, it's a resend, remove it from the loss list
-        _lossList.remove(seq);
+        // Otherwise, it could be a resend, try and remove it from the loss list
+        wasDuplicate = !_lossList.remove(sequenceNumber);
     }
     
     // increment the counters for data packets received
@@ -283,6 +285,8 @@ void Connection::processReceivedSequenceNumber(SequenceNumber seq) {
     if (_congestionControl->_ackInterval > 0 && _packetsSinceACK >= _congestionControl->_ackInterval) {
         sendACK(false);
     }
+    
+    return wasDuplicate;
 }
 
 void Connection::processControl(unique_ptr<ControlPacket> controlPacket) {

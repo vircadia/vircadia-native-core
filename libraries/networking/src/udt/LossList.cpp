@@ -81,7 +81,7 @@ void LossList::insert(SequenceNumber start, SequenceNumber end) {
     }
 }
 
-void LossList::remove(SequenceNumber seq) {
+bool LossList::remove(SequenceNumber seq) {
     auto it = find_if(_lossList.begin(), _lossList.end(), [&seq](pair<SequenceNumber, SequenceNumber> pair) {
         return pair.first <= seq && seq <= pair.second;
     });
@@ -99,6 +99,12 @@ void LossList::remove(SequenceNumber seq) {
             _lossList.insert(it, make_pair(seq + 1, temp));
         }
         _length -= 1;
+        
+        // this sequence number was found in the loss list, return true
+        return true;
+    } else {
+        // this sequence number was not found in the loss list, return false
+        return false;
     }
 }
 

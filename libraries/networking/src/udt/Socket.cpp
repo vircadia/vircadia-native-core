@@ -135,14 +135,41 @@ void Socket::readPendingDatagrams() {
             return;
         }
         
-        // setup a Packet from the data we just read
-        auto packet = Packet::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
+        // check if this was a control packet or a data packet
+        bool isControlPacket = *buffer & CONTROL_BIT_MASK;
         
-        // call our verification operator to see if this packet is verified
-        if (!_packetFilterOperator || _packetFilterOperator(*packet)) {
-            if (_packetHandler) {
-                // call the verified packet callback to let it handle this packet
-                _packetHandler(std::move(packet));
+        if (isControlPacket) {
+            // setup a control packet from the data we just read
+            auto controlPacket = ControlPacket::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
+            
+            // move this control packet to the matching connection
+            auto it = _connectionsHash.find(senderSockAddr);
+            
+            if (it != _connectionsHash.end()) {
+                it->second->processControl(move(controlPacket));
+            }
+            
+        } else {
+            // setup a Packet from the data we just read
+            auto packet = Packet::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
+    
+            // call our verification operator to see if this packet is verified
+            if (!_packetFilterOperator || _packetFilterOperator(*packet)) {
+                
+                if (packet->isReliable()) {
+                    // if this was a reliable packet then signal the matching connection with the sequence number
+                    // assuming it exists
+                    auto it = _connectionsHash.find(senderSockAddr);
+                    
+                    if (it != _connectionsHash.end()) {
+                        it->second->processReceivedSequenceNumber(packet->getSequenceNumber());
+                    }
+                }
+                
+                if (_packetHandler) {
+                    // call the verified packet callback to let it handle this packet
+                    _packetHandler(std::move(packet));
+                }
             }
         }
     }

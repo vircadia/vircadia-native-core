@@ -11,7 +11,25 @@
 
 #include "ControlPacket.h"
 
+#include "Constants.h"
+
 using namespace udt;
+
+std::unique_ptr<ControlPacket> ControlPacket::fromReceivedPacket(std::unique_ptr<char> data, qint64 size,
+                                                                 const HifiSockAddr &senderSockAddr) {
+    // Fail with null data
+    Q_ASSERT(data);
+    
+    // Fail with invalid size
+    Q_ASSERT(size >= 0);
+    
+    // allocate memory
+    auto packet = std::unique_ptr<ControlPacket>(new ControlPacket(std::move(data), size, senderSockAddr));
+    
+    packet->open(QIODevice::ReadOnly);
+    
+    return packet;
+}
 
 std::unique_ptr<ControlPacket> ControlPacket::create(Type type, qint64 size) {
     
@@ -57,6 +75,17 @@ ControlPacket::ControlPacket(Type type, qint64 size) :
     writeControlBitAndType();
 }
 
+ControlPacket::ControlPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr) :
+    BasePacket(std::move(data), size, senderSockAddr)
+{
+    // sanity check before we decrease the payloadSize with the payloadCapacity
+    Q_ASSERT(_payloadSize == _payloadCapacity);
+    
+    adjustPayloadStartAndCapacity(_payloadSize > 0);
+    
+    readType();
+}
+
 ControlPacket::ControlPacket(ControlPacket&& other) :
 	BasePacket(std::move(other))
 {
@@ -70,8 +99,6 @@ ControlPacket& ControlPacket::operator=(ControlPacket&& other) {
     
     return *this;
 }
-
-static const uint32_t CONTROL_BIT_MASK = 1 << (sizeof(ControlPacket::ControlBitAndType) - 1);
 
 void ControlPacket::setType(udt::ControlPacket::Type type) {
     _type = type;
@@ -93,4 +120,12 @@ void ControlPacket::writeType() {
     
     // write the type by OR'ing the new type with the current value & CONTROL_BIT_MASK
     *bitAndType = (*bitAndType & CONTROL_BIT_MASK) | (_type << sizeof((ControlPacket::Type) - 1));
+}
+
+void ControlPacket::readType() {
+    ControlBitAndType bitAndType = *reinterpret_cast<ControlBitAndType*>(_packet.get());
+    
+    // read the type
+    uint32_t oversizeType = (uint32_t) (bitAndType & ~CONTROL_BIT_MASK);
+    _type = (Type) oversizeType;
 }

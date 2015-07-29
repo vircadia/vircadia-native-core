@@ -14,6 +14,8 @@
 #ifndef hifi_udt_Constants_h
 #define hifi_udt_Constants_h
 
+#include "SequenceNumber.h"
+
 namespace udt {
     static const int MAX_PACKET_SIZE_WITH_UDP_HEADER = 1500;
     static const int MAX_PACKET_SIZE = MAX_PACKET_SIZE_WITH_UDP_HEADER - 28;
@@ -23,6 +25,7 @@ namespace udt {
     static const int UDP_SEND_BUFFER_SIZE_BYTES = 1048576;
     static const int UDP_RECEIVE_BUFFER_SIZE_BYTES = 1048576;
     static const int DEFAULT_SYN_INTERVAL_USECS = 10 * 1000;
+    static const uint32_t CONTROL_BIT_MASK = 1 << (sizeof(SequenceNumber) - 1);
 }
 
 #endif // hifi_udt_Constants_h
