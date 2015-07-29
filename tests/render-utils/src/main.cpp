@@ -19,6 +19,10 @@
 #include <QFile>
 #include <QImage>
 #include <QLoggingCategory>
+
+#include <gpu/Context.h>
+#include <gpu/GLBackend.h>
+
 #include <QOpenGLBuffer>
 #include <QOpenGLContext>
 #include <QOpenGLDebugLogger>
@@ -29,7 +33,7 @@
 #include <QTime>
 #include <QTimer>
 #include <QWindow>
-#include <gpu/Context.h>
+
 
 
 #include <PathUtils.h>
@@ -90,6 +94,7 @@ class QTestWindow : public QWindow {
     QSize _size;
     //TextRenderer* _textRenderer[4];
     RateCounter fps;
+    gpu::ContextPointer _gpuContext;
 
 protected:
     void renderText();
@@ -119,6 +124,9 @@ public:
 
         show();
         makeCurrent();
+        _gpuContext.reset(new gpu::Context(new gpu::GLBackend()));
+
+
 
         {
             QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
@@ -130,23 +138,6 @@ public:
             //        logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
         }
         qDebug() << (const char*)glGetString(GL_VERSION);
-
-#ifdef WIN32
-        glewExperimental = true;
-        GLenum err = glewInit();
-        if (GLEW_OK != err) {
-            /* Problem: glewInit failed, something is seriously wrong. */
-            const GLubyte * errStr = glewGetErrorString(err);
-            qDebug("Error: %s\n", errStr);
-        }
-        qDebug("Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
-
-        if (wglewGetExtension("WGL_EXT_swap_control")) {
-            int swapInterval = wglGetSwapIntervalEXT();
-            qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
-        }
-        glGetError();
-#endif
 
         //_textRenderer[0] = TextRenderer::getInstance(SANS_FONT_FAMILY, 12, false);
         //_textRenderer[1] = TextRenderer::getInstance(SERIF_FONT_FAMILY, 12, false,
