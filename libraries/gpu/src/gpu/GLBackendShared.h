@@ -11,9 +11,10 @@
 #ifndef hifi_gpu_GLBackend_Shared_h
 #define hifi_gpu_GLBackend_Shared_h
 
-#include "GLBackend.h"
-
 #include <QDebug>
+
+#include "GPULogging.h"
+#include "GLBackend.h"
 
 #include "Batch.h"
 

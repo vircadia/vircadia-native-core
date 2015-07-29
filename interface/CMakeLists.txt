@@ -245,6 +245,12 @@ else (APPLE)
       endif ()
     endif()
 
+  else (WIN32)
+    find_package(GLEW REQUIRED)
+    target_include_directories(${TARGET_NAME} PRIVATE ${GLEW_INCLUDE_DIRS})
+
+    target_link_libraries(${TARGET_NAME} ${GLEW_LIBRARIES})
+    message(STATUS ${GLEW_LIBRARY})
   endif()
 endif (APPLE)
 

@@ -18,20 +18,18 @@
 
 #include <CapsuleShape.h>
 #include <GeometryUtil.h>
-#include <gpu/Batch.h>
-#include <gpu/GLBackend.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
-#include "PhysicsEntity.h"
 #include <ShapeCollider.h>
 #include <SphereShape.h>
 #include <ViewFrustum.h>
+#include <render/Scene.h>
+#include <gpu/Batch.h>
 
 #include "AbstractViewStateInterface.h"
 #include "AnimationHandle.h"
 #include "DeferredLightingEffect.h"
 #include "Model.h"
-#include "RenderUtilsLogging.h"
 
 #include "model_vert.h"
 #include "model_shadow_vert.h"
@@ -96,7 +94,7 @@ Model::~Model() {
 }
 
 Model::RenderPipelineLib Model::_renderPipelineLib;
-const GLint MATERIAL_GPU_SLOT = 3;
+const int MATERIAL_GPU_SLOT = 3;
 
 void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
                                                  gpu::ShaderPointer& vertexShader,

@@ -14,12 +14,12 @@
 #include <algorithm>
 #include <assert.h>
 
-#include <gpu/Batch.h>
-#include <gpu/Context.h>
-#include <gpu/GPUConfig.h>
 #include <PerfStat.h>
 #include <RenderArgs.h>
 #include <ViewFrustum.h>
+#include <gpu/Batch.h>
+#include <gpu/Context.h>
+#include <gpu/GPUConfig.h>
 
 using namespace render;
 

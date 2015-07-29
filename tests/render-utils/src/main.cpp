@@ -8,30 +8,31 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <gpu/GPUConfig.h>
-
-#include <QWindow>
-#include <QFile>
-#include <QTime>
-#include <QImage>
-#include <QTimer>
-#include <QElapsedTimer>
-#include <QOpenGLContext>
-#include <QOpenGLBuffer>
-#include <QOpenGLShaderProgram>
-#include <QResizeEvent>
-#include <QLoggingCategory>
-#include <QOpenGLTexture>
-#include <QOpenGLVertexArrayObject>
-#include <QApplication>
-#include <QOpenGLDebugLogger>
-
 #include <unordered_map>
 #include <memory>
+
 #include <glm/glm.hpp>
 
-#include <PathUtils.h>
+#include <QApplication>
 #include <QDir>
+#include <QElapsedTimer>
+#include <QFile>
+#include <QImage>
+#include <QLoggingCategory>
+#include <QOpenGLBuffer>
+#include <QOpenGLContext>
+#include <QOpenGLDebugLogger>
+#include <QOpenGLShaderProgram>
+#include <QOpenGLTexture>
+#include <QOpenGLVertexArrayObject>
+#include <QResizeEvent>
+#include <QTime>
+#include <QTimer>
+#include <QWindow>
+#include <gpu/Context.h>
+
+
+#include <PathUtils.h>
 
 class RateCounter {
     std::vector<float> times;
