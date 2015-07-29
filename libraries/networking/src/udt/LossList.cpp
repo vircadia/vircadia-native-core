@@ -34,6 +34,50 @@ void LossList::append(SequenceNumber start, SequenceNumber end) {
     _length += seqlen(start, end);
 }
 
+void LossList::insert(SequenceNumber start, SequenceNumber end) {
+    auto it = find_if_not(_lossList.begin(), _lossList.end(), [&start](pair<SequenceNumber, SequenceNumber> pair){
+        return pair.second < start;
+    });
+    
+    if (it == _lossList.end()) {
+        // No overlap, simply insert
+        _lossList.insert(it, make_pair(start, end));
+        _length += seqlen(start, end);
+    } else {
+        // If it starts before segment, extend segment
+        if (start < it->first) {
+            _length += seqlen(start, it->first - 1);
+            it->first = start;
+        }
+        
+        if (end > it->second) {
+            // If it goes further, find the actual end
+            auto it2 = find_if(it, _lossList.end(), [&end](pair<SequenceNumber, SequenceNumber> pair){
+                return end <= pair.second;
+            });
+            
+            // If it ends inside a segment, change end (segment will be deleted)
+            // Or backup iterator so segment doesn't get deleted
+            if (it2->first <= end) {
+                end = it2->second;
+            } else {
+                --it2;
+            }
+            
+            // Change the end of the original segment
+            _length += seqlen(it->second + 1, end);
+            it->second = end;
+            
+            // remove all underlapping segments
+            ++it; ++it2;
+            while (it != it2) {
+                _length -= seqlen(it->first, it->second);
+                it = _lossList.erase(it);
+            }
+        }
+    }
+}
+
 void LossList::remove(SequenceNumber seq) {
     auto it = find_if(_lossList.begin(), _lossList.end(), [&seq](pair<SequenceNumber, SequenceNumber> pair) {
         return pair.first <= seq && seq <= pair.second;
@@ -58,8 +102,7 @@ void LossList::remove(SequenceNumber seq) {
 void LossList::remove(SequenceNumber start, SequenceNumber end) {
     // Find the first segment sharing sequence numbers
     auto it = find_if(_lossList.begin(), _lossList.end(), [&start, &end](pair<SequenceNumber, SequenceNumber> pair) {
-        return (pair.first <= start && start <= pair.second) ||
-        (start <= pair.first && pair.first <= end);
+        return (pair.first <= start && start <= pair.second) || (start <= pair.first && pair.first <= end);
     });
     
     // If we found one

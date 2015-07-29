@@ -26,6 +26,9 @@ public:
     void append(SequenceNumber seq);
     void append(SequenceNumber start, SequenceNumber end);
     
+    // Inserts anywhere - MUCH slower
+    void insert(SequenceNumber start, SequenceNumber end);
+    
     void remove(SequenceNumber seq);
     void remove(SequenceNumber start, SequenceNumber end);
     
