@@ -115,6 +115,7 @@
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
+#include "devices/3Dconnexion.h"
 
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
@@ -330,7 +331,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
         _isVSyncOn(true),
-        _isThrottleFPSEnabled(false),
+        _isThrottleFPSEnabled(true),
         _aboutToQuit(false),
         _notifiedPacketVersionMismatchThisDomain(false),
         _glWidget(new GLCanvas()),
@@ -639,6 +640,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
     applicationUpdater->checkForUpdate();
 
+    // the 3Dconnexion device wants to be initiliazed after a window is displayed.
+    ConnexionClient::init();
+
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::DomainConnectionDenied, this, "handleDomainConnectionDeniedPacket");
 }
@@ -750,6 +754,7 @@ Application::~Application() {
 
     Leapmotion::destroy();
     RealSense::destroy();
+    ConnexionClient::destroy();
 
     qInstallMessageHandler(NULL); // NOTE: Do this as late as possible so we continue to get our log messages
 }
@@ -1480,6 +1485,7 @@ void Application::focusOutEvent(QFocusEvent* event) {
     _keyboardMouseDevice.focusOutEvent(event);
     SixenseManager::getInstance().focusOutEvent();
     SDL2Manager::getInstance()->focusOutEvent();
+    ConnexionData::getInstance().focusOutEvent();
 
     // synthesize events for keys currently pressed, since we may not get their release events
     foreach (int key, _keysPressed) {
@@ -3381,7 +3387,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
         // This was removed in commit 71e59cfa88c6563749594e25494102fe01db38e9 but could be further
         // investigated in order to adapt the technique while fixing the head rendering issue,
         // but the complexity of the hack suggests that a better approach
-        _mirrorCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
+        _mirrorCamera.setPosition(_myAvatar->getDefaultEyePosition() +
                                     _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
     }
     _mirrorCamera.setProjection(glm::perspective(glm::radians(fov), aspect, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
@@ -3598,23 +3604,14 @@ int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingN
     int statsMessageLength = 0;
 
     const QUuid& nodeUUID = sendingNode->getUUID();
-    OctreeSceneStats* octreeStats;
-
+    
     // now that we know the node ID, let's add these stats to the stats for that node...
     _octreeSceneStatsLock.lockForWrite();
-    auto it = _octreeServerSceneStats.find(nodeUUID);
-    if (it != _octreeServerSceneStats.end()) {
-        octreeStats = &it->second;
-        statsMessageLength = octreeStats->unpackFromPacket(packet);
-    } else {
-        OctreeSceneStats temp;
-        statsMessageLength = temp.unpackFromPacket(packet);
-        octreeStats = &temp;
-    }
+    
+    OctreeSceneStats& octreeStats = _octreeServerSceneStats[nodeUUID];
+    statsMessageLength = octreeStats.unpackFromPacket(packet);
+    
     _octreeSceneStatsLock.unlock();
-
-    VoxelPositionSize rootDetails;
-    voxelDetailsForCode(octreeStats->getJurisdictionRoot(), rootDetails);
 
     // see if this is the first we've heard of this node...
     NodeToJurisdictionMap* jurisdiction = NULL;
@@ -3627,6 +3624,9 @@ int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingN
     jurisdiction->lockForRead();
     if (jurisdiction->find(nodeUUID) == jurisdiction->end()) {
         jurisdiction->unlock();
+        
+        VoxelPositionSize rootDetails;
+        voxelDetailsForCode(octreeStats.getJurisdictionRoot(), rootDetails);
 
         qCDebug(interfaceapp, "stats from new %s server... [%f, %f, %f, %f]",
                 qPrintable(serverType),
@@ -3639,7 +3639,7 @@ int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingN
     // but OctreeSceneStats thinks it's just returning a reference to its contents. So we need to make a copy of the
     // details from the OctreeSceneStats to construct the JurisdictionMap
     JurisdictionMap jurisdictionMap;
-    jurisdictionMap.copyContents(octreeStats->getJurisdictionRoot(), octreeStats->getJurisdictionEndNodes());
+    jurisdictionMap.copyContents(octreeStats.getJurisdictionRoot(), octreeStats.getJurisdictionEndNodes());
     jurisdiction->lockForWrite();
     (*jurisdiction)[nodeUUID] = jurisdictionMap;
     jurisdiction->unlock();

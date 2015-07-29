@@ -9,12 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ShapeColliderTests.h"
+
 //#include <stdio.h>
 #include <iostream>
 #include <math.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <QtGlobal>
 
 #include <AACubeShape.h>
 #include <CapsuleShape.h>
@@ -25,7 +28,10 @@
 #include <SphereShape.h>
 #include <StreamUtils.h>
 
-#include "ShapeColliderTests.h"
+// Add additional qtest functionality (the include order is important!)
+#include "BulletTestUtils.h"
+#include "GlmTestUtils.h"
+#include "../QTestExtensions.h"
 
 
 const glm::vec3 origin(0.0f);
@@ -1553,8 +1559,6 @@ void ShapeColliderTests::rayHitsCapsule() {
         intersection._rayDirection = - xAxis;
         QCOMPARE(capsule.findRayIntersection(intersection), true);
         float expectedDistance = startDistance - radius * sqrtf(2.0f * delta);    // using small angle approximation of cosine
-//        float relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
-        // for edge cases we allow a LOT of error
         QCOMPARE_WITH_ABS_ERROR(intersection._hitDistance, expectedDistance, startDistance * EDGE_CASE_SLOP_FACTOR * EPSILON);
     }
 
@@ -1564,8 +1568,6 @@ void ShapeColliderTests::rayHitsCapsule() {
         intersection._rayDirection = - xAxis;
         QCOMPARE(capsule.findRayIntersection(intersection), true);
         float expectedDistance = startDistance - radius * sqrtf(2.0f * delta);    // using small angle approximation of cosine
-//        float relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
-        // for edge cases we allow a LOT of error
         QCOMPARE_WITH_ABS_ERROR(intersection._hitDistance, expectedDistance, startDistance * EPSILON * EDGE_CASE_SLOP_FACTOR);
     }
 
@@ -1575,8 +1577,6 @@ void ShapeColliderTests::rayHitsCapsule() {
         intersection._rayDirection = - xAxis;
         QCOMPARE(capsule.findRayIntersection(intersection), true);
         float expectedDistance = startDistance - radius * sqrtf(2.0f * delta);    // using small angle approximation of cosine
-        float relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
-        // for edge cases we allow a LOT of error
         QCOMPARE_WITH_ABS_ERROR(intersection._hitDistance, expectedDistance, startDistance * EPSILON * EDGE_CASE_SLOP_FACTOR);
     }
     // TODO: test at steep angles near cylinder/cap junction
