@@ -368,10 +368,15 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
         _congestionControl->setBandwidth(_bandwidth);
     }
     
-    // fire the onACK callback for congestion control
+    // update the last sent sequence number in congestion control
     _congestionControl->setSendCurrentSequenceNumber(_sendQueue->getCurrentSequenceNumber());
+    
+    // fire the onACK callback for congestion control
     _congestionControl->onAck(ack);
+    
+    // now that we've updated the congestion control, update the packet send period and flow window size
     _sendQueue->setPacketSendPeriod(_congestionControl->_packetSendPeriod);
+    _sendQueue->setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
     
     // update the total count of received ACKs
     ++_totalReceivedACKs;
@@ -437,10 +442,15 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
     // send that off to the send queue so it knows there was loss
     _sendQueue->nak(start, end);
     
-    // Tell the congestion control object that there was loss
+    // update the last sent sequence number in congestion control
     _congestionControl->setSendCurrentSequenceNumber(_sendQueue->getCurrentSequenceNumber());
+    
+    // give the loss to the congestion control object
     _congestionControl->onLoss(start, end);
+    
+    // now that we've updated the congestion control, update the packet send period and flow window size
     _sendQueue->setPacketSendPeriod(_congestionControl->_packetSendPeriod);
+    _sendQueue->setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
     
     ++_totalReceivedNAKs;
 }
