@@ -15,6 +15,7 @@
 #include <chrono>
 #include <memory>
 
+#include "ConnectionStats.h"
 #include "LossList.h"
 #include "PacketTimeWindow.h"
 #include "SendQueue.h"
@@ -50,6 +51,9 @@ public:
 private:
     void sendACK(bool wasCausedBySyncTimeout = true);
     void sendLightACK();
+    void sendACK2(SequenceNumber currentACKSubSequenceNumber);
+    void sendNAK(SequenceNumber sequenceNumberRecieved);
+    void sendTimeoutNAK();
     
     void processACK(std::unique_ptr<ControlPacket> controlPacket);
     void processLightACK(std::unique_ptr<ControlPacket> controlPacket);
@@ -95,21 +99,11 @@ private:
     
     std::unique_ptr<CongestionControl> _congestionControl;
     
-    // Control Packet stat collection
-    int _totalReceivedACKs { 0 };
-    int _totalSentACKs { 0 };
-    int _totalSentLightACKs { 0 };
-    int _totalReceivedLightACKs { 0 };
-    int _totalReceivedACK2s { 0 };
-    int _totalSentACK2s { 0 };
-    int _totalReceivedNAKs { 0 };
-    int _totalSentNAKs { 0 };
-    int _totalReceivedTimeoutNAKs { 0 };
-    int _totalSentTimeoutNAKs { 0 };
-    
     // Data packet stat collection
     int _totalReceivedDataPackets { 0 };
     int _packetsSinceACK { 0 }; // The number of packets that have been received during the current ACK interval
+    
+    ConnectionStats _stats;
 };
     
 }

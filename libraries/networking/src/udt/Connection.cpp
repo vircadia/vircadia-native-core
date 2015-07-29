@@ -65,30 +65,12 @@ void Connection::sync() {
     auto now = high_resolution_clock::now();
     
     if (duration_cast<microseconds>(now - _lastNAKTime).count() >= _nakInterval) {
-        // construct a NAK packet that will hold all of the lost sequence numbers
-        auto lossListPacket = ControlPacket::create(ControlPacket::TimeoutNAK, _lossList.getLength() * sizeof(SequenceNumber));
-        
-        // Pack in the lost sequence numbers
-        _lossList.write(*lossListPacket);
-        
-        // have our SendQueue send off this control packet
-        _sendQueue->sendPacket(*lossListPacket);
-        
-        // record this as the last NAK time
-        _lastNAKTime = high_resolution_clock::now();
-        
-        ++_totalSentTimeoutNAKs;
+        // Send a timeout NAK packet
+        sendTimeoutNAK();
     }
 }
 
 void Connection::sendACK(bool wasCausedBySyncTimeout) {
-    static const int ACK_PACKET_PAYLOAD_BYTES = sizeof(_lastSentACK) + sizeof(_currentACKSubSequenceNumber)
-        + sizeof(_rtt) + sizeof(int32_t) + sizeof(int32_t);
-    
-    // setup the ACK packet, make it static so we can re-use it
-    static auto ackPacket = ControlPacket::create(ControlPacket::ACK, ACK_PACKET_PAYLOAD_BYTES);
-    ackPacket->reset(); // We need to reset it every time.
-    
     auto currentTime = high_resolution_clock::now();
     static high_resolution_clock::time_point lastACKSendTime;
     
@@ -116,6 +98,12 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
             return;
         }
     }
+    
+    // setup the ACK packet, make it static so we can re-use it
+    static const int ACK_PACKET_PAYLOAD_BYTES = sizeof(_lastSentACK) + sizeof(_currentACKSubSequenceNumber)
+                                                + sizeof(_rtt) + sizeof(int32_t) + sizeof(int32_t);
+    static auto ackPacket = ControlPacket::create(ControlPacket::ACK, ACK_PACKET_PAYLOAD_BYTES);
+    ackPacket->reset(); // We need to reset it every time.
     
     // pack in the ACK sub-sequence number
     ackPacket->writePrimitive(_currentACKSubSequenceNumber++);
@@ -146,20 +134,20 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     // reset the number of data packets received since last ACK
     _packetsSinceACK = 0;
     
-    ++_totalSentACKs;
+    _stats.recordSentACK();
 }
 
 void Connection::sendLightACK() {
-    // create the light ACK packet, make it static so we can re-use it
-    static const int LIGHT_ACK_PACKET_PAYLOAD_BYTES = sizeof(SequenceNumber);
-    static auto lightACKPacket = ControlPacket::create(ControlPacket::ACK, LIGHT_ACK_PACKET_PAYLOAD_BYTES);
-    
     SequenceNumber nextACKNumber = nextACK();
     
     if (nextACKNumber == _lastReceivedAcknowledgedACK) {
         // we already got an ACK2 for this ACK we would be sending, don't bother
         return;
     }
+    
+    // create the light ACK packet, make it static so we can re-use it
+    static const int LIGHT_ACK_PACKET_PAYLOAD_BYTES = sizeof(SequenceNumber);
+    static auto lightACKPacket = ControlPacket::create(ControlPacket::ACK, LIGHT_ACK_PACKET_PAYLOAD_BYTES);
     
     // reset the lightACKPacket before we go to write the ACK to it
     lightACKPacket->reset();
@@ -170,7 +158,62 @@ void Connection::sendLightACK() {
     // have the send queue send off our packet immediately
     _sendQueue->sendPacket(*lightACKPacket);
     
-    ++_totalSentLightACKs;
+    _stats.recordSentLightACK();
+}
+
+void Connection::sendACK2(SequenceNumber currentACKSubSequenceNumber) {
+    // setup a static ACK2 packet we will re-use
+    static const int ACK2_PAYLOAD_BYTES = sizeof(SequenceNumber);
+    static auto ack2Packet = ControlPacket::create(ControlPacket::ACK2, ACK2_PAYLOAD_BYTES);
+    
+    // reset the ACK2 Packet before writing the sub-sequence number to it
+    ack2Packet->reset();
+    
+    // write the sub sequence number for this ACK2
+    ack2Packet->writePrimitive(currentACKSubSequenceNumber);
+    
+    // update the last sent ACK2 and the last ACK2 send time
+    _lastSentACK2 = currentACKSubSequenceNumber;
+    
+    _stats.recordSentACK2();
+}
+
+void Connection::sendNAK(SequenceNumber sequenceNumberRecieved) {
+    // create the loss report packet, make it static so we can re-use it
+    static const int NAK_PACKET_PAYLOAD_BYTES = 2 * sizeof(SequenceNumber);
+    static auto lossReport = ControlPacket::create(ControlPacket::NAK, NAK_PACKET_PAYLOAD_BYTES);
+    lossReport->reset(); // We need to reset it every time.
+    
+    // pack in the loss report
+    lossReport->writePrimitive(_lastReceivedSequenceNumber + 1);
+    if (_lastReceivedSequenceNumber + 1 != sequenceNumberRecieved - 1) {
+        lossReport->writePrimitive(sequenceNumberRecieved - 1);
+    }
+    
+    // have the send queue send off our packet immediately
+    _sendQueue->sendPacket(*lossReport);
+    
+    // record our last NAK time
+    _lastNAKTime = high_resolution_clock::now();
+    
+    _stats.recordSentNAK();
+}
+
+void Connection::sendTimeoutNAK() {
+    // construct a NAK packet that will hold all of the lost sequence numbers
+    // TODO size is wrong, fix it.
+    auto lossListPacket = ControlPacket::create(ControlPacket::TimeoutNAK, _lossList.getLength() * sizeof(SequenceNumber));
+    
+    // Pack in the lost sequence numbers
+    _lossList.write(*lossListPacket);
+    
+    // have our SendQueue send off this control packet
+    _sendQueue->sendPacket(*lossListPacket);
+    
+    // record this as the last NAK time
+    _lastNAKTime = high_resolution_clock::now();
+    
+    _stats.recordSentTimeoutNAK();
 }
 
 SequenceNumber Connection::nextACK() const {
@@ -200,24 +243,8 @@ void Connection::processReceivedSequenceNumber(SequenceNumber seq) {
             _lossList.append(_lastReceivedSequenceNumber + 1, seq - 1);
         }
         
-        // create the loss report packet, make it static so we can re-use it
-        static const int NAK_PACKET_PAYLOAD_BYTES = 2 * sizeof(SequenceNumber);
-        static auto lossReport = ControlPacket::create(ControlPacket::NAK, NAK_PACKET_PAYLOAD_BYTES);
-        lossReport->reset(); // We need to reset it every time.
-        
-        // pack in the loss report
-        lossReport->writePrimitive(_lastReceivedSequenceNumber + 1);
-        if (_lastReceivedSequenceNumber + 1 != seq - 1) {
-            lossReport->writePrimitive(seq - 1);
-        }
-        
-        // have the send queue send off our packet immediately
-        _sendQueue->sendPacket(*lossReport);
-        
-        // record our last NAK time
-        _lastNAKTime = high_resolution_clock::now();
-        
-        ++_totalSentNAKs;
+        // Send a NAK packet
+        sendNAK(seq);
         
         // figure out when we should send the next loss report, if we haven't heard anything back
         _nakInterval = (_rtt + 4 * _rttVariance);
@@ -288,21 +315,10 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     microseconds sinceLastACK2 = duration_cast<microseconds>(currentTime - lastACK2SendTime);
     
     if (sinceLastACK2.count() > _synInterval || currentACKSubSequenceNumber == _lastSentACK2) {
-        // setup a static ACK2 packet we will re-use
-        static const int ACK2_PAYLOAD_BYTES = sizeof(SequenceNumber);
-        static auto ack2Packet = ControlPacket::create(ControlPacket::ACK2, ACK2_PAYLOAD_BYTES);
+        // Send ACK2 packet
+        sendACK2(currentACKSubSequenceNumber);
         
-        // reset the ACK2 Packet before writing the sub-sequence number to it
-        ack2Packet->reset();
-        
-        // write the sub sequence number for this ACK2
-        ack2Packet->writePrimitive(currentACKSubSequenceNumber);
-        
-        // update the last sent ACK2 and the last ACK2 send time
-        _lastSentACK2 = currentACKSubSequenceNumber;
         lastACK2SendTime = high_resolution_clock::now();
-        
-        ++_totalSentACK2s;
     }
     
     // read the ACKed sequence number
@@ -368,7 +384,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     _sendQueue->setPacketSendPeriod(_congestionControl->_packetSendPeriod);
     
     // update the total count of received ACKs
-    ++_totalReceivedACKs;
+    _stats.recordReceivedACK();
 }
 
 void Connection::processLightACK(std::unique_ptr<ControlPacket> controlPacket) {
@@ -385,7 +401,7 @@ void Connection::processLightACK(std::unique_ptr<ControlPacket> controlPacket) {
         _lastReceivedACK = ack;
     }
     
-    ++_totalReceivedLightACKs;
+    _stats.recordReceivedLightACK();
 }
 
 void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
@@ -414,7 +430,7 @@ void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
         }
     }
     
-    ++_totalReceivedACK2s;
+    _stats.recordReceivedACK2();
 }
 
 void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
@@ -436,7 +452,7 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
     _congestionControl->onLoss(start, end);
     _sendQueue->setPacketSendPeriod(_congestionControl->_packetSendPeriod);
     
-    ++_totalReceivedNAKs;
+    _stats.recordReceivedNAK();
 }
 
 void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket) {
@@ -446,7 +462,7 @@ void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket)
     // we don't tell the congestion control object there was loss here - this matches UDTs implementation
     // a possible improvement would be to tell it which new loss this timeout packet told us about
     
-    ++_totalReceivedTimeoutNAKs;
+    _stats.recordReceivedTimeoutNAK();
 }
 
 void Connection::updateRTT(int rtt) {
