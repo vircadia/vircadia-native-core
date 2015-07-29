@@ -221,14 +221,8 @@ else (APPLE)
 
   # link target to external libraries
   if (WIN32)
+  #  target_link_libraries(${TARGET_NAME} wsock32.lib Winmm.lib)
     target_link_libraries(${TARGET_NAME} wsock32.lib Winmm.lib)
-    
-    if (USE_NSIGHT)
-      # If required NSIGHT lib comes from gpu lib but still to add a precroc define
-      if (NSIGHT_FOUND)
-        add_definitions(-DNSIGHT_FOUND)
-      endif ()
-    endif()
   else (WIN32)
     # Nothing else required on linux apparently
   endif()
