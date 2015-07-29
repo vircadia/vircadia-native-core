@@ -1323,7 +1323,7 @@ void buildModelMesh(ExtractedMesh& extracted) {
     model::Mesh mesh;
 
     // Grab the vertices in a buffer
-    gpu::BufferPointer vb(new gpu::Buffer());
+    auto vb = make_shared<gpu::Buffer>();
     vb->setData(extracted.mesh.vertices.size() * sizeof(glm::vec3),
                 (const gpu::Byte*) extracted.mesh.vertices.data());
     gpu::BufferView vbv(vb, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
@@ -1348,7 +1348,7 @@ void buildModelMesh(ExtractedMesh& extracted) {
     int totalAttributeSize = clusterWeightsOffset + clusterWeightsSize;
 
     // Copy all attribute data in a single attribute buffer
-    gpu::BufferPointer attribBuffer(new gpu::Buffer());
+    auto attribBuffer = make_shared<gpu::Buffer>();
     attribBuffer->resize(totalAttributeSize);
     attribBuffer->setSubData(normalsOffset, normalsSize, (gpu::Byte*) fbxMesh.normals.constData());
     attribBuffer->setSubData(tangentsOffset, tangentsSize, (gpu::Byte*) fbxMesh.tangents.constData());
@@ -1407,7 +1407,7 @@ void buildModelMesh(ExtractedMesh& extracted) {
         return;
     }
 
-    gpu::BufferPointer ib(new gpu::Buffer());
+    auto ib = make_shared<gpu::Buffer>();
     ib->resize(totalIndices * sizeof(int));
 
     int indexNum = 0;
@@ -1437,7 +1437,7 @@ void buildModelMesh(ExtractedMesh& extracted) {
     mesh.setIndexBuffer(ibv);
 
     if (parts.size()) {
-        gpu::BufferPointer pb(new gpu::Buffer());
+        auto pb = make_shared<gpu::Buffer>();
         pb->setData(parts.size() * sizeof(model::Mesh::Part), (const gpu::Byte*) parts.data());
         gpu::BufferView pbv(pb, gpu::Element(gpu::VEC4, gpu::UINT32, gpu::XYZW));
         mesh.setPartBuffer(pbv);
@@ -1926,7 +1926,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     }
                     material.id = getID(object.properties);
 
-                    material._material = model::MaterialPointer(new model::Material());
+                    material._material = make_shared<model::Material>();
                     material._material->setEmissive(material.emissive);
                     if (glm::all(glm::equal(material.diffuse, glm::vec3(0.0f)))) {
                         material._material->setDiffuse(material.diffuse); 
@@ -2616,10 +2616,17 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
         buildModelMesh(extracted);
 #       endif
         
+        if (extracted.mesh.isEye) {
+            if (maxJointIndex == geometry.leftEyeJointIndex) {
+                geometry.leftEyeSize = extracted.mesh.meshExtents.largestDimension() * offsetScale;
+            } else {
+                geometry.rightEyeSize = extracted.mesh.meshExtents.largestDimension() * offsetScale;
+            }
+        }
+
         geometry.meshes.append(extracted.mesh);
         int meshIndex = geometry.meshes.size() - 1;
         meshIDsToMeshIndices.insert(it.key(), meshIndex);
-
     }
 
     // now that all joints have been scanned, compute a collision shape for each joint

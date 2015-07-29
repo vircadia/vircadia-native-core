@@ -1,0 +1,24 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  ambient_occlusion.vert
+//  vertex shader
+//
+//  Created by Niraj Venkat on 7/15/15.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Transform.slh@>
+
+<$declareStandardTransform()$>
+
+varying vec2 varTexcoord;
+
+void main(void) {
+    varTexcoord = gl_MultiTexCoord0.xy;
+    gl_Position = gl_Vertex;
+}

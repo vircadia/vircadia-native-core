@@ -49,7 +49,6 @@ void FaceModel::simulate(float deltaTime, bool fullUpdate) {
 }
 
 void FaceModel::maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
-    Avatar* owningAvatar = static_cast<Avatar*>(_owningHead->_owningAvatar);
     // get the rotation axes in joint space and use them to adjust the rotation
     glm::mat3 axes = glm::mat3_cast(glm::quat());
     glm::mat3 inverse = glm::mat3(glm::inverse(parentState.getTransform() *
@@ -73,8 +72,8 @@ void FaceModel::maybeUpdateEyeRotation(Model* model, const JointState& parentSta
             glm::translate(state.getDefaultTranslationInConstrainedFrame()) *
             joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation));
     glm::vec3 front = glm::vec3(inverse * glm::vec4(_owningHead->getFinalOrientationInWorldFrame() * IDENTITY_FRONT, 0.0f));
-    glm::vec3 lookAt = glm::vec3(inverse * glm::vec4(_owningHead->getCorrectedLookAtPosition() +
-        _owningHead->getSaccade() - model->getTranslation(), 1.0f));
+    glm::vec3 lookAtDelta = _owningHead->getCorrectedLookAtPosition() - model->getTranslation();
+    glm::vec3 lookAt = glm::vec3(inverse * glm::vec4(lookAtDelta + glm::length(lookAtDelta) * _owningHead->getSaccade(), 1.0f));
     glm::quat between = rotationBetween(front, lookAt);
     const float MAX_ANGLE = 30.0f * RADIANS_PER_DEGREE;
     state.setRotationInConstrainedFrame(glm::angleAxis(glm::clamp(glm::angle(between), -MAX_ANGLE, MAX_ANGLE), glm::axis(between)) *

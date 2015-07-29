@@ -9,9 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include <QFileDialog>
 #include <QMenuBar>
 #include <QShortcut>
@@ -255,8 +252,6 @@ Menu::Menu() {
             avatar, SLOT(updateMotionBehavior()));
 
     MenuWrapper* viewMenu = addMenu("View");
-    
-    addActionToQMenuAndActionHash(viewMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
 
     addCheckableActionToQMenuAndActionHash(viewMenu,
                                            MenuOption::Fullscreen,
@@ -335,7 +330,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Atmosphere,
         0, // QML Qt::SHIFT | Qt::Key_A,
         true);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::AmbientOcclusion);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DebugAmbientOcclusion);
 
     MenuWrapper* ambientLightMenu = renderOptionsMenu->addMenu(MenuOption::RenderAmbientLight);
     QActionGroup* ambientLightGroup = new QActionGroup(ambientLightMenu);
@@ -373,7 +368,7 @@ Menu::Menu() {
         addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::RenderTargetFramerateVSyncOn, 0, true,
                                                qApp, SLOT(setVSyncEnabled()));
 #endif
-        addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ThrottleFPSIfNotFocus, 0, false,
+        addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ThrottleFPSIfNotFocus, 0, true,
             qApp, SLOT(setThrottleFPSEnabled()));
     }
 
@@ -391,7 +386,6 @@ Menu::Menu() {
         0, // QML Qt::Key_Asterisk,
         true);
 
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Wireframe, Qt::ALT | Qt::Key_W, false);
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools,
         0, // QML Qt::SHIFT | Qt::Key_L,
         dialogsManager.data(), SLOT(lodTools()));
@@ -482,7 +476,6 @@ Menu::Menu() {
                                            qApp,
                                            SLOT(setLowVelocityFilter(bool)));
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseMouseInput, 0, true);
-    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseLasers, 0, false);
 
     MenuWrapper* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
     addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);
@@ -494,7 +487,10 @@ Menu::Menu() {
 #endif
 
     MenuWrapper* networkMenu = developerMenu->addMenu("Network");
-    addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::DisableNackPackets, 0, false);
+    addActionToQMenuAndActionHash(networkMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
+    addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::DisableNackPackets, 0, false,
+                                           qApp->getEntityEditPacketSender(),
+                                           SLOT(toggleNackPackets()));
     addCheckableActionToQMenuAndActionHash(networkMenu,
                                            MenuOption::DisableActivityLogger,
                                            0,

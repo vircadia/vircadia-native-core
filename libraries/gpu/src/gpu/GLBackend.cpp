@@ -8,6 +8,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+#include <mutex>
 #include "GPULogging.h"
 #include "GLBackendShared.h"
 #include <glm/gtc/type_ptr.hpp>
@@ -20,7 +21,6 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_drawIndexed),
     (&::gpu::GLBackend::do_drawInstanced),
     (&::gpu::GLBackend::do_drawIndexedInstanced),
-    (&::gpu::GLBackend::do_clearFramebuffer),
     
     (&::gpu::GLBackend::do_setInputFormat),
     (&::gpu::GLBackend::do_setInputBuffer),
@@ -39,6 +39,8 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_setResourceTexture),
 
     (&::gpu::GLBackend::do_setFramebuffer),
+    (&::gpu::GLBackend::do_clearFramebuffer),
+    (&::gpu::GLBackend::do_blit),
 
     (&::gpu::GLBackend::do_beginQuery),
     (&::gpu::GLBackend::do_endQuery),
@@ -88,6 +90,39 @@ GLBackend::GLBackend() :
     _pipeline(),
     _output()
 {
+    static std::once_flag once;
+    std::call_once(once, [] {
+        qCDebug(gpulogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
+
+        qCDebug(gpulogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
+
+        qCDebug(gpulogging) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
+
+        qCDebug(gpulogging) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
+
+#ifdef WIN32
+        GLenum err = glewInit();
+        if (GLEW_OK != err) {
+            /* Problem: glewInit failed, something is seriously wrong. */
+            qCDebug(gpulogging, "Error: %s\n", glewGetErrorString(err));
+        }
+        qCDebug(gpulogging, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+
+        if (wglewGetExtension("WGL_EXT_swap_control")) {
+            int swapInterval = wglGetSwapIntervalEXT();
+            qCDebug(gpulogging, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+        }
+#endif
+
+#if defined(Q_OS_LINUX)
+        // TODO: Write the correct  code for Linux...
+        /* if (wglewGetExtension("WGL_EXT_swap_control")) {
+            int swapInterval = wglGetSwapIntervalEXT();
+            qCDebug(gpulogging, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+        }*/
+#endif
+    });
+
     initInput();
     initTransform();
 }
@@ -109,14 +144,6 @@ void GLBackend::render(Batch& batch) {
         command++;
         offset++;
     }
-}
-
-void GLBackend::renderBatch(Batch& batch, bool syncCache) {
-    GLBackend backend;
-    if (syncCache) {
-        backend.syncCache();
-    }
-    backend.render(batch);
 }
 
 bool GLBackend::checkGLError(const char* name) {
@@ -165,6 +192,9 @@ void GLBackend::syncCache() {
     syncTransformStateCache();
     syncPipelineStateCache();
     syncInputStateCache();
+    syncOutputStateCache();
+
+    glEnable(GL_LINE_SMOOTH);
 }
 
 void GLBackend::do_draw(Batch& batch, uint32 paramOffset) {
@@ -213,68 +243,6 @@ void GLBackend::do_drawInstanced(Batch& batch, uint32 paramOffset) {
 }
 
 void GLBackend::do_drawIndexedInstanced(Batch& batch, uint32 paramOffset) {
-    (void) CHECK_GL_ERROR();
-}
-
-void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
-
-    uint32 masks = batch._params[paramOffset + 7]._uint;
-    Vec4 color;
-    color.x = batch._params[paramOffset + 6]._float;
-    color.y = batch._params[paramOffset + 5]._float;
-    color.z = batch._params[paramOffset + 4]._float;
-    color.w = batch._params[paramOffset + 3]._float;
-    float depth = batch._params[paramOffset + 2]._float;
-    int stencil = batch._params[paramOffset + 1]._int;
-    int useScissor = batch._params[paramOffset + 0]._int;
-
-    GLuint glmask = 0;
-    if (masks & Framebuffer::BUFFER_STENCIL) {
-        glClearStencil(stencil);
-        glmask |= GL_STENCIL_BUFFER_BIT;
-    }
-
-    if (masks & Framebuffer::BUFFER_DEPTH) {
-        glClearDepth(depth);
-        glmask |= GL_DEPTH_BUFFER_BIT;
-    } 
-
-    std::vector<GLenum> drawBuffers;
-    if (masks & Framebuffer::BUFFER_COLORS) {
-        for (unsigned int i = 0; i < Framebuffer::MAX_NUM_RENDER_BUFFERS; i++) {
-            if (masks & (1 << i)) {
-                drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
-            }
-        }
-
-        if (!drawBuffers.empty()) {
-            glDrawBuffers(drawBuffers.size(), drawBuffers.data());
-            glClearColor(color.x, color.y, color.z, color.w);
-            glmask |= GL_COLOR_BUFFER_BIT;
-        }
-    }
-
-    // Apply scissor if needed and if not already on
-    bool doEnableScissor = (useScissor && (!_pipeline._stateCache.scissorEnable));
-    if (doEnableScissor) {
-        glEnable(GL_SCISSOR_TEST);
-    }
-
-    glClear(glmask);
-
-    // Restore scissor if needed
-    if (doEnableScissor) {
-        glDisable(GL_SCISSOR_TEST);
-    }
-
-    // Restore the color draw buffers only if a frmaebuffer is bound
-    if (_output._framebuffer && !drawBuffers.empty()) {
-        auto glFramebuffer = syncGPUObject(*_output._framebuffer);
-        if (glFramebuffer) {
-            glDrawBuffers(glFramebuffer->_colorBuffers.size(), glFramebuffer->_colorBuffers.data());
-        }
-    }
-
     (void) CHECK_GL_ERROR();
 }
 
@@ -745,46 +713,4 @@ void Batch::_glLineWidth(GLfloat width) {
 void GLBackend::do_glLineWidth(Batch& batch, uint32 paramOffset) {
     glLineWidth(batch._params[paramOffset]._float);
     (void) CHECK_GL_ERROR();
-}
-
-void GLBackend::loadMatrix(GLenum target, const glm::mat4 & m) {
-    glMatrixMode(target);
-    glLoadMatrixf(glm::value_ptr(m));
-}
-
-void GLBackend::fetchMatrix(GLenum target, glm::mat4 & m) {
-    switch (target) {
-    case GL_MODELVIEW_MATRIX:
-    case GL_PROJECTION_MATRIX:
-        break;
-
-    // Lazy cheating
-    case GL_MODELVIEW:
-        target = GL_MODELVIEW_MATRIX;
-        break;
-    case GL_PROJECTION:
-        target = GL_PROJECTION_MATRIX;
-        break;
-    default:
-        Q_ASSERT_X(false, "GLBackend::fetchMatrix", "Bad matrix target");
-    }
-    glGetFloatv(target, glm::value_ptr(m));
-}
-
-void GLBackend::checkGLStackStable(std::function<void()> f) {
-#ifdef DEBUG
-    GLint mvDepth, prDepth;
-    glGetIntegerv(GL_MODELVIEW_STACK_DEPTH, &mvDepth);
-    glGetIntegerv(GL_PROJECTION_STACK_DEPTH, &prDepth);
-#endif
-
-    f();
-
-#ifdef DEBUG
-    GLint mvDepthFinal, prDepthFinal;
-    glGetIntegerv(GL_MODELVIEW_STACK_DEPTH, &mvDepthFinal);
-    glGetIntegerv(GL_PROJECTION_STACK_DEPTH, &prDepthFinal);
-    Q_ASSERT(mvDepth == mvDepthFinal);
-    Q_ASSERT(prDepth == prDepthFinal);
-#endif
 }

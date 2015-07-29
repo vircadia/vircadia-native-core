@@ -14,6 +14,7 @@
 #include <QDebug>
 
 #include "ScriptEngineLogging.h"
+#include "NumericalConstants.h"
 #include "Vec3.h"
 
 glm::vec3 Vec3::reflect(const glm::vec3& v1, const glm::vec3& v2) {
@@ -73,3 +74,52 @@ void Vec3::print(const QString& lable, const glm::vec3& v) {
 bool Vec3::equal(const glm::vec3& v1, const glm::vec3& v2) {
     return v1 == v2;
 }
+
+glm::vec3 Vec3::toPolar(const glm::vec3& v) {
+    float radius = length(v);
+    if (glm::abs(radius) < EPSILON) {
+        return glm::vec3(0.0f, 0.0f, 0.0f);
+    }
+    
+    glm::vec3 u = v / radius;
+    
+    float elevation, azimuth;
+    
+    elevation = glm::asin(-u.y);
+    azimuth = atan2(v.x, v.z);
+    
+    // Round off small decimal values
+    if (glm::abs(elevation) < EPSILON) {
+        elevation = 0.0f;
+    }
+    if (glm::abs(azimuth) < EPSILON) {
+        azimuth = 0.0f;
+    }
+
+    return glm::vec3(elevation, azimuth, radius);
+}
+
+glm::vec3 Vec3::fromPolar(const glm::vec3& polar) {
+    float x = glm::cos(polar.x) * glm::sin(polar.y);
+    float y = glm::sin(-polar.x);
+    float z = glm::cos(polar.x) * glm::cos(polar.y);
+    
+    // Round small values to 0
+    if (glm::abs(x) < EPSILON) {
+        x = 0.0f;
+    }
+    if (glm::abs(y) < EPSILON) {
+        y = 0.0f;
+    }
+    if (glm::abs(z) < EPSILON) {
+        z = 0.0f;
+    }
+   
+    return polar.z * glm::vec3(x, y, z);
+}
+
+glm::vec3 Vec3::fromPolar(float elevation, float azimuth) {
+    glm::vec3 v = glm::vec3(elevation, azimuth, 1.0f);
+    return fromPolar(v);
+}
+

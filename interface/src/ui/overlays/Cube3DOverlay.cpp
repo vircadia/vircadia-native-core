@@ -9,14 +9,15 @@
 //
 
 // include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
+#include "Cube3DOverlay.h"
+
+#include <QScriptValue>
 
 #include <DeferredLightingEffect.h>
 #include <SharedUtil.h>
 #include <StreamUtils.h>
-
-#include "Application.h"
-#include "Cube3DOverlay.h"
+#include <GeometryCache.h>
+#include <DependencyManager.h>
 
 Cube3DOverlay::Cube3DOverlay(const Cube3DOverlay* cube3DOverlay) :
     Volume3DOverlay(cube3DOverlay)
@@ -35,7 +36,6 @@ void Cube3DOverlay::render(RenderArgs* args) {
 
     // TODO: handle registration point??
     glm::vec3 position = getPosition();
-    glm::vec3 center = getCenter();
     glm::vec3 dimensions = getDimensions();
     glm::quat rotation = getRotation();
 

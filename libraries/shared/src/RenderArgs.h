@@ -14,6 +14,7 @@
 
 #include <functional>
 #include <memory>
+#include "GLMHelpers.h"
 
 
 class AABox;
@@ -79,7 +80,7 @@ public:
         RENDER_DEBUG_SIMULATION_OWNERSHIP = 2,
     };
     
-    RenderArgs(gpu::Context* context = nullptr,
+    RenderArgs(std::shared_ptr<gpu::Context> context = nullptr,
                OctreeRenderer* renderer = nullptr,
                ViewFrustum* viewFrustum = nullptr,
                float sizeScale = 1.0f,
@@ -101,7 +102,7 @@ public:
     _shouldRender(shouldRender) {
     }
 
-    gpu::Context* _context = nullptr;
+    std::shared_ptr<gpu::Context> _context = nullptr;
     OctreeRenderer* _renderer = nullptr;
     ViewFrustum* _viewFrustum = nullptr;
     glm::ivec4 _viewport{ 0, 0, 1, 1 };

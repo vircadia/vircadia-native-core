@@ -8,11 +8,13 @@
 
 #include "RenderableWebEntityItem.h"
 
+#include <gpu/GPUConfig.h>
 #include <QMouseEvent>
+#include <QQuickItem>
+#include <QQuickWindow>
+#include <QOpenGLContext>
 
 #include <glm/gtx/quaternion.hpp>
-
-#include <gpu/GPUConfig.h>
 
 #include <DeferredLightingEffect.h>
 #include <GeometryCache.h>
@@ -30,7 +32,7 @@ const float DPI = 30.47f;
 const float METERS_TO_INCHES = 39.3701f;
 
 EntityItemPointer RenderableWebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new RenderableWebEntityItem(entityID, properties));
+    return std::make_shared<RenderableWebEntityItem>(entityID, properties);
 }
 
 RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :

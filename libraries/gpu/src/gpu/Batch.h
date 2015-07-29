@@ -11,20 +11,14 @@
 #ifndef hifi_gpu_Batch_h
 #define hifi_gpu_Batch_h
 
-#include <assert.h>
-#include "GPUConfig.h"
-
-#include "Transform.h"
-
 #include <vector>
 
+#include "Framebuffer.h"
+#include "Pipeline.h"
 #include "Query.h"
 #include "Stream.h"
 #include "Texture.h"
-
-#include "Pipeline.h"
-
-#include "Framebuffer.h"
+#include "Transform.h"
 
 #if defined(NSIGHT_FOUND)
     class ProfileRange {
@@ -60,15 +54,6 @@ public:
     void drawInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbVertices, uint32 startVertex = 0, uint32 startInstance = 0);
     void drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0, uint32 startInstance = 0);
 
-    // Clear framebuffer layers
-    // Targets can be any of the render buffers contained in the Framebuffer
-    // Optionally the scissor test can be enabled locally for this command and to restrict the clearing command to the pixels contained in the scissor rectangle
-    void clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil, bool enableScissor = false);
-    void clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, mask out targets to make sure it touches only color targets
-    void clearDepthFramebuffer(float depth, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches only depth target
-    void clearStencilFramebuffer(int stencil, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches only stencil target
-    void clearDepthStencilFramebuffer(float depth, int stencil, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches depth and stencil target
-    
     // Input Stage
     // InputFormat
     // InputBuffers
@@ -111,6 +96,17 @@ public:
 
     // Framebuffer Stage
     void setFramebuffer(const FramebufferPointer& framebuffer);
+ 
+    // Clear framebuffer layers
+    // Targets can be any of the render buffers contained in the currnetly bound Framebuffer
+    // Optionally the scissor test can be enabled locally for this command and to restrict the clearing command to the pixels contained in the scissor rectangle
+    void clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil, bool enableScissor = false);
+    void clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, mask out targets to make sure it touches only color targets
+    void clearDepthFramebuffer(float depth, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches only depth target
+    void clearStencilFramebuffer(int stencil, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches only stencil target
+    void clearDepthStencilFramebuffer(float depth, int stencil, bool enableScissor = false); // not a command, just a shortcut for clearFramebuffer, it touches depth and stencil target
+
+    void blit(const FramebufferPointer& src, const Vec4i& srcViewport, const FramebufferPointer& dst, const Vec4i& dstViewport);
 
     // Query Section
     void beginQuery(const QueryPointer& query);
@@ -123,50 +119,48 @@ public:
     // For now, instead of calling the raw gl Call, use the equivalent call on the batch so the call is beeing recorded
     // THe implementation of these functions is in GLBackend.cpp
 
-    void _glEnable(GLenum cap);
-    void _glDisable(GLenum cap);
+    void _glEnable(unsigned int cap);
+    void _glDisable(unsigned int cap);
 
-    void _glEnableClientState(GLenum array);
-    void _glDisableClientState(GLenum array);
+    void _glEnableClientState(unsigned int array);
+    void _glDisableClientState(unsigned int array);
 
-    void _glCullFace(GLenum mode);
-    void _glAlphaFunc(GLenum func, GLclampf ref);
+    void _glCullFace(unsigned int mode);
+    void _glAlphaFunc(unsigned int func, float ref);
 
-    void _glDepthFunc(GLenum func);
-    void _glDepthMask(GLboolean flag);
-    void _glDepthRange(GLfloat  zNear, GLfloat  zFar);
+    void _glDepthFunc(unsigned int func);
+    void _glDepthMask(unsigned char flag);
+    void _glDepthRange(float  zNear, float  zFar);
 
-    void _glBindBuffer(GLenum target, GLuint buffer);
+    void _glBindBuffer(unsigned int target, unsigned int buffer);
 
-    void _glBindTexture(GLenum target, GLuint texture);
-    void _glActiveTexture(GLenum texture);
-    void _glTexParameteri(GLenum target, GLenum pname, GLint param);
+    void _glBindTexture(unsigned int target, unsigned int texture);
+    void _glActiveTexture(unsigned int texture);
+    void _glTexParameteri(unsigned int target, unsigned int pname, int param);
     
-    void _glDrawBuffers(GLsizei n, const GLenum* bufs);
+    void _glDrawBuffers(int n, const unsigned int* bufs);
 
-    void _glUseProgram(GLuint program);
-    void _glUniform1i(GLint location, GLint v0);
-    void _glUniform1f(GLint location, GLfloat v0);
-    void _glUniform2f(GLint location, GLfloat v0, GLfloat v1);
-    void _glUniform3f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2);
-    void _glUniform3fv(GLint location, GLsizei count, const GLfloat* value);
-    void _glUniform4fv(GLint location, GLsizei count, const GLfloat* value);
-    void _glUniform4iv(GLint location, GLsizei count, const GLint* value);
-    void _glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
+    void _glUseProgram(unsigned int program);
+    void _glUniform1i(int location, int v0);
+    void _glUniform1f(int location, float v0);
+    void _glUniform2f(int location, float v0, float v1);
+    void _glUniform3f(int location, float v0, float v1, float v2);
+    void _glUniform3fv(int location, int count, const float* value);
+    void _glUniform4fv(int location, int count, const float* value);
+    void _glUniform4iv(int location, int count, const int* value);
+    void _glUniformMatrix4fv(int location, int count, unsigned char transpose, const float* value);
 
-    void _glEnableVertexAttribArray(GLint location);
-    void _glDisableVertexAttribArray(GLint location);
+    void _glEnableVertexAttribArray(int location);
+    void _glDisableVertexAttribArray(int location);
 
-    void _glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
-    void _glLineWidth(GLfloat width);
+    void _glColor4f(float red, float green, float blue, float alpha);
+    void _glLineWidth(float width);
 
     enum Command {
         COMMAND_draw = 0,
         COMMAND_drawIndexed,
         COMMAND_drawInstanced,
         COMMAND_drawIndexedInstanced,
-
-        COMMAND_clearFramebuffer,
 
         COMMAND_setInputFormat,
         COMMAND_setInputBuffer,
@@ -185,6 +179,8 @@ public:
         COMMAND_setResourceTexture,
 
         COMMAND_setFramebuffer,
+        COMMAND_clearFramebuffer,
+        COMMAND_blit,
 
         COMMAND_beginQuery,
         COMMAND_endQuery,

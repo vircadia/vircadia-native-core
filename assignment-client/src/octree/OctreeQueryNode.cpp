@@ -14,7 +14,7 @@
 #include <cstring>
 #include <cstdio>
 
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 #include <UUID.h>
 
@@ -22,11 +22,9 @@
 
 OctreeQueryNode::OctreeQueryNode() :
     _viewSent(false),
-    _octreePacket(new unsigned char[MAX_PACKET_SIZE]),
-    _octreePacketAt(_octreePacket),
-    _octreePacketAvailableBytes(MAX_PACKET_SIZE),
+    _octreePacket(),
     _octreePacketWaiting(false),
-    _lastOctreePacket(new unsigned char[MAX_PACKET_SIZE]), 
+    _lastOctreePayload(new char[MAX_PACKET_SIZE]),
     _lastOctreePacketLength(0),
     _duplicatePacketCount(0),
     _firstSuppressedPacket(usecTimestampNow()),
@@ -44,7 +42,7 @@ OctreeQueryNode::OctreeQueryNode() :
     _lodInitialized(false),
     _sequenceNumber(0),
     _lastRootTimestamp(0),
-    _myPacketType(PacketTypeUnknown),
+    _myPacketType(PacketType::Unknown),
     _isShuttingDown(false),
     _sentPacketHistory()
 {
@@ -55,9 +53,8 @@ OctreeQueryNode::~OctreeQueryNode() {
     if (_octreeSendThread) {
         forceNodeShutdown();
     }
-    
-    delete[] _octreePacket;
-    delete[] _lastOctreePacket;
+
+    delete[] _lastOctreePayload;
 }
 
 void OctreeQueryNode::nodeKilled() {
@@ -74,7 +71,7 @@ void OctreeQueryNode::forceNodeShutdown() {
     _isShuttingDown = true;
     elementBag.unhookNotifications(); // if our node is shutting down, then we no longer need octree element notifications
     if (_octreeSendThread) {
-        // we really need to force our thread to shutdown, this is synchronous, we will block while the thread actually 
+        // we really need to force our thread to shutdown, this is synchronous, we will block while the thread actually
         // shuts down because we really need it to shutdown, and it's ok if we wait for it to complete
         OctreeSendThread* sendThread = _octreeSendThread;
         _octreeSendThread = NULL;
@@ -96,8 +93,8 @@ void OctreeQueryNode::sendThreadFinished() {
 }
 
 void OctreeQueryNode::initializeOctreeSendThread(OctreeServer* myServer, const SharedNodePointer& node) {
-    _octreeSendThread = new OctreeSendThread(myServer, node);   
-    
+    _octreeSendThread = new OctreeSendThread(myServer, node);
+
     // we want to be notified when the thread finishes
     connect(_octreeSendThread, &GenericThread::finished, this, &OctreeQueryNode::sendThreadFinished);
     _octreeSendThread->initialize(true);
@@ -110,12 +107,11 @@ bool OctreeQueryNode::packetIsDuplicate() const {
     }
     // since our packets now include header information, like sequence number, and createTime, we can't just do a memcmp
     // of the entire packet, we need to compare only the packet content...
-    int numBytesPacketHeader = numBytesForPacketHeaderGivenPacketType(_myPacketType);
-    
-    if (_lastOctreePacketLength == getPacketLength()) {
-        if (memcmp(_lastOctreePacket + (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE),
-                _octreePacket + (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE),
-                   getPacketLength() - (numBytesPacketHeader + OCTREE_PACKET_EXTRA_HEADERS_SIZE)) == 0) {
+
+    if (_lastOctreePacketLength == _octreePacket->getPayloadSize()) {
+        if (memcmp(_lastOctreePayload + OCTREE_PACKET_EXTRA_HEADERS_SIZE,
+                   _octreePacket->getPayload() + OCTREE_PACKET_EXTRA_HEADERS_SIZE,
+                   _octreePacket->getPayloadSize() - OCTREE_PACKET_EXTRA_HEADERS_SIZE) == 0) {
             return true;
         }
     }
@@ -163,6 +159,9 @@ bool OctreeQueryNode::shouldSuppressDuplicatePacket() {
 
 void OctreeQueryNode::init() {
     _myPacketType = getMyPacketType();
+
+    _octreePacket = NLPacket::create(getMyPacketType());
+
     resetOctreePacket(); // don't bump sequence
 }
 
@@ -177,8 +176,8 @@ void OctreeQueryNode::resetOctreePacket() {
     // changed since we last reset it. Since we know that no two packets can ever be identical without being the same
     // scene information, (e.g. the root node packet of a static scene), we can use this as a strategy for reducing
     // packet send rate.
-    _lastOctreePacketLength = getPacketLength();
-    memcpy(_lastOctreePacket, _octreePacket, _lastOctreePacketLength);
+    _lastOctreePacketLength = _octreePacket->getPayloadSize();
+    memcpy(_lastOctreePayload, _octreePacket->getPayload(), _lastOctreePacketLength);
 
     // If we're moving, and the client asked for low res, then we force monochrome, otherwise, use
     // the clients requested color state.
@@ -192,31 +191,17 @@ void OctreeQueryNode::resetOctreePacket() {
         setAtBit(flags, PACKET_IS_COMPRESSED_BIT);
     }
 
-    _octreePacketAvailableBytes = MAX_PACKET_SIZE;
-    int numBytesPacketHeader = DependencyManager::get<NodeList>()->populatePacketHeader(reinterpret_cast<char*>(_octreePacket),
-        _myPacketType);
-
-    _octreePacketAt = _octreePacket + numBytesPacketHeader;
-    _octreePacketAvailableBytes -= numBytesPacketHeader;
+    _octreePacket->reset();
 
     // pack in flags
-    OCTREE_PACKET_FLAGS* flagsAt = (OCTREE_PACKET_FLAGS*)_octreePacketAt;
-    *flagsAt = flags;
-    _octreePacketAt += sizeof(OCTREE_PACKET_FLAGS);
-    _octreePacketAvailableBytes -= sizeof(OCTREE_PACKET_FLAGS);
+    _octreePacket->writePrimitive(flags);
 
     // pack in sequence number
-    OCTREE_PACKET_SEQUENCE* sequenceAt = (OCTREE_PACKET_SEQUENCE*)_octreePacketAt;
-    *sequenceAt = _sequenceNumber;
-    _octreePacketAt += sizeof(OCTREE_PACKET_SEQUENCE);
-    _octreePacketAvailableBytes -= sizeof(OCTREE_PACKET_SEQUENCE);
+    _octreePacket->writePrimitive(_sequenceNumber);
 
     // pack in timestamp
     OCTREE_PACKET_SENT_TIME now = usecTimestampNow();
-    OCTREE_PACKET_SENT_TIME* timeAt = (OCTREE_PACKET_SENT_TIME*)_octreePacketAt;
-    *timeAt = now;
-    _octreePacketAt += sizeof(OCTREE_PACKET_SENT_TIME);
-    _octreePacketAvailableBytes -= sizeof(OCTREE_PACKET_SENT_TIME);
+    _octreePacket->writePrimitive(now);
 
     _octreePacketWaiting = false;
 }
@@ -230,14 +215,11 @@ void OctreeQueryNode::writeToPacket(const unsigned char* buffer, unsigned int by
     // compressed packets include lead bytes which contain compressed size, this allows packing of
     // multiple compressed portions together
     if (_currentPacketIsCompressed) {
-        *(OCTREE_PACKET_INTERNAL_SECTION_SIZE*)_octreePacketAt = bytes;
-        _octreePacketAt += sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
-        _octreePacketAvailableBytes -= sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
+        OCTREE_PACKET_INTERNAL_SECTION_SIZE sectionSize = bytes;
+        _octreePacket->writePrimitive(sectionSize);
     }
-    if (bytes <= _octreePacketAvailableBytes) {
-        memcpy(_octreePacketAt, buffer, bytes);
-        _octreePacketAvailableBytes -= bytes;
-        _octreePacketAt += bytes;
+    if (bytes <= _octreePacket->bytesAvailableForWrite()) {
+        _octreePacket->write(reinterpret_cast<const char*>(buffer), bytes);
         _octreePacketWaiting = true;
     }
 }
@@ -258,8 +240,8 @@ bool OctreeQueryNode::updateCurrentViewFrustum() {
     float originalFOV = getCameraFov();
     float wideFOV = originalFOV + VIEW_FRUSTUM_FOV_OVERSEND;
 
-    if (0.0f != getCameraAspectRatio() && 
-        0.0f != getCameraNearClip() && 
+    if (0.0f != getCameraAspectRatio() &&
+        0.0f != getCameraNearClip() &&
         0.0f != getCameraFarClip()) {
         newestViewFrustum.setProjection(glm::perspective(
             glm::radians(wideFOV), // hack
@@ -351,7 +333,7 @@ void OctreeQueryNode::dumpOutOfView() {
     if (_isShuttingDown) {
         return;
     }
-    
+
     int stillInView = 0;
     int outOfView = 0;
     OctreeElementBag tempBag;
@@ -374,15 +356,7 @@ void OctreeQueryNode::dumpOutOfView() {
     }
 }
 
-void OctreeQueryNode::octreePacketSent() {
-    packetSent(_octreePacket, getPacketLength());
-}
-
-void OctreeQueryNode::packetSent(unsigned char* packet, int packetLength) {
-    packetSent(QByteArray((char*)packet, packetLength));
-}
-
-void OctreeQueryNode::packetSent(const QByteArray& packet) {
+void OctreeQueryNode::packetSent(const NLPacket& packet) {
     _sentPacketHistory.packetSent(_sequenceNumber, packet);
     _sequenceNumber++;
 }
@@ -391,27 +365,20 @@ bool OctreeQueryNode::hasNextNackedPacket() const {
     return !_nackedSequenceNumbers.isEmpty();
 }
 
-const QByteArray* OctreeQueryNode::getNextNackedPacket() {
+const NLPacket* OctreeQueryNode::getNextNackedPacket() {
     if (!_nackedSequenceNumbers.isEmpty()) {
         // could return null if packet is not in the history
         return _sentPacketHistory.getPacket(_nackedSequenceNumbers.dequeue());
     }
-    return NULL;
+
+    return nullptr;
 }
 
-void OctreeQueryNode::parseNackPacket(const QByteArray& packet) {
-
-    int numBytesPacketHeader = numBytesForPacketHeader(packet);
-    const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data()) + numBytesPacketHeader;
-
-    // read number of sequence numbers
-    uint16_t numSequenceNumbers = (*(uint16_t*)dataAt);
-    dataAt += sizeof(uint16_t);
-
+void OctreeQueryNode::parseNackPacket(NLPacket& packet) {
     // read sequence numbers
-    for (int i = 0; i < numSequenceNumbers; i++) {
-        OCTREE_PACKET_SEQUENCE sequenceNumber = (*(OCTREE_PACKET_SEQUENCE*)dataAt);
+    while (packet.bytesLeftToRead()) {
+        OCTREE_PACKET_SEQUENCE sequenceNumber;
+        packet.readPrimitive(&sequenceNumber);
         _nackedSequenceNumbers.enqueue(sequenceNumber);
-        dataAt += sizeof(OCTREE_PACKET_SEQUENCE);
     }
 }

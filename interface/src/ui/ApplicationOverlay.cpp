@@ -9,11 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "InterfaceConfig.h"
-
-#include <QOpenGLFramebufferObject>
-#include <QOpenGLTexture>
-
 #include <glm/gtc/type_ptr.hpp>
 
 #include <avatar/AvatarManager.h>
@@ -21,6 +16,7 @@
 #include <GLMHelpers.h>
 #include <gpu/GLBackend.h>
 #include <gpu/GLBackendShared.h>
+#include <FramebufferCache.h>
 #include <GLMHelpers.h>
 #include <OffscreenUi.h>
 #include <CursorManager.h>
@@ -37,8 +33,8 @@
 
 const vec4 CONNECTION_STATUS_BORDER_COLOR{ 1.0f, 0.0f, 0.0f, 0.8f };
 const float CONNECTION_STATUS_BORDER_LINE_WIDTH = 4.0f;
-static const float ORTHO_NEAR_CLIP = -10000;
-static const float ORTHO_FAR_CLIP = 10000;
+static const float ORTHO_NEAR_CLIP = -1000.0f;
+static const float ORTHO_FAR_CLIP = 1000.0f;
 
 ApplicationOverlay::ApplicationOverlay()
 {
@@ -54,7 +50,6 @@ ApplicationOverlay::ApplicationOverlay()
     connect(offscreenUi.data(), &OffscreenUi::textureUpdated, this, [&](GLuint textureId) {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         offscreenUi->lockTexture(textureId);
-        assert(!glGetError());
         std::swap(_uiTexture, textureId);
         if (textureId) {
             offscreenUi->releaseTexture(textureId);
@@ -99,6 +94,7 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     // Now render the overlay components together into a single texture
     renderDomainConnectionStatusBorder(renderArgs); // renders the connected domain line
     renderAudioScope(renderArgs); // audio scope in the very back
+    renderRearView(renderArgs); // renders the mirror view selfie
     renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture, and the text overlays from scripts
     renderOverlays(renderArgs); // renders Scripts Overlay and AudioScope
     renderStatsAndLogs(renderArgs);  // currently renders nothing
@@ -137,7 +133,7 @@ void ApplicationOverlay::renderAudioScope(RenderArgs* renderArgs) {
     batch.setResourceTexture(0, textureCache->getWhiteTexture());
     int width = renderArgs->_viewport.z;
     int height = renderArgs->_viewport.w;
-    mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
+    mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, ORTHO_NEAR_CLIP, ORTHO_FAR_CLIP);
     batch.setProjectionTransform(legacyProjection);
     batch.setModelTransform(Transform());
     batch.setViewTransform(Transform());
@@ -157,7 +153,7 @@ void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     batch.setResourceTexture(0, textureCache->getWhiteTexture());
     int width = renderArgs->_viewport.z;
     int height = renderArgs->_viewport.w;
-    mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
+    mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, ORTHO_NEAR_CLIP, ORTHO_FAR_CLIP);
     batch.setProjectionTransform(legacyProjection);
     batch.setModelTransform(Transform());
     batch.setViewTransform(Transform());
@@ -173,6 +169,39 @@ void ApplicationOverlay::renderRearViewToFbo(RenderArgs* renderArgs) {
 }
 
 void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+        gpu::Batch& batch = *renderArgs->_batch;
+
+        auto geometryCache = DependencyManager::get<GeometryCache>();
+
+        auto framebuffer = DependencyManager::get<FramebufferCache>();
+        auto selfieTexture = framebuffer->getSelfieFramebuffer()->getRenderBuffer(0);
+
+        int width = renderArgs->_viewport.z;
+        int height = renderArgs->_viewport.w;
+        mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, ORTHO_NEAR_CLIP, ORTHO_FAR_CLIP);
+        batch.setProjectionTransform(legacyProjection);
+        batch.setModelTransform(Transform());
+        batch.setViewTransform(Transform());
+        
+        float screenRatio = ((float)qApp->getDevicePixelRatio());
+        float renderRatio = ((float)screenRatio * qApp->getRenderResolutionScale());
+        
+        auto viewport = qApp->getMirrorViewRect();
+        glm::vec2 bottomLeft(viewport.left(), viewport.top() + viewport.height());
+        glm::vec2 topRight(viewport.left() + viewport.width(), viewport.top());
+        bottomLeft *= screenRatio;
+        topRight *= screenRatio;
+        glm::vec2 texCoordMinCorner(0.0f, 0.0f);
+        glm::vec2 texCoordMaxCorner(viewport.width() * renderRatio / float(selfieTexture->getWidth()), viewport.height() * renderRatio / float(selfieTexture->getHeight()));
+
+        geometryCache->useSimpleDrawPipeline(batch, true);
+        batch.setResourceTexture(0, selfieTexture);
+        geometryCache->renderQuad(batch, bottomLeft, topRight, texCoordMinCorner, texCoordMaxCorner, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)); 
+
+        batch.setResourceTexture(0, renderArgs->_whiteTexture);
+        geometryCache->useSimpleDrawPipeline(batch, false);
+    }
 }
 
 void ApplicationOverlay::renderStatsAndLogs(RenderArgs* renderArgs) {
@@ -215,7 +244,8 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder(RenderArgs* renderAr
         auto geometryCache = DependencyManager::get<GeometryCache>();
         geometryCache->useSimpleDrawPipeline(batch);
         batch.setProjectionTransform(mat4());
-        batch.setModelTransform(mat4());
+        batch.setModelTransform(Transform());
+        batch.setViewTransform(Transform());
         batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
         batch._glLineWidth(CONNECTION_STATUS_BORDER_LINE_WIDTH);
 

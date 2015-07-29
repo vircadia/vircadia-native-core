@@ -28,7 +28,6 @@ public:
 private:
     
     gpu::PipelinePointer _hitEffectPipeline;
-    GLuint _screenSizeLocation;
 };
 
 #endif

@@ -9,12 +9,9 @@
 #ifndef hifi_Stats_h
 #define hifi_Stats_h
 
-#include <QObject>
-#include <QQuickItem>
-#include <QVector3D>
-
-#include <OffscreenUi.h>
+#include <OffscreenQmlElement.h>
 #include <RenderArgs.h>
+#include <QVector3D>
 
 #define STATS_PROPERTY(type, name, initialValue) \
     Q_PROPERTY(type name READ name NOTIFY name##Changed) \

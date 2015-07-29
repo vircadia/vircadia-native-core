@@ -9,9 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <cstdio>
+#include "AudioStatsDialog.h"
 
-#include "InterfaceConfig.h"
+#include <cstdio>
 
 #include <AudioClient.h>
 #include <AudioConstants.h>
@@ -22,7 +22,6 @@
 #include <Util.h>
 
 
-#include "AudioStatsDialog.h"
 
 const unsigned COLOR0 = 0x33cc99ff;
 const unsigned COLOR1 = 0xffef40c0;
@@ -126,8 +125,10 @@ void AudioStatsDialog::renderStats() {
         audioInputBufferLatency = (double)_stats->getAudioInputMsecsReadStats().getWindowAverage();
         inputRingBufferLatency =  (double)_stats->getInputRungBufferMsecsAvailableStats().getWindowAverage();
         networkRoundtripLatency = (double) audioMixerNodePointer->getPingMs();
-        mixerRingBufferLatency = (double)_stats->getMixerAvatarStreamStats()._framesAvailableAverage * AudioConstants::NETWORK_FRAME_MSECS;
-        outputRingBufferLatency = (double)downstreamAudioStreamStats._framesAvailableAverage * AudioConstants::NETWORK_FRAME_MSECS;
+        mixerRingBufferLatency = (double)_stats->getMixerAvatarStreamStats()._framesAvailableAverage *
+            (double)AudioConstants::NETWORK_FRAME_MSECS;
+        outputRingBufferLatency = (double)downstreamAudioStreamStats._framesAvailableAverage *
+            (double)AudioConstants::NETWORK_FRAME_MSECS;
         audioOutputBufferLatency = (double)_stats->getAudioOutputMsecsUnplayedStats().getWindowAverage();
     }
         

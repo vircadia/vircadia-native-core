@@ -10,9 +10,7 @@
 //
 
 // include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
-#include <gpu/GPUConfig.h>
 
-#include <gpu/GLBackend.h>
 
 #include <glm/gtc/random.hpp>
 
@@ -21,12 +19,12 @@
 
 #include "AbstractViewStateInterface.h"
 #include "HitEffect.h"
-#include "ProgramObject.h"
-#include "RenderUtil.h"
 #include "TextureCache.h"
 #include "DependencyManager.h"
 #include "ViewFrustum.h"
 #include "GeometryCache.h"
+
+#include <gpu/Context.h>
 
 #include "hit_effect_vert.h"
 #include "hit_effect_frag.h"
@@ -45,8 +43,6 @@ const gpu::PipelinePointer& HitEffect::getHitEffectPipeline() {
         gpu::Shader::BindingSet slotBindings;
         gpu::Shader::makeProgram(*program, slotBindings);
         
-        _screenSizeLocation = program->getUniforms().findLocation("screenSize");
-        
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         
         state->setDepthTest(false, false, gpu::LESS_EQUAL);
@@ -55,25 +51,16 @@ const gpu::PipelinePointer& HitEffect::getHitEffectPipeline() {
         state->setBlendFunction(true,
                                 gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
         
-        
         // Good to go add the brand new pipeline
         _hitEffectPipeline.reset(gpu::Pipeline::create(program, state));
     }
     return _hitEffectPipeline;
 }
 
-
-
-
 void HitEffect::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
-    
-    // create a simple pipeline that does:
-    
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
     RenderArgs* args = renderContext->args;
-    
-    // Allright, something to render let's do it
     gpu::Batch batch;
     
     glm::mat4 projMat;
@@ -84,13 +71,8 @@ void HitEffect::run(const render::SceneContextPointer& sceneContext, const rende
     batch.setViewTransform(viewMat);
     batch.setModelTransform(Transform());
     
-
-
-    
-    // bind the first gpu::Pipeline we need - for calculating occlusion buffer
     batch.setPipeline(getHitEffectPipeline());
 
-    
     glm::vec4 color(0.0f, 0.0f, 0.0f, 1.0f);
     glm::vec2 bottomLeft(-1.0f, -1.0f);
     glm::vec2 topRight(1.0f, 1.0f);
@@ -98,7 +80,7 @@ void HitEffect::run(const render::SceneContextPointer& sceneContext, const rende
 
     
     // Ready to render
-    renderContext->args->_context->syncCache();
+   // renderContext->args->_context->syncCache();
     args->_context->render((batch));
     
 }
