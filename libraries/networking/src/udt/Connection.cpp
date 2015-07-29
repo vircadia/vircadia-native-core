@@ -334,6 +334,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     // validate that this isn't a BS ACK
     if (ack > _sendQueue->getCurrentSequenceNumber()) {
         // in UDT they specifically break the connection here - do we want to do anything?
+        Q_ASSERT_X(true, "Connection::processACK", "ACK recieved higher than largest sent sequence number");
         return;
     }
     
@@ -341,26 +342,24 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     int32_t rtt;
     controlPacket->readPrimitive(&rtt);
     
-    // read the desired flow window size
-    int flowWindowSize;
-    controlPacket->readPrimitive(&flowWindowSize);
-    
-    if (ack <= _lastReceivedACK) {
-        // this is a valid ACKed sequence number - update the flow window size and the last received ACK
-        _flowWindowSize = flowWindowSize;
-        _lastReceivedACK = ack;
-    }
-    
-    // make sure this isn't a repeated ACK
-    if (ack <= SequenceNumber(_atomicLastReceivedACK)) {
+    if (ack < _lastReceivedACK) {
+        // Bail
         return;
     }
+    
+    // this is a valid ACKed sequence number - update the flow window size and the last received ACK
+    controlPacket->readPrimitive(&_flowWindowSize);
+    
+    if (ack == _lastReceivedACK) {
+        // Bail
+        return;
+    }
+    
+    _lastReceivedACK = ack;
     
     // ACK the send queue so it knows what was received
     _sendQueue->ack(ack);
     
-    // update the atomic for last received ACK, the send queue uses this to re-transmit
-    _atomicLastReceivedACK = (SequenceNumber::Type)_lastReceivedACK;
     
     // update the RTT
     updateRTT(rtt);

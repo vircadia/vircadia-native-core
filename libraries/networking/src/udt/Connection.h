@@ -44,8 +44,6 @@ public:
     
     SequenceNumber nextACK() const;
     
-    SequenceNumber getLastReceivedACK() const { return SequenceNumber(_atomicLastReceivedACK); }
-    
     void processReceivedSequenceNumber(SequenceNumber seq);
     void processControl(std::unique_ptr<ControlPacket> controlPacket);
     
@@ -75,7 +73,6 @@ private:
     LossList _lossList; // List of all missing packets
     SequenceNumber _lastReceivedSequenceNumber { SequenceNumber::MAX }; // The largest sequence number received from the peer
     SequenceNumber _lastReceivedACK { SequenceNumber::MAX }; // The last ACK received
-    std::atomic<uint32_t> _atomicLastReceivedACK { (uint32_t) SequenceNumber::MAX }; // Atomic for thread-safe get of last ACK received
     SequenceNumber _lastReceivedAcknowledgedACK { SequenceNumber::MAX }; // The last sent ACK that has been acknowledged via an ACK2 from the peer
     SequenceNumber _currentACKSubSequenceNumber; // The current ACK sub-sequence number (used for Acknowledgment of ACKs)
     
