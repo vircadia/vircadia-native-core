@@ -337,13 +337,12 @@ glm::mat4 Rig::getJointVisibleTransform(int jointIndex) const {
 }
 
 void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation) {
-    
     if (_enableRig) {
         glm::vec3 front = worldRotation * IDENTITY_FRONT;
         float forwardSpeed = glm::dot(worldVelocity, front);
         float rotationalSpeed = glm::angle(front, _lastFront) / deltaTime;
-        bool isWalking = std::abs(forwardSpeed) > 0.01;
-        bool isTurning = std::abs(rotationalSpeed) > 0.5;
+        bool isWalking = std::abs(forwardSpeed) > 0.01f;
+        bool isTurning = std::abs(rotationalSpeed) > 0.5f;
 
         // Crude, until we have blending:
         isTurning = isTurning && !isWalking; // Only one of walk/turn, walk wins.
@@ -362,7 +361,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             startAnimationByRole(newRole);
             qCDebug(animation) << deltaTime << ":" << worldVelocity << "." << front << "=> " << forwardSpeed << newRole;
         }
-    
+
         _lastPosition = worldPosition;
         _lastFront = front;
         _isWalking = isWalking;

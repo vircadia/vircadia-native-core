@@ -155,9 +155,9 @@ void ParticleEffectEntityItem::computeAndUpdateDimensions() {
     float yMin = std::min(yApex, yEnd);
 
     // times 2 because dimensions are diameters not radii.
-    glm::vec3 dims(2.0f * std::max(fabs(xMin), fabs(xMax)),
-                   2.0f * std::max(fabs(yMin), fabs(yMax)),
-                   2.0f * std::max(fabs(zMin), fabs(zMax)));
+    glm::vec3 dims(2.0f * std::max(fabsf(xMin), fabsf(xMax)),
+                   2.0f * std::max(fabsf(yMin), fabsf(yMax)),
+                   2.0f * std::max(fabsf(zMin), fabsf(zMax)));
 
     EntityItem::setDimensions(dims);
 }
