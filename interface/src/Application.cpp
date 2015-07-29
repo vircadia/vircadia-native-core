@@ -531,6 +531,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _window->setCentralWidget(container);
     _window->restoreGeometry();
     _window->setVisible(true);
+    _window->setAttribute(Qt::WA_AcceptTouchEvents);
     container->setFocusPolicy(Qt::StrongFocus);
     container->setAttribute(Qt::WA_AcceptTouchEvents);
     container->setFocus();
