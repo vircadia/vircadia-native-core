@@ -12,6 +12,7 @@
 #ifndef hifi_CongestionControl_h
 #define hifi_CongestionControl_h
 
+#include <chrono>
 #include <vector>
 
 #include "LossList.h"
@@ -37,7 +38,7 @@ public:
     virtual void init() {}
     virtual void close() {}
     virtual void onAck(SequenceNumber ackNum) {}
-    virtual void onLoss(const LossList& lossList) {}
+    virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {}
     
 protected:
     void setAckTimer(int period) { _ackPeriod = (period > _synInterval) ? _synInterval : period; }
@@ -52,7 +53,7 @@ protected:
     
     int _mss = 0; // Maximum Packet Size, including all packet headers
     SequenceNumber _sendCurrSeqNum; // current maximum seq num sent out
-    int _recvieveRate = 0; // packet arrive rate at receiver side, packets per second
+    int _receiveRate = 0; // packet arrive rate at receiver side, packets per second
     int _rtt = 0; // current estimated RTT, microsecond
     
 private:
@@ -62,9 +63,9 @@ private:
     void setMss(int mss) { _mss = mss; }
     void setMaxCongestionWindowSize(int window) { _maxCongestionWindowSize = window; }
     void setBandwidth(int bandwidth) { _bandwidth = bandwidth; }
-    void setSndCurrSeqNum(SequenceNumber seqNum) { _sendCurrSeqNum = seqNum; }
-    void setRcvRate(int rate) { _recvieveRate = rate; }
-    void setRtt(int rtt) { _rtt = rtt; }
+    void setSendCurrentSequenceNumber(SequenceNumber seqNum) { _sendCurrSeqNum = seqNum; }
+    void setReceiveRate(int rate) { _receiveRate = rate; }
+    void setRTT(int rtt) { _rtt = rtt; }
     
     int _ackPeriod = 0; // Periodical timer to send an ACK, in milliseconds
     int _ackInterval = 0; // How many packets to send one ACK, in packets
@@ -99,16 +100,16 @@ public:
 public:
     virtual void init();
     virtual void onACK(SequenceNumber ackNum);
-    virtual void onLoss(const LossList& lossList);
+    virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd);
     virtual void onTimeout();
     
 private:
-    uint64_t _lastRCTime = 0; // last rate increase time
+    std::chrono::high_resolution_clock::time_point _lastRCTime; // last rate increase time
     bool _slowStart = true;	// if in slow start phase
     SequenceNumber _lastAck; // last ACKed seq num
     bool _loss = false;	// if loss happened since last rate increase
-    SequenceNumber _lastDecSeq; // max pkt seq num sent out when last decrease happened
-    double _lastDecPeriod = 1; // value of pktsndperiod when last decrease happened
+    SequenceNumber _lastDecreaseMaxSeq; // max pkt seq num sent out when last decrease happened
+    double _lastDecreasePeriod = 1; // value of _packetSendPeriod when last decrease happened
     int _nakCount = 0; // NAK counter
     int _decRandom = 1; // random threshold on decrease by number of loss events
     int _avgNAKNum = 0; // average number of NAKs per congestion

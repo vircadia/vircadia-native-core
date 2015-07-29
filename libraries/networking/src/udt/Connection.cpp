@@ -343,7 +343,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     updateRTT(rtt);
     
     // set the RTT for congestion control
-    _congestionControl->setRtt(_rtt);
+    _congestionControl->setRTT(_rtt);
     
     if (controlPacket->getPayloadSize() > (qint64) (sizeof(SequenceNumber) + sizeof(SequenceNumber) + sizeof(rtt))) {
         int32_t deliveryRate, bandwidth;
@@ -351,7 +351,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
         controlPacket->readPrimitive(&bandwidth);
         
         // set the delivery rate and bandwidth for congestion control
-        _congestionControl->setRcvRate(deliveryRate);
+        _congestionControl->setReceiveRate(deliveryRate);
         _congestionControl->setBandwidth(bandwidth);
     }
     
@@ -397,7 +397,7 @@ void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
         updateRTT(rtt);
         
         // set the RTT for congestion control
-        _congestionControl->setRtt(_rtt);
+        _congestionControl->setRTT(_rtt);
         
         // update the last ACKed ACK
         if (pair.first > _lastReceivedAcknowledgedACK) {
@@ -432,8 +432,8 @@ void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket)
     // Override SendQueue's LossList with the timeout NAK list
     _sendQueue->overrideNAKListFromPacket(*controlPacket);
     
-    // TODO: tell the congestion control object that there was loss
-    // _congestionControl->onLoss();
+    // we don't tell the congestion control object there was loss here - this matches UDTs implementation
+    // a possible improvement would be to tell it which new loss this timeout packet told us about
     
     ++_totalReceivedTimeoutNAKs;
 }
@@ -452,9 +452,9 @@ void Connection::updateRTT(int rtt) {
     static const int RTT_ESTIMATION_ALPHA_NUMERATOR = 8;
     static const int RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR = 4;
    
-    _rtt = (_rtt * (1 - RTT_ESTIMATION_ALPHA_NUMERATOR) + rtt) / RTT_ESTIMATION_ALPHA_NUMERATOR;
+    _rtt = (_rtt * (RTT_ESTIMATION_ALPHA_NUMERATOR - 1) + rtt) / RTT_ESTIMATION_ALPHA_NUMERATOR;
     
-    _rttVariance = (_rttVariance * (1 - RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR)
+    _rttVariance = (_rttVariance * (RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR - 1)
                     + abs(rtt - _rtt)) / RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR;
 }
 
