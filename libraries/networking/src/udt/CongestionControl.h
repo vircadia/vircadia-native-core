@@ -106,7 +106,7 @@ public:
 private:
     std::chrono::high_resolution_clock::time_point _lastRCTime; // last rate increase time
     bool _slowStart = true;	// if in slow start phase
-    SequenceNumber _lastAck; // last ACKed seq num
+    SequenceNumber _slowStartLastAck; // last ACKed seq num, used only during slow start
     bool _loss = false;	// if loss happened since last rate increase
     SequenceNumber _lastDecreaseMaxSeq; // max pkt seq num sent out when last decrease happened
     double _lastDecreasePeriod = 1; // value of _packetSendPeriod when last decrease happened

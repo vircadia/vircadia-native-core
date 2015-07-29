@@ -20,7 +20,7 @@ void DefaultCC::init() {
     _lastRCTime = high_resolution_clock::now();
     setAckTimer(synInterval());
     
-    _lastAck = _sendCurrSeqNum;
+    _slowStartLastAck = _sendCurrSeqNum;
     _lastDecreaseMaxSeq = SequenceNumber { SequenceNumber::MAX };
     
     _congestionWindowSize = 16.0;
@@ -36,34 +36,45 @@ void DefaultCC::onACK(SequenceNumber ackNum) {
     // for long time.
     const double minimumIncrease = 0.01;
     
+    // we will only adjust once per sync interval so check that it has been at least that long now
     auto now = high_resolution_clock::now();
     if (duration_cast<microseconds>(now - _lastRCTime).count() < synInterval()) {
         return;
     }
     
+    // our last rate increase time is now
     _lastRCTime = now;
-    
+
     if (_slowStart) {
-        _congestionWindowSize += seqlen(_lastAck, ackNum);
-        _lastAck = ackNum;
+        // we are in slow start phase - increase the congestion window size by the number of packets just ACKed
+        _congestionWindowSize += seqlen(_slowStartLastAck, ackNum);
         
+        // update the last ACK
+        _slowStartLastAck = ackNum;
+        
+        // check if we can get out of slow start (is our new congestion window size bigger than the max)
         if (_congestionWindowSize > _maxCongestionWindowSize) {
             _slowStart = false;
+            
             if (_receiveRate > 0) {
+                // if we have a valid receive rate we set the send period to whatever the receive rate dictates
                 _packetSendPeriod = USECS_PER_SECOND / _receiveRate;
             } else {
+                // no valid receive rate, packet send period is dictated by estimated RTT and current congestion window size
                 _packetSendPeriod = (_rtt + synInterval()) / _congestionWindowSize;
             }
         }
     } else {
+        // not in slow start - window size should be arrival rate * (RTT + SYN) + 16
         _congestionWindowSize = _receiveRate / USECS_PER_SECOND * (_rtt + synInterval()) + 16;
     }
     
-    // During Slow Start, no rate increase
+    // during slow start we perform no rate increases
     if (_slowStart) {
         return;
     }
     
+    // if loss has happened since the last rate increase we do not perform another increase
     if (_loss) {
         _loss = false;
         return;
@@ -71,13 +82,19 @@ void DefaultCC::onACK(SequenceNumber ackNum) {
     
     int capacitySpeedDelta = (int) (_bandwidth - USECS_PER_SECOND / _packetSendPeriod);
     
-    if ((_packetSendPeriod > _lastDecreasePeriod) && ((_bandwidth / 9) < capacitySpeedDelta)) {
-        capacitySpeedDelta = _bandwidth / 9;
+    // UDT uses what they call DAIMD - additive increase multiplicative decrease with decreasing increases
+    // This factor is a protocol parameter that is part of the DAIMD algorithim
+    static const int AIMD_DECREASING_INCREASE_FACTOR = 9;
+    
+    if ((_packetSendPeriod > _lastDecreasePeriod) && ((_bandwidth / AIMD_DECREASING_INCREASE_FACTOR) < capacitySpeedDelta)) {
+        capacitySpeedDelta = _bandwidth / AIMD_DECREASING_INCREASE_FACTOR;
     }
     
     if (capacitySpeedDelta <= 0) {
         increase = minimumIncrease;
     } else {
+        // use UDTs DAIMD algorithm to figure out what the send period increase factor should be
+        
         // inc = max(10 ^ ceil(log10(B * MSS * 8 ) * Beta / MSS, minimumIncrease)
         // B = estimated link capacity
         // Beta = 1.5 * 10^(-6)
@@ -112,11 +129,19 @@ void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
     
     _loss = true;
     
+    // check if this NAK starts a new congestion period - this will be the case if the
+    // NAK received occured for a packet sent after the last decrease
     if (rangeStart > _lastDecreaseMaxSeq) {
         _lastDecreasePeriod = _packetSendPeriod;
-        _packetSendPeriod = ceil(_packetSendPeriod * 1.125);
         
-        _avgNAKNum = (int)ceil(_avgNAKNum * 0.875 + _nakCount * 0.125);
+        static const double INTER_PACKET_ARRIVAL_INCREASE = 1.125;
+        _packetSendPeriod = ceil(_packetSendPeriod * INTER_PACKET_ARRIVAL_INCREASE);
+        
+        // use EWMA to update the average number of NAKs per congestion
+        static const double NAK_EWMA_ALPHA = 0.125;
+        _avgNAKNum = (int)ceil(_avgNAKNum * (1 - NAK_EWMA_ALPHA) + _nakCount * NAK_EWMA_ALPHA);
+        
+        
         _nakCount = 1;
         _decCount = 1;
         
