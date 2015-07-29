@@ -333,8 +333,6 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     // update the atomic for last received ACK, the send queue uses this to re-transmit
     _atomicLastReceivedACK.store((uint32_t) _lastReceivedACK);
     
-    // TODO: remove everything up to this ACK from the sender loss list
-    
     // update the RTT
     updateRTT(rtt);
     
@@ -423,6 +421,8 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
 
 void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket) {
     // read the NAKed sequence numbers from the packet
+    
+    // TODO: enumerate the received NAKs and create ranges if possible, then call _sendQueue->nak
     
     ++_totalReceivedTimeoutNAKs;
 }
