@@ -110,8 +110,6 @@ private:
     // Data packet stat collection
     int _totalReceivedDataPackets { 0 };
     int _packetsSinceACK { 0 }; // The number of packets that have been received during the current ACK interval
-    
-    
 };
     
 }

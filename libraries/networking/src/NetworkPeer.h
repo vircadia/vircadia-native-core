@@ -61,8 +61,8 @@ public:
     quint64 getWakeTimestamp() const { return _wakeTimestamp; }
     void setWakeTimestamp(quint64 wakeTimestamp) { _wakeTimestamp = wakeTimestamp; }
 
-    quint64 getLastHeardMicrostamp() const { return _lastHeardMicrostamp.load(); }
-    void setLastHeardMicrostamp(quint64 lastHeardMicrostamp) { _lastHeardMicrostamp.store(lastHeardMicrostamp); }
+    quint64 getLastHeardMicrostamp() const { return _lastHeardMicrostamp; }
+    void setLastHeardMicrostamp(quint64 lastHeardMicrostamp) { _lastHeardMicrostamp = lastHeardMicrostamp; }
 
     QByteArray toByteArray() const;
 

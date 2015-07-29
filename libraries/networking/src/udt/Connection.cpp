@@ -253,6 +253,7 @@ void Connection::processReceivedSequenceNumber(SequenceNumber seq) {
 }
 
 void Connection::processControl(unique_ptr<ControlPacket> controlPacket) {
+    // Simple dispatch to control packets processing methods based on their type
     switch (controlPacket->getType()) {
         case ControlPacket::ACK:
             if (controlPacket->getPayloadSize() == sizeof(SequenceNumber)) {
