@@ -20,9 +20,11 @@ namespace udt {
     
 static const int32_t DEFAULT_SYN_INTERVAL = 10000; // 10 ms
 
+class Connection;
 class Packet;
 
 class CongestionControl {
+    friend class Connection;
 public:
 
     CongestionControl() {};
@@ -35,8 +37,6 @@ public:
     virtual void close() {}
     virtual void onAck(SequenceNumber ackNum) {}
     virtual void onLoss(const std::vector<SequenceNumber>& lossList) {}
-    virtual void onPacketSent(const Packet& packet) {}
-    virtual void onPacketReceived(const Packet& packet) {}
     
 protected:
     void setAckTimer(int period) { _ackPeriod = (period > _synInterval) ? _synInterval : period; }

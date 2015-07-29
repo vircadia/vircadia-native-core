@@ -336,6 +336,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     updateRTT(rtt);
     
     // set the RTT for congestion control
+    _congestionControl->setRtt(_rtt);
     
     if (controlPacket->getPayloadSize() > (qint64) (sizeof(SequenceNumber) + sizeof(SequenceNumber) + sizeof(rtt))) {
         int32_t deliveryRate, bandwidth;
@@ -343,6 +344,8 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
         controlPacket->readPrimitive(&bandwidth);
         
         // set the delivery rate and bandwidth for congestion control
+        _congestionControl->setRcvRate(deliveryRate);
+        _congestionControl->setBandwidth(bandwidth);
     }
     
     // fire the onACK callback for congestion control
@@ -387,6 +390,7 @@ void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
         updateRTT(rtt);
         
         // set the RTT for congestion control
+        _congestionControl->setRtt(_rtt);
         
         // update the last ACKed ACK
         if (pair.first > _lastReceivedAcknowledgedACK) {
@@ -401,9 +405,12 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
     // read the loss report
     SequenceNumber start, end;
     controlPacket->readPrimitive(&start);
+    
     if (controlPacket->bytesLeftToRead() >= (qint64)sizeof(SequenceNumber)) {
         controlPacket->readPrimitive(&end);
     }
+    
+    
     
     ++_totalReceivedNAKs;
 }
