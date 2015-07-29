@@ -41,7 +41,6 @@
         SCALE_2D = 0.35,                            // Scale the SVGs for 2D display.
         background3D = {},
         bar3D = {},
-        ENABLE_VR_MODE_MENU_ITEM = "Enable VR Mode",
         PROGRESS_3D_DIRECTION = 0.0,                // Degrees from avatar orientation.
         PROGRESS_3D_DISTANCE = 0.602,               // Horizontal distance from avatar position.
         PROGRESS_3D_ELEVATION = -0.8,               // Height of top middle of top notification relative to avatar eyes.
@@ -157,7 +156,7 @@
             eyePosition,
             avatarOrientation;
 
-        if (isOnHMD !== Menu.isOptionChecked(ENABLE_VR_MODE_MENU_ITEM)) {
+        if (isOnHMD !== HMD.active) {
             deleteOverlays();
             isOnHMD = !isOnHMD;
             createOverlays();
