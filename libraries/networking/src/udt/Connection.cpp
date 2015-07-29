@@ -432,8 +432,8 @@ void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket)
     // Override SendQueue's LossList with the timeout NAK list
     _sendQueue->overrideNAKListFromPacket(*controlPacket);
     
-    // TODO: tell the congestion control object that there was loss
-    // _congestionControl->onLoss();
+    // we don't tell the congestion control object there was loss here - this matches UDTs implementation
+    // a possible improvement would be to tell it which new loss this timeout packet told us about
     
     ++_totalReceivedTimeoutNAKs;
 }
