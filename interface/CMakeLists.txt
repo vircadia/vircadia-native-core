@@ -218,40 +218,19 @@ else (APPLE)
     "${PROJECT_SOURCE_DIR}/resources"
     $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
   )
-    
- # find_package(OpenGL REQUIRED)
-  
- # if (${OPENGL_INCLUDE_DIR})
- #   include_directories(SYSTEM "${OPENGL_INCLUDE_DIR}")
-#  endif ()
-  
- # target_link_libraries(${TARGET_NAME} "${OPENGL_LIBRARY}")
-  
+
   # link target to external libraries
   if (WIN32)
-  #  add_dependency_external_projects(glew)
-   # find_package(GLEW REQUIRED)
-   # target_include_directories(${TARGET_NAME} PRIVATE ${GLEW_INCLUDE_DIRS})
-
-    # target_link_libraries(${TARGET_NAME} ${GLEW_LIBRARIES} wsock32.lib opengl32.lib Winmm.lib)
     target_link_libraries(${TARGET_NAME} wsock32.lib Winmm.lib)
-
+    
     if (USE_NSIGHT)
-      # try to find the Nsight package and add it to the build if we find it
-      find_package(NSIGHT)
+      # If required NSIGHT lib comes from gpu lib but still to add a precroc define
       if (NSIGHT_FOUND)
-        include_directories(${NSIGHT_INCLUDE_DIRS})
         add_definitions(-DNSIGHT_FOUND)
-        target_link_libraries(${TARGET_NAME} "${NSIGHT_LIBRARIES}")
       endif ()
     endif()
-
   else (WIN32)
-    find_package(GLEW REQUIRED)
-    target_include_directories(${TARGET_NAME} PRIVATE ${GLEW_INCLUDE_DIRS})
-
-    target_link_libraries(${TARGET_NAME} ${GLEW_LIBRARIES})
-    message(STATUS ${GLEW_LIBRARY})
+    # Nothing else required on linux apparently
   endif()
 endif (APPLE)
 
