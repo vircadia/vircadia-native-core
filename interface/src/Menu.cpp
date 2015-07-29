@@ -29,6 +29,7 @@
 #include "devices/Faceshift.h"
 #include "devices/RealSense.h"
 #include "devices/SixenseManager.h"
+#include "devices/3Dconnexion.h"
 #include "MainWindow.h"
 #include "scripting/MenuScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -455,6 +456,11 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderFocusIndicator, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowWhosLookingAtMe, 0, false);
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu,
+                                           MenuOption::Connexion,
+                                           0, false,
+                                           &ConnexionClient::getInstance(),
+                                           SLOT(toggleConnexion(bool)));
 
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlignForearmsWithWrists, 0, false);
