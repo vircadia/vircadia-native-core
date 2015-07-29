@@ -103,16 +103,18 @@ public:
     virtual void onTimeout();
     
 private:
+    void stopSlowStart(); // stops the slow start on loss or timeout, if it's still on
+    
     std::chrono::high_resolution_clock::time_point _lastRCTime; // last rate increase time
     bool _slowStart { true };	// if in slow start phase
     SequenceNumber _slowStartLastAck; // last ACKed seq num
     bool _loss { false };	// if loss happened since last rate increase
     SequenceNumber _lastDecreaseMaxSeq; // max pkt seq num sent out when last decrease happened
     double _lastDecreasePeriod { 1 }; // value of _packetSendPeriod when last decrease happened
-    int _nakCount { 0 }; // NAK counter
-    int _decRandom { 1 }; // random threshold on decrease by number of loss events
+    int _nakCount { 0 }; // number of NAKs in congestion epoch
+    int _randomDecreaseThreshold { 1 }; // random threshold on decrease by number of loss events
     int _avgNAKNum { 0 }; // average number of NAKs per congestion
-    int _decCount { 0 }; // number of decreases in a congestion epoch
+    int _decreaseCount { 0 }; // number of decreases in a congestion epoch
 };
     
 }
