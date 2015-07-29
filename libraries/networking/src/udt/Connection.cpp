@@ -63,7 +63,7 @@ void Connection::sync() {
     // check if we need to re-transmit a loss list
     // we do this if it has been longer than the current nakInterval since we last sent
     auto now = high_resolution_clock::now();
-    
+
     if (duration_cast<microseconds>(now - _lastNAKTime).count() >= _nakInterval) {
         // Send a timeout NAK packet
         sendTimeoutNAK();
@@ -71,26 +71,19 @@ void Connection::sync() {
 }
 
 void Connection::sendACK(bool wasCausedBySyncTimeout) {
-    auto currentTime = high_resolution_clock::now();
     static high_resolution_clock::time_point lastACKSendTime;
+    auto currentTime = high_resolution_clock::now();
     
     SequenceNumber nextACKNumber = nextACK();
+    Q_ASSERT_X(nextACKNumber < _lastSentACK, "Connection::sendACK", "Sending lower ACK, something is wrong");
     
-    if (nextACKNumber <= _lastReceivedAcknowledgedACK) {
-        // we already got an ACK2 for this ACK we would be sending, don't bother
-        return;
-    }
-    
-    if (nextACKNumber >= _lastSentACK) {
-        // we have received new packets since the last sent ACK
-        
-        // update the last sent ACK
-        _lastSentACK = nextACKNumber;
-        
-        // remove the ACKed packets from the receive queue
-        
-    } else if (nextACKNumber == _lastSentACK) {
+    if (nextACKNumber == _lastSentACK) {
         // We already sent this ACK, but check if we should re-send it.
+        if (nextACKNumber <= _lastReceivedAcknowledgedACK) {
+            // we already got an ACK2 for this ACK we would be sending, don't bother
+            return;
+        }
+        
         // We will re-send if it has been more than the estimated timeout since the last ACK
         microseconds sinceLastACK = duration_cast<microseconds>(currentTime - lastACKSendTime);
         
@@ -98,6 +91,13 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
             return;
         }
     }
+    // we have received new packets since the last sent ACK
+    
+    // update the last sent ACK
+    _lastSentACK = nextACKNumber;
+    
+    // remove the ACKed packets from the receive queue
+    // TODO?
     
     // setup the ACK packet, make it static so we can re-use it
     static const int ACK_PACKET_PAYLOAD_BYTES = sizeof(_lastSentACK) + sizeof(_currentACKSubSequenceNumber)
@@ -129,7 +129,7 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     _sendQueue->sendPacket(*ackPacket);
     
     // write this ACK to the map of sent ACKs
-    _sentACKs[_currentACKSubSequenceNumber] = { nextACKNumber, high_resolution_clock::now() };
+    _sentACKs[_currentACKSubSequenceNumber] = { nextACKNumber, currentTime };
     
     // reset the number of data packets received since last ACK
     _packetsSinceACK = 0;
@@ -218,7 +218,7 @@ void Connection::sendTimeoutNAK() {
 
 SequenceNumber Connection::nextACK() const {
     if (_lossList.getLength() > 0) {
-        return _lossList.getFirstSequenceNumber();
+        return _lossList.getFirstSequenceNumber() - 1;
     } else {
         return _lastReceivedSequenceNumber;
     }
