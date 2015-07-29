@@ -81,6 +81,9 @@ private:
     int32_t _rttVariance; // RTT variance
     int _flowWindowSize; // Flow control window size
     
+    int _bandwidth { 1 }; // Exponential moving average for estimated bandwidth, in packets per second
+    int _deliveryRate { 16 }; // Exponential moving average for receiver's receive rate, in packets per second
+    
     SentACKMap _sentACKs; // Map of ACK sub-sequence numbers to ACKed sequence number and sent time
     
     Socket* _parentSocket { nullptr };
