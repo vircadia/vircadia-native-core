@@ -24,6 +24,7 @@ public:
     bool makeCurrent();
     void doneCurrent();
     void swapBuffers();
+    virtual bool event(QEvent* ev) override;
 private:
     std::once_flag _reportOnce;
     QOpenGLContext* _context{ nullptr };
