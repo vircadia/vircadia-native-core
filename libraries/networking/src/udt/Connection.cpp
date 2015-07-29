@@ -346,13 +346,19 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     _congestionControl->setRTT(_rtt);
     
     if (controlPacket->getPayloadSize() > (qint64) (sizeof(SequenceNumber) + sizeof(SequenceNumber) + sizeof(rtt))) {
-        int32_t deliveryRate, bandwidth;
-        controlPacket->readPrimitive(&deliveryRate);
+        int32_t receiveRate, bandwidth;
+        controlPacket->readPrimitive(&receiveRate);
         controlPacket->readPrimitive(&bandwidth);
         
         // set the delivery rate and bandwidth for congestion control
-        _congestionControl->setReceiveRate(deliveryRate);
-        _congestionControl->setBandwidth(bandwidth);
+        // these are calculated using an EWMA
+        static const int EMWA_ALPHA_NUMERATOR = 8;
+        
+        _deliveryRate = (_deliveryRate * (EMWA_ALPHA_NUMERATOR - 1) + _deliveryRate) / EMWA_ALPHA_NUMERATOR;
+        _bandwidth = (_bandwidth * (EMWA_ALPHA_NUMERATOR - 1) + _bandwidth) / EMWA_ALPHA_NUMERATOR;
+        
+        _congestionControl->setReceiveRate(_deliveryRate);
+        _congestionControl->setBandwidth(_bandwidth);
     }
     
     // fire the onACK callback for congestion control
