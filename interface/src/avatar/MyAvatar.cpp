@@ -602,7 +602,6 @@ void MyAvatar::saveData() {
     for (int i = 0; i < animationHandles.size(); i++) {
         settings.setArrayIndex(i);
         const AnimationHandlePointer& pointer = animationHandles.at(i);
-        qCDebug(interfaceapp) << "Save animation" << pointer->getURL().toString();
         settings.setValue("role", pointer->getRole());
         settings.setValue("url", pointer->getURL());
         settings.setValue("fps", pointer->getFPS());
