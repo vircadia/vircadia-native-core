@@ -11,10 +11,10 @@
 
 #include "CongestionControl.h"
 
-#include <NumericalConstants.h>
-
 using namespace udt;
 using namespace std::chrono;
+
+static const double USECS_PER_SECOND = 1000000.0;
 
 void DefaultCC::init() {
     _lastRCTime = high_resolution_clock::now();
@@ -69,7 +69,7 @@ void DefaultCC::onACK(SequenceNumber ackNum) {
         return;
     }
     
-    B = (int64_t)(_bandwidth - 1000000.0 / _packetSendPeriod);
+    B = (int64_t)(_bandwidth - USECS_PER_SECOND/ _packetSendPeriod);
     if ((_packetSendPeriod > _lastDecreasePeriod) && ((_bandwidth / 9) < B)) {
         B = _bandwidth / 9;
     }
@@ -121,7 +121,7 @@ void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
         _decRandom = (int)ceil(_avgNAKNum * (double(rand()) / RAND_MAX));
         if (_decRandom < 1)
             _decRandom = 1;
-    } else if ((_decCount++ < 5) && (0 == (++_nakCount % _decRandom))) {
+    } else if ((_decCount ++ < 5) && (0 == (++ _nakCount % _decRandom))) {
         // 0.875^5 = 0.51, rate should not be decreased by more than half within a congestion period
         _packetSendPeriod = ceil(_packetSendPeriod * 1.125);
         _lastDecreaseMaxSeq = _sendCurrSeqNum;
