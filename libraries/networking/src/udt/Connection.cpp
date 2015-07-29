@@ -333,7 +333,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     // update the atomic for last received ACK, the send queue uses this to re-transmit
     _atomicLastReceivedACK.store((uint32_t) _lastReceivedACK);
     
-    // remove everything up to this ACK from the sender loss list
+    // TODO: remove everything up to this ACK from the sender loss list
     
     // update the RTT
     updateRTT(rtt);
