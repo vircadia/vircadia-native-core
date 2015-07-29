@@ -424,6 +424,8 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
 void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket) {
     // read the NAKed sequence numbers from the packet
     
+    // TODO: enumerate the received NAKs and create ranges if possible, then call _sendQueue->nak
+    
     ++_totalReceivedTimeoutNAKs;
 }
 
