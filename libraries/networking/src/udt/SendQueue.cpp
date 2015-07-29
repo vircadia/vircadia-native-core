@@ -29,7 +29,7 @@ std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr dest) 
     auto queue = std::unique_ptr<SendQueue>(new SendQueue(socket, dest));
     
     // Setup queue private thread
-    QThread* thread = new QThread(queue.get());
+    QThread* thread = new QThread();
     thread->setObjectName("Networking: SendQueue"); // Name thread for easier debug
     connect(queue.get(), &QObject::destroyed, thread, &QThread::quit); // Thread auto cleanup
     connect(thread, &QThread::finished, thread, &QThread::deleteLater); // Thread auto cleanup

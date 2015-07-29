@@ -38,14 +38,9 @@ Connection::Connection(Socket* parentSocket, HifiSockAddr destination, unique_pt
 
 Connection::~Connection() {
     if (_sendQueue) {
-        // tell our send queue to stop and wait until its send thread is done
-        QThread* sendQueueThread = _sendQueue->thread();
-        
         _sendQueue->stop();
         _sendQueue->deleteLater();
-        
-        sendQueueThread->quit();
-        sendQueueThread->wait();
+        _sendQueue.release();
     }
 }
 

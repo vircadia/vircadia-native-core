@@ -42,8 +42,6 @@ public:
 
     void sync(); // rate control method, fired by Socket for all connections on SYN interval
     
-    SequenceNumber nextACK() const;
-    
     void processReceivedSequenceNumber(SequenceNumber seq);
     void processControl(std::unique_ptr<ControlPacket> controlPacket);
     
@@ -60,6 +58,7 @@ private:
     void processNAK(std::unique_ptr<ControlPacket> controlPacket);
     void processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket);
     
+    SequenceNumber nextACK() const;
     void updateRTT(int rtt);
     
     int estimatedTimeout() const;
