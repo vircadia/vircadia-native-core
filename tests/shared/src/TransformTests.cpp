@@ -8,10 +8,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "TransformTests.h"
+
 #include <Transform.h>
 
-#include "TransformTests.h"
 #include "SharedLogging.h"
+#include <../QTestExtensions.h>
 
 using namespace glm;
 
