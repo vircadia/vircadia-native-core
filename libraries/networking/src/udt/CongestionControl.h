@@ -68,6 +68,7 @@ private:
     CongestionControl& operator=(const CongestionControl& other) = delete;
     
     int _ackInterval { 0 }; // How many packets to send one ACK, in packets
+    int _lightACKInterval { 64 }; // How many packets to send one light ACK, in packets
     
     int _synInterval { DEFAULT_SYN_INTERVAL };
     

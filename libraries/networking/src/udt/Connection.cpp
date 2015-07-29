@@ -282,6 +282,8 @@ void Connection::processReceivedSequenceNumber(SequenceNumber seq) {
     // check if we need to send an ACK, according to CC params
     if (_congestionControl->_ackInterval > 0 && _packetsSinceACK >= _congestionControl->_ackInterval) {
         sendACK(false);
+    } else if (_congestionControl->_lightACKInterval > 0 && _packetsSinceACK >= _congestionControl->_lightACKInterval) {
+        sendLightACK();
     }
 }
 
