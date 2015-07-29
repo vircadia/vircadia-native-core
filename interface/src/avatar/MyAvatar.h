@@ -258,7 +258,6 @@ private:
 
     QList<AnimationHandlePointer> _animationHandles;
     
-    bool _feetTouchFloor;
     eyeContactTarget _eyeContactTarget;
 
     RecorderPointer _recorder;
