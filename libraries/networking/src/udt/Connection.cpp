@@ -65,7 +65,7 @@ void Connection::sync() {
     // we do this if it has been longer than the current nakInterval since we last sent
     auto now = high_resolution_clock::now();
     
-    if (duration_cast<milliseconds>(now - _lastNAKTime).count() >= _nakInterval) {
+    if (duration_cast<microseconds>(now - _lastNAKTime).count() >= _nakInterval) {
         // construct a NAK packet that will hold all of the lost sequence numbers
         auto lossListPacket = ControlPacket::create(ControlPacket::TimeoutNAK, _lossList.getLength() * sizeof(SequenceNumber));
         
