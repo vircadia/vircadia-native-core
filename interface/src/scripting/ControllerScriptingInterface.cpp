@@ -377,7 +377,7 @@ void ControllerScriptingInterface::releaseJoystick(int joystickIndex) {
 }
 
 glm::vec2 ControllerScriptingInterface::getViewportDimensions() const {
-    return Application::getInstance()->getCanvasSize();
+    return Application::getInstance()->getUiSize();
 }
 
 AbstractInputController* ControllerScriptingInterface::createInputController(const QString& deviceName, const QString& tracker) {
