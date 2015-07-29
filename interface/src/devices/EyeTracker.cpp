@@ -130,6 +130,7 @@ void EyeTracker::setEnabled(bool enabled, bool simulate) {
     }
 
     _isEnabled = enabled && success;
+    _isSimulating = _isEnabled && simulate;
 
     if (!success) {
         // Display error dialog after updating _isEnabled.

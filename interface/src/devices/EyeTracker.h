@@ -28,6 +28,7 @@ public:
     ~EyeTracker();
 
     bool isTracking() { return _isEnabled; }
+    bool isSimulating() { return _isSimulating; }
 
     glm::vec3 getLookAtPosition() { return _lookAtPosition; }  // From mid eye point in head frame.
     
@@ -43,6 +44,7 @@ private:
     
     bool _isInitialized = false;
     bool _isEnabled = false;
+    bool _isSimulating = false;
 
     glm::vec3 _lookAtPosition;
 };

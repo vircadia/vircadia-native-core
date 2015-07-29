@@ -2295,7 +2295,7 @@ void Application::updateMyAvatarLookAtPosition() {
         } else {
             lookAtSpot = _myCamera.getPosition() + OculusManager::getMidEyePosition();
         }
-    } else if (eyeTracker->isTracking()) {
+    } else if (eyeTracker->isTracking() && (isHMDMode() || eyeTracker->isSimulating())) {
         //  Look at the point that the user is looking at.
         lookAtSpot = _myAvatar->getHead()->getEyePosition() +
             (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * eyeTracker->getLookAtPosition());
