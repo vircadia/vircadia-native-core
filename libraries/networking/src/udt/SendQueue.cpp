@@ -18,6 +18,7 @@
 
 #include <SharedUtil.h>
 
+#include "ControlPacket.h"
 #include "Packet.h"
 #include "Socket.h"
 
@@ -105,7 +106,19 @@ void SendQueue::nak(SequenceNumber start, SequenceNumber end) {
 
 void SendQueue::overrideNAKListFromPacket(ControlPacket& packet) {
     QWriteLocker locker(&_naksLock);
-    _naks.read(packet);
+    _naks.clear();
+    
+    SequenceNumber first, second;
+    while (packet.bytesLeftToRead() > (qint64)(2 * sizeof(SequenceNumber))) {
+        packet.readPrimitive(&first);
+        packet.readPrimitive(&second);
+        
+        if (first == second) {
+            _naks.append(first);
+        } else {
+            _naks.append(first, second);
+        }
+    }
 }
 
 SequenceNumber SendQueue::getNextSequenceNumber() {

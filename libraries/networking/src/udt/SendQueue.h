@@ -27,9 +27,10 @@
 
 namespace udt {
     
-class Socket;
 class BasePacket;
+class ControlPacket;
 class Packet;
+class Socket;
     
 class SendQueue : public QObject {
     Q_OBJECT

@@ -161,20 +161,3 @@ void LossList::write(ControlPacket& packet) {
         packet.writePrimitive(pair.second);
     }
 }
-
-void LossList::read(ControlPacket& packet) {
-    _lossList.clear();
-    
-    SequenceNumber first, second;
-    while (packet.bytesLeftToRead() > (qint64)(2 * sizeof(SequenceNumber))) {
-        packet.readPrimitive(&first);
-        packet.readPrimitive(&second);
-        
-        if (first == second) {
-            append(first);
-        } else {
-            append(first, second);
-        }
-        
-    }
-}
