@@ -93,6 +93,7 @@ protected:
     glm::vec3 _lookAtPosition;
     float _audioLoudness;
     bool _isFaceTrackerConnected;
+    bool _isEyeTrackerConnected;
     float _leftEyeBlink;
     float _rightEyeBlink;
     float _averageLoudness;

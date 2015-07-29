@@ -17,11 +17,13 @@
 
 #include "Application.h"
 #include "Avatar.h"
+#include "DependencyManager.h"
 #include "GeometryUtil.h"
 #include "Head.h"
 #include "Menu.h"
 #include "Util.h"
 #include "devices/DdeFaceTracker.h"
+#include "devices/EyeTracker.h"
 #include "devices/Faceshift.h"
 
 using namespace std;
@@ -116,6 +118,9 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
                     applyEyelidOffset(getFinalOrientationInWorldFrame());
                 }
             }
+
+            auto eyeTracker = DependencyManager::get<EyeTracker>();
+            _isEyeTrackerConnected = eyeTracker->isTracking();
         }
         //  Twist the upper body to follow the rotation of the head, but only do this with my avatar,
         //  since everyone else will see the full joint rotations for other people.  
@@ -125,7 +130,7 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         setTorsoTwist(currentTwist + (getFinalYaw() * BODY_FOLLOW_HEAD_FACTOR - currentTwist) * BODY_FOLLOW_HEAD_YAW_RATE);
     }
    
-    if (!(_isFaceTrackerConnected || billboard)) {
+    if (!(_isFaceTrackerConnected || _isEyeTrackerConnected || billboard)) {
         // Update eye saccades
         const float AVERAGE_MICROSACCADE_INTERVAL = 1.0f;
         const float AVERAGE_SACCADE_INTERVAL = 6.0f;

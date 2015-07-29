@@ -140,6 +140,7 @@ void EyeTracker::setEnabled(bool enabled, bool simulate) {
 }
 
 void EyeTracker::reset() {
+    // Nothing to do.
 }
 
 QString EyeTracker::smiReturnValueToString(int value) {
