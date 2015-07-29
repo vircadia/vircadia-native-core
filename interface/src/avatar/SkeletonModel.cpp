@@ -115,6 +115,11 @@ void SkeletonModel::updateClusterMatrices() {
     }
 }
 
+void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
+    _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation());
+    Model::updateRig(deltaTime, parentTransform);
+}
+
 void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     setTranslation(_owningAvatar->getSkeletonPosition());
     static const glm::quat refOrientation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));

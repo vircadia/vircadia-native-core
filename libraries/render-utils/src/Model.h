@@ -269,6 +269,7 @@ protected:
     void snapToRegistrationPoint();
 
     void simulateInternal(float deltaTime);
+    virtual void updateRig(float deltaTime, glm::mat4 parentTransform);
 
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);

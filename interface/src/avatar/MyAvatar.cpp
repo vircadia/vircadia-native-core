@@ -738,6 +738,7 @@ void MyAvatar::loadData() {
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
 
     settings.endGroup();
+    _rig->setEnableRig(settings.value("enableRig").toBool());
 }
 
 void MyAvatar::saveAttachmentData(const AttachmentData& attachment) const {
