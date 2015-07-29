@@ -80,7 +80,6 @@ void HitEffect::run(const render::SceneContextPointer& sceneContext, const rende
 
     
     // Ready to render
-   // renderContext->args->_context->syncCache();
     args->_context->render((batch));
     
 }
