@@ -969,12 +969,8 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     Avatar::setSkeletonModelURL(skeletonModelURL);
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
     _billboardValid = false;
-
-    if (_useFullAvatar) {
-        _skeletonModel.setVisibleInScene(_prevShouldDrawHead, scene);
-    } else {
-        _skeletonModel.setVisibleInScene(true, scene);
-    }
+    _skeletonModel.setVisibleInScene(true, scene);
+    _headBoneSet.clear();
 }
 
 void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName) {
@@ -1184,17 +1180,45 @@ void MyAvatar::setVisibleInSceneIfReady(Model* model, render::ScenePointer scene
     }
 }
 
+void MyAvatar::initHeadBones() {
+    int neckJointIndex = -1;
+    if (_skeletonModel.getGeometry()) {
+        neckJointIndex = _skeletonModel.getGeometry()->getFBXGeometry().neckJointIndex;
+    }
+    if (neckJointIndex == -1) {
+        return;
+    }
+    _headBoneSet.clear();
+    std::queue<int> q;
+    q.push(neckJointIndex);
+    _headBoneSet.insert(neckJointIndex);
+
+    // fbxJoints only hold links to parents not children, so we have to do a bit of extra work here.
+    while (q.size() > 0) {
+        int jointIndex = q.front();
+        for (int i = 0; i < _skeletonModel.getJointStateCount(); i++) {
+            if (jointIndex == _skeletonModel.getParentJointIndex(i)) {
+                _headBoneSet.insert(i);
+                q.push(i);
+            }
+        }
+        q.pop();
+    }
+}
+
 void MyAvatar::preRender(RenderArgs* renderArgs) {
 
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
     const bool shouldDrawHead = shouldRenderHead(renderArgs);
 
-    _skeletonModel.initWhenReady(scene);
+    if (_skeletonModel.initWhenReady(scene)) {
+        initHeadBones();
+        _skeletonModel.setCauterizeBoneSet(_headBoneSet);
+    }
 
     if (shouldDrawHead != _prevShouldDrawHead) {
         if (_useFullAvatar) {
-            _skeletonModel.setVisibleInScene(true, scene);
-            _rig->setFirstPerson(!shouldDrawHead);
+            _skeletonModel.setCauterizeBones(!shouldDrawHead);
         } else {
             getHead()->getFaceModel().setVisibleInScene(shouldDrawHead, scene);
         }

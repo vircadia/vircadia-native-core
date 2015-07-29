@@ -18,6 +18,7 @@
 #include <QMutex>
 
 #include <unordered_map>
+#include <unordered_set>
 #include <functional>
 
 #include <AABox.h>
@@ -172,6 +173,9 @@ public:
     /// \return true if joint exists
     bool getJointRotation(int jointIndex, glm::quat& rotation) const;
 
+    /// Returns the index of the parent of the indexed joint, or -1 if not found.
+    int getParentJointIndex(int jointIndex) const;
+
     void inverseKinematics(int jointIndex, glm::vec3 position, const glm::quat& rotation, float priority);
 
     /// Returns the extents of the model in its bind pose.
@@ -186,6 +190,12 @@ public:
     /// enables/disables scale to fit behavior, the model will be automatically scaled to the specified largest dimension
     bool getIsScaledToFit() const { return _scaledToFit; } /// is model scaled to fit
     const glm::vec3& getScaleToFitDimensions() const { return _scaleToFitDimensions; } /// the dimensions model is scaled to
+
+    void setCauterizeBones(bool flag) { _cauterizeBones = flag; }
+    bool getCauterizeBones() const { return _cauterizeBones; }
+
+    const std::unordered_set<int>& getCauterizeBoneSet() const { return _cauterizeBoneSet; }
+    void setCauterizeBoneSet(const std::unordered_set<int>& boneSet) { _cauterizeBoneSet = boneSet; }
 
 protected:
 
@@ -217,9 +227,6 @@ protected:
 
     /// Clear the joint states
     void clearJointState(int index);
-
-    /// Returns the index of the parent of the indexed joint, or -1 if not found.
-    int getParentJointIndex(int jointIndex) const;
 
     /// Returns the index of the last free ancestor of the indexed joint, or -1 if not found.
     int getLastFreeJointIndex(int jointIndex) const;
@@ -255,9 +262,12 @@ protected:
     class MeshState {
     public:
         QVector<glm::mat4> clusterMatrices;
+        QVector<glm::mat4> cauterizedClusterMatrices;
     };
 
     QVector<MeshState> _meshStates;
+    std::unordered_set<int> _cauterizeBoneSet;
+    bool _cauterizeBones;
 
     // returns 'true' if needs fullUpdate after geometry change
     bool updateGeometry();
