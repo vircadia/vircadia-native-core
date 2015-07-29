@@ -452,9 +452,9 @@ void Connection::updateRTT(int rtt) {
     static const int RTT_ESTIMATION_ALPHA_NUMERATOR = 8;
     static const int RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR = 4;
    
-    _rtt = (_rtt * (1 - RTT_ESTIMATION_ALPHA_NUMERATOR) + rtt) / RTT_ESTIMATION_ALPHA_NUMERATOR;
+    _rtt = (_rtt * (RTT_ESTIMATION_ALPHA_NUMERATOR - 1) + rtt) / RTT_ESTIMATION_ALPHA_NUMERATOR;
     
-    _rttVariance = (_rttVariance * (1 - RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR)
+    _rttVariance = (_rttVariance * (RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR - 1)
                     + abs(rtt - _rtt)) / RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR;
 }
 
