@@ -25,16 +25,7 @@ int NLPacket::maxPayloadSize(PacketType type, bool isPartOfMessage) {
 }
 
 std::unique_ptr<NLPacket> NLPacket::create(PacketType type, qint64 size, bool isReliable, bool isPartOfMessage) {
-    std::unique_ptr<NLPacket> packet;
-    
-    if (size == -1) {
-        packet = std::unique_ptr<NLPacket>(new NLPacket(type, isReliable, isPartOfMessage));
-    } else {
-        // Fail with invalid size
-        Q_ASSERT(size >= 0);
-
-        packet = std::unique_ptr<NLPacket>(new NLPacket(type, size, isReliable, isPartOfMessage));
-    }
+    auto packet = std::unique_ptr<NLPacket>(new NLPacket(type, size, isReliable, isPartOfMessage));
         
     packet->open(QIODevice::ReadWrite);
     
@@ -70,23 +61,11 @@ std::unique_ptr<NLPacket> NLPacket::createCopy(const NLPacket& other) {
     return std::unique_ptr<NLPacket>(new NLPacket(other));
 }
 
-NLPacket::NLPacket(PacketType type, bool isReliable, bool isPartOfMessage) :
-    Packet(-1, isReliable, isPartOfMessage),
-    _type(type),
-    _version(versionForPacketType(type))
-{
-    adjustPayloadStartAndCapacity(NLPacket::localHeaderSize(_type));
-    
-    writeTypeAndVersion();
-}
-
 NLPacket::NLPacket(PacketType type, qint64 size, bool isReliable, bool isPartOfMessage) :
-    Packet(NLPacket::localHeaderSize(type) + size, isReliable, isPartOfMessage),
+    Packet((size == -1) ? -1 : NLPacket::localHeaderSize(type) + size, isReliable, isPartOfMessage),
     _type(type),
     _version(versionForPacketType(type))
 {
-    Q_ASSERT(size >= 0);
-    
     adjustPayloadStartAndCapacity(NLPacket::localHeaderSize(_type));
     
     writeTypeAndVersion();
