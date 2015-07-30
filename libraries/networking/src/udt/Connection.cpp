@@ -228,9 +228,9 @@ SequenceNumber Connection::nextACK() const {
 bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber) {
     
     // check if this is a packet pair we should estimate bandwidth from, or just a regular packet
-    if (((uint32_t) sequenceNumber & 0xFF) == 0) {
+    if (((uint32_t) sequenceNumber & 0xF) == 0) {
         _receiveWindow.onProbePair1Arrival();
-    } else if (((uint32_t) sequenceNumber & 0xFF) == 1) {
+    } else if (((uint32_t) sequenceNumber & 0xF) == 1) {
         _receiveWindow.onProbePair2Arrival();
     } else {
         _receiveWindow.onPacketArrival();
