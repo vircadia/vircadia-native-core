@@ -23,11 +23,11 @@
 
 #include "../HifiSockAddr.h"
 #include "CongestionControl.h"
-#include "Connection.h"
 
 namespace udt {
 
 class BasePacket;
+class Connection;
 class ControlSender;
 class Packet;
 class SequenceNumber;

@@ -14,6 +14,7 @@
 #include <QtCore/QThread>
 
 #include "../NetworkLogging.h"
+#include "Connection.h"
 #include "ControlPacket.h"
 #include "Packet.h"
 

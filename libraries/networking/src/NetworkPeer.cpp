@@ -57,7 +57,9 @@ void NetworkPeer::setPublicSocket(const HifiSockAddr& publicSocket) {
         
         bool wasOldSocketNull = _publicSocket.isNull();
 
+        auto temp = _publicSocket.objectName();
         _publicSocket = publicSocket;
+        _publicSocket.setObjectName(temp);
         
         if (!wasOldSocketNull) {
             qCDebug(networking) << "Public socket change for node" << *this;
@@ -74,7 +76,9 @@ void NetworkPeer::setLocalSocket(const HifiSockAddr& localSocket) {
         
         bool wasOldSocketNull = _localSocket.isNull();
         
+        auto temp = _localSocket.objectName();
         _localSocket = localSocket;
+        _localSocket.setObjectName(temp);
 
         if (!wasOldSocketNull) {
             qCDebug(networking) << "Local socket change for node" << *this;
@@ -91,7 +95,9 @@ void NetworkPeer::setSymmetricSocket(const HifiSockAddr& symmetricSocket) {
         
         bool wasOldSocketNull = _symmetricSocket.isNull();
         
+        auto temp = _symmetricSocket.objectName();
         _symmetricSocket = symmetricSocket;
+        _symmetricSocket.setObjectName(temp);
         
         if (!wasOldSocketNull) {
             qCDebug(networking) << "Symmetric socket change for node" << *this;
