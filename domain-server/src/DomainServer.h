@@ -57,7 +57,7 @@ public slots:
 
     void processRequestAssignmentPacket(QSharedPointer<NLPacket> packet);
     void processConnectRequestPacket(QSharedPointer<NLPacket> packet);
-    void processListRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void processListRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);;
     void processNodeJSONStatsPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
     void processPathQueryPacket(QSharedPointer<NLPacket> packet);
     void processICEPingPacket(QSharedPointer<NLPacket> packet);
@@ -90,7 +90,7 @@ private:
     void pingPunchForConnectingPeer(const SharedNetworkPeer& peer);
 
     unsigned int countConnectedUsers();
-    bool verifyUsersKey (const QString& username, const QByteArray& usernameSignature, QString& reasonReturn);
+    bool verifyUserSignature (const QString& username, const QByteArray& usernameSignature, QString& reasonReturn);
     bool shouldAllowConnectionFromNode(const QString& username, const QByteArray& usernameSignature,
                                        const HifiSockAddr& senderSockAddr, QString& reasonReturn);
 
@@ -149,6 +149,8 @@ private:
 
     QSet<QUuid> _webAuthenticationStateSet;
     QHash<QUuid, DomainServerWebSessionData> _cookieSessionHash;
+    
+    QHash<QString, QUuid> _connectionTokenHash;
 
     QHash<QString, QByteArray> _userPublicKeys;
 
