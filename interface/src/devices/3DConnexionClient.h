@@ -1,5 +1,5 @@
-//  3DConnexion.h
-//  hifi
+//  3DConnexionClient.h
+//  interface/src/devices
 //
 //  Created by Marcel Verhagen on 09-06-15.
 //  Copyright 2015 High Fidelity, Inc.
@@ -8,8 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_ConnexionClient_h
-#define hifi_ConnexionClient_h
+#ifndef hifi_3DConnexionClient_h
+#define hifi_3DConnexionClient_h
 
 #include <qobject.h>
 #include <qlibrary.h>
@@ -18,7 +18,7 @@
 
 #include "ui/UserInputMapper.h"
 
-#ifndef HAVE_CONNEXIONCLIENT
+#ifndef HAVE_3DCONNEXIONCLIENT
 class ConnexionClient : public QObject {
     Q_OBJECT
 public:
@@ -29,9 +29,9 @@ public:
 public slots:
     void toggleConnexion(bool shouldEnable) {};
 };
-#endif // NOT_HAVE_CONNEXIONCLIENT
+#endif // NOT_HAVE_3DCONNEXIONCLIENT
 
-#ifdef HAVE_CONNEXIONCLIENT
+#ifdef HAVE_3DCONNEXIONCLIENT
 // the windows connexion rawinput
 #ifdef _WIN32
 
@@ -86,16 +86,15 @@ private:
 class ConnexionClient : public QObject, public QAbstractNativeEventFilter {
     Q_OBJECT
 public:
-	ConnexionClient();
+    ConnexionClient();
     ~ConnexionClient();
 
-	static ConnexionClient& getInstance();
-
-	ConnexionClient* client;
+    static ConnexionClient& getInstance();
     static void init();
     static void destroy();
-
     static bool Is3dmouseAttached();
+    
+    ConnexionClient* client;
 
     I3dMouseParam& MouseParams();
     const I3dMouseParam& MouseParams() const;
@@ -166,16 +165,16 @@ class ConnexionClient : public QObject {
     Q_OBJECT
 public:
     static ConnexionClient& getInstance();
-    static bool Is3dmouseAttached();
     static void init();
     static void destroy();
+    static bool Is3dmouseAttached();
 public slots:
     void toggleConnexion(bool shouldEnable);
 };
 
 #endif // __APPLE__
 
-#endif // HAVE_CONNEXIONCLIENT
+#endif // HAVE_3DCONNEXIONCLIENT
 
 
 // connnects to the userinputmapper
@@ -241,4 +240,4 @@ protected:
     AxisStateMap _axisStateMap;
 };
 
-#endif // defined(hifi_ConnexionClient_h)
+#endif // defined(hifi_3DConnexionClient_h)
