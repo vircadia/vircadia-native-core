@@ -209,11 +209,18 @@ void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
     int stencil = batch._params[paramOffset + 1]._int;
     int useScissor = batch._params[paramOffset + 0]._int;
 
-    bool restoreDepthMask = false;
     GLuint glmask = 0;
     if (masks & Framebuffer::BUFFER_STENCIL) {
         glClearStencil(stencil);
         glmask |= GL_STENCIL_BUFFER_BIT;
+        // TODO: we will probably need to also check the write mask of stencil like we do
+        // for depth buffer, but as would say a famous Fez owner "We'll cross that bridge when we come to it"
+    }
+
+    bool restoreDepthMask = false;
+    if (masks & Framebuffer::BUFFER_DEPTH) {
+        glClearDepth(depth);
+        glmask |= GL_DEPTH_BUFFER_BIT;
         
         bool cacheDepthMask = _pipeline._stateCache.depthTest.getWriteMask();
         if (!cacheDepthMask) {
@@ -221,11 +228,6 @@ void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
             glDepthMask(GL_TRUE);
         }
     }
-
-    if (masks & Framebuffer::BUFFER_DEPTH) {
-        glClearDepth(depth);
-        glmask |= GL_DEPTH_BUFFER_BIT;
-    } 
 
     std::vector<GLenum> drawBuffers;
     if (masks & Framebuffer::BUFFER_COLORS) {
@@ -259,7 +261,7 @@ void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
         glDisable(GL_SCISSOR_TEST);
     }
 
-    // REstore write mask
+    // Restore write mask meaning turn back off
     if (restoreDepthMask) {
         glDepthMask(GL_FALSE);
     }
