@@ -1019,8 +1019,6 @@ void Application::paintGL() {
     // Back to the default framebuffer;
     gpu::Batch batch;
     batch.resetStages();
-    // TODO: Testing the water here, it is maybe not needed at all,
-    // i would like to keep it like that until we merge with DisplayPlugin
     renderArgs._context->render(batch);
 }
 

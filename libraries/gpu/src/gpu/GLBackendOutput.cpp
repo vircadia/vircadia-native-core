@@ -209,10 +209,17 @@ void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
     int stencil = batch._params[paramOffset + 1]._int;
     int useScissor = batch._params[paramOffset + 0]._int;
 
+    bool restoreDepthMask = false;
     GLuint glmask = 0;
     if (masks & Framebuffer::BUFFER_STENCIL) {
         glClearStencil(stencil);
         glmask |= GL_STENCIL_BUFFER_BIT;
+        
+        bool cacheDepthMask = _pipeline._stateCache.depthTest.getWriteMask();
+        if (!cacheDepthMask) {
+            restoreDepthMask = true;
+            glDepthMask(GL_TRUE);
+        }
     }
 
     if (masks & Framebuffer::BUFFER_DEPTH) {
@@ -252,6 +259,11 @@ void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
         glDisable(GL_SCISSOR_TEST);
     }
 
+    // REstore write mask
+    if (restoreDepthMask) {
+        glDepthMask(GL_FALSE);
+    }
+    
     // Restore the color draw buffers only if a frmaebuffer is bound
     if (_output._framebuffer && !drawBuffers.empty()) {
         auto glFramebuffer = syncGPUObject(*_output._framebuffer);
