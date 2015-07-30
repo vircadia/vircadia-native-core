@@ -365,8 +365,13 @@ void ApplicationCompositor::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& or
 
     // We need the RAW camera orientation and position, because this is what the overlay is
     // rendered relative to
-    const glm::vec3 overlayPosition = qApp->getCamera()->getPosition();
-    const glm::quat overlayOrientation = qApp->getCamera()->getRotation();
+    glm::vec3 overlayPosition = qApp->getCamera()->getPosition();
+    glm::quat overlayOrientation = qApp->getCamera()->getRotation();
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::StandingHMDSensorMode)) {
+        overlayPosition = _modelTransform.getTranslation();
+        overlayOrientation = _modelTransform.getRotation();
+    }
 
     // Intersection UI overlay space
     glm::vec3 worldSpaceDirection = overlayOrientation * overlaySpaceDirection;
