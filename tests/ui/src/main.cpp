@@ -215,7 +215,6 @@ public:
         SixenseEnabled,
         SixenseMouseInput,
         SixenseLasers,
-        ShiftHipsForIdleAnimations,
         Stars,
         Stats,
         StereoAudio,
