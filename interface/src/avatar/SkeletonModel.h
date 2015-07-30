@@ -117,19 +117,6 @@ protected:
     void applyHandPosition(int jointIndex, const glm::vec3& position);
 
     void applyPalmData(int jointIndex, PalmData& palm);
-
-    /// Updates the state of the joint at the specified index.
-    virtual void updateJointState(int index);
-
-    void maybeUpdateLeanRotation(const JointState& parentState, int index);
-    void maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, int index);
-    void maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, int index);
-
-    void updateClusterMatrices();
-    void cauterizeHead();
-    void initHeadBones();
-    void invalidateHeadBones();
-
 private:
 
     void renderJointConstraints(gpu::Batch& batch, int jointIndex);

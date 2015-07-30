@@ -1375,18 +1375,12 @@ void Model::simulateInternal(float deltaTime) {
             }
         }
     }
-    
+
     // post the blender if we're not currently waiting for one to finish
     if (geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
         DependencyManager::get<ModelBlender>()->noteRequiresBlend(this);
     }
-}
-
-void Model::updateJointState(int index) {
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-    _rig->updateJointState(index, parentTransform);
 }
 
 bool Model::setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation, bool useRotation,

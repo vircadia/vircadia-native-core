@@ -49,7 +49,7 @@ void FaceModel::simulate(float deltaTime, bool fullUpdate) {
         setOffset(-_geometry->getFBXGeometry().neckPivot);
 
         for (int i = 0; i < _rig->getJointStateCount(); i++) {
-            updateJointState(i);
+            maybeUpdateNeckAndEyeRotation(i);
         }
 
         Model::simulateInternal(deltaTime);
@@ -90,7 +90,7 @@ void FaceModel::maybeUpdateEyeRotation(Model* model, const JointState& parentSta
                                              joint.rotation, DEFAULT_PRIORITY);
 }
 
-void FaceModel::updateJointState(int index) {
+void FaceModel::maybeUpdateNeckAndEyeRotation(int index) {
     const JointState& state = _rig->getJointState(index);
     const FBXJoint& joint = state.getFBXJoint();
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
