@@ -276,9 +276,6 @@ protected:
     void simulateInternal(float deltaTime);
     virtual void updateRig(float deltaTime, glm::mat4 parentTransform);
 
-    /// Updates the state of the joint at the specified index.
-    virtual void updateJointState(int index);
-
     /// \param jointIndex index of joint in model structure
     /// \param position position of joint in model-frame
     /// \param rotation rotation of joint in model-frame

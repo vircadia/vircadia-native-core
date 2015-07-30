@@ -83,29 +83,6 @@ void SkeletonModel::initJointStates(QVector<JointState> states) {
 const float PALM_PRIORITY = DEFAULT_PRIORITY;
 const float LEAN_PRIORITY = DEFAULT_PRIORITY;
 
-
-void SkeletonModel::updateClusterMatrices() {
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::mat4 modelToWorld = glm::mat4_cast(_rotation);
-    for (int i = 0; i < _meshStates.size(); i++) {
-        MeshState& state = _meshStates[i];
-        const FBXMesh& mesh = geometry.meshes.at(i);
-        if (_showTrueJointTransforms) {
-            for (int j = 0; j < mesh.clusters.size(); j++) {
-                const FBXCluster& cluster = mesh.clusters.at(j);
-                state.clusterMatrices[j] =
-                    modelToWorld * _rig->getJointTransform(cluster.jointIndex) * cluster.inverseBindMatrix;
-            }
-        } else {
-            for (int j = 0; j < mesh.clusters.size(); j++) {
-                const FBXCluster& cluster = mesh.clusters.at(j);
-                state.clusterMatrices[j] =
-                    modelToWorld * _rig->getJointVisibleTransform(cluster.jointIndex) * cluster.inverseBindMatrix;
-            }
-        }
-    }
-}
-
 void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation());
     Model::updateRig(deltaTime, parentTransform);
@@ -264,16 +241,6 @@ void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
     }
 }
 
-void SkeletonModel::updateJointState(int index) {
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-
-    _rig->updateJointState(index, parentTransform);
-
-    if (index == _geometry->getFBXGeometry().rootJointIndex) {
-        _rig->clearJointTransformTranslation(index);
-    }
-}
 void SkeletonModel::renderJointConstraints(gpu::Batch& batch, int jointIndex) {
     if (jointIndex == -1 || jointIndex >= _rig->getJointStateCount()) {
         return;

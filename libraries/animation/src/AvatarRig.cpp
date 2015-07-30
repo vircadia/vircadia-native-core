@@ -23,6 +23,7 @@ void AvatarRig::updateJointState(int index, glm::mat4 parentTransform) {
     int parentIndex = joint.parentIndex;
     if (parentIndex == -1) {
         state.computeTransform(parentTransform);
+        clearJointTransformTranslation(index);
     } else {
         // guard against out-of-bounds access to _jointStates
         if (joint.parentIndex >= 0 && joint.parentIndex < _jointStates.size()) {
