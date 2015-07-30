@@ -56,8 +56,8 @@ public:
 
     const QUuid& getSourceID() const { return _sourceID; }
     
-    void writeSourceID(const QUuid& sourceID);
-    void writeVerificationHashGivenSecret(const QUuid& connectionSecret);
+    void writeSourceID(const QUuid& sourceID) const;
+    void writeVerificationHashGivenSecret(const QUuid& connectionSecret) const;
 
 protected:
     
@@ -80,7 +80,7 @@ protected:
     
     PacketType _type;
     PacketVersion _version;
-    QUuid _sourceID;
+    mutable QUuid _sourceID;
 };
 
 #endif // hifi_NLPacket_h

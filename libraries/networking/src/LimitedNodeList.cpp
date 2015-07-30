@@ -247,13 +247,13 @@ void LimitedNodeList::collectPacketStats(const NLPacket& packet) {
 
 void LimitedNodeList::fillPacketHeader(const NLPacket& packet, const QUuid& connectionSecret) {
     if (!NON_SOURCED_PACKETS.contains(packet.getType())) {
-        const_cast<NLPacket&>(packet).writeSourceID(getSessionUUID());
+        packet.writeSourceID(getSessionUUID());
     }
     
     if (!connectionSecret.isNull()
         && !NON_SOURCED_PACKETS.contains(packet.getType())
         && !NON_VERIFIED_PACKETS.contains(packet.getType())) {
-        const_cast<NLPacket&>(packet).writeVerificationHashGivenSecret(connectionSecret);
+        packet.writeVerificationHashGivenSecret(connectionSecret);
     }
 }
 

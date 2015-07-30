@@ -198,7 +198,7 @@ void NLPacket::readSourceID() {
     }
 }
 
-void NLPacket::writeSourceID(const QUuid& sourceID) {
+void NLPacket::writeSourceID(const QUuid& sourceID) const {
     Q_ASSERT(!NON_SOURCED_PACKETS.contains(_type));
     
     auto offset = Packet::totalHeaderSize(isPartOfMessage()) + sizeof(PacketType) + sizeof(PacketVersion);
@@ -207,7 +207,7 @@ void NLPacket::writeSourceID(const QUuid& sourceID) {
     _sourceID = sourceID;
 }
 
-void NLPacket::writeVerificationHashGivenSecret(const QUuid& connectionSecret) {
+void NLPacket::writeVerificationHashGivenSecret(const QUuid& connectionSecret) const {
     Q_ASSERT(!NON_SOURCED_PACKETS.contains(_type) && !NON_VERIFIED_PACKETS.contains(_type));
     
     auto offset = Packet::totalHeaderSize(isPartOfMessage()) + sizeof(PacketType) + sizeof(PacketVersion)

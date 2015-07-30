@@ -150,10 +150,8 @@ QDataStream& operator<<(QDataStream &out, const Assignment& assignment) {
 
 QDataStream& operator>>(QDataStream &in, Assignment& assignment) {
     quint8 packedType;
-    in >> packedType;
+    in >> packedType >> assignment._uuid >> assignment._pool >> assignment._payload;
     assignment._type = (Assignment::Type) packedType;
-    
-    in >> assignment._uuid >> assignment._pool >> assignment._payload;
     
     if (assignment._command == Assignment::RequestCommand) {
         in >> assignment._walletUUID;
