@@ -1455,7 +1455,7 @@ void buildModelMesh(ExtractedMesh& extracted) {
 }
 #endif // USE_MODEL_MESH
 
-QByteArray fileOnUrl(const QByteArray filenameString,const QString url) {
+QByteArray fileOnUrl(const QByteArray& filenameString, const QString& url) {
     QString path = QFileInfo(url).path();
     QByteArray filename = filenameString;
     QFileInfo checkFile(path + "/" + filename.replace('\\', '/'));
@@ -1469,7 +1469,7 @@ QByteArray fileOnUrl(const QByteArray filenameString,const QString url) {
     return filename;
 }
 
-FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping, QString url, bool loadLightmaps, float lightmapLevel) {
+FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
     QHash<QString, ExtractedMesh> meshes;
     QHash<QString, QString> modelIDsToNames;
     QHash<QString, int> meshIDsToMeshIndices;
@@ -2722,12 +2722,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
     return geometry;
 }
 
-FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, const QString url, bool loadLightmaps, float lightmapLevel) {
+FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
     QBuffer buffer(const_cast<QByteArray*>(&model));
     buffer.open(QIODevice::ReadOnly);
     return readFBX(&buffer, mapping, url, loadLightmaps, lightmapLevel);
 }
 
-FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, const QString url, bool loadLightmaps, float lightmapLevel) {
+FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
     return extractFBXGeometry(parseFBX(device), mapping, url, loadLightmaps, lightmapLevel);
 }
