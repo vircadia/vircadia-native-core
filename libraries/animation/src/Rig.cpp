@@ -665,3 +665,68 @@ glm::quat Rig::getJointDefaultRotationInParentFrame(int jointIndex) {
     }
     return _jointStates[jointIndex].getDefaultRotationInParentFrame();
 }
+
+void Rig::updateFromHeadParameters(const HeadParameters& params) {
+    updateLeanJoint(params.leanJointIndex, params.leanSideways, params.leanForward, params.torsoTwist);
+    updateNeckJoint(params.neckJointIndex, params.localHeadOrientation, params.leanSideways, params.leanForward, params.torsoTwist);
+    updateEyeJoint(params.leftEyeJointIndex, params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
+    updateEyeJoint(params.rightEyeJointIndex, params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
+}
+
+void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist) {
+    if (index > 0 && _jointStates[index].getParentIndex() > 0) {
+        auto& parentState = _jointStates[_jointStates[index].getParentIndex()];
+
+        // get the rotation axes in joint space and use them to adjust the rotation
+        glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
+        glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
+        glm::vec3 zAxis(0.0f, 0.0f, 1.0f);
+        glm::quat inverse = glm::inverse(parentState.getRotation() * getJointDefaultRotationInParentFrame(index));
+        setJointRotationInConstrainedFrame(index,
+                                           glm::angleAxis(- RADIANS_PER_DEGREE * leanSideways, inverse * zAxis) *
+                                           glm::angleAxis(- RADIANS_PER_DEGREE * leanForward, inverse * xAxis) *
+                                           glm::angleAxis(RADIANS_PER_DEGREE * torsoTwist, inverse * yAxis) *
+                                           getJointState(index).getFBXJoint().rotation, DEFAULT_PRIORITY);
+    }
+}
+
+void Rig::updateNeckJoint(int index, const glm::quat& localHeadOrientation, float leanSideways, float leanForward, float torsoTwist) {
+    if (index > 0 && _jointStates[index].getParentIndex() > 0) {
+        auto& parentState = _jointStates[_jointStates[index].getParentIndex()];
+        auto joint = _jointStates[index].getFBXJoint();
+
+        // get the rotation axes in joint space and use them to adjust the rotation
+        glm::mat3 axes = glm::mat3_cast(glm::quat());
+        glm::mat3 inverse = glm::mat3(glm::inverse(parentState.getTransform() *
+                                                   glm::translate(getJointDefaultTranslationInConstrainedFrame(index)) *
+                                                   joint.preTransform * glm::mat4_cast(joint.preRotation)));
+        glm::vec3 pitchYawRoll = safeEulerAngles(localHeadOrientation);
+        glm::vec3 lean = glm::radians(glm::vec3(leanForward, torsoTwist, leanSideways));
+        pitchYawRoll -= lean;
+        setJointRotationInConstrainedFrame(index,
+                                           glm::angleAxis(-pitchYawRoll.z, glm::normalize(inverse * axes[2])) *
+                                           glm::angleAxis(pitchYawRoll.y, glm::normalize(inverse * axes[1])) *
+                                           glm::angleAxis(-pitchYawRoll.x, glm::normalize(inverse * axes[0])) *
+                                           joint.rotation, DEFAULT_PRIORITY);
+    }
+}
+
+void Rig::updateEyeJoint(int index, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade) {
+    if ( index > 0 && _jointStates[index].getParentIndex() > 0) {
+        auto& parentState = _jointStates[_jointStates[index].getParentIndex()];
+        auto joint = _jointStates[index].getFBXJoint();
+
+        // NOTE: at the moment we do the math in the world-frame, hence the inverse transform is more complex than usual.
+        glm::mat4 inverse = glm::inverse(parentState.getTransform() *
+                                         glm::translate(getJointDefaultTranslationInConstrainedFrame(index)) *
+                                         joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation));
+        glm::vec3 front = glm::vec3(inverse * glm::vec4(worldHeadOrientation * IDENTITY_FRONT, 0.0f));
+        glm::vec3 lookAtDelta = lookAt;
+        glm::vec3 lookAt = glm::vec3(inverse * glm::vec4(lookAtDelta + glm::length(lookAtDelta) * saccade, 1.0f));
+        glm::quat between = rotationBetween(front, lookAt);
+        const float MAX_ANGLE = 30.0f * RADIANS_PER_DEGREE;
+        float angle = glm::clamp(glm::angle(between), -MAX_ANGLE, MAX_ANGLE);
+        glm::quat rot = glm::angleAxis(angle, glm::axis(between));
+        setJointRotationInConstrainedFrame(index, rot * joint.rotation, DEFAULT_PRIORITY);
+    }
+}

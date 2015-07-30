@@ -22,7 +22,6 @@ class EntityRig : public Rig {
  public:
     ~EntityRig() {}
     virtual void updateJointState(int index, glm::mat4 parentTransform);
-    virtual void updateFaceJointState(int index, glm::mat4 parentTransform) { }
 };
 
 #endif // hifi_EntityRig_h

@@ -118,6 +118,24 @@ void SkeletonModel::updateClusterMatrices() {
 void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation());
     Model::updateRig(deltaTime, parentTransform);
+    if (_owningAvatar->isMyAvatar()) {
+        const FBXGeometry& geometry = _geometry->getFBXGeometry();
+
+        Rig::HeadParameters params;
+        params.leanSideways = _owningAvatar->getHead()->getFinalLeanSideways();
+        params.leanForward = _owningAvatar->getHead()->getFinalLeanSideways();
+        params.torsoTwist = _owningAvatar->getHead()->getTorsoTwist();
+        params.localHeadOrientation = _owningAvatar->getHead()->getFinalOrientationInLocalFrame();
+        params.worldHeadOrientation = _owningAvatar->getHead()->getFinalOrientationInWorldFrame();
+        params.eyeLookAt = _owningAvatar->getHead()->getCorrectedLookAtPosition();
+        params.eyeSaccade = _owningAvatar->getHead()->getSaccade();
+        params.leanJointIndex = geometry.leanJointIndex;
+        params.neckJointIndex = geometry.neckJointIndex;
+        params.leftEyeJointIndex = geometry.leftEyeJointIndex;
+        params.rightEyeJointIndex = geometry.rightEyeJointIndex;
+
+        _rig->updateFromHeadParameters(params);
+    }
 }
 
 void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
@@ -259,51 +277,12 @@ void SkeletonModel::updateJointState(int index) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
 
-    const JointState joint = _rig->getJointState(index);
-    if (joint.getParentIndex() >= 0 && joint.getParentIndex() < _rig->getJointStateCount()) {
-        const JointState parentState = _rig->getJointState(joint.getParentIndex());
-        if (index == geometry.leanJointIndex) {
-            maybeUpdateLeanRotation(parentState, index);
-
-        } else if (index == geometry.neckJointIndex) {
-            maybeUpdateNeckRotation(parentState, joint.getFBXJoint(), index);
-
-        } else if (index == geometry.leftEyeJointIndex || index == geometry.rightEyeJointIndex) {
-            maybeUpdateEyeRotation(parentState, joint.getFBXJoint(), index);
-        }
-    }
-
     _rig->updateJointState(index, parentTransform);
 
     if (index == _geometry->getFBXGeometry().rootJointIndex) {
         _rig->clearJointTransformTranslation(index);
     }
 }
-
-void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, int index) {
-    if (!_owningAvatar->isMyAvatar()) {
-        return;
-    }
-    // get the rotation axes in joint space and use them to adjust the rotation
-    glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
-    glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
-    glm::vec3 zAxis(0.0f, 0.0f, 1.0f);
-    glm::quat inverse = glm::inverse(parentState.getRotation() * _rig->getJointDefaultRotationInParentFrame(index));
-    _rig->setJointRotationInConstrainedFrame(index,
-                glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanSideways(), inverse * zAxis)
-                * glm::angleAxis(- RADIANS_PER_DEGREE * _owningAvatar->getHead()->getFinalLeanForward(), inverse * xAxis)
-                * glm::angleAxis(RADIANS_PER_DEGREE * _owningAvatar->getHead()->getTorsoTwist(), inverse * yAxis)
-                * _rig->getJointState(index).getFBXJoint().rotation, LEAN_PRIORITY);
-}
-
-void SkeletonModel::maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, int index) {
-    _owningAvatar->getHead()->getFaceModel().maybeUpdateNeckRotation(parentState, joint, index);
-}
-
-void SkeletonModel::maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, int index) {
-    _owningAvatar->getHead()->getFaceModel().maybeUpdateEyeRotation(this, parentState, joint, index);
-}
-
 void SkeletonModel::renderJointConstraints(gpu::Batch& batch, int jointIndex) {
     if (jointIndex == -1 || jointIndex >= _rig->getJointStateCount()) {
         return;
