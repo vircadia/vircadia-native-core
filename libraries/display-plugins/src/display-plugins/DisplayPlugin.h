@@ -114,12 +114,11 @@ public:
     virtual void resetSensors() {}
     virtual float devicePixelRatio() { return 1.0;  }
 
+    //// The window for the surface, used for event interception.  May be null.
+    //virtual QWindow* getWindow() const = 0;
 
-    // The window for the surface, used for event interception.  May be null.
-    virtual QWindow* getWindow() const = 0;
-
-    virtual void installEventFilter(QObject* filter) {}
-    virtual void removeEventFilter(QObject* filter) {}
+    //virtual void installEventFilter(QObject* filter) {}
+    //virtual void removeEventFilter(QObject* filter) {}
 
 signals:
     void recommendedFramebufferSizeChanged(const QSize & size);

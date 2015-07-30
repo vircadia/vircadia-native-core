@@ -23,10 +23,6 @@ bool NullDisplayPlugin::hasFocus() const {
     return false;
 }
 
-QWindow* NullDisplayPlugin::getWindow() const {
-    return nullptr;
-}
-
 void NullDisplayPlugin::preRender() {}
 void NullDisplayPlugin::preDisplay() {}
 void NullDisplayPlugin::display(GLuint sceneTexture, const glm::uvec2& sceneSize) {}

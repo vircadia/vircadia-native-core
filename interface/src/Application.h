@@ -84,7 +84,6 @@ class FaceTracker;
 class MainWindow;
 class Node;
 class ScriptEngine;
-class GlWindow;
 
 namespace gpu {
     class Context;
@@ -287,9 +286,10 @@ public:
     virtual void removeMenuItem(const QString& menuName, const QString& menuItem);
     virtual bool isOptionChecked(const QString& name);
     virtual void setIsOptionChecked(const QString& path, bool checked);
-    virtual GlWindow* getVisibleWindow();
     virtual void setFullscreen(const QScreen* target) override;
     virtual void unsetFullscreen() override;
+    virtual void showDisplayPluginsTools() override;
+    virtual QGLWidget* Application::getPrimarySurface() override;
 
 private:
     DisplayPlugin * getActiveDisplayPlugin();
@@ -639,7 +639,7 @@ private:
     QThread _settingsThread;
     QTimer _settingsTimer;
     
-    GlWindow* _glWindow{ nullptr };
+    GLCanvas* _glWidget{ nullptr };
 
     void checkSkeleton();
 

@@ -20,7 +20,6 @@ public:
 
     virtual glm::uvec2 getRecommendedRenderSize() const override;
     virtual bool hasFocus() const override;
-    virtual QWindow* getWindow() const override;
     virtual void preRender() override;
     virtual void preDisplay() override;
     virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize) override;

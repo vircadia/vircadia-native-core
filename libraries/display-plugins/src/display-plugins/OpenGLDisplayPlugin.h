@@ -31,9 +31,6 @@ public:
     virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize) override;
 
 protected:
-
-    // Needs to be called by the activate method after the GL context has been created to 
-    // initialize OpenGL context settings needed by the plugin
     virtual void customizeContext(PluginContainer * container);
     virtual void drawUnitQuad();
     virtual void makeCurrent() = 0;

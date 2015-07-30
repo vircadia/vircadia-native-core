@@ -7,8 +7,10 @@
 //
 #include "WindowOpenGLDisplayPlugin.h"
 
-#include <GlWindow.h>
+#include <QGLWidget>
 #include <QOpenGLContext>
+
+#include "plugins/PluginContainer.h"
 
 WindowOpenGLDisplayPlugin::WindowOpenGLDisplayPlugin() {
 }
@@ -30,55 +32,24 @@ glm::uvec2 WindowOpenGLDisplayPlugin::getRecommendedUiSize() const {
 }
 
 bool WindowOpenGLDisplayPlugin::hasFocus() const {
-    return _window ? _window->isActive() : false;
-}
-
-void WindowOpenGLDisplayPlugin::initSurfaceFormat(QSurfaceFormat& format) {
-    // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
-    format.setDepthBufferSize(0);
-    format.setStencilBufferSize(0);
-    format.setVersion(4, 1);
-#ifdef DEBUG
-    format.setOption(QSurfaceFormat::DebugContext);
-#endif
-    format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
+    return _window ? _window->hasFocus() : false;
 }
 
 void WindowOpenGLDisplayPlugin::activate(PluginContainer * container) {
     OpenGLDisplayPlugin::activate(container);
-    _window = createWindow(container);
-    customizeWindow(container);
-
+    _window = container->getPrimarySurface();
     _window->makeCurrent();
     customizeContext(container);
+    _window->doneCurrent();
 }
 
 void WindowOpenGLDisplayPlugin::deactivate(PluginContainer* container) {
     OpenGLDisplayPlugin::deactivate(container);
-    destroyWindow();
     _window = nullptr;
 }
 
-GlWindow* WindowOpenGLDisplayPlugin::createWindow(PluginContainer * container) {
-    GlWindow* result = new GlWindow(QOpenGLContext::currentContext());
-    QSurfaceFormat format;
-    initSurfaceFormat(format);
-    result->setFormat(format);
-    result->create();
-    result->installEventFilter(this);
-    return result;
-}
-
-void WindowOpenGLDisplayPlugin::destroyWindow() {
-    _window->deleteLater();
-}
-
-
 void WindowOpenGLDisplayPlugin::makeCurrent() {
-    bool makeCurrentResult = _window->makeCurrent();
-    if (!makeCurrentResult) {
-        qDebug() << "Failed to make current";
-    }
+    _window->makeCurrent();
 }
 
 void WindowOpenGLDisplayPlugin::doneCurrent() {
@@ -88,15 +59,15 @@ void WindowOpenGLDisplayPlugin::doneCurrent() {
 void WindowOpenGLDisplayPlugin::swapBuffers() {
     _window->swapBuffers();
 }
-
-void WindowOpenGLDisplayPlugin::installEventFilter(QObject* filter) {
-    _window->installEventFilter(filter);
-}
-
-void WindowOpenGLDisplayPlugin::removeEventFilter(QObject* filter) {
-    _window->removeEventFilter(filter);
-}
-
-QWindow* WindowOpenGLDisplayPlugin::getWindow() const {
-    return _window;
-}
+//
+//void WindowOpenGLDisplayPlugin::installEventFilter(QObject* filter) {
+//    _window->installEventFilter(filter);
+//}
+//
+//void WindowOpenGLDisplayPlugin::removeEventFilter(QObject* filter) {
+//    _window->removeEventFilter(filter);
+//}
+//
+//QWindow* WindowOpenGLDisplayPlugin::getWindow() const {
+//    return _window;
+//}

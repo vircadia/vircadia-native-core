@@ -62,7 +62,6 @@
 #include <EntityScriptingInterface.h>
 #include <ErrorDialog.h>
 #include <FramebufferCache.h>
-#include <GlWindow.h>
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
 #include <gpu/GLBackend.h>
@@ -100,6 +99,7 @@
 
 #include "AudioClient.h"
 #include "DiscoverabilityManager.h"
+#include "GLCanvas.h"
 #include "InterfaceVersion.h"
 #include "LODManager.h"
 #include "Menu.h"
@@ -521,25 +521,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     ResourceCache::setRequestLimit(3);
 
-    _offscreenContext = new OffscreenGlCanvas();
-    _offscreenContext->create();
-    _offscreenContext->makeCurrent();
+    _glWidget = new GLCanvas();
+    _window->setCentralWidget(_glWidget);
 
-    _glWindow = new GlWindow(_offscreenContext->getContext());
-
-    QWidget* container = QWidget::createWindowContainer(_glWindow);
-    _window->setCentralWidget(container);
     _window->restoreGeometry();
-    _window->setVisible(true);
-    _window->setAttribute(Qt::WA_AcceptTouchEvents);
-    container->setFocusPolicy(Qt::StrongFocus);
-    container->setAttribute(Qt::WA_AcceptTouchEvents);
-    container->setFocus();
-    container->installEventFilter(DependencyManager::get<OffscreenUi>().data());
 
-    _offscreenContext->makeCurrent();
-    initializeGL();
-    // initialization continues in initializeGL when OpenGL context is ready
+    _glWidget->setFocusPolicy(Qt::StrongFocus);
+    _glWidget->setFocus();
 #ifdef Q_OS_MAC
     // OSX doesn't seem to provide for hiding the cursor only on the GL widget
     _window->setCursor(Qt::BlankCursor);
@@ -547,11 +535,20 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // On windows and linux, hiding the top level cursor also means it's invisible
     // when hovering over the window menu, which is a pain, so only hide it for
     // the GL surface
-    container->setCursor(Qt::BlankCursor);
+    _glWidget->setCursor(Qt::BlankCursor);
 #endif
 
     // enable mouse tracking; otherwise, we only get drag events
-    container->setMouseTracking(true);
+    _glWidget->setMouseTracking(true);
+
+    _offscreenContext = new OffscreenGlCanvas();
+    _offscreenContext->create(_glWidget->context()->contextHandle());
+    _offscreenContext->makeCurrent();
+    initializeGL();
+
+    _window->setVisible(true);
+    _offscreenContext->makeCurrent();
+
 
     _toolWindow = new ToolWindow();
     _toolWindow->setWindowFlags(_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint);
@@ -858,6 +855,7 @@ void Application::initializeUi() {
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     offscreenUi->load("Root.qml");
     offscreenUi->load("RootMenu.qml");
+    _glWidget->installEventFilter(offscreenUi.data());
     VrMenu::load();
     VrMenu::executeQueuedLambdas();
     offscreenUi->setMouseTranslator([=](const QPointF& pt) {
@@ -1284,53 +1282,6 @@ bool Application::eventFilter(QObject* object, QEvent* event) {
         }
     }
 
-    if (object == _glWindow) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        if (offscreenUi->eventFilter(object, event)) {
-            return true;
-        }
-        switch (event->type()) {
-        case QEvent::MouseMove:
-            mouseMoveEvent((QMouseEvent*)event);
-            return true;
-        case QEvent::MouseButtonPress:
-            mousePressEvent((QMouseEvent*)event);
-            return true;
-        case QEvent::MouseButtonDblClick:
-            mouseDoublePressEvent((QMouseEvent*)event);
-            return true;
-        case QEvent::MouseButtonRelease:
-            mouseReleaseEvent((QMouseEvent*)event);
-            return true;
-        case QEvent::KeyPress:
-            keyPressEvent((QKeyEvent*)event);
-            return true;
-        case QEvent::KeyRelease:
-            keyReleaseEvent((QKeyEvent*)event);
-            return true;
-        case QEvent::FocusOut:
-            focusOutEvent((QFocusEvent*)event);
-            return true;
-        case QEvent::TouchBegin:
-            touchBeginEvent(static_cast<QTouchEvent*>(event));
-            event->accept();
-            return true;
-        case QEvent::TouchEnd:
-            touchEndEvent(static_cast<QTouchEvent*>(event));
-            return true;
-        case QEvent::TouchUpdate:
-            touchUpdateEvent(static_cast<QTouchEvent*>(event));
-            return true;
-        case QEvent::Wheel:
-            wheelEvent(static_cast<QWheelEvent*>(event));
-            return true;
-        case QEvent::Drop:
-            dropEvent(static_cast<QDropEvent*>(event));
-            return true;
-        default:
-            break;
-        }
-    }
     return false;
 }
 
@@ -4682,7 +4633,7 @@ void Application::shutdownPlugins() {
 }
 
 glm::uvec2 Application::getCanvasSize() const {
-    return toGlm(_glWindow->size());
+    return glm::uvec2(_glWidget->width(), _glWidget->height());
 }
 
 glm::uvec2 Application::getUiSize() const {
@@ -4702,7 +4653,7 @@ bool Application::isThrottleRendering() const {
 }
 
 ivec2 Application::getTrueMouse() const {
-    return toGlm(_glWindow->mapFromGlobal(QCursor::pos()));
+    return toGlm(_glWidget->mapFromGlobal(QCursor::pos()));
 }
 
 bool Application::hasFocus() const {
@@ -4760,11 +4711,6 @@ void Application::updateDisplayMode() {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     DisplayPluginPointer oldDisplayPlugin = _displayPlugin;
     if (oldDisplayPlugin != newDisplayPlugin) {
-        if (oldDisplayPlugin) {
-            oldDisplayPlugin->removeEventFilter(qApp);
-            oldDisplayPlugin->removeEventFilter(offscreenUi.data());
-        }
-
         if (!_currentDisplayPluginActions.isEmpty()) {
             auto menu = Menu::getInstance();
             foreach(auto itemInfo, _currentDisplayPluginActions) {
@@ -4776,16 +4722,7 @@ void Application::updateDisplayMode() {
         if (newDisplayPlugin) {
             _offscreenContext->makeCurrent();
             newDisplayPlugin->activate(this);
-
             _offscreenContext->makeCurrent();
-            newDisplayPlugin->installEventFilter(qApp);
-            newDisplayPlugin->installEventFilter(offscreenUi.data());
-            QWindow* pluginWindow = newDisplayPlugin->getWindow();
-            if (pluginWindow) {
-                DependencyManager::get<OffscreenUi>()->setProxyWindow(pluginWindow);
-            } else {
-                DependencyManager::get<OffscreenUi>()->setProxyWindow(nullptr);
-            }
             offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
             _offscreenContext->makeCurrent();
         }
@@ -4882,10 +4819,6 @@ void Application::setIsOptionChecked(const QString& path, bool checked) {
     Menu::getInstance()->setIsOptionChecked(path, checked);
 }
 
-GlWindow* Application::getVisibleWindow() {
-    return _glWindow;
-}
-
 mat4 Application::getEyeProjection(int eye) const {
     if (isHMDMode()) {
         return getActiveDisplayPlugin()->getProjection((Eye)eye, _viewFrustum.getProjection());
@@ -4940,4 +4873,13 @@ void Application::unsetFullscreen() {
 #else
     _window->setGeometry(_savedGeometry);
 #endif
+}
+
+
+void Application::showDisplayPluginsTools() {
+
+}
+
+QGLWidget* Application::getPrimarySurface() {
+    return _glWidget;
 }

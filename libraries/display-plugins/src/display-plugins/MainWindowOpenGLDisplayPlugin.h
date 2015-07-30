@@ -10,12 +10,4 @@
 #include "WindowOpenGLDisplayPlugin.h"
 
 class MainWindowOpenGLDisplayPlugin : public WindowOpenGLDisplayPlugin {
-    Q_OBJECT
-public:
-    MainWindowOpenGLDisplayPlugin();
-
-protected:
-    virtual GlWindow* createWindow(PluginContainer * container) override final;
-    virtual void customizeWindow(PluginContainer * container) override final;
-    virtual void destroyWindow() override final;
 };
