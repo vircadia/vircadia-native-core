@@ -144,7 +144,7 @@
 #include "ui/AddressBarDialog.h"
 #include "ui/UpdateDialog.h"
 
-#include <qopenglcontext.h>
+//#include <qopenglcontext.h>
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 #if defined(Q_OS_WIN)
@@ -2281,7 +2281,7 @@ void Application::updateMouseRay() {
     PerformanceWarning warn(showWarnings, "Application::updateMouseRay()");
 
     // make sure the frustum is up-to-date
-    _myCamera.loadViewFrustum(_viewFrustum);
+    loadViewFrustum(_myCamera, _viewFrustum);
 
     PickRay pickRay = computePickRay(getTrueMouseX(), getTrueMouseY());
     _mouseRayOrigin = pickRay.origin;
@@ -2665,7 +2665,7 @@ void Application::update(float deltaTime) {
     // to the server.
     {
         PerformanceTimer perfTimer("loadViewFrustum");
-        _myCamera.loadViewFrustum(_viewFrustum);
+        loadViewFrustum(_myCamera, _viewFrustum);
     }
 
     quint64 now = usecTimestampNow();
@@ -2713,192 +2713,6 @@ void Application::update(float deltaTime) {
     _myAvatar->updateSensorToWorldMatrix();
 }
 
-void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float deltaTime, int index) {
-    PalmData* palm;
-    bool foundHand = false;
-    for (size_t j = 0; j < hand->getNumPalms(); j++) {
-        if (hand->getPalms()[j].getSixenseID() == index) {
-            palm = &(hand->getPalms()[j]);
-            foundHand = true;
-            break;
-        }
-    }
-    if (!foundHand) {
-        PalmData newPalm(hand);
-        hand->getPalms().push_back(newPalm);
-        palm = &(hand->getPalms()[hand->getNumPalms() - 1]);
-        palm->setSixenseID(index);
-    }
-    
-    palm->setActive(pose.isValid());
-
-    // transform from sensor space, to world space, to avatar model space.
-    glm::mat4 poseMat = createMatFromQuatAndPos(pose.getRotation(), pose.getTranslation());
-    glm::mat4 sensorToWorldMat = _myAvatar->getSensorToWorldMatrix();
-    glm::mat4 modelMat = createMatFromQuatAndPos(_myAvatar->getOrientation(), _myAvatar->getPosition());
-    glm::mat4 objectPose = glm::inverse(modelMat) * sensorToWorldMat * poseMat;
-
-    glm::vec3 position = extractTranslation(objectPose);
-    glm::quat rotation = glm::quat_cast(objectPose);
-
-    //  Compute current velocity from position change
-    glm::vec3 rawVelocity;
-    if (deltaTime > 0.0f) {
-        rawVelocity = (position - palm->getRawPosition()) / deltaTime;
-    } else {
-        rawVelocity = glm::vec3(0.0f);
-    }
-    palm->setRawVelocity(rawVelocity);   //  meters/sec
-    
-    //  Angular Velocity of Palm
-    glm::quat deltaRotation = rotation * glm::inverse(palm->getRawRotation());
-    glm::vec3 angularVelocity(0.0f);
-    float rotationAngle = glm::angle(deltaRotation);
-    if ((rotationAngle > EPSILON) && (deltaTime > 0.0f)) {
-        angularVelocity = glm::normalize(glm::axis(deltaRotation));
-        angularVelocity *= (rotationAngle / deltaTime);
-        palm->setRawAngularVelocity(angularVelocity);
-    } else {
-        palm->setRawAngularVelocity(glm::vec3(0.0f));
-    }
-
-    if (InputDevice::getLowVelocityFilter()) {
-        //  Use a velocity sensitive filter to damp small motions and preserve large ones with
-        //  no latency.
-        float velocityFilter = glm::clamp(1.0f - glm::length(rawVelocity), 0.0f, 1.0f);
-        position = palm->getRawPosition() * velocityFilter + position * (1.0f - velocityFilter);
-        rotation = safeMix(palm->getRawRotation(), rotation, 1.0f - velocityFilter);
-    }
-    palm->setRawPosition(position);
-    palm->setRawRotation(rotation);
-
-    // Store the one fingertip in the palm structure so we can track velocity
-    const float FINGER_LENGTH = 0.3f;   //  meters
-    const glm::vec3 FINGER_VECTOR(0.0f, 0.0f, FINGER_LENGTH);
-    const glm::vec3 newTipPosition = position + rotation * FINGER_VECTOR;
-    glm::vec3 oldTipPosition = palm->getTipRawPosition();
-    if (deltaTime > 0.0f) {
-        palm->setTipVelocity((newTipPosition - oldTipPosition) / deltaTime);
-    } else {
-        palm->setTipVelocity(glm::vec3(0.0f));
-    }
-    palm->setTipPosition(newTipPosition);
-}
-
-void Application::emulateMouse(Hand* hand, float click, float shift, int index) {
-    // Locate the palm, if it exists and is active
-    PalmData* palm;
-    bool foundHand = false;
-    for (size_t j = 0; j < hand->getNumPalms(); j++) {
-        if (hand->getPalms()[j].getSixenseID() == index) {
-            palm = &(hand->getPalms()[j]);
-            foundHand = true;
-            break;
-        }
-    }
-    if (!foundHand || !palm->isActive()) {
-        return;
-    }
-
-    // Process the mouse events
-    QPoint pos;
-
-    unsigned int deviceID = index == 0 ? CONTROLLER_0_EVENT : CONTROLLER_1_EVENT;
-
-    if (qApp->isHMDMode()) {
-        pos = qApp->getApplicationCompositor().getPalmClickLocation(palm);
-    }
-    else {
-        // Get directon relative to avatar orientation
-        glm::vec3 direction = glm::inverse(_myAvatar->getOrientation()) * palm->getFingerDirection();
-
-        // Get the angles, scaled between (-0.5,0.5)
-        float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
-        float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)M_PI_2));
-        auto canvasSize = qApp->getCanvasSize();
-        // Get the pixel range over which the xAngle and yAngle are scaled
-        float cursorRange = canvasSize.x * InputDevice::getCursorPixelRangeMult();
-
-        pos.setX(canvasSize.x / 2.0f + cursorRange * xAngle);
-        pos.setY(canvasSize.y / 2.0f + cursorRange * yAngle);
-
-    }
-    
-    //If we are off screen then we should stop processing, and if a trigger or bumper is pressed,
-    //we should unpress them.
-    if (pos.x() == INT_MAX) {
-        if (_oldHandLeftClick[index]) {
-            QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::LeftButton, Qt::LeftButton, 0);
-
-            qApp->mouseReleaseEvent(&mouseEvent, deviceID);
-
-            _oldHandLeftClick[index] = false;
-        }
-        if (_oldHandRightClick[index]) {
-            QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::RightButton, Qt::RightButton, 0);
-
-            qApp->mouseReleaseEvent(&mouseEvent, deviceID);
-
-            _oldHandRightClick[index] = false;
-        }
-        return;
-    }
-
-    //If position has changed, emit a mouse move to the application
-    if (pos.x() != _oldHandMouseX[index] || pos.y() != _oldHandMouseY[index]) {
-        QMouseEvent mouseEvent(QEvent::MouseMove, pos, Qt::NoButton, Qt::NoButton, 0);
-
-        // Only send the mouse event if the opposite left button isnt held down.
-        // Is this check necessary?
-        if (!_oldHandLeftClick[(int)(!index)]) {
-            qApp->mouseMoveEvent(&mouseEvent, deviceID);
-        }
-    }
-    _oldHandMouseX[index] = pos.x();
-    _oldHandMouseY[index] = pos.y();
-
-    //We need separate coordinates for clicks, since we need to check if
-    //a magnification window was clicked on
-    int clickX = pos.x();
-    int clickY = pos.y();
-    //Set pos to the new click location, which may be the same if no magnification window is open
-    pos.setX(clickX);
-    pos.setY(clickY);
-
-    // Right click
-    if (shift == 1.0f && click == 1.0f) {
-        if (!_oldHandRightClick[index]) {
-            _oldHandRightClick[index] = true;
-
-            QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, Qt::RightButton, Qt::RightButton, 0);
-
-            qApp->mousePressEvent(&mouseEvent, deviceID);
-        }
-    } else if (_oldHandRightClick[index]) {
-        QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::RightButton, Qt::RightButton, 0);
-
-        qApp->mouseReleaseEvent(&mouseEvent, deviceID);
-
-        _oldHandRightClick[index] = false;
-    }
-
-    // Left click
-    if (shift != 1.0f && click == 1.0f) {
-        if (!_oldHandLeftClick[index]) {
-            _oldHandLeftClick[index] = true;
-
-            QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, Qt::LeftButton, Qt::LeftButton, 0);
-
-            qApp->mousePressEvent(&mouseEvent, deviceID);
-        }
-    } else if (_oldHandLeftClick[index]) {
-        QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::LeftButton, Qt::LeftButton, 0);
-
-        qApp->mouseReleaseEvent(&mouseEvent, deviceID);
-
-        _oldHandLeftClick[index] = false;
-    }
-}
 
 int Application::sendNackPackets() {
 
@@ -3138,6 +2952,35 @@ void Application::queryOctree(NodeType_t serverType, PacketType::Value packetTyp
     });
 }
 
+
+bool Application::isHMDMode() const {
+    return getActiveDisplayPlugin()->isHmd();
+}
+
+QRect Application::getDesirableApplicationGeometry() {
+    QRect applicationGeometry = getWindow()->geometry();
+
+    // If our parent window is on the HMD, then don't use its geometry, instead use
+    // the "main screen" geometry.
+    HMDToolsDialog* hmdTools = DependencyManager::get<DialogsManager>()->getHMDToolsDialog();
+    if (hmdTools && hmdTools->hasHMDScreen()) {
+        QScreen* hmdScreen = hmdTools->getHMDScreen();
+        QWindow* appWindow = getWindow()->windowHandle();
+        QScreen* appScreen = appWindow->screen();
+
+        // if our app's screen is the hmd screen, we don't want to place the
+        // running scripts widget on it. So we need to pick a better screen.
+        // we will use the screen for the HMDTools since it's a guarenteed
+        // better screen.
+        if (appScreen == hmdScreen) {
+            QScreen* betterScreen = hmdTools->windowHandle()->screen();
+            applicationGeometry = betterScreen->geometry();
+        }
+    }
+    return applicationGeometry;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
 // loadViewFrustum()
 //
 // Description: this will load the view frustum bounds for EITHER the head
@@ -3154,14 +2997,6 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
 
     // Ask the ViewFrustum class to calculate our corners
     viewFrustum.calculate();
-}
-
-bool Application::isHMDMode() const {
-    return getActiveDisplayPlugin()->isHmd();
-}
-
-QRect Application::getDesirableApplicationGeometry() {
-    return getWindow()->geometry();
 }
 
 glm::vec3 Application::getSunDirection() {
@@ -3593,27 +3428,6 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     }
     renderArgs->_viewport = viewport;
 
-#if 0
-    auto origRenderMode = renderArgs->_renderMode;
-    renderArgs->_renderMode = RenderArgs::MIRROR_RENDER_MODE;
-
-    {
-        gpu::Batch batch;
-        batch.setViewportTransform(viewport);
-        batch.setStateScissorRect(viewport);
-        batch.clearFramebuffer(
-            gpu::Framebuffer::BUFFER_COLOR0 |
-            gpu::Framebuffer::BUFFER_COLOR1 |
-            gpu::Framebuffer::BUFFER_COLOR2 |
-            gpu::Framebuffer::BUFFER_DEPTH,
-            vec4(vec3(0), 1), 1.0, 0.0, true);
-        renderArgs->_context->render(batch);
-    }
-
-    bool updateViewFrustum = false;
-    loadViewFrustum(_mirrorCamera, _viewFrustum);
-#endif
-    
     // render rear mirror view
     displaySide(renderArgs, _mirrorCamera, true, billboard);
 
@@ -3625,7 +3439,11 @@ void Application::resetSensors() {
     DependencyManager::get<DdeFaceTracker>()->reset();
 
     getActiveDisplayPlugin()->resetSensors();
-    //_leapmotion.reset();
+
+    QScreen* currentScreen = _window->windowHandle()->screen();
+    QWindow* mainWindow = _window->windowHandle();
+    QPoint windowCenter = mainWindow->geometry().center();
+    _glWidget->cursor().setPos(currentScreen, windowCenter);
 
     _myAvatar->reset();
 
@@ -4383,7 +4201,7 @@ void Application::setPreviousScriptLocation(const QString& previousScriptLocatio
 
 void Application::loadDialog() {
 
-    QString fileNameString = QFileDialog::getOpenFileName(desktop(),
+    QString fileNameString = QFileDialog::getOpenFileName(_glWidget,
                                                           tr("Open Script"),
                                                           getPreviousScriptLocation(),
                                                           tr("JavaScript Files (*.js)"));
@@ -4424,7 +4242,7 @@ void Application::setScriptsLocation(const QString& scriptsLocation) {
 
 void Application::toggleLogDialog() {
     if (! _logDialog) {
-        _logDialog = new LogDialog(desktop(), getLogger());
+        _logDialog = new LogDialog(_glWidget, getLogger());
     }
 
     if (_logDialog->isVisible()) {
@@ -4435,7 +4253,6 @@ void Application::toggleLogDialog() {
 }
 
 void Application::takeSnapshot() {
-#if 0
     QMediaPlayer* player = new QMediaPlayer();
     QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
@@ -4449,10 +4266,9 @@ void Application::takeSnapshot() {
     }
 
     if (!_snapshotShareDialog) {
-        _snapshotShareDialog = new SnapshotShareDialog(fileName, desktop());
+        _snapshotShareDialog = new SnapshotShareDialog(fileName, _glWidget);
     }
     _snapshotShareDialog->show();
-#endif
     
 }
 
@@ -4909,4 +4725,191 @@ void Application::setActiveDisplayPlugin(const QString& pluginName) {
         }
     }
     updateDisplayMode();
+}
+
+void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float deltaTime, int index) {
+    PalmData* palm;
+    bool foundHand = false;
+    for (size_t j = 0; j < hand->getNumPalms(); j++) {
+        if (hand->getPalms()[j].getSixenseID() == index) {
+            palm = &(hand->getPalms()[j]);
+            foundHand = true;
+            break;
+        }
+    }
+    if (!foundHand) {
+        PalmData newPalm(hand);
+        hand->getPalms().push_back(newPalm);
+        palm = &(hand->getPalms()[hand->getNumPalms() - 1]);
+        palm->setSixenseID(index);
+    }
+    
+    palm->setActive(pose.isValid());
+
+    // transform from sensor space, to world space, to avatar model space.
+    glm::mat4 poseMat = createMatFromQuatAndPos(pose.getRotation(), pose.getTranslation());
+    glm::mat4 sensorToWorldMat = _myAvatar->getSensorToWorldMatrix();
+    glm::mat4 modelMat = createMatFromQuatAndPos(_myAvatar->getOrientation(), _myAvatar->getPosition());
+    glm::mat4 objectPose = glm::inverse(modelMat) * sensorToWorldMat * poseMat;
+
+    glm::vec3 position = extractTranslation(objectPose);
+    glm::quat rotation = glm::quat_cast(objectPose);
+
+    //  Compute current velocity from position change
+    glm::vec3 rawVelocity;
+    if (deltaTime > 0.0f) {
+        rawVelocity = (position - palm->getRawPosition()) / deltaTime;
+    } else {
+        rawVelocity = glm::vec3(0.0f);
+    }
+    palm->setRawVelocity(rawVelocity);   //  meters/sec
+    
+    //  Angular Velocity of Palm
+    glm::quat deltaRotation = rotation * glm::inverse(palm->getRawRotation());
+    glm::vec3 angularVelocity(0.0f);
+    float rotationAngle = glm::angle(deltaRotation);
+    if ((rotationAngle > EPSILON) && (deltaTime > 0.0f)) {
+        angularVelocity = glm::normalize(glm::axis(deltaRotation));
+        angularVelocity *= (rotationAngle / deltaTime);
+        palm->setRawAngularVelocity(angularVelocity);
+    } else {
+        palm->setRawAngularVelocity(glm::vec3(0.0f));
+    }
+
+    if (InputDevice::getLowVelocityFilter()) {
+        //  Use a velocity sensitive filter to damp small motions and preserve large ones with
+        //  no latency.
+        float velocityFilter = glm::clamp(1.0f - glm::length(rawVelocity), 0.0f, 1.0f);
+        position = palm->getRawPosition() * velocityFilter + position * (1.0f - velocityFilter);
+        rotation = safeMix(palm->getRawRotation(), rotation, 1.0f - velocityFilter);
+    }
+    palm->setRawPosition(position);
+    palm->setRawRotation(rotation);
+
+    // Store the one fingertip in the palm structure so we can track velocity
+    const float FINGER_LENGTH = 0.3f;   //  meters
+    const glm::vec3 FINGER_VECTOR(0.0f, 0.0f, FINGER_LENGTH);
+    const glm::vec3 newTipPosition = position + rotation * FINGER_VECTOR;
+    glm::vec3 oldTipPosition = palm->getTipRawPosition();
+    if (deltaTime > 0.0f) {
+        palm->setTipVelocity((newTipPosition - oldTipPosition) / deltaTime);
+    } else {
+        palm->setTipVelocity(glm::vec3(0.0f));
+    }
+    palm->setTipPosition(newTipPosition);
+}
+
+void Application::emulateMouse(Hand* hand, float click, float shift, int index) {
+    // Locate the palm, if it exists and is active
+    PalmData* palm;
+    bool foundHand = false;
+    for (size_t j = 0; j < hand->getNumPalms(); j++) {
+        if (hand->getPalms()[j].getSixenseID() == index) {
+            palm = &(hand->getPalms()[j]);
+            foundHand = true;
+            break;
+        }
+    }
+    if (!foundHand || !palm->isActive()) {
+        return;
+    }
+
+    // Process the mouse events
+    QPoint pos;
+
+    unsigned int deviceID = index == 0 ? CONTROLLER_0_EVENT : CONTROLLER_1_EVENT;
+
+    if (qApp->isHMDMode()) {
+        pos = qApp->getApplicationCompositor().getPalmClickLocation(palm);
+    }
+    else {
+        // Get directon relative to avatar orientation
+        glm::vec3 direction = glm::inverse(_myAvatar->getOrientation()) * palm->getFingerDirection();
+
+        // Get the angles, scaled between (-0.5,0.5)
+        float xAngle = (atan2(direction.z, direction.x) + M_PI_2);
+        float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)M_PI_2));
+        auto canvasSize = qApp->getCanvasSize();
+        // Get the pixel range over which the xAngle and yAngle are scaled
+        float cursorRange = canvasSize.x * InputDevice::getCursorPixelRangeMult();
+
+        pos.setX(canvasSize.x / 2.0f + cursorRange * xAngle);
+        pos.setY(canvasSize.y / 2.0f + cursorRange * yAngle);
+
+    }
+    
+    //If we are off screen then we should stop processing, and if a trigger or bumper is pressed,
+    //we should unpress them.
+    if (pos.x() == INT_MAX) {
+        if (_oldHandLeftClick[index]) {
+            QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::LeftButton, Qt::LeftButton, 0);
+
+            qApp->mouseReleaseEvent(&mouseEvent, deviceID);
+
+            _oldHandLeftClick[index] = false;
+        }
+        if (_oldHandRightClick[index]) {
+            QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::RightButton, Qt::RightButton, 0);
+
+            qApp->mouseReleaseEvent(&mouseEvent, deviceID);
+
+            _oldHandRightClick[index] = false;
+        }
+        return;
+    }
+
+    //If position has changed, emit a mouse move to the application
+    if (pos.x() != _oldHandMouseX[index] || pos.y() != _oldHandMouseY[index]) {
+        QMouseEvent mouseEvent(QEvent::MouseMove, pos, Qt::NoButton, Qt::NoButton, 0);
+
+        // Only send the mouse event if the opposite left button isnt held down.
+        // Is this check necessary?
+        if (!_oldHandLeftClick[(int)(!index)]) {
+            qApp->mouseMoveEvent(&mouseEvent, deviceID);
+        }
+    }
+    _oldHandMouseX[index] = pos.x();
+    _oldHandMouseY[index] = pos.y();
+
+    //We need separate coordinates for clicks, since we need to check if
+    //a magnification window was clicked on
+    int clickX = pos.x();
+    int clickY = pos.y();
+    //Set pos to the new click location, which may be the same if no magnification window is open
+    pos.setX(clickX);
+    pos.setY(clickY);
+
+    // Right click
+    if (shift == 1.0f && click == 1.0f) {
+        if (!_oldHandRightClick[index]) {
+            _oldHandRightClick[index] = true;
+
+            QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, Qt::RightButton, Qt::RightButton, 0);
+
+            qApp->mousePressEvent(&mouseEvent, deviceID);
+        }
+    } else if (_oldHandRightClick[index]) {
+        QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::RightButton, Qt::RightButton, 0);
+
+        qApp->mouseReleaseEvent(&mouseEvent, deviceID);
+
+        _oldHandRightClick[index] = false;
+    }
+
+    // Left click
+    if (shift != 1.0f && click == 1.0f) {
+        if (!_oldHandLeftClick[index]) {
+            _oldHandLeftClick[index] = true;
+
+            QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, Qt::LeftButton, Qt::LeftButton, 0);
+
+            qApp->mousePressEvent(&mouseEvent, deviceID);
+        }
+    } else if (_oldHandLeftClick[index]) {
+        QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::LeftButton, Qt::LeftButton, 0);
+
+        qApp->mouseReleaseEvent(&mouseEvent, deviceID);
+
+        _oldHandLeftClick[index] = false;
+    }
 }
