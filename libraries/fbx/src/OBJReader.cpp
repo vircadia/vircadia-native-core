@@ -306,7 +306,8 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
         }
         QByteArray token = tokenizer.getDatum();
         //qCDebug(modelformat) << token;
-        if (token == "g") {
+        // we don't support separate objects in the same file, so treat "o" the same as "g".
+        if (token == "g" || token == "o") {
             if (sawG) {
                 // we've encountered the beginning of the next group.
                 tokenizer.pushBackToken(OBJTokenizer::DATUM_TOKEN);
