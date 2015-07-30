@@ -17,7 +17,8 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QCommandLineParser>
 
-#include <udt/socket.h>
+#include <udt/Constants.h>
+#include <udt/Socket.h>
 
 class UDTTest : public QCoreApplication {
 public:
@@ -27,6 +28,15 @@ private:
     
     QCommandLineParser _argumentParser;
     udt::Socket _socket;
+    
+    HifiSockAddr _target; // the target for sent packets
+    
+    int _minPacketSize = udt::MAX_PACKET_SIZE_WITH_UDP_HEADER;
+    int _maxPacketSize = udt::MAX_PACKET_SIZE_WITH_UDP_HEADER;
+    int _maxSendBytes = -1; // the number of bytes to send to the target before stopping
+    int _maxSendPackets = -1; // the number of packets to send to the target before stopping
+    
+    bool _sendReliable = true; // wether packets are sent reliably or unreliably
 };
 
 #endif // hifi_UDTTest_h
