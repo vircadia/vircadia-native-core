@@ -138,7 +138,7 @@ void Socket::readPendingDatagrams() {
         }
         
         // check if this was a control packet or a data packet
-        bool isControlPacket = *buffer & CONTROL_BIT_MASK;
+        bool isControlPacket = *reinterpret_cast<uint32_t*>(buffer.get()) & CONTROL_BIT_MASK;
         
         if (isControlPacket) {
             // setup a control packet from the data we just read
