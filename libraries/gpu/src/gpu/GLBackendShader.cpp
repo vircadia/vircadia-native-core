@@ -639,14 +639,13 @@ int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindin
         GLchar name[NAME_LENGTH];
         GLint length = 0;
         GLint size = 0;
-        GLenum type = 0;
         GLint binding = -1;
 
         glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_NAME_LENGTH, &length);
         glGetActiveUniformBlockName(glprogram, i, NAME_LENGTH, &length, name);
         glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_BINDING, &binding);
         glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_DATA_SIZE, &size);
-        
+
         GLuint blockIndex = glGetUniformBlockIndex(glprogram, name);
 
         // CHeck if there is a requested binding for this block

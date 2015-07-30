@@ -482,7 +482,7 @@ void GLBackend::syncPipelineStateCache() {
     State::Data state;
 
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-    
+
     // Point size is always on
     glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
     glEnable(GL_PROGRAM_POINT_SIZE_EXT);
@@ -490,7 +490,7 @@ void GLBackend::syncPipelineStateCache() {
 
     getCurrentGLState(state);
     State::Signature signature = State::evalSignature(state);
-    
+
     _pipeline._stateCache = state;
     _pipeline._stateSignatureCache = signature;
 }
