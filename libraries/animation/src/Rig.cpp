@@ -16,6 +16,25 @@
 #include "AnimationLogging.h"
 #include "Rig.h"
 
+void Rig::HeadParameters::dump() const {
+    qCDebug(animation, "HeadParameters =");
+    qCDebug(animation, "    leanSideways = %0.5f", leanSideways);
+    qCDebug(animation, "    leanForward = %0.5f", leanForward);
+    qCDebug(animation, "    torsoTwist = %0.5f", torsoTwist);
+    glm::vec3 axis = glm::axis(localHeadOrientation);
+    float theta = glm::angle(localHeadOrientation);
+    qCDebug(animation, "    localHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", axis.x, axis.y, axis.z, theta);
+    axis = glm::axis(worldHeadOrientation);
+    theta = glm::angle(worldHeadOrientation);
+    qCDebug(animation, "    worldHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", axis.x, axis.y, axis.z, theta);
+    qCDebug(animation, "    eyeLookAt = (%.5f, %.5f, %.5f)", eyeLookAt.x, eyeLookAt.y, eyeLookAt.z);
+    qCDebug(animation, "    eyeSaccade = (%.5f, %.5f, %.5f)", eyeSaccade.x, eyeSaccade.y, eyeSaccade.z);
+    qCDebug(animation, "    leanJointIndex = %.d", leanJointIndex);
+    qCDebug(animation, "    neckJointIndex = %.d", neckJointIndex);
+    qCDebug(animation, "    leftEyeJointIndex = %.d", leftEyeJointIndex);
+    qCDebug(animation, "    rightEyeJointIndex = %.d", rightEyeJointIndex);
+}
+
 void insertSorted(QList<AnimationHandlePointer>& handles, const AnimationHandlePointer& handle) {
     for (QList<AnimationHandlePointer>::iterator it = handles.begin(); it != handles.end(); it++) {
         if (handle->getPriority() > (*it)->getPriority()) {
@@ -674,7 +693,7 @@ void Rig::updateFromHeadParameters(const HeadParameters& params) {
 }
 
 void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist) {
-    if (index > 0 && _jointStates[index].getParentIndex() > 0) {
+    if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
         auto& parentState = _jointStates[_jointStates[index].getParentIndex()];
 
         // get the rotation axes in joint space and use them to adjust the rotation
@@ -691,7 +710,7 @@ void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, floa
 }
 
 void Rig::updateNeckJoint(int index, const glm::quat& localHeadOrientation, float leanSideways, float leanForward, float torsoTwist) {
-    if (index > 0 && _jointStates[index].getParentIndex() > 0) {
+    if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
         auto& parentState = _jointStates[_jointStates[index].getParentIndex()];
         auto joint = _jointStates[index].getFBXJoint();
 
@@ -712,7 +731,7 @@ void Rig::updateNeckJoint(int index, const glm::quat& localHeadOrientation, floa
 }
 
 void Rig::updateEyeJoint(int index, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade) {
-    if ( index > 0 && _jointStates[index].getParentIndex() > 0) {
+    if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
         auto& parentState = _jointStates[_jointStates[index].getParentIndex()];
         auto joint = _jointStates[index].getFBXJoint();
 
