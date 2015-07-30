@@ -26,6 +26,9 @@ const float PolyVoxEntityItem::MAX_VOXEL_DIMENSION = 32.0f;
 const QByteArray PolyVoxEntityItem::DEFAULT_VOXEL_DATA(PolyVoxEntityItem::makeEmptyVoxelData());
 const PolyVoxEntityItem::PolyVoxSurfaceStyle PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE =
     PolyVoxEntityItem::SURFACE_MARCHING_CUBES;
+const QString PolyVoxEntityItem::DEFAULT_X_TEXTURE_URL = QString("");
+const QString PolyVoxEntityItem::DEFAULT_Y_TEXTURE_URL = QString("");
+const QString PolyVoxEntityItem::DEFAULT_Z_TEXTURE_URL = QString("");
 
 EntityItemPointer PolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return std::make_shared<PolyVoxEntityItem>(entityID, properties);
@@ -49,7 +52,10 @@ PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID, const Ent
     EntityItem(entityItemID),
     _voxelVolumeSize(PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE),
     _voxelData(PolyVoxEntityItem::DEFAULT_VOXEL_DATA),
-    _voxelSurfaceStyle(PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE)
+    _voxelSurfaceStyle(PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE),
+    _xTextureURL(PolyVoxEntityItem::DEFAULT_X_TEXTURE_URL),
+    _yTextureURL(PolyVoxEntityItem::DEFAULT_Y_TEXTURE_URL),
+    _zTextureURL(PolyVoxEntityItem::DEFAULT_Z_TEXTURE_URL)
 {
     _type = EntityTypes::PolyVox;
     setProperties(properties);
@@ -94,6 +100,9 @@ EntityItemProperties PolyVoxEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(voxelVolumeSize, getVoxelVolumeSize);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(voxelData, getVoxelData);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(voxelSurfaceStyle, getVoxelSurfaceStyle);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(xTextureURL, getXTextureURL);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(yTextureURL, getYTextureURL);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(zTextureURL, getZTextureURL);
 
     return properties;
 }
@@ -103,6 +112,9 @@ bool PolyVoxEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(voxelVolumeSize, setVoxelVolumeSize);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(voxelData, setVoxelData);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(voxelSurfaceStyle, setVoxelSurfaceStyle);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(xTextureURL, setXTextureURL);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(yTextureURL, setYTextureURL);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(zTextureURL, setZTextureURL);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -127,6 +139,9 @@ int PolyVoxEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* dat
     READ_ENTITY_PROPERTY(PROP_VOXEL_VOLUME_SIZE, glm::vec3, setVoxelVolumeSize);
     READ_ENTITY_PROPERTY(PROP_VOXEL_DATA, QByteArray, setVoxelData);
     READ_ENTITY_PROPERTY(PROP_VOXEL_SURFACE_STYLE, uint16_t, setVoxelSurfaceStyle);
+    READ_ENTITY_PROPERTY(PROP_X_TEXTURE_URL, QString, setXTextureURL);
+    READ_ENTITY_PROPERTY(PROP_Y_TEXTURE_URL, QString, setYTextureURL);
+    READ_ENTITY_PROPERTY(PROP_Z_TEXTURE_URL, QString, setZTextureURL);
 
     return bytesRead;
 }
@@ -138,6 +153,9 @@ EntityPropertyFlags PolyVoxEntityItem::getEntityProperties(EncodeBitstreamParams
     requestedProperties += PROP_VOXEL_VOLUME_SIZE;
     requestedProperties += PROP_VOXEL_DATA;
     requestedProperties += PROP_VOXEL_SURFACE_STYLE;
+    requestedProperties += PROP_X_TEXTURE_URL;
+    requestedProperties += PROP_Y_TEXTURE_URL;
+    requestedProperties += PROP_Z_TEXTURE_URL;
     return requestedProperties;
 }
 
@@ -153,6 +171,10 @@ void PolyVoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeB
     APPEND_ENTITY_PROPERTY(PROP_VOXEL_VOLUME_SIZE, getVoxelVolumeSize());
     APPEND_ENTITY_PROPERTY(PROP_VOXEL_DATA, getVoxelData());
     APPEND_ENTITY_PROPERTY(PROP_VOXEL_SURFACE_STYLE, (uint16_t) getVoxelSurfaceStyle());
+    APPEND_ENTITY_PROPERTY(PROP_X_TEXTURE_URL, getXTextureURL());
+    APPEND_ENTITY_PROPERTY(PROP_Y_TEXTURE_URL, getYTextureURL());
+    APPEND_ENTITY_PROPERTY(PROP_Z_TEXTURE_URL, getZTextureURL());
+
 }
 
 void PolyVoxEntityItem::debugDump() const {
