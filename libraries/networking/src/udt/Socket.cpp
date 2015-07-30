@@ -39,7 +39,7 @@ void Socket::rebind() {
     quint16 oldPort = _udpSocket.localPort();
     
     _udpSocket.close();
-    _udpSocket.bind(QHostAddress::AnyIPv4, oldPort);
+    bind(QHostAddress::AnyIPv4, oldPort);
 }
 
 void Socket::setSystemBufferSizes() {
@@ -63,6 +63,7 @@ void Socket::setSystemBufferSizes() {
         int oldBufferSize = _udpSocket.socketOption(bufferOpt).toInt();
         
         if (oldBufferSize < numBytes) {
+            _udpSocket.setSocketOption(bufferOpt, QVariant(numBytes));
             int newBufferSize = _udpSocket.socketOption(bufferOpt).toInt();
             
             qCDebug(networking) << "Changed socket" << bufferTypeString << "buffer size from" << oldBufferSize << "to"
