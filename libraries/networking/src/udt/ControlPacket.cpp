@@ -61,7 +61,7 @@ ControlPacket::ControlPacket(Type type) :
     
     open(QIODevice::ReadWrite);
     
-    writeControlBitAndType();
+    writeType();
 }
 
 ControlPacket::ControlPacket(Type type, qint64 size) :
@@ -72,7 +72,7 @@ ControlPacket::ControlPacket(Type type, qint64 size) :
     
     open(QIODevice::ReadWrite);
     
-    writeControlBitAndType();
+    writeType();
 }
 
 ControlPacket::ControlPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr) :
@@ -106,20 +106,11 @@ void ControlPacket::setType(udt::ControlPacket::Type type) {
     writeType();
 }
 
-void ControlPacket::writeControlBitAndType() {
-    ControlBitAndType* bitAndType = reinterpret_cast<ControlBitAndType*>(_packet.get());
-
-    // write the control bit by OR'ing the current value with the CONTROL_BIT_MASK
-    *bitAndType = (*bitAndType | CONTROL_BIT_MASK);
-    
-    writeType();
-}
-
 void ControlPacket::writeType() {
     ControlBitAndType* bitAndType = reinterpret_cast<ControlBitAndType*>(_packet.get());
     
-    // write the type by OR'ing the new type with the current value & CONTROL_BIT_MASK
-    *bitAndType = (*bitAndType & CONTROL_BIT_MASK) | (_type << (sizeof(ControlPacket::Type) * 8 - 1));
+    // We override the control bit here by writing the type but it's okay, it'll always be 1
+    *bitAndType = CONTROL_BIT_MASK | (ControlBitAndType(_type) << (8 * sizeof(Type)));
 }
 
 void ControlPacket::readType() {
@@ -128,6 +119,5 @@ void ControlPacket::readType() {
     Q_ASSERT_X(bitAndType & CONTROL_BIT_MASK, "ControlPacket::readHeader()", "This should be a control packet");
     
     // read the type
-    uint32_t oversizeType = (uint32_t) (bitAndType & ~CONTROL_BIT_MASK);
-    _type = (Type) oversizeType;
+    _type = (Type) ((bitAndType & ~CONTROL_BIT_MASK) >> (8 * sizeof(Type)));
 }

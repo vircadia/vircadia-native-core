@@ -135,21 +135,16 @@ void Packet::writeHeader() const {
     // grab pointer to current SequenceNumberAndBitField
     SequenceNumberAndBitField* seqNumBitField = reinterpret_cast<SequenceNumberAndBitField*>(_packet.get());
     
-    // 0 for data packets
-    *seqNumBitField &= ~CONTROL_BIT_MASK;
-    
-    if (_isPartOfMessage) {
-        *seqNumBitField |= MESSAGE_BIT_MASK;
-    } else {
-        *seqNumBitField &= ~MESSAGE_BIT_MASK;
-    }
+    // Write sequence number and reset bit field
+    Q_ASSERT_X(!((SequenceNumber::Type)_sequenceNumber & BIT_FIELD_MASK),
+               "Packet::writeHeader()", "Sequence number is overflowing into bit field");
+    *seqNumBitField = ((SequenceNumber::Type)_sequenceNumber);
     
     if (_isReliable) {
         *seqNumBitField |= RELIABILITY_BIT_MASK;
-    } else {
-        *seqNumBitField &= ~RELIABILITY_BIT_MASK;
     }
     
-    // write new value by ORing (old value & BIT_FIELD_MASK) with new seqNum
-    *seqNumBitField = (*seqNumBitField & BIT_FIELD_MASK) | (SequenceNumber::Type)_sequenceNumber;
+    if (_isPartOfMessage) {
+        *seqNumBitField |= MESSAGE_BIT_MASK;
+    }
 }

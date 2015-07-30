@@ -92,6 +92,7 @@ private:
     
     friend struct std::hash<SequenceNumber>;
 };
+static_assert(sizeof(SequenceNumber) == sizeof(uint32_t), "SequenceNumber invalid size");
     
     
 inline bool operator<(const SequenceNumber&  a, const SequenceNumber& b) {
