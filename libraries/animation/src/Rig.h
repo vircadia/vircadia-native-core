@@ -67,7 +67,7 @@ public:
 
     virtual ~Rig() {}
 
-     RigPointer getRigPointer() { return shared_from_this(); }
+    RigPointer getRigPointer() { return shared_from_this(); }
 
     AnimationHandlePointer createAnimationHandle();
     void removeAnimationHandle(const AnimationHandlePointer& handle);
