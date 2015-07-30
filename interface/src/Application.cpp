@@ -4867,7 +4867,7 @@ void Application::unsetFullscreen() {
     _window->showNormal();
 #ifdef Q_OS_MAC
     QTimer* timer = new QTimer();
-    timer->singleShot(1000, [=] {
+    timer->singleShot(2000, [=] {
         _window->setGeometry(_savedGeometry);
         timer->deleteLater();
     });
