@@ -33,6 +33,8 @@ public:
         TimeoutNAK
     };
     
+    static std::unique_ptr<ControlPacket> fromReceivedPacket(std::unique_ptr<char> data, qint64 size,
+                                                             const HifiSockAddr& senderSockAddr);
     static std::unique_ptr<ControlPacket> create(Type type, qint64 size = -1);
     
     static qint64 localHeaderSize(); // Current level's header size
@@ -44,6 +46,7 @@ public:
 private:
     ControlPacket(Type type);
     ControlPacket(Type type, qint64 size);
+    ControlPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr);
     ControlPacket(ControlPacket&& other);
     ControlPacket(const ControlPacket& other) = delete;
     
@@ -53,6 +56,9 @@ private:
     // Header writers
     void writeControlBitAndType();
     void writeType();
+    
+    // Header readers
+    void readType();
     
     Type _type;
 };

@@ -33,7 +33,7 @@ public:
     // Inserts anywhere - MUCH slower
     void insert(SequenceNumber start, SequenceNumber end);
     
-    void remove(SequenceNumber seq);
+    bool remove(SequenceNumber seq);
     void remove(SequenceNumber start, SequenceNumber end);
     
     int getLength() const { return _length; }
