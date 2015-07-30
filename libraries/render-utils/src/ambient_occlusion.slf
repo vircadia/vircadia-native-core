@@ -17,99 +17,8 @@
 <@include gpu/Transform.slh@>
 
 <$declareStandardTransform()$>
-/*
-varying vec2 varTexcoord;
 
-uniform sampler2D depthTexture;
-uniform sampler2D normalTexture;
-
-uniform float g_scale;
-uniform float g_bias;
-uniform float g_sample_rad;
-uniform float g_intensity;
-uniform float bufferWidth;
-uniform float bufferHeight;
-
-#define SAMPLE_COUNT 4
-
-float getRandom(vec2 uv) {
-    return fract(sin(dot(uv.xy ,vec2(12.9898,78.233))) * 43758.5453);
-}
-
-void main(void) {
-    vec3 sampleKernel[4] = {    vec3(0.2, 0.0, 0.0),
-                                vec3(0.0, 0.2, 0.0),
-                                vec3(0.0, 0.0, 0.2),
-                                vec3(0.2, 0.2, 0.2)     };
-
-    TransformCamera cam = getTransformCamera();
-    TransformObject obj = getTransformObject();
-
-    vec3 eyeDir = vec3(0.0, 0.0, -3.0);
-    vec3 cameraPositionWorldSpace;
-    <$transformEyeToWorldDir(cam, eyeDir, cameraPositionWorldSpace)$>
-
-    vec4 depthColor = texture2D(depthTexture, varTexcoord);
-
-    // z in non linear range [0,1]
-    float depthVal = depthColor.r;
-    // conversion into NDC [-1,1]
-    float zNDC = depthVal * 2.0 - 1.0;
-    float n = 1.0;  // the near plane                
-    float f = 30.0; // the far plane
-    float l = -1.0; // left
-    float r = 1.0;  // right
-    float b = -1.0; // bottom
-    float t = 1.0;  // top
-                                  
-    // conversion into eye space
-    float zEye = 2*f*n / (zNDC*(f-n)-(f+n));
-    // Converting from pixel coordinates to NDC
-    float xNDC = gl_FragCoord.x/bufferWidth * 2.0 - 1.0;
-    float yNDC = gl_FragCoord.y/bufferHeight * 2.0 - 1.0;
-    // Unprojecting X and Y from NDC to eye space
-    float xEye = -zEye*(xNDC*(r-l)+(r+l))/(2.0*n);
-    float yEye = -zEye*(yNDC*(t-b)+(t+b))/(2.0*n);
-    vec3 currentFragEyeSpace = vec3(xEye, yEye, zEye);
-    vec3 currentFragWorldSpace;
-    <$transformEyeToWorldDir(cam, currentFragEyeSpace, currentFragWorldSpace)$>
-    
-    vec3 cameraToPositionRay = normalize(currentFragWorldSpace - cameraPositionWorldSpace);
-    vec3 origin = cameraToPositionRay * depthVal + cameraPositionWorldSpace;
-  
-    vec3 normal = normalize(texture2D(normalTexture, varTexcoord).xyz);
-    //normal = normalize(normal * normalMatrix);
-  
-    vec3 rvec = vec3(getRandom(varTexcoord.xy), getRandom(varTexcoord.yx), getRandom(varTexcoord.xx)) * 2.0 - 1.0;
-    vec3 tangent = normalize(rvec - normal * dot(rvec, normal));
-    vec3 bitangent = cross(normal, tangent);
-    mat3 tbn = mat3(tangent, bitangent, normal);
-  
-    float occlusion = 0.0;
-  
-    for (int i = 0; i < SAMPLE_COUNT; ++i) {
-        vec3 samplePos = origin + (tbn * sampleKernel[i]) * g_sample_rad;
-        vec4 offset = cam._projectionViewUntranslated * vec4(samplePos, 1.0);
-    
-        offset.xy = (offset.xy / offset.w) * 0.5 + 0.5;
-        float depth = length(samplePos - cameraPositionWorldSpace);
-    
-        float sampleDepthVal = texture2D(depthTexture, offset.xy).r;
-    
-        float rangeDelta = abs(depthVal - sampleDepthVal);
-        float rangeCheck = smoothstep(0.0, 1.0, g_sample_rad / rangeDelta);
-    
-        occlusion += rangeCheck * step(sampleDepthVal, depth);
-    }
-  
-    occlusion = 1.0 - occlusion / float(SAMPLE_COUNT);
-    occlusion = clamp(pow(occlusion, g_intensity), 0.0, 1.0);
-    gl_FragColor = vec4(vec3(occlusion), 1.0);
-}*/
-
-// This is a HBAO-Shader for OpenGL, based upon nvidias directX implementation
-// supplied in their SampleSDK available from nvidia.com
-// The slides describing the implementation is available at
+// Based on NVidia HBAO implementation in D3D11
 // http://www.nvidia.co.uk/object/siggraph-2008-HBAO.html
 
 varying vec2 varTexcoord;
@@ -127,8 +36,6 @@ uniform float bufferHeight;
 const float PI = 3.14159265;
 
 const vec2 FocalLen = vec2(1.0, 1.0);
-//const vec2 UVToViewA = vec2(1.0, 1.0);
-//const vec2 UVToViewB = vec2(1.0, 1.0);
 
 const vec2 LinMAD = vec2(0.1-10.0, 0.1+10.0) / (2.0*0.1*10.0);
 
@@ -141,13 +48,12 @@ const float R = 0.3;
 const float R2 = 0.3*0.3;
 const float NegInvR2 = - 1.0 / (0.3*0.3);
 const float TanBias = tan(30.0 * PI / 180.0);
-const float MaxRadiusPixels = 100.0;
+const float MaxRadiusPixels = 50.0;
 
 const int NumDirections = 6;
 const int NumSamples = 4;
 
-float ViewSpaceZFromDepth(float d)
-{
+float ViewSpaceZFromDepth(float d){
 	// [0,1] -> [-1,1] clip space
 	d = d * 2.0 - 1.0;
 
@@ -155,80 +61,62 @@ float ViewSpaceZFromDepth(float d)
 	return -1.0 / (LinMAD.x * d + LinMAD.y);
 }
 
-vec3 UVToViewSpace(vec2 uv, float z)
-{
+vec3 UVToViewSpace(vec2 uv, float z){
 	//uv = UVToViewA * uv + UVToViewB;
 	return vec3(uv * z, z);
 }
 
-vec3 GetViewPos(vec2 uv)
-{
+vec3 GetViewPos(vec2 uv){
 	float z = ViewSpaceZFromDepth(texture2D(depthTexture, uv).r);
 	return UVToViewSpace(uv, z);
 }
 
-vec3 GetViewPosPoint(ivec2 uv)
-{
+vec3 GetViewPosPoint(ivec2 uv){
 	vec2 coord = vec2(gl_FragCoord.xy) + uv;
 	//float z = texelFetch(texture0, coord, 0).r;
     float z = texture2D(depthTexture, uv).r;
 	return UVToViewSpace(uv, z);
 }
 
-float TanToSin(float x)
-{
+float TanToSin(float x){
 	return x * inversesqrt(x*x + 1.0);
 }
 
-float InvLength(vec2 V)
-{
+float InvLength(vec2 V){
 	return inversesqrt(dot(V,V));
 }
 
-float Tangent(vec3 V)
-{
+float Tangent(vec3 V){
 	return V.z * InvLength(V.xy);
 }
 
-float BiasedTangent(vec3 V)
-{
+float BiasedTangent(vec3 V){
 	return V.z * InvLength(V.xy) + TanBias;
 }
 
-float Tangent(vec3 P, vec3 S)
-{
+float Tangent(vec3 P, vec3 S){
     return -(P.z - S.z) * InvLength(S.xy - P.xy);
 }
 
-float Length2(vec3 V)
-{
+float Length2(vec3 V){
 	return dot(V,V);
 }
 
-vec3 MinDiff(vec3 P, vec3 Pr, vec3 Pl)
-{
+vec3 MinDiff(vec3 P, vec3 Pr, vec3 Pl){
     vec3 V1 = Pr - P;
     vec3 V2 = P - Pl;
     return (Length2(V1) < Length2(V2)) ? V1 : V2;
 }
 
-vec2 SnapUVOffset(vec2 uv)
-{
+vec2 SnapUVOffset(vec2 uv){
     return round(uv * AORes) * InvAORes;
 }
 
-float Falloff(float d2)
-{
+float Falloff(float d2){
 	return d2 * NegInvR2 + 1.0f;
 }
 
-float HorizonOcclusion(	vec2 deltaUV,
-						vec3 P,
-						vec3 dPdu,
-						vec3 dPdv,
-						float randstep,
-						float numSamples)
-{
+float HorizonOcclusion(	vec2 deltaUV, vec3 P, vec3 dPdu, vec3 dPdv, float randstep, float numSamples){
 	float ao = 0;
 
 	// Offset the first coord with some noise
@@ -247,8 +135,7 @@ float HorizonOcclusion(	vec2 deltaUV,
 	vec3 S;
 
 	// Sample to find the maximum angle
-	for(float s = 1; s <= numSamples; ++s)
-	{
+	for(float s = 1; s <= numSamples; ++s){
 		uv += deltaUV;
 		S = GetViewPos(uv);
 		tanS = Tangent(P, S);
@@ -265,18 +152,14 @@ float HorizonOcclusion(	vec2 deltaUV,
 			sinH = sinS;
 		}
 	}
-	
 	return ao;
 }
 
-vec2 RotateDirections(vec2 Dir, vec2 CosSin)
-{
-    return vec2(Dir.x*CosSin.x - Dir.y*CosSin.y,
-                  Dir.x*CosSin.y + Dir.y*CosSin.x);
+vec2 RotateDirections(vec2 Dir, vec2 CosSin){
+    return vec2(Dir.x*CosSin.x - Dir.y*CosSin.y, Dir.x*CosSin.y + Dir.y*CosSin.x);
 }
 
-void ComputeSteps(inout vec2 stepSizeUv, inout float numSteps, float rayRadiusPix, float rand)
-{
+void ComputeSteps(inout vec2 stepSizeUv, inout float numSteps, float rayRadiusPix, float rand){
     // Avoid oversampling if numSteps is greater than the kernel radius in pixels
     numSteps = min(NumSamples, rayRadiusPix);
 
@@ -297,28 +180,27 @@ void ComputeSteps(inout vec2 stepSizeUv, inout float numSteps, float rayRadiusPi
     stepSizeUv = stepSizePix * InvAORes;
 }
 
-float getRandom(vec2 uv) {
+float getRandom(vec2 uv){
     return fract(sin(dot(uv.xy ,vec2(12.9898,78.233))) * 43758.5453);
 }
 
-void main(void)
-{
+void main(void){
 	float numDirections = NumDirections;
 
 	vec3 P, Pr, Pl, Pt, Pb;
-	P 	= GetViewPos(varTexcoord);
+	P = GetViewPos(varTexcoord);
 
 	// Sample neighboring pixels
-    Pr 	= GetViewPos(varTexcoord + vec2( InvAORes.x, 0));
-    Pl 	= GetViewPos(varTexcoord + vec2(-InvAORes.x, 0));
-    Pt 	= GetViewPos(varTexcoord + vec2( 0, InvAORes.y));
-    Pb 	= GetViewPos(varTexcoord + vec2( 0,-InvAORes.y));
+    Pr = GetViewPos(varTexcoord + vec2( InvAORes.x, 0));
+    Pl = GetViewPos(varTexcoord + vec2(-InvAORes.x, 0));
+    Pt = GetViewPos(varTexcoord + vec2( 0, InvAORes.y));
+    Pb = GetViewPos(varTexcoord + vec2( 0,-InvAORes.y));
 
-    // Calculate tangent basis vectors using the minimu difference
+    // Calculate tangent basis vectors using the minimum difference
     vec3 dPdu = MinDiff(P, Pr, Pl);
     vec3 dPdv = MinDiff(P, Pt, Pb) * (AORes.y * InvAORes.x);
 
-    // Get the random samples from the noise texture
+    // Get the random samples from the noise function
 	vec3 random = vec3(getRandom(varTexcoord.xy), getRandom(varTexcoord.yx), getRandom(varTexcoord.xx));
 
 	// Calculate the projected size of the hemisphere
@@ -328,8 +210,7 @@ void main(void)
     float ao = 1.0;
 
     // Make sure the radius of the evaluated hemisphere is more than a pixel
-    if(rayRadiusPix > 1.0)
-    {
+    if(rayRadiusPix > 1.0){
     	ao = 0.0;
     	float numSteps;
     	vec2 stepSizeUV;
@@ -340,8 +221,7 @@ void main(void)
 		float alpha = 2.0 * PI / numDirections;
 
 		// Calculate the horizon occlusion of each direction
-		for(float d = 0; d < numDirections; ++d)
-		{
+		for(float d = 0; d < numDirections; ++d){
 			float theta = alpha * d;
 
 			// Apply noise to the direction
@@ -361,6 +241,5 @@ void main(void)
 		ao = 1.0 - ao / numDirections * AOStrength;
 	}
 
-	//out_frag0 = vec2(ao, 30.0 * P.z);
     gl_FragColor = vec4(vec3(ao), 1.0);
 }
