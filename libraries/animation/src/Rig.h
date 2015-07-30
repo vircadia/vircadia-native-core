@@ -63,6 +63,8 @@ public:
         int neckJointIndex = -1;
         int leftEyeJointIndex = -1;
         int rightEyeJointIndex = -1;
+
+        void dump() const;
     };
 
     virtual ~Rig() {}
