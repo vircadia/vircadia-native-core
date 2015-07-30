@@ -25,7 +25,8 @@ namespace udt {
     static const int UDP_SEND_BUFFER_SIZE_BYTES = 1048576;
     static const int UDP_RECEIVE_BUFFER_SIZE_BYTES = 1048576;
     static const int DEFAULT_SYN_INTERVAL_USECS = 10 * 1000;
-    static const uint32_t CONTROL_BIT_MASK = 1 << (sizeof(SequenceNumber) - 1);
+    static const int SEQUENCE_NUMBER_BITS = sizeof(SequenceNumber) * 8;
+    static const uint32_t CONTROL_BIT_MASK = uint32_t(1) << (SEQUENCE_NUMBER_BITS - 1);
 }
 
 #endif // hifi_udt_Constants_h

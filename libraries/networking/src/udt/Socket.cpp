@@ -16,6 +16,7 @@
 #include "../NetworkLogging.h"
 #include "ControlPacket.h"
 #include "Packet.h"
+#include "../NLPacket.h"
 
 using namespace udt;
 
@@ -137,6 +138,8 @@ void Socket::readPendingDatagrams() {
         
         // check if this was a control packet or a data packet
         bool isControlPacket = *buffer & CONTROL_BIT_MASK;
+        
+        qDebug() << "IS CONTROL" << isControlPacket;
         
         if (isControlPacket) {
             // setup a control packet from the data we just read

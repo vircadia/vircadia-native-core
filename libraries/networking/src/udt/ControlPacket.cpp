@@ -57,7 +57,7 @@ ControlPacket::ControlPacket(Type type) :
     BasePacket(-1),
     _type(type)
 {
-    adjustPayloadStartAndCapacity();
+    adjustPayloadStartAndCapacity(localHeaderSize());
     
     open(QIODevice::ReadWrite);
     
@@ -68,7 +68,7 @@ ControlPacket::ControlPacket(Type type, qint64 size) :
     BasePacket(localHeaderSize() + size),
     _type(type)
 {
-    adjustPayloadStartAndCapacity();
+    adjustPayloadStartAndCapacity(localHeaderSize());
     
     open(QIODevice::ReadWrite);
     
@@ -119,11 +119,13 @@ void ControlPacket::writeType() {
     ControlBitAndType* bitAndType = reinterpret_cast<ControlBitAndType*>(_packet.get());
     
     // write the type by OR'ing the new type with the current value & CONTROL_BIT_MASK
-    *bitAndType = (*bitAndType & CONTROL_BIT_MASK) | (_type << sizeof((ControlPacket::Type) - 1));
+    *bitAndType = (*bitAndType & CONTROL_BIT_MASK) | (_type << (sizeof(ControlPacket::Type) * 8 - 1));
 }
 
 void ControlPacket::readType() {
     ControlBitAndType bitAndType = *reinterpret_cast<ControlBitAndType*>(_packet.get());
+    
+    Q_ASSERT_X(bitAndType & CONTROL_BIT_MASK, "ControlPacket::readHeader()", "This should be a control packet");
     
     // read the type
     uint32_t oversizeType = (uint32_t) (bitAndType & ~CONTROL_BIT_MASK);

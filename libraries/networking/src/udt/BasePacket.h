@@ -86,7 +86,7 @@ protected:
     virtual qint64 writeData(const char* data, qint64 maxSize);
     virtual qint64 readData(char* data, qint64 maxSize);
     
-    virtual void adjustPayloadStartAndCapacity(bool shouldDecreasePayloadSize = false);
+    virtual void adjustPayloadStartAndCapacity(qint64 headerSize, bool shouldDecreasePayloadSize = false);
     
     qint64 _packetSize = 0;        // Total size of the allocated memory
     std::unique_ptr<char> _packet; // Allocated memory
