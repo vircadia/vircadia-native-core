@@ -73,7 +73,7 @@ Packet::Packet(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& send
 {
     readHeader();
 
-    adjustPayloadStartAndCapacity(_payloadSize > 0);
+    adjustPayloadStartAndCapacity(localHeaderSize(), _payloadSize > 0);
 }
 
 Packet::Packet(const Packet& other) :

@@ -140,8 +140,6 @@ void Socket::readPendingDatagrams() {
         // check if this was a control packet or a data packet
         bool isControlPacket = *buffer & CONTROL_BIT_MASK;
         
-        qDebug() << "IS CONTROL" << isControlPacket;
-        
         if (isControlPacket) {
             // setup a control packet from the data we just read
             auto controlPacket = ControlPacket::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
