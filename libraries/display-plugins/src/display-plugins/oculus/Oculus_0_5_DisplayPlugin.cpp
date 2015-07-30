@@ -38,6 +38,7 @@ const QString & Oculus_0_5_DisplayPlugin::getName() const {
     return NAME;
 }
 
+
 bool Oculus_0_5_DisplayPlugin::isSupported() const {
     if (!ovr_Initialize(nullptr)) {
         return false;
@@ -46,6 +47,21 @@ bool Oculus_0_5_DisplayPlugin::isSupported() const {
     if (ovrHmd_Detect() > 0) {
         result = true;
     }
+
+    auto hmd = ovrHmd_Create(0);
+    if (hmd) {
+        QPoint targetPosition{ hmd->WindowsPos.x, hmd->WindowsPos.y };
+        auto screens = qApp->screens();
+        for(int i = 0; i < screens.size(); ++i) {
+            auto screen = screens[i];
+            QPoint position = screen->geometry().topLeft();
+            if (position == targetPosition) {
+                _hmdScreen = i;
+                break;
+            }
+        }
+    }
+  
     ovr_Shutdown();
     return result;
 }
@@ -55,28 +71,18 @@ void Oculus_0_5_DisplayPlugin::activate(PluginContainer * container) {
         Q_ASSERT(false);
         qFatal("Failed to Initialize SDK");
     }
+    _hswDismissed = false;
     _hmd = ovrHmd_Create(0);
     if (!_hmd) {
         qFatal("Failed to acquire HMD");
     }
     
     OculusBaseDisplayPlugin::activate(container);
-    QScreen* target{nullptr};
-    QPoint targetPosition{ _hmd->WindowsPos.x, _hmd->WindowsPos.y };
-    foreach(auto screen, qApp->screens()) {
-        QRect screenPosition = screen->geometry();
-        QPoint position = screenPosition.topLeft();
-        if (position == targetPosition) {
-            target = screen;
-            break;
-        }
+    int screen = getHmdScreen();
+    if (screen != -1) {
+        container->setFullscreen(qApp->screens()[screen]);
     }
     
-    
-    if (target) {
-        container->setFullscreen(target);
-    }
-
     _window->installEventFilter(this);
     _window->makeCurrent();
     ovrGLConfig config; memset(&config, 0, sizeof(ovrRenderAPIConfig));
@@ -137,19 +143,15 @@ void Oculus_0_5_DisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sc
 bool _hswDismissed{false};
 // Pass input events on to the application
 bool Oculus_0_5_DisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
-    
-    switch (event->type()) {
-        case QEvent::KeyPress:
-            if (!_hswDismissed) {
-                static ovrHSWDisplayState hswState;
-                ovrHmd_GetHSWDisplayState(_hmd, &hswState);
-                if (hswState.Displayed) {
-                    ovrHmd_DismissHSWDisplay(_hmd);
-                } else {
-                    _hswDismissed = true;
-                }
-            }
-    }
+    if (!_hswDismissed && (event->type() == QEvent::KeyPress)) {
+        static ovrHSWDisplayState hswState;
+        ovrHmd_GetHSWDisplayState(_hmd, &hswState);
+        if (hswState.Displayed) {
+            ovrHmd_DismissHSWDisplay(_hmd);
+        } else {
+            _hswDismissed = true;
+        }
+    }	
     return OculusBaseDisplayPlugin::eventFilter(receiver, event);
 }
 
@@ -159,7 +161,10 @@ bool Oculus_0_5_DisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
 // thread
 void Oculus_0_5_DisplayPlugin::finishFrame() {
     _window->doneCurrent();
-//    _hmdWindow->doneCurrent();
 };
+
+int Oculus_0_5_DisplayPlugin::getHmdScreen() const {
+    return _hmdScreen;
+}
 
 #endif

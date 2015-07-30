@@ -37,6 +37,24 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
     _previousDialogScreen(NULL),
     _inHDMMode(false)
 {
+    // FIXME do we want to support more than one connected HMD?  It seems like a pretty corner case
+    foreach(auto dp, getDisplayPlugins()) {
+        // The first plugin is always the standard 2D display, by convention
+        if (_defaultPluginName.isEmpty()) {
+            _defaultPluginName = dp->getName();
+            continue;
+        }
+        
+        if (dp->isHmd()) {
+            // Not all HMD's have corresponding screens
+            if (dp->getHmdScreen() >= 0) {
+                _hmdScreenNumber = dp->getHmdScreen();
+            }
+            _hmdPluginName = dp->getName();
+            break;
+        }
+    }
+
     this->setWindowTitle("HMD Tools");
 
     // Create layouter
@@ -90,25 +108,6 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
 
     // keep track of changes to the number of screens
     connect(QApplication::desktop(), &QDesktopWidget::screenCountChanged, this, &HMDToolsDialog::screenCountChanged);
-
-    
-    // FIXME do we want to support more than one connected HMD?  It seems like a pretty corner case
-    foreach(auto dp, getDisplayPlugins()) {
-        // The first plugin is always the standard 2D display, by convention
-        if (_defaultPluginName.isEmpty()) {
-            _defaultPluginName = dp->getName();
-            continue;
-        }
-
-        if (dp->isHmd()) {
-            // Not all HMD's have corresponding screens
-            if (dp->getHmdScreen() >= 0) {
-                _hmdScreenNumber = dp->getHmdScreen();
-            }
-            _hmdPluginName = dp->getName();
-            break;
-        }
-    }
 }
 
 HMDToolsDialog::~HMDToolsDialog() {

@@ -24,6 +24,8 @@ public:
 
     virtual bool eventFilter(QObject* receiver, QEvent* event) override;
 
+    virtual int getHmdScreen() const override;
+
 protected:
     virtual void preRender() override;
     virtual void preDisplay() override;
@@ -33,6 +35,8 @@ protected:
 
 private:
     ovrTexture _eyeTextures[2];
+    mutable int _hmdScreen{ -1 };
+    bool _hswDismissed{ false };
     static const QString NAME;
 };
 
