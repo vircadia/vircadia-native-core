@@ -25,6 +25,7 @@
 #include "CachesSizeDialog.h"
 #include "DiskCacheEditor.h"
 #include "DomainConnectionDialog.h"
+#include "HMDToolsDialog.h"
 #include "LodToolsDialog.h"
 #include "LoginDialog.h"
 #include "OctreeStatsDialog.h"
@@ -57,6 +58,10 @@ void DialogsManager::showUpdateDialog() {
 void DialogsManager::octreeStatsDetails() {
     if (!_octreeStatsDialog) {
         _octreeStatsDialog = new OctreeStatsDialog(qApp->getWindow(), qApp->getOcteeSceneStats());
+
+        if (_hmdToolsDialog) {
+            _hmdToolsDialog->watchWindow(_octreeStatsDialog->windowHandle());
+        }
         connect(_octreeStatsDialog, SIGNAL(closed()), _octreeStatsDialog, SLOT(deleteLater()));
         _octreeStatsDialog->show();
     }
@@ -114,6 +119,10 @@ void DialogsManager::audioStatsDetails() {
         _audioStatsDialog = new AudioStatsDialog(qApp->getWindow());
         connect(_audioStatsDialog, SIGNAL(closed()), _audioStatsDialog, SLOT(deleteLater()));
         
+        if (_hmdToolsDialog) {
+            _hmdToolsDialog->watchWindow(_audioStatsDialog->windowHandle());
+        }
+        
         _audioStatsDialog->show();
     }
     _audioStatsDialog->raise();
@@ -123,6 +132,11 @@ void DialogsManager::bandwidthDetails() {
     if (! _bandwidthDialog) {
         _bandwidthDialog = new BandwidthDialog(qApp->getWindow());
         connect(_bandwidthDialog, SIGNAL(closed()), _bandwidthDialog, SLOT(deleteLater()));
+
+        if (_hmdToolsDialog) {
+            _hmdToolsDialog->watchWindow(_bandwidthDialog->windowHandle());
+        }
+
         _bandwidthDialog->show();
     }
     _bandwidthDialog->raise();
@@ -141,6 +155,25 @@ void DialogsManager::lodTools() {
 void DialogsManager::toggleToolWindow() {
     QMainWindow* toolWindow = qApp->getToolWindow();
     toolWindow->setVisible(!toolWindow->isVisible());
+}
+
+void DialogsManager::hmdTools(bool showTools) {
+    if (showTools) {
+        if (!_hmdToolsDialog) {
+            maybeCreateDialog(_hmdToolsDialog);
+            connect(_hmdToolsDialog, SIGNAL(closed()), SLOT(hmdToolsClosed()));
+        }
+        _hmdToolsDialog->show();
+        _hmdToolsDialog->raise();
+    } else {
+        hmdToolsClosed();
+    }
+    qApp->getWindow()->activateWindow();
+}
+
+void DialogsManager::hmdToolsClosed() {
+    Menu::getInstance()->getActionForOption(MenuOption::HMDTools)->setChecked(false);
+    _hmdToolsDialog->hide();
 }
 
 void DialogsManager::showScriptEditor() {

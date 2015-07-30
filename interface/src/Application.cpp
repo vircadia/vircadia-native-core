@@ -4734,6 +4734,7 @@ void Application::updateDisplayMode() {
             oldDisplayPlugin->deactivate(this);
             _offscreenContext->makeCurrent();
         }
+        resetSensors();
     }
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
 }
@@ -4877,9 +4878,21 @@ void Application::unsetFullscreen() {
 
 
 void Application::showDisplayPluginsTools() {
-
+    DependencyManager::get<DialogsManager>()->hmdTools(true);
 }
 
 QGLWidget* Application::getPrimarySurface() {
     return _glWidget;
+}
+
+void Application::setActiveDisplayPlugin(const QString& pluginName) {
+    auto menu = Menu::getInstance();
+    foreach(DisplayPluginPointer displayPlugin, getDisplayPlugins()) {
+        QString name = displayPlugin->getName();
+        QAction* action = menu->getActionForOption(name);
+        if (pluginName == name) {
+            action->setChecked(true);
+        }
+    }
+    updateDisplayMode();
 }

@@ -13,13 +13,6 @@
 
 #include <QTimer>
 
-class OffscreenGlCanvas;
-struct SwapFramebufferWrapper;
-struct MirrorFramebufferWrapper;
-
-using SwapFboPtr = QSharedPointer<SwapFramebufferWrapper>;
-using MirrorFboPtr = QSharedPointer<MirrorFramebufferWrapper>;
-
 class Oculus_0_5_DisplayPlugin : public OculusBaseDisplayPlugin {
 public:
     virtual bool isSupported() const override;

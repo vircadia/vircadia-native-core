@@ -126,7 +126,6 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary) {
 
         return imageTempFile;
     }
-    return nullptr; 
 }
 
 

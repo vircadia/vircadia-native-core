@@ -289,8 +289,9 @@ public:
     virtual void setFullscreen(const QScreen* target) override;
     virtual void unsetFullscreen() override;
     virtual void showDisplayPluginsTools() override;
-    virtual QGLWidget* Application::getPrimarySurface() override;
+    virtual QGLWidget* getPrimarySurface() override;
 
+    void setActiveDisplayPlugin(const QString& pluginName);
 private:
     DisplayPlugin * getActiveDisplayPlugin();
     const DisplayPlugin * getActiveDisplayPlugin() const;

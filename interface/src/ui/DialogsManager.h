@@ -17,6 +17,8 @@
 #include <Application.h>
 #include <DependencyManager.h>
 
+#include "HMDToolsDialog.h"
+
 class QAction;
 
 class AddressBarDialog;
@@ -43,6 +45,7 @@ class DialogsManager : public QObject, public Dependency {
 public:
     QPointer<AudioStatsDialog> getAudioStatsDialog() const { return _audioStatsDialog; }
     QPointer<BandwidthDialog> getBandwidthDialog() const { return _bandwidthDialog; }
+    QPointer<HMDToolsDialog> getHMDToolsDialog() const { return _hmdToolsDialog; }
     QPointer<LodToolsDialog> getLodToolsDialog() const { return _lodToolsDialog; }
     QPointer<OctreeStatsDialog> getOctreeStatsDialog() const { return _octreeStatsDialog; }
     QPointer<PreferencesDialog> getPreferencesDialog() const { return _preferencesDialog; }
@@ -60,6 +63,7 @@ public slots:
     void audioStatsDetails();
     void bandwidthDetails();
     void lodTools();
+    void hmdTools(bool showTools);
     void showScriptEditor();
     void showIRCLink();
     void changeAvatarAppearance();
@@ -70,6 +74,7 @@ public slots:
 
 private slots:
     void toggleToolWindow();
+    void hmdToolsClosed();
 
 private:
     DialogsManager() {}
@@ -81,6 +86,10 @@ private:
             Q_CHECK_PTR(parent);
             member = new T(parent);
             Q_CHECK_PTR(member);
+
+            if (_hmdToolsDialog && member->windowHandle()) {
+                _hmdToolsDialog->watchWindow(member->windowHandle());
+            }
         }
     }
 
@@ -92,6 +101,7 @@ private:
     QPointer<CachesSizeDialog> _cachesSizeDialog;
     QPointer<DiskCacheEditor> _diskCacheEditor;
     QPointer<QMessageBox> _ircInfoBox;
+    QPointer<HMDToolsDialog> _hmdToolsDialog;
     QPointer<LodToolsDialog> _lodToolsDialog;
     QPointer<LoginDialog> _loginDialog;
     QPointer<OctreeStatsDialog> _octreeStatsDialog;
