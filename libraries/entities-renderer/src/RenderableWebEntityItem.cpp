@@ -177,8 +177,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     batch.setModelTransform(getTransformToCenter());
     bool textured = false, culled = false, emissive = false;
     if (_texture) {
-        batch._glActiveTexture(GL_TEXTURE0);
-        batch._glBindTexture(GL_TEXTURE_2D, _texture);
+        batch._glActiveBindTexture(GL_TEXTURE0, GL_TEXTURE_2D, _texture);
         textured = emissive = true;
     }
     

@@ -111,9 +111,6 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _drawHitEffectJobIndex = _jobs.size() -1;
 
 
-    _jobs.push_back(Job(new ResetGLState::JobModel()));
-    
-
     // Give ourselves 3 frmaes of timer queries
     _timerQueries.push_back(std::make_shared<gpu::Query>());
     _timerQueries.push_back(std::make_shared<gpu::Query>());

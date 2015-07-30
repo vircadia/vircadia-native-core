@@ -284,3 +284,7 @@ void Batch::getQuery(const QueryPointer& query) {
     _params.push_back(_queries.cache(query));
 }
 
+void Batch::resetStages() {
+    ADD_COMMAND(resetStages);
+}
+

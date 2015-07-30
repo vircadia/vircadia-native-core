@@ -161,7 +161,7 @@ const gpu::PipelinePointer& AmbientOcclusion::getBlendPipeline() {
 
         // Blend on transparent
         state->setBlendFunction(true,
-            gpu::State::SRC_COLOR, gpu::State::BLEND_OP_ADD, gpu::State::DEST_COLOR);
+            gpu::State::INV_SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::SRC_ALPHA);
 
         // Good to go add the brand new pipeline
         _blendPipeline.reset(gpu::Pipeline::create(program, state));

@@ -103,3 +103,7 @@ void GLBackend::do_getQuery(Batch& batch, uint32 paramOffset) {
         (void)CHECK_GL_ERROR();
     }
 }
+
+void GLBackend::resetQueryStage() {
+}
+
