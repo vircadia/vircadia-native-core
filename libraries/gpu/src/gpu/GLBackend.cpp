@@ -63,12 +63,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_glLineWidth),
 };
 
-GLBackend::GLBackend() :
-    _input(),
-    _transform(),
-    _pipeline(),
-    _output()
-{
+void GLBackend::init() {
     static std::once_flag once;
     std::call_once(once, [] {
         qCDebug(gpulogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
@@ -108,7 +103,18 @@ GLBackend::GLBackend() :
         }*/
 #endif
     });
+}
 
+Backend* GLBackend::createBackend() {
+    return new GLBackend();
+}
+
+GLBackend::GLBackend() :
+    _input(),
+    _transform(),
+    _pipeline(),
+    _output()
+{
     initInput();
     initTransform();
 }

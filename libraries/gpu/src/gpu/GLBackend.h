@@ -22,10 +22,17 @@
 namespace gpu {
 
 class GLBackend : public Backend {
-public:
+
+    // Context Backend static interface required
+    friend class Context;
+    static void init();
+    static Backend* createBackend();
+    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings = Shader::BindingSet());
 
     explicit GLBackend(bool syncCache);
     GLBackend();
+public:
+
     virtual ~GLBackend();
 
     virtual void render(Batch& batch);
@@ -47,7 +54,6 @@ public:
 
     static void checkGLStackStable(std::function<void()> f);
 
-    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings = Shader::BindingSet());
     
 
     class GLBuffer : public GPUObject {

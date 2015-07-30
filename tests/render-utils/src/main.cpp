@@ -94,7 +94,6 @@ class QTestWindow : public QWindow {
     QSize _size;
     //TextRenderer* _textRenderer[4];
     RateCounter fps;
-    gpu::ContextPointer _gpuContext;
 
 protected:
     void renderText();
@@ -124,7 +123,8 @@ public:
 
         show();
         makeCurrent();
-        _gpuContext.reset(new gpu::Context(new gpu::GLBackend()));
+
+        gpu::Context::init<gpu::GLBackend>();
 
 
 
