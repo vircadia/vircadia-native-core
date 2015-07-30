@@ -90,7 +90,7 @@ BandwidthDialog::BandwidthDialog(QWidget* parent) :
         new BandwidthChannelDisplay({NodeType::Unassigned}, form, "Other", "Kbps", 1.0, COLOR2);
     _allChannelDisplays[5] = _totalChannelDisplay =
         new BandwidthChannelDisplay({NodeType::DomainServer, NodeType::EntityServer,
-                                         NodeType::EnvironmentServer, NodeType::AudioMixer, NodeType::Agent,
+                                         NodeType::AudioMixer, NodeType::Agent,
                                          NodeType::AvatarMixer, NodeType::Unassigned},
                                     form, "Total", "Kbps", 1.0, COLOR2);
 

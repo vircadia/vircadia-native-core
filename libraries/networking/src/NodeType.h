@@ -19,7 +19,6 @@ typedef quint8 NodeType_t;
 namespace NodeType {
     const NodeType_t DomainServer = 'D';
     const NodeType_t EntityServer = 'o'; // was ModelServer
-    const NodeType_t EnvironmentServer = 'E';
     const NodeType_t Agent = 'I';
     const NodeType_t AudioMixer = 'M';
     const NodeType_t AvatarMixer = 'W';
