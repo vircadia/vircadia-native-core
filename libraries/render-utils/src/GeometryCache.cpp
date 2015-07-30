@@ -1998,7 +1998,7 @@ void GeometryReader::run() {
                 } else if (_url.path().toLower().endsWith("palaceoforinthilian4.fbx")) {
                     lightmapLevel = 3.5f;
                 }
-                fbxgeo = readFBX(_reply, _mapping, grabLightmaps, lightmapLevel);
+                fbxgeo = readFBX(_reply, _mapping, _url.path(), grabLightmaps, lightmapLevel);
             } else if (_url.path().toLower().endsWith(".obj")) {
                 fbxgeo = OBJReader().readOBJ(_reply, _mapping, &_url);
             }
