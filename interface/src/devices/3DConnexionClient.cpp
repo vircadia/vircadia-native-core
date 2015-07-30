@@ -175,20 +175,18 @@ void ConnexionClient::toggleConnexion(bool shouldEnable) {
 
 void ConnexionClient::init() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Connexion)) {
-        ConnexionClient& cclient = ConnexionClient::getInstance();
-        cclient.fLast3dmouseInputTime = 0;
+        fLast3dmouseInputTime = 0;
 
-        cclient.InitializeRawInput(GetActiveWindow());
+        InitializeRawInput(GetActiveWindow());
 
-        gMouseInput = &cclient;
+        gMouseInput = &this;
 
         QAbstractEventDispatcher::instance()->installNativeEventFilter(&cclient);
     }
 }
 
 void ConnexionClient::destroy() {
-    ConnexionClient& cclient = ConnexionClient::getInstance();
-    QAbstractEventDispatcher::instance()->removeNativeEventFilter(&cclient);
+    QAbstractEventDispatcher::instance()->removeNativeEventFilter(&this);
     ConnexionData& connexiondata = ConnexionData::getInstance();
     int deviceid = connexiondata.getDeviceID();
     connexiondata.setDeviceID(0);
@@ -328,8 +326,7 @@ ConnexionClient::ConnexionClient() {
 }
 
 ConnexionClient::~ConnexionClient() {
-    ConnexionClient& cclient = ConnexionClient::getInstance();
-    QAbstractEventDispatcher::instance()->removeNativeEventFilter(&cclient);
+    QAbstractEventDispatcher::instance()->removeNativeEventFilter(&this);
 }
 
 // Access the mouse parameters structure
