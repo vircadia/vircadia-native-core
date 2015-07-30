@@ -81,7 +81,7 @@ ControlPacket::ControlPacket(std::unique_ptr<char> data, qint64 size, const Hifi
     // sanity check before we decrease the payloadSize with the payloadCapacity
     Q_ASSERT(_payloadSize == _payloadCapacity);
     
-    adjustPayloadStartAndCapacity(_payloadSize > 0);
+    adjustPayloadStartAndCapacity(localHeaderSize(), _payloadSize > 0);
     
     readType();
 }
