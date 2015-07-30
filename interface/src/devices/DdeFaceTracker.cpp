@@ -564,6 +564,13 @@ void DdeFaceTracker::decodePacket(const QByteArray& buffer) {
             eyeCoefficients[1] = _filteredEyeBlinks[1];
         }
 
+        // Couple eyelid values if configured - use the most "open" value for both
+        if (Menu::getInstance()->isOptionChecked(MenuOption::CoupleEyelids)) {
+            float eyeCoefficient = std::min(eyeCoefficients[0], eyeCoefficients[1]);
+            eyeCoefficients[0] = eyeCoefficient;
+            eyeCoefficients[1] = eyeCoefficient;
+        }
+
         // Use EyeBlink values to control both EyeBlink and EyeOpen
         if (eyeCoefficients[0] > 0) {
             _coefficients[_leftBlinkIndex] = eyeCoefficients[0];
