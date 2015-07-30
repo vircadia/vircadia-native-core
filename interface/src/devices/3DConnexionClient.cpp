@@ -872,13 +872,6 @@ void MouseParameters::SetPivotVisibility(PivotVisibility visibility) {
 
 #else
 
-#define WITH_SEPARATE_THREAD false    // set to true or false
-
-// Make the linker happy for the framework check (see link below for more info)
-// http://developer.apple.com/documentation/MacOSX/Conceptual/BPFrameworks/Concepts/WeakLinking.html
-
-extern int16_t SetConnexionHandlers(ConnexionMessageHandlerProc messageHandler, ConnexionAddedHandlerProc addedHandler, ConnexionRemovedHandlerProc removedHandler, bool useSeparateThread) __attribute__((weak_import));
-
 int fConnexionClientID;
 
 static ConnexionDeviceState lastState;
@@ -887,20 +880,18 @@ static void DeviceAddedHandler(unsigned int connection);
 static void DeviceRemovedHandler(unsigned int connection);
 static void MessageHandler(unsigned int connection, unsigned int messageType, void *messageArgument);
 
-void ConnexionClient::toggleConnexion(bool shouldEnable)
-{
+void ConnexionClient::toggleConnexion(bool shouldEnable) {
     if (shouldEnable && !ConnexionClient::Is3dmouseAttached()) {
         ConnexionClient::init();
     }
     if (!shouldEnable && ConnexionClient::Is3dmouseAttached()) {
         ConnexionClient::destroy();
     }
-
 }
 
 void ConnexionClient::init() {
     // Make sure the framework is installed
-    if (SetConnexionHandlers != NULL && Menu::getInstance()->isOptionChecked(MenuOption::Connexion)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Connexion)) {
         // Install message handler and register our client
         InstallConnexionHandlers(MessageHandler, DeviceAddedHandler, DeviceRemovedHandler);
         // Either use this to take over in our application only... does not work
