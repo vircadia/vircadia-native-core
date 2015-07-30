@@ -35,19 +35,19 @@ public:
     // Provided for convenience, try to limit use
     static std::unique_ptr<NLPacket> createCopy(const NLPacket& other);
     
+    // Current level's header size
+    static int localHeaderSize(PacketType type);
+    // Cumulated size of all the headers
+    static int totalHeaderSize(PacketType type, bool isPartOfMessage = false);
+    // The maximum payload size this packet can use to fit in MTU
+    static int maxPayloadSize(PacketType type, bool isPartOfMessage = false);
+    
     static PacketType typeInHeader(const udt::Packet& packet);
     static PacketVersion versionInHeader(const udt::Packet& packet);
     
     static QUuid sourceIDInHeader(const udt::Packet& packet);
     static QByteArray verificationHashInHeader(const udt::Packet& packet);
     static QByteArray hashForPacketAndSecret(const udt::Packet& packet, const QUuid& connectionSecret);
-    
-    static qint64 maxPayloadSize(PacketType type);
-    static qint64 localHeaderSize(PacketType type);
-    
-    virtual qint64 maxPayloadSize() const; // The maximum payload size this packet can use to fit in MTU
-    virtual qint64 totalHeadersSize() const; // Cumulated size of all the headers
-    virtual qint64 localHeaderSize() const;  // Current level's header size
     
     PacketType getType() const { return _type; }
     void setType(PacketType type);

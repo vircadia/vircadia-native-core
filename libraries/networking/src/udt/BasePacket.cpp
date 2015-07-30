@@ -15,6 +15,16 @@ using namespace udt;
 
 const qint64 BasePacket::PACKET_WRITE_ERROR = -1;
 
+int BasePacket::localHeaderSize() {
+    return 0;
+}
+int BasePacket::totalHeaderSize() {
+    return 0;
+}
+int BasePacket::maxPayloadSize() {
+    return MAX_PACKET_SIZE;
+}
+
 std::unique_ptr<BasePacket> BasePacket::create(qint64 size) {
     auto packet = std::unique_ptr<BasePacket>(new BasePacket(size));
     
@@ -37,7 +47,7 @@ std::unique_ptr<BasePacket> BasePacket::fromReceivedPacket(std::unique_ptr<char>
 }
 
 BasePacket::BasePacket(qint64 size) {
-    auto maxPayload = maxPayloadSize();
+    auto maxPayload = BasePacket::maxPayloadSize();
     
     if (size == -1) {
         // default size of -1, means biggest packet possible
@@ -114,6 +124,10 @@ BasePacket& BasePacket::operator=(BasePacket&& other) {
     seek(other.pos());
     
     return *this;
+}
+
+qint64 BasePacket::getDataSize() const {
+    return (_payloadStart - _packet.get()) + _payloadSize;
 }
 
 void BasePacket::setPayloadSize(qint64 payloadSize) {

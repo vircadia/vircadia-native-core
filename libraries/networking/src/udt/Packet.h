@@ -38,15 +38,12 @@ public:
     // Provided for convenience, try to limit use
     static std::unique_ptr<Packet> createCopy(const Packet& other);
     
-    // The maximum payload size this packet can use to fit in MTU
-    static qint64 maxPayloadSize(bool isPartOfMessage);
-    virtual qint64 maxPayloadSize() const;
-    
     // Current level's header size
-    static qint64 localHeaderSize(bool isPartOfMessage);
-    virtual qint64 localHeaderSize() const;
-    
-    virtual qint64 totalHeadersSize() const; // Cumulated size of all the headers
+    static int localHeaderSize(bool isPartOfMessage = false);
+    // Cumulated size of all the headers
+    static int totalHeaderSize(bool isPartOfMessage = false);
+    // The maximum payload size this packet can use to fit in MTU
+    static int maxPayloadSize(bool isPartOfMessage = false);
     
     bool isPartOfMessage() const { return _isPartOfMessage; }
     bool isReliable() const { return _isReliable; }

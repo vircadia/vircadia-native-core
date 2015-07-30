@@ -15,6 +15,16 @@
 
 using namespace udt;
 
+int ControlPacket::localHeaderSize() {
+    return sizeof(ControlPacket::ControlBitAndType);
+}
+int ControlPacket::totalHeaderSize() {
+    return BasePacket::totalHeaderSize() + ControlPacket::localHeaderSize();
+}
+int ControlPacket::maxPayloadSize() {
+    return BasePacket::maxPayloadSize() - ControlPacket::localHeaderSize();
+}
+
 std::unique_ptr<ControlPacket> ControlPacket::fromReceivedPacket(std::unique_ptr<char> data, qint64 size,
                                                                  const HifiSockAddr &senderSockAddr) {
     // Fail with null data
@@ -45,19 +55,11 @@ std::unique_ptr<ControlPacket> ControlPacket::create(Type type, qint64 size) {
     }
 }
 
-qint64 ControlPacket::localHeaderSize() {
-    return sizeof(ControlBitAndType);
-}
-
-qint64 ControlPacket::totalHeadersSize() const {
-    return BasePacket::totalHeadersSize() + localHeaderSize();
-}
-
 ControlPacket::ControlPacket(Type type) :
     BasePacket(-1),
     _type(type)
 {
-    adjustPayloadStartAndCapacity(localHeaderSize());
+    adjustPayloadStartAndCapacity(ControlPacket::localHeaderSize());
     
     open(QIODevice::ReadWrite);
     
@@ -65,10 +67,10 @@ ControlPacket::ControlPacket(Type type) :
 }
 
 ControlPacket::ControlPacket(Type type, qint64 size) :
-    BasePacket(localHeaderSize() + size),
+    BasePacket(ControlPacket::localHeaderSize() + size),
     _type(type)
 {
-    adjustPayloadStartAndCapacity(localHeaderSize());
+    adjustPayloadStartAndCapacity(ControlPacket::localHeaderSize());
     
     open(QIODevice::ReadWrite);
     
@@ -81,7 +83,7 @@ ControlPacket::ControlPacket(std::unique_ptr<char> data, qint64 size, const Hifi
     // sanity check before we decrease the payloadSize with the payloadCapacity
     Q_ASSERT(_payloadSize == _payloadCapacity);
     
-    adjustPayloadStartAndCapacity(localHeaderSize(), _payloadSize > 0);
+    adjustPayloadStartAndCapacity(ControlPacket::localHeaderSize(), _payloadSize > 0);
     
     readType();
 }

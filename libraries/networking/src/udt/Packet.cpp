@@ -13,6 +13,20 @@
 
 using namespace udt;
 
+int Packet::localHeaderSize(bool isPartOfMessage) {
+    return sizeof(Packet::SequenceNumberAndBitField) +
+            (isPartOfMessage ? sizeof(Packet::MessageNumberAndBitField) : 0);
+}
+
+int Packet::totalHeaderSize(bool isPartOfMessage) {
+    return BasePacket::totalHeaderSize() + Packet::localHeaderSize(isPartOfMessage);
+}
+
+int Packet::maxPayloadSize(bool isPartOfMessage) {
+    return BasePacket::maxPayloadSize() - Packet::localHeaderSize(isPartOfMessage);
+}
+
+
 std::unique_ptr<Packet> Packet::create(qint64 size, bool isReliable, bool isPartOfMessage) {
     auto packet = std::unique_ptr<Packet>(new Packet(size, isReliable, isPartOfMessage));
     
@@ -37,32 +51,12 @@ std::unique_ptr<Packet> Packet::createCopy(const Packet& other) {
     return std::unique_ptr<Packet>(new Packet(other));
 }
 
-qint64 Packet::maxPayloadSize(bool isPartOfMessage) {
-    return MAX_PACKET_SIZE - localHeaderSize(isPartOfMessage);
-}
-
-qint64 Packet::localHeaderSize(bool isPartOfMessage) {
-    return sizeof(SequenceNumberAndBitField) + (isPartOfMessage ? sizeof(MessageNumberAndBitField) : 0);
-}
-
-qint64 Packet::maxPayloadSize() const {
-    return MAX_PACKET_SIZE - localHeaderSize();
-}
-
-qint64 Packet::totalHeadersSize() const {
-    return BasePacket::totalHeadersSize() + Packet::localHeaderSize();
-}
-
-qint64 Packet::localHeaderSize() const {
-    return localHeaderSize(_isPartOfMessage);
-}
-
 Packet::Packet(qint64 size, bool isReliable, bool isPartOfMessage) :
-    BasePacket(size),
+    BasePacket(Packet::localHeaderSize() + size),
     _isReliable(isReliable),
     _isPartOfMessage(isPartOfMessage)
 {
-    adjustPayloadStartAndCapacity(localHeaderSize());
+    adjustPayloadStartAndCapacity(Packet::localHeaderSize(_isPartOfMessage));
     
     // set the UDT header to default values
     writeHeader();
@@ -73,7 +67,7 @@ Packet::Packet(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& send
 {
     readHeader();
 
-    adjustPayloadStartAndCapacity(localHeaderSize(), _payloadSize > 0);
+    adjustPayloadStartAndCapacity(Packet::localHeaderSize(_isPartOfMessage), _payloadSize > 0);
 }
 
 Packet::Packet(const Packet& other) :
