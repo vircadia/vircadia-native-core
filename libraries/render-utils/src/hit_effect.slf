@@ -2,10 +2,10 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  occlusion_blend.frag
+//  hit_effect.frag
 //  fragment shader
 //
-//  Created by Niraj Venkat on 7/20/15.
+//  Created by Eric Levin on 7/20
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -14,13 +14,11 @@
 
 <@include DeferredBufferWrite.slh@>
 
-varying vec2 varTexcoord;
-
-uniform sampler2D blurredOcclusionTexture;
+varying vec2 varQuadPosition;
 
 void main(void) {
-    vec4 occlusionColor = texture2D(blurredOcclusionTexture, varTexcoord);
-    
-    gl_FragColor = vec4(vec3(0.0), occlusionColor.r);
-
+  vec2 center = vec2(0.0, 0.0);
+  float distFromCenter = distance( vec2(0.0, 0.0), varQuadPosition);
+  float alpha = mix(0.0, 0.5, pow(distFromCenter,5.));
+  gl_FragColor = vec4(1.0, 0.0, 0.0, alpha);
 }

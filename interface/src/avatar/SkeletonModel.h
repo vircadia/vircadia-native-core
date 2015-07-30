@@ -97,10 +97,6 @@ public:
     /// \return whether or not the head was found.
     glm::vec3 getDefaultEyeModelPosition() const;
 
-    /// skeleton offset caused by moving feet
-    void updateStandingFoot();
-    const glm::vec3& getStandingOffset() const { return _standingOffset; }
-
     void computeBoundingShape(const FBXGeometry& geometry);
     void renderBoundingCollisionShapes(gpu::Batch& batch, float alpha);
     float getBoundingShapeRadius() const { return _boundingShape.getRadius(); }
@@ -170,9 +166,6 @@ private:
     glm::vec3 _boundingShapeLocalOffset;
 
     glm::vec3 _defaultEyeModelPosition;
-    int _standingFoot;
-    glm::vec3 _standingOffset;
-    glm::vec3 _clampedFootPosition;
 
     float _headClipDistance;  // Near clip distance to use if no separate head model
 

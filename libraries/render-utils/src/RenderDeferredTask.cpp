@@ -1,3 +1,4 @@
+
 //
 //  RenderDeferredTask.cpp
 //  render-utils/src/
@@ -20,6 +21,7 @@
 #include "FramebufferCache.h"
 #include "DeferredLightingEffect.h"
 #include "TextureCache.h"
+#include "HitEffect.h"
 
 #include "render/DrawStatus.h"
 #include "AmbientOcclusionEffect.h"
@@ -78,6 +80,7 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortOpaque", _jobs.back().getOutput())));
     auto& renderedOpaques = _jobs.back().getOutput();
     _jobs.push_back(Job(new DrawOpaqueDeferred::JobModel("DrawOpaqueDeferred", _jobs.back().getOutput())));
+  
     _jobs.push_back(Job(new DrawLight::JobModel("DrawLight")));
     _jobs.push_back(Job(new RenderDeferred::JobModel("RenderDeferred")));
     _jobs.push_back(Job(new ResolveDeferred::JobModel("ResolveDeferred")));
@@ -105,8 +108,10 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _drawStatusJobIndex = _jobs.size() - 1;
 
     _jobs.push_back(Job(new DrawOverlay3D::JobModel("DrawOverlay3D")));
+    _jobs.push_back(Job(new HitEffect::JobModel("HitEffect")));
+    _jobs.back().setEnabled(false);
+    _drawHitEffectJobIndex = _jobs.size() -1;
 
-    _jobs.push_back(Job(new ResetGLState::JobModel()));
 
     // Give ourselves 3 frmaes of timer queries
     _timerQueries.push_back(std::make_shared<gpu::Query>());
@@ -133,6 +138,10 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
 
     // Make sure we turn the displayItemStatus on/off
     setDrawItemStatus(renderContext->_drawItemStatus);
+    
+    //Make sure we display hit effect on screen, as desired from a script
+    setDrawHitEffect(renderContext->_drawHitEffect);
+    
 
     // TODO: turn on/off AO through menu item
     setOcclusionStatus(renderContext->_occlusionStatus);

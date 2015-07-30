@@ -97,7 +97,6 @@ MyAvatar::MyAvatar() :
     _lookAtTargetAvatar(),
     _shouldRender(true),
     _billboardValid(false),
-    _feetTouchFloor(true),
     _eyeContactTarget(LEFT_EYE),
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
@@ -182,9 +181,6 @@ void MyAvatar::update(float deltaTime) {
     head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 
     simulate(deltaTime);
-    if (_feetTouchFloor) {
-        _skeletonModel.updateStandingFoot();
-    }
 }
 
 void MyAvatar::simulate(float deltaTime) {
@@ -1194,11 +1190,7 @@ glm::vec3 MyAvatar::getSkeletonPosition() const {
         // The avatar is rotated PI about the yAxis, so we have to correct for it
         // to get the skeleton offset contribution in the world-frame.
         const glm::quat FLIP = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-        glm::vec3 skeletonOffset = _skeletonOffset;
-        if (_feetTouchFloor) {
-            skeletonOffset += _skeletonModel.getStandingOffset();
-        }
-        return _position + getOrientation() * FLIP * skeletonOffset;
+        return _position + getOrientation() * FLIP * _skeletonOffset;
     }
     return Avatar::getPosition();
 }
@@ -1679,7 +1671,6 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
     _characterController.setEnabled(menu->isOptionChecked(MenuOption::EnableCharacterController));
-    _feetTouchFloor = menu->isOptionChecked(MenuOption::ShiftHipsForIdleAnimations);
 }
 
 void MyAvatar::updateStandingHMDModeFromMenu() {

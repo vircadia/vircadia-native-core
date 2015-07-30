@@ -35,7 +35,7 @@ class MyAvatar : public Avatar {
     //TODO: make gravity feature work Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setGravity)
 
 public:
-	MyAvatar();
+    MyAvatar();
     ~MyAvatar();
 
     QByteArray toByteArray();
@@ -286,6 +286,7 @@ private:
     QList<AnimationHandlePointer> _animationHandles;
 
     bool _feetTouchFloor;
+
     eyeContactTarget _eyeContactTarget;
 
     RecorderPointer _recorder;
@@ -294,7 +295,7 @@ private:
 
     Setting::Handle<float> _realWorldFieldOfView;
 
-	// private methods
+    // private methods
     void updateOrientation(float deltaTime);
     glm::vec3 applyKeyboardMotor(float deltaTime, const glm::vec3& velocity, bool isHovering);
     glm::vec3 applyScriptedMotor(float deltaTime, const glm::vec3& velocity);

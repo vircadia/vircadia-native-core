@@ -159,6 +159,7 @@ namespace MenuOption {
     const QString CenterPlayerInView = "Center Player In View";
     const QString Chat = "Chat...";
     const QString Collisions = "Collisions";
+    const QString Connexion = "Activate 3D Connexion Devices";
     const QString Console = "Console...";
     const QString ControlWithSpeech = "Control With Speech";
     const QString CopyAddress = "Copy Address to Clipboard";
@@ -270,7 +271,6 @@ namespace MenuOption {
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
     const QString ShowWhosLookingAtMe = "Show Who's Looking at Me";
     const QString SimpleShadows = "Simple";
-    const QString ShiftHipsForIdleAnimations = "Shift hips for idle animations";
     const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
