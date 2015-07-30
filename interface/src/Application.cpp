@@ -115,6 +115,7 @@
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
+#include "devices/3Dconnexion.h"
 
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
@@ -639,6 +640,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
     applicationUpdater->checkForUpdate();
 
+    // the 3Dconnexion device wants to be initiliazed after a window is displayed.
+    ConnexionClient::init();
+
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::DomainConnectionDenied, this, "handleDomainConnectionDeniedPacket");
 }
@@ -750,6 +754,7 @@ Application::~Application() {
 
     Leapmotion::destroy();
     RealSense::destroy();
+    ConnexionClient::destroy();
 
     qInstallMessageHandler(NULL); // NOTE: Do this as late as possible so we continue to get our log messages
 }
@@ -1488,6 +1493,7 @@ void Application::focusOutEvent(QFocusEvent* event) {
     _keyboardMouseDevice.focusOutEvent(event);
     SixenseManager::getInstance().focusOutEvent();
     SDL2Manager::getInstance()->focusOutEvent();
+    ConnexionData::getInstance().focusOutEvent();
 
     // synthesize events for keys currently pressed, since we may not get their release events
     foreach (int key, _keysPressed) {
@@ -3272,6 +3278,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         renderContext._maxDrawnOverlay3DItems = sceneInterface->getEngineMaxDrawnOverlay3DItems();
 
         renderContext._drawItemStatus = sceneInterface->doEngineDisplayItemStatus();
+        renderContext._drawHitEffect = sceneInterface->doEngineDisplayHitEffect();
 
         renderContext._occlusionStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugAmbientOcclusion);
 
@@ -3389,7 +3396,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
         // This was removed in commit 71e59cfa88c6563749594e25494102fe01db38e9 but could be further
         // investigated in order to adapt the technique while fixing the head rendering issue,
         // but the complexity of the hack suggests that a better approach
-        _mirrorCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
+        _mirrorCamera.setPosition(_myAvatar->getDefaultEyePosition() +
                                     _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
     }
     _mirrorCamera.setProjection(glm::perspective(glm::radians(fov), aspect, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
