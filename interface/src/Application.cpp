@@ -1021,7 +1021,7 @@ void Application::paintGL() {
     batch.resetStages();
     // TODO: Testing the water here, it is maybe not needed at all,
     // i would like to keep it like that until we merge with DisplayPlugin
-    //  renderArgs._context->render(batch);
+    renderArgs._context->render(batch);
 }
 
 void Application::runTests() {
