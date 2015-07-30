@@ -128,8 +128,7 @@ void DataServerAccountInfo::setProfileInfoFromJSON(const QJsonObject& jsonObject
     setWalletID(QUuid(user["wallet_id"].toString()));
 }
 
-const QByteArray& DataServerAccountInfo::getUsernameSignature() {
-    if (_usernameSignature.isEmpty()) {
+QByteArray DataServerAccountInfo::getUsernameSignature(const QUuid& connectionToken) {
         if (!_privateKey.isEmpty()) {
             const char* privateKeyData = _privateKey.constData();
             RSA* rsaPrivateKey = d2i_RSAPrivateKey(NULL,
@@ -137,29 +136,33 @@ const QByteArray& DataServerAccountInfo::getUsernameSignature() {
                                                    _privateKey.size());
             if (rsaPrivateKey) {
                 QByteArray lowercaseUsername = _username.toLower().toUtf8();
-                _usernameSignature.resize(RSA_size(rsaPrivateKey));
+                QByteArray usernameWithToken = lowercaseUsername.append(connectionToken.toRfc4122());
+        
+                QByteArray usernameSignature(RSA_size(rsaPrivateKey), 0);
                 
                 int encryptReturn = RSA_private_encrypt(lowercaseUsername.size(),
-                                                        reinterpret_cast<const unsigned char*>(lowercaseUsername.constData()),
-                                                        reinterpret_cast<unsigned char*>(_usernameSignature.data()),
+                                                        reinterpret_cast<const unsigned char*>(usernameWithToken.constData()),
+                                                        reinterpret_cast<unsigned char*>(usernameSignature.data()),
                                                         rsaPrivateKey, RSA_PKCS1_PADDING);
                 
-                if (encryptReturn == -1) {
-                    qCDebug(networking) << "Error encrypting username signature.";
-                    qCDebug(networking) << "Will re-attempt on next domain-server check in.";
-                    _usernameSignature = QByteArray();
-                }
+            
                 
                 // free the private key RSA struct now that we are done with it
                 RSA_free(rsaPrivateKey);
+
+                if (encryptReturn == -1) {
+                    qCDebug(networking) << "Error encrypting username signature.";
+                    qCDebug(networking) << "Will re-attempt on next domain-server check in.";
+                } else {
+                    return usernameSignature;
+                }
+                
             } else {
                 qCDebug(networking) << "Could not create RSA struct from QByteArray private key.";
                 qCDebug(networking) << "Will re-attempt on next domain-server check in.";
             }
         }
-    }
-    
-    return _usernameSignature;
+    return QByteArray();
 }
 
 void DataServerAccountInfo::setPrivateKey(const QByteArray& privateKey) {

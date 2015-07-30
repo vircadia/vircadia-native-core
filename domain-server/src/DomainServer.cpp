@@ -285,6 +285,7 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     packetReceiver.registerListener(PacketType::DomainConnectRequest, this, "processConnectRequestPacket");
     packetReceiver.registerListener(PacketType::DomainListRequest, this, "processListRequestPacket");
     packetReceiver.registerListener(PacketType::DomainServerPathQuery, this, "processPathQueryPacket");
+    packetReceiver.registerListener(PacketType::DomainServerConnectionToken, this, "processConnectRequestPacket");
     packetReceiver.registerListener(PacketType::NodeJsonStats, this, "processNodeJSONStatsPacket");
     packetReceiver.registerListener(PacketType::ICEPing, this, "processICEPingPacket");
     packetReceiver.registerListener(PacketType::ICEPingReply, this, "processICEPingReplyPacket");
@@ -579,7 +580,6 @@ const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
 void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) {
     NodeType_t nodeType;
     HifiSockAddr publicSockAddr, localSockAddr;
-    
 
     if (packet->getPayloadSize() == 0) {
         return;
@@ -625,15 +625,35 @@ void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) 
                 return;
             }
         }
-
     }
 
     QList<NodeType_t> nodeInterestList;
     QString username;
     QByteArray usernameSignature;
 
-    packetStream >> nodeInterestList >> username >> usernameSignature;
-
+    packetStream >> nodeInterestList;
+    
+    if (packet->bytesLeftToRead() > 0) {
+        // try to verify username and usernameSignature
+        packetStream >> username >> usernameSignature;
+    } else {
+        
+        QUuid& connectionToken = _connectionTokenHash[username];
+        
+        if(connectionToken.isNull()) {
+            // set up the connection token packet
+            static auto connectionTokenPacket = NLPacket::create(PacketType::DomainServerConnectionToken, NUM_BYTES_RFC4122_UUID);
+            connectionToken->write(connectionToken.toRfc4122());
+            nodeList->sendUnreliablePacket(connectionTokenPacket, packet->getSenderSockAddr());
+            
+            return;
+        } else {
+            // reset existing packet
+            connectionToken->reset();
+        }
+        
+    }
+   
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
     QString reason;
@@ -736,6 +756,7 @@ void DomainServer::processConnectRequestPacket(QSharedPointer<NLPacket> packet) 
     }
 }
 
+
 void DomainServer::processListRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
     
     NodeType_t throwawayNodeType;
@@ -754,6 +775,7 @@ void DomainServer::processListRequestPacket(QSharedPointer<NLPacket> packet, Sha
     sendDomainListToNode(sendingNode, packet->getSenderSockAddr(), nodeInterestList.toSet());
 }
 
+
 unsigned int DomainServer::countConnectedUsers() {
     unsigned int result = 0;
     auto nodeList = DependencyManager::get<LimitedNodeList>();
@@ -766,11 +788,12 @@ unsigned int DomainServer::countConnectedUsers() {
 }
 
 
-bool DomainServer::verifyUsersKey(const QString& username,
+bool DomainServer::verifyUserSignature(const QString& username,
                                   const QByteArray& usernameSignature,
                                   QString& reasonReturn) {
     // it's possible this user can be allowed to connect, but we need to check their username signature
-
+    
+    
     QByteArray publicKeyArray = _userPublicKeys.value(username);
     if (!publicKeyArray.isEmpty()) {
         // if we do have a public key for the user, check for a signature match
@@ -787,13 +810,20 @@ bool DomainServer::verifyUsersKey(const QString& username,
                                    reinterpret_cast<const unsigned char*>(usernameSignature.constData()),
                                    reinterpret_cast<unsigned char*>(decryptedArray.data()),
                                    rsaPublicKey, RSA_PKCS1_PADDING);
-
+            
+            QByteArray lowercaseUsername = username.toLower().toUtf8();
+            QUuid connectionToken = _connectionTokenHash[username];
+            QByteArray usernameWithToken = lowercaseUsername.append(connectionToken);
+            
             if (decryptResult != -1) {
-                if (username.toLower() == decryptedArray) {
+                if (usernameWithToken == decryptedArray) {
                     qDebug() << "Username signature matches for" << username << "- allowing connection.";
 
                     // free up the public key before we return
                     RSA_free(rsaPublicKey);
+                    
+                    // remove the username's connection token from the hash
+                    _connectionTokenHash.remove(username);
 
                     return true;
                 } else {
@@ -839,7 +869,7 @@ bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
             _settingsManager.valueOrDefaultValueForKeyPath(ALLOWED_USERS_SETTINGS_KEYPATH).toStringList();
 
         if (allowedUsers.contains(username, Qt::CaseInsensitive)) {
-            if (!verifyUsersKey(username, usernameSignature, reasonReturn)) {
+            if (!verifyUserSignature(username, usernameSignature, reasonReturn)) {
                 return false;
             }
         } else {
@@ -857,7 +887,7 @@ bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
         valueForKeyPath(_settingsManager.getSettingsMap(), ALLOWED_EDITORS_SETTINGS_KEYPATH);
     QStringList allowedEditors = allowedEditorsVariant ? allowedEditorsVariant->toStringList() : QStringList();
     if (allowedEditors.contains(username)) {
-        if (verifyUsersKey(username, usernameSignature, reasonReturn)) {
+        if (verifyUserSignature(username, usernameSignature, reasonReturn)) {
             return true;
         }
     }

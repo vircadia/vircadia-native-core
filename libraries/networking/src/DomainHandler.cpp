@@ -29,6 +29,7 @@ DomainHandler::DomainHandler(QObject* parent) :
     _uuid(),
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _assignmentUUID(),
+    _connectionToken(),
     _iceDomainID(),
     _iceClientID(),
     _iceServerSockAddr(),
@@ -61,6 +62,7 @@ void DomainHandler::clearSettings() {
 
 void DomainHandler::softReset() {
     qCDebug(networking) << "Resetting current domain connection information.";
+    _connectionToken = QUuid();
     clearConnectionInfo();
     clearSettings();
 }

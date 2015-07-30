@@ -50,9 +50,12 @@ public:
     unsigned short getPort() const { return _sockAddr.getPort(); }
     void setPort(quint16 port) { _sockAddr.setPort(port); }
 
+    const QUuid& getConnectionToken() const { return _connectionToken; }
+    void setConnectionToken(const QUuid& connectionToken) { _connectionToken = connectionToken; }
+    
     const QUuid& getAssignmentUUID() const { return _assignmentUUID; }
     void setAssignmentUUID(const QUuid& assignmentUUID) { _assignmentUUID = assignmentUUID; }
-
+    
     const QUuid& getICEDomainID() const { return _iceDomainID; }
 
     const QUuid& getICEClientID() const { return _iceClientID; }
@@ -114,6 +117,7 @@ private:
     QString _hostname;
     HifiSockAddr _sockAddr;
     QUuid _assignmentUUID;
+    QUuid _connectionToken;
     QUuid _iceDomainID;
     QUuid _iceClientID;
     HifiSockAddr _iceServerSockAddr;
