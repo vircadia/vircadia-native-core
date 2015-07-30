@@ -24,8 +24,6 @@ using namespace udt;
 Socket::Socket(QObject* parent) :
     QObject(parent)
 {
-    setSystemBufferSizes();
-    
     connect(&_udpSocket, &QUdpSocket::readyRead, this, &Socket::readPendingDatagrams);
     
     // make sure our synchronization method is called every SYN interval
