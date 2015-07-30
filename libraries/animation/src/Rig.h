@@ -47,14 +47,27 @@ typedef std::shared_ptr<AnimationHandle> AnimationHandlePointer;
 class Rig;
 typedef std::shared_ptr<Rig> RigPointer;
 
-
 class Rig : public QObject, public std::enable_shared_from_this<Rig> {
 
 public:
 
+    struct HeadParameters {
+        float leanSideways = 0.0f; // degrees
+        float leanForward = 0.0f; // degrees
+        float torsoTwist = 0.0f; // degrees
+        glm::quat localHeadOrientation = glm::quat();
+        glm::quat worldHeadOrientation = glm::quat();
+        glm::vec3 eyeLookAt = glm::vec3();  // world space
+        glm::vec3 eyeSaccade = glm::vec3(); // world space
+        int leanJointIndex = -1;
+        int neckJointIndex = -1;
+        int leftEyeJointIndex = -1;
+        int rightEyeJointIndex = -1;
+    };
+
     virtual ~Rig() {}
 
-    RigPointer getRigPointer() { return shared_from_this(); }
+     RigPointer getRigPointer() { return shared_from_this(); }
 
     AnimationHandlePointer createAnimationHandle();
     void removeAnimationHandle(const AnimationHandlePointer& handle);
@@ -129,11 +142,17 @@ public:
     void updateVisibleJointStates();
 
     virtual void updateJointState(int index, glm::mat4 parentTransform) = 0;
-    virtual void updateFaceJointState(int index, glm::mat4 parentTransform) = 0;
 
     void setEnableRig(bool isEnabled) { _enableRig = isEnabled; }
 
+    void updateFromHeadParameters(const HeadParameters& params);
+
  protected:
+
+    void updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist);
+    void updateNeckJoint(int index, const glm::quat& localHeadOrientation, float leanSideways, float leanForward, float torsoTwist);
+    void updateEyeJoint(int index, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade);
+
     QVector<JointState> _jointStates;
 
     QList<AnimationHandlePointer> _animationHandles;
