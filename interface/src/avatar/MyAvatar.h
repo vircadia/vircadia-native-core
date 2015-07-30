@@ -251,7 +251,6 @@ private:
     bool _billboardValid;
     float _oculusYawOffset;
 
-    bool _feetTouchFloor;
     eyeContactTarget _eyeContactTarget;
 
     RecorderPointer _recorder;

@@ -249,8 +249,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::BlueSpeechSphere, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::EnableCharacterController, 0, true,
             avatar, SLOT(updateMotionBehavior()));
-    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ShiftHipsForIdleAnimations, 0, false,
-            avatar, SLOT(updateMotionBehavior()));
 
     MenuWrapper* viewMenu = addMenu("View");
 
