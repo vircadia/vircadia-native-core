@@ -135,13 +135,13 @@ void SendQueue::loop() {
         // is greater than or equal to the gap between the last ACKed sent and the one we are about to send
         if (seqlen(SequenceNumber { (uint32_t) _lastACKSequenceNumber }, _currentSequenceNumber + 1) <= _flowWindowSize) {
             bool hasResend = false;
-            SequenceNumber seqNum;
+            SequenceNumber sequenceNumber;
             {
                 // Check nak list for packet to resend
                 QWriteLocker locker(&_naksLock);
                 if (_naks.getLength() > 0) {
                     hasResend = true;
-                    seqNum = _naks.popFirstSequenceNumber();
+                    sequenceNumber = _naks.popFirstSequenceNumber();
                 }
             }
             
@@ -150,7 +150,7 @@ void SendQueue::loop() {
             // Find packet in sent list using SequenceNumber
             if (hasResend) {
                 QWriteLocker locker(&_sentLock);
-                auto it = _sentPackets.find(seqNum);
+                auto it = _sentPackets.find(sequenceNumber);
                 Q_ASSERT_X(it != _sentPackets.end(),
                            "SendQueue::sendNextPacket()", "Couldn't find NAKed packet to resend");
                 
@@ -167,8 +167,20 @@ void SendQueue::loop() {
                 _packets.pop_front();
             }
             
+            bool shouldSendSecondOfPair = false;
+            
+            if (!hasResend) {
+                // if we're not re-sending a packet then need to check if this should be a packet pair
+                sequenceNumber = getNextSequenceNumber();
+                
+                // the first packet in the pair is every 16 (rightmost 16 bits = 0) packets
+                if (((uint32_t) sequenceNumber & 0xFF) == 0) {
+                    shouldSendSecondOfPair = true;
+                }
+            }
+            
             // Write packet's sequence number and send it off
-            nextPacket->writeSequenceNumber(getNextSequenceNumber());
+            nextPacket->writeSequenceNumber(sequenceNumber);
             sendPacket(*nextPacket);
             
             // Insert the packet we have just sent in the sent list
@@ -176,6 +188,29 @@ void SendQueue::loop() {
             _sentPackets[nextPacket->getSequenceNumber()].swap(nextPacket);
             Q_ASSERT_X(!nextPacket,
                        "SendQueue::sendNextPacket()", "Overriden packet in sent list");
+            
+            if (shouldSendSecondOfPair) {
+                std::unique_ptr<Packet> pairedPacket;
+                
+                // we've detected we should send the second packet in a pair, do that now before sleeping
+                {
+                    QWriteLocker locker(&_packetsLock);
+                    pairedPacket.swap(_packets.front());
+                    _packets.pop_front();
+                }
+                
+                if (pairedPacket) {
+                    // write this packet's sequence number and send it off
+                    pairedPacket->writeSequenceNumber(getNextSequenceNumber());
+                    sendPacket(*pairedPacket);
+                    
+                    // add the paired packet to the sent list
+                    QWriteLocker locker(&_sentLock);
+                    _sentPackets[pairedPacket->getSequenceNumber()].swap(pairedPacket);
+                    Q_ASSERT_X(!pairedPacket,
+                               "SendQueue::sendNextPacket()", "Overriden packet in sent list");
+                }
+            }
         }        
         
         // since we're a while loop, give the thread a chance to process events
