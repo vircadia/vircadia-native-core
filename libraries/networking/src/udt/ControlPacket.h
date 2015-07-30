@@ -33,12 +33,15 @@ public:
         TimeoutNAK
     };
     
+    static std::unique_ptr<ControlPacket> create(Type type, qint64 size = -1);
     static std::unique_ptr<ControlPacket> fromReceivedPacket(std::unique_ptr<char> data, qint64 size,
                                                              const HifiSockAddr& senderSockAddr);
-    static std::unique_ptr<ControlPacket> create(Type type, qint64 size = -1);
-    
-    static qint64 localHeaderSize(); // Current level's header size
-    virtual qint64 totalHeadersSize() const; // Cumulated size of all the headers
+    // Current level's header size
+    static int localHeaderSize();
+    // Cumulated size of all the headers
+    static int totalHeaderSize();
+    // The maximum payload size this packet can use to fit in MTU
+    static int maxPayloadSize();
     
     Type getType() const { return _type; }
     void setType(Type type);
@@ -53,16 +56,13 @@ private:
     ControlPacket& operator=(ControlPacket&& other);
     ControlPacket& operator=(const ControlPacket& other) = delete;
     
-    // Header writers
-    void writeControlBitAndType();
-    void writeType();
-    
-    // Header readers
+    // Header read/write
     void readType();
+    void writeType();
     
     Type _type;
 };
-
+    
 } // namespace udt
 
 
