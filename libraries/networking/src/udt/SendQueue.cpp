@@ -174,7 +174,7 @@ void SendQueue::loop() {
                 sequenceNumber = getNextSequenceNumber();
                 
                 // the first packet in the pair is every 16 (rightmost 16 bits = 0) packets
-                if (((uint32_t) sequenceNumber & 0xFF) == 0) {
+                if (((uint32_t) sequenceNumber & 0xF) == 0) {
                     shouldSendSecondOfPair = true;
                 }
             }
