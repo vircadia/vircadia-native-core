@@ -113,7 +113,6 @@ public:
 
     bool isMyAvatar() const { return true; }
 
-    bool isLookingAtLeftEye();
     eyeContactTarget getEyeContactTarget();
 
     virtual int parseDataFromBuffer(const QByteArray& buffer);
