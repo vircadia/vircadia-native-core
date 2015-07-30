@@ -52,7 +52,7 @@ std::unique_ptr<Packet> Packet::createCopy(const Packet& other) {
 }
 
 Packet::Packet(qint64 size, bool isReliable, bool isPartOfMessage) :
-    BasePacket(size),
+    BasePacket(Packet::localHeaderSize() + size),
     _isReliable(isReliable),
     _isPartOfMessage(isPartOfMessage)
 {
