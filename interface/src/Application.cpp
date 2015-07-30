@@ -1000,7 +1000,8 @@ void Application::paintGL() {
 
         _compositor.displayOverlayTexture(&renderArgs);
     }
-    
+
+
     if (!OculusManager::isConnected() || OculusManager::allowSwap()) {
         PROFILE_RANGE(__FUNCTION__ "/bufferSwap");
         _glWidget->swapBuffers();
@@ -1012,6 +1013,13 @@ void Application::paintGL() {
     _frameCount++;
     _numFramesSinceLastResize++;    
     Stats::getInstance()->setRenderDetails(renderArgs._details);
+
+
+    // Reset the gpu::Context Stages
+    // Back to the default framebuffer;
+    gpu::Batch batch;
+    batch.resetStages();
+    renderArgs._context->render(batch);
 }
 
 void Application::runTests() {

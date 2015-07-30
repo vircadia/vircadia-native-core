@@ -45,3 +45,4 @@ void Context::syncCache() {
 void Context::downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) {
     _backend->downloadFramebuffer(srcFramebuffer, region, destImage);
 }
+
