@@ -177,8 +177,7 @@ qint64 BasePacket::readData(char* dest, qint64 maxSize) {
     return numBytesToRead;
 }
 
-void BasePacket::adjustPayloadStartAndCapacity(bool shouldDecreasePayloadSize) {
-    qint64 headerSize = localHeaderSize();
+void BasePacket::adjustPayloadStartAndCapacity(qint64 headerSize, bool shouldDecreasePayloadSize) {
     _payloadStart += headerSize;
     _payloadCapacity -= headerSize;
     

@@ -26,7 +26,7 @@ qint64 NLPacket::maxPayloadSize() const {
 }
 
 qint64 NLPacket::totalHeadersSize() const {
-    return localHeaderSize() + Packet::localHeaderSize();
+    return Packet::totalHeadersSize() + localHeaderSize();
 }
 
 qint64 NLPacket::localHeaderSize() const {
@@ -84,7 +84,7 @@ NLPacket::NLPacket(PacketType type, bool isReliable, bool isPartOfMessage) :
     _type(type),
     _version(versionForPacketType(type))
 {
-    adjustPayloadStartAndCapacity();
+    adjustPayloadStartAndCapacity(localHeaderSize());
     
     writeTypeAndVersion();
 }
@@ -96,7 +96,7 @@ NLPacket::NLPacket(PacketType type, qint64 size, bool isReliable, bool isPartOfM
 {
     Q_ASSERT(size >= 0);
     
-    adjustPayloadStartAndCapacity();
+    adjustPayloadStartAndCapacity(localHeaderSize());
     
     writeTypeAndVersion();
 }
@@ -108,7 +108,7 @@ NLPacket::NLPacket(std::unique_ptr<Packet> packet) :
     readVersion();
     readSourceID();
     
-    adjustPayloadStartAndCapacity(_payloadSize > 0);
+    adjustPayloadStartAndCapacity(localHeaderSize(), _payloadSize > 0);
 }
 
 NLPacket::NLPacket(const NLPacket& other) : Packet(other) {
@@ -123,7 +123,7 @@ NLPacket::NLPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& 
     // sanity check before we decrease the payloadSize with the payloadCapacity
     Q_ASSERT(_payloadSize == _payloadCapacity);
     
-    adjustPayloadStartAndCapacity(_payloadSize > 0);
+    adjustPayloadStartAndCapacity(localHeaderSize(), _payloadSize > 0);
    
     readType();
     readVersion();
@@ -194,7 +194,7 @@ QByteArray NLPacket::hashForPacketAndSecret(const udt::Packet& packet, const QUu
 }
 
 void NLPacket::writeTypeAndVersion() {
-    auto headerOffset = Packet::totalHeadersSize();
+    auto headerOffset = Packet::localHeaderSize();
     
     // Pack the packet type
     memcpy(_packet.get() + headerOffset, &_type, sizeof(PacketType));

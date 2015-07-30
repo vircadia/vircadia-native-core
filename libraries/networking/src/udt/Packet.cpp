@@ -50,7 +50,7 @@ qint64 Packet::maxPayloadSize() const {
 }
 
 qint64 Packet::totalHeadersSize() const {
-    return BasePacket::localHeaderSize() + localHeaderSize();
+    return BasePacket::totalHeadersSize() + Packet::localHeaderSize();
 }
 
 qint64 Packet::localHeaderSize() const {
@@ -62,7 +62,7 @@ Packet::Packet(qint64 size, bool isReliable, bool isPartOfMessage) :
     _isReliable(isReliable),
     _isPartOfMessage(isPartOfMessage)
 {
-    adjustPayloadStartAndCapacity();
+    adjustPayloadStartAndCapacity(localHeaderSize());
     
     // set the UDT header to default values
     writeHeader();
@@ -117,14 +117,15 @@ void Packet::writeSequenceNumber(SequenceNumber sequenceNumber) const {
     writeHeader();
 }
 
-static const uint32_t RELIABILITY_BIT_MASK = 1 << (sizeof(Packet::SequenceNumberAndBitField) - 2);
-static const uint32_t MESSAGE_BIT_MASK = 1 << (sizeof(Packet::SequenceNumberAndBitField) - 3);
+static const uint32_t RELIABILITY_BIT_MASK = uint32_t(1) << (SEQUENCE_NUMBER_BITS - 2);
+static const uint32_t MESSAGE_BIT_MASK = uint32_t(1) << (SEQUENCE_NUMBER_BITS - 3);
 static const uint32_t BIT_FIELD_MASK = CONTROL_BIT_MASK | RELIABILITY_BIT_MASK | MESSAGE_BIT_MASK;
 
 void Packet::readHeader() const {
     SequenceNumberAndBitField seqNumBitField = *reinterpret_cast<SequenceNumberAndBitField*>(_packet.get());
-    Q_ASSERT_X((bool) (seqNumBitField & CONTROL_BIT_MASK),
-               "Packet::readHeader()", "This should be a data packet");
+    
+    Q_ASSERT_X(!(seqNumBitField & CONTROL_BIT_MASK), "Packet::readHeader()", "This should be a data packet");
+    
     _isReliable = (bool) (seqNumBitField & RELIABILITY_BIT_MASK); // Only keep reliability bit
     _isPartOfMessage = (bool) (seqNumBitField & MESSAGE_BIT_MASK); // Only keep message bit
     _sequenceNumber = SequenceNumber{ seqNumBitField & ~BIT_FIELD_MASK }; // Remove the bit field
