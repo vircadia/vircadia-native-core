@@ -22,6 +22,7 @@ class AnimClipTests : public QObject {
 private slots:
     void testAccessors();
     void testEvaulate();
+    void testLoader();
 };
 
 #endif // hifi_TransformTests_h

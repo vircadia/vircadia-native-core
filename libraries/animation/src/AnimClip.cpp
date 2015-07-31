@@ -10,7 +10,8 @@
 #include "AnimClip.h"
 #include "AnimationLogging.h"
 
-AnimClip::AnimClip(const std::string& url, float startFrame, float endFrame, float timeScale, bool loopFlag) :
+AnimClip::AnimClip(const std::string& id, const std::string& url, float startFrame, float endFrame, float timeScale, bool loopFlag) :
+    AnimNode(AnimNode::ClipType, id),
     _url(url),
     _startFrame(startFrame),
     _endFrame(endFrame),

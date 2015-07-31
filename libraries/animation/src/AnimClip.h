@@ -18,7 +18,7 @@ class AnimClip : public AnimNode {
 public:
     friend class AnimClipTests;
 
-    AnimClip(const std::string& url, float startFrame, float endFrame, float timeScale, bool loopFlag);
+    AnimClip(const std::string& id, const std::string& url, float startFrame, float endFrame, float timeScale, bool loopFlag);
     virtual ~AnimClip();
 
     void setURL(const std::string& url);
@@ -37,14 +37,21 @@ public:
     bool getLoopFlag() const { return _loopFlag; }
 
     virtual const AnimPose& evaluate(float dt);
+
 protected:
     AnimationPointer _anim;
+
     std::string _url;
     float _startFrame;
     float _endFrame;
     float _timeScale;
-    float _frame;
     bool _loopFlag;
+
+    float _frame;
+
+    // no copies
+    AnimClip(const AnimClip&) = delete;
+    AnimClip& operator=(const AnimClip&) = delete;
 };
 
 #endif // hifi_AnimClip_h

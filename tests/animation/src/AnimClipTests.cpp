@@ -9,6 +9,7 @@
 //
 
 #include "AnimClipTests.h"
+#include "AnimNodeLoader.h"
 #include "AnimClip.h"
 #include "AnimationLogging.h"
 
@@ -19,13 +20,18 @@ QTEST_MAIN(AnimClipTests)
 const float EPSILON = 0.001f;
 
 void AnimClipTests::testAccessors() {
+    std::string id = "my anim clip";
     std::string url = "foo";
     float startFrame = 2.0f;
     float endFrame = 20.0f;
     float timeScale = 1.1f;
-    float loopFlag = true;
+    bool loopFlag = true;
 
-    AnimClip clip(url, startFrame, endFrame, timeScale, loopFlag);
+    AnimClip clip(id, url, startFrame, endFrame, timeScale, loopFlag);
+
+    QVERIFY(clip.getID() == id);
+    QVERIFY(clip.getType() == AnimNode::ClipType);
+
     QVERIFY(clip.getURL() == url);
     QVERIFY(clip.getStartFrame() == startFrame);
     QVERIFY(clip.getEndFrame() == endFrame);
@@ -36,7 +42,7 @@ void AnimClipTests::testAccessors() {
     float startFrame2 = 22.0f;
     float endFrame2 = 100.0f;
     float timeScale2 = 1.2f;
-    float loopFlag2 = false;
+    bool loopFlag2 = false;
 
     clip.setURL(url2);
     clip.setStartFrame(startFrame2);
@@ -62,13 +68,14 @@ static float framesToSec(float secs) {
 }
 
 void AnimClipTests::testEvaulate() {
+    std::string id = "my clip node";
     std::string url = "foo";
     float startFrame = 2.0f;
     float endFrame = 22.0f;
     float timeScale = 1.0f;
     float loopFlag = true;
 
-    AnimClip clip(url, startFrame, endFrame, timeScale, loopFlag);
+    AnimClip clip(id, url, startFrame, endFrame, timeScale, loopFlag);
 
     clip.evaluate(framesToSec(10.0f));
     QCOMPARE_WITH_ABS_ERROR(clip._frame, 12.0f, EPSILON);
@@ -83,3 +90,28 @@ void AnimClipTests::testEvaulate() {
     QCOMPARE_WITH_ABS_ERROR(clip._frame, 22.0f, EPSILON);
 }
 
+void AnimClipTests::testLoader() {
+    AnimNodeLoader loader;
+    auto node = loader.load("../../../tests/animation/src/test.json");
+    QVERIFY((bool)node);
+    QVERIFY(node->getID() == "idle");
+    QVERIFY(node->getType() == AnimNode::ClipType);
+
+    auto clip = std::static_pointer_cast<AnimClip>(node);
+
+    QVERIFY(clip->getURL() == "idle.fbx");
+    QVERIFY(clip->getStartFrame() == 0.0f);
+    QVERIFY(clip->getEndFrame() == 30.0f);
+    QVERIFY(clip->getTimeScale() == 1.0f);
+    QVERIFY(clip->getLoopFlag() == true);
+
+    QVERIFY(clip->getChildCount() == 3);
+
+    std::shared_ptr<AnimNode> nodes[3] = { clip->getChild(0), clip->getChild(1), clip->getChild(2) };
+    QVERIFY(nodes[0]->getID() == "test01");
+    QVERIFY(nodes[0]->getChildCount() == 0);
+    QVERIFY(nodes[1]->getID() == "test02");
+    QVERIFY(nodes[1]->getChildCount() == 0);
+    QVERIFY(nodes[2]->getID() == "test03");
+    QVERIFY(nodes[2]->getChildCount() == 0);
+}

@@ -1,0 +1,52 @@
+{
+    "version": "1.0",
+    "root": {
+        "id": "idle",
+        "type": "clip",
+        "data": {
+            "url": "idle.fbx",
+            "startFrame": 0.0,
+            "endFrame": 30.0,
+            "timeScale": 1.0,
+            "loopFlag": true
+        },
+        "children": [
+            {
+                "id": "test01",
+                "type": "clip",
+                "data": {
+                    "url": "test01.fbx",
+                    "startFrame": 1.0,
+                    "endFrame": 20.0,
+                    "timeScale": 1.0,
+                    "loopFlag": false
+                },
+                "children": []
+            },
+            {
+                "id": "test02",
+                "type": "clip",
+                "data": {
+                    "url": "test02.fbx",
+                    "startFrame": 2.0,
+                    "endFrame": 20.0,
+                    "timeScale": 1.0,
+                    "loopFlag": false
+                },
+                "children": []
+            },
+            {
+                "id": "test03",
+                "type": "clip",
+                "data": {
+                    "url": "test03.fbx",
+                    "startFrame": 3.0,
+                    "endFrame": 20.0,
+                    "timeScale": 1.0,
+                    "loopFlag": false
+                },
+                "children": []
+            }
+        ]
+    }
+}
