@@ -76,7 +76,7 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     auto currentTime = high_resolution_clock::now();
     
     SequenceNumber nextACKNumber = nextACK();
-    Q_ASSERT_X(nextACKNumber < _lastSentACK, "Connection::sendACK", "Sending lower ACK, something is wrong");
+    Q_ASSERT_X(nextACKNumber >= _lastSentACK, "Connection::sendACK", "Sending lower ACK, something is wrong");
     
     if (nextACKNumber == _lastSentACK) {
         // We already sent this ACK, but check if we should re-send it.
