@@ -68,6 +68,7 @@ private:
     SendQueue(SendQueue&& other) = delete;
     
     void sendPacket(const Packet& packet);
+    void sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket, SequenceNumber sequenceNumber);
     
     // Increments current sequence number and return it
     SequenceNumber getNextSequenceNumber();
