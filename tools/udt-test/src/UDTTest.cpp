@@ -41,6 +41,10 @@ const QCommandLineOption UNRELIABLE_PACKETS {
     "unreliable", "send unreliable packets (default is reliable)"
 };
 
+const QStringList STATS_TABLE_HEADERS {
+    "Send Rate (P/s)", "RTT(ms)", "CW (P)", "Send Period (us)", "Received ACK", "Received NAK", "Sent ACK2"
+};
+
 UDTTest::UDTTest(int& argc, char** argv) :
     QCoreApplication(argc, argv)
 {
@@ -123,6 +127,9 @@ UDTTest::UDTTest(int& argc, char** argv) :
         QTimer* statsTimer = new QTimer(this);
         connect(statsTimer, &QTimer::timeout, this, &UDTTest::sampleStats);
         statsTimer->start(STATS_SAMPLE_INTERVAL);
+        
+        // output the headers for stats for our table
+        qDebug() << qPrintable(STATS_TABLE_HEADERS.join(" | "));
     }
 }
 
@@ -207,5 +214,21 @@ void UDTTest::sendPacket() {
 }
 
 void UDTTest::sampleStats() {
-    _socket.sampleAndPrintConnectionStats();
+    udt::ConnectionStats::Stats stats = _socket.sampleStatsForConnection(_target);
+    
+    int headerIndex = -1;
+    
+    // setup a list of left justified values
+    QStringList values {
+        QString::number(stats.receiveRate).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
+        QString::number(stats.rtt).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
+        QString::number(stats.congestionWindowSize).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
+        QString::number(stats.packetSendPeriod).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
+        QString::number(stats.receivedACKs).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
+        QString::number(stats.receivedNAKs).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size()),
+        QString::number(stats.sentACK2s).leftJustified(STATS_TABLE_HEADERS[++headerIndex].size())
+    };
+    
+    // output this line of values
+    qDebug() << qPrintable(values.join(" | "));
 }

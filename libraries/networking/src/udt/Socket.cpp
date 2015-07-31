@@ -217,19 +217,15 @@ void Socket::setCongestionControlFactory(std::unique_ptr<CongestionControlVirtua
     _synInterval = _ccFactory->synInterval();
 }
 
-void Socket::sampleAndPrintConnectionStats() {
-    if (thread() != QThread::currentThread()) {
-        QMetaObject::invokeMethod(this, "sampleAndPrintConnectionStats");
-        return;
-    }
+ConnectionStats::Stats Socket::sampleStatsForConnection(const HifiSockAddr& destination) {
+    Q_ASSERT_X(thread() == QThread::currentThread(),
+               "Socket::sampleStatsForConnection",
+               "Stats sampling for connection must be on socket thread");
     
-    for(auto& connection : _connectionsHash) {
-        ConnectionStats::Stats sampleStats = connection.second->sampleStats();
-        
-        qDebug() << connection.first
-            << sampleStats.receiveRate << sampleStats.rtt
-            << sampleStats.congestionWindowSize << sampleStats.packetSendPeriod
-            << sampleStats.sentPackets
-            << sampleStats.receivedACKs << sampleStats.receivedLightACKs << sampleStats.receivedNAKs;
+    auto it = _connectionsHash.find(destination);
+    if (it != _connectionsHash.end()) {
+        return it->second->sampleStats();
+    } else {
+        return ConnectionStats::Stats();
     }
 }
