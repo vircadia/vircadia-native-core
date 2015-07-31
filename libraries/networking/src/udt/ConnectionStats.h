@@ -36,6 +36,20 @@ public:
         
         int sentPackets { 0 };
         int recievedPackets { 0 };
+        int sentUtilBytes { 0 };
+        int recievedUtilBytes { 0 };
+        int sentBytes { 0 };
+        int recievedBytes { 0 };
+        
+        int sentUnreliablePackets { 0 };
+        int recievedUnreliablePackets { 0 };
+        int sentUnreliableUtilBytes { 0 };
+        int recievedUnreliableUtilBytes { 0 };
+        int sentUnreliableBytes { 0 };
+        int recievedUnreliableBytes { 0 };
+        
+        int retransmissions { 0 };
+        int drops { 0 };
     };
     
     ConnectionStats();
@@ -54,8 +68,14 @@ public:
     void recordSentTimeoutNAK();
     void recordReceivedTimeoutNAK();
     
-    void recordSentPackets();
-    void recordReceivedPackets();
+    void recordSentPackets(int payload, int total);
+    void recordReceivedPackets(int payload, int total);
+    
+    void recordUnreliableSentPackets(int payload, int total);
+    void recordUnreliableReceivedPackets(int payload, int total);
+    
+    void recordRetransmition();
+    void recordDrop();
     
 private:
     Stats _currentSample;

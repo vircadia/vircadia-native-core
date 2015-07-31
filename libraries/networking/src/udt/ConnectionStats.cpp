@@ -21,8 +21,8 @@ ConnectionStats::ConnectionStats() {
 }
 
 ConnectionStats::Stats ConnectionStats::sample() {
-    Stats sample;
-    std::swap(sample, _currentSample);
+    Stats sample = _currentSample;
+    _currentSample = Stats();
     
     auto now = duration_cast<microseconds>(high_resolution_clock::now().time_since_epoch());
     sample.endTime = now;
@@ -81,12 +81,57 @@ void ConnectionStats::recordReceivedTimeoutNAK() {
     ++_total.receivedTimeoutNAKs;
 }
 
-void ConnectionStats::recordSentPackets() {
+
+void ConnectionStats::recordSentPackets(int payload, int total) {
     ++_currentSample.sentPackets;
     ++_total.sentPackets;
+    
+    _currentSample.sentUtilBytes += payload;
+    _total.sentUtilBytes += payload;
+    
+    _currentSample.sentBytes += total;
+    _total.sentBytes += total;
 }
 
-void ConnectionStats::recordReceivedPackets() {
+void ConnectionStats::recordReceivedPackets(int payload, int total) {
     ++_currentSample.recievedPackets;
     ++_total.recievedPackets;
+    
+    _currentSample.recievedUtilBytes += payload;
+    _total.recievedUtilBytes += payload;
+    
+    _currentSample.sentBytes += total;
+    _total.recievedBytes += total;
+}
+
+void ConnectionStats::recordUnreliableSentPackets(int payload, int total) {
+    ++_currentSample.sentUnreliablePackets;
+    ++_total.sentUnreliablePackets;
+    
+    _currentSample.sentUnreliableUtilBytes += payload;
+    _total.sentUnreliableUtilBytes += payload;
+    
+    _currentSample.sentUnreliableBytes += total;
+    _total.sentUnreliableBytes += total;
+}
+
+void ConnectionStats::recordUnreliableReceivedPackets(int payload, int total) {
+    ++_currentSample.recievedUnreliablePackets;
+    ++_total.recievedUnreliablePackets;
+    
+    _currentSample.recievedUnreliableUtilBytes += payload;
+    _total.recievedUnreliableUtilBytes += payload;
+    
+    _currentSample.sentUnreliableBytes += total;
+    _total.recievedUnreliableBytes += total;
+}
+
+void ConnectionStats::recordRetransmition() {
+    ++_currentSample.retransmissions;
+    ++_total.retransmissions;
+}
+
+void ConnectionStats::recordDrop() {
+    ++_currentSample.drops;
+    ++_total.drops;
 }
