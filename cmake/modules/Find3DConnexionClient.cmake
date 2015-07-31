@@ -15,7 +15,7 @@
 # 
 
 include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
-hifi_library_search_hints("connexionclient")
+hifi_library_search_hints("3dconnexionclient")
 
 if (APPLE)
   find_library(3DConnexionClient 3DConnexionClient)
@@ -24,13 +24,12 @@ if (APPLE)
     set(3DCONNEXIONCLIENT_INCLUDE_DIRS ${3DConnexionClient})
     set(3DCONNEXIONCLIENT_LIBRARY ${3DConnexionClient})
     message(STATUS "Found 3DConnexion at " ${3DConnexionClient})
-    mark_as_advanced(3DCONNEXIONCLIENT_INCLUDE_DIR CONNEXIONCLIENT_LIBRARY)
+    mark_as_advanced(3DCONNEXIONCLIENT_INCLUDE_DIR 3DCONNEXIONCLIENT_LIBRARY)
   else ()
     message(STATUS "Could NOT find 3DConnexionClient")
   endif()
 elseif (WIN32)
-  message(STATUS ${CONNEXIONCLIENT_SEARCH_DIRS})
-  find_path(3DCONNEXIONCLIENT_INCLUDE_DIRS I3dMouseParams.h PATH_SUFFIXES Inc HINTS ${CONNEXIONCLIENT_SEARCH_DIRS})
+  find_path(3DCONNEXIONCLIENT_INCLUDE_DIRS I3dMouseParams.h PATH_SUFFIXES include HINTS ${3DCONNEXIONCLIENT_SEARCH_DIRS})
 
   include(FindPackageHandleStandardArgs)
   find_package_handle_standard_args(3DConnexionClient DEFAULT_MSG 3DCONNEXIONCLIENT_INCLUDE_DIRS)
