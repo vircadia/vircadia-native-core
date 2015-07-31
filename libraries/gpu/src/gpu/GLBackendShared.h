@@ -11,11 +11,10 @@
 #ifndef hifi_gpu_GLBackend_Shared_h
 #define hifi_gpu_GLBackend_Shared_h
 
-#include "GLBackend.h"
-
 #include <QDebug>
 
-#include "Batch.h"
+#include "GPULogging.h"
+#include "GLBackend.h"
 
 static const GLenum _primitiveToGLmode[gpu::NUM_PRIMITIVES] = {
     GL_POINTS,
