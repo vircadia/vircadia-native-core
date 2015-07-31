@@ -484,6 +484,7 @@ void GLBackend::syncPipelineStateCache() {
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
     // Point size is always on
+    glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
     glEnable(GL_PROGRAM_POINT_SIZE_EXT);
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 

@@ -9,22 +9,22 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QOpenGLBuffer, which includes an earlier version of OpenGL
+#include "GeometryCache.h"
+
 #include <cmath>
 
 #include <QNetworkReply>
 #include <QRunnable>
 #include <QThreadPool>
 
-#include <gpu/Batch.h>
-#include <gpu/GLBackend.h>
-
 #include <FSTReader.h>
 #include <NumericalConstants.h>
 
+#include <gpu/Batch.h>
+#include <gpu/GLBackend.h>
+
 #include "TextureCache.h"
 #include "RenderUtilsLogging.h"
-#include "GeometryCache.h"
 
 #include "standardTransformPNTC_vert.h"
 #include "standardDrawTexture_frag.h"
