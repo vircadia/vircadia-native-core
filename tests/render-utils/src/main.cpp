@@ -252,7 +252,6 @@ void QTestWindow::draw() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glViewport(0, 0, _size.width() * devicePixelRatio(), _size.height() * devicePixelRatio());
 
-<<<<<<< HEAD
     static std::once_flag once;
     std::call_once(once, [&]{
         testShaderBuild(Skybox_vert, Skybox_frag);
@@ -293,8 +292,6 @@ void QTestWindow::draw() {
     });
     //    renderText();
 
-=======
->>>>>>> master
     _context->swapBuffers(this);
     glFinish();
 
