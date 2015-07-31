@@ -197,6 +197,13 @@ void HMDToolsDialog::centerCursorOnWidget(QWidget* widget) {
 void HMDToolsDialog::showEvent(QShowEvent* event) {
     // center the cursor on the hmd tools dialog
     centerCursorOnWidget(this);
+    if (qApp->isHMDMode()) {
+        _inHDMMode = true;
+        _switchModeButton->setText("Leave HMD Mode");
+    } else {
+        _inHDMMode = false;
+        _switchModeButton->setText("Enter HMD Mode");
+    }
 }
 
 void HMDToolsDialog::hideEvent(QHideEvent* event) {

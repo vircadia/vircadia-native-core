@@ -116,7 +116,11 @@ void Oculus_0_5_DisplayPlugin::deactivate(PluginContainer* container) {
 
     OculusBaseDisplayPlugin::deactivate(container);
     
-    container->unsetFullscreen();
+    QScreen* riftScreen = nullptr;
+    if (_hmdScreen >= 0) {
+        riftScreen = qApp->screens()[_hmdScreen];
+    }
+    container->unsetFullscreen(riftScreen);
     
     ovrHmd_Destroy(_hmd);
     _hmd = nullptr;
@@ -140,7 +144,6 @@ void Oculus_0_5_DisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sc
     ovrHmd_EndFrame(_hmd, _eyePoses, _eyeTextures);
 }
 
-bool _hswDismissed{false};
 // Pass input events on to the application
 bool Oculus_0_5_DisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
     if (!_hswDismissed && (event->type() == QEvent::KeyPress)) {
