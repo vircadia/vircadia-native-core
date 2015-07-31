@@ -192,6 +192,9 @@ void Connection::sendACK2(SequenceNumber currentACKSubSequenceNumber) {
     // write the sub sequence number for this ACK2
     ack2Packet->writePrimitive(currentACKSubSequenceNumber);
     
+    // send the ACK2 packet
+    _parentSocket->writeBasePacket(*ack2Packet, _destination);
+    
     // update the last sent ACK2 and the last ACK2 send time
     _lastSentACK2 = currentACKSubSequenceNumber;
     
