@@ -45,12 +45,12 @@ public:
     }
     inline SequenceNumber operator++(int) {
         SequenceNumber before = *this;
-        (*this)++;
+        ++(*this);
         return before;
     }
     inline SequenceNumber operator--(int) {
         SequenceNumber before = *this;
-        (*this)--;
+        --(*this);
         return before;
     }
     

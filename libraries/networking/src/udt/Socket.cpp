@@ -162,12 +162,8 @@ void Socket::readPendingDatagrams() {
                 
                 if (packet->isReliable()) {
                     // if this was a reliable packet then signal the matching connection with the sequence number
-                    // assuming it exists
-                    auto it = _connectionsHash.find(senderSockAddr);
-                    
-                    if (it != _connectionsHash.end()) {
-                        it->second->processReceivedSequenceNumber(packet->getSequenceNumber());
-                    }
+                    auto connection = findOrCreateConnection(senderSockAddr);
+                    connection->processReceivedSequenceNumber(packet->getSequenceNumber());
                 }
                 
                 if (_packetHandler) {
