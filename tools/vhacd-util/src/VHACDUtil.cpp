@@ -125,12 +125,14 @@ void vhacd::VHACDUtil::fattenMeshes(const FBXMesh& mesh, FBXMesh& result,
             continue;
         }
 
+        // from the middle of the triangle, pull a point down to form a tetrahedron.
         float dropAmount = 0;
         dropAmount = glm::max(glm::length(p1 - p0), dropAmount);
         dropAmount = glm::max(glm::length(p2 - p1), dropAmount);
         dropAmount = glm::max(glm::length(p0 - p2), dropAmount);
+        dropAmount *= 0.25f;
 
-        glm::vec3 p3 = av - glm::vec3(0, dropAmount, 0);  // a point 1 meter below the average of this triangle's points
+        glm::vec3 p3 = av - glm::vec3(0, dropAmount, 0);
         int index3 = result.vertices.size();
         result.vertices << p3; // add the new point to the result mesh
 
