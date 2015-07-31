@@ -194,7 +194,7 @@ public:
     void setNaturalDimensions(const glm::vec3& value) { _naturalDimensions = value; }
     
     const glm::vec3& getNaturalPosition() const { return _naturalPosition; }
-    void setNaturalPosition(const glm::vec3& min, const glm::vec3& max);
+    void calculateNaturalPosition(const glm::vec3& min, const glm::vec3& max);
     
     const QStringList& getTextureNames() const { return _textureNames; }
     void setTextureNames(const QStringList& value) { _textureNames = value; }

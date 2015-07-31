@@ -129,9 +129,9 @@ void EntityItemProperties::setSittingPoints(const QVector<SittingPoint>& sitting
     }
 }
 
-void EntityItemProperties::setNaturalPosition(const glm::vec3& min, const glm::vec3& max) {
-    glm::vec3 radius = (max - min) / 2.0f;
-    _naturalPosition = max - radius;
+void EntityItemProperties::calculateNaturalPosition(const glm::vec3& min, const glm::vec3& max) {
+    glm::vec3 halfDimension = (max - min) / 2.0f;
+    _naturalPosition = max - halfDimension;
 }
 
 bool EntityItemProperties::animationSettingsChanged() const {
