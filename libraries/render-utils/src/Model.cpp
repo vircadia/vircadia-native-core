@@ -1625,15 +1625,21 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
     
     if (isSkinned) {
-        const float* bones = (const float*)state.clusterMatrices.constData();
+        const float* bones;
         if (_cauterizeBones) {
             bones = (const float*)state.cauterizedClusterMatrices.constData();
+        } else {
+            bones = (const float*)state.clusterMatrices.constData();
         }
         batch._glUniformMatrix4fv(locations->clusterMatrices, state.clusterMatrices.size(), false, bones);
        _transforms[0] = Transform();
        _transforms[0].preTranslate(_translation);
     } else {
-       _transforms[0] = Transform(state.clusterMatrices[0]);
+        if (_cauterizeBones) {
+            _transforms[0] = Transform(state.cauterizedClusterMatrices[0]);
+        } else {
+            _transforms[0] = Transform(state.clusterMatrices[0]);
+        }
        _transforms[0].preTranslate(_translation);
     }
     batch.setModelTransform(_transforms[0]);
