@@ -13,6 +13,7 @@
 #define hifi_AvatarData_h
 
 #include <string>
+#include <memory>
 /* VS2010 defines stdint.h, but not inttypes.h */
 #if defined(_MSC_VER)
 typedef signed char  int8_t;
@@ -46,9 +47,10 @@ typedef unsigned long long quint64;
 #include <QReadWriteLock>
 
 #include <CollisionInfo.h>
-#include <RegisteredMetaTypes.h>
-
+#include <NLPacket.h>
 #include <Node.h>
+#include <RegisteredMetaTypes.h>
+#include <SimpleMovingAverage.h>
 
 #include "AABox.h"
 #include "HandData.h"
@@ -57,18 +59,23 @@ typedef unsigned long long quint64;
 #include "Recorder.h"
 #include "Referential.h"
 
+typedef std::shared_ptr<AvatarData> AvatarSharedPointer;
+typedef std::weak_ptr<AvatarData> AvatarWeakPointer;
+typedef QHash<QUuid, AvatarSharedPointer> AvatarHash;
+
 // avatar motion behaviors
 const quint32 AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED = 1U << 0;
 const quint32 AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED = 1U << 1;
 
-const quint32 AVATAR_MOTION_DEFAULTS = 
+const quint32 AVATAR_MOTION_DEFAULTS =
         AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED |
         AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
 
 // these bits will be expanded as features are exposed
-const quint32 AVATAR_MOTION_SCRIPTABLE_BITS = 
+const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
         AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
 
+const qint64 AVATAR_SILENCE_THRESHOLD_USECS = 5 * USECS_PER_SECOND;
 
 // Bitset of state flags - we store the key state, hand state, faceshift, chat circling, and existance of
 // referential data in this bit set. The hand state is an octal, but is split into two sections to maintain
@@ -103,6 +110,12 @@ const int AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS = 5000;
 
 const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/models/heads/defaultAvatar_head.fst");
 const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/models/skeletons/defaultAvatar_body.fst");
+const QUrl DEFAULT_FULL_AVATAR_MODEL_URL = QUrl("http://public.highfidelity.io/marketplace/contents/029db3d4-da2c-4cb2-9c08-b9612ba576f5/02949063e7c4aed42ad9d1a58461f56d.fst");
+
+const QString DEFAULT_HEAD_MODEL_NAME = QString("Robot");
+const QString DEFAULT_BODY_MODEL_NAME = QString("Robot");
+const QString DEFAULT_FULL_AVATAR_MODEL_NAME = QString("Default");
+
 
 // Where one's own Avatar begins in the world (will be overwritten if avatar data file is found).
 // This is the start location in the Sandbox (xyz: 6270, 211, 6000).
@@ -151,7 +164,7 @@ public:
     AvatarData();
     virtual ~AvatarData();
     
-    virtual bool isMyAvatar() { return false; }
+    virtual bool isMyAvatar() const { return false; }
 
     const QUuid& getSessionUUID() const { return _sessionUUID; }
 
@@ -169,7 +182,7 @@ public:
     /// \param packet byte array of data
     /// \param offset number of bytes into packet where data starts
     /// \return number of bytes parsed
-    virtual int parseDataAtOffset(const QByteArray& packet, int offset);
+    virtual int parseDataFromBuffer(const QByteArray& buffer);
 
     //  Body Rotation (degrees)
     float getBodyYaw() const { return _bodyYaw; }
@@ -229,7 +242,7 @@ public:
     Q_INVOKABLE virtual void clearJointsData();
     
     /// Returns the index of the joint with the specified name, or -1 if not found/unknown.
-    Q_INVOKABLE virtual int getJointIndex(const QString& name) const { return _jointIndices.value(name) - 1; } 
+    Q_INVOKABLE virtual int getJointIndex(const QString& name) const { return _jointIndices.value(name) - 1; }
 
     Q_INVOKABLE virtual QStringList getJointNames() const { return _jointNames; }
 
@@ -248,10 +261,10 @@ public:
         return false;
     }
 
-    bool hasIdentityChangedAfterParsing(const QByteArray& packet);
+    bool hasIdentityChangedAfterParsing(NLPacket& packet);
     QByteArray identityByteArray();
     
-    bool hasBillboardChangedAfterParsing(const QByteArray& packet);
+    bool hasBillboardChangedAfterParsing(NLPacket& packet);
     
     const QUrl& getFaceModelURL() const { return _faceModelURL; }
     QString getFaceModelURLString() const { return _faceModelURL.toString(); }
@@ -284,16 +297,20 @@ public:
     QString getSkeletonModelURLFromScript() const { return _skeletonModelURL.toString(); }
     void setSkeletonModelURLFromScript(const QString& skeletonModelString) { setSkeletonModelURL(QUrl(skeletonModelString)); }
     
-    Node* getOwningAvatarMixer() { return _owningAvatarMixer.data(); }
     void setOwningAvatarMixer(const QWeakPointer<Node>& owningAvatarMixer) { _owningAvatarMixer = owningAvatarMixer; }
     
-    QElapsedTimer& getLastUpdateTimer() { return _lastUpdateTimer; }
-     
     const AABox& getLocalAABox() const { return _localAABox; }
     const Referential* getReferential() const { return _referential; }
 
+    int getUsecsSinceLastUpdate() const { return _averageBytesReceived.getUsecsSinceLastEvent(); }
+    int getAverageBytesReceivedPerSecond() const;
+    int getReceiveRate() const;
+
     void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
     Q_INVOKABLE glm::vec3 getVelocity() const { return _velocity; }
+    const glm::vec3& getTargetVelocity() const { return _targetVelocity; }
+
+    bool shouldDie() const { return _owningAvatarMixer.isNull() || getUsecsSinceLastUpdate() > AVATAR_SILENCE_THRESHOLD_USECS; }
 
 public slots:
     void sendAvatarDataPacket();
@@ -362,7 +379,6 @@ protected:
     QVector<AttachmentData> _attachmentData;
     QString _displayName;
 
-    QRect _displayNameBoundingRect;
     float _displayNameTargetAlpha;
     float _displayNameAlpha;
 
@@ -375,7 +391,6 @@ protected:
     quint64 _errorLogExpiry; ///< time in future when to log an error
     
     QWeakPointer<Node> _owningAvatarMixer;
-    QElapsedTimer _lastUpdateTimer;
     
     PlayerPointer _player;
     
@@ -384,8 +399,11 @@ protected:
     void changeReferential(Referential* ref);
 
     glm::vec3 _velocity;
+    glm::vec3 _targetVelocity;
 
     AABox _localAABox;
+
+    SimpleMovingAverage _averageBytesReceived;
 
 private:
     // privatize the copy constructor and assignment operator so they cannot be called

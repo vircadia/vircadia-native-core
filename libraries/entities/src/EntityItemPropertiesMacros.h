@@ -9,13 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QDateTime>
+
 #ifndef hifi_EntityItemPropertiesMacros_h
 #define hifi_EntityItemPropertiesMacros_h
 
-#define APPEND_ENTITY_PROPERTY(P,O,V) \
+#define APPEND_ENTITY_PROPERTY(P,V) \
         if (requestedProperties.getHasProperty(P)) {                \
             LevelDetails propertyLevel = packetData->startLevel();  \
-            successPropertyFits = packetData->O(V);                 \
+            successPropertyFits = packetData->appendValue(V);       \
             if (successPropertyFits) {                              \
                 propertyFlags |= P;                                 \
                 propertiesDidntFit -= P;                            \
@@ -29,111 +31,30 @@
             propertiesDidntFit -= P;                                \
         }
 
-#define READ_ENTITY_PROPERTY(P,T,M)                             \
-        if (propertyFlags.getHasProperty(P)) {                  \
-            T fromBuffer;                                       \
-            memcpy(&fromBuffer, dataAt, sizeof(fromBuffer));    \
-            dataAt += sizeof(fromBuffer);                       \
-            bytesRead += sizeof(fromBuffer);                    \
-            if (overwriteLocalData) {                           \
-                M = fromBuffer;                                 \
-            }                                                   \
+#define READ_ENTITY_PROPERTY(P,T,S)                                                \
+        if (propertyFlags.getHasProperty(P)) {                                     \
+            T fromBuffer;                                                          \
+            int bytes = OctreePacketData::unpackDataFromBytes(dataAt, fromBuffer); \
+            dataAt += bytes;                                                       \
+            bytesRead += bytes;                                                    \
+            if (overwriteLocalData) {                                              \
+                S(fromBuffer);                                                     \
+            }                                                                      \
         }
 
-#define READ_ENTITY_PROPERTY_SETTER(P,T,M)                      \
-        if (propertyFlags.getHasProperty(P)) {                  \
-            T fromBuffer;                                       \
-            memcpy(&fromBuffer, dataAt, sizeof(fromBuffer));    \
-            dataAt += sizeof(fromBuffer);                       \
-            bytesRead += sizeof(fromBuffer);                    \
-            if (overwriteLocalData) {                           \
-                M(fromBuffer);                                  \
-            }                                                   \
-        }
-
-
-#define READ_ENTITY_PROPERTY_QUAT(P,M)                                      \
-        if (propertyFlags.getHasProperty(P)) {                              \
-            glm::quat fromBuffer;                                           \
-            int bytes = unpackOrientationQuatFromBytes(dataAt, fromBuffer); \
-            dataAt += bytes;                                                \
-            bytesRead += bytes;                                             \
-            if (overwriteLocalData) {                                       \
-                M = fromBuffer;                                             \
-            }                                                               \
-        }
-
-#define READ_ENTITY_PROPERTY_QUAT_SETTER(P,M)                               \
-        if (propertyFlags.getHasProperty(P)) {                              \
-            glm::quat fromBuffer;                                           \
-            int bytes = unpackOrientationQuatFromBytes(dataAt, fromBuffer); \
-            dataAt += bytes;                                                \
-            bytesRead += bytes;                                             \
-            if (overwriteLocalData) {                                       \
-                M(fromBuffer);                                              \
-            }                                                               \
-        }
-
-#define READ_ENTITY_PROPERTY_STRING(P,O)                \
-        if (propertyFlags.getHasProperty(P)) {          \
-            uint16_t length;                            \
-            memcpy(&length, dataAt, sizeof(length));    \
-            dataAt += sizeof(length);                   \
-            bytesRead += sizeof(length);                \
-            QString value((const char*)dataAt);         \
-            dataAt += length;                           \
-            bytesRead += length;                        \
-            if (overwriteLocalData) {                   \
-                O(value);                               \
-            }                                           \
-        }
-
-#define READ_ENTITY_PROPERTY_COLOR(P,M)         \
+#define DECODE_GROUP_PROPERTY_HAS_CHANGED(P,N) \
         if (propertyFlags.getHasProperty(P)) {  \
-            if (overwriteLocalData) {           \
-                memcpy(M, dataAt, sizeof(M));   \
-            }                                   \
-            dataAt += sizeof(rgbColor);         \
-            bytesRead += sizeof(rgbColor);      \
+            set##N##Changed(true); \
         }
 
-#define READ_ENTITY_PROPERTY_TO_PROPERTIES(P,T,O)               \
-        if (propertyFlags.getHasProperty(P)) {                  \
-            T fromBuffer;                                       \
-            memcpy(&fromBuffer, dataAt, sizeof(fromBuffer));    \
-            dataAt += sizeof(fromBuffer);                       \
-            processedBytes += sizeof(fromBuffer);               \
-            properties.O(fromBuffer);                           \
-        }
 
-#define READ_ENTITY_PROPERTY_QUAT_TO_PROPERTIES(P,O)                        \
-        if (propertyFlags.getHasProperty(P)) {                              \
-            glm::quat fromBuffer;                                           \
-            int bytes = unpackOrientationQuatFromBytes(dataAt, fromBuffer); \
-            dataAt += bytes;                                                \
-            processedBytes += bytes;                                        \
-            properties.O(fromBuffer);                                       \
-        }
-
-#define READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(P,O)  \
-        if (propertyFlags.getHasProperty(P)) {          \
-            uint16_t length;                            \
-            memcpy(&length, dataAt, sizeof(length));    \
-            dataAt += sizeof(length);                   \
-            processedBytes += sizeof(length);           \
-            QString value((const char*)dataAt);         \
-            dataAt += length;                           \
-            processedBytes += length;                   \
-            properties.O(value);                        \
-        }
-
-#define READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(P,O)   \
-        if (propertyFlags.getHasProperty(P)) {          \
-            xColor color;                               \
-            memcpy(&color, dataAt, sizeof(color));      \
-            dataAt += sizeof(color);                    \
-            processedBytes += sizeof(color);            \
-            properties.O(color);                        \
+#define READ_ENTITY_PROPERTY_TO_PROPERTIES(P,T,O)                                  \
+        if (propertyFlags.getHasProperty(P)) {                                     \
+            T fromBuffer;                                                          \
+            int bytes = OctreePacketData::unpackDataFromBytes(dataAt, fromBuffer); \
+            dataAt += bytes;                                                       \
+            processedBytes += bytes;                                               \
+            properties.O(fromBuffer);                                              \
         }
 
 #define SET_ENTITY_PROPERTY_FROM_PROPERTIES(P,M)    \
@@ -142,134 +63,201 @@
         somethingChanged = true;                    \
     }
 
+#define SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(G,P,p,M)  \
+    if (properties.get##G().p##Changed()) {                 \
+        M(properties.get##G().get##P());                    \
+        somethingChanged = true;                            \
+    }
+
 #define SET_ENTITY_PROPERTY_FROM_PROPERTIES_GETTER(C,G,S)    \
     if (properties.C()) {    \
         S(properties.G());                         \
         somethingChanged = true;                    \
     }
 
-#define COPY_ENTITY_PROPERTY_TO_PROPERTIES(M,G) \
-    properties._##M = G();                      \
-    properties._##M##Changed = false;
+#define COPY_ENTITY_PROPERTY_TO_PROPERTIES(P,M) \
+    properties._##P = M();                      \
+    properties._##P##Changed = false;
+
+#define COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(G,P,M)  \
+    properties.get##G().set##P(M());                     \
+    properties.get##G().set##P##Changed(false);
 
 #define CHECK_PROPERTY_CHANGE(P,M) \
     if (_##M##Changed) {           \
         changedProperties += P;    \
     }
 
+inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::vec3& v) { return vec3toScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, float v) { return QScriptValue(v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, int v) { return QScriptValue(v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, quint32 v) { return QScriptValue(v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, quint64 v) { return QScriptValue((qsreal)v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const QString& v) { return QScriptValue(v); }
 
-#define COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(P) \
-    QScriptValue P = vec3toScriptValue(engine, _##P); \
-    properties.setProperty(#P, P);
+inline QScriptValue convertScriptValue(QScriptEngine* e, const xColor& v) { return xColorToScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::quat& v) { return quatToScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const QScriptValue& v) { return v; }
+inline QScriptValue convertScriptValue(QScriptEngine* e,  const QVector<glm::vec3>& v) {return qVectorVec3ToScriptValue(e, v); }
 
-#define COPY_PROPERTY_TO_QSCRIPTVALUE_QUAT(P) \
-    QScriptValue P = quatToScriptValue(engine, _##P); \
-    properties.setProperty(#P, P);
+inline QScriptValue convertScriptValue(QScriptEngine* e, const QByteArray& v) {
+    QByteArray b64 = v.toBase64();
+    return QScriptValue(QString(b64));
+}
 
-#define COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR(P) \
-    QScriptValue P = xColorToScriptValue(engine, _##P); \
-    properties.setProperty(#P, P);
-
-#define COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(P,G) \
-    QScriptValue P = xColorToScriptValue(engine, G); \
-    properties.setProperty(#P, P);
-
-#define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(P, G) \
-    properties.setProperty(#P, G);
+#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(G,g,P,p) \
+    if (!skipDefaults || defaultEntityProperties.get##G().get##P() != get##P()) { \
+        QScriptValue groupProperties = properties.property(#g); \
+        if (!groupProperties.isValid()) { \
+            groupProperties = engine->newObject(); \
+        } \
+        QScriptValue V = convertScriptValue(engine, get##P()); \
+        groupProperties.setProperty(#p, V); \
+        properties.setProperty(#g, groupProperties); \
+    }
 
 #define COPY_PROPERTY_TO_QSCRIPTVALUE(P) \
-    properties.setProperty(#P, _##P);
-
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(P, S) \
-    QScriptValue P = object.property(#P);           \
-    if (P.isValid()) {                              \
-        float newValue = P.toVariant().toFloat();   \
-        if (_defaultSettings || newValue != _##P) { \
-            S(newValue);                            \
-        }                                           \
+    if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
+        QScriptValue V = convertScriptValue(engine, _##P); \
+        properties.setProperty(#P, V); \
     }
 
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(P, S)  \
-    QScriptValue P = object.property(#P);           \
-    if (P.isValid()) {                              \
-        bool newValue = P.toVariant().toBool();     \
-        if (_defaultSettings || newValue != _##P) { \
-            S(newValue);                            \
-        }                                           \
-    }
+#define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(P, G) \
+    properties.setProperty(#P, G);
 
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(P, S)\
-    QScriptValue P = object.property(#P);           \
-    if (P.isValid()) {                              \
-        QString newValue = P.toVariant().toString();\
-        if (_defaultSettings || newValue != _##P) { \
-            S(newValue);                            \
-        }                                           \
-    }
-
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(P, S)        \
-    QScriptValue P = object.property(#P);                 \
-    if (P.isValid()) {                                    \
-        QScriptValue x = P.property("x");                 \
-        QScriptValue y = P.property("y");                 \
-        QScriptValue z = P.property("z");                 \
-        if (x.isValid() && y.isValid() && z.isValid()) {  \
-            glm::vec3 newValue;                           \
-            newValue.x = x.toVariant().toFloat();         \
-            newValue.y = y.toVariant().toFloat();         \
-            newValue.z = z.toVariant().toFloat();         \
-            bool isValid = !glm::isnan(newValue.x) &&     \
-                         !glm::isnan(newValue.y) &&       \
-                         !glm::isnan(newValue.z);         \
-            if (isValid &&                                \
-                (_defaultSettings || newValue != _##P)) { \
-                S(newValue);                              \
-            }                                             \
-        }                                                 \
+#define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(P, G) \
+    if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
+        QScriptValue V = convertScriptValue(engine, G); \
+        properties.setProperty(#P, V); \
     }
     
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE_QUAT(P, S)                      \
-    QScriptValue P = object.property(#P);                               \
-    if (P.isValid()) {                                                  \
-        QScriptValue x = P.property("x");                               \
-        QScriptValue y = P.property("y");                               \
-        QScriptValue z = P.property("z");                               \
-        QScriptValue w = P.property("w");                               \
-        if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) { \
-            glm::quat newValue;                                         \
-            newValue.x = x.toVariant().toFloat();                       \
-            newValue.y = y.toVariant().toFloat();                       \
-            newValue.z = z.toVariant().toFloat();                       \
-            newValue.w = w.toVariant().toFloat();                       \
-            bool isValid = !glm::isnan(newValue.x) &&                   \
-                           !glm::isnan(newValue.y) &&                   \
-                           !glm::isnan(newValue.z) &&                   \
-                           !glm::isnan(newValue.w);                     \
-            if (isValid &&                                              \
-                (_defaultSettings || newValue != _##P)) {               \
-                S(newValue);                                            \
-            }                                                           \
-        }                                                               \
-    }
+typedef glm::vec3 glmVec3;
+typedef glm::quat glmQuat;
+typedef QVector<glm::vec3> qVectorVec3;
+inline float float_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toFloat(&isValid); }
+inline quint64 quint64_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toULongLong(&isValid); }
+inline uint16_t uint16_t_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
+inline int int_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
+inline bool bool_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toBool(); }
+inline QString QString_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toString().trimmed(); }
+inline QUuid QUuid_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toUuid(); }
 
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(P, S)     \
-    QScriptValue P = object.property(#P);               \
-    if (P.isValid()) {                                  \
-        QScriptValue r = P.property("red");             \
-        QScriptValue g = P.property("green");           \
-        QScriptValue b = P.property("blue");            \
-        if (r.isValid() && g.isValid() && b.isValid()) {\
-            xColor newColor;                            \
-            newColor.red = r.toVariant().toInt();       \
-            newColor.green = g.toVariant().toInt();     \
-            newColor.blue = b.toVariant().toInt();      \
-            if (_defaultSettings ||                     \
-                (newColor.red != _color.red ||          \
-                newColor.green != _color.green ||       \
-                newColor.blue != _color.blue)) {        \
-                S(newColor);                            \
+inline QDateTime QDateTime_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = true;
+    auto result = QDateTime::fromString(v.toVariant().toString().trimmed(), Qt::ISODate);
+    // result.setTimeSpec(Qt::OffsetFromUTC);
+    return result;
+}
+
+
+
+inline QByteArray QByteArray_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = true;
+    QString b64 = v.toVariant().toString().trimmed();
+    return QByteArray::fromBase64(b64.toUtf8());
+}
+
+inline glmVec3 glmVec3_convertFromScriptValue(const QScriptValue& v, bool& isValid) { 
+    isValid = false; /// assume it can't be converted
+    QScriptValue x = v.property("x");
+    QScriptValue y = v.property("y");
+    QScriptValue z = v.property("z");
+    if (x.isValid() && y.isValid() && z.isValid()) {
+        glm::vec3 newValue(0);
+        newValue.x = x.toVariant().toFloat();
+        newValue.y = y.toVariant().toFloat();
+        newValue.z = z.toVariant().toFloat();
+        isValid = !glm::isnan(newValue.x) &&
+                  !glm::isnan(newValue.y) &&
+                  !glm::isnan(newValue.z);
+        if (isValid) {
+            return newValue;
+        }
+    }
+    return glm::vec3(0);
+}
+
+inline qVectorVec3 qVectorVec3_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = true;
+    return qVectorVec3FromScriptValue(v);
+}
+
+inline glmQuat glmQuat_convertFromScriptValue(const QScriptValue& v, bool& isValid) { 
+    isValid = false; /// assume it can't be converted
+    QScriptValue x = v.property("x");
+    QScriptValue y = v.property("y");
+    QScriptValue z = v.property("z");
+    QScriptValue w = v.property("w");
+    if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) {
+        glm::quat newValue;
+        newValue.x = x.toVariant().toFloat();
+        newValue.y = y.toVariant().toFloat();
+        newValue.z = z.toVariant().toFloat();
+        newValue.w = w.toVariant().toFloat();
+        isValid = !glm::isnan(newValue.x) &&
+                  !glm::isnan(newValue.y) &&
+                  !glm::isnan(newValue.z) &&
+                  !glm::isnan(newValue.w);
+        if (isValid) {
+            return newValue;
+        }
+    }
+    return glm::quat();
+}
+
+inline xColor xColor_convertFromScriptValue(const QScriptValue& v, bool& isValid) { 
+    xColor newValue;
+    isValid = false; /// assume it can't be converted
+    QScriptValue r = v.property("red");
+    QScriptValue g = v.property("green");
+    QScriptValue b = v.property("blue");
+    if (r.isValid() && g.isValid() && b.isValid()) {
+        newValue.red = r.toVariant().toInt();
+        newValue.green = g.toVariant().toInt();
+        newValue.blue = b.toVariant().toInt();
+        isValid = true;
+    }
+    return newValue;
+}
+    
+
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE(P, T, S) \
+    {                                                   \
+        QScriptValue V = object.property(#P);           \
+        if (V.isValid()) {                              \
+            bool isValid = false;                       \
+            T newValue = T##_convertFromScriptValue(V, isValid); \
+            if (isValid && (_defaultSettings || newValue != _##P)) { \
+                S(newValue);                            \
             }                                           \
         }                                               \
+    }
+
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(P, T, S, G) \
+{ \
+    QScriptValue V = object.property(#P);           \
+    if (V.isValid()) {                              \
+        bool isValid = false;                       \
+        T newValue = T##_convertFromScriptValue(V, isValid); \
+        if (isValid && (_defaultSettings || newValue != G())) { \
+            S(newValue);                            \
+        }                                           \
+    }\
+}
+
+#define COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(G, P, T, S)  \
+    {                                                         \
+        QScriptValue G = object.property(#G);                 \
+        if (G.isValid()) {                                    \
+            QScriptValue V = G.property(#P);                  \
+            if (V.isValid()) {                                \
+                bool isValid = false;                       \
+                T newValue = T##_convertFromScriptValue(V, isValid); \
+                if (isValid && (_defaultSettings || newValue != _##P)) { \
+                    S(newValue);                              \
+                }                                             \
+            }                                                 \
+        }                                                     \
     }
 
 #define COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(P, S)               \
@@ -285,29 +273,40 @@
     _##n(V),                            \
     _##n##Changed(false)
 
+#define DEFINE_PROPERTY_GROUP(N, n, T)        \
+    public: \
+        const T& get##N() const { return _##n; } \
+        T& get##N() { return _##n; } \
+    private: \
+        T _##n; \
+        static T _static##N; 
+
 #define DEFINE_PROPERTY(P, N, n, T)        \
     public: \
         T get##N() const { return _##n; } \
         void set##N(T value) { _##n = value; _##n##Changed = true; } \
         bool n##Changed() const { return _##n##Changed; } \
+        void set##N##Changed(bool value) { _##n##Changed = value; } \
     private: \
         T _##n; \
-        bool _##n##Changed;
+        bool _##n##Changed = false;
 
 #define DEFINE_PROPERTY_REF(P, N, n, T)        \
     public: \
         const T& get##N() const { return _##n; } \
         void set##N(const T& value) { _##n = value; _##n##Changed = true; } \
         bool n##Changed() const { return _##n##Changed; } \
+        void set##N##Changed(bool value) { _##n##Changed = value; } \
     private: \
         T _##n; \
-        bool _##n##Changed;
+        bool _##n##Changed = false;
 
 #define DEFINE_PROPERTY_REF_WITH_SETTER(P, N, n, T)        \
     public: \
         const T& get##N() const { return _##n; } \
         void set##N(const T& value); \
         bool n##Changed() const; \
+        void set##N##Changed(bool value) { _##n##Changed = value; } \
     private: \
         T _##n; \
         bool _##n##Changed;
@@ -317,6 +316,7 @@
         T get##N() const; \
         void set##N(const T& value); \
         bool n##Changed() const; \
+        void set##N##Changed(bool value) { _##n##Changed = value; } \
     private: \
         T _##n; \
         bool _##n##Changed;
@@ -328,6 +328,7 @@
         bool n##Changed() const { return _##n##Changed; } \
         QString get##N##AsString() const; \
         void set##N##FromString(const QString& name); \
+        void set##N##Changed(bool value) { _##n##Changed = value; } \
     private: \
         T _##n; \
         bool _##n##Changed;

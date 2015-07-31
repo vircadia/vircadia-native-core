@@ -12,15 +12,23 @@ if (WIN32)
     LOG_DOWNLOAD 1
   )
 
+  # Hide this external target (for ide users)
+  set_target_properties(${EXTERNAL_NAME} PROPERTIES FOLDER "hidden/externals")
+
   ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
 
   string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
   set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/include CACHE PATH "List of glew include directories")
-  
-  set(_LIB_DIR ${SOURCE_DIR}/lib/Release/Win32)
-  
+
+  if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
+    set(_LIB_DIR ${SOURCE_DIR}/lib/Release/x64)
+    set(${EXTERNAL_NAME_UPPER}_DLL_PATH ${SOURCE_DIR}/bin/Release/x64 CACHE FILEPATH "Location of GLEW DLL")
+  else()
+    set(_LIB_DIR ${SOURCE_DIR}/lib/Release/Win32)
+    set(${EXTERNAL_NAME_UPPER}_DLL_PATH ${SOURCE_DIR}/bin/Release/Win32 CACHE FILEPATH "Location of GLEW DLL")
+  endif()
+
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${_LIB_DIR}/glew32.lib CACHE FILEPATH "Location of GLEW release library")
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG "" CACHE FILEPATH "Location of GLEW debug library")
-  
-  set(${EXTERNAL_NAME_UPPER}_DLL_PATH ${SOURCE_DIR}/bin/Release/Win32 CACHE FILEPATH "Location of GLEW DLL")
+
 endif ()

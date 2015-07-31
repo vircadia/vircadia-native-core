@@ -22,6 +22,18 @@
 
 #include <memory>
 
+inline bool isValidScale(glm::vec3 scale) {
+    bool result = scale.x != 0.0f && scale.y != 0.0f && scale.z != 0.0f;
+    assert(result);
+    return result;
+}
+
+inline bool isValidScale(float scale) {
+    bool result = scale != 0.0f && !glm::isnan(scale) && !glm::isinf(scale);
+    assert(result);
+    return result;
+}
+
 class Transform {
 public:
     typedef glm::mat4 Mat4;
@@ -32,11 +44,21 @@ public:
     typedef glm::quat Quat;
 
     Transform() :
-        _rotation(1.0f, 0, 0, 0),
+        _rotation(1.0f, 0.0f, 0.0f, 0.0f),
         _scale(1.0f),
-        _translation(0),
+        _translation(0.0f),
         _flags(FLAG_CACHE_INVALID_BITSET) // invalid cache
     {
+    }
+    Transform(Quat rotation, Vec3 scale, Vec3 translation) :
+        _rotation(rotation),
+        _scale(scale),
+        _translation(translation),
+        _flags(FLAG_CACHE_INVALID_BITSET) // invalid cache
+    {
+        if (!isValidScale(_scale)) {
+            _scale = Vec3(1.0f);
+        }
     }
     Transform(const Transform& transform) :
         _rotation(transform._rotation),
@@ -60,23 +82,25 @@ public:
         return (*this);
     }
 
-    void setIdentity();
+    Transform& setIdentity();
 
     const Vec3& getTranslation() const;
-    void setTranslation(const Vec3& translation); // [new this] = [translation] * [this.rotation] * [this.scale]
-    void preTranslate(const Vec3& translation);   // [new this] = [translation] * [this]
-    void postTranslate(const Vec3& translation);  // [new this] = [this] * [translation] equivalent to glTranslate
+    Transform& setTranslation(const Vec3& translation); // [new this] = [translation] * [this.rotation] * [this.scale]
+    Transform& preTranslate(const Vec3& translation);   // [new this] = [translation] * [this]
+    Transform& postTranslate(const Vec3& translation);  // [new this] = [this] * [translation] equivalent to:glTranslate
 
     const Quat& getRotation() const;
-    void setRotation(const Quat& rotation); // [new this] = [this.translation] * [rotation] * [this.scale]
-    void preRotate(const Quat& rotation);   // [new this] = [rotation] * [this]
-    void postRotate(const Quat& rotation);  // [new this] = [this] * [rotation] equivalent to glRotate
+    Transform& setRotation(const Quat& rotation); // [new this] = [this.translation] * [rotation] * [this.scale]
+    Transform& preRotate(const Quat& rotation);   // [new this] = [rotation] * [this]
+    Transform& postRotate(const Quat& rotation);  // [new this] = [this] * [rotation] equivalent to:glRotate
 
     const Vec3& getScale() const;
-    void setScale(float scale);
-    void setScale(const Vec3& scale);  // [new this] = [this.translation] * [this.rotation] * [scale]
-    void postScale(float scale);       // [new this] = [this] * [scale] equivalent to glScale
-    void postScale(const Vec3& scale); // [new this] = [this] * [scale] equivalent to glScale
+    Transform& setScale(float scale);
+    Transform& setScale(const Vec3& scale);  // [new this] = [this.translation] * [this.rotation] * [scale]
+    Transform& preScale(float scale);
+    Transform& preScale(const Vec3& scale);
+    Transform& postScale(float scale);       // [new this] = [this] * [scale] equivalent to:glScale
+    Transform& postScale(const Vec3& scale); // [new this] = [this] * [scale] equivalent to:glScale
 
     bool isIdentity() const { return (_flags & ~Flags(FLAG_CACHE_INVALID_BITSET)).none(); }
     bool isTranslating() const { return _flags[FLAG_TRANSLATION]; }
@@ -85,8 +109,8 @@ public:
     bool isUniform() const { return !isNonUniform(); }
     bool isNonUniform() const { return _flags[FLAG_NON_UNIFORM]; }
 
-    void evalFromRawMatrix(const Mat4& matrix);
-    void evalFromRawMatrix(const Mat3& rotationScalematrix);
+    Transform& evalFromRawMatrix(const Mat4& matrix);
+    Transform& evalFromRawMatrix(const Mat3& rotationScalematrix);
 
     Mat4& getMatrix(Mat4& result) const;
     Mat4& getInverseMatrix(Mat4& result) const;
@@ -134,8 +158,7 @@ protected:
     mutable Flags _flags;
 
     // Cached transform
-    // TODO: replace this auto ptr by a "unique ptr" as soon as we are compiling in C++11
-    mutable std::auto_ptr<Mat4> _matrix;
+    mutable std::unique_ptr<Mat4> _matrix;
 
     bool isCacheInvalid() const { return _flags[FLAG_CACHE_INVALID]; }
     void validCache() const { _flags.set(FLAG_CACHE_INVALID, false); }
@@ -158,18 +181,19 @@ protected:
     Mat4& getCachedMatrix(Mat4& result) const;
 };
 
-inline void Transform::setIdentity() {
-    _translation = Vec3(0);
-    _rotation = Quat(1.0f, 0, 0, 0);
+inline Transform& Transform::setIdentity() {
+    _translation = Vec3(0.0f);
+    _rotation = Quat(1.0f, 0.0f, 0.0f, 0.0f);
     _scale = Vec3(1.0f);
     _flags = Flags(FLAG_CACHE_INVALID_BITSET);
+    return *this;
 }
 
 inline const Transform::Vec3& Transform::getTranslation() const {
     return _translation;
 }
 
-inline void Transform::setTranslation(const Vec3& translation) {
+inline Transform& Transform::setTranslation(const Vec3& translation) {
     invalidCache();
     if (translation == Vec3()) {
         unflagTranslation();
@@ -177,35 +201,44 @@ inline void Transform::setTranslation(const Vec3& translation) {
         flagTranslation();
     }
     _translation = translation;
+    return *this;
 }
 
-inline void Transform::preTranslate(const Vec3& translation) {
-    if (translation == Vec3() ) return;
+inline Transform& Transform::preTranslate(const Vec3& translation) {
+    if (translation == Vec3()) {
+        return *this;
+    }
     invalidCache();
     flagTranslation();
     _translation += translation;
+    return *this;
 }
 
-inline void Transform::postTranslate(const Vec3& translation) {
-    if (translation == Vec3() ) return;
+inline Transform&  Transform::postTranslate(const Vec3& translation) {
+    if (translation == Vec3()) {
+        return *this;
+    }
     invalidCache();
     flagTranslation();
 
     Vec3 scaledT = translation;
-    if (isScaling()) scaledT *= _scale;
+    if (isScaling()) {
+        scaledT *= _scale;
+    }
 
     if (isRotating()) {
         _translation += glm::rotate(_rotation, scaledT);
     } else {
         _translation += scaledT;
     }
+    return *this;
 }
 
 inline const Transform::Quat& Transform::getRotation() const {
     return _rotation;
 }
 
-inline void Transform::setRotation(const Quat& rotation) {
+inline Transform& Transform::setRotation(const Quat& rotation) {
     invalidCache();
     if (rotation == Quat()) {
         unflagRotation();
@@ -213,10 +246,13 @@ inline void Transform::setRotation(const Quat& rotation) {
         flagRotation();
     }
     _rotation = rotation;
+    return *this;
 }
 
-inline void Transform::preRotate(const Quat& rotation) {
-    if (rotation == Quat()) return;
+inline Transform& Transform::preRotate(const Quat& rotation) {
+    if (rotation == Quat()) {
+        return *this;
+    }
     invalidCache();
     if (isRotating()) {
         _rotation = rotation * _rotation;
@@ -226,10 +262,13 @@ inline void Transform::preRotate(const Quat& rotation) {
     flagRotation();
 
     _translation = glm::rotate(rotation, _translation);
+    return *this;
 }
 
-inline void Transform::postRotate(const Quat& rotation) {
-    if (rotation == Quat()) return;
+inline Transform& Transform::postRotate(const Quat& rotation) {
+    if (rotation == Quat()) {
+        return *this;
+    }
     invalidCache();
 
     if (isNonUniform()) {
@@ -255,46 +294,70 @@ inline void Transform::postRotate(const Quat& rotation) {
         }
     }
     flagRotation();
+    return *this;
 }
 
 inline const Transform::Vec3& Transform::getScale() const {
     return _scale;
 }
 
-inline void Transform::setScale(float scale) {
+inline Transform& Transform::setScale(float scale) {
+    if (!isValidScale(scale)) {
+        return *this;
+    }
     invalidCache();
     flagUniform();
+    
     if (scale == 1.0f) {
         unflagScaling();
     } else {
         flagScaling();
     }
     _scale = Vec3(scale);
+    return *this;
 }
 
-inline void Transform::setScale(const Vec3& scale) {
+inline Transform& Transform::setScale(const Vec3& scale) {
+    if (!isValidScale(scale)) {
+        return *this;
+    }
+
     if ((scale.x == scale.y) && (scale.x == scale.z)) {
-        setScale(scale.x);
-    } else {
-        invalidCache();
-        flagScaling();
-        flagNonUniform();
-        _scale = scale;
-    }
+        return setScale(scale.x);
+    } 
+
+    invalidCache();
+    flagScaling();
+    flagNonUniform();
+    _scale = scale;
+    return *this;
 }
 
-inline void Transform::postScale(float scale) {
-    if (scale == 1.0f) return;
-    if (isScaling()) {
-        // if already scaling, just invalid cache and aply uniform scale
-        invalidCache();
-        _scale *= scale;
-    } else {
-        setScale(scale);
-    }
+inline Transform& Transform::preScale(float scale) {
+    return setScale(getScale() * scale);
 }
 
-inline void Transform::postScale(const Vec3& scale) {
+inline Transform& Transform::preScale(const Vec3& scale) {
+    return setScale(getScale() * scale);
+}
+
+inline Transform& Transform::postScale(float scale) {
+    if (!isValidScale(scale) || scale == 1.0f) {
+        return *this;
+    }
+    if (!isScaling()) {
+        return setScale(scale);
+    }
+    // if already scaling, just invalid cache and apply uniform scale
+    invalidCache();
+    _scale *= scale;
+    return *this;
+}
+
+inline Transform& Transform::postScale(const Vec3& scale) {
+    if (!isValidScale(scale)) {
+        return *this;
+    }
     invalidCache();
     if (isScaling()) {
         _scale *= scale;
@@ -302,6 +365,7 @@ inline void Transform::postScale(const Vec3& scale) {
         _scale = scale;
     }
     flagScaling();
+    return *this;
 }
 
 inline Transform::Mat4& Transform::getMatrix(Transform::Mat4& result) const {
@@ -351,34 +415,31 @@ inline Transform::Mat4& Transform::getRotationScaleMatrixInverse(Mat4& result) c
     return result;
 }
 
-inline void Transform::evalFromRawMatrix(const Mat4& matrix) {
+inline Transform& Transform::evalFromRawMatrix(const Mat4& matrix) {
     // for now works only in the case of TRS transformation
-    if ((matrix[0][3] == 0) && (matrix[1][3] == 0) && (matrix[2][3] == 0) && (matrix[3][3] == 1.0f)) {
+    if ((matrix[0][3] == 0.0f) && (matrix[1][3] == 0.0f) && (matrix[2][3] == 0.0f) && (matrix[3][3] == 1.0f)) {
         setTranslation(Vec3(matrix[3]));
         evalFromRawMatrix(Mat3(matrix));
     }
+    return *this;
 }
 
-inline void Transform::evalFromRawMatrix(const Mat3& rotationScaleMatrix) {
+inline Transform& Transform::evalFromRawMatrix(const Mat3& rotationScaleMatrix) {
     Quat rotation;
     Vec3 scale;
     evalRotationScale(rotation, scale, rotationScaleMatrix);
     setRotation(rotation);
     setScale(scale);
+    return *this;
 }
 
 inline Transform& Transform::evalInverse(Transform& inverse) const {
     inverse.setIdentity();
     if (isScaling()) {
-        // TODO: At some point we will face the case when scale is 0 and so 1/0 will blow up...
-        // WHat should we do for this one?
-        assert(_scale.x != 0);
-        assert(_scale.y != 0);
-        assert(_scale.z != 0);
         if (isNonUniform()) {
-            inverse.setScale(Vec3(1.0f/_scale.x, 1.0f/_scale.y, 1.0f/_scale.z));
+            inverse.setScale(Vec3(1.0f) / _scale);
         } else {
-            inverse.setScale(1.0f/_scale.x);
+            inverse.setScale(1.0f / _scale.x);
         }
     }
     if (isRotating()) {
@@ -414,8 +475,7 @@ inline Transform& Transform::inverseMult( Transform& result, const Transform& le
     result.setIdentity();
 
     if (left.isScaling()) {
-        const Vec3& s = left.getScale();
-        result.setScale(Vec3(1.0f / s.x, 1.0f / s.y, 1.0f / s.z));
+        result.setScale(Vec3(1.0f) / left.getScale());
     }
     if (left.isRotating()) {
         result.postRotate(glm::conjugate(left.getRotation()));

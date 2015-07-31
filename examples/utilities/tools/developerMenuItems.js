@@ -12,17 +12,29 @@
 //
 
 var createdRenderMenu = false;
+var createdGeneratedAudioMenu = false;
+var createdStereoInputMenuItem = false;
 
-var ENTITIES_MENU = "Developer > Entities";
+var DEVELOPER_MENU = "Developer";
+
+var ENTITIES_MENU = DEVELOPER_MENU + " > Entities";
 var COLLISION_UPDATES_TO_SERVER = "Don't send collision updates to server";
 
-var RENDER_MENU = "Developer > Render";
+var RENDER_MENU = DEVELOPER_MENU + " > Render";
 var ENTITIES_ITEM = "Entities";
 var AVATARS_ITEM = "Avatars";
 
+var AUDIO_MENU = DEVELOPER_MENU + " > Audio";
+var AUDIO_SOURCE_INJECT = "Generated Audio";
+var AUDIO_SOURCE_MENU = AUDIO_MENU + " > Generated Audio Source";
+var AUDIO_SOURCE_PINK_NOISE = "Pink Noise";
+var AUDIO_SOURCE_SINE_440 = "Sine 440hz";
+var AUDIO_STEREO_INPUT = "Stereo Input";
+
+
 function setupMenus() {
-    if (!Menu.menuExists("Developer")) {
-        Menu.addMenu("Developer");
+    if (!Menu.menuExists(DEVELOPER_MENU)) {
+        Menu.addMenu(DEVELOPER_MENU);
     }
     if (!Menu.menuExists(ENTITIES_MENU)) {
         Menu.addMenu(ENTITIES_MENU);
@@ -54,6 +66,24 @@ function setupMenus() {
     if (!Menu.menuItemExists(RENDER_MENU, AVATARS_ITEM)) {
         Menu.addMenuItem({ menuName: RENDER_MENU, menuItemName: AVATARS_ITEM, isCheckable: true, isChecked: Scene.shouldRenderAvatars })
     }
+    
+    
+    if (!Menu.menuExists(AUDIO_MENU)) {
+        Menu.addMenu(AUDIO_MENU);
+    }
+    if (!Menu.menuItemExists(AUDIO_MENU, AUDIO_SOURCE_INJECT)) {
+        Menu.addMenuItem({ menuName: AUDIO_MENU, menuItemName: AUDIO_SOURCE_INJECT, isCheckable: true, isChecked: false });
+        Menu.addMenu(AUDIO_SOURCE_MENU);
+        Menu.addMenuItem({ menuName: AUDIO_SOURCE_MENU, menuItemName: AUDIO_SOURCE_PINK_NOISE, isCheckable: true, isChecked: false });
+        Menu.addMenuItem({ menuName: AUDIO_SOURCE_MENU, menuItemName: AUDIO_SOURCE_SINE_440, isCheckable: true, isChecked: false });
+        Menu.setIsOptionChecked(AUDIO_SOURCE_PINK_NOISE, true);
+        Audio.selectPinkNoise();
+        createdGeneratedAudioMenu = true;
+    }
+    if (!Menu.menuItemExists(AUDIO_MENU, AUDIO_STEREO_INPUT)) {
+        Menu.addMenuItem({ menuName: AUDIO_MENU, menuItemName: AUDIO_STEREO_INPUT, isCheckable: true, isChecked: false });
+        createdStereoInputMenuItem = true;
+    }
 }
 
 Menu.menuItemEvent.connect(function (menuItem) {
@@ -67,7 +97,17 @@ Menu.menuItemEvent.connect(function (menuItem) {
         Scene.shouldRenderEntities = Menu.isOptionChecked(ENTITIES_ITEM);
     } else if (menuItem == AVATARS_ITEM) {
         Scene.shouldRenderAvatars = Menu.isOptionChecked(AVATARS_ITEM);
-    }
+    } else if (menuItem == AUDIO_SOURCE_INJECT && !createdGeneratedAudioMenu) {
+        Audio.injectGeneratedNoise(Menu.isOptionChecked(AUDIO_SOURCE_INJECT));
+   } else if (menuItem == AUDIO_SOURCE_PINK_NOISE && !createdGeneratedAudioMenu) {
+       Audio.selectPinkNoise();
+       Menu.setIsOptionChecked(AUDIO_SOURCE_SINE_440, false);
+   } else if (menuItem == AUDIO_SOURCE_SINE_440 && !createdGeneratedAudioMenu) {
+       Audio.selectSine440();
+       Menu.setIsOptionChecked(AUDIO_SOURCE_PINK_NOISE, false);
+   } else if (menuItem == AUDIO_STEREO_INPUT) {
+       Audio.setStereoInput(Menu.isOptionChecked(AUDIO_STEREO_INPUT))
+   }
 });
 
 Scene.shouldRenderAvatarsChanged.connect(function(shouldRenderAvatars) {
@@ -86,6 +126,16 @@ function scriptEnding() {
     } else {
         Menu.removeMenuItem(RENDER_MENU, ENTITIES_ITEM);
         Menu.removeMenuItem(RENDER_MENU, AVATARS_ITEM);
+    }
+    
+    if (createdGeneratedAudioMenu) {
+        Audio.injectGeneratedNoise(false);
+        Menu.removeMenuItem(AUDIO_MENU, AUDIO_SOURCE_INJECT);
+        Menu.removeMenu(AUDIO_SOURCE_MENU);
+    }
+
+    if (createdStereoInputMenuItem) {
+        Menu.removeMenuItem(AUDIO_MENU, AUDIO_STEREO_INPUT);
     }
 }
 

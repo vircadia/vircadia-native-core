@@ -2,7 +2,7 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 # set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "Faceshift" "Sixense" "LeapMotion" "RtMidi" "SDL2" "RSSDK")
+set(OPTIONAL_EXTERNALS "Faceshift" "Sixense" "LeapMotion" "RtMidi" "SDL2" "RSSDK" "connexionClient")
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
@@ -16,28 +16,34 @@ find_package(Qt5LinguistToolsMacros)
 
 if (DEFINED ENV{JOB_ID})
   set(BUILD_SEQ $ENV{JOB_ID})
+elseif (DEFINED ENV{ghprbPullId})
+  set(BUILD_SEQ "PR: $ENV{ghprbPullId} - Commit: $ENV{ghprbActualCommit}")
 else ()
   set(BUILD_SEQ "dev")
 endif ()
 
-if (APPLE)
-  set(GL_HEADERS "#include <OpenGL/glext.h>")
-elseif (UNIX)
-  # include the right GL headers for UNIX
-  set(GL_HEADERS "#include <GL/gl.h>\n#include <GL/glext.h>")
-elseif (WIN32)
-  add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h
-  add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines
+if (WIN32)
+  add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h		
+  add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines		
+endif()
 
-  set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/wglew.h>")
-endif ()
-
-# create the InterfaceConfig.h file based on GL_HEADERS above
-configure_file(InterfaceConfig.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceConfig.h")
 configure_file(InterfaceVersion.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceVersion.h")
+
+macro(GroupSources curdir)
+   file(GLOB children RELATIVE ${PROJECT_SOURCE_DIR}/${curdir} ${PROJECT_SOURCE_DIR}/${curdir}/*)
+   foreach(child ${children})
+      if(IS_DIRECTORY ${PROJECT_SOURCE_DIR}/${curdir}/${child})
+          GroupSources(${curdir}/${child})
+      else()
+          string(REPLACE "/" "\\" groupname ${curdir})
+          source_group(${groupname} FILES ${PROJECT_SOURCE_DIR}/${curdir}/${child})
+      endif()
+   endforeach()
+endmacro()
 
 # grab the implementation and header files from src dirs
 file(GLOB_RECURSE INTERFACE_SRCS "src/*.cpp" "src/*.h")
+GroupSources("src")
 
 # Add SpeechRecognizer if on Windows or OS X, otherwise remove
 if (WIN32)
@@ -54,10 +60,11 @@ else ()
   list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_CPP})
 endif ()
 
-find_package(Qt5 COMPONENTS Gui Multimedia Network OpenGL Script Svg WebKitWidgets)
+find_package(Qt5 COMPONENTS Gui Multimedia Network OpenGL Qml Quick Script Svg WebKitWidgets)
 
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
+source_group("UI Files" FILES ${QT_UI_FILES})
 # have qt5 wrap them and generate the appropriate header files
 qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 
@@ -88,22 +95,25 @@ if (APPLE)
   # set where in the bundle to put the resources file
   SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/icon/${ICON_FILENAME} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
   
-  # grab the directories in resources and put them in the right spot in Resources
-  file(GLOB RESOURCE_SUBDIRS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/resources" "${CMAKE_CURRENT_SOURCE_DIR}/resources/*")
-  foreach(DIR ${RESOURCE_SUBDIRS})
-    if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/resources/${DIR}")
-      FILE(GLOB DIR_CONTENTS "resources/${DIR}/*")
-      SET_SOURCE_FILES_PROPERTIES(${DIR_CONTENTS} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources/${DIR}")
+  set(DISCOVERED_RESOURCES "")
 
-      SET(INTERFACE_SRCS ${INTERFACE_SRCS} "${DIR_CONTENTS}")
-    endif()
-  endforeach()
+  # use the add_resources_to_os_x_bundle macro to recurse into resources
+  add_resources_to_os_x_bundle("${CMAKE_CURRENT_SOURCE_DIR}/resources")
 
-  SET(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/icon/${ICON_FILENAME}")
+  # append the discovered resources to our list of interface sources
+  list(APPEND INTERFACE_SRCS ${DISCOVERED_RESOURCES})
+  
+  set(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/icon/${ICON_FILENAME}")
 endif()
 
 # create the executable, make it a bundle on OS X
-add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
+if (APPLE)
+  add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
+elseif(WIN32)
+  add_executable(${TARGET_NAME} WIN32 ${INTERFACE_SRCS} ${QM})
+else()
+  add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
+endif()
 
 # set up the external glm library
 add_dependency_external_projects(glm bullet)
@@ -116,13 +126,20 @@ target_include_directories(${TARGET_NAME} PRIVATE ${LIBOVR_INCLUDE_DIRS})
 target_link_libraries(${TARGET_NAME} ${LIBOVR_LIBRARIES})
 
 find_package(Bullet REQUIRED)
-target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BULLET_INCLUDE_DIRS})
+
+# perform the system include hack for OS X to ignore warnings
+if (APPLE)
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${BULLET_INCLUDE_DIRS}")
+else()
+  target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BULLET_INCLUDE_DIRS})
+endif()
+
 target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
 
 # link required hifi libraries
-link_hifi_libraries(shared octree environment gpu model fbx networking entities avatars 
-                    audio audio-client animation script-engine physics 
-                    render-utils entities-renderer)
+link_hifi_libraries(shared octree environment gpu model render fbx networking entities avatars
+                    audio audio-client animation script-engine physics
+                    render-utils entities-renderer ui auto-updater)
 
 add_dependency_external_projects(sdl2)
 
@@ -164,17 +181,8 @@ foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   endif ()
 endforeach()
 
-# special APPLE modifications for Visage library
-if (VISAGE_FOUND AND NOT DISABLE_VISAGE AND APPLE)
-  add_definitions(-DMAC_OS_X)
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-comment")
-  find_library(AVFoundation AVFoundation)
-  find_library(CoreMedia CoreMedia)
-  target_link_libraries(${TARGET_NAME} ${AVFoundation} ${CoreMedia} ${NEW_STD_LIBRARY})
-endif ()
-
 # special OS X modifications for RtMidi library
-if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI AND APPLE)  
+if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI AND APPLE)
   find_library(CoreMIDI CoreMIDI)
   add_definitions(-D__MACOSX_CORE__)
   target_link_libraries(${TARGET_NAME} ${CoreMIDI})
@@ -210,33 +218,13 @@ else (APPLE)
     "${PROJECT_SOURCE_DIR}/resources"
     $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
   )
-    
-  find_package(OpenGL REQUIRED)
-  
-  if (${OPENGL_INCLUDE_DIR})
-    include_directories(SYSTEM "${OPENGL_INCLUDE_DIR}")
-  endif ()
-  
-  target_link_libraries(${TARGET_NAME} "${OPENGL_LIBRARY}")
-  
+
   # link target to external libraries
   if (WIN32)
-    add_dependency_external_projects(glew)
-    find_package(GLEW REQUIRED)
-    target_include_directories(${TARGET_NAME} PRIVATE ${GLEW_INCLUDE_DIRS})
-
-    target_link_libraries(${TARGET_NAME} ${GLEW_LIBRARIES} wsock32.lib opengl32.lib Winmm.lib)
-
-    if (USE_NSIGHT)
-      # try to find the Nsight package and add it to the build if we find it
-      find_package(NSIGHT)
-      if (NSIGHT_FOUND)
-        include_directories(${NSIGHT_INCLUDE_DIRS})
-        add_definitions(-DNSIGHT_FOUND)
-        target_link_libraries(${TARGET_NAME} "${NSIGHT_LIBRARIES}")
-      endif ()
-    endif()
-
+  #  target_link_libraries(${TARGET_NAME} wsock32.lib Winmm.lib)
+    target_link_libraries(${TARGET_NAME} wsock32.lib Winmm.lib)
+  else (WIN32)
+    # Nothing else required on linux apparently
   endif()
 endif (APPLE)
 

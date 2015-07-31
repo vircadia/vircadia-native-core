@@ -21,6 +21,7 @@ struct TransformCamera {
     mat4 _viewInverse;
     mat4 _projectionViewUntranslated;
     mat4 _projection;
+    mat4 _projectionInverse;
     vec4 _viewport;
 };
 
@@ -85,9 +86,20 @@ TransformCamera getTransformCamera() {
     return camera;
 }
 
+uniform mat4 transformObject_model;
+uniform mat4 transformCamera_viewInverse;
+uniform vec4 transformCamera_viewport;
+
 <@endif@>
 <@endfunc@>
 
+<@func transformCameraViewport(cameraTransform, viewport)@>
+<@if GPU_TRANSFORM_PROFILE == GPU_CORE@>
+     <$viewport$> = <$cameraTransform$>._viewport;
+<@else@>
+    <$viewport$> = transformCamera_viewport;
+<@endif@>
+<@endfunc@>
 
 <@func transformModelToClipPos(cameraTransform, objectTransform, modelPos, clipPos)@>
 <@if GPU_TRANSFORM_PROFILE == GPU_CORE@>
@@ -99,6 +111,33 @@ TransformCamera getTransformCamera() {
     }
 <@else@>
     <$clipPos$> = gl_ModelViewProjectionMatrix * <$modelPos$>;
+<@endif@>
+<@endfunc@>
+
+<@func $transformModelToEyeAndClipPos(cameraTransform, objectTransform, modelPos, eyePos, clipPos)@>
+<@if GPU_TRANSFORM_PROFILE == GPU_CORE@>
+    <!// Equivalent to the following but hoppefully a tad more accurate
+      //return camera._projection * camera._view * object._model * pos; !>
+    { // transformModelToClipPos
+        vec4 _worldpos = (<$objectTransform$>._model * <$modelPos$>);
+        <$eyePos$> = (<$cameraTransform$>._view * _worldpos);
+        vec4 _eyepos =(<$objectTransform$>._model * <$modelPos$>) + vec4(-<$modelPos$>.w * <$cameraTransform$>._viewInverse[3].xyz, 0.0);
+        <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * _eyepos;
+      //  <$eyePos$> = (<$cameraTransform$>._projectionInverse * <$clipPos$>);
+    }
+<@else@>
+    <$eyePos$> = gl_ModelViewMatrix * <$modelPos$>;
+    <$clipPos$> = gl_ModelViewProjectionMatrix * <$modelPos$>;
+<@endif@>
+<@endfunc@>
+
+<@func transformModelToWorldPos(objectTransform, modelPos, worldPos)@>
+<@if GPU_TRANSFORM_PROFILE == GPU_CORE@>
+    { // transformModelToWorldPos
+        <$worldPos$> = (<$objectTransform$>._model * <$modelPos$>);
+    }
+<@else@>
+    <$worldPos$> = (transformObject_model * <$modelPos$>);
 <@endif@>
 <@endfunc@>
 
@@ -117,6 +156,26 @@ TransformCamera getTransformCamera() {
     }
 <@else@>
     <$eyeDir$> = gl_NormalMatrix * <$modelDir$>;
+<@endif@>
+<@endfunc@>
+
+<@func transformEyeToWorldDir(cameraTransform, eyeDir, worldDir)@>
+<@if GPU_TRANSFORM_PROFILE == GPU_CORE@>
+    { // transformEyeToWorldDir
+        <$worldDir$> = vec3(<$cameraTransform$>._viewInverse * vec4(<$eyeDir$>.xyz, 0.0));
+    }
+<@else@>
+    <$worldDir$> = vec3(transformCamera_viewInverse * vec4(<$eyeDir$>.xyz, 0.0));
+<@endif@>
+<@endfunc@>
+
+<@func transformClipToEyeDir(cameraTransform, clipPos, eyeDir)@>
+<@if GPU_TRANSFORM_PROFILE == GPU_CORE@>
+    { // transformClipToEyeDir
+        <$eyeDir$> = vec3(<$cameraTransform$>._projectionInverse * vec4(<$clipPos$>.xyz, 1.0));
+    }
+<@else@>
+    <$eyeDir$> = vec3(gl_ProjectionMatrixInverse * vec4(<$clipPos$>.xyz, 1.0));
 <@endif@>
 <@endfunc@>
 

@@ -11,12 +11,12 @@
 #ifndef hifi_Overlays_h
 #define hifi_Overlays_h
 
-#include <QString>
+#include <QReadWriteLock>
 #include <QScriptValue>
-#include <QSignalMapper>
 
-#include "Base3DOverlay.h"
 #include "Overlay.h"
+
+class PickRay;
 
 class OverlayPropertyResult {
 public:
@@ -48,14 +48,14 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
 
 class Overlays : public QObject {
     Q_OBJECT
+    
 public:
     Overlays();
     ~Overlays();
+    
     void init();
     void update(float deltatime);
-    void renderWorld(bool drawFront, RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE,
-                        RenderArgs::RenderSide renderSide = RenderArgs::MONO);
-    void renderHUD();
+    void renderHUD(RenderArgs* renderArgs);
 
 public slots:
     /// adds an overlay with the specific properties
@@ -91,9 +91,10 @@ public slots:
     QSizeF textSize(unsigned int id, const QString& text) const;
 
 private:
-    QMap<unsigned int, Overlay*> _overlaysHUD;
-    QMap<unsigned int, Overlay*> _overlaysWorld;
-    QList<Overlay*> _overlaysToDelete;
+    void cleanupOverlaysToDelete();
+    QMap<unsigned int, Overlay::Pointer> _overlaysHUD;
+    QMap<unsigned int, Overlay::Pointer> _overlaysWorld;
+    QList<Overlay::Pointer> _overlaysToDelete;
     unsigned int _nextOverlayID;
     QReadWriteLock _lock;
     QReadWriteLock _deleteLock;

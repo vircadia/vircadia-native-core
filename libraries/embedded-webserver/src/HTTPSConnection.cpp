@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "EmbeddedWebserverLogging.h"
 #include "HTTPSConnection.h"
 
 HTTPSConnection::HTTPSConnection(QSslSocket* sslSocket, HTTPSManager* parentManager) :
@@ -19,5 +20,5 @@ HTTPSConnection::HTTPSConnection(QSslSocket* sslSocket, HTTPSManager* parentMana
 }
 
 void HTTPSConnection::handleSSLErrors(const QList<QSslError>& errors) {
-    qDebug() << "SSL errors:" << errors;
+    qCDebug(embeddedwebserver) << "SSL errors:" << errors;
 }

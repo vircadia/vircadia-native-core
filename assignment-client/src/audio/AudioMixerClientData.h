@@ -12,6 +12,8 @@
 #ifndef hifi_AudioMixerClientData_h
 #define hifi_AudioMixerClientData_h
 
+#include <QtCore/QJsonObject>
+
 #include <AABox.h>
 #include <AudioFormat.h> // For AudioFilterHSF1s and _penumbraFilter
 #include <AudioBuffer.h> // For AudioFilterHSF1s and _penumbraFilter
@@ -23,7 +25,7 @@
 
 class PerListenerSourcePairData {
 public:
-    PerListenerSourcePairData() { 
+    PerListenerSourcePairData() {
         _penumbraFilter.initialize(AudioConstants::SAMPLE_RATE, AudioConstants::NETWORK_FRAME_SAMPLES_STEREO / 2);
     };
     AudioFilterHSF1s& getPenumbraFilter() { return _penumbraFilter; }
@@ -40,13 +42,13 @@ public:
     const QHash<QUuid, PositionalAudioStream*>& getAudioStreams() const { return _audioStreams; }
     AvatarAudioStream* getAvatarAudioStream() const;
     
-    int parseData(const QByteArray& packet);
+    int parseData(NLPacket& packet);
 
     void checkBuffersBeforeFrameSend();
 
     void removeDeadInjectedStreams();
 
-    QString getAudioStreamStatsString() const;
+    QJsonObject getAudioStreamStats() const;
     
     void sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode);
     

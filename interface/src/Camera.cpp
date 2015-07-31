@@ -17,7 +17,6 @@
 #include "Camera.h"
 #include "Menu.h"
 #include "Util.h"
-#include "devices/OculusManager.h"
 
 
 CameraMode stringToMode(const QString& mode) {
@@ -49,13 +48,7 @@ QString modeToString(CameraMode mode) {
 Camera::Camera() : 
     _mode(CAMERA_MODE_THIRD_PERSON),
     _position(0.0f, 0.0f, 0.0f),
-    _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES),
-    _aspectRatio(16.0f/9.0f),
-    _nearClip(DEFAULT_NEAR_CLIP), // default
-    _farClip(DEFAULT_FAR_CLIP), // default
-    _hmdPosition(),
-    _hmdRotation(),
-    _scale(1.0f),
+    _projection(glm::perspective(glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES), 16.0f/9.0f, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP)),
     _isKeepLookingAt(false),
     _lookingAt(0.0f, 0.0f, 0.0f)
 {
@@ -79,82 +72,40 @@ void Camera::setRotation(const glm::quat& rotation) {
     }
 }
 
-void Camera::setHmdPosition(const glm::vec3& hmdPosition) {
-    _hmdPosition = hmdPosition; 
-    if (_isKeepLookingAt) {
-        lookAt(_lookingAt);
-    }
-}
-
-void Camera::setHmdRotation(const glm::quat& hmdRotation) {
-    _hmdRotation = hmdRotation; 
-    if (_isKeepLookingAt) {
-        lookAt(_lookingAt);
-    }
-}
-
-float Camera::getFarClip() const {
-    return (_scale * _farClip < std::numeric_limits<int16_t>::max())
-            ? _scale * _farClip
-            : std::numeric_limits<int16_t>::max() - 1;
-}
-
 void Camera::setMode(CameraMode mode) {
     _mode = mode;
     emit modeUpdated(modeToString(mode));
 }
 
-
-void Camera::setFieldOfView(float f) { 
-    _fieldOfView = f; 
-}
-
-void Camera::setAspectRatio(float a) {
-    _aspectRatio = a;
-}
-
-void Camera::setNearClip(float n) {
-    _nearClip = n;
-}
-
-void Camera::setFarClip(float f) {
-    _farClip = f;
+void Camera::setProjection(const glm::mat4& projection) { 
+    _projection = projection;
 }
 
 PickRay Camera::computePickRay(float x, float y) {
-    auto glCanvas = Application::getInstance()->getGLWidget();
-    return computeViewPickRay(x / glCanvas->width(), y / glCanvas->height());
-}
-
-PickRay Camera::computeViewPickRay(float xRatio, float yRatio) {
-    PickRay result;
-    if (OculusManager::isConnected()) {
-        Application::getInstance()->getApplicationOverlay().computeOculusPickRay(xRatio, yRatio, result.origin, result.direction);
-    } else {
-        Application::getInstance()->getViewFrustum()->computePickRay(xRatio, yRatio, result.origin, result.direction);
-    }
-    return result;
+    return qApp->computePickRay(x, y);
 }
 
 void Camera::setModeString(const QString& mode) {
     CameraMode targetMode = stringToMode(mode);
-    
+        
     switch (targetMode) {
+        case CAMERA_MODE_FIRST_PERSON:
+            Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, true);
+            break;
         case CAMERA_MODE_THIRD_PERSON:
-            Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, false);
-            Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
+            Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
             break;
         case CAMERA_MODE_MIRROR:
             Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, true);
-            Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
             break;
         case CAMERA_MODE_INDEPENDENT:
-            Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, false);
-            Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
+            Menu::getInstance()->setIsOptionChecked(MenuOption::IndependentMode, true);
             break;
         default:
             break;
     }
+    
+    qApp->cameraMenuChanged();
     
     if (_mode != targetMode) {
         setMode(targetMode);

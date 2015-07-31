@@ -14,6 +14,10 @@
 ClipboardScriptingInterface::ClipboardScriptingInterface() {
 }
 
+float ClipboardScriptingInterface::getClipboardContentsLargestDimension() {
+    return Application::getInstance()->getEntityClipboard()->getContentsLargestDimension();
+}
+
 bool ClipboardScriptingInterface::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
     return Application::getInstance()->exportEntities(filename, entityIDs);
 }

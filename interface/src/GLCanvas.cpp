@@ -16,7 +16,6 @@
 #include "Application.h"
 #include "GLCanvas.h"
 #include "MainWindow.h"
-#include "devices/OculusManager.h"
 
 const int MSECS_PER_FRAME_WHEN_THROTTLED = 66;
 
@@ -36,15 +35,16 @@ void GLCanvas::stopFrameTimer() {
 }
 
 bool GLCanvas::isThrottleRendering() const {
-    return _throttleRendering || Application::getInstance()->getWindow()->isMinimized();
+    return (_throttleRendering 
+        || (Application::getInstance()->getWindow()->isMinimized() && Application::getInstance()->isThrottleFPSEnabled()));
 }
 
 int GLCanvas::getDeviceWidth() const {
-    return width() * (windowHandle() ? windowHandle()->devicePixelRatio() : 1.0f);
+    return width() * (windowHandle() ? (float)windowHandle()->devicePixelRatio() : 1.0f);
 }
 
 int GLCanvas::getDeviceHeight() const {
-    return height() * (windowHandle() ? windowHandle()->devicePixelRatio() : 1.0f);
+    return height() * (windowHandle() ? (float)windowHandle()->devicePixelRatio() : 1.0f);
 }
 
 void GLCanvas::initializeGL() {
@@ -59,51 +59,15 @@ void GLCanvas::initializeGL() {
 }
 
 void GLCanvas::paintGL() {
-    if (!_throttleRendering && !Application::getInstance()->getWindow()->isMinimized()) {
-        //Need accurate frame timing for the oculus rift
-        if (OculusManager::isConnected()) {
-            OculusManager::beginFrameTiming();
-        }
-
+    PROFILE_RANGE(__FUNCTION__);
+    if (!_throttleRendering &&
+            (!Application::getInstance()->getWindow()->isMinimized() || !Application::getInstance()->isThrottleFPSEnabled())) {
         Application::getInstance()->paintGL();
-        
-        if (!OculusManager::isConnected()) {
-            swapBuffers();
-        } else {
-            if (OculusManager::allowSwap()) {
-                swapBuffers();
-            }
-            OculusManager::endFrameTiming();
-        }
     }
 }
 
 void GLCanvas::resizeGL(int width, int height) {
-    Application::getInstance()->resizeGL(width, height);
-}
-
-void GLCanvas::keyPressEvent(QKeyEvent* event) {
-    Application::getInstance()->keyPressEvent(event);
-}
-
-void GLCanvas::keyReleaseEvent(QKeyEvent* event) {
-    Application::getInstance()->keyReleaseEvent(event);
-}
-
-void GLCanvas::focusOutEvent(QFocusEvent* event) {
-    Application::getInstance()->focusOutEvent(event);
-}
-
-void GLCanvas::mouseMoveEvent(QMouseEvent* event) {
-    Application::getInstance()->mouseMoveEvent(event);
-}
-
-void GLCanvas::mousePressEvent(QMouseEvent* event) {
-    Application::getInstance()->mousePressEvent(event);
-}
-
-void GLCanvas::mouseReleaseEvent(QMouseEvent* event) {
-    Application::getInstance()->mouseReleaseEvent(event);
+    Application::getInstance()->resizeGL();
 }
 
 void GLCanvas::activeChanged(Qt::ApplicationState state) {
@@ -123,7 +87,8 @@ void GLCanvas::activeChanged(Qt::ApplicationState state) {
 
         default:
             // Otherwise, throttle.
-            if (!_throttleRendering) {
+            if (!_throttleRendering && !Application::getInstance()->isAboutToQuit() 
+                && Application::getInstance()->isThrottleFPSEnabled()) {
                 _frameTimer.start(_idleRenderInterval);
                 _throttleRendering = true;
             }
@@ -134,57 +99,45 @@ void GLCanvas::activeChanged(Qt::ApplicationState state) {
 void GLCanvas::throttleRender() {
     _frameTimer.start(_idleRenderInterval);
     if (!Application::getInstance()->getWindow()->isMinimized()) {
-        //Need accurate frame timing for the oculus rift
-        if (OculusManager::isConnected()) {
-            OculusManager::beginFrameTiming();
-        }
-
         Application::getInstance()->paintGL();
-        swapBuffers();
-
-        if (OculusManager::isConnected()) {
-            OculusManager::endFrameTiming();
-        }
     }
 }
 
 int updateTime = 0;
 bool GLCanvas::event(QEvent* event) {
     switch (event->type()) {
+        case QEvent::MouseMove:
+        case QEvent::MouseButtonPress:
+        case QEvent::MouseButtonRelease:
+        case QEvent::MouseButtonDblClick:
+        case QEvent::KeyPress:
+        case QEvent::KeyRelease:
+        case QEvent::FocusIn:
+        case QEvent::FocusOut:
+        case QEvent::Resize:
         case QEvent::TouchBegin:
-            Application::getInstance()->touchBeginEvent(static_cast<QTouchEvent*>(event));
-            event->accept();
-            return true;
         case QEvent::TouchEnd:
-            Application::getInstance()->touchEndEvent(static_cast<QTouchEvent*>(event));
-            return true;
         case QEvent::TouchUpdate:
-            Application::getInstance()->touchUpdateEvent(static_cast<QTouchEvent*>(event));
-            return true;
+        case QEvent::Wheel:
+        case QEvent::DragEnter:
+        case QEvent::Drop:
+            if (QCoreApplication::sendEvent(QCoreApplication::instance(), event)) {
+                return true;
+            }
+            break;
+        case QEvent::Paint:
+            // Ignore paint events that occur after we've decided to quit
+            if (Application::getInstance()->isAboutToQuit()) {
+                return true;
+            }
+            break;
+
         default:
             break;
     }
     return QGLWidget::event(event);
 }
 
-void GLCanvas::wheelEvent(QWheelEvent* event) {
-    Application::getInstance()->wheelEvent(event);
-}
-
-void GLCanvas::dragEnterEvent(QDragEnterEvent* event) {
-    const QMimeData* mimeData = event->mimeData();
-    foreach (QUrl url, mimeData->urls()) {
-        auto urlString = url.toString();
-        if (Application::getInstance()->canAcceptURL(urlString)) {
-            event->acceptProposedAction();
-            break;
-        }
-    }
-}
-
-void GLCanvas::dropEvent(QDropEvent* event) {
-    Application::getInstance()->dropEvent(event);
-}
 
 // Pressing Alt (and Meta) key alone activates the menubar because its style inherits the
 // SHMenuBarAltKeyNavigation from QWindowsStyle. This makes it impossible for a scripts to

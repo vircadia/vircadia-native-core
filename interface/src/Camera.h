@@ -44,42 +44,24 @@ public:
     void update( float deltaTime );
 
     void setRotation(const glm::quat& rotation);
-    void setHmdPosition(const glm::vec3& hmdPosition);
-    void setHmdRotation(const glm::quat& hmdRotation);
-    
+    void setProjection(const glm::mat4 & projection);
     void setMode(CameraMode m);
-    void setFieldOfView(float f);
-    void setAspectRatio(float a);
-    void setNearClip(float n);
-    void setFarClip(float f);
-    void setEyeOffsetPosition(const glm::vec3& p) { _eyeOffsetPosition = p; }
-    void setEyeOffsetOrientation(const glm::quat& o) { _eyeOffsetOrientation = o; }
-    void setScale(const float s) { _scale = s; }
     
-    glm::quat getRotation() const { return _rotation * _hmdRotation; }
-    const glm::vec3& getHmdPosition() const { return _hmdPosition; }
-    const glm::quat& getHmdRotation() const { return _hmdRotation; }
-    
+    glm::quat getRotation() const { return _rotation; }
+    const glm::mat4& getProjection() const { return _projection; }
     CameraMode getMode() const { return _mode; }
-    float getFieldOfView() const { return _fieldOfView; }
-    float getAspectRatio() const { return _aspectRatio; }
-    float getNearClip() const { return _scale * _nearClip; }
-    float getFarClip() const;
-    const glm::vec3& getEyeOffsetPosition() const { return _eyeOffsetPosition;   }
-    const glm::quat& getEyeOffsetOrientation() const { return _eyeOffsetOrientation; }
-    float getScale() const { return _scale; }
+
 public slots:
     QString getModeString() const;
     void setModeString(const QString& mode);
 
-    glm::vec3 getPosition() const { return _position + _hmdPosition; }
+    glm::vec3 getPosition() const { return _position; }
     void setPosition(const glm::vec3& position);
-    
-    void setOrientation(const glm::quat& orientation) { setRotation(orientation); }
+
     glm::quat getOrientation() const { return getRotation(); }
-    
+    void setOrientation(const glm::quat& orientation) { setRotation(orientation); }
+
     PickRay computePickRay(float x, float y);
-    PickRay computeViewPickRay(float xRatio, float yRatio);
 
     // These only work on independent cameras
     /// one time change to what the camera is looking at
@@ -98,16 +80,8 @@ signals:
 private:
     CameraMode _mode;
     glm::vec3 _position;
-    float _fieldOfView; // degrees
-    float _aspectRatio;
-    float _nearClip;
-    float _farClip;
-    glm::vec3 _eyeOffsetPosition;
-    glm::quat _eyeOffsetOrientation;
     glm::quat _rotation;
-    glm::vec3 _hmdPosition;
-    glm::quat _hmdRotation;
-    float _scale;
+    glm::mat4 _projection;
     bool _isKeepLookingAt;
     glm::vec3 _lookingAt;
 };

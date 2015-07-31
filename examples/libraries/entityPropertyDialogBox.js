@@ -52,7 +52,9 @@ EntityPropertyDialogBox = (function () {
         if (properties.type == "Model") {
             array.push({ label: "Model URL:", value: properties.modelURL });
             index++;
-            array.push({ label: "Collision Model URL:", value: properties.collisionModelURL });
+            array.push({ label: "Shape Type:", value: properties.shapeType });
+            index++;
+            array.push({ label: "Compound Shape URL:", value: properties.compoundShapeURL });
             index++;
             array.push({ label: "Animation URL:", value: properties.animationURL });
             index++;
@@ -95,6 +97,21 @@ EntityPropertyDialogBox = (function () {
             array.push({ label: "Blue:", value: properties.backgroundColor.blue });
             index++;
         }
+
+	if (properties.type == "PolyVox") {
+	    array.push({ label: "Voxel Space Size:", type: "header" });
+            index++;
+
+            array.push({ label: "X:", value: properties.voxelVolumeSize.x.toFixed(decimals) });
+            index++;
+            array.push({ label: "Y:", value: properties.voxelVolumeSize.y.toFixed(decimals) });
+            index++;
+            array.push({ label: "Z:", value: properties.voxelVolumeSize.z.toFixed(decimals) });
+            index++;
+
+	    array.push({ label: "Surface Extractor", value: properties.voxelSurfaceStyle });
+	    index++;
+	}
 
         array.push({ label: "Position:", type: "header" });
         index++;
@@ -168,6 +185,13 @@ EntityPropertyDialogBox = (function () {
         array.push({ label: "Gravity Z:", value: properties.gravity.z.toFixed(decimals) });
         index++;
 
+        array.push({ label: "Acceleration X:", value: properties.acceleration.x.toFixed(decimals) });
+        index++;
+        array.push({ label: "Acceleration Y:", value: properties.acceleration.y.toFixed(decimals) });
+        index++;
+        array.push({ label: "Acceleration Z:", value: properties.acceleration.z.toFixed(decimals) });
+        index++;
+
         array.push({ label: "Collisions:", type: "header" });
         index++;
         array.push({ label: "Density:", value: properties.density.toFixed(decimals) });
@@ -176,6 +200,8 @@ EntityPropertyDialogBox = (function () {
         index++;
         array.push({ label: "Collisions Will Move:", type: "checkbox", value: properties.collisionsWillMove });
         index++;
+        array.push({ label: "Collision Sound URL:", value: properties.collisionSoundURL });
+	index++;
 
         array.push({ label: "Lifetime:", value: properties.lifetime.toFixed(decimals) });
         index++;
@@ -277,7 +303,8 @@ EntityPropertyDialogBox = (function () {
             properties.locked = array[index++].value;
             if (properties.type == "Model") {
                 properties.modelURL = array[index++].value;
-                properties.collisionModelURL = array[index++].value;
+                properties.shapeType = array[index++].value;
+                properties.compoundShapeURL = array[index++].value;
                 properties.animationURL = array[index++].value;
 
                 var newAnimationIsPlaying = array[index++].value;
@@ -321,6 +348,16 @@ EntityPropertyDialogBox = (function () {
                 properties.backgroundColor.blue = array[index++].value;
             }
 
+	    if (properties.type == "PolyVox") {
+                properties.shapeType = array[index++].value;
+
+		index++; // skip header
+		properties.voxelVolumeSize.x = array[index++].value;
+		properties.voxelVolumeSize.y = array[index++].value;
+		properties.voxelVolumeSize.z = array[index++].value;
+		properties.voxelSurfaceStyle = array[index++].value;
+            }
+
             index++; // skip header
             properties.position.x = array[index++].value;
             properties.position.y = array[index++].value;
@@ -359,6 +396,10 @@ EntityPropertyDialogBox = (function () {
             properties.gravity.x = array[index++].value;
             properties.gravity.y = array[index++].value;
             properties.gravity.z = array[index++].value;
+
+            properties.acceleration.x = array[index++].value;
+            properties.acceleration.y = array[index++].value;
+            properties.acceleration.z = array[index++].value;
 
             index++; // skip header
             properties.density = array[index++].value;

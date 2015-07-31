@@ -40,14 +40,20 @@ if (WIN32)
   endif ()
   message (WINDOW_SDK_PATH= ${WINDOW_SDK_PATH})
   set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${WINDOW_SDK_PATH})
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
-elseif (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
-  #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long -pedantic")
-  #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unknown-pragmas")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fno-strict-aliasing -ggdb")
+  # /wd4351 disables warning C4351: new behavior: elements of array will be default initialized
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /wd4351")
+  # /LARGEADDRESSAWARE enables 32-bit apps to use more than 2GB of memory.
+  # Caveats: http://stackoverflow.com/questions/2288728/drawbacks-of-using-largeaddressaware-for-32-bit-windows-executables
+  # TODO: Remove when building 64-bit.
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LARGEADDRESSAWARE")
+else ()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -fno-strict-aliasing -Wno-unused-parameter")
+  if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb -Woverloaded-virtual -Wdouble-promotion")
+  endif ()
 endif(WIN32)
 
-if (NOT MSVC12)
+if ((NOT MSVC12) AND (NOT MSVC14))
   include(CheckCXXCompilerFlag)
   CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
   CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
@@ -88,7 +94,16 @@ else ()
   if (NOT QT_CMAKE_PREFIX_PATH)
     set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
   endif ()
+  if (NOT QT_CMAKE_PREFIX_PATH)
+    get_filename_component(QT_CMAKE_PREFIX_PATH "${Qt5_DIR}/.." REALPATH)
+  endif ()
 endif ()
+
+if (WIN32)
+    if (NOT EXISTS ${QT_CMAKE_PREFIX_PATH})
+        message(FATAL_ERROR "Could not determine QT_CMAKE_PREFIX_PATH.")
+    endif ()
+endif()
 
 # figure out where the qt dir is
 get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)
@@ -117,6 +132,9 @@ if (APPLE)
   # set that as the SDK to use
   set(CMAKE_OSX_SYSROOT ${_OSX_DESIRED_SDK_PATH}/MacOSX10.9.sdk)
 endif ()
+
+# Hide automoc folders (for IDEs)
+set(AUTOGEN_TARGETS_FOLDER "hidden/generated")
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -163,6 +181,12 @@ option(GET_GVERB "Get Gverb library automatically as external project" 1)
 option(GET_SOXR "Get Soxr library automatically as external project" 1)
 option(GET_TBB "Get Threading Building Blocks library automatically as external project" 1)
 option(GET_LIBOVR "Get LibOVR library automatically as external project" 1)
+option(GET_VHACD "Get V-HACD library automatically as external project" 1)
+option(GET_POLYVOX "Get polyvox library automatically as external project" 1)
+option(GET_OPENVR "Get OpenVR library automatically as external project" 1)
+option(GET_BOOSTCONFIG "Get Boost-config library automatically as external project" 1)
+option(GET_OGLPLUS "Get OGLplus library automatically as external project" 1)
+
 option(USE_NSIGHT "Attempt to find the nSight libraries" 1)
 
 if (WIN32)

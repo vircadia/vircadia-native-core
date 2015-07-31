@@ -14,9 +14,9 @@
 
 #include <Model.h>
 
-#include "Base3DOverlay.h"
+#include "Volume3DOverlay.h"
 
-class ModelOverlay : public Base3DOverlay {
+class ModelOverlay : public Volume3DOverlay {
     Q_OBJECT
 public:
     ModelOverlay();
@@ -32,15 +32,15 @@ public:
 
     virtual ModelOverlay* createClone() const;
 
+    virtual bool addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+    virtual void removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+
 private:
 
     Model _model;
     QVariantMap _modelTextures;
     
     QUrl _url;
-    glm::quat _rotation;
-    float _scale;
-    
     bool _updateModel;
 };
 

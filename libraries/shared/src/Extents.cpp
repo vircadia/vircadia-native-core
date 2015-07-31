@@ -10,11 +10,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Extents.h"
+
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 
-#include "Extents.h"
+#include "AABox.h"
+#include "Transform.h"
 
 void Extents::reset() {
     minimum = glm::vec3(FLT_MAX);
@@ -35,6 +38,11 @@ void Extents::addExtents(const Extents& extents) {
 void Extents::addPoint(const glm::vec3& point) {
     minimum = glm::min(minimum, point);
     maximum = glm::max(maximum, point);
+}
+
+void Extents::add(const AABox& box) {
+     minimum = glm::min(minimum, box.getMinimumPoint());
+     maximum = glm::max(maximum, box.getMaximumPoint());
 }
 
 void Extents::rotate(const glm::quat& rotation) {
@@ -71,4 +79,11 @@ void Extents::rotate(const glm::quat& rotation) {
                         glm::max(topLeftNearRotated,
                         glm::max(topRightNearRotated,
                         glm::max(topLeftFarRotated,topRightFarRotated)))))));
+}
+
+
+void Extents::transform(const Transform& transform) {
+    scale(transform.getScale());
+    rotate(transform.getRotation());
+    shiftBy(transform.getTranslation());
 }

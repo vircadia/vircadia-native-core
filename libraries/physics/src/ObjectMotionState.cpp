@@ -15,13 +15,9 @@
 #include "ObjectMotionState.h"
 #include "PhysicsEngine.h"
 #include "PhysicsHelpers.h"
+#include "PhysicsLogging.h"
 
-const float DEFAULT_FRICTION = 0.5f;
-const float MAX_FRICTION = 10.0f;
-
-const float DEFAULT_RESTITUTION = 0.5f;
-
-// origin of physics simulation in world frame
+// origin of physics simulation in world-frame
 glm::vec3 _worldOffset(0.0f);
 
 // static 
@@ -34,181 +30,93 @@ const glm::vec3& ObjectMotionState::getWorldOffset() {
     return _worldOffset;
 }
 
+// static 
+uint32_t worldSimulationStep = 0;
+void ObjectMotionState::setWorldSimulationStep(uint32_t step) {
+    assert(step > worldSimulationStep);
+    worldSimulationStep = step;
+}
 
-ObjectMotionState::ObjectMotionState() : 
-    _friction(DEFAULT_FRICTION), 
-    _restitution(DEFAULT_RESTITUTION), 
-    _linearDamping(0.0f),
-    _angularDamping(0.0f),
+uint32_t ObjectMotionState::getWorldSimulationStep() {
+    return worldSimulationStep;
+}
+
+// static 
+ShapeManager* shapeManager = nullptr;
+void ObjectMotionState::setShapeManager(ShapeManager* manager) {
+    assert(manager);
+    shapeManager = manager;
+}
+
+ShapeManager* ObjectMotionState::getShapeManager() {
+    assert(shapeManager); // you must properly set shapeManager before calling getShapeManager()
+    return shapeManager;
+}
+
+ObjectMotionState::ObjectMotionState(btCollisionShape* shape) :
     _motionType(MOTION_TYPE_STATIC),
-    _body(NULL),
-    _sentMoving(false),
-    _numNonMovingUpdates(0),
-    _outgoingPacketFlags(DIRTY_PHYSICS_FLAGS),
-    _sentFrame(0),
-    _sentPosition(0.0f),
-    _sentRotation(),
-    _sentVelocity(0.0f),
-    _sentAngularVelocity(0.0f),
-    _sentAcceleration(0.0f) {
+    _shape(shape),
+    _body(nullptr),
+    _mass(0.0f),
+    _lastKinematicStep(worldSimulationStep)
+{
 }
 
 ObjectMotionState::~ObjectMotionState() {
-    // NOTE: you MUST remove this MotionState from the world before you call the dtor.
-    assert(_body == NULL);
+    assert(!_body);
+    assert(!_shape);
 }
 
-void ObjectMotionState::setFriction(float friction) {
-    _friction = btMax(btMin(fabsf(friction), MAX_FRICTION), 0.0f);
-}
-
-void ObjectMotionState::setRestitution(float restitution) {
-    _restitution = btMax(btMin(fabsf(restitution), 1.0f), 0.0f);
-}
-
-void ObjectMotionState::setLinearDamping(float damping) {
-    _linearDamping = btMax(btMin(fabsf(damping), 1.0f), 0.0f);
-}
-
-void ObjectMotionState::setAngularDamping(float damping) {
-    _angularDamping = btMax(btMin(fabsf(damping), 1.0f), 0.0f);
-}
-
-void ObjectMotionState::setVelocity(const glm::vec3& velocity) const {
+void ObjectMotionState::setBodyLinearVelocity(const glm::vec3& velocity) const {
     _body->setLinearVelocity(glmToBullet(velocity));
 }
 
-void ObjectMotionState::setAngularVelocity(const glm::vec3& velocity) const {
+void ObjectMotionState::setBodyAngularVelocity(const glm::vec3& velocity) const {
     _body->setAngularVelocity(glmToBullet(velocity));
 }
 
-void ObjectMotionState::setGravity(const glm::vec3& gravity) const {
+void ObjectMotionState::setBodyGravity(const glm::vec3& gravity) const {
     _body->setGravity(glmToBullet(gravity));
 }
 
-void ObjectMotionState::getVelocity(glm::vec3& velocityOut) const {
-    velocityOut = bulletToGLM(_body->getLinearVelocity());
+glm::vec3 ObjectMotionState::getBodyLinearVelocity() const {
+    // returns the body's velocity unless it is moving too slow in which case returns zero
+    btVector3 velocity = _body->getLinearVelocity();
+
+    // NOTE: the threshold to use here relates to the linear displacement threshold (dX) for sending updates
+    // to objects that are tracked server-side (e.g. entities which use dX = 2mm).  Hence an object moving 
+    // just under this velocity threshold would trigger an update about V/dX times per second.
+    const float MIN_LINEAR_SPEED_SQUARED = 0.0036f; // 6 mm/sec
+    if (velocity.length2() < MIN_LINEAR_SPEED_SQUARED) {
+        velocity *= 0.0f;
+    }
+    return bulletToGLM(velocity);
 }
 
-void ObjectMotionState::getAngularVelocity(glm::vec3& angularVelocityOut) const {
-    angularVelocityOut = bulletToGLM(_body->getAngularVelocity());
+glm::vec3 ObjectMotionState::getObjectLinearVelocityChange() const {
+    return glm::vec3(0.0f);  // Subclasses override where meaningful.
 }
 
-// RELIABLE_SEND_HACK: until we have truly reliable resends of non-moving updates
-// we alwasy resend packets for objects that have stopped moving up to some max limit.
-const int MAX_NUM_NON_MOVING_UPDATES = 5;
-
-bool ObjectMotionState::doesNotNeedToSendUpdate() const { 
-    return !_body->isActive() && _numNonMovingUpdates > MAX_NUM_NON_MOVING_UPDATES;
+glm::vec3 ObjectMotionState::getBodyAngularVelocity() const {
+    return bulletToGLM(_body->getAngularVelocity());
 }
 
-bool ObjectMotionState::shouldSendUpdate(uint32_t simulationFrame) {
-    assert(_body);
-    // if we've never checked before, our _sentFrame will be 0, and we need to initialize our state
-    if (_sentFrame == 0) {
-        _sentPosition = bulletToGLM(_body->getWorldTransform().getOrigin());
-        _sentVelocity = bulletToGLM(_body->getLinearVelocity());
-        _sentRotation = bulletToGLM(_body->getWorldTransform().getRotation());
-        _sentAngularVelocity = bulletToGLM(_body->getAngularVelocity());
-        _sentFrame = simulationFrame;
-        return false;
+void ObjectMotionState::releaseShape() {
+    if (_shape) {
+        shapeManager->releaseShape(_shape);
+        _shape = nullptr;
     }
-    
-    #ifdef WANT_DEBUG
-    glm::vec3 wasPosition = _sentPosition;
-    glm::quat wasRotation = _sentRotation;
-    glm::vec3 wasAngularVelocity = _sentAngularVelocity;
-    #endif
+}
 
-    int numFrames = simulationFrame - _sentFrame;
-    float dt = (float)(numFrames) * PHYSICS_ENGINE_FIXED_SUBSTEP;
-    _sentFrame = simulationFrame;
-    bool isActive = _body->isActive();
-
-    if (!isActive) {
-        if (_sentMoving) { 
-            // this object just went inactive so send an update immediately
-            return true;
-        } else {
-            const float NON_MOVING_UPDATE_PERIOD = 1.0f;
-            if (dt > NON_MOVING_UPDATE_PERIOD && _numNonMovingUpdates < MAX_NUM_NON_MOVING_UPDATES) {
-                // RELIABLE_SEND_HACK: since we're not yet using a reliable method for non-moving update packets we repeat these
-                // at a faster rate than the MAX period above, and only send a limited number of them.
-                return true;
-            }
-        }
-    }
-
-    // Else we measure the error between current and extrapolated transform (according to expected behavior 
-    // of remote EntitySimulation) and return true if the error is significant.
-
-    // NOTE: math in done the simulation-frame, which is NOT necessarily the same as the world-frame 
-    // due to _worldOffset.
-
-    // compute position error
-    if (glm::length2(_sentVelocity) > 0.0f) {
-        _sentVelocity += _sentAcceleration * dt;
-        _sentVelocity *= powf(1.0f - _linearDamping, dt);
-        _sentPosition += dt * _sentVelocity;
-    }
-
-    btTransform worldTrans = _body->getWorldTransform();
-    glm::vec3 position = bulletToGLM(worldTrans.getOrigin());
-    
-    float dx2 = glm::distance2(position, _sentPosition);
-
-    const float MAX_POSITION_ERROR_SQUARED = 0.001f; // 0.001 m^2 ~~> 0.03 m
-    if (dx2 > MAX_POSITION_ERROR_SQUARED) {
-
-        #ifdef WANT_DEBUG
-            qDebug() << ".... (dx2 > MAX_POSITION_ERROR_SQUARED) ....";
-            qDebug() << "wasPosition:" << wasPosition;
-            qDebug() << "bullet position:" << position;
-            qDebug() << "_sentPosition:" << _sentPosition;
-            qDebug() << "dx2:" << dx2;
-        #endif
-
-        return true;
-    }
-    
-    if (glm::length2(_sentAngularVelocity) > 0.0f) {
-        // compute rotation error
-        float attenuation = powf(1.0f - _angularDamping, dt);
-        _sentAngularVelocity *= attenuation;
-   
-        // Bullet caps the effective rotation velocity inside its rotation integration step, therefore 
-        // we must integrate with the same algorithm and timestep in order achieve similar results.
-        for (int i = 0; i < numFrames; ++i) {
-            _sentRotation = glm::normalize(computeBulletRotationStep(_sentAngularVelocity, PHYSICS_ENGINE_FIXED_SUBSTEP) * _sentRotation);
-        }
-    }
-    const float MIN_ROTATION_DOT = 0.99f; // 0.99 dot threshold coresponds to about 16 degrees of slop
-    glm::quat actualRotation = bulletToGLM(worldTrans.getRotation());
-
-    #ifdef WANT_DEBUG
-        if ((fabsf(glm::dot(actualRotation, _sentRotation)) < MIN_ROTATION_DOT)) {
-            qDebug() << ".... ((fabsf(glm::dot(actualRotation, _sentRotation)) < MIN_ROTATION_DOT)) ....";
-        
-            qDebug() << "wasAngularVelocity:" << wasAngularVelocity;
-            qDebug() << "_sentAngularVelocity:" << _sentAngularVelocity;
-
-            qDebug() << "length wasAngularVelocity:" << glm::length(wasAngularVelocity);
-            qDebug() << "length _sentAngularVelocity:" << glm::length(_sentAngularVelocity);
-
-            qDebug() << "wasRotation:" << wasRotation;
-            qDebug() << "bullet actualRotation:" << actualRotation;
-            qDebug() << "_sentRotation:" << _sentRotation;
-        }
-    #endif
-
-    return (fabsf(glm::dot(actualRotation, _sentRotation)) < MIN_ROTATION_DOT);
+void ObjectMotionState::setMotionType(MotionType motionType) {
+    _motionType = motionType;
 }
 
 void ObjectMotionState::setRigidBody(btRigidBody* body) {
     // give the body a (void*) back-pointer to this ObjectMotionState
     if (_body != body) {
         if (_body) {
-            _body->setUserPointer(NULL);
+            _body->setUserPointer(nullptr);
         }
         _body = body;
         if (_body) {
@@ -217,7 +125,93 @@ void ObjectMotionState::setRigidBody(btRigidBody* body) {
     }
 }
 
-void ObjectMotionState::setKinematic(bool kinematic, uint32_t substep) {
-    _isKinematic = kinematic;
-    _lastKinematicSubstep = substep;
+void ObjectMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine) {
+    if (flags & EntityItem::DIRTY_POSITION) {
+        btTransform worldTrans;
+        if (flags & EntityItem::DIRTY_ROTATION) {
+            worldTrans.setRotation(glmToBullet(getObjectRotation()));
+        } else {
+            worldTrans = _body->getWorldTransform();
+        }
+        worldTrans.setOrigin(glmToBullet(getObjectPosition()));
+        _body->setWorldTransform(worldTrans);
+    } else if (flags & EntityItem::DIRTY_ROTATION) {
+        btTransform worldTrans = _body->getWorldTransform();
+        worldTrans.setRotation(glmToBullet(getObjectRotation()));
+        _body->setWorldTransform(worldTrans);
+    }
+
+    if (flags & EntityItem::DIRTY_LINEAR_VELOCITY) {
+        _body->setLinearVelocity(glmToBullet(getObjectLinearVelocity()));
+        _body->setGravity(glmToBullet(getObjectGravity()));
+    }
+    if (flags & EntityItem::DIRTY_ANGULAR_VELOCITY) {
+        _body->setAngularVelocity(glmToBullet(getObjectAngularVelocity()));
+    }
+
+    if (flags & EntityItem::DIRTY_MATERIAL) {
+        updateBodyMaterialProperties();
+    }
+
+    if (flags & EntityItem::DIRTY_MASS) {
+        updateBodyMassProperties();
+    }
 }
+
+void ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine) {
+    if (flags & EntityItem::DIRTY_SHAPE) {
+        // make sure the new shape is valid
+        btCollisionShape* newShape = computeNewShape();
+        if (!newShape) {
+            qCDebug(physics) << "Warning: failed to generate new shape!";
+            // failed to generate new shape! --> keep old shape and remove shape-change flag
+            flags &= ~EntityItem::DIRTY_SHAPE;
+            // TODO: force this object out of PhysicsEngine rather than just use the old shape
+            if ((flags & HARD_DIRTY_PHYSICS_FLAGS) == 0) {
+                // no HARD flags remain, so do any EASY changes
+                if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
+                    handleEasyChanges(flags, engine);
+                }
+                return;
+            }
+        }
+        getShapeManager()->releaseShape(_shape);
+        if (_shape != newShape) {
+            _shape = newShape;
+            _body->setCollisionShape(_shape);
+        } else {
+            // huh... the shape didn't actually change, so we clear the DIRTY_SHAPE flag
+            flags &= ~EntityItem::DIRTY_SHAPE;
+        }
+    }
+    if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
+        handleEasyChanges(flags, engine);
+    }
+    // it is possible that there are no HARD flags at this point (if DIRTY_SHAPE was removed)
+    // so we check again befoe we reinsert:
+    if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
+        engine->reinsertObject(this);
+    }
+}
+
+void ObjectMotionState::updateBodyMaterialProperties() {
+    _body->setRestitution(getObjectRestitution());
+    _body->setFriction(getObjectFriction());
+    _body->setDamping(fabsf(btMin(getObjectLinearDamping(), 1.0f)), fabsf(btMin(getObjectAngularDamping(), 1.0f)));
+}
+
+void ObjectMotionState::updateBodyVelocities() {
+    setBodyLinearVelocity(getObjectLinearVelocity());
+    setBodyAngularVelocity(getObjectAngularVelocity());
+    setBodyGravity(getObjectGravity());
+    _body->setActivationState(ACTIVE_TAG);
+}
+
+void ObjectMotionState::updateBodyMassProperties() {
+    float mass = getMass();
+    btVector3 inertia(0.0f, 0.0f, 0.0f);
+    _body->getCollisionShape()->calculateLocalInertia(mass, inertia);
+    _body->setMassProps(mass, inertia);
+    _body->updateInertiaTensor();
+}
+

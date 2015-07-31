@@ -11,11 +11,13 @@
 
 #include <QCoreApplication>
 #include <QDebug>
+#include <QFile>
 #include <QThread>
 
 #include "PathUtils.h"
 #include "SettingInterface.h"
 #include "SettingManager.h"
+#include "SharedLogging.h"
 
 namespace Setting {
     static Manager* privateInstance = nullptr;
@@ -35,7 +37,7 @@ namespace Setting {
     }
     
     // Sets up the settings private instance. Should only be run once at startup
-    void setupPrivateInstance() {
+    void init() {
         // read the ApplicationInfo.ini file for Name/Version/Domain information
         QSettings::setDefaultFormat(QSettings::IniFormat);
         QSettings applicationInfo(PathUtils::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
@@ -45,27 +47,32 @@ namespace Setting {
         QCoreApplication::setOrganizationName(applicationInfo.value("organizationName").toString());
         QCoreApplication::setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
         
-        // Let's set up the settings Private instance on it's own thread
+        // Let's set up the settings Private instance on its own thread
         QThread* thread = new QThread();
         Q_CHECK_PTR(thread);
         thread->setObjectName("Settings Thread");
         
         privateInstance = new Manager();
         Q_CHECK_PTR(privateInstance);
-        
+
+        // Delete Interface.ini.lock file if it exists, otherwise Interface freezes.
+        QString settingsLockFilename = privateInstance->fileName() + ".lock";
+        QFile settingsLockFile(settingsLockFilename);
+        if (settingsLockFile.exists()) {
+            bool deleted = settingsLockFile.remove();
+            qCDebug(shared) << (deleted ? "Deleted" : "Failed to delete") << "settings lock file" << settingsLockFilename;
+        }
+
         QObject::connect(privateInstance, SIGNAL(destroyed()), thread, SLOT(quit()));
         QObject::connect(thread, SIGNAL(started()), privateInstance, SLOT(startTimer()));
         QObject::connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
         privateInstance->moveToThread(thread);
         thread->start();
-        qDebug() << "Settings thread started.";
-        
+        qCDebug(shared) << "Settings thread started.";    
+
         // Register cleanupPrivateInstance to run inside QCoreApplication's destructor.
         qAddPostRoutine(cleanupPrivateInstance);
-    }
-    // Register setupPrivateInstance to run after QCoreApplication's constructor.
-    Q_COREAPP_STARTUP_FUNCTION(setupPrivateInstance)
-    
+    }    
     
     Interface::~Interface() {
         if (privateInstance) {
@@ -75,16 +82,20 @@ namespace Setting {
     
     void Interface::init() {
         if (!privateInstance) {
-            qWarning() << "Setting::Interface::init(): Manager not yet created, bailing";
-            return;
+            // WARNING: As long as we are using QSettings this should always be triggered for each Setting::Handle
+            // in an assignment-client - the QSettings backing we use for this means persistence of these
+            // settings from an AC (when there can be multiple terminating at same time on one machine)
+            // is currently not supported
+            qWarning() << "Setting::Interface::init() for key" << _key << "- Manager not yet created." << 
+                "Settings persistence disabled.";
+        } else {
+            // Register Handle
+            privateInstance->registerHandle(this);
+            _isInitialized = true;
+        
+            // Load value from disk
+            load();
         }
-        
-        // Register Handle
-        privateInstance->registerHandle(this);
-        _isInitialized = true;
-        
-        // Load value from disk
-        load();
     }
     
     void Interface::maybeInit() {

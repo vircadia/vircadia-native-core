@@ -9,11 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-
-
 #include "CollisionInfo.h"
+#include "NumericalConstants.h"
 #include "Shape.h"
-#include "SharedUtil.h"
 
 CollisionInfo::CollisionInfo() :
         _data(NULL),

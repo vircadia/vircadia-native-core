@@ -11,7 +11,7 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <gpu/GPUConfig.h>
+#include <gpu/Batch.h>
 
 #include <DeferredLightingEffect.h>
 #include <GLMHelpers.h>
@@ -19,8 +19,8 @@
 
 #include "RenderableLightEntityItem.h"
 
-EntityItem* RenderableLightEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new RenderableLightEntityItem(entityID, properties);
+EntityItemPointer RenderableLightEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return std::make_shared<RenderableLightEntityItem>(entityID, properties);
 }
 
 void RenderableLightEntityItem::render(RenderArgs* args) {
@@ -31,12 +31,7 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
     glm::quat rotation = getRotation();
     float largestDiameter = glm::max(dimensions.x, dimensions.y, dimensions.z);
 
-    const float MAX_COLOR = 255.0f;
-    float colorR = getColor()[RED_INDEX] / MAX_COLOR;
-    float colorG = getColor()[GREEN_INDEX] / MAX_COLOR;
-    float colorB = getColor()[BLUE_INDEX] / MAX_COLOR;
-
-    glm::vec3 color = glm::vec3(colorR, colorG, colorB);
+    glm::vec3 color = toGlm(getXColor());
 
     float intensity = getIntensity();
     float exponent = getExponent();
@@ -49,21 +44,12 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
         DependencyManager::get<DeferredLightingEffect>()->addPointLight(position, largestDiameter / 2.0f,
             color, intensity);
     }
-
+    
 #ifdef WANT_DEBUG
-    glm::vec4 color(diffuseR, diffuseG, diffuseB, 1.0f);
-    glPushMatrix();
-        glTranslatef(position.x, position.y, position.z);
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-        glPushMatrix();
-            glm::vec3 positionToCenter = center - position;
-            glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-
-            glScalef(dimensions.x, dimensions.y, dimensions.z);
-            DependencyManager::get<DeferredLightingEffect>()->renderWireSphere(0.5f, 15, 15, color);
-        glPopMatrix();
-    glPopMatrix();
+    Q_ASSERT(args->_batch);
+    gpu::Batch& batch = *args->_batch;
+    batch.setModelTransform(getTransformToCenter());
+    DependencyManager::get<DeferredLightingEffect>()->renderWireSphere(batch, 0.5f, 15, 15, glm::vec4(color, 1.0f));
 #endif
 };
 

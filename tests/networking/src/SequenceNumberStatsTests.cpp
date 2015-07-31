@@ -1,5 +1,5 @@
 //
-//  AudioRingBufferTests.cpp
+//  SequenceNumberStatsTests.cpp
 //  tests/networking/src
 //
 //  Created by Yixin Wang on 6/24/2014
@@ -9,23 +9,23 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <cassert>
 #include <limits>
 
 #include <SharedUtil.h>
 
 #include "SequenceNumberStatsTests.h"
 
-void SequenceNumberStatsTests::runAllTests() {
-    rolloverTest();
-    earlyLateTest();
-    duplicateTest();
-    pruneTest();
-    resyncTest();
-}
+QTEST_MAIN(SequenceNumberStatsTests)
 
 const quint32 UINT16_RANGE = std::numeric_limits<quint16>::max() + 1;
 
+
+// Adds an implicit cast to make sure that actual and expected are of the same type.
+//  QCOMPARE(<unsigned int>, <int>) => cryptic linker error.
+//  (since QTest::qCompare is defined for (T, T, ...), but not (T, U, ...))
+//
+#define QCOMPARE_WITH_CAST(actual, expected) \
+    QCOMPARE(actual, static_cast<decltype(actual)>(expected))
 
 void SequenceNumberStatsTests::rolloverTest() {
 
@@ -39,11 +39,12 @@ void SequenceNumberStatsTests::rolloverTest() {
             stats.sequenceNumberReceived(seq);
             seq = seq + (quint16)1;
 
-            assert(stats.getEarly() == 0);
-            assert(stats.getLate() == 0);
-            assert(stats.getLost() == 0);
-            assert(stats.getReceived() == i + 1);
-            assert(stats.getRecovered() == 0);
+            QCOMPARE_WITH_CAST(stats.getEarly(), 0);
+            QCOMPARE_WITH_CAST(stats.getEarly(), 0);
+            QCOMPARE_WITH_CAST(stats.getLate(), 0);
+            QCOMPARE_WITH_CAST(stats.getLost(), 0);
+            QCOMPARE_WITH_CAST(stats.getReceived(), i + 1);
+            QCOMPARE_WITH_CAST(stats.getRecovered(), 0);
         }
         stats.reset();
     }
@@ -69,11 +70,11 @@ void SequenceNumberStatsTests::earlyLateTest() {
                 seq = seq + (quint16)1;
                 numSent++;
 
-                assert(stats.getEarly() == numEarly);
-                assert(stats.getLate() == numLate);
-                assert(stats.getLost() == numLost);
-                assert(stats.getReceived() == numSent);
-                assert(stats.getRecovered() == numRecovered);
+                QCOMPARE_WITH_CAST(stats.getEarly(), numEarly);
+                QCOMPARE_WITH_CAST(stats.getLate(), numLate);
+                QCOMPARE_WITH_CAST(stats.getLost(), numLost);
+                QCOMPARE_WITH_CAST(stats.getReceived(), numSent);
+                QCOMPARE_WITH_CAST(stats.getRecovered(), numRecovered);
             }
 
             // skip 10
@@ -88,11 +89,11 @@ void SequenceNumberStatsTests::earlyLateTest() {
                 seq = seq + (quint16)1;
                 numSent++;
 
-                assert(stats.getEarly() == numEarly);
-                assert(stats.getLate() == numLate);
-                assert(stats.getLost() == numLost);
-                assert(stats.getReceived() == numSent);
-                assert(stats.getRecovered() == numRecovered);
+                QCOMPARE_WITH_CAST(stats.getEarly(), numEarly);
+                QCOMPARE_WITH_CAST(stats.getLate(), numLate);
+                QCOMPARE_WITH_CAST(stats.getLost(), numLost);
+                QCOMPARE_WITH_CAST(stats.getReceived(), numSent);
+                QCOMPARE_WITH_CAST(stats.getRecovered(), numRecovered);
             }
 
             // send ones we skipped
@@ -104,11 +105,11 @@ void SequenceNumberStatsTests::earlyLateTest() {
                 numLost--;
                 numRecovered++;
 
-                assert(stats.getEarly() == numEarly);
-                assert(stats.getLate() == numLate);
-                assert(stats.getLost() == numLost);
-                assert(stats.getReceived() == numSent);
-                assert(stats.getRecovered() == numRecovered);
+                QCOMPARE_WITH_CAST(stats.getEarly(), numEarly);
+                QCOMPARE_WITH_CAST(stats.getLate(), numLate);
+                QCOMPARE_WITH_CAST(stats.getLost(), numLost);
+                QCOMPARE_WITH_CAST(stats.getReceived(), numSent);
+                QCOMPARE_WITH_CAST(stats.getRecovered(), numRecovered);
             }
         }
         stats.reset();
@@ -142,12 +143,12 @@ void SequenceNumberStatsTests::duplicateTest() {
                 seq = seq + (quint16)1;
                 numSent++;
 
-                assert(stats.getUnreasonable() == numDuplicate);
-                assert(stats.getEarly() == numEarly);
-                assert(stats.getLate() == numLate);
-                assert(stats.getLost() == numLost);
-                assert(stats.getReceived() == numSent);
-                assert(stats.getRecovered() == 0);
+                QCOMPARE_WITH_CAST(stats.getUnreasonable(), numDuplicate);
+                QCOMPARE_WITH_CAST(stats.getEarly(), numEarly);
+                QCOMPARE_WITH_CAST(stats.getLate(), numLate);
+                QCOMPARE_WITH_CAST(stats.getLost(), numLost);
+                QCOMPARE_WITH_CAST(stats.getReceived(), numSent);
+                QCOMPARE_WITH_CAST(stats.getRecovered(), 0);
             }
 
             // skip 10
@@ -164,12 +165,12 @@ void SequenceNumberStatsTests::duplicateTest() {
                 seq = seq + (quint16)1;
                 numSent++;
 
-                assert(stats.getUnreasonable() == numDuplicate);
-                assert(stats.getEarly() == numEarly);
-                assert(stats.getLate() == numLate);
-                assert(stats.getLost() == numLost);
-                assert(stats.getReceived() == numSent);
-                assert(stats.getRecovered() == 0);
+                QCOMPARE_WITH_CAST(stats.getUnreasonable(), numDuplicate);
+                QCOMPARE_WITH_CAST(stats.getEarly(), numEarly);
+                QCOMPARE_WITH_CAST(stats.getLate(), numLate);
+                QCOMPARE_WITH_CAST(stats.getLost(), numLost);
+                QCOMPARE_WITH_CAST(stats.getReceived(), numSent);
+                QCOMPARE_WITH_CAST(stats.getRecovered(), 0);
             }
 
             // send 5 duplicates from before skip
@@ -180,12 +181,12 @@ void SequenceNumberStatsTests::duplicateTest() {
                 numDuplicate++;
                 numLate++;
 
-                assert(stats.getUnreasonable() == numDuplicate);
-                assert(stats.getEarly() == numEarly);
-                assert(stats.getLate() == numLate);
-                assert(stats.getLost() == numLost);
-                assert(stats.getReceived() == numSent);
-                assert(stats.getRecovered() == 0);
+                QCOMPARE_WITH_CAST(stats.getUnreasonable(), numDuplicate);
+                QCOMPARE_WITH_CAST(stats.getEarly(), numEarly);
+                QCOMPARE_WITH_CAST(stats.getLate(), numLate);
+                QCOMPARE_WITH_CAST(stats.getLost(), numLost);
+                QCOMPARE_WITH_CAST(stats.getReceived(), numSent);
+                QCOMPARE_WITH_CAST(stats.getRecovered(), 0);
             }
 
             // send 5 duplicates from after skip
@@ -196,12 +197,12 @@ void SequenceNumberStatsTests::duplicateTest() {
                 numDuplicate++;
                 numLate++;
 
-                assert(stats.getUnreasonable() == numDuplicate);
-                assert(stats.getEarly() == numEarly);
-                assert(stats.getLate() == numLate);
-                assert(stats.getLost() == numLost);
-                assert(stats.getReceived() == numSent);
-                assert(stats.getRecovered() == 0);
+                QCOMPARE_WITH_CAST(stats.getUnreasonable(), numDuplicate);
+                QCOMPARE_WITH_CAST(stats.getEarly(), numEarly);
+                QCOMPARE_WITH_CAST(stats.getLate(), numLate);
+                QCOMPARE_WITH_CAST(stats.getLost(), numLost);
+                QCOMPARE_WITH_CAST(stats.getReceived(), numSent);
+                QCOMPARE_WITH_CAST(stats.getRecovered(), 0);
             }
         }
         stats.reset();
@@ -253,22 +254,22 @@ void SequenceNumberStatsTests::pruneTest() {
             numLost += 10;
 
             const QSet<quint16>& missingSet = stats.getMissingSet();
-            assert(missingSet.size() <= 1000);
+            QCOMPARE_WITH_CAST(missingSet.size() <= 1000, true);
             if (missingSet.size() > 1000) {
                 qDebug() << "FAIL: missingSet larger than 1000.";
             }
 
             for (int i = 0; i < 10; i++) {
-                assert(missingSet.contains(highestSkipped2));
+                QCOMPARE_WITH_CAST(missingSet.contains(highestSkipped2), true);
                 highestSkipped2 = highestSkipped2 - (quint16)1;
             }
 
             for (int i = 0; i < 989; i++) {
-                assert(missingSet.contains(highestSkipped));
+                QCOMPARE_WITH_CAST(missingSet.contains(highestSkipped), true);
                 highestSkipped = highestSkipped - (quint16)1;
             }
             for (int i = 0; i < 11; i++) {
-                assert(!missingSet.contains(highestSkipped));
+                QCOMPARE_WITH_CAST(!missingSet.contains(highestSkipped), true);
                 highestSkipped = highestSkipped - (quint16)1;
             }
         }
@@ -288,7 +289,7 @@ void SequenceNumberStatsTests::resyncTest() {
     sequence = 89;
     stats.sequenceNumberReceived(sequence);
 
-    assert(stats.getUnreasonable() == 0);
+    QCOMPARE_WITH_CAST(stats.getUnreasonable(), 0);
 
     sequence = 2990;
     for (int i = 0; i < 10; i++) {
@@ -296,7 +297,7 @@ void SequenceNumberStatsTests::resyncTest() {
         sequence += (quint16)1;
     }
 
-    assert(stats.getUnreasonable() == 0);
+    QCOMPARE_WITH_CAST(stats.getUnreasonable(), 0);
 
 
     sequence = 0;
@@ -305,7 +306,7 @@ void SequenceNumberStatsTests::resyncTest() {
         sequence += (quint16)1;
     }
 
-    assert(stats.getUnreasonable() == 7);
+    QCOMPARE_WITH_CAST(stats.getUnreasonable(), 7);
 
     sequence = 6000;
     for (int R = 0; R < 7; R++) {
@@ -313,12 +314,12 @@ void SequenceNumberStatsTests::resyncTest() {
         sequence += (quint16)1;
     }
 
-    assert(stats.getUnreasonable() == 14);
+    QCOMPARE_WITH_CAST(stats.getUnreasonable(), 14);
 
     sequence = 9000;
     for (int i = 0; i < 10; i++) {
         stats.sequenceNumberReceived(sequence);
         sequence += (quint16)1;
     }
-    assert(stats.getUnreasonable() == 0);
+    QCOMPARE_WITH_CAST(stats.getUnreasonable(), 0);
 }

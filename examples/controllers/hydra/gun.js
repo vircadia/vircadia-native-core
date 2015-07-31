@@ -99,6 +99,13 @@ var NUM_BUTTONS = 3;
 
 var screenSize = Controller.getViewportDimensions();
 var startX = screenSize.x / 2 - (NUM_BUTTONS * (BUTTON_SIZE + PADDING)) / 2;
+Script.include(["../../libraries/toolBars.js"]);
+var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.gun.toolbar", function (screenSize) {
+    return {
+        x: startX,
+        y: (screenSize.y - (BUTTON_SIZE + PADDING)),
+    };
+});
 var reticle = Overlays.addOverlay("image", {
                     x: screenSize.x / 2 - (BUTTON_SIZE / 2),
                     y: screenSize.y / 2 - (BUTTON_SIZE / 2),
@@ -108,9 +115,7 @@ var reticle = Overlays.addOverlay("image", {
                     alpha: 1
                 });
 
-var offButton = Overlays.addOverlay("image", {
-                    x: startX,
-                    y: screenSize.y - (BUTTON_SIZE + PADDING),
+var offButton = toolBar.addOverlay("image", {
                     width: BUTTON_SIZE,
                     height: BUTTON_SIZE,
                     imageURL: HIFI_PUBLIC_BUCKET + "images/gun/close.svg",
@@ -118,7 +123,7 @@ var offButton = Overlays.addOverlay("image", {
                 });
 
 startX += BUTTON_SIZE + PADDING;
-var platformButton = Overlays.addOverlay("image", {
+var platformButton = toolBar.addOverlay("image", {
                     x: startX,
                     y: screenSize.y - (BUTTON_SIZE + PADDING),
                     width: BUTTON_SIZE,
@@ -128,7 +133,7 @@ var platformButton = Overlays.addOverlay("image", {
                 });
 
 startX += BUTTON_SIZE + PADDING;
-var gridButton = Overlays.addOverlay("image", {
+var gridButton = toolBar.addOverlay("image", {
                     x: startX,
                     y: screenSize.y - (BUTTON_SIZE + PADDING),
                     width: BUTTON_SIZE,
@@ -153,8 +158,28 @@ if (showScore) {
 
 var BULLET_VELOCITY = 10.0;
 
+function entityCollisionWithEntity(entity1, entity2, collision) {
+    if (entity2 === targetID) {
+        score++;
+        if (showScore) {
+            Overlays.editOverlay(text, { text: "Score: " + score } );
+        }
+
+        //  We will delete the bullet and target in 1/2 sec, but for now we can see them bounce!
+        Script.setTimeout(deleteBulletAndTarget, 500);
+
+        // Turn the target and the bullet white
+        Entities.editEntity(entity1, { color: { red: 255, green: 255, blue: 255 }});
+        Entities.editEntity(entity2, { color: { red: 255, green: 255, blue: 255 }});
+
+        // play the sound near the camera so the shooter can hear it
+        audioOptions.position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));
+        Audio.playSound(targetHitSound, audioOptions);
+    }
+}
+
 function shootBullet(position, velocity, grenade) {
-    var BULLET_SIZE = 0.10;
+    var BULLET_SIZE = .09;
     var BULLET_LIFETIME = 10.0;
     var BULLET_GRAVITY = -0.25;
     var GRENADE_VELOCITY = 15.0;
@@ -178,6 +203,7 @@ function shootBullet(position, velocity, grenade) {
           ignoreCollisions: false,
           collisionsWillMove: true
       });
+    Script.addEventHandler(bulletID, "collisionWithEntity", entityCollisionWithEntity);
 
     // Play firing sounds 
     audioOptions.position = position;   
@@ -310,27 +336,6 @@ function makePlatform(gravity, scale, size) {
 
 }
 
-function entityCollisionWithEntity(entity1, entity2, collision) {
-    if (((entity1.id == bulletID.id) || (entity1.id == targetID.id)) && 
-        ((entity2.id == bulletID.id) || (entity2.id == targetID.id))) {
-        score++;
-        if (showScore) {
-            Overlays.editOverlay(text, { text: "Score: " + score } );
-        }
-
-        //  We will delete the bullet and target in 1/2 sec, but for now we can see them bounce!
-        Script.setTimeout(deleteBulletAndTarget, 500); 
-
-        // Turn the target and the bullet white
-        Entities.editEntity(entity1, { color: { red: 255, green: 255, blue: 255 }});
-        Entities.editEntity(entity2, { color: { red: 255, green: 255, blue: 255 }});
-
-        // play the sound near the camera so the shooter can hear it
-        audioOptions.position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));   
-        Audio.playSound(targetHitSound, audioOptions);
-    }
-}
-
 function keyPressEvent(event) {
     // if our tools are off, then don't do anything
     if (event.text == "t") {
@@ -386,13 +391,6 @@ MyAvatar.attach(gunModel, "LeftHand", {x:-0.04, y: 0.22, z: 0.02}, Quat.fromPitc
 Script.setTimeout(playLoadSound, 2000); 
 
 function update(deltaTime) {
-    if (bulletID && !bulletID.isKnownID) {
-        bulletID = Entities.identifyEntity(bulletID);
-    }
-    if (targetID && !targetID.isKnownID) {
-        targetID = Entities.identifyEntity(targetID);
-    }
-
     if (activeControllers == 0) {
         if (Controller.getNumberOfSpatialControls() > 0) { 
             activeControllers = Controller.getNumberOfSpatialControls();
@@ -500,10 +498,8 @@ function mousePressEvent(event) {
 }
 
 function scriptEnding() {
-    Overlays.deleteOverlay(reticle); 
-    Overlays.deleteOverlay(offButton);
-    Overlays.deleteOverlay(platformButton);
-    Overlays.deleteOverlay(gridButton);
+    Overlays.deleteOverlay(reticle);
+    toolBar.cleanup();
     Overlays.deleteOverlay(pointer[0]);
     Overlays.deleteOverlay(pointer[1]);
     Overlays.deleteOverlay(text);
@@ -512,7 +508,6 @@ function scriptEnding() {
     clearPose();
 }
 
-Entities.entityCollisionWithEntity.connect(entityCollisionWithEntity);
 Script.scriptEnding.connect(scriptEnding);
 Script.update.connect(update);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);

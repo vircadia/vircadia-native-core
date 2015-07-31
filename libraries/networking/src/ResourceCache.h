@@ -51,7 +51,7 @@ static const qint64 MAX_UNUSED_MAX_SIZE = 10 * BYTES_PER_GIGABYTES;
 class ResourceCacheSharedItems : public Dependency  {
     SINGLETON_DEPENDENCY
 public:
-    QList<QPointer<Resource> > _pendingRequests;
+    QList<QPointer<Resource>> _pendingRequests;
     QList<Resource*> _loadingRequests;
 private:
     ResourceCacheSharedItems() { }
@@ -78,17 +78,14 @@ public:
 
     ResourceCache(QObject* parent = NULL);
     virtual ~ResourceCache();
-
+    
+    void refreshAll();
     void refresh(const QUrl& url);
 
 public slots:
     void checkAsynchronousGets();
 
 protected:
-    qint64 _unusedResourcesMaxSize = DEFAULT_UNUSED_MAX_SIZE;
-    qint64 _unusedResourcesSize = 0;
-    QMap<int, QSharedPointer<Resource> > _unusedResources;
-
     /// Loads a resource from the specified URL.
     /// \param fallback a fallback URL to load if the desired one is unavailable
     /// \param delayLoad if true, don't load the resource immediately; wait until load is first requested
@@ -103,6 +100,7 @@ protected:
     void addUnusedResource(const QSharedPointer<Resource>& resource);
     void removeUnusedResource(const QSharedPointer<Resource>& resource);
     void reserveUnusedResource(qint64 resourceSize);
+    void clearUnusedResource();
     
     static void attemptRequest(Resource* resource);
     static void requestCompleted(Resource* resource);
@@ -110,7 +108,7 @@ protected:
 private:
     friend class Resource;
 
-    QHash<QUrl, QWeakPointer<Resource> > _resources;
+    QHash<QUrl, QWeakPointer<Resource>> _resources;
     int _lastLRUKey = 0;
     
     static int _requestLimit;
@@ -118,7 +116,10 @@ private:
     void getResourceAsynchronously(const QUrl& url);
     QReadWriteLock _resourcesToBeGottenLock;
     QQueue<QUrl> _resourcesToBeGotten;
-
+    
+    qint64 _unusedResourcesMaxSize = DEFAULT_UNUSED_MAX_SIZE;
+    qint64 _unusedResourcesSize = 0;
+    QMap<int, QSharedPointer<Resource>> _unusedResources;
 };
 
 /// Base class for resources.
@@ -172,12 +173,11 @@ public:
     const QUrl& getURL() const { return _url; }
 
 signals:
-
     /// Fired when the resource has been loaded.
     void loaded();
+    void onRefresh();
 
 protected slots:
-
     void attemptRequest();
     
     /// Refreshes the resource if the last modified date on the network
@@ -185,7 +185,6 @@ protected slots:
     void maybeRefresh();
 
 protected:
-
     virtual void init();
 
     /// Called when the download has finished.  The recipient should delete the reply when done with it.
@@ -207,14 +206,12 @@ protected:
     QPointer<ResourceCache> _cache;
     
 private slots:
-    
     void handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
     void handleReplyError();
     void handleReplyFinished();
     void handleReplyTimeout();
 
 private:
-    
     void setLRUKey(int lruKey) { _lruKey = lruKey; }
     
     void makeRequest();

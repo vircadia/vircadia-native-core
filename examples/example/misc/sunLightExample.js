@@ -41,7 +41,8 @@ panel.newSlider("Year Time", 0, 364,
 );
 
 panel.newSlider("Day Time", 0, 24, 
-    function(value) { Scene.setStageDayTime(value); },
+        
+    function(value) { Scene.setStageDayTime(value); panel.update("Light Direction"); },
     function() { return Scene.getStageDayTime(); },
     function(value) {
         var hour = Math.floor(value);
@@ -72,10 +73,34 @@ function runStageTime() {
 }
 Script.setInterval(runStageTime, tickTackPeriod);
 
+panel.newCheckbox("Enable Sun Model", 
+    function(value) { Scene.setStageSunModelEnable((value != 0)); },
+    function() { return Scene.isStageSunModelEnabled(); },
+    function(value) { return (value); }
+);
+
+panel.newDirectionBox("Light Direction", 
+    function(value) { Scene.setKeyLightDirection(value); },
+    function() { return Scene.getKeyLightDirection(); },
+    function(value) { return value.x.toFixed(2) + "," + value.y.toFixed(2) + "," + value.z.toFixed(2); }
+);
+
 panel.newSlider("Light Intensity", 0.0, 5, 
-    function(value) { Scene.setSunIntensity(value); },
-    function() { return Scene.getSunIntensity(); },
+    function(value) { Scene.setKeyLightIntensity(value); },
+    function() { return Scene.getKeyLightIntensity(); },
     function(value) { return (value).toFixed(2); }
+);
+
+panel.newSlider("Ambient Light Intensity", 0.0, 1.0, 
+    function(value) { Scene.setKeyLightAmbientIntensity(value); },
+    function() { return Scene.getKeyLightAmbientIntensity(); },
+    function(value) { return (value).toFixed(2); }
+);
+
+panel.newColorBox("Light Color", 
+    function(value) { Scene.setKeyLightColor(value); },
+    function() { return Scene.getKeyLightColor(); },
+    function(value) { return (value); } // "(" + value.x + "," = value.y + "," + value.z + ")"; }
 );
 
 Controller.mouseMoveEvent.connect(function panelMouseMoveEvent(event) { return panel.mouseMoveEvent(event); });

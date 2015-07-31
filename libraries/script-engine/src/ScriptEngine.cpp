@@ -24,7 +24,7 @@
 #include <EntityScriptingInterface.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
-#include <PacketHeaders.h>
+#include <udt/PacketHeaders.h>
 #include <UUID.h>
 
 #include "AnimationObject.h"
@@ -35,6 +35,7 @@
 #include "MenuItemProperties.h"
 #include "ScriptAudioInjector.h"
 #include "ScriptCache.h"
+#include "ScriptEngineLogging.h"
 #include "ScriptEngine.h"
 #include "TypedArrays.h"
 #include "XMLHttpRequestClass.h"
@@ -45,13 +46,21 @@
 
 
 static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
-    qDebug() << "script:print()<<" << context->argument(0).toString();
-    QString message = context->argument(0).toString()
-        .replace("\\", "\\\\")
-        .replace("\n", "\\n")
-        .replace("\r", "\\r")
-        .replace("'", "\\'");
+    QString message = "";
+    for (int i = 0; i < context->argumentCount(); i++) {
+        if (i > 0) {
+            message += " ";
+        }
+        message += context->argument(i).toString();
+    }
+    qCDebug(scriptengine) << "script:print()<<" << message;
+
+    message = message.replace("\\", "\\\\")
+                     .replace("\n", "\\n")
+                     .replace("\r", "\\r")
+                     .replace("'", "\\'");
     engine->evaluate("Script.print('" + message + "')");
+
     return QScriptValue();
 }
 
@@ -93,6 +102,7 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _vec3Library(),
     _uuidLibrary(),
     _isUserLoaded(false),
+    _isReloading(false),
     _arrayBufferClass(new ArrayBufferClass(this))
 {
     _allScriptsMutex.lock();
@@ -119,7 +129,7 @@ bool ScriptEngine::_doneRunningThisScript = false;
 void ScriptEngine::stopAllScripts(QObject* application) {
     _allScriptsMutex.lock();
     _stoppingAllScripts = true;
-    
+
     QMutableSetIterator<ScriptEngine*> i(_allKnownScriptEngines);
     while (i.hasNext()) {
         ScriptEngine* scriptEngine = i.next();
@@ -128,14 +138,14 @@ void ScriptEngine::stopAllScripts(QObject* application) {
 
         // NOTE: typically all script engines are running. But there's at least one known exception to this, the
         // "entities sandbox" which is only used to evaluate entities scripts to test their validity before using
-        // them. We don't need to stop scripts that aren't running. 
+        // them. We don't need to stop scripts that aren't running.
         if (scriptEngine->isRunning()) {
-        
+
             // If the script is running, but still evaluating then we need to wait for its evaluation step to
             // complete. After that we can handle the stop process appropriately
             if (scriptEngine->evaluatePending()) {
                 while (scriptEngine->evaluatePending()) {
-                
+
                     // This event loop allows any started, but not yet finished evaluate() calls to complete
                     // we need to let these complete so that we can be guaranteed that the script engine isn't
                     // in a partially setup state, which can confuse our shutdown unwinding.
@@ -145,11 +155,11 @@ void ScriptEngine::stopAllScripts(QObject* application) {
                 }
             }
 
-            // We disconnect any script engine signals from the application because we don't want to do any 
+            // We disconnect any script engine signals from the application because we don't want to do any
             // extra stopScript/loadScript processing that the Application normally does when scripts start
             // and stop. We can safely short circuit this because we know we're in the "quitting" process
             scriptEngine->disconnect(application);
-            
+
             // Calling stop on the script engine will set it's internal _isFinished state to true, and result
             // in the ScriptEngine gracefully ending it's run() method.
             scriptEngine->stop();
@@ -158,7 +168,7 @@ void ScriptEngine::stopAllScripts(QObject* application) {
             // want any of the scripts final "scriptEnding()" or pending "update()" methods from accessing
             // any application state after we leave this stopAllScripts() method
             scriptEngine->waitTillDoneRunning();
-            
+
             // If the script is stopped, we can remove it from our set
             i.remove();
         }
@@ -175,26 +185,26 @@ void ScriptEngine::waitTillDoneRunning() {
     if (_isRunning) {
 
         _doneRunningThisScript = false; // NOTE: this is static, we serialize our waiting for scripts to finish
-        
+
         // NOTE: waitTillDoneRunning() will be called on the main Application thread, inside of stopAllScripts()
-        // we want the application thread to continue to process events, because the scripts will likely need to 
+        // we want the application thread to continue to process events, because the scripts will likely need to
         // marshall messages across to the main thread. For example if they access Settings or Meny in any of their
         // shutdown code.
         while (!_doneRunningThisScript) {
-            
+
             // process events for the main application thread, allowing invokeMethod calls to pass between threads
             QCoreApplication::processEvents();
         }
     }
 }
 
-QString ScriptEngine::getFilename() const { 
+QString ScriptEngine::getFilename() const {
     QStringList fileNameParts = _fileNameString.split("/");
     QString lastPart;
     if (!fileNameParts.isEmpty()) {
         lastPart = fileNameParts.last();
     }
-    return lastPart; 
+    return lastPart;
 }
 
 
@@ -250,40 +260,40 @@ bool ScriptEngine::setScriptContents(const QString& scriptContents, const QStrin
     return true;
 }
 
-void ScriptEngine::loadURL(const QUrl& scriptURL) {
+void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
     if (_isRunning) {
         return;
     }
 
     _fileNameString = scriptURL.toString();
-    
+    _isReloading = reload;
+
     QUrl url(scriptURL);
-    
+
     // if the scheme length is one or lower, maybe they typed in a file, let's try
     const int WINDOWS_DRIVE_LETTER_SIZE = 1;
     if (url.scheme().size() <= WINDOWS_DRIVE_LETTER_SIZE) {
         url = QUrl::fromLocalFile(_fileNameString);
     }
-    
+
     // ok, let's see if it's valid... and if so, load it
     if (url.isValid()) {
         if (url.scheme() == "file") {
             _fileNameString = url.toLocalFile();
             QFile scriptFile(_fileNameString);
             if (scriptFile.open(QFile::ReadOnly | QFile::Text)) {
-                qDebug() << "ScriptEngine loading file:" << _fileNameString;
+                qCDebug(scriptengine) << "ScriptEngine loading file:" << _fileNameString;
                 QTextStream in(&scriptFile);
                 _scriptContents = in.readAll();
                 emit scriptLoaded(_fileNameString);
             } else {
-                qDebug() << "ERROR Loading file:" << _fileNameString << "line:" << __LINE__;
+                qCDebug(scriptengine) << "ERROR Loading file:" << _fileNameString << "line:" << __LINE__;
                 emit errorLoadingScript(_fileNameString);
             }
         } else {
             bool isPending;
             auto scriptCache = DependencyManager::get<ScriptCache>();
-            scriptCache->getScript(url, this, isPending);
-            
+            scriptCache->getScript(url, this, isPending, reload);
         }
     }
 }
@@ -294,7 +304,7 @@ void ScriptEngine::scriptContentsAvailable(const QUrl& url, const QString& scrip
 }
 
 void ScriptEngine::errorInLoadingScript(const QUrl& url) {
-    qDebug() << "ERROR Loading file:" << url.toString() << "line:" << __LINE__;
+    qCDebug(scriptengine) << "ERROR Loading file:" << url.toString() << "line:" << __LINE__;
     emit errorLoadingScript(_fileNameString); // ??
 }
 
@@ -302,7 +312,7 @@ void ScriptEngine::init() {
     if (_isInitialized) {
         return; // only initialize once
     }
-    
+
     _isInitialized = true;
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
@@ -317,10 +327,15 @@ void ScriptEngine::init() {
     registerAvatarTypes(this);
     registerAudioMetaTypes(this);
 
-    qScriptRegisterMetaType(this, EntityItemPropertiesToScriptValue, EntityItemPropertiesFromScriptValue);
+    if (_controllerScriptingInterface) {
+        _controllerScriptingInterface->registerControllerTypes(this);
+    }
+
+    qScriptRegisterMetaType(this, EntityItemPropertiesToScriptValue, EntityItemPropertiesFromScriptValueHonorReadOnly);
     qScriptRegisterMetaType(this, EntityItemIDtoScriptValue, EntityItemIDfromScriptValue);
     qScriptRegisterMetaType(this, RayToEntityIntersectionResultToScriptValue, RayToEntityIntersectionResultFromScriptValue);
-    qScriptRegisterSequenceMetaType<QVector<EntityItemID> >(this);
+    qScriptRegisterSequenceMetaType<QVector<QUuid>>(this);
+    qScriptRegisterSequenceMetaType<QVector<EntityItemID>>(this);
 
     qScriptRegisterSequenceMetaType<QVector<glm::vec2> >(this);
     qScriptRegisterSequenceMetaType<QVector<glm::quat> >(this);
@@ -334,7 +349,7 @@ void ScriptEngine::init() {
 
     QScriptValue audioEffectOptionsConstructorValue = newFunction(AudioEffectOptions::constructor);
     globalObject().setProperty("AudioEffectOptions", audioEffectOptionsConstructorValue);
-    
+
     qScriptRegisterMetaType(this, injectorToScriptValue, injectorFromScriptValue);
     qScriptRegisterMetaType(this, inputControllerToScriptValue, inputControllerFromScriptValue);
     qScriptRegisterMetaType(this, avatarDataToScriptValue, avatarDataFromScriptValue);
@@ -387,6 +402,94 @@ void ScriptEngine::registerGetterSetter(const QString& name, QScriptEngine::Func
     }
 }
 
+// Look up the handler associated with eventName and entityID. If found, evalute the argGenerator thunk and call the handler with those args
+void ScriptEngine::generalHandler(const EntityItemID& entityID, const QString& eventName, std::function<QScriptValueList()> argGenerator) {
+    if (!_registeredHandlers.contains(entityID)) {
+        return;
+    }
+    const RegisteredEventHandlers& handlersOnEntity = _registeredHandlers[entityID];
+    if (!handlersOnEntity.contains(eventName)) {
+        return;
+    }
+    QScriptValueList handlersForEvent = handlersOnEntity[eventName];
+    if (!handlersForEvent.isEmpty()) {
+        QScriptValueList args = argGenerator();
+        for (int i = 0; i < handlersForEvent.count(); ++i) {
+            handlersForEvent[i].call(QScriptValue(), args);
+        }
+    }
+}
+// Unregister the handlers for this eventName and entityID.
+void ScriptEngine::removeEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler) {
+    if (!_registeredHandlers.contains(entityID)) {
+        return;
+    }
+    RegisteredEventHandlers& handlersOnEntity = _registeredHandlers[entityID];
+    QScriptValueList& handlersForEvent = handlersOnEntity[eventName];
+    // QScriptValue does not have operator==(), so we can't use QList::removeOne and friends. So iterate.
+    for (int i = 0; i < handlersForEvent.count(); ++i) {
+        if (handlersForEvent[i].equals(handler)) {
+            handlersForEvent.removeAt(i);
+            return; // Design choice: since comparison is relatively expensive, just remove the first matching handler.
+        }
+    }
+}
+// Register the handler.
+void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler) {
+    if (_registeredHandlers.count() == 0) { // First time any per-entity handler has been added in this script...
+        // Connect up ALL the handlers to the global entities object's signals.
+        // (We could go signal by signal, or even handler by handler, but I don't think the efficiency is worth the complexity.)
+        auto entities = DependencyManager::get<EntityScriptingInterface>();
+        connect(entities.data(), &EntityScriptingInterface::deletingEntity, this,
+                [=](const EntityItemID& entityID) {
+                    _registeredHandlers.remove(entityID);
+                });
+
+        // Two common cases of event handler, differing only in argument signature.
+        auto makeSingleEntityHandler = [=](const QString& eventName) -> std::function<void(const EntityItemID&)> {
+            return [=](const EntityItemID& entityItemID) -> void {
+                generalHandler(entityItemID, eventName, [=]() -> QScriptValueList {
+                    return QScriptValueList() << entityItemID.toScriptValue(this);
+                });
+            };
+        };
+        auto makeMouseHandler = [=](const QString& eventName) -> std::function<void(const EntityItemID&, const MouseEvent&)>  {
+            return [=](const EntityItemID& entityItemID, const MouseEvent& event) -> void {
+                generalHandler(entityItemID, eventName, [=]() -> QScriptValueList {
+                    return QScriptValueList() << entityItemID.toScriptValue(this) << event.toScriptValue(this);
+                });
+            };
+        };
+        connect(entities.data(), &EntityScriptingInterface::enterEntity, this, makeSingleEntityHandler("enterEntity"));
+        connect(entities.data(), &EntityScriptingInterface::leaveEntity, this, makeSingleEntityHandler("leaveEntity"));
+
+        connect(entities.data(), &EntityScriptingInterface::mousePressOnEntity, this, makeMouseHandler("mousePressOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::mouseMoveOnEntity, this, makeMouseHandler("mouseMoveOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::mouseReleaseOnEntity, this, makeMouseHandler("mouseReleaseOnEntity"));
+
+        connect(entities.data(), &EntityScriptingInterface::clickDownOnEntity, this, makeMouseHandler("clickDownOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::holdingClickOnEntity, this, makeMouseHandler("holdingClickOnEntity"));
+        connect(entities.data(), &EntityScriptingInterface::clickReleaseOnEntity, this, makeMouseHandler("clickReleaseOnEntity"));
+
+        connect(entities.data(), &EntityScriptingInterface::hoverEnterEntity, this, makeMouseHandler("hoverEnterEntity"));
+        connect(entities.data(), &EntityScriptingInterface::hoverOverEntity, this, makeMouseHandler("hoverOverEntity"));
+        connect(entities.data(), &EntityScriptingInterface::hoverLeaveEntity, this, makeMouseHandler("hoverLeaveEntity"));
+
+        connect(entities.data(), &EntityScriptingInterface::collisionWithEntity, this,
+                [=](const EntityItemID& idA, const EntityItemID& idB, const Collision& collision) {
+                    generalHandler(idA, "collisionWithEntity", [=]() {
+                        return QScriptValueList () << idA.toScriptValue(this) << idB.toScriptValue(this) << collisionToScriptValue(this, collision);
+                    });
+                });
+    }
+    if (!_registeredHandlers.contains(entityID)) {
+        _registeredHandlers[entityID] = RegisteredEventHandlers();
+    }
+    QScriptValueList& handlersForEvent = _registeredHandlers[entityID][eventName];
+    handlersForEvent << handler; // Note that the same handler can be added many times. See removeEntityEventHandler().
+}
+
+
 void ScriptEngine::evaluate() {
     if (_stoppingAllScripts) {
         return; // bail early
@@ -398,11 +501,11 @@ void ScriptEngine::evaluate() {
 
     QScriptValue result = evaluate(_scriptContents);
 
-    // TODO: why do we check this twice? It seems like the call to clearExcpetions() in the lower level evaluate call
+    // TODO: why do we check this twice? It seems like the call to clearExceptions() in the lower level evaluate call
     // will cause this code to never actually run...
     if (hasUncaughtException()) {
         int line = uncaughtExceptionLineNumber();
-        qDebug() << "Uncaught exception at (" << _fileNameString << ") line" << line << ":" << result.toString();
+        qCDebug(scriptengine) << "Uncaught exception at (" << _fileNameString << ") line" << line << ":" << result.toString();
         emit errorMessage("Uncaught exception at (" + _fileNameString + ") line" + QString::number(line) + ":" + result.toString());
         clearExceptions();
     }
@@ -417,7 +520,7 @@ QScriptValue ScriptEngine::evaluate(const QString& program, const QString& fileN
     QScriptValue result = QScriptEngine::evaluate(program, fileName, lineNumber);
     if (hasUncaughtException()) {
         int line = uncaughtExceptionLineNumber();
-        qDebug() << "Uncaught exception at (" << _fileNameString << " : " << fileName << ") line" << line << ": " << result.toString();
+        qCDebug(scriptengine) << "Uncaught exception at (" << _fileNameString << " : " << fileName << ") line" << line << ": " << result.toString();
     }
     _evaluatesPending--;
     emit evaluationFinished(result, hasUncaughtException());
@@ -492,10 +595,12 @@ void ScriptEngine::run() {
                                                            / (1000 * 1000)) + 0.5);
             const int SCRIPT_AUDIO_BUFFER_BYTES = SCRIPT_AUDIO_BUFFER_SAMPLES * sizeof(int16_t);
 
-            QByteArray avatarPacket = byteArrayWithPopulatedHeader(PacketTypeAvatarData);
-            avatarPacket.append(_avatarData->toByteArray());
+            QByteArray avatarByteArray = _avatarData->toByteArray();
+            auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size());
 
-            nodeList->broadcastToNodes(avatarPacket, NodeSet() << NodeType::AvatarMixer);
+            avatarPacket->write(avatarByteArray);
+
+            nodeList->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);
 
             if (_isListeningToAudioStream || _avatarSound) {
                 // if we have an avatar audio stream then send it out to our audio-mixer
@@ -532,16 +637,13 @@ void ScriptEngine::run() {
                         _numAvatarSoundSentBytes = 0;
                     }
                 }
-                
-                QByteArray audioPacket = byteArrayWithPopulatedHeader(silentFrame
-                                                                      ? PacketTypeSilentAudioFrame
-                                                                      : PacketTypeMicrophoneAudioNoEcho);
 
-                QDataStream packetStream(&audioPacket, QIODevice::Append);
+                auto audioPacket = NLPacket::create(silentFrame
+                                                    ? PacketType::SilentAudioFrame
+                                                    : PacketType::MicrophoneAudioNoEcho);
 
-                // pack a placeholder value for sequence number for now, will be packed when destination node is known
-                int numPreSequenceNumberBytes = audioPacket.size();
-                packetStream << (quint16) 0;
+                // seek past the sequence number, will be packed when destination node is known
+                audioPacket->seek(sizeof(quint16));
 
                 if (silentFrame) {
                     if (!_isListeningToAudioStream) {
@@ -550,37 +652,38 @@ void ScriptEngine::run() {
                     }
 
                     // write the number of silent samples so the audio-mixer can uphold timing
-                    packetStream.writeRawData(reinterpret_cast<const char*>(&SCRIPT_AUDIO_BUFFER_SAMPLES), sizeof(int16_t));
+                    audioPacket->writePrimitive(SCRIPT_AUDIO_BUFFER_SAMPLES);
 
                     // use the orientation and position of this avatar for the source of this audio
-                    packetStream.writeRawData(reinterpret_cast<const char*>(&_avatarData->getPosition()), sizeof(glm::vec3));
+                    audioPacket->writePrimitive(_avatarData->getPosition());
                     glm::quat headOrientation = _avatarData->getHeadOrientation();
-                    packetStream.writeRawData(reinterpret_cast<const char*>(&headOrientation), sizeof(glm::quat));
+                    audioPacket->writePrimitive(headOrientation);
 
                 } else if (nextSoundOutput) {
                     // assume scripted avatar audio is mono and set channel flag to zero
-                    packetStream << (quint8)0;
+                    audioPacket->writePrimitive((quint8) 0);
 
                     // use the orientation and position of this avatar for the source of this audio
-                    packetStream.writeRawData(reinterpret_cast<const char*>(&_avatarData->getPosition()), sizeof(glm::vec3));
+                    audioPacket->writePrimitive(_avatarData->getPosition());
                     glm::quat headOrientation = _avatarData->getHeadOrientation();
-                    packetStream.writeRawData(reinterpret_cast<const char*>(&headOrientation), sizeof(glm::quat));
+                    audioPacket->writePrimitive(headOrientation);
 
                     // write the raw audio data
-                    packetStream.writeRawData(reinterpret_cast<const char*>(nextSoundOutput), numAvailableSamples * sizeof(int16_t));
+                    audioPacket->write(reinterpret_cast<const char*>(nextSoundOutput), numAvailableSamples * sizeof(int16_t));
                 }
-                
+
                 // write audio packet to AudioMixer nodes
                 auto nodeList = DependencyManager::get<NodeList>();
-                nodeList->eachNode([this, &nodeList, &audioPacket, &numPreSequenceNumberBytes](const SharedNodePointer& node){
+                nodeList->eachNode([this, &nodeList, &audioPacket](const SharedNodePointer& node){
                     // only send to nodes of type AudioMixer
                     if (node->getType() == NodeType::AudioMixer) {
                         // pack sequence number
                         quint16 sequence = _outgoingScriptAudioSequenceNumbers[node->getUUID()]++;
-                        memcpy(audioPacket.data() + numPreSequenceNumberBytes, &sequence, sizeof(quint16));
-                        
+                        audioPacket->seek(0);
+                        audioPacket->writePrimitive(sequence);
+
                         // send audio packet
-                        nodeList->writeDatagram(audioPacket, node);
+                        nodeList->sendUnreliablePacket(*audioPacket, *node);
                     }
                 });
             }
@@ -591,7 +694,7 @@ void ScriptEngine::run() {
 
         if (hasUncaughtException()) {
             int line = uncaughtExceptionLineNumber();
-            qDebug() << "Uncaught exception at (" << _fileNameString << ") line" << line << ":" << uncaughtException().toString();
+            qCDebug(scriptengine) << "Uncaught exception at (" << _fileNameString << ") line" << line << ":" << uncaughtException().toString();
             emit errorMessage("Uncaught exception at (" + _fileNameString + ") line" + QString::number(line) + ":" + uncaughtException().toString());
             clearExceptions();
         }
@@ -600,7 +703,7 @@ void ScriptEngine::run() {
             emit update(deltaTime);
         }
         lastUpdate = now;
-        
+
     }
 
     stopAllTimers(); // make sure all our timers are stopped if the script is ending
@@ -615,13 +718,14 @@ void ScriptEngine::run() {
 
         // since we're in non-threaded mode, call process so that the packets are sent
         if (!entityScriptingInterface->getEntityPacketSender()->isThreaded()) {
-            entityScriptingInterface->getEntityPacketSender()->process();
+            // wait here till the edit packet sender is completely done sending
+            while (entityScriptingInterface->getEntityPacketSender()->hasPacketsToSend()) {
+                entityScriptingInterface->getEntityPacketSender()->process();
+                QCoreApplication::processEvents();
+            }
+        } else {
+            // FIXME - do we need to have a similar "wait here" loop for non-threaded packet senders?
         }
-    }
-
-    // If we were on a thread, then wait till it's done
-    if (thread()) {
-        thread()->quit();
     }
 
     emit finished(_fileNameString);
@@ -646,20 +750,22 @@ void ScriptEngine::stopAllTimers() {
 }
 
 void ScriptEngine::stop() {
-    _isFinished = true;
-    emit runningStateChanged();
+    if (!_isFinished) {
+        _isFinished = true;
+        emit runningStateChanged();
+    }
 }
 
 void ScriptEngine::timerFired() {
     QTimer* callingTimer = reinterpret_cast<QTimer*>(sender());
     QScriptValue timerFunction = _timerFunctionMap.value(callingTimer);
-    
+
     if (!callingTimer->isActive()) {
         // this timer is done, we can kill it
         _timerFunctionMap.remove(callingTimer);
         delete callingTimer;
     }
-    
+
     // call the associated JS function, if it exists
     if (timerFunction.isValid()) {
         timerFunction.call();
@@ -684,7 +790,7 @@ QObject* ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int 
 
 QObject* ScriptEngine::setInterval(const QScriptValue& function, int intervalMS) {
     if (_stoppingAllScripts) {
-        qDebug() << "Script.setInterval() while shutting down is ignored... parent script:" << getFilename();
+        qCDebug(scriptengine) << "Script.setInterval() while shutting down is ignored... parent script:" << getFilename();
         return NULL; // bail early
     }
 
@@ -693,7 +799,7 @@ QObject* ScriptEngine::setInterval(const QScriptValue& function, int intervalMS)
 
 QObject* ScriptEngine::setTimeout(const QScriptValue& function, int timeoutMS) {
     if (_stoppingAllScripts) {
-        qDebug() << "Script.setTimeout() while shutting down is ignored... parent script:" << getFilename();
+        qCDebug(scriptengine) << "Script.setTimeout() while shutting down is ignored... parent script:" << getFilename();
         return NULL; // bail early
     }
 
@@ -743,7 +849,7 @@ void ScriptEngine::print(const QString& message) {
 // all of the files have finished loading.
 void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callback) {
     if (_stoppingAllScripts) {
-        qDebug() << "Script.include() while shutting down is ignored..."
+        qCDebug(scriptengine) << "Script.include() while shutting down is ignored..."
                  << "includeFiles:" << includeFiles << "parent script:" << getFilename();
         return; // bail early
     }
@@ -753,12 +859,12 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     }
 
     BatchLoader* loader = new BatchLoader(urls);
-    
+
     auto evaluateScripts = [=](const QMap<QUrl, QString>& data) {
         for (QUrl url : urls) {
             QString contents = data[url];
             if (contents.isNull()) {
-                qDebug() << "Error loading file: " << url << "line:" << __LINE__;
+                qCDebug(scriptengine) << "Error loading file: " << url << "line:" << __LINE__;
             } else {
                 QScriptValue result = evaluate(contents, url.toString());
             }
@@ -787,7 +893,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
 
 void ScriptEngine::include(const QString& includeFile, QScriptValue callback) {
     if (_stoppingAllScripts) {
-        qDebug() << "Script.include() while shutting down is ignored... " 
+        qCDebug(scriptengine) << "Script.include() while shutting down is ignored... "
                  << "includeFile:" << includeFile << "parent script:" << getFilename();
         return; // bail early
     }
@@ -802,13 +908,19 @@ void ScriptEngine::include(const QString& includeFile, QScriptValue callback) {
 // the Application or other context will connect to in order to know to actually load the script
 void ScriptEngine::load(const QString& loadFile) {
     if (_stoppingAllScripts) {
-        qDebug() << "Script.load() while shutting down is ignored... "
+        qCDebug(scriptengine) << "Script.load() while shutting down is ignored... "
                  << "loadFile:" << loadFile << "parent script:" << getFilename();
         return; // bail early
     }
 
     QUrl url = resolvePath(loadFile);
-    emit loadScript(url.toString(), false);
+    if (_isReloading) {
+        auto scriptCache = DependencyManager::get<ScriptCache>();
+        scriptCache->deleteScript(url.toString());
+        emit reloadScript(url.toString(), false);
+    } else {
+        emit loadScript(url.toString(), false);
+    }
 }
 
 void ScriptEngine::nodeKilled(SharedNodePointer node) {

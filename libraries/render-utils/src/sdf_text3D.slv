@@ -1,0 +1,29 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//  sdf_text.vert
+//  vertex shader
+//
+//  Created by Brad Davis on 10/14/13.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+<@include gpu/Transform.slh@>
+
+<$declareStandardTransform()$>
+
+// the interpolated normal
+varying vec4 interpolatedNormal;
+
+void main() {
+    gl_TexCoord[0] = gl_MultiTexCoord0;
+    
+    // standard transform
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    <$transformModelToClipPos(cam, obj, gl_Vertex, gl_Position)$>
+    <$transformModelToEyeDir(cam, obj, gl_Normal, interpolatedNormal.xyz)$>
+    
+    interpolatedNormal = vec4(normalize(interpolatedNormal.xyz), 0.0);
+}

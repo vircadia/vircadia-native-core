@@ -50,7 +50,7 @@ public:
     TreeNodeScript(const QString& localPath, const QString& fullPath, ScriptOrigin origin);
     const QString& getLocalPath() { return _localPath; }
     const QString& getFullPath() { return _fullPath; };
-    const ScriptOrigin getOrigin() { return _origin; };
+    ScriptOrigin getOrigin() { return _origin; };
 
 private:
     QString _localPath;

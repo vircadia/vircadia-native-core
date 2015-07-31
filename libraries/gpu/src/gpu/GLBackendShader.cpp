@@ -9,7 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "GLBackendShared.h"
-
 #include "Format.h"
 
 using namespace gpu;
@@ -41,33 +40,54 @@ void makeBindings(GLBackend::GLShader* shader) {
         glBindAttribLocation(glprogram, gpu::Stream::POSITION, "position");
     }
 
+    loc = glGetAttribLocation(glprogram, "attribPosition");
+    if (loc >= 0) {
+        glBindAttribLocation(glprogram, gpu::Stream::POSITION, "attribPosition");
+    }
+
     //Check for gpu specific attribute slotBindings
     loc = glGetAttribLocation(glprogram, "gl_Vertex");
     if (loc >= 0) {
-        glBindAttribLocation(glprogram, gpu::Stream::POSITION, "position");
+        glBindAttribLocation(glprogram, gpu::Stream::POSITION, "gl_Vertex");
     }
 
     loc = glGetAttribLocation(glprogram, "normal");
     if (loc >= 0) {
         glBindAttribLocation(glprogram, gpu::Stream::NORMAL, "normal");
     }
+    loc = glGetAttribLocation(glprogram, "attribNormal");
+    if (loc >= 0) {
+        glBindAttribLocation(glprogram, gpu::Stream::NORMAL, "attribNormal");
+    }
 
     loc = glGetAttribLocation(glprogram, "color");
     if (loc >= 0) {
         glBindAttribLocation(glprogram, gpu::Stream::COLOR, "color");
+    }
+    loc = glGetAttribLocation(glprogram, "attribColor");
+    if (loc >= 0) {
+        glBindAttribLocation(glprogram, gpu::Stream::COLOR, "attribColor");
     }
 
     loc = glGetAttribLocation(glprogram, "texcoord");
     if (loc >= 0) {
         glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD, "texcoord");
     }
-
+    loc = glGetAttribLocation(glprogram, "attribTexcoord");
+    if (loc >= 0) {
+        glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD, "attribTexcoord");
+    }
+    
     loc = glGetAttribLocation(glprogram, "tangent");
     if (loc >= 0) {
         glBindAttribLocation(glprogram, gpu::Stream::TANGENT, "tangent");
     }
 
     loc = glGetAttribLocation(glprogram, "texcoord1");
+    if (loc >= 0) {
+        glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD1, "texcoord1");
+    }
+    loc = glGetAttribLocation(glprogram, "attribTexcoord1");
     if (loc >= 0) {
         glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD1, "texcoord1");
     }
@@ -88,7 +108,7 @@ void makeBindings(GLBackend::GLShader* shader) {
     GLint linked = 0;
     glGetProgramiv(glprogram, GL_LINK_STATUS, &linked);
     if (!linked) {
-        qDebug() << "GLShader::makeBindings - failed to link after assigning slotBindings?";
+        qCDebug(gpulogging) << "GLShader::makeBindings - failed to link after assigning slotBindings?";
     }
 
     // now assign the ubo binding, then DON't relink!
@@ -104,7 +124,22 @@ void makeBindings(GLBackend::GLShader* shader) {
     loc = glGetUniformBlockIndex(glprogram, "transformCameraBuffer");
     if (loc >= 0) {
         glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_CAMERA_SLOT);
-        shader->_transformCameraSlot = gpu::TRANSFORM_OBJECT_SLOT;
+        shader->_transformCameraSlot = gpu::TRANSFORM_CAMERA_SLOT;
+    }
+#else
+    loc = glGetUniformLocation(glprogram, "transformObject_model");
+    if (loc >= 0) {
+        shader->_transformObject_model = loc;
+    }
+
+    loc = glGetUniformLocation(glprogram, "transformCamera_viewInverse");
+    if (loc >= 0) {
+        shader->_transformCamera_viewInverse = loc;
+    }
+
+    loc = glGetUniformLocation(glprogram, "transformCamera_viewport");
+    if (loc >= 0) {
+        shader->_transformCamera_viewport = loc;
     }
 #endif
 }
@@ -113,7 +148,7 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
     // Any GLSLprogram ? normally yes...
     const std::string& shaderSource = shader.getSource().getCode();
     if (shaderSource.empty()) {
-        qDebug() << "GLShader::compileShader - no GLSL shader source code ? so failed to create";
+        qCDebug(gpulogging) << "GLShader::compileShader - no GLSL shader source code ? so failed to create";
         return nullptr;
     }
 
@@ -124,7 +159,7 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
     // Create the shader object
     GLuint glshader = glCreateShader(shaderDomain);
     if (!glshader) {
-        qDebug() << "GLShader::compileShader - failed to create the gl shader object";
+        qCDebug(gpulogging) << "GLShader::compileShader - failed to create the gl shader object";
         return nullptr;
     }
 
@@ -156,8 +191,8 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
         char* temp = new char[infoLength] ;
         glGetShaderInfoLog(glshader, infoLength, NULL, temp);
 
-        qDebug() << "GLShader::compileShader - failed to compile the gl shader object:";
-        qDebug() << temp;
+        qCDebug(gpulogging) << "GLShader::compileShader - failed to compile the gl shader object:";
+        qCDebug(gpulogging) << temp;
 
         /*
         filestream.open("debugshader.glsl.info.txt");
@@ -177,7 +212,7 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
     // so far so good, program is almost done, need to link:
     GLuint glprogram = glCreateProgram();
     if (!glprogram) {
-        qDebug() << "GLShader::compileShader - failed to create the gl shader & gl program object";
+        qCDebug(gpulogging) << "GLShader::compileShader - failed to create the gl shader & gl program object";
         return nullptr;
     }
 
@@ -205,8 +240,8 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
         char* temp = new char[infoLength] ;
         glGetProgramInfoLog(glprogram, infoLength, NULL, temp);
 
-        qDebug() << "GLShader::compileShader -  failed to LINK the gl program object :";
-        qDebug() << temp;
+        qCDebug(gpulogging) << "GLShader::compileShader -  failed to LINK the gl program object :";
+        qCDebug(gpulogging) << temp;
 
         /*
         filestream.open("debugshader.glsl.info.txt");
@@ -243,7 +278,7 @@ GLBackend::GLShader* compileProgram(const Shader& program) {
     for (auto subShader : program.getShaders()) {
         GLuint so = GLBackend::getShaderID(subShader);
         if (!so) {
-            qDebug() << "GLShader::compileProgram - One of the shaders of the program is not compiled?";
+            qCDebug(gpulogging) << "GLShader::compileProgram - One of the shaders of the program is not compiled?";
             return nullptr;
         }
         shaderObjects.push_back(so);
@@ -252,7 +287,7 @@ GLBackend::GLShader* compileProgram(const Shader& program) {
     // so far so good, program is almost done, need to link:
     GLuint glprogram = glCreateProgram();
     if (!glprogram) {
-        qDebug() << "GLShader::compileProgram - failed to create the gl program object";
+        qCDebug(gpulogging) << "GLShader::compileProgram - failed to create the gl program object";
         return nullptr;
     }
 
@@ -285,8 +320,8 @@ GLBackend::GLShader* compileProgram(const Shader& program) {
         char* temp = new char[infoLength] ;
         glGetProgramInfoLog(glprogram, infoLength, NULL, temp);
 
-        qDebug() << "GLShader::compileProgram -  failed to LINK the gl program object :";
-        qDebug() << temp;
+        qCDebug(gpulogging) << "GLShader::compileProgram -  failed to LINK the gl program object :";
+        qCDebug(gpulogging) << temp;
 
         /*
         filestream.open("debugshader.glsl.info.txt");
@@ -506,7 +541,12 @@ ElementResource getFormatFromGLUniform(GLenum gltype) {
 };
 
 
-int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers) {
+int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,
+    Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers
+#if (GPU_FEATURE_PROFILE == GPU_LEGACY)
+    , Shader::SlotSet& fakeBuffers
+#endif
+) {
     GLint uniformsCount = 0;
 
 #if (GPU_FEATURE_PROFILE == GPU_LEGACY)
@@ -547,6 +587,15 @@ int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, S
             }
 
             if (elementResource._resource == Resource::BUFFER) {
+#if (GPU_FEATURE_PROFILE == GPU_LEGACY)
+                // if in legacy profile, we fake the uniform buffer with an array
+                // this is where we detect it assuming it's explicitely assinged a binding
+                auto requestedBinding = slotBindings.find(std::string(sname));
+                if (requestedBinding != slotBindings.end()) {
+                    // found one buffer!
+                    fakeBuffers.insert(Shader::Slot(sname, location, elementResource._element, elementResource._resource));
+                }
+#endif
                 uniforms.insert(Shader::Slot(sname, location, elementResource._element, elementResource._resource));
             } else {
                 // For texture/Sampler, the location is the actual binding value
@@ -604,14 +653,13 @@ int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindin
         GLchar name[NAME_LENGTH];
         GLint length = 0;
         GLint size = 0;
-        GLenum type = 0;
         GLint binding = -1;
 
         glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_NAME_LENGTH, &length);
         glGetActiveUniformBlockName(glprogram, i, NAME_LENGTH, &length, name);
         glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_BINDING, &binding);
         glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_DATA_SIZE, &size);
-        
+
         GLuint blockIndex = glGetUniformBlockIndex(glprogram, name);
 
         // CHeck if there is a requested binding for this block
@@ -702,8 +750,12 @@ bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindin
         Shader::SlotSet uniforms;
         Shader::SlotSet textures;
         Shader::SlotSet samplers;
+#if (GPU_FEATURE_PROFILE == GPU_CORE)
         makeUniformSlots(object->_program, slotBindings, uniforms, textures, samplers);
-
+#else
+        makeUniformSlots(object->_program, slotBindings, uniforms, textures, samplers, buffers);
+#endif
+        
         Shader::SlotSet inputs;
         makeInputSlots(object->_program, slotBindings, inputs);
 

@@ -1,6 +1,6 @@
 //
 //  ThreadedAssignment.h
-//  libraries/shared/src
+//  libraries/networking/src
 //
 //  Created by Stephen Birarda on 12/3/2013.
 //  Copyright 2013 High Fidelity, Inc.
@@ -19,8 +19,9 @@
 class ThreadedAssignment : public Assignment {
     Q_OBJECT
 public:
-    ThreadedAssignment(const QByteArray& packet);
-    
+    ThreadedAssignment(NLPacket& packet);
+    ~ThreadedAssignment() { stop(); }
+
     void setFinished(bool isFinished);
     virtual void aboutToFinish() { };
     void addPacketStatsAndSendStatsPacket(QJsonObject& statsObject);
@@ -28,20 +29,20 @@ public:
 public slots:
     /// threaded run of assignment
     virtual void run() = 0;
-    virtual void readPendingDatagrams() = 0;
+    Q_INVOKABLE virtual void stop() { setFinished(true); }
     virtual void sendStatsPacket();
+
 signals:
     void finished();
-    
+
 protected:
-    bool readAvailableDatagram(QByteArray& destinationByteArray, HifiSockAddr& senderSockAddr);
     void commonInit(const QString& targetName, NodeType_t nodeType, bool shouldSendStats = true);
     bool _isFinished;
-    QThread* _datagramProcessingThread;
-    
+    QTimer* _domainServerTimer = nullptr;
+    QTimer* _statsTimer = nullptr;
+
 private slots:
     void checkInWithDomainServerOrExit();
-
 };
 
 typedef QSharedPointer<ThreadedAssignment> SharedAssignmentPointer;

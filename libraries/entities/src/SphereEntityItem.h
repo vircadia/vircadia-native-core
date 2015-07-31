@@ -16,7 +16,7 @@
 
 class SphereEntityItem : public EntityItem {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     SphereEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     
@@ -49,9 +49,6 @@ public:
             _color[GREEN_INDEX] = value.green;
             _color[BLUE_INDEX] = value.blue;
     }
-
-    // TODO: implement proper contains for 3D ellipsoid
-    //virtual bool contains(const glm::vec3& point) const;
 
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_SPHERE; }
     

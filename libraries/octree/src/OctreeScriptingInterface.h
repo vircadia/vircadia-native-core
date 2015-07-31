@@ -21,7 +21,7 @@
 class OctreeScriptingInterface : public QObject {
     Q_OBJECT
 public:
-    OctreeScriptingInterface(OctreeEditPacketSender* packetSender = NULL, 
+    OctreeScriptingInterface(OctreeEditPacketSender* packetSender = NULL,
                 JurisdictionListener* jurisdictionListener = NULL);
 
     ~OctreeScriptingInterface();
@@ -31,20 +31,14 @@ public:
     void setPacketSender(OctreeEditPacketSender* packetSender);
     void setJurisdictionListener(JurisdictionListener* jurisdictionListener);
     void init();
-    
+
     virtual NodeType_t getServerNodeType() const = 0;
     virtual OctreeEditPacketSender* createPacketSender() = 0;
 
 private slots:
     void cleanupManagedObjects();
-    
+
 public slots:
-    /// Set the desired max packet size in bytes that should be created
-    void setMaxPacketSize(int maxPacketSize) { return _packetSender->setMaxPacketSize(maxPacketSize); }
-
-    /// returns the current desired max packet size in bytes that will be created
-    int getMaxPacketSize() const { return _packetSender->getMaxPacketSize(); }
-
     /// set the max packets per second send rate
     void setPacketsPerSecond(int packetsPerSecond) { return _packetSender->setPacketsPerSecond(packetsPerSecond); }
 
@@ -65,7 +59,7 @@ public slots:
 
     /// returns the bytes per second send rate of this object over its lifetime
     float getLifetimeBPS() const { return _packetSender->getLifetimeBPS(); }
-    
+
     /// returns the packets per second queued rate of this object over its lifetime
     float getLifetimePPSQueued() const  { return _packetSender->getLifetimePPSQueued(); }
 

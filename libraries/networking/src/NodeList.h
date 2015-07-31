@@ -37,67 +37,81 @@ const quint64 DOMAIN_SERVER_CHECK_IN_MSECS = 1 * 1000;
 
 const int MAX_SILENT_DOMAIN_SERVER_CHECK_INS = 5;
 
+using NodePacketPair = std::pair<SharedNodePointer, std::unique_ptr<NLPacket>>;
+using NodeSharedPacketPair = std::pair<SharedNodePointer, QSharedPointer<NLPacket>>;
+
 class Application;
 class Assignment;
 
 class NodeList : public LimitedNodeList {
     Q_OBJECT
     SINGLETON_DEPENDENCY
-    
+
 public:
     NodeType_t getOwnerType() const { return _ownerType; }
     void setOwnerType(NodeType_t ownerType) { _ownerType = ownerType; }
 
-    qint64 sendStats(const QJsonObject& statsObject, HifiSockAddr destination);
+    qint64 sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination);
     qint64 sendStatsToDomainServer(const QJsonObject& statsObject);
 
     int getNumNoReplyDomainCheckIns() const { return _numNoReplyDomainCheckIns; }
     DomainHandler& getDomainHandler() { return _domainHandler; }
-    
+
     const NodeSet& getNodeInterestSet() const { return _nodeTypesOfInterest; }
     void addNodeTypeToInterestSet(NodeType_t nodeTypeToAdd);
     void addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes);
     void resetNodeInterestSet() { _nodeTypesOfInterest.clear(); }
 
-    void processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
-    
-    int processDomainServerList(const QByteArray& packet);
+    void processReceivedPacket(std::unique_ptr<NLPacket>, HifiSockAddr senderSockAddr);
 
     void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
-    
-    void pingPunchForInactiveNode(const SharedNodePointer& node);
+
 public slots:
     void reset();
     void sendDomainServerCheckIn();
-    void pingInactiveNodes();
+    void handleDSPathQuery(const QString& newPath);
+
+    void processDomainServerList(QSharedPointer<NLPacket> packet);
+    void processDomainServerAddedNode(QSharedPointer<NLPacket> packet);
+    void processDomainServerPathResponse(QSharedPointer<NLPacket> packet);
+
+    void processPingPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void processPingReplyPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+
+    void processICEPingPacket(QSharedPointer<NLPacket> packet);
 signals:
     void limitOfSilentDomainCheckInsReached();
+private slots:
+    void sendPendingDSPathQuery();
+    void handleICEConnectionToDomainServer();
+
+    void startNodeHolePunch(const SharedNodePointer& node);
+    void handleNodePingTimeout();
+
+    void pingPunchForDomainServer();
 private:
     NodeList() : LimitedNodeList(0, 0) { assert(false); } // Not implemented, needed for DependencyManager templates compile
     NodeList(char ownerType, unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);
     NodeList(NodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(NodeList const&); // Don't implement, needed to avoid copies of singleton
-    
-    void sendSTUNRequest();
-    bool processSTUNResponse(const QByteArray& packet);
-    
-    void handleICEConnectionToDomainServer();
-    
+
     void processDomainServerAuthRequest(const QByteArray& packet);
     void requestAuthForDomainServer();
-    void activateSocketFromNodeCommunication(const QByteArray& packet, const SharedNodePointer& sendingNode);
-    void timePingReply(const QByteArray& packet, const SharedNodePointer& sendingNode);
-    
+    void activateSocketFromNodeCommunication(QSharedPointer<NLPacket> packet, const SharedNodePointer& sendingNode);
+    void timePingReply(QSharedPointer<NLPacket> packet, const SharedNodePointer& sendingNode);
+
+    void sendDSPathQuery(const QString& newPath);
+ 
+    void parseNodeFromPacketStream(QDataStream& packetStream);
+
+    void pingPunchForInactiveNode(const SharedNodePointer& node);
+
     NodeType_t _ownerType;
     NodeSet _nodeTypesOfInterest;
     DomainHandler _domainHandler;
     int _numNoReplyDomainCheckIns;
     HifiSockAddr _assignmentServerSocket;
-    bool _hasCompletedInitialSTUNFailure;
-    unsigned int _stunRequestsSinceSuccess;
-    
-    friend class Application;
 };
 
 #endif // hifi_NodeList_h

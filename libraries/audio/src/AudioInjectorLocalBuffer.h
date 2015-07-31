@@ -14,6 +14,8 @@
 
 #include <QtCore/qiodevice.h>
 
+#include <glm/detail/func_common.hpp>
+
 class AudioInjectorLocalBuffer : public QIODevice {
     Q_OBJECT
 public:
@@ -27,12 +29,10 @@ public:
     qint64 writeData(const char* data, qint64 maxSize) { return 0; }
     
     void setShouldLoop(bool shouldLoop) { _shouldLoop = shouldLoop; }
-    
     void setCurrentOffset(int currentOffset) { _currentOffset = currentOffset; }
-signals:
-    void bufferEmpty();
-private:
+    void setVolume(float volume) { _volume = glm::clamp(volume, 0.0f, 1.0f); }
     
+private:
     qint64 recursiveReadFromFront(char* data, qint64 maxSize);
     
     QByteArray _rawAudioArray;
@@ -40,6 +40,7 @@ private:
     bool _isStopped;
     
     int _currentOffset;
+    float _volume;
 };
 
 #endif // hifi_AudioInjectorLocalBuffer_h

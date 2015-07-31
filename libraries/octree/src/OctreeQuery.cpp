@@ -10,25 +10,15 @@
 //
 
 #include <GLMHelpers.h>
-#include <PacketHeaders.h>
-#include <SettingHandle.h>
+#include <udt/PacketHeaders.h>
 
 #include "OctreeConstants.h"
 #include "OctreeQuery.h"
 
-Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
 
 OctreeQuery::OctreeQuery() {
-    _maxOctreePPS = maxOctreePacketsPerSecond.get();
+    _maxQueryPPS = DEFAULT_MAX_OCTREE_PPS;
 }
-
-void OctreeQuery::setMaxOctreePacketsPerSecond(int maxOctreePPS) {
-    if (maxOctreePPS != _maxOctreePPS) {
-        _maxOctreePPS = maxOctreePPS;
-        maxOctreePacketsPerSecond.set(_maxOctreePPS);
-    }
-}
-
 
 int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
     unsigned char* bufferStart = destinationBuffer;
@@ -59,8 +49,8 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
     *destinationBuffer++ = bitItems;
 
     // desired Max Octree PPS
-    memcpy(destinationBuffer, &_maxOctreePPS, sizeof(_maxOctreePPS));
-    destinationBuffer += sizeof(_maxOctreePPS);
+    memcpy(destinationBuffer, &_maxQueryPPS, sizeof(_maxQueryPPS));
+    destinationBuffer += sizeof(_maxQueryPPS);
 
     // desired voxelSizeScale
     memcpy(destinationBuffer, &_octreeElementSizeScale, sizeof(_octreeElementSizeScale));
@@ -74,13 +64,10 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
 }
 
 // called on the other nodes - assigns it to my views of the others
-int OctreeQuery::parseData(const QByteArray& packet) {
-
-    // increment to push past the packet header
-    int numBytesPacketHeader = numBytesForPacketHeader(packet);
-    
-    const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(packet.data());
-    const unsigned char* sourceBuffer = startPosition + numBytesPacketHeader;
+int OctreeQuery::parseData(NLPacket& packet) {
+ 
+    const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(packet.getPayload());
+    const unsigned char* sourceBuffer = startPosition;
     
     // camera details
     memcpy(&_cameraPosition, sourceBuffer, sizeof(_cameraPosition));
@@ -103,8 +90,8 @@ int OctreeQuery::parseData(const QByteArray& packet) {
     _wantCompression = oneAtBit(bitItems, WANT_COMPRESSION);
 
     // desired Max Octree PPS
-    memcpy(&_maxOctreePPS, sourceBuffer, sizeof(_maxOctreePPS));
-    sourceBuffer += sizeof(_maxOctreePPS);
+    memcpy(&_maxQueryPPS, sourceBuffer, sizeof(_maxQueryPPS));
+    sourceBuffer += sizeof(_maxQueryPPS);
 
     // desired _octreeElementSizeScale
     memcpy(&_octreeElementSizeScale, sourceBuffer, sizeof(_octreeElementSizeScale));

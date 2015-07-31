@@ -24,98 +24,19 @@
 
 #include <AACube.h>
 #include <FBXReader.h> // for SittingPoint
+#include <NumericalConstants.h>
 #include <PropertyFlags.h>
 #include <OctreeConstants.h>
 #include <ShapeInfo.h>
 
+#include "AtmospherePropertyGroup.h"
 #include "EntityItemID.h"
 #include "EntityItemPropertiesMacros.h"
 #include "EntityTypes.h"
-
-enum EntityPropertyList {
-    PROP_PAGED_PROPERTY,
-    PROP_CUSTOM_PROPERTIES_INCLUDED,
-    
-    // these properties are supported by the EntityItem base class
-    PROP_VISIBLE,
-    PROP_POSITION,
-    PROP_RADIUS, // NOTE: PROP_RADIUS is obsolete and only included in old format streams
-    PROP_DIMENSIONS = PROP_RADIUS,
-    PROP_ROTATION,
-    PROP_DENSITY,
-    PROP_VELOCITY,
-    PROP_GRAVITY,
-    PROP_DAMPING,
-    PROP_LIFETIME,
-    PROP_SCRIPT,
-
-    // these properties are supported by some derived classes
-    PROP_COLOR,
-    PROP_MODEL_URL,
-    PROP_ANIMATION_URL,
-    PROP_ANIMATION_FPS,
-    PROP_ANIMATION_FRAME_INDEX,
-    PROP_ANIMATION_PLAYING,
-
-    // these properties are supported by the EntityItem base class
-    PROP_REGISTRATION_POINT,
-    PROP_ANGULAR_VELOCITY,
-    PROP_ANGULAR_DAMPING,
-    PROP_IGNORE_FOR_COLLISIONS,
-    PROP_COLLISIONS_WILL_MOVE,
-
-    // property used by Light entity
-    PROP_IS_SPOTLIGHT,
-    PROP_DIFFUSE_COLOR_UNUSED,
-    PROP_AMBIENT_COLOR_UNUSED,
-    PROP_SPECULAR_COLOR_UNUSED,
-    PROP_INTENSITY, // Previously PROP_CONSTANT_ATTENUATION
-    PROP_LINEAR_ATTENUATION_UNUSED,
-    PROP_QUADRATIC_ATTENUATION_UNUSED,
-    PROP_EXPONENT,
-    PROP_CUTOFF,
-
-    // available to all entities
-    PROP_LOCKED,
-    
-    // used by Model entities
-    PROP_TEXTURES,
-    PROP_ANIMATION_SETTINGS,
-    PROP_USER_DATA,
-    PROP_SHAPE_TYPE,
-
-    // used by ParticleEffect entities
-    PROP_MAX_PARTICLES,
-    PROP_LIFESPAN,
-    PROP_EMIT_RATE,
-    PROP_EMIT_DIRECTION,
-    PROP_EMIT_STRENGTH,
-    PROP_LOCAL_GRAVITY,
-    PROP_PARTICLE_RADIUS,
-    
-    PROP_COLLISION_MODEL_URL,
-    PROP_MARKETPLACE_ID,
-    
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-    // ATTENTION: add new properties ABOVE this line and then modify PROP_LAST_ITEM below
-    PROP_LAST_ITEM = PROP_MARKETPLACE_ID,
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-    // WARNING! Do not add props here unless you intentionally mean to reuse PROP_ indexes
-    //
-    // These properties of TextEntity piggy back off of properties of ModelEntities, the type doesn't matter
-    // since the derived class knows how to interpret it's own properties and knows the types it expects
-    PROP_TEXT_COLOR = PROP_COLOR,
-    PROP_TEXT = PROP_MODEL_URL,
-    PROP_LINE_HEIGHT = PROP_ANIMATION_URL,
-    PROP_BACKGROUND_COLOR = PROP_ANIMATION_FPS,
-    PROP_COLLISION_MODEL_URL_OLD_VERSION = PROP_ANIMATION_FPS + 1
-    // WARNING!!! DO NOT ADD PROPS_xxx here unless you really really meant to.... Add them UP above
-};
-
-typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
+#include "EntityPropertyFlags.h"
+#include "SimulationOwner.h"
+#include "SkyboxPropertyGroup.h"
+#include "StagePropertyGroup.h"
 
 const quint64 UNKNOWN_CREATED_TIME = 0;
 
@@ -131,6 +52,10 @@ class EntityItemProperties {
     friend class LightEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class TextEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class ParticleEffectEntityItem; // TODO: consider removing this friend relationship and use public methods
+    friend class ZoneEntityItem; // TODO: consider removing this friend relationship and use public methods
+    friend class WebEntityItem; // TODO: consider removing this friend relationship and use public methods
+    friend class LineEntityItem; // TODO: consider removing this friend relationship and use public methods
+    friend class PolyVoxEntityItem; // TODO: consider removing this friend relationship and use public methods
 public:
     EntityItemProperties();
     virtual ~EntityItemProperties();
@@ -138,8 +63,8 @@ public:
     EntityTypes::EntityType getType() const { return _type; }
     void setType(EntityTypes::EntityType type) { _type = type; }
 
-    virtual QScriptValue copyToScriptValue(QScriptEngine* engine) const;
-    virtual void copyFromScriptValue(const QScriptValue& object);
+    virtual QScriptValue copyToScriptValue(QScriptEngine* engine, bool skipDefaults) const;
+    virtual void copyFromScriptValue(const QScriptValue& object, bool honorReadOnly);
 
     // editing related features supported by all entities
     quint64 getLastEdited() const { return _lastEdited; }
@@ -147,9 +72,6 @@ public:
         { return (float)(usecTimestampNow() - getLastEdited()) / (float)USECS_PER_SECOND; }
     EntityPropertyFlags getChangedProperties() const;
 
-    /// used by EntityScriptingInterface to return EntityItemProperties for unknown models
-    void setIsUnknownID() { _id = UNKNOWN_ENTITY_ID; _idSet = true; }
-    
     AACube getMaximumAACube() const;
     AABox getAABox() const;
 
@@ -170,12 +92,18 @@ public:
     DEFINE_PROPERTY(PROP_DENSITY, Density, density, float);
     DEFINE_PROPERTY_REF(PROP_VELOCITY, Velocity, velocity, glm::vec3);
     DEFINE_PROPERTY_REF(PROP_GRAVITY, Gravity, gravity, glm::vec3);
+    DEFINE_PROPERTY_REF(PROP_ACCELERATION, Acceleration, acceleration, glm::vec3);
     DEFINE_PROPERTY(PROP_DAMPING, Damping, damping, float);
+    DEFINE_PROPERTY(PROP_RESTITUTION, Restitution, restitution, float);
+    DEFINE_PROPERTY(PROP_FRICTION, Friction, friction, float);
     DEFINE_PROPERTY(PROP_LIFETIME, Lifetime, lifetime, float);
+    DEFINE_PROPERTY(PROP_CREATED, Created, created, quint64);
     DEFINE_PROPERTY_REF(PROP_SCRIPT, Script, script, QString);
+    DEFINE_PROPERTY(PROP_SCRIPT_TIMESTAMP, ScriptTimestamp, scriptTimestamp, quint64);
+    DEFINE_PROPERTY_REF(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString);
     DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, xColor);
     DEFINE_PROPERTY_REF(PROP_MODEL_URL, ModelURL, modelURL, QString);
-    DEFINE_PROPERTY_REF(PROP_COLLISION_MODEL_URL, CollisionModelURL, collisionModelURL, QString);
+    DEFINE_PROPERTY_REF(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString);
     DEFINE_PROPERTY_REF(PROP_ANIMATION_URL, AnimationURL, animationURL, QString);
     DEFINE_PROPERTY(PROP_ANIMATION_FPS, AnimationFPS, animationFPS, float);
     DEFINE_PROPERTY(PROP_ANIMATION_FRAME_INDEX, AnimationFrameIndex, animationFrameIndex, float);
@@ -193,6 +121,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_TEXTURES, Textures, textures, QString);
     DEFINE_PROPERTY_REF_WITH_SETTER_AND_GETTER(PROP_ANIMATION_SETTINGS, AnimationSettings, animationSettings, QString);
     DEFINE_PROPERTY_REF(PROP_USER_DATA, UserData, userData, QString);
+    DEFINE_PROPERTY_REF(PROP_SIMULATION_OWNER, SimulationOwner, simulationOwner, SimulationOwner);
     DEFINE_PROPERTY_REF(PROP_TEXT, Text, text, QString);
     DEFINE_PROPERTY(PROP_LINE_HEIGHT, LineHeight, lineHeight, float);
     DEFINE_PROPERTY_REF(PROP_TEXT_COLOR, TextColor, textColor, xColor);
@@ -206,13 +135,33 @@ public:
     DEFINE_PROPERTY(PROP_LOCAL_GRAVITY, LocalGravity, localGravity, float);
     DEFINE_PROPERTY(PROP_PARTICLE_RADIUS, ParticleRadius, particleRadius, float);
     DEFINE_PROPERTY_REF(PROP_MARKETPLACE_ID, MarketplaceID, marketplaceID, QString);
+    DEFINE_PROPERTY_REF(PROP_KEYLIGHT_COLOR, KeyLightColor, keyLightColor, xColor);
+    DEFINE_PROPERTY(PROP_KEYLIGHT_INTENSITY, KeyLightIntensity, keyLightIntensity, float);
+    DEFINE_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, KeyLightAmbientIntensity, keyLightAmbientIntensity, float);
+    DEFINE_PROPERTY_REF(PROP_KEYLIGHT_DIRECTION, KeyLightDirection, keyLightDirection, glm::vec3);
+    DEFINE_PROPERTY_REF(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, glm::vec3);
+    DEFINE_PROPERTY_REF(PROP_VOXEL_DATA, VoxelData, voxelData, QByteArray);
+    DEFINE_PROPERTY_REF(PROP_VOXEL_SURFACE_STYLE, VoxelSurfaceStyle, voxelSurfaceStyle, uint16_t);
+    DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString);
+    DEFINE_PROPERTY_REF_ENUM(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode);
+    DEFINE_PROPERTY_GROUP(Stage, stage, StagePropertyGroup);
+    DEFINE_PROPERTY_GROUP(Atmosphere, atmosphere, AtmospherePropertyGroup);
+    DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);
+    DEFINE_PROPERTY_REF(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString);
+    DEFINE_PROPERTY(PROP_LINE_WIDTH, LineWidth, lineWidth, float);
+    DEFINE_PROPERTY_REF(LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>);
+    DEFINE_PROPERTY_REF(PROP_HREF, Href, href, QString);
+    DEFINE_PROPERTY_REF(PROP_DESCRIPTION, Description, description, QString);
+    DEFINE_PROPERTY(PROP_FACE_CAMERA, FaceCamera, faceCamera, bool);
+    DEFINE_PROPERTY_REF(PROP_ACTION_DATA, ActionData, actionData, QByteArray);
+
+    static QString getBackgroundModeString(BackgroundMode mode);
+
 
 public:
     float getMaxDimension() const { return glm::max(_dimensions.x, _dimensions.y, _dimensions.z); }
 
     float getAge() const { return (float)(usecTimestampNow() - _created) / (float)USECS_PER_SECOND; }
-    quint64 getCreated() const { return _created; }
-    void setCreated(quint64 usecTime);
     bool hasCreatedTime() const { return (_created != UNKNOWN_CREATED_TIME); }
 
     bool containsBoundsProperties() const { return (_positionChanged || _dimensionsChanged); }
@@ -225,15 +174,13 @@ public:
     void setGlowLevel(float value) { _glowLevel = value; _glowLevelChanged = true; }
     void setLocalRenderAlpha(float value) { _localRenderAlpha = value; _localRenderAlphaChanged = true; }
 
-    static bool encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
-        unsigned char* bufferOut, int sizeIn, int& sizeOut);
+    static bool encodeEntityEditPacket(PacketType::Value command, EntityItemID id, const EntityItemProperties& properties,
+                                       QByteArray& buffer);
 
-    static bool encodeEraseEntityMessage(const EntityItemID& entityItemID, 
-                                            unsigned char* outputBuffer, size_t maxLength, size_t& outputLength);
-
+    static bool encodeEraseEntityMessage(const EntityItemID& entityItemID, QByteArray& buffer);
 
     static bool decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
-                        EntityItemID& entityID, EntityItemProperties& properties);
+                                       EntityItemID& entityID, EntityItemProperties& properties);
 
     bool glowLevelChanged() const { return _glowLevelChanged; }
     bool localRenderAlphaChanged() const { return _localRenderAlphaChanged; }
@@ -249,12 +196,28 @@ public:
     const QStringList& getTextureNames() const { return _textureNames; }
     void setTextureNames(const QStringList& value) { _textureNames = value; }
 
+    QString getSimulatorIDAsString() const { return _simulationOwner.getID().toString().mid(1,36).toUpper(); }
+
+    void setVoxelDataDirty() { _voxelDataChanged = true; }
+
+    void setLinePointsDirty() {_linePointsChanged = true; }
+
+    void setCreated(QDateTime& v);
+
+    bool hasTerseUpdateChanges() const;
+    bool hasMiscPhysicsChanges() const;
+
+    void clearSimulationOwner();
+    void setSimulationOwner(const QUuid& id, uint8_t priority);
+    void setSimulationOwner(const QByteArray& data);
+    void promoteSimulationPriority(quint8 priority) { _simulationOwner.promotePriority(priority); }
+
+    void setActionDataDirty() { _actionDataChanged = true; }
 
 private:
     QUuid _id;
     bool _idSet;
     quint64 _lastEdited;
-    quint64 _created;
     EntityTypes::EntityType _type;
     void setType(const QString& typeName) { _type = EntityTypes::getEntityTypeFromName(typeName); }
 
@@ -270,19 +233,21 @@ private:
     QStringList _textureNames;
     glm::vec3 _naturalDimensions;
 };
+
 Q_DECLARE_METATYPE(EntityItemProperties);
 QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
-void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemProperties& properties);
+QScriptValue EntityItemNonDefaultPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
+void EntityItemPropertiesFromScriptValueIgnoreReadOnly(const QScriptValue &object, EntityItemProperties& properties);
+void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object, EntityItemProperties& properties);
 
 
 // define these inline here so the macros work
-inline void EntityItemProperties::setPosition(const glm::vec3& value) 
+inline void EntityItemProperties::setPosition(const glm::vec3& value)
                     { _position = glm::clamp(value, 0.0f, (float)TREE_SCALE); _positionChanged = true; }
-
 
 inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     debug << "EntityItemProperties[" << "\n";
-    
+
     debug << "    _type:" << properties.getType() << "\n";
 
     // TODO: figure out why position and animationSettings don't seem to like the macro approach
@@ -295,16 +260,22 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
 
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Dimensions, dimensions, "in meters");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Velocity, velocity, "in meters");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Name, name, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Visible, visible, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Rotation, rotation, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Density, density, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Gravity, gravity, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Acceleration, acceleration, "in meters per second");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Damping, damping, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Restitution, restitution, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Friction, friction, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Lifetime, lifetime, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Script, script, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ScriptTimestamp, scriptTimestamp, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CollisionSoundURL, collisionSoundURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Color, color, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ModelURL, modelURL, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CollisionModelURL, collisionModelURL, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CompoundShapeURL, compoundShapeURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationURL, animationURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationFPS, animationFPS, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationFrameIndex, animationFrameIndex, "");
@@ -321,6 +292,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Locked, locked, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Textures, textures, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, UserData, userData, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, SimulationOwner, simulationOwner, SimulationOwner());
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Text, text, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, LineHeight, lineHeight, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, TextColor, textColor, "");
@@ -334,6 +306,17 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, LocalGravity, localGravity, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParticleRadius, particleRadius, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, MarketplaceID, marketplaceID, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, BackgroundMode, backgroundMode, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelVolumeSize, voxelVolumeSize, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelData, voxelData, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelSurfaceStyle, voxelSurfaceStyle, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Href, href, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Description, description, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ActionData, actionData, "");
+
+    properties.getStage().debugDump();
+    properties.getAtmosphere().debugDump();
+    properties.getSkybox().debugDump();
 
     debug << "  last edited:" << properties.getLastEdited() << "\n";
     debug << "  edited ago:" << properties.getEditedAgo() << "\n";

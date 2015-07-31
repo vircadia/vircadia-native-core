@@ -13,9 +13,13 @@
 #include <QNetworkReply>
 
 #include <QFile>
+#include "ScriptEngineLogging.h"
 #include "BatchLoader.h"
 #include <NetworkAccessManager.h>
 #include <SharedUtil.h>
+
+
+
 
 BatchLoader::BatchLoader(const QList<QUrl>& urls) 
     : QObject(),
@@ -38,7 +42,7 @@ void BatchLoader::start() {
             request.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
             QNetworkReply* reply = networkAccessManager.get(request);
 
-            qDebug() << "Downloading file at" << url;
+            qCDebug(scriptengine) << "Downloading file at" << url;
 
             connect(reply, &QNetworkReply::finished, [=]() {
                 if (reply->error()) {
@@ -60,7 +64,7 @@ void BatchLoader::start() {
             QString fileName = url.toLocalFile();
 #endif
 
-            qDebug() << "Reading file at " << fileName;
+            qCDebug(scriptengine) << "Reading file at " << fileName;
 
             QFile scriptFile(fileName);
             if (scriptFile.open(QFile::ReadOnly | QFile::Text)) {

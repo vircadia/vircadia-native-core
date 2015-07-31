@@ -113,7 +113,7 @@ AttachmentPanel::AttachmentPanel(AttachmentsDialog* dialog, const AttachmentData
     layout->addRow("Model URL:", urlBox);
     urlBox->addWidget(_modelURL = new QLineEdit(data.modelURL.toString()), 1);
     _modelURL->setText(data.modelURL.toString());
-    connect(_modelURL, SIGNAL(returnPressed()), SLOT(modelURLChanged()));
+    connect(_modelURL, SIGNAL(editingFinished()), SLOT(modelURLChanged()));
     QPushButton* chooseURL = new QPushButton("Choose");
     urlBox->addWidget(chooseURL);
     connect(chooseURL, SIGNAL(clicked(bool)), SLOT(chooseModelURL()));

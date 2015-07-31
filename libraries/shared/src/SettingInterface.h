@@ -16,11 +16,14 @@
 #include <QVariant>
 
 namespace Setting {
+    void init();
+    void cleanupSettings();
+
     class Interface {
     public:
         QString getKey() const { return _key; }
-        bool isSet() const { return _isSet; }
-        
+        bool isSet() const { return _isSet; } 
+
         virtual void setVariant(const QVariant& variant) = 0;
         virtual QVariant getVariant() = 0;
         

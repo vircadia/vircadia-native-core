@@ -18,7 +18,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-/// Base class for face trackers (Faceshift, Visage, DDE).
+#include <SettingHandle.h>
+
+/// Base class for face trackers (Faceshift, DDE).
 class FaceTracker : public QObject {
     Q_OBJECT
     
@@ -26,9 +28,9 @@ public:
     virtual bool isActive() const { return false; }
     virtual bool isTracking() const { return false; }
     
-    virtual void init() {}
+    virtual void init();
     virtual void update(float deltaTime);
-    virtual void reset() {}
+    virtual void reset();
     
     float getFadeCoefficient() const;
     
@@ -42,8 +44,26 @@ public:
     bool isValidBlendshapeIndex(int index) const { return index >= 0 && index < getNumBlendshapes(); }
     const QVector<float>& getBlendshapeCoefficients() const;
     float getBlendshapeCoefficient(int index) const;
-    
+
+    bool isMuted() const { return _isMuted; }
+    void setIsMuted(bool isMuted) { _isMuted = isMuted; }
+    void toggleMute();
+
+    static float getEyeDeflection() { return _eyeDeflection.get(); }
+    static void setEyeDeflection(float eyeDeflection);
+
+signals:
+    void muteToggled();
+
+public slots:
+    virtual void setEnabled(bool enabled) = 0;
+
 protected:
+    virtual ~FaceTracker() {};
+
+    bool _isInitialized = false;
+    bool _isMuted = true;
+
     glm::vec3 _headTranslation = glm::vec3(0.0f);
     glm::quat _headRotation = glm::quat();
     float _estimatedEyePitch = 0.0f;
@@ -52,6 +72,18 @@ protected:
     
     float _relaxationStatus = 0.0f; // Between 0.0f and 1.0f
     float _fadeCoefficient = 0.0f; // Between 0.0f and 1.0f
+
+    void countFrame();
+
+private slots:
+    void startFPSTimer();
+    void finishFPSTimer();
+
+private:
+    bool _isCalculatingFPS = false;
+    int _frameCount = 0;
+
+    static Setting::Handle<float> _eyeDeflection;
 };
 
 #endif // hifi_FaceTracker_h

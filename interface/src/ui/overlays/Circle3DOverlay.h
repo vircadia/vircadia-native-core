@@ -11,6 +11,7 @@
 #ifndef hifi_Circle3DOverlay_h
 #define hifi_Circle3DOverlay_h
 
+// include this before QGLWidget, which includes an earlier version of OpenGL
 #include "Planar3DOverlay.h"
 
 class Circle3DOverlay : public Planar3DOverlay {
@@ -19,7 +20,7 @@ class Circle3DOverlay : public Planar3DOverlay {
 public:
     Circle3DOverlay();
     Circle3DOverlay(const Circle3DOverlay* circle3DOverlay);
-    ~Circle3DOverlay();
+    
     virtual void render(RenderArgs* args);
     virtual void setProperties(const QScriptValue& properties);
     virtual QScriptValue getProperty(const QString& property);
@@ -70,6 +71,7 @@ protected:
     int _majorTicksVerticesID;
     int _minorTicksVerticesID;
 
+    xColor _lastColor;
     float _lastStartAt;
     float _lastEndAt;
     float _lastOuterRadius;

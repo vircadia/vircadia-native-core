@@ -17,6 +17,7 @@
 #include <QTextStream>
 #include <QtDebug>
 #include <QtEndian>
+#include <QFileInfo>
 
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -25,11 +26,14 @@
 #include <FaceshiftConstants.h>
 #include <GeometryUtil.h>
 #include <GLMHelpers.h>
+#include <NumericalConstants.h>
 #include <OctalCode.h>
 #include <Shape.h>
+#include <gpu/Format.h>
+#include <LogHandler.h>
 
 #include "FBXReader.h"
-
+#include "ModelFormatLogging.h"
 
 // TOOL: Uncomment the following line to enable the filtering of all the unkwnon fields of a node so we can break point easily while loading a model with problems...
 //#define DEBUG_FBXREADER
@@ -125,14 +129,57 @@ Extents FBXGeometry::getUnscaledMeshExtents() const {
     return scaledExtents;
 }
 
+// TODO: Move to model::Mesh when Sam's ready
+bool FBXGeometry::convexHullContains(const glm::vec3& point) const {
+    if (!getUnscaledMeshExtents().containsPoint(point)) {
+        return false;
+    }
+    
+    auto checkEachPrimitive = [=](FBXMesh& mesh, QVector<int> indices, int primitiveSize) -> bool {
+        // Check whether the point is "behind" all the primitives.
+        for (int j = 0; j < indices.size(); j += primitiveSize) {
+            if (!isPointBehindTrianglesPlane(point,
+                                             mesh.vertices[indices[j]],
+                                             mesh.vertices[indices[j + 1]],
+                                             mesh.vertices[indices[j + 2]])) {
+                // it's not behind at least one so we bail
+                return false;
+            }
+        }
+        return true;
+    };
+    
+    // Check that the point is contained in at least one convex mesh.
+    for (auto mesh : meshes) {
+        bool insideMesh = true;
+        
+        // To be considered inside a convex mesh,
+        // the point needs to be "behind" all the primitives respective planes.
+        for (auto part : mesh.parts) {
+            // run through all the triangles and quads
+            if (!checkEachPrimitive(mesh, part.triangleIndices, 3) ||
+                !checkEachPrimitive(mesh, part.quadIndices, 4)) {
+                // If not, the point is outside, bail for this mesh
+                insideMesh = false;
+                continue;
+            }
+        }
+        if (insideMesh) {
+            // It's inside this mesh, return true.
+            return true;
+        }
+    }
+    
+    // It wasn't in any mesh, return false.
+    return false;
+}
+
 QString FBXGeometry::getModelNameOfMesh(int meshIndex) const {
     if (meshIndicesToModelNames.contains(meshIndex)) {
         return meshIndicesToModelNames.value(meshIndex);
     }
     return QString();
 }
-
-
 
 static int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
 static int fbxAnimationFrameMetaTypeId = qRegisterMetaType<FBXAnimationFrame>();
@@ -458,9 +505,39 @@ FBXNode parseFBX(QIODevice* device) {
     return top;
 }
 
+QVector<glm::vec4> createVec4Vector(const QVector<double>& doubleVector) {
+    QVector<glm::vec4> values;
+    for (const double* it = doubleVector.constData(), *end = it + ((doubleVector.size() / 4) * 4); it != end; ) {
+        float x = *it++;
+        float y = *it++;
+        float z = *it++;
+        float w = *it++;
+        values.append(glm::vec4(x, y, z, w));
+    }
+    return values;
+}
+
+
+QVector<glm::vec4> createVec4VectorRGBA(const QVector<double>& doubleVector, glm::vec4& average) {
+    QVector<glm::vec4> values;
+    for (const double* it = doubleVector.constData(), *end = it + ((doubleVector.size() / 4) * 4); it != end; ) {
+        float x = *it++;
+        float y = *it++;
+        float z = *it++;
+        float w = *it++;
+        auto val = glm::vec4(x, y, z, w);
+        values.append(val);
+        average += val;
+    }
+    if (!values.isEmpty()) {
+        average *= (1.0f / float(values.size()));
+    }
+    return values;
+}
+
 QVector<glm::vec3> createVec3Vector(const QVector<double>& doubleVector) {
     QVector<glm::vec3> values;
-    for (const double* it = doubleVector.constData(), *end = it + (doubleVector.size() / 3 * 3); it != end; ) {
+    for (const double* it = doubleVector.constData(), *end = it + ((doubleVector.size() / 3) * 3); it != end; ) {
         float x = *it++;
         float y = *it++;
         float z = *it++;
@@ -471,7 +548,7 @@ QVector<glm::vec3> createVec3Vector(const QVector<double>& doubleVector) {
 
 QVector<glm::vec2> createVec2Vector(const QVector<double>& doubleVector) {
     QVector<glm::vec2> values;
-    for (const double* it = doubleVector.constData(), *end = it + (doubleVector.size() / 2 * 2); it != end; ) {
+    for (const double* it = doubleVector.constData(), *end = it + ((doubleVector.size() / 2) * 2); it != end; ) {
         float s = *it++;
         float t = *it++;
         values.append(glm::vec2(s, -t));
@@ -650,7 +727,7 @@ public:
 void printNode(const FBXNode& node, int indentLevel) {
     int indentLength = 2;
     QByteArray spaces(indentLevel * indentLength, ' ');
-    QDebug nodeDebug = qDebug();
+    QDebug nodeDebug = qDebug(modelformat);
     
     nodeDebug.nospace() << spaces.data() << node.name.data() << ": ";
     foreach (const QVariant& property, node.properties) {
@@ -739,6 +816,12 @@ public:
     bool normalsByVertex;
     QVector<glm::vec3> normals;
     QVector<int> normalIndices;
+
+    bool colorsByVertex;
+    glm::vec4 averageColor{1.0f, 1.0f, 1.0f, 1.0f};
+    QVector<glm::vec4> colors;
+    QVector<int> colorIndices;
+
     QVector<glm::vec2> texCoords;
     QVector<int> texCoordIndices;
 
@@ -776,6 +859,23 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
         }
     }
 
+
+    glm::vec4 color;
+    bool hasColors = (data.colors.size() > 1);
+    if (hasColors) {
+        int colorIndex = data.colorsByVertex ? vertexIndex : index;
+        if (data.colorIndices.isEmpty()) {    
+            if (colorIndex < data.colors.size()) {
+                color = data.colors.at(colorIndex);
+            }
+        } else if (colorIndex < data.colorIndices.size()) {
+            colorIndex = data.colorIndices.at(colorIndex);
+            if (colorIndex >= 0 && colorIndex < data.colors.size()) {
+                color = data.colors.at(colorIndex);
+            }
+        }
+    }
+
     if (data.texCoordIndices.isEmpty()) {
         if (index < data.texCoords.size()) {
             vertex.texCoord = data.texCoords.at(index);
@@ -810,6 +910,9 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
         data.extracted.mesh.vertices.append(position);
         data.extracted.mesh.normals.append(normal);
         data.extracted.mesh.texCoords.append(vertex.texCoord);
+        if (hasColors) {
+            data.extracted.mesh.colors.append(glm::vec3(color));
+        }
         if (hasMoreTexcoords) {
             data.extracted.mesh.texCoords1.append(vertex.texCoord1);
         }
@@ -852,6 +955,40 @@ ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
                 // hack to work around wacky Makehuman exports
                 data.normalsByVertex = true;
             }
+        } else if (child.name == "LayerElementColor") {
+            data.colorsByVertex = false;
+            bool indexToDirect = false;
+            foreach (const FBXNode& subdata, child.children) {
+                if (subdata.name == "Colors") {
+                    data.colors = createVec4VectorRGBA(getDoubleVector(subdata), data.averageColor);
+                } else if (subdata.name == "ColorsIndex") {
+                    data.colorIndices = getIntVector(subdata);
+
+                } else if (subdata.name == "MappingInformationType" && subdata.properties.at(0) == "ByVertice") {
+                    data.colorsByVertex = true;
+                    
+                } else if (subdata.name == "ReferenceInformationType" && subdata.properties.at(0) == "IndexToDirect") {
+                    indexToDirect = true;
+                }
+            }
+            if (indexToDirect && data.normalIndices.isEmpty()) {
+                // hack to work around wacky Makehuman exports
+                data.colorsByVertex = true;
+            }
+
+#if defined(FBXREADER_KILL_BLACK_COLOR_ATTRIBUTE)
+            // Potential feature where we decide to kill the color attribute is to dark?
+            // Tested with the model:
+            // https://hifi-public.s3.amazonaws.com/ryan/gardenLight2.fbx
+            // let's check if we did have true data ?
+            if (glm::all(glm::lessThanEqual(data.averageColor, glm::vec4(0.09f)))) {
+                data.colors.clear();
+                data.colorIndices.clear();
+                data.colorsByVertex = false;
+                qCDebug(modelformat) << "LayerElementColor has an average value of 0.0f... let's forget it.";
+            }
+#endif
+         
         } else if (child.name == "LayerElementUV") {
             if (child.properties.at(0).toInt() == 0) {
                 AttributeData attrib;
@@ -912,7 +1049,7 @@ ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex) {
                     data.attributes.push_back(attrib);
                 } else {
                     // WTF same names for different UVs?
-                    qDebug() << "LayerElementUV #" << attrib.index << " is reusing the same name as #" << (*it) << ". Skip this texcoord attribute.";
+                    qCDebug(modelformat) << "LayerElementUV #" << attrib.index << " is reusing the same name as #" << (*it) << ". Skip this texcoord attribute.";
                 }
             }
         } else if (child.name == "LayerElementMaterial") {
@@ -1146,7 +1283,7 @@ FBXLight extractLight(const FBXNode& object) {
                 if (property.name == "P") {
                     QString propname = property.properties.at(0).toString();
                     if (propname == "Intensity") {
-                        light.intensity = 0.01f * property.properties.at(valIndex).value<double>();
+                        light.intensity = 0.01f * property.properties.at(valIndex).value<float>();
                     } else if (propname == "Color") {
                         light.color = getVec3(property.properties, valIndex);
                     }
@@ -1173,7 +1310,166 @@ FBXLight extractLight(const FBXNode& object) {
     return light;
 }
 
-FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping, bool loadLightmaps, float lightmapLevel) {
+
+#if USE_MODEL_MESH
+void buildModelMesh(ExtractedMesh& extracted) {
+    static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("buildModelMesh failed -- .*");
+
+    if (extracted.mesh.vertices.size() == 0) {
+        extracted.mesh._mesh = model::Mesh();
+        qCDebug(modelformat) << "buildModelMesh failed -- no vertices";
+        return;
+    }
+    FBXMesh& fbxMesh = extracted.mesh;
+    model::Mesh mesh;
+
+    // Grab the vertices in a buffer
+    auto vb = make_shared<gpu::Buffer>();
+    vb->setData(extracted.mesh.vertices.size() * sizeof(glm::vec3),
+                (const gpu::Byte*) extracted.mesh.vertices.data());
+    gpu::BufferView vbv(vb, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+    mesh.setVertexBuffer(vbv);
+
+    // evaluate all attribute channels sizes
+    int normalsSize = fbxMesh.normals.size() * sizeof(glm::vec3);
+    int tangentsSize = fbxMesh.tangents.size() * sizeof(glm::vec3);
+    int colorsSize = fbxMesh.colors.size() * sizeof(glm::vec3);
+    int texCoordsSize = fbxMesh.texCoords.size() * sizeof(glm::vec2);
+    int texCoords1Size = fbxMesh.texCoords1.size() * sizeof(glm::vec2);
+    int clusterIndicesSize = fbxMesh.clusterIndices.size() * sizeof(glm::vec4);
+    int clusterWeightsSize = fbxMesh.clusterWeights.size() * sizeof(glm::vec4);
+
+    int normalsOffset = 0;
+    int tangentsOffset = normalsOffset + normalsSize;
+    int colorsOffset = tangentsOffset + tangentsSize;
+    int texCoordsOffset = colorsOffset + colorsSize;
+    int texCoords1Offset = texCoordsOffset + texCoordsSize;
+    int clusterIndicesOffset = texCoords1Offset + texCoords1Size;
+    int clusterWeightsOffset = clusterIndicesOffset + clusterIndicesSize;
+    int totalAttributeSize = clusterWeightsOffset + clusterWeightsSize;
+
+    // Copy all attribute data in a single attribute buffer
+    auto attribBuffer = make_shared<gpu::Buffer>();
+    attribBuffer->resize(totalAttributeSize);
+    attribBuffer->setSubData(normalsOffset, normalsSize, (gpu::Byte*) fbxMesh.normals.constData());
+    attribBuffer->setSubData(tangentsOffset, tangentsSize, (gpu::Byte*) fbxMesh.tangents.constData());
+    attribBuffer->setSubData(colorsOffset, colorsSize, (gpu::Byte*) fbxMesh.colors.constData());
+    attribBuffer->setSubData(texCoordsOffset, texCoordsSize, (gpu::Byte*) fbxMesh.texCoords.constData());
+    attribBuffer->setSubData(texCoords1Offset, texCoords1Size, (gpu::Byte*) fbxMesh.texCoords1.constData());
+    attribBuffer->setSubData(clusterIndicesOffset, clusterIndicesSize, (gpu::Byte*) fbxMesh.clusterIndices.constData());
+    attribBuffer->setSubData(clusterWeightsOffset, clusterWeightsSize, (gpu::Byte*) fbxMesh.clusterWeights.constData());
+
+    if (normalsSize) {
+        mesh.addAttribute(gpu::Stream::NORMAL,
+                          model::BufferView(attribBuffer, normalsOffset, normalsSize,
+                                            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ)));
+    }
+    if (tangentsSize) {
+        mesh.addAttribute(gpu::Stream::TANGENT,
+                          model::BufferView(attribBuffer, tangentsOffset, tangentsSize,
+                                            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ)));
+    }
+    if (colorsSize) {
+        mesh.addAttribute(gpu::Stream::COLOR,
+                          model::BufferView(attribBuffer, colorsOffset, colorsSize,
+                                            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB)));
+    }
+    if (texCoordsSize) {
+        mesh.addAttribute(gpu::Stream::TEXCOORD,
+                          model::BufferView( attribBuffer, texCoordsOffset, texCoordsSize,
+                                             gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV)));
+    }
+    if (texCoords1Size) {
+        mesh.addAttribute(gpu::Stream::TEXCOORD1,
+                          model::BufferView(attribBuffer, texCoords1Offset, texCoords1Size,
+                                            gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV)));
+    }
+    if (clusterIndicesSize) {
+        mesh.addAttribute(gpu::Stream::SKIN_CLUSTER_INDEX,
+                          model::BufferView(attribBuffer, clusterIndicesOffset, clusterIndicesSize,
+                                            gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW)));
+    }
+    if (clusterWeightsSize) {
+        mesh.addAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT,
+                          model::BufferView(attribBuffer, clusterWeightsOffset, clusterWeightsSize,
+                                            gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW)));
+    }
+
+
+    unsigned int totalIndices = 0;
+
+    foreach(const FBXMeshPart& part, extracted.mesh.parts) {
+        totalIndices += (part.quadIndices.size() + part.triangleIndices.size());
+    }
+
+    if (! totalIndices) {
+        extracted.mesh._mesh = model::Mesh();
+        qCDebug(modelformat) << "buildModelMesh failed -- no indices";
+        return;
+    }
+
+    auto ib = make_shared<gpu::Buffer>();
+    ib->resize(totalIndices * sizeof(int));
+
+    int indexNum = 0;
+    int offset = 0;
+
+    std::vector< model::Mesh::Part > parts;
+
+    foreach(const FBXMeshPart& part, extracted.mesh.parts) {
+        model::Mesh::Part quadPart(indexNum, part.quadIndices.size(), 0, model::Mesh::QUADS);
+        if (quadPart._numIndices) {
+            parts.push_back(quadPart);
+            ib->setSubData(offset, part.quadIndices.size() * sizeof(int),
+                           (gpu::Byte*) part.quadIndices.constData());
+            offset += part.quadIndices.size() * sizeof(int);
+            indexNum += part.quadIndices.size();
+        }
+        model::Mesh::Part triPart(indexNum, part.triangleIndices.size(), 0, model::Mesh::TRIANGLES);
+        if (triPart._numIndices) {
+            ib->setSubData(offset, part.triangleIndices.size() * sizeof(int),
+                           (gpu::Byte*) part.triangleIndices.constData());
+            offset += part.triangleIndices.size() * sizeof(int);
+            indexNum += part.triangleIndices.size();
+        }
+    }
+
+    gpu::BufferView ibv(ib, gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::XYZ));
+    mesh.setIndexBuffer(ibv);
+
+    if (parts.size()) {
+        auto pb = make_shared<gpu::Buffer>();
+        pb->setData(parts.size() * sizeof(model::Mesh::Part), (const gpu::Byte*) parts.data());
+        gpu::BufferView pbv(pb, gpu::Element(gpu::VEC4, gpu::UINT32, gpu::XYZW));
+        mesh.setPartBuffer(pbv);
+    } else {
+        extracted.mesh._mesh = model::Mesh();
+        qCDebug(modelformat) << "buildModelMesh failed -- no parts";
+        return;
+    }
+
+    // model::Box box =
+    mesh.evalPartBound(0);
+
+    extracted.mesh._mesh = mesh;
+}
+#endif // USE_MODEL_MESH
+
+QByteArray fileOnUrl(const QByteArray& filenameString, const QString& url) {
+    QString path = QFileInfo(url).path();
+    QByteArray filename = filenameString;
+    QFileInfo checkFile(path + "/" + filename.replace('\\', '/'));
+    //check if the file exists at the RelativeFileName
+    if (checkFile.exists() && checkFile.isFile()) {
+        filename = filename.replace('\\', '/');
+    } else {
+        // there is no texture at the fbx dir with the filename added. Assume it is in the fbx dir.
+        filename = filename.mid(qMax(filename.lastIndexOf('\\'), filename.lastIndexOf('/')) + 1);
+    }
+    return filename;
+}
+
+FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
     QHash<QString, ExtractedMesh> meshes;
     QHash<QString, QString> modelIDsToNames;
     QHash<QString, int> meshIDsToMeshIndices;
@@ -1367,7 +1663,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     bool rotationMinX = false, rotationMinY = false, rotationMinZ = false;
                     bool rotationMaxX = false, rotationMaxY = false, rotationMaxZ = false;
                     glm::vec3 rotationMin, rotationMax;
-                    FBXModel model = { name, -1 };
+                    FBXModel model = { name, -1, glm::vec3(), glm::mat4(), glm::quat(), glm::quat(), glm::quat(),
+                                       glm::mat4(), glm::vec3(), glm::vec3()};
                     ExtractedMesh* mesh = NULL;
                     QVector<ExtractedBlendshape> blendshapes;
                     foreach (const FBXNode& subobject, object.children) {
@@ -1497,9 +1794,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     TextureParam tex;
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "RelativeFilename") {
-                            // trim off any path information
                             QByteArray filename = subobject.properties.at(0).toByteArray();
-                            filename = filename.mid(qMax(filename.lastIndexOf('\\'), filename.lastIndexOf('/')) + 1);
+                            filename = fileOnUrl(filename, url);
                             textureFilenames.insert(getID(object.properties), filename);
                         } else if (subobject.name == "TextureName") {
                             // trim the name from the timestamp
@@ -1573,7 +1869,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "RelativeFilename") {
                             filename = subobject.properties.at(0).toByteArray();
-                            filename = filename.mid(qMax(filename.lastIndexOf('\\'), filename.lastIndexOf('/')) + 1);
+                            filename = fileOnUrl(filename, url);
                             
                         } else if (subobject.name == "Content" && !subobject.properties.isEmpty()) {
                             content = subobject.properties.at(0).toByteArray();
@@ -1583,7 +1879,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                         textureContent.insert(filename, content);
                     }
                 } else if (object.name == "Material") {
-                    Material material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(), 96.0f, 1.0f };
+                    Material material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(), 96.0f, 1.0f,
+                                          QString(""), model::MaterialPointer(NULL)};
                     foreach (const FBXNode& subobject, object.children) {
                         bool properties = false;
                         QByteArray propertyName;
@@ -1641,12 +1938,21 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     }
                     material.id = getID(object.properties);
 
-                    material._material = model::MaterialPointer(new model::Material());
-                    material._material->setEmissive(material.emissive); 
-                    material._material->setDiffuse(material.diffuse); 
-                    material._material->setSpecular(material.specular); 
-                    material._material->setShininess(material.shininess); 
-                    material._material->setOpacity(material.opacity); 
+                    material._material = make_shared<model::Material>();
+                    material._material->setEmissive(material.emissive);
+                    if (glm::all(glm::equal(material.diffuse, glm::vec3(0.0f)))) {
+                        material._material->setDiffuse(material.diffuse); 
+                    } else {
+                        material._material->setDiffuse(material.diffuse); 
+                    }
+                    material._material->setMetallic(glm::length(material.specular)); 
+                    material._material->setGloss(material.shininess); 
+
+                    if (material.opacity <= 0.0f) {
+                        material._material->setOpacity(1.0f); 
+                    } else {
+                        material._material->setOpacity(material.opacity); 
+                    }
 
                     materials.insert(material.id, material);
 
@@ -2132,7 +2438,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     setTangents(extracted.mesh, part.triangleIndices.at(i + 2), part.triangleIndices.at(i));
                 }
                 if ((part.triangleIndices.size() % 3) != 0){
-                    qDebug() << "Error in extractFBXGeometry part.triangleIndices.size() is not divisible by three ";
+                    qCDebug(modelformat) << "Error in extractFBXGeometry part.triangleIndices.size() is not divisible by three ";
                 }
             }
         }
@@ -2153,7 +2459,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                 QString jointID = childMap.value(clusterID);
                 fbxCluster.jointIndex = modelIDs.indexOf(jointID);
                 if (fbxCluster.jointIndex == -1) {
-                    qDebug() << "Joint not in model list: " << jointID;
+                    qCDebug(modelformat) << "Joint not in model list: " << jointID;
                     fbxCluster.jointIndex = 0;
                 }
                 fbxCluster.inverseBindMatrix = glm::inverse(cluster.transformLink) * modelTransform;
@@ -2175,7 +2481,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
             FBXCluster cluster;
             cluster.jointIndex = modelIDs.indexOf(modelID);
             if (cluster.jointIndex == -1) {
-                qDebug() << "Model not in model list: " << modelID;
+                qCDebug(modelformat) << "Model not in model list: " << modelID;
                 cluster.jointIndex = 0;
             }
             extracted.mesh.clusters.append(cluster);
@@ -2317,11 +2623,22 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
             }
         }
         extracted.mesh.isEye = (maxJointIndex == geometry.leftEyeJointIndex || maxJointIndex == geometry.rightEyeJointIndex);
+
+#       if USE_MODEL_MESH
+        buildModelMesh(extracted);
+#       endif
         
+        if (extracted.mesh.isEye) {
+            if (maxJointIndex == geometry.leftEyeJointIndex) {
+                geometry.leftEyeSize = extracted.mesh.meshExtents.largestDimension() * offsetScale;
+            } else {
+                geometry.rightEyeSize = extracted.mesh.meshExtents.largestDimension() * offsetScale;
+            }
+        }
+
         geometry.meshes.append(extracted.mesh);
         int meshIndex = geometry.meshes.size() - 1;
         meshIDsToMeshIndices.insert(it.key(), meshIndex);
-
     }
 
     // now that all joints have been scanned, compute a collision shape for each joint
@@ -2379,34 +2696,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
         }
     }
     geometry.palmDirection = parseVec3(mapping.value("palmDirection", "0, -1, 0").toString());
-
-    // process attachments
-    QVariantHash attachments = mapping.value("attach").toHash();
-    for (QVariantHash::const_iterator it = attachments.constBegin(); it != attachments.constEnd(); it++) {
-        FBXAttachment attachment;
-        attachment.jointIndex = modelIDs.indexOf(processID(it.key()));
-        attachment.scale = glm::vec3(1.0f, 1.0f, 1.0f);
-
-        QVariantList properties = it->toList();
-        if (properties.isEmpty()) {
-            attachment.url = it->toString();
-        } else {
-            attachment.url = properties.at(0).toString();
-
-            if (properties.size() >= 2) {
-                attachment.translation = parseVec3(properties.at(1).toString());
-
-                if (properties.size() >= 3) {
-                    attachment.rotation = glm::quat(glm::radians(parseVec3(properties.at(2).toString())));
-
-                    if (properties.size() >= 4) {
-                        attachment.scale = parseVec3(properties.at(3).toString());
-                    }
-                }
-            }
-        }
-        geometry.attachments.append(attachment);
-    }
     
     // Add sitting points
     QVariantHash sittingPoints = mapping.value("sit").toHash();
@@ -2440,12 +2729,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
     return geometry;
 }
 
-FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, bool loadLightmaps, float lightmapLevel) {
+FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
     QBuffer buffer(const_cast<QByteArray*>(&model));
     buffer.open(QIODevice::ReadOnly);
-    return readFBX(&buffer, mapping, loadLightmaps, lightmapLevel);
+    return readFBX(&buffer, mapping, url, loadLightmaps, lightmapLevel);
 }
 
-FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, bool loadLightmaps, float lightmapLevel) {
-    return extractFBXGeometry(parseFBX(device), mapping, loadLightmaps, lightmapLevel);
+FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
+    return extractFBXGeometry(parseFBX(device), mapping, url, loadLightmaps, lightmapLevel);
 }

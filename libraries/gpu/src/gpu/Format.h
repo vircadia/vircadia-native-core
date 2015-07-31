@@ -16,6 +16,14 @@
 
 namespace gpu {
 
+class GPUObject {
+public:
+    GPUObject() {}
+    virtual ~GPUObject() {}
+};
+
+typedef int  Stamp;
+
 typedef unsigned int uint32;
 typedef int int32;
 typedef unsigned short uint16;
@@ -23,13 +31,18 @@ typedef short int16;
 typedef unsigned char uint8;
 typedef char int8;
 
+typedef unsigned char Byte;
+    
 typedef uint32 Offset;
 
 typedef glm::mat4 Mat4;
 typedef glm::mat3 Mat3;
 typedef glm::vec4 Vec4;
+typedef glm::ivec4 Vec4i;
 typedef glm::vec3 Vec3;
 typedef glm::vec2 Vec2;
+typedef glm::ivec2 Vec2i;
+typedef glm::uvec2 Vec2u;
 
 // Description of a scalar type
 enum Type {
@@ -114,7 +127,8 @@ enum Semantic {
     INDEX, //used by index buffer of a mesh
     PART, // used by part buffer of a mesh
 
-    DEPTH, // Depth buffer
+    DEPTH, // Depth only buffer
+    STENCIL, // Stencil only buffer
     DEPTH_STENCIL, // Depth Stencil buffer
 
     SRGB,
@@ -167,10 +181,42 @@ public:
         return getRaw() != right.getRaw();
     }
 
+    static const Element COLOR_RGBA_32;
+    static const Element VEC3F_XYZ;
+    static const Element INDEX_UINT16;
+    static const Element PART_DRAWCALL;
+
  protected:
     uint8 _semantic;
     uint8 _dimension : 4;
     uint8 _type : 4;
+};
+
+  
+enum ComparisonFunction {
+    NEVER = 0,
+    LESS,
+    EQUAL,
+    LESS_EQUAL,
+    GREATER,
+    NOT_EQUAL,
+    GREATER_EQUAL,
+    ALWAYS,
+
+    NUM_COMPARISON_FUNCS,
+};
+
+enum Primitive {
+    POINTS = 0,
+    LINES,
+    LINE_STRIP,
+    TRIANGLES,
+    TRIANGLE_STRIP,
+    TRIANGLE_FAN,
+    QUADS,
+    QUAD_STRIP,
+
+    NUM_PRIMITIVES,
 };
 
 };

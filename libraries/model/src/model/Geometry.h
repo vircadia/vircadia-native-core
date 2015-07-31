@@ -47,14 +47,15 @@ public:
     void setVertexBuffer(const BufferView& buffer);
     const BufferView& getVertexBuffer() const { return _vertexBuffer; }
     uint getNumVertices() const { return _vertexBuffer.getNumElements(); }
-    bool hasVertexData() const { return !_vertexBuffer._buffer.isNull(); }
+    bool hasVertexData() const { return _vertexBuffer._buffer.get() != nullptr; }
 
     // Attribute Buffers
     int getNumAttributes() const { return _attributeBuffers.size(); }
     void addAttribute(Slot slot, const BufferView& buffer);
+    const BufferView getAttributeBuffer(int attrib) const;
 
     // Stream format
-    const VertexFormat& getVertexFormat() const { return _vertexFormat; }
+    const gpu::Stream::FormatPointer getVertexFormat() const { return _vertexFormat; }
 
     // Index Buffer
     void setIndexBuffer(const BufferView& buffer);
@@ -112,9 +113,11 @@ public:
     // Generate a BufferStream on the mesh vertices and attributes
     const gpu::BufferStream makeBufferStream() const;
 
+    static gpu::Primitive topologyToPrimitive(Topology topo) { return static_cast<gpu::Primitive>(topo); }
+
 protected:
 
-    VertexFormat _vertexFormat;
+    gpu::Stream::FormatPointer _vertexFormat;
 
     BufferView _vertexBuffer;
     BufferViewMap _attributeBuffers;
@@ -126,7 +129,7 @@ protected:
     void evalVertexFormat();
 
 };
-typedef QSharedPointer< Mesh > MeshPointer;
+typedef std::shared_ptr< Mesh > MeshPointer;
 
 
 class Geometry {

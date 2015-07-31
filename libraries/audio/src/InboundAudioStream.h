@@ -12,13 +12,15 @@
 #ifndef hifi_InboundAudioStream_h
 #define hifi_InboundAudioStream_h
 
-#include "NodeData.h"
+#include <NodeData.h>
+#include <NumericalConstants.h>
+#include <udt/PacketHeaders.h>
+#include <StDev.h>
+
 #include "AudioRingBuffer.h"
 #include "MovingMinMaxAvg.h"
 #include "SequenceNumberStats.h"
 #include "AudioStreamStats.h"
-#include "PacketHeaders.h"
-#include "StDev.h"
 #include "TimeWeightedAvg.h"
 
 // This adds some number of frames to the desired jitter buffer frames target we use when we're dropping frames.
@@ -78,7 +80,7 @@ public:
         {}
 
         // max number of frames over desired in the ringbuffer.
-        int _maxFramesOverDesired; 
+        int _maxFramesOverDesired;
 
         // if false, _desiredJitterBufferFrames will always be _staticDesiredJitterBufferFrames.  Otherwise,
         // either fred or philip's method will be used to calculate _desiredJitterBufferFrames based on packet timegaps.
@@ -105,7 +107,7 @@ public:
     virtual void resetStats();
     void clearBuffer();
 
-    virtual int parseData(const QByteArray& packet);
+    virtual int parseData(NLPacket& packet);
 
     int popFrames(int maxFrames, bool allOrNothing, bool starveIfNoFramesPopped = true);
     int popSamples(int maxSamples, bool allOrNothing, bool starveIfNoSamplesPopped = true);
@@ -129,7 +131,7 @@ public:
     virtual AudioStreamStats getAudioStreamStats() const;
 
     /// returns the desired number of jitter buffer frames under the dyanmic jitter buffers scheme
-    int getCalculatedJitterBufferFrames() const { return _useStDevForJitterCalc ? 
+    int getCalculatedJitterBufferFrames() const { return _useStDevForJitterCalc ?
         _calculatedJitterBufferFramesUsingStDev : _calculatedJitterBufferFramesUsingMaxGap; };
 
     /// returns the desired number of jitter buffer frames using Philip's method
@@ -192,11 +194,11 @@ protected:
     /// parses the info between the seq num and the audio data in the network packet and calculates
     /// how many audio samples this packet contains (used when filling in samples for dropped packets).
     /// default implementation assumes no stream properties and raw audio samples after stream propertiess
-    virtual int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& networkSamples);
+    virtual int parseStreamProperties(PacketType::Value type, const QByteArray& packetAfterSeqNum, int& networkSamples);
 
     /// parses the audio data in the network packet.
     /// default implementation assumes packet contains raw audio samples after stream properties
-    virtual int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int networkSamples);
+    virtual int parseAudioData(PacketType::Value type, const QByteArray& packetAfterStreamProperties, int networkSamples);
 
     /// writes silent samples to the buffer that may be dropped to reduce latency caused by the buffer
     virtual int writeDroppableSilentSamples(int silentSamples);
@@ -215,7 +217,7 @@ protected:
     bool _dynamicJitterBuffers;         // if false, _desiredJitterBufferFrames is locked at 1 (old behavior)
     int _staticDesiredJitterBufferFrames;
 
-    // if jitter buffer is dynamic, this determines what method of calculating _desiredJitterBufferFrames 
+    // if jitter buffer is dynamic, this determines what method of calculating _desiredJitterBufferFrames
     // if true, Philip's timegap std dev calculation is used.  Otherwise, Freddy's max timegap calculation is used
     bool _useStDevForJitterCalc;
 

@@ -15,7 +15,6 @@
 #define hifi_OctreeSendThread_h
 
 #include <GenericThread.h>
-#include <NetworkPacket.h>
 #include <OctreeElementBag.h>
 
 #include "OctreeQueryNode.h"
@@ -26,9 +25,9 @@ class OctreeServer;
 class OctreeSendThread : public GenericThread {
     Q_OBJECT
 public:
-    OctreeSendThread(const SharedAssignmentPointer& myAssignment, const SharedNodePointer& node);
+    OctreeSendThread(OctreeServer* myServer, const SharedNodePointer& node);
     virtual ~OctreeSendThread();
-    
+
     void setIsShuttingDown();
 
     static quint64 _totalBytes;
@@ -43,7 +42,6 @@ protected:
     virtual bool process();
 
 private:
-    SharedAssignmentPointer _myAssignment;
     OctreeServer* _myServer;
     SharedNodePointer _node;
     QUuid _nodeUUID;
@@ -52,7 +50,7 @@ private:
     int packetDistributor(OctreeQueryNode* nodeData, bool viewFrustumChanged);
 
     OctreePacketData _packetData;
-    
+
     int _nodeMissingCount;
     bool _isShuttingDown;
 };

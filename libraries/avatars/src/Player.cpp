@@ -15,6 +15,7 @@
 #include <StreamUtils.h>
 
 #include "AvatarData.h"
+#include "AvatarLogging.h"
 #include "Player.h"
 
 static const int INVALID_FRAME = -1;
@@ -90,35 +91,35 @@ void Player::startPlaying() {
         
         bool wantDebug = false;
         if (wantDebug) {
-            qDebug() << "Player::startPlaying(): Recording Context";
-            qDebug() << "Domain:" << _currentContext.domain;
-            qDebug() << "Position:" << _currentContext.position;
-            qDebug() << "Orientation:" << _currentContext.orientation;
-            qDebug() << "Scale:" << _currentContext.scale;
-            qDebug() << "Head URL:" << _currentContext.headModel;
-            qDebug() << "Skeleton URL:" << _currentContext.skeletonModel;
-            qDebug() << "Display Name:" << _currentContext.displayName;
-            qDebug() << "Num Attachments:" << _currentContext.attachments.size();
+            qCDebug(avatars) << "Player::startPlaying(): Recording Context";
+            qCDebug(avatars) << "Domain:" << _currentContext.domain;
+            qCDebug(avatars) << "Position:" << _currentContext.position;
+            qCDebug(avatars) << "Orientation:" << _currentContext.orientation;
+            qCDebug(avatars) << "Scale:" << _currentContext.scale;
+            qCDebug(avatars) << "Head URL:" << _currentContext.headModel;
+            qCDebug(avatars) << "Skeleton URL:" << _currentContext.skeletonModel;
+            qCDebug(avatars) << "Display Name:" << _currentContext.displayName;
+            qCDebug(avatars) << "Num Attachments:" << _currentContext.attachments.size();
             
             for (int i = 0; i < _currentContext.attachments.size(); ++i) {
-                qDebug() << "Model URL:" << _currentContext.attachments[i].modelURL;
-                qDebug() << "Joint Name:" << _currentContext.attachments[i].jointName;
-                qDebug() << "Translation:" << _currentContext.attachments[i].translation;
-                qDebug() << "Rotation:" << _currentContext.attachments[i].rotation;
-                qDebug() << "Scale:" << _currentContext.attachments[i].scale;
+                qCDebug(avatars) << "Model URL:" << _currentContext.attachments[i].modelURL;
+                qCDebug(avatars) << "Joint Name:" << _currentContext.attachments[i].jointName;
+                qCDebug(avatars) << "Translation:" << _currentContext.attachments[i].translation;
+                qCDebug(avatars) << "Rotation:" << _currentContext.attachments[i].rotation;
+                qCDebug(avatars) << "Scale:" << _currentContext.attachments[i].scale;
             }
         }
         
         // Fake faceshift connection
         _avatar->setForceFaceTrackerConnected(true);
         
-        qDebug() << "Recorder::startPlaying()";
+        qCDebug(avatars) << "Recorder::startPlaying()";
         setupAudioThread();
         _currentFrame = 0;
         _timerOffset = 0;
         _timer.start();
     } else {
-        qDebug() << "Recorder::startPlaying(): Unpause";
+        qCDebug(avatars) << "Recorder::startPlaying(): Unpause";
         setupAudioThread();
         _timer.start();
         
@@ -152,7 +153,7 @@ void Player::stopPlaying() {
         _avatar->setSkeletonModelURL(_currentContext.skeletonModel);
     }
     
-    qDebug() << "Recorder::stopPlaying()";
+    qCDebug(avatars) << "Recorder::stopPlaying()";
 }
 
 void Player::pausePlayer() {
@@ -161,7 +162,7 @@ void Player::pausePlayer() {
     cleanupAudioThread();
     
     _pausedFrame = _currentFrame;
-    qDebug() << "Recorder::pausePlayer()";
+    qCDebug(avatars) << "Recorder::pausePlayer()";
 }
 
 void Player::setupAudioThread() {
@@ -201,7 +202,7 @@ void Player::loadFromFile(const QString& file) {
     if (_recording) {
         _recording->clear();
     } else {
-        _recording = RecordingPointer(new Recording());
+        _recording = QSharedPointer<Recording>();
     }
     readRecordingFromFile(_recording, file);
     
@@ -292,7 +293,7 @@ void Player::play() {
                                     _frameInterpolationFactor);
         head->setLookAtPosition(context->position + context->orientation * lookAt);
     } else {
-        qDebug() << "WARNING: Player couldn't find head data.";
+        qCDebug(avatars) << "WARNING: Player couldn't find head data.";
     }
     
     _options.position = _avatar->getPosition();
@@ -359,7 +360,7 @@ void Player::setVolume(float volume) {
     if (_injector) {
         _injector->setOptions(_options);
     }
-    qDebug() << "New volume: " << volume;
+    qCDebug(avatars) << "New volume: " << volume;
 }
 
 void Player::setAudioOffset(int audioOffset) {
@@ -410,7 +411,7 @@ bool Player::computeCurrentFrame() {
     
     if (_frameInterpolationFactor < 0.0f || _frameInterpolationFactor > 1.0f) {
         _frameInterpolationFactor = 0.0f;
-        qDebug() << "Invalid frame interpolation value: overriding";
+        qCDebug(avatars) << "Invalid frame interpolation value: overriding";
     }
     return true;
 }

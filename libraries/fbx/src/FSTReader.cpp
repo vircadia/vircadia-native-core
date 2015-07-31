@@ -10,6 +10,13 @@
 //
 
 #include <QBuffer>
+#include <QEventLoop>
+#include <QNetworkReply>
+#include <QNetworkRequest>
+
+#include <NetworkAccessManager.h>
+#include <NetworkingConstants.h>
+#include <SharedUtil.h>
 
 #include "FSTReader.h"
 
@@ -86,7 +93,16 @@ QByteArray FSTReader::writeMapping(const QVariantHash& mapping) {
     for (auto key : PREFERED_ORDER) {
         auto it = mapping.find(key);
         if (it != mapping.constEnd()) {
-            writeVariant(buffer, it);
+            if (key == FREE_JOINT_FIELD) { // writeVariant does not handle strings added using insertMulti.
+                for (auto multi : mapping.values(key)) {
+                    buffer.write(key.toUtf8());
+                    buffer.write(" = ");
+                    buffer.write(multi.toByteArray());
+                    buffer.write("\n");
+                }
+            } else {
+                writeVariant(buffer, it);
+            }
         }
     }
     
@@ -117,7 +133,9 @@ FSTReader::ModelType FSTReader::getTypeFromName(const QString& name) {
         _namesToTypes["head"] = HEAD_MODEL ;
         _namesToTypes["body"] = BODY_ONLY_MODEL;
         _namesToTypes["body+head"] = HEAD_AND_BODY_MODEL;
-        _namesToTypes["attachment"] = ATTACHMENT_MODEL;
+        
+        // NOTE: this is not yet implemented, but will be used to allow you to attach fully independent models to your avatar
+        _namesToTypes["attachment"] = ATTACHMENT_MODEL; 
     }
     return _namesToTypes[name];
 }
@@ -168,4 +186,18 @@ FSTReader::ModelType FSTReader::predictModelType(const QVariantHash& mapping) {
     }
     
     return ENTITY_MODEL;
+}
+
+QVariantHash FSTReader::downloadMapping(const QString& url) {
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkRequest networkRequest = QNetworkRequest(url);
+    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    QNetworkReply* reply = networkAccessManager.get(networkRequest);
+    qDebug() << "Downloading avatar file at " << url;
+    QEventLoop loop;
+    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    loop.exec();
+    QByteArray fstContents = reply->readAll();
+    delete reply;
+    return FSTReader::readMapping(fstContents);
 }

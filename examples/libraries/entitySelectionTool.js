@@ -19,15 +19,8 @@ SPACE_WORLD = "world";
 SelectionManager = (function() {
     var that = {};
 
-    var PENDING_SELECTION_CHECK_INTERVAL = 50;
-
     that.savedProperties = {};
-
     that.selections = [];
-    // These are selections that don't have a known ID yet
-    that.pendingSelections = [];
-    var pendingSelectionTimer = null;
-
     var listeners = [];
 
     that.localRotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
@@ -45,7 +38,7 @@ SelectionManager = (function() {
         that.savedProperties = {};
         for (var i = 0; i < that.selections.length; i++) {
             var entityID = that.selections[i];
-            that.savedProperties[entityID.id] = Entities.getEntityProperties(entityID);
+            that.savedProperties[entityID] = Entities.getEntityProperties(entityID);
         }
     };
 
@@ -61,41 +54,17 @@ SelectionManager = (function() {
         that.selections = [];
         for (var i = 0; i < entityIDs.length; i++) {
             var entityID = entityIDs[i];
-            if (entityID.isKnownID) {
-                that.selections.push(entityID);
-            } else {
-                that.pendingSelections.push(entityID);
-                if (pendingSelectionTimer == null) {
-                    pendingSelectionTimer = Script.setInterval(that._checkPendingSelections, PENDING_SELECTION_CHECK_INTERVAL);
-                }
-            }
+            that.selections.push(entityID);
         }
 
         that._update();
     };
 
-    that._checkPendingSelections = function() {
-        for (var i = 0; i < that.pendingSelections.length; i++) {
-            var entityID = that.pendingSelections[i];
-            var newEntityID = Entities.identifyEntity(entityID);
-            if (newEntityID.isKnownID) {
-                that.pendingSelections.splice(i, 1);
-                that.addEntity(newEntityID);
-                i--;
-            }
-        }
-
-        if (that.pendingSelections.length == 0) {
-            Script.clearInterval(pendingSelectionTimer);
-            pendingSelectionTimer = null;
-        }
-    }
-
     that.addEntity = function(entityID, toggleSelection) {
-        if (entityID.isKnownID) {
+        if (entityID) {
             var idx = -1;
             for (var i = 0; i < that.selections.length; i++) {
-                if (entityID.id == that.selections[i].id) {
+                if (entityID == that.selections[i]) {
                     idx = i;
                     break;
                 }
@@ -104,14 +73,6 @@ SelectionManager = (function() {
                 that.selections.push(entityID);
             } else if (toggleSelection) {
                 that.selections.splice(idx, 1);
-            }
-        } else {
-            var idx = that.pendingSelections.indexOf(entityID);
-            if (idx == -1) {
-                that.pendingSelections.push(entityID);
-                if (pendingSelectionTimer == null) {
-                    pendingSelectionTimer = Script.setInterval(that._checkPendingSelections, PENDING_SELECTION_CHECK_INTERVAL);
-                }
             }
         }
 
@@ -123,24 +84,11 @@ SelectionManager = (function() {
         if (idx >= 0) {
             that.selections.splice(idx, 1);
         }
-
-        var idx = that.pendingSelections.indexOf(entityID);
-        if (idx >= 0) {
-            that.pendingSelections.splice(idx, 1);
-        }
-
         that._update();
     };
 
     that.clearSelections = function() {
         that.selections = [];
-        that.pendingSelections = [];
-
-        if (pendingSelectionTimer !== null) {
-            Script.clearInterval(pendingSelectionTimer);
-            pendingSelectionTimer = null;
-        }
-
         that._update();
     };
 
@@ -203,7 +151,7 @@ SelectionManager = (function() {
             try {
                 listeners[i]();
             } catch (e) {
-                print("got exception");
+                print("EntitySelectionTool got exception: " + JSON.stringify(e));
             }
         }
     };
@@ -301,6 +249,8 @@ SelectionDisplay = (function () {
     var grabberSolid = true;
     var grabberMoveUpPosition = { x: 0, y: 0, z: 0 };
 
+    var lightOverlayColor = { red: 255, green: 153, blue: 0 };
+
     var grabberPropertiesCorner = {
                 position: { x:0, y: 0, z: 0},
                 size: grabberSizeCorner,
@@ -340,6 +290,11 @@ SelectionDisplay = (function () {
                 borderSize: 1.4,
             };
     
+    var spotLightLineProperties = {
+        color: lightOverlayColor,
+        lineWidth: 1.5,
+    };
+    
     var highlightBox = Overlays.addOverlay("cube", {
                     position: { x:0, y: 0, z: 0},
                     size: 1,
@@ -349,7 +304,8 @@ SelectionDisplay = (function () {
                     visible: false,
                     dashed: true,
                     lineWidth: 2.0,
-                    ignoreRayIntersection: true // this never ray intersects
+                    ignoreRayIntersection: true, // this never ray intersects
+                    drawInFront: true
                 });
 
     var selectionBox = Overlays.addOverlay("cube", {
@@ -434,6 +390,48 @@ SelectionDisplay = (function () {
     var grabberEdgeFR = Overlays.addOverlay("cube", grabberPropertiesEdge);
     var grabberEdgeFL = Overlays.addOverlay("cube", grabberPropertiesEdge);
 
+    var grabberSpotLightCircle = Overlays.addOverlay("circle3d", {
+        color: lightOverlayColor,
+        isSolid: false,
+        visible: false
+    });
+    var grabberSpotLightLineT = Overlays.addOverlay("line3d", spotLightLineProperties);
+    var grabberSpotLightLineB = Overlays.addOverlay("line3d", spotLightLineProperties);
+    var grabberSpotLightLineL = Overlays.addOverlay("line3d", spotLightLineProperties);
+    var grabberSpotLightLineR = Overlays.addOverlay("line3d", spotLightLineProperties);
+
+    var grabberSpotLightCenter = Overlays.addOverlay("cube", grabberPropertiesEdge);
+    var grabberSpotLightRadius = Overlays.addOverlay("cube", grabberPropertiesEdge);
+    var grabberSpotLightL = Overlays.addOverlay("cube", grabberPropertiesEdge);
+    var grabberSpotLightR = Overlays.addOverlay("cube", grabberPropertiesEdge);
+    var grabberSpotLightT = Overlays.addOverlay("cube", grabberPropertiesEdge);
+    var grabberSpotLightB = Overlays.addOverlay("cube", grabberPropertiesEdge);
+
+    var grabberPointLightCircleX = Overlays.addOverlay("circle3d", {
+        rotation: Quat.fromPitchYawRollDegrees(0, 90, 0),
+        color: lightOverlayColor,
+        isSolid: false,
+        visible: false
+    });
+    var grabberPointLightCircleY = Overlays.addOverlay("circle3d", {
+        rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
+        color: lightOverlayColor,
+        isSolid: false,
+        visible: false
+    });
+    var grabberPointLightCircleZ = Overlays.addOverlay("circle3d", {
+        rotation: Quat.fromPitchYawRollDegrees(0, 0, 0),
+        color: lightOverlayColor,
+        isSolid: false,
+        visible: false
+    });
+    var grabberPointLightT = Overlays.addOverlay("cube", grabberPropertiesEdge);
+    var grabberPointLightB = Overlays.addOverlay("cube", grabberPropertiesEdge);
+    var grabberPointLightL = Overlays.addOverlay("cube", grabberPropertiesEdge);
+    var grabberPointLightR = Overlays.addOverlay("cube", grabberPropertiesEdge);
+    var grabberPointLightF = Overlays.addOverlay("cube", grabberPropertiesEdge);
+    var grabberPointLightN = Overlays.addOverlay("cube", grabberPropertiesEdge);
+
     var stretchHandles = [
         grabberLBN,
         grabberRBN,
@@ -461,6 +459,25 @@ SelectionDisplay = (function () {
         grabberEdgeNL,
         grabberEdgeFR,
         grabberEdgeFL,
+
+        grabberSpotLightLineT,
+        grabberSpotLightLineB,
+        grabberSpotLightLineL,
+        grabberSpotLightLineR,
+
+        grabberSpotLightCenter,
+        grabberSpotLightRadius,
+        grabberSpotLightL,
+        grabberSpotLightR,
+        grabberSpotLightT,
+        grabberSpotLightB,
+
+        grabberPointLightT,
+        grabberPointLightB,
+        grabberPointLightL,
+        grabberPointLightR,
+        grabberPointLightF,
+        grabberPointLightN,
     ];
 
 
@@ -533,7 +550,7 @@ SelectionDisplay = (function () {
 
     var rotateOverlayTarget = Overlays.addOverlay("circle3d", {
                     position: { x:0, y: 0, z: 0},
-                    size: rotateOverlayTargetSize * 2,
+                    size: rotateOverlayTargetSize,
                     color: { red: 0, green: 0, blue: 0 },
                     alpha: 0.0,
                     solid: true,
@@ -648,6 +665,10 @@ SelectionDisplay = (function () {
         yRailOverlay,
         zRailOverlay,
         baseOfEntityProjectionOverlay,
+        grabberSpotLightCircle,
+        grabberPointLightCircleX,
+        grabberPointLightCircleY,
+        grabberPointLightCircleZ,
     ].concat(stretchHandles);
 
     overlayNames[highlightBox] = "highlightBox";
@@ -942,13 +963,20 @@ SelectionDisplay = (function () {
         var translateHandlesVisible = true;
         var stretchHandlesVisible = true;
         var selectionBoxVisible = true;
+        var isPointLight = false;
+
+        if (selectionManager.selections.length == 1) {
+            var properties = Entities.getEntityProperties(selectionManager.selections[0]);
+            isPointLight = properties.type == "Light" && !properties.isSpotlight;
+        }
+
         if (mode == "ROTATE_YAW" || mode == "ROTATE_PITCH" || mode == "ROTATE_ROLL" || mode == "TRANSLATE_X in case they Z") {
             rotationOverlaysVisible = true;
             rotateHandlesVisible = false;
             translateHandlesVisible = false;
             stretchHandlesVisible = false;
             selectionBoxVisible = false;
-        } else if (mode == "TRANSLATE_UP_DOWN") {
+        } else if (mode == "TRANSLATE_UP_DOWN" || isPointLight) {
             rotateHandlesVisible = false;
             stretchHandlesVisible = false;
         } else if (mode != "UNKNOWN") {
@@ -1122,6 +1150,171 @@ SelectionDisplay = (function () {
 
         var stretchHandlesVisible = spaceMode == SPACE_LOCAL;
         var extendedStretchHandlesVisible = stretchHandlesVisible && showExtendedStretchHandles;
+
+        if (selectionManager.selections.length == 1 ) {
+            var properties = Entities.getEntityProperties(selectionManager.selections[0]);
+            if (properties.type == "Light" && properties.isSpotlight == true) {
+                var stretchHandlesVisible = false;
+                var extendedStretchHandlesVisible = false;
+
+                Overlays.editOverlay(grabberSpotLightCenter, {
+                    position: position,
+                    visible: false,
+                });
+                Overlays.editOverlay(grabberSpotLightRadius, {
+                    position: NEAR,
+                    rotation: rotation,
+                    visible: true,
+                });
+                var distance = (properties.dimensions.z / 2) * Math.sin(properties.cutoff * (Math.PI / 180));
+
+                Overlays.editOverlay(grabberSpotLightL, {
+                    position: EdgeNL,
+                    rotation: rotation,
+                    visible: true,
+                });
+                Overlays.editOverlay(grabberSpotLightR, {
+                    position: EdgeNR,
+                    rotation: rotation,
+                    visible: true,
+                });
+                Overlays.editOverlay(grabberSpotLightT, {
+                    position: EdgeTN,
+                    rotation: rotation,
+                    visible: true,
+                });
+                Overlays.editOverlay(grabberSpotLightB, {
+                    position: EdgeBN,
+                    rotation: rotation,
+                    visible: true,
+                });
+                Overlays.editOverlay(grabberSpotLightCircle, {
+                    position: NEAR,
+                    dimensions: { x: distance, y: distance, z: 1 },
+                    lineWidth: 1.5,
+                    rotation: rotation,
+                    visible: true,
+                });
+
+                Overlays.editOverlay(grabberSpotLightLineT, {
+                    start: position,
+                    end: EdgeTN,
+                    visible: true,
+                });
+                Overlays.editOverlay(grabberSpotLightLineB, {
+                    start: position,
+                    end: EdgeBN,
+                    visible: true,
+                });
+                Overlays.editOverlay(grabberSpotLightLineR, {
+                    start: position,
+                    end: EdgeNR,
+                    visible: true,
+                });
+                Overlays.editOverlay(grabberSpotLightLineL, {
+                    start: position,
+                    end: EdgeNL,
+                    visible: true,
+                });
+
+                Overlays.editOverlay(grabberPointLightCircleX, { visible: false });
+                Overlays.editOverlay(grabberPointLightCircleY, { visible: false });
+                Overlays.editOverlay(grabberPointLightCircleZ, { visible: false });
+                Overlays.editOverlay(grabberPointLightT, { visible: false });
+                Overlays.editOverlay(grabberPointLightB, { visible: false });
+                Overlays.editOverlay(grabberPointLightL, { visible: false });
+                Overlays.editOverlay(grabberPointLightR, { visible: false });
+                Overlays.editOverlay(grabberPointLightF, { visible: false });
+                Overlays.editOverlay(grabberPointLightN, { visible: false });
+            } else if (properties.type == "Light" && properties.isSpotlight == false) {
+                var stretchHandlesVisible = false;
+                var extendedStretchHandlesVisible = false;
+                Overlays.editOverlay(grabberPointLightT, {
+                    position: TOP,
+                    rotation: rotation,
+                    visible: true,
+                });
+                Overlays.editOverlay(grabberPointLightB, {
+                    position: BOTTOM,
+                    rotation: rotation,
+                    visible: true,
+                });
+                Overlays.editOverlay(grabberPointLightL, {
+                    position: LEFT,
+                    rotation: rotation,
+                    visible: true,
+                });
+                Overlays.editOverlay(grabberPointLightR, {
+                    position: RIGHT,
+                    rotation: rotation,
+                    visible: true,
+                });
+                Overlays.editOverlay(grabberPointLightF, {
+                    position: FAR,
+                    rotation: rotation,
+                    visible: true,
+                });
+                Overlays.editOverlay(grabberPointLightN, {
+                    position: NEAR,
+                    rotation: rotation,
+                    visible: true,
+                });
+                Overlays.editOverlay(grabberPointLightCircleX, {
+                    position: position,
+                    rotation: Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(0, 90, 0)),
+                    dimensions: { x: properties.dimensions.z / 2.0, y: properties.dimensions.z / 2.0, z: 1 },
+                    visible: true,
+                });
+                Overlays.editOverlay(grabberPointLightCircleY, {
+                    position: position,
+                    rotation: Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(90, 0, 0)),
+                    dimensions: { x: properties.dimensions.z / 2.0, y: properties.dimensions.z / 2.0, z: 1 },
+                    visible: true,
+                });
+                Overlays.editOverlay(grabberPointLightCircleZ, {
+                    position: position,
+                    rotation: rotation,
+                    dimensions: { x: properties.dimensions.z / 2.0, y: properties.dimensions.z / 2.0, z: 1 },
+                    visible: true,
+                });
+
+                Overlays.editOverlay(grabberSpotLightRadius, { visible: false });
+                Overlays.editOverlay(grabberSpotLightL, { visible: false });
+                Overlays.editOverlay(grabberSpotLightR, { visible: false });
+                Overlays.editOverlay(grabberSpotLightT, { visible: false });
+                Overlays.editOverlay(grabberSpotLightB, { visible: false });
+                Overlays.editOverlay(grabberSpotLightCircle, { visible: false });
+                Overlays.editOverlay(grabberSpotLightLineL, { visible: false });
+                Overlays.editOverlay(grabberSpotLightLineR, { visible: false });
+                Overlays.editOverlay(grabberSpotLightLineT, { visible: false });
+                Overlays.editOverlay(grabberSpotLightLineB, { visible: false });
+            } else {
+                Overlays.editOverlay(grabberSpotLightCenter, { visible: false });
+                Overlays.editOverlay(grabberSpotLightRadius, { visible: false });
+                Overlays.editOverlay(grabberSpotLightL, { visible: false });
+                Overlays.editOverlay(grabberSpotLightR, { visible: false });
+                Overlays.editOverlay(grabberSpotLightT, { visible: false });
+                Overlays.editOverlay(grabberSpotLightB, { visible: false });
+                Overlays.editOverlay(grabberSpotLightCircle, { visible: false });
+                Overlays.editOverlay(grabberSpotLightLineL, { visible: false });
+                Overlays.editOverlay(grabberSpotLightLineR, { visible: false });
+                Overlays.editOverlay(grabberSpotLightLineT, { visible: false });
+                Overlays.editOverlay(grabberSpotLightLineB, { visible: false });
+
+                Overlays.editOverlay(grabberPointLightCircleX, { visible: false });
+                Overlays.editOverlay(grabberPointLightCircleY, { visible: false });
+                Overlays.editOverlay(grabberPointLightCircleZ, { visible: false });
+                Overlays.editOverlay(grabberPointLightT, { visible: false });
+                Overlays.editOverlay(grabberPointLightB, { visible: false });
+                Overlays.editOverlay(grabberPointLightL, { visible: false });
+                Overlays.editOverlay(grabberPointLightR, { visible: false });
+                Overlays.editOverlay(grabberPointLightF, { visible: false });
+                Overlays.editOverlay(grabberPointLightN, { visible: false });
+            }
+        }
+
+
+
         Overlays.editOverlay(grabberLBN, { visible: stretchHandlesVisible, rotation: rotation, position: LBN });
         Overlays.editOverlay(grabberRBN, { visible: stretchHandlesVisible, rotation: rotation, position: RBN });
         Overlays.editOverlay(grabberLBF, { visible: stretchHandlesVisible, rotation: rotation, position: LBF });
@@ -1323,7 +1516,7 @@ SelectionDisplay = (function () {
             var wantDebug = false;
 
             for (var i = 0; i < SelectionManager.selections.length; i++) {
-                var properties = SelectionManager.savedProperties[SelectionManager.selections[i].id];
+                var properties = SelectionManager.savedProperties[SelectionManager.selections[i]];
                 var newPosition = Vec3.sum(properties.position, { x: vector.x, y: 0, z: vector.z });
                 Entities.editEntity(SelectionManager.selections[i], {
                     position: newPosition,
@@ -1401,7 +1594,7 @@ SelectionDisplay = (function () {
             }
             for (var i = 0; i < SelectionManager.selections.length; i++) {
                 var id = SelectionManager.selections[i];
-                var properties = selectionManager.savedProperties[id.id];
+                var properties = selectionManager.savedProperties[id];
 
                 var original = properties.position;
                 var newPosition = Vec3.sum(properties.position, vector);
@@ -1422,7 +1615,7 @@ SelectionDisplay = (function () {
     // direction - direction to stretch in
     // pivot - point to use as a pivot
     // offset - the position of the overlay tool relative to the selections center position
-    var makeStretchTool = function(stretchMode, direction, pivot, offset) {
+    var makeStretchTool = function(stretchMode, direction, pivot, offset, customOnMove) {
         var signs = {
             x: direction.x < 0 ? -1 : (direction.x > 0 ? 1 : 0),
             y: direction.y < 0 ? -1 : (direction.y > 0 ? 1 : 0),
@@ -1554,7 +1747,7 @@ SelectionDisplay = (function () {
         };
 
         var onMove = function(event) {
-            var proportional = spaceMode == SPACE_WORLD || event.isShifted;
+            var proportional = spaceMode == SPACE_WORLD || event.isShifted || activeTool.mode == "STRETCH_RADIUS";
 
             var position, dimensions, rotation;
             if (spaceMode == SPACE_LOCAL) {
@@ -1577,60 +1770,65 @@ SelectionDisplay = (function () {
 
             vector = vec3Mult(mask, vector);
 
-            vector = grid.snapToSpacing(vector);
-
-            var changeInDimensions = Vec3.multiply(-1, vec3Mult(signs, vector));
-            var newDimensions;
-            if (proportional) {
-                var absX = Math.abs(changeInDimensions.x);
-                var absY = Math.abs(changeInDimensions.y);
-                var absZ = Math.abs(changeInDimensions.z);
-                var pctChange = 0;
-                if (absX > absY && absX > absZ) {
-                    pctChange = changeInDimensions.x / initialProperties.dimensions.x;
-                    pctChange = changeInDimensions.x / initialDimensions.x;
-                } else if (absY > absZ) {
-                    pctChange = changeInDimensions.y / initialProperties.dimensions.y;
-                    pctChange = changeInDimensions.y / initialDimensions.y;
-                } else {
-                    pctChange = changeInDimensions.z / initialProperties.dimensions.z;
-                    pctChange = changeInDimensions.z / initialDimensions.z;
-                }
-                pctChange += 1.0;
-                newDimensions = Vec3.multiply(pctChange, initialDimensions);
+            if (customOnMove) {
+                var change = Vec3.multiply(-1, vec3Mult(signs, vector));
+                customOnMove(vector, change);
             } else {
-                newDimensions = Vec3.sum(initialDimensions, changeInDimensions);
-            }
-            
-            newDimensions.x = Math.max(newDimensions.x, MINIMUM_DIMENSION);
-            newDimensions.y = Math.max(newDimensions.y, MINIMUM_DIMENSION);
-            newDimensions.z = Math.max(newDimensions.z, MINIMUM_DIMENSION);
-            
-            var changeInPosition = Vec3.multiplyQbyV(rotation, vec3Mult(deltaPivot, changeInDimensions));
-            var newPosition = Vec3.sum(initialPosition, changeInPosition);
-            
-            for (var i = 0; i < SelectionManager.selections.length; i++) {
-                Entities.editEntity(SelectionManager.selections[i], {
-                    position: newPosition,
-                    dimensions: newDimensions,
-                });
-            }
+                vector = grid.snapToSpacing(vector);
 
-            var wantDebug = false;
-            if (wantDebug) {
-                print(stretchMode);
-                Vec3.print("        newIntersection:", newIntersection);
-                Vec3.print("                 vector:", vector);
-                Vec3.print("           oldPOS:", oldPOS);
-                Vec3.print("                newPOS:", newPOS);
-                Vec3.print("            changeInDimensions:", changeInDimensions);
-                Vec3.print("                 newDimensions:", newDimensions);
+                var changeInDimensions = Vec3.multiply(-1, vec3Mult(signs, vector));
+                var newDimensions;
+                if (proportional) {
+                    var absX = Math.abs(changeInDimensions.x);
+                    var absY = Math.abs(changeInDimensions.y);
+                    var absZ = Math.abs(changeInDimensions.z);
+                    var pctChange = 0;
+                    if (absX > absY && absX > absZ) {
+                        pctChange = changeInDimensions.x / initialProperties.dimensions.x;
+                        pctChange = changeInDimensions.x / initialDimensions.x;
+                    } else if (absY > absZ) {
+                        pctChange = changeInDimensions.y / initialProperties.dimensions.y;
+                        pctChange = changeInDimensions.y / initialDimensions.y;
+                    } else {
+                        pctChange = changeInDimensions.z / initialProperties.dimensions.z;
+                        pctChange = changeInDimensions.z / initialDimensions.z;
+                    }
+                    pctChange += 1.0;
+                    newDimensions = Vec3.multiply(pctChange, initialDimensions);
+                } else {
+                    newDimensions = Vec3.sum(initialDimensions, changeInDimensions);
+                }
+                
+                newDimensions.x = Math.max(newDimensions.x, MINIMUM_DIMENSION);
+                newDimensions.y = Math.max(newDimensions.y, MINIMUM_DIMENSION);
+                newDimensions.z = Math.max(newDimensions.z, MINIMUM_DIMENSION);
+                
+                var changeInPosition = Vec3.multiplyQbyV(rotation, vec3Mult(deltaPivot, changeInDimensions));
+                var newPosition = Vec3.sum(initialPosition, changeInPosition);
+                
+                for (var i = 0; i < SelectionManager.selections.length; i++) {
+                    Entities.editEntity(SelectionManager.selections[i], {
+                        position: newPosition,
+                        dimensions: newDimensions,
+                    });
+                }
 
-                Vec3.print("              changeInPosition:", changeInPosition);
-                Vec3.print("                   newPosition:", newPosition);
+                var wantDebug = false;
+                if (wantDebug) {
+                    print(stretchMode);
+                    Vec3.print("        newIntersection:", newIntersection);
+                    Vec3.print("                 vector:", vector);
+                    Vec3.print("           oldPOS:", oldPOS);
+                    Vec3.print("                newPOS:", newPOS);
+                    Vec3.print("            changeInDimensions:", changeInDimensions);
+                    Vec3.print("                 newDimensions:", newDimensions);
+
+                    Vec3.print("              changeInPosition:", changeInPosition);
+                    Vec3.print("                   newPosition:", newPosition);
+                }
+
+                SelectionManager._update();
             }
-
-            SelectionManager._update();
 
         };
 
@@ -1642,13 +1840,55 @@ SelectionDisplay = (function () {
         };
     };
 
-    function addStretchTool(overlay, mode, pivot, direction, offset) {
+    function addStretchTool(overlay, mode, pivot, direction, offset, handleMove) {
         if (!pivot) {
             pivot = direction;
         }
-        var tool = makeStretchTool(mode, direction, pivot, offset);
+        var tool = makeStretchTool(mode, direction, pivot, offset, handleMove);
 
         addGrabberTool(overlay, tool);
+    }
+
+    function cutoffStretchFunc(vector, change) {
+        vector = change;
+        Vec3.print("Radius stretch: ", vector);
+        var length = vector.x + vector.y + vector.z;
+        var props = selectionManager.savedProperties[selectionManager.selections[0]];
+
+        var radius = props.dimensions.z / 2;
+        var originalCutoff = props.cutoff;
+
+        var originalSize = radius * Math.tan(originalCutoff * (Math.PI / 180));
+        var newSize = originalSize + length;
+        var cutoff = Math.atan2(newSize, radius) * 180 / Math.PI;
+
+        Entities.editEntity(selectionManager.selections[0], {
+            cutoff: cutoff,
+        });
+
+        SelectionManager._update();
+    };
+
+    function radiusStretchFunc(vector, change) {
+        var props = selectionManager.savedProperties[selectionManager.selections[0]];
+
+        // Find the axis being adjusted
+        var size;
+        if (Math.abs(change.x) > 0) {
+            size = props.dimensions.x + change.x;
+        } else if (Math.abs(change.y) > 0) {
+            size = props.dimensions.y + change.y;
+        } else if (Math.abs(change.z) > 0) {
+            size = props.dimensions.z + change.z;
+        }
+
+        var newDimensions = { x: size, y: size, z: size };
+
+        Entities.editEntity(selectionManager.selections[0], {
+            dimensions: newDimensions,
+        });
+
+        SelectionManager._update();
     }
 
     addStretchTool(grabberNEAR, "STRETCH_NEAR", { x: 0, y: 0, z: 1 }, { x: 0, y: 0, z: 1 }, { x: 0, y: 0, z: -1 });
@@ -1657,6 +1897,19 @@ SelectionDisplay = (function () {
     addStretchTool(grabberBOTTOM, "STRETCH_BOTTOM", { x: 0, y: 1, z: 0 }, { x: 0, y: 1, z: 0 }, { x: 0, y: -1, z: 0 });
     addStretchTool(grabberRIGHT, "STRETCH_RIGHT", { x: -1, y: 0, z: 0 }, { x: -1, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
     addStretchTool(grabberLEFT, "STRETCH_LEFT", { x: 1, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, { x: -1, y: 0, z: 0 });
+
+    addStretchTool(grabberSpotLightRadius, "STRETCH_RADIUS", { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 1 }, { x: 0, y: 0, z: -1 });
+    addStretchTool(grabberSpotLightT, "STRETCH_CUTOFF_T", { x: 0, y: 0, z: 0 }, { x: 0, y: -1, z: 0 }, { x: 0, y: 1, z: 0 }, cutoffStretchFunc);
+    addStretchTool(grabberSpotLightB, "STRETCH_CUTOFF_B", { x: 0, y: 0, z: 0 }, { x: 0, y: 1, z: 0 }, { x: 0, y: -1, z: 0 }, cutoffStretchFunc);
+    addStretchTool(grabberSpotLightL, "STRETCH_CUTOFF_L", { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, { x: -1, y: 0, z: 0 }, cutoffStretchFunc);
+    addStretchTool(grabberSpotLightR, "STRETCH_CUTOFF_R", { x: 0, y: 0, z: 0 }, { x: -1, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, cutoffStretchFunc);
+
+    addStretchTool(grabberPointLightT, "STRETCH_RADIUS_T", { x: 0, y: 0, z: 0 }, { x: 0, y: -1, z: 0 }, { x: 0, y: 0, z: 1 }, radiusStretchFunc);
+    addStretchTool(grabberPointLightB, "STRETCH_RADIUS_B", { x: 0, y: 0, z: 0 }, { x: 0, y: 1, z: 0 }, { x: 0, y: 0, z: 1 }, radiusStretchFunc);
+    addStretchTool(grabberPointLightL, "STRETCH_RADIUS_L", { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, { x: 0, y: 0, z: 1 }, radiusStretchFunc);
+    addStretchTool(grabberPointLightR, "STRETCH_RADIUS_R", { x: 0, y: 0, z: 0 }, { x: -1, y: 0, z: 0 }, { x: 0, y: 0, z: 1 }, radiusStretchFunc);
+    addStretchTool(grabberPointLightF, "STRETCH_RADIUS_F", { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: -1 }, { x: 0, y: 0, z: 1 }, radiusStretchFunc);
+    addStretchTool(grabberPointLightN, "STRETCH_RADIUS_N", { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 1 }, { x: 0, y: 0, z: -1 }, radiusStretchFunc);
 
     addStretchTool(grabberLBN, "STRETCH_LBN", null, {x: 1, y: 0, z: 1}, { x: -1, y: -1, z: -1 });
     addStretchTool(grabberRBN, "STRETCH_RBN", null, {x: -1, y: 0, z: 1}, { x: 1, y: -1, z: -1 });
@@ -1717,7 +1970,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayInner, 
                 { 
                     visible: true,
-                    size: innerRadius * 2,
+                    size: innerRadius,
                     innerRadius: 0.9,
                     startAt: 0,
                     endAt: 360,
@@ -1727,7 +1980,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayOuter, 
                 { 
                     visible: true,
-                    size: outerRadius * 2,
+                    size: outerRadius,
                     innerRadius: 0.9,
                     startAt: 0,
                     endAt: 360,
@@ -1737,7 +1990,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayCurrent, 
                 { 
                     visible: true,
-                    size: outerRadius * 2,
+                    size: outerRadius,
                     startAt: 0,
                     endAt: 0,
                     innerRadius: 0.9,
@@ -1784,7 +2037,7 @@ SelectionDisplay = (function () {
                 for (var i = 0; i < SelectionManager.selections.length; i++) {
                     var entityID = SelectionManager.selections[i];
                     var properties = Entities.getEntityProperties(entityID);
-                    var initialProperties = SelectionManager.savedProperties[entityID.id];
+                    var initialProperties = SelectionManager.savedProperties[entityID];
 
                     var newProperties = {
                         rotation: Quat.multiply(yawChange, initialProperties.rotation),
@@ -1815,13 +2068,13 @@ SelectionDisplay = (function () {
                 if (snapToInner) {
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayInner, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius * 2,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius,
                                                                     majorTickMarksAngle: innerSnapAngle, minorTickMarksAngle: 0,
                                                                     majorTickMarksLength: -0.25, minorTickMarksLength: 0, });
                 } else {
                     Overlays.editOverlay(rotateOverlayInner, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius * 2,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius,
                                                                     majorTickMarksAngle: 45.0, minorTickMarksAngle: 5,
                                                                     majorTickMarksLength: 0.25, minorTickMarksLength: 0.1, });
                 }
@@ -1846,7 +2099,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayInner, 
                 { 
                     visible: true,
-                    size: innerRadius * 2,
+                    size: innerRadius,
                     innerRadius: 0.9,
                     startAt: 0,
                     endAt: 360,
@@ -1856,7 +2109,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayOuter, 
                 { 
                     visible: true,
-                    size: outerRadius * 2,
+                    size: outerRadius,
                     innerRadius: 0.9,
                     startAt: 0,
                     endAt: 360,
@@ -1866,7 +2119,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayCurrent, 
                 { 
                     visible: true,
-                    size: outerRadius * 2,
+                    size: outerRadius,
                     startAt: 0,
                     endAt: 0,
                     innerRadius: 0.9,
@@ -1911,7 +2164,7 @@ SelectionDisplay = (function () {
                 for (var i = 0; i < SelectionManager.selections.length; i++) {
                     var entityID = SelectionManager.selections[i];
                     var properties = Entities.getEntityProperties(entityID);
-                    var initialProperties = SelectionManager.savedProperties[entityID.id];
+                    var initialProperties = SelectionManager.savedProperties[entityID];
                     var dPos = Vec3.subtract(initialProperties.position, initialPosition);
                     dPos = Vec3.multiplyQbyV(pitchChange, dPos);
 
@@ -1937,13 +2190,13 @@ SelectionDisplay = (function () {
                 if (snapToInner) {
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayInner, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius * 2,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius,
                                                                     majorTickMarksAngle: innerSnapAngle, minorTickMarksAngle: 0,
                                                                     majorTickMarksLength: -0.25, minorTickMarksLength: 0, });
                 } else {
                     Overlays.editOverlay(rotateOverlayInner, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius * 2,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius,
                                                                     majorTickMarksAngle: 45.0, minorTickMarksAngle: 5,
                                                                     majorTickMarksLength: 0.25, minorTickMarksLength: 0.1, });
                 }
@@ -1967,7 +2220,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayInner, 
                 { 
                     visible: true,
-                    size: innerRadius * 2,
+                    size: innerRadius,
                     innerRadius: 0.9,
                     startAt: 0,
                     endAt: 360,
@@ -1977,7 +2230,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayOuter, 
                 { 
                     visible: true,
-                    size: outerRadius * 2,
+                    size: outerRadius,
                     innerRadius: 0.9,
                     startAt: 0,
                     endAt: 360,
@@ -1987,7 +2240,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayCurrent, 
                 { 
                     visible: true,
-                    size: outerRadius * 2,
+                    size: outerRadius,
                     startAt: 0,
                     endAt: 0,
                     innerRadius: 0.9,
@@ -2031,7 +2284,7 @@ SelectionDisplay = (function () {
                 for (var i = 0; i < SelectionManager.selections.length; i++) {
                     var entityID = SelectionManager.selections[i];
                     var properties = Entities.getEntityProperties(entityID);
-                    var initialProperties = SelectionManager.savedProperties[entityID.id];
+                    var initialProperties = SelectionManager.savedProperties[entityID];
                     var dPos = Vec3.subtract(initialProperties.position, initialPosition);
                     dPos = Vec3.multiplyQbyV(rollChange, dPos);
 
@@ -2057,13 +2310,13 @@ SelectionDisplay = (function () {
                 if (snapToInner) {
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayInner, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius * 2,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius,
                                                                     majorTickMarksAngle: innerSnapAngle, minorTickMarksAngle: 0,
                                                                     majorTickMarksLength: -0.25, minorTickMarksLength: 0, });
                 } else {
                     Overlays.editOverlay(rotateOverlayInner, { startAt: 0, endAt: 360 });
                     Overlays.editOverlay(rotateOverlayOuter, { startAt: startAtRemainder, endAt: endAtRemainder });
-                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius * 2,
+                    Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius,
                                                                     majorTickMarksAngle: 45.0, minorTickMarksAngle: 5,
                                                                     majorTickMarksLength: 0.25, minorTickMarksLength: 0.1, });
                 }
@@ -2399,6 +2652,17 @@ SelectionDisplay = (function () {
                 case grabberEdgeNL:
                 case grabberEdgeFR:
                 case grabberEdgeFL:
+                case grabberSpotLightRadius:
+                case grabberSpotLightT:
+                case grabberSpotLightB:
+                case grabberSpotLightL:
+                case grabberSpotLightR:
+                case grabberPointLightT:
+                case grabberPointLightB:
+                case grabberPointLightR:
+                case grabberPointLightL:
+                case grabberPointLightN:
+                case grabberPointLightF:
                     pickedColor = grabberColorEdge;
                     pickedAlpha = grabberAlpha;
                     highlightNeeded = true;

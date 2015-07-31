@@ -48,6 +48,7 @@ public slots:
     void raise();
     ScriptEventBridge* getEventBridge() const { return _eventBridge; }
     void addEventBridgeToWindowObject();
+    void setTitle(const QString& title);
 
 signals:
     void closed();

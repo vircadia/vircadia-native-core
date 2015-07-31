@@ -17,7 +17,7 @@ using namespace gpu;
 
 Pipeline::Pipeline():
     _program(),
-    _states()
+    _state()
 {
 }
 
@@ -25,10 +25,10 @@ Pipeline::~Pipeline()
 {
 }
 
-Pipeline* Pipeline::create(const ShaderPointer& program, const States& states) {
+Pipeline* Pipeline::create(const ShaderPointer& program, const StatePointer& state) {
     Pipeline* pipeline = new Pipeline();
     pipeline->_program = program;
-    pipeline->_states = states;
+    pipeline->_state = state;
 
     return pipeline;
 }

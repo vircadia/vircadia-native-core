@@ -18,6 +18,7 @@
 
 #include "ModelSelector.h"
 #include "ModelPropertiesDialog.h"
+#include "InterfaceLogging.h"
 
 #include "ModelPackager.h"
 
@@ -84,7 +85,7 @@ bool ModelPackager::loadModel() {
             qWarning() << QString("ModelPackager::loadModel(): Could not open FST file %1").arg(_modelFile.filePath());
             return false;
         }
-        qDebug() << "Reading FST file : " << _modelFile.filePath();
+        qCDebug(interfaceapp) << "Reading FST file : " << _modelFile.filePath();
         _mapping = FSTReader::readMapping(fst.readAll());
         fst.close();
         
@@ -103,9 +104,9 @@ bool ModelPackager::loadModel() {
         qWarning() << QString("ModelPackager::loadModel(): Could not open FBX file %1").arg(_fbxInfo.filePath());
         return false;
     }
-    qDebug() << "Reading FBX file : " << _fbxInfo.filePath();
+    qCDebug(interfaceapp) << "Reading FBX file : " << _fbxInfo.filePath();
     QByteArray fbxContents = fbx.readAll();
-    _geometry = readFBX(fbxContents, QVariantHash());
+    _geometry = readFBX(fbxContents, QVariantHash(), _fbxInfo.filePath());
     
     // make sure we have some basic mappings
     populateBasicMapping(_mapping, _fbxInfo.filePath(), _geometry);
@@ -188,7 +189,7 @@ bool ModelPackager::zipModel() {
         fst.write(FSTReader::writeMapping(_mapping));
         fst.close();
     } else {
-        qDebug() << "Couldn't write FST file" << fst.fileName();
+        qCDebug(interfaceapp) << "Couldn't write FST file" << fst.fileName();
         return false;
     }
     
@@ -196,7 +197,7 @@ bool ModelPackager::zipModel() {
     QString saveDirPath = QFileDialog::getExistingDirectory(nullptr, "Save Model",
                                                         "", QFileDialog::ShowDirsOnly);
     if (saveDirPath.isEmpty()) {
-        qDebug() << "Invalid directory" << saveDirPath;
+        qCDebug(interfaceapp) << "Invalid directory" << saveDirPath;
         return false;
     }
     
@@ -404,7 +405,7 @@ bool ModelPackager::copyTextures(const QString& oldDir, const QDir& newDir) {
     if (!errors.isEmpty()) {
         QMessageBox::warning(nullptr, "ModelPackager::copyTextures()",
                              "Missing textures:" + errors);
-        qDebug() << "ModelPackager::copyTextures():" << errors;
+        qCDebug(interfaceapp) << "ModelPackager::copyTextures():" << errors;
         return false;
     }
     

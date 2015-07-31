@@ -30,11 +30,14 @@ signals:
     void windowShown(bool shown);
 
 protected:
+    virtual void closeEvent(QCloseEvent* event);
     virtual void moveEvent(QMoveEvent* event);
     virtual void resizeEvent(QResizeEvent* event);
     virtual void showEvent(QShowEvent* event);
     virtual void hideEvent(QHideEvent* event);
     virtual void changeEvent(QEvent* event);
+    virtual void dragEnterEvent(QDragEnterEvent *e);
+    virtual void dropEvent(QDropEvent *e);
     
 private:
     Setting::Handle<QRect> _windowGeometry;

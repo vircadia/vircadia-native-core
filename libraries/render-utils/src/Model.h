@@ -12,11 +12,13 @@
 #ifndef hifi_Model_h
 #define hifi_Model_h
 
-#include <gpu/GPUConfig.h>
-
 #include <QBitArray>
 #include <QObject>
 #include <QUrl>
+#include <QMutex>
+
+#include <unordered_map>
+#include <functional>
 
 #include <AABox.h>
 #include <AnimationCache.h>
@@ -24,13 +26,14 @@
 #include <GeometryUtil.h>
 #include <gpu/Stream.h>
 #include <gpu/Batch.h>
+#include <gpu/Pipeline.h>
 #include "PhysicsEntity.h"
+#include <render/Scene.h>
 #include <Transform.h>
 
 #include "AnimationHandle.h"
 #include "GeometryCache.h"
 #include "JointState.h"
-#include "ProgramObject.h"
 #include "TextureCache.h"
 
 class AbstractViewStateInterface;
@@ -40,6 +43,16 @@ class Shape;
 #include "RenderArgs.h"
 class ViewFrustum;
 
+namespace render {
+    class Scene;
+    class PendingChanges;
+    typedef unsigned int ItemID;
+}
+class MeshPartPayload;
+
+inline uint qHash(const std::shared_ptr<MeshPartPayload>& a, uint seed) {
+    return qHash(a.get(), seed);
+}
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject, public PhysicsEntity {
@@ -47,13 +60,15 @@ class Model : public QObject, public PhysicsEntity {
     
 public:
 
+    typedef RenderArgs::RenderMode RenderMode;
+
     static void setAbstractViewStateInterface(AbstractViewStateInterface* viewState) { _viewState = viewState; }
 
     Model(QObject* parent = NULL);
     virtual ~Model();
     
     /// enables/disables scale to fit behavior, the model will be automatically scaled to the specified largest dimension
-    void setScaleToFit(bool scaleToFit, float largestDimension = 0.0f);
+    void setScaleToFit(bool scaleToFit, float largestDimension = 0.0f, bool forceRescale = false);
     bool getScaleToFit() const { return _scaleToFit; } /// is scale to fit enabled
     bool getIsScaledToFit() const { return _scaledToFit; } /// is model scaled to fit
     const glm::vec3& getScaleToFitDimensions() const { return _scaleToFitDimensions; } /// the dimensions model is scaled to
@@ -84,21 +99,25 @@ public:
     bool isActive() const { return _geometry && _geometry->isLoaded(); }
     
     bool isRenderable() const { return !_meshStates.isEmpty() || (isActive() && _geometry->getMeshes().isEmpty()); }
+
+    void setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene);
+    bool isVisible() const { return _isVisible; }
     
+    bool isLoaded() const { return _geometry && _geometry->isLoaded(); }
     bool isLoadedWithTextures() const { return _geometry && _geometry->isLoadedWithTextures(); }
     
     void init();
     void reset();
     virtual void simulate(float deltaTime, bool fullUpdate = true);
+
+    void renderSetup(RenderArgs* args);
     
-    enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE, DEBUG_RENDER_MODE };
-    
-    bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
-    
-    // Scene rendering support
-    static void startScene(RenderArgs::RenderSide renderSide);
-    bool renderInScene(float alpha = 1.0f, RenderArgs* args = NULL);
-    static void endScene(RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
+    // new Scene/Engine rendering support
+    bool needsFixupInScene() { return !_readyWhenAdded && readyToAddToScene(); }
+    bool readyToAddToScene(RenderArgs* renderArgs = nullptr) { return !_needsReload && isRenderable() && isActive() && isLoaded(); }
+    bool addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+    bool addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges, render::Item::Status::Getters& statusGetters);
+    void removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
 
     /// Sets the URL of the model to render.
     /// \param fallback the URL of a fallback model to render if the requested model fails to load
@@ -111,6 +130,9 @@ public:
     // Set the model to use for collisions
     Q_INVOKABLE void setCollisionModelURL(const QUrl& url);
     const QUrl& getCollisionURL() const { return _collisionUrl; }
+    
+    void setIsWireframe(bool isWireframe) { _isWireframe = isWireframe; }
+    bool isWireframe() const { return _isWireframe; }
     
     /// Sets the distance parameter used for LOD computations.
     void setLODDistance(float distance) { _lodDistance = distance; }
@@ -126,6 +148,9 @@ public:
 
     /// Returns the scaled equivalent of some extents in model space.
     Extents calculateScaledOffsetExtents(const Extents& extents) const;
+
+    /// Returns the world space equivalent of some box in model space.
+    AABox calculateScaledOffsetAABox(const AABox& box) const;
 
     /// Returns the scaled equivalent of a point in model space.
     glm::vec3 calculateScaledOffsetPoint(const glm::vec3& point) const;
@@ -209,9 +234,16 @@ public:
 
     bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
                                                 BoxFace& face, QString& extraInfo, bool pickAgainstTriangles = false);
+    bool convexHullContains(glm::vec3 point);
+
+    AABox getPartBounds(int meshIndex, int partIndex);
+    void renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent);
+
+    bool initWhenReady(render::ScenePointer scene);
 
 protected:
     QSharedPointer<NetworkGeometry> _geometry;
+    void setGeometry(const QSharedPointer<NetworkGeometry>& newGeometry);
     
     glm::vec3 _scale;
     glm::vec3 _offset;
@@ -224,7 +256,7 @@ protected:
 
     bool _snapModelToRegistrationPoint; /// is the model's offset automatically adjusted to a registration point in model space
     bool _snappedToRegistrationPoint; /// are we currently snapped to a registration point
-    glm::vec3 _registrationPoint; /// the point in model space our center is snapped to
+    glm::vec3 _registrationPoint = glm::vec3(0.5f); /// the point in model space our center is snapped to
     
     bool _showTrueJointTransforms;
     
@@ -240,7 +272,7 @@ protected:
     // returns 'true' if needs fullUpdate after geometry change
     bool updateGeometry();
 
-    virtual void setJointStates(QVector<JointState> states);
+    virtual void initJointStates(QVector<JointState> states);
     
     void setScaleInternal(const glm::vec3& scale);
     void scaleToFit();
@@ -276,8 +308,21 @@ protected:
     float getLimbLength(int jointIndex) const;
     
     /// Allow sub classes to force invalidating the bboxes
-    void invalidCalculatedMeshBoxes() { _calculatedMeshBoxesValid = false; }
+    void invalidCalculatedMeshBoxes() {
+        _calculatedMeshBoxesValid = false;
+        _calculatedMeshPartBoxesValid = false;
+        _calculatedMeshTrianglesValid = false;
+    }
 
+    // rebuild the clusterMatrices from the current jointStates
+    void updateClusterMatrices();
+
+    // hook for derived classes to be notified when setUrl invalidates the current model.
+    virtual void onInvalidate() {};
+
+protected slots:
+    void geometryRefreshed();
+    
 private:
     
     friend class AnimationHandle;
@@ -287,21 +332,19 @@ private:
     QVector<JointState> createJointStates(const FBXGeometry& geometry);
     void initJointTransforms();
     
-    QSharedPointer<NetworkGeometry> _baseGeometry; ///< reference required to prevent collection of base
-    QSharedPointer<NetworkGeometry> _nextBaseGeometry;
     QSharedPointer<NetworkGeometry> _nextGeometry;
     float _lodDistance;
     float _lodHysteresis;
     float _nextLODHysteresis;
 
     QSharedPointer<NetworkGeometry> _collisionGeometry;
-    QSharedPointer<NetworkGeometry> _saveNonCollisionGeometry;
     
     float _pupilDilation;
     QVector<float> _blendshapeCoefficients;
     
     QUrl _url;
     QUrl _collisionUrl;
+    bool _isVisible;
 
     gpu::Buffers _blendedVertexBuffers;
     std::vector<Transform> _transforms;
@@ -309,8 +352,6 @@ private:
 
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
     
-    QVector<Model*> _attachments;
-
     QSet<WeakAnimationHandlePointer> _animationHandles;
 
     QList<AnimationHandlePointer> _runningAnimations;
@@ -318,27 +359,6 @@ private:
     QVector<float> _blendedBlendshapeCoefficients;
     int _blendNumber;
     int _appliedBlendNumber;
-
-    static gpu::ShaderPointer _program;
-    static gpu::ShaderPointer _normalMapProgram;
-    static gpu::ShaderPointer _specularMapProgram;
-    static gpu::ShaderPointer _normalSpecularMapProgram;
-    static gpu::ShaderPointer _translucentProgram;
-
-    static gpu::ShaderPointer _lightmapProgram;
-    static gpu::ShaderPointer _lightmapNormalMapProgram;
-    static gpu::ShaderPointer _lightmapSpecularMapProgram;
-    static gpu::ShaderPointer _lightmapNormalSpecularMapProgram;
-
-    static gpu::ShaderPointer _shadowProgram;
-    
-    static gpu::ShaderPointer _skinProgram;
-    static gpu::ShaderPointer _skinNormalMapProgram;
-    static gpu::ShaderPointer _skinSpecularMapProgram;
-    static gpu::ShaderPointer _skinNormalSpecularMapProgram;
-    static gpu::ShaderPointer _skinTranslucentProgram;
-
-    static gpu::ShaderPointer _skinShadowProgram;
 
     class Locations {
     public:
@@ -350,142 +370,162 @@ private:
         int emissiveParams;
         int glowIntensity;
         int materialBufferUnit;
-    };
-    
-    static Locations _locations;
-    static Locations _normalMapLocations;
-    static Locations _specularMapLocations;
-    static Locations _normalSpecularMapLocations;
-    static Locations _translucentLocations;
-
-    static Locations _lightmapLocations;
-    static Locations _lightmapNormalMapLocations;
-    static Locations _lightmapSpecularMapLocations;
-    static Locations _lightmapNormalSpecularMapLocations;
-
-    static void initProgram(ProgramObject& program, Locations& locations, bool link = true);
-    static void initProgram(gpu::ShaderPointer& program, Locations& locations);
-        
-    class SkinLocations : public Locations {
-    public:
         int clusterMatrices;
         int clusterIndices;
         int clusterWeights;
+        int lightBufferUnit;
     };
+
+    QHash<QPair<int,int>, AABox> _calculatedMeshPartBoxes; // world coordinate AABoxes for all sub mesh part boxes
+    QHash<QPair<int,int>, qint64> _calculatedMeshPartOffset;
+    bool _calculatedMeshPartOffsetValid;
+   
     
-    static SkinLocations _skinLocations;
-    static SkinLocations _skinNormalMapLocations;
-    static SkinLocations _skinSpecularMapLocations;
-    static SkinLocations _skinNormalSpecularMapLocations;    
-    static SkinLocations _skinShadowLocations;
-    static SkinLocations _skinTranslucentLocations;
-
-    static void initSkinProgram(ProgramObject& program, SkinLocations& locations);
-    static void initSkinProgram(gpu::ShaderPointer& program, SkinLocations& locations);
-
+    bool _calculatedMeshPartBoxesValid;
     QVector<AABox> _calculatedMeshBoxes; // world coordinate AABoxes for all sub mesh boxes
     bool _calculatedMeshBoxesValid;
     
     QVector< QVector<Triangle> > _calculatedMeshTriangles; // world coordinate triangles for all sub meshes
     bool _calculatedMeshTrianglesValid;
+    QMutex _mutex;
 
     void recalculateMeshBoxes(bool pickAgainstTriangles = false);
+    void recalculateMeshPartOffsets();
 
     void segregateMeshGroups(); // used to calculate our list of translucent vs opaque meshes
 
     bool _meshGroupsKnown;
+    bool _isWireframe;
 
-    QMap<QString, int> _unsortedMeshesTranslucent;
-    QMap<QString, int> _unsortedMeshesTranslucentTangents;
-    QMap<QString, int> _unsortedMeshesTranslucentTangentsSpecular;
-    QMap<QString, int> _unsortedMeshesTranslucentSpecular;
-
-    QMap<QString, int> _unsortedMeshesTranslucentSkinned;
-    QMap<QString, int> _unsortedMeshesTranslucentTangentsSkinned;
-    QMap<QString, int> _unsortedMeshesTranslucentTangentsSpecularSkinned;
-    QMap<QString, int> _unsortedMeshesTranslucentSpecularSkinned;
-
-    QMap<QString, int> _unsortedMeshesOpaque;
-    QMap<QString, int> _unsortedMeshesOpaqueTangents;
-    QMap<QString, int> _unsortedMeshesOpaqueTangentsSpecular;
-    QMap<QString, int> _unsortedMeshesOpaqueSpecular;
-
-    QMap<QString, int> _unsortedMeshesOpaqueSkinned;
-    QMap<QString, int> _unsortedMeshesOpaqueTangentsSkinned;
-    QMap<QString, int> _unsortedMeshesOpaqueTangentsSpecularSkinned;
-    QMap<QString, int> _unsortedMeshesOpaqueSpecularSkinned;
-
-    QMap<QString, int> _unsortedMeshesOpaqueLightmap;
-    QMap<QString, int> _unsortedMeshesOpaqueLightmapTangents;
-    QMap<QString, int> _unsortedMeshesOpaqueLightmapTangentsSpecular;
-    QMap<QString, int> _unsortedMeshesOpaqueLightmapSpecular;
-
-    QVector<int> _meshesTranslucent;
-    QVector<int> _meshesTranslucentTangents;
-    QVector<int> _meshesTranslucentTangentsSpecular;
-    QVector<int> _meshesTranslucentSpecular;
-
-    QVector<int> _meshesTranslucentSkinned;
-    QVector<int> _meshesTranslucentTangentsSkinned;
-    QVector<int> _meshesTranslucentTangentsSpecularSkinned;
-    QVector<int> _meshesTranslucentSpecularSkinned;
-
-    QVector<int> _meshesOpaque;
-    QVector<int> _meshesOpaqueTangents;
-    QVector<int> _meshesOpaqueTangentsSpecular;
-    QVector<int> _meshesOpaqueSpecular;
-
-    QVector<int> _meshesOpaqueSkinned;
-    QVector<int> _meshesOpaqueTangentsSkinned;
-    QVector<int> _meshesOpaqueTangentsSpecularSkinned;
-    QVector<int> _meshesOpaqueSpecularSkinned;
-
-    QVector<int> _meshesOpaqueLightmap;
-    QVector<int> _meshesOpaqueLightmapTangents;
-    QVector<int> _meshesOpaqueLightmapTangentsSpecular;
-    QVector<int> _meshesOpaqueLightmapSpecular;
 
     // debug rendering support
-    void renderDebugMeshBoxes();
+    void renderDebugMeshBoxes(gpu::Batch& batch);
     int _debugMeshBoxesID = GeometryCache::UNKNOWN_ID;
 
-    // Scene rendering support
-    static QVector<Model*> _modelsInScene;
-    static gpu::Batch _sceneRenderBatch;
-
-    static void endSceneSimple(RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
-    static void endSceneSplitPass(RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
-
     // helper functions used by render() or renderInScene()
-    void renderSetup(RenderArgs* args);
-    bool renderCore(float alpha, RenderMode mode, RenderArgs* args);
-    int renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, 
-                        bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args = NULL, 
-                        bool forceRenderMeshes = false);
-                        
-    void setupBatchTransform(gpu::Batch& batch);
-    QVector<int>* pickMeshList(bool translucent, float alphaThreshold, bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned);
 
-    int renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
-                                        RenderArgs* args, Locations* locations, SkinLocations* skinLocations, 
-                                        bool forceRenderMeshes = false);
-
-    static void pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args,
-                            Locations*& locations, SkinLocations*& skinLocations);
-
-    static int renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args);
-
+    static void pickPrograms(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
+                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args,
+                            Locations*& locations);
 
     static AbstractViewStateInterface* _viewState;
 
+    class RenderKey {
+    public:
+         enum FlagBit {
+            IS_TRANSLUCENT_FLAG = 0,
+            HAS_LIGHTMAP_FLAG,
+            HAS_TANGENTS_FLAG,
+            HAS_SPECULAR_FLAG,
+            HAS_EMISSIVE_FLAG,
+            IS_SKINNED_FLAG,
+            IS_STEREO_FLAG,
+            IS_DEPTH_ONLY_FLAG,
+            IS_SHADOW_FLAG,
+            IS_MIRROR_FLAG, //THis means that the mesh is rendered mirrored, not the same as "Rear view mirror"
+            IS_WIREFRAME_FLAG,
+             
+            NUM_FLAGS,
+        };
+        
+        enum Flag {
+            IS_TRANSLUCENT = (1 << IS_TRANSLUCENT_FLAG),
+            HAS_LIGHTMAP = (1 << HAS_LIGHTMAP_FLAG),
+            HAS_TANGENTS = (1 << HAS_TANGENTS_FLAG),
+            HAS_SPECULAR = (1 << HAS_SPECULAR_FLAG),
+            HAS_EMISSIVE = (1 << HAS_EMISSIVE_FLAG),
+            IS_SKINNED = (1 << IS_SKINNED_FLAG),
+            IS_STEREO = (1 << IS_STEREO_FLAG),
+            IS_DEPTH_ONLY = (1 << IS_DEPTH_ONLY_FLAG),
+            IS_SHADOW = (1 << IS_SHADOW_FLAG),
+            IS_MIRROR = (1 << IS_MIRROR_FLAG),
+            IS_WIREFRAME = (1 << IS_WIREFRAME_FLAG),
+        };
+        typedef unsigned short Flags;
+
+
+
+        bool isFlag(short flagNum) const { return bool((_flags & flagNum) != 0); }
+
+        bool isTranslucent() const { return isFlag(IS_TRANSLUCENT); }
+        bool hasLightmap() const { return isFlag(HAS_LIGHTMAP); }
+        bool hasTangents() const { return isFlag(HAS_TANGENTS); }
+        bool hasSpecular() const { return isFlag(HAS_SPECULAR); }
+        bool hasEmissive() const { return isFlag(HAS_EMISSIVE); }
+        bool isSkinned() const { return isFlag(IS_SKINNED); }
+        bool isStereo() const { return isFlag(IS_STEREO); }
+        bool isDepthOnly() const { return isFlag(IS_DEPTH_ONLY); }
+        bool isShadow() const { return isFlag(IS_SHADOW); } // = depth only but with back facing
+        bool isMirror() const { return isFlag(IS_MIRROR); }
+        bool isWireFrame() const { return isFlag(IS_WIREFRAME); }
+
+        Flags _flags = 0;
+        short _spare = 0;
+
+        int getRaw() { return *reinterpret_cast<int*>(this); }
+
+
+        RenderKey(
+            bool translucent, bool hasLightmap,
+            bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe) :
+            RenderKey(  (translucent ? IS_TRANSLUCENT : 0)
+                      | (hasLightmap ? HAS_LIGHTMAP : 0)
+                      | (hasTangents ? HAS_TANGENTS : 0)
+                      | (hasSpecular ? HAS_SPECULAR : 0)
+                      | (isSkinned ? IS_SKINNED : 0)
+                      | (isWireframe ? IS_WIREFRAME : 0)
+                     ) {}
+
+        RenderKey(RenderArgs::RenderMode mode,
+            bool translucent, float alphaThreshold, bool hasLightmap,
+            bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe) :
+            RenderKey( ((translucent && (alphaThreshold == 0.0f) && (mode != RenderArgs::SHADOW_RENDER_MODE)) ? IS_TRANSLUCENT : 0)
+                      | (hasLightmap && (mode != RenderArgs::SHADOW_RENDER_MODE) ? HAS_LIGHTMAP : 0) // Lightmap, tangents and specular don't matter for depthOnly
+                      | (hasTangents && (mode != RenderArgs::SHADOW_RENDER_MODE) ? HAS_TANGENTS : 0)
+                      | (hasSpecular && (mode != RenderArgs::SHADOW_RENDER_MODE) ? HAS_SPECULAR : 0)
+                      | (isSkinned ? IS_SKINNED : 0)
+                      | (isWireframe ? IS_WIREFRAME : 0)
+                      | ((mode == RenderArgs::SHADOW_RENDER_MODE) ? IS_DEPTH_ONLY : 0)
+                      | ((mode == RenderArgs::SHADOW_RENDER_MODE) ? IS_SHADOW : 0)
+                      | ((mode == RenderArgs::MIRROR_RENDER_MODE) ? IS_MIRROR :0)
+                     ) {}
+
+        RenderKey(int bitmask) : _flags(bitmask) {}
+    };
+
+ 
+    class RenderPipeline {
+    public:
+        gpu::PipelinePointer _pipeline;
+        std::shared_ptr<Locations> _locations;
+        RenderPipeline(gpu::PipelinePointer pipeline, std::shared_ptr<Locations> locations) :
+            _pipeline(pipeline), _locations(locations) {}
+    };
+
+    typedef std::unordered_map<int, RenderPipeline> BaseRenderPipelineMap;
+    class RenderPipelineLib : public BaseRenderPipelineMap {
+    public:
+        typedef RenderKey Key;
+
+        
+        void addRenderPipeline(Key key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader);
+
+        void initLocations(gpu::ShaderPointer& program, Locations& locations);
+    };
+    static RenderPipelineLib _renderPipelineLib;
+
     bool _renderCollisionHull;
+    
+    
+    QSet<std::shared_ptr<MeshPartPayload>> _transparentRenderItems;
+    QSet<std::shared_ptr<MeshPartPayload>> _opaqueRenderItems;
+    QMap<render::ItemID, render::PayloadPointer> _renderItems;
+    bool _readyWhenAdded = false;
+    bool _needsReload = true;
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)
 Q_DECLARE_METATYPE(QWeakPointer<NetworkGeometry>)
-Q_DECLARE_METATYPE(QVector<glm::vec3>)
 
 /// Handle management of pending models that need blending
 class ModelBlender : public QObject, public Dependency {

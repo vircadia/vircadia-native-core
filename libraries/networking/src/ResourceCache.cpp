@@ -21,6 +21,8 @@
 #include <assert.h>
 
 #include "NetworkAccessManager.h"
+#include "NetworkLogging.h"
+
 #include "ResourceCache.h"
 
 #define clamp(x, min, max) (((x) < (min)) ? (min) :\
@@ -32,13 +34,18 @@ ResourceCache::ResourceCache(QObject* parent) :
 }
 
 ResourceCache::~ResourceCache() {
-    // the unused resources may themselves reference resources that will be added to the unused
-    // list on destruction, so keep clearing until there are no references left
-    while (!_unusedResources.isEmpty()) {
-        foreach (const QSharedPointer<Resource>& resource, _unusedResources) {
-            resource->setCache(nullptr);
+    clearUnusedResource();
+}
+
+void ResourceCache::refreshAll() {
+    // Clear all unused resources so we don't have to reload them
+    clearUnusedResource();
+    
+    // Refresh all remaining resources in use
+    foreach (auto resource, _resources) {
+        if (!resource.isNull()) {
+            resource.data()->refresh();
         }
-        _unusedResources.clear();
     }
 }
 
@@ -46,11 +53,13 @@ void ResourceCache::refresh(const QUrl& url) {
     QSharedPointer<Resource> resource = _resources.value(url);
     if (!resource.isNull()) {
         resource->refresh();
+    } else {
+        _resources.remove(url);
     }
 }
 
 void ResourceCache::getResourceAsynchronously(const QUrl& url) {
-    qDebug() << "ResourceCache::getResourceAsynchronously" << url.toString();
+    qCDebug(networking) << "ResourceCache::getResourceAsynchronously" << url.toString();
     _resourcesToBeGottenLock.lockForWrite();
     _resourcesToBeGotten.enqueue(QUrl(url));
     _resourcesToBeGottenLock.unlock();
@@ -129,6 +138,17 @@ void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
         _unusedResourcesSize -= it.value()->getBytesTotal();
         it.value()->setCache(nullptr);
         _unusedResources.erase(it);
+    }
+}
+
+void ResourceCache::clearUnusedResource() {
+    // the unused resources may themselves reference resources that will be added to the unused
+    // list on destruction, so keep clearing until there are no references left
+    while (!_unusedResources.isEmpty()) {
+        foreach (const QSharedPointer<Resource>& resource, _unusedResources) {
+            resource->setCache(nullptr);
+        }
+        _unusedResources.clear();
     }
 }
 
@@ -239,7 +259,7 @@ float Resource::getLoadPriority() {
 }
 
 void Resource::refresh() {
-    if (_reply == nullptr && !(_loaded || _failedToLoad)) {
+    if (_reply && !(_loaded || _failedToLoad)) {
         return;
     }
     if (_reply) {
@@ -251,19 +271,20 @@ void Resource::refresh() {
         _replyTimer->deleteLater();
         _replyTimer = nullptr;
     }
+    
     init();
     _request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
-    if (!_startedLoading) {
-        attemptRequest();
-    }
+    ensureLoading();
+    emit onRefresh();
 }
 
 void Resource::allReferencesCleared() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "allReferencesCleared");
-        return;
-    }
     if (_cache) {
+        if (QThread::currentThread() != thread()) {
+            QMetaObject::invokeMethod(this, "allReferencesCleared");
+            return;
+        }
+        
         // create and reinsert new shared pointer 
         QSharedPointer<Resource> self(this, &Resource::allReferencesCleared);
         setSelf(self);
@@ -310,8 +331,7 @@ void Resource::reinsert() {
     _cache->_resources.insert(_url, _self);
 }
 
-const int REPLY_TIMEOUT_MS = 5000;
-
+static const int REPLY_TIMEOUT_MS = 5000;
 void Resource::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
     if (!_reply->isFinished()) {
         _bytesReceived = bytesReceived;
@@ -348,16 +368,17 @@ void Resource::maybeRefresh() {
             QDateTime lastModified = variant.value<QDateTime>();
             QDateTime lastModifiedOld = metaData.lastModified();
             if (lastModified.isValid() && lastModifiedOld.isValid() &&
-                lastModifiedOld == lastModified) {
+                lastModifiedOld >= lastModified) { // With >=, cache won't thrash in eventually-consistent cdn.
+                qCDebug(networking) << "Using cached version of" << _url.fileName();
                 // We don't need to update, return
                 return;
             }
         } else if (!variant.isValid() || !variant.canConvert<QDateTime>() ||
                    !variant.value<QDateTime>().isValid() || variant.value<QDateTime>().isNull()) {
-            qDebug() << "Cannot determine when" << _url.fileName() << "was modified last, cached version might be outdated";
+            qCDebug(networking) << "Cannot determine when" << _url.fileName() << "was modified last, cached version might be outdated";
             return;
         }
-        qDebug() << "Loaded" << _url.fileName() << "from the disk cache but the network version is newer, refreshing.";
+        qCDebug(networking) << "Loaded" << _url.fileName() << "from the disk cache but the network version is newer, refreshing.";
         refresh();
     }
 }
@@ -441,7 +462,7 @@ void Resource::handleReplyError(QNetworkReply::NetworkError error, QDebug debug)
 }
 
 void Resource::handleReplyFinished() {
-    qDebug() << "Got finished without download progress/error?" << _url;
+    qCDebug(networking) << "Got finished without download progress/error?" << _url;
     handleDownloadProgress(0, 0);
 }
 

@@ -9,13 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <gpu/GPUConfig.h>
-
 #include <limits>
 
 #include <AudioClient.h>
 #include <AudioConstants.h>
 #include <GeometryCache.h>
+#include <TextureCache.h>
+#include <gpu/Context.h>
+#include <GLMHelpers.h>
 
 #include "AudioScope.h"
 
@@ -35,6 +36,7 @@ AudioScope::AudioScope() :
     _scopeOutputLeft(NULL),
     _scopeOutputRight(NULL),
     _scopeLastFrame(),
+    _audioScopeBackground(DependencyManager::get<GeometryCache>()->allocateID()),
     _audioScopeGrid(DependencyManager::get<GeometryCache>()->allocateID()),
     _inputID(DependencyManager::get<GeometryCache>()->allocateID()),
     _outputLeftID(DependencyManager::get<GeometryCache>()->allocateID()),
@@ -104,7 +106,7 @@ void AudioScope::freeScope() {
     }
 }
 
-void AudioScope::render(int width, int height) {
+void AudioScope::render(RenderArgs* renderArgs, int width, int height) {
     
     if (!_isEnabled) {
         return;
@@ -122,24 +124,28 @@ void AudioScope::render(int width, int height) {
     int y = (height - (int)SCOPE_HEIGHT) / 2;
     int w = (int)SCOPE_WIDTH;
     int h = (int)SCOPE_HEIGHT;
+
+    gpu::Batch& batch = *renderArgs->_batch;
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    geometryCache->useSimpleDrawPipeline(batch);
+    auto textureCache = DependencyManager::get<TextureCache>();
+    batch.setResourceTexture(0, textureCache->getWhiteTexture());
     
-    renderBackground(backgroundColor, x, y, w, h);
-    renderGrid(gridColor, x, y, w, h, gridRows, gridCols);
-    
-    renderLineStrip(_inputID, inputColor, x, y, _samplesPerScope, _scopeInputOffset, _scopeInput);
-    renderLineStrip(_outputLeftID, outputLeftColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputLeft);
-    renderLineStrip(_outputRightD, outputRightColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputRight);
+    // FIXME - do we really need to reset this here? we know that we're called inside of ApplicationOverlay::renderOverlays
+    //         which already set up our batch for us to have these settings
+    mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
+    batch.setProjectionTransform(legacyProjection);
+    batch.setModelTransform(Transform());
+    batch.setViewTransform(Transform());
+    batch._glLineWidth(1.0f); // default
+    geometryCache->renderQuad(batch, x, y, w, h, backgroundColor, _audioScopeBackground);
+    geometryCache->renderGrid(batch, x, y, w, h, gridRows, gridCols, gridColor, _audioScopeGrid);
+    renderLineStrip(batch, _inputID, inputColor, x, y, _samplesPerScope, _scopeInputOffset, _scopeInput);
+    renderLineStrip(batch, _outputLeftID, outputLeftColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputLeft);
+    renderLineStrip(batch, _outputRightD, outputRightColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputRight);
 }
 
-void AudioScope::renderBackground(const glm::vec4& color, int x, int y, int width, int height) {
-    DependencyManager::get<GeometryCache>()->renderQuad(x, y, width, height, color);
-}
-
-void AudioScope::renderGrid(const glm::vec4& color, int x, int y, int width, int height, int rows, int cols) {
-    DependencyManager::get<GeometryCache>()->renderGrid(x, y, width, height, rows, cols, color, _audioScopeGrid);
-}
-
-void AudioScope::renderLineStrip(int id, const glm::vec4& color, int x, int y, int n, int offset, const QByteArray* byteArray) {
+void AudioScope::renderLineStrip(gpu::Batch& batch, int id, const glm::vec4& color, int x, int y, int n, int offset, const QByteArray* byteArray) {
 
     int16_t sample;
     int16_t* samples = ((int16_t*) byteArray->data()) + offset;
@@ -194,7 +200,7 @@ void AudioScope::renderLineStrip(int id, const glm::vec4& color, int x, int y, i
     
     
     geometryCache->updateVertices(id, points, color);
-    geometryCache->renderVertices(gpu::LINE_STRIP, id);
+    geometryCache->renderVertices(batch, gpu::LINE_STRIP, id);
 }
 
 int AudioScope::addBufferToScope(QByteArray* byteArray, int frameOffset, const int16_t* source, int sourceSamplesPerChannel,

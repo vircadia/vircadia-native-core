@@ -19,12 +19,10 @@
 #include <QScreen>
 #include <QWindow>
 
-
 #include "MainWindow.h"
 #include "Menu.h"
 #include "ui/DialogsManager.h"
 #include "ui/HMDToolsDialog.h"
-
 #include "devices/OculusManager.h"
 
 HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
@@ -58,8 +56,6 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
     
     this->QDialog::setLayout(form);
 
-    _wasMoved = false;
-    _previousRect = Application::getInstance()->getWindow()->rect();
     Application::getInstance()->getWindow()->activateWindow();
 
     // watch for our application window moving screens. If it does we want to update our screen details
@@ -87,7 +83,7 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
     }
     
     // when the application is about to quit, leave HDM mode
-    connect(Application::getInstance(), SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
+    connect(Application::getInstance(), SIGNAL(beforeAboutToQuit()), this, SLOT(aboutToQuit()));
 
     // keep track of changes to the number of screens
     connect(QApplication::desktop(), &QDesktopWidget::screenCountChanged, this, &HMDToolsDialog::screenCountChanged);
@@ -138,77 +134,27 @@ void HMDToolsDialog::enterHDMMode() {
     if (!_inHDMMode) {
         _switchModeButton->setText("Leave HMD Mode");
         _debugDetails->setText(getDebugDetails());
-
-        _hmdScreenNumber = OculusManager::getHMDScreen();
-    
-        if (_hmdScreenNumber >= 0) {
-            QWindow* mainWindow = Application::getInstance()->getWindow()->windowHandle();
-            _hmdScreen = QGuiApplication::screens()[_hmdScreenNumber];
-        
-            _previousRect = Application::getInstance()->getWindow()->rect();
-            _previousRect = QRect(mainWindow->mapToGlobal(_previousRect.topLeft()), 
-                                    mainWindow->mapToGlobal(_previousRect.bottomRight()));
-            _previousScreen = mainWindow->screen();
-            QRect rect = QApplication::desktop()->screenGeometry(_hmdScreenNumber);
-            mainWindow->setScreen(_hmdScreen);
-            mainWindow->setGeometry(rect);
-
-            _wasMoved = true;
-        }
-    
     
         // if we're on a single screen setup, then hide our tools window when entering HMD mode
         if (QApplication::desktop()->screenCount() == 1) {
             close();
         }
 
-        Application::getInstance()->setFullscreen(true);
         Application::getInstance()->setEnableVRMode(true);
-    
-        const int SLIGHT_DELAY = 500;
-        QTimer::singleShot(SLIGHT_DELAY, this, SLOT(activateWindowAfterEnterMode()));
-    
+
         _inHDMMode = true;
     }
-}
-
-void HMDToolsDialog::activateWindowAfterEnterMode() {
-    Application::getInstance()->getWindow()->activateWindow();
-
-    // center the cursor on the main application window
-    centerCursorOnWidget(Application::getInstance()->getWindow());
 }
 
 void HMDToolsDialog::leaveHDMMode() {
     if (_inHDMMode) {
         _switchModeButton->setText("Enter HMD Mode");
         _debugDetails->setText(getDebugDetails());
-
-        Application::getInstance()->setFullscreen(false);
         Application::getInstance()->setEnableVRMode(false);
         Application::getInstance()->getWindow()->activateWindow();
-
-        if (_wasMoved) {
-            QWindow* mainWindow = Application::getInstance()->getWindow()->windowHandle();
-            mainWindow->setScreen(_previousScreen);
-            mainWindow->setGeometry(_previousRect);
-    
-            const int SLIGHT_DELAY = 1500;
-            QTimer::singleShot(SLIGHT_DELAY, this, SLOT(moveWindowAfterLeaveMode()));
-        }
-        _wasMoved = false;
         _inHDMMode = false;
     }
 }
-
-void HMDToolsDialog::moveWindowAfterLeaveMode() {
-    QWindow* mainWindow = Application::getInstance()->getWindow()->windowHandle();
-    mainWindow->setScreen(_previousScreen);
-    mainWindow->setGeometry(_previousRect);
-    Application::getInstance()->getWindow()->activateWindow();
-    Application::getInstance()->resetSensors();
-}
-
 
 void HMDToolsDialog::reject() {
     // Just regularly close upon ESC
@@ -241,13 +187,15 @@ void HMDToolsDialog::hideEvent(QHideEvent* event) {
 
 void HMDToolsDialog::aboutToQuit() {
     if (_inHDMMode) {
+        // FIXME this is ineffective because it doesn't trigger the menu to 
+        // save the fact that VR Mode is not checked.
         leaveHDMMode();
     }
 }
 
 void HMDToolsDialog::screenCountChanged(int newCount) {
     if (!OculusManager::isConnected()) {
-        OculusManager::connect();
+        //OculusManager::connect();
     }
     int hmdScreenNumber = OculusManager::getHMDScreen();
 

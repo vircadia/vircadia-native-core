@@ -12,7 +12,6 @@
 #include <cstring>
 
 #include "EnvironmentData.h"
-#include "PacketHeaders.h"
 
 // initial values from Sean O'Neil's GPU Gems entry (http://http.developer.nvidia.com/GPUGems2/gpugems2_chapter16.html),
 // GameEngine.cpp
@@ -27,7 +26,8 @@ EnvironmentData::EnvironmentData(int id) :
     _mieScattering(0.0010f),
     _scatteringWavelengths(0.650f, 0.570f, 0.475f),
     _sunLocation(1000, 900, 1000),
-    _sunBrightness(20.0f) {
+    _sunBrightness(20.0f),
+    _hasStars(true) {
 }
 
 glm::vec3 EnvironmentData::getAtmosphereCenter(const glm::vec3& cameraPosition) const {

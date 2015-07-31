@@ -32,14 +32,14 @@
         return JSON.parse(JSON.stringify(object));
     }
     function didEntityExist(entityID) {
-        return entityID && entityID.isKnownID;
+        return entityID;
     }
     function doesEntityExistNow(entityID) {
-        return entityID && getTrueID(entityID).isKnownID;
+        return entityID;
     }
     function getTrueID(entityID) {
         var properties = Entities.getEntityProperties(entityID);
-        return { id: properties.id, creatorTokenID: properties.creatorTokenID, isKnownID: properties.isKnownID };
+        return { id: properties.id };
     }
     function getUserData(entityID) {
         var properties = Entities.getEntityProperties(entityID);
@@ -212,11 +212,7 @@
 
     this.preload = function(entityID) {
         this.preOperation(entityID);
-    };
-    this.unload = function(){
-        Entities.deleteEntity(this.lightID);
     }
-    
     
     this.clickReleaseOnEntity = function(entityID, mouseEvent) {
         this.preOperation(entityID);

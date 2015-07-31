@@ -16,24 +16,25 @@
 
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
-#include "ModelEntityItem.h"
+#include "EntitiesLogging.h"
 #include "ResourceCache.h"
+#include "ModelEntityItem.h"
 
 const QString ModelEntityItem::DEFAULT_MODEL_URL = QString("");
-const QString ModelEntityItem::DEFAULT_COLLISION_MODEL_URL = QString("");
+const QString ModelEntityItem::DEFAULT_COMPOUND_SHAPE_URL = QString("");
 const QString ModelEntityItem::DEFAULT_ANIMATION_URL = QString("");
 const float ModelEntityItem::DEFAULT_ANIMATION_FRAME_INDEX = 0.0f;
 const bool ModelEntityItem::DEFAULT_ANIMATION_IS_PLAYING = false;
 const float ModelEntityItem::DEFAULT_ANIMATION_FPS = 30.0f;
 
 
-EntityItem* ModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new ModelEntityItem(entityID, properties);
+EntityItemPointer ModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    return std::make_shared<ModelEntityItem>(entityID, properties);
 }
 
 ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties) 
-{ 
+        EntityItem(entityItemID)
+{
     _type = EntityTypes::Model;
     setProperties(properties);
     _lastAnimated = usecTimestampNow();
@@ -46,7 +47,7 @@ EntityItemProperties ModelEntityItem::getProperties() const {
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(modelURL, getModelURL);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionModelURL, getCollisionModelURL);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(compoundShapeURL, getCompoundShapeURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationURL, getAnimationURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationIsPlaying, getAnimationIsPlaying);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationFrameIndex, getAnimationFrameIndex);
@@ -64,7 +65,7 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(modelURL, setModelURL);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionModelURL, setCollisionModelURL);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationURL, setAnimationURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationIsPlaying, setAnimationIsPlaying);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFrameIndex, setAnimationFrameIndex);
@@ -78,43 +79,43 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
         if (wantDebug) {
             uint64_t now = usecTimestampNow();
             int elapsed = now - getLastEdited();
-            qDebug() << "ModelEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
+            qCDebug(entities) << "ModelEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
                     "now=" << now << " getLastEdited()=" << getLastEdited();
         }
         setLastEdited(properties._lastEdited);
     }
-    
+
     return somethingChanged;
 }
 
-int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
+int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
-    
+
     int bytesRead = 0;
     const unsigned char* dataAt = data;
-    
-    READ_ENTITY_PROPERTY_COLOR(PROP_COLOR, _color);
-    READ_ENTITY_PROPERTY_STRING(PROP_MODEL_URL, setModelURL);
+
+    READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
+    READ_ENTITY_PROPERTY(PROP_MODEL_URL, QString, setModelURL);
     if (args.bitstreamVersion < VERSION_ENTITIES_HAS_COLLISION_MODEL) {
-        setCollisionModelURL("");
+        setCompoundShapeURL("");
     } else if (args.bitstreamVersion == VERSION_ENTITIES_HAS_COLLISION_MODEL) {
-        READ_ENTITY_PROPERTY_STRING(PROP_COLLISION_MODEL_URL_OLD_VERSION, setCollisionModelURL);
+        READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
     } else {
-        READ_ENTITY_PROPERTY_STRING(PROP_COLLISION_MODEL_URL, setCollisionModelURL);
+        READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
     }
-    READ_ENTITY_PROPERTY_STRING(PROP_ANIMATION_URL, setAnimationURL);
-    
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_URL, QString, setAnimationURL);
+
     // Because we're using AnimationLoop which will reset the frame index if you change it's running state
     // we want to read these values in the order they appear in the buffer, but call our setters in an
     // order that allows AnimationLoop to preserve the correct frame rate.
     float animationFPS = getAnimationFPS();
     float animationFrameIndex = getAnimationFrameIndex();
     bool animationIsPlaying = getAnimationIsPlaying();
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, animationFPS);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, animationFrameIndex);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, animationIsPlaying);
-    
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, setAnimationFPS);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
+
     if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
         if (animationIsPlaying != getAnimationIsPlaying()) {
             setAnimationIsPlaying(animationIsPlaying);
@@ -127,9 +128,9 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
         setAnimationFrameIndex(animationFrameIndex);
     }
 
-    READ_ENTITY_PROPERTY_STRING(PROP_TEXTURES, setTextures);
-    READ_ENTITY_PROPERTY_STRING(PROP_ANIMATION_SETTINGS, setAnimationSettings);
-    READ_ENTITY_PROPERTY_SETTER(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
+    READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
+    READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
 
     return bytesRead;
 }
@@ -139,7 +140,7 @@ EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& 
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
     requestedProperties += PROP_MODEL_URL;
-    requestedProperties += PROP_COLLISION_MODEL_URL;
+    requestedProperties += PROP_COMPOUND_SHAPE_URL;
     requestedProperties += PROP_ANIMATION_URL;
     requestedProperties += PROP_ANIMATION_FPS;
     requestedProperties += PROP_ANIMATION_FRAME_INDEX;
@@ -147,12 +148,12 @@ EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& 
     requestedProperties += PROP_ANIMATION_SETTINGS;
     requestedProperties += PROP_TEXTURES;
     requestedProperties += PROP_SHAPE_TYPE;
-    
+
     return requestedProperties;
 }
 
 
-void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
+void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                 EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData,
                                 EntityPropertyFlags& requestedProperties,
                                 EntityPropertyFlags& propertyFlags,
@@ -161,16 +162,16 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
-    APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, appendValue, getModelURL());
-    APPEND_ENTITY_PROPERTY(PROP_COLLISION_MODEL_URL, appendValue, getCollisionModelURL());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, appendValue, getAnimationURL());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, appendValue, getAnimationFPS());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, appendValue, getAnimationFrameIndex());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, appendValue, getAnimationIsPlaying());
-    APPEND_ENTITY_PROPERTY(PROP_TEXTURES, appendValue, getTextures());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, appendValue, getAnimationSettings());
-    APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, appendValue, (uint32_t)getShapeType());
+    APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
+    APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, getModelURL());
+    APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, getCompoundShapeURL());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, getAnimationURL());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, getAnimationFPS());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, getAnimationFrameIndex());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, getAnimationIsPlaying());
+    APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, getAnimationSettings());
+    APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
 }
 
 
@@ -183,9 +184,9 @@ void ModelEntityItem::cleanupLoadedAnimations() {
     _loadedAnimations.clear();
 }
 
-Animation* ModelEntityItem::getAnimation(const QString& url) {
+AnimationPointer ModelEntityItem::getAnimation(const QString& url) {
     AnimationPointer animation;
-    
+
     // if we don't already have this model then create it and initialize it
     if (_loadedAnimations.find(url) == _loadedAnimations.end()) {
         animation = DependencyManager::get<AnimationCache>()->getAnimation(url);
@@ -193,7 +194,7 @@ Animation* ModelEntityItem::getAnimation(const QString& url) {
     } else {
         animation = _loadedAnimations[url];
     }
-    return animation.data();
+    return animation;
 }
 
 void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
@@ -202,9 +203,8 @@ void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
         return;
     }
 
-    Animation* myAnimation = getAnimation(_animationURL);
-    
-    if (!_jointMappingCompleted) {
+    AnimationPointer myAnimation = getAnimation(_animationURL);
+    if (myAnimation && myAnimation->isLoaded()) {
         QStringList animationJointNames = myAnimation->getJointNames();
 
         if (modelJointNames.size() > 0 && animationJointNames.size() > 0) {
@@ -219,8 +219,12 @@ void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
 
 QVector<glm::quat> ModelEntityItem::getAnimationFrame() {
     QVector<glm::quat> frameData;
-    if (hasAnimation() && _jointMappingCompleted) {
-        Animation* myAnimation = getAnimation(_animationURL);
+    if (!hasAnimation() || !_jointMappingCompleted) {
+        return frameData;
+    }
+    
+    AnimationPointer myAnimation = getAnimation(_animationURL);
+    if (myAnimation && myAnimation->isLoaded()) {
         QVector<FBXAnimationFrame> frames = myAnimation->getFrames();
         int frameCount = frames.size();
         if (frameCount > 0) {
@@ -228,7 +232,7 @@ QVector<glm::quat> ModelEntityItem::getAnimationFrame() {
             if (animationFrameIndex < 0 || animationFrameIndex > frameCount) {
                 animationFrameIndex = 0;
             }
-            
+
             QVector<glm::quat> rotations = frames[animationFrameIndex].rotations;
 
             frameData.resize(_jointMapping.size());
@@ -243,8 +247,8 @@ QVector<glm::quat> ModelEntityItem::getAnimationFrame() {
     return frameData;
 }
 
-bool ModelEntityItem::isAnimatingSomething() const { 
-    return getAnimationIsPlaying() && 
+bool ModelEntityItem::isAnimatingSomething() const {
+    return getAnimationIsPlaying() &&
             getAnimationFPS() != 0.0f &&
             !getAnimationURL().isEmpty();
 }
@@ -266,47 +270,67 @@ void ModelEntityItem::update(const quint64& now) {
 }
 
 void ModelEntityItem::debugDump() const {
-    qDebug() << "ModelEntityItem id:" << getEntityItemID();
-    qDebug() << "    edited ago:" << getEditedAgo();
-    qDebug() << "    position:" << getPosition();
-    qDebug() << "    dimensions:" << getDimensions();
-    qDebug() << "    model URL:" << getModelURL();
-    qDebug() << "    collision model URL:" << getCollisionModelURL();
+    qCDebug(entities) << "ModelEntityItem id:" << getEntityItemID();
+    qCDebug(entities) << "    edited ago:" << getEditedAgo();
+    qCDebug(entities) << "    position:" << getPosition();
+    qCDebug(entities) << "    dimensions:" << getDimensions();
+    qCDebug(entities) << "    model URL:" << getModelURL();
+    qCDebug(entities) << "    compound shape URL:" << getCompoundShapeURL();
 }
 
 void ModelEntityItem::updateShapeType(ShapeType type) {
+    // BEGIN_TEMPORARY_WORKAROUND
+    // we have allowed inconsistent ShapeType's to be stored in SVO files in the past (this was a bug)
+    // but we are now enforcing the entity properties to be consistent.  To make the possible we're
+    // introducing a temporary workaround: we will ignore ShapeType updates that conflict with the
+    // _compoundShapeURL.
+    if (hasCompoundShapeURL()) {
+        type = SHAPE_TYPE_COMPOUND;
+    }
+    // END_TEMPORARY_WORKAROUND
+
     if (type != _shapeType) {
         _shapeType = type;
         _dirtyFlags |= EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS;
     }
 }
 
-void ModelEntityItem::setCollisionModelURL(const QString& url) {
-    if (_collisionModelURL != url) {
-        _collisionModelURL = url;
-        _dirtyFlags |= EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS;
+// virtual
+ShapeType ModelEntityItem::getShapeType() const {
+    if (_shapeType == SHAPE_TYPE_COMPOUND) {
+        return hasCompoundShapeURL() ? SHAPE_TYPE_COMPOUND : SHAPE_TYPE_NONE;
+    } else {
+        return _shapeType;
     }
 }
 
-void ModelEntityItem::setAnimationURL(const QString& url) { 
+void ModelEntityItem::setCompoundShapeURL(const QString& url) {
+    if (_compoundShapeURL != url) {
+        _compoundShapeURL = url;
+        _dirtyFlags |= EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS;
+        _shapeType = _compoundShapeURL.isEmpty() ? SHAPE_TYPE_NONE : SHAPE_TYPE_COMPOUND;
+    }
+}
+
+void ModelEntityItem::setAnimationURL(const QString& url) {
     _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
-    _animationURL = url; 
+    _animationURL = url;
 }
 
 void ModelEntityItem::setAnimationFrameIndex(float value) {
 #ifdef WANT_DEBUG
     if (isAnimatingSomething()) {
-        qDebug() << "ModelEntityItem::setAnimationFrameIndex()";
-        qDebug() << "    value:" << value;
-        qDebug() << "    was:" << _animationLoop.getFrameIndex();
-        qDebug() << "    model URL:" << getModelURL();
-        qDebug() << "    animation URL:" << getAnimationURL();
+        qCDebug(entities) << "ModelEntityItem::setAnimationFrameIndex()";
+        qCDebug(entities) << "    value:" << value;
+        qCDebug(entities) << "    was:" << _animationLoop.getFrameIndex();
+        qCDebug(entities) << "    model URL:" << getModelURL();
+        qCDebug(entities) << "    animation URL:" << getAnimationURL();
     }
 #endif
     _animationLoop.setFrameIndex(value);
 }
 
-void ModelEntityItem::setAnimationSettings(const QString& value) { 
+void ModelEntityItem::setAnimationSettings(const QString& value) {
     // the animations setting is a JSON string that may contain various animation settings.
     // if it includes fps, frameIndex, or running, those values will be parsed out and
     // will over ride the regular animation settings
@@ -323,12 +347,12 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
         float frameIndex = settingsMap["frameIndex"].toFloat();
 #ifdef WANT_DEBUG
         if (isAnimatingSomething()) {
-            qDebug() << "ModelEntityItem::setAnimationSettings() calling setAnimationFrameIndex()...";
-            qDebug() << "    model URL:" << getModelURL();
-            qDebug() << "    animation URL:" << getAnimationURL();
-            qDebug() << "    settings:" << value;
-            qDebug() << "    settingsMap[frameIndex]:" << settingsMap["frameIndex"];
-            qDebug("    frameIndex: %20.5f", frameIndex);
+            qCDebug(entities) << "ModelEntityItem::setAnimationSettings() calling setAnimationFrameIndex()...";
+            qCDebug(entities) << "    model URL:" << getModelURL();
+            qCDebug(entities) << "    animation URL:" << getAnimationURL();
+            qCDebug(entities) << "    settings:" << value;
+            qCDebug(entities) << "    settingsMap[frameIndex]:" << settingsMap["frameIndex"];
+            qCDebug(entities"    frameIndex: %20.5f", frameIndex);
         }
 #endif
 
@@ -367,21 +391,21 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
         setAnimationStartAutomatically(startAutomatically);
     }
 
-    _animationSettings = value; 
+    _animationSettings = value;
     _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
 }
 
 void ModelEntityItem::setAnimationIsPlaying(bool value) {
     _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
-    _animationLoop.setRunning(value); 
+    _animationLoop.setRunning(value);
 }
 
 void ModelEntityItem::setAnimationFPS(float value) {
     _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
-    _animationLoop.setFPS(value); 
+    _animationLoop.setFPS(value);
 }
 
-QString ModelEntityItem::getAnimationSettings() const { 
+QString ModelEntityItem::getAnimationSettings() const {
     // the animations setting is a JSON string that may contain various animation settings.
     // if it includes fps, frameIndex, or running, those values will be parsed out and
     // will over ride the regular animation settings
@@ -390,7 +414,7 @@ QString ModelEntityItem::getAnimationSettings() const {
     QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
     QJsonObject settingsAsJsonObject = settingsAsJson.object();
     QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
-    
+
     QVariant fpsValue(getAnimationFPS());
     settingsMap["fps"] = fpsValue;
 
@@ -414,10 +438,15 @@ QString ModelEntityItem::getAnimationSettings() const {
 
     QVariant startAutomaticallyValue(getAnimationStartAutomatically());
     settingsMap["startAutomatically"] = startAutomaticallyValue;
-    
+
     settingsAsJsonObject = QJsonObject::fromVariantMap(settingsMap);
     QJsonDocument newDocument(settingsAsJsonObject);
     QByteArray jsonByteArray = newDocument.toJson(QJsonDocument::Compact);
     QString jsonByteString(jsonByteArray);
     return jsonByteString;
+}
+
+// virtual
+bool ModelEntityItem::shouldBePhysical() const {
+    return EntityItem::shouldBePhysical() && getShapeType() != SHAPE_TYPE_NONE;
 }

@@ -29,10 +29,6 @@ function rideWithEntity(deltaTime) {
     if (iteration <= lengthOfRide) {
 
         // Check to see if we've been notified of the actual identity of the entities we created
-        if (!entityA.isKnownID) {
-            entityA = Entities.identifyEntity(entityA);
-        }
-
         var propertiesA = Entities.getEntityProperties(entityA);
         var newPosition = propertiesA.position;
         MyAvatar.position = { x: propertiesA.position.x - 1, 

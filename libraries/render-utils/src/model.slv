@@ -19,14 +19,18 @@ const int MAX_TEXCOORDS = 2;
 
 uniform mat4 texcoordMatrices[MAX_TEXCOORDS];
 
+// interpolated eye position
+varying vec4 interpolatedPosition;
 
 // the interpolated normal
-varying vec4 normal;
+varying vec4 interpolatedNormal;
+
+varying vec3 color;
 
 void main(void) {
     
     // pass along the diffuse color
-    gl_FrontColor = gl_Color;
+    color = gl_Color.xyz;
     
     // and the texture coordinates
     gl_TexCoord[0] = texcoordMatrices[0] * vec4(gl_MultiTexCoord0.xy, 0.0, 1.0);
@@ -34,8 +38,8 @@ void main(void) {
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToClipPos(cam, obj, gl_Vertex, gl_Position)$>
-    <$transformModelToEyeDir(cam, obj, gl_Normal, normal.xyz)$>
+    <$transformModelToEyeAndClipPos(cam, obj, gl_Vertex, interpolatedPosition, gl_Position)$>
+    <$transformModelToEyeDir(cam, obj, gl_Normal, interpolatedNormal.xyz)$>
 
-    normal = vec4(normalize(normal.xyz), 0.0);
+    interpolatedNormal = vec4(normalize(interpolatedNormal.xyz), 0.0);
 }

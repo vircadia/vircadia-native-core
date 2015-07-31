@@ -14,6 +14,7 @@
 #include "gpu/Pipeline.h"
 
 #include "Light.h"
+#include "Skybox.h"
 
 namespace model {
 
@@ -70,14 +71,14 @@ public:
     EarthSunModel() { valid(); }
 
 protected:
-    double  _scale = 1000.0; //Km
-    double  _earthRadius = 6360.0;
+    float  _scale = 1000.0f; //Km
+    float  _earthRadius = 6360.0;
 
     Quat    _surfaceOrientation;
 
-    double  _longitude = 0.0;
-    double  _latitude = 0.0;
-    double  _altitude = 0.01;
+    float  _longitude = 0.0f;
+    float  _latitude = 0.0f;
+    float  _altitude = 0.01f;
     mutable Vec3d _surfacePos;
     mutable Mat4d _worldToSurfaceMat;
     mutable Mat4d _surfaceToWorldMat;
@@ -92,8 +93,8 @@ protected:
     mutable Mat4d _worldToEyeMat;
     mutable Mat4d _eyeToWorldMat;
 
-    double _sunLongitude = 0.0;
-    double _sunLatitude = 0.0;
+    float _sunLongitude = 0.0f;
+    float _sunLatitude = 0.0f;
     mutable Vec3d _sunDir;
     mutable Vec3d _surfaceSunDir;
     void updateSun() const;
@@ -158,7 +159,7 @@ protected:
 
     void updateScattering();
 };
-typedef QSharedPointer< Atmosphere > AtmospherePointer;
+typedef std::shared_ptr< Atmosphere > AtmospherePointer;
 
 // Sun sky stage generates the rendering primitives to display a scene realistically
 // at the specified location and time around earth
@@ -188,25 +189,50 @@ public:
     float getOriginLongitude() const { return _earthSunModel.getLongitude(); }
     float getOriginSurfaceAltitude() const { return _earthSunModel.getAltitude(); }
 
+    // Enable / disable the effect of the time and location on the sun direction and color
+    void setSunModelEnable(bool isEnabled);
+    bool isSunModelEnabled() const { return _sunModelEnable; }
+
     // Sun properties
     void setSunColor(const Vec3& color);
     const Vec3& getSunColor() const { return getSunLight()->getColor(); }
     void setSunIntensity(float intensity);
     float getSunIntensity() const { return getSunLight()->getIntensity(); }
+    void setSunAmbientIntensity(float intensity);
+    float getSunAmbientIntensity() const { return getSunLight()->getAmbientIntensity(); }
+
+    // The sun direction is expressed in the world space
+    void setSunDirection(const Vec3& direction);
+    const Vec3& getSunDirection() const { return getSunLight()->getDirection(); }
 
     LightPointer getSunLight() const { valid(); return _sunLight;  }
     AtmospherePointer getAtmosphere() const { valid(); return _atmosphere;  }
  
+    enum BackgroundMode {
+        NO_BACKGROUND = 0,
+        SKY_DOME,
+        SKY_BOX,
+
+        NUM_BACKGROUND_MODES,
+    };
+    void setBackgroundMode(BackgroundMode mode);
+    BackgroundMode getBackgroundMode() const { return _backgroundMode; }
+
+    // Skybox
+    void setSkybox(const SkyboxPointer& skybox);
+    const SkyboxPointer& getSkybox() const { valid(); return _skybox; }
+
 protected:
+    BackgroundMode _backgroundMode = SKY_BOX;
+
     LightPointer _sunLight;
     AtmospherePointer _atmosphere;
+    mutable SkyboxPointer _skybox;
 
-    gpu::PipelinePointer _skyPipeline;
-
-    float _dayTime;
-    int _yearTime;
-
+    float _dayTime = 12.0f;
+    int _yearTime = 0;
     mutable EarthSunModel _earthSunModel;
+    bool _sunModelEnable = true;
  
     mutable bool _invalid = true;
     void invalidate() const { _invalid = true; }
@@ -214,7 +240,7 @@ protected:
     void updateGraphicsObject() const;
 };
 
-typedef QSharedPointer< SunSkyStage > SunSkyStagePointer;
+typedef std::shared_ptr< SunSkyStage > SunSkyStagePointer;
 
 };
 

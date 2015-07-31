@@ -11,13 +11,11 @@
 #ifndef hifi_Text3DOverlay_h
 #define hifi_Text3DOverlay_h
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
-
 #include <QString>
 
-#include <RenderArgs.h>
 #include "Planar3DOverlay.h"
+
+class TextRenderer3D;
 
 class Text3DOverlay : public Planar3DOverlay {
     Q_OBJECT
@@ -56,8 +54,8 @@ public:
     virtual Text3DOverlay* createClone() const;
 
 private:
-    void enableClipPlane(GLenum plane, float x, float y, float z, float w);
-
+    TextRenderer3D* _textRenderer = nullptr;
+    
     QString _text;
     xColor _backgroundColor;
     float _backgroundAlpha;

@@ -8,9 +8,20 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+#include <string.h>
+
 #include "Batch.h"
 
-#include <QDebug>
+#if defined(NSIGHT_FOUND)
+#include "nvToolsExt.h"
+
+ProfileRange::ProfileRange(const char *name) {
+    nvtxRangePush(name);
+}
+ProfileRange::~ProfileRange() {
+    nvtxRangePop();
+}
+#endif
 
 #define ADD_COMMAND(call) _commands.push_back(COMMAND_##call); _commandOffsets.push_back(_params.size());
 
@@ -20,13 +31,13 @@ Batch::Batch() :
     _commands(),
     _commandOffsets(),
     _params(),
-    _resources(),
     _data(),
     _buffers(),
     _textures(),
     _streamFormats(),
     _transforms(),
-    _pipelines()
+    _pipelines(),
+    _framebuffers()
 {
 }
 
@@ -37,27 +48,13 @@ void Batch::clear() {
     _commands.clear();
     _commandOffsets.clear();
     _params.clear();
-    _resources.clear();
     _data.clear();
     _buffers.clear();
     _textures.clear();
     _streamFormats.clear();
     _transforms.clear();
-    _pipelines.clear();    
-}
-
-uint32 Batch::cacheResource(Resource* res) {
-    uint32 offset = _resources.size();
-    _resources.push_back(ResourceCache(res));
-    
-    return offset;
-}
-
-uint32 Batch::cacheResource(const void* pointer) {
-    uint32 offset = _resources.size();
-    _resources.push_back(ResourceCache(pointer));
-
-    return offset;
+    _pipelines.clear();
+    _framebuffers.clear();
 }
 
 uint32 Batch::cacheData(uint32 size, const void* data) {
@@ -143,6 +140,10 @@ void Batch::setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset
     _params.push_back(type);
 }
 
+void Batch::setIndexBuffer(const BufferView& buffer) {
+    setIndexBuffer(buffer._element.getType(), buffer._buffer, buffer._offset);
+}
+
 void Batch::setModelTransform(const Transform& model) {
     ADD_COMMAND(setModelTransform);
 
@@ -161,10 +162,31 @@ void Batch::setProjectionTransform(const Mat4& proj) {
     _params.push_back(cacheData(sizeof(Mat4), &proj));
 }
 
+void Batch::setViewportTransform(const Vec4i& viewport) {
+    ADD_COMMAND(setViewportTransform);
+
+    _params.push_back(cacheData(sizeof(Vec4i), &viewport));
+}
+
 void Batch::setPipeline(const PipelinePointer& pipeline) {
     ADD_COMMAND(setPipeline);
 
     _params.push_back(_pipelines.cache(pipeline));
+}
+
+void Batch::setStateBlendFactor(const Vec4& factor) {
+    ADD_COMMAND(setStateBlendFactor);
+
+    _params.push_back(factor.x);
+    _params.push_back(factor.y);
+    _params.push_back(factor.z);
+    _params.push_back(factor.w);
+}
+
+void Batch::setStateScissorRect(const Vec4i& rect) {
+    ADD_COMMAND(setStateScissorRect);
+
+    _params.push_back(cacheData(sizeof(Vec4i), &rect));
 }
 
 void Batch::setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size) {
@@ -181,14 +203,88 @@ void Batch::setUniformBuffer(uint32 slot, const BufferView& view) {
 }
 
 
-void Batch::setUniformTexture(uint32 slot, const TexturePointer& texture) {
-    ADD_COMMAND(setUniformTexture);
+void Batch::setResourceTexture(uint32 slot, const TexturePointer& texture) {
+    ADD_COMMAND(setResourceTexture);
 
     _params.push_back(_textures.cache(texture));
     _params.push_back(slot);
 }
 
-void Batch::setUniformTexture(uint32 slot, const TextureView& view) {
-    setUniformTexture(slot, view._texture);
+void Batch::setResourceTexture(uint32 slot, const TextureView& view) {
+    setResourceTexture(slot, view._texture);
+}
+
+void Batch::setFramebuffer(const FramebufferPointer& framebuffer) {
+    ADD_COMMAND(setFramebuffer);
+
+    _params.push_back(_framebuffers.cache(framebuffer));
+
+}
+
+void Batch::clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil, bool enableScissor) {
+    ADD_COMMAND(clearFramebuffer);
+
+    _params.push_back(enableScissor);
+    _params.push_back(stencil);
+    _params.push_back(depth);
+    _params.push_back(color.w);
+    _params.push_back(color.z);
+    _params.push_back(color.y);
+    _params.push_back(color.x);
+    _params.push_back(targets);
+}
+
+void Batch::clearColorFramebuffer(Framebuffer::Masks targets, const Vec4& color, bool enableScissor) {
+    clearFramebuffer(targets & Framebuffer::BUFFER_COLORS, color, 1.0f, 0, enableScissor);
+}
+
+void Batch::clearDepthFramebuffer(float depth, bool enableScissor) {
+    clearFramebuffer(Framebuffer::BUFFER_DEPTH, Vec4(0.0f), depth, 0, enableScissor);
+}
+
+void Batch::clearStencilFramebuffer(int stencil, bool enableScissor) {
+    clearFramebuffer(Framebuffer::BUFFER_STENCIL, Vec4(0.0f), 1.0f, stencil, enableScissor);
+}
+
+void Batch::clearDepthStencilFramebuffer(float depth, int stencil, bool enableScissor) {
+    clearFramebuffer(Framebuffer::BUFFER_DEPTHSTENCIL, Vec4(0.0f), depth, stencil, enableScissor);
+}
+
+void Batch::blit(const FramebufferPointer& src, const Vec4i& srcViewport,
+    const FramebufferPointer& dst, const Vec4i& dstViewport) {
+    ADD_COMMAND(blit);
+
+    _params.push_back(_framebuffers.cache(src));
+    _params.push_back(srcViewport.x);
+    _params.push_back(srcViewport.y);
+    _params.push_back(srcViewport.z);
+    _params.push_back(srcViewport.w);
+    _params.push_back(_framebuffers.cache(dst));
+    _params.push_back(dstViewport.x);
+    _params.push_back(dstViewport.y);
+    _params.push_back(dstViewport.z);
+    _params.push_back(dstViewport.w);
+}
+
+void Batch::beginQuery(const QueryPointer& query) {
+    ADD_COMMAND(beginQuery);
+
+    _params.push_back(_queries.cache(query));
+}
+
+void Batch::endQuery(const QueryPointer& query) {
+    ADD_COMMAND(endQuery);
+
+    _params.push_back(_queries.cache(query));
+}
+
+void Batch::getQuery(const QueryPointer& query) {
+    ADD_COMMAND(getQuery);
+
+    _params.push_back(_queries.cache(query));
+}
+
+void Batch::resetStages() {
+    ADD_COMMAND(resetStages);
 }
 

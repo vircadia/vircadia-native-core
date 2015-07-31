@@ -53,6 +53,9 @@ else ()
   )
 endif ()
 
+# Hide this external target (for ide users)
+set_target_properties(${EXTERNAL_NAME} PROPERTIES FOLDER "hidden/externals")
+
 ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
 
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
@@ -66,16 +69,21 @@ if (APPLE)
     ${EXTERNAL_NAME}
     change-install-name
     COMMENT "Calling install_name_tool on TBB libraries to fix install name for dylib linking"
-    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_SOURCE_DIR}/OSXTBBInstallNameChange.cmake
+    COMMAND ${CMAKE_COMMAND} -DINSTALL_NAME_LIBRARY_DIR=${_TBB_LIB_DIR} -P ${EXTERNAL_PROJECT_DIR}/OSXInstallNameChange.cmake
     DEPENDEES install
     WORKING_DIRECTORY <SOURCE_DIR>
     LOG 1
   )
   
 elseif (WIN32)
-  set(_TBB_LIB_DIR "${SOURCE_DIR}/lib/ia32/vc12")
+  if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
+    set(_TBB_LIB_DIR "${SOURCE_DIR}/lib/intel64/vc12")
+    set(${EXTERNAL_NAME_UPPER}_DLL_PATH "${SOURCE_DIR}/bin/intel64/vc12" CACHE PATH "Path to TBB DLLs")
+  else()
+    set(_TBB_LIB_DIR "${SOURCE_DIR}/lib/ia32/vc12")
+    set(${EXTERNAL_NAME_UPPER}_DLL_PATH "${SOURCE_DIR}/bin/ia32/vc12" CACHE PATH "Path to TBB DLLs")
+  endif()
   set(_LIB_EXT "lib")
-  set(${EXTERNAL_NAME_UPPER}_DLL_PATH "${SOURCE_DIR}/bin/ia32/vc12" CACHE PATH "Path to TBB DLLs")
 elseif (ANDROID)
   set(_TBB_LIB_DIR "${SOURCE_DIR}/lib")
   set(_LIB_PREFIX "lib")

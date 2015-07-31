@@ -21,7 +21,7 @@ EntityListTool = function(opts) {
         var selectedIDs = [];
 
         for (var i = 0; i < selectionManager.selections.length; i++) {
-            selectedIDs.push(selectionManager.selections[i].id);
+            selectedIDs.push(selectionManager.selections[i]);
         }
 
         data = {
@@ -31,14 +31,15 @@ EntityListTool = function(opts) {
         webView.eventBridge.emitScriptEvent(JSON.stringify(data));
     });
 
-    function sendUpdate() {
+    that.sendUpdate = function() {
         var entities = [];
         var ids = Entities.findEntities(MyAvatar.position, 100);
         for (var i = 0; i < ids.length; i++) {
             var id = ids[i];
             var properties = Entities.getEntityProperties(id);
             entities.push({
-                id: id.id,
+                id: id,
+                name: properties.name,
                 type: properties.type,
                 url: properties.type == "Model" ? properties.modelURL : "",
             });
@@ -46,7 +47,7 @@ EntityListTool = function(opts) {
 
         var selectedIDs = [];
         for (var i = 0; i < selectionManager.selections.length; i++) {
-            selectedIDs.push(selectionManager.selections[i].id);
+            selectedIDs.push(selectionManager.selections[i].id); // ?
         }
 
         var data = {
@@ -63,11 +64,7 @@ EntityListTool = function(opts) {
             var ids = data.entityIds;
             var entityIDs = [];
             for (var i = 0; i < ids.length; i++) {
-                entityIDs.push({
-                    id: ids[i],
-                    isKnownID: true,
-                    creatorTokenID: 0,
-                });
+                entityIDs.push(ids[i]);
             }
             selectionManager.setSelections(entityIDs);
             if (data.focus) {
@@ -76,7 +73,7 @@ EntityListTool = function(opts) {
                                     Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
             }
         } else if (data.type == "refresh") {
-            sendUpdate();
+            that.sendUpdate();
         } else if (data.type == "teleport") {
             if (selectionManager.hasSelection()) {
                 MyAvatar.position = selectionManager.worldPosition;

@@ -14,6 +14,7 @@
 #include <QtDebug>
 
 #include "SharedUtil.h"
+#include "NetworkLogging.h"
 
 #include "NetworkPacket.h"
 
@@ -22,7 +23,7 @@ void NetworkPacket::copyContents(const SharedNodePointer& node, const QByteArray
         _node = node;
         _byteArray = packet;
     } else {
-        qDebug(">>> NetworkPacket::copyContents() unexpected length = %d", packet.size());
+        qCDebug(networking, ">>> NetworkPacket::copyContents() unexpected length = %d", packet.size());
     }
 }
 
@@ -39,16 +40,3 @@ NetworkPacket& NetworkPacket::operator=(NetworkPacket const& other) {
     copyContents(other.getNode(), other.getByteArray());
     return *this;
 }
-
-#ifdef HAS_MOVE_SEMANTICS
-// move, same as copy, but other packet won't be used further
-NetworkPacket::NetworkPacket(NetworkPacket && packet) {
-    copyContents(packet.getNode(), packet.getByteArray());
-}
-
-// move assignment
-NetworkPacket& NetworkPacket::operator=(NetworkPacket&& other) {
-    copyContents(other.getNode(), other.getByteArray());
-    return *this;
-}
-#endif

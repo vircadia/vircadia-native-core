@@ -12,6 +12,7 @@
 #include <GLMHelpers.h>
 
 #include "AvatarData.h"
+#include "AvatarLogging.h"
 #include "Referential.h"
 
 Referential::Referential(Type type, AvatarData* avatar) :
@@ -62,7 +63,7 @@ int Referential::unpackReferential(const unsigned char* sourceBuffer) {
     _isValid = (bytesRead == expectedSize);
     if (!_isValid) {
         // Will occur if the new instance unpacking is of the wrong type
-        qDebug() << "[ERROR] Referential extra data overflow";
+        qCDebug(avatars) << "[ERROR] Referential extra data overflow";
     }
     sourceBuffer += expectedSize;
     return sourceBuffer - startPosition;

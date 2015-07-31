@@ -12,6 +12,8 @@
 #ifndef hifi_FBXReader_h
 #define hifi_FBXReader_h
 
+#define USE_MODEL_MESH 1
+
 #include <QMetaType>
 #include <QUrl>
 #include <QVarLengthArray>
@@ -154,6 +156,9 @@ public:
     bool hasEmissiveTexture() const;
 
     unsigned int meshIndex; // the order the meshes appeared in the object file
+#   if USE_MODEL_MESH
+    model::Mesh _mesh;
+#   endif
 };
 
 /// A single animation frame extracted from an FBX document.
@@ -184,17 +189,6 @@ public:
 Q_DECLARE_METATYPE(FBXAnimationFrame)
 Q_DECLARE_METATYPE(QVector<FBXAnimationFrame>)
 
-/// An attachment to an FBX document.
-class FBXAttachment {
-public:
-    
-    int jointIndex;
-    QUrl url;
-    glm::vec3 translation;
-    glm::quat rotation;
-    glm::vec3 scale;
-};
-
 /// A point where an avatar can sit
 class SittingPoint {
 public:
@@ -202,6 +196,16 @@ public:
     glm::vec3 position; // relative postion
     glm::quat rotation; // relative orientation
 };
+
+inline bool operator==(const SittingPoint& lhs, const SittingPoint& rhs)
+{
+    return (lhs.name == rhs.name) && (lhs.position == rhs.position) && (lhs.rotation == rhs.rotation);
+}
+
+inline bool operator!=(const SittingPoint& lhs, const SittingPoint& rhs)
+{
+    return (lhs.name != rhs.name) || (lhs.position != rhs.position) || (lhs.rotation != rhs.rotation);
+}
 
 /// A set of meshes extracted from an FBX document.
 class FBXGeometry {
@@ -228,7 +232,10 @@ public:
     int rightHandJointIndex = -1;
     int leftToeJointIndex = -1;
     int rightToeJointIndex = -1;
-    
+
+    float leftEyeSize = 0.0f;  // Maximum mesh extents dimension
+    float rightEyeSize = 0.0f;
+
     QVector<int> humanIKJointIndices;
     
     glm::vec3 palmDirection;
@@ -241,9 +248,7 @@ public:
     Extents meshExtents;
     
     QVector<FBXAnimationFrame> animationFrames;
-    
-    QVector<FBXAttachment> attachments;
-    
+        
     int getJointIndex(const QString& name) const { return jointIndices.value(name) - 1; }
     QStringList getJointNames() const;
     
@@ -252,6 +257,7 @@ public:
     /// Returns the unscaled extents of the model's mesh
     Extents getUnscaledMeshExtents() const;
 
+    bool convexHullContains(const glm::vec3& point) const;
 
     QHash<int, QString> meshIndicesToModelNames;
     
@@ -265,10 +271,10 @@ Q_DECLARE_METATYPE(FBXGeometry)
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, bool loadLightmaps = true, float lightmapLevel = 1.0f);
+FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, bool loadLightmaps = true, float lightmapLevel = 1.0f);
+FBXGeometry readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
 
 #endif // hifi_FBXReader_h

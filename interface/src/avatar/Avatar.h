@@ -18,13 +18,20 @@
 #include <QtCore/QUuid>
 
 #include <AvatarData.h>
+#include <ShapeInfo.h>
+
+#include <render/Scene.h>
 
 #include "Hand.h"
 #include "Head.h"
-#include "InterfaceConfig.h"
-#include "Recorder.h"
 #include "SkeletonModel.h"
 #include "world.h"
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar);
+    template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar);
+    template <> void payloadRender(const AvatarSharedPointer& avatar, RenderArgs* args);
+}
 
 static const float SCALING_RATIO = .05f;
 static const float SMOOTHING_RATIO = .05f; // 0 < ratio < 1
@@ -44,6 +51,8 @@ enum DriveKeys {
     ROT_RIGHT,
     ROT_UP,
     ROT_DOWN,
+    BOOM_IN,
+    BOOM_OUT,
     MAX_DRIVE_KEYS
 };
 
@@ -55,6 +64,7 @@ enum ScreenTintLayer {
     NUM_SCREEN_TINT_LAYERS
 };
 
+class AvatarMotionState;
 class Texture;
 
 class Avatar : public AvatarData {
@@ -65,13 +75,19 @@ public:
     Avatar();
     ~Avatar();
 
+    typedef render::Payload<AvatarData> Payload;
+    typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
+
     void init();
     void simulate(float deltaTime);
-    
-    enum RenderMode { NORMAL_RENDER_MODE, SHADOW_RENDER_MODE, MIRROR_RENDER_MODE };
-    
-    virtual void render(const glm::vec3& cameraPosition, RenderMode renderMode = NORMAL_RENDER_MODE,
-        bool postLighting = false);
+
+    virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition);
+
+    bool addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
+                            render::PendingChanges& pendingChanges);
+
+    void removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
+                                render::PendingChanges& pendingChanges);
 
     //setters
     void setDisplayingLookatVectors(bool displayingLookatVectors) { getHead()->setRenderLookatVectors(displayingLookatVectors); }
@@ -80,6 +96,7 @@ public:
     //getters
     bool isInitialized() const { return _initialized; }
     SkeletonModel& getSkeletonModel() { return _skeletonModel; }
+    const SkeletonModel& getSkeletonModel() const { return _skeletonModel; }
     const QVector<Model*>& getAttachmentModels() const { return _attachmentModels; }
     glm::vec3 getChestPosition() const;
     float getScale() const { return _scale; }
@@ -87,6 +104,8 @@ public:
     Head* getHead() { return static_cast<Head*>(_headData); }
     Hand* getHand() { return static_cast<Hand*>(_handData); }
     glm::quat getWorldAlignedOrientation() const;
+
+    AABox getBounds() const;
 
     /// Returns the distance to use as a LOD parameter.
     float getLODDistance() const;
@@ -111,7 +130,7 @@ public:
     /// \return whether or not the plane penetrated
     bool findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions);
 
-    virtual bool isMyAvatar() { return false; }
+    virtual bool isMyAvatar() const { return false; }
     
     virtual QVector<glm::quat> getJointRotations() const;
     virtual glm::quat getJointRotation(int index) const;
@@ -121,14 +140,13 @@ public:
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
-    virtual void setDisplayName(const QString& displayName);
     virtual void setBillboard(const QByteArray& billboard);
 
     void setShowDisplayName(bool showDisplayName);
     
-    virtual int parseDataAtOffset(const QByteArray& packet, int offset);
+    virtual int parseDataFromBuffer(const QByteArray& buffer);
 
-    static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, 
+    static void renderJointConnectingCone( gpu::Batch& batch, glm::vec3 position1, glm::vec3 position2,
                                                 float radius1, float radius2, const glm::vec4& color);
 
     virtual void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) { }
@@ -143,7 +161,7 @@ public:
     Q_INVOKABLE glm::quat getJointCombinedRotation(const QString& name) const;
     
     Q_INVOKABLE void setJointModelPositionAndOrientation(int index, const glm::vec3 position, const glm::quat& rotation);
-    Q_INVOKABLE void setJointModelPositionAndOrientation(const QString& name, const glm::vec3 position, 
+    Q_INVOKABLE void setJointModelPositionAndOrientation(const QString& name, const glm::vec3 position,
         const glm::quat& rotation);
     
     Q_INVOKABLE glm::vec3 getNeckPosition() const;
@@ -159,10 +177,16 @@ public:
 
     void slamPosition(const glm::vec3& position);
 
-    // Call this when updating Avatar position with a delta.  This will allow us to 
-    // _accurately_ measure position changes and compute the resulting velocity 
+    // Call this when updating Avatar position with a delta.  This will allow us to
+    // _accurately_ measure position changes and compute the resulting velocity
     // (otherwise floating point error will cause problems at large positions).
     void applyPositionDelta(const glm::vec3& delta);
+
+    virtual void rebuildSkeletonBody();
+
+    virtual void computeShapeInfo(ShapeInfo& shapeInfo);
+
+    friend class AvatarManager;
 
 signals:
     void collisionWithAvatar(const QUuid& myUUID, const QUuid& theirUUID, const CollisionInfo& collision);
@@ -171,13 +195,15 @@ protected:
     SkeletonModel _skeletonModel;
     glm::vec3 _skeletonOffset;
     QVector<Model*> _attachmentModels;
+    QVector<Model*> _attachmentsToRemove;
+    QVector<Model*> _unusedAttachments;
     float _bodyYawDelta;
 
     // These position histories and derivatives are in the world-frame.
     // The derivatives are the MEASURED results of all external and internal forces
-    // and are therefore READ-ONLY --> motion control of the Avatar is NOT obtained 
+    // and are therefore READ-ONLY --> motion control of the Avatar is NOT obtained
     // by setting these values.
-    // Floating point error prevents us from accurately measuring velocity using a naive approach 
+    // Floating point error prevents us from accurately measuring velocity using a naive approach
     // (e.g. vel = (pos - lastPos)/dt) so instead we use _positionDeltaAccumulator.
     glm::vec3 _positionDeltaAccumulator;
     glm::vec3 _lastVelocity;
@@ -204,32 +230,35 @@ protected:
     float getSkeletonHeight() const;
     float getHeadHeight() const;
     float getPelvisFloatingHeight() const;
-    glm::vec3 getDisplayNamePosition();
+    glm::vec3 getDisplayNamePosition() const;
 
-    float calculateDisplayNameScaleFactor(const glm::vec3& textPosition, bool inHMD);
-    void renderDisplayName();
-    virtual void renderBody(ViewFrustum* renderFrustum, RenderMode renderMode, bool postLighting, float glowLevel = 0.0f);
-    virtual bool shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const;
+    Transform calculateDisplayNameTransform(const ViewFrustum& frustum, float fontSize, const glm::ivec4& viewport) const;
+    void renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, const glm::ivec4& viewport) const;
+    virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel = 0.0f);
+    virtual bool shouldRenderHead(const RenderArgs* renderArgs) const;
+    virtual void fixupModelsInScene();
 
     void simulateAttachments(float deltaTime);
-    virtual void renderAttachments(RenderMode renderMode, RenderArgs* args);
 
     virtual void updateJointMappings();
+
+    render::ItemID _renderItemID;
     
 private:
-
     bool _initialized;
     NetworkTexturePointer _billboardTexture;
     bool _shouldRenderBillboard;
     bool _isLookAtTarget;
 
-    void renderBillboard();
+    void renderBillboard(RenderArgs* renderArgs);
     
     float getBillboardSize() const;
     
     static int _jointConesID;
 
     int _voiceSphereID;
+
+    AvatarMotionState* _motionState = nullptr;
 };
 
 #endif // hifi_Avatar_h

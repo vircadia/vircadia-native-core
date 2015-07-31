@@ -256,7 +256,7 @@ void JointState::setVisibleRotationInConstrainedFrame(const glm::quat& targetRot
     _visibleRotation = parentRotation * _fbxJoint->preRotation * _visibleRotationInConstrainedFrame * _fbxJoint->postRotation;
 }
 
-const bool JointState::rotationIsDefault(const glm::quat& rotation, float tolerance) const {
+bool JointState::rotationIsDefault(const glm::quat& rotation, float tolerance) const {
     glm::quat defaultRotation = _fbxJoint->rotation;
     return glm::abs(rotation.x - defaultRotation.x) < tolerance &&
         glm::abs(rotation.y - defaultRotation.y) < tolerance &&

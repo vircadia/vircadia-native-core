@@ -128,6 +128,8 @@
          </property>
         </widget>
        </item>
+
+
        <item>
         <layout class="QVBoxLayout" name="verticalLayout_5">
          <property name="spacing">
@@ -187,8 +189,9 @@
          </item>
         </layout>
        </item>
+
        <item>
-        <layout class="QVBoxLayout" name="verticalLayout_4">
+        <layout class="QVBoxLayout" name="verticalLayout_5csu">
          <property name="spacing">
           <number>0</number>
          </property>
@@ -199,33 +202,107 @@
           <number>7</number>
          </property>
          <item>
-          <widget class="QLabel" name="headLabel">
+          <widget class="QLabel" name="avatarCollisionSoundURLLabel">
            <property name="font">
             <font>
              <family>Arial</family>
             </font>
            </property>
            <property name="text">
-            <string>Head</string>
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Avatar collision sound URL &lt;span style=&quot; color:#909090;&quot;&gt;(optional)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
            <property name="alignment">
             <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
            </property>
            <property name="buddy">
-            <cstring>snapshotLocationEdit</cstring>
+            <cstring>collisionSoundURLEdit</cstring>
            </property>
           </widget>
          </item>
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout">
+          <layout class="QHBoxLayout" name="horizontalLayout_17csu">
+           <property name="topMargin">
+            <number>4</number>
+           </property>
+           <property name="rightMargin">
+            <number>5</number>
+           </property>
+           <property name="bottomMargin">
+            <number>4</number>
+           </property>
+           <item>
+            <widget class="QLineEdit" name="collisionSoundURLEdit">
+             <property name="font">
+              <font>
+               <family>Arial</family>
+              </font>
+             </property>
+             <property name="layoutDirection">
+              <enum>Qt::LeftToRight</enum>
+             </property>
+             <property name="placeholderText">
+              <string>Enter the URL of a sound to play when you bump into something</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+       
+       <item>
+        <layout class="QVBoxLayout" name="verticalLayout_appearance">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>7</number>
+         </property>
+         <property name="bottomMargin">
+          <number>7</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="appearanceLabel">
+           <property name="font">
+            <font>
+             <family>Arial</family>
+            </font>
+           </property>
+           <property name="text">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Appearance&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
+           </property>
+           <property name="buddy">
+            <cstring>apperanceDescription</cstring>
+           </property>
+          </widget>
+         </item>
+
+
+
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_1_apperanceDescription">
            <property name="spacing">
             <number>0</number>
            </property>
            <item>
-            <widget class="QLineEdit" name="faceURLEdit"/>
+            <widget class="QLineEdit" name="apperanceDescription">
+             <property name="font">
+              <font>
+               <family>Arial</family>
+              </font>
+             </property>
+
+             <property name="enabled">
+               <bool>false</bool>
+             </property>
+             
+            </widget>
            </item>
            <item>
-            <spacer name="horizontalSpacer">
+            <spacer name="horizontalSpacer_1_apperanceDescription">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
              </property>
@@ -241,14 +318,14 @@
             </spacer>
            </item>
            <item>
-            <widget class="QPushButton" name="buttonBrowseHead">
+            <widget class="QPushButton" name="buttonChangeApperance">
              <property name="font">
               <font>
                <family>Arial</family>
               </font>
              </property>
              <property name="text">
-              <string>Browse</string>
+              <string>Change</string>
              </property>
              <property name="iconSize">
               <size>
@@ -260,90 +337,11 @@
            </item>
           </layout>
          </item>
+
         </layout>
        </item>
-       <item>
-        <layout class="QVBoxLayout" name="verticalLayout_3">
-         <property name="spacing">
-          <number>0</number>
-         </property>
-         <property name="topMargin">
-          <number>7</number>
-         </property>
-         <property name="bottomMargin">
-          <number>7</number>
-         </property>
-         <item>
-          <widget class="QLabel" name="headLabel_2">
-           <property name="font">
-            <font>
-             <family>Arial</family>
-            </font>
-           </property>
-           <property name="text">
-            <string>Body</string>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
-           </property>
-           <property name="buddy">
-            <cstring>skeletonURLEdit</cstring>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_7">
-           <property name="spacing">
-            <number>0</number>
-           </property>
-           <item>
-            <widget class="QLineEdit" name="skeletonURLEdit">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <spacer name="horizontalSpacer_10">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeType">
-              <enum>QSizePolicy::Fixed</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>5</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item>
-            <widget class="QPushButton" name="buttonBrowseBody">
-             <property name="font">
-              <font>
-               <family>Arial</family>
-              </font>
-             </property>
-             <property name="text">
-              <string>Browse</string>
-             </property>
-             <property name="iconSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </item>
-        </layout>
-       </item>
+              
+       
        <item>
         <spacer name="verticalSpacer_2">
          <property name="orientation">
@@ -413,6 +411,7 @@
            </property>
           </widget>
          </item>
+         
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout_1">
            <property name="spacing">
@@ -463,6 +462,10 @@
            </item>
           </layout>
          </item>
+         
+         
+         
+         
         </layout>
        </item>
        <item>
@@ -665,6 +668,7 @@
          </property>
         </widget>
        </item>
+
        <item>
         <widget class="QCheckBox" name="sendDataCheckBox">
          <property name="sizePolicy">
@@ -1312,7 +1316,7 @@
             </font>
            </property>
            <property name="text">
-            <string>Pupil dillation</string>
+            <string>Pupil dilation</string>
            </property>
            <property name="indent">
             <number>0</number>
@@ -1367,6 +1371,82 @@
         </layout>
        </item>
        <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_28">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>7</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>7</number>
+         </property>
+         <item alignment="Qt::AlignLeft">
+          <widget class="QLabel" name="label_7">
+           <property name="font">
+            <font>
+             <family>Arial</family>
+            </font>
+           </property>
+           <property name="text">
+            <string>Camera binary eyelid threshold</string>
+           </property>
+           <property name="indent">
+            <number>0</number>
+           </property>
+           <property name="buddy">
+            <cstring>ddeEyeClosingThresholdSlider</cstring>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_8">
+           <property name="font">
+            <font>
+             <family>Arial</family>
+            </font>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QSlider" name="ddeEyeClosingThresholdSlider">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>130</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <family>Arial</family>
+            </font>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
         <layout class="QHBoxLayout" name="horizontalLayout_6">
          <property name="spacing">
           <number>0</number>
@@ -1388,13 +1468,13 @@
             </font>
            </property>
            <property name="text">
-            <string>Faceshift eye detection</string>
+            <string>Face tracker eye deflection</string>
            </property>
            <property name="indent">
             <number>0</number>
            </property>
            <property name="buddy">
-            <cstring>faceshiftEyeDeflectionSider</cstring>
+            <cstring>faceTrackerEyeDeflectionSider</cstring>
            </property>
           </widget>
          </item>
@@ -1417,7 +1497,7 @@
           </spacer>
          </item>
          <item>
-          <widget class="QSlider" name="faceshiftEyeDeflectionSider">
+          <widget class="QSlider" name="faceTrackerEyeDeflectionSider">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
              <horstretch>0</horstretch>

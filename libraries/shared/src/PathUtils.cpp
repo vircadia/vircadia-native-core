@@ -14,25 +14,25 @@
 #include <QVector>
 #include <QDateTime>
 #include <QFileInfo>
-
+#include <QDir>
 #include "PathUtils.h"
 
 
-QString& PathUtils::resourcesPath() {
+const QString& PathUtils::resourcesPath() {
 #ifdef Q_OS_MAC
     static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
 #else
     static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
 #endif
+
     return staticResourcePath;
 }
 
 
 QString fileNameWithoutExtension(const QString& fileName, const QVector<QString> possibleExtensions) {
+    QString fileNameLowered = fileName.toLower();
     foreach (const QString possibleExtension, possibleExtensions) {
-        if (fileName.endsWith(possibleExtension) ||
-            fileName.endsWith(possibleExtension.toUpper()) ||
-            fileName.endsWith(possibleExtension.toLower())) {
+        if (fileNameLowered.endsWith(possibleExtension.toLower())) {
             return fileName.left(fileName.count() - possibleExtension.count() - 1);
         }
     }

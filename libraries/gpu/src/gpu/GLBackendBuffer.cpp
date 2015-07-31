@@ -35,7 +35,7 @@ GLBackend::GLBuffer* GLBackend::syncGPUObject(const Buffer& buffer) {
     if (!object) {
         object = new GLBuffer();
         glGenBuffers(1, &object->_buffer);
-        CHECK_GL_ERROR();
+        (void) CHECK_GL_ERROR();
         Backend::setGPUObject(buffer, object);
     }
 
@@ -48,7 +48,7 @@ GLBackend::GLBuffer* GLBackend::syncGPUObject(const Buffer& buffer) {
     object->_stamp = buffer.getSysmem().getStamp();
     object->_size = buffer.getSysmem().getSize();
     //}
-    CHECK_GL_ERROR();
+    (void) CHECK_GL_ERROR();
 
     return object;
 }

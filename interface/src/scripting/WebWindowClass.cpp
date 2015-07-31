@@ -16,6 +16,7 @@
 #include <QWebFrame>
 #include <QWebView>
 #include <QListWidget>
+#include <QStyleFactory>
 
 #include "Application.h"
 #include "ui/DataWebPage.h"
@@ -56,7 +57,7 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
     } else {
         auto dialogWidget = new QDialog(Application::getInstance()->getWindow(), Qt::Window);
         dialogWidget->setWindowTitle(title);
-        dialogWidget->setMinimumSize(width, height);
+        dialogWidget->resize(width, height);
         connect(dialogWidget, &QDialog::finished, this, &WebWindowClass::hasClosed);
 
         auto layout = new QVBoxLayout(dialogWidget);
@@ -72,8 +73,17 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
         _windowWidget = dialogWidget;
     }
 
+    auto style = QStyleFactory::create("fusion");
+    if (style) {
+        _webView->setStyle(style);
+    }
+
     _webView->setPage(new DataWebPage());
-    _webView->setUrl(url);
+    if (!url.startsWith("http") && !url.startsWith("file://")) {
+        _webView->setUrl(QUrl::fromLocalFile(url));
+    } else {
+        _webView->setUrl(url);
+    }
 
     connect(this, &WebWindowClass::destroyed, _windowWidget, &QWidget::deleteLater);
     connect(_webView->page()->mainFrame(), &QWebFrame::javaScriptWindowObjectCleared,
@@ -131,4 +141,8 @@ QScriptValue WebWindowClass::constructor(QScriptContext* context, QScriptEngine*
     connect(engine, &QScriptEngine::destroyed, retVal, &WebWindowClass::deleteLater);
 
     return engine->newQObject(retVal);
+}
+
+void WebWindowClass::setTitle(const QString& title) {
+    _windowWidget->setWindowTitle(title);
 }

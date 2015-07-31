@@ -16,13 +16,14 @@
 #include <QStringList>
 
 #include <ModelEntityItem.h>
+#include "RenderableDebugableEntityItem.h"
 
 class Model;
 class EntityTreeRenderer;
 
-class RenderableModelEntityItem : public ModelEntityItem  {
+class RenderableModelEntityItem : public ModelEntityItem {
 public:
-    static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     RenderableModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         ModelEntityItem(entityItemID, properties),
@@ -40,7 +41,16 @@ public:
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
                                                 
-    virtual void somethingChangedNotification() { _needsInitialSimulation = true; }
+    virtual void somethingChangedNotification() { 
+        // FIX ME: this is overly aggressive. We only really need to simulate() if something about
+        // the world space transform has changed and/or if some animation is occurring.
+        _needsInitialSimulation = true;  
+    }
+
+    virtual bool readyToAddToScene(RenderArgs* renderArgs = nullptr);
+    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+
 
     virtual void render(RenderArgs* args);
     virtual bool supportsDetailedRayIntersection() const { return true; }
@@ -52,13 +62,12 @@ public:
 
     bool needsToCallUpdate() const;
 
-    virtual void setCollisionModelURL(const QString& url);
-    virtual bool hasCollisionModel() const;
-    virtual const QString& getCollisionModelURL() const;
+    virtual void setCompoundShapeURL(const QString& url);
 
     bool isReadyToComputeShape();
     void computeShapeInfo(ShapeInfo& info);
-    ShapeType getShapeType() const;
+    
+    virtual bool contains(const glm::vec3& point) const;
 
 private:
     void remapTextures();
@@ -71,6 +80,8 @@ private:
     QStringList _originalTextures;
     bool _originalTexturesRead;
     QVector<QVector<glm::vec3>> _points;
+    
+    render::ItemID _myMetaItem;
 };
 
 #endif // hifi_RenderableModelEntityItem_h

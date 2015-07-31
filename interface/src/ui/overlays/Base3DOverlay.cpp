@@ -8,23 +8,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include "InterfaceConfig.h"
 
-#include <SharedUtil.h>
-
-#include "Application.h"
 #include "Base3DOverlay.h"
 
-const glm::vec3 DEFAULT_POSITION = glm::vec3(0.0f, 0.0f, 0.0f);
+#include <QScriptValue>
+
+#include <RegisteredMetaTypes.h>
+#include <SharedUtil.h>
+
+
 const float DEFAULT_LINE_WIDTH = 1.0f;
 const bool DEFAULT_IS_SOLID = false;
 const bool DEFAULT_IS_DASHED_LINE = false;
 
 Base3DOverlay::Base3DOverlay() :
-    _position(DEFAULT_POSITION),
     _lineWidth(DEFAULT_LINE_WIDTH),
-    _rotation(),
     _isSolid(DEFAULT_IS_SOLID),
     _isDashedLine(DEFAULT_IS_DASHED_LINE),
     _ignoreRayIntersection(false),
@@ -35,18 +33,14 @@ Base3DOverlay::Base3DOverlay() :
 
 Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
     Overlay(base3DOverlay),
-    _position(base3DOverlay->_position),
+    _transform(base3DOverlay->_transform),
     _lineWidth(base3DOverlay->_lineWidth),
-    _rotation(base3DOverlay->_rotation),
     _isSolid(base3DOverlay->_isSolid),
     _isDashedLine(base3DOverlay->_isDashedLine),
     _ignoreRayIntersection(base3DOverlay->_ignoreRayIntersection),
     _drawInFront(base3DOverlay->_drawInFront),
     _drawOnHUD(base3DOverlay->_drawOnHUD)
 {
-}
-
-Base3DOverlay::~Base3DOverlay() {
 }
 
 void Base3DOverlay::setProperties(const QScriptValue& properties) {
@@ -146,13 +140,13 @@ void Base3DOverlay::setProperties(const QScriptValue& properties) {
 
 QScriptValue Base3DOverlay::getProperty(const QString& property) {
     if (property == "position" || property == "start" || property == "p1" || property == "point") {
-        return vec3toScriptValue(_scriptEngine, _position);
+        return vec3toScriptValue(_scriptEngine, getPosition());
     }
     if (property == "lineWidth") {
         return _lineWidth;
     }
     if (property == "rotation") {
-        return quatToScriptValue(_scriptEngine, _rotation);
+        return quatToScriptValue(_scriptEngine, getRotation());
     }
     if (property == "isSolid" || property == "isFilled" || property == "solid" || property == "filed") {
         return _isSolid;

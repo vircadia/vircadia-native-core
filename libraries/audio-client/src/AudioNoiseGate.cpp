@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <cstdlib>
 #include <string.h>
 
 #include <AudioConstants.h>
@@ -32,6 +33,32 @@ AudioNoiseGate::AudioNoiseGate() :
     
 }
 
+void AudioNoiseGate::removeDCOffset(int16_t* samples, int numSamples) {
+    //
+    //  DC Offset correction
+    //
+    //  Measure the DC offset over a trailing number of frames, and remove it from the input signal.
+    //  This causes the noise background measurements and server muting to be more accurate.  Many off-board
+    //  ADC's have a noticeable DC offset.
+    //
+    const float DC_OFFSET_AVERAGING = 0.99f;
+    float measuredDcOffset = 0.0f;
+    //  Remove trailing DC offset from samples
+    for (int i = 0; i < numSamples; i++) {
+        measuredDcOffset += samples[i];
+        samples[i] -= (int16_t) _dcOffset;
+    }
+    // Update measured DC offset
+    measuredDcOffset /= numSamples;
+    if (_dcOffset == 0.0f) {
+        // On first frame, copy over measured offset
+        _dcOffset = measuredDcOffset;
+    } else {
+        _dcOffset = DC_OFFSET_AVERAGING * _dcOffset + (1.0f - DC_OFFSET_AVERAGING) * measuredDcOffset;
+    }
+}
+
+
 void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
     //
     //  Impose Noise Gate
@@ -53,24 +80,19 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
     
     
     float loudness = 0;
-    float thisSample = 0;
+    int thisSample = 0;
     int samplesOverNoiseGate = 0;
     
     const float NOISE_GATE_HEIGHT = 7.0f;
     const int NOISE_GATE_WIDTH = 5;
     const int NOISE_GATE_CLOSE_FRAME_DELAY = 5;
     const int NOISE_GATE_FRAMES_TO_AVERAGE = 5;
-    const float DC_OFFSET_AVERAGING = 0.99f;
-    
-    //  Check clipping, adjust DC offset, and check if should open noise gate
-    float measuredDcOffset = 0.0f;
+
+    //  Check clipping, and check if should open noise gate
     _didClipInLastFrame = false;
     
     for (int i = 0; i < numSamples; i++) {
-        measuredDcOffset += samples[i];
-        samples[i] -= (int16_t) _dcOffset;
-        thisSample = fabsf(samples[i]);
-        
+        thisSample = std::abs(samples[i]);
         if (thisSample >= ((float) AudioConstants::MAX_SAMPLE_VALUE * CLIPPING_THRESHOLD)) {
             _didClipInLastFrame = true;
         }
@@ -80,14 +102,6 @@ void AudioNoiseGate::gateSamples(int16_t* samples, int numSamples) {
         if (thisSample > (_measuredFloor * NOISE_GATE_HEIGHT)) {
             samplesOverNoiseGate++;
         }
-    }
-    
-    measuredDcOffset /= numSamples;
-    if (_dcOffset == 0.0f) {
-        // On first frame, copy over measured offset
-        _dcOffset = measuredDcOffset;
-    } else {
-        _dcOffset = DC_OFFSET_AVERAGING * _dcOffset + (1.0f - DC_OFFSET_AVERAGING) * measuredDcOffset;
     }
     
     _lastLoudness = fabs(loudness / numSamples);

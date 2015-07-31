@@ -9,8 +9,8 @@ if (WIN32)
 
   ExternalProject_Add(
     ${EXTERNAL_NAME}
-    URL http://static.oculus.com/sdk-downloads/ovr_sdk_win_0.5.0.1.zip
-    URL_MD5 d3fc4c02db9be5ff08af4ef4c97b32f9
+    URL http://static.oculus.com/sdk-downloads/0.6.0.0/1431634088/ovr_sdk_win_0.6.0.0.zip
+    URL_MD5 a3dfdab037a854fdcf7e6033fa8d7028
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
@@ -21,7 +21,11 @@ if (WIN32)
 
   # FIXME need to account for different architectures 
   set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/LibOVR/Include CACHE TYPE INTERNAL)
-  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/LibOVR/Lib/Windows/Win32/Release/VS2013/LibOVR.lib CACHE TYPE INTERNAL)
+  if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
+    set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/LibOVR/Lib/Windows/x64/Release/VS2013/LibOVR.lib CACHE TYPE INTERNAL)
+  else()
+    set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/LibOVR/Lib/Windows/Win32/Release/VS2013/LibOVR.lib CACHE TYPE INTERNAL)
+  endif()
 
 elseif(APPLE)
 
@@ -81,5 +85,8 @@ elseif(NOT ANDROID)
   set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/LibOVR/Include ${SOURCE_DIR}/LibOVR/Src  CACHE TYPE INTERNAL)
   set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${${EXTERNAL_NAME_UPPER}_LIBRARY} ${${EXTERNAL_NAME_UPPER}_LIBRARY_EXTRAS} CACHE TYPE INTERNAL)
 endif()
+
+# Hide this external target (for ide users)
+set_target_properties(${EXTERNAL_NAME} PROPERTIES FOLDER "hidden/externals")
 
 

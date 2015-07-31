@@ -19,6 +19,7 @@
 
 #include "Application.h"
 #include "Menu.h"
+#include "InterfaceLogging.h"
 
 #include "ScriptsModel.h"
 
@@ -181,7 +182,7 @@ void ScriptsModel::downloadFinished() {
         if (!data.isEmpty()) {
             finished = parseXML(data);
         } else {
-            qDebug() << "Error: Received no data when loading remote scripts";
+            qCDebug(interfaceapp) << "Error: Received no data when loading remote scripts";
         }
     }
 
@@ -230,7 +231,7 @@ bool ScriptsModel::parseXML(QByteArray xmlFile) {
 
     // Error handling
     if (xml.hasError()) {
-        qDebug() << "Error loading remote scripts: " << xml.errorString();
+        qCDebug(interfaceapp) << "Error loading remote scripts: " << xml.errorString();
         return true;
     }
 

@@ -11,6 +11,8 @@
 
 #include "GLMHelpers.h"
 
+#include "NumericalConstants.h"
+
 //  Safe version of glm::mix; based on the code in Nick Bobick's article,
 //  http://www.gamasutra.com/features/19980703/quaternions_01.htm (via Clyde,
 //  https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Quaternion.java)
@@ -203,6 +205,13 @@ glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
     return glm::angleAxis(angle, axis);
 }
 
+bool isPointBehindTrianglesPlane(glm::vec3 point, glm::vec3 p0, glm::vec3 p1, glm::vec3 p2) {
+    glm::vec3 v1 = p0 - p1, v2 = p2 - p1; // Non-collinear vectors contained in the plane
+    glm::vec3 n = glm::cross(v1, v2); // Plane's normal vector, pointing out of the triangle
+    float d = -glm::dot(n, p0); // Compute plane's equation constant
+    return (glm::dot(n, point) + d) >= 0;
+}
+
 glm::vec3 extractTranslation(const glm::mat4& matrix) {
     return glm::vec3(matrix[3][0], matrix[3][1], matrix[3][2]);
 }
@@ -229,7 +238,7 @@ glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal) {
             float sd10 = previous[0][1] * previous[2][2] - previous[2][1] * previous[0][2];
             float sd20 = previous[0][1] * previous[1][2] - previous[1][1] * previous[0][2];
             float det = previous[0][0] * sd00 + previous[2][0] * sd20 - previous[1][0] * sd10;
-            if (fabs(det) == 0.0f) {
+            if (fabsf(det) == 0.0f) {
                 // determinant is zero; matrix is not invertible
                 break;
             }
@@ -318,7 +327,7 @@ glm::vec2 toGlm(const QPointF & pt) {
 
 glm::vec3 toGlm(const xColor & color) {
     static const float MAX_COLOR = 255.0f;
-    return std::move(glm::vec3(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR));
+    return glm::vec3(color.red, color.green, color.blue) / MAX_COLOR;
 }
 
 glm::vec4 toGlm(const QColor & color) {
@@ -327,6 +336,10 @@ glm::vec4 toGlm(const QColor & color) {
 
 QMatrix4x4 fromGlm(const glm::mat4 & m) {
   return QMatrix4x4(&m[0][0]).transposed();
+}
+
+QSize fromGlm(const glm::ivec2 & v) {
+    return QSize(v.x, v.y);
 }
 
 QRectF glmToRect(const glm::vec2 & pos, const glm::vec2 & size) {

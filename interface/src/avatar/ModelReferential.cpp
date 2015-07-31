@@ -13,6 +13,7 @@
 #include <EntityTree.h>
 #include <Model.h>
 
+#include "InterfaceLogging.h"
 #include "ModelReferential.h"
 
 ModelReferential::ModelReferential(Referential* referential, EntityTree* tree, AvatarData* avatar) :
@@ -25,11 +26,11 @@ ModelReferential::ModelReferential(Referential* referential, EntityTree* tree, A
                     referential->getExtraData().size());
     
     if (!isValid()) {
-        qDebug() << "ModelReferential::copyConstructor(): Not Valid";
+        qCDebug(interfaceapp) << "ModelReferential::copyConstructor(): Not Valid";
         return;
     }
     
-    const EntityItem* item = _tree->findEntityByID(_entityID);
+    EntityItemPointer item = _tree->findEntityByID(_entityID);
     if (item != NULL) {
         _lastRefDimension = item->getDimensions();
         _refRotation = item->getRotation();
@@ -43,9 +44,9 @@ ModelReferential::ModelReferential(const QUuid& entityID, EntityTree* tree, Avat
     _entityID(entityID),
     _tree(tree)
 {
-    const EntityItem* item = _tree->findEntityByID(_entityID);
+    EntityItemPointer item = _tree->findEntityByID(_entityID);
     if (!isValid() || item == NULL) {
-        qDebug() << "ModelReferential::constructor(): Not Valid";
+        qCDebug(interfaceapp) << "ModelReferential::constructor(): Not Valid";
         _isValid = false;
         return;
     }
@@ -60,7 +61,7 @@ ModelReferential::ModelReferential(const QUuid& entityID, EntityTree* tree, Avat
 }
 
 void ModelReferential::update() {
-    const EntityItem* item = _tree->findEntityByID(_entityID);
+    EntityItemPointer item = _tree->findEntityByID(_entityID);
     if (!isValid() || item == NULL || _avatar == NULL) {
         return;
     }
@@ -100,11 +101,11 @@ JointReferential::JointReferential(Referential* referential, EntityTree* tree, A
 {
     _type = JOINT;
     if (!isValid()) {
-        qDebug() << "JointReferential::copyConstructor(): Not Valid";
+        qCDebug(interfaceapp) << "JointReferential::copyConstructor(): Not Valid";
         return;
     }
     
-    const EntityItem* item = _tree->findEntityByID(_entityID);
+    EntityItemPointer item = _tree->findEntityByID(_entityID);
     const Model* model = getModel(item);
     if (!isValid() || model == NULL || _jointIndex >= (uint32_t)(model->getJointStateCount())) {
         _lastRefDimension = item->getDimensions();
@@ -119,10 +120,10 @@ JointReferential::JointReferential(uint32_t jointIndex, const QUuid& entityID, E
     _jointIndex(jointIndex)
 {
     _type = JOINT;
-    const EntityItem* item = _tree->findEntityByID(_entityID);
+    EntityItemPointer item = _tree->findEntityByID(_entityID);
     const Model* model = getModel(item);
     if (!isValid() || model == NULL || _jointIndex >= (uint32_t)(model->getJointStateCount())) {
-        qDebug() << "JointReferential::constructor(): Not Valid";
+        qCDebug(interfaceapp) << "JointReferential::constructor(): Not Valid";
         _isValid = false;
         return;
     }
@@ -138,7 +139,7 @@ JointReferential::JointReferential(uint32_t jointIndex, const QUuid& entityID, E
 }
 
 void JointReferential::update() {
-    const EntityItem* item = _tree->findEntityByID(_entityID);
+    EntityItemPointer item = _tree->findEntityByID(_entityID);
     const Model* model = getModel(item);
     if (!isValid() || model == NULL || _jointIndex >= (uint32_t)(model->getJointStateCount())) {
         return;
@@ -162,7 +163,7 @@ void JointReferential::update() {
     }
 }
 
-const Model* JointReferential::getModel(const EntityItem* item) {
+const Model* JointReferential::getModel(EntityItemPointer item) {
     EntityItemFBXService* fbxService = _tree->getFBXService();
     if (item != NULL && fbxService != NULL) {
         return fbxService->getModelForEntityItem(item);

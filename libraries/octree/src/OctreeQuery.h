@@ -48,7 +48,7 @@ public:
     virtual ~OctreeQuery() {}
 
     int getBroadcastData(unsigned char* destinationBuffer);
-    int parseData(const QByteArray& packet);
+    int parseData(NLPacket& packet);
 
     // getters for camera details
     const glm::vec3& getCameraPosition() const { return _cameraPosition; }
@@ -76,7 +76,7 @@ public:
     bool getWantLowResMoving() const { return _wantLowResMoving; }
     bool getWantOcclusionCulling() const { return _wantOcclusionCulling; }
     bool getWantCompression() const { return _wantCompression; }
-    int getMaxOctreePacketsPerSecond() const { return _maxOctreePPS; }
+    int getMaxQueryPacketsPerSecond() const { return _maxQueryPPS; }
     float getOctreeSizeScale() const { return _octreeElementSizeScale; }
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
 
@@ -86,7 +86,7 @@ public slots:
     void setWantDelta(bool wantDelta) { _wantDelta = wantDelta; }
     void setWantOcclusionCulling(bool wantOcclusionCulling) { _wantOcclusionCulling = wantOcclusionCulling; }
     void setWantCompression(bool wantCompression) { _wantCompression = wantCompression; }
-    void setMaxOctreePacketsPerSecond(int maxOctreePPS);
+    void setMaxQueryPacketsPerSecond(int maxQueryPPS) { _maxQueryPPS = maxQueryPPS; }
     void setOctreeSizeScale(float octreeSizeScale) { _octreeElementSizeScale = octreeSizeScale; }
     void setBoundaryLevelAdjust(int boundaryLevelAdjust) { _boundaryLevelAdjust = boundaryLevelAdjust; }
 
@@ -106,7 +106,7 @@ protected:
     bool _wantLowResMoving = true;
     bool _wantOcclusionCulling = false;
     bool _wantCompression = false;
-    int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;
+    int _maxQueryPPS = DEFAULT_MAX_OCTREE_PPS;
     float _octreeElementSizeScale = DEFAULT_OCTREE_SIZE_SCALE; /// used for LOD calculations
     int _boundaryLevelAdjust = 0; /// used for LOD calculations
 

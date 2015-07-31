@@ -21,9 +21,13 @@
 #include "BoxEntityItem.h"
 #include "LightEntityItem.h"
 #include "ModelEntityItem.h"
+#include "ParticleEffectEntityItem.h"
 #include "SphereEntityItem.h"
 #include "TextEntityItem.h"
-#include "ParticleEffectEntityItem.h"
+#include "WebEntityItem.h"
+#include "ZoneEntityItem.h"
+#include "LineEntityItem.h"
+#include "PolyVoxEntityItem.h"
 
 QMap<EntityTypes::EntityType, QString> EntityTypes::_typeToNameMap;
 QMap<QString, EntityTypes::EntityType> EntityTypes::_nameToTypeMap;
@@ -35,11 +39,14 @@ const QString ENTITY_TYPE_NAME_UNKNOWN = "Unknown";
 // Register Entity the default implementations of entity types here...
 REGISTER_ENTITY_TYPE(Model)
 REGISTER_ENTITY_TYPE(Box)
+REGISTER_ENTITY_TYPE(Web)
 REGISTER_ENTITY_TYPE(Sphere)
 REGISTER_ENTITY_TYPE(Light)
 REGISTER_ENTITY_TYPE(Text)
 REGISTER_ENTITY_TYPE(ParticleEffect)
-
+REGISTER_ENTITY_TYPE(Zone)
+REGISTER_ENTITY_TYPE(Line)
+REGISTER_ENTITY_TYPE(PolyVox)
 
 const QString& EntityTypes::getEntityTypeName(EntityType entityType) {
     QMap<EntityType, QString>::iterator matchedTypeName = _typeToNameMap.find(entityType);
@@ -71,9 +78,9 @@ bool EntityTypes::registerEntityType(EntityType entityType, const char* name, En
     return false;
 }
 
-EntityItem* EntityTypes::constructEntityItem(EntityType entityType, const EntityItemID& entityID,
+EntityItemPointer EntityTypes::constructEntityItem(EntityType entityType, const EntityItemID& entityID,
                                                     const EntityItemProperties& properties) {
-    EntityItem* newEntityItem = NULL;
+    EntityItemPointer newEntityItem = NULL;
     EntityTypeFactory factory = NULL;
     if (entityType >= 0 && entityType <= LAST) {
         factory = _factories[entityType];
@@ -86,7 +93,7 @@ EntityItem* EntityTypes::constructEntityItem(EntityType entityType, const Entity
     return newEntityItem;
 }
 
-EntityItem* EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead,
+EntityItemPointer EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead,
             ReadBitstreamToTreeParams& args) {
 
     if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {

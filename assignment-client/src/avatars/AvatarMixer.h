@@ -19,22 +19,27 @@
 
 /// Handles assignments of type AvatarMixer - distribution of avatar data to various clients
 class AvatarMixer : public ThreadedAssignment {
+    Q_OBJECT
 public:
-    AvatarMixer(const QByteArray& packet);
+    AvatarMixer(NLPacket& packet);
     ~AvatarMixer();
 public slots:
     /// runs the avatar mixer
     void run();
 
-    void nodeAdded(SharedNodePointer nodeAdded);
     void nodeKilled(SharedNodePointer killedNode);
     
-    void readPendingDatagrams();
-    
     void sendStatsPacket();
+
+private slots:
+    void handleAvatarDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleAvatarIdentityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleAvatarBillboardPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleKillAvatarPacket(QSharedPointer<NLPacket> packet);
     
 private:
     void broadcastAvatarData();
+    void parseDomainServerSettings(const QJsonObject& domainSettings);
     
     QThread _broadcastThread;
     
@@ -47,6 +52,10 @@ private:
     int _numStatFrames;
     int _sumBillboardPackets;
     int _sumIdentityPackets;
+
+    float _maxKbpsPerNode = 0.0f;
+
+    QTimer* _broadcastTimer = nullptr;
 };
 
 #endif // hifi_AvatarMixer_h

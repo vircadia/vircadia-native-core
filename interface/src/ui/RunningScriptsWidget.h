@@ -33,8 +33,10 @@ public:
 
     void setRunningScripts(const QStringList& list);
 
+    const ScriptsModel* getScriptsModel() { return &_scriptsModel; }
+
 signals:
-    void stopScriptName(const QString& name);
+    void stopScriptName(const QString& name, bool restart = false);
 
 protected:
     virtual bool eventFilter(QObject* sender, QEvent* event);
@@ -44,7 +46,10 @@ protected:
 
 public slots:
     void scriptStopped(const QString& scriptName);
-
+    QVariantList getRunning();
+    QVariantList getPublic();
+    QVariantList getLocal();
+    
 private slots:
     void allScriptsStopped();
     void updateFileFilter(const QString& filter);
@@ -54,12 +59,15 @@ private slots:
 
 private:
     Ui::RunningScriptsWidget* ui;
-    QSignalMapper _signalMapper;
+    QSignalMapper _reloadSignalMapper;
+    QSignalMapper _stopSignalMapper;
     ScriptsModelFilter _scriptsModelFilter;
     ScriptsModel _scriptsModel;
     ScriptsTableWidget* _recentlyLoadedScriptsTable;
     QStringList _recentlyLoadedScripts;
     QString _lastStoppedScript;
+
+    QVariantList getPublicChildNodes(TreeNodeFolder* parent);
 };
 
 #endif // hifi_RunningScriptsWidget_h

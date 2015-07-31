@@ -9,89 +9,31 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
-#include <gpu/GPUConfig.h>
+#include "TextureCache.h"
 
-#include <QEvent>
-#include <QGLWidget>
-#include <QNetworkReply>
-#include <QOpenGLFramebufferObject>
-#include <QResizeEvent>
-#include <QRunnable>
-#include <QThreadPool>
+#include <mutex>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/random.hpp>
 
-#include "TextureCache.h"
+#include <QNetworkReply>
+#include <QPainter>
+#include <QRunnable>
+#include <QThreadPool>
+#include <qimagereader.h>
 
-#include "gpu/GLBackend.h"
+#include <gpu/Batch.h>
 
-TextureCache::TextureCache() :
-    _permutationNormalTexture(0),
-    _whiteTexture(0),
-    _blueTexture(0),
-    _primaryDepthTextureID(0),
-    _primaryNormalTextureID(0),
-    _primarySpecularTextureID(0),
-    _primaryFramebufferObject(NULL),
-    _secondaryFramebufferObject(NULL),
-    _tertiaryFramebufferObject(NULL),
-    _shadowFramebufferObject(NULL),
-    _frameBufferSize(100, 100),
-    _associatedWidget(NULL)
-{
+
+
+#include "RenderUtilsLogging.h"
+
+TextureCache::TextureCache() {
     const qint64 TEXTURE_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
     setUnusedResourceCacheSize(TEXTURE_DEFAULT_UNUSED_MAX_SIZE);
 }
 
 TextureCache::~TextureCache() {
-
-    if (_primaryFramebufferObject) {
-        glDeleteTextures(1, &_primaryDepthTextureID);
-        glDeleteTextures(1, &_primaryNormalTextureID);
-        glDeleteTextures(1, &_primarySpecularTextureID);
-    }
-    
-    if (_primaryFramebufferObject) {
-        delete _primaryFramebufferObject;
-    }
-
-    if (_secondaryFramebufferObject) {
-        delete _secondaryFramebufferObject;
-    }
-
-    if (_tertiaryFramebufferObject) {
-        delete _tertiaryFramebufferObject;
-    }
-}
-
-void TextureCache::setFrameBufferSize(QSize frameBufferSize) {
-    //If the size changed, we need to delete our FBOs
-    if (_frameBufferSize != frameBufferSize) {
-        _frameBufferSize = frameBufferSize;
-
-        if (_primaryFramebufferObject) {
-            delete _primaryFramebufferObject;
-            _primaryFramebufferObject = NULL;
-            glDeleteTextures(1, &_primaryDepthTextureID);
-            _primaryDepthTextureID = 0;
-            glDeleteTextures(1, &_primaryNormalTextureID);
-            _primaryNormalTextureID = 0;
-            glDeleteTextures(1, &_primarySpecularTextureID);
-            _primarySpecularTextureID = 0;
-        }
-
-        if (_secondaryFramebufferObject) {
-            delete _secondaryFramebufferObject;
-            _secondaryFramebufferObject = NULL;
-        }
-
-        if (_tertiaryFramebufferObject) {
-            delete _tertiaryFramebufferObject;
-            _tertiaryFramebufferObject = NULL;
-        }
-    }
 }
 
 // use fixed table of permutations. Could also make ordered list programmatically
@@ -122,7 +64,7 @@ const int permutation[256] =
 #define USE_CHRIS_NOISE 1
 
 const gpu::TexturePointer& TextureCache::getPermutationNormalTexture() {
-    if (_permutationNormalTexture.isNull()) {
+    if (!_permutationNormalTexture) {
 
         // the first line consists of random permutation offsets
         unsigned char data[256 * 2 * 3];
@@ -146,39 +88,45 @@ const gpu::TexturePointer& TextureCache::getPermutationNormalTexture() {
 
         _permutationNormalTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB), 256, 2));
         _permutationNormalTexture->assignStoredMip(0, _blueTexture->getTexelFormat(), sizeof(data), data);
-
-       // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-       // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     }
     return _permutationNormalTexture;
 }
 
 const unsigned char OPAQUE_WHITE[] = { 0xFF, 0xFF, 0xFF, 0xFF };
-//const unsigned char TRANSPARENT_WHITE[] = { 0xFF, 0xFF, 0xFF, 0x0 };
-//const unsigned char OPAQUE_BLACK[] = { 0x0, 0x0, 0x0, 0xFF };
+const unsigned char OPAQUE_GRAY[] = { 0x80, 0x80, 0x80, 0xFF };
 const unsigned char OPAQUE_BLUE[] = { 0x80, 0x80, 0xFF, 0xFF };
-
-/*
-static void loadSingleColorTexture(const unsigned char* color) {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, color);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-}
-*/
+const unsigned char OPAQUE_BLACK[] = { 0x00, 0x00, 0x00, 0xFF };
 
 const gpu::TexturePointer& TextureCache::getWhiteTexture() {
-    if (_whiteTexture.isNull()) {
+    if (!_whiteTexture) {
         _whiteTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), 1, 1));
         _whiteTexture->assignStoredMip(0, _whiteTexture->getTexelFormat(), sizeof(OPAQUE_WHITE), OPAQUE_WHITE);
     }
     return _whiteTexture;
 }
 
+const gpu::TexturePointer& TextureCache::getGrayTexture() {
+    if (!_grayTexture) {
+        _grayTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), 1, 1));
+        _grayTexture->assignStoredMip(0, _whiteTexture->getTexelFormat(), sizeof(OPAQUE_WHITE), OPAQUE_GRAY);
+    }
+    return _grayTexture;
+}
+
 const gpu::TexturePointer& TextureCache::getBlueTexture() {
-    if (_blueTexture.isNull()) {
+    if (!_blueTexture) {
         _blueTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), 1, 1));
         _blueTexture->assignStoredMip(0, _blueTexture->getTexelFormat(), sizeof(OPAQUE_BLUE), OPAQUE_BLUE);
     }
     return _blueTexture;
+}
+
+const gpu::TexturePointer& TextureCache::getBlackTexture() {
+    if (!_blackTexture) {
+        _blackTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA), 1, 1));
+        _blackTexture->assignStoredMip(0, _whiteTexture->getTexelFormat(), sizeof(OPAQUE_BLACK), OPAQUE_BLACK);
+    }
+    return _blackTexture;
 }
 
 /// Extra data for creating textures.
@@ -205,142 +153,21 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, TextureType type
     return texture;
 }
 
-QOpenGLFramebufferObject* TextureCache::getPrimaryFramebufferObject() {
-
-    if (!_primaryFramebufferObject) {
-        _primaryFramebufferObject = createFramebufferObject();
-
-        glGenTextures(1, &_primaryDepthTextureID);
-        glBindTexture(GL_TEXTURE_2D, _primaryDepthTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, _frameBufferSize.width(), _frameBufferSize.height(),
-            0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, 0);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        
-        glGenTextures(1, &_primaryNormalTextureID);
-        glBindTexture(GL_TEXTURE_2D, _primaryNormalTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _frameBufferSize.width(), _frameBufferSize.height(),
-            0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        
-        glGenTextures(1, &_primarySpecularTextureID);
-        glBindTexture(GL_TEXTURE_2D, _primarySpecularTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _frameBufferSize.width(), _frameBufferSize.height(),
-            0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        
-        _primaryFramebufferObject->bind();
-        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _primaryDepthTextureID, 0);
-        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, _primaryNormalTextureID, 0);
-        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, _primarySpecularTextureID, 0);
-        _primaryFramebufferObject->release();
+/// Returns a texture version of an image file
+gpu::TexturePointer TextureCache::getImageTexture(const QString& path) {
+    QImage image = QImage(path).mirrored(false, true);
+    gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB);
+    gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB);
+    if (image.hasAlphaChannel()) {
+        formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA);
+        formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, gpu::BGRA);
     }
-    return _primaryFramebufferObject;
-}
-
-GLuint TextureCache::getPrimaryDepthTextureID() {
-    // ensure that the primary framebuffer object is initialized before returning the depth texture id
-    getPrimaryFramebufferObject();
-    return _primaryDepthTextureID;
-}
-
-GLuint TextureCache::getPrimaryNormalTextureID() {
-    // ensure that the primary framebuffer object is initialized before returning the normal texture id
-    getPrimaryFramebufferObject();
-    return _primaryNormalTextureID;
-}
-
-GLuint TextureCache::getPrimarySpecularTextureID() {
-    getPrimaryFramebufferObject();
-    return _primarySpecularTextureID;
-}
-
-void TextureCache::setPrimaryDrawBuffers(bool color, bool normal, bool specular) {
-    GLenum buffers[3];
-    int bufferCount = 0;
-    if (color) {
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
-    }
-    if (normal) {
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
-    }
-    if (specular) {
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
-    }
-    glDrawBuffers(bufferCount, buffers);
-}
-
-QOpenGLFramebufferObject* TextureCache::getSecondaryFramebufferObject() {
-    if (!_secondaryFramebufferObject) {
-        _secondaryFramebufferObject = createFramebufferObject();
-    }
-    return _secondaryFramebufferObject;
-}
-
-QOpenGLFramebufferObject* TextureCache::getTertiaryFramebufferObject() {
-    if (!_tertiaryFramebufferObject) {
-        _tertiaryFramebufferObject = createFramebufferObject();
-    }
-    return _tertiaryFramebufferObject;
-}
-
-QOpenGLFramebufferObject* TextureCache::getShadowFramebufferObject() {
-    if (!_shadowFramebufferObject) {
-        const int SHADOW_MAP_SIZE = 2048;
-        _shadowFramebufferObject = new QOpenGLFramebufferObject(SHADOW_MAP_SIZE, SHADOW_MAP_SIZE,
-            QOpenGLFramebufferObject::NoAttachment, GL_TEXTURE_2D, GL_RGB);
-        
-        glGenTextures(1, &_shadowDepthTextureID);
-        glBindTexture(GL_TEXTURE_2D, _shadowDepthTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE,
-            0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        const float DISTANT_BORDER[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, DISTANT_BORDER);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        
-        _shadowFramebufferObject->bind();
-        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _shadowDepthTextureID, 0);
-        _shadowFramebufferObject->release();
-    }
-    return _shadowFramebufferObject;
-}
-
-GLuint TextureCache::getShadowDepthTextureID() {
-    // ensure that the shadow framebuffer object is initialized before returning the depth texture id
-    getShadowFramebufferObject();
-    return _shadowDepthTextureID;
-}
-
-bool TextureCache::eventFilter(QObject* watched, QEvent* event) {
-    if (event->type() == QEvent::Resize) {
-        QSize size = static_cast<QResizeEvent*>(event)->size();
-        if (_primaryFramebufferObject && _primaryFramebufferObject->size() != size) {
-            delete _primaryFramebufferObject;
-            _primaryFramebufferObject = NULL;
-            glDeleteTextures(1, &_primaryDepthTextureID);
-            glDeleteTextures(1, &_primaryNormalTextureID);
-            glDeleteTextures(1, &_primarySpecularTextureID);
-        }
-        if (_secondaryFramebufferObject && _secondaryFramebufferObject->size() != size) {
-            delete _secondaryFramebufferObject;
-            _secondaryFramebufferObject = NULL;
-        }
-        if (_tertiaryFramebufferObject && _tertiaryFramebufferObject->size() != size) {
-            delete _tertiaryFramebufferObject;
-            _tertiaryFramebufferObject = NULL;
-        }
-    }
-    return false;
+    gpu::TexturePointer texture = gpu::TexturePointer(
+        gpu::Texture::create2D(formatGPU, image.width(), image.height(), 
+            gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+    texture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
+    texture->autoGenerateMips(-1);
+    return texture;
 }
 
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
@@ -350,33 +177,10 @@ QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
         &Resource::allReferencesCleared);
 }
 
-void TextureCache::associateWithWidget(QGLWidget* widget) {
-    if (_associatedWidget) {
-        _associatedWidget->removeEventFilter(this);
-    }
-    _associatedWidget = widget;
-    _associatedWidget->installEventFilter(this);
-}
-
-QOpenGLFramebufferObject* TextureCache::createFramebufferObject() {
-    QOpenGLFramebufferObject* fbo = new QOpenGLFramebufferObject(_frameBufferSize);
-    
-    glBindTexture(GL_TEXTURE_2D, fbo->texture());
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    
-    return fbo;
-}
-
 Texture::Texture() {
 }
 
 Texture::~Texture() {
-}
-
-GLuint Texture::getID() const {
-    return gpu::GLBackend::getTextureID(_gpuTexture);
 }
 
 NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArray& content) :
@@ -390,27 +194,7 @@ NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArr
         _loaded = true;
     }
 
-    // default to white/blue/black
-  /*  glBindTexture(GL_TEXTURE_2D, getID());
-    switch (type) {
-        case NORMAL_TEXTURE:
-            loadSingleColorTexture(OPAQUE_BLUE);  
-            break;
-        
-        case SPECULAR_TEXTURE:
-            loadSingleColorTexture(OPAQUE_BLACK);  
-            break;
-            
-        case SPLAT_TEXTURE:
-            loadSingleColorTexture(TRANSPARENT_WHITE);   
-            break;
-            
-        default:
-            loadSingleColorTexture(OPAQUE_WHITE);        
-            break;
-    }
-    glBindTexture(GL_TEXTURE_2D, 0);
-    */
+    std::string theName = url.toString().toStdString();
     // if we have content, load it after we have our self pointer
     if (!content.isEmpty()) {
         _startedLoading = true;
@@ -421,7 +205,7 @@ NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArr
 class ImageReader : public QRunnable {
 public:
 
-    ImageReader(const QWeakPointer<Resource>& texture, QNetworkReply* reply, const QUrl& url = QUrl(),
+    ImageReader(const QWeakPointer<Resource>& texture, TextureType type, QNetworkReply* reply, const QUrl& url = QUrl(),
         const QByteArray& content = QByteArray());
     
     virtual void run();
@@ -429,18 +213,76 @@ public:
 private:
     
     QWeakPointer<Resource> _texture;
+    TextureType _type;
     QNetworkReply* _reply;
     QUrl _url;
     QByteArray _content;
 };
 
-ImageReader::ImageReader(const QWeakPointer<Resource>& texture, QNetworkReply* reply,
+void NetworkTexture::downloadFinished(QNetworkReply* reply) {
+    // send the reader off to the thread pool
+    QThreadPool::globalInstance()->start(new ImageReader(_self, _type, reply));
+}
+
+void NetworkTexture::loadContent(const QByteArray& content) {
+    QThreadPool::globalInstance()->start(new ImageReader(_self, _type, NULL, _url, content));
+}
+
+ImageReader::ImageReader(const QWeakPointer<Resource>& texture, TextureType type, QNetworkReply* reply,
         const QUrl& url, const QByteArray& content) :
     _texture(texture),
+    _type(type),
     _reply(reply),
     _url(url),
     _content(content) {
 }
+
+std::once_flag onceListSupportedFormatsflag;
+void listSupportedImageFormats() {
+    std::call_once(onceListSupportedFormatsflag, [](){
+        auto supportedFormats = QImageReader::supportedImageFormats();
+        QString formats;
+        foreach(const QByteArray& f, supportedFormats) {
+            formats += QString(f) + ",";
+        }
+        qCDebug(renderutils) << "List of supported Image formats:" << formats;
+    });
+}
+
+
+class CubeLayout {
+public:
+    int _widthRatio = 1;
+    int _heightRatio = 1;
+ 
+    class Face {
+    public:
+        int _x = 0;
+        int _y = 0;
+        bool _horizontalMirror = false;
+        bool _verticalMirror = false;
+
+        Face() {}
+        Face(int x, int y, bool horizontalMirror, bool verticalMirror) : _x(x), _y(y), _horizontalMirror(horizontalMirror), _verticalMirror(verticalMirror) {}
+    };
+                
+    Face _faceXPos;
+    Face _faceXNeg;
+    Face _faceYPos;
+    Face _faceYNeg;
+    Face _faceZPos;
+    Face _faceZNeg;
+ 
+    CubeLayout(int wr, int hr, Face fXP, Face fXN, Face fYP, Face fYN, Face fZP, Face fZN) :
+            _widthRatio(wr),
+            _heightRatio(hr),
+            _faceXPos(fXP),
+            _faceXNeg(fXN),
+            _faceYPos(fYP),
+            _faceYNeg(fYN),
+            _faceZPos(fZP),
+            _faceZNeg(fZN) {}
+};
 
 void ImageReader::run() {
     QSharedPointer<Resource> texture = _texture.toStrongRef();
@@ -455,30 +297,47 @@ void ImageReader::run() {
         _content = _reply->readAll();
         _reply->deleteLater();
     }
-    QImage image = QImage::fromData(_content);
 
+    listSupportedImageFormats();
+
+    // try to help the QImage loader by extracting the image file format from the url filename ext
+    // Some tga are not created properly for example without it
+    auto filename = _url.fileName().toStdString();
+    auto filenameExtension = filename.substr(filename.find_last_of('.') + 1);
+    QImage image = QImage::fromData(_content, filenameExtension.c_str());
+
+    // Note that QImage.format is the pixel format which is different from the "format" of the image file...
+    auto imageFormat = image.format(); 
     int originalWidth = image.width();
     int originalHeight = image.height();
     
-    // enforce a fixed maximum area (1024 * 2048)
-    const int MAXIMUM_AREA_SIZE = 2097152;
+    if (originalWidth == 0 || originalHeight == 0 || imageFormat == QImage::Format_Invalid) {
+        if (filenameExtension.empty()) {
+            qCDebug(renderutils) << "QImage failed to create from content, no file extension:" << _url;
+        } else {
+            qCDebug(renderutils) << "QImage failed to create from content" << _url;
+        }
+        return;
+    }
+
     int imageArea = image.width() * image.height();
-    if (imageArea > MAXIMUM_AREA_SIZE) {
-        float scaleRatio = sqrtf((float)MAXIMUM_AREA_SIZE) / sqrtf((float)imageArea);
-        int resizeWidth = static_cast<int>(std::floor(scaleRatio * static_cast<float>(image.width())));
-        int resizeHeight = static_cast<int>(std::floor(scaleRatio * static_cast<float>(image.height())));
-        qDebug() << "Image greater than maximum size:" << _url << image.width() << image.height() <<
-            " scaled to:" << resizeWidth << resizeHeight;
-        image = image.scaled(resizeWidth, resizeHeight, Qt::IgnoreAspectRatio);
-        imageArea = image.width() * image.height();
+    auto ntex = dynamic_cast<NetworkTexture*>(&*texture);
+    if (ntex && (ntex->getType() == CUBE_TEXTURE)) {
+        qCDebug(renderutils) << "Cube map size:" << _url << image.width() << image.height();
     }
     
+    int opaquePixels = 0;
+    int translucentPixels = 0;
+    bool isTransparent = false;
+    int redTotal = 0, greenTotal = 0, blueTotal = 0, alphaTotal = 0;
     const int EIGHT_BIT_MAXIMUM = 255;
+        QColor averageColor(EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM);
+
     if (!image.hasAlphaChannel()) {
         if (image.format() != QImage::Format_RGB888) {
             image = image.convertToFormat(QImage::Format_RGB888);
         }
-        int redTotal = 0, greenTotal = 0, blueTotal = 0;
+       // int redTotal = 0, greenTotal = 0, blueTotal = 0;
         for (int y = 0; y < image.height(); y++) {
             for (int x = 0; x < image.width(); x++) {
                 QRgb rgb = image.pixel(x, y);
@@ -487,70 +346,49 @@ void ImageReader::run() {
                 blueTotal += qBlue(rgb);
             }
         }
-        QColor averageColor(EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM);
         if (imageArea > 0) {
             averageColor.setRgb(redTotal / imageArea, greenTotal / imageArea, blueTotal / imageArea);
         }
-        QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image), Q_ARG(bool, false),
-            Q_ARG(const QColor&, averageColor), Q_ARG(int, originalWidth), Q_ARG(int, originalHeight));
-        return;
-    }
-    if (image.format() != QImage::Format_ARGB32) {
-        image = image.convertToFormat(QImage::Format_ARGB32);
-    }
+    } else {
+        if (image.format() != QImage::Format_ARGB32) {
+            image = image.convertToFormat(QImage::Format_ARGB32);
+        }
     
-    // check for translucency/false transparency
-    int opaquePixels = 0;
-    int translucentPixels = 0;
-    int redTotal = 0, greenTotal = 0, blueTotal = 0, alphaTotal = 0;
-    for (int y = 0; y < image.height(); y++) {
-        for (int x = 0; x < image.width(); x++) {
-            QRgb rgb = image.pixel(x, y);
-            redTotal += qRed(rgb);
-            greenTotal += qGreen(rgb);
-            blueTotal += qBlue(rgb);
-            int alpha = qAlpha(rgb);
-            alphaTotal += alpha;
-            if (alpha == EIGHT_BIT_MAXIMUM) {
-                opaquePixels++;
-            } else if (alpha != 0) {
-                translucentPixels++;
+        // check for translucency/false transparency
+       // int opaquePixels = 0;
+       // int translucentPixels = 0;
+       // int redTotal = 0, greenTotal = 0, blueTotal = 0, alphaTotal = 0;
+        for (int y = 0; y < image.height(); y++) {
+            for (int x = 0; x < image.width(); x++) {
+                QRgb rgb = image.pixel(x, y);
+                redTotal += qRed(rgb);
+                greenTotal += qGreen(rgb);
+                blueTotal += qBlue(rgb);
+                int alpha = qAlpha(rgb);
+                alphaTotal += alpha;
+                if (alpha == EIGHT_BIT_MAXIMUM) {
+                    opaquePixels++;
+                } else if (alpha != 0) {
+                    translucentPixels++;
+                }
             }
         }
+        if (opaquePixels == imageArea) {
+            qCDebug(renderutils) << "Image with alpha channel is completely opaque:" << _url;
+            image = image.convertToFormat(QImage::Format_RGB888);
+        }
+
+        averageColor = QColor(redTotal / imageArea,
+            greenTotal / imageArea, blueTotal / imageArea, alphaTotal / imageArea);
+
+        isTransparent = (translucentPixels >= imageArea / 2);
     }
-    if (opaquePixels == imageArea) {
-        qDebug() << "Image with alpha channel is completely opaque:" << _url;
-        image = image.convertToFormat(QImage::Format_RGB888);
-    }
-    QMetaObject::invokeMethod(texture.data(), "setImage", Q_ARG(const QImage&, image),
-        Q_ARG(bool, translucentPixels >= imageArea / 2), Q_ARG(const QColor&, QColor(redTotal / imageArea,
-            greenTotal / imageArea, blueTotal / imageArea, alphaTotal / imageArea)),
-        Q_ARG(int, originalWidth), Q_ARG(int, originalHeight));
-}
 
-void NetworkTexture::downloadFinished(QNetworkReply* reply) {
-    // send the reader off to the thread pool
-    QThreadPool::globalInstance()->start(new ImageReader(_self, reply));
-}
+    gpu::Texture* theTexture = nullptr;
+    if ((image.width() > 0) && (image.height() > 0)) {
 
-void NetworkTexture::loadContent(const QByteArray& content) {
-    QThreadPool::globalInstance()->start(new ImageReader(_self, NULL, _url, content));
-}
-
-void NetworkTexture::setImage(const QImage& image, bool translucent, const QColor& averageColor, int originalWidth,
-                              int originalHeight) {
-    _translucent = translucent;
-    _averageColor = averageColor;
-    _originalWidth = originalWidth;
-    _originalHeight = originalHeight;
-    _width = image.width();
-    _height = image.height();
-    
-    finishedLoading(true);
-    imageLoaded(image);
-
-    if ((_width > 0) && (_height > 0)) {
-        bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
+       // bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
+        bool isLinearRGB = !(_type == CUBE_TEXTURE); //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
 
         gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
         gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
@@ -558,10 +396,188 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
             formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
             formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
         }
-        _gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, image.width(), image.height()));
-        _gpuTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
-        _gpuTexture->autoGenerateMips(-1);
+        
+        if (_type == CUBE_TEXTURE) {
+
+            const CubeLayout CUBEMAP_LAYOUTS[] = {
+                // Here is the expected layout for the faces in an image with the 1/6 aspect ratio:
+                //
+                //         WIDTH
+                //       <------>
+                //    ^  +------+
+                //    |  |      |
+                //    |  |  +X  |
+                //    |  |      |
+                //    H  +------+
+                //    E  |      |
+                //    I  |  -X  |
+                //    G  |      |
+                //    H  +------+
+                //    T  |      |
+                //    |  |  +Y  |
+                //    |  |      |
+                //    |  +------+
+                //    |  |      |
+                //    |  |  -Y  |
+                //    |  |      |
+                //    H  +------+
+                //    E  |      |
+                //    I  |  +Z  |
+                //    G  |      |
+                //    H  +------+
+                //    T  |      |
+                //    |  |  -Z  |
+                //    |  |      |
+                //    V  +------+
+                // 
+                //    FaceWidth = width = height / 6
+                {   1, 6,
+                    {0, 0, true, false},
+                    {0, 1, true, false},
+                    {0, 2, false, true},
+                    {0, 3, false, true},
+                    {0, 4, true, false},
+                    {0, 5, true, false}
+                },
+
+                // Here is the expected layout for the faces in an image with the 3/4 aspect ratio:
+                //
+                //       <-----------WIDTH----------->
+                //    ^  +------+------+------+------+
+                //    |  |      |      |      |      |
+                //    |  |      |  +Y  |      |      |
+                //    |  |      |      |      |      |
+                //    H  +------+------+------+------+
+                //    E  |      |      |      |      |
+                //    I  |  -X  |  -Z  |  +X  |  +Z  |
+                //    G  |      |      |      |      |
+                //    H  +------+------+------+------+
+                //    T  |      |      |      |      |
+                //    |  |      |  -Y  |      |      |
+                //    |  |      |      |      |      |
+                //    V  +------+------+------+------+
+                // 
+                //    FaceWidth = width / 4 = height / 3
+                {   4, 3,
+                    {2, 1, true, false},
+                    {0, 1, true, false},
+                    {1, 0, false, true},
+                    {1, 2, false, true},
+                    {3, 1, true, false},
+                    {1, 1, true, false}
+                },
+
+                // Here is the expected layout for the faces in an image with the 4/3 aspect ratio:
+                //
+                //       <-------WIDTH-------->
+                //    ^  +------+------+------+
+                //    |  |      |      |      |
+                //    |  |      |  +Y  |      |
+                //    |  |      |      |      |
+                //    H  +------+------+------+
+                //    E  |      |      |      |
+                //    I  |  -X  |  -Z  |  +X  |
+                //    G  |      |      |      |
+                //    H  +------+------+------+
+                //    T  |      |      |      |
+                //    |  |      |  -Y  |      |
+                //    |  |      |      |      |
+                //    |  +------+------+------+
+                //    |  |      |      |      |
+                //    |  |      |  +Z! |      | <+Z is upside down!
+                //    |  |      |      |      |
+                //    V  +------+------+------+
+                // 
+                //    FaceWidth = width / 3 = height / 4
+                {   3, 4,
+                    {2, 1, true, false},
+                    {0, 1, true, false},
+                    {1, 0, false, true},
+                    {1, 2, false, true},
+                    {1, 3, false, true},
+                    {1, 1, true, false}
+                }
+            };
+            const int NUM_CUBEMAP_LAYOUTS = sizeof(CUBEMAP_LAYOUTS) / sizeof(CubeLayout);
+
+            // Find the layout of the cubemap in the 2D image
+            int foundLayout = -1;
+            for (int i = 0; i < NUM_CUBEMAP_LAYOUTS; i++) {
+                if ((image.height() * CUBEMAP_LAYOUTS[i]._widthRatio) == (image.width() * CUBEMAP_LAYOUTS[i]._heightRatio)) {
+                    foundLayout = i;
+                    break;
+                }
+            }
+
+            std::vector<QImage> faces;
+            // If found, go extract the faces as separate images
+            if (foundLayout >= 0) {
+                auto& layout = CUBEMAP_LAYOUTS[foundLayout];
+                int faceWidth = image.width() / layout._widthRatio;
+
+                faces.push_back(image.copy(QRect(layout._faceXPos._x * faceWidth, layout._faceXPos._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceXPos._horizontalMirror, layout._faceXPos._verticalMirror));
+                faces.push_back(image.copy(QRect(layout._faceXNeg._x * faceWidth, layout._faceXNeg._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceXNeg._horizontalMirror, layout._faceXNeg._verticalMirror));
+                faces.push_back(image.copy(QRect(layout._faceYPos._x * faceWidth, layout._faceYPos._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceYPos._horizontalMirror, layout._faceYPos._verticalMirror));
+                faces.push_back(image.copy(QRect(layout._faceYNeg._x * faceWidth, layout._faceYNeg._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceYNeg._horizontalMirror, layout._faceYNeg._verticalMirror));
+                faces.push_back(image.copy(QRect(layout._faceZPos._x * faceWidth, layout._faceZPos._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceZPos._horizontalMirror, layout._faceZPos._verticalMirror));
+                faces.push_back(image.copy(QRect(layout._faceZNeg._x * faceWidth, layout._faceZNeg._y * faceWidth, faceWidth, faceWidth)).mirrored(layout._faceZNeg._horizontalMirror, layout._faceZNeg._verticalMirror));
+            } else {
+                qCDebug(renderutils) << "Failed to find a known cube map layout from this image:" << _url;
+                return;
+            }
+
+            // If the 6 faces have been created go on and define the true Texture
+            if (faces.size() == gpu::Texture::NUM_FACES_PER_TYPE[gpu::Texture::TEX_CUBE]) {
+                theTexture = gpu::Texture::createCube(formatGPU, faces[0].width(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP));
+                theTexture->autoGenerateMips(-1);
+                int f = 0;
+                for (auto& face : faces) {
+                    theTexture->assignStoredMipFace(0, formatMip, face.byteCount(), face.constBits(), f);
+                    f++;
+                }
+                
+                // GEnerate irradiance while we are at it
+                theTexture->generateIrradiance();
+            }
+
+        } else {
+            theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+            theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
+            theTexture->autoGenerateMips(-1);
+        }
     }
+
+    QMetaObject::invokeMethod(texture.data(), "setImage", 
+        Q_ARG(const QImage&, image),
+        Q_ARG(void*, theTexture),
+        Q_ARG(bool, isTransparent),
+        Q_ARG(const QColor&, averageColor),
+        Q_ARG(int, originalWidth), Q_ARG(int, originalHeight));
+
+
+}
+
+void NetworkTexture::setImage(const QImage& image, void* voidTexture, bool translucent, const QColor& averageColor, int originalWidth,
+                              int originalHeight) {
+    _translucent = translucent;
+    _averageColor = averageColor;
+    _originalWidth = originalWidth;
+    _originalHeight = originalHeight;
+    
+    gpu::Texture* texture = static_cast<gpu::Texture*>(voidTexture);
+    // Passing ownership
+    _gpuTexture.reset(texture);
+
+    if (_gpuTexture) {
+        _width = _gpuTexture->getWidth();
+        _height = _gpuTexture->getHeight(); 
+    } else {
+        _width = _height = 0;
+    }
+    
+    finishedLoading(true);
+
+    imageLoaded(image);
 }
 
 void NetworkTexture::imageLoaded(const QImage& image) {
@@ -578,7 +594,7 @@ DilatableNetworkTexture::DilatableNetworkTexture(const QUrl& url, const QByteArr
 QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilation) {
     QSharedPointer<Texture> texture = _dilatedTextures.value(dilation);
     if (texture.isNull()) {
-        texture = QSharedPointer<Texture>(new Texture());
+        texture = QSharedPointer<Texture>::create();
         
         if (!_image.isNull()) {
             QImage dilatedImage = _image;
@@ -597,7 +613,7 @@ QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilatio
                 formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
                 formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::BGRA : gpu::BGRA));
             }
-            texture->_gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, dilatedImage.width(), dilatedImage.height()));
+            texture->_gpuTexture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, dilatedImage.width(), dilatedImage.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
             texture->_gpuTexture->assignStoredMip(0, formatMip, dilatedImage.byteCount(), dilatedImage.constBits());
             texture->_gpuTexture->autoGenerateMips(-1);
 

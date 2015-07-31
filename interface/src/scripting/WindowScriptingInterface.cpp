@@ -31,7 +31,7 @@ WindowScriptingInterface::WindowScriptingInterface() :
     _formResult(QDialog::Rejected) 
 {
     const DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
-    connect(&domainHandler, &DomainHandler::hostnameChanged, this, &WindowScriptingInterface::domainChanged);
+    connect(&domainHandler, &DomainHandler::connectedToDomain, this, &WindowScriptingInterface::domainChanged);
     connect(Application::getInstance(), &Application::svoImportRequested, this, &WindowScriptingInterface::svoImportRequested);
     connect(Application::getInstance(), &Application::domainConnectionRefused, this, &WindowScriptingInterface::domainConnectionRefused);
 }
@@ -41,17 +41,23 @@ WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& title
 }
 
 QScriptValue WindowScriptingInterface::hasFocus() {
-    return Application::getInstance()->getGLWidget()->hasFocus();
+    return Application::getInstance()->hasFocus();
 }
 
 void WindowScriptingInterface::setFocus() {
-    auto window = Application::getInstance()->getWindow();
-    window->activateWindow();
-    window->setFocus();
+    // It's forbidden to call focus() from another thread.
+    Application::getInstance()->postLambdaEvent([] {
+        auto window = Application::getInstance()->getWindow();
+        window->activateWindow();
+        window->setFocus();
+    });
 }
 
 void WindowScriptingInterface::raiseMainWindow() {
-    Application::getInstance()->getWindow()->raise();
+    // It's forbidden to call raise() from another thread.
+    Application::getInstance()->postLambdaEvent([] {
+        Application::getInstance()->getWindow()->raise();
+    });
 }
 
 void WindowScriptingInterface::setCursorVisible(bool visible) {

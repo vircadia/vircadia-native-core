@@ -2,30 +2,42 @@
 //  UpdateDialog.h
 //  interface/src/ui
 //
-//  Copyright 2014 High Fidelity, Inc.
+//  Created by Leonardo Murillo on 6/3/15.
+//  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#pragma once
 #ifndef hifi_UpdateDialog_h
 #define hifi_UpdateDialog_h
 
-#include <QWidget>
+#include <QtCore/QCoreApplication>
 
-class UpdateDialog : public QDialog {
+#include <OffscreenQmlDialog.h>
+
+class UpdateDialog : public OffscreenQmlDialog {
     Q_OBJECT
+    HIFI_QML_DECL
+    
+    Q_PROPERTY(QString updateAvailableDetails READ updateAvailableDetails)
+    Q_PROPERTY(QString releaseNotes READ releaseNotes)
     
 public:
-    UpdateDialog(QWidget* parent, const QString& releaseNotes, const QString& latestVersion, const QUrl& downloadURL);
+    UpdateDialog(QQuickItem* parent = nullptr);
+    const QString& updateAvailableDetails() const;
+    const QString& releaseNotes() const;
     
 private:
-    QString _latestVersion;
-    QUrl _downloadUrl;
-    
-private slots:
-    void handleDownload();
-    void handleSkip();
+    QString _updateAvailableDetails;
+    QString _releaseNotes;
+
+protected:
+    void hide();
+    Q_INVOKABLE void triggerUpgrade();
+    Q_INVOKABLE void closeDialog();
+
 };
 
 #endif // hifi_UpdateDialog_h

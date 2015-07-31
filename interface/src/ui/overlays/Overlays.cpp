@@ -8,16 +8,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Overlays.h"
+
 #include <QScriptValueIterator>
 
 #include <limits>
-#include <typeinfo>
 
-#include <Application.h>
-#include <avatar/AvatarManager.h>
-#include <devices/OculusManager.h>
-#include <LODManager.h>
+#include <render/Scene.h>
+#include <gpu/GLBackend.h>
+#include <RegisteredMetaTypes.h>
 
+#include "Application.h"
 #include "BillboardOverlay.h"
 #include "Circle3DOverlay.h"
 #include "Cube3DOverlay.h"
@@ -25,37 +26,31 @@
 #include "Line3DOverlay.h"
 #include "LocalModelsOverlay.h"
 #include "ModelOverlay.h"
-#include "Overlays.h"
 #include "Rectangle3DOverlay.h"
 #include "Sphere3DOverlay.h"
 #include "Grid3DOverlay.h"
 #include "TextOverlay.h"
 #include "Text3DOverlay.h"
 
+
 Overlays::Overlays() : _nextOverlayID(1) {
 }
 
 Overlays::~Overlays() {
-    
     {
         QWriteLocker lock(&_lock);
-        foreach(Overlay* thisOverlay, _overlaysHUD) {
-            delete thisOverlay;
+        QWriteLocker deleteLock(&_deleteLock);
+        foreach(Overlay::Pointer overlay, _overlaysHUD) {
+            _overlaysToDelete.push_back(overlay);
+        }
+        foreach(Overlay::Pointer overlay, _overlaysWorld) {
+            _overlaysToDelete.push_back(overlay);
         }
         _overlaysHUD.clear();
-        foreach(Overlay* thisOverlay, _overlaysWorld) {
-            delete thisOverlay;
-        }
         _overlaysWorld.clear();
     }
     
-    if (!_overlaysToDelete.isEmpty()) {
-        QWriteLocker lock(&_deleteLock);
-        do {
-            delete _overlaysToDelete.takeLast();
-        } while (!_overlaysToDelete.isEmpty());
-    }
-    
+    cleanupOverlaysToDelete();
 }
 
 void Overlays::init() {
@@ -66,96 +61,66 @@ void Overlays::update(float deltatime) {
 
     {
         QWriteLocker lock(&_lock);
-        foreach(Overlay* thisOverlay, _overlaysHUD) {
+        foreach(Overlay::Pointer thisOverlay, _overlaysHUD) {
             thisOverlay->update(deltatime);
         }
-        foreach(Overlay* thisOverlay, _overlaysWorld) {
+        foreach(Overlay::Pointer thisOverlay, _overlaysWorld) {
             thisOverlay->update(deltatime);
         }
     }
 
+    cleanupOverlaysToDelete();
+}
+
+void Overlays::cleanupOverlaysToDelete() {
     if (!_overlaysToDelete.isEmpty()) {
-        QWriteLocker lock(&_deleteLock);
-        do {
-            delete _overlaysToDelete.takeLast();
-        } while (!_overlaysToDelete.isEmpty());
-    }
-    
-}
+        render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+        render::PendingChanges pendingChanges;
 
-void Overlays::renderHUD() {
-    QReadLocker lock(&_lock);
-    
-    auto lodManager = DependencyManager::get<LODManager>();
-    RenderArgs args = { NULL, Application::getInstance()->getViewFrustum(),
-                        lodManager->getOctreeSizeScale(),
-                        lodManager->getBoundaryLevelAdjust(),
-                        RenderArgs::DEFAULT_RENDER_MODE, RenderArgs::MONO,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        {
+            QWriteLocker lock(&_deleteLock);
 
-    foreach(Overlay* thisOverlay, _overlaysHUD) {
-        if (thisOverlay->is3D()) {
-            glEnable(GL_DEPTH_TEST);
-            glEnable(GL_LIGHTING);
+            do {
+                Overlay::Pointer overlay = _overlaysToDelete.takeLast();
 
-            thisOverlay->render(&args);
-
-            glDisable(GL_LIGHTING);
-            glDisable(GL_DEPTH_TEST);
-        } else{
-            thisOverlay->render(&args);
-        }
-    }
-}
-
-void Overlays::renderWorld(bool drawFront, RenderArgs::RenderMode renderMode, RenderArgs::RenderSide renderSide) {
-    QReadLocker lock(&_lock);
-    if (_overlaysWorld.size() == 0) {
-        return;
-    }
-    bool myAvatarComputed = false;
-    MyAvatar* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    glm::quat myAvatarRotation;
-    glm::vec3 myAvatarPosition(0.0f);
-    float angle = 0.0f;
-    glm::vec3 axis(0.0f, 1.0f, 0.0f);
-    float myAvatarScale = 1.0f;
-    
-    auto lodManager = DependencyManager::get<LODManager>();
-    RenderArgs args = { NULL, Application::getInstance()->getDisplayViewFrustum(),
-                        lodManager->getOctreeSizeScale(),
-                        lodManager->getBoundaryLevelAdjust(),
-                        renderMode, renderSide,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    
-
-    foreach(Overlay* thisOverlay, _overlaysWorld) {
-        Base3DOverlay* overlay3D = static_cast<Base3DOverlay*>(thisOverlay);
-        if (overlay3D->getDrawInFront() != drawFront) {
-            continue;
-        }
-        glPushMatrix();
-        switch (thisOverlay->getAnchor()) {
-            case Overlay::MY_AVATAR:
-                if (!myAvatarComputed) {
-                    myAvatarRotation = avatar->getOrientation();
-                    myAvatarPosition = avatar->getPosition();
-                    angle = glm::degrees(glm::angle(myAvatarRotation));
-                    axis = glm::axis(myAvatarRotation);
-                    myAvatarScale = avatar->getScale();
-                    
-                    myAvatarComputed = true;
+                auto itemID = overlay->getRenderItemID();
+                if (itemID != render::Item::INVALID_ITEM_ID) {
+                    overlay->removeFromScene(overlay, scene, pendingChanges);
                 }
-                
-                glTranslatef(myAvatarPosition.x, myAvatarPosition.y, myAvatarPosition.z);
-                glRotatef(angle, axis.x, axis.y, axis.z);
-                glScalef(myAvatarScale, myAvatarScale, myAvatarScale);
-                break;
-            default:
-                break;
+            } while (!_overlaysToDelete.isEmpty());
         }
-        thisOverlay->render(&args);
-        glPopMatrix();
+
+        if (pendingChanges._removedItems.size() > 0) {
+            scene->enqueuePendingChanges(pendingChanges);
+        }
+    }
+}
+
+void Overlays::renderHUD(RenderArgs* renderArgs) {
+    PROFILE_RANGE(__FUNCTION__);
+    QReadLocker lock(&_lock);
+    gpu::Batch& batch = *renderArgs->_batch;
+
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    auto textureCache = DependencyManager::get<TextureCache>();
+
+    auto size = qApp->getCanvasSize();
+    int width = size.x;
+    int height = size.y;
+    mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
+
+
+    foreach(Overlay::Pointer thisOverlay, _overlaysHUD) {
+    
+        // Reset all batch pipeline settings between overlay
+        geometryCache->useSimpleDrawPipeline(batch);
+        batch.setResourceTexture(0, textureCache->getWhiteTexture()); // FIXME - do we really need to do this??
+        batch.setProjectionTransform(legacyProjection);
+        batch.setModelTransform(Transform());
+        batch.setViewTransform(Transform());
+        batch._glLineWidth(1.0f); // default
+
+        thisOverlay->render(renderArgs);
     }
 }
 
@@ -201,6 +166,7 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
 }
 
 unsigned int Overlays::addOverlay(Overlay* overlay) {
+    Overlay::Pointer overlayPointer(overlay);
     overlay->init(_scriptEngine);
 
     QWriteLocker lock(&_lock);
@@ -209,19 +175,26 @@ unsigned int Overlays::addOverlay(Overlay* overlay) {
     if (overlay->is3D()) {
         Base3DOverlay* overlay3D = static_cast<Base3DOverlay*>(overlay);
         if (overlay3D->getDrawOnHUD()) {
-            _overlaysHUD[thisID] = overlay;
+            _overlaysHUD[thisID] = overlayPointer;
         } else {
-            _overlaysWorld[thisID] = overlay;
+            _overlaysWorld[thisID] = overlayPointer;
+
+            render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+            render::PendingChanges pendingChanges;
+
+            overlayPointer->addToScene(overlayPointer, scene, pendingChanges);
+
+            scene->enqueuePendingChanges(pendingChanges);
         }
     } else {
-        _overlaysHUD[thisID] = overlay;
+        _overlaysHUD[thisID] = overlayPointer;
     }
     
     return thisID;
 }
 
 unsigned int Overlays::cloneOverlay(unsigned int id) {
-    Overlay* thisOverlay = NULL;
+    Overlay::Pointer thisOverlay = NULL;
     if (_overlaysHUD.contains(id)) {
         thisOverlay = _overlaysHUD[id];
     } else if (_overlaysWorld.contains(id)) {
@@ -237,7 +210,7 @@ unsigned int Overlays::cloneOverlay(unsigned int id) {
 
 bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
     QWriteLocker lock(&_lock);
-    Overlay* thisOverlay = NULL;
+    Overlay::Pointer thisOverlay;
 
     if (_overlaysHUD.contains(id)) {
         thisOverlay = _overlaysHUD[id];
@@ -247,7 +220,7 @@ bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
 
     if (thisOverlay) {
         if (thisOverlay->is3D()) {
-            Base3DOverlay* overlay3D = static_cast<Base3DOverlay*>(thisOverlay);
+            auto overlay3D = std::static_pointer_cast<Base3DOverlay>(thisOverlay);
 
             bool oldDrawOnHUD = overlay3D->getDrawOnHUD();
             thisOverlay->setProperties(properties);
@@ -272,7 +245,7 @@ bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
 }
 
 void Overlays::deleteOverlay(unsigned int id) {
-    Overlay* overlayToDelete;
+    Overlay::Pointer overlayToDelete;
 
     {
         QWriteLocker lock(&_lock);
@@ -291,12 +264,12 @@ void Overlays::deleteOverlay(unsigned int id) {
 
 unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
     glm::vec2 pointCopy = point;
-    if (OculusManager::isConnected()) {
-        pointCopy = Application::getInstance()->getApplicationOverlay().screenToOverlay(point);
+    if (qApp->isHMDMode()) {
+        pointCopy = qApp->getApplicationCompositor().screenToOverlay(point);
     }
     
     QReadLocker lock(&_lock);
-    QMapIterator<unsigned int, Overlay*> i(_overlaysHUD);
+    QMapIterator<unsigned int, Overlay::Pointer> i(_overlaysHUD);
     i.toBack();
 
     const float LARGE_NEGATIVE_FLOAT = -9999999;
@@ -309,16 +282,16 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
         i.previous();
         unsigned int thisID = i.key();
         if (i.value()->is3D()) {
-            Base3DOverlay* thisOverlay = static_cast<Base3DOverlay*>(i.value());
-            if (!thisOverlay->getIgnoreRayIntersection()) {
+            auto thisOverlay = std::dynamic_pointer_cast<Base3DOverlay>(i.value());
+            if (thisOverlay && !thisOverlay->getIgnoreRayIntersection()) {
                 if (thisOverlay->findRayIntersection(origin, direction, distance, thisFace)) {
                     return thisID;
                 }
             }
         } else {
-            Overlay2D* thisOverlay = static_cast<Overlay2D*>(i.value());
-            if (thisOverlay->getVisible() && thisOverlay->isLoaded() &&
-                thisOverlay->getBounds().contains(pointCopy.x, pointCopy.y, false)) {
+            auto thisOverlay = std::dynamic_pointer_cast<Overlay2D>(i.value());
+            if (thisOverlay && thisOverlay->getVisible() && thisOverlay->isLoaded() &&
+                thisOverlay->getBoundingRect().contains(pointCopy.x, pointCopy.y, false)) {
                 return thisID;
             }
         }
@@ -329,7 +302,7 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
 
 OverlayPropertyResult Overlays::getProperty(unsigned int id, const QString& property) {
     OverlayPropertyResult result;
-    Overlay* thisOverlay = NULL;
+    Overlay::Pointer thisOverlay;
     QReadLocker lock(&_lock);
     if (_overlaysHUD.contains(id)) {
         thisOverlay = _overlaysHUD[id];
@@ -376,13 +349,13 @@ RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray)
     float bestDistance = std::numeric_limits<float>::max();
     bool bestIsFront = false;
     RayToOverlayIntersectionResult result;
-    QMapIterator<unsigned int, Overlay*> i(_overlaysWorld);
+    QMapIterator<unsigned int, Overlay::Pointer> i(_overlaysWorld);
     i.toBack();
     while (i.hasPrevious()) {
         i.previous();
         unsigned int thisID = i.key();
-        Base3DOverlay* thisOverlay = static_cast<Base3DOverlay*>(i.value());
-        if (thisOverlay->getVisible() && !thisOverlay->getIgnoreRayIntersection() && thisOverlay->isLoaded()) {
+        auto thisOverlay = std::dynamic_pointer_cast<Base3DOverlay>(i.value());
+        if (thisOverlay && thisOverlay->getVisible() && !thisOverlay->getIgnoreRayIntersection() && thisOverlay->isLoaded()) {
             float thisDistance;
             BoxFace thisFace;
             QString thisExtraInfo;
@@ -483,7 +456,7 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
 
 bool Overlays::isLoaded(unsigned int id) {
     QReadLocker lock(&_lock);
-    Overlay* thisOverlay = NULL;
+    Overlay::Pointer thisOverlay = NULL;
     if (_overlaysHUD.contains(id)) {
         thisOverlay = _overlaysHUD[id];
     } else if (_overlaysWorld.contains(id)) {
@@ -495,16 +468,16 @@ bool Overlays::isLoaded(unsigned int id) {
 }
 
 QSizeF Overlays::textSize(unsigned int id, const QString& text) const {
-    Overlay* thisOverlay = _overlaysHUD[id];
+    Overlay::Pointer thisOverlay = _overlaysHUD[id];
     if (thisOverlay) {
         if (typeid(*thisOverlay) == typeid(TextOverlay)) {
-            return static_cast<TextOverlay*>(thisOverlay)->textSize(text);
+            return std::dynamic_pointer_cast<TextOverlay>(thisOverlay)->textSize(text);
         }
     } else {
         thisOverlay = _overlaysWorld[id];
         if (thisOverlay) {
             if (typeid(*thisOverlay) == typeid(Text3DOverlay)) {
-                return static_cast<Text3DOverlay*>(thisOverlay)->textSize(text);
+                return std::dynamic_pointer_cast<Text3DOverlay>(thisOverlay)->textSize(text);
             }
         }
     }
