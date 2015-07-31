@@ -143,10 +143,6 @@ void SendQueue::run() {
         // Record timing
         _lastSendTimestamp = high_resolution_clock::now();
         
-        qDebug() << _lastACKSequenceNumber
-            << (uint32_t) (_currentSequenceNumber + 1)
-            << seqlen(SequenceNumber { (uint32_t) _lastACKSequenceNumber }, _currentSequenceNumber + 1);
-        
         bool resentPacket = false;
         
         while (!resentPacket) {
@@ -195,10 +191,10 @@ void SendQueue::run() {
                 // break from the while, we didn't resend a packet
                 break;
             }
-        }        
+        }
         
         if (!resentPacket
-            && seqlen(SequenceNumber { (uint32_t) _lastACKSequenceNumber }, _currentSequenceNumber + 1) <= _flowWindowSize) {
+            && seqlen(SequenceNumber { (uint32_t) _lastACKSequenceNumber }, _currentSequenceNumber) <= _flowWindowSize) {
             
             // we didn't re-send a packet, so time to send a new one
             _packetsLock.lockForWrite();
