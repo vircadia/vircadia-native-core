@@ -49,9 +49,6 @@ public:
     int getPacketSendPeriod() const { return _packetSendPeriod; }
     void setPacketSendPeriod(int newPeriod) { _packetSendPeriod = newPeriod; }
     
-    // Send a packet through the socket
-    void sendPacket(const BasePacket& packet);
-    
 public slots:
     void stop();
     
@@ -69,6 +66,8 @@ private:
     SendQueue(Socket* socket, HifiSockAddr dest);
     SendQueue(SendQueue& other) = delete;
     SendQueue(SendQueue&& other) = delete;
+    
+    void sendPacket(const Packet& packet);
     
     // Increments current sequence number and return it
     SequenceNumber getNextSequenceNumber();

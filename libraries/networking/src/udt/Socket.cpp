@@ -74,6 +74,16 @@ void Socket::setSystemBufferSizes() {
     }
 }
 
+qint64 Socket::writeBasePacket(const udt::BasePacket& packet, const HifiSockAddr &sockAddr) {
+    // Since this is a base packet we have no way to know if this is reliable or not - we just fire it off
+    
+    // this should not be called with an instance of Packet
+    Q_ASSERT_X(!dynamic_cast<const Packet*>(&packet),
+               "Socket::writeBasePacket", "Cannot send a Packet/NLPacket via writeBasePacket");
+    
+    return writeDatagram(packet.getData(), packet.getDataSize(), sockAddr);
+}
+
 qint64 Socket::writePacket(const Packet& packet, const HifiSockAddr& sockAddr) {
     Q_ASSERT_X(!packet.isReliable(), "Socket::writePacket", "Cannot send a reliable packet unreliably");
     

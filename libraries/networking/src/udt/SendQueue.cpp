@@ -28,6 +28,8 @@ using namespace std::chrono;
 std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr dest) {
     auto queue = std::unique_ptr<SendQueue>(new SendQueue(socket, dest));
     
+    Q_ASSERT_X(socket, "SendQueue::create", "Must be called with a valid Socket*");
+    
     // Setup queue private thread
     QThread* thread = new QThread();
     thread->setObjectName("Networking: SendQueue " + dest.objectName()); // Name thread for easier debug
@@ -65,10 +67,8 @@ void SendQueue::stop() {
     _isRunning = false;
 }
     
-void SendQueue::sendPacket(const BasePacket& packet) {
-    if (_socket) {
-        _socket->writeDatagram(packet.getData(), packet.getDataSize(), _destination);
-    }
+void SendQueue::sendPacket(const Packet& packet) {
+    _socket->writeDatagram(packet.getData(), packet.getDataSize(), _destination);
 }
     
 void SendQueue::ack(SequenceNumber ack) {

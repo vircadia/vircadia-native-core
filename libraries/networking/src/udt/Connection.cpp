@@ -30,6 +30,8 @@ Connection::Connection(Socket* parentSocket, HifiSockAddr destination, unique_pt
     _destination(destination),
     _congestionControl(move(congestionControl))
 {
+    Q_ASSERT_X(socket, "Connection::Connection", "Must be called with a valid Socket*");
+    
     // setup default SYN, RTT and RTT Variance based on the SYN interval in CongestionControl object
     _synInterval = _congestionControl->synInterval();
     _rtt = _synInterval * 10;
@@ -132,8 +134,8 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
         lastACKSendTime = high_resolution_clock::now();
     }
     
-    // have the send queue send off our packet
-    _sendQueue->sendPacket(*ackPacket);
+    // have the socket send off our packet
+    _parentSocket->writeBasePacket(*ackPacket, _destination);
     
     // write this ACK to the map of sent ACKs
     _sentACKs[_currentACKSubSequenceNumber] = { nextACKNumber, currentTime };
@@ -162,8 +164,8 @@ void Connection::sendLightACK() {
     // pack in the ACK
     lightACKPacket->writePrimitive(nextACKNumber);
     
-    // have the send queue send off our packet immediately
-    _sendQueue->sendPacket(*lightACKPacket);
+    // have the socket send off our packet immediately
+    _parentSocket->writeBasePacket(*lightACKPacket, _destination);
     
     _stats.recordSentLightACK();
 }
@@ -197,8 +199,8 @@ void Connection::sendNAK(SequenceNumber sequenceNumberRecieved) {
         lossReport->writePrimitive(sequenceNumberRecieved - 1);
     }
     
-    // have the send queue send off our packet immediately
-    _sendQueue->sendPacket(*lossReport);
+    // have the parent socket send off our packet immediately
+    _parentSocket->writeBasePacket(*lossReport, _destination);
     
     // record our last NAK time
     _lastNAKTime = high_resolution_clock::now();
@@ -215,8 +217,8 @@ void Connection::sendTimeoutNAK() {
         // Pack in the lost sequence numbers
         _lossList.write(*lossListPacket);
         
-        // have our SendQueue send off this control packet
-        _sendQueue->sendPacket(*lossListPacket);
+        // have our parent socket send off this control packet
+        _parentSocket->writeBasePacket(*lossListPacket, _destination);
         
         // record this as the last NAK time
         _lastNAKTime = high_resolution_clock::now();
