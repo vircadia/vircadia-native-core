@@ -155,10 +155,13 @@ void SendQueue::run() {
             }
             
             // If there is no packet to resend, grab the next one in the list
-            if (!nextPacket && _packets.size() > 0) {
+            if (!nextPacket) {
                 QWriteLocker locker(&_packetsLock);
-                nextPacket.swap(_packets.front());
-                _packets.pop_front();
+                
+                if (_packets.size() > 0) {
+                    nextPacket.swap(_packets.front());
+                    _packets.pop_front();
+                }
             }
             
             if (nextPacket) {
@@ -194,8 +197,11 @@ void SendQueue::run() {
                     // we've detected we should send the second packet in a pair, do that now before sleeping
                     {
                         QWriteLocker locker(&_packetsLock);
-                        pairedPacket.swap(_packets.front());
-                        _packets.pop_front();
+                        
+                        if (_packets.size() > 0) {
+                            pairedPacket.swap(_packets.front());
+                            _packets.pop_front();
+                        }
                     }
                     
                     if (pairedPacket) {
