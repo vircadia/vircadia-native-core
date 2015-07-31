@@ -4693,16 +4693,33 @@ void Application::setFullscreen(const QScreen* target) {
     _window->showFullScreen();
 }
 
-void Application::unsetFullscreen() {
+void Application::unsetFullscreen(const QScreen* avoid) {
     _window->showNormal();
+    
+    QRect targetGeometry = _savedGeometry;
+    if (avoid != nullptr) {
+        QRect avoidGeometry = avoid->geometry();
+        if (avoidGeometry.contains(targetGeometry.topLeft())) {
+            QScreen* newTarget = primaryScreen();
+            if (newTarget == avoid) {
+                foreach(auto screen, screens()) {
+                    if (screen != avoid) {
+                        newTarget = screen;
+                        break;
+                    }
+                }
+            }
+            targetGeometry = newTarget->availableGeometry();
+        }
+    }
 #ifdef Q_OS_MAC
     QTimer* timer = new QTimer();
     timer->singleShot(2000, [=] {
-        _window->setGeometry(_savedGeometry);
+        _window->setGeometry(targetGeometry);
         timer->deleteLater();
     });
 #else
-    _window->setGeometry(_savedGeometry);
+    _window->setGeometry(targetGeometry);
 #endif
 }
 
