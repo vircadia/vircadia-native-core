@@ -31,7 +31,7 @@ std::unique_ptr<Packet> Packet::create(PacketType::Value type, qint64 size) {
     return packet;
 }
 
-std::unique_ptr<Packet> Packet::fromReceivedPacket(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr) {
+std::unique_ptr<Packet> Packet::fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr) {
     // Fail with invalid size
     Q_ASSERT(size >= 0);
 
@@ -82,7 +82,7 @@ Packet::Packet(PacketType::Value type, qint64 size) :
     }
 }
 
-Packet::Packet(std::unique_ptr<char> data, qint64 size, const HifiSockAddr& senderSockAddr) :
+Packet::Packet(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr) :
     _packetSize(size),
     _packet(std::move(data)),
     _senderSockAddr(senderSockAddr)
@@ -110,7 +110,7 @@ Packet& Packet::operator=(const Packet& other) {
     _type = other._type;
     
     _packetSize = other._packetSize;
-    _packet = std::unique_ptr<char>(new char[_packetSize]);
+    _packet = std::unique_ptr<char[]>(new char[_packetSize]);
     memcpy(_packet.get(), other._packet.get(), _packetSize);
 
     _payloadStart = _packet.get() + (other._payloadStart - other._packet.get());
