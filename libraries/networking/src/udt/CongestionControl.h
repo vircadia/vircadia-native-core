@@ -47,15 +47,16 @@ protected:
     void setMSS(int mss) { _mss = mss; }
     void setMaxCongestionWindowSize(int window) { _maxCongestionWindowSize = window; }
     void setBandwidth(int bandwidth) { _bandwidth = bandwidth; }
+    void setMaxBandwidth(int maxBandwidth) { _maxBandwidth = maxBandwidth; }
     void setSendCurrentSequenceNumber(SequenceNumber seqNum) { _sendCurrSeqNum = seqNum; }
     void setReceiveRate(int rate) { _receiveRate = rate; }
     void setRTT(int rtt) { _rtt = rtt; }
-    
     
     double _packetSendPeriod { 1.0 }; // Packet sending period, in microseconds
     double _congestionWindowSize { 16.0 }; // Congestion window size, in packets
     
     int _bandwidth { 0 }; // estimated bandwidth, packets per second
+    int _maxBandwidth { -1 }; // Maximum desired bandwidth, packets per second
     double _maxCongestionWindowSize { 0.0 }; // maximum cwnd size, in packets
     
     int _mss { 0 }; // Maximum Packet Size, including all packet headers
