@@ -51,6 +51,7 @@ protected:
     void setSendCurrentSequenceNumber(SequenceNumber seqNum) { _sendCurrSeqNum = seqNum; }
     void setReceiveRate(int rate) { _receiveRate = rate; }
     void setRTT(int rtt) { _rtt = rtt; }
+    void setPacketSendPeriod(double newSendPeriod); // call this internally to ensure send period doesn't go past max bandwidth
     
     double _packetSendPeriod { 1.0 }; // Packet sending period, in microseconds
     double _congestionWindowSize { 16.0 }; // Congestion window size, in packets
