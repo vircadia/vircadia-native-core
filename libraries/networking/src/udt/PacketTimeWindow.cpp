@@ -48,14 +48,15 @@ int32_t meanOfMedianFilteredValues(std::vector<int> intervals, int numValues, in
     int lowerBound = median / MEDIAN_FILTERING_BOUND_MULTIPLIER;
     
     for (auto& interval : intervals) {
-        if ((interval < upperBound) && interval > lowerBound) {
+        if ((interval < upperBound) && (interval > lowerBound)) {
             ++count;
             sum += interval;
         }
     }
     
     if (count >= valuesRequired) {
-        return (int32_t) ceil((double) USECS_PER_MSEC / ((double) sum) / ((double) count));
+        static const double USECS_PER_SEC = 1000000;
+        return (int32_t) ceil(USECS_PER_SEC / ((double) sum) / ((double) count));
     } else {
         return 0;
     }
