@@ -10,10 +10,13 @@
 #ifndef hifi_AnimNode_h
 #define hifi_AnimNode_h
 
+typedef float AnimPose;
+
 class AnimNode {
 public:
-    virtual float getEnd() const = 0;
-    virtual const AnimPose& evaluate(float t) = 0;
+    virtual ~AnimNode() {}
+
+    virtual const AnimPose& evaluate(float dt) = 0;
 };
 
 #endif // hifi_AnimNode_h
