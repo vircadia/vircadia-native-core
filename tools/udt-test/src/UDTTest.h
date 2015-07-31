@@ -27,6 +27,7 @@ public:
 
 public slots:
     void refillPacket() { sendPacket(); } // adds a new packet to the queue when we are told one is sent
+    void sampleStats();
     
 private:
     void parseArguments();

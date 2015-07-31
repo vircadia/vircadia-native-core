@@ -50,6 +50,13 @@ public:
         
         int retransmissions { 0 };
         int drops { 0 };
+       
+        // the following stats are trailing averages in the result, not totals
+        int receiveRate { 0 };
+        int estimatedBandwith { 0 };
+        int rtt { 0 };
+        int congestionWindowSize { 0 };
+        int packetSendPeriod { 0 };
     };
     
     ConnectionStats();
@@ -76,6 +83,12 @@ public:
     
     void recordRetransmition();
     void recordDrop();
+    
+    void recordReceiveRate(int sample);
+    void recordEstimatedBandwidth(int sample);
+    void recordRTT(int sample);
+    void recordCongestionWindowSize(int sample);
+    void recordPacketSendPeriod(int sample);
     
 private:
     Stats _currentSample;

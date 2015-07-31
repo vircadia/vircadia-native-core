@@ -135,3 +135,31 @@ void ConnectionStats::recordDrop() {
     ++_currentSample.drops;
     ++_total.drops;
 }
+
+static const double EWMA_CURRENT_SAMPLE_WEIGHT = 0.125;
+static const double EWMA_PREVIOUS_SAMPLES_WEIGHT = 1 - 0.125;
+
+void ConnectionStats::recordReceiveRate(int sample) {
+    _currentSample.receiveRate = sample;
+    _total.receiveRate = (_total.receiveRate * EWMA_PREVIOUS_SAMPLES_WEIGHT) + (sample * EWMA_CURRENT_SAMPLE_WEIGHT);
+}
+
+void ConnectionStats::recordEstimatedBandwidth(int sample) {
+    _currentSample.estimatedBandwith = sample;
+    _total.estimatedBandwith = (_total.estimatedBandwith * EWMA_PREVIOUS_SAMPLES_WEIGHT) + (sample * EWMA_CURRENT_SAMPLE_WEIGHT);
+}
+
+void ConnectionStats::recordRTT(int sample) {
+    _currentSample.rtt = sample;
+    _total.rtt = (_total.rtt * EWMA_PREVIOUS_SAMPLES_WEIGHT) + (sample * EWMA_CURRENT_SAMPLE_WEIGHT);
+}
+
+void ConnectionStats::recordCongestionWindowSize(int sample) {
+    _currentSample.congestionWindowSize = sample;
+    _total.congestionWindowSize = (_total.congestionWindowSize * EWMA_PREVIOUS_SAMPLES_WEIGHT) + (sample * EWMA_CURRENT_SAMPLE_WEIGHT);
+}
+
+void ConnectionStats::recordPacketSendPeriod(int sample) {
+    _currentSample.packetSendPeriod = sample;
+    _total.packetSendPeriod = (_total.packetSendPeriod * EWMA_PREVIOUS_SAMPLES_WEIGHT) + (sample * EWMA_CURRENT_SAMPLE_WEIGHT);
+}
