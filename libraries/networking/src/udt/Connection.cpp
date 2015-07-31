@@ -159,7 +159,7 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     _parentSocket->writeBasePacket(*ackPacket, _destination);
     
     // write this ACK to the map of sent ACKs
-    _sentACKs[_currentACKSubSequenceNumber] = { nextACKNumber, currentTime };
+    _sentACKs[_currentACKSubSequenceNumber] = { nextACKNumber, high_resolution_clock::now() };
     
     // reset the number of data packets received since last ACK
     _packetsSinceACK = 0;
