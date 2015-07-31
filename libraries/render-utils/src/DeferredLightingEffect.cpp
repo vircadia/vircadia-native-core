@@ -614,13 +614,8 @@ void DeferredLightingEffect::loadLightProgram(const char* vertSource, const char
     locations.texcoordMat = program->getUniforms().findLocation("texcoordMat");
     locations.coneParam = program->getUniforms().findLocation("coneParam");
 
-#if (GPU_FEATURE_PROFILE == GPU_CORE)
     locations.lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
     locations.atmosphereBufferUnit = program->getBuffers().findLocation("atmosphereBufferUnit");
-#else
-    locations.lightBufferUnit = program->getUniforms().findLocation("lightBuffer");
-    locations.atmosphereBufferUnit = program->getUniforms().findLocation("atmosphereBufferUnit");
-#endif
 
     auto state = std::make_shared<gpu::State>();
     if (lightVolume) {

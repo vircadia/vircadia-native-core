@@ -187,13 +187,9 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
     locations.specularTextureUnit = program->getTextures().findLocation("specularMap");
     locations.emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
 
-#if (GPU_FEATURE_PROFILE == GPU_CORE)
     locations.materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
     locations.lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
-#else
-    locations.materialBufferUnit = program->getUniforms().findLocation("materialBuffer");
-    locations.lightBufferUnit = program->getUniforms().findLocation("lightBuffer");
-#endif
+
     locations.clusterMatrices = program->getUniforms().findLocation("clusterMatrices");
 
     locations.clusterIndices = program->getInputs().findLocation("clusterIndices");;

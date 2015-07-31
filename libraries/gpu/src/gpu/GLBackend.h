@@ -27,7 +27,7 @@ class GLBackend : public Backend {
     friend class Context;
     static void init();
     static Backend* createBackend();
-    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings = Shader::BindingSet());
+    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings);
 
     explicit GLBackend(bool syncCache);
     GLBackend();
@@ -95,9 +95,9 @@ public:
 
 #if (GPU_TRANSFORM_PROFILE == GPU_CORE)
 #else
-        GLuint _transformObject_model = -1;
-        GLuint _transformCamera_viewInverse = -1;
-        GLuint _transformCamera_viewport = -1;
+        GLint _transformObject_model = -1;
+        GLint _transformCamera_viewInverse = -1;
+        GLint _transformCamera_viewport = -1;
 #endif
 
         GLShader();
