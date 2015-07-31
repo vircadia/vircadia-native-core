@@ -32,7 +32,7 @@ Connection::Connection(Socket* parentSocket, HifiSockAddr destination, unique_pt
 {
     Q_ASSERT_X(socket, "Connection::Connection", "Must be called with a valid Socket*");
     
-    Q_ASSERT_X(congestionControl, "Connection::Connection", "Must be called with a valid CongestionControl object");
+    Q_ASSERT_X(_congestionControl, "Connection::Connection", "Must be called with a valid CongestionControl object");
     congestionControl->init();
     
     // setup default SYN, RTT and RTT Variance based on the SYN interval in CongestionControl object
