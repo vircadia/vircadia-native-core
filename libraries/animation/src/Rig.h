@@ -145,7 +145,7 @@ public:
     glm::quat setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority, bool constrain = false);
     glm::vec3 getJointDefaultTranslationInConstrainedFrame(int jointIndex);
     glm::quat setJointRotationInConstrainedFrame(int jointIndex, glm::quat targetRotation,
-                                                 float priority, bool constrain = false);
+                                                 float priority, bool constrain = false, float mix = 1.0f);
     glm::quat getJointDefaultRotationInParentFrame(int jointIndex);
     void updateVisibleJointStates();
 

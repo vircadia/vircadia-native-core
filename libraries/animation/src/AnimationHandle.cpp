@@ -176,7 +176,9 @@ void AnimationHandle::applyFrame(float frameIndex) {
                                                      safeMix(floorFrame.rotations.at(i),
                                                              ceilFrame.rotations.at(i),
                                                              frameFraction),
-                                                     _priority);
+                                                     _priority,
+                                                     false,
+                                                     _mix);
         }
     }
 }

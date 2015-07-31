@@ -63,6 +63,7 @@ public:
 
     void setPriority(float priority);
     float getPriority() const { return _priority; }
+    void setMix(float mix) { _mix = mix; }
 
     void setMaskedJoints(const QStringList& maskedJoints);
     const QStringList& getMaskedJoints() const { return _maskedJoints; }
@@ -119,6 +120,7 @@ private:
     QString _role;
     QUrl _url;
     float _priority;
+    float _mix;
 
     QStringList _maskedJoints;
     QVector<int> _jointMappings;
