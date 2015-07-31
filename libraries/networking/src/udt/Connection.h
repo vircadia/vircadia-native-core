@@ -46,6 +46,8 @@ public:
     
     bool processReceivedSequenceNumber(SequenceNumber sequenceNumber); // returns indicates if this packet was a duplicate
     void processControl(std::unique_ptr<ControlPacket> controlPacket);
+    
+    ConnectionStats::Stats sampleStats() { return _stats.sample(); }
 
 signals:
     void packetSent();

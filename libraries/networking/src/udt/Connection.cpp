@@ -126,9 +126,17 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     ackPacket->writePrimitive((int32_t) udt::CONNECTION_RECEIVE_BUFFER_SIZE_PACKETS);
     
     if (wasCausedBySyncTimeout) {
+        // grab the up to date packet receive speed and estimated bandwidth
+        int32_t packetReceiveSpeed = _receiveWindow.getPacketReceiveSpeed();
+        int32_t estimatedBandwidth = _receiveWindow.getEstimatedBandwidth();
+        
+        // update those values in our connection stats
+        _stats.recordReceiveRate(packetReceiveSpeed);
+        _stats.recordEstimatedBandwidth(estimatedBandwidth);
+        
         // pack in the receive speed and estimatedBandwidth
-        ackPacket->writePrimitive(_receiveWindow.getPacketReceiveSpeed());
-        ackPacket->writePrimitive(_receiveWindow.getEstimatedBandwidth());
+        ackPacket->writePrimitive(packetReceiveSpeed);
+        ackPacket->writePrimitive(estimatedBandwidth);
         
         // record this as the last ACK send time
         lastACKSendTime = high_resolution_clock::now();
@@ -261,6 +269,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber) {
         _nakInterval = (_rtt + 4 * _rttVariance);
         
         int receivedPacketsPerSecond = _receiveWindow.getPacketReceiveSpeed();
+        
         if (receivedPacketsPerSecond > 0) {
             // the NAK interval is at least the _minNAKInterval
             // but might be the time required for all lost packets to be retransmitted
@@ -371,9 +380,11 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     // ACK the send queue so it knows what was received
     _sendQueue->ack(ack);
     
-    
     // update the RTT
     updateRTT(rtt);
+    
+    // write this RTT to stats
+    _stats.recordRTT(rtt);
     
     // set the RTT for congestion control
     _congestionControl->setRTT(_rtt);
@@ -386,6 +397,10 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
         // set the delivery rate and bandwidth for congestion control
         // these are calculated using an EWMA
         static const int EMWA_ALPHA_NUMERATOR = 8;
+        
+        // record these samples in connection stats
+        _stats.recordReceiveRate(receiveRate);
+        _stats.recordEstimatedBandwidth(bandwidth);
         
         _deliveryRate = (_deliveryRate * (EMWA_ALPHA_NUMERATOR - 1) + _deliveryRate) / EMWA_ALPHA_NUMERATOR;
         _bandwidth = (_bandwidth * (EMWA_ALPHA_NUMERATOR - 1) + _bandwidth) / EMWA_ALPHA_NUMERATOR;
@@ -515,4 +530,8 @@ void Connection::updateCongestionControlAndSendQueue(std::function<void ()> cong
     // now that we've update the congestion control, update the packet send period and flow window size
     _sendQueue->setPacketSendPeriod(_congestionControl->_packetSendPeriod);
     _sendQueue->setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
+    
+    // record connection stats
+    _stats.recordPacketSendPeriod(_congestionControl->_packetSendPeriod);
+    _stats.recordCongestionWindowSize(_congestionControl->_congestionWindowSize);
 }

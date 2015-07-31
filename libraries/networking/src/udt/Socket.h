@@ -63,6 +63,8 @@ public:
     void setCongestionControlFactory(std::unique_ptr<CongestionControlVirtualFactory> ccFactory);
     
     void connectToSendSignal(const HifiSockAddr& destinationAddr, QObject* receiver, const char* slot);
+    
+    void sampleAndPrintConnectionStats();
 
 private slots:
     void readPendingDatagrams();
