@@ -12,7 +12,7 @@
 #include <QVector>
 #include "VHACDUtil.h"
 
-const float collisionTetrahedronScale = 0.25f;
+const float COLLISION_TETRAHEDRON_SCALE = 0.25f;
 
 
 // FBXReader jumbles the order of the meshes by reading them back out of a hashtable.  This will put
@@ -132,9 +132,9 @@ void vhacd::VHACDUtil::fattenMeshes(const FBXMesh& mesh, FBXMesh& result,
         dropAmount = glm::max(glm::length(p1 - p0), dropAmount);
         dropAmount = glm::max(glm::length(p2 - p1), dropAmount);
         dropAmount = glm::max(glm::length(p0 - p2), dropAmount);
-        dropAmount *= collisionTetrahedronScale;
+        dropAmount *= COLLISION_TETRAHEDRON_SCALE;
 
-        glm::vec3 p3 = av - glm::vec3(0, dropAmount, 0);
+        glm::vec3 p3 = av - glm::vec3(0.0f, dropAmount, 0.0f);
         int index3 = result.vertices.size();
         result.vertices << p3; // add the new point to the result mesh
 
