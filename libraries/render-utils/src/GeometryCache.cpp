@@ -1040,8 +1040,9 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
         float vertexBuffer[vertices * FLOATS_PER_VERTEX] = {    
                             minCorner.x, minCorner.y,
                             maxCorner.x, minCorner.y,
+                            minCorner.x, maxCorner.y,
                             maxCorner.x, maxCorner.y,
-                            minCorner.x, maxCorner.y };
+        };
 
         const int NUM_COLOR_SCALARS_PER_QUAD = 4;
         int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
@@ -1057,7 +1058,7 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
 
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
-    batch.draw(gpu::QUADS, 4, 0);
+    batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
 }
 
 void GeometryCache::renderUnitCube(gpu::Batch& batch) {
@@ -1133,8 +1134,9 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
         float vertexBuffer[vertices * FLOATS_PER_VERTEX] = {    
                                                         minCorner.x, minCorner.y, texCoordMinCorner.x, texCoordMinCorner.y,
                                                         maxCorner.x, minCorner.y, texCoordMaxCorner.x, texCoordMinCorner.y,
+                                                        minCorner.x, maxCorner.y, texCoordMinCorner.x, texCoordMaxCorner.y,
                                                         maxCorner.x, maxCorner.y, texCoordMaxCorner.x, texCoordMaxCorner.y,
-                                                        minCorner.x, maxCorner.y, texCoordMinCorner.x, texCoordMaxCorner.y };
+        };
 
 
         const int NUM_COLOR_SCALARS_PER_QUAD = 4;
@@ -1151,7 +1153,7 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
 
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
-    batch.draw(gpu::QUADS, 4, 0);
+    batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
 }
 
 void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color, int id) {
@@ -1205,8 +1207,9 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, co
         float vertexBuffer[vertices * FLOATS_PER_VERTEX] = {    
                             minCorner.x, minCorner.y, minCorner.z,
                             maxCorner.x, minCorner.y, minCorner.z,
+                            minCorner.x, maxCorner.y, maxCorner.z,
                             maxCorner.x, maxCorner.y, maxCorner.z,
-                            minCorner.x, maxCorner.y, maxCorner.z };
+        };
 
         const int NUM_COLOR_SCALARS_PER_QUAD = 4;
         int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
@@ -1222,7 +1225,7 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, co
 
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
-    batch.draw(gpu::QUADS, 4, 0);
+    batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
 }
 
 void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, const glm::vec3& bottomLeft, 
@@ -1296,9 +1299,9 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, cons
 
 
         float vertexBuffer[vertices * FLOATS_PER_VERTEX] = {
-                                topLeft.x, topLeft.y, topLeft.z, texCoordTopLeft.x, texCoordTopLeft.y,
                                 bottomLeft.x, bottomLeft.y, bottomLeft.z, texCoordBottomLeft.x, texCoordBottomLeft.y,
                                 bottomRight.x, bottomRight.y, bottomRight.z, texCoordBottomRight.x, texCoordBottomRight.y,
+                                topLeft.x, topLeft.y, topLeft.z, texCoordTopLeft.x, texCoordTopLeft.y,
                                 topRight.x, topRight.y, topRight.z, texCoordTopRight.x, texCoordTopRight.y,
                             };
 
@@ -1315,7 +1318,7 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, cons
 
     batch.setInputFormat(details.streamFormat);
     batch.setInputStream(0, *details.stream);
-    batch.draw(gpu::QUADS, 4, 0);
+    batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
 }
 
 void GeometryCache::renderDashedLine(gpu::Batch& batch, const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id) {

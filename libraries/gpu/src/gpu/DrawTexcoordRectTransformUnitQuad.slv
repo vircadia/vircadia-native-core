@@ -19,7 +19,7 @@
 
 uniform vec4 texcoordRect;
 
-varying vec2 varTexcoord;
+out vec2 varTexcoord;
 
 void main(void) {
     const vec4 UNIT_QUAD[4] = vec4[4](

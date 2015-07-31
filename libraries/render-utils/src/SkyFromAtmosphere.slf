@@ -33,16 +33,16 @@
 // Copyright (c) 2004 Sean O'Neil
 //
 
-uniform vec3 v3CameraPos;		// The camera's current position
-uniform vec3 v3InvWavelength;	// 1 / pow(wavelength, 4) for the red, green, and blue channels
-uniform float fInnerRadius;		// The inner (planetary) radius
-uniform float fKrESun;			// Kr * ESun
-uniform float fKmESun;			// Km * ESun
-uniform float fKr4PI;			// Kr * 4 * PI
-uniform float fKm4PI;			// Km * 4 * PI
-uniform float fScale;			// 1 / (fOuterRadius - fInnerRadius)
-uniform float fScaleDepth;		// The scale depth (i.e. the altitude at which the atmosphere's average density is found)
-uniform float fScaleOverScaleDepth;	// fScale / fScaleDepth
+uniform vec3 v3CameraPos;        // The camera's current position
+uniform vec3 v3InvWavelength;    // 1 / pow(wavelength, 4) for the red, green, and blue channels
+uniform float fInnerRadius;        // The inner (planetary) radius
+uniform float fKrESun;            // Kr * ESun
+uniform float fKmESun;            // Km * ESun
+uniform float fKr4PI;            // Kr * 4 * PI
+uniform float fKm4PI;            // Km * 4 * PI
+uniform float fScale;            // 1 / (fOuterRadius - fInnerRadius)
+uniform float fScaleDepth;        // The scale depth (i.e. the altitude at which the atmosphere's average density is found)
+uniform float fScaleOverScaleDepth;    // fScale / fScaleDepth
 
 const int nSamples = 2;
 const float fSamples = 2.0;
@@ -51,7 +51,8 @@ uniform vec3 v3LightPos;
 uniform float g;
 uniform float g2;
 
-varying vec3 position;
+in vec3 position;
+out vec4 outFragColor;
 
 
 float scale(float fCos)
@@ -97,7 +98,7 @@ void main (void)
         v3SamplePoint += v3SampleRay;
     }
     
-    // Finally, scale the Mie and Rayleigh colors and set up the varying variables for the pixel shader
+    // Finally, scale the Mie and Rayleigh colors and set up the in variables for the pixel shader
     vec3 secondaryFrontColor = v3FrontColor * fKmESun;
     vec3 frontColor = v3FrontColor * (v3InvWavelength * fKrESun);
     vec3 v3Direction = v3CameraPos - v3Pos;
@@ -106,6 +107,6 @@ void main (void)
     float fMiePhase = 1.5 * ((1.0 - g2) / (2.0 + g2)) * (1.0 + fCos*fCos) / pow(1.0 + g2 - 2.0*g*fCos, 1.5);
     
     vec3 finalColor = frontColor.rgb + fMiePhase * secondaryFrontColor.rgb;
-    gl_FragColor.a = finalColor.b;
-    gl_FragColor.rgb = pow(finalColor.rgb, vec3(1.0/2.2));
+    outFragColor.a = finalColor.b;
+    outFragColor.rgb = pow(finalColor.rgb, vec3(1.0/2.2));
 }

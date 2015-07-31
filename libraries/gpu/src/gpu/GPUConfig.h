@@ -21,8 +21,8 @@
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
 
-#define GPU_FEATURE_PROFILE GPU_LEGACY
-#define GPU_TRANSFORM_PROFILE GPU_LEGACY
+#define GPU_FEATURE_PROFILE GPU_CORE
+#define GPU_TRANSFORM_PROFILE GPU_CORE
 
 #elif defined(WIN32)
 #include <GL/glew.h>

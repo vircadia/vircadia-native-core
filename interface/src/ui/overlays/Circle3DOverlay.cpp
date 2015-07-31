@@ -145,7 +145,8 @@ void Circle3DOverlay::render(RenderArgs* args) {
             geometryCache->updateVertices(_quadVerticesID, points, color);
         }
         
-        geometryCache->renderVertices(batch, gpu::QUAD_STRIP, _quadVerticesID);
+        // FIXME CORE
+        // geometryCache->renderVertices(batch, gpu::QUAD_STRIP, _quadVerticesID);
         
     } else {
         if (_lineVerticesID == GeometryCache::UNKNOWN_ID) {
