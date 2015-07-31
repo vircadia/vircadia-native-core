@@ -49,7 +49,7 @@ UDTTest::UDTTest(int& argc, char** argv) :
     // randomize the seed for packet size randomization
     srand(time(NULL));
     
-    _socket.bind(QHostAddress::LocalHost, _argumentParser.value(PORT_OPTION).toUInt());
+    _socket.bind(QHostAddress::AnyIPv4, _argumentParser.value(PORT_OPTION).toUInt());
     qDebug() << "Test socket is listening on" << _socket.localPort();
     
     if (_argumentParser.isSet(TARGET_OPTION)) {
