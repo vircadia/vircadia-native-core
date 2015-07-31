@@ -31,6 +31,9 @@ std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr dest) 
     // Setup queue private thread
     QThread* thread = new QThread();
     thread->setObjectName("Networking: SendQueue " + dest.objectName()); // Name thread for easier debug
+    
+    connect(thread, &QThread::started, queue.get(), &SendQueue::run);
+    
     connect(queue.get(), &QObject::destroyed, thread, &QThread::quit); // Thread auto cleanup
     connect(thread, &QThread::finished, thread, &QThread::deleteLater); // Thread auto cleanup
     
@@ -45,7 +48,7 @@ SendQueue::SendQueue(Socket* socket, HifiSockAddr dest) :
     _socket(socket),
     _destination(dest)
 {
-    _packetSendPeriod = DEFAULT_SEND_PERIOD;
+
 }
 
 void SendQueue::queuePacket(std::unique_ptr<Packet> packet) {
@@ -53,8 +56,8 @@ void SendQueue::queuePacket(std::unique_ptr<Packet> packet) {
         QWriteLocker locker(&_packetsLock);
         _packets.push_back(std::move(packet));
     }
-    if (!_isRunning) {
-        run();
+    if (!this->thread()->isRunning()) {
+        this->thread()->start();
     }
 }
 
@@ -116,13 +119,6 @@ SequenceNumber SendQueue::getNextSequenceNumber() {
 }
 
 void SendQueue::run() {
-    
-    // We need to make sure this is called on the right thread
-    if (thread() != QThread::currentThread()) {
-        QMetaObject::invokeMethod(this, "run", Qt::QueuedConnection);
-        return;
-    }
-    
     _isRunning = true;
     
     while (_isRunning) {
@@ -166,7 +162,6 @@ void SendQueue::run() {
             }
             
             if (nextPacket) {
-                qDebug() << "the next packet is" << nextPacket->getDataSize() << "bytes";
                 bool shouldSendSecondOfPair = false;
                 
                 if (!hasResend) {
@@ -183,11 +178,13 @@ void SendQueue::run() {
                 nextPacket->writeSequenceNumber(sequenceNumber);
                 sendPacket(*nextPacket);
                 
-                // Insert the packet we have just sent in the sent list
-                QWriteLocker locker(&_sentLock);
-                _sentPackets[nextPacket->getSequenceNumber()].swap(nextPacket);
-                Q_ASSERT_X(!nextPacket,
-                           "SendQueue::sendNextPacket()", "Overriden packet in sent list");
+                {
+                    // Insert the packet we have just sent in the sent list
+                    QWriteLocker locker(&_sentLock);
+                    _sentPackets[nextPacket->getSequenceNumber()].swap(nextPacket);
+                    Q_ASSERT_X(!nextPacket,
+                               "SendQueue::sendNextPacket()", "Overriden packet in sent list");
+                }
                 
                 emit packetSent();
                 
@@ -206,18 +203,18 @@ void SendQueue::run() {
                         pairedPacket->writeSequenceNumber(getNextSequenceNumber());
                         sendPacket(*pairedPacket);
                         
-                        // add the paired packet to the sent list
-                        QWriteLocker locker(&_sentLock);
-                        _sentPackets[pairedPacket->getSequenceNumber()].swap(pairedPacket);
-                        Q_ASSERT_X(!pairedPacket,
-                                   "SendQueue::sendNextPacket()", "Overriden packet in sent list");
+                        {
+                            // add the paired packet to the sent list
+                            QWriteLocker locker(&_sentLock);
+                            _sentPackets[pairedPacket->getSequenceNumber()].swap(pairedPacket);
+                            Q_ASSERT_X(!pairedPacket,
+                                       "SendQueue::sendNextPacket()", "Overriden packet in sent list");
+                        }
                         
                         emit packetSent();
                     }
                 }
             }
-            
-            
         }        
         
         // since we're a while loop, give the thread a chance to process events

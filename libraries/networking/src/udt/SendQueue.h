@@ -37,7 +37,7 @@ class SendQueue : public QObject {
     Q_OBJECT
     
 public:
-    static const int DEFAULT_SEND_PERIOD = 16 * 1000; // 16ms, in microseconds
+    static const int DEFAULT_SEND_PERIOD = 1; // in microseconds
     
     static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr dest);
     
@@ -86,7 +86,7 @@ private:
     SequenceNumber _currentSequenceNumber; // Last sequence number sent out
     std::atomic<uint32_t> _atomicCurrentSequenceNumber; // Atomic for last sequence number sent out
     
-    std::atomic<int> _packetSendPeriod { 0 }; // Interval between two packet send event in microseconds
+    std::atomic<int> _packetSendPeriod { DEFAULT_SEND_PERIOD }; // Interval between two packet send event in microseconds
     std::chrono::high_resolution_clock::time_point _lastSendTimestamp; // Record last time of packet departure
     std::atomic<bool> _isRunning { false };
     
