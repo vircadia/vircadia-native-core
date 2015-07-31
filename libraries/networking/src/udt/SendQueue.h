@@ -37,8 +37,6 @@ class SendQueue : public QObject {
     Q_OBJECT
     
 public:
-    static const int DEFAULT_SEND_PERIOD = 1; // in microseconds
-    
     static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr dest);
     
     void queuePacket(std::unique_ptr<Packet> packet);
@@ -86,11 +84,11 @@ private:
     SequenceNumber _currentSequenceNumber; // Last sequence number sent out
     std::atomic<uint32_t> _atomicCurrentSequenceNumber;// Atomic for last sequence number sent out
     
-    std::atomic<int> _packetSendPeriod { DEFAULT_SEND_PERIOD }; // Interval between two packet send event in microseconds
+    std::atomic<int> _packetSendPeriod; // Interval between two packet send event in microseconds, set from CC
     std::chrono::high_resolution_clock::time_point _lastSendTimestamp; // Record last time of packet departure
     std::atomic<bool> _isRunning { false };
     
-    std::atomic<int> _flowWindowSize { udt::MAX_PACKETS_IN_FLIGHT }; // Flow control window size (number of packets that can be on wire)
+    std::atomic<int> _flowWindowSize; // Flow control window size (number of packets that can be on wire) - set from CC
     
     mutable QReadWriteLock _naksLock; // Protects the naks list.
     LossList _naks; // Sequence numbers of packets to resend

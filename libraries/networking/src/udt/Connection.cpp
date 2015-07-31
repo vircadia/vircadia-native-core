@@ -52,6 +52,10 @@ void Connection::sendReliablePacket(unique_ptr<Packet> packet) {
         _sendQueue = SendQueue::create(_parentSocket, _destination);
         
         QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::packetSent);
+        
+        // set defaults on the send queue from our congestion control object
+        _sendQueue->setPacketSendPeriod(_congestionControl->_packetSendPeriod);
+        _sendQueue->setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
     }
     
     _sendQueue->queuePacket(move(packet));
