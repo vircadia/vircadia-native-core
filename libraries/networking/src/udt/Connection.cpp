@@ -422,8 +422,8 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
         _stats.recordReceiveRate(receiveRate);
         _stats.recordEstimatedBandwidth(bandwidth);
         
-        _deliveryRate = (_deliveryRate * (EMWA_ALPHA_NUMERATOR - 1) + _deliveryRate) / EMWA_ALPHA_NUMERATOR;
-        _bandwidth = (_bandwidth * (EMWA_ALPHA_NUMERATOR - 1) + _bandwidth) / EMWA_ALPHA_NUMERATOR;
+        _deliveryRate = (_deliveryRate * (EMWA_ALPHA_NUMERATOR - 1) + receiveRate) / EMWA_ALPHA_NUMERATOR;
+        _bandwidth = (_bandwidth * (EMWA_ALPHA_NUMERATOR - 1) + bandwidth) / EMWA_ALPHA_NUMERATOR;
         
         _congestionControl->setReceiveRate(_deliveryRate);
         _congestionControl->setBandwidth(_bandwidth);
