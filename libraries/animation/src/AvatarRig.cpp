@@ -20,13 +20,14 @@ void AvatarRig::updateJointState(int index, glm::mat4 parentTransform) {
     const FBXJoint& joint = state.getFBXJoint();
 
     // compute model transforms
-    int parentIndex = joint.parentIndex;
-    if (parentIndex == -1) {
+    if (index == _rootJointIndex) {
+        // we always zero-out the translation part of an avatar's root join-transform.
         state.computeTransform(parentTransform);
         clearJointTransformTranslation(index);
     } else {
         // guard against out-of-bounds access to _jointStates
-        if (joint.parentIndex >= 0 && joint.parentIndex < _jointStates.size()) {
+        int parentIndex = joint.parentIndex;
+        if (parentIndex >= 0 && parentIndex < _jointStates.size()) {
             const JointState& parentState = _jointStates.at(parentIndex);
             state.computeTransform(parentState.getTransform(), parentState.getTransformChanged());
         }
