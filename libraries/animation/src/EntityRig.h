@@ -22,6 +22,8 @@ class EntityRig : public Rig {
  public:
     ~EntityRig() {}
     virtual void updateJointState(int index, glm::mat4 parentTransform);
+    virtual void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation,
+                                 float scale, float priority) {}
 };
 
 #endif // hifi_EntityRig_h

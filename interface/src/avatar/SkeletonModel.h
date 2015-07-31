@@ -131,11 +131,6 @@ private:
     QHash<int, OrientationLineIDs> _jointOrientationLines;
     int _triangleFanID;
 
-    /// \param jointIndex index of joint in model
-    /// \param position position of joint in model-frame
-    /// \param rotation rotation of joint in model-frame
-    void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation);
-
     bool getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
 
     Avatar* _owningAvatar;
