@@ -63,6 +63,8 @@ private:
     void processNAK(std::unique_ptr<ControlPacket> controlPacket);
     void processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket);
     
+    
+    SendQueue& getSendQueue();
     SequenceNumber nextACK() const;
     void updateRTT(int rtt);
     

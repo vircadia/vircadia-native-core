@@ -44,9 +44,7 @@ Connection::~Connection() {
     }
 }
 
-void Connection::sendReliablePacket(unique_ptr<Packet> packet) {
-    Q_ASSERT_X(packet->isReliable(), "Connection::send", "Trying to send an unreliable packet reliably.");
-    
+SendQueue& Connection::getSendQueue() {
     if (!_sendQueue) {
         // Lasily create send queue
         _sendQueue = SendQueue::create(_parentSocket, _destination);
@@ -54,7 +52,12 @@ void Connection::sendReliablePacket(unique_ptr<Packet> packet) {
         QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::packetSent);
     }
     
-    _sendQueue->queuePacket(move(packet));
+    return *_sendQueue;
+}
+
+void Connection::sendReliablePacket(unique_ptr<Packet> packet) {
+    Q_ASSERT_X(packet->isReliable(), "Connection::send", "Trying to send an unreliable packet reliably.");
+    getSendQueue().queuePacket(move(packet));
 }
 
 void Connection::sync() {
@@ -129,7 +132,7 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     }
     
     // have the send queue send off our packet
-    _sendQueue->sendPacket(*ackPacket);
+    getSendQueue().sendPacket(*ackPacket);
     
     // write this ACK to the map of sent ACKs
     _sentACKs[_currentACKSubSequenceNumber] = { nextACKNumber, currentTime };
@@ -159,7 +162,7 @@ void Connection::sendLightACK() {
     lightACKPacket->writePrimitive(nextACKNumber);
     
     // have the send queue send off our packet immediately
-    _sendQueue->sendPacket(*lightACKPacket);
+    getSendQueue().sendPacket(*lightACKPacket);
     
     _stats.recordSentLightACK();
 }
@@ -194,7 +197,7 @@ void Connection::sendNAK(SequenceNumber sequenceNumberRecieved) {
     }
     
     // have the send queue send off our packet immediately
-    _sendQueue->sendPacket(*lossReport);
+    getSendQueue().sendPacket(*lossReport);
     
     // record our last NAK time
     _lastNAKTime = high_resolution_clock::now();
@@ -212,7 +215,7 @@ void Connection::sendTimeoutNAK() {
         _lossList.write(*lossListPacket);
         
         // have our SendQueue send off this control packet
-        _sendQueue->sendPacket(*lossListPacket);
+        getSendQueue().sendPacket(*lossListPacket);
         
         // record this as the last NAK time
         _lastNAKTime = high_resolution_clock::now();
@@ -337,7 +340,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     controlPacket->readPrimitive(&ack);
     
     // validate that this isn't a BS ACK
-    if (ack > _sendQueue->getCurrentSequenceNumber()) {
+    if (ack > getSendQueue().getCurrentSequenceNumber()) {
         // in UDT they specifically break the connection here - do we want to do anything?
         Q_ASSERT_X(true, "Connection::processACK", "ACK recieved higher than largest sent sequence number");
         return;
@@ -363,7 +366,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     _lastReceivedACK = ack;
     
     // ACK the send queue so it knows what was received
-    _sendQueue->ack(ack);
+    getSendQueue().ack(ack);
     
     
     // update the RTT
@@ -455,7 +458,7 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
     }
     
     // send that off to the send queue so it knows there was loss
-    _sendQueue->nak(start, end);
+    getSendQueue().nak(start, end);
     
     // give the loss to the congestion control object and update the send queue parameters
     updateCongestionControlAndSendQueue([this, start, end](){
@@ -467,7 +470,7 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
 
 void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket) {
     // Override SendQueue's LossList with the timeout NAK list
-    _sendQueue->overrideNAKListFromPacket(*controlPacket);
+    getSendQueue().overrideNAKListFromPacket(*controlPacket);
     
     // we don't tell the congestion control object there was loss here - this matches UDTs implementation
     // a possible improvement would be to tell it which new loss this timeout packet told us about
@@ -501,12 +504,12 @@ int Connection::estimatedTimeout() const {
 
 void Connection::updateCongestionControlAndSendQueue(std::function<void ()> congestionCallback) {
     // update the last sent sequence number in congestion control
-    _congestionControl->setSendCurrentSequenceNumber(_sendQueue->getCurrentSequenceNumber());
+    _congestionControl->setSendCurrentSequenceNumber(getSendQueue().getCurrentSequenceNumber());
     
     // fire congestion control callback
     congestionCallback();
     
     // now that we've update the congestion control, update the packet send period and flow window size
-    _sendQueue->setPacketSendPeriod(_congestionControl->_packetSendPeriod);
-    _sendQueue->setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
+    getSendQueue().setPacketSendPeriod(_congestionControl->_packetSendPeriod);
+    getSendQueue().setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
 }
