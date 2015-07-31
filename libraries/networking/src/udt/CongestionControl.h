@@ -37,7 +37,7 @@ public:
 
     virtual void init() {}
     virtual void close() {}
-    virtual void onAck(SequenceNumber ackNum) {}
+    virtual void onACK(SequenceNumber ackNum) {}
     virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {}
     
 protected:

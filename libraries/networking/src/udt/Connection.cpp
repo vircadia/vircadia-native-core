@@ -431,7 +431,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     
     // give this ACK to the congestion control and update the send queue parameters
     updateCongestionControlAndSendQueue([this, ack](){
-        _congestionControl->onAck(ack);
+        _congestionControl->onACK(ack);
     });
     
     // update the total count of received ACKs
