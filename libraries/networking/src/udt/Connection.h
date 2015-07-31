@@ -100,10 +100,10 @@ private:
     HifiSockAddr _destination;
     
     PacketTimeWindow _receiveWindow { 16, 64 }; // Window of interval between packets (16) and probes (64) for bandwidth and receive speed
-    
-    std::unique_ptr<SendQueue> _sendQueue;
-    
+   
     std::unique_ptr<CongestionControl> _congestionControl;
+    
+    std::unique_ptr<SendQueue> _sendQueue;    
     
     // Data packet stat collection
     int _totalReceivedDataPackets { 0 };

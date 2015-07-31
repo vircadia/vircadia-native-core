@@ -30,6 +30,8 @@ Connection::Connection(Socket* parentSocket, HifiSockAddr destination, unique_pt
     _destination(destination),
     _congestionControl(move(congestionControl))
 {
+    Q_ASSERT_X(socket, "Connection::Connection", "Must be called with a valid Socket*");
+    
     // setup default SYN, RTT and RTT Variance based on the SYN interval in CongestionControl object
     _synInterval = _congestionControl->synInterval();
     _rtt = _synInterval * 10;
@@ -50,6 +52,10 @@ SendQueue& Connection::getSendQueue() {
         _sendQueue = SendQueue::create(_parentSocket, _destination);
         
         QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::packetSent);
+        
+        // set defaults on the send queue from our congestion control object
+        _sendQueue->setPacketSendPeriod(_congestionControl->_packetSendPeriod);
+        _sendQueue->setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
     }
     
     return *_sendQueue;
@@ -131,8 +137,8 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
         lastACKSendTime = high_resolution_clock::now();
     }
     
-    // have the send queue send off our packet
-    getSendQueue().sendPacket(*ackPacket);
+    // have the socket send off our packet
+    _parentSocket->writeBasePacket(*ackPacket, _destination);
     
     // write this ACK to the map of sent ACKs
     _sentACKs[_currentACKSubSequenceNumber] = { nextACKNumber, currentTime };
@@ -161,8 +167,8 @@ void Connection::sendLightACK() {
     // pack in the ACK
     lightACKPacket->writePrimitive(nextACKNumber);
     
-    // have the send queue send off our packet immediately
-    getSendQueue().sendPacket(*lightACKPacket);
+    // have the socket send off our packet immediately
+    _parentSocket->writeBasePacket(*lightACKPacket, _destination);
     
     _stats.recordSentLightACK();
 }
@@ -196,8 +202,8 @@ void Connection::sendNAK(SequenceNumber sequenceNumberRecieved) {
         lossReport->writePrimitive(sequenceNumberRecieved - 1);
     }
     
-    // have the send queue send off our packet immediately
-    getSendQueue().sendPacket(*lossReport);
+    // have the parent socket send off our packet immediately
+    _parentSocket->writeBasePacket(*lossReport, _destination);
     
     // record our last NAK time
     _lastNAKTime = high_resolution_clock::now();
@@ -214,8 +220,8 @@ void Connection::sendTimeoutNAK() {
         // Pack in the lost sequence numbers
         _lossList.write(*lossListPacket);
         
-        // have our SendQueue send off this control packet
-        getSendQueue().sendPacket(*lossListPacket);
+        // have our parent socket send off this control packet
+        _parentSocket->writeBasePacket(*lossListPacket, _destination);
         
         // record this as the last NAK time
         _lastNAKTime = high_resolution_clock::now();

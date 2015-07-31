@@ -17,6 +17,17 @@ using namespace std::chrono;
 
 static const double USECS_PER_SECOND = 1000000.0;
 
+void CongestionControl::setPacketSendPeriod(double newSendPeriod) {
+    if (_maxBandwidth > 0) {
+        // anytime the packet send period is about to be increased, make sure it stays below the minimum period,
+        // calculated based on the maximum desired bandwidth
+        int minPacketSendPeriod = USECS_PER_SECOND / (double(_maxBandwidth) / _mss);
+        _packetSendPeriod = std::max(newSendPeriod, (double) minPacketSendPeriod);
+    } else {
+        _packetSendPeriod = newSendPeriod;
+    }
+}
+
 void DefaultCC::init() {
     _lastRCTime = high_resolution_clock::now();
     
@@ -111,7 +122,7 @@ void DefaultCC::onACK(SequenceNumber ackNum) {
         }
     }
     
-    _packetSendPeriod = (_packetSendPeriod * synInterval()) / (_packetSendPeriod * increase + synInterval());
+    setPacketSendPeriod((_packetSendPeriod * synInterval()) / (_packetSendPeriod * increase + synInterval()));
 }
 
 void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
