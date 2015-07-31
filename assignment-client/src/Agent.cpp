@@ -70,7 +70,7 @@ void Agent::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointe
             // pull out the piggybacked packet and create a new QSharedPointer<NLPacket> for it
             int piggyBackedSizeWithHeader = packet->getPayloadSize() - statsMessageLength;
             
-            std::unique_ptr<char> buffer = std::unique_ptr<char>(new char[piggyBackedSizeWithHeader]);
+            auto buffer = std::unique_ptr<char[]>(new char[piggyBackedSizeWithHeader]);
             memcpy(buffer.get(), packet->getPayload() + statsMessageLength, piggyBackedSizeWithHeader);
 
             auto newPacket = NLPacket::fromReceivedPacket(std::move(buffer), piggyBackedSizeWithHeader, packet->getSenderSockAddr());
