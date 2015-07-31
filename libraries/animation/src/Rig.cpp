@@ -390,7 +390,10 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 }
 
 void Rig::updateAnimations(float deltaTime, glm::mat4 parentTransform) {
+    int nAnimationsSoFar = 0;
     foreach (const AnimationHandlePointer& handle, _runningAnimations) {
+        handle->setMix(1.0f / ++nAnimationsSoFar);
+        handle->setPriority(1.0);
         handle->simulate(deltaTime);
     }
 
@@ -640,13 +643,13 @@ glm::vec3 Rig::getJointDefaultTranslationInConstrainedFrame(int jointIndex) {
     return _jointStates[jointIndex].getDefaultTranslationInConstrainedFrame();
 }
 
-glm::quat Rig::setJointRotationInConstrainedFrame(int jointIndex, glm::quat targetRotation, float priority, bool constrain) {
+glm::quat Rig::setJointRotationInConstrainedFrame(int jointIndex, glm::quat targetRotation, float priority, bool constrain, float mix) {
     glm::quat endRotation;
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return endRotation;
     }
     JointState& state = _jointStates[jointIndex];
-    state.setRotationInConstrainedFrame(targetRotation, priority, constrain);
+    state.setRotationInConstrainedFrame(targetRotation, priority, constrain, mix);
     endRotation = state.getRotationInConstrainedFrame();
     return endRotation;
 }
