@@ -17,7 +17,7 @@ using namespace udt;
 using namespace std;
 
 void LossList::append(SequenceNumber seq) {
-    assert(_lossList.back().second < seq);
+    assert(_lossList.empty() || _lossList.back().second < seq);
     
     if (getLength() > 0 && _lossList.back().second + 1 == seq) {
         ++_lossList.back().second;
